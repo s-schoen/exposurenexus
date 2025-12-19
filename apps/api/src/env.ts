@@ -3,7 +3,8 @@ import { z } from "zod/v4"
 
 export const env = createEnv({
   server: {
-    PORT: z.number().min(1).max(65535).default(3001)
+    PORT: z.number().min(1).max(65535).default(3001),
+    LOG_LEVEL: z.string().optional().default("info")
   },
 
   /**

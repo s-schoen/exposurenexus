@@ -1,6 +1,9 @@
 import { serve } from "@hono/node-server"
 import { Hono } from "hono"
 import { env } from "./env.js"
+import { createLogger } from "./logging.js"
+
+const logger = createLogger("main")
 
 const app = new Hono().basePath("/api")
 
@@ -14,6 +17,6 @@ serve(
     port: env.PORT
   },
   (info) => {
-    console.log(`Server is running on http://localhost:${info.port}`)
+    logger.info(`server is running on localhost:${info.port}`)
   }
 )
