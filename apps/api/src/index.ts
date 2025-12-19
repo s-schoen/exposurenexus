@@ -1,7 +1,8 @@
 import { serve } from "@hono/node-server"
 import { Hono } from "hono"
+import { env } from "./env.js"
 
-const app = new Hono()
+const app = new Hono().basePath("/api")
 
 app.get("/", (c) => {
   return c.text("Hello Hono!")
@@ -10,7 +11,7 @@ app.get("/", (c) => {
 serve(
   {
     fetch: app.fetch,
-    port: 3001
+    port: env.PORT
   },
   (info) => {
     console.log(`Server is running on http://localhost:${info.port}`)
