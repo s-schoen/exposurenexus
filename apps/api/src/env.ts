@@ -5,7 +5,11 @@ export const env = createEnv({
   server: {
     PORT: z.number().min(1).max(65535).default(3001),
     LOG_LEVEL: z.string().optional().default("info"),
-    API_TIMEOUT_MS: z.number().min(1).default(5000)
+    API_TIMEOUT_MS: z.number().min(1).default(5000),
+    AUTH_URL: z.url().default("http://localhost:3001"),
+
+    AUTH_SECRET: z.string().min(32),
+    DATABASE_URL: z.url()
   },
 
   /**
