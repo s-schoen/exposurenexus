@@ -27,7 +27,7 @@ app.use(accessLogger())
 app.use(secureHeaders())
 app.use("/api", timeout(env.API_TIMEOUT_MS))
 app.use(
-  "/api/auth/*",
+  "*",
   cors({
     origin: env.AUTH_URL,
     allowHeaders: ["Content-Type", "Authorization"],
