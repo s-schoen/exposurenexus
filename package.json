@@ -1,0 +1,13 @@
+{
+  "name": "openvlp",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev:ui": "pnpm --filter @openvlp/ui dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@10.26.1"
+}
