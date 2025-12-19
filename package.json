@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev:ui": "pnpm --filter @openvlp/ui dev"
+    "dev:ui": "pnpm --filter @openvlp/ui dev",
+    "dev:api": "pnpm --filter @openvlp/api dev"
   },
   "keywords": [],
   "author": "",
