@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "pnpm -r build",
     "dev:ui": "pnpm --filter @openvlp/ui dev",
     "dev:api": "pnpm --filter @openvlp/api dev"
   },

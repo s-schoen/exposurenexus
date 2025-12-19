@@ -1,0 +1,30 @@
+{
+  "name": "@openvlp/types",
+  "version": "0.1.0",
+  "description": "",
+  "type": "module",
+  "exports": {
+    "./api": {
+      "import": "./src/api/index.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "eslint src/** && prettier --check src/**",
+    "check:fix": "eslint --fix src/** && prettier --write src/**"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@10.26.1",
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "eslint": "^9.39.2",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.50.0"
+  }
+}
