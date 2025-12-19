@@ -12,9 +12,11 @@ import { registerErrorHandler } from "./lib/handler.js"
 import { migrateToLatest } from "./db/migration.js"
 import auth from "./routes/auth.js"
 import { authNAnnotate, authNRequire } from "./middleware/auth.js"
+import { createDefaultAdmin } from "./lib/auth.js"
 
 // apply database migrations
 await migrateToLatest()
+await createDefaultAdmin()
 
 const logger = createLogger("api")
 const app = new Hono().basePath("/api")
