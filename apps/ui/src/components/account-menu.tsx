@@ -21,7 +21,7 @@ export function AccountMenu() {
     await authClient.signOut({
       fetchOptions: {
         onSuccess: () => {
-          navigate({ to: "/login" })
+          navigate({ to: "/login", search: { redirect: "/" } })
         }
       }
     })
