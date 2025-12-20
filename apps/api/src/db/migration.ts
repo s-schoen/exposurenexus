@@ -1,11 +1,13 @@
 import { type Migration, type MigrationProvider, Migrator } from "kysely"
 import * as m1 from "./migrations/20251219-init-better-auth.js"
+import * as m2 from "./migrations/20251220-assets.js"
 import { db, logger } from "./index.js"
 
 class ManualMigrationProvider implements MigrationProvider {
   getMigrations(): Promise<Record<string, Migration>> {
     const migrations: Record<string, Migration> = {
-      "20251219-init-better-auth": { up: m1.up, down: m1.down }
+      "20251219-init-better-auth": { up: m1.up, down: m1.down },
+      "20251220-assets": { up: m2.up, down: m2.down }
     }
 
     return Promise.resolve(migrations)
@@ -35,6 +37,7 @@ export async function migrateToLatest() {
 
   if (error) {
     logger.error("failed to migrate")
+    logger.error(error)
     process.exit(1)
   }
 }

@@ -3,6 +3,7 @@ import { env } from "../env.js"
 import { Kysely, PostgresDialect } from "kysely"
 import { createLogger } from "../logging.js"
 import type { UserTable } from "./schema/auth.js"
+import type { AssetTable } from "./schema/asset.js"
 
 export const logger = createLogger("db")
 
@@ -13,6 +14,7 @@ export const pool = new Pool({
 
 export interface Database {
   user: UserTable
+  asset: AssetTable
 }
 
 const dialect = new PostgresDialect({

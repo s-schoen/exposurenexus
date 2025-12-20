@@ -6,6 +6,9 @@
   "exports": {
     "./api": {
       "import": "./src/api/index.ts"
+    },
+    "./model/asset": {
+      "import": "./src/model/asset.ts"
     }
   },
   "files": [

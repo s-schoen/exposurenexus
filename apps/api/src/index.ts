@@ -11,6 +11,7 @@ import { accessLogger } from "./middleware/logger.js"
 import { registerErrorHandler } from "./lib/handler.js"
 import { migrateToLatest } from "./db/migration.js"
 import auth from "./routes/auth.js"
+import asset from "./routes/assets.js"
 import { authNAnnotate, authNRequire } from "./middleware/auth.js"
 import { createDefaultAdmin } from "./lib/auth.js"
 
@@ -48,6 +49,7 @@ app.route("/auth", auth)
 
 // setup protected routes
 app.use("*", authNRequire())
+app.route("/assets", asset)
 
 serve(
   {
