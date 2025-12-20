@@ -6,10 +6,12 @@ import TanStackQueryDevtools from "../integrations/tanstack-query/devtools"
 
 import type { QueryClient } from "@tanstack/react-query"
 import type { AuthState } from "@/context/auth.tsx"
+import type { PageState } from "@/context/page.tsx"
 
 interface MyRouterContext {
   queryClient: QueryClient
   auth: AuthState
+  page: PageState
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({

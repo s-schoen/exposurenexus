@@ -9,6 +9,7 @@ import { routeTree } from "./routeTree.gen"
 
 import "./styles.css"
 import { AuthProvider, useAuth } from "@/context/auth.tsx"
+import { PageProvider, usePage } from "@/context/page.tsx"
 
 // Create a new router instance
 
@@ -18,7 +19,8 @@ const router = createRouter({
   context: {
     ...TanStackQueryProviderContext,
     // auth will be passed down from App component
-    auth: undefined!
+    auth: undefined!,
+    page: undefined!
   },
   defaultPreload: "intent",
   scrollRestoration: true,
@@ -48,13 +50,16 @@ if (rootElement && !rootElement.innerHTML) {
 
 function InnerApp() {
   const auth = useAuth()
-  return <RouterProvider router={router} context={{ auth }} />
+  const page = usePage()
+  return <RouterProvider router={router} context={{ auth, page }} />
 }
 
 function App() {
   return (
     <AuthProvider>
-      <InnerApp />
+      <PageProvider>
+        <InnerApp />
+      </PageProvider>
     </AuthProvider>
   )
 }
