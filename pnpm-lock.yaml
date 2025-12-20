@@ -74,6 +74,9 @@ importers:
       '@faker-js/faker':
         specifier: ^10.0.0
         version: 10.1.0
+      '@openvlp/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       '@radix-ui/react-avatar':
         specifier: ^1.1.11
         version: 1.1.11(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
