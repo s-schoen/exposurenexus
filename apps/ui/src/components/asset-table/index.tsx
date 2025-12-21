@@ -6,9 +6,17 @@ import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button.tsx"
 import { useNavigate } from "@tanstack/react-router"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
+import { useMutation } from "@tanstack/react-query"
+import { deleteAsset } from "@/api/asset.ts"
+import { toast } from "sonner"
 
 export function AssetTable() {
   const navigate = useNavigate()
+  const assetsQuery = useAssets()
+
+  const mutateDeleteAsset = useMutation({
+    mutationFn: (id: string) => deleteAsset(id)
+  })
 
   const handleOpenAsset = async (asset: Asset) => {
     await navigate({
@@ -22,14 +30,26 @@ export function AssetTable() {
   const handleDeleteAssets = async (assets: Asset[]) => {
     const confirmed = await ConfirmDialog.call({
       title: "Delete Assets",
-      description: "This action cannot be undone.",
+      description: "This action cannot be undone",
       message: `Are you sure you want to delete ${assets.length} asset(s)?`,
       confirmVariant: "destructive"
     })
 
     if (confirmed) {
-      // TODO: delete using API
-      console.log(assets)
+      let success = true
+      for (const asset of assets) {
+        try {
+          await mutateDeleteAsset.mutateAsync(asset.id)
+        } catch (error) {
+          success = false
+          toast.error(`Failed to delete asset ${asset.id}: ${error}`)
+          console.error(error)
+        }
+      }
+      if (success) {
+        toast.success(`Deleted ${assets.length} asset(s)!`)
+      }
+      await assetsQuery.refetch()
     }
   }
 
@@ -48,7 +68,7 @@ export function AssetTable() {
   return (
     <DataTable
       columns={columns}
-      query={useAssets()}
+      query={assetsQuery}
       onRowDoubleClick={handleOpenAsset}
       onRowDelete={handleDeleteAssets}
       toolbarControls={ToolbarElements()}
