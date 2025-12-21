@@ -25,14 +25,11 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select.tsx"
+import { capitalizeFirstLetter } from "@/lib/utils.ts"
 
 interface AssetDialogProps {}
 
 const formSchema = assetSchema.omit({ id: true })
-
-function capitalizeFirstLetter(val: string) {
-  return String(val).charAt(0).toUpperCase() + String(val).slice(1)
-}
 
 export const AssetDialog = ({
   call
