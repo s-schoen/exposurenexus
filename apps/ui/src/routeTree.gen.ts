@@ -12,7 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedFindingsIndexRouteImport } from './routes/_authenticated/findings/index'
 import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets/index'
+import { Route as AuthenticatedFindingsNewRouteImport } from './routes/_authenticated/findings/new'
+import { Route as AuthenticatedFindingsIdRouteImport } from './routes/_authenticated/findings/$id'
 import { Route as AuthenticatedAssetsIdRouteImport } from './routes/_authenticated/assets/$id'
 
 const LoginRoute = LoginRouteImport.update({
@@ -29,12 +32,29 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedFindingsIndexRoute =
+  AuthenticatedFindingsIndexRouteImport.update({
+    id: '/findings/',
+    path: '/findings/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAssetsIndexRoute =
   AuthenticatedAssetsIndexRouteImport.update({
     id: '/assets/',
     path: '/assets/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedFindingsNewRoute =
+  AuthenticatedFindingsNewRouteImport.update({
+    id: '/findings/new',
+    path: '/findings/new',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFindingsIdRoute = AuthenticatedFindingsIdRouteImport.update({
+  id: '/findings/$id',
+  path: '/findings/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAssetsIdRoute = AuthenticatedAssetsIdRouteImport.update({
   id: '/assets/$id',
   path: '/assets/$id',
@@ -45,13 +65,19 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/': typeof AuthenticatedIndexRoute
   '/assets/$id': typeof AuthenticatedAssetsIdRoute
+  '/findings/$id': typeof AuthenticatedFindingsIdRoute
+  '/findings/new': typeof AuthenticatedFindingsNewRoute
   '/assets': typeof AuthenticatedAssetsIndexRoute
+  '/findings': typeof AuthenticatedFindingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/': typeof AuthenticatedIndexRoute
   '/assets/$id': typeof AuthenticatedAssetsIdRoute
+  '/findings/$id': typeof AuthenticatedFindingsIdRoute
+  '/findings/new': typeof AuthenticatedFindingsNewRoute
   '/assets': typeof AuthenticatedAssetsIndexRoute
+  '/findings': typeof AuthenticatedFindingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,20 +85,40 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/assets/$id': typeof AuthenticatedAssetsIdRoute
+  '/_authenticated/findings/$id': typeof AuthenticatedFindingsIdRoute
+  '/_authenticated/findings/new': typeof AuthenticatedFindingsNewRoute
   '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
+  '/_authenticated/findings/': typeof AuthenticatedFindingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/login' | '/' | '/assets/$id' | '/assets'
+  fullPaths:
+    | '/login'
+    | '/'
+    | '/assets/$id'
+    | '/findings/$id'
+    | '/findings/new'
+    | '/assets'
+    | '/findings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/' | '/assets/$id' | '/assets'
+  to:
+    | '/login'
+    | '/'
+    | '/assets/$id'
+    | '/findings/$id'
+    | '/findings/new'
+    | '/assets'
+    | '/findings'
   id:
     | '__root__'
     | '/_authenticated'
     | '/login'
     | '/_authenticated/'
     | '/_authenticated/assets/$id'
+    | '/_authenticated/findings/$id'
+    | '/_authenticated/findings/new'
     | '/_authenticated/assets/'
+    | '/_authenticated/findings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -103,11 +149,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/findings/': {
+      id: '/_authenticated/findings/'
+      path: '/findings'
+      fullPath: '/findings'
+      preLoaderRoute: typeof AuthenticatedFindingsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/assets/': {
       id: '/_authenticated/assets/'
       path: '/assets'
       fullPath: '/assets'
       preLoaderRoute: typeof AuthenticatedAssetsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/findings/new': {
+      id: '/_authenticated/findings/new'
+      path: '/findings/new'
+      fullPath: '/findings/new'
+      preLoaderRoute: typeof AuthenticatedFindingsNewRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/findings/$id': {
+      id: '/_authenticated/findings/$id'
+      path: '/findings/$id'
+      fullPath: '/findings/$id'
+      preLoaderRoute: typeof AuthenticatedFindingsIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/assets/$id': {
@@ -123,13 +190,19 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAssetsIdRoute: typeof AuthenticatedAssetsIdRoute
+  AuthenticatedFindingsIdRoute: typeof AuthenticatedFindingsIdRoute
+  AuthenticatedFindingsNewRoute: typeof AuthenticatedFindingsNewRoute
   AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute
+  AuthenticatedFindingsIndexRoute: typeof AuthenticatedFindingsIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAssetsIdRoute: AuthenticatedAssetsIdRoute,
+  AuthenticatedFindingsIdRoute: AuthenticatedFindingsIdRoute,
+  AuthenticatedFindingsNewRoute: AuthenticatedFindingsNewRoute,
   AuthenticatedAssetsIndexRoute: AuthenticatedAssetsIndexRoute,
+  AuthenticatedFindingsIndexRoute: AuthenticatedFindingsIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

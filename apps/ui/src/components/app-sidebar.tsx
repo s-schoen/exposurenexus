@@ -1,4 +1,4 @@
-import { Home, Server } from "lucide-react"
+import { Home, Server, ShieldAlert } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -22,6 +22,11 @@ export function AppSidebar() {
       title: "Assets",
       url: "/assets",
       icon: Server
+    },
+    {
+      title: "Findings",
+      url: "/findings",
+      icon: ShieldAlert
     }
   ]
 
