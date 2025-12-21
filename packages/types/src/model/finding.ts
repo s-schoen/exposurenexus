@@ -19,15 +19,15 @@ export enum FindingStatus {
   Mitigated = "mitigated"
 }
 
-const findingSchema = z.strictObject({
+export const findingSchema = z.strictObject({
   id: z.uuidv4(),
   title: z.string().nonempty(),
   severity: z.enum(FindingSeverity),
   status: z.enum(FindingStatus),
-  description: z.string().optional(),
-  evidence: z.string().optional(),
-  mitigation: z.string().optional(),
-  source: z.string().optional(),
+  description: z.string().nullable(),
+  evidence: z.string().nullable(),
+  mitigation: z.string().nullable(),
+  source: z.string().nullable(),
   fingerprint: z.string(),
   assetId: z.uuidv4(),
   createdBy: z.uuidv4(),

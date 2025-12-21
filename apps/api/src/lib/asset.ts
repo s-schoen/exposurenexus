@@ -32,7 +32,7 @@ export async function createAsset(asset: Asset): Promise<Asset> {
     .returningAll()
     .executeTakeFirst()
 
-  return asset
+  return createdAsset!
 }
 
 export async function deleteAsset(id: string): Promise<Asset | null> {
