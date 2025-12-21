@@ -25,7 +25,10 @@ export async function getAsset(id: string): Promise<Asset | null> {
 export async function createAsset(asset: Asset): Promise<Asset> {
   const createdAsset = await db
     .insertInto("asset")
-    .values(asset)
+    .values({
+      name: asset.name,
+      type: asset.type
+    })
     .returningAll()
     .executeTakeFirst()
 
