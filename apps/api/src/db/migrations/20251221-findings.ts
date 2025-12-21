@@ -1,0 +1,67 @@
+import { Kysely, sql } from "kysely"
+
+export async function up(db: Kysely<any>): Promise<void> {
+  await db.schema
+    .createType("finding_severity")
+    .asEnum(["info", "low", "medium", "high", "critical"])
+    .execute()
+
+  await db.schema
+    .createType("finding_status")
+    .asEnum([
+      "active",
+      "inactive",
+      "confirmed",
+      "false_positive",
+      "risk_accepted",
+      "duplicate",
+      "out_of_scope",
+      "mitigated"
+    ])
+    .execute()
+
+  await db.schema
+    .createTable("finding")
+    .addColumn("id", "uuid", (col) =>
+      col
+        .primaryKey()
+        .notNull()
+        .defaultTo(sql`gen_random_uuid()`)
+    )
+    .addColumn("title", "text", (col) => col.notNull())
+    .addColumn("description", "text")
+    .addColumn("severity", sql`finding_severity`, (col) =>
+      col.notNull().defaultTo("info")
+    )
+    .addColumn("status", sql`finding_status`, (col) =>
+      col.notNull().defaultTo("active")
+    )
+    .addColumn("evidence", "text")
+    .addColumn("mitigation", "text")
+    .addColumn("source", "text")
+    .addColumn("firstSeen", "timestamptz", (col) => col.notNull())
+    .addColumn("lastSeen", "timestamptz", (col) =>
+      col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
+    )
+    .addColumn("fingerprint", "text", (col) => col.notNull())
+    .addColumn("createdAt", "timestamptz", (col) => col.notNull())
+    .addColumn("updatedAt", "timestamptz", (col) =>
+      col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
+    )
+    .addColumn("assetId", "uuid", (col) =>
+      col.notNull().references("asset.id").onDelete("cascade")
+    )
+    .addColumn("createdBy", "text", (col) =>
+      col.references("user.id").onDelete("set null")
+    )
+    .addColumn("updatedBy", "text", (col) =>
+      col.references("user.id").onDelete("set null")
+    )
+    .execute()
+}
+
+export async function down(db: Kysely<any>): Promise<void> {
+  await db.schema.dropTable("finding").execute()
+  await db.schema.dropType("finding_severity").execute()
+  await db.schema.dropType("finding_status").execute()
+}

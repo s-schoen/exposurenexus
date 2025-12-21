@@ -9,6 +9,9 @@
     },
     "./model/asset": {
       "import": "./src/model/asset.ts"
+    },
+    "./model/finding": {
+      "import": "./src/model/finding.ts"
     }
   },
   "files": [
