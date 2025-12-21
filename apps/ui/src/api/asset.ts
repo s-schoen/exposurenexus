@@ -1,4 +1,4 @@
-import type { Asset } from "@openvlp/types/model/asset"
+import { type Asset, AssetType } from "@openvlp/types/model/asset"
 import { env } from "@/env.ts"
 import {
   parseArrayReply,
@@ -40,6 +40,31 @@ export async function getAssetByID(id: string) {
   const response = await fetch(`${env.VITE_API_URL}/api/assets/${id}`, {
     method: "GET",
     credentials: "include"
+  })
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response)
+    console.error(error)
+    throw error
+  }
+
+  return parseObjectReply<Asset>(response)
+}
+
+export async function createAsset(
+  name: string,
+  type: AssetType
+): Promise<Asset> {
+  const response = await fetch(`${env.VITE_API_URL}/api/assets`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name,
+      type
+    })
   })
 
   if (!response.ok) {

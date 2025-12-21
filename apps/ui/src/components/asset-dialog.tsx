@@ -1,0 +1,154 @@
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog.tsx"
+import { Button } from "@/components/ui/button.tsx"
+import { createCallable, type ReactCall } from "react-call"
+import { type Asset, assetSchema, AssetType } from "@openvlp/types/model/asset"
+import { useForm } from "@tanstack/react-form"
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel
+} from "@/components/ui/field.tsx"
+import { Input } from "@/components/ui/input.tsx"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select.tsx"
+
+interface AssetDialogProps {}
+
+const formSchema = assetSchema.omit({ id: true })
+
+function capitalizeFirstLetter(val: string) {
+  return String(val).charAt(0).toUpperCase() + String(val).slice(1)
+}
+
+export const AssetDialog = ({
+  call
+}: ReactCall.Props<AssetDialogProps, Asset | null, {}>) => {
+  const form = useForm({
+    defaultValues: {
+      name: "",
+      type: AssetType.Host
+    },
+    validators: {
+      onSubmit: formSchema
+    },
+    onSubmit: ({ value }) => {
+      call.end({
+        id: "",
+        name: value.name,
+        type: value.type
+      })
+    }
+  })
+
+  return (
+    <Dialog open={!call.ended}>
+      <form
+        id="asset-form"
+        onSubmit={async (e) => {
+          e.preventDefault()
+          await form.handleSubmit()
+        }}
+      >
+        <DialogContent className="sm:max-w-106.25">
+          <DialogHeader>
+            <DialogTitle>Create Asset</DialogTitle>
+            <DialogDescription>Create a new asset</DialogDescription>
+          </DialogHeader>
+          <FieldGroup>
+            <form.Field
+              name="name"
+              children={(field) => {
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      aria-invalid={isInvalid}
+                      placeholder="Asset name"
+                      autoComplete="off"
+                    />
+                    {isInvalid && (
+                      <FieldError errors={field.state.meta.errors} />
+                    )}
+                  </Field>
+                )
+              }}
+            />
+            <form.Field
+              name="type"
+              children={(field) => {
+                return (
+                  <Field>
+                    <FieldLabel htmlFor={field.name}>Type</FieldLabel>
+                    <Select
+                      value={field.state.value}
+                      name={field.name}
+                      onValueChange={(e) => {
+                        field.handleChange(
+                          AssetType[e as keyof typeof AssetType]
+                        )
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select asset type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {Object.values(AssetType).map((t) => (
+                            <SelectItem key={t} value={t}>
+                              {capitalizeFirstLetter(t)}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                )
+              }}
+            />
+          </FieldGroup>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => call.end(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="asset-form"
+              onClick={() => form.handleSubmit()}
+            >
+              Create
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </form>
+    </Dialog>
+  )
+}
+
+// needed because of hot reload issues with react-call: https://github.com/desko27/react-call/issues/31
+const callable = createCallable(((props) => (
+  <AssetDialog {...props} />
+)) as typeof AssetDialog)
+AssetDialog.call = callable.call
+AssetDialog.Root = callable.Root
+AssetDialog.callable = callable

@@ -8,7 +8,7 @@ export enum AssetType {
 
 export const assetSchema = z.strictObject({
   id: z.uuidv4(),
-  name: z.string(),
+  name: z.string().nonempty(),
   type: z.enum(AssetType)
 })
 

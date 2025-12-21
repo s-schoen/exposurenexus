@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button.tsx"
 import { useNavigate } from "@tanstack/react-router"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { useMutation } from "@tanstack/react-query"
-import { deleteAsset } from "@/api/asset.ts"
+import { createAsset, deleteAsset } from "@/api/asset.ts"
 import { toast } from "sonner"
+import { AssetDialog } from "@/components/asset-dialog.tsx"
 
 export function AssetTable() {
   const navigate = useNavigate()
@@ -16,6 +17,13 @@ export function AssetTable() {
 
   const mutateDeleteAsset = useMutation({
     mutationFn: (id: string) => deleteAsset(id)
+  })
+  const mutateCreateAsset = useMutation({
+    mutationFn: (a: Asset) => createAsset(a.name, a.type),
+    onSuccess: async (createdAsset) => {
+      toast.success(`Created new asset ${createdAsset.name}`)
+      await assetsQuery.refetch()
+    }
   })
 
   const handleOpenAsset = async (asset: Asset) => {
@@ -53,12 +61,21 @@ export function AssetTable() {
     }
   }
 
+  const handleCreateAsset = async () => {
+    const assetToCreate = await AssetDialog.call({})
+
+    if (assetToCreate) {
+      await mutateCreateAsset.mutateAsync(assetToCreate)
+    }
+  }
+
   function ToolbarElements() {
     return (
       <Button
         variant="outline"
         size="sm"
         className="ml-auto hidden h-8 lg:flex"
+        onClick={handleCreateAsset}
       >
         <Plus />
       </Button>

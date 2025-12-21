@@ -6,6 +6,7 @@ import AppHeader from "@/components/app-header.tsx"
 import { Separator } from "@/components/ui/separator.tsx"
 import { usePage } from "@/context/page.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
+import { AssetDialog } from "@/components/asset-dialog.tsx"
 
 function Layout() {
   const { title } = usePage()
@@ -13,6 +14,7 @@ function Layout() {
   return (
     <>
       <ConfirmDialog.Root />
+      <AssetDialog.Root />
       <Toaster />
       <div className="antialiased h-dvh flex flex-col overflow-hidden">
         <header className="shrink-0">
