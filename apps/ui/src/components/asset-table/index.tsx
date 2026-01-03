@@ -1,30 +1,23 @@
 import { DataTable } from "@/components/data-table/data-table.tsx"
-import { useAssets } from "@/hooks/use-assets.ts"
 import { columns } from "@/components/asset-table/columns.tsx"
 import type { Asset } from "@openvlp/types/model/asset"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button.tsx"
 import { useNavigate } from "@tanstack/react-router"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
-import { useMutation } from "@tanstack/react-query"
-import { createAsset, deleteAsset } from "@/api/asset.ts"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import {
+  createAsset,
+  createListAssetsQueryOptions,
+  deleteAsset
+} from "@/api/asset.ts"
 import { toast } from "sonner"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
 
 export function AssetTable() {
   const navigate = useNavigate()
-  const assetsQuery = useAssets()
-
-  const mutateDeleteAsset = useMutation({
-    mutationFn: (id: string) => deleteAsset(id)
-  })
-  const mutateCreateAsset = useMutation({
-    mutationFn: (a: Asset) => createAsset(a.name, a.type),
-    onSuccess: async (createdAsset) => {
-      toast.success(`Created new asset ${createdAsset.name}`)
-      await assetsQuery.refetch()
-    }
-  })
+  const queryClient = useQueryClient()
+  const assetsQuery = useQuery(createListAssetsQueryOptions())
 
   const handleOpenAsset = async (asset: Asset) => {
     await navigate({
@@ -47,7 +40,7 @@ export function AssetTable() {
       let success = true
       for (const asset of assets) {
         try {
-          await mutateDeleteAsset.mutateAsync(asset.id)
+          await deleteAsset(asset.id)
         } catch (error) {
           success = false
           toast.error(`Failed to delete asset ${asset.id}: ${error}`)
@@ -57,7 +50,9 @@ export function AssetTable() {
       if (success) {
         toast.success(`Deleted ${assets.length} asset(s)!`)
       }
-      await assetsQuery.refetch()
+      queryClient.invalidateQueries({
+        queryKey: createListAssetsQueryOptions().queryKey
+      })
     }
   }
 
@@ -65,7 +60,16 @@ export function AssetTable() {
     const assetToCreate = await AssetDialog.call({})
 
     if (assetToCreate) {
-      await mutateCreateAsset.mutateAsync(assetToCreate)
+      try {
+        await createAsset(assetToCreate.name, assetToCreate.type)
+        toast.success(`Created new asset ${assetToCreate.name}`)
+        queryClient.invalidateQueries({
+          queryKey: createListAssetsQueryOptions().queryKey
+        })
+      } catch (error) {
+        toast.error(`Failed to create asset: ${error}`)
+        console.error(error)
+      }
     }
   }
 

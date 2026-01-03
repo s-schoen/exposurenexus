@@ -4,6 +4,8 @@ import type {
   APISingleDataReply
 } from "@openvlp/types/api"
 
+export const DEFAULT_QUERY_STALE_TIME = 1000 * 60 * 5
+
 export class APIError extends Error {
   statusCode: number
 

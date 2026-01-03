@@ -1,12 +1,14 @@
 import { env } from "@/env.ts"
 import {
+  DEFAULT_QUERY_STALE_TIME,
   parseArrayReply,
   parseErrorReply,
   parseObjectReply
 } from "@/api/common.ts"
 import type { Finding } from "@openvlp/types/model/finding"
+import { keepPreviousData } from "@tanstack/react-query"
 
-export async function listFindings(): Promise<Finding[]> {
+async function listFindings(): Promise<Finding[]> {
   const response = await fetch(`${env.VITE_API_URL}/api/findings`, {
     method: "GET",
     credentials: "include"
@@ -36,7 +38,7 @@ export async function deleteFinding(id: string): Promise<Finding> {
   return parseObjectReply<Finding>(response)
 }
 
-export async function getFindingByID(id: string) {
+async function getFindingByID(id: string) {
   const response = await fetch(`${env.VITE_API_URL}/api/findings/${id}`, {
     method: "GET",
     credentials: "include"
@@ -68,4 +70,20 @@ export async function createFinding(f: Finding): Promise<Finding> {
   }
 
   return parseObjectReply<Finding>(response)
+}
+
+export function createListFindingsQueryOptions() {
+  return {
+    queryKey: ["findings"],
+    queryFn: () => listFindings(),
+    placeholderData: keepPreviousData,
+    staleTime: DEFAULT_QUERY_STALE_TIME
+  }
+}
+
+export function createFindingByIDQueryOptions(id: string) {
+  return {
+    queryKey: ["findings", id],
+    queryFn: () => getFindingByID(id)
+  }
 }

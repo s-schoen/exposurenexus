@@ -1,12 +1,14 @@
 import { type Asset, AssetType } from "@openvlp/types/model/asset"
 import { env } from "@/env.ts"
 import {
+  DEFAULT_QUERY_STALE_TIME,
   parseArrayReply,
   parseErrorReply,
   parseObjectReply
 } from "@/api/common.ts"
+import { queryOptions, keepPreviousData } from "@tanstack/react-query"
 
-export async function listAssets(): Promise<Asset[]> {
+async function listAssets(): Promise<Asset[]> {
   const response = await fetch(`${env.VITE_API_URL}/api/assets`, {
     method: "GET",
     credentials: "include"
@@ -36,7 +38,7 @@ export async function deleteAsset(id: string): Promise<Asset> {
   return parseObjectReply<Asset>(response)
 }
 
-export async function getAssetByID(id: string) {
+async function getAssetByID(id: string): Promise<Asset> {
   const response = await fetch(`${env.VITE_API_URL}/api/assets/${id}`, {
     method: "GET",
     credentials: "include"
@@ -74,4 +76,20 @@ export async function createAsset(
   }
 
   return parseObjectReply<Asset>(response)
+}
+
+export function createListAssetsQueryOptions() {
+  return queryOptions({
+    queryKey: ["assets"],
+    queryFn: () => listAssets(),
+    placeholderData: keepPreviousData,
+    staleTime: DEFAULT_QUERY_STALE_TIME
+  })
+}
+
+export function createAssetByIDQueryOptions(id: string) {
+  return queryOptions({
+    queryKey: ["asset", id],
+    queryFn: () => getAssetByID(id)
+  })
 }

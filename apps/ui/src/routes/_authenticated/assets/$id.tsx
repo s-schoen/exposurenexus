@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useAssetByID } from "@/hooks/use-assets.ts"
 import {
   Card,
   CardContent,
@@ -17,6 +16,8 @@ import {
   TableRow
 } from "@/components/ui/table.tsx"
 import { capitalizeFirstLetter } from "@/lib/utils.ts"
+import { useQuery } from "@tanstack/react-query"
+import { createAssetByIDQueryOptions } from "@/api/asset.ts"
 
 export const Route = createFileRoute("/_authenticated/assets/$id")({
   component: RouteComponent
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/assets/$id")({
 
 function RouteComponent() {
   const { id } = Route.useParams()
-  const asset = useAssetByID(id)
+  const asset = useQuery(createAssetByIDQueryOptions(id))
 
   const page = usePage()
   page.setTitle("Asset details")

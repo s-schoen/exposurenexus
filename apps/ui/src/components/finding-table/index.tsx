@@ -4,19 +4,15 @@ import { columns } from "@/components/finding-table/columns.tsx"
 import { Button } from "@/components/ui/button.tsx"
 import { useNavigate } from "@tanstack/react-router"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
-import { useMutation } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { useFindings } from "@/hooks/use-findings.ts"
-import { deleteFinding } from "@/api/finding.ts"
+import { createListFindingsQueryOptions, deleteFinding } from "@/api/finding.ts"
 import type { Finding } from "@openvlp/types/model/finding"
 
 export function FindingTable() {
   const navigate = useNavigate()
-  const findingsQuery = useFindings()
-
-  const mutateDeleteFinding = useMutation({
-    mutationFn: (id: string) => deleteFinding(id)
-  })
+  const queryClient = useQueryClient()
+  const findingsQuery = useQuery(createListFindingsQueryOptions())
 
   const handleOpenFinding = async (finding: Finding) => {
     await navigate({
@@ -39,7 +35,7 @@ export function FindingTable() {
       let success = true
       for (const finding of findings) {
         try {
-          await mutateDeleteFinding.mutateAsync(finding.id)
+          await deleteFinding(finding.id)
         } catch (error) {
           success = false
           toast.error(`Failed to delete finding ${finding.id}: ${error}`)
@@ -49,7 +45,9 @@ export function FindingTable() {
       if (success) {
         toast.success(`Deleted ${findings.length} findings(s)!`)
       }
-      await findingsQuery.refetch()
+      queryClient.invalidateQueries({
+        queryKey: createListFindingsQueryOptions().queryKey
+      })
     }
   }
 
