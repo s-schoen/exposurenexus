@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator.tsx"
 import { usePage } from "@/context/page.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
-
+import { NuqsAdapter } from "nuqs/adapters/tanstack-router"
 function Layout() {
   const { title } = usePage()
 
@@ -27,7 +27,9 @@ function Layout() {
               <main className="flex-1 overflow-y-auto p-2 flex flex-col">
                 <span className="mt-1 text-2xl">{title}</span>
                 <Separator className="my-3" />
-                <Outlet />
+                <NuqsAdapter>
+                  <Outlet />
+                </NuqsAdapter>
               </main>
             </div>
           </SidebarProvider>
