@@ -1,9 +1,312 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from "@tanstack/react-router"
+import { usePage } from "@/context/page.tsx"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button.tsx"
+import {
+  type CreateFinding,
+  createFindingSchema,
+  FindingSeverity,
+  FindingStatus
+} from "@openvlp/types/model/finding"
+import { useForm } from "@tanstack/react-form"
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel
+} from "@/components/ui/field.tsx"
+import { Input } from "@/components/ui/input.tsx"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select.tsx"
+import { capitalizeFirstLetter } from "@/lib/utils.ts"
+import { AssetCombobox } from "@/components/asset-combobox.tsx"
+import { Textarea } from "@/components/ui/textarea.tsx"
+import { createFinding, createListFindingsQueryOptions } from "@/api/finding.ts"
+import { toast } from "sonner"
+import { useQueryClient } from "@tanstack/react-query"
 
-export const Route = createFileRoute('/_authenticated/findings/new')({
-  component: RouteComponent,
+export const Route = createFileRoute("/_authenticated/findings/new")({
+  component: RouteComponent
 })
 
 function RouteComponent() {
-  return <div>Hello "/_authenticated/findings/new"!</div>
+  const page = usePage()
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  page.setTitle("Create Finding")
+
+  const form = useForm({
+    defaultValues: {
+      title: "",
+      assetId: "",
+      severity: FindingSeverity.Medium,
+      status: FindingStatus.Active,
+      source: null,
+      description: null,
+      evidence: null,
+      mitigation: null
+    } as CreateFinding,
+    validators: {
+      onSubmit: createFindingSchema
+    },
+    onSubmit: async ({ value }) => {
+      console.log(value)
+      try {
+        await createFinding(value)
+        toast.success("Finding created")
+        queryClient.invalidateQueries({
+          queryKey: [createListFindingsQueryOptions().queryKey]
+        })
+        router.history.back()
+      } catch (error) {
+        toast.error(`Failed to create finding: ${error}`)
+        console.error(error)
+      }
+    }
+  })
+
+  const handleCancel = () => {
+    router.history.back()
+  }
+
+  return (
+    <div>
+      <form
+        id="create-finding-form"
+        onSubmit={(e) => {
+          e.preventDefault()
+          form.handleSubmit(e)
+        }}
+        className="flex flex-col gap-4"
+      >
+        <FieldGroup>
+          <Tabs defaultValue="general">
+            <TabsList>
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="details">Details</TabsTrigger>
+            </TabsList>
+            <TabsContent value="general" className="grid gap-2 grid-cols-2">
+              <form.Field
+                name="title"
+                children={(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid
+                  return (
+                    <Field data-invalid={isInvalid} className="col-span-2">
+                      <FieldLabel htmlFor={field.name}>Title</FieldLabel>
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        aria-invalid={isInvalid}
+                      />
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
+                    </Field>
+                  )
+                }}
+              />
+              <form.Field
+                name="assetId"
+                children={(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>
+                        Affected Asset
+                      </FieldLabel>
+                      <AssetCombobox
+                        onChange={(a) => field.handleChange(a.id)}
+                      />
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
+                    </Field>
+                  )
+                }}
+              />
+              <form.Field
+                name="severity"
+                children={(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>Severity</FieldLabel>
+                      <Select
+                        onValueChange={(value) =>
+                          field.handleChange(value as FindingSeverity)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select severity" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.values(FindingSeverity).map((sev) => (
+                            <SelectItem key={sev} value={sev}>
+                              {capitalizeFirstLetter(sev)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )
+                }}
+              />
+              <form.Field
+                name="status"
+                children={(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>Status</FieldLabel>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.values(FindingStatus).map((sev) => (
+                            <SelectItem key={sev} value={sev}>
+                              {capitalizeFirstLetter(sev)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )
+                }}
+              />
+              <form.Field
+                name="source"
+                children={(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>Source</FieldLabel>
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        value={field.state.value ?? ""}
+                        onBlur={field.handleBlur}
+                        onChange={(e) =>
+                          field.handleChange(e.target.value || null)
+                        }
+                        aria-invalid={isInvalid}
+                      />
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
+                    </Field>
+                  )
+                }}
+              />
+              <form.Field
+                name="description"
+                children={(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid
+                  return (
+                    <Field data-invalid={isInvalid} className="col-span-2">
+                      <FieldLabel htmlFor={field.name}>Description</FieldLabel>
+                      <Textarea
+                        id={field.name}
+                        name={field.name}
+                        value={field.state.value ?? ""}
+                        onBlur={field.handleBlur}
+                        onChange={(e) =>
+                          field.handleChange(e.target.value || null)
+                        }
+                        aria-invalid={isInvalid}
+                        className="h-64"
+                      />
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
+                    </Field>
+                  )
+                }}
+              />
+            </TabsContent>
+            <TabsContent value="details" className="flex flex-col gap-2">
+              <form.Field
+                name="evidence"
+                children={(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid
+                  return (
+                    <Field data-invalid={isInvalid} className="col-span-2">
+                      <FieldLabel htmlFor={field.name}>Evidence</FieldLabel>
+                      <Textarea
+                        id={field.name}
+                        name={field.name}
+                        value={field.state.value ?? ""}
+                        onBlur={field.handleBlur}
+                        onChange={(e) =>
+                          field.handleChange(e.target.value || null)
+                        }
+                        aria-invalid={isInvalid}
+                        className="h-32"
+                      />
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
+                    </Field>
+                  )
+                }}
+              />
+              <form.Field
+                name="mitigation"
+                children={(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid
+                  return (
+                    <Field data-invalid={isInvalid} className="col-span-2">
+                      <FieldLabel htmlFor={field.name}>Mitigation</FieldLabel>
+                      <Textarea
+                        id={field.name}
+                        name={field.name}
+                        value={field.state.value ?? ""}
+                        onBlur={field.handleBlur}
+                        onChange={(e) =>
+                          field.handleChange(e.target.value || null)
+                        }
+                        aria-invalid={isInvalid}
+                        className="h-32"
+                      />
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
+                    </Field>
+                  )
+                }}
+              />
+            </TabsContent>
+          </Tabs>
+        </FieldGroup>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="create-finding-form"
+            onClick={() => form.handleSubmit()}
+          >
+            Create
+          </Button>
+        </div>
+      </form>
+    </div>
+  )
 }
