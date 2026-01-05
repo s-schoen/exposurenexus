@@ -8,7 +8,10 @@ import {
   getFindingByID,
   listFindings
 } from "../lib/finding.js"
-import { findingSchema } from "@openvlp/types/model/finding"
+import {
+  createFindingSchema,
+  findingSchema
+} from "@openvlp/types/model/finding"
 import { auth } from "../lib/auth.js"
 
 const finding = new Hono()
@@ -31,47 +34,35 @@ finding.get("/:id", idParamValidator, async (c) => {
   return replyObject(c, findingResult!)
 })
 
-finding.post(
-  "/",
-  zValidator(
-    "json",
-    findingSchema.omit({
-      id: true,
-      createdAt: true,
-      updatedAt: true,
-      createdBy: true,
-      updatedBy: true,
-      fingerprint: true
-    })
-  ),
-  async (c) => {
-    const body = c.req.valid("json")
+finding.post("/", zValidator("json", createFindingSchema), async (c) => {
+  const body = c.req.valid("json")
 
-    const now = new Date()
+  const now = new Date()
 
-    // FIXME: register context types correctly
-    const user: typeof auth.$Infer.Session.session = c.get("user")
+  // FIXME: register context types correctly
+  const user: typeof auth.$Infer.Session.session = c.get("user")
 
-    const createdFinding = await createFinding({
-      id: "",
-      createdAt: now,
-      updatedAt: now,
-      assetId: body.assetId,
-      fingerprint: "",
-      description: body.description,
-      evidence: body.evidence,
-      mitigation: body.mitigation,
-      severity: body.severity,
-      source: body.source,
-      status: body.status,
-      title: body.title,
-      createdBy: user.id,
-      updatedBy: user.id
-    })
+  // TODO: calculate fingerprint
+  const createdFinding = await createFinding({
+    createdAt: now,
+    updatedAt: now,
+    firstSeen: now,
+    lastSeen: now,
+    assetId: body.assetId,
+    fingerprint: "",
+    description: body.description,
+    evidence: body.evidence,
+    mitigation: body.mitigation,
+    severity: body.severity,
+    source: body.source,
+    status: body.status,
+    title: body.title,
+    createdBy: user.id,
+    updatedBy: user.id
+  })
 
-    return replyObject(c, createdFinding, true)
-  }
-)
+  return replyObject(c, createdFinding, true)
+})
 
 finding.delete("/:id", idParamValidator, async (c) => {
   const params = c.req.valid("param")

@@ -28,6 +28,8 @@ export const findingSchema = z.strictObject({
   evidence: z.string().nullable(),
   mitigation: z.string().nullable(),
   source: z.string().nullable(),
+  firstSeen: z.date(),
+  lastSeen: z.date(),
   fingerprint: z.string(),
   assetId: z.uuidv4(),
   createdBy: z.uuidv4(),
@@ -36,4 +38,16 @@ export const findingSchema = z.strictObject({
   updatedAt: z.date()
 })
 
+export const createFindingSchema = findingSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  createdBy: true,
+  updatedBy: true,
+  fingerprint: true,
+  firstSeen: true,
+  lastSeen: true
+})
+
 export type Finding = z.infer<typeof findingSchema>
+export type CreateFinding = z.infer<typeof createFindingSchema>

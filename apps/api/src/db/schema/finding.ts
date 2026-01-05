@@ -13,6 +13,8 @@ export interface FindingTable {
   evidence: string | null
   mitigation: string | null
   source: string | null
+  firstSeen: Date | null
+  lastSeen: Date | null
   fingerprint: string
   createdAt: Date
   updatedAt: Date

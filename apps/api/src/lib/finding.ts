@@ -16,7 +16,9 @@ export async function getFindingByID(id: string): Promise<Finding | null> {
   return finding || null
 }
 
-export async function createFinding(finding: Finding): Promise<Finding> {
+export async function createFinding(
+  finding: Omit<Finding, "id">
+): Promise<Finding> {
   const createdFinding = await db
     .insertInto("finding")
     .values({
