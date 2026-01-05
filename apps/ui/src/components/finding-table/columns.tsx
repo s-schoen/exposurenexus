@@ -1,7 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
-import { capitalizeFirstLetter } from "@/lib/utils.ts"
 import type { Finding } from "@openvlp/types/model/finding"
+import { SeverityBadge } from "@/components/severity-badge.tsx"
 
 export const columns: ColumnDef<Finding>[] = [
   {
@@ -16,7 +16,7 @@ export const columns: ColumnDef<Finding>[] = [
       <DataTableColumnHeader column={column} title="Severity" />
     ),
     cell: ({ row }) => {
-      return <span>{capitalizeFirstLetter(row.getValue("severity"))}</span>
+      return <SeverityBadge severity={row.getValue("severity")} />
     }
   }
 ]

@@ -1,7 +1,8 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import type { Asset } from "@openvlp/types/model/asset"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
-import { capitalizeFirstLetter } from "@/lib/utils.ts"
+
+import { capitalizeFirstLetter } from "@/lib/format.ts"
 
 export const columns: ColumnDef<Asset>[] = [
   {

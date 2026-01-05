@@ -25,7 +25,8 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select.tsx"
-import { capitalizeFirstLetter } from "@/lib/utils.ts"
+
+import { capitalizeFirstLetter } from "@/lib/format.ts"
 
 interface AssetDialogProps {}
 

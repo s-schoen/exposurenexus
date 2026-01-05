@@ -23,12 +23,13 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select.tsx"
-import { capitalizeFirstLetter } from "@/lib/utils.ts"
 import { AssetCombobox } from "@/components/asset-combobox.tsx"
 import { Textarea } from "@/components/ui/textarea.tsx"
 import { createFinding, createListFindingsQueryOptions } from "@/api/finding.ts"
 import { toast } from "sonner"
 import { useQueryClient } from "@tanstack/react-query"
+import { formatFindingStatus } from "@/lib/format.ts"
+import { SeverityBadge } from "@/components/severity-badge.tsx"
 
 export const Route = createFileRoute("/_authenticated/findings/new")({
   component: RouteComponent
@@ -153,7 +154,7 @@ function RouteComponent() {
                         <SelectContent>
                           {Object.values(FindingSeverity).map((sev) => (
                             <SelectItem key={sev} value={sev}>
-                              {capitalizeFirstLetter(sev)}
+                              <SeverityBadge severity={sev} />
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -177,7 +178,7 @@ function RouteComponent() {
                         <SelectContent>
                           {Object.values(FindingStatus).map((sev) => (
                             <SelectItem key={sev} value={sev}>
-                              {capitalizeFirstLetter(sev)}
+                              {formatFindingStatus(sev)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -295,7 +296,7 @@ function RouteComponent() {
           </Tabs>
         </FieldGroup>
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={handleCancel}>
+          <Button variant="outline" type="button" onClick={handleCancel}>
             Cancel
           </Button>
           <Button

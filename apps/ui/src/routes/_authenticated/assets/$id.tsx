@@ -15,9 +15,9 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table.tsx"
-import { capitalizeFirstLetter } from "@/lib/utils.ts"
 import { useQuery } from "@tanstack/react-query"
 import { createAssetByIDQueryOptions } from "@/api/asset.ts"
+import { capitalizeFirstLetter } from "@/lib/format.ts"
 
 export const Route = createFileRoute("/_authenticated/assets/$id")({
   component: RouteComponent
