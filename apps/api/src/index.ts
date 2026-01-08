@@ -15,6 +15,7 @@ import asset from "./routes/assets.js"
 import { authNAnnotate, authNRequire } from "./middleware/auth.js"
 import { createDefaultAdmin } from "./lib/auth.js"
 import finding from "./routes/findings.js"
+import importer from "./routes/import.js"
 
 // apply database migrations
 await migrateToLatest()
@@ -52,6 +53,7 @@ app.route("/auth", auth)
 app.use("*", authNRequire())
 app.route("/assets", asset)
 app.route("/findings", finding)
+app.route("/findings", importer)
 
 serve(
   {

@@ -1,5 +1,10 @@
 import { z } from "zod/v4"
 
+export enum FindingSource {
+  Manual = "manual",
+  Nuclei = "nuclei"
+}
+
 export enum FindingSeverity {
   Info = "info",
   Low = "low",
