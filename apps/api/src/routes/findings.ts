@@ -2,31 +2,23 @@ import { Hono } from "hono"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
-import {
-  createFinding,
-  deleteFinding,
-  getFindingByID,
-  listFindings
-} from "../lib/finding.js"
-import {
-  createFindingSchema,
-  findingSchema
-} from "@openvlp/types/model/finding"
-import { auth } from "../lib/auth.js"
+import { createFindingSchema } from "@openvlp/types/model/finding"
+import * as findingService from "../service/finding.js"
+import type { User } from "better-auth"
 
 const finding = new Hono()
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
 
 finding.get("/", async (c) => {
-  const findings = await listFindings()
+  const findings = await findingService.listAll()
   return replyArray(c, findings)
 })
 
 finding.get("/:id", idParamValidator, async (c) => {
   const params = c.req.valid("param")
 
-  const findingResult = await getFindingByID(params.id)
+  const findingResult = await findingService.getByID(params.id)
   if (!findingResult) {
     notFound("finding", params.id)
   }
@@ -40,25 +32,11 @@ finding.post("/", zValidator("json", createFindingSchema), async (c) => {
   const now = new Date()
 
   // FIXME: register context types correctly
-  const user: typeof auth.$Infer.Session.session = c.get("user")
+  const user: User = c.get("user")
 
-  // TODO: calculate fingerprint
-  const createdFinding = await createFinding({
-    createdAt: now,
-    updatedAt: now,
-    firstSeen: now,
-    lastSeen: now,
-    assetId: body.assetId,
-    fingerprint: "",
-    description: body.description,
-    evidence: body.evidence,
-    mitigation: body.mitigation,
-    severity: body.severity,
-    source: body.source,
-    status: body.status,
-    title: body.title,
-    createdBy: user.id,
-    updatedBy: user.id
+  const createdFinding = await findingService.create({
+    finding: body,
+    user: user
   })
 
   return replyObject(c, createdFinding, true)
@@ -67,7 +45,7 @@ finding.post("/", zValidator("json", createFindingSchema), async (c) => {
 finding.delete("/:id", idParamValidator, async (c) => {
   const params = c.req.valid("param")
 
-  const deleted = await deleteFinding(params.id)
+  const deleted = await findingService.deleteByID(params.id)
   if (!deleted) {
     notFound("finding", params.id)
   }

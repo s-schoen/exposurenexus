@@ -2,9 +2,8 @@ import { Hono } from "hono"
 import { badRequest, replyObject } from "../lib/reply.js"
 import { createLogger } from "../logging.js"
 import { parseFindingsFromFile } from "../import/importer.js"
-import { db } from "../db/index.js"
-import { createFinding } from "../lib/finding.js"
-import { auth } from "../lib/auth.js"
+import * as findingService from "../service/finding.js"
+import type { User } from "better-auth"
 
 const logger = createLogger("findings/import")
 const importer = new Hono()
@@ -33,24 +32,14 @@ importer.post("/import", async (c) => {
 
   // save to database
   // FIXME: register context types correctly
-  const user: typeof auth.$Infer.Session.session = c.get("user")
-  const now = new Date()
+  const user: User = c.get("user")
 
-  // TODO: calculate fingerprint
-  await db.transaction().execute(async (trx) => {
-    for (const finding of findings) {
-      await createFinding({
-        createdAt: now,
-        updatedAt: now,
-        lastSeen: now,
-        firstSeen: now,
-        updatedBy: user.id,
-        createdBy: user.id,
-        fingerprint: "",
-        ...finding
-      })
-    }
-  })
+  for (const finding of findings) {
+    await findingService.create({
+      finding: finding,
+      user: user
+    })
+  }
 
   logger.info(`created ${findings.length} findings`)
 

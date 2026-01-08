@@ -1,12 +1,11 @@
 import type { Finding } from "@openvlp/types/model/finding"
 import { db } from "../db/index.js"
 
-export async function listFindings(): Promise<Finding[]> {
-  const data = await db.selectFrom("finding").selectAll().execute()
-  return Promise.resolve(data)
+export async function list(): Promise<Finding[]> {
+  return await db.selectFrom("finding").selectAll().execute()
 }
 
-export async function getFindingByID(id: string): Promise<Finding | null> {
+export async function getByID(id: string): Promise<Finding | null> {
   const finding = await db
     .selectFrom("finding")
     .selectAll()
@@ -16,9 +15,7 @@ export async function getFindingByID(id: string): Promise<Finding | null> {
   return finding || null
 }
 
-export async function createFinding(
-  finding: Omit<Finding, "id">
-): Promise<Finding> {
+export async function create(finding: Finding): Promise<Finding> {
   const createdFinding = await db
     .insertInto("finding")
     .values({
@@ -30,7 +27,7 @@ export async function createFinding(
   return createdFinding!
 }
 
-export async function deleteFinding(id: string): Promise<Finding | null> {
+export async function deleteByID(id: string): Promise<Finding | null> {
   const deletedFinding = await db
     .deleteFrom("finding")
     .where("id", "=", id)

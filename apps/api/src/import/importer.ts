@@ -1,13 +1,12 @@
 import {
   type CreateFinding,
-  type Finding,
   FindingSeverity,
   FindingSource,
   FindingStatus
 } from "@openvlp/types/model/finding"
 import { createLogger } from "../logging.js"
-import { db } from "../db/index.js"
-import { type Asset, AssetType } from "@openvlp/types/model/asset"
+import * as assetService from "../service/asset.js"
+import { AssetType } from "@openvlp/types/model/asset"
 
 const logger = createLogger("findings/import")
 
@@ -56,13 +55,7 @@ export async function parseNucleiFindings(
       }
 
       // check if asset with that name
-      const asset = await db
-        .selectFrom("asset")
-        .select("id")
-        .where("name", "=", host)
-        .where("type", "=", AssetType.Host)
-        .executeTakeFirst()
-
+      const asset = await assetService.getByName(host, AssetType.Host)
       if (!asset) {
         logger.warn(`no asset found for host ${host}. Skipping`)
         continue
