@@ -12,4 +12,7 @@ export const assetSchema = z.strictObject({
   type: z.enum(AssetType)
 })
 
+export const createAssetSchema = assetSchema.omit({ id: true })
+
 export type Asset = z.infer<typeof assetSchema>
+export type CreateAsset = z.infer<typeof createAssetSchema>

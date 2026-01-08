@@ -1,15 +1,12 @@
-import { createLogger } from "../logging.js"
-import type { Asset } from "@openvlp/types/model/asset"
+import { type Asset, AssetType } from "@openvlp/types/model/asset"
 import { db } from "../db/index.js"
 
-const logger = createLogger("assets")
-
-export async function listAssets(): Promise<Asset[]> {
+export async function list(): Promise<Asset[]> {
   const data = await db.selectFrom("asset").selectAll().execute()
   return Promise.resolve(data)
 }
 
-export async function getAsset(id: string): Promise<Asset | null> {
+export async function getByID(id: string): Promise<Asset | null> {
   const assets = await db
     .selectFrom("asset")
     .selectAll()
@@ -22,7 +19,20 @@ export async function getAsset(id: string): Promise<Asset | null> {
   return assets[0]
 }
 
-export async function createAsset(asset: Asset): Promise<Asset> {
+export async function getByName(
+  name: string,
+  type?: AssetType
+): Promise<Asset | null> {
+  let query = db.selectFrom("asset").selectAll().where("name", "=", name)
+  if (type) {
+    query = query.where("type", "=", type)
+  }
+
+  const asset = await query.executeTakeFirst()
+  return asset || null
+}
+
+export async function create(asset: Asset): Promise<Asset> {
   const createdAsset = await db
     .insertInto("asset")
     .values({
@@ -35,7 +45,7 @@ export async function createAsset(asset: Asset): Promise<Asset> {
   return createdAsset!
 }
 
-export async function deleteAsset(id: string): Promise<Asset | null> {
+export async function deleteByID(id: string): Promise<Asset | null> {
   const deletedAsset = await db
     .deleteFrom("asset")
     .where("id", "=", id)
