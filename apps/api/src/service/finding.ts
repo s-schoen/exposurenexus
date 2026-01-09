@@ -45,7 +45,6 @@ export async function create(opts: CreateFindingOptions): Promise<Finding> {
 
     // TODO: calculate fingerprint
     const created = await findingRepository.create({
-      id: "",
       createdAt: now,
       updatedAt: now,
       createdBy: opts.user.id,
