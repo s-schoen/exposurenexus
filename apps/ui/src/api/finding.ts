@@ -38,7 +38,7 @@ export async function deleteFinding(id: string): Promise<Finding> {
   return parseObjectReply<Finding>(response)
 }
 
-async function getFindingByID(id: string) {
+async function getFindingByID(id: string): Promise<Finding> {
   const response = await fetch(`${env.VITE_API_URL}/api/findings/${id}`, {
     method: "GET",
     credentials: "include"
