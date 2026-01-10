@@ -1,6 +1,10 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
-import type { Finding } from "@openvlp/types/model/finding"
+import {
+  type Finding,
+  FindingSeverity,
+  FindingStatus
+} from "@openvlp/types/model/finding"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
 import { formatFindingStatus } from "@/lib/format.ts"
 import { useQuery } from "@tanstack/react-query"
@@ -12,7 +16,8 @@ export const columns: ColumnDef<Finding>[] = [
     accessorKey: "title",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Title" />
-    )
+    ),
+    enableColumnFilter: false
   },
   {
     accessorKey: "severity",
@@ -21,6 +26,19 @@ export const columns: ColumnDef<Finding>[] = [
     ),
     cell: ({ row }) => {
       return <SeverityBadge severity={row.getValue("severity")} />
+    },
+    filterFn: (row, _columnId, filterValue) => {
+      console.log("FILTER", filterValue)
+      if (filterValue === undefined) return true
+      return row.getValue("severity") === filterValue
+    },
+    meta: {
+      label: "Severity",
+      filterVariant: "select",
+      options: Object.keys(FindingSeverity).map((severity) => ({
+        label: severity,
+        value: FindingSeverity[severity as keyof typeof FindingSeverity]
+      }))
     }
   },
   {
@@ -30,6 +48,14 @@ export const columns: ColumnDef<Finding>[] = [
     ),
     cell: ({ row }) => {
       return formatFindingStatus(row.getValue("status"))
+    },
+    meta: {
+      label: "Status",
+      filterVariant: "select",
+      options: Object.keys(FindingStatus).map((status) => ({
+        label: status,
+        value: FindingStatus[status as keyof typeof FindingStatus]
+      }))
     }
   },
   {
