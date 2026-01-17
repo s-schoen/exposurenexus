@@ -1,4 +1,8 @@
-import type { Finding } from "@openvlp/types/model/finding"
+import {
+  type Finding,
+  FindingSeverity,
+  FindingStatus
+} from "@openvlp/types/model/finding"
 import { db } from "../db/index.js"
 
 export async function list(): Promise<Finding[]> {
@@ -35,4 +39,21 @@ export async function deleteByID(id: string): Promise<Finding | null> {
     .executeTakeFirst()
 
   return deletedFinding || null
+}
+
+type FindingCountByField = "severity" | "status" | "assetId" | "source"
+
+export async function countBy(
+  field: FindingCountByField
+): Promise<Record<string, number>> {
+  const result = await db
+    .selectFrom("finding")
+    .select([`${field} as field`, db.fn.countAll().as("count")])
+    .groupBy(field)
+    .execute()
+
+  return result.reduce(
+    (acc, r) => ({ ...acc, [r.field || "null"]: Number(r.count) }),
+    {}
+  )
 }

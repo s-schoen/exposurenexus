@@ -54,5 +54,29 @@ export const createFindingSchema = findingSchema.omit({
   lastSeen: true
 })
 
+export const FindingStatistics = z.strictObject({
+  total: z.int(),
+  status: z.strictObject({
+    [FindingStatus.Active]: z.int(),
+    [FindingStatus.Inactive]: z.int(),
+    [FindingStatus.Confirmed]: z.int(),
+    [FindingStatus.FalsePositive]: z.int(),
+    [FindingStatus.RiskAccepted]: z.int(),
+    [FindingStatus.Duplicate]: z.int(),
+    [FindingStatus.OutOfScope]: z.int(),
+    [FindingStatus.Mitigated]: z.int()
+  }),
+  severity: z.strictObject({
+    [FindingSeverity.Info]: z.int(),
+    [FindingSeverity.Low]: z.int(),
+    [FindingSeverity.Medium]: z.int(),
+    [FindingSeverity.High]: z.int(),
+    [FindingSeverity.Critical]: z.int()
+  }),
+  source: z.record(z.string(), z.int()),
+  assets: z.record(z.uuidv4(), z.int())
+})
+
 export type Finding = z.infer<typeof findingSchema>
 export type CreateFinding = z.infer<typeof createFindingSchema>
+export type FindingStatistics = z.infer<typeof FindingStatistics>
