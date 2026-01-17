@@ -27,10 +27,9 @@ export const columns: ColumnDef<Finding>[] = [
     cell: ({ row }) => {
       return <SeverityBadge severity={row.getValue("severity")} />
     },
-    filterFn: (row, _columnId, filterValue) => {
-      console.log("FILTER", filterValue)
-      if (filterValue === undefined) return true
-      return row.getValue("severity") === filterValue
+    filterFn: (row, _columnId, filterValue: string[]) => {
+      if (filterValue === undefined || filterValue.length === 0) return true
+      return filterValue.includes(row.getValue("severity"))
     },
     meta: {
       label: "Severity",
@@ -48,6 +47,10 @@ export const columns: ColumnDef<Finding>[] = [
     ),
     cell: ({ row }) => {
       return formatFindingStatus(row.getValue("status"))
+    },
+    filterFn: (row, _columnId, filterValue: string[]) => {
+      if (filterValue === undefined || filterValue.length === 0) return true
+      return filterValue.includes(row.getValue("status"))
     },
     meta: {
       label: "Status",

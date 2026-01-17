@@ -14,11 +14,11 @@ import {
   CommandItem,
   CommandList
 } from "@/components/ui/command.tsx"
-import { useState, type MouseEvent, useEffect } from "react"
+import { useState, type MouseEvent, useMemo } from "react"
 import { cn } from "@/lib/utils.ts"
 import { Separator } from "@/components/ui/separator.tsx"
 import { Badge } from "@/components/ui/badge"
-import { useQueryState } from "nuqs"
+import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import type { SelectOption } from "@/components/data-table/types.ts"
 
 export interface FilterFieldProps<TData> {
@@ -26,39 +26,35 @@ export interface FilterFieldProps<TData> {
 }
 
 export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
-  const [query, setQuery] = useQueryState(column.id)
-  const [selectedOption, setSelectedOption] = useState<SelectOption | null>()
+  const [querySelectedOptionValues, setQuerySelectedOptionValues] =
+    useQueryState(column.id, parseAsArrayOf(parseAsString).withDefault([]))
   const [open, setOpen] = useState(false)
 
-  useEffect(() => {
-    if (query !== (selectedOption?.value || null)) {
-      if (!query) {
-        // reset filter
-        setSelectedOption(null)
-        column.setFilterValue(undefined)
-      } else {
-        // set filter for column
-        for (const opt of column.columnDef.meta!.options || []) {
-          if (opt.value === query) {
-            setSelectedOption(opt)
-            column.setFilterValue(opt.value)
-          }
-        }
-      }
-    }
-  }, [query, column])
+  const selectedOptions = useMemo(() => {
+    return (column.columnDef.meta!.options || []).filter((opt) =>
+      querySelectedOptionValues.includes(opt.value)
+    )
+  }, [querySelectedOptionValues, column.columnDef.meta])
 
   const handleClear = (event?: MouseEvent) => {
-    if (selectedOption) {
+    if (selectedOptions.length > 0) {
       // prevent command from opening
       event?.stopPropagation()
-      setQuery(null)
+      setQuerySelectedOptionValues(null)
     }
   }
 
   const handleSelectOption = (option: SelectOption) => {
-    setOpen(false)
-    setQuery(option.value)
+    let newSelection = []
+    if (selectedOptions.includes(option)) {
+      // deselect
+      newSelection = querySelectedOptionValues.filter((v) => v !== option.value)
+    } else {
+      // select
+      newSelection = [...querySelectedOptionValues, option.value]
+    }
+    setQuerySelectedOptionValues(newSelection)
+    column.setFilterValue(newSelection)
   }
 
   return (
@@ -76,13 +72,19 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
               className="rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               onClick={handleClear}
             >
-              {selectedOption ? <XCircle /> : <PlusCircle />}
+              {selectedOptions.length > 0 ? <XCircle /> : <PlusCircle />}
             </div>
             {column.columnDef.meta!.label || column.id}
-            {selectedOption && (
+            {selectedOptions.length > 0 && (
               <>
                 <Separator orientation="vertical" />
-                <Badge variant="outline">{selectedOption.label}</Badge>
+                <div className="flex gap-1">
+                  {selectedOptions.map((opt) => (
+                    <Badge key={opt.value} variant="outline">
+                      {opt.label}
+                    </Badge>
+                  ))}
+                </div>
               </>
             )}
           </Button>
@@ -96,7 +98,7 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
               <CommandEmpty>No options available</CommandEmpty>
               <CommandGroup className="max-h-75 scroll-py-1 overflow-y-auto overflow-x-hidden">
                 {column.columnDef.meta!.options?.map((option) => {
-                  const isSelected = option.value === selectedOption?.value
+                  const isSelected = selectedOptions.includes(option)
 
                   return (
                     <CommandItem
