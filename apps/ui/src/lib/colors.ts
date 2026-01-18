@@ -1,16 +1,26 @@
 import { FindingSeverity } from "@openvlp/types/model/finding"
 
-export function severityColor(severity: FindingSeverity): string {
+export function severityColor(
+  severity: FindingSeverity,
+  bg: boolean = true
+): string {
+  let color = ""
   switch (severity) {
     case FindingSeverity.Info:
-      return "bg-blue-700"
+      color = "blue-700"
+      break
     case FindingSeverity.Low:
-      return "bg-yellow-600"
+      color = "yellow-600"
+      break
     case FindingSeverity.Medium:
-      return "bg-orange-600"
+      color = "orange-600"
+      break
     case FindingSeverity.High:
-      return "bg-red-600"
+      color = "red-600"
+      break
     case FindingSeverity.Critical:
-      return "bg-pink-800"
+      color = "bg-pink-800"
   }
+
+  return bg ? `bg-${color}` : color
 }

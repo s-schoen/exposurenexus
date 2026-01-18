@@ -5,7 +5,11 @@ import {
   parseErrorReply,
   parseObjectReply
 } from "@/api/common.ts"
-import type { CreateFinding, Finding } from "@openvlp/types/model/finding"
+import type {
+  CreateFinding,
+  Finding,
+  FindingStatistics
+} from "@openvlp/types/model/finding"
 import { keepPreviousData } from "@tanstack/react-query"
 
 async function listFindings(): Promise<Finding[]> {
@@ -51,6 +55,21 @@ async function getFindingByID(id: string): Promise<Finding> {
   }
 
   return parseObjectReply<Finding>(response)
+}
+
+async function getFindingStats(): Promise<FindingStatistics> {
+  const response = await fetch(`${env.VITE_API_URL}/api/findings/stats`, {
+    method: "GET",
+    credentials: "include"
+  })
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response)
+    console.error(error)
+    throw error
+  }
+
+  return parseObjectReply<FindingStatistics>(response)
 }
 
 export async function createFinding(f: CreateFinding): Promise<Finding> {
@@ -103,5 +122,14 @@ export function createFindingByIDQueryOptions(id: string) {
   return {
     queryKey: ["findings", id],
     queryFn: () => getFindingByID(id)
+  }
+}
+
+export function createFindingStatsQueryOptions() {
+  return {
+    queryKey: ["findings", "stats"],
+    queryFn: () => getFindingStats(),
+    placeholderData: keepPreviousData,
+    staleTime: DEFAULT_QUERY_STALE_TIME
   }
 }
