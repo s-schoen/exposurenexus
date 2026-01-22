@@ -19,7 +19,7 @@ export function severityColor(
       color = "red-600"
       break
     case VulnerabilitySeverity.Critical:
-      color = "bg-pink-800"
+      color = "pink-800"
   }
 
   return bg ? `bg-${color}` : color

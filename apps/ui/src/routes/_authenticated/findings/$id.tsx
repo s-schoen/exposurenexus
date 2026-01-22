@@ -22,6 +22,8 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area.tsx"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
+import { SeverityBadge } from "@/components/severity-badge.tsx"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 
 export const Route = createFileRoute("/_authenticated/findings/$id")({
   component: RouteComponent
@@ -66,13 +68,13 @@ function RouteComponent() {
                 <TableBody>
                   <TableRow>
                     <TableCell className="font-bold">Title</TableCell>
-                    <TableCell>{finding.data?.title}</TableCell>
+                    <TableCell>{finding.data?.vulnerability.title}</TableCell>
                   </TableRow>
 
                   <TableRow>
                     <TableCell className="font-bold">Severity</TableCell>
                     <TableCell>
-                      {formatSeverity(finding.data!.severity)}
+                      <SeverityBadge severity={finding.data!.severity} />
                     </TableCell>
                   </TableRow>
 

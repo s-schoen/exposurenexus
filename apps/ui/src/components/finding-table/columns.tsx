@@ -10,7 +10,7 @@ import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 
 export const columns: ColumnDef<Finding>[] = [
   {
-    accessorKey: "title",
+    accessorKey: "vulnerability.title",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Title" />
     ),
