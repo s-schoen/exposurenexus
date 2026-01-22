@@ -100,7 +100,7 @@ async function getOrCreateVulnerability(
       severity: parseNucleiSeverity(finding.info.severity || "info"),
       description: finding.info.description || "",
       cve: "",
-      cwe: ""
+      cwe: 0
     }
   })
 
