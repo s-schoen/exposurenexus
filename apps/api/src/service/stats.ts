@@ -1,11 +1,11 @@
 import * as findingRepository from "../repository/finding.js"
 import {
   type FindingStatistics,
-  FindingSeverity,
   FindingStatus
 } from "@openvlp/types/model/finding"
 import { createLogger } from "../logging.js"
 import { HTTPException } from "hono/http-exception"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 
 const logger = createLogger("service/stats")
 
@@ -34,7 +34,7 @@ export async function getFindingStats(): Promise<FindingStatistics> {
     return {
       total,
       status: normalizeEnumCounts(FindingStatus, statusCount),
-      severity: normalizeEnumCounts(FindingSeverity, severityCount),
+      severity: normalizeEnumCounts(VulnerabilitySeverity, severityCount),
       assets: assetCount,
       source: sourceCount
     }

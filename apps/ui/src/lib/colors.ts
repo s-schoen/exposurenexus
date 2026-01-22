@@ -1,24 +1,24 @@
-import { FindingSeverity } from "@openvlp/types/model/finding"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 
 export function severityColor(
-  severity: FindingSeverity,
+  severity: VulnerabilitySeverity,
   bg: boolean = true
 ): string {
   let color = ""
   switch (severity) {
-    case FindingSeverity.Info:
+    case VulnerabilitySeverity.Info:
       color = "blue-700"
       break
-    case FindingSeverity.Low:
+    case VulnerabilitySeverity.Low:
       color = "yellow-600"
       break
-    case FindingSeverity.Medium:
+    case VulnerabilitySeverity.Medium:
       color = "orange-600"
       break
-    case FindingSeverity.High:
+    case VulnerabilitySeverity.High:
       color = "red-600"
       break
-    case FindingSeverity.Critical:
+    case VulnerabilitySeverity.Critical:
       color = "bg-pink-800"
   }
 

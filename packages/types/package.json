@@ -12,6 +12,9 @@
     },
     "./model/finding": {
       "import": "./src/model/finding.ts"
+    },
+    "./model/vulnerability": {
+      "import": "./src/model/vulnerability.ts"
     }
   },
   "files": [

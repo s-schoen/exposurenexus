@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button.tsx"
 import {
   type CreateFinding,
   createFindingSchema,
-  FindingSeverity,
   FindingStatus
 } from "@openvlp/types/model/finding"
 import { useForm } from "@tanstack/react-form"
@@ -30,6 +29,7 @@ import { toast } from "sonner"
 import { useQueryClient } from "@tanstack/react-query"
 import { formatFindingStatus } from "@/lib/format.ts"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 
 export const Route = createFileRoute("/_authenticated/findings/new")({
   component: RouteComponent
@@ -45,7 +45,7 @@ function RouteComponent() {
     defaultValues: {
       title: "",
       assetId: "",
-      severity: FindingSeverity.Medium,
+      severity: VulnerabilitySeverity.Medium,
       status: FindingStatus.Active,
       source: null,
       description: null,
@@ -145,14 +145,14 @@ function RouteComponent() {
                       <FieldLabel htmlFor={field.name}>Severity</FieldLabel>
                       <Select
                         onValueChange={(value) =>
-                          field.handleChange(value as FindingSeverity)
+                          field.handleChange(value as VulnerabilitySeverity)
                         }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select severity" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.values(FindingSeverity).map((sev) => (
+                          {Object.values(VulnerabilitySeverity).map((sev) => (
                             <SelectItem key={sev} value={sev}>
                               <SeverityBadge severity={sev} />
                             </SelectItem>

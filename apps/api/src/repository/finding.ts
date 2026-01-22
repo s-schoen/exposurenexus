@@ -1,15 +1,11 @@
-import {
-  type Finding,
-  FindingSeverity,
-  FindingStatus
-} from "@openvlp/types/model/finding"
+import { type FindingInternal } from "@openvlp/types/model/finding"
 import { db } from "../db/index.js"
 
-export async function list(): Promise<Finding[]> {
+export async function list(): Promise<FindingInternal[]> {
   return await db.selectFrom("finding").selectAll().execute()
 }
 
-export async function getByID(id: string): Promise<Finding | null> {
+export async function getByID(id: string): Promise<FindingInternal | null> {
   const finding = await db
     .selectFrom("finding")
     .selectAll()
@@ -19,7 +15,21 @@ export async function getByID(id: string): Promise<Finding | null> {
   return finding || null
 }
 
-export async function create(finding: Omit<Finding, "id">): Promise<Finding> {
+export async function getByFingerprint(
+  hash: string
+): Promise<FindingInternal | null> {
+  const finding = await db
+    .selectFrom("finding")
+    .selectAll()
+    .where("fingerprint", "=", hash)
+    .executeTakeFirst()
+
+  return finding || null
+}
+
+export async function create(
+  finding: Omit<FindingInternal, "id">
+): Promise<FindingInternal> {
   const createdFinding = await db
     .insertInto("finding")
     .values({
@@ -31,7 +41,21 @@ export async function create(finding: Omit<Finding, "id">): Promise<Finding> {
   return createdFinding!
 }
 
-export async function deleteByID(id: string): Promise<Finding | null> {
+export async function update(
+  id: string,
+  updatedFinding: Omit<FindingInternal, "id">
+): Promise<FindingInternal> {
+  const createdFinding = await db
+    .updateTable("finding")
+    .set(updatedFinding)
+    .where("id", "=", id)
+    .returningAll()
+    .executeTakeFirst()
+
+  return createdFinding!
+}
+
+export async function deleteByID(id: string): Promise<FindingInternal | null> {
   const deletedFinding = await db
     .deleteFrom("finding")
     .where("id", "=", id)

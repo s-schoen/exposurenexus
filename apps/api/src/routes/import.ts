@@ -27,20 +27,12 @@ importer.post("/import", async (c) => {
 
   const buffer = Buffer.from(await file.arrayBuffer())
 
-  //  parse findings
-  const findings = await parseFindingsFromFile(type, buffer)
-
   // save to database
   // FIXME: register context types correctly
   const user: User = c.get("user")
 
-  for (const finding of findings) {
-    await findingService.create({
-      finding: finding,
-      user: user
-    })
-  }
-
+  //  parse findings
+  const findings = await parseFindingsFromFile({ user }, type, buffer)
   logger.info(`created ${findings.length} findings`)
 
   return replyObject(c, { status: "ok" })

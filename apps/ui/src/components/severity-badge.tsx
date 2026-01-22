@@ -1,11 +1,11 @@
-import { FindingSeverity } from "@openvlp/types/model/finding"
 import { formatSeverity } from "@/lib/format.ts"
 import { Badge } from "@/components/ui/badge.tsx"
 import { cn } from "@/lib/utils.ts"
 import { severityColor } from "@/lib/colors.ts"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 
 interface SeverityBadgeProps {
-  severity: FindingSeverity
+  severity: VulnerabilitySeverity
   className?: string
 }
 

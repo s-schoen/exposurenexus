@@ -1,4 +1,3 @@
-import { FindingSeverity } from "@openvlp/types/model/finding"
 import { type ChartConfig } from "@/components/ui/chart.tsx"
 import { severityColor } from "@/lib/colors.ts"
 import { formatSeverity } from "@/lib/format.ts"
@@ -11,9 +10,10 @@ import {
 import { useMemo } from "react"
 import { cn } from "@/lib/utils.ts"
 import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 
 interface FindingSeverityChartProps {
-  data: Record<FindingSeverity, number> | {}
+  data: Record<VulnerabilitySeverity, number> | {}
   loading?: boolean
   className?: string
   height?: number
@@ -41,25 +41,25 @@ export function FindingSeverityChart({
     value: {
       label: "Findings"
     },
-    [FindingSeverity.Info]: {
-      label: formatSeverity(FindingSeverity.Info),
-      color: `var(--color-${severityColor(FindingSeverity.Info, false)})`
+    [VulnerabilitySeverity.Info]: {
+      label: formatSeverity(VulnerabilitySeverity.Info),
+      color: `var(--color-${severityColor(VulnerabilitySeverity.Info, false)})`
     },
-    [FindingSeverity.Low]: {
-      label: formatSeverity(FindingSeverity.Low),
-      color: `var(--color-${severityColor(FindingSeverity.Low, false)})`
+    [VulnerabilitySeverity.Low]: {
+      label: formatSeverity(VulnerabilitySeverity.Low),
+      color: `var(--color-${severityColor(VulnerabilitySeverity.Low, false)})`
     },
-    [FindingSeverity.Medium]: {
-      label: formatSeverity(FindingSeverity.Medium),
-      color: `var(--color-${severityColor(FindingSeverity.Medium, false)})`
+    [VulnerabilitySeverity.Medium]: {
+      label: formatSeverity(VulnerabilitySeverity.Medium),
+      color: `var(--color-${severityColor(VulnerabilitySeverity.Medium, false)})`
     },
-    [FindingSeverity.High]: {
-      label: formatSeverity(FindingSeverity.High),
-      color: `var(--color-${severityColor(FindingSeverity.High, false)})`
+    [VulnerabilitySeverity.High]: {
+      label: formatSeverity(VulnerabilitySeverity.High),
+      color: `var(--color-${severityColor(VulnerabilitySeverity.High, false)})`
     },
-    [FindingSeverity.Critical]: {
-      label: formatSeverity(FindingSeverity.Critical),
-      color: `var(--color-${severityColor(FindingSeverity.Info, false)})`
+    [VulnerabilitySeverity.Critical]: {
+      label: formatSeverity(VulnerabilitySeverity.Critical),
+      color: `var(--color-${severityColor(VulnerabilitySeverity.Info, false)})`
     }
   } satisfies ChartConfig
 

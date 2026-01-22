@@ -1,15 +1,12 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
-import {
-  type Finding,
-  FindingSeverity,
-  FindingStatus
-} from "@openvlp/types/model/finding"
+import { type Finding, FindingStatus } from "@openvlp/types/model/finding"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
 import { formatFindingStatus } from "@/lib/format.ts"
 import { useQuery } from "@tanstack/react-query"
 import { createAssetByIDQueryOptions } from "@/api/asset.ts"
 import { Spinner } from "@/components/ui/spinner.tsx"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 
 export const columns: ColumnDef<Finding>[] = [
   {
@@ -34,9 +31,10 @@ export const columns: ColumnDef<Finding>[] = [
     meta: {
       label: "Severity",
       filterVariant: "select",
-      options: Object.keys(FindingSeverity).map((severity) => ({
+      options: Object.keys(VulnerabilitySeverity).map((severity) => ({
         label: severity,
-        value: FindingSeverity[severity as keyof typeof FindingSeverity]
+        value:
+          VulnerabilitySeverity[severity as keyof typeof VulnerabilitySeverity]
       }))
     }
   },

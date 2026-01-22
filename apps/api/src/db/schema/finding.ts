@@ -1,18 +1,15 @@
 import type { Generated } from "kysely"
-import {
-  type FindingSeverity,
-  FindingStatus
-} from "@openvlp/types/model/finding"
+import { FindingStatus } from "@openvlp/types/model/finding"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 
 export interface FindingTable {
   id: Generated<string>
-  title: string
-  severity: FindingSeverity
+  vulnerabilityId: string
+  severity: VulnerabilitySeverity
   status: FindingStatus
-  description: string | null
+  source: string
   evidence: string | null
   mitigation: string | null
-  source: string | null
   firstSeen: Date | null
   lastSeen: Date | null
   fingerprint: string

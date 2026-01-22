@@ -1,16 +1,9 @@
 import { z } from "zod/v4"
+import { vulnerabilitySchema, VulnerabilitySeverity } from "./vulnerability"
 
 export enum FindingSource {
   Manual = "manual",
   Nuclei = "nuclei"
-}
-
-export enum FindingSeverity {
-  Info = "info",
-  Low = "low",
-  Medium = "medium",
-  High = "high",
-  Critical = "critical"
 }
 
 export enum FindingStatus {
@@ -24,15 +17,14 @@ export enum FindingStatus {
   Mitigated = "mitigated"
 }
 
-export const findingSchema = z.strictObject({
+export const findingInternalSchema = z.strictObject({
   id: z.uuidv4(),
-  title: z.string().nonempty(),
-  severity: z.enum(FindingSeverity),
+  vulnerabilityId: z.uuidv4(),
+  severity: z.enum(VulnerabilitySeverity),
   status: z.enum(FindingStatus),
-  description: z.string().nullable(),
+  source: z.string().nonempty(),
   evidence: z.string().nullable(),
   mitigation: z.string().nullable(),
-  source: z.string().nullable(),
   firstSeen: z.date().nullable(),
   lastSeen: z.date().nullable(),
   fingerprint: z.string(),
@@ -43,7 +35,11 @@ export const findingSchema = z.strictObject({
   updatedAt: z.date()
 })
 
-export const createFindingSchema = findingSchema.omit({
+export const findingSchema = findingInternalSchema.extend({
+  vulnerability: vulnerabilitySchema
+})
+
+export const createFindingSchema = findingInternalSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -67,16 +63,17 @@ export const FindingStatistics = z.strictObject({
     [FindingStatus.Mitigated]: z.int()
   }),
   severity: z.strictObject({
-    [FindingSeverity.Info]: z.int(),
-    [FindingSeverity.Low]: z.int(),
-    [FindingSeverity.Medium]: z.int(),
-    [FindingSeverity.High]: z.int(),
-    [FindingSeverity.Critical]: z.int()
+    [VulnerabilitySeverity.Info]: z.int(),
+    [VulnerabilitySeverity.Low]: z.int(),
+    [VulnerabilitySeverity.Medium]: z.int(),
+    [VulnerabilitySeverity.High]: z.int(),
+    [VulnerabilitySeverity.Critical]: z.int()
   }),
   source: z.record(z.string(), z.int()),
   assets: z.record(z.uuidv4(), z.int())
 })
 
+export type FindingInternal = z.infer<typeof findingInternalSchema>
 export type Finding = z.infer<typeof findingSchema>
 export type CreateFinding = z.infer<typeof createFindingSchema>
 export type FindingStatistics = z.infer<typeof FindingStatistics>

@@ -1,15 +1,57 @@
 import * as findingRepository from "../repository/finding.js"
-import type { CreateFinding } from "@openvlp/types/model/finding"
+import * as vulnerabilityService from "../service/vulnerability.js"
+import type {
+  CreateFinding,
+  FindingInternal
+} from "@openvlp/types/model/finding"
 import { createLogger } from "../logging.js"
 import { HTTPException } from "hono/http-exception"
 import type { Finding } from "@openvlp/types/model/finding"
 import type { User } from "better-auth"
+import { createHash } from "node:crypto"
 
 const logger = createLogger("service/finding")
 
+function calculateFingerprint(
+  assetId: string,
+  vulnerabilityId: string,
+  fingerprintOpt?: Record<string, string>
+): string {
+  const hash = createHash("sha256")
+  hash.update(vulnerabilityId)
+  hash.update(assetId)
+  if (fingerprintOpt) {
+    hash.update(JSON.stringify(fingerprintOpt))
+  }
+  return hash.digest("hex")
+}
+
+async function extendWithVulnerability(
+  intFinding: FindingInternal
+): Promise<Finding> {
+  const vuln = await vulnerabilityService.getByID(intFinding.vulnerabilityId)
+  if (!vuln) {
+    logger.error(
+      `finding ${intFinding.id} references unknown vulnerability ${intFinding.vulnerabilityId}`
+    )
+    return intFinding as Finding
+  }
+  return {
+    ...intFinding,
+    vulnerability: vuln
+  }
+}
+
 export async function listAll(): Promise<Finding[]> {
   try {
-    return findingRepository.list()
+    const findingsRaw = await findingRepository.list()
+    const findings: Array<Finding> = []
+
+    // get vulnerability data
+    for (const finding of findingsRaw) {
+      findings.push(await extendWithVulnerability(finding))
+    }
+    return findings
   } catch (error) {
     logger.error(error, "failed to list findings")
     throw new HTTPException(500, {
@@ -23,8 +65,10 @@ export async function getByID(id: string): Promise<Finding | null> {
     const finding = await findingRepository.getByID(id)
     if (!finding) {
       logger.debug(`finding with id ${id} not found`)
+      return null
     }
-    return finding
+
+    return await extendWithVulnerability(finding)
   } catch (error) {
     logger.error(error, `failed to get finding with id ${id}`)
     throw new HTTPException(500, {
@@ -39,11 +83,13 @@ export interface CreateFindingOptions {
   firstSeen?: Date
 }
 
-export async function create(opts: CreateFindingOptions): Promise<Finding> {
+export async function create(
+  opts: CreateFindingOptions,
+  fingerprintOpt?: Record<string, string>
+): Promise<Finding> {
   try {
     const now = new Date()
 
-    // TODO: calculate fingerprint
     const created = await findingRepository.create({
       createdAt: now,
       updatedAt: now,
@@ -51,27 +97,59 @@ export async function create(opts: CreateFindingOptions): Promise<Finding> {
       updatedBy: opts.user.id,
       firstSeen: opts.firstSeen ?? now,
       lastSeen: opts.firstSeen ?? now,
-      fingerprint: "",
+      fingerprint: calculateFingerprint(
+        opts.finding.assetId,
+        opts.finding.vulnerabilityId,
+        fingerprintOpt
+      ),
       ...opts.finding
     })
 
     logger.info(`created finding ${created.id}}`)
     return created
   } catch (error) {
-    logger.error(error, `failed to create new finding ${opts.finding.title}`)
+    logger.error(
+      error,
+      `failed to create new finding for ${opts.finding.vulnerabilityId}`
+    )
     throw new HTTPException(500, {
       message: "failed to create finding"
     })
   }
 }
 
+export async function createOrUpdate(
+  opts: CreateFindingOptions,
+  fingerprintOpt?: Record<string, string>
+): Promise<Finding> {
+  const fingerprint = calculateFingerprint(
+    opts.finding.assetId,
+    opts.finding.vulnerabilityId,
+    fingerprintOpt
+  )
+
+  // check if finding with that fingerprint already exists
+  let finding = await findingRepository.getByFingerprint(fingerprint)
+  if (finding) {
+    // already exists, we need to update lastSeen
+    finding = await findingRepository.update(finding.id, finding)
+    return await extendWithVulnerability(finding)
+  }
+
+  // we need to create a new finding
+  return await create(opts, fingerprintOpt)
+}
+
 export async function deleteByID(id: string): Promise<Finding | null> {
   try {
-    const finding = findingRepository.deleteByID(id)
+    const finding = await findingRepository.deleteByID(id)
+
     if (!finding) {
       logger.debug(`cannot delete finding ${id}: not found`)
+      return null
     }
-    return finding
+
+    return await extendWithVulnerability(finding)
   } catch (error) {
     logger.error(error, `failed to get finding with id ${id}`)
     throw new HTTPException(500, {
