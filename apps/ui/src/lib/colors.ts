@@ -7,20 +7,20 @@ export function severityColor(
   let color = ""
   switch (severity) {
     case VulnerabilitySeverity.Info:
-      color = "blue-700"
+      color = bg ? "bg-blue-700" : "blue-700"
       break
     case VulnerabilitySeverity.Low:
-      color = "yellow-600"
+      color = bg ? "bg-yellow-600" : "yellow-600"
       break
     case VulnerabilitySeverity.Medium:
-      color = "orange-600"
+      color = bg ? "bg-orange-600" : "orange-600"
       break
     case VulnerabilitySeverity.High:
-      color = "red-600"
+      color = bg ? "bg-red-600" : "red-600"
       break
     case VulnerabilitySeverity.Critical:
-      color = "pink-800"
+      color = bg ? "bg-pink-800" : "pink-800"
   }
 
-  return bg ? `bg-${color}` : color
+  return color
 }
