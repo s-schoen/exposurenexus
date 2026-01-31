@@ -118,10 +118,15 @@ export async function create(
   }
 }
 
+export interface CreateOrUpdateFindingResult {
+  finding: Finding
+  created: boolean
+}
+
 export async function createOrUpdate(
   opts: CreateFindingOptions,
   fingerprintOpt?: Record<string, string>
-): Promise<Finding> {
+): Promise<CreateOrUpdateFindingResult> {
   const fingerprint = calculateFingerprint(
     opts.finding.assetId,
     opts.finding.vulnerabilityId,
@@ -132,12 +137,19 @@ export async function createOrUpdate(
   let finding = await findingRepository.getByFingerprint(fingerprint)
   if (finding) {
     // already exists, we need to update lastSeen
+    finding.lastSeen = new Date()
     finding = await findingRepository.update(finding.id, finding)
-    return await extendWithVulnerability(finding)
+    return {
+      finding: await extendWithVulnerability(finding),
+      created: false
+    }
   }
 
   // we need to create a new finding
-  return await create(opts, fingerprintOpt)
+  return {
+    finding: await create(opts, fingerprintOpt),
+    created: true
+  }
 }
 
 export async function deleteByID(id: string): Promise<Finding | null> {

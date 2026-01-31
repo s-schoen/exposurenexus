@@ -164,7 +164,7 @@ export async function parseNucleiFindings(
         path: nucleiFinding.path || ""
       }
 
-      const createdFinding = await findingService.createOrUpdate(
+      const { finding, created } = await findingService.createOrUpdate(
         {
           user: ctx.user,
           finding: {
@@ -180,8 +180,10 @@ export async function parseNucleiFindings(
         },
         fingerprintInfo
       )
-      createdFindings.push(createdFinding)
-      logger.info(`created finding ${createdFinding.id} for ${host}`)
+      createdFindings.push(finding)
+      logger.info(
+        `${created ? "created" : "updated"} finding ${finding.id} for ${host}`
+      )
 
       currentLine++
     } catch (error) {
