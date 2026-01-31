@@ -69,14 +69,14 @@ const AuthenticatedAssetsIdRoute = AuthenticatedAssetsIdRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/login': typeof LoginRoute
   '/': typeof AuthenticatedIndexRoute
+  '/login': typeof LoginRoute
   '/assets/$id': typeof AuthenticatedAssetsIdRoute
   '/findings/$id': typeof AuthenticatedFindingsIdRoute
   '/findings/import': typeof AuthenticatedFindingsImportRoute
   '/findings/new': typeof AuthenticatedFindingsNewRoute
-  '/assets': typeof AuthenticatedAssetsIndexRoute
-  '/findings': typeof AuthenticatedFindingsIndexRoute
+  '/assets/': typeof AuthenticatedAssetsIndexRoute
+  '/findings/': typeof AuthenticatedFindingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -103,14 +103,14 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/login'
     | '/'
+    | '/login'
     | '/assets/$id'
     | '/findings/$id'
     | '/findings/import'
     | '/findings/new'
-    | '/assets'
-    | '/findings'
+    | '/assets/'
+    | '/findings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -151,7 +151,7 @@ declare module '@tanstack/react-router' {
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -165,14 +165,14 @@ declare module '@tanstack/react-router' {
     '/_authenticated/findings/': {
       id: '/_authenticated/findings/'
       path: '/findings'
-      fullPath: '/findings'
+      fullPath: '/findings/'
       preLoaderRoute: typeof AuthenticatedFindingsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/assets/': {
       id: '/_authenticated/assets/'
       path: '/assets'
-      fullPath: '/assets'
+      fullPath: '/assets/'
       preLoaderRoute: typeof AuthenticatedAssetsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
