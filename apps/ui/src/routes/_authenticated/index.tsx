@@ -21,6 +21,7 @@ function App() {
         data={data?.severity || {}}
         loading={isPending}
         height={96}
+        className="w-8/12"
       />
       <FindingStatusChart
         data={data?.status || {}}
