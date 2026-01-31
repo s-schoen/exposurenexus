@@ -1,4 +1,4 @@
-import { Home, Server, ShieldAlert, UploadCloud } from "lucide-react"
+import { Home, Server, ShieldAlert, UploadCloud, Bug } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +27,11 @@ export function AppSidebar() {
       title: "Findings",
       url: "/findings",
       icon: ShieldAlert
+    },
+    {
+      title: "Vulnerabilities",
+      url: "/vulnerabilities",
+      icon: Bug
     },
     {
       title: "Import",

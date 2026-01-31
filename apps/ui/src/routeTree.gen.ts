@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedVulnerabilitiesIndexRouteImport } from './routes/_authenticated/vulnerabilities/index'
 import { Route as AuthenticatedFindingsIndexRouteImport } from './routes/_authenticated/findings/index'
 import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets/index'
+import { Route as AuthenticatedVulnerabilitiesIdRouteImport } from './routes/_authenticated/vulnerabilities/$id'
 import { Route as AuthenticatedFindingsNewRouteImport } from './routes/_authenticated/findings/new'
 import { Route as AuthenticatedFindingsImportRouteImport } from './routes/_authenticated/findings/import'
 import { Route as AuthenticatedFindingsIdRouteImport } from './routes/_authenticated/findings/$id'
@@ -33,6 +35,12 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedVulnerabilitiesIndexRoute =
+  AuthenticatedVulnerabilitiesIndexRouteImport.update({
+    id: '/vulnerabilities/',
+    path: '/vulnerabilities/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedFindingsIndexRoute =
   AuthenticatedFindingsIndexRouteImport.update({
     id: '/findings/',
@@ -43,6 +51,12 @@ const AuthenticatedAssetsIndexRoute =
   AuthenticatedAssetsIndexRouteImport.update({
     id: '/assets/',
     path: '/assets/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedVulnerabilitiesIdRoute =
+  AuthenticatedVulnerabilitiesIdRouteImport.update({
+    id: '/vulnerabilities/$id',
+    path: '/vulnerabilities/$id',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedFindingsNewRoute =
@@ -75,8 +89,10 @@ export interface FileRoutesByFullPath {
   '/findings/$id': typeof AuthenticatedFindingsIdRoute
   '/findings/import': typeof AuthenticatedFindingsImportRoute
   '/findings/new': typeof AuthenticatedFindingsNewRoute
+  '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
   '/assets/': typeof AuthenticatedAssetsIndexRoute
   '/findings/': typeof AuthenticatedFindingsIndexRoute
+  '/vulnerabilities/': typeof AuthenticatedVulnerabilitiesIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -85,8 +101,10 @@ export interface FileRoutesByTo {
   '/findings/$id': typeof AuthenticatedFindingsIdRoute
   '/findings/import': typeof AuthenticatedFindingsImportRoute
   '/findings/new': typeof AuthenticatedFindingsNewRoute
+  '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
   '/assets': typeof AuthenticatedAssetsIndexRoute
   '/findings': typeof AuthenticatedFindingsIndexRoute
+  '/vulnerabilities': typeof AuthenticatedVulnerabilitiesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -97,8 +115,10 @@ export interface FileRoutesById {
   '/_authenticated/findings/$id': typeof AuthenticatedFindingsIdRoute
   '/_authenticated/findings/import': typeof AuthenticatedFindingsImportRoute
   '/_authenticated/findings/new': typeof AuthenticatedFindingsNewRoute
+  '/_authenticated/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
   '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
   '/_authenticated/findings/': typeof AuthenticatedFindingsIndexRoute
+  '/_authenticated/vulnerabilities/': typeof AuthenticatedVulnerabilitiesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -109,8 +129,10 @@ export interface FileRouteTypes {
     | '/findings/$id'
     | '/findings/import'
     | '/findings/new'
+    | '/vulnerabilities/$id'
     | '/assets/'
     | '/findings/'
+    | '/vulnerabilities/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -119,8 +141,10 @@ export interface FileRouteTypes {
     | '/findings/$id'
     | '/findings/import'
     | '/findings/new'
+    | '/vulnerabilities/$id'
     | '/assets'
     | '/findings'
+    | '/vulnerabilities'
   id:
     | '__root__'
     | '/_authenticated'
@@ -130,8 +154,10 @@ export interface FileRouteTypes {
     | '/_authenticated/findings/$id'
     | '/_authenticated/findings/import'
     | '/_authenticated/findings/new'
+    | '/_authenticated/vulnerabilities/$id'
     | '/_authenticated/assets/'
     | '/_authenticated/findings/'
+    | '/_authenticated/vulnerabilities/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -162,6 +188,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/vulnerabilities/': {
+      id: '/_authenticated/vulnerabilities/'
+      path: '/vulnerabilities'
+      fullPath: '/vulnerabilities/'
+      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/findings/': {
       id: '/_authenticated/findings/'
       path: '/findings'
@@ -174,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/assets'
       fullPath: '/assets/'
       preLoaderRoute: typeof AuthenticatedAssetsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/vulnerabilities/$id': {
+      id: '/_authenticated/vulnerabilities/$id'
+      path: '/vulnerabilities/$id'
+      fullPath: '/vulnerabilities/$id'
+      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/findings/new': {
@@ -213,8 +253,10 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFindingsIdRoute: typeof AuthenticatedFindingsIdRoute
   AuthenticatedFindingsImportRoute: typeof AuthenticatedFindingsImportRoute
   AuthenticatedFindingsNewRoute: typeof AuthenticatedFindingsNewRoute
+  AuthenticatedVulnerabilitiesIdRoute: typeof AuthenticatedVulnerabilitiesIdRoute
   AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute
   AuthenticatedFindingsIndexRoute: typeof AuthenticatedFindingsIndexRoute
+  AuthenticatedVulnerabilitiesIndexRoute: typeof AuthenticatedVulnerabilitiesIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -223,8 +265,11 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFindingsIdRoute: AuthenticatedFindingsIdRoute,
   AuthenticatedFindingsImportRoute: AuthenticatedFindingsImportRoute,
   AuthenticatedFindingsNewRoute: AuthenticatedFindingsNewRoute,
+  AuthenticatedVulnerabilitiesIdRoute: AuthenticatedVulnerabilitiesIdRoute,
   AuthenticatedAssetsIndexRoute: AuthenticatedAssetsIndexRoute,
   AuthenticatedFindingsIndexRoute: AuthenticatedFindingsIndexRoute,
+  AuthenticatedVulnerabilitiesIndexRoute:
+    AuthenticatedVulnerabilitiesIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

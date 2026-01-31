@@ -7,14 +7,14 @@ import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { createListFindingsQueryOptions, deleteFinding } from "@/api/finding.ts"
-import type { Finding } from "@openvlp/types/model/finding"
+import type { Vulnerability } from "@openvlp/types/model/finding"
 
 export function FindingTable() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const findingsQuery = useQuery(createListFindingsQueryOptions())
 
-  const handleOpenFinding = async (finding: Finding) => {
+  const handleOpenFinding = async (finding: Vulnerability) => {
     await navigate({
       to: "/findings/$id",
       params: {
@@ -23,7 +23,7 @@ export function FindingTable() {
     })
   }
 
-  const handleDeleteFindings = async (findings: Finding[]) => {
+  const handleDeleteFindings = async (findings: Vulnerability[]) => {
     const confirmed = await ConfirmDialog.call({
       title: "Delete Findings",
       description: "This action cannot be undone",
