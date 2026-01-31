@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query"
 import { createAssetByIDQueryOptions } from "@/api/asset.ts"
 import { Spinner } from "@/components/ui/spinner.tsx"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { Timestamp } from "@/components/Timestamp.tsx"
 
 export const columns: ColumnDef<Finding>[] = [
   {
@@ -77,5 +78,23 @@ export const columns: ColumnDef<Finding>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Source" />
     )
+  },
+  {
+    accessorKey: "firstSeen",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="First Seen" />
+    ),
+    cell: ({ row }) => {
+      return <Timestamp timestamp={new Date(row.getValue("firstSeen"))} />
+    }
+  },
+  {
+    accessorKey: "lastSeen",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Last Seen" />
+    ),
+    cell: ({ row }) => {
+      return <Timestamp timestamp={new Date(row.getValue("lastSeen"))} />
+    }
   }
 ]

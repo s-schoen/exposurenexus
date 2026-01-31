@@ -31,3 +31,7 @@ export function formatFindingStatus(status: FindingStatus) {
 export function formatSeverity(severity: VulnerabilitySeverity) {
   return capitalizeFirstLetter(severity)
 }
+
+export function formatDate(date: Date) {
+  return date.toLocaleDateString()
+}
