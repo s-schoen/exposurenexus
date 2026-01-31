@@ -12,6 +12,7 @@ import { registerErrorHandler } from "./lib/handler.js"
 import { migrateToLatest } from "./db/migration.js"
 import auth from "./routes/auth.js"
 import asset from "./routes/assets.js"
+import vulnerability from "./routes/vulnerabilities.js"
 import { authNAnnotate, authNRequire } from "./middleware/auth.js"
 import { createDefaultAdmin } from "./lib/auth.js"
 import finding from "./routes/findings.js"
@@ -54,6 +55,7 @@ app.route("/auth", auth)
 app.use("*", authNRequire())
 
 app.route("/assets", asset)
+app.route("/vulnerabilities", vulnerability)
 
 app.route("/findings", findingStats)
 app.route("/findings", finding)

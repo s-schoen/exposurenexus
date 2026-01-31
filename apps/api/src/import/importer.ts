@@ -1,6 +1,6 @@
 import {
   type CreateFinding,
-  type Finding,
+  type Vulnerability,
   FindingSource
 } from "@openvlp/types/model/finding"
 import { createLogger } from "../logging.js"
@@ -17,7 +17,7 @@ export async function parseFindingsFromFile(
   ctx: ImportContext,
   type: string,
   file: Buffer
-): Promise<Array<Finding>> {
+): Promise<Array<Vulnerability>> {
   switch (type) {
     case FindingSource.Nuclei:
       return parseNucleiFindings(ctx, file)

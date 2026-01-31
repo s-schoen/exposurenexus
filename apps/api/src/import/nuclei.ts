@@ -1,5 +1,5 @@
 import {
-  type Finding,
+  type Vulnerability,
   FindingSource,
   FindingStatus
 } from "@openvlp/types/model/finding"
@@ -116,7 +116,7 @@ async function getOrCreateVulnerability(
 export async function parseNucleiFindings(
   ctx: ImportContext,
   file: Buffer
-): Promise<Array<Finding>> {
+): Promise<Array<Vulnerability>> {
   logger.info("parsing nuclei findings")
   // one json object per line
   const jsonl = file
@@ -124,7 +124,7 @@ export async function parseNucleiFindings(
     .split("\n")
     .filter((line) => line.startsWith("{"))
 
-  const createdFindings: Array<Finding> = []
+  const createdFindings: Array<Vulnerability> = []
   let currentLine = 1
   for (const line of jsonl) {
     try {
