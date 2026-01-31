@@ -1,6 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
-import { type Vulnerability, FindingStatus } from "@openvlp/types/model/finding"
+import { type Finding, FindingStatus } from "@openvlp/types/model/finding"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
 import { formatFindingStatus } from "@/lib/format.ts"
 import { useQuery } from "@tanstack/react-query"
@@ -9,7 +9,7 @@ import { Spinner } from "@/components/ui/spinner.tsx"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import { Timestamp } from "@/components/Timestamp.tsx"
 
-export const columns: ColumnDef<Vulnerability>[] = [
+export const columns: ColumnDef<Finding>[] = [
   {
     accessorKey: "vulnerability.title",
     header: ({ column }) => (
