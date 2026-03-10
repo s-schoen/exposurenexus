@@ -6,7 +6,7 @@ import type {
 } from "@openvlp/types/model/finding"
 import { createLogger } from "../logging.js"
 import { HTTPException } from "hono/http-exception"
-import type { Vulnerability } from "@openvlp/types/model/finding"
+import type { Finding } from "@openvlp/types/model/finding"
 import type { User } from "better-auth"
 import { createHash } from "node:crypto"
 
@@ -28,13 +28,13 @@ function calculateFingerprint(
 
 async function extendWithVulnerability(
   intFinding: FindingInternal
-): Promise<Vulnerability> {
+): Promise<Finding> {
   const vuln = await vulnerabilityService.getByID(intFinding.vulnerabilityId)
   if (!vuln) {
     logger.error(
       `finding ${intFinding.id} references unknown vulnerability ${intFinding.vulnerabilityId}`
     )
-    return intFinding as Vulnerability
+    return intFinding as Finding
   }
   return {
     ...intFinding,
@@ -42,10 +42,10 @@ async function extendWithVulnerability(
   }
 }
 
-export async function listAll(): Promise<Vulnerability[]> {
+export async function listAll(): Promise<Finding[]> {
   try {
     const findingsRaw = await findingRepository.list()
-    const findings: Array<Vulnerability> = []
+    const findings: Array<Finding> = []
 
     // get vulnerability data
     for (const finding of findingsRaw) {
@@ -60,7 +60,7 @@ export async function listAll(): Promise<Vulnerability[]> {
   }
 }
 
-export async function getByID(id: string): Promise<Vulnerability | null> {
+export async function getByID(id: string): Promise<Finding | null> {
   try {
     const finding = await findingRepository.getByID(id)
     if (!finding) {
@@ -86,7 +86,7 @@ export interface CreateFindingOptions {
 export async function create(
   opts: CreateFindingOptions,
   fingerprintOpt?: Record<string, string>
-): Promise<Vulnerability> {
+): Promise<Finding> {
   try {
     const now = new Date()
 
@@ -119,7 +119,7 @@ export async function create(
 }
 
 export interface CreateOrUpdateFindingResult {
-  finding: Vulnerability
+  finding: Finding
   created: boolean
 }
 
@@ -152,7 +152,7 @@ export async function createOrUpdate(
   }
 }
 
-export async function deleteByID(id: string): Promise<Vulnerability | null> {
+export async function deleteByID(id: string): Promise<Finding | null> {
   try {
     const finding = await findingRepository.deleteByID(id)
 

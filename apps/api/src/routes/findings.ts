@@ -5,8 +5,9 @@ import { z } from "zod/v4"
 import { createFindingSchema } from "@openvlp/types/model/finding"
 import * as findingService from "../service/finding.js"
 import type { User } from "better-auth"
+import type { ContextVariables } from "../lib/hono-schema.js"
 
-const finding = new Hono()
+const finding = new Hono<{ Variables: ContextVariables }>()
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
 
@@ -29,9 +30,6 @@ finding.get("/:id", idParamValidator, async (c) => {
 finding.post("/", zValidator("json", createFindingSchema), async (c) => {
   const body = c.req.valid("json")
 
-  const now = new Date()
-
-  // FIXME: register context types correctly
   const user: User = c.get("user")
 
   const createdFinding = await findingService.create({

@@ -1,5 +1,6 @@
 import { Kysely, sql } from "kysely"
 
+// eslint-disable-next-line
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createType("asset_type")
@@ -19,6 +20,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute()
 }
 
+// eslint-disable-next-line
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable("asset").execute()
   await db.schema.dropType("asset_type").execute()

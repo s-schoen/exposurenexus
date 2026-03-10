@@ -1,5 +1,5 @@
 import {
-  type Vulnerability,
+  type Finding,
   FindingSource,
   FindingStatus
 } from "@openvlp/types/model/finding"
@@ -9,12 +9,12 @@ import * as findingService from "../service/finding.js"
 import { createLogger } from "../logging.js"
 import { z } from "zod/v4"
 import { HTTPException } from "hono/http-exception"
+import { getOrCreateAsset } from "./util.js"
+import type { ImportContext } from "./importer.js"
 import {
   type Vulnerability,
   VulnerabilitySeverity
 } from "@openvlp/types/model/vulnerability"
-import { getOrCreateAsset } from "./util.js"
-import type { ImportContext } from "./importer.js"
 
 const logger = createLogger("findings/import/nuclei")
 
@@ -116,7 +116,7 @@ async function getOrCreateVulnerability(
 export async function parseNucleiFindings(
   ctx: ImportContext,
   file: Buffer
-): Promise<Array<Vulnerability>> {
+): Promise<Array<Finding>> {
   logger.info("parsing nuclei findings")
   // one json object per line
   const jsonl = file
@@ -124,7 +124,7 @@ export async function parseNucleiFindings(
     .split("\n")
     .filter((line) => line.startsWith("{"))
 
-  const createdFindings: Array<Vulnerability> = []
+  const createdFindings: Array<Finding> = []
   let currentLine = 1
   for (const line of jsonl) {
     try {

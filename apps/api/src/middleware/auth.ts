@@ -2,11 +2,6 @@ import type { MiddlewareHandler } from "hono"
 import { auth } from "../lib/auth.js"
 import { HTTPException } from "hono/http-exception"
 
-export type AuthNVariables = {
-  user: typeof auth.$Infer.Session.user | null
-  session: typeof auth.$Infer.Session.session | null
-}
-
 export const authNAnnotate = (): MiddlewareHandler => {
   return async function authNAnnotate(c, next) {
     const session = await auth.api.getSession({ headers: c.req.raw.headers })

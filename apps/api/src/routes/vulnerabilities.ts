@@ -2,7 +2,6 @@ import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import * as vulnerabilityService from "../service/vulnerability.js"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
-import finding from "./findings.js"
 import { z } from "zod/v4"
 
 const vulnerability = new Hono()

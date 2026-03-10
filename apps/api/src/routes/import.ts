@@ -2,11 +2,11 @@ import { Hono } from "hono"
 import { badRequest, replyObject } from "../lib/reply.js"
 import { createLogger } from "../logging.js"
 import { parseFindingsFromFile } from "../import/importer.js"
-import * as findingService from "../service/finding.js"
 import type { User } from "better-auth"
+import type { ContextVariables } from "../lib/hono-schema.js"
 
 const logger = createLogger("findings/import")
-const importer = new Hono()
+const importer = new Hono<{ Variables: ContextVariables }>()
 
 importer.post("/import", async (c) => {
   const body = await c.req.parseBody()
@@ -28,7 +28,6 @@ importer.post("/import", async (c) => {
   const buffer = Buffer.from(await file.arrayBuffer())
 
   // save to database
-  // FIXME: register context types correctly
   const user: User = c.get("user")
 
   //  parse findings

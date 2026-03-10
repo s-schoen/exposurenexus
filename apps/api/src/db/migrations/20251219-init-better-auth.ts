@@ -1,5 +1,6 @@
 import { Kysely, sql } from "kysely"
 
+// eslint-disable-next-line
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable("user")
@@ -88,6 +89,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute()
 }
 
+// eslint-disable-next-line
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropIndex("verification_identifier_idx").execute()
   await db.schema.dropIndex("account_userId_idx").execute()
