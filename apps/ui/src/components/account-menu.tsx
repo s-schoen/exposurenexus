@@ -32,20 +32,23 @@ export function AccountMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        {isPending ? (
-          <Spinner />
-        ) : (
-          <div className="flex items-center space-x-2 cursor-pointer select-none">
-            <Avatar>
-              <AvatarFallback className="select-none">
-                {isPending ? "…" : initial}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-lg select-none">{displayName}</span>
-          </div>
-        )}
-      </DropdownMenuTrigger>
+      <DropdownMenuTrigger
+        nativeButton={false}
+        render={
+          isPending ? (
+            <Spinner />
+          ) : (
+            <div className="flex items-center space-x-2 cursor-pointer select-none">
+              <Avatar>
+                <AvatarFallback className="select-none">
+                  {isPending ? "…" : initial}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-lg select-none">{displayName}</span>
+            </div>
+          )
+        }
+      ></DropdownMenuTrigger>
 
       <DropdownMenuContent className="w-56" align="start">
         <DropdownMenuLabel>Profile</DropdownMenuLabel>

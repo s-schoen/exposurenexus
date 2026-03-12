@@ -103,7 +103,7 @@ export const AssetDialog = ({
                       name={field.name}
                       onValueChange={(e) => {
                         field.handleChange(
-                          AssetType[e as keyof typeof AssetType]
+                          AssetType[e as unknown as keyof typeof AssetType]
                         )
                       }}
                     >

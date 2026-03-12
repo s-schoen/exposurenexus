@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query"
 import { createAssetByIDQueryOptions } from "@/api/asset.ts"
 import { Spinner } from "@/components/ui/spinner.tsx"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
-import { Timestamp } from "@/components/Timestamp.tsx"
+import { Timestamp } from "@/components/timestamp.tsx"
 
 export const columns: ColumnDef<Finding>[] = [
   {

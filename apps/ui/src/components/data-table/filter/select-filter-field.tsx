@@ -60,35 +60,38 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
   return (
     <div className="flex p-1 items-center gap-1">
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-dashed font-normal"
-          >
-            <div
-              role="button"
-              tabIndex={0}
-              className="rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              onClick={handleClear}
+        <PopoverTrigger
+          render={
+            <Button
+              nativeButton={true}
+              variant="outline"
+              size="sm"
+              className="border-dashed font-normal"
             >
-              {selectedOptions.length > 0 ? <XCircle /> : <PlusCircle />}
-            </div>
-            {column.columnDef.meta!.label || column.id}
-            {selectedOptions.length > 0 && (
-              <>
-                <Separator orientation="vertical" />
-                <div className="flex gap-1">
-                  {selectedOptions.map((opt) => (
-                    <Badge key={opt.value} variant="outline">
-                      {opt.label}
-                    </Badge>
-                  ))}
-                </div>
-              </>
-            )}
-          </Button>
-        </PopoverTrigger>
+              <div
+                role="button"
+                tabIndex={0}
+                className="rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                onClick={handleClear}
+              >
+                {selectedOptions.length > 0 ? <XCircle /> : <PlusCircle />}
+              </div>
+              {column.columnDef.meta!.label || column.id}
+              {selectedOptions.length > 0 && (
+                <>
+                  <Separator orientation="vertical" />
+                  <div className="flex gap-1">
+                    {selectedOptions.map((opt) => (
+                      <Badge key={opt.value} variant="outline">
+                        {opt.label}
+                      </Badge>
+                    ))}
+                  </div>
+                </>
+              )}
+            </Button>
+          }
+        ></PopoverTrigger>
         <PopoverContent>
           <Command>
             <CommandInput

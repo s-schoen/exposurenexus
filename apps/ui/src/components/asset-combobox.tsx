@@ -40,23 +40,26 @@ export function AssetCombobox({ onChange }: AssetComboboxProps) {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="justify-between"
-          disabled={assets.isLoading}
-        >
-          <div className="flex items-center gap-2 ">
-            {assets.isLoading && <Spinner />}
-            {value
-              ? assets.data?.find((a) => a.id === value.id)?.name
-              : "Select asset..."}
-          </div>
-          <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
+      <PopoverTrigger
+        nativeButton={false}
+        render={
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="justify-between"
+            disabled={assets.isLoading}
+          >
+            <div className="flex items-center gap-2 ">
+              {assets.isLoading && <Spinner />}
+              {value
+                ? assets.data?.find((a) => a.id === value.id)?.name
+                : "Select asset..."}
+            </div>
+            <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        }
+      ></PopoverTrigger>
       <PopoverContent className="p-0">
         <Command>
           <CommandInput placeholder="Select asset..." />

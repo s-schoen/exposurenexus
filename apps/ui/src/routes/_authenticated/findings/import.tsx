@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { usePage } from "@/context/page.tsx"
-import { Label } from "@radix-ui/react-label"
 import { Input } from "@/components/ui/input.tsx"
 import { type ChangeEvent, useState } from "react"
 import { Button } from "@/components/ui/button.tsx"
@@ -34,7 +33,7 @@ function RouteComponent() {
 
   return (
     <div>
-      <Label>Select file</Label>
+      <span>Select file</span>
       <Input type="file" onChange={handleFileChange} />
       <Button onClick={handleImport}>Import</Button>
     </div>
