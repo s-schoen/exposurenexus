@@ -1,8 +1,8 @@
 import { keepPreviousData } from "@tanstack/react-query"
 import type {
   CreateFinding,
-  FindingStatistics,
-  Finding
+  Finding,
+  FindingStatistics
 } from "@openvlp/types/model/finding"
 import { env } from "@/env.ts"
 import {
