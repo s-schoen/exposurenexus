@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "pnpm -r build",
+    "lint": "pnpm -r check",
     "dev:ui": "pnpm --filter @openvlp/ui dev",
     "dev:api": "pnpm --filter @openvlp/api dev"
   },
