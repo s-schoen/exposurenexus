@@ -106,7 +106,7 @@ export async function create(
     })
 
     logger.info(`created finding ${created.id}}`)
-    return created
+    return await extendWithVulnerability(created)
   } catch (error) {
     logger.error(
       error,

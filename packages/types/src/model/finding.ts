@@ -1,5 +1,5 @@
 import { z } from "zod/v4"
-import { vulnerabilitySchema, VulnerabilitySeverity } from "./vulnerability"
+import { vulnerabilitySchema, VulnerabilitySeverity } from "./vulnerability.js"
 
 export enum FindingSource {
   Manual = "manual",

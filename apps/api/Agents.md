@@ -9,6 +9,12 @@ Hono.js API Server
 * `kysely` as query builder for PostgreSQL
 * `zod/v4` for validation
 
+## Commands
+
+* `pnpm` is used for package management
+* `pnpm build` to build code with `tsc` and check for syntax errors
+* `pnpm lint` to run the eslint
+
 ## Patterns
 
 * Use the repository pattern as appropriate
