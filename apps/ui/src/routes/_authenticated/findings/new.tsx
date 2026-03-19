@@ -1,13 +1,16 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
+import {
+  FindingStatus,
+  createFindingSchema
+} from "@openvlp/types/model/finding"
+import { useForm } from "@tanstack/react-form"
+import { toast } from "sonner"
+import { useQueryClient } from "@tanstack/react-query"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import type { CreateFinding } from "@openvlp/types/model/finding"
 import { usePage } from "@/context/page.tsx"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button.tsx"
-import {
-  type CreateFinding,
-  createFindingSchema,
-  FindingStatus
-} from "@openvlp/types/model/finding"
-import { useForm } from "@tanstack/react-form"
 import {
   Field,
   FieldError,
@@ -25,11 +28,8 @@ import {
 import { AssetCombobox } from "@/components/asset-combobox.tsx"
 import { Textarea } from "@/components/ui/textarea.tsx"
 import { createFinding, createListFindingsQueryOptions } from "@/api/finding.ts"
-import { toast } from "sonner"
-import { useQueryClient } from "@tanstack/react-query"
 import { formatFindingStatus } from "@/lib/format.ts"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 
 export const Route = createFileRoute("/_authenticated/findings/new")({
   component: RouteComponent
@@ -198,7 +198,7 @@ function RouteComponent() {
                       <Input
                         id={field.name}
                         name={field.name}
-                        value={field.state.value ?? ""}
+                        value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) =>
                           field.handleChange(e.target.value || null)

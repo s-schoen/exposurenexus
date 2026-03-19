@@ -1,4 +1,5 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router"
+import { NuqsAdapter } from "nuqs/adapters/tanstack-router"
 import { AppSidebar } from "@/components/app-sidebar.tsx"
 import { SidebarProvider } from "@/components/ui/sidebar.tsx"
 import { Toaster } from "@/components/ui/sonner.tsx"
@@ -7,7 +8,7 @@ import { Separator } from "@/components/ui/separator.tsx"
 import { usePage } from "@/context/page.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
-import { NuqsAdapter } from "nuqs/adapters/tanstack-router"
+
 function Layout() {
   const { title } = usePage()
 

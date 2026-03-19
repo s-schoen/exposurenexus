@@ -1,10 +1,14 @@
 import { Check, PlusCircle, XCircle } from "lucide-react"
+import {  useMemo, useState } from "react"
+import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
+import type {MouseEvent} from "react";
+import type { Column } from "@tanstack/react-table"
+import type { SelectOption } from "@/components/data-table/types.ts"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover.tsx"
-import type { Column } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button.tsx"
 import {
   Command,
@@ -14,12 +18,9 @@ import {
   CommandItem,
   CommandList
 } from "@/components/ui/command.tsx"
-import { useState, type MouseEvent, useMemo } from "react"
 import { cn } from "@/lib/utils.ts"
 import { Separator } from "@/components/ui/separator.tsx"
 import { Badge } from "@/components/ui/badge"
-import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
-import type { SelectOption } from "@/components/data-table/types.ts"
 
 export interface FilterFieldProps<TData> {
   column: Column<TData>

@@ -7,8 +7,8 @@ import {
   XAxis,
   YAxis
 } from "recharts"
+import type { ChartConfig } from "@/components/ui/chart.tsx"
 import {
-  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent
@@ -23,7 +23,7 @@ interface ChartData {
 }
 
 interface SimpleBarChartProps {
-  chartData: ChartData[]
+  chartData: Array<ChartData>
   chartConfig: ChartConfig
   loading?: boolean
   height?: number
@@ -55,7 +55,7 @@ export function SimpleBarChart({
               tickMargin={8}
               axisLine={false}
               tickFormatter={(value) =>
-                chartConfig[value as keyof typeof chartConfig]?.label as string
+                chartConfig[value as keyof typeof chartConfig].label as string
               }
             />
             <ChartTooltip

@@ -1,10 +1,10 @@
-import { DataTableColumnVisibilityOptions } from "@/components/data-table/column-visibility.tsx"
-import type { Column, Table } from "@tanstack/react-table"
-import { DataTableFilter } from "@/components/data-table/filter.tsx"
 import { RotateCw, Trash } from "lucide-react"
+import type { Column, Table } from "@tanstack/react-table"
+import type { ReactNode } from "react"
+import { DataTableColumnVisibilityOptions } from "@/components/data-table/column-visibility.tsx"
+import { DataTableFilter } from "@/components/data-table/filter.tsx"
 import { Button } from "@/components/ui/button.tsx"
 import { Spinner } from "@/components/ui/spinner.tsx"
-import type { ReactNode } from "react"
 import { SelectFilterField } from "@/components/data-table/filter/select-filter-field.tsx"
 
 interface DataTableToolbarProps<TData> {

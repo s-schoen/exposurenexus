@@ -1,17 +1,17 @@
+import { Plus } from "lucide-react"
+import { useNavigate } from "@tanstack/react-router"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { toast } from "sonner"
+import type { Asset } from "@openvlp/types/model/asset"
 import { DataTable } from "@/components/data-table/data-table.tsx"
 import { columns } from "@/components/asset-table/columns.tsx"
-import type { Asset } from "@openvlp/types/model/asset"
-import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button.tsx"
-import { useNavigate } from "@tanstack/react-router"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   createAsset,
   createListAssetsQueryOptions,
   deleteAsset
 } from "@/api/asset.ts"
-import { toast } from "sonner"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
 
 export function AssetTable() {
@@ -28,7 +28,7 @@ export function AssetTable() {
     })
   }
 
-  const handleDeleteAssets = async (assets: Asset[]) => {
+  const handleDeleteAssets = async (assets: Array<Asset>) => {
     const confirmed = await ConfirmDialog.call({
       title: "Delete Assets",
       description: "This action cannot be undone",

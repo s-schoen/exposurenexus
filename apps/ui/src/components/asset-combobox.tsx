@@ -1,3 +1,7 @@
+import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
+import { useState } from "react"
+import type { Asset } from "@openvlp/types/model/asset"
 import {
   Command,
   CommandEmpty,
@@ -12,11 +16,7 @@ import {
   PopoverTrigger
 } from "@/components/ui/popover.tsx"
 import { Button } from "@/components/ui/button.tsx"
-import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
 import { createListAssetsQueryOptions } from "@/api/asset.ts"
-import { useState } from "react"
-import type { Asset } from "@openvlp/types/model/asset"
 import { cn } from "@/lib/utils.ts"
 import { Spinner } from "@/components/ui/spinner.tsx"
 
@@ -30,7 +30,10 @@ export function AssetCombobox({ onChange }: AssetComboboxProps) {
   const [value, setValue] = useState<Asset | null>(null)
 
   const handleAssetSelected = (selectedId: string) => {
-    const selectedAsset = assets.data?.find((i) => i.id === selectedId)!
+    const selectedAsset = assets.data?.find((i) => i.id === selectedId)
+    if (!selectedAsset) {
+      return
+    }
     setValue(selectedAsset)
     setOpen(false)
     if (onChange) {

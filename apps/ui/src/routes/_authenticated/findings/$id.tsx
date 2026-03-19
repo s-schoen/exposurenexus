@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
+import Markdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import rehypeRaw from "rehype-raw"
 import { createFindingByIDQueryOptions } from "@/api/finding.ts"
 import { usePage } from "@/context/page.tsx"
 import {
@@ -19,9 +22,6 @@ import {
 } from "@/components/ui/table.tsx"
 import { formatFindingStatus } from "@/lib/format.ts"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area.tsx"
-import Markdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import rehypeRaw from "rehype-raw"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
 
 export const Route = createFileRoute("/_authenticated/findings/$id")({

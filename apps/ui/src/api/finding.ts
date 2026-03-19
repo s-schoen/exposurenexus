@@ -1,3 +1,9 @@
+import { keepPreviousData } from "@tanstack/react-query"
+import type {
+  CreateFinding,
+  FindingStatistics,
+  Vulnerability
+} from "@openvlp/types/model/finding"
 import { env } from "@/env.ts"
 import {
   DEFAULT_QUERY_STALE_TIME,
@@ -5,14 +11,8 @@ import {
   parseErrorReply,
   parseObjectReply
 } from "@/api/common.ts"
-import type {
-  CreateFinding,
-  Vulnerability,
-  FindingStatistics
-} from "@openvlp/types/model/finding"
-import { keepPreviousData } from "@tanstack/react-query"
 
-async function listFindings(): Promise<Vulnerability[]> {
+async function listFindings(): Promise<Array<Vulnerability>> {
   const response = await fetch(`${env.VITE_API_URL}/api/findings`, {
     method: "GET",
     credentials: "include"

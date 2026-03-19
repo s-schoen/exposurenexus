@@ -1,5 +1,6 @@
 "use client"
 
+import { useNavigate } from "@tanstack/react-router"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { authClient } from "@/lib/auth"
 import {
@@ -11,7 +12,6 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
 import { Spinner } from "@/components/ui/spinner"
-import { useNavigate } from "@tanstack/react-router"
 
 export function AccountMenu() {
   const { data: session, isPending } = authClient.useSession()
@@ -27,8 +27,8 @@ export function AccountMenu() {
     })
   }
 
-  const displayName = session?.user?.name ?? session?.user?.email ?? "Account"
-  const initial = displayName?.at(0)?.toUpperCase() ?? "?"
+  const displayName = session?.user.name ?? session?.user.email ?? "Account"
+  const initial = displayName.at(0)?.toUpperCase() ?? "?"
 
   return (
     <DropdownMenu>
@@ -41,7 +41,7 @@ export function AccountMenu() {
             <div className="flex items-center space-x-2 cursor-pointer select-none">
               <Avatar>
                 <AvatarFallback className="select-none">
-                  {isPending ? "…" : initial}
+                  {initial}
                 </AvatarFallback>
               </Avatar>
               <span className="text-lg select-none">{displayName}</span>

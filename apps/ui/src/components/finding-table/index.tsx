@@ -1,13 +1,13 @@
-import { DataTable } from "@/components/data-table/data-table.tsx"
 import { Plus } from "lucide-react"
-import { columns } from "@/components/finding-table/columns.tsx"
-import { Button } from "@/components/ui/button.tsx"
 import { useNavigate } from "@tanstack/react-router"
-import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { createListFindingsQueryOptions, deleteFinding } from "@/api/finding.ts"
 import type { Finding } from "@openvlp/types/model/finding"
+import { DataTable } from "@/components/data-table/data-table.tsx"
+import { columns } from "@/components/finding-table/columns.tsx"
+import { Button } from "@/components/ui/button.tsx"
+import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
+import { createListFindingsQueryOptions, deleteFinding } from "@/api/finding.ts"
 
 export function FindingTable() {
   const navigate = useNavigate()
@@ -23,7 +23,7 @@ export function FindingTable() {
     })
   }
 
-  const handleDeleteFindings = async (findings: Finding[]) => {
+  const handleDeleteFindings = async (findings: Array<Finding>) => {
     const confirmed = await ConfirmDialog.call({
       title: "Delete Findings",
       description: "This action cannot be undone",

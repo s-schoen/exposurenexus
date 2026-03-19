@@ -1,5 +1,6 @@
 import { FindingStatus } from "@openvlp/types/model/finding"
-import { type ChartConfig } from "@/components/ui/chart.tsx"
+import { useMemo } from "react"
+import type {ChartConfig} from "@/components/ui/chart.tsx";
 import { formatFindingStatus } from "@/lib/format.ts"
 import {
   Card,
@@ -7,7 +8,6 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card.tsx"
-import { useMemo } from "react"
 import { cn } from "@/lib/utils.ts"
 import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx"
 

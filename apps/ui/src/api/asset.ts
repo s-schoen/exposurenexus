@@ -1,4 +1,5 @@
-import { type Asset, AssetType } from "@openvlp/types/model/asset"
+import { keepPreviousData, queryOptions } from "@tanstack/react-query"
+import type {Asset, AssetType } from "@openvlp/types/model/asset";
 import { env } from "@/env.ts"
 import {
   DEFAULT_QUERY_STALE_TIME,
@@ -6,9 +7,8 @@ import {
   parseErrorReply,
   parseObjectReply
 } from "@/api/common.ts"
-import { queryOptions, keepPreviousData } from "@tanstack/react-query"
 
-async function listAssets(): Promise<Asset[]> {
+async function listAssets(): Promise<Array<Asset>> {
   const response = await fetch(`${env.VITE_API_URL}/api/assets`, {
     method: "GET",
     credentials: "include"

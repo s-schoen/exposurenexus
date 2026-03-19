@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState } from "react"
 
 export interface PageState {
   title: string
-  setTitle(title: string): void
+  setTitle: (title: string) => void
 }
 
 const PageContext = createContext<PageState | undefined>(undefined)

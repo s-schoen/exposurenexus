@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { useQuery } from "@tanstack/react-query"
 import {
   Card,
   CardContent,
@@ -15,7 +16,6 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table.tsx"
-import { useQuery } from "@tanstack/react-query"
 import { createAssetByIDQueryOptions } from "@/api/asset.ts"
 import { capitalizeFirstLetter } from "@/lib/format.ts"
 
@@ -61,7 +61,7 @@ function RouteComponent() {
               <TableRow>
                 <TableCell>{asset.data?.name}</TableCell>
                 <TableCell>
-                  {capitalizeFirstLetter(asset.data?.type!)}
+                  {capitalizeFirstLetter(asset.data?.type ?? "")}
                 </TableCell>
               </TableRow>
             </TableBody>

@@ -1,4 +1,5 @@
-import { Home, Server, ShieldAlert, UploadCloud, Bug } from "lucide-react"
+import { Bug, Home, Server, ShieldAlert, UploadCloud } from "lucide-react"
+import { Link } from "@tanstack/react-router"
 import {
   Sidebar,
   SidebarContent,
@@ -9,7 +10,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from "@/components/ui/sidebar"
-import { Link } from "@tanstack/react-router"
 
 export function AppSidebar() {
   const items = [

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
+import Markdown from "react-markdown"
 import {
   Card,
   CardContent,
@@ -17,7 +18,6 @@ import {
   TableRow
 } from "@/components/ui/table.tsx"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
-import Markdown from "react-markdown"
 import { usePage } from "@/context/page.tsx"
 import { createVulnerabilityByIDQueryOptions } from "@/api/vulnerability.ts"
 

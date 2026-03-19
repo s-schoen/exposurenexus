@@ -1,15 +1,16 @@
 "use client"
 
 import {
-  type ColumnDef,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
-  type Row,
   useReactTable
 } from "@tanstack/react-table"
+import type { ColumnDef, Row } from "@tanstack/react-table"
 
+import type { UseQueryResult } from "@tanstack/react-query"
+import type { ReactElement } from "react"
 import {
   Table,
   TableBody,
@@ -20,15 +21,13 @@ import {
 } from "@/components/ui/table"
 import { DataTablePagination } from "@/components/data-table/pagination-control.tsx"
 import { DataTableToolbar } from "@/components/data-table/toolbar.tsx"
-import type { UseQueryResult } from "@tanstack/react-query"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { Checkbox } from "@/components/ui/checkbox.tsx"
-import type { ReactElement } from "react"
 
 interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  query: UseQueryResult<TData[], Error>
-  onRowDelete?: (rows: TData[]) => Promise<void>
+  columns: Array<ColumnDef<TData, TValue>>
+  query: UseQueryResult<Array<TData>, Error>
+  onRowDelete?: (rows: Array<TData>) => Promise<void>
   onRowDoubleClick?: (row: TData) => void
   toolbarControls?: ReactElement
 }
@@ -105,7 +104,7 @@ export function DataTable<TData, TValue>({
   function DataRows() {
     return (
       <TableBody key="data-table-body-data">
-        {table.getRowModel().rows?.length ? (
+        {table.getRowModel().rows.length ? (
           table.getRowModel().rows.map((row) => (
             <TableRow
               key={row.id}

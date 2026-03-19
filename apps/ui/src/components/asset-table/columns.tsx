@@ -4,7 +4,7 @@ import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx
 
 import { capitalizeFirstLetter } from "@/lib/format.ts"
 
-export const columns: ColumnDef<Asset>[] = [
+export const columns: Array<ColumnDef<Asset>> = [
   {
     accessorKey: "name",
     header: ({ column }) => (

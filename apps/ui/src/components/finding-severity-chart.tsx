@@ -1,4 +1,6 @@
-import { type ChartConfig } from "@/components/ui/chart.tsx"
+import { useMemo } from "react"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import type {ChartConfig} from "@/components/ui/chart.tsx";
 import { severityColor } from "@/lib/colors.ts"
 import { formatSeverity } from "@/lib/format.ts"
 import {
@@ -7,10 +9,8 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card.tsx"
-import { useMemo } from "react"
 import { cn } from "@/lib/utils.ts"
 import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 
 interface FindingSeverityChartProps {
   data: Record<VulnerabilitySeverity, number> | {}
