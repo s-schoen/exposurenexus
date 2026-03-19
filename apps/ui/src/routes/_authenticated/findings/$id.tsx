@@ -103,7 +103,7 @@ function RouteComponent() {
               <CardTitle>Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <Markdown>{finding.data?.description}</Markdown>
+              <Markdown>{finding.data?.vulnerability.description ?? ""}</Markdown>
             </CardContent>
           </Card>
 

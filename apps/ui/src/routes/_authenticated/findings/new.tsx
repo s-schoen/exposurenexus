@@ -43,12 +43,11 @@ function RouteComponent() {
 
   const form = useForm({
     defaultValues: {
-      title: "",
+      vulnerabilityId: "",
       assetId: "",
       severity: VulnerabilitySeverity.Medium,
       status: FindingStatus.Active,
-      source: null,
-      description: null,
+      source: "",
       evidence: null,
       mitigation: null
     } as CreateFinding,
@@ -92,29 +91,6 @@ function RouteComponent() {
               <TabsTrigger value="details">Details</TabsTrigger>
             </TabsList>
             <TabsContent value="general" className="grid gap-2 grid-cols-2">
-              <form.Field
-                name="title"
-                children={(field) => {
-                  const isInvalid =
-                    field.state.meta.isTouched && !field.state.meta.isValid
-                  return (
-                    <Field data-invalid={isInvalid} className="col-span-2">
-                      <FieldLabel htmlFor={field.name}>Title</FieldLabel>
-                      <Input
-                        id={field.name}
-                        name={field.name}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        aria-invalid={isInvalid}
-                      />
-                      {isInvalid && (
-                        <FieldError errors={field.state.meta.errors} />
-                      )}
-                    </Field>
-                  )
-                }}
-              />
               <form.Field
                 name="assetId"
                 children={(field) => {
@@ -201,7 +177,7 @@ function RouteComponent() {
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) =>
-                          field.handleChange(e.target.value || null)
+                          field.handleChange(e.target.value)
                         }
                         aria-invalid={isInvalid}
                       />
@@ -212,32 +188,7 @@ function RouteComponent() {
                   )
                 }}
               />
-              <form.Field
-                name="description"
-                children={(field) => {
-                  const isInvalid =
-                    field.state.meta.isTouched && !field.state.meta.isValid
-                  return (
-                    <Field data-invalid={isInvalid} className="col-span-2">
-                      <FieldLabel htmlFor={field.name}>Description</FieldLabel>
-                      <Textarea
-                        id={field.name}
-                        name={field.name}
-                        value={field.state.value ?? ""}
-                        onBlur={field.handleBlur}
-                        onChange={(e) =>
-                          field.handleChange(e.target.value || null)
-                        }
-                        aria-invalid={isInvalid}
-                        className="h-64"
-                      />
-                      {isInvalid && (
-                        <FieldError errors={field.state.meta.errors} />
-                      )}
-                    </Field>
-                  )
-                }}
-              />
+
             </TabsContent>
             <TabsContent value="details" className="flex flex-col gap-2">
               <form.Field

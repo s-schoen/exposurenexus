@@ -2,7 +2,7 @@ import { keepPreviousData } from "@tanstack/react-query"
 import type {
   CreateFinding,
   FindingStatistics,
-  Vulnerability
+  Finding
 } from "@openvlp/types/model/finding"
 import { env } from "@/env.ts"
 import {
@@ -12,7 +12,7 @@ import {
   parseObjectReply
 } from "@/api/common.ts"
 
-async function listFindings(): Promise<Array<Vulnerability>> {
+async function listFindings(): Promise<Array<Finding>> {
   const response = await fetch(`${env.VITE_API_URL}/api/findings`, {
     method: "GET",
     credentials: "include"
@@ -24,10 +24,10 @@ async function listFindings(): Promise<Array<Vulnerability>> {
     throw error
   }
 
-  return parseArrayReply<Vulnerability>(response)
+  return parseArrayReply<Finding>(response)
 }
 
-export async function deleteFinding(id: string): Promise<Vulnerability> {
+export async function deleteFinding(id: string): Promise<Finding> {
   const response = await fetch(`${env.VITE_API_URL}/api/findings/${id}`, {
     method: "DELETE",
     credentials: "include"
@@ -39,10 +39,10 @@ export async function deleteFinding(id: string): Promise<Vulnerability> {
     throw error
   }
 
-  return parseObjectReply<Vulnerability>(response)
+  return parseObjectReply<Finding>(response)
 }
 
-async function getFindingByID(id: string): Promise<Vulnerability> {
+async function getFindingByID(id: string): Promise<Finding> {
   const response = await fetch(`${env.VITE_API_URL}/api/findings/${id}`, {
     method: "GET",
     credentials: "include"
@@ -54,7 +54,7 @@ async function getFindingByID(id: string): Promise<Vulnerability> {
     throw error
   }
 
-  return parseObjectReply<Vulnerability>(response)
+  return parseObjectReply<Finding>(response)
 }
 
 async function getFindingStats(): Promise<FindingStatistics> {
@@ -72,7 +72,7 @@ async function getFindingStats(): Promise<FindingStatistics> {
   return parseObjectReply<FindingStatistics>(response)
 }
 
-export async function createFinding(f: CreateFinding): Promise<Vulnerability> {
+export async function createFinding(f: CreateFinding): Promise<Finding> {
   const response = await fetch(`${env.VITE_API_URL}/api/findings`, {
     method: "POST",
     credentials: "include",
@@ -88,7 +88,7 @@ export async function createFinding(f: CreateFinding): Promise<Vulnerability> {
     throw error
   }
 
-  return parseObjectReply<Vulnerability>(response)
+  return parseObjectReply<Finding>(response)
 }
 
 export async function uploadFindingFile(type: string, file: File) {
