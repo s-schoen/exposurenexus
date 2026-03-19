@@ -11,9 +11,9 @@ Hono.js API Server
 
 ## Commands
 
-* `pnpm` is used for package management
+* Use `pnpm`, NEVER use `npm` or `yarn`
 * `pnpm build` to build code with `tsc` and check for syntax errors
-* `pnpm lint` to run the eslint
+* `pnpm lint` to lint code with `eslint`
 
 ## Patterns
 
