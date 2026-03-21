@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
-import type {ChartConfig} from "@/components/ui/chart.tsx";
+import type { ChartConfig } from "@/components/ui/chart.tsx"
 import { severityColor } from "@/lib/colors.ts"
 import { formatSeverity } from "@/lib/format.ts"
 import {

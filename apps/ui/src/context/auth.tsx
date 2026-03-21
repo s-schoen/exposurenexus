@@ -5,8 +5,8 @@ import React, {
   useEffect,
   useState
 } from "react"
-import type {User} from "@/lib/auth.ts";
-import {  getSession, signIn, signOut } from "@/lib/auth.ts"
+import type { User } from "@/lib/auth.ts"
+import { getSession, signIn, signOut } from "@/lib/auth.ts"
 
 export interface AuthState {
   isAuthenticated: boolean

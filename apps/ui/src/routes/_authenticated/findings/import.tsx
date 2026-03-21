@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
-import {  useState } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
-import type {ChangeEvent} from "react";
+import type { ChangeEvent } from "react"
 import { usePage } from "@/context/page.tsx"
 import { Input } from "@/components/ui/input.tsx"
 import { Button } from "@/components/ui/button.tsx"

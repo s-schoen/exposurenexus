@@ -1,12 +1,7 @@
-import React, {
-  type ReactNode,
-  useCallback,
-  useRef,
-  useState,
-  type HTMLInputTypeAttribute
-} from "react"
+import React, { useCallback, useRef, useState } from "react"
+import { LucideCheck, PencilIcon, XIcon } from "lucide-react"
+import type { HTMLInputTypeAttribute, ReactNode } from "react"
 import { Button } from "@/components/ui/button"
-import { PencilIcon, LucideCheck, XIcon } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -20,7 +15,7 @@ type EditElement<T> =
   | { type: "input"; inputType?: HTMLInputTypeAttribute }
   | {
       type: "select"
-      options: { label: string; value: T }[]
+      options: Array<{ label: string; value: T }>
     }
   | {
       type: "custom"
@@ -132,11 +127,7 @@ export function Inplace<T>({
     return (
       <Input
         ref={inputRef}
-        type={
-          editElement.type === "input"
-            ? (editElement.inputType ?? "text")
-            : "text"
-        }
+        type={editElement.inputType ?? "text"}
         value={String(draft)}
         onChange={(e) => {
           const raw = e.target.value

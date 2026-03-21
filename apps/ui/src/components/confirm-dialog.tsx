@@ -1,5 +1,5 @@
-import {  createCallable } from "react-call"
-import type {ReactCall} from "react-call";
+import { createCallable } from "react-call"
+import type { ReactCall } from "react-call"
 import {
   Dialog,
   DialogContent,

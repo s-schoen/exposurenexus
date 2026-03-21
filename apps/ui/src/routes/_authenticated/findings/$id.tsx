@@ -4,6 +4,10 @@ import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { useState } from "react"
+import { FindingStatus } from "@openvlp/types/model/finding"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { LucideCheck, XIcon } from "lucide-react"
+import type { Finding } from "@openvlp/types/model/finding"
 import { createFindingByIDQueryOptions } from "@/api/finding.ts"
 import { usePage } from "@/context/page.tsx"
 import {
@@ -25,10 +29,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area.tsx"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
 import { Inplace } from "@/components/inplace.tsx"
 import { formatFindingStatus, formatSeverity } from "@/lib/format.ts"
-import { type Finding, FindingStatus } from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import { Button } from "@/components/ui/button.tsx"
-import { LucideCheck, XIcon } from "lucide-react"
 
 export const Route = createFileRoute("/_authenticated/findings/$id")({
   component: RouteComponent
@@ -43,7 +44,10 @@ function RouteComponent() {
 
   const hasPendingChanges = draft !== null
 
-  function updateDraft<K extends keyof Finding>(key: K, value: Finding[K]) {
+  function updateDraft<TKey extends keyof Finding>(
+    key: TKey,
+    value: Finding[TKey]
+  ) {
     setDraft((prev) => ({ ...(prev ?? finding.data!), [key]: value }))
   }
 

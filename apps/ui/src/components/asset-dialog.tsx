@@ -1,8 +1,8 @@
-import {  createCallable } from "react-call"
-import {  AssetType, assetSchema } from "@openvlp/types/model/asset"
+import { createCallable } from "react-call"
+import { AssetType, assetSchema } from "@openvlp/types/model/asset"
 import { useForm } from "@tanstack/react-form"
-import type {ReactCall} from "react-call";
-import type {Asset} from "@openvlp/types/model/asset";
+import type { ReactCall } from "react-call"
+import type { Asset } from "@openvlp/types/model/asset"
 import { Button } from "@/components/ui/button.tsx"
 import {
   Dialog,

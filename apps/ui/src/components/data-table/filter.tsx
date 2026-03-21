@@ -1,8 +1,8 @@
-import {  useEffect } from "react"
+import { useEffect } from "react"
 import { useQueryState } from "nuqs"
 import { XIcon } from "lucide-react"
 import { useRouter } from "@tanstack/react-router"
-import type {ChangeEvent} from "react";
+import type { ChangeEvent } from "react"
 import type { Table } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button.tsx"
 import { Input } from "@/components/ui/input.tsx"

@@ -176,9 +176,7 @@ function RouteComponent() {
                         name={field.name}
                         value={field.state.value}
                         onBlur={field.handleBlur}
-                        onChange={(e) =>
-                          field.handleChange(e.target.value)
-                        }
+                        onChange={(e) => field.handleChange(e.target.value)}
                         aria-invalid={isInvalid}
                       />
                       {isInvalid && (
@@ -188,7 +186,6 @@ function RouteComponent() {
                   )
                 }}
               />
-
             </TabsContent>
             <TabsContent value="details" className="flex flex-col gap-2">
               <form.Field

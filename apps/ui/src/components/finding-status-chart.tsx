@@ -1,6 +1,6 @@
 import { FindingStatus } from "@openvlp/types/model/finding"
 import { useMemo } from "react"
-import type {ChartConfig} from "@/components/ui/chart.tsx";
+import type { ChartConfig } from "@/components/ui/chart.tsx"
 import { formatFindingStatus } from "@/lib/format.ts"
 import {
   Card,

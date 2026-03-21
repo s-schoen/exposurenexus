@@ -1,7 +1,7 @@
 import { Check, PlusCircle, XCircle } from "lucide-react"
-import {  useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
-import type {MouseEvent} from "react";
+import type { MouseEvent } from "react"
 import type { Column } from "@tanstack/react-table"
 import type { SelectOption } from "@/components/data-table/types.ts"
 import {

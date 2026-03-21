@@ -1,5 +1,5 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
-import type {Asset, AssetType } from "@openvlp/types/model/asset";
+import type { Asset, AssetType } from "@openvlp/types/model/asset"
 import { env } from "@/env.ts"
 import {
   DEFAULT_QUERY_STALE_TIME,

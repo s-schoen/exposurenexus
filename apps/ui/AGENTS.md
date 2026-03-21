@@ -2,9 +2,9 @@
 
 ## Commands
 
-* Use `pnpm`, NEVER use `npm` or `yarn`
-* `pnpm build` to build code with `tsc` and check for syntax errors
-* `pnpm lint` to lint code with `eslint`
+- Use `pnpm`, NEVER use `npm` or `yarn`
+- `pnpm build` to build code with `tsc` and check for syntax errors
+- `pnpm lint` to lint code with `eslint`
 
 ## Code Style & Conventions
 
