@@ -10,6 +10,7 @@ import {
   SelectValue
 } from "@/components/ui/select.tsx"
 import { Input } from "@/components/ui/input.tsx"
+import { cn } from "@/lib/utils.ts"
 
 type EditElement<T> =
   | { type: "input"; inputType?: HTMLInputTypeAttribute }
@@ -32,13 +33,17 @@ interface InplaceProps<T> {
   onSave: (value: T) => void | Promise<void>
   displayElement?: (value: T) => ReactNode
   editElement?: EditElement<T>
+  editOnClick?: boolean
+  showEditIcon?: boolean
 }
 
 export function Inplace<T>({
   value,
   onSave,
   displayElement,
-  editElement = { type: "input" }
+  editElement = { type: "input" },
+  editOnClick = false,
+  showEditIcon = true
 }: InplaceProps<T>) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<T>(value)
@@ -158,7 +163,7 @@ export function Inplace<T>({
             onClick={() => enterEdit()}
             size="icon-sm"
             variant="ghost"
-            className={hovered ? "opacity-100" : "opacity-0"}
+            className={hovered && showEditIcon ? "opacity-100" : "opacity-0"}
           >
             <PencilIcon />
           </Button>
@@ -169,9 +174,12 @@ export function Inplace<T>({
 
   return (
     <div
-      className="flex items-center gap-4 min-w-36"
+      className={cn("flex", "items-center", "gap-4", "min-w-36", {
+        "cursor-pointer": editOnClick
+      })}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={editOnClick ? enterEdit : undefined}
     >
       {editing ? renderEditComponent() : renderDisplayComponent()}
       {getIcons()}

@@ -137,6 +137,7 @@ function RouteComponent() {
                             })
                           )
                         }}
+                        editOnClick={true}
                         onSave={(value) => updateDraft("severity", value)}
                       />
                     </TableCell>
@@ -157,6 +158,7 @@ function RouteComponent() {
                             value: v
                           }))
                         }}
+                        editOnClick={true}
                         onSave={(value) => updateDraft("status", value)}
                       />
                     </TableCell>
