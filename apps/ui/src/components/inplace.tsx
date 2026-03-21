@@ -48,11 +48,13 @@ export function Inplace<T>({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<T>(value)
   const [hovered, setHovered] = useState(false)
+  const [selectOpen, setSelectOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const enterEdit = useCallback(() => {
     setDraft(value)
     setEditing(true)
+    setSelectOpen(true)
     // focus after paint
     setTimeout(() => inputRef.current?.focus(), 0)
   }, [value])
@@ -103,6 +105,8 @@ export function Inplace<T>({
     if (editElement.type === "select") {
       return (
         <Select
+          open={selectOpen}
+          onOpenChange={setSelectOpen}
           value={
             editElement.options.find((opt) => opt.value === draft)?.label ??
             String(draft)
