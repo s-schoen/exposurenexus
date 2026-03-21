@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { Link, createFileRoute } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -6,9 +6,9 @@ import rehypeRaw from "rehype-raw"
 import { useState } from "react"
 import { FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { ExternalLink } from "lucide-react"
 import type { Finding } from "@openvlp/types/model/finding"
 import { createFindingByIDQueryOptions } from "@/api/finding.ts"
-import { ExternalLink } from "lucide-react"
 import { usePage } from "@/context/page.tsx"
 import {
   Card,

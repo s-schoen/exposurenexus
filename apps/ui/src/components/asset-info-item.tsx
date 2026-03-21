@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
+import { ExternalLink, Server } from "lucide-react"
+import { Link } from "@tanstack/react-router"
 import { createAssetByIDQueryOptions } from "@/api/asset.ts"
 import {
   Item,
@@ -8,9 +10,7 @@ import {
   ItemMedia,
   ItemTitle
 } from "@/components/ui/item.tsx"
-import { ExternalLink, Server } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
-import { Link } from "@tanstack/react-router"
 import { capitalizeFirstLetter } from "@/lib/format.ts"
 
 interface AssetInfoItemProps {
