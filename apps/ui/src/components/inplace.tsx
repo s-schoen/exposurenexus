@@ -60,6 +60,7 @@ export function Inplace<T>({
   }, [value])
 
   const cancel = useCallback(() => {
+    setSelectOpen(false)
     setEditing(false)
     setDraft(value)
   }, [value])
@@ -74,6 +75,7 @@ export function Inplace<T>({
         overrideDraft ? await onSave(overrideDraft) : await onSave(draft)
       } finally {
         setEditing(false)
+        setSelectOpen(false)
       }
     },
     [draft, value, onSave]
@@ -155,10 +157,12 @@ export function Inplace<T>({
       <div className="flex items-center gap-1">
         {editing ? (
           <div className="flex items-center gap-2">
-            <Button onClick={() => commit()} size="icon-sm" variant="ghost">
-              <LucideCheck />
-            </Button>
-            <Button onClick={() => commit()} size="icon-sm" variant="ghost">
+            {editElement.type !== "select" && (
+              <Button onClick={() => commit()} size="icon-sm" variant="ghost">
+                <LucideCheck />
+              </Button>
+            )}
+            <Button onClick={() => cancel()} size="icon-sm" variant="ghost">
               <XIcon />
             </Button>
           </div>
@@ -183,9 +187,10 @@ export function Inplace<T>({
       })}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={editOnClick ? enterEdit : undefined}
     >
-      {editing ? renderEditComponent() : renderDisplayComponent()}
+      <div onClick={editOnClick ? enterEdit : undefined}>
+        {editing ? renderEditComponent() : renderDisplayComponent()}
+      </div>
       {getIcons()}
     </div>
   )
