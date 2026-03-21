@@ -20,9 +20,12 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table.tsx"
-import { formatFindingStatus } from "@/lib/format.ts"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area.tsx"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
+import { Inplace } from "@/components/inplace.tsx"
+import { formatFindingStatus, formatSeverity } from "@/lib/format.ts"
+import { FindingStatus } from "@openvlp/types/model/finding"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 
 export const Route = createFileRoute("/_authenticated/findings/$id")({
   component: RouteComponent
@@ -73,20 +76,68 @@ function RouteComponent() {
                   <TableRow>
                     <TableCell className="font-bold">Severity</TableCell>
                     <TableCell>
-                      <SeverityBadge severity={finding.data!.severity} />
+                      <Inplace
+                        value={finding.data!.severity}
+                        displayElement={(severityValue) => (
+                          <SeverityBadge severity={severityValue} />
+                        )}
+                        editElement={{
+                          type: "select",
+                          options: Object.values(VulnerabilitySeverity).map(
+                            (v) => {
+                              return {
+                                label: formatSeverity(v),
+                                value: v
+                              }
+                            }
+                          )
+                        }}
+                        onSave={(value) => {
+                          console.log("COMMIT Sev: ", value)
+                        }}
+                      />
                     </TableCell>
                   </TableRow>
 
                   <TableRow>
                     <TableCell className="font-bold">Status</TableCell>
                     <TableCell>
-                      {formatFindingStatus(finding.data!.status)}
+                      <Inplace
+                        value={finding.data!.status}
+                        displayElement={(statusValue) => (
+                          <>{formatFindingStatus(statusValue)}</>
+                        )}
+                        editElement={{
+                          type: "select",
+                          options: Object.values(FindingStatus).map((v) => {
+                            return {
+                              label: formatFindingStatus(v),
+                              value: v
+                            }
+                          })
+                        }}
+                        onSave={(value) => {
+                          console.log("COMMIT Status: ", value)
+                        }}
+                      ></Inplace>
+                      {}
                     </TableCell>
                   </TableRow>
 
                   <TableRow>
                     <TableCell className="font-bold">Source</TableCell>
-                    <TableCell>{finding.data!.source}</TableCell>
+                    <TableCell>
+                      <Inplace
+                        value={finding.data!.source}
+                        editElement={{
+                          type: "input"
+                        }}
+                        onSave={(value) => {
+                          console.log("COMMIT Source: ", value)
+                          finding.data!.source = value
+                        }}
+                      />
+                    </TableCell>
                   </TableRow>
 
                   <TableRow>
@@ -103,7 +154,9 @@ function RouteComponent() {
               <CardTitle>Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <Markdown>{finding.data?.vulnerability.description ?? ""}</Markdown>
+              <Markdown>
+                {finding.data?.vulnerability.description ?? ""}
+              </Markdown>
             </CardContent>
           </Card>
 
