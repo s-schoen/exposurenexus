@@ -62,17 +62,20 @@ export function Inplace<T>({
     setDraft(value)
   }, [value])
 
-  const commit = useCallback(async () => {
-    if (draft === value) {
-      setEditing(false)
-      return
-    }
-    try {
-      await onSave(draft)
-    } finally {
-      setEditing(false)
-    }
-  }, [draft, value, onSave])
+  const commit = useCallback(
+    async (overrideDraft?: T) => {
+      if (draft === value && !overrideDraft) {
+        setEditing(false)
+        return
+      }
+      try {
+        overrideDraft ? await onSave(overrideDraft) : await onSave(draft)
+      } finally {
+        setEditing(false)
+      }
+    },
+    [draft, value, onSave]
+  )
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") commit()
@@ -108,6 +111,7 @@ export function Inplace<T>({
             const typed =
               typeof value === "number" ? (Number(v) as T) : (v as T)
             setDraft(typed)
+            commit(typed)
           }}
         >
           <SelectTrigger className="h-7 min-w-32 text-sm">
