@@ -8,6 +8,8 @@
 
 ## Code Style & Conventions
 
+Do NOT commit any changes to git unless you are explicitly asked.
+
 - **Framework**: React 19 + Vite + TypeScript.
 - **Routing**: @tanstack/react-router (File-based routing in `src/routes`).
 - **State**: @tanstack/react-query for async data.

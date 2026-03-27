@@ -2,10 +2,7 @@ import { Hono } from "hono"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
-import {
-  createFindingSchema,
-  findingInternalSchema
-} from "@openvlp/types/model/finding"
+import { createFindingSchema } from "@openvlp/types/model/finding"
 import * as findingService from "../service/finding.js"
 import type { User } from "better-auth"
 import type { ContextVariables } from "../lib/hono-schema.js"
