@@ -92,13 +92,23 @@ export async function createFinding(f: CreateFinding): Promise<Finding> {
 }
 
 export async function updateFinding(f: Finding): Promise<Finding> {
+  const payload: CreateFinding = {
+    vulnerabilityId: f.vulnerabilityId,
+    severity: f.severity,
+    status: f.status,
+    source: f.source,
+    evidence: f.evidence,
+    mitigation: f.mitigation,
+    assetId: f.assetId
+  }
+
   const response = await fetch(`${env.VITE_API_URL}/api/findings/${f.id}`, {
     method: "PUT",
     credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify(f)
+    body: JSON.stringify(payload)
   })
 
   if (!response.ok) {

@@ -33,6 +33,7 @@ export const Route = createFileRoute("/_authenticated/findings/$id")({
 function RouteComponent() {
   const { id } = Route.useParams()
   const finding = useQuery(createFindingByIDQueryOptions(id))
+  const queryClient = useQueryClient()
   // local draft, null means no pending changes
   const [draft, setDraft] = useState<Finding | null>(null)
   const displayData = draft ?? finding.data
@@ -49,7 +50,7 @@ function RouteComponent() {
 
     try {
       await updateFinding(draft)
-      await useQueryClient().invalidateQueries({ queryKey: ["findings", id] })
+      await queryClient.invalidateQueries({ queryKey: ["findings", id] })
       setDraft(null)
       toast.success("Finding updated")
     } catch (error) {
