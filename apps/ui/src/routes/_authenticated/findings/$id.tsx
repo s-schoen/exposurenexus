@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
@@ -8,7 +8,7 @@ import { FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import { ExternalLink } from "lucide-react"
 import type { Finding } from "@openvlp/types/model/finding"
-import { createFindingByIDQueryOptions } from "@/api/finding.ts"
+import { createFindingByIDQueryOptions, updateFinding } from "@/api/finding.ts"
 import { usePage } from "@/context/page.tsx"
 import {
   Card,
@@ -24,6 +24,7 @@ import { SeverityBadge } from "@/components/severity-badge.tsx"
 import { Inplace } from "@/components/inplace.tsx"
 import { formatFindingStatus, formatSeverity } from "@/lib/format.ts"
 import { AssetInfoItem } from "@/components/asset-info-item.tsx"
+import { toast } from "sonner"
 
 export const Route = createFileRoute("/_authenticated/findings/$id")({
   component: RouteComponent
@@ -45,13 +46,16 @@ function RouteComponent() {
 
   async function handleSave() {
     if (!draft) return
-    // TODO: call PUT /api/findings/${id} with `draft` once the API client
-    //       function is implemented in src/api/finding.ts, then replace the
-    //       lines below with:
-    //         await updateFinding(id, draft)
-    //         await useQueryClient().invalidateQueries({ queryKey: ["findings", id] })
-    console.log("Saving finding:", draft)
-    setDraft(null)
+
+    try {
+      await updateFinding(draft)
+      await useQueryClient().invalidateQueries({ queryKey: ["findings", id] })
+      setDraft(null)
+      toast.success("Finding updated")
+    } catch (error) {
+      console.error("Error updating finding:", error)
+      toast.error("Failed to update finding")
+    }
   }
 
   const page = usePage()

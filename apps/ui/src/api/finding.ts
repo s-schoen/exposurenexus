@@ -91,6 +91,25 @@ export async function createFinding(f: CreateFinding): Promise<Finding> {
   return parseObjectReply<Finding>(response)
 }
 
+export async function updateFinding(f: Finding): Promise<Finding> {
+  const response = await fetch(`${env.VITE_API_URL}/api/findings/${f.id}`, {
+    method: "PUT",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(f)
+  })
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response)
+    console.error(error)
+    throw error
+  }
+
+  return parseObjectReply<Finding>(response)
+}
+
 export async function uploadFindingFile(type: string, file: File) {
   const formData = new FormData()
   formData.append("file", file)
