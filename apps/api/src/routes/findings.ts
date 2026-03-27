@@ -2,7 +2,10 @@ import { Hono } from "hono"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
-import { createFindingSchema } from "@openvlp/types/model/finding"
+import {
+  createFindingSchema,
+  findingInternalSchema
+} from "@openvlp/types/model/finding"
 import * as findingService from "../service/finding.js"
 import type { User } from "better-auth"
 import type { ContextVariables } from "../lib/hono-schema.js"
@@ -39,6 +42,30 @@ finding.post("/", zValidator("json", createFindingSchema), async (c) => {
 
   return replyObject(c, createdFinding, true)
 })
+
+finding.put(
+  "/:id",
+  idParamValidator,
+  zValidator("json", createFindingSchema),
+  async (c) => {
+    const body = c.req.valid("json")
+    const params = c.req.valid("param")
+
+    const user: User = c.get("user")
+
+    const updatedFinding = await findingService.update({
+      id: params.id,
+      finding: body,
+      user: user
+    })
+
+    if (!updatedFinding) {
+      notFound("finding", params.id)
+    }
+
+    return replyObject(c, updatedFinding!)
+  }
+)
 
 finding.delete("/:id", idParamValidator, async (c) => {
   const params = c.req.valid("param")

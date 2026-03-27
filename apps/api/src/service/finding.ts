@@ -83,6 +83,12 @@ export interface CreateFindingOptions {
   firstSeen?: Date
 }
 
+export interface UpdateFindingOptions {
+  id: string
+  finding: CreateFinding
+  user: User
+}
+
 export async function create(
   opts: CreateFindingOptions,
   fingerprintOpt?: Record<string, string>
@@ -121,6 +127,44 @@ export async function create(
 export interface CreateOrUpdateFindingResult {
   finding: Finding
   created: boolean
+}
+
+export async function update(
+  opts: UpdateFindingOptions
+): Promise<Finding | null> {
+  try {
+    const finding = await findingRepository.getByID(opts.id)
+
+    if (!finding) {
+      logger.debug(`cannot update finding ${opts.id}: not found`)
+      return null
+    }
+
+    const findingUpdate: Omit<FindingInternal, "id"> = {
+      firstSeen: finding.firstSeen,
+      lastSeen: finding.lastSeen,
+      createdAt: finding.createdAt,
+      createdBy: finding.createdBy,
+      fingerprint: finding.fingerprint,
+      updatedAt: new Date(),
+      updatedBy: opts.user.id,
+      ...opts.finding
+    }
+
+    const updatedFinding = await findingRepository.update(
+      opts.id,
+      findingUpdate
+    )
+
+    logger.info(`updated finding ${opts.id}`)
+
+    return await extendWithVulnerability(updatedFinding)
+  } catch (error) {
+    logger.error(error, `failed to get finding with id ${opts.id}`)
+    throw new HTTPException(500, {
+      message: "failed to update finding"
+    })
+  }
 }
 
 export async function createOrUpdate(
