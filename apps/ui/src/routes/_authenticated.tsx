@@ -8,9 +8,10 @@ import { Separator } from "@/components/ui/separator.tsx"
 import { usePage } from "@/context/page.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
+import { Button } from "@/components/ui/button.tsx"
 
 function Layout() {
-  const { title } = usePage()
+  const { title, actions } = usePage()
 
   return (
     <>
@@ -26,7 +27,25 @@ function Layout() {
             <div className="flex h-full w-full">
               <AppSidebar />
               <main className="flex-1 overflow-y-auto p-2 flex flex-col">
-                <span className="mt-1 text-2xl">{title}</span>
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="text-2xl">{title}</span>
+                  {actions.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      {actions.map((action) => (
+                        <Button
+                          key={action.label}
+                          variant={action.variant ?? "outline"}
+                          size="sm"
+                          disabled={action.disabled}
+                          onClick={action.onClick}
+                        >
+                          {action.icon && <action.icon />}
+                          {action.label}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <Separator className="my-3" />
                 <NuqsAdapter>
                   <Outlet />
