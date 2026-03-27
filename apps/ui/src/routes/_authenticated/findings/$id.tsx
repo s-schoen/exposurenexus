@@ -3,10 +3,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
-import { ExternalLink } from "lucide-react"
+import { ExternalLink, Save } from "lucide-react"
+import { toast } from "sonner"
 import type { Finding } from "@openvlp/types/model/finding"
 import { createFindingByIDQueryOptions, updateFinding } from "@/api/finding.ts"
 import { usePage } from "@/context/page.tsx"
@@ -24,7 +25,6 @@ import { SeverityBadge } from "@/components/severity-badge.tsx"
 import { Inplace } from "@/components/inplace.tsx"
 import { formatFindingStatus, formatSeverity } from "@/lib/format.ts"
 import { AssetInfoItem } from "@/components/asset-info-item.tsx"
-import { toast } from "sonner"
 
 export const Route = createFileRoute("/_authenticated/findings/$id")({
   component: RouteComponent
@@ -59,7 +59,23 @@ function RouteComponent() {
   }
 
   const page = usePage()
-  page.setTitle("Finding")
+
+  useEffect(() => {
+    page.setTitle("Finding")
+    page.setActions([
+      {
+        label: "Save",
+        icon: Save,
+        onClick: handleSave,
+        variant: "default",
+        disabled: draft === null
+      }
+    ])
+    return () => {
+      page.setTitle("")
+      page.setActions([])
+    }
+  }, [draft])
 
   function CardPlaceholder() {
     return (

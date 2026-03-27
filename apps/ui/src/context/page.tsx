@@ -12,15 +12,15 @@ export interface PageAction {
 export interface PageState {
   title: string
   setTitle: (title: string) => void
-  actions: PageAction[]
-  setActions: (actions: PageAction[]) => void
+  actions: Array<PageAction>
+  setActions: (actions: Array<PageAction>) => void
 }
 
 const PageContext = createContext<PageState | undefined>(undefined)
 
 export function PageProvider({ children }: { children: React.ReactNode }) {
   const [title, setTitle] = useState("")
-  const [actions, setActions] = useState<PageAction[]>([])
+  const [actions, setActions] = useState<Array<PageAction>>([])
 
   return (
     <PageContext.Provider value={{ title, setTitle, actions, setActions }}>
