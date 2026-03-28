@@ -10,7 +10,6 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
-  ContextMenuLabel,
   ContextMenuSeparator,
   ContextMenuSub,
   ContextMenuSubContent,
@@ -92,9 +91,9 @@ export function FindingContextMenu({
     <ContextMenu>
       <ContextMenuTrigger render={children} />
       <ContextMenuContent className="w-48">
-        <ContextMenuLabel>
+        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
           {findings.length} finding{findings.length !== 1 ? "s" : ""} selected
-        </ContextMenuLabel>
+        </div>
         <ContextMenuSeparator />
         <ContextMenuSub>
           <ContextMenuSubTrigger>Set Status</ContextMenuSubTrigger>
