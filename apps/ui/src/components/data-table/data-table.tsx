@@ -7,10 +7,10 @@ import {
   getPaginationRowModel,
   useReactTable
 } from "@tanstack/react-table"
+import { useRef } from "react"
 import type { ColumnDef, Row } from "@tanstack/react-table"
-
 import type { UseQueryResult } from "@tanstack/react-query"
-import type { ReactElement } from "react"
+import type { ReactElement, ReactNode, RefObject } from "react"
 import {
   Table,
   TableBody,
@@ -30,6 +30,11 @@ interface DataTableProps<TData, TValue> {
   onRowDelete?: (rows: Array<TData>) => Promise<void>
   onRowDoubleClick?: (row: TData) => void
   toolbarControls?: ReactElement
+  contextMenu?: (
+    rowsRef: RefObject<Array<TData>>,
+    children: ReactElement,
+    key: string
+  ) => ReactNode
 }
 
 export function DataTable<TData, TValue>({
@@ -37,7 +42,8 @@ export function DataTable<TData, TValue>({
   query,
   onRowDelete,
   onRowDoubleClick,
-  toolbarControls
+  toolbarControls,
+  contextMenu
 }: DataTableProps<TData, TValue>) {
   const selectColumn: ColumnDef<TData, TValue> = {
     id: "select",
@@ -70,6 +76,8 @@ export function DataTable<TData, TValue>({
     globalFilterFn: "includesString"
   })
 
+  const contextMenuTargetsRef = useRef<Array<TData>>([])
+
   const handleOnRefresh = async () => {
     await query.refetch()
   }
@@ -85,6 +93,18 @@ export function DataTable<TData, TValue>({
   const handleOnRowDoubleClick = (row: Row<TData>) => {
     if (onRowDoubleClick) {
       onRowDoubleClick(row.original)
+    }
+  }
+
+  const handleOnRowContextMenu = (row: Row<TData>) => {
+    if (!row.getIsSelected()) {
+      table.resetRowSelection()
+      row.toggleSelected(true)
+      contextMenuTargetsRef.current = [row.original]
+    } else {
+      contextMenuTargetsRef.current = table
+        .getFilteredSelectedRowModel()
+        .rows.map((r) => r.original)
     }
   }
 
@@ -105,22 +125,33 @@ export function DataTable<TData, TValue>({
     return (
       <TableBody key="data-table-body-data">
         {table.getRowModel().rows.length ? (
-          table.getRowModel().rows.map((row) => (
-            <TableRow
-              key={row.id}
-              data-state={row.getIsSelected() && "selected"}
-              className="select-none cursor-pointer"
-            >
-              {row.getVisibleCells().map((cell) => (
-                <TableCell
-                  key={cell.id}
-                  onDoubleClick={() => handleOnRowDoubleClick(row)}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))
+          table.getRowModel().rows.map((row) => {
+            const rowEl = (
+              <TableRow
+                key={row.id}
+                data-state={row.getIsSelected() && "selected"}
+                className="select-none cursor-pointer"
+                onContextMenu={
+                  contextMenu ? () => handleOnRowContextMenu(row) : undefined
+                }
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell
+                    key={cell.id}
+                    onDoubleClick={() => handleOnRowDoubleClick(row)}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            )
+
+            if (contextMenu) {
+              return contextMenu(contextMenuTargetsRef, rowEl, row.id)
+            }
+
+            return rowEl
+          })
         ) : (
           <NoDataPlaceholder />
         )}

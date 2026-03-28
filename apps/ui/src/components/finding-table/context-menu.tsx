@@ -1,11 +1,11 @@
 import * as React from "react"
-import type { ReactElement } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Check } from "lucide-react"
 import { FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import type { Finding } from "@openvlp/types/model/finding"
+import type { ReactElement } from "react"
 import {
   ContextMenu,
   ContextMenuContent,
@@ -19,9 +19,9 @@ import {
 } from "@/components/ui/context-menu"
 import { SeverityBadge } from "@/components/severity-badge"
 import { formatFindingStatus } from "@/lib/format"
-import { updateFinding, createListFindingsQueryOptions } from "@/api/finding"
+import { createListFindingsQueryOptions, updateFinding } from "@/api/finding"
 
-const SEVERITY_ORDER: VulnerabilitySeverity[] = [
+const SEVERITY_ORDER: Array<VulnerabilitySeverity> = [
   VulnerabilitySeverity.Critical,
   VulnerabilitySeverity.High,
   VulnerabilitySeverity.Medium,
@@ -29,7 +29,7 @@ const SEVERITY_ORDER: VulnerabilitySeverity[] = [
   VulnerabilitySeverity.Info
 ]
 
-const STATUS_ORDER: FindingStatus[] = [
+const STATUS_ORDER: Array<FindingStatus> = [
   FindingStatus.Active,
   FindingStatus.Confirmed,
   FindingStatus.Inactive,
@@ -41,17 +41,18 @@ const STATUS_ORDER: FindingStatus[] = [
 ]
 
 interface FindingContextMenuProps {
-  findings: Finding[]
+  findingsRef: React.RefObject<Array<Finding>>
   onDelete: () => void
   children: ReactElement
 }
 
 export function FindingContextMenu({
-  findings,
+  findingsRef,
   onDelete,
   children
 }: FindingContextMenuProps) {
   const queryClient = useQueryClient()
+  const findings = findingsRef.current
 
   const sharedSeverity =
     findings.length > 0 &&
@@ -65,9 +66,9 @@ export function FindingContextMenu({
       ? findings[0].status
       : null
 
-  const handleUpdate = async <K extends "severity" | "status">(
-    key: K,
-    value: Finding[K]
+  const handleUpdate = async <TKey extends "severity" | "status">(
+    key: TKey,
+    value: Finding[TKey]
   ) => {
     let success = true
     for (const finding of findings) {
@@ -89,7 +90,7 @@ export function FindingContextMenu({
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger render={children as React.ReactElement} />
+      <ContextMenuTrigger render={children} />
       <ContextMenuContent className="w-48">
         <ContextMenuLabel>
           {findings.length} finding{findings.length !== 1 ? "s" : ""} selected

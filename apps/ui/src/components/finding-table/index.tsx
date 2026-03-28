@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import type { Finding } from "@openvlp/types/model/finding"
 import { DataTable } from "@/components/data-table/data-table.tsx"
 import { columns } from "@/components/finding-table/columns.tsx"
+import { FindingContextMenu } from "@/components/finding-table/context-menu.tsx"
 import { Button } from "@/components/ui/button.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { createListFindingsQueryOptions, deleteFinding } from "@/api/finding.ts"
@@ -77,6 +78,15 @@ export function FindingTable() {
       onRowDoubleClick={handleOpenFinding}
       onRowDelete={handleDeleteFindings}
       toolbarControls={ToolbarElements()}
+      contextMenu={(findingsRef, children, key) => (
+        <FindingContextMenu
+          key={key}
+          findingsRef={findingsRef}
+          onDelete={() => handleDeleteFindings(findingsRef.current)}
+        >
+          {children}
+        </FindingContextMenu>
+      )}
     />
   )
 }
