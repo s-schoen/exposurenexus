@@ -101,7 +101,7 @@ export function FindingContextMenu({
             {STATUS_ORDER.map((status) => (
               <ContextMenuItem
                 key={status}
-                onSelect={() => handleUpdate("status", status)}
+                onClick={() => handleUpdate("status", status)}
                 className="flex items-center justify-between"
               >
                 {formatFindingStatus(status)}
@@ -118,7 +118,7 @@ export function FindingContextMenu({
             {SEVERITY_ORDER.map((severity) => (
               <ContextMenuItem
                 key={severity}
-                onSelect={() => handleUpdate("severity", severity)}
+                onClick={() => handleUpdate("severity", severity)}
                 className="flex items-center justify-between"
               >
                 <SeverityBadge severity={severity} />
@@ -131,7 +131,7 @@ export function FindingContextMenu({
         </ContextMenuSub>
         <ContextMenuSeparator />
         <ContextMenuItem
-          onSelect={onDelete}
+          onClick={onDelete}
           className="text-destructive focus:text-destructive"
         >
           Delete
