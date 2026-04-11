@@ -1,0 +1,269 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import { HTTPException } from "hono/http-exception"
+import { AssetType } from "@openvlp/types/model/asset"
+import {
+  FindingSource,
+  FindingStatus
+} from "@openvlp/types/model/finding"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { createTestUser } from "../test/app.js"
+
+vi.mock("../logging.js", () => ({
+  createLogger: () => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn()
+  })
+}))
+
+vi.mock("../service/vulnerability.js", () => ({
+  listMappings: vi.fn(),
+  getByID: vi.fn(),
+  create: vi.fn(),
+  createMapping: vi.fn()
+}))
+
+vi.mock("../service/finding.js", () => ({
+  createOrUpdate: vi.fn()
+}))
+
+vi.mock("./util.js", () => ({
+  getOrCreateAsset: vi.fn()
+}))
+
+import * as vulnerabilityService from "../service/vulnerability.js"
+import * as findingService from "../service/finding.js"
+import { getOrCreateAsset } from "./util.js"
+import { parseNucleiFindings } from "./nuclei.js"
+
+describe("nuclei importer", () => {
+  const user = createTestUser()
+  const ctx = { user }
+  const vulnerability = {
+    id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+    title: "Exposed Admin Endpoint",
+    severity: VulnerabilitySeverity.High,
+    description: "Administrative interface is reachable externally",
+    cwe: 284,
+    cve: null,
+    createdBy: user.id,
+    updatedBy: user.id,
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-01T00:00:00.000Z")
+  }
+  const asset = {
+    id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
+    name: "api.openvlp.local",
+    type: AssetType.Host
+  }
+  const nucleiFinding = {
+    "template-id": "admin-panel",
+    info: {
+      name: "Exposed Admin Endpoint",
+      description: "Administrative interface is reachable externally",
+      remediation: "Restrict access to internal networks",
+      severity: "high"
+    },
+    type: "http",
+    host: "api.openvlp.local:443",
+    port: "443",
+    path: "/admin",
+    request: "GET /admin HTTP/1.1",
+    response: "HTTP/1.1 200 OK",
+    "curl-command": "curl https://api.openvlp.local/admin",
+    timestamp: "2026-01-02T03:04:05+00:00"
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.useRealTimers()
+  })
+
+  it("creates or updates findings for mapped vulnerabilities", async () => {
+    const finding = {
+      id: "2713d833-eb13-4517-ac7c-7761545ed42a",
+      source: FindingSource.Nuclei,
+      status: FindingStatus.Active,
+      vulnerabilityId: vulnerability.id,
+      assetId: asset.id,
+      severity: vulnerability.severity,
+      evidence: "evidence",
+      mitigation: nucleiFinding.info.remediation
+    }
+
+    vi.mocked(vulnerabilityService.listMappings).mockResolvedValue([
+      {
+        id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
+        vulnerabilityId: vulnerability.id,
+        source: FindingSource.Nuclei,
+        matchQuery: '{"templateID":"admin-panel"}'
+      }
+    ] as any)
+    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(vulnerability as any)
+    vi.mocked(getOrCreateAsset).mockResolvedValue(asset as any)
+    vi.mocked(findingService.createOrUpdate).mockResolvedValue({
+      finding,
+      created: true
+    } as any)
+
+    const result = await parseNucleiFindings(
+      ctx,
+      Buffer.from(`${JSON.stringify(nucleiFinding)}\n`)
+    )
+
+    expect(result).toEqual([finding])
+    expect(vulnerabilityService.create).not.toHaveBeenCalled()
+    expect(vulnerabilityService.createMapping).not.toHaveBeenCalled()
+    expect(getOrCreateAsset).toHaveBeenCalledWith(
+      AssetType.Host,
+      "api.openvlp.local"
+    )
+    expect(findingService.createOrUpdate).toHaveBeenCalledWith(
+      {
+        user,
+        finding: {
+          source: FindingSource.Nuclei,
+          status: FindingStatus.Active,
+          vulnerabilityId: vulnerability.id,
+          assetId: asset.id,
+          severity: vulnerability.severity,
+          evidence: expect.stringContaining("GET /admin HTTP/1.1"),
+          mitigation: "Restrict access to internal networks"
+        },
+        firstSeen: expect.any(Date)
+      },
+      {
+        port: "443",
+        path: "/admin"
+      }
+    )
+  })
+
+  it("creates vulnerabilities and mappings when no mapping exists", async () => {
+    vi.mocked(vulnerabilityService.listMappings).mockResolvedValue([])
+    vi.mocked(vulnerabilityService.create).mockResolvedValue(vulnerability as any)
+    vi.mocked(vulnerabilityService.createMapping).mockResolvedValue({
+      id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
+      vulnerabilityId: vulnerability.id,
+      source: FindingSource.Nuclei,
+      matchQuery: '{"templateID":"admin-panel"}'
+    } as any)
+    vi.mocked(getOrCreateAsset).mockResolvedValue(asset as any)
+    vi.mocked(findingService.createOrUpdate).mockResolvedValue({
+      finding: {
+        id: "2713d833-eb13-4517-ac7c-7761545ed42a"
+      },
+      created: true
+    } as any)
+
+    await parseNucleiFindings(ctx, Buffer.from(`${JSON.stringify(nucleiFinding)}\n`))
+
+    expect(vulnerabilityService.create).toHaveBeenCalledWith({
+      user,
+      vulnerability: {
+        title: "Exposed Admin Endpoint",
+        severity: VulnerabilitySeverity.High,
+        description: "Administrative interface is reachable externally",
+        cve: "",
+        cwe: 0
+      }
+    })
+    expect(vulnerabilityService.createMapping).toHaveBeenCalledWith(
+      vulnerability.id,
+      FindingSource.Nuclei,
+      '{"templateID":"admin-panel"}'
+    )
+  })
+
+  it("skips findings without a host", async () => {
+    vi.mocked(vulnerabilityService.listMappings).mockResolvedValue([])
+
+    const result = await parseNucleiFindings(
+      ctx,
+      Buffer.from(
+        `${JSON.stringify({
+          ...nucleiFinding,
+          host: undefined
+        })}\n`
+      )
+    )
+
+    expect(result).toEqual([])
+    expect(getOrCreateAsset).not.toHaveBeenCalled()
+    expect(findingService.createOrUpdate).not.toHaveBeenCalled()
+  })
+
+  it("skips findings when a new vulnerability cannot be named", async () => {
+    vi.mocked(vulnerabilityService.listMappings).mockResolvedValue([])
+
+    const result = await parseNucleiFindings(
+      ctx,
+      Buffer.from(
+        `${JSON.stringify({
+          ...nucleiFinding,
+          info: {
+            ...nucleiFinding.info,
+            name: undefined
+          }
+        })}\n`
+      )
+    )
+
+    expect(result).toEqual([])
+    expect(vulnerabilityService.create).not.toHaveBeenCalled()
+    expect(getOrCreateAsset).not.toHaveBeenCalled()
+  })
+
+  it("throws a 400 HTTP exception when a line cannot be parsed", async () => {
+    await expect(
+      parseNucleiFindings(ctx, Buffer.from("{not-json}\n"))
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "failed to parse line 1"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("returns empty evidence when the request body is missing", async () => {
+    vi.mocked(vulnerabilityService.listMappings).mockResolvedValue([
+      {
+        id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
+        vulnerabilityId: vulnerability.id,
+        source: FindingSource.Nuclei,
+        matchQuery: '{"templateID":"admin-panel"}'
+      }
+    ] as any)
+    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(vulnerability as any)
+    vi.mocked(getOrCreateAsset).mockResolvedValue(asset as any)
+    vi.mocked(findingService.createOrUpdate).mockResolvedValue({
+      finding: {
+        id: "2713d833-eb13-4517-ac7c-7761545ed42a"
+      },
+      created: true
+    } as any)
+
+    await parseNucleiFindings(
+      ctx,
+      Buffer.from(
+        `${JSON.stringify({
+          ...nucleiFinding,
+          request: undefined,
+          response: undefined,
+          "curl-command": undefined
+        })}\n`
+      )
+    )
+
+    expect(findingService.createOrUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        finding: expect.objectContaining({
+          evidence: ""
+        })
+      }),
+      {
+        port: "443",
+        path: "/admin"
+      }
+    )
+  })
+})
