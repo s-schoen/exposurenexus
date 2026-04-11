@@ -1,30 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
+import { pino } from "pino"
 import {
   annotateAuthenticatedUser,
   createTestApp,
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
-
-vi.mock("../logging.js", () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn()
-  })
-}))
-
-vi.mock("../import/importer.js", () => ({
-  parseFindingsFromFile: vi.fn()
-}))
-
-import importer from "./import.js"
-import { parseFindingsFromFile } from "../import/importer.js"
+import { createImportRoute } from "./import.js"
 
 describe("finding import routes", () => {
   const user = createTestUser()
+  const logger = pino({ enabled: false })
+  const importer = {
+    parseFindingsFromFile: vi.fn()
+  }
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -42,7 +32,7 @@ describe("finding import routes", () => {
     )
 
     const app = createTestApp({
-      importerRoute: importer,
+      importerRoute: createImportRoute({ importer, logger }),
       requireAuth: requireAuthenticatedUser
     })
 
@@ -61,7 +51,7 @@ describe("finding import routes", () => {
       status: 401,
       error: "Unauthorized"
     })
-    expect(parseFindingsFromFile).not.toHaveBeenCalled()
+    expect(importer.parseFindingsFromFile).not.toHaveBeenCalled()
   })
 
   it("returns 400 when the import type is missing", async () => {
@@ -77,7 +67,7 @@ describe("finding import routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      importerRoute: importer
+      importerRoute: createImportRoute({ importer, logger })
     })
 
     const response = await app.request("/api/findings/import", {
@@ -95,7 +85,7 @@ describe("finding import routes", () => {
       status: 400,
       error: "expected type in form data"
     })
-    expect(parseFindingsFromFile).not.toHaveBeenCalled()
+    expect(importer.parseFindingsFromFile).not.toHaveBeenCalled()
   })
 
   it("returns 400 when the import file is missing", async () => {
@@ -106,7 +96,7 @@ describe("finding import routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      importerRoute: importer
+      importerRoute: createImportRoute({ importer, logger })
     })
 
     const response = await app.request("/api/findings/import", {
@@ -124,7 +114,7 @@ describe("finding import routes", () => {
       status: 400,
       error: "expected file in form data"
     })
-    expect(parseFindingsFromFile).not.toHaveBeenCalled()
+    expect(importer.parseFindingsFromFile).not.toHaveBeenCalled()
   })
 
   it("passes the uploaded file to the importer", async () => {
@@ -140,12 +130,12 @@ describe("finding import routes", () => {
       })
     )
 
-    vi.mocked(parseFindingsFromFile).mockResolvedValue([])
+    importer.parseFindingsFromFile.mockResolvedValue([])
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      importerRoute: importer
+      importerRoute: createImportRoute({ importer, logger })
     })
 
     const response = await app.request("/api/findings/import", {
@@ -158,14 +148,14 @@ describe("finding import routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(parseFindingsFromFile).toHaveBeenCalledTimes(1)
-    expect(vi.mocked(parseFindingsFromFile).mock.calls[0]?.[0]).toEqual({
+    expect(importer.parseFindingsFromFile).toHaveBeenCalledTimes(1)
+    expect(importer.parseFindingsFromFile.mock.calls[0]?.[0]).toEqual({
       user
     })
-    expect(vi.mocked(parseFindingsFromFile).mock.calls[0]?.[1]).toBe("nuclei")
-    expect(
-      vi.mocked(parseFindingsFromFile).mock.calls[0]?.[2]?.toString()
-    ).toBe(fileContents)
+    expect(importer.parseFindingsFromFile.mock.calls[0]?.[1]).toBe("nuclei")
+    expect(importer.parseFindingsFromFile.mock.calls[0]?.[2]?.toString()).toBe(
+      fileContents
+    )
     expect(body).toEqual({
       correlationId: requestId,
       data: {
@@ -186,14 +176,14 @@ describe("finding import routes", () => {
       })
     )
 
-    vi.mocked(parseFindingsFromFile).mockRejectedValue(
+    importer.parseFindingsFromFile.mockRejectedValue(
       new HTTPException(400, { message: "failed to parse line 1" })
     )
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      importerRoute: importer
+      importerRoute: createImportRoute({ importer, logger })
     })
 
     const response = await app.request("/api/findings/import", {

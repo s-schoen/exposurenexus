@@ -1,40 +1,57 @@
 import { Hono } from "hono"
 import { badRequest, replyObject } from "../lib/reply.js"
-import { createLogger } from "../logging.js"
-import { parseFindingsFromFile } from "../import/importer.js"
 import type { User } from "better-auth"
 import type { ContextVariables } from "../lib/hono-schema.js"
+import type { Logger } from "pino"
+import type { ImportContext } from "../import/importer.js"
 
-const logger = createLogger("findings/import")
-const importer = new Hono<{ Variables: ContextVariables }>()
+interface FindingImportService {
+  parseFindingsFromFile(
+    ctx: ImportContext,
+    type: string,
+    file: Buffer
+  ): Promise<Array<unknown>>
+}
 
-importer.post("/import", async (c) => {
-  const body = await c.req.parseBody()
+interface ImportRouteDependencies {
+  importer: FindingImportService
+  logger: Logger
+}
 
-  if (typeof body["type"] !== "string") {
-    badRequest("expected type in form data")
-  }
-  const type = body["type"] as string
+export function createImportRoute({
+  importer,
+  logger
+}: ImportRouteDependencies) {
+  const importRoute = new Hono<{ Variables: ContextVariables }>()
 
-  if (!body["file"] || typeof body["file"] === "string") {
-    badRequest("expected file in form data")
-  }
-  const file = body["file"] as File
+  importRoute.post("/import", async (c) => {
+    const body = await c.req.parseBody()
 
-  logger.info(
-    `file uploaded: name=${file.name} size=${file.size} filetype=${file.type} type=${type}`
-  )
+    if (typeof body["type"] !== "string") {
+      badRequest("expected type in form data")
+    }
+    const type = body["type"] as string
 
-  const buffer = Buffer.from(await file.arrayBuffer())
+    if (!body["file"] || typeof body["file"] === "string") {
+      badRequest("expected file in form data")
+    }
+    const file = body["file"] as File
 
-  // save to database
-  const user: User = c.get("user")
+    logger.info(
+      `file uploaded: name=${file.name} size=${file.size} filetype=${file.type} type=${type}`
+    )
 
-  //  parse findings
-  const findings = await parseFindingsFromFile({ user }, type, buffer)
-  logger.info(`created ${findings.length} findings`)
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const user: User = c.get("user")
+    const findings = await importer.parseFindingsFromFile(
+      { user },
+      type,
+      buffer
+    )
+    logger.info(`created ${findings.length} findings`)
 
-  return replyObject(c, { status: "ok" })
-})
+    return replyObject(c, { status: "ok" })
+  })
 
-export default importer
+  return importRoute
+}

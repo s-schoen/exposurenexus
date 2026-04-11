@@ -6,18 +6,16 @@ import {
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
-import asset from "./assets.js"
-import * as assetService from "../service/asset.js"
-
-vi.mock("../service/asset.js", () => ({
-  listAll: vi.fn(),
-  getByID: vi.fn(),
-  create: vi.fn(),
-  deleteByID: vi.fn()
-}))
+import { createAssetRoute } from "./assets.js"
 
 describe("asset routes", () => {
   const user = createTestUser()
+  const assetService = {
+    listAll: vi.fn(),
+    getByID: vi.fn(),
+    create: vi.fn(),
+    deleteByID: vi.fn()
+  }
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -26,7 +24,7 @@ describe("asset routes", () => {
   it("returns 401 for unauthenticated requests", async () => {
     const requestId = "assets-unauthorized-request"
     const app = createTestApp({
-      assetRoute: asset,
+      assetRoute: createAssetRoute(assetService),
       requireAuth: requireAuthenticatedUser
     })
 
@@ -56,12 +54,12 @@ describe("asset routes", () => {
       }
     ]
 
-    vi.mocked(assetService.listAll).mockResolvedValue(assets)
+    assetService.listAll.mockResolvedValue(assets)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: asset
+      assetRoute: createAssetRoute(assetService)
     })
 
     const response = await app.request("/api/assets", {
@@ -88,7 +86,7 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: asset
+      assetRoute: createAssetRoute(assetService)
     })
 
     const response = await app.request("/api/assets/not-a-uuid", {
@@ -105,12 +103,12 @@ describe("asset routes", () => {
     const requestId = "assets-not-found-request"
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
 
-    vi.mocked(assetService.getByID).mockResolvedValue(null)
+    assetService.getByID.mockResolvedValue(null)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: asset
+      assetRoute: createAssetRoute(assetService)
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {
@@ -138,12 +136,12 @@ describe("asset routes", () => {
       type: AssetType.Host
     }
 
-    vi.mocked(assetService.getByID).mockResolvedValue(assetRecord)
+    assetService.getByID.mockResolvedValue(assetRecord)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: asset
+      assetRoute: createAssetRoute(assetService)
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {
@@ -172,12 +170,12 @@ describe("asset routes", () => {
       ...payload
     }
 
-    vi.mocked(assetService.create).mockResolvedValue(createdAsset)
+    assetService.create.mockResolvedValue(createdAsset)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: asset
+      assetRoute: createAssetRoute(assetService)
     })
 
     const response = await app.request("/api/assets", {
@@ -202,7 +200,7 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: asset
+      assetRoute: createAssetRoute(assetService)
     })
 
     const response = await app.request("/api/assets", {
@@ -230,12 +228,12 @@ describe("asset routes", () => {
       type: AssetType.Host
     }
 
-    vi.mocked(assetService.deleteByID).mockResolvedValue(deletedAsset)
+    assetService.deleteByID.mockResolvedValue(deletedAsset)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: asset
+      assetRoute: createAssetRoute(assetService)
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {
@@ -258,12 +256,12 @@ describe("asset routes", () => {
     const requestId = "assets-delete-not-found-request"
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
 
-    vi.mocked(assetService.deleteByID).mockResolvedValue(null)
+    assetService.deleteByID.mockResolvedValue(null)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: asset
+      assetRoute: createAssetRoute(assetService)
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {

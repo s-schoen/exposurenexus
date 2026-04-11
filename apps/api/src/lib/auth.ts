@@ -2,33 +2,91 @@ import { betterAuth } from "better-auth"
 import { db, pool, logger as dbLogger } from "../db/index.js"
 import { env } from "../env.js"
 import { username } from "better-auth/plugins"
+import type { Kysely } from "kysely"
+import type { Database } from "../db/index.js"
+import type { Logger } from "pino"
+import type { Pool } from "pg"
 
-export const auth = betterAuth({
-  database: pool,
-  appName: "openvlp",
-  emailAndPassword: {
-    enabled: true,
-    requireEmailVerification: false
-  },
-  baseURL: env.AUTH_URL,
-  secret: env.AUTH_SECRET,
-  plugins: [username()]
+export interface AuthApiSessionClient {
+  getSession(input: { headers: Headers }): Promise<{
+    user: unknown
+    session: unknown
+  } | null>
+}
+
+export interface AuthApiSignupClient {
+  signUpEmail(input: {
+    body: {
+      username: string
+      name: string
+      displayUsername: string
+      email: string
+      password: string
+    }
+  }): Promise<unknown>
+}
+
+export interface AuthClient {
+  api: AuthApiSessionClient & AuthApiSignupClient
+  handler(request: Request): Response | Promise<Response>
+}
+
+interface CreateAuthOptions {
+  pool: Pool
+  authUrl: string
+  authSecret: string
+}
+
+interface CreateDefaultAdminOptions {
+  db: Kysely<Database>
+  auth: Pick<AuthClient, "api">
+  logger: Logger
+}
+
+export function createAuth({
+  pool,
+  authUrl,
+  authSecret
+}: CreateAuthOptions): AuthClient {
+  return betterAuth({
+    database: pool,
+    appName: "openvlp",
+    emailAndPassword: {
+      enabled: true,
+      requireEmailVerification: false
+    },
+    baseURL: authUrl,
+    secret: authSecret,
+    plugins: [username()]
+  }) as AuthClient
+}
+
+export const auth = createAuth({
+  pool,
+  authUrl: env.AUTH_URL,
+  authSecret: env.AUTH_SECRET
 })
 
-export async function createDefaultAdmin(): Promise<void> {
-  const { count } = await db
+export async function createDefaultAdmin(
+  options: CreateDefaultAdminOptions = {
+    db,
+    auth,
+    logger: dbLogger
+  }
+): Promise<void> {
+  const { count } = await options.db
     .selectFrom("user")
-    .select(db.fn.countAll<number>().as("count"))
+    .select(options.db.fn.countAll<number>().as("count"))
     .executeTakeFirstOrThrow()
 
   if (count > 0) {
-    dbLogger.debug("admin user already exists")
+    options.logger.debug("admin user already exists")
     return
   }
 
   const password = crypto.randomUUID()
 
-  await auth.api.signUpEmail({
+  await options.auth.api.signUpEmail({
     body: {
       username: "admin",
       name: "Administrator",
@@ -38,5 +96,7 @@ export async function createDefaultAdmin(): Promise<void> {
     }
   })
 
-  dbLogger.info(`created admin user: username=admin, password=${password}`)
+  options.logger.info(
+    `created admin user: username=admin, password=${password}`
+  )
 }

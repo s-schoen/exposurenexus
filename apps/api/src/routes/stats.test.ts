@@ -7,15 +7,13 @@ import {
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
-import { findingStats } from "./stats.js"
-import * as statsService from "../service/stats.js"
-
-vi.mock("../service/stats.js", () => ({
-  getFindingStats: vi.fn()
-}))
+import { createFindingStatsRoute } from "./stats.js"
 
 describe("finding stats routes", () => {
   const user = createTestUser()
+  const statsService = {
+    getFindingStats: vi.fn()
+  }
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -24,7 +22,7 @@ describe("finding stats routes", () => {
   it("returns 401 for unauthenticated requests", async () => {
     const requestId = "findings-stats-unauthorized-request"
     const app = createTestApp({
-      findingStatsRoute: findingStats,
+      findingStatsRoute: createFindingStatsRoute(statsService),
       requireAuth: requireAuthenticatedUser
     })
 
@@ -73,12 +71,12 @@ describe("finding stats routes", () => {
       }
     }
 
-    vi.mocked(statsService.getFindingStats).mockResolvedValue(stats)
+    statsService.getFindingStats.mockResolvedValue(stats)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingStatsRoute: findingStats
+      findingStatsRoute: createFindingStatsRoute(statsService)
     })
 
     const response = await app.request("/api/findings/stats", {
@@ -99,14 +97,14 @@ describe("finding stats routes", () => {
   it("maps unexpected service errors to a 500 reply", async () => {
     const requestId = "findings-stats-error-request"
 
-    vi.mocked(statsService.getFindingStats).mockRejectedValue(
+    statsService.getFindingStats.mockRejectedValue(
       new Error("database offline")
     )
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingStatsRoute: findingStats
+      findingStatsRoute: createFindingStatsRoute(statsService)
     })
 
     const response = await app.request("/api/findings/stats", {

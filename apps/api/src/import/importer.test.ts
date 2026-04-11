@@ -1,27 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { FindingSource, type Finding } from "@openvlp/types/model/finding"
+import { pino } from "pino"
 import { createTestUser } from "../test/app.js"
-
-vi.mock("../logging.js", () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn()
-  })
-}))
-
-vi.mock("./nuclei.js", () => ({
-  parseNucleiFindings: vi.fn()
-}))
-
-import { parseNucleiFindings } from "./nuclei.js"
-import { parseFindingsFromFile } from "./importer.js"
+import { createFindingImporter } from "./importer.js"
 
 describe("importer", () => {
   const user = createTestUser()
   const ctx = { user }
   const file = Buffer.from('{"template-id":"test"}\n')
+  const logger = pino({ enabled: false })
+  const nucleiParser = {
+    parseNucleiFindings: vi.fn()
+  }
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -29,19 +19,22 @@ describe("importer", () => {
 
   it("dispatches nuclei imports to the nuclei parser", async () => {
     const findings = [{ id: "finding-1" }] as Finding[]
+    const importer = createFindingImporter({ nucleiParser, logger })
 
-    vi.mocked(parseNucleiFindings).mockResolvedValue(findings)
+    nucleiParser.parseNucleiFindings.mockResolvedValue(findings)
 
     await expect(
-      parseFindingsFromFile(ctx, FindingSource.Nuclei, file)
+      importer.parseFindingsFromFile(ctx, FindingSource.Nuclei, file)
     ).resolves.toEqual(findings)
-    expect(parseNucleiFindings).toHaveBeenCalledWith(ctx, file)
+    expect(nucleiParser.parseNucleiFindings).toHaveBeenCalledWith(ctx, file)
   })
 
   it("returns an empty result for unsupported import types", async () => {
+    const importer = createFindingImporter({ nucleiParser, logger })
+
     await expect(
-      parseFindingsFromFile(ctx, "unsupported", file)
+      importer.parseFindingsFromFile(ctx, "unsupported", file)
     ).resolves.toEqual([])
-    expect(parseNucleiFindings).not.toHaveBeenCalled()
+    expect(nucleiParser.parseNucleiFindings).not.toHaveBeenCalled()
   })
 })

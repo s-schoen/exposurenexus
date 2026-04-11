@@ -9,17 +9,15 @@ import {
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
-import vulnerability from "./vulnerabilities.js"
-import * as vulnerabilityService from "../service/vulnerability.js"
-
-vi.mock("../service/vulnerability.js", () => ({
-  listAll: vi.fn(),
-  getByID: vi.fn()
-}))
+import { createVulnerabilityRoute } from "./vulnerabilities.js"
 
 describe("vulnerability routes", () => {
   const user = createTestUser()
   const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
+  const vulnerabilityService = {
+    listAll: vi.fn(),
+    getByID: vi.fn()
+  }
   const vulnerabilityRecord = {
     id: vulnerabilityId,
     title: "Exposed Admin Endpoint",
@@ -40,7 +38,7 @@ describe("vulnerability routes", () => {
   it("returns 401 for unauthenticated requests", async () => {
     const requestId = "vulnerabilities-unauthorized-request"
     const app = createTestApp({
-      vulnerabilityRoute: vulnerability,
+      vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService),
       requireAuth: requireAuthenticatedUser
     })
 
@@ -63,14 +61,12 @@ describe("vulnerability routes", () => {
   it("returns all vulnerabilities for authenticated requests", async () => {
     const requestId = "vulnerabilities-list-request"
 
-    vi.mocked(vulnerabilityService.listAll).mockResolvedValue([
-      vulnerabilityRecord as Vulnerability
-    ])
+    vulnerabilityService.listAll.mockResolvedValue([vulnerabilityRecord])
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      vulnerabilityRoute: vulnerability
+      vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService)
     })
 
     const response = await app.request("/api/vulnerabilities", {
@@ -102,14 +98,12 @@ describe("vulnerability routes", () => {
   it("returns a vulnerability by id", async () => {
     const requestId = "vulnerabilities-get-by-id-request"
 
-    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(
-      vulnerabilityRecord as Vulnerability
-    )
+    vulnerabilityService.getByID.mockResolvedValue(vulnerabilityRecord)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      vulnerabilityRoute: vulnerability
+      vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService)
     })
 
     const response = await app.request(
@@ -138,7 +132,7 @@ describe("vulnerability routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      vulnerabilityRoute: vulnerability
+      vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService)
     })
 
     const response = await app.request("/api/vulnerabilities/not-a-uuid", {
@@ -154,12 +148,12 @@ describe("vulnerability routes", () => {
   it("returns 404 when the vulnerability does not exist", async () => {
     const requestId = "vulnerabilities-not-found-request"
 
-    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(null)
+    vulnerabilityService.getByID.mockResolvedValue(null)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      vulnerabilityRoute: vulnerability
+      vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService)
     })
 
     const response = await app.request(

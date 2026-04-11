@@ -2,44 +2,52 @@ import { Hono } from "hono"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
-import { createAssetSchema } from "@openvlp/types/model/asset"
-import * as assetService from "../service/asset.js"
+import { createAssetSchema, type Asset } from "@openvlp/types/model/asset"
 
-const asset = new Hono()
+interface AssetRouteService {
+  listAll(): Promise<Asset[]>
+  getByID(id: string): Promise<Asset | null>
+  create(asset: typeof createAssetSchema._output): Promise<Asset>
+  deleteByID(id: string): Promise<Asset | null>
+}
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
 
-asset.get("/", async (c) => {
-  const assets = await assetService.listAll()
-  return replyArray(c, assets)
-})
+export function createAssetRoute(assetService: AssetRouteService) {
+  const asset = new Hono()
 
-asset.get("/:id", idParamValidator, async (c) => {
-  const params = c.req.valid("param")
+  asset.get("/", async (c) => {
+    const assets = await assetService.listAll()
+    return replyArray(c, assets)
+  })
 
-  const assetResult = await assetService.getByID(params.id)
-  if (!assetResult) {
-    notFound("asset", params.id)
-  }
+  asset.get("/:id", idParamValidator, async (c) => {
+    const params = c.req.valid("param")
 
-  return replyObject(c, assetResult!)
-})
+    const assetResult = await assetService.getByID(params.id)
+    if (!assetResult) {
+      notFound("asset", params.id)
+    }
 
-asset.post("/", zValidator("json", createAssetSchema), async (c) => {
-  const body = c.req.valid("json")
-  const createdAsset = await assetService.create(body)
-  return replyObject(c, createdAsset!, true)
-})
+    return replyObject(c, assetResult!)
+  })
 
-asset.delete("/:id", idParamValidator, async (c) => {
-  const params = c.req.valid("param")
+  asset.post("/", zValidator("json", createAssetSchema), async (c) => {
+    const body = c.req.valid("json")
+    const createdAsset = await assetService.create(body)
+    return replyObject(c, createdAsset, true)
+  })
 
-  const deleted = await assetService.deleteByID(params.id)
-  if (!deleted) {
-    notFound("asset", params.id)
-  }
+  asset.delete("/:id", idParamValidator, async (c) => {
+    const params = c.req.valid("param")
 
-  return replyObject(c, deleted!)
-})
+    const deleted = await assetService.deleteByID(params.id)
+    if (!deleted) {
+      notFound("asset", params.id)
+    }
 
-export default asset
+    return replyObject(c, deleted!)
+  })
+
+  return asset
+}

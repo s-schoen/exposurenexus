@@ -11,22 +11,20 @@ import {
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
-import finding from "./findings.js"
-import * as findingService from "../service/finding.js"
-
-vi.mock("../service/finding.js", () => ({
-  listAll: vi.fn(),
-  getByID: vi.fn(),
-  create: vi.fn(),
-  update: vi.fn(),
-  deleteByID: vi.fn()
-}))
+import { createFindingRoute } from "./findings.js"
 
 describe("finding routes", () => {
   const user = createTestUser()
   const findingId = "2713d833-eb13-4517-ac7c-7761545ed42a"
   const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
   const assetId = "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c"
+  const findingService = {
+    listAll: vi.fn(),
+    getByID: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    deleteByID: vi.fn()
+  }
   const vulnerability = {
     id: vulnerabilityId,
     title: "Exposed Admin Endpoint",
@@ -79,12 +77,12 @@ describe("finding routes", () => {
       }
     ]
 
-    vi.mocked(findingService.listAll).mockResolvedValue(findings as Finding[])
+    findingService.listAll.mockResolvedValue(findings as Finding[])
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: finding
+      findingRoute: createFindingRoute(findingService)
     })
 
     const response = await app.request("/api/findings", {
@@ -129,14 +127,12 @@ describe("finding routes", () => {
       vulnerability
     }
 
-    vi.mocked(findingService.getByID).mockResolvedValue(
-      findingRecord as Finding
-    )
+    findingService.getByID.mockResolvedValue(findingRecord as Finding)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: finding
+      findingRoute: createFindingRoute(findingService)
     })
 
     const response = await app.request(`/api/findings/${findingId}`, {
@@ -174,14 +170,12 @@ describe("finding routes", () => {
       vulnerability
     }
 
-    vi.mocked(findingService.create).mockResolvedValue(
-      createdFinding as Finding
-    )
+    findingService.create.mockResolvedValue(createdFinding as Finding)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: finding
+      findingRoute: createFindingRoute(findingService)
     })
 
     const response = await app.request("/api/findings", {
@@ -217,7 +211,7 @@ describe("finding routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: finding
+      findingRoute: createFindingRoute(findingService)
     })
 
     const response = await app.request("/api/findings", {
@@ -256,14 +250,12 @@ describe("finding routes", () => {
       vulnerability
     }
 
-    vi.mocked(findingService.update).mockResolvedValue(
-      updatedFinding as Finding
-    )
+    findingService.update.mockResolvedValue(updatedFinding as Finding)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: finding
+      findingRoute: createFindingRoute(findingService)
     })
 
     const response = await app.request(`/api/findings/${findingId}`, {
@@ -303,7 +295,7 @@ describe("finding routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: finding
+      findingRoute: createFindingRoute(findingService)
     })
 
     const response = await app.request(`/api/findings/${findingId}`, {
@@ -326,7 +318,7 @@ describe("finding routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: finding
+      findingRoute: createFindingRoute(findingService)
     })
 
     const response = await app.request("/api/findings/not-a-uuid", {
@@ -345,12 +337,12 @@ describe("finding routes", () => {
   it("returns 404 when updating a missing finding", async () => {
     const requestId = "findings-update-not-found-request"
 
-    vi.mocked(findingService.update).mockResolvedValue(null)
+    findingService.update.mockResolvedValue(null)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: finding
+      findingRoute: createFindingRoute(findingService)
     })
 
     const response = await app.request(`/api/findings/${findingId}`, {
@@ -388,14 +380,12 @@ describe("finding routes", () => {
       vulnerability
     }
 
-    vi.mocked(findingService.deleteByID).mockResolvedValue(
-      deletedFinding as Finding
-    )
+    findingService.deleteByID.mockResolvedValue(deletedFinding as Finding)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: finding
+      findingRoute: createFindingRoute(findingService)
     })
 
     const response = await app.request(`/api/findings/${findingId}`, {
@@ -425,12 +415,12 @@ describe("finding routes", () => {
   it("returns 404 when deleting a missing finding", async () => {
     const requestId = "findings-delete-not-found-request"
 
-    vi.mocked(findingService.deleteByID).mockResolvedValue(null)
+    findingService.deleteByID.mockResolvedValue(null)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: finding
+      findingRoute: createFindingRoute(findingService)
     })
 
     const response = await app.request(`/api/findings/${findingId}`, {

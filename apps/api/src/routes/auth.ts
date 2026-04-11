@@ -1,10 +1,12 @@
 import { Hono } from "hono"
-import { auth as betterAuth } from "../lib/auth.js"
+import type { AuthClient } from "../lib/auth.js"
 
-const auth = new Hono()
+export function createAuthRoute(authClient: Pick<AuthClient, "handler">) {
+  const auth = new Hono()
 
-auth.on(["POST", "GET"], "/*", (c) => {
-  return betterAuth.handler(c.req.raw)
-})
+  auth.on(["POST", "GET"], "/*", (c) => {
+    return authClient.handler(c.req.raw)
+  })
 
-export default auth
+  return auth
+}

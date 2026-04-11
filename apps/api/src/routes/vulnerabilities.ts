@@ -1,27 +1,36 @@
 import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
-import * as vulnerabilityService from "../service/vulnerability.js"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
+import type { Vulnerability } from "@openvlp/types/model/vulnerability"
 
-const vulnerability = new Hono()
+interface VulnerabilityRouteService {
+  listAll(): Promise<Vulnerability[]>
+  getByID(id: string): Promise<Vulnerability | null>
+}
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
 
-vulnerability.get("/", async (c) => {
-  const vulns = await vulnerabilityService.listAll()
-  return replyArray(c, vulns)
-})
+export function createVulnerabilityRoute(
+  vulnerabilityService: VulnerabilityRouteService
+) {
+  const vulnerability = new Hono()
 
-vulnerability.get("/:id", idParamValidator, async (c) => {
-  const params = c.req.valid("param")
+  vulnerability.get("/", async (c) => {
+    const vulns = await vulnerabilityService.listAll()
+    return replyArray(c, vulns)
+  })
 
-  const vulnResult = await vulnerabilityService.getByID(params.id)
-  if (!vulnResult) {
-    notFound("vulnerability", params.id)
-  }
+  vulnerability.get("/:id", idParamValidator, async (c) => {
+    const params = c.req.valid("param")
 
-  return replyObject(c, vulnResult!)
-})
+    const vulnResult = await vulnerabilityService.getByID(params.id)
+    if (!vulnResult) {
+      notFound("vulnerability", params.id)
+    }
 
-export default vulnerability
+    return replyObject(c, vulnResult!)
+  })
+
+  return vulnerability
+}

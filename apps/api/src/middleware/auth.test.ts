@@ -12,7 +12,7 @@ vi.mock("../lib/auth.js", () => ({
 }))
 
 import { auth } from "../lib/auth.js"
-import { authNAnnotate, authNRequire } from "./auth.js"
+import { authNAnnotate, authNRequire, createAuthAnnotate } from "./auth.js"
 
 interface AuthTestVariables {
   user: User | null
@@ -99,6 +99,32 @@ describe("auth middleware", () => {
         updatedAt: "2026-01-01T00:00:00.000Z",
         expiresAt: "2026-12-31T00:00:00.000Z"
       }
+    })
+  })
+
+  it("supports an injected auth instance for session annotation", async () => {
+    const getSession = vi.fn().mockResolvedValue({
+      user,
+      session
+    })
+
+    const app = new Hono<{ Variables: AuthTestVariables }>()
+    app.use("*", createAuthAnnotate({ getSession }))
+    app.get("/", (c) => {
+      return c.json({
+        userId: c.get("user")?.id ?? null,
+        sessionId: c.get("session")?.id ?? null
+      })
+    })
+
+    const response = await app.request("/")
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(getSession).toHaveBeenCalledOnce()
+    expect(body).toEqual({
+      userId: user.id,
+      sessionId: session.id
     })
   })
 

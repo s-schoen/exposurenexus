@@ -1,10 +1,13 @@
 import type { MiddlewareHandler } from "hono"
 import { auth } from "../lib/auth.js"
 import { HTTPException } from "hono/http-exception"
+import type { AuthApiSessionClient } from "../lib/auth.js"
 
-export const authNAnnotate = (): MiddlewareHandler => {
+export function createAuthAnnotate(
+  authApi: AuthApiSessionClient
+): MiddlewareHandler {
   return async function authNAnnotate(c, next) {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers })
+    const session = await authApi.getSession({ headers: c.req.raw.headers })
 
     if (!session) {
       c.set("user", null)
@@ -17,6 +20,10 @@ export const authNAnnotate = (): MiddlewareHandler => {
     c.set("session", session.session)
     await next()
   }
+}
+
+export const authNAnnotate = (): MiddlewareHandler => {
+  return createAuthAnnotate(auth.api)
 }
 
 export const authNRequire = (): MiddlewareHandler => {

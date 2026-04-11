@@ -6,8 +6,18 @@ import {
 import { createLogger } from "../logging.js"
 import { HTTPException } from "hono/http-exception"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import type { Logger } from "pino"
 
-const logger = createLogger("service/stats")
+interface FindingRepository {
+  countBy(
+    field: "severity" | "status" | "assetId" | "source"
+  ): Promise<Record<string, number>>
+}
+
+interface StatsServiceDependencies {
+  findingRepository: FindingRepository
+  logger: Logger
+}
 
 function normalizeEnumCounts<E extends string>(
   enumObject: Record<string, E>,
@@ -22,26 +32,43 @@ function normalizeEnumCounts<E extends string>(
   )
 }
 
-export async function getFindingStats(): Promise<FindingStatistics> {
-  try {
-    const severityCount = await findingRepository.countBy("severity")
-    const statusCount = await findingRepository.countBy("status")
-    const assetCount = await findingRepository.countBy("assetId")
-    const sourceCount = await findingRepository.countBy("source")
+export function createStatsService({
+  findingRepository,
+  logger
+}: StatsServiceDependencies) {
+  return {
+    async getFindingStats(): Promise<FindingStatistics> {
+      try {
+        const severityCount = await findingRepository.countBy("severity")
+        const statusCount = await findingRepository.countBy("status")
+        const assetCount = await findingRepository.countBy("assetId")
+        const sourceCount = await findingRepository.countBy("source")
 
-    const total = Object.values(severityCount).reduce((acc, v) => acc + v, 0)
+        const total = Object.values(severityCount).reduce(
+          (acc, v) => acc + v,
+          0
+        )
 
-    return {
-      total,
-      status: normalizeEnumCounts(FindingStatus, statusCount),
-      severity: normalizeEnumCounts(VulnerabilitySeverity, severityCount),
-      assets: assetCount,
-      source: sourceCount
+        return {
+          total,
+          status: normalizeEnumCounts(FindingStatus, statusCount),
+          severity: normalizeEnumCounts(VulnerabilitySeverity, severityCount),
+          assets: assetCount,
+          source: sourceCount
+        }
+      } catch (error) {
+        logger.error(error, `failed to get finding statistics`)
+        throw new HTTPException(500, {
+          message: "failed to retrieve statistics"
+        })
+      }
     }
-  } catch (error) {
-    logger.error(error, `failed to get finding statistics`)
-    throw new HTTPException(500, {
-      message: "failed to retrieve statistics"
-    })
   }
 }
+
+const service = createStatsService({
+  findingRepository,
+  logger: createLogger("service/stats")
+})
+
+export const getFindingStats = service.getFindingStats

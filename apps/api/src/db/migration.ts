@@ -3,6 +3,9 @@ import * as m1 from "./migrations/20251219-init-better-auth.js"
 import * as m2 from "./migrations/20251220-assets.js"
 import * as m3 from "./migrations/20260118-vulnerability-mapping.js"
 import { db, logger } from "./index.js"
+import type { Database } from "./index.js"
+import type { Kysely } from "kysely"
+import type { Logger } from "pino"
 
 class ManualMigrationProvider implements MigrationProvider {
   getMigrations(): Promise<Record<string, Migration>> {
@@ -16,30 +19,33 @@ class ManualMigrationProvider implements MigrationProvider {
   }
 }
 
-export async function migrateToLatest() {
+export async function migrateToLatest(
+  targetDb: Kysely<Database> = db,
+  targetLogger: Logger = logger
+) {
   const migrator = new Migrator({
-    db,
+    db: targetDb,
     provider: new ManualMigrationProvider()
   })
 
-  logger.info("migrating database")
+  targetLogger.info("migrating database")
   const { error, results } = await migrator.migrateToLatest()
 
   if (results && results.length === 0) {
-    logger.info("no migrations to apply")
+    targetLogger.info("no migrations to apply")
   }
 
   results?.forEach((it) => {
     if (it.status === "Success") {
-      logger.info(`migration "${it.migrationName}" applied successfully`)
+      targetLogger.info(`migration "${it.migrationName}" applied successfully`)
     } else if (it.status === "Error") {
-      logger.error(`failed to apply migration "${it.migrationName}"`)
+      targetLogger.error(`failed to apply migration "${it.migrationName}"`)
     }
   })
 
   if (error) {
-    logger.error("failed to migrate")
-    logger.error(error)
+    targetLogger.error("failed to migrate")
+    targetLogger.error(error)
     process.exit(1)
   }
 }

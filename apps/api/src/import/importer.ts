@@ -1,24 +1,37 @@
 import { FindingSource, type Finding } from "@openvlp/types/model/finding"
-import { createLogger } from "../logging.js"
-import { parseNucleiFindings } from "./nuclei.js"
 import type { User } from "better-auth"
-
-const logger = createLogger("findings/import")
+import type { Logger } from "pino"
 
 export interface ImportContext {
   user: User
 }
 
-export async function parseFindingsFromFile(
-  ctx: ImportContext,
-  type: string,
-  file: Buffer
-): Promise<Array<Finding>> {
-  switch (type) {
-    case FindingSource.Nuclei:
-      return parseNucleiFindings(ctx, file)
-    default:
-      logger.error(`unknown finding source: ${type}`)
-      return []
+interface NucleiFindingParser {
+  parseNucleiFindings(ctx: ImportContext, file: Buffer): Promise<Array<Finding>>
+}
+
+interface FindingImporterDependencies {
+  nucleiParser: NucleiFindingParser
+  logger: Logger
+}
+
+export function createFindingImporter({
+  nucleiParser,
+  logger
+}: FindingImporterDependencies) {
+  return {
+    async parseFindingsFromFile(
+      ctx: ImportContext,
+      type: string,
+      file: Buffer
+    ): Promise<Array<Finding>> {
+      switch (type) {
+        case FindingSource.Nuclei:
+          return nucleiParser.parseNucleiFindings(ctx, file)
+        default:
+          logger.error(`unknown finding source: ${type}`)
+          return []
+      }
+    }
   }
 }
