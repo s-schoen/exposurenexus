@@ -49,6 +49,89 @@ describe("finding routes", () => {
     vi.clearAllMocks()
   })
 
+  it("returns all findings for authenticated requests", async () => {
+    const requestId = "findings-list-request"
+    const findings = [
+      {
+        id: findingId,
+        ...createPayload,
+        fingerprint: "abc123",
+        firstSeen: "2026-01-02T00:00:00.000Z",
+        lastSeen: "2026-01-02T00:00:00.000Z",
+        createdBy: user.id,
+        updatedBy: user.id,
+        createdAt: "2026-01-02T00:00:00.000Z",
+        updatedAt: "2026-01-02T00:00:00.000Z",
+        vulnerability
+      }
+    ]
+
+    vi.mocked(findingService.listAll).mockResolvedValue(findings as any)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: finding
+    })
+
+    const response = await app.request("/api/findings", {
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(findingService.listAll).toHaveBeenCalledOnce()
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: {
+        items: findings,
+        totalItems: 1,
+        startIndex: 0,
+        currentItemCount: 1
+      }
+    })
+  })
+
+  it("returns a finding by id", async () => {
+    const requestId = "findings-get-by-id-request"
+    const findingRecord = {
+      id: findingId,
+      ...createPayload,
+      fingerprint: "abc123",
+      firstSeen: "2026-01-02T00:00:00.000Z",
+      lastSeen: "2026-01-02T00:00:00.000Z",
+      createdBy: user.id,
+      updatedBy: user.id,
+      createdAt: "2026-01-02T00:00:00.000Z",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+      vulnerability
+    }
+
+    vi.mocked(findingService.getByID).mockResolvedValue(findingRecord as any)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: finding
+    })
+
+    const response = await app.request(`/api/findings/${findingId}`, {
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(findingService.getByID).toHaveBeenCalledWith(findingId)
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: findingRecord
+    })
+  })
+
   it("passes the authenticated user into finding creation", async () => {
     const requestId = "findings-create-request"
     const createdFinding = {
@@ -91,6 +174,29 @@ describe("finding routes", () => {
       correlationId: requestId,
       data: createdFinding
     })
+  })
+
+  it("rejects invalid finding create bodies before calling the service", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: finding
+    })
+
+    const response = await app.request("/api/findings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "findings-invalid-create-body-request"
+      },
+      body: JSON.stringify({
+        ...createPayload,
+        assetId: "not-a-uuid"
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(findingService.create).not.toHaveBeenCalled()
   })
 
   it("updates a finding with the authenticated user", async () => {
@@ -141,6 +247,29 @@ describe("finding routes", () => {
       correlationId: requestId,
       data: updatedFinding
     })
+  })
+
+  it("rejects invalid finding update bodies before calling the service", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: finding
+    })
+
+    const response = await app.request(`/api/findings/${findingId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "findings-invalid-update-body-request"
+      },
+      body: JSON.stringify({
+        ...createPayload,
+        vulnerabilityId: "not-a-uuid"
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(findingService.update).not.toHaveBeenCalled()
   })
 
   it("rejects invalid finding ids before calling the update service", async () => {
