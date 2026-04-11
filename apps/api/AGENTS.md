@@ -22,4 +22,5 @@ Hono.js API Server
 * Do not implement business logic in the API routes, but abstract into services
 * Always use structured logging, use audit logging for sensitive operations
 * Use `vitest` for unit tests
-* Place test files directly adjacent to the source files they cover, do not use a separate `test/` directory
+* Place actual `*.test.ts` files directly adjacent to the source files they cover
+* Put shared test helpers and fixtures in `src/test/`
