@@ -1,10 +1,8 @@
 import type { MiddlewareHandler } from "hono"
-import { createLogger } from "../logging.js"
+import type { Logger } from "pino"
 
-const apiLogger = createLogger("audit/api")
-
-export const accessLogger = (): MiddlewareHandler => {
-  return async function logger(c, next) {
+export const accessLogger = (logger: Logger): MiddlewareHandler => {
+  return async function accessLogMiddleware(c, next) {
     const { method, url } = c.req
 
     const requestId = c.get("requestId")
@@ -16,7 +14,7 @@ export const accessLogger = (): MiddlewareHandler => {
 
     const end = Date.now()
 
-    apiLogger.info({
+    logger.info({
       correlationId: requestId,
       method: method,
       path: path,

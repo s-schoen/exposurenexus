@@ -1,14 +1,8 @@
 import { serve } from "@hono/node-server"
-import { Hono } from "hono"
+import { createApp } from "./app.js"
 import { env } from "./env.js"
 import { createLogger } from "./logging.js"
 import health from "./routes/health.js"
-import { requestId } from "hono/request-id"
-import { cors } from "hono/cors"
-import { secureHeaders } from "hono/secure-headers"
-import { timeout } from "hono/timeout"
-import { accessLogger } from "./middleware/logger.js"
-import { registerErrorHandler } from "./lib/handler.js"
 import { migrateToLatest } from "./db/migration.js"
 import auth from "./routes/auth.js"
 import asset from "./routes/assets.js"
@@ -24,42 +18,22 @@ await migrateToLatest()
 await createDefaultAdmin()
 
 const logger = createLogger("api")
-const app = new Hono().basePath("/api")
-
-// setup middleware
-app.use("*", requestId())
-app.use(accessLogger())
-app.use(secureHeaders())
-app.use("/api", timeout(env.API_TIMEOUT_MS))
-app.use(
-  "*",
-  cors({
-    origin: env.AUTH_URL,
-    allowHeaders: ["Content-Type", "Authorization"],
-    allowMethods: ["POST", "GET", "DELETE", "PUT", "PATCH", "OPTIONS"],
-    exposeHeaders: ["Content-Length"],
-    maxAge: 600,
-    credentials: true
-  })
-)
-app.use("*", authNAnnotate())
-
-// setup handlers
-registerErrorHandler(app, logger)
-
-// setup public routes
-app.route("/health", health)
-app.route("/auth", auth)
-
-// setup protected routes
-app.use("*", authNRequire())
-
-app.route("/assets", asset)
-app.route("/vulnerabilities", vulnerability)
-
-app.route("/findings", findingStats)
-app.route("/findings", finding)
-app.route("/findings", importer)
+const auditLogger = createLogger("audit/api")
+const app = createApp({
+  logger,
+  accessLogger: auditLogger,
+  authUrl: env.AUTH_URL,
+  apiTimeoutMs: env.API_TIMEOUT_MS,
+  annotateAuth: authNAnnotate(),
+  requireAuth: authNRequire(),
+  healthRoute: health,
+  authRoute: auth,
+  assetRoute: asset,
+  vulnerabilityRoute: vulnerability,
+  findingStatsRoute: findingStats,
+  findingRoute: finding,
+  importerRoute: importer
+})
 
 serve(
   {
