@@ -11,7 +11,7 @@ const importer = new Hono<{ Variables: ContextVariables }>()
 importer.post("/import", async (c) => {
   const body = await c.req.parseBody()
 
-  if (!body["file"] || typeof body["type"] !== "string") {
+  if (typeof body["type"] !== "string") {
     badRequest("expected type in form data")
   }
   const type = body["type"] as string
