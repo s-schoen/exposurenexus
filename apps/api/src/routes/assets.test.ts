@@ -129,6 +129,38 @@ describe("asset routes", () => {
     })
   })
 
+  it("returns an asset by id", async () => {
+    const requestId = "assets-get-by-id-request"
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const assetRecord = {
+      id: assetId,
+      name: "api.openvlp.local",
+      type: AssetType.Host
+    }
+
+    vi.mocked(assetService.getByID).mockResolvedValue(assetRecord)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: asset
+    })
+
+    const response = await app.request(`/api/assets/${assetId}`, {
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(assetService.getByID).toHaveBeenCalledWith(assetId)
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: assetRecord
+    })
+  })
+
   it("returns 201 when creating an asset", async () => {
     const requestId = "assets-create-request"
     const payload = {
@@ -163,6 +195,68 @@ describe("asset routes", () => {
     expect(body).toEqual({
       correlationId: requestId,
       data: createdAsset
+    })
+  })
+
+  it("deletes an asset by id", async () => {
+    const requestId = "assets-delete-request"
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const deletedAsset = {
+      id: assetId,
+      name: "api.openvlp.local",
+      type: AssetType.Host
+    }
+
+    vi.mocked(assetService.deleteByID).mockResolvedValue(deletedAsset)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: asset
+    })
+
+    const response = await app.request(`/api/assets/${assetId}`, {
+      method: "DELETE",
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(assetService.deleteByID).toHaveBeenCalledWith(assetId)
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: deletedAsset
+    })
+  })
+
+  it("returns 404 when deleting a missing asset", async () => {
+    const requestId = "assets-delete-not-found-request"
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+
+    vi.mocked(assetService.deleteByID).mockResolvedValue(null)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: asset
+    })
+
+    const response = await app.request(`/api/assets/${assetId}`, {
+      method: "DELETE",
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(assetService.deleteByID).toHaveBeenCalledWith(assetId)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: `asset with id ${assetId} does not exist`
     })
   })
 })
