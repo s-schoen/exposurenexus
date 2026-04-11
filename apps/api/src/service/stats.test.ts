@@ -31,20 +31,20 @@ describe("stats service", () => {
           return {
             [VulnerabilitySeverity.High]: 2,
             [VulnerabilitySeverity.Medium]: 1
-          }
+          } as Record<string, number>
         case "status":
           return {
             [FindingStatus.Active]: 2,
             [FindingStatus.Mitigated]: 1
-          }
+          } as Record<string, number>
         case "assetId":
           return {
             "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c": 3
-          }
+          } as Record<string, number>
         case "source":
           return {
             nuclei: 3
-          }
+          } as Record<string, number>
       }
     })
 

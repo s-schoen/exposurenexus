@@ -29,9 +29,9 @@ describe("vulnerability routes", () => {
     cve: null,
     createdBy: user.id,
     updatedBy: user.id,
-    createdAt: "2026-01-01T00:00:00.000Z",
-    updatedAt: "2026-01-01T00:00:00.000Z"
-  }
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-01T00:00:00.000Z")
+  } satisfies Vulnerability
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -85,7 +85,13 @@ describe("vulnerability routes", () => {
     expect(body).toEqual({
       correlationId: requestId,
       data: {
-        items: [vulnerabilityRecord],
+        items: [
+          {
+            ...vulnerabilityRecord,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-01T00:00:00.000Z"
+          }
+        ],
         totalItems: 1,
         startIndex: 0,
         currentItemCount: 1
@@ -120,7 +126,11 @@ describe("vulnerability routes", () => {
     expect(vulnerabilityService.getByID).toHaveBeenCalledWith(vulnerabilityId)
     expect(body).toEqual({
       correlationId: requestId,
-      data: vulnerabilityRecord
+      data: {
+        ...vulnerabilityRecord,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z"
+      }
     })
   })
 

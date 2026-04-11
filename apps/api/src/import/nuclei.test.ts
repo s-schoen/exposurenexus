@@ -79,6 +79,24 @@ describe("nuclei importer", () => {
     "curl-command": "curl https://api.openvlp.local/admin",
     timestamp: "2026-01-02T03:04:05+00:00"
   }
+  const finding: Finding = {
+    id: "2713d833-eb13-4517-ac7c-7761545ed42a",
+    source: FindingSource.Nuclei,
+    status: FindingStatus.Active,
+    vulnerabilityId: vulnerability.id,
+    assetId: asset.id,
+    severity: vulnerability.severity,
+    evidence: "evidence",
+    mitigation: nucleiFinding.info.remediation,
+    fingerprint: "abc123",
+    firstSeen: new Date("2026-01-02T00:00:00.000Z"),
+    lastSeen: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: user.id,
+    updatedBy: user.id,
+    createdAt: new Date("2026-01-02T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    vulnerability
+  }
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -86,17 +104,6 @@ describe("nuclei importer", () => {
   })
 
   it("creates or updates findings for mapped vulnerabilities", async () => {
-    const finding = {
-      id: "2713d833-eb13-4517-ac7c-7761545ed42a",
-      source: FindingSource.Nuclei,
-      status: FindingStatus.Active,
-      vulnerabilityId: vulnerability.id,
-      assetId: asset.id,
-      severity: vulnerability.severity,
-      evidence: "evidence",
-      mitigation: nucleiFinding.info.remediation
-    }
-
     vi.mocked(vulnerabilityService.listMappings).mockResolvedValue([
       {
         id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
@@ -160,11 +167,9 @@ describe("nuclei importer", () => {
     } as VulnerabilitySourceMapping)
     vi.mocked(getOrCreateAsset).mockResolvedValue(asset)
     vi.mocked(findingService.createOrUpdate).mockResolvedValue({
-      finding: {
-        id: "2713d833-eb13-4517-ac7c-7761545ed42a"
-      },
+      finding,
       created: true
-    } as { finding: Partial<Finding>; created: boolean })
+    })
 
     await parseNucleiFindings(
       ctx,
@@ -250,11 +255,9 @@ describe("nuclei importer", () => {
     )
     vi.mocked(getOrCreateAsset).mockResolvedValue(asset)
     vi.mocked(findingService.createOrUpdate).mockResolvedValue({
-      finding: {
-        id: "2713d833-eb13-4517-ac7c-7761545ed42a"
-      },
+      finding,
       created: true
-    } as { finding: Partial<Finding>; created: boolean })
+    })
 
     await parseNucleiFindings(
       ctx,

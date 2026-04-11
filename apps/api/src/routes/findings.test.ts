@@ -36,8 +36,20 @@ describe("finding routes", () => {
     cve: null,
     createdBy: user.id,
     updatedBy: user.id,
-    createdAt: "2026-01-01T00:00:00.000Z",
-    updatedAt: "2026-01-01T00:00:00.000Z"
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-01T00:00:00.000Z")
+  }
+  const findingDates = {
+    firstSeen: new Date("2026-01-02T00:00:00.000Z"),
+    lastSeen: new Date("2026-01-02T00:00:00.000Z"),
+    createdAt: new Date("2026-01-02T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z")
+  }
+  const findingJsonDates = {
+    firstSeen: "2026-01-02T00:00:00.000Z",
+    lastSeen: "2026-01-02T00:00:00.000Z",
+    createdAt: "2026-01-02T00:00:00.000Z",
+    updatedAt: "2026-01-02T00:00:00.000Z"
   }
   const createPayload = {
     vulnerabilityId,
@@ -60,12 +72,9 @@ describe("finding routes", () => {
         id: findingId,
         ...createPayload,
         fingerprint: "abc123",
-        firstSeen: "2026-01-02T00:00:00.000Z",
-        lastSeen: "2026-01-02T00:00:00.000Z",
+        ...findingDates,
         createdBy: user.id,
         updatedBy: user.id,
-        createdAt: "2026-01-02T00:00:00.000Z",
-        updatedAt: "2026-01-02T00:00:00.000Z",
         vulnerability
       }
     ]
@@ -90,7 +99,17 @@ describe("finding routes", () => {
     expect(body).toEqual({
       correlationId: requestId,
       data: {
-        items: findings,
+        items: [
+          {
+            ...findings[0],
+            ...findingJsonDates,
+            vulnerability: {
+              ...vulnerability,
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-01T00:00:00.000Z"
+            }
+          }
+        ],
         totalItems: 1,
         startIndex: 0,
         currentItemCount: 1
@@ -104,12 +123,9 @@ describe("finding routes", () => {
       id: findingId,
       ...createPayload,
       fingerprint: "abc123",
-      firstSeen: "2026-01-02T00:00:00.000Z",
-      lastSeen: "2026-01-02T00:00:00.000Z",
+      ...findingDates,
       createdBy: user.id,
       updatedBy: user.id,
-      createdAt: "2026-01-02T00:00:00.000Z",
-      updatedAt: "2026-01-02T00:00:00.000Z",
       vulnerability
     }
 
@@ -134,7 +150,15 @@ describe("finding routes", () => {
     expect(findingService.getByID).toHaveBeenCalledWith(findingId)
     expect(body).toEqual({
       correlationId: requestId,
-      data: findingRecord
+      data: {
+        ...findingRecord,
+        ...findingJsonDates,
+        vulnerability: {
+          ...vulnerability,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z"
+        }
+      }
     })
   })
 
@@ -144,12 +168,9 @@ describe("finding routes", () => {
       id: findingId,
       ...createPayload,
       fingerprint: "abc123",
-      firstSeen: "2026-01-02T00:00:00.000Z",
-      lastSeen: "2026-01-02T00:00:00.000Z",
+      ...findingDates,
       createdBy: user.id,
       updatedBy: user.id,
-      createdAt: "2026-01-02T00:00:00.000Z",
-      updatedAt: "2026-01-02T00:00:00.000Z",
       vulnerability
     }
 
@@ -180,7 +201,15 @@ describe("finding routes", () => {
     })
     expect(body).toEqual({
       correlationId: requestId,
-      data: createdFinding
+      data: {
+        ...createdFinding,
+        ...findingJsonDates,
+        vulnerability: {
+          ...vulnerability,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z"
+        }
+      }
     })
   })
 
@@ -218,12 +247,12 @@ describe("finding routes", () => {
       id: findingId,
       ...updatePayload,
       fingerprint: "abc123",
-      firstSeen: "2026-01-02T00:00:00.000Z",
-      lastSeen: "2026-01-03T00:00:00.000Z",
+      firstSeen: new Date("2026-01-02T00:00:00.000Z"),
+      lastSeen: new Date("2026-01-03T00:00:00.000Z"),
       createdBy: user.id,
       updatedBy: user.id,
-      createdAt: "2026-01-02T00:00:00.000Z",
-      updatedAt: "2026-01-03T00:00:00.000Z",
+      createdAt: new Date("2026-01-02T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-03T00:00:00.000Z"),
       vulnerability
     }
 
@@ -255,7 +284,18 @@ describe("finding routes", () => {
     })
     expect(body).toEqual({
       correlationId: requestId,
-      data: updatedFinding
+      data: {
+        ...updatedFinding,
+        firstSeen: "2026-01-02T00:00:00.000Z",
+        lastSeen: "2026-01-03T00:00:00.000Z",
+        createdAt: "2026-01-02T00:00:00.000Z",
+        updatedAt: "2026-01-03T00:00:00.000Z",
+        vulnerability: {
+          ...vulnerability,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z"
+        }
+      }
     })
   })
 
@@ -342,12 +382,9 @@ describe("finding routes", () => {
       id: findingId,
       ...createPayload,
       fingerprint: "abc123",
-      firstSeen: "2026-01-02T00:00:00.000Z",
-      lastSeen: "2026-01-02T00:00:00.000Z",
+      ...findingDates,
       createdBy: user.id,
       updatedBy: user.id,
-      createdAt: "2026-01-02T00:00:00.000Z",
-      updatedAt: "2026-01-02T00:00:00.000Z",
       vulnerability
     }
 
@@ -373,7 +410,15 @@ describe("finding routes", () => {
     expect(findingService.deleteByID).toHaveBeenCalledWith(findingId)
     expect(body).toEqual({
       correlationId: requestId,
-      data: deletedFinding
+      data: {
+        ...deletedFinding,
+        ...findingJsonDates,
+        vulnerability: {
+          ...vulnerability,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z"
+        }
+      }
     })
   })
 

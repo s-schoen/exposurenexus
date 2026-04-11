@@ -56,6 +56,7 @@ export const requireAuthenticatedUser: MiddlewareHandler = async (c, next) => {
 
 export function createTestApp(options: CreateTestAppOptions = {}) {
   const emptyRoute = new Hono()
+  const protectedEmptyRoute = new Hono<{ Variables: ContextVariables }>()
 
   return createApp({
     logger: pino({ enabled: false }),
@@ -69,7 +70,7 @@ export function createTestApp(options: CreateTestAppOptions = {}) {
     assetRoute: options.assetRoute ?? emptyRoute,
     vulnerabilityRoute: options.vulnerabilityRoute ?? emptyRoute,
     findingStatsRoute: options.findingStatsRoute ?? emptyRoute,
-    findingRoute: options.findingRoute ?? emptyRoute,
-    importerRoute: options.importerRoute ?? emptyRoute
+    findingRoute: options.findingRoute ?? protectedEmptyRoute,
+    importerRoute: options.importerRoute ?? protectedEmptyRoute
   })
 }
