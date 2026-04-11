@@ -25,3 +25,7 @@ Hono.js API Server
 * Use `vitest` for unit tests
 * Place actual `*.test.ts` files directly adjacent to the source files they cover
 * Put shared test helpers and fixtures in `src/test/`
+* Use TDD for all newly implemented features by default
+* Start feature work by adding a unit test that fails for the intended behavior
+* Only implement the feature after the new unit test is in place and failing
+* Do not finish feature work until the new unit test and the existing unit test suite both pass
