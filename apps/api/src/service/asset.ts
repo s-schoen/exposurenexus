@@ -11,7 +11,7 @@ const logger = createLogger("service/asset")
 
 export async function listAll(): Promise<Asset[]> {
   try {
-    return assetRepository.list()
+    return await assetRepository.list()
   } catch (error) {
     logger.error(error, "failed to list assets")
     throw new HTTPException(500, {
@@ -75,7 +75,7 @@ export async function create(asset: CreateAsset): Promise<Asset> {
 
 export async function deleteByID(id: string): Promise<Asset | null> {
   try {
-    const asset = assetRepository.deleteByID(id)
+    const asset = await assetRepository.deleteByID(id)
     if (!asset) {
       logger.debug(`cannot delete asset ${id}: not found`)
     }

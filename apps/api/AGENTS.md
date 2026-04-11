@@ -15,6 +15,7 @@ Hono.js API Server
 * `pnpm build` to build code with `tsc` and check for syntax errors
 * `pnpm lint` to lint code with `eslint`
 * `pnpm test` to run unit tests with `vitest`
+* `pnpm test:coverage` to generate coverage reports on stdout
 
 ## Patterns
 
