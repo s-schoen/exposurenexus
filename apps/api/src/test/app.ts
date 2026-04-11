@@ -4,18 +4,19 @@ import { HTTPException } from "hono/http-exception"
 import { pino } from "pino"
 import type { User } from "better-auth"
 import { createApp } from "../app.js"
+import type { ContextVariables } from "../lib/hono-schema.js"
 import health from "../routes/health.js"
 
 interface CreateTestAppOptions {
   annotateAuth?: MiddlewareHandler
   requireAuth?: MiddlewareHandler
-  healthRoute?: Hono<any>
-  authRoute?: Hono<any>
-  assetRoute?: Hono<any>
-  vulnerabilityRoute?: Hono<any>
-  findingStatsRoute?: Hono<any>
-  findingRoute?: Hono<any>
-  importerRoute?: Hono<any>
+  healthRoute?: Hono
+  authRoute?: Hono
+  assetRoute?: Hono
+  vulnerabilityRoute?: Hono
+  findingStatsRoute?: Hono
+  findingRoute?: Hono<{ Variables: ContextVariables }>
+  importerRoute?: Hono<{ Variables: ContextVariables }>
 }
 
 const passthrough: MiddlewareHandler = async (_c, next) => {

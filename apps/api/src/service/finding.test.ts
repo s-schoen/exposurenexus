@@ -107,7 +107,9 @@ describe("finding service", () => {
   })
 
   it("maps repository get failures to an HTTP 500", async () => {
-    vi.mocked(findingRepository.getByID).mockRejectedValue(new Error("db offline"))
+    vi.mocked(findingRepository.getByID).mockRejectedValue(
+      new Error("db offline")
+    )
 
     await expect(findingService.getByID(baseFinding.id)).rejects.toMatchObject({
       status: 500,
@@ -270,7 +272,9 @@ describe("finding service", () => {
     vi.useFakeTimers()
     vi.setSystemTime(now)
 
-    vi.mocked(findingRepository.getByFingerprint).mockResolvedValue(existingFinding)
+    vi.mocked(findingRepository.getByFingerprint).mockResolvedValue(
+      existingFinding
+    )
     vi.mocked(findingRepository.update).mockResolvedValue(updatedFinding)
     vi.mocked(vulnerabilityService.getByID).mockResolvedValue(vulnerability)
 
@@ -332,7 +336,9 @@ describe("finding service", () => {
       new Error("delete failed")
     )
 
-    await expect(findingService.deleteByID(baseFinding.id)).rejects.toMatchObject({
+    await expect(
+      findingService.deleteByID(baseFinding.id)
+    ).rejects.toMatchObject({
       status: 500,
       message: "failed to get finding"
     } satisfies Partial<HTTPException>)

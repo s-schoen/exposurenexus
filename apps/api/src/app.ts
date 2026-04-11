@@ -7,6 +7,7 @@ import type { MiddlewareHandler } from "hono"
 import type { Logger } from "pino"
 import { registerErrorHandler } from "./lib/handler.js"
 import { accessLogger } from "./middleware/logger.js"
+import type { ContextVariables } from "./lib/hono-schema.js"
 
 export interface CreateAppOptions {
   logger: Logger
@@ -15,13 +16,13 @@ export interface CreateAppOptions {
   apiTimeoutMs: number
   annotateAuth: MiddlewareHandler
   requireAuth: MiddlewareHandler
-  healthRoute: Hono<any>
-  authRoute: Hono<any>
-  assetRoute: Hono<any>
-  vulnerabilityRoute: Hono<any>
-  findingStatsRoute: Hono<any>
-  findingRoute: Hono<any>
-  importerRoute: Hono<any>
+  healthRoute: Hono
+  authRoute: Hono
+  assetRoute: Hono
+  vulnerabilityRoute: Hono
+  findingStatsRoute: Hono
+  findingRoute: Hono<{ Variables: ContextVariables }>
+  importerRoute: Hono<{ Variables: ContextVariables }>
 }
 
 export function createApp(options: CreateAppOptions) {

@@ -110,7 +110,9 @@ describe("asset service", () => {
   })
 
   it("maps repository create failures to an HTTP 500", async () => {
-    vi.mocked(assetRepository.create).mockRejectedValue(new Error("insert failed"))
+    vi.mocked(assetRepository.create).mockRejectedValue(
+      new Error("insert failed")
+    )
 
     await expect(
       assetService.create({

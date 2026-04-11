@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { FindingSource, FindingStatus } from "@openvlp/types/model/finding"
+import {
+  FindingSource,
+  FindingStatus,
+  type Finding
+} from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import {
   annotateAuthenticatedUser,
@@ -66,7 +70,7 @@ describe("finding routes", () => {
       }
     ]
 
-    vi.mocked(findingService.listAll).mockResolvedValue(findings as any)
+    vi.mocked(findingService.listAll).mockResolvedValue(findings as Finding[])
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -109,7 +113,9 @@ describe("finding routes", () => {
       vulnerability
     }
 
-    vi.mocked(findingService.getByID).mockResolvedValue(findingRecord as any)
+    vi.mocked(findingService.getByID).mockResolvedValue(
+      findingRecord as Finding
+    )
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -147,7 +153,9 @@ describe("finding routes", () => {
       vulnerability
     }
 
-    vi.mocked(findingService.create).mockResolvedValue(createdFinding as any)
+    vi.mocked(findingService.create).mockResolvedValue(
+      createdFinding as Finding
+    )
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -219,7 +227,9 @@ describe("finding routes", () => {
       vulnerability
     }
 
-    vi.mocked(findingService.update).mockResolvedValue(updatedFinding as any)
+    vi.mocked(findingService.update).mockResolvedValue(
+      updatedFinding as Finding
+    )
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -341,7 +351,9 @@ describe("finding routes", () => {
       vulnerability
     }
 
-    vi.mocked(findingService.deleteByID).mockResolvedValue(deletedFinding as any)
+    vi.mocked(findingService.deleteByID).mockResolvedValue(
+      deletedFinding as Finding
+    )
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),

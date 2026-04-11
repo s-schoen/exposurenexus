@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { FindingSource } from "@openvlp/types/model/finding"
+import { FindingSource, type Finding } from "@openvlp/types/model/finding"
 import { createTestUser } from "../test/app.js"
 
 vi.mock("../logging.js", () => ({
@@ -28,9 +28,9 @@ describe("importer", () => {
   })
 
   it("dispatches nuclei imports to the nuclei parser", async () => {
-    const findings = [{ id: "finding-1" }]
+    const findings = [{ id: "finding-1" }] as Finding[]
 
-    vi.mocked(parseNucleiFindings).mockResolvedValue(findings as any)
+    vi.mocked(parseNucleiFindings).mockResolvedValue(findings)
 
     await expect(
       parseFindingsFromFile(ctx, FindingSource.Nuclei, file)

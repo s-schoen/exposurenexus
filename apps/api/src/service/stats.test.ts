@@ -81,7 +81,9 @@ describe("stats service", () => {
   })
 
   it("maps repository failures to an HTTP 500", async () => {
-    vi.mocked(findingRepository.countBy).mockRejectedValue(new Error("db offline"))
+    vi.mocked(findingRepository.countBy).mockRejectedValue(
+      new Error("db offline")
+    )
 
     await expect(statsService.getFindingStats()).rejects.toMatchObject({
       status: 500,

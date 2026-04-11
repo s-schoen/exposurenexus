@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import {
+  VulnerabilitySeverity,
+  type Vulnerability
+} from "@openvlp/types/model/vulnerability"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -61,8 +64,8 @@ describe("vulnerability routes", () => {
     const requestId = "vulnerabilities-list-request"
 
     vi.mocked(vulnerabilityService.listAll).mockResolvedValue([
-      vulnerabilityRecord
-    ] as any)
+      vulnerabilityRecord as Vulnerability
+    ])
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -94,7 +97,7 @@ describe("vulnerability routes", () => {
     const requestId = "vulnerabilities-get-by-id-request"
 
     vi.mocked(vulnerabilityService.getByID).mockResolvedValue(
-      vulnerabilityRecord as any
+      vulnerabilityRecord as Vulnerability
     )
 
     const app = createTestApp({
@@ -103,11 +106,14 @@ describe("vulnerability routes", () => {
       vulnerabilityRoute: vulnerability
     })
 
-    const response = await app.request(`/api/vulnerabilities/${vulnerabilityId}`, {
-      headers: {
-        "X-Request-Id": requestId
+    const response = await app.request(
+      `/api/vulnerabilities/${vulnerabilityId}`,
+      {
+        headers: {
+          "X-Request-Id": requestId
+        }
       }
-    })
+    )
     const body = await response.json()
 
     expect(response.status).toBe(200)
@@ -146,11 +152,14 @@ describe("vulnerability routes", () => {
       vulnerabilityRoute: vulnerability
     })
 
-    const response = await app.request(`/api/vulnerabilities/${vulnerabilityId}`, {
-      headers: {
-        "X-Request-Id": requestId
+    const response = await app.request(
+      `/api/vulnerabilities/${vulnerabilityId}`,
+      {
+        headers: {
+          "X-Request-Id": requestId
+        }
       }
-    })
+    )
     const body = await response.json()
 
     expect(response.status).toBe(404)

@@ -3,9 +3,14 @@ import { HTTPException } from "hono/http-exception"
 import { AssetType } from "@openvlp/types/model/asset"
 import {
   FindingSource,
-  FindingStatus
+  FindingStatus,
+  type Finding
 } from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import {
+  VulnerabilitySeverity,
+  type Vulnerability,
+  type VulnerabilitySourceMapping
+} from "@openvlp/types/model/vulnerability"
 import { createTestUser } from "../test/app.js"
 
 vi.mock("../logging.js", () => ({
@@ -99,13 +104,15 @@ describe("nuclei importer", () => {
         source: FindingSource.Nuclei,
         matchQuery: '{"templateID":"admin-panel"}'
       }
-    ] as any)
-    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(vulnerability as any)
-    vi.mocked(getOrCreateAsset).mockResolvedValue(asset as any)
+    ] as VulnerabilitySourceMapping[])
+    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(
+      vulnerability as Vulnerability
+    )
+    vi.mocked(getOrCreateAsset).mockResolvedValue(asset)
     vi.mocked(findingService.createOrUpdate).mockResolvedValue({
       finding,
       created: true
-    } as any)
+    })
 
     const result = await parseNucleiFindings(
       ctx,
@@ -142,22 +149,27 @@ describe("nuclei importer", () => {
 
   it("creates vulnerabilities and mappings when no mapping exists", async () => {
     vi.mocked(vulnerabilityService.listMappings).mockResolvedValue([])
-    vi.mocked(vulnerabilityService.create).mockResolvedValue(vulnerability as any)
+    vi.mocked(vulnerabilityService.create).mockResolvedValue(
+      vulnerability as Vulnerability
+    )
     vi.mocked(vulnerabilityService.createMapping).mockResolvedValue({
       id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
       vulnerabilityId: vulnerability.id,
       source: FindingSource.Nuclei,
       matchQuery: '{"templateID":"admin-panel"}'
-    } as any)
-    vi.mocked(getOrCreateAsset).mockResolvedValue(asset as any)
+    } as VulnerabilitySourceMapping)
+    vi.mocked(getOrCreateAsset).mockResolvedValue(asset)
     vi.mocked(findingService.createOrUpdate).mockResolvedValue({
       finding: {
         id: "2713d833-eb13-4517-ac7c-7761545ed42a"
       },
       created: true
-    } as any)
+    } as { finding: Partial<Finding>; created: boolean })
 
-    await parseNucleiFindings(ctx, Buffer.from(`${JSON.stringify(nucleiFinding)}\n`))
+    await parseNucleiFindings(
+      ctx,
+      Buffer.from(`${JSON.stringify(nucleiFinding)}\n`)
+    )
 
     expect(vulnerabilityService.create).toHaveBeenCalledWith({
       user,
@@ -232,15 +244,17 @@ describe("nuclei importer", () => {
         source: FindingSource.Nuclei,
         matchQuery: '{"templateID":"admin-panel"}'
       }
-    ] as any)
-    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(vulnerability as any)
-    vi.mocked(getOrCreateAsset).mockResolvedValue(asset as any)
+    ] as VulnerabilitySourceMapping[])
+    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(
+      vulnerability as Vulnerability
+    )
+    vi.mocked(getOrCreateAsset).mockResolvedValue(asset)
     vi.mocked(findingService.createOrUpdate).mockResolvedValue({
       finding: {
         id: "2713d833-eb13-4517-ac7c-7761545ed42a"
       },
       created: true
-    } as any)
+    } as { finding: Partial<Finding>; created: boolean })
 
     await parseNucleiFindings(
       ctx,

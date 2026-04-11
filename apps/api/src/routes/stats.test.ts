@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  FindingSource,
-  FindingStatus
-} from "@openvlp/types/model/finding"
+import { FindingSource, FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import {
   annotateAuthenticatedUser,
