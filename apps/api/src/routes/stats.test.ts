@@ -24,6 +24,29 @@ describe("finding stats routes", () => {
     vi.clearAllMocks()
   })
 
+  it("returns 401 for unauthenticated requests", async () => {
+    const requestId = "findings-stats-unauthorized-request"
+    const app = createTestApp({
+      findingStatsRoute: findingStats,
+      requireAuth: requireAuthenticatedUser
+    })
+
+    const response = await app.request("/api/findings/stats", {
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(401)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 401,
+      error: "Unauthorized"
+    })
+    expect(statsService.getFindingStats).not.toHaveBeenCalled()
+  })
+
   it("returns finding statistics for authenticated requests", async () => {
     const requestId = "findings-stats-request"
     const stats = {

@@ -198,6 +198,29 @@ describe("asset routes", () => {
     })
   })
 
+  it("rejects invalid asset create bodies before calling the service", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: asset
+    })
+
+    const response = await app.request("/api/assets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "assets-invalid-create-body-request"
+      },
+      body: JSON.stringify({
+        name: "",
+        type: AssetType.Host
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(assetService.create).not.toHaveBeenCalled()
+  })
+
   it("deletes an asset by id", async () => {
     const requestId = "assets-delete-request"
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
