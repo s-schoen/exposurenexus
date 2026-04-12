@@ -25,9 +25,7 @@ export function severityColor(
   return color
 }
 
-export function severityBadgeClass(
-  severity: VulnerabilitySeverity
-): string {
+export function severityBadgeClass(severity: VulnerabilitySeverity): string {
   switch (severity) {
     case VulnerabilitySeverity.Info:
       return "border-[oklch(0.84_0.028_228)] bg-[oklch(0.97_0.01_220)] text-[oklch(0.4_0.03_232)] dark:border-[oklch(0.46_0.035_228)] dark:bg-[oklch(0.26_0.018_245)] dark:text-[oklch(0.82_0.03_220)]"

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo } from "react"
 import { toast } from "sonner"
 import type { Finding } from "@openvlp/types/model/finding"
+import type { GroupingOption } from "@/components/data-table/types.ts"
 import { DataTable } from "@/components/data-table/data-table.tsx"
 import { createFindingColumns } from "@/components/finding-table/columns.tsx"
 import {
@@ -11,7 +12,6 @@ import {
   STATUS_ORDER
 } from "@/components/finding-table/constants.ts"
 import { FindingContextMenu } from "@/components/finding-table/context-menu.tsx"
-import type { GroupingOption } from "@/components/data-table/types.ts"
 import { Button } from "@/components/ui/button.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import {

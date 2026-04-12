@@ -16,7 +16,9 @@ export function DetailHighlightCard({
       <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </div>
-      <div className="mt-2 text-base font-semibold text-foreground">{value}</div>
+      <div className="mt-2 text-base font-semibold text-foreground">
+        {value}
+      </div>
       <div className="mt-2 text-sm text-muted-foreground">{description}</div>
     </div>
   )

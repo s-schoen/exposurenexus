@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
-import { Inplace } from "@/components/inplace.tsx"
 import type { EditElement } from "@/components/inplace.tsx"
+import { Inplace } from "@/components/inplace.tsx"
 
 interface MetadataDetailRowBaseProps {
   label: string
@@ -12,8 +12,7 @@ interface StaticMetadataDetailRowProps extends MetadataDetailRowBaseProps {
   editable?: never
 }
 
-interface EditableMetadataDetailRowProps<T>
-  extends MetadataDetailRowBaseProps {
+interface EditableMetadataDetailRowProps<T> extends MetadataDetailRowBaseProps {
   value?: never
   editable: {
     value: T

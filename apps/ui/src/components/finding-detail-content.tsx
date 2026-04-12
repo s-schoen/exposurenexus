@@ -4,7 +4,6 @@ import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { useCallback } from "react"
-import type { ReactNode } from "react"
 import { FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import {
@@ -15,6 +14,7 @@ import {
   ShieldAlert
 } from "lucide-react"
 import { toast } from "sonner"
+import type { ReactNode } from "react"
 import type { Finding } from "@openvlp/types/model/finding"
 import {
   createFindingByIDQueryOptions,

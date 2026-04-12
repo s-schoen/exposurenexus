@@ -1,5 +1,5 @@
-import type { ReactNode } from "react"
 import { Expand } from "lucide-react"
+import type { ReactNode } from "react"
 import {
   Dialog,
   DialogContent,

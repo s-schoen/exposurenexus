@@ -1,9 +1,6 @@
 "use client"
 
 import {
-  type ExpandedState,
-  type GroupingState,
-  type SortingState,
   flexRender,
   getCoreRowModel,
   getExpandedRowModel,
@@ -15,9 +12,16 @@ import {
 } from "@tanstack/react-table"
 import { ChevronDown, ChevronRight, DatabaseZap } from "lucide-react"
 import { useRef, useState } from "react"
-import type { ColumnDef, Row } from "@tanstack/react-table"
+import type {
+  ColumnDef,
+  ExpandedState,
+  GroupingState,
+  Row,
+  SortingState
+} from "@tanstack/react-table"
 import type { UseQueryResult } from "@tanstack/react-query"
 import type { MouseEvent, ReactElement, ReactNode, RefObject } from "react"
+import type { GroupingOption } from "@/components/data-table/types.ts"
 import {
   Table,
   TableBody,
@@ -28,7 +32,6 @@ import {
 } from "@/components/ui/table"
 import { DataTablePagination } from "@/components/data-table/pagination-control.tsx"
 import { DataTableToolbar } from "@/components/data-table/toolbar.tsx"
-import type { GroupingOption } from "@/components/data-table/types.ts"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { Checkbox } from "@/components/ui/checkbox.tsx"
 
@@ -42,9 +45,7 @@ interface DataTableProps<TData, TValue> {
   onRowClick?: (row: TData) => void
   onRowDoubleClick?: (row: TData) => void
   isRowActive?: (row: TData) => boolean
-  toolbarControls?:
-    | ReactElement
-    | ((selectedRows: Array<TData>) => ReactNode)
+  toolbarControls?: ReactElement | ((selectedRows: Array<TData>) => ReactNode)
   contextMenu?: (
     rowsRef: RefObject<Array<TData>>,
     children: ReactElement,
@@ -140,7 +141,10 @@ export function DataTable<TData, TValue>({
     }
   }
 
-  const handleOnRowClick = (event: MouseEvent<HTMLElement>, row: Row<TData>) => {
+  const handleOnRowClick = (
+    event: MouseEvent<HTMLElement>,
+    row: Row<TData>
+  ) => {
     const target = event.target as HTMLElement
 
     if (
@@ -171,10 +175,7 @@ export function DataTable<TData, TValue>({
   function NoDataPlaceholder() {
     return (
       <TableRow>
-        <TableCell
-          colSpan={table.getAllColumns().length}
-          className="h-56 p-0"
-        >
+        <TableCell colSpan={table.getAllColumns().length} className="h-56 p-0">
           <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
             <div className="flex size-14 items-center justify-center rounded-2xl border border-border/70 bg-muted/60 text-muted-foreground">
               <DatabaseZap className="size-6" />

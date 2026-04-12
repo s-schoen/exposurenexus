@@ -51,9 +51,7 @@ function RouteComponent() {
         description="Review the selected vulnerability without leaving the vulnerability table."
         fullPageHref={selected ? `/vulnerabilities/${selected}` : undefined}
       >
-        {selected && (
-          <VulnerabilityDetailContent vulnerabilityId={selected} />
-        )}
+        {selected && <VulnerabilityDetailContent vulnerabilityId={selected} />}
       </DetailPreviewDialog>
     </>
   )

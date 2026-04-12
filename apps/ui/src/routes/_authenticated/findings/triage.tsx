@@ -12,7 +12,9 @@ export const Route = createFileRoute("/_authenticated/findings/triage")({
     ...search,
     selected: typeof search.selected === "string" ? search.selected : undefined,
     status: Array.isArray(search.status)
-      ? search.status.filter((value): value is string => typeof value === "string")
+      ? search.status.filter(
+          (value): value is string => typeof value === "string"
+        )
       : typeof search.status === "string"
         ? [search.status]
         : undefined

@@ -1,12 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { type ChangeEvent, useId, useState } from "react"
-import {
-  CircleAlert,
-  FileJson2,
-  UploadCloud,
-  X
-} from "lucide-react"
+import { useId, useState } from "react"
+import { CircleAlert, FileJson2, UploadCloud, X } from "lucide-react"
 import { toast } from "sonner"
+import type { ChangeEvent } from "react"
 import { uploadFindingFile } from "@/api/finding.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
 import { Button, buttonVariants } from "@/components/ui/button.tsx"

@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Waypoints
 } from "lucide-react"
+import type { ChartConfig } from "@/components/ui/chart.tsx"
 import { createListAssetsQueryOptions } from "@/api/asset.ts"
 import { createFindingStatsQueryOptions } from "@/api/finding.ts"
 import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx"
@@ -24,7 +25,6 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card.tsx"
-import type { ChartConfig } from "@/components/ui/chart.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
 
@@ -381,7 +381,7 @@ function formatSource(source: string) {
   return source
     .split(/[_-]/g)
     .filter(Boolean)
-    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .map((part) => part[0].toUpperCase() + part.slice(1))
     .join(" ")
 }
 

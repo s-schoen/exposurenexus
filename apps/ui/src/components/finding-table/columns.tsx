@@ -35,7 +35,11 @@ function compareDateValues(
   return getDateTimestamp(left) - getDateTimestamp(right)
 }
 
-function FindingDateCell({ value }: { value: Date | string | null | undefined }) {
+function FindingDateCell({
+  value
+}: {
+  value: Date | string | null | undefined
+}) {
   if (!value) {
     return <span className="text-muted-foreground">Not available</span>
   }

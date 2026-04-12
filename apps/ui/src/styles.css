@@ -52,7 +52,8 @@ code {
   --sidebar-accent-foreground: oklch(0.28 0.024 248);
   --sidebar-border: oklch(0.88 0.012 220);
   --sidebar-ring: oklch(0.67 0.05 225);
-  --shell-bg: radial-gradient(
+  --shell-bg:
+    radial-gradient(
       circle at top left,
       oklch(0.97 0.012 212 / 0.95),
       transparent 30%
@@ -97,7 +98,8 @@ code {
   --sidebar-accent-foreground: oklch(0.96 0.01 212);
   --sidebar-border: oklch(0.3 0.016 245);
   --sidebar-ring: oklch(0.68 0.06 215);
-  --shell-bg: radial-gradient(
+  --shell-bg:
+    radial-gradient(
       circle at top left,
       oklch(0.28 0.028 220 / 0.55),
       transparent 25%

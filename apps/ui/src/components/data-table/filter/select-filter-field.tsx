@@ -38,7 +38,9 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
 
   useEffect(() => {
     const nextValue =
-      querySelectedOptionValues.length > 0 ? querySelectedOptionValues : undefined
+      querySelectedOptionValues.length > 0
+        ? querySelectedOptionValues
+        : undefined
     const currentValue = column.getFilterValue() as Array<string> | undefined
 
     const isEqual =
@@ -122,7 +124,9 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
                       onSelect={() => handleSelectOption(option)}
                     >
                       <span className="truncate">{option.label}</span>
-                      {isSelected && <Check className="ml-auto size-4 text-foreground" />}
+                      {isSelected && (
+                        <Check className="ml-auto size-4 text-foreground" />
+                      )}
                     </CommandItem>
                   )
                 })}

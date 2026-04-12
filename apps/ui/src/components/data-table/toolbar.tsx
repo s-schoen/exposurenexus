@@ -1,14 +1,10 @@
-import { X } from "lucide-react"
+import { RotateCw, Rows3, Trash, X } from "lucide-react"
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
-import { Rows3, RotateCw, Trash } from "lucide-react"
 import type { Column, Table } from "@tanstack/react-table"
 import type { ReactNode } from "react"
+import type { GroupingOption } from "@/components/data-table/types.ts"
 import { DataTableColumnVisibilityOptions } from "@/components/data-table/column-visibility.tsx"
 import { DataTableFilter } from "@/components/data-table/filter.tsx"
-import type {
-  GroupingOption,
-  SelectOption
-} from "@/components/data-table/types.ts"
 import { NO_GROUPING_VALUE } from "@/components/data-table/types.ts"
 import { Badge } from "@/components/ui/badge.tsx"
 import { Button } from "@/components/ui/button.tsx"
@@ -66,7 +62,7 @@ function SelectFilterChips<TData>({ column }: { column: Column<TData> }) {
     parseAsArrayOf(parseAsString).withDefault([])
   )
 
-  const options = (column.columnDef.meta?.options ?? []) as Array<SelectOption>
+  const options = column.columnDef.meta?.options ?? []
   const label = column.columnDef.meta?.label || column.id
   const selectedOptions = options.filter((option) =>
     selectedValues.includes(option.value)
@@ -132,7 +128,7 @@ export function DataTableToolbar<TData>({
   }
 
   return (
-    <div className="rounded-[1.5rem] border border-shell-border-strong/70 bg-shell-panel px-4 py-4 shadow-sm">
+    <div className="rounded-3xl border border-shell-border-strong/70 bg-shell-panel px-4 py-4 shadow-sm">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
@@ -165,7 +161,7 @@ export function DataTableToolbar<TData>({
             </Button>
             {groupingOptions.length > 0 && (
               <Select
-                value={activeGrouping ?? NO_GROUPING_VALUE}
+                value={activeGrouping}
                 onValueChange={(value) => {
                   table.setGrouping(
                     !value || value === NO_GROUPING_VALUE ? [] : [value]

@@ -27,7 +27,9 @@ export function MetadataSidebar({
         <div className="flex items-center justify-between gap-3">
           <div>
             <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-            {description ? <CardDescription>{description}</CardDescription> : null}
+            {description ? (
+              <CardDescription>{description}</CardDescription>
+            ) : null}
           </div>
           <Icon className="size-5 text-muted-foreground" />
         </div>

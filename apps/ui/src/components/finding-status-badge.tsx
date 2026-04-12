@@ -38,7 +38,11 @@ export function FindingStatusBadge({
   return (
     <Badge
       variant="outline"
-      className={cn("rounded-md border font-medium", statusClassName(status), className)}
+      className={cn(
+        "rounded-md border font-medium",
+        statusClassName(status),
+        className
+      )}
     >
       {formatFindingStatus(status)}
     </Badge>
