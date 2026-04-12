@@ -36,6 +36,8 @@ export function AppSidebar() {
   const location = useLocation()
   const findingStats = useQuery(createFindingStatsQueryOptions())
   const triageCount = findingStats.data?.status[FindingStatus.Active] ?? 0
+  const mitigationCount =
+    findingStats.data?.status[FindingStatus.Confirmed] ?? 0
 
   const isItemActive = (item: SidebarItem) => {
     if (item.activeMatch) {
@@ -79,6 +81,7 @@ export function AppSidebar() {
           url: "/findings",
           icon: ShieldAlert,
           description: "Issues with your assets",
+          badge: mitigationCount,
           activeMatch: /^\/findings(?:\/(?!import$|triage$).+)?$/
         },
         {
