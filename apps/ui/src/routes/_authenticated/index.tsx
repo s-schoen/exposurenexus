@@ -4,7 +4,6 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import { FindingStatus } from "@openvlp/types/model/finding"
 import {
   Activity,
-  ArrowRight,
   Bug,
   CircleCheckBig,
   Radar,
@@ -15,6 +14,7 @@ import {
 import { createListAssetsQueryOptions } from "@/api/asset.ts"
 import { createFindingStatsQueryOptions } from "@/api/finding.ts"
 import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx"
+import { MetricCard } from "@/components/metric-card.tsx"
 import { FindingSeverityChart } from "@/components/finding-severity-chart.tsx"
 import { FindingStatusChart } from "@/components/finding-status-chart.tsx"
 import {
@@ -27,7 +27,6 @@ import {
 import type { ChartConfig } from "@/components/ui/chart.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
-import { cn } from "@/lib/utils.ts"
 
 export const Route = createFileRoute("/_authenticated/")({
   component: App
@@ -124,7 +123,8 @@ function App() {
         description: "Share of findings already mitigated",
         value: mitigatedRate,
         tone: "text-foreground",
-        href: "/findings" as const
+        href: "/findings" as const,
+        suffix: "%"
       }
     ]
 
@@ -147,7 +147,7 @@ function App() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="border-border/60 bg-shell-panel shadow-[var(--shell-shadow)] backdrop-blur-sm">
+      <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm">
         <CardHeader className="gap-4">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
             <div className="space-y-2">
@@ -172,22 +172,19 @@ function App() {
               <Link
                 key={item.label}
                 to={item.href}
-                className="flex items-center justify-between rounded-xl border border-border/60 bg-background/70 px-4 py-4 transition-colors hover:bg-accent/70"
+                className="transition-colors hover:[&>div]:bg-accent/70"
               >
-                <div>
-                  <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                    {item.label}
-                  </div>
-                  <div className="mt-1 text-sm font-medium text-foreground">
-                    {item.description}
-                  </div>
-                  <div className={cn("mt-2 text-2xl font-semibold", item.tone)}>
-                    {item.label === "Mitigation progress"
-                      ? `${item.value}%`
-                      : formatNumber(item.value)}
-                  </div>
-                </div>
-                <ArrowRight className="size-4 text-muted-foreground" />
+                <MetricCard
+                  title={item.label}
+                  description={item.description}
+                  value={`${formatNumber(item.value)}${item.suffix ?? ""}`}
+                  loading={cardsLoading}
+                  variant="panel"
+                  className="h-full"
+                  valueClassName={item.tone}
+                  titleClassName="text-xs uppercase tracking-[0.2em] text-muted-foreground"
+                  descriptionClassName="text-sm leading-6 text-muted-foreground"
+                />
               </Link>
             ))
           )}
@@ -198,21 +195,21 @@ function App() {
         <MetricCard
           title="Total findings"
           value={overview.totalFindings}
-          hint="Current issue volume across all sources"
+          description="Current issue volume across all sources"
           icon={Bug}
           loading={cardsLoading}
         />
         <MetricCard
           title="Active findings"
           value={overview.activeFindings}
-          hint="Findings requiring mitigation"
+          description="Findings requiring mitigation"
           icon={Activity}
           loading={cardsLoading}
         />
         <MetricCard
           title="Critical / high"
           value={overview.criticalHighFindings}
-          hint="Highest severity exposure right now"
+          description="Highest severity exposure right now"
           icon={ShieldAlert}
           loading={cardsLoading}
           emphasis={overview.criticalHighFindings > 0}
@@ -220,51 +217,53 @@ function App() {
         <MetricCard
           title="Total assets"
           value={overview.totalAssets}
-          hint="Inventory currently tracked in the platform"
+          description="Inventory currently tracked in the platform"
           icon={Server}
           loading={cardsLoading}
         />
         <MetricCard
           title="Affected assets"
           value={overview.affectedAssets}
-          hint={`${overview.mitigatedRate}% of findings currently mitigated`}
+          description={`${overview.mitigatedRate}% of findings currently mitigated`}
           icon={Radar}
           loading={cardsLoading}
         />
       </div>
 
       <div className="grid gap-4">
-        <Card className="border-border/60 bg-shell-panel shadow-[var(--shell-shadow)] backdrop-blur-sm">
+        <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Coverage snapshot</CardTitle>
+            <CardTitle>Coverage</CardTitle>
             <CardDescription>
               A compact view of asset impact and remediation progress.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-3">
-            <SnapshotBlock
+            <MetricCard
               title="Healthy assets"
-              value={Math.max(
-                overview.totalAssets - overview.affectedAssets,
-                0
+              value={formatNumber(
+                Math.max(overview.totalAssets - overview.affectedAssets, 0)
               )}
               description="Assets without any linked findings"
               icon={CircleCheckBig}
               loading={cardsLoading}
+              variant="panel"
             />
-            <SnapshotBlock
+            <MetricCard
               title="Source diversity"
-              value={overview.findingSources.length}
+              value={formatNumber(overview.findingSources.length)}
               description="Distinct inputs currently feeding the platform"
               icon={Waypoints}
               loading={chartsLoading}
+              variant="panel"
             />
-            <SnapshotBlock
+            <MetricCard
               title="Mitigated rate"
               value={`${overview.mitigatedRate}%`}
               description="Share of findings already mitigated"
               icon={ShieldAlert}
               loading={cardsLoading}
+              variant="panel"
             />
           </CardContent>
         </Card>
@@ -275,13 +274,13 @@ function App() {
           data={findingStats.data?.severity || {}}
           loading={chartsLoading}
           height={96}
-          className="border-border/60 bg-shell-panel shadow-[var(--shell-shadow)] backdrop-blur-sm"
+          className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
         />
         <FindingStatusChart
           data={findingStats.data?.status || {}}
           loading={chartsLoading}
           height={96}
-          className="border-border/60 bg-shell-panel shadow-[var(--shell-shadow)] backdrop-blur-sm"
+          className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
         />
       </div>
 
@@ -302,60 +301,6 @@ function App() {
         />
       </div>
     </div>
-  )
-}
-
-function MetricCard({
-  title,
-  value,
-  hint,
-  icon: Icon,
-  loading,
-  emphasis = false
-}: {
-  title: string
-  value: number
-  hint: string
-  icon: typeof Bug
-  loading?: boolean
-  emphasis?: boolean
-}) {
-  return (
-    <Card
-      size="sm"
-      className={cn(
-        "border-border/60 bg-shell-panel shadow-[var(--shell-shadow)] backdrop-blur-sm",
-        emphasis &&
-          "border-destructive/25 bg-linear-to-br from-destructive/5 via-shell-panel to-shell-panel"
-      )}
-    >
-      <CardHeader className="gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="space-y-1">
-            <CardDescription className="text-xs uppercase tracking-[0.22em]">
-              {title}
-            </CardDescription>
-            {loading ? (
-              <Skeleton className="h-9 w-24 rounded-lg" />
-            ) : (
-              <CardTitle className="text-3xl font-semibold tracking-tight">
-                {formatNumber(value)}
-              </CardTitle>
-            )}
-          </div>
-          <div className="rounded-xl border border-border/60 bg-background/80 p-2.5">
-            <Icon className="size-5 text-primary" />
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <Skeleton className="h-4 w-full rounded" />
-        ) : (
-          <p className="text-sm leading-6 text-muted-foreground">{hint}</p>
-        )}
-      </CardContent>
-    </Card>
   )
 }
 
@@ -400,7 +345,7 @@ function OverviewChartCard({
   )
 
   return (
-    <Card className="border-border/60 bg-shell-panel shadow-[var(--shell-shadow)] backdrop-blur-sm">
+    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
@@ -421,44 +366,6 @@ function OverviewChartCard({
         )}
       </CardContent>
     </Card>
-  )
-}
-
-function SnapshotBlock({
-  title,
-  value,
-  description,
-  icon: Icon,
-  loading
-}: {
-  title: string
-  value: number | string
-  description: string
-  icon: typeof Bug
-  loading?: boolean
-}) {
-  return (
-    <div className="rounded-xl border border-border/60 bg-background/70 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-medium text-foreground">{title}</div>
-        <Icon className="size-4 text-primary" />
-      </div>
-      {loading ? (
-        <>
-          <Skeleton className="mt-3 h-8 w-20 rounded-lg" />
-          <Skeleton className="mt-2 h-4 w-full rounded" />
-        </>
-      ) : (
-        <>
-          <div className="mt-3 text-3xl font-semibold tracking-tight">
-            {typeof value === "number" ? formatNumber(value) : value}
-          </div>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            {description}
-          </p>
-        </>
-      )}
-    </div>
   )
 }
 
