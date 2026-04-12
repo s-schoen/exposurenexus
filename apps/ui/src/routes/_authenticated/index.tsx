@@ -185,7 +185,7 @@ function App() {
                 <MetricCard
                   title={item.label}
                   description={item.description}
-                  value={`${formatNumber(item.value)}${item.suffix ?? ""}`}
+                  value={formatNumber(item.value)}
                   loading={cardsLoading}
                   variant="panel"
                   className="h-full"
