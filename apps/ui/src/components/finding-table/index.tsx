@@ -7,10 +7,12 @@ import type { Finding } from "@openvlp/types/model/finding"
 import { DataTable } from "@/components/data-table/data-table.tsx"
 import { createFindingColumns } from "@/components/finding-table/columns.tsx"
 import { FindingContextMenu } from "@/components/finding-table/context-menu.tsx"
+import type { GroupingOption } from "@/components/data-table/types.ts"
 import { Button } from "@/components/ui/button.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { createListAssetsQueryOptions } from "@/api/asset.ts"
 import { createListFindingsQueryOptions, deleteFinding } from "@/api/finding.ts"
+import { formatFindingStatus, formatSeverity } from "@/lib/format.ts"
 
 export function FindingTable() {
   const navigate = useNavigate()
@@ -26,6 +28,33 @@ export function FindingTable() {
 
   const columns = useMemo(
     () => createFindingColumns(assetNamesById),
+    [assetNamesById]
+  )
+
+  const groupingOptions = useMemo<Array<GroupingOption>>(
+    () => [
+      {
+        id: "severity",
+        label: "Severity",
+        formatValue: (value) => formatSeverity(String(value) as never)
+      },
+      {
+        id: "status",
+        label: "Status",
+        formatValue: (value) => formatFindingStatus(String(value) as never)
+      },
+      {
+        id: "assetId",
+        label: "Asset",
+        formatValue: (value) =>
+          assetNamesById.get(String(value)) ?? "Unknown asset"
+      },
+      {
+        id: "source",
+        label: "Source",
+        formatValue: (value) => String(value || "Manual")
+      }
+    ],
     [assetNamesById]
   )
 
@@ -90,6 +119,7 @@ export function FindingTable() {
     <DataTable
       columns={columns}
       query={findingsQuery}
+      groupingOptions={groupingOptions}
       onRowDoubleClick={handleOpenFinding}
       onRowDelete={handleDeleteFindings}
       toolbarControls={ToolbarElements()}

@@ -1,13 +1,23 @@
 import { X } from "lucide-react"
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
-import { RotateCw, Trash } from "lucide-react"
+import { Rows3, RotateCw, Trash } from "lucide-react"
 import type { Column, Table } from "@tanstack/react-table"
 import type { ReactNode } from "react"
 import { DataTableColumnVisibilityOptions } from "@/components/data-table/column-visibility.tsx"
 import { DataTableFilter } from "@/components/data-table/filter.tsx"
-import type { SelectOption } from "@/components/data-table/types.ts"
+import type {
+  GroupingOption,
+  SelectOption
+} from "@/components/data-table/types.ts"
+import { NO_GROUPING_VALUE } from "@/components/data-table/types.ts"
 import { Badge } from "@/components/ui/badge.tsx"
 import { Button } from "@/components/ui/button.tsx"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger
+} from "@/components/ui/select.tsx"
 import { Spinner } from "@/components/ui/spinner.tsx"
 import { SelectFilterField } from "@/components/data-table/filter/select-filter-field.tsx"
 
@@ -15,6 +25,7 @@ interface DataTableToolbarProps<TData> {
   table: Table<TData>
   isFetching: boolean
   deleteDisabled: boolean
+  groupingOptions?: Array<GroupingOption>
   additionalElements?: ReactNode
   onRequestRefresh: () => void
   onRequestDelete: () => void
@@ -28,7 +39,10 @@ function GlobalFilterChip<TData>({ table }: { table: Table<TData> }) {
   }
 
   return (
-    <Badge variant="outline" className="h-8 gap-2 rounded-full bg-background px-3">
+    <Badge
+      variant="outline"
+      className="h-8 gap-2 rounded-full bg-background px-3"
+    >
       <span className="text-muted-foreground">Search</span>
       <span className="max-w-48 truncate text-foreground">{filter}</span>
       <button
@@ -74,7 +88,9 @@ function SelectFilterChips<TData>({ column }: { column: Column<TData> }) {
         type="button"
         className="rounded-full text-muted-foreground transition-colors hover:text-foreground"
         onClick={() => {
-          const nextValues = selectedValues.filter((value) => value !== option.value)
+          const nextValues = selectedValues.filter(
+            (value) => value !== option.value
+          )
           setSelectedValues(nextValues.length > 0 ? nextValues : null)
           column.setFilterValue(nextValues.length > 0 ? nextValues : undefined)
         }}
@@ -90,6 +106,7 @@ export function DataTableToolbar<TData>({
   table,
   isFetching,
   deleteDisabled,
+  groupingOptions = [],
   additionalElements,
   onRequestRefresh,
   onRequestDelete
@@ -97,6 +114,10 @@ export function DataTableToolbar<TData>({
   const selectedRows = table.getFilteredSelectedRowModel().rows.length
   const totalRows = table.getCoreRowModel().rows.length
   const filteredRows = table.getFilteredRowModel().rows.length
+  const activeGrouping = table.getState().grouping[0]
+  const activeGroupingOption = groupingOptions.find(
+    (option) => option.id === activeGrouping
+  )
   const hasActiveFilters =
     Boolean(table.getState().globalFilter) ||
     table.getState().columnFilters.length > 0
@@ -115,7 +136,10 @@ export function DataTableToolbar<TData>({
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <DataTableFilter table={table} hasActiveFilters={hasActiveFilters} />
+            <DataTableFilter
+              table={table}
+              hasActiveFilters={hasActiveFilters}
+            />
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
               <span>
                 <span className="font-medium text-foreground">
@@ -134,6 +158,11 @@ export function DataTableToolbar<TData>({
               {hasActiveFilters && (
                 <span className="rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-xs font-medium tracking-wide text-foreground uppercase">
                   Filters active
+                </span>
+              )}
+              {activeGroupingOption && (
+                <span className="rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-xs font-medium tracking-wide text-foreground uppercase">
+                  Grouped by {activeGroupingOption.label}
                 </span>
               )}
             </div>
@@ -160,18 +189,47 @@ export function DataTableToolbar<TData>({
               {isFetching ? <Spinner /> : <RotateCw />}
               Refresh
             </Button>
+            {groupingOptions.length > 0 && (
+              <Select
+                value={activeGrouping ?? NO_GROUPING_VALUE}
+                onValueChange={(value) => {
+                  table.setGrouping(
+                    !value || value === NO_GROUPING_VALUE ? [] : [value]
+                  )
+                  table.setExpanded(true)
+                }}
+              >
+                <SelectTrigger className="h-9 min-w-52 rounded-xl bg-background">
+                  <Rows3 className="size-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Group by</span>
+                  <span className="min-w-0 truncate font-medium text-foreground">
+                    {activeGroupingOption?.label ?? "No grouping"}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_GROUPING_VALUE}>No grouping</SelectItem>
+                  {groupingOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <DataTableColumnVisibilityOptions table={table} />
           </div>
         </div>
         {hasActiveFilters && (
           <div className="flex flex-wrap items-center gap-2">
             <GlobalFilterChip table={table} />
-            {table.getAllColumns().map((column) =>
-              column.getCanFilter() &&
-              column.columnDef.meta?.filterVariant === "select" ? (
-                <SelectFilterChips key={column.id} column={column} />
-              ) : null
-            )}
+            {table
+              .getAllColumns()
+              .map((column) =>
+                column.getCanFilter() &&
+                column.columnDef.meta?.filterVariant === "select" ? (
+                  <SelectFilterChips key={column.id} column={column} />
+                ) : null
+              )}
           </div>
         )}
         <div className="flex flex-wrap gap-2">

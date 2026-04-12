@@ -1,14 +1,18 @@
 "use client"
 
 import {
+  type ExpandedState,
+  type GroupingState,
   flexRender,
   getCoreRowModel,
+  getExpandedRowModel,
   getFilteredRowModel,
+  getGroupedRowModel,
   getPaginationRowModel,
   useReactTable
 } from "@tanstack/react-table"
-import { DatabaseZap } from "lucide-react"
-import { useRef } from "react"
+import { ChevronDown, ChevronRight, DatabaseZap } from "lucide-react"
+import { useRef, useState } from "react"
 import type { ColumnDef, Row } from "@tanstack/react-table"
 import type { UseQueryResult } from "@tanstack/react-query"
 import type { ReactElement, ReactNode, RefObject } from "react"
@@ -22,12 +26,14 @@ import {
 } from "@/components/ui/table"
 import { DataTablePagination } from "@/components/data-table/pagination-control.tsx"
 import { DataTableToolbar } from "@/components/data-table/toolbar.tsx"
+import type { GroupingOption } from "@/components/data-table/types.ts"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { Checkbox } from "@/components/ui/checkbox.tsx"
 
 interface DataTableProps<TData, TValue> {
   columns: Array<ColumnDef<TData, TValue>>
   query: UseQueryResult<Array<TData>, Error>
+  groupingOptions?: Array<GroupingOption>
   onRowDelete?: (rows: Array<TData>) => Promise<void>
   onRowDoubleClick?: (row: TData) => void
   toolbarControls?: ReactElement
@@ -41,11 +47,15 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   query,
+  groupingOptions = [],
   onRowDelete,
   onRowDoubleClick,
   toolbarControls,
   contextMenu
 }: DataTableProps<TData, TValue>) {
+  const [grouping, setGrouping] = useState<GroupingState>([])
+  const [expanded, setExpanded] = useState<ExpandedState>(true)
+
   const selectColumn: ColumnDef<TData, TValue> = {
     id: "select",
     header: ({ table }) => (
@@ -71,9 +81,19 @@ export function DataTable<TData, TValue>({
   const table = useReactTable({
     data: query.data ?? [],
     columns: [selectColumn, ...columns],
+    groupedColumnMode: false,
+    autoResetExpanded: false,
+    state: {
+      grouping,
+      expanded
+    },
+    onGroupingChange: setGrouping,
+    onExpandedChange: setExpanded,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getGroupedRowModel: getGroupedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     globalFilterFn: "includesString"
   })
 
@@ -140,6 +160,60 @@ export function DataTable<TData, TValue>({
       <TableBody key="data-table-body-data">
         {table.getRowModel().rows.length ? (
           table.getRowModel().rows.map((row) => {
+            const isGroupedRow = Boolean(row.groupingColumnId)
+
+            if (isGroupedRow) {
+              const groupingOption = groupingOptions.find(
+                (option) => option.id === row.groupingColumnId
+              )
+              const groupingLabel =
+                groupingOption?.label ??
+                table.getColumn(row.groupingColumnId!)?.columnDef.meta?.label ??
+                row.groupingColumnId
+              const groupingValue = row.getValue(row.groupingColumnId!)
+              const formattedGroupingValue = groupingOption?.formatValue
+                ? groupingOption.formatValue(groupingValue)
+                : String(groupingValue)
+
+              return (
+                <TableRow
+                  key={row.id}
+                  className="border-b border-border/60 bg-muted/25 hover:bg-muted/30"
+                >
+                  <TableCell
+                    colSpan={row.getVisibleCells().length}
+                    className="px-4 py-3"
+                  >
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 text-left"
+                      onClick={() => row.toggleExpanded()}
+                    >
+                      <span className="flex size-7 items-center justify-center rounded-lg border border-border/70 bg-background text-muted-foreground">
+                        {row.getIsExpanded() ? (
+                          <ChevronDown className="size-4" />
+                        ) : (
+                          <ChevronRight className="size-4" />
+                        )}
+                      </span>
+                      <div className="flex min-w-0 flex-1 items-center gap-2">
+                        <span className="text-sm font-semibold text-foreground">
+                          {groupingLabel}
+                        </span>
+                        <span className="truncate text-sm text-muted-foreground">
+                          {formattedGroupingValue}
+                        </span>
+                      </div>
+                      <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                        {row.getLeafRows().length} item
+                        {row.getLeafRows().length === 1 ? "" : "s"}
+                      </span>
+                    </button>
+                  </TableCell>
+                </TableRow>
+              )
+            }
+
             const rowEl = (
               <TableRow
                 key={row.id}
@@ -198,6 +272,7 @@ export function DataTable<TData, TValue>({
         table={table}
         isFetching={query.isFetching}
         deleteDisabled={table.getFilteredSelectedRowModel().rows.length === 0}
+        groupingOptions={groupingOptions}
         additionalElements={toolbarControls}
         onRequestRefresh={handleOnRefresh}
         onRequestDelete={handleOnRowsDelete}
