@@ -1,19 +1,33 @@
 import { Plus } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMemo } from "react"
 import { toast } from "sonner"
 import type { Finding } from "@openvlp/types/model/finding"
 import { DataTable } from "@/components/data-table/data-table.tsx"
-import { columns } from "@/components/finding-table/columns.tsx"
+import { createFindingColumns } from "@/components/finding-table/columns.tsx"
 import { FindingContextMenu } from "@/components/finding-table/context-menu.tsx"
 import { Button } from "@/components/ui/button.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
+import { createListAssetsQueryOptions } from "@/api/asset.ts"
 import { createListFindingsQueryOptions, deleteFinding } from "@/api/finding.ts"
 
 export function FindingTable() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const findingsQuery = useQuery(createListFindingsQueryOptions())
+  const assetsQuery = useQuery(createListAssetsQueryOptions())
+
+  const assetNamesById = useMemo(
+    () =>
+      new Map((assetsQuery.data ?? []).map((asset) => [asset.id, asset.name])),
+    [assetsQuery.data]
+  )
+
+  const columns = useMemo(
+    () => createFindingColumns(assetNamesById),
+    [assetNamesById]
+  )
 
   const handleOpenFinding = async (finding: Finding) => {
     await navigate({
