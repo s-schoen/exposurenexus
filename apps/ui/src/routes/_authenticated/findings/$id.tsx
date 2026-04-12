@@ -3,14 +3,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
-import { useEffect, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import { ExternalLink, Save } from "lucide-react"
 import { toast } from "sonner"
 import type { Finding } from "@openvlp/types/model/finding"
 import { createFindingByIDQueryOptions, updateFinding } from "@/api/finding.ts"
-import { usePage } from "@/context/page.tsx"
+import { usePageMeta } from "@/context/page.tsx"
 import {
   Card,
   CardAction,
@@ -45,7 +45,7 @@ function RouteComponent() {
     setDraft((prev) => ({ ...(prev ?? finding.data!), [key]: value }))
   }
 
-  async function handleSave() {
+  const handleSave = useCallback(async () => {
     if (!draft) return
 
     try {
@@ -57,26 +57,26 @@ function RouteComponent() {
       console.error("Error updating finding:", error)
       toast.error("Failed to update finding")
     }
-  }
+  }, [draft, id, queryClient])
 
-  const page = usePage()
-
-  useEffect(() => {
-    page.setTitle("Finding")
-    page.setActions([
+  const actions = useMemo(
+    () => [
       {
         label: "Save",
         icon: Save,
         onClick: handleSave,
-        variant: "default",
+        variant: "default" as const,
         disabled: draft === null
       }
-    ])
-    return () => {
-      page.setTitle("")
-      page.setActions([])
-    }
-  }, [draft])
+    ],
+    [draft, handleSave]
+  )
+
+  usePageMeta({
+    title: "Finding",
+    description: "Inspect, update, and triage a specific finding.",
+    actions
+  })
 
   function CardPlaceholder() {
     return (

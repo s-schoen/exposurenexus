@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button.tsx"
 import { cn } from "@/lib/utils.ts"
 
 function Layout() {
-  const { title, actions } = usePage()
+  const { title, description, actions } = usePage()
 
   return (
     <>
@@ -35,9 +35,11 @@ function Layout() {
                           <h1 className="truncate text-3xl font-semibold tracking-tight text-foreground">
                             {title}
                           </h1>
-                          <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                            Overview of assets, findings, and more.
-                          </p>
+                          {description && (
+                            <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+                              {description}
+                            </p>
+                          )}
                         </div>
                       </div>
                       {actions.length > 0 && (

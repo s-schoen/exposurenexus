@@ -18,7 +18,7 @@ import {
   CardTitle
 } from "@/components/ui/card.tsx"
 import { Input } from "@/components/ui/input.tsx"
-import { usePage } from "@/context/page.tsx"
+import { usePageMeta } from "@/context/page.tsx"
 import { cn } from "@/lib/utils.ts"
 
 export const Route = createFileRoute("/_authenticated/findings/import")({
@@ -43,8 +43,11 @@ function RouteComponent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [inputKey, setInputKey] = useState(0)
   const inputId = useId()
-  const page = usePage()
-  page.setTitle("Import Findings")
+  usePageMeta({
+    title: "Import Findings",
+    description:
+      "Upload external scan results and ingest them into the platform as findings."
+  })
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const nextFile = e.target.files?.[0] ?? null

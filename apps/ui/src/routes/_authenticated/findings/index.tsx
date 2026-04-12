@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { usePage } from "@/context/page.tsx"
+import { usePageMeta } from "@/context/page.tsx"
 import { FindingTable } from "@/components/finding-table"
 
 export const Route = createFileRoute("/_authenticated/findings/")({
@@ -7,8 +7,11 @@ export const Route = createFileRoute("/_authenticated/findings/")({
 })
 
 function RouteComponent() {
-  const page = usePage()
-  page.setTitle("Findings")
+  usePageMeta({
+    title: "Findings",
+    description:
+      "Track active issues, ownership, severity, and remediation status across assets."
+  })
 
   return (
     <div>

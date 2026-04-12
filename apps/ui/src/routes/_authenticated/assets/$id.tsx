@@ -7,7 +7,7 @@ import {
   CardTitle
 } from "@/components/ui/card.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
-import { usePage } from "@/context/page.tsx"
+import { usePageMeta } from "@/context/page.tsx"
 import {
   Table,
   TableBody,
@@ -27,8 +27,11 @@ function RouteComponent() {
   const { id } = Route.useParams()
   const asset = useQuery(createAssetByIDQueryOptions(id))
 
-  const page = usePage()
-  page.setTitle("Asset details")
+  usePageMeta({
+    title: "Asset details",
+    description:
+      "Inspect the selected asset and review its core inventory metadata."
+  })
 
   function CardPlaceholder() {
     return (

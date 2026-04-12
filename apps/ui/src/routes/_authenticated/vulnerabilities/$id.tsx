@@ -18,7 +18,7 @@ import {
   TableRow
 } from "@/components/ui/table.tsx"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
-import { usePage } from "@/context/page.tsx"
+import { usePageMeta } from "@/context/page.tsx"
 import { createVulnerabilityByIDQueryOptions } from "@/api/vulnerability.ts"
 
 export const Route = createFileRoute("/_authenticated/vulnerabilities/$id")({
@@ -29,8 +29,11 @@ function RouteComponent() {
   const { id } = Route.useParams()
   const vulnerability = useQuery(createVulnerabilityByIDQueryOptions(id))
 
-  const page = usePage()
-  page.setTitle("Vulnerability")
+  usePageMeta({
+    title: "Vulnerability",
+    description:
+      "Review vulnerability metadata, scoring context, and the full technical description."
+  })
 
   function CardPlaceholder() {
     return (

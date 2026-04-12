@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { useQueryClient } from "@tanstack/react-query"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import type { CreateFinding } from "@openvlp/types/model/finding"
-import { usePage } from "@/context/page.tsx"
+import { usePageMeta } from "@/context/page.tsx"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button.tsx"
 import {
@@ -36,10 +36,13 @@ export const Route = createFileRoute("/_authenticated/findings/new")({
 })
 
 function RouteComponent() {
-  const page = usePage()
+  usePageMeta({
+    title: "Create Finding",
+    description: "Create and new finding manually."
+  })
+
   const router = useRouter()
   const queryClient = useQueryClient()
-  page.setTitle("Create Finding")
 
   const form = useForm({
     defaultValues: {
