@@ -58,9 +58,8 @@ function App() {
     const affectedAssets = Object.values(stats?.assets ?? {}).filter(
       (value) => value > 0
     ).length
-    const activeFindings =
-      (stats?.status[FindingStatus.Active] ?? 0) +
-      (stats?.status[FindingStatus.Confirmed] ?? 0)
+    const activeFindings = stats?.status[FindingStatus.Active] ?? 0
+    const confirmedFindings = stats?.status[FindingStatus.Confirmed] ?? 0
     const criticalHighFindings =
       (stats?.severity.critical ?? 0) + (stats?.severity.high ?? 0)
     const mitigatedFindings = stats?.status[FindingStatus.Mitigated] ?? 0
@@ -102,29 +101,37 @@ function App() {
           criticalHighFindings > 0
             ? "text-destructive"
             : "text-emerald-600 dark:text-emerald-400",
-        href: "/findings" as const
+        href: buildFilterHref("/findings", {
+          severity: ["critical", "high"],
+          status: ["active"]
+        })
       },
       {
         label: "Triage queue",
-        description: "Active plus confirmed findings",
+        description: "Findings still awaiting triage",
         value: activeFindings,
         tone: "text-foreground",
-        href: "/findings" as const
+        href: buildFilterHref("/findings", {
+          status: ["active"]
+        })
+      },
+      {
+        label: "Needs mitigation",
+        description: "Confirmed findings awaiting remediation",
+        value: confirmedFindings,
+        tone: "text-foreground",
+        href: buildFilterHref("/findings", {
+          status: ["confirmed"]
+        })
       },
       {
         label: "Blast radius",
         description: "Assets currently affected",
         value: affectedAssets,
         tone: "text-foreground",
-        href: "/assets" as const
-      },
-      {
-        label: "Mitigation progress",
-        description: "Share of findings already mitigated",
-        value: mitigatedRate,
-        tone: "text-foreground",
-        href: "/findings" as const,
-        suffix: "%"
+        href: buildFilterHref("/findings", {
+          status: ["active", "confirmed"]
+        })
       }
     ]
 
@@ -133,6 +140,7 @@ function App() {
       totalAssets,
       affectedAssets,
       activeFindings,
+      confirmedFindings,
       criticalHighFindings,
       mitigatedFindings,
       mitigatedRate,
@@ -159,7 +167,7 @@ function App() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-3 xl:grid-cols-4">
+        <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           {cardsLoading ? (
             <>
               <Skeleton className="h-24 w-full rounded-xl" />
@@ -379,4 +387,20 @@ function formatSource(source: string) {
 
 function formatNumber(value: number) {
   return value.toLocaleString()
+}
+
+function buildFilterHref(
+  pathname: string,
+  filters: Record<string, Array<string>>
+) {
+  const params = new URLSearchParams()
+
+  for (const [key, values] of Object.entries(filters)) {
+    if (values.length > 0) {
+      params.set(key, values.join(","))
+    }
+  }
+
+  const search = params.toString()
+  return search ? `${pathname}?${search}` : pathname
 }
