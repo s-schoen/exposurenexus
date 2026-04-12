@@ -1,5 +1,5 @@
 import { Bug, Home, Server, ShieldAlert, UploadCloud } from "lucide-react"
-import { Link } from "@tanstack/react-router"
+import { Link, useLocation } from "@tanstack/react-router"
 import {
   Sidebar,
   SidebarContent,
@@ -8,55 +8,90 @@ import {
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem
+  SidebarMenuItem,
+  SidebarSeparator
 } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 
 export function AppSidebar() {
+  const location = useLocation()
   const items = [
     {
       title: "Dashboard",
       url: "/",
-      icon: Home
+      icon: Home,
+      description: "Overview and triage"
     },
     {
       title: "Assets",
       url: "/assets",
-      icon: Server
+      icon: Server,
+      description: "Systems in scope"
     },
     {
       title: "Findings",
       url: "/findings",
-      icon: ShieldAlert
+      icon: ShieldAlert,
+      description: "Issues with your assets"
     },
     {
       title: "Vulnerabilities",
       url: "/vulnerabilities",
-      icon: Bug
+      icon: Bug,
+      description: "Catalog of vulnerabilities"
     },
     {
       title: "Import",
       url: "/findings/import",
-      icon: UploadCloud
+      icon: UploadCloud,
+      description: "Ingest external findings"
     }
   ]
 
   return (
-    <Sidebar>
+    <Sidebar
+      variant="inset"
+      className="border-r-0 md:top-18.25 md:h-[calc(100svh-73px)]"
+    >
+      <SidebarSeparator className="mx-3" />
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>OpenVLP</SidebarGroupLabel>
+        <SidebarGroup className="px-3 py-4">
+          <SidebarGroupLabel className="px-3 text-[11px] font-semibold tracking-[0.18em] uppercase text-sidebar-foreground/55">
+            Explore
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1.5">
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
+                    isActive={
+                      item.url === "/"
+                        ? location.pathname === item.url
+                        : location.pathname.startsWith(item.url)
+                    }
+                    className={cn(
+                      "h-auto min-h-14 rounded-2xl px-3 py-3",
+                      "data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:shadow-sm",
+                      "hover:bg-sidebar-accent/80"
+                    )}
                     render={
                       <Link to={item.url}>
-                        <item.icon />
-                        <span className="select-none">{item.title}</span>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/80 text-current ring-1 ring-sidebar-border/70">
+                            <item.icon className="size-4.5" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-medium select-none">
+                              {item.title}
+                            </span>
+                            <span className="block truncate text-xs text-current/65 select-none">
+                              {item.description}
+                            </span>
+                          </div>
+                        </div>
                       </Link>
                     }
-                  ></SidebarMenuButton>
+                  />
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

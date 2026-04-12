@@ -38,13 +38,20 @@ export function AccountMenu() {
           isPending ? (
             <Spinner />
           ) : (
-            <div className="flex items-center space-x-2 cursor-pointer select-none">
-              <Avatar>
-                <AvatarFallback className="select-none">
+            <div className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border/70 bg-background/75 px-4 py-2 shadow-sm transition-colors hover:bg-muted/70">
+              <Avatar className="size-9">
+                <AvatarFallback className="bg-primary/12 text-sm font-semibold text-primary select-none">
                   {initial}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-lg select-none">{displayName}</span>
+              <div className="hidden min-w-0 text-left sm:block">
+                <p className="truncate text-sm font-medium text-foreground select-none">
+                  {displayName}
+                </p>
+                <p className="truncate text-xs text-muted-foreground select-none">
+                  Account
+                </p>
+              </div>
             </div>
           )
         }
