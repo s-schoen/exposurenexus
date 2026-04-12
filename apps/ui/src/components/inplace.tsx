@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input.tsx"
 import { cn } from "@/lib/utils.ts"
 
-type EditElement<T> =
+export type EditElement<T> =
   | { type: "input"; inputType?: HTMLInputTypeAttribute }
   | {
       type: "select"

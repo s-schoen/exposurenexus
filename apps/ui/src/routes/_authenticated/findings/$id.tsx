@@ -30,7 +30,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area.tsx"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
-import { Inplace } from "@/components/inplace.tsx"
 import {
   formatFindingStatus,
   formatSeverity,
@@ -42,6 +41,9 @@ import { Separator } from "@/components/ui/separator.tsx"
 import { Badge } from "@/components/ui/badge.tsx"
 import { FindingStatusBadge } from "@/components/finding-status-badge.tsx"
 import { cn } from "@/lib/utils.ts"
+import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
+import { MetadataSidebar } from "@/components/metadata-sidebar"
+import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx"
 import {
   Tabs,
   TabsContent,
@@ -124,33 +126,6 @@ function RouteComponent() {
     )
   }
 
-  function DetailRow({
-    label,
-    value,
-    mono = false
-  }: {
-    label: string
-    value: string
-    mono?: boolean
-  }) {
-    return (
-      <div className="flex items-start justify-between gap-6">
-        <span className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          {label}
-        </span>
-        <span
-          className={
-            mono
-              ? "max-w-[16rem] truncate text-right font-mono text-xs text-foreground"
-              : "max-w-[16rem] text-right text-sm text-foreground"
-          }
-        >
-          {value}
-        </span>
-      </div>
-    )
-  }
-
   function FindingOverviewCard() {
     return (
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
@@ -188,50 +163,28 @@ function RouteComponent() {
               </CardDescription>
             </div>
             <div className="grid gap-3 xl:grid-cols-4">
-              <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  Affected asset
-                </div>
-                <div className="mt-2 text-base font-semibold text-foreground">
-                  {asset.data?.name ?? "Unknown asset"}
-                </div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  {capitalizeFirstLetter(asset.data?.type ?? "Unclassified")}
-                </div>
-              </div>
-              <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  Source
-                </div>
-                <div className="mt-2 text-base font-semibold text-foreground">
-                  {displayData!.source}
-                </div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  Imported or created finding origin
-                </div>
-              </div>
-              <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  First seen
-                </div>
-                <div className="mt-2 text-base font-semibold text-foreground">
-                  {formatDateTime(displayData!.firstSeen)}
-                </div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  Earliest observed occurrence
-                </div>
-              </div>
-              <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-                <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  Last seen
-                </div>
-                <div className="mt-2 text-base font-semibold text-foreground">
-                  {formatDateTime(displayData!.lastSeen)}
-                </div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  Most recent observed occurrence
-                </div>
-              </div>
+              <DetailHighlightCard
+                label="Affected asset"
+                value={asset.data?.name ?? "Unknown asset"}
+                description={capitalizeFirstLetter(
+                  asset.data?.type ?? "Unclassified"
+                )}
+              />
+              <DetailHighlightCard
+                label="Source"
+                value={displayData!.source}
+                description="Imported or created finding origin"
+              />
+              <DetailHighlightCard
+                label="First seen"
+                value={formatDateTime(displayData!.firstSeen)}
+                description="Earliest observed occurrence"
+              />
+              <DetailHighlightCard
+                label="Last seen"
+                value={formatDateTime(displayData!.lastSeen)}
+                description="Most recent observed occurrence"
+              />
             </div>
           </div>
         </CardHeader>
@@ -241,100 +194,83 @@ function RouteComponent() {
 
   function FindingSidebar() {
     return (
-      <Card className="sticky top-0 min-w-80 border-border/60 bg-shell-panel shadow-(--shell-shadow)">
-        <CardHeader className="gap-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <CardTitle className="text-lg font-semibold">
-                Assessment
-              </CardTitle>
-            </div>
-            <ShieldAlert className="size-5 text-muted-foreground" />
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="space-y-4">
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                Severity
-              </h3>
-              <Inplace
-                value={displayData!.severity}
-                displayElement={(severityValue) => (
-                  <SeverityBadge
-                    severity={severityValue}
-                    className="h-7 px-3 text-sm"
-                  />
-                )}
-                editElement={{
-                  type: "select",
-                  options: Object.values(VulnerabilitySeverity).map((v) => ({
-                    label: formatSeverity(v),
-                    value: v
-                  }))
-                }}
-                showEditIcon={false}
-                editOnClick={true}
-                onSave={(value) => handleUpdate("severity", value)}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                Status
-              </h3>
-              <Inplace
-                value={displayData!.status}
-                displayElement={(statusValue) => (
-                  <FindingStatusBadge
-                    status={statusValue}
-                    className="h-7 px-3 text-sm"
-                  />
-                )}
-                editElement={{
-                  type: "select",
-                  options: Object.values(FindingStatus).map((v) => ({
-                    label: formatFindingStatus(v),
-                    value: v
-                  }))
-                }}
-                editOnClick={true}
-                onSave={(value) => handleUpdate("status", value)}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                Source
-              </h3>
-              <Inplace
-                value={displayData!.source}
-                editElement={{ type: "input" }}
-                editOnClick={true}
-                showEditIcon={false}
-                onSave={(value) => handleUpdate("source", value)}
-              />
-            </div>
-          </div>
-          <Separator />
-          <div className="space-y-3">
-            <DetailRow
-              label="Asset"
-              value={asset.data?.name ?? "Unknown asset"}
-            />
-            <DetailRow
-              label="Asset type"
-              value={capitalizeFirstLetter(asset.data?.type ?? "Unknown")}
-            />
-            <DetailRow
-              label="Created"
-              value={formatDateTime(displayData!.createdAt)}
-            />
-            <DetailRow
-              label="Updated"
-              value={formatDateTime(displayData!.updatedAt)}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <MetadataSidebar title="Assessment" icon={ShieldAlert}>
+        <div className="space-y-4">
+          <MetadataDetailRow
+            label="Severity"
+            editable={{
+              value: displayData!.severity,
+              displayElement: (severityValue) => (
+                <SeverityBadge
+                  severity={severityValue}
+                  className="h-7 px-3 text-sm"
+                />
+              ),
+              editElement: {
+                type: "select",
+                options: Object.values(VulnerabilitySeverity).map((v) => ({
+                  label: formatSeverity(v),
+                  value: v
+                }))
+              },
+              editOnClick: true,
+              showEditIcon: false,
+              onSave: (value) => handleUpdate("severity", value)
+            }}
+          />
+          <MetadataDetailRow
+            label="Status"
+            editable={{
+              value: displayData!.status,
+              displayElement: (statusValue) => (
+                <FindingStatusBadge
+                  status={statusValue}
+                  className="h-7 px-3 text-sm"
+                />
+              ),
+              editElement: {
+                type: "select",
+                options: Object.values(FindingStatus).map((v) => ({
+                  label: formatFindingStatus(v),
+                  value: v
+                }))
+              },
+              editOnClick: true,
+              showEditIcon: false,
+              onSave: (value) => handleUpdate("status", value)
+            }}
+          />
+          <MetadataDetailRow
+            label="Source"
+            editable={{
+              value: displayData!.source,
+              editElement: { type: "input" },
+              editOnClick: true,
+              showEditIcon: false,
+              onSave: (value) => handleUpdate("source", value)
+            }}
+          />
+        </div>
+        <Separator />
+        <div className="space-y-3">
+          <MetadataDetailRow
+            label="Asset"
+            value={asset.data?.name ?? "Unknown asset"}
+          />
+          <MetadataDetailRow
+            label="Asset type"
+            value={capitalizeFirstLetter(asset.data?.type ?? "Unknown")}
+          />
+          <MetadataDetailRow
+            label="Created"
+            value={formatDateTime(displayData!.createdAt)}
+          />
+          <MetadataDetailRow
+            label="Updated"
+            value={formatDateTime(displayData!.updatedAt)}
+          />
+        </div>
+      </MetadataSidebar>
     )
   }
 
@@ -376,11 +312,9 @@ function RouteComponent() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-              <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                Vulnerability severity
-              </div>
-              <div className="mt-2">
+            <DetailHighlightCard
+              label="Vulnerability severity"
+              value={
                 <SeverityBadge
                   severity={
                     finding.data?.vulnerability.severity ??
@@ -388,16 +322,14 @@ function RouteComponent() {
                   }
                   className="h-7 px-3 text-sm"
                 />
-              </div>
-            </div>
-            <div className="rounded-2xl border border-border/70 bg-muted/30 p-4">
-              <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                Description
-              </div>
-              <div className="mt-2 text-sm leading-6 text-muted-foreground">
-                Canonical vulnerability record linked to this finding.
-              </div>
-            </div>
+              }
+              description="Canonical severity from the linked vulnerability record"
+            />
+            <DetailHighlightCard
+              label="Description"
+              value="Reference context"
+              description="Canonical vulnerability record linked to this finding."
+            />
           </div>
           <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5">
             <Markdown>{finding.data?.vulnerability.description ?? ""}</Markdown>
