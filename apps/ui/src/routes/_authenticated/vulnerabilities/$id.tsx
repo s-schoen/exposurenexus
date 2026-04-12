@@ -1,28 +1,11 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import Markdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import rehypeRaw from "rehype-raw"
-import { ArrowLeft, ShieldCheck, Text } from "lucide-react"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
-import { Skeleton } from "@/components/ui/skeleton.tsx"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area.tsx"
-import { SeverityBadge } from "@/components/severity-badge.tsx"
-import { usePageMeta } from "@/context/page.tsx"
+import { ArrowLeft } from "lucide-react"
 import { createVulnerabilityByIDQueryOptions } from "@/api/vulnerability.ts"
-import { Badge } from "@/components/ui/badge.tsx"
 import { buttonVariants } from "@/components/ui/button.tsx"
+import { usePageMeta } from "@/context/page.tsx"
 import { cn } from "@/lib/utils.ts"
-import { formatSeverity } from "@/lib/format.ts"
-import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
-import { MetadataSidebar } from "@/components/metadata-sidebar"
-import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx"
+import { VulnerabilityDetailContent } from "@/components/vulnerability-detail-content.tsx"
 
 export const Route = createFileRoute("/_authenticated/vulnerabilities/$id")({
   component: RouteComponent
@@ -38,187 +21,22 @@ function RouteComponent() {
       "Review vulnerability metadata, classification references, and the full technical description."
   })
 
-  function formatDateTime(value: Date | null | undefined) {
-    if (!value) return "Not available"
-
-    const date = value instanceof Date ? value : new Date(value)
-    return date.toLocaleString()
-  }
-
-  function CardPlaceholder() {
-    return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Vulnerability details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Skeleton className="h-10 w-2/3" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
-    )
-  }
-
-  function VulnerabilityOverviewCard() {
-    return (
-      <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
-        <CardHeader className="gap-4">
-          <div className="flex items-center justify-between gap-3">
-            <Link
-              to="/vulnerabilities"
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "sm" }),
-                "-ml-2 w-fit rounded-xl"
-              )}
-            >
-              <ArrowLeft />
-              Back to vulnerabilities
-            </Link>
-            <SeverityBadge
-              severity={vulnerability.data!.severity}
-              className="h-6 px-2.5 text-xs"
-            />
-          </div>
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <CardTitle className="text-2xl font-semibold tracking-tight">
-                {vulnerability.data!.title}
-              </CardTitle>
-              <CardDescription className="max-w-3xl text-sm leading-6">
-                Canonical vulnerability record used to classify findings and
-                standardize technical context across the platform.
-              </CardDescription>
-            </div>
-            <div className="grid gap-3 xl:grid-cols-4">
-              <DetailHighlightCard
-                label="Severity"
-                value={
-                  <SeverityBadge
-                    severity={vulnerability.data!.severity}
-                    className="h-7 px-3 text-sm"
-                  />
-                }
-                description="Default classification for linked findings"
-              />
-              <DetailHighlightCard
-                label="CVE"
-                value={vulnerability.data!.cve ?? "Not assigned"}
-                description="External identifier when available"
-              />
-              <DetailHighlightCard
-                label="CWE"
-                value={
-                  vulnerability.data!.cwe
-                    ? `CWE-${vulnerability.data!.cwe}`
-                    : "Not assigned"
-                }
-                description="Weakness taxonomy reference"
-              />
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-    )
-  }
-
-  function DescriptionCard() {
-    const description = vulnerability.data?.description?.trim() ?? ""
-
-    return (
-      <Card className="w-full border-border/60 bg-shell-panel shadow-(--shell-shadow)">
-        <CardHeader className="gap-2">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-2">
-              <CardTitle className="text-xl font-semibold">
-                Description
-              </CardTitle>
-              <CardDescription>
-                Technical write-up, remediation context, and analyst-facing
-                reference material for this vulnerability.
-              </CardDescription>
-            </div>
-            <Badge variant="outline" className="rounded-md">
-              <Text className="size-3" />
-              Reference
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {description ? (
-            <ScrollArea className="w-full rounded-2xl border border-border/70 bg-muted/20">
-              <div className="min-w-full p-5">
-                <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-p:max-w-3xl prose-p:text-muted-foreground prose-li:text-muted-foreground prose-a:text-primary prose-blockquote:border-l-border prose-blockquote:text-muted-foreground prose-pre:overflow-x-auto prose-pre:rounded-xl prose-pre:border prose-pre:border-border prose-pre:bg-card prose-pre:px-4 prose-pre:py-4 prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-table:w-full prose-table:border-collapse prose-th:border-b prose-th:border-border prose-th:px-3 prose-th:py-2 prose-th:text-left prose-td:border-b prose-td:border-border/60 prose-td:px-3 prose-td:py-2 prose-td:align-top">
-                  <Markdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw]}
-                  >
-                    {description}
-                  </Markdown>
-                </div>
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-background/60 p-8 text-center">
-              <div className="text-sm font-medium text-foreground">
-                No description available
-              </div>
-              <div className="mt-2 text-sm text-muted-foreground">
-                This vulnerability does not include technical notes or
-                remediation guidance yet.
-              </div>
-            </div>
+  return (
+    <VulnerabilityDetailContent
+      vulnerabilityId={id}
+      titleAction={
+        <Link
+          to="/vulnerabilities"
+          search={{ selected: undefined }}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "-ml-2 rounded-xl"
           )}
-        </CardContent>
-      </Card>
-    )
-  }
-
-  function VulnerabilitySidebar() {
-    return (
-      <MetadataSidebar title="Vulnerability details" icon={ShieldCheck}>
-        <div className="space-y-3">
-          <MetadataDetailRow
-            label="Severity"
-            value={formatSeverity(vulnerability.data!.severity)}
-          />
-          <MetadataDetailRow
-            label="CVE"
-            value={vulnerability.data!.cve ?? "Not assigned"}
-          />
-          <MetadataDetailRow
-            label="CWE"
-            value={
-              vulnerability.data!.cwe
-                ? `CWE-${vulnerability.data!.cwe}`
-                : "Not assigned"
-            }
-          />
-        </div>
-        <div className="space-y-3 border-t border-border/70 pt-5">
-          <MetadataDetailRow
-            label="Created"
-            value={formatDateTime(vulnerability.data!.createdAt)}
-          />
-          <MetadataDetailRow
-            label="Updated"
-            value={formatDateTime(vulnerability.data!.updatedAt)}
-          />
-        </div>
-      </MetadataSidebar>
-    )
-  }
-
-  return vulnerability.isPending ? (
-    <CardPlaceholder />
-  ) : (
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="flex min-w-0 flex-col gap-4">
-        <VulnerabilityOverviewCard />
-        <DescriptionCard />
-      </div>
-      <VulnerabilitySidebar />
-    </div>
+        >
+          <ArrowLeft />
+          Back to vulnerabilities
+        </Link>
+      }
+    />
   )
 }

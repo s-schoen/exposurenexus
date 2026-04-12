@@ -31,9 +31,15 @@ import { formatFindingStatus, formatSeverity } from "@/lib/format.ts"
 
 interface FindingTableProps {
   initialGrouping?: Array<string>
+  selectedFindingId?: string
+  onSelectFinding?: (finding: Finding) => void
 }
 
-export function FindingTable({ initialGrouping = [] }: FindingTableProps) {
+export function FindingTable({
+  initialGrouping = [],
+  selectedFindingId,
+  onSelectFinding
+}: FindingTableProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const findingsQuery = useQuery(createListFindingsQueryOptions())
@@ -242,7 +248,9 @@ export function FindingTable({ initialGrouping = [] }: FindingTableProps) {
         { id: "severity", desc: true },
         { id: "lastSeen", desc: true }
       ]}
+      onRowClick={onSelectFinding}
       onRowDoubleClick={handleOpenFinding}
+      isRowActive={(finding) => finding.id === selectedFindingId}
       onRowDelete={handleDeleteFindings}
       toolbarControls={ToolbarElements}
       contextMenu={(findingsRef, children, key) => (

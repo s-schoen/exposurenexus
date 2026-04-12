@@ -24,7 +24,15 @@ const groupingOptions: Array<GroupingOption> = [
   }
 ]
 
-export function AssetTable() {
+interface AssetTableProps {
+  selectedAssetId?: string
+  onSelectAsset?: (asset: Asset) => void
+}
+
+export function AssetTable({
+  selectedAssetId,
+  onSelectAsset
+}: AssetTableProps = {}) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const assetsQuery = useQuery(createListAssetsQueryOptions())
@@ -102,7 +110,9 @@ export function AssetTable() {
       columns={columns}
       query={assetsQuery}
       groupingOptions={groupingOptions}
+      onRowClick={onSelectAsset}
       onRowDoubleClick={handleOpenAsset}
+      isRowActive={(asset) => asset.id === selectedAssetId}
       onRowDelete={handleDeleteAssets}
       toolbarControls={ToolbarElements()}
     />

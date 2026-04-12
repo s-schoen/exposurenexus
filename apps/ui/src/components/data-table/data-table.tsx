@@ -17,7 +17,7 @@ import { ChevronDown, ChevronRight, DatabaseZap } from "lucide-react"
 import { useRef, useState } from "react"
 import type { ColumnDef, Row } from "@tanstack/react-table"
 import type { UseQueryResult } from "@tanstack/react-query"
-import type { ReactElement, ReactNode, RefObject } from "react"
+import type { MouseEvent, ReactElement, ReactNode, RefObject } from "react"
 import {
   Table,
   TableBody,
@@ -39,7 +39,9 @@ interface DataTableProps<TData, TValue> {
   initialGrouping?: GroupingState
   initialSorting?: SortingState
   onRowDelete?: (rows: Array<TData>) => Promise<void>
+  onRowClick?: (row: TData) => void
   onRowDoubleClick?: (row: TData) => void
+  isRowActive?: (row: TData) => boolean
   toolbarControls?:
     | ReactElement
     | ((selectedRows: Array<TData>) => ReactNode)
@@ -57,7 +59,9 @@ export function DataTable<TData, TValue>({
   initialGrouping = [],
   initialSorting = [],
   onRowDelete,
+  onRowClick,
   onRowDoubleClick,
+  isRowActive,
   toolbarControls,
   contextMenu
 }: DataTableProps<TData, TValue>) {
@@ -133,6 +137,22 @@ export function DataTable<TData, TValue>({
   const handleOnRowDoubleClick = (row: Row<TData>) => {
     if (onRowDoubleClick) {
       onRowDoubleClick(row.original)
+    }
+  }
+
+  const handleOnRowClick = (event: MouseEvent<HTMLElement>, row: Row<TData>) => {
+    const target = event.target as HTMLElement
+
+    if (
+      target.closest(
+        'button, a, input, select, textarea, [role="checkbox"], [role="menuitem"]'
+      )
+    ) {
+      return
+    }
+
+    if (onRowClick) {
+      onRowClick(row.original)
     }
   }
 
@@ -237,16 +257,16 @@ export function DataTable<TData, TValue>({
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
-                className="cursor-pointer select-none border-b border-border/60 transition-colors hover:bg-muted/40 data-[state=selected]:bg-primary/6"
+                data-active={isRowActive?.(row.original) || undefined}
+                className="cursor-pointer select-none border-b border-border/60 transition-colors hover:bg-muted/40 data-[active=true]:bg-accent/60 data-[state=selected]:bg-primary/6"
+                onClick={(event) => handleOnRowClick(event, row)}
+                onDoubleClick={() => handleOnRowDoubleClick(row)}
                 onContextMenu={
                   contextMenu ? () => handleOnRowContextMenu(row) : undefined
                 }
               >
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell
-                    key={cell.id}
-                    onDoubleClick={() => handleOnRowDoubleClick(row)}
-                  >
+                  <TableCell key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
