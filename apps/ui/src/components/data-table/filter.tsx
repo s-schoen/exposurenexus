@@ -43,14 +43,14 @@ export function DataTableFilter<TData>({
           placeholder="Search across visible columns"
           onChange={onFilter}
           value={filter ?? ""}
-          className="h-10 rounded-xl bg-background pl-9"
+          className="h-9 rounded-xl bg-background pl-9"
         />
       </div>
       <Button
         variant="outline"
         size="sm"
         onClick={handleClearAll}
-        className="h-10 rounded-xl"
+        className="h-9 rounded-xl"
         disabled={!hasActiveFilters}
       >
         <XIcon />

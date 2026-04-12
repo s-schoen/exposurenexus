@@ -134,38 +134,12 @@ export function DataTableToolbar<TData>({
   return (
     <div className="rounded-[1.5rem] border border-shell-border-strong/70 bg-shell-panel px-4 py-4 shadow-sm">
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0 flex-1">
             <DataTableFilter
               table={table}
               hasActiveFilters={hasActiveFilters}
             />
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-              <span>
-                <span className="font-medium text-foreground">
-                  {filteredRows}
-                </span>{" "}
-                of {totalRows} results
-              </span>
-              {selectedRows > 0 && (
-                <span>
-                  <span className="font-medium text-foreground">
-                    {selectedRows}
-                  </span>{" "}
-                  selected
-                </span>
-              )}
-              {hasActiveFilters && (
-                <span className="rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-xs font-medium tracking-wide text-foreground uppercase">
-                  Filters active
-                </span>
-              )}
-              {activeGroupingOption && (
-                <span className="rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-xs font-medium tracking-wide text-foreground uppercase">
-                  Grouped by {activeGroupingOption.label}
-                </span>
-              )}
-            </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             {additionalElements}
@@ -218,6 +192,30 @@ export function DataTableToolbar<TData>({
             )}
             <DataTableColumnVisibilityOptions table={table} />
           </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+          <span>
+            <span className="font-medium text-foreground">{filteredRows}</span>{" "}
+            of {totalRows} results
+          </span>
+          {selectedRows > 0 && (
+            <span>
+              <span className="font-medium text-foreground">
+                {selectedRows}
+              </span>{" "}
+              selected
+            </span>
+          )}
+          {hasActiveFilters && (
+            <span className="rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-xs font-medium tracking-wide text-foreground uppercase">
+              Filters active
+            </span>
+          )}
+          {activeGroupingOption && (
+            <span className="rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-xs font-medium tracking-wide text-foreground uppercase">
+              Grouped by {activeGroupingOption.label}
+            </span>
+          )}
         </div>
         {hasActiveFilters && (
           <div className="flex flex-wrap items-center gap-2">
