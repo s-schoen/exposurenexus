@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import type { Asset } from "@openvlp/types/model/asset"
 import { DataTable } from "@/components/data-table/data-table.tsx"
 import { columns } from "@/components/asset-table/columns.tsx"
+import type { GroupingOption } from "@/components/data-table/types.ts"
 import { Button } from "@/components/ui/button.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import {
@@ -13,6 +14,15 @@ import {
   deleteAsset
 } from "@/api/asset.ts"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
+import { capitalizeFirstLetter } from "@/lib/format.ts"
+
+const groupingOptions: Array<GroupingOption> = [
+  {
+    id: "type",
+    label: "Type",
+    formatValue: (value) => capitalizeFirstLetter(String(value))
+  }
+]
 
 export function AssetTable() {
   const navigate = useNavigate()
@@ -91,6 +101,7 @@ export function AssetTable() {
     <DataTable
       columns={columns}
       query={assetsQuery}
+      groupingOptions={groupingOptions}
       onRowDoubleClick={handleOpenAsset}
       onRowDelete={handleDeleteAssets}
       toolbarControls={ToolbarElements()}
