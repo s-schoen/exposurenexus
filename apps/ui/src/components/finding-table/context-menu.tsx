@@ -2,8 +2,6 @@ import * as React from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Check } from "lucide-react"
-import { FindingStatus } from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import type { Finding } from "@openvlp/types/model/finding"
 import type { ReactElement } from "react"
 import {
@@ -17,27 +15,12 @@ import {
   ContextMenuTrigger
 } from "@/components/ui/context-menu"
 import { SeverityBadge } from "@/components/severity-badge"
+import {
+  SEVERITY_ORDER,
+  STATUS_ORDER
+} from "@/components/finding-table/constants"
 import { formatFindingStatus } from "@/lib/format"
 import { createListFindingsQueryOptions, updateFinding } from "@/api/finding"
-
-const SEVERITY_ORDER: Array<VulnerabilitySeverity> = [
-  VulnerabilitySeverity.Critical,
-  VulnerabilitySeverity.High,
-  VulnerabilitySeverity.Medium,
-  VulnerabilitySeverity.Low,
-  VulnerabilitySeverity.Info
-]
-
-const STATUS_ORDER: Array<FindingStatus> = [
-  FindingStatus.Active,
-  FindingStatus.Confirmed,
-  FindingStatus.Inactive,
-  FindingStatus.FalsePositive,
-  FindingStatus.RiskAccepted,
-  FindingStatus.Duplicate,
-  FindingStatus.OutOfScope,
-  FindingStatus.Mitigated
-]
 
 interface FindingContextMenuProps {
   findingsRef: React.RefObject<Array<Finding>>

@@ -3,9 +3,14 @@ import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import type { Finding } from "@openvlp/types/model/finding"
 import type { ColumnDef } from "@tanstack/react-table"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
+import { SEVERITY_ORDER } from "@/components/finding-table/constants.ts"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
 import { Badge } from "@/components/ui/badge.tsx"
 import { formatFindingStatus } from "@/lib/format.ts"
+
+const severityRank = new Map(
+  [...SEVERITY_ORDER].reverse().map((severity, index) => [severity, index])
+)
 
 function FindingStatusBadge({ status }: { status: FindingStatus }) {
   return (
@@ -15,7 +20,26 @@ function FindingStatusBadge({ status }: { status: FindingStatus }) {
   )
 }
 
-function FindingDateCell({ value }: { value: string }) {
+function getDateTimestamp(value: Date | string | null | undefined) {
+  if (!value) {
+    return 0
+  }
+
+  return new Date(value).getTime()
+}
+
+function compareDateValues(
+  left: Date | string | null | undefined,
+  right: Date | string | null | undefined
+) {
+  return getDateTimestamp(left) - getDateTimestamp(right)
+}
+
+function FindingDateCell({ value }: { value: Date | string | null | undefined }) {
+  if (!value) {
+    return <span className="text-muted-foreground">Not available</span>
+  }
+
   const date = new Date(value)
 
   return (
@@ -48,6 +72,12 @@ export function createFindingColumns(
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Severity" />
       ),
+      sortingFn: (rowA, rowB) => {
+        const left = severityRank.get(rowA.original.severity) ?? -1
+        const right = severityRank.get(rowB.original.severity) ?? -1
+
+        return left - right
+      },
       cell: ({ row }) => {
         return <SeverityBadge severity={row.getValue("severity")} />
       },
@@ -121,6 +151,8 @@ export function createFindingColumns(
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="First Seen" />
       ),
+      sortingFn: (rowA, rowB) =>
+        compareDateValues(rowA.original.firstSeen, rowB.original.firstSeen),
       cell: ({ row }) => <FindingDateCell value={row.getValue("firstSeen")} />
     },
     {
@@ -128,6 +160,8 @@ export function createFindingColumns(
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Last Seen" />
       ),
+      sortingFn: (rowA, rowB) =>
+        compareDateValues(rowA.original.lastSeen, rowB.original.lastSeen),
       cell: ({ row }) => <FindingDateCell value={row.getValue("lastSeen")} />
     }
   ]

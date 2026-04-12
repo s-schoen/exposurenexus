@@ -1,5 +1,14 @@
-import { Bug, Home, Server, ShieldAlert, UploadCloud } from "lucide-react"
+import {
+  Bug,
+  ClipboardCheck,
+  Home,
+  Server,
+  ShieldAlert,
+  UploadCloud
+} from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
 import { Link, useLocation } from "@tanstack/react-router"
+import { FindingStatus } from "@openvlp/types/model/finding"
 import {
   Sidebar,
   SidebarContent,
@@ -11,28 +20,35 @@ import {
   SidebarMenuItem,
   SidebarSeparator
 } from "@/components/ui/sidebar"
+import { createFindingStatsQueryOptions } from "@/api/finding.ts"
 import { cn } from "@/lib/utils"
+
+interface SidebarItem {
+  title: string
+  url: string
+  icon: React.ComponentType<{ className?: string }>
+  description: string
+  badge?: number
+  activeMatch?: RegExp
+}
 
 export function AppSidebar() {
   const location = useLocation()
+  const findingStats = useQuery(createFindingStatsQueryOptions())
+  const triageCount = findingStats.data?.status[FindingStatus.Active] ?? 0
 
-  const isItemActive = (url: string) => {
-    if (url === "/") {
-      return location.pathname === url
+  const isItemActive = (item: SidebarItem) => {
+    if (item.activeMatch) {
+      return item.activeMatch.test(location.pathname)
     }
 
-    if (url === "/findings") {
-      return (
-        location.pathname === url ||
-        (location.pathname.startsWith(`${url}/`) &&
-          !location.pathname.startsWith("/findings/import"))
-      )
-    }
-
-    return location.pathname === url || location.pathname.startsWith(`${url}/`)
+    return (
+      location.pathname === item.url ||
+      location.pathname.startsWith(`${item.url}/`)
+    )
   }
 
-  const groups = [
+  const groups: Array<{ label: string; items: Array<SidebarItem> }> = [
     {
       label: "Explore",
       items: [
@@ -40,25 +56,37 @@ export function AppSidebar() {
           title: "Dashboard",
           url: "/",
           icon: Home,
-          description: "Overview and triage"
+          description: "Overview and triage",
+          activeMatch: /^\/$/
         },
         {
           title: "Assets",
           url: "/assets",
           icon: Server,
-          description: "Systems in scope"
+          description: "Systems in scope",
+          activeMatch: /^\/assets(?:\/.+)?$/
+        },
+        {
+          title: "Triage queue",
+          url: "/findings/triage",
+          icon: ClipboardCheck,
+          description: "Active findings to review",
+          badge: triageCount,
+          activeMatch: /^\/findings\/triage$/
         },
         {
           title: "Findings",
           url: "/findings",
           icon: ShieldAlert,
-          description: "Issues with your assets"
+          description: "Issues with your assets",
+          activeMatch: /^\/findings(?:\/(?!import$|triage$).+)?$/
         },
         {
           title: "Vulnerabilities",
           url: "/vulnerabilities",
           icon: Bug,
-          description: "Catalog of vulnerabilities"
+          description: "Catalog of vulnerabilities",
+          activeMatch: /^\/vulnerabilities(?:\/.+)?$/
         }
       ]
     },
@@ -69,7 +97,8 @@ export function AppSidebar() {
           title: "Import",
           url: "/findings/import",
           icon: UploadCloud,
-          description: "Ingest external findings"
+          description: "Ingest external findings",
+          activeMatch: /^\/findings\/import$/
         }
       ]
     }
@@ -92,7 +121,7 @@ export function AppSidebar() {
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
-                      isActive={isItemActive(item.url)}
+                      isActive={isItemActive(item)}
                       className={cn(
                         "h-auto min-h-14 rounded-2xl px-3 py-3",
                         "data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:shadow-sm",
@@ -101,8 +130,14 @@ export function AppSidebar() {
                       render={
                         <Link to={item.url}>
                           <div className="flex min-w-0 items-center gap-3">
-                            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/80 text-current ring-1 ring-sidebar-border/70">
+                            <div className="relative flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/80 text-current ring-1 ring-sidebar-border/70">
                               <item.icon className="size-4.5" />
+                              {typeof item.badge === "number" &&
+                                item.badge > 0 && (
+                                  <span className="absolute -top-1 -right-1 flex min-w-5 items-center justify-center rounded-full bg-sidebar-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-sidebar-primary-foreground shadow-sm ring-2 ring-sidebar">
+                                    {item.badge}
+                                  </span>
+                                )}
                             </div>
                             <div className="min-w-0 flex-1">
                               <span className="block truncate text-sm font-medium select-none">

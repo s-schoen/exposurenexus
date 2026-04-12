@@ -3,12 +3,14 @@
 import {
   type ExpandedState,
   type GroupingState,
+  type SortingState,
   flexRender,
   getCoreRowModel,
   getExpandedRowModel,
   getFilteredRowModel,
   getGroupedRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable
 } from "@tanstack/react-table"
 import { ChevronDown, ChevronRight, DatabaseZap } from "lucide-react"
@@ -34,9 +36,13 @@ interface DataTableProps<TData, TValue> {
   columns: Array<ColumnDef<TData, TValue>>
   query: UseQueryResult<Array<TData>, Error>
   groupingOptions?: Array<GroupingOption>
+  initialGrouping?: GroupingState
+  initialSorting?: SortingState
   onRowDelete?: (rows: Array<TData>) => Promise<void>
   onRowDoubleClick?: (row: TData) => void
-  toolbarControls?: ReactElement
+  toolbarControls?:
+    | ReactElement
+    | ((selectedRows: Array<TData>) => ReactNode)
   contextMenu?: (
     rowsRef: RefObject<Array<TData>>,
     children: ReactElement,
@@ -48,13 +54,16 @@ export function DataTable<TData, TValue>({
   columns,
   query,
   groupingOptions = [],
+  initialGrouping = [],
+  initialSorting = [],
   onRowDelete,
   onRowDoubleClick,
   toolbarControls,
   contextMenu
 }: DataTableProps<TData, TValue>) {
-  const [grouping, setGrouping] = useState<GroupingState>([])
+  const [grouping, setGrouping] = useState<GroupingState>(initialGrouping)
   const [expanded, setExpanded] = useState<ExpandedState>(true)
+  const [sorting, setSorting] = useState<SortingState>(initialSorting)
 
   const selectColumn: ColumnDef<TData, TValue> = {
     id: "select",
@@ -85,19 +94,29 @@ export function DataTable<TData, TValue>({
     autoResetExpanded: false,
     state: {
       grouping,
-      expanded
+      expanded,
+      sorting
     },
     onGroupingChange: setGrouping,
     onExpandedChange: setExpanded,
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getGroupedRowModel: getGroupedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     globalFilterFn: "includesString"
   })
 
   const contextMenuTargetsRef = useRef<Array<TData>>([])
+  const selectedRows = table
+    .getFilteredSelectedRowModel()
+    .rows.map((row) => row.original)
+  const resolvedToolbarControls =
+    typeof toolbarControls === "function"
+      ? toolbarControls(selectedRows)
+      : toolbarControls
 
   const handleOnRefresh = async () => {
     await query.refetch()
@@ -271,9 +290,9 @@ export function DataTable<TData, TValue>({
       <DataTableToolbar
         table={table}
         isFetching={query.isFetching}
-        deleteDisabled={table.getFilteredSelectedRowModel().rows.length === 0}
+        deleteDisabled={selectedRows.length === 0}
         groupingOptions={groupingOptions}
-        additionalElements={toolbarControls}
+        additionalElements={resolvedToolbarControls}
         onRequestRefresh={handleOnRefresh}
         onRequestDelete={handleOnRowsDelete}
       />

@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react"
+import { Check, Layers3, Plus } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useMemo } from "react"
@@ -6,15 +6,34 @@ import { toast } from "sonner"
 import type { Finding } from "@openvlp/types/model/finding"
 import { DataTable } from "@/components/data-table/data-table.tsx"
 import { createFindingColumns } from "@/components/finding-table/columns.tsx"
+import {
+  SEVERITY_ORDER,
+  STATUS_ORDER
+} from "@/components/finding-table/constants.ts"
 import { FindingContextMenu } from "@/components/finding-table/context-menu.tsx"
 import type { GroupingOption } from "@/components/data-table/types.ts"
 import { Button } from "@/components/ui/button.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu.tsx"
 import { createListAssetsQueryOptions } from "@/api/asset.ts"
-import { createListFindingsQueryOptions, deleteFinding } from "@/api/finding.ts"
+import {
+  createListFindingsQueryOptions,
+  deleteFinding,
+  updateFinding
+} from "@/api/finding.ts"
 import { formatFindingStatus, formatSeverity } from "@/lib/format.ts"
 
-export function FindingTable() {
+interface FindingTableProps {
+  initialGrouping?: Array<string>
+}
+
+export function FindingTable({ initialGrouping = [] }: FindingTableProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const findingsQuery = useQuery(createListFindingsQueryOptions())
@@ -101,17 +120,115 @@ export function FindingTable() {
     })
   }
 
-  function ToolbarElements() {
+  const handleBulkUpdate = async <TKey extends "severity" | "status">(
+    findings: Array<Finding>,
+    key: TKey,
+    value: Finding[TKey]
+  ) => {
+    if (findings.length === 0) {
+      return
+    }
+
+    let success = true
+
+    for (const finding of findings) {
+      try {
+        await updateFinding({ ...finding, [key]: value })
+      } catch (error) {
+        success = false
+        toast.error(`Failed to update finding ${finding.id}: ${error}`)
+        console.error(error)
+      }
+    }
+
+    if (success) {
+      toast.success(`Updated ${findings.length} finding(s)`)
+    }
+
+    queryClient.invalidateQueries({
+      queryKey: createListFindingsQueryOptions().queryKey
+    })
+  }
+
+  function ToolbarElements(selectedRows: Array<Finding>) {
+    const hasSelection = selectedRows.length > 0
+
     return (
-      <Button
-        variant="default"
-        size="sm"
-        className="h-9 rounded-xl"
-        onClick={handleCreateFinding}
-      >
-        <Plus />
-        New finding
-      </Button>
+      <>
+        <Button
+          variant="default"
+          size="sm"
+          className="h-9 rounded-xl"
+          onClick={handleCreateFinding}
+        >
+          <Plus />
+          New finding
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                nativeButton={true}
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-xl"
+                disabled={!hasSelection}
+              >
+                <Layers3 />
+                Set status
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end" className="w-52">
+            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+              {selectedRows.length} finding
+              {selectedRows.length === 1 ? "" : "s"} selected
+            </div>
+            <DropdownMenuSeparator />
+            {STATUS_ORDER.map((status) => (
+              <DropdownMenuItem
+                key={status}
+                onClick={() => handleBulkUpdate(selectedRows, "status", status)}
+              >
+                {formatFindingStatus(status)}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                nativeButton={true}
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-xl"
+                disabled={!hasSelection}
+              >
+                <Check />
+                Set severity
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end" className="w-44">
+            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+              {selectedRows.length} finding
+              {selectedRows.length === 1 ? "" : "s"} selected
+            </div>
+            <DropdownMenuSeparator />
+            {SEVERITY_ORDER.map((severity) => (
+              <DropdownMenuItem
+                key={severity}
+                onClick={() =>
+                  handleBulkUpdate(selectedRows, "severity", severity)
+                }
+              >
+                {formatSeverity(severity)}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </>
     )
   }
 
@@ -120,9 +237,14 @@ export function FindingTable() {
       columns={columns}
       query={findingsQuery}
       groupingOptions={groupingOptions}
+      initialGrouping={initialGrouping}
+      initialSorting={[
+        { id: "severity", desc: true },
+        { id: "lastSeen", desc: true }
+      ]}
       onRowDoubleClick={handleOpenFinding}
       onRowDelete={handleDeleteFindings}
-      toolbarControls={ToolbarElements()}
+      toolbarControls={ToolbarElements}
       contextMenu={(findingsRef, children, key) => (
         <FindingContextMenu
           key={key}

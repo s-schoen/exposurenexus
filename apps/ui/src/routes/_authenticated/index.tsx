@@ -111,7 +111,7 @@ function App() {
         description: "Findings still awaiting triage",
         value: activeFindings,
         tone: "text-foreground",
-        href: buildFilterHref("/findings", {
+        href: buildFilterHref("/findings/triage", {
           status: ["active"]
         })
       },

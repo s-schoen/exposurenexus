@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { ArrowLeft, Boxes, Server } from "lucide-react"
+import { ArrowLeft, Server } from "lucide-react"
 import {
   Card,
   CardContent,
