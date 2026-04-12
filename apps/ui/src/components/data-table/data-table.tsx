@@ -7,6 +7,7 @@ import {
   getPaginationRowModel,
   useReactTable
 } from "@tanstack/react-table"
+import { DatabaseZap } from "lucide-react"
 import { useRef } from "react"
 import type { ColumnDef, Row } from "@tanstack/react-table"
 import type { UseQueryResult } from "@tanstack/react-query"
@@ -113,9 +114,22 @@ export function DataTable<TData, TValue>({
       <TableRow>
         <TableCell
           colSpan={table.getAllColumns().length}
-          className="h-24 text-center"
+          className="h-56 p-0"
         >
-          No data.
+          <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+            <div className="flex size-14 items-center justify-center rounded-2xl border border-border/70 bg-muted/60 text-muted-foreground">
+              <DatabaseZap className="size-6" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">
+                No results to show
+              </p>
+              <p className="max-w-md text-sm text-muted-foreground">
+                Adjust your filters or refresh the table to load a different
+                result set.
+              </p>
+            </div>
+          </div>
         </TableCell>
       </TableRow>
     )
@@ -130,7 +144,7 @@ export function DataTable<TData, TValue>({
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
-                className="select-none cursor-pointer"
+                className="cursor-pointer select-none border-b border-border/60 transition-colors hover:bg-muted/40 data-[state=selected]:bg-primary/6"
                 onContextMenu={
                   contextMenu ? () => handleOnRowContextMenu(row) : undefined
                 }
@@ -169,7 +183,7 @@ export function DataTable<TData, TValue>({
               .filter((c) => c.getIsVisible())
               .map((c) => (
                 <TableCell key={c.id}>
-                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-6 w-full rounded-lg" />
                 </TableCell>
               ))}
           </TableRow>
@@ -179,7 +193,7 @@ export function DataTable<TData, TValue>({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-4">
       <DataTableToolbar
         table={table}
         isFetching={query.isFetching}
@@ -188,14 +202,20 @@ export function DataTable<TData, TValue>({
         onRequestRefresh={handleOnRefresh}
         onRequestDelete={handleOnRowsDelete}
       />
-      <div className="overflow-hidden rounded-md border">
-        <Table>
-          <TableHeader>
+      <div className="overflow-hidden rounded-[1.5rem] border border-shell-border-strong/70 bg-shell-panel shadow-sm">
+        <Table className="min-w-full">
+          <TableHeader className="bg-muted/35 [&_tr]:border-border/60">
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="select-none">
+              <TableRow
+                key={headerGroup.id}
+                className="select-none border-b border-border/60 hover:bg-transparent"
+              >
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead
+                      key={header.id}
+                      className="h-12 px-3 text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase first:pl-4 last:pr-4"
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -210,8 +230,10 @@ export function DataTable<TData, TValue>({
           </TableHeader>
           {query.isPending ? <SkeletonRows /> : <DataRows />}
         </Table>
+        <div className="border-t border-border/60 bg-muted/15 px-4 py-3">
+          <DataTablePagination table={table} />
+        </div>
       </div>
-      <DataTablePagination table={table} />
     </div>
   )
 }

@@ -76,12 +76,13 @@ export function AssetTable() {
   function ToolbarElements() {
     return (
       <Button
-        variant="outline"
+        variant="default"
         size="sm"
-        className="ml-auto hidden h-8 lg:flex"
+        className="h-9 rounded-xl"
         onClick={handleCreateAsset}
       >
         <Plus />
+        New asset
       </Button>
     )
   }

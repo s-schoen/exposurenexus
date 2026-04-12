@@ -23,9 +23,10 @@ export function DataTableColumnVisibilityOptions<TData>({
             nativeButton={true}
             variant="outline"
             size="sm"
-            className="ml-auto hidden h-8 lg:flex"
+            className="h-9 rounded-xl"
           >
             <Settings2 />
+            Columns
           </Button>
         }
       ></DropdownMenuTrigger>

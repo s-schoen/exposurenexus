@@ -1,5 +1,5 @@
 import { Check, PlusCircle, XCircle } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import type { MouseEvent } from "react"
 import type { Column } from "@tanstack/react-table"
@@ -18,7 +18,6 @@ import {
   CommandItem,
   CommandList
 } from "@/components/ui/command.tsx"
-import { cn } from "@/lib/utils.ts"
 import { Separator } from "@/components/ui/separator.tsx"
 import { Badge } from "@/components/ui/badge"
 
@@ -36,6 +35,23 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
       querySelectedOptionValues.includes(opt.value)
     )
   }, [querySelectedOptionValues, column.columnDef.meta])
+
+  useEffect(() => {
+    const nextValue =
+      querySelectedOptionValues.length > 0 ? querySelectedOptionValues : undefined
+    const currentValue = column.getFilterValue() as Array<string> | undefined
+
+    const isEqual =
+      (currentValue === undefined && nextValue === undefined) ||
+      (Array.isArray(currentValue) &&
+        Array.isArray(nextValue) &&
+        currentValue.length === nextValue.length &&
+        currentValue.every((value, index) => value === nextValue[index]))
+
+    if (!isEqual) {
+      column.setFilterValue(nextValue)
+    }
+  }, [column, querySelectedOptionValues])
 
   const handleClear = (event?: MouseEvent) => {
     if (selectedOptions.length > 0) {
@@ -55,11 +71,10 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
       newSelection = [...querySelectedOptionValues, option.value]
     }
     setQuerySelectedOptionValues(newSelection)
-    column.setFilterValue(newSelection)
   }
 
   return (
-    <div className="flex p-1 items-center gap-1">
+    <div className="flex items-center gap-1">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           render={
@@ -67,7 +82,7 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
               nativeButton={true}
               variant="outline"
               size="sm"
-              className="border-dashed font-normal"
+              className="h-9 rounded-xl border-dashed bg-background font-normal"
             >
               <div
                 role="button"
@@ -81,43 +96,33 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
               {selectedOptions.length > 0 && (
                 <>
                   <Separator orientation="vertical" />
-                  <div className="flex gap-1">
-                    {selectedOptions.map((opt) => (
-                      <Badge key={opt.value} variant="outline">
-                        {opt.label}
-                      </Badge>
-                    ))}
-                  </div>
+                  <Badge variant="outline" className="rounded-full">
+                    {selectedOptions.length} selected
+                  </Badge>
                 </>
               )}
             </Button>
           }
         ></PopoverTrigger>
-        <PopoverContent>
-          <Command>
+        <PopoverContent className="w-64 rounded-2xl p-0">
+          <Command className="bg-background p-2">
             <CommandInput
               placeholder={column.columnDef.meta!.label || column.id}
             />
             <CommandList className="max-h-full">
               <CommandEmpty>No options available</CommandEmpty>
-              <CommandGroup className="max-h-75 scroll-py-1 overflow-y-auto overflow-x-hidden">
+              <CommandGroup className="max-h-75 space-y-1 overflow-y-auto overflow-x-hidden p-2">
                 {column.columnDef.meta!.options?.map((option) => {
                   const isSelected = selectedOptions.includes(option)
 
                   return (
                     <CommandItem
                       key={option.value}
+                      className="rounded-lg bg-transparent px-3 py-2 data-selected:bg-transparent"
                       onSelect={() => handleSelectOption(option)}
                     >
-                      <div
-                        className={cn(
-                          "flex size-4 items-center justify-center",
-                          !isSelected && "[&_svg]:invisible"
-                        )}
-                      >
-                        <Check />
-                      </div>
                       <span className="truncate">{option.label}</span>
+                      {isSelected && <Check className="ml-auto size-4 text-foreground" />}
                     </CommandItem>
                   )
                 })}
