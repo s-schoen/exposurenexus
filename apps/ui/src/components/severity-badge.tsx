@@ -2,7 +2,7 @@ import type { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import { formatSeverity } from "@/lib/format.ts"
 import { Badge } from "@/components/ui/badge.tsx"
 import { cn } from "@/lib/utils.ts"
-import { severityColor } from "@/lib/colors.ts"
+import { severityBadgeClass } from "@/lib/colors.ts"
 
 interface SeverityBadgeProps {
   severity: VulnerabilitySeverity
@@ -11,7 +11,14 @@ interface SeverityBadgeProps {
 
 export function SeverityBadge({ severity, className }: SeverityBadgeProps) {
   return (
-    <Badge className={cn("rounded-md", severityColor(severity), className)}>
+    <Badge
+      variant="outline"
+      className={cn(
+        "rounded-md border px-2.5 font-medium shadow-none",
+        severityBadgeClass(severity),
+        className
+      )}
+    >
       {formatSeverity(severity)}
     </Badge>
   )
