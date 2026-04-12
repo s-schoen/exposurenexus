@@ -29,41 +29,49 @@ export function AppSidebar() {
       )
     }
 
-    return (
-      location.pathname === url || location.pathname.startsWith(`${url}/`)
-    )
+    return location.pathname === url || location.pathname.startsWith(`${url}/`)
   }
 
-  const items = [
+  const groups = [
     {
-      title: "Dashboard",
-      url: "/",
-      icon: Home,
-      description: "Overview and triage"
+      label: "Explore",
+      items: [
+        {
+          title: "Dashboard",
+          url: "/",
+          icon: Home,
+          description: "Overview and triage"
+        },
+        {
+          title: "Assets",
+          url: "/assets",
+          icon: Server,
+          description: "Systems in scope"
+        },
+        {
+          title: "Findings",
+          url: "/findings",
+          icon: ShieldAlert,
+          description: "Issues with your assets"
+        },
+        {
+          title: "Vulnerabilities",
+          url: "/vulnerabilities",
+          icon: Bug,
+          description: "Catalog of vulnerabilities"
+        }
+      ]
     },
     {
-      title: "Assets",
-      url: "/assets",
-      icon: Server,
-      description: "Systems in scope"
-    },
-    {
-      title: "Findings",
-      url: "/findings",
-      icon: ShieldAlert,
-      description: "Issues with your assets"
-    },
-    {
-      title: "Vulnerabilities",
-      url: "/vulnerabilities",
-      icon: Bug,
-      description: "Catalog of vulnerabilities"
-    },
-    {
-      title: "Import",
-      url: "/findings/import",
-      icon: UploadCloud,
-      description: "Ingest external findings"
+      label: "Manage",
+      items: [
+        {
+          title: "Import",
+          url: "/findings/import",
+          icon: UploadCloud,
+          description: "Ingest external findings"
+        }
+      ]
     }
   ]
 
@@ -74,44 +82,46 @@ export function AppSidebar() {
     >
       <SidebarSeparator className="mx-3" />
       <SidebarContent>
-        <SidebarGroup className="px-3 py-4">
-          <SidebarGroupLabel className="px-3 text-[11px] font-semibold tracking-[0.18em] uppercase text-sidebar-foreground/55">
-            Explore
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-1.5">
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    isActive={isItemActive(item.url)}
-                    className={cn(
-                      "h-auto min-h-14 rounded-2xl px-3 py-3",
-                      "data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:shadow-sm",
-                      "hover:bg-sidebar-accent/80"
-                    )}
-                    render={
-                      <Link to={item.url}>
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/80 text-current ring-1 ring-sidebar-border/70">
-                            <item.icon className="size-4.5" />
+        {groups.map((group) => (
+          <SidebarGroup key={group.label} className="px-3 py-2">
+            <SidebarGroupLabel className="px-3 text-[11px] font-semibold tracking-[0.18em] uppercase text-sidebar-foreground/55">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-1.5">
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      isActive={isItemActive(item.url)}
+                      className={cn(
+                        "h-auto min-h-14 rounded-2xl px-3 py-3",
+                        "data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:shadow-sm",
+                        "hover:bg-sidebar-accent/80"
+                      )}
+                      render={
+                        <Link to={item.url}>
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/80 text-current ring-1 ring-sidebar-border/70">
+                              <item.icon className="size-4.5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-medium select-none">
+                                {item.title}
+                              </span>
+                              <span className="block truncate text-xs text-current/65 select-none">
+                                {item.description}
+                              </span>
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium select-none">
-                              {item.title}
-                            </span>
-                            <span className="block truncate text-xs text-current/65 select-none">
-                              {item.description}
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    }
-                  />
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                        </Link>
+                      }
+                    />
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
     </Sidebar>
   )
