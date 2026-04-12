@@ -58,8 +58,8 @@ export function AccountMenu() {
       ></DropdownMenuTrigger>
 
       <DropdownMenuContent className="w-56" align="start">
-        <DropdownMenuLabel>Profile</DropdownMenuLabel>
         <DropdownMenuGroup>
+          <DropdownMenuLabel>Profile</DropdownMenuLabel>
           <DropdownMenuItem onClick={onSignOut}>Sign Out</DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

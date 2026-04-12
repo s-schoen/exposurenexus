@@ -15,6 +15,25 @@ import { cn } from "@/lib/utils"
 
 export function AppSidebar() {
   const location = useLocation()
+
+  const isItemActive = (url: string) => {
+    if (url === "/") {
+      return location.pathname === url
+    }
+
+    if (url === "/findings") {
+      return (
+        location.pathname === url ||
+        (location.pathname.startsWith(`${url}/`) &&
+          !location.pathname.startsWith("/findings/import"))
+      )
+    }
+
+    return (
+      location.pathname === url || location.pathname.startsWith(`${url}/`)
+    )
+  }
+
   const items = [
     {
       title: "Dashboard",
@@ -64,11 +83,7 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    isActive={
-                      item.url === "/"
-                        ? location.pathname === item.url
-                        : location.pathname.startsWith(item.url)
-                    }
+                    isActive={isItemActive(item.url)}
                     className={cn(
                       "h-auto min-h-14 rounded-2xl px-3 py-3",
                       "data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:shadow-sm",
