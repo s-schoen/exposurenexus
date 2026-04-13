@@ -1,0 +1,55 @@
+import { keepPreviousData } from "@tanstack/react-query"
+import { env } from "@/env.ts"
+import {
+  DEFAULT_QUERY_STALE_TIME,
+  parseArrayReply,
+  parseErrorReply,
+  parseObjectReply
+} from "@/api/common.ts"
+import type { User } from "@openvlp/types/model/user"
+
+async function listUsers(): Promise<Array<User>> {
+  const response = await fetch(`${env.VITE_API_URL}/api/users`, {
+    method: "GET",
+    credentials: "include"
+  })
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response)
+    console.error(error)
+    throw error
+  }
+
+  return parseArrayReply<User>(response)
+}
+
+async function getUserByID(id: string): Promise<User> {
+  const response = await fetch(`${env.VITE_API_URL}/api/users/${id}`, {
+    method: "GET",
+    credentials: "include"
+  })
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response)
+    console.error(error)
+    throw error
+  }
+
+  return parseObjectReply<User>(response)
+}
+
+export function createListUsersQueryOptions() {
+  return {
+    queryKey: ["vulnerabilities"],
+    queryFn: () => listUsers(),
+    placeholderData: keepPreviousData,
+    staleTime: DEFAULT_QUERY_STALE_TIME
+  }
+}
+
+export function createUserByIDQueryOptions(id: string) {
+  return {
+    queryKey: ["vulnerabilities", id],
+    queryFn: () => getUserByID(id)
+  }
+}
