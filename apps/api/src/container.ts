@@ -9,17 +9,20 @@ import { createAuthAnnotate, authNRequire } from "./middleware/auth.js"
 import {
   createAssetRepository,
   createFindingRepository,
+  createUserRepository,
   createVulnerabilityRepository
 } from "./repository/index.js"
 import {
   createAssetService,
   createFindingService,
   createStatsService,
+  createUserService,
   createVulnerabilityService
 } from "./service/index.js"
 import health from "./routes/health.js"
 import { createAuthRoute } from "./routes/auth.js"
 import { createAssetRoute } from "./routes/assets.js"
+import { createUserRoute } from "./routes/users.js"
 import { createVulnerabilityRoute } from "./routes/vulnerabilities.js"
 import { createFindingStatsRoute } from "./routes/stats.js"
 import { createFindingRoute } from "./routes/findings.js"
@@ -54,12 +57,17 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const repositories = {
     assetRepository: createAssetRepository(options.db),
     findingRepository: createFindingRepository(options.db),
+    userRepository: createUserRepository(options.db),
     vulnerabilityRepository: createVulnerabilityRepository(options.db)
   }
 
   const assetService = createAssetService({
     assetRepository: repositories.assetRepository,
     logger: loggerFactory("service/asset")
+  })
+  const userService = createUserService({
+    userRepository: repositories.userRepository,
+    logger: loggerFactory("service/user")
   })
   const vulnerabilityService = createVulnerabilityService({
     vulnerabilityRepository: repositories.vulnerabilityRepository,
@@ -96,6 +104,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     healthRoute: health,
     authRoute: createAuthRoute(auth),
     assetRoute: createAssetRoute(assetService),
+    userRoute: createUserRoute(userService),
     vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService),
     findingStatsRoute: createFindingStatsRoute(statsService),
     findingRoute: createFindingRoute(findingService),
@@ -125,6 +134,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     repositories,
     services: {
       assetService,
+      userService,
       vulnerabilityService,
       findingService,
       statsService

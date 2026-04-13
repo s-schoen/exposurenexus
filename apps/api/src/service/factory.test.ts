@@ -49,12 +49,10 @@ vi.mock("./vulnerability.js", async () => {
   }
 })
 
-import {
-  createAssetService,
-  createFindingService,
-  createStatsService,
-  createVulnerabilityService
-} from "./index.js"
+import { createAssetService } from "./asset.js"
+import { createFindingService } from "./finding.js"
+import { createStatsService } from "./stats.js"
+import { createVulnerabilityService } from "./vulnerability.js"
 
 describe("service factories", () => {
   const user = createTestUser()
