@@ -1,30 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
+import { pino } from "pino"
 import type { User } from "../repository/user.js"
-
-vi.mock("../logging.js", () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn()
-  })
-}))
-
-vi.mock("../repository/user.js", () => ({
-  list: vi.fn(),
-  getByID: vi.fn()
-}))
-
-import * as userRepository from "../repository/user.js"
-import * as userService from "./user.js"
+import { createUserService } from "./user.js"
 
 describe("user service", () => {
+  const userRepository = {
+    list: vi.fn(),
+    getByID: vi.fn()
+  }
+  const logger = pino({ enabled: false })
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it("lists all users from the repository", async () => {
+    const service = createUserService({ userRepository, logger })
     const users: User[] = [
       {
         id: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
@@ -39,22 +31,25 @@ describe("user service", () => {
       }
     ]
 
-    vi.mocked(userRepository.list).mockResolvedValue(users)
+    userRepository.list.mockResolvedValue(users)
 
-    await expect(userService.listAll()).resolves.toEqual(users)
+    await expect(service.listAll()).resolves.toEqual(users)
     expect(userRepository.list).toHaveBeenCalledOnce()
   })
 
   it("maps repository list failures to an HTTP 500", async () => {
-    vi.mocked(userRepository.list).mockRejectedValue(new Error("db offline"))
+    const service = createUserService({ userRepository, logger })
 
-    await expect(userService.listAll()).rejects.toMatchObject({
+    userRepository.list.mockRejectedValue(new Error("db offline"))
+
+    await expect(service.listAll()).rejects.toMatchObject({
       status: 500,
       message: "failed to list users"
     } satisfies Partial<HTTPException>)
   })
 
   it("returns a user by id", async () => {
+    const service = createUserService({ userRepository, logger })
     const user: User = {
       id: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
       name: "Alice Example",
@@ -67,26 +62,28 @@ describe("user service", () => {
       displayUsername: "Alice"
     }
 
-    vi.mocked(userRepository.getByID).mockResolvedValue(user)
+    userRepository.getByID.mockResolvedValue(user)
 
-    await expect(userService.getByID(user.id)).resolves.toEqual(user)
+    await expect(service.getByID(user.id)).resolves.toEqual(user)
     expect(userRepository.getByID).toHaveBeenCalledWith(user.id)
   })
 
   it("returns null when a user does not exist", async () => {
+    const service = createUserService({ userRepository, logger })
     const userId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f"
 
-    vi.mocked(userRepository.getByID).mockResolvedValue(null)
+    userRepository.getByID.mockResolvedValue(null)
 
-    await expect(userService.getByID(userId)).resolves.toBeNull()
+    await expect(service.getByID(userId)).resolves.toBeNull()
   })
 
   it("maps repository get failures to an HTTP 500", async () => {
+    const service = createUserService({ userRepository, logger })
     const userId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f"
 
-    vi.mocked(userRepository.getByID).mockRejectedValue(new Error("db offline"))
+    userRepository.getByID.mockRejectedValue(new Error("db offline"))
 
-    await expect(userService.getByID(userId)).rejects.toMatchObject({
+    await expect(service.getByID(userId)).rejects.toMatchObject({
       status: 500,
       message: "failed to get user"
     } satisfies Partial<HTTPException>)

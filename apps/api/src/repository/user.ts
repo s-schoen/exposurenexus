@@ -1,4 +1,4 @@
-import { db, type Database } from "../db/index.js"
+import type { Database } from "../db/index.js"
 import type { UserTable } from "../db/schema/auth.js"
 import type { Kysely, Selectable } from "kysely"
 
@@ -21,8 +21,3 @@ export function createUserRepository(database: Kysely<Database>) {
     }
   }
 }
-
-const repository = createUserRepository(db)
-
-export const list = repository.list
-export const getByID = repository.getByID

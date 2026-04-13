@@ -1,28 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
 import { AssetType } from "@openvlp/types/model/asset"
-
-vi.mock("../logging.js", () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn()
-  })
-}))
-
-vi.mock("../repository/asset.js", () => ({
-  list: vi.fn(),
-  getByID: vi.fn(),
-  getByName: vi.fn(),
-  create: vi.fn(),
-  deleteByID: vi.fn()
-}))
-
-import * as assetRepository from "../repository/asset.js"
-import * as assetService from "./asset.js"
+import { pino } from "pino"
+import { createAssetService } from "./asset.js"
 
 describe("asset service", () => {
+  const assetRepository = {
+    list: vi.fn(),
+    getByID: vi.fn(),
+    getByName: vi.fn(),
+    create: vi.fn(),
+    deleteByID: vi.fn()
+  }
+  const logger = pino({ enabled: false })
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -35,15 +26,18 @@ describe("asset service", () => {
         type: AssetType.Host
       }
     ]
+    const assetService = createAssetService({ assetRepository, logger })
 
-    vi.mocked(assetRepository.list).mockResolvedValue(assets)
+    assetRepository.list.mockResolvedValue(assets)
 
     await expect(assetService.listAll()).resolves.toEqual(assets)
     expect(assetRepository.list).toHaveBeenCalledOnce()
   })
 
   it("maps repository list failures to an HTTP 500", async () => {
-    vi.mocked(assetRepository.list).mockRejectedValue(new Error("db offline"))
+    const assetService = createAssetService({ assetRepository, logger })
+
+    assetRepository.list.mockRejectedValue(new Error("db offline"))
 
     await expect(assetService.listAll()).rejects.toMatchObject({
       status: 500,
@@ -57,8 +51,9 @@ describe("asset service", () => {
       name: "api.openvlp.local",
       type: AssetType.Host
     }
+    const assetService = createAssetService({ assetRepository, logger })
 
-    vi.mocked(assetRepository.getByID).mockResolvedValue(asset)
+    assetRepository.getByID.mockResolvedValue(asset)
 
     await expect(assetService.getByID(asset.id)).resolves.toEqual(asset)
     expect(assetRepository.getByID).toHaveBeenCalledWith(asset.id)
@@ -66,8 +61,9 @@ describe("asset service", () => {
 
   it("returns null when an asset does not exist", async () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const assetService = createAssetService({ assetRepository, logger })
 
-    vi.mocked(assetRepository.getByID).mockResolvedValue(null)
+    assetRepository.getByID.mockResolvedValue(null)
 
     await expect(assetService.getByID(assetId)).resolves.toBeNull()
   })
@@ -78,8 +74,9 @@ describe("asset service", () => {
       name: "api.openvlp.local",
       type: AssetType.Host
     }
+    const assetService = createAssetService({ assetRepository, logger })
 
-    vi.mocked(assetRepository.getByName).mockResolvedValue(asset)
+    assetRepository.getByName.mockResolvedValue(asset)
 
     await expect(
       assetService.getByName(asset.name, asset.type)
@@ -99,8 +96,9 @@ describe("asset service", () => {
       id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
       ...payload
     }
+    const assetService = createAssetService({ assetRepository, logger })
 
-    vi.mocked(assetRepository.create).mockResolvedValue(createdAsset)
+    assetRepository.create.mockResolvedValue(createdAsset)
 
     await expect(assetService.create(payload)).resolves.toEqual(createdAsset)
     expect(assetRepository.create).toHaveBeenCalledWith({
@@ -110,9 +108,9 @@ describe("asset service", () => {
   })
 
   it("maps repository create failures to an HTTP 500", async () => {
-    vi.mocked(assetRepository.create).mockRejectedValue(
-      new Error("insert failed")
-    )
+    const assetService = createAssetService({ assetRepository, logger })
+
+    assetRepository.create.mockRejectedValue(new Error("insert failed"))
 
     await expect(
       assetService.create({
@@ -131,8 +129,9 @@ describe("asset service", () => {
       name: "api.openvlp.local",
       type: AssetType.Host
     }
+    const assetService = createAssetService({ assetRepository, logger })
 
-    vi.mocked(assetRepository.deleteByID).mockResolvedValue(asset)
+    assetRepository.deleteByID.mockResolvedValue(asset)
 
     await expect(assetService.deleteByID(asset.id)).resolves.toEqual(asset)
     expect(assetRepository.deleteByID).toHaveBeenCalledWith(asset.id)
@@ -140,8 +139,9 @@ describe("asset service", () => {
 
   it("returns null when deleting a missing asset", async () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const assetService = createAssetService({ assetRepository, logger })
 
-    vi.mocked(assetRepository.deleteByID).mockResolvedValue(null)
+    assetRepository.deleteByID.mockResolvedValue(null)
 
     await expect(assetService.deleteByID(assetId)).resolves.toBeNull()
   })

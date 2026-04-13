@@ -1,5 +1,5 @@
 import { type FindingInternal } from "@openvlp/types/model/finding"
-import { db, type Database } from "../db/index.js"
+import type { Database } from "../db/index.js"
 import type { Kysely } from "kysely"
 
 type FindingCountByField = "severity" | "status" | "assetId" | "source"
@@ -82,13 +82,3 @@ export function createFindingRepository(database: Kysely<Database>) {
     }
   }
 }
-
-const repository = createFindingRepository(db)
-
-export const list = repository.list
-export const getByID = repository.getByID
-export const getByFingerprint = repository.getByFingerprint
-export const create = repository.create
-export const update = repository.update
-export const deleteByID = repository.deleteByID
-export const countBy = repository.countBy

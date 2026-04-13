@@ -1,10 +1,7 @@
-import * as findingRepository from "../repository/finding.js"
-import * as vulnerabilityService from "../service/vulnerability.js"
 import type {
   CreateFinding,
   FindingInternal
 } from "@openvlp/types/model/finding"
-import { createLogger } from "../logging.js"
 import { HTTPException } from "hono/http-exception"
 import type { Finding } from "@openvlp/types/model/finding"
 import type { User } from "better-auth"
@@ -243,16 +240,3 @@ export function createFindingService({
     }
   }
 }
-
-const service = createFindingService({
-  findingRepository,
-  vulnerabilityService,
-  logger: createLogger("service/finding")
-})
-
-export const listAll = service.listAll
-export const getByID = service.getByID
-export const create = service.create
-export const update = service.update
-export const createOrUpdate = service.createOrUpdate.bind(service)
-export const deleteByID = service.deleteByID

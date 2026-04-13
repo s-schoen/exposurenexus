@@ -1,5 +1,3 @@
-import * as userRepository from "../repository/user.js"
-import { createLogger } from "../logging.js"
 import type { User } from "../repository/user.js"
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
@@ -46,11 +44,3 @@ export function createUserService({
     }
   }
 }
-
-const service = createUserService({
-  userRepository,
-  logger: createLogger("service/user")
-})
-
-export const listAll = service.listAll
-export const getByID = service.getByID

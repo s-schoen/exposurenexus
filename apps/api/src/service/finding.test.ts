@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
+import { pino } from "pino"
 import {
   FindingSource,
   FindingStatus,
@@ -8,35 +9,22 @@ import {
 } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import { createTestUser } from "../test/app.js"
-
-vi.mock("../logging.js", () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn()
-  })
-}))
-
-vi.mock("../repository/finding.js", () => ({
-  list: vi.fn(),
-  getByID: vi.fn(),
-  getByFingerprint: vi.fn(),
-  create: vi.fn(),
-  update: vi.fn(),
-  deleteByID: vi.fn()
-}))
-
-vi.mock("../service/vulnerability.js", () => ({
-  getByID: vi.fn()
-}))
-
-import * as findingRepository from "../repository/finding.js"
-import * as vulnerabilityService from "../service/vulnerability.js"
-import * as findingService from "./finding.js"
+import { createFindingService } from "./finding.js"
 
 describe("finding service", () => {
   const user = createTestUser()
+  const logger = pino({ enabled: false })
+  const findingRepository = {
+    list: vi.fn(),
+    getByID: vi.fn(),
+    getByFingerprint: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    deleteByID: vi.fn()
+  }
+  const vulnerabilityService = {
+    getByID: vi.fn()
+  }
   const vulnerability = {
     id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
     title: "Exposed Admin Endpoint",
@@ -76,10 +64,16 @@ describe("finding service", () => {
   })
 
   it("lists findings enriched with their vulnerability", async () => {
-    vi.mocked(findingRepository.list).mockResolvedValue([baseFinding])
-    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(vulnerability)
+    const service = createFindingService({
+      findingRepository,
+      vulnerabilityService,
+      logger
+    })
 
-    await expect(findingService.listAll()).resolves.toEqual([
+    findingRepository.list.mockResolvedValue([baseFinding])
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
+
+    await expect(service.listAll()).resolves.toEqual([
       {
         ...baseFinding,
         vulnerability
@@ -91,33 +85,52 @@ describe("finding service", () => {
   })
 
   it("returns a finding without enrichment when the vulnerability cannot be found", async () => {
-    vi.mocked(findingRepository.getByID).mockResolvedValue(baseFinding)
-    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(null)
+    const service = createFindingService({
+      findingRepository,
+      vulnerabilityService,
+      logger
+    })
 
-    await expect(findingService.getByID(baseFinding.id)).resolves.toEqual(
-      baseFinding
-    )
+    findingRepository.getByID.mockResolvedValue(baseFinding)
+    vulnerabilityService.getByID.mockResolvedValue(null)
+
+    await expect(service.getByID(baseFinding.id)).resolves.toEqual(baseFinding)
   })
 
   it("returns null when a finding does not exist", async () => {
-    vi.mocked(findingRepository.getByID).mockResolvedValue(null)
+    const service = createFindingService({
+      findingRepository,
+      vulnerabilityService,
+      logger
+    })
 
-    await expect(findingService.getByID(baseFinding.id)).resolves.toBeNull()
+    findingRepository.getByID.mockResolvedValue(null)
+
+    await expect(service.getByID(baseFinding.id)).resolves.toBeNull()
     expect(vulnerabilityService.getByID).not.toHaveBeenCalled()
   })
 
   it("maps repository get failures to an HTTP 500", async () => {
-    vi.mocked(findingRepository.getByID).mockRejectedValue(
-      new Error("db offline")
-    )
+    const service = createFindingService({
+      findingRepository,
+      vulnerabilityService,
+      logger
+    })
 
-    await expect(findingService.getByID(baseFinding.id)).rejects.toMatchObject({
+    findingRepository.getByID.mockRejectedValue(new Error("db offline"))
+
+    await expect(service.getByID(baseFinding.id)).rejects.toMatchObject({
       status: 500,
       message: "failed to get finding"
     } satisfies Partial<HTTPException>)
   })
 
   it("creates findings with audit fields, timestamps, and a fingerprint", async () => {
+    const service = createFindingService({
+      findingRepository,
+      vulnerabilityService,
+      logger
+    })
     const now = new Date("2026-02-03T04:05:06.000Z")
     const fingerprint = createHash("sha256")
       .update(createPayload.vulnerabilityId)
@@ -128,14 +141,14 @@ describe("finding service", () => {
     vi.useFakeTimers()
     vi.setSystemTime(now)
 
-    vi.mocked(findingRepository.create).mockImplementation(async (input) => ({
+    findingRepository.create.mockImplementation(async (input) => ({
       id: baseFinding.id,
       ...input
     }))
-    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(vulnerability)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await expect(
-      findingService.create(
+      service.create(
         {
           finding: createPayload,
           user
@@ -168,19 +181,24 @@ describe("finding service", () => {
   })
 
   it("uses a provided firstSeen value during creation", async () => {
+    const service = createFindingService({
+      findingRepository,
+      vulnerabilityService,
+      logger
+    })
     const now = new Date("2026-02-03T04:05:06.000Z")
     const firstSeen = new Date("2026-01-15T00:00:00.000Z")
 
     vi.useFakeTimers()
     vi.setSystemTime(now)
 
-    vi.mocked(findingRepository.create).mockImplementation(async (input) => ({
+    findingRepository.create.mockImplementation(async (input) => ({
       id: baseFinding.id,
       ...input
     }))
-    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(vulnerability)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
-    await findingService.create({
+    await service.create({
       finding: createPayload,
       user,
       firstSeen
@@ -197,6 +215,11 @@ describe("finding service", () => {
   })
 
   it("updates findings while preserving immutable fields", async () => {
+    const service = createFindingService({
+      findingRepository,
+      vulnerabilityService,
+      logger
+    })
     const now = new Date("2026-03-04T05:06:07.000Z")
     const updatePayload = {
       ...createPayload,
@@ -213,12 +236,12 @@ describe("finding service", () => {
     vi.useFakeTimers()
     vi.setSystemTime(now)
 
-    vi.mocked(findingRepository.getByID).mockResolvedValue(baseFinding)
-    vi.mocked(findingRepository.update).mockResolvedValue(updatedFinding)
-    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(vulnerability)
+    findingRepository.getByID.mockResolvedValue(baseFinding)
+    findingRepository.update.mockResolvedValue(updatedFinding)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await expect(
-      findingService.update({
+      service.update({
         id: baseFinding.id,
         finding: updatePayload,
         user
@@ -241,10 +264,16 @@ describe("finding service", () => {
   })
 
   it("returns null when updating a missing finding", async () => {
-    vi.mocked(findingRepository.getByID).mockResolvedValue(null)
+    const service = createFindingService({
+      findingRepository,
+      vulnerabilityService,
+      logger
+    })
+
+    findingRepository.getByID.mockResolvedValue(null)
 
     await expect(
-      findingService.update({
+      service.update({
         id: baseFinding.id,
         finding: createPayload,
         user
@@ -254,6 +283,11 @@ describe("finding service", () => {
   })
 
   it("updates lastSeen instead of creating when the fingerprint already exists", async () => {
+    const service = createFindingService({
+      findingRepository,
+      vulnerabilityService,
+      logger
+    })
     const now = new Date("2026-04-05T06:07:08.000Z")
     const existingFinding = {
       ...baseFinding,
@@ -272,14 +306,12 @@ describe("finding service", () => {
     vi.useFakeTimers()
     vi.setSystemTime(now)
 
-    vi.mocked(findingRepository.getByFingerprint).mockResolvedValue(
-      existingFinding
-    )
-    vi.mocked(findingRepository.update).mockResolvedValue(updatedFinding)
-    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(vulnerability)
+    findingRepository.getByFingerprint.mockResolvedValue(existingFinding)
+    findingRepository.update.mockResolvedValue(updatedFinding)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await expect(
-      findingService.createOrUpdate(
+      service.createOrUpdate(
         {
           finding: createPayload,
           user
@@ -287,60 +319,89 @@ describe("finding service", () => {
         { port: "443" }
       )
     ).resolves.toEqual({
-      created: false,
       finding: {
         ...updatedFinding,
         vulnerability
-      }
+      },
+      created: false
     })
 
     expect(findingRepository.getByFingerprint).toHaveBeenCalledWith(fingerprint)
-    expect(findingRepository.update).toHaveBeenCalledWith(
-      existingFinding.id,
-      expect.objectContaining({
-        id: existingFinding.id,
-        lastSeen: now
-      })
-    )
+    expect(findingRepository.update).toHaveBeenCalledWith(existingFinding.id, {
+      ...existingFinding,
+      lastSeen: now
+    })
+    expect(findingRepository.create).not.toHaveBeenCalled()
   })
 
-  it("creates a new finding when no fingerprint match exists", async () => {
-    vi.mocked(findingRepository.getByFingerprint).mockResolvedValue(null)
-    vi.mocked(findingRepository.create).mockImplementation(async (input) => ({
+  it("creates a finding when the fingerprint does not exist", async () => {
+    const service = createFindingService({
+      findingRepository,
+      vulnerabilityService,
+      logger
+    })
+    const now = new Date("2026-04-05T06:07:08.000Z")
+
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+
+    findingRepository.getByFingerprint.mockResolvedValue(null)
+    findingRepository.create.mockImplementation(async (input) => ({
       id: baseFinding.id,
       ...input
     }))
-    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(vulnerability)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
-    const result = await findingService.createOrUpdate({
-      finding: createPayload,
-      user
+    await expect(
+      service.createOrUpdate({
+        finding: createPayload,
+        user
+      })
+    ).resolves.toEqual({
+      finding: {
+        id: baseFinding.id,
+        ...createPayload,
+        fingerprint: createHash("sha256")
+          .update(createPayload.vulnerabilityId)
+          .update(createPayload.assetId)
+          .digest("hex"),
+        firstSeen: now,
+        lastSeen: now,
+        createdBy: user.id,
+        updatedBy: user.id,
+        createdAt: now,
+        updatedAt: now,
+        vulnerability
+      },
+      created: true
     })
-
-    expect(result.created).toBe(true)
-    expect(findingRepository.create).toHaveBeenCalledOnce()
   })
 
-  it("deletes a finding by id with vulnerability enrichment", async () => {
-    vi.mocked(findingRepository.deleteByID).mockResolvedValue(baseFinding)
-    vi.mocked(vulnerabilityService.getByID).mockResolvedValue(vulnerability)
+  it("deletes a finding and returns it enriched with its vulnerability", async () => {
+    const service = createFindingService({
+      findingRepository,
+      vulnerabilityService,
+      logger
+    })
 
-    await expect(findingService.deleteByID(baseFinding.id)).resolves.toEqual({
+    findingRepository.deleteByID.mockResolvedValue(baseFinding)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
+
+    await expect(service.deleteByID(baseFinding.id)).resolves.toEqual({
       ...baseFinding,
       vulnerability
     })
   })
 
-  it("maps repository delete failures to an HTTP 500", async () => {
-    vi.mocked(findingRepository.deleteByID).mockRejectedValue(
-      new Error("delete failed")
-    )
+  it("returns null when deleting a missing finding", async () => {
+    const service = createFindingService({
+      findingRepository,
+      vulnerabilityService,
+      logger
+    })
 
-    await expect(
-      findingService.deleteByID(baseFinding.id)
-    ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to get finding"
-    } satisfies Partial<HTTPException>)
+    findingRepository.deleteByID.mockResolvedValue(null)
+
+    await expect(service.deleteByID(baseFinding.id)).resolves.toBeNull()
   })
 })

@@ -1,10 +1,8 @@
-import * as assetRepository from "../repository/asset.js"
 import {
   type Asset,
   AssetType,
   type CreateAsset
 } from "@openvlp/types/model/asset"
-import { createLogger } from "../logging.js"
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
 
@@ -103,14 +101,3 @@ export function createAssetService({
     }
   }
 }
-
-const service = createAssetService({
-  assetRepository,
-  logger: createLogger("service/asset")
-})
-
-export const listAll = service.listAll
-export const getByID = service.getByID
-export const getByName = service.getByName
-export const create = service.create
-export const deleteByID = service.deleteByID

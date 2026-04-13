@@ -1,5 +1,5 @@
 import { type Asset, AssetType } from "@openvlp/types/model/asset"
-import { db, type Database } from "../db/index.js"
+import { type Database } from "../db/index.js"
 import type { Kysely } from "kysely"
 
 export function createAssetRepository(database: Kysely<Database>) {
@@ -62,11 +62,3 @@ export function createAssetRepository(database: Kysely<Database>) {
     }
   }
 }
-
-const repository = createAssetRepository(db)
-
-export const list = repository.list
-export const getByID = repository.getByID
-export const getByName = repository.getByName
-export const create = repository.create
-export const deleteByID = repository.deleteByID

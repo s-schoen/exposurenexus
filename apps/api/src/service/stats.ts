@@ -1,9 +1,7 @@
-import * as findingRepository from "../repository/finding.js"
 import {
   type FindingStatistics,
   FindingStatus
 } from "@openvlp/types/model/finding"
-import { createLogger } from "../logging.js"
 import { HTTPException } from "hono/http-exception"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import type { Logger } from "pino"
@@ -65,10 +63,3 @@ export function createStatsService({
     }
   }
 }
-
-const service = createStatsService({
-  findingRepository,
-  logger: createLogger("service/stats")
-})
-
-export const getFindingStats = service.getFindingStats

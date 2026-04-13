@@ -1,31 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
+import { pino } from "pino"
 import { FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
-
-vi.mock("../logging.js", () => ({
-  createLogger: () => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn()
-  })
-}))
-
-vi.mock("../repository/finding.js", () => ({
-  countBy: vi.fn()
-}))
-
-import * as findingRepository from "../repository/finding.js"
-import * as statsService from "./stats.js"
+import { createStatsService } from "./stats.js"
 
 describe("stats service", () => {
+  const findingRepository = {
+    countBy: vi.fn()
+  }
+  const logger = pino({ enabled: false })
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it("normalizes sparse finding statistics", async () => {
-    vi.mocked(findingRepository.countBy).mockImplementation(async (field) => {
+    const service = createStatsService({ findingRepository, logger })
+
+    findingRepository.countBy.mockImplementation(async (field) => {
       switch (field) {
         case "severity":
           return {
@@ -48,7 +41,7 @@ describe("stats service", () => {
       }
     })
 
-    await expect(statsService.getFindingStats()).resolves.toEqual({
+    await expect(service.getFindingStats()).resolves.toEqual({
       total: 3,
       status: {
         [FindingStatus.Active]: 2,
@@ -81,11 +74,11 @@ describe("stats service", () => {
   })
 
   it("maps repository failures to an HTTP 500", async () => {
-    vi.mocked(findingRepository.countBy).mockRejectedValue(
-      new Error("db offline")
-    )
+    const service = createStatsService({ findingRepository, logger })
 
-    await expect(statsService.getFindingStats()).rejects.toMatchObject({
+    findingRepository.countBy.mockRejectedValue(new Error("db offline"))
+
+    await expect(service.getFindingStats()).rejects.toMatchObject({
       status: 500,
       message: "failed to retrieve statistics"
     } satisfies Partial<HTTPException>)
