@@ -1,4 +1,5 @@
 export { createAssetService } from "./asset.js"
 export { createFindingService } from "./finding.js"
 export { createStatsService } from "./stats.js"
+export { createUserService } from "./user.js"
 export { createVulnerabilityService } from "./vulnerability.js"
