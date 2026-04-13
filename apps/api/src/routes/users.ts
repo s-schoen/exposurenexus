@@ -2,14 +2,14 @@ import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
-import type { User } from "../repository/user.js"
+import type { User } from "@openvlp/types/model/user"
 
 interface UserRouteService {
   listAll(): Promise<User[]>
   getByID(id: string): Promise<User | null>
 }
 
-const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
+const idParamValidator = zValidator("param", z.object({ id: z.string() }))
 
 export function createUserRoute(userService: UserRouteService) {
   const user = new Hono()

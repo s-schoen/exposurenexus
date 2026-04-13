@@ -10,7 +10,7 @@ import { createUserRoute } from "./users.js"
 describe("user routes", () => {
   const authenticatedUser = createTestUser()
   const listedUser = {
-    id: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+    id: "r9yYWvWAKPdsNDMB3xDgmmMMBwPTCCB0",
     name: "Alice Example",
     email: "alice@example.com",
     emailVerified: true,
@@ -90,26 +90,9 @@ describe("user routes", () => {
     })
   })
 
-  it("rejects invalid user ids before calling the service", async () => {
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
-      requireAuth: requireAuthenticatedUser,
-      userRoute: createUserRoute(userService)
-    })
-
-    const response = await app.request("/api/users/not-a-uuid", {
-      headers: {
-        "X-Request-Id": "users-invalid-id-request"
-      }
-    })
-
-    expect(response.status).toBe(400)
-    expect(userService.getByID).not.toHaveBeenCalled()
-  })
-
   it("returns 404 when the user does not exist", async () => {
     const requestId = "users-not-found-request"
-    const userId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f"
+    const userId = "r9yYWvWAKPdsNDMB3xDgmmMMBwPTCCB0"
 
     userService.getByID.mockResolvedValue(null)
 

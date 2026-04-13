@@ -1,7 +1,7 @@
 import { z } from "zod/v4"
 
 export const userSchema = z.strictObject({
-  id: z.uuidv4(),
+  id: z.string().nonempty(),
   name: z.string().nonempty(),
   username: z.string().nullable(),
   displayUsername: z.string().nullable(),
