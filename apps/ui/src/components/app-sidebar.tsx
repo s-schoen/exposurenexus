@@ -4,7 +4,8 @@ import {
   Home,
   Server,
   ShieldAlert,
-  UploadCloud
+  UploadCloud,
+  Users
 } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { Link, useLocation } from "@tanstack/react-router"
@@ -96,6 +97,13 @@ export function AppSidebar() {
     {
       label: "Manage",
       items: [
+        {
+          title: "Users",
+          url: "/users",
+          icon: Users,
+          description: "Platform access and accounts",
+          activeMatch: /^\/users(?:\/.+)?$/
+        },
         {
           title: "Import",
           url: "/findings/import",

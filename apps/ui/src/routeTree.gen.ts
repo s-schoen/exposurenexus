@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedVulnerabilitiesIndexRouteImport } from './routes/_authenticated/vulnerabilities/index'
+import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
 import { Route as AuthenticatedFindingsIndexRouteImport } from './routes/_authenticated/findings/index'
 import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets/index'
 import { Route as AuthenticatedVulnerabilitiesIdRouteImport } from './routes/_authenticated/vulnerabilities/$id'
@@ -42,6 +43,11 @@ const AuthenticatedVulnerabilitiesIndexRoute =
     path: '/vulnerabilities/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedUsersIndexRoute = AuthenticatedUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedFindingsIndexRoute =
   AuthenticatedFindingsIndexRouteImport.update({
     id: '/findings/',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
   '/assets/': typeof AuthenticatedAssetsIndexRoute
   '/findings/': typeof AuthenticatedFindingsIndexRoute
+  '/users/': typeof AuthenticatedUsersIndexRoute
   '/vulnerabilities/': typeof AuthenticatedVulnerabilitiesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
   '/assets': typeof AuthenticatedAssetsIndexRoute
   '/findings': typeof AuthenticatedFindingsIndexRoute
+  '/users': typeof AuthenticatedUsersIndexRoute
   '/vulnerabilities': typeof AuthenticatedVulnerabilitiesIndexRoute
 }
 export interface FileRoutesById {
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/_authenticated/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
   '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
   '/_authenticated/findings/': typeof AuthenticatedFindingsIndexRoute
+  '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
   '/_authenticated/vulnerabilities/': typeof AuthenticatedVulnerabilitiesIndexRoute
 }
 export interface FileRouteTypes {
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/vulnerabilities/$id'
     | '/assets/'
     | '/findings/'
+    | '/users/'
     | '/vulnerabilities/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/vulnerabilities/$id'
     | '/assets'
     | '/findings'
+    | '/users'
     | '/vulnerabilities'
   id:
     | '__root__'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '/_authenticated/vulnerabilities/$id'
     | '/_authenticated/assets/'
     | '/_authenticated/findings/'
+    | '/_authenticated/users/'
     | '/_authenticated/vulnerabilities/'
   fileRoutesById: FileRoutesById
 }
@@ -206,6 +218,13 @@ declare module '@tanstack/react-router' {
       path: '/vulnerabilities'
       fullPath: '/vulnerabilities/'
       preLoaderRoute: typeof AuthenticatedVulnerabilitiesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/users/': {
+      id: '/_authenticated/users/'
+      path: '/users'
+      fullPath: '/users/'
+      preLoaderRoute: typeof AuthenticatedUsersIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/findings/': {
@@ -277,6 +296,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedVulnerabilitiesIdRoute: typeof AuthenticatedVulnerabilitiesIdRoute
   AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute
   AuthenticatedFindingsIndexRoute: typeof AuthenticatedFindingsIndexRoute
+  AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
   AuthenticatedVulnerabilitiesIndexRoute: typeof AuthenticatedVulnerabilitiesIndexRoute
 }
 
@@ -290,6 +310,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedVulnerabilitiesIdRoute: AuthenticatedVulnerabilitiesIdRoute,
   AuthenticatedAssetsIndexRoute: AuthenticatedAssetsIndexRoute,
   AuthenticatedFindingsIndexRoute: AuthenticatedFindingsIndexRoute,
+  AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
   AuthenticatedVulnerabilitiesIndexRoute:
     AuthenticatedVulnerabilitiesIndexRoute,
 }

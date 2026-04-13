@@ -1,4 +1,5 @@
 import { keepPreviousData } from "@tanstack/react-query"
+import type { User } from "@openvlp/types/model/user"
 import { env } from "@/env.ts"
 import {
   DEFAULT_QUERY_STALE_TIME,
@@ -6,7 +7,6 @@ import {
   parseErrorReply,
   parseObjectReply
 } from "@/api/common.ts"
-import type { User } from "@openvlp/types/model/user"
 
 async function listUsers(): Promise<Array<User>> {
   const response = await fetch(`${env.VITE_API_URL}/api/users`, {
@@ -40,7 +40,7 @@ async function getUserByID(id: string): Promise<User> {
 
 export function createListUsersQueryOptions() {
   return {
-    queryKey: ["vulnerabilities"],
+    queryKey: ["users"],
     queryFn: () => listUsers(),
     placeholderData: keepPreviousData,
     staleTime: DEFAULT_QUERY_STALE_TIME
@@ -49,7 +49,7 @@ export function createListUsersQueryOptions() {
 
 export function createUserByIDQueryOptions(id: string) {
   return {
-    queryKey: ["vulnerabilities", id],
+    queryKey: ["users", id],
     queryFn: () => getUserByID(id)
   }
 }
