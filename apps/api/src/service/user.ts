@@ -1,6 +1,6 @@
-import type { User } from "../repository/user.js"
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
+import type { User } from "@openvlp/types/model/user"
 
 interface UserRepository {
   list(): Promise<User[]>

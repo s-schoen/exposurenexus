@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
 import { pino } from "pino"
-import type { User } from "../repository/user.js"
 import { createUserService } from "./user.js"
+import type { User } from "@openvlp/types/model/user"
 
 describe("user service", () => {
   const userRepository = {

@@ -15,6 +15,9 @@
     },
     "./model/vulnerability": {
       "import": "./src/model/vulnerability.ts"
+    },
+    "./model/user": {
+      "import": "./src/model/user.ts"
     }
   },
   "files": [

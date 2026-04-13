@@ -1,8 +1,6 @@
 import type { Database } from "../db/index.js"
-import type { UserTable } from "../db/schema/auth.js"
-import type { Kysely, Selectable } from "kysely"
-
-export type User = Selectable<UserTable>
+import type { Kysely } from "kysely"
+import type { User } from "@openvlp/types/model/user"
 
 export function createUserRepository(database: Kysely<Database>) {
   return {
