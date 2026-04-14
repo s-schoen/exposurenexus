@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth"
 import { db, pool, logger as dbLogger } from "../db/index.js"
 import { env } from "../env.js"
-import { username } from "better-auth/plugins"
+import { admin, username } from "better-auth/plugins"
 import type { Kysely } from "kysely"
 import type { Database } from "../db/index.js"
 import type { Logger } from "pino"
@@ -23,7 +23,11 @@ export interface AuthApiSignupClient {
       email: string
       password: string
     }
-  }): Promise<unknown>
+  }): Promise<{
+    user: {
+      id: string
+    }
+  }>
 }
 
 export interface AuthClient {
@@ -57,7 +61,13 @@ export function createAuth({
     },
     baseURL: authUrl,
     secret: authSecret,
-    plugins: [username()]
+    plugins: [
+      username(),
+      admin({
+        defaultRole: "user",
+        adminRoles: ["admin"]
+      })
+    ]
   }) as AuthClient
 }
 
@@ -86,7 +96,7 @@ export async function createDefaultAdmin(
 
   const password = crypto.randomUUID()
 
-  await options.auth.api.signUpEmail({
+  const created = await options.auth.api.signUpEmail({
     body: {
       username: "admin",
       name: "Administrator",
@@ -95,6 +105,13 @@ export async function createDefaultAdmin(
       password: password
     }
   })
+
+  await options.db
+    .updateTable("user")
+    .set({ role: "admin" })
+    .where("id", "=", created.user.id)
+    .returning("id")
+    .executeTakeFirstOrThrow()
 
   options.logger.info(
     `created admin user: username=admin, password=${password}`

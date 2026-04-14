@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createTestUser } from "../test/app.js"
 
-const { betterAuthMock, usernameMock } = vi.hoisted(() => ({
+const { adminMock, betterAuthMock, usernameMock } = vi.hoisted(() => ({
+  adminMock: vi.fn(() => "admin-plugin"),
   betterAuthMock: vi.fn(),
   usernameMock: vi.fn(() => "username-plugin")
 }))
@@ -11,6 +12,7 @@ vi.mock("better-auth", () => ({
 }))
 
 vi.mock("better-auth/plugins", () => ({
+  admin: adminMock,
   username: usernameMock
 }))
 
@@ -68,7 +70,11 @@ describe("auth factory", () => {
       },
       baseURL: "http://localhost:3000",
       secret: "012345678901234567890123456789012345678901234567890123456789",
-      plugins: ["username-plugin"]
+      plugins: ["username-plugin", "admin-plugin"]
+    })
+    expect(adminMock).toHaveBeenCalledWith({
+      defaultRole: "user",
+      adminRoles: ["admin"]
     })
     expect(usernameMock).toHaveBeenCalledOnce()
   })
@@ -81,6 +87,7 @@ describe("auth factory", () => {
     })
     const db = {
       selectFrom,
+      updateTable: vi.fn(),
       fn: {
         countAll: vi.fn().mockReturnValue({
           as: vi.fn().mockReturnValue("count")
@@ -116,6 +123,15 @@ describe("auth factory", () => {
     })
     const db = {
       selectFrom,
+      updateTable: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockReturnValue({
+              executeTakeFirstOrThrow: vi.fn().mockResolvedValue({ id: user.id })
+            })
+          })
+        })
+      }),
       fn: {
         countAll: vi.fn().mockReturnValue({
           as: vi.fn().mockReturnValue("count")
@@ -152,6 +168,7 @@ describe("auth factory", () => {
         password: "00000000-0000-0000-0000-000000000000"
       }
     })
+    expect(db.updateTable).toHaveBeenCalledWith("user")
     expect(logger.info).toHaveBeenCalledWith(
       "created admin user: username=admin, password=00000000-0000-0000-0000-000000000000"
     )
