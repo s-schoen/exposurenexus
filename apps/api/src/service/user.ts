@@ -16,7 +16,7 @@ export interface UpdateUser {
   email: string
   displayUsername: string
   image: string | null
-  password: string
+  password?: string
 }
 
 type UserProfileUpdate = Pick<
@@ -165,16 +165,18 @@ export function createUserService({
           return null
         }
 
-        try {
-          await auth.api.setUserPassword({
-            body: {
-              userId: id,
-              newPassword: user.password
-            }
-          })
-        } catch (error) {
-          await rollbackUserProfileUpdate(userRepository, existing, logger)
-          throw error
+        if (user.password !== undefined) {
+          try {
+            await auth.api.setUserPassword({
+              body: {
+                userId: id,
+                newPassword: user.password
+              }
+            })
+          } catch (error) {
+            await rollbackUserProfileUpdate(userRepository, existing, logger)
+            throw error
+          }
         }
 
         logger.info({ userId: id }, "updated user")

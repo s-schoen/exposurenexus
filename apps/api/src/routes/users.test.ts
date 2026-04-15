@@ -264,6 +264,52 @@ describe("user routes", () => {
     })
   })
 
+  it("updates a user by id without changing the password", async () => {
+    const requestId = "users-update-without-password-request"
+    const userId = listedUser.id
+    const payload = {
+      name: "Alice Updated",
+      email: "alice.updated@example.com",
+      displayUsername: "Alice Updated",
+      image: null
+    }
+    const updatedUser = {
+      ...listedUser,
+      ...payload,
+      username: listedUser.username,
+      updatedAt: new Date("2026-02-03T04:05:06.000Z")
+    }
+
+    userService.updateByID.mockResolvedValue(updatedUser)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      userRoute: createUserRoute(userService)
+    })
+
+    const response = await app.request(`/api/users/${userId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload)
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: {
+        ...updatedUser,
+        createdAt: updatedUser.createdAt.toISOString(),
+        updatedAt: updatedUser.updatedAt.toISOString()
+      }
+    })
+  })
+
   it("rejects invalid user update bodies before calling the service", async () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
@@ -283,6 +329,32 @@ describe("user routes", () => {
         displayUsername: "",
         image: null,
         password: "new-correct-horse-battery-staple"
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(userService.updateByID).not.toHaveBeenCalled()
+  })
+
+  it("rejects empty passwords on user update", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      userRoute: createUserRoute(userService)
+    })
+
+    const response = await app.request(`/api/users/${listedUser.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "users-empty-password-update-body-request"
+      },
+      body: JSON.stringify({
+        name: "Alice Updated",
+        email: "alice.updated@example.com",
+        displayUsername: "Alice Updated",
+        image: null,
+        password: ""
       })
     })
 

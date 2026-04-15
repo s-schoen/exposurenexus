@@ -17,7 +17,7 @@ const updateUserSchema = z.strictObject({
   email: z.email(),
   displayUsername: z.string().trim().min(1),
   image: z.string().nullable(),
-  password: z.string().min(1)
+  password: z.string().min(1).optional()
 })
 
 interface UserRouteService {

@@ -191,6 +191,43 @@ describe("user service", () => {
     })
   })
 
+  it("updates profile fields without resetting the password when omitted", async () => {
+    const service = createUserService({ userRepository, auth, logger })
+    const now = new Date("2026-02-03T04:05:06.000Z")
+    const updatedUser = {
+      ...user,
+      name: "Alice Updated",
+      email: "alice.updated@example.com",
+      displayUsername: "Alice Updated",
+      image: null,
+      updatedAt: now
+    }
+
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+
+    userRepository.getByID.mockResolvedValueOnce(user)
+    userRepository.updateByID.mockResolvedValue(updatedUser)
+
+    await expect(
+      service.updateByID(user.id, {
+        name: "Alice Updated",
+        email: "alice.updated@example.com",
+        displayUsername: "Alice Updated",
+        image: null
+      })
+    ).resolves.toEqual(updatedUser)
+
+    expect(userRepository.updateByID).toHaveBeenCalledWith(user.id, {
+      name: "Alice Updated",
+      email: "alice.updated@example.com",
+      displayUsername: "Alice Updated",
+      image: null,
+      updatedAt: now
+    })
+    expect(auth.api.setUserPassword).not.toHaveBeenCalled()
+  })
+
   it("returns null when updating a missing user", async () => {
     const service = createUserService({ userRepository, auth, logger })
 
