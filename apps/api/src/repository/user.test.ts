@@ -74,4 +74,53 @@ describe("user repository", () => {
       repository.getByID("72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19e")
     ).resolves.toBeNull()
   })
+
+  it("updates a user by id", async () => {
+    const repository = createUserRepository(testDb.db)
+    const user = {
+      id: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+      name: "Alice Example",
+      email: "alice@example.com",
+      emailVerified: true,
+      image: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      username: "alice",
+      displayUsername: "Alice"
+    }
+    const updatedAt = new Date("2026-02-03T04:05:06.000Z")
+
+    await testDb.db.insertInto("user").values(user).execute()
+
+    await expect(
+      repository.updateByID(user.id, {
+        name: "Alice Updated",
+        email: "alice.updated@example.com",
+        displayUsername: "Alice Updated",
+        image: "https://example.com/alice.png",
+        updatedAt
+      })
+    ).resolves.toEqual({
+      ...user,
+      name: "Alice Updated",
+      email: "alice.updated@example.com",
+      displayUsername: "Alice Updated",
+      image: "https://example.com/alice.png",
+      updatedAt
+    })
+  })
+
+  it("returns null when updating a user that does not exist", async () => {
+    const repository = createUserRepository(testDb.db)
+
+    await expect(
+      repository.updateByID("72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19e", {
+        name: "Alice Updated",
+        email: "alice.updated@example.com",
+        displayUsername: "Alice Updated",
+        image: null,
+        updatedAt: new Date("2026-02-03T04:05:06.000Z")
+      })
+    ).resolves.toBeNull()
+  })
 })

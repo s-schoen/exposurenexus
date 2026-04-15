@@ -6,6 +6,7 @@ import type { Kysely } from "kysely"
 import type { Database } from "../db/index.js"
 import type { Logger } from "pino"
 import type { Pool } from "pg"
+import type { User } from "@openvlp/types/model/user"
 
 export interface AuthApiSessionClient {
   getSession(input: { headers: Headers }): Promise<{
@@ -24,14 +25,24 @@ export interface AuthApiSignupClient {
       password: string
     }
   }): Promise<{
-    user: {
-      id: string
+    user: User
+  }>
+}
+
+export interface AuthApiUserManagementClient {
+  setUserPassword(input: {
+    body: {
+      userId: string
+      newPassword: string
     }
+  }): Promise<{
+    success?: boolean
+    status?: boolean
   }>
 }
 
 export interface AuthClient {
-  api: AuthApiSessionClient & AuthApiSignupClient
+  api: AuthApiSessionClient & AuthApiSignupClient & AuthApiUserManagementClient
   handler(request: Request): Response | Promise<Response>
 }
 

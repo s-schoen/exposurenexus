@@ -67,6 +67,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   })
   const userService = createUserService({
     userRepository: repositories.userRepository,
+    auth,
     logger: loggerFactory("service/user")
   })
   const vulnerabilityService = createVulnerabilityService({
