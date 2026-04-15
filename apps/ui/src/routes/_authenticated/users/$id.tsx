@@ -1,6 +1,13 @@
-import { Link, createFileRoute } from "@tanstack/react-router"
+import { useMemo } from "react"
+import {
+  Link,
+  Outlet,
+  createFileRoute,
+  useMatchRoute,
+  useNavigate
+} from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Pencil } from "lucide-react"
 import { createUserByIDQueryOptions } from "@/api/user.ts"
 import { UserDetailContent } from "@/components/user-detail-content.tsx"
 import { buttonVariants } from "@/components/ui/button.tsx"
@@ -13,12 +20,43 @@ export const Route = createFileRoute("/_authenticated/users/$id")({
 
 function RouteComponent() {
   const { id } = Route.useParams()
+
+  const matchRoute = useMatchRoute()
+  const isEditRoute = Boolean(
+    matchRoute({ to: "/users/$id/edit", params: { id } })
+  )
+
+  if (isEditRoute) {
+    return <Outlet />
+  }
+
+  return <UserDetailPage id={id} />
+}
+
+function UserDetailPage({ id }: { id: string }) {
+  const navigate = useNavigate()
   const user = useQuery(createUserByIDQueryOptions(id))
+  const actions = useMemo(
+    () => [
+      {
+        label: "Edit user",
+        icon: Pencil,
+        onClick: () => {
+          void navigate({
+            to: "/users/$id/edit",
+            params: { id }
+          })
+        }
+      }
+    ],
+    [id, navigate]
+  )
 
   usePageMeta({
-    title: user.data?.name ?? "User",
+    title: user.data?.displayUsername ?? user.data?.name ?? "User",
     description:
-      "Review account identity fields, verification state, and audit timestamps."
+      "Review account identity fields, verification state, and audit timestamps.",
+    actions
   })
 
   return (

@@ -6,19 +6,20 @@ import { Badge } from "@/components/ui/badge.tsx"
 
 export const columns: Array<ColumnDef<User>> = [
   {
-    accessorKey: "name",
+    id: "displayUsername",
+    accessorFn: (user) => user.displayUsername ?? user.name,
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
+      <DataTableColumnHeader column={column} title="Display name" />
     )
   },
   {
     id: "username",
-    accessorFn: (user) => user.displayUsername ?? user.username ?? "",
+    accessorFn: (user) => user.username ?? "",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Username" />
     ),
     cell: ({ row }) => {
-      const username = row.original.displayUsername ?? row.original.username
+      const username = row.original.username
 
       return username ? (
         <span>{username}</span>

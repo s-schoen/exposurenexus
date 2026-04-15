@@ -5,11 +5,7 @@ import { createUserByIDQueryOptions } from "@/api/user.ts"
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
 import { MetadataSidebar } from "@/components/metadata-sidebar"
 import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx"
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle
-} from "@/components/ui/alert.tsx"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
 import { Badge } from "@/components/ui/badge.tsx"
 import {
   Card,
@@ -105,9 +101,10 @@ export function UserDetailContent({
 
   const userData = user.data
   const emailVerified = Boolean(userData.emailVerified)
+  const displayName = userData.displayUsername ?? userData.name
 
   function UserOverviewCard() {
-    const username = userData.displayUsername ?? userData.username
+    const username = userData.username
 
     return (
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
@@ -119,7 +116,7 @@ export function UserDetailContent({
           <div className="space-y-3">
             <div className="space-y-2">
               <CardTitle className="text-2xl font-semibold tracking-tight">
-                {userData.name}
+                {displayName}
               </CardTitle>
               <CardDescription className="max-w-3xl text-sm leading-6">
                 Platform user account with access credentials, profile
@@ -135,7 +132,7 @@ export function UserDetailContent({
               <DetailHighlightCard
                 label="Username"
                 value={username ?? "Not assigned"}
-                description="Preferred user-facing account handle"
+                description="Unique sign-in handle for the account"
               />
               <DetailHighlightCard
                 label="Status"
@@ -150,7 +147,7 @@ export function UserDetailContent({
   }
 
   function UserProfileCard() {
-    const username = userData.displayUsername ?? userData.username
+    const username = userData.username
 
     return (
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
@@ -171,9 +168,11 @@ export function UserDetailContent({
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <div className="text-sm font-medium text-foreground">Name</div>
+            <div className="text-sm font-medium text-foreground">
+              Display name
+            </div>
             <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-              {userData.name}
+              {displayName}
             </div>
           </div>
           <div className="space-y-2">
@@ -183,19 +182,9 @@ export function UserDetailContent({
             </div>
           </div>
           <div className="space-y-2">
-            <div className="text-sm font-medium text-foreground">
-              Username
-            </div>
+            <div className="text-sm font-medium text-foreground">Username</div>
             <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
               {username ?? "Not assigned"}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-foreground">
-              Display username
-            </div>
-            <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-              {userData.displayUsername ?? "Not assigned"}
             </div>
           </div>
         </CardContent>
@@ -204,22 +193,31 @@ export function UserDetailContent({
   }
 
   function UserSidebar() {
-    const username = userData.displayUsername ?? userData.username
+    const username = userData.username
 
     return (
       <MetadataSidebar title="User details" icon={UserIcon}>
         <div className="space-y-3">
-          <MetadataDetailRow label="Name" value={userData.name} />
+          <MetadataDetailRow label="Display name" value={displayName} />
           <MetadataDetailRow label="Email" value={userData.email} />
-          <MetadataDetailRow label="Username" value={username ?? "Not assigned"} />
+          <MetadataDetailRow
+            label="Username"
+            value={username ?? "Not assigned"}
+          />
           <MetadataDetailRow
             label="Email status"
             value={emailVerified ? "Verified" : "Unverified"}
           />
         </div>
         <div className="space-y-3 border-t border-border/70 pt-5">
-          <MetadataDetailRow label="Created" value={formatDateTime(userData.createdAt)} />
-          <MetadataDetailRow label="Updated" value={formatDateTime(userData.updatedAt)} />
+          <MetadataDetailRow
+            label="Created"
+            value={formatDateTime(userData.createdAt)}
+          />
+          <MetadataDetailRow
+            label="Updated"
+            value={formatDateTime(userData.updatedAt)}
+          />
         </div>
       </MetadataSidebar>
     )
