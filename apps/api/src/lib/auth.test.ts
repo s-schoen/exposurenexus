@@ -127,7 +127,9 @@ describe("auth factory", () => {
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             returning: vi.fn().mockReturnValue({
-              executeTakeFirstOrThrow: vi.fn().mockResolvedValue({ id: user.id })
+              executeTakeFirstOrThrow: vi
+                .fn()
+                .mockResolvedValue({ id: user.id })
             })
           })
         })

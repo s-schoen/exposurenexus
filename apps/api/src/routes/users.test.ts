@@ -22,7 +22,9 @@ describe("user routes", () => {
   }
   const userService = {
     listAll: vi.fn(),
-    getByID: vi.fn()
+    getByID: vi.fn(),
+    create: vi.fn(),
+    updateByID: vi.fn()
   }
 
   beforeEach(() => {
@@ -146,6 +148,188 @@ describe("user routes", () => {
         createdAt: listedUser.createdAt.toISOString(),
         updatedAt: listedUser.updatedAt.toISOString()
       }
+    })
+  })
+
+  it("returns 201 when creating a user", async () => {
+    const requestId = "users-create-request"
+    const payload = {
+      name: "Alice Example",
+      email: "alice@example.com",
+      username: "alice",
+      displayUsername: "Alice",
+      password: "correct-horse-battery-staple"
+    }
+
+    userService.create.mockResolvedValue(listedUser)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      userRoute: createUserRoute(userService)
+    })
+
+    const response = await app.request("/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(201)
+    expect(userService.create).toHaveBeenCalledWith(payload)
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: {
+        ...listedUser,
+        createdAt: listedUser.createdAt.toISOString(),
+        updatedAt: listedUser.updatedAt.toISOString()
+      }
+    })
+  })
+
+  it("rejects invalid user create bodies before calling the service", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      userRoute: createUserRoute(userService)
+    })
+
+    const response = await app.request("/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "users-invalid-create-body-request"
+      },
+      body: JSON.stringify({
+        name: "",
+        email: "not-an-email",
+        username: "alice",
+        displayUsername: "Alice",
+        password: "correct-horse-battery-staple"
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(userService.create).not.toHaveBeenCalled()
+  })
+
+  it("updates a user by id", async () => {
+    const requestId = "users-update-request"
+    const userId = listedUser.id
+    const payload = {
+      name: "Alice Updated",
+      email: "alice.updated@example.com",
+      displayUsername: "Alice Updated",
+      image: "https://example.com/alice.png",
+      password: "new-correct-horse-battery-staple"
+    }
+    const updatedUser = {
+      ...listedUser,
+      ...payload,
+      username: listedUser.username,
+      updatedAt: new Date("2026-02-03T04:05:06.000Z")
+    }
+
+    userService.updateByID.mockResolvedValue(updatedUser)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      userRoute: createUserRoute(userService)
+    })
+
+    const response = await app.request(`/api/users/${userId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload)
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: {
+        ...updatedUser,
+        createdAt: updatedUser.createdAt.toISOString(),
+        updatedAt: updatedUser.updatedAt.toISOString()
+      }
+    })
+  })
+
+  it("rejects invalid user update bodies before calling the service", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      userRoute: createUserRoute(userService)
+    })
+
+    const response = await app.request(`/api/users/${listedUser.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "users-invalid-update-body-request"
+      },
+      body: JSON.stringify({
+        name: "Alice Updated",
+        email: "alice.updated@example.com",
+        displayUsername: "",
+        image: null,
+        password: "new-correct-horse-battery-staple"
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(userService.updateByID).not.toHaveBeenCalled()
+  })
+
+  it("returns 404 when updating a missing user", async () => {
+    const requestId = "users-update-not-found-request"
+    const userId = listedUser.id
+
+    userService.updateByID.mockResolvedValue(null)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      userRoute: createUserRoute(userService)
+    })
+
+    const response = await app.request(`/api/users/${userId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify({
+        name: "Alice Updated",
+        email: "alice.updated@example.com",
+        displayUsername: "Alice Updated",
+        image: null,
+        password: "new-correct-horse-battery-staple"
+      })
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(userService.updateByID).toHaveBeenCalledWith(userId, {
+      name: "Alice Updated",
+      email: "alice.updated@example.com",
+      displayUsername: "Alice Updated",
+      image: null,
+      password: "new-correct-horse-battery-staple"
+    })
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: `user with id ${userId} does not exist`
     })
   })
 })
