@@ -121,7 +121,7 @@ export function DataTableToolbar<TData>({
   function getFilterField(column: Column<TData>) {
     switch (column.columnDef.meta?.filterVariant) {
       case "select":
-        return <SelectFilterField column={column} />
+        return <SelectFilterField key={column.id} column={column} />
       default:
         return null
     }

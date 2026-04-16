@@ -1,12 +1,4 @@
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  LabelList,
-  ResponsiveContainer,
-  XAxis,
-  YAxis
-} from "recharts"
+import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
 import type { ChartConfig } from "@/components/ui/chart.tsx"
 import {
   ChartContainer,
@@ -45,33 +37,31 @@ export function SimpleBarChart({
         config={chartConfig}
         className={cn(height ? `h-${height}` : undefined, "w-full")}
       >
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart accessibilityLayer data={chartData}>
-            <CartesianGrid vertical={false} />
-            <YAxis tickLine={false} tickMargin={8} axisLine={false} />
-            <XAxis
-              dataKey="label"
-              tickLine={false}
-              tickMargin={8}
-              axisLine={false}
-              tickFormatter={(value) =>
-                chartConfig[value as keyof typeof chartConfig].label as string
-              }
+        <BarChart accessibilityLayer data={chartData}>
+          <CartesianGrid vertical={false} />
+          <YAxis tickLine={false} tickMargin={8} axisLine={false} />
+          <XAxis
+            dataKey="label"
+            tickLine={false}
+            tickMargin={8}
+            axisLine={false}
+            tickFormatter={(value) =>
+              chartConfig[value as keyof typeof chartConfig].label as string
+            }
+          />
+          <ChartTooltip
+            cursor={false}
+            content={<ChartTooltipContent hideLabel />}
+          />
+          <Bar dataKey="value" radius={4}>
+            <LabelList
+              position="top"
+              offset={12}
+              className="fill-foreground"
+              fontSize={12}
             />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Bar dataKey="value" radius={4}>
-              <LabelList
-                position="top"
-                offset={12}
-                className="fill-foreground"
-                fontSize={12}
-              />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+          </Bar>
+        </BarChart>
       </ChartContainer>
     )
   }
