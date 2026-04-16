@@ -58,6 +58,7 @@
     "eslint": "^10.2.0",
     "jsdom": "^29.0.2",
     "prettier": "^3.8.2",
+    "shadcn": "^4.3.0",
     "typescript": "^5.7.2",
     "vite": "^8.0.8",
     "vitest": "^4.1.4",
