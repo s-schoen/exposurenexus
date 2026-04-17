@@ -17,3 +17,4 @@ Do NOT commit any changes to git unless you are explicitly asked.
 - **UI Components**: shadcn UI primitives located in `src/components/ui`.
 - **Imports**: ALWAYS use absolute imports with `@/` alias (e.g., `import { Button } from "@/components/ui/button"`).
 - **Naming**: kebab-case for components (`my-button.tsx`), camelCase for helpers (`utils.ts`).
+- **Storybook**: Always create or update a Storybook story for new app-owned components. Prefer colocated `*.stories.tsx` files that cover the component's primary visual states. Do not add stories for shadcn internal primitives in `src/components/ui` unless explicitly requested.
