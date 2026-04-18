@@ -14,14 +14,14 @@ export interface CreateAppOptions {
   accessLogger: Logger
   authUrl: string
   apiTimeoutMs: number
-  annotateAuth: MiddlewareHandler
-  requireAuth: MiddlewareHandler
+  annotateAuth: MiddlewareHandler<{ Variables: ContextVariables }>
+  requireAuth: MiddlewareHandler<{ Variables: ContextVariables }>
   healthRoute: Hono
   authRoute: Hono
-  assetRoute: Hono
-  userRoute: Hono
-  vulnerabilityRoute: Hono
-  findingStatsRoute: Hono
+  assetRoute: Hono<{ Variables: ContextVariables }>
+  userRoute: Hono<{ Variables: ContextVariables }>
+  vulnerabilityRoute: Hono<{ Variables: ContextVariables }>
+  findingStatsRoute: Hono<{ Variables: ContextVariables }>
   findingRoute: Hono<{ Variables: ContextVariables }>
   importerRoute: Hono<{ Variables: ContextVariables }>
 }

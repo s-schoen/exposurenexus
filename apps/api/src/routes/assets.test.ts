@@ -1,5 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { AssetType } from "@openvlp/types/model/asset"
+
+vi.mock("../lib/auth.js", () => ({
+  auth: {
+    api: {
+      userHasPermission: vi.fn()
+    }
+  }
+}))
+
+import { auth } from "../lib/auth.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -19,6 +29,7 @@ describe("asset routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(auth.api.userHasPermission).mockResolvedValue(true)
   })
 
   it("returns 401 for unauthenticated requests", async () => {
@@ -250,6 +261,36 @@ describe("asset routes", () => {
       correlationId: requestId,
       data: deletedAsset
     })
+  })
+
+  it("returns 403 when deleting an asset without delete permission", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+
+    vi.mocked(auth.api.userHasPermission).mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService)
+    })
+
+    const response = await app.request(`/api/assets/${assetId}`, {
+      method: "DELETE",
+      headers: {
+        "X-Request-Id": "assets-delete-forbidden-request"
+      }
+    })
+
+    expect(response.status).toBe(403)
+    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+      body: {
+        userId: user.id,
+        permissions: {
+          asset: ["delete"]
+        }
+      }
+    })
+    expect(assetService.deleteByID).not.toHaveBeenCalled()
   })
 
   it("returns 404 when deleting a missing asset", async () => {

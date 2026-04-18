@@ -1,6 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
 import { pino } from "pino"
+
+vi.mock("../lib/auth.js", () => ({
+  auth: {
+    api: {
+      userHasPermission: vi.fn()
+    }
+  }
+}))
+
+import { auth } from "../lib/auth.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -18,6 +28,7 @@ describe("finding import routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(auth.api.userHasPermission).mockResolvedValue(true)
   })
 
   it("returns 401 for unauthenticated requests", async () => {
@@ -162,6 +173,45 @@ describe("finding import routes", () => {
         status: "ok"
       }
     })
+  })
+
+  it("returns 403 when importing findings without write permission", async () => {
+    const form = new FormData()
+
+    form.set("type", "nuclei")
+    form.set(
+      "file",
+      new File(['{"template-id":"test"}\n'], "findings.jsonl", {
+        type: "application/json"
+      })
+    )
+
+    vi.mocked(auth.api.userHasPermission).mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      importerRoute: createImportRoute({ importer, logger })
+    })
+
+    const response = await app.request("/api/findings/import", {
+      method: "POST",
+      headers: {
+        "X-Request-Id": "findings-import-forbidden-request"
+      },
+      body: form
+    })
+
+    expect(response.status).toBe(403)
+    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+      body: {
+        userId: user.id,
+        permissions: {
+          import: ["write"]
+        }
+      }
+    })
+    expect(importer.parseFindingsFromFile).not.toHaveBeenCalled()
   })
 
   it("maps importer parsing failures to the standard error reply", async () => {

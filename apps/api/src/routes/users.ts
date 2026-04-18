@@ -3,6 +3,12 @@ import { zValidator } from "@hono/zod-validator"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
 import type { User } from "@openvlp/types/model/user"
+import type { ContextVariables } from "../lib/hono-schema.js"
+import {
+  requireUserManagementCreate,
+  requireUserManagementRead,
+  requireUserManagementUpdate
+} from "../middleware/auth.js"
 
 const createUserSchema = z.strictObject({
   name: z.string().trim().min(1),
@@ -33,14 +39,14 @@ interface UserRouteService {
 const idParamValidator = zValidator("param", z.object({ id: z.string() }))
 
 export function createUserRoute(userService: UserRouteService) {
-  const user = new Hono()
+  const user = new Hono<{ Variables: ContextVariables }>()
 
-  user.get("/", async (c) => {
+  user.get("/", requireUserManagementRead(), async (c) => {
     const users = await userService.listAll()
     return replyArray(c, users)
   })
 
-  user.get("/:id", idParamValidator, async (c) => {
+  user.get("/:id", requireUserManagementRead(), idParamValidator, async (c) => {
     const params = c.req.valid("param")
 
     const userResult = await userService.getByID(params.id)
@@ -51,14 +57,20 @@ export function createUserRoute(userService: UserRouteService) {
     return replyObject(c, userResult!)
   })
 
-  user.post("/", zValidator("json", createUserSchema), async (c) => {
-    const body = c.req.valid("json")
-    const createdUser = await userService.create(body)
-    return replyObject(c, createdUser, true)
-  })
+  user.post(
+    "/",
+    requireUserManagementCreate(),
+    zValidator("json", createUserSchema),
+    async (c) => {
+      const body = c.req.valid("json")
+      const createdUser = await userService.create(body)
+      return replyObject(c, createdUser, true)
+    }
+  )
 
   user.put(
     "/:id",
+    requireUserManagementUpdate(),
     idParamValidator,
     zValidator("json", updateUserSchema),
     async (c) => {

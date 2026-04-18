@@ -2,29 +2,33 @@ import { Hono } from "hono"
 import type { MiddlewareHandler } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { pino } from "pino"
-import type { User } from "better-auth"
 import { createApp } from "../app.js"
-import type { ContextVariables } from "../lib/hono-schema.js"
+import type { AuthenticatedUser, ContextVariables } from "../lib/hono-schema.js"
 import health from "../routes/health.js"
 
 interface CreateTestAppOptions {
-  annotateAuth?: MiddlewareHandler
-  requireAuth?: MiddlewareHandler
+  annotateAuth?: MiddlewareHandler<{ Variables: ContextVariables }>
+  requireAuth?: MiddlewareHandler<{ Variables: ContextVariables }>
   healthRoute?: Hono
   authRoute?: Hono
-  assetRoute?: Hono
-  userRoute?: Hono
-  vulnerabilityRoute?: Hono
-  findingStatsRoute?: Hono
+  assetRoute?: Hono<{ Variables: ContextVariables }>
+  userRoute?: Hono<{ Variables: ContextVariables }>
+  vulnerabilityRoute?: Hono<{ Variables: ContextVariables }>
+  findingStatsRoute?: Hono<{ Variables: ContextVariables }>
   findingRoute?: Hono<{ Variables: ContextVariables }>
   importerRoute?: Hono<{ Variables: ContextVariables }>
 }
 
-const passthrough: MiddlewareHandler = async (_c, next) => {
+const passthrough: MiddlewareHandler<{ Variables: ContextVariables }> = async (
+  _c,
+  next
+) => {
   await next()
 }
 
-export function createTestUser(overrides: Partial<User> = {}): User {
+export function createTestUser(
+  overrides: Partial<AuthenticatedUser> = {}
+): AuthenticatedUser {
   return {
     id: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
     email: "tester@example.com",
@@ -35,11 +39,14 @@ export function createTestUser(overrides: Partial<User> = {}): User {
     image: null,
     username: "tester",
     displayUsername: "Tester",
+    role: "viewer",
     ...overrides
-  } as User
+  } as AuthenticatedUser
 }
 
-export function annotateAuthenticatedUser(user: User): MiddlewareHandler {
+export function annotateAuthenticatedUser(
+  user: AuthenticatedUser
+): MiddlewareHandler<{ Variables: ContextVariables }> {
   return async (c, next) => {
     c.set("user", user)
     c.set("session", { userId: user.id })
@@ -47,7 +54,9 @@ export function annotateAuthenticatedUser(user: User): MiddlewareHandler {
   }
 }
 
-export const requireAuthenticatedUser: MiddlewareHandler = async (c, next) => {
+export const requireAuthenticatedUser: MiddlewareHandler<{
+  Variables: ContextVariables
+}> = async (c, next) => {
   if (!c.get("user")) {
     throw new HTTPException(401, { message: "Unauthorized" })
   }
@@ -68,10 +77,10 @@ export function createTestApp(options: CreateTestAppOptions = {}) {
     requireAuth: options.requireAuth ?? passthrough,
     healthRoute: options.healthRoute ?? health,
     authRoute: options.authRoute ?? emptyRoute,
-    assetRoute: options.assetRoute ?? emptyRoute,
-    userRoute: options.userRoute ?? emptyRoute,
-    vulnerabilityRoute: options.vulnerabilityRoute ?? emptyRoute,
-    findingStatsRoute: options.findingStatsRoute ?? emptyRoute,
+    assetRoute: options.assetRoute ?? protectedEmptyRoute,
+    userRoute: options.userRoute ?? protectedEmptyRoute,
+    vulnerabilityRoute: options.vulnerabilityRoute ?? protectedEmptyRoute,
+    findingStatsRoute: options.findingStatsRoute ?? protectedEmptyRoute,
     findingRoute: options.findingRoute ?? protectedEmptyRoute,
     importerRoute: options.importerRoute ?? protectedEmptyRoute
   })
