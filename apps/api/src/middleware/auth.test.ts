@@ -1,36 +1,39 @@
 import { Hono } from "hono"
-import type { User } from "better-auth"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { ContextVariables } from "../lib/hono-schema.js"
 import { createTestApp, createTestUser } from "../test/app.js"
 
 vi.mock("../lib/auth.js", () => ({
   auth: {
     api: {
-      getSession: vi.fn()
+      getSession: vi.fn(),
+      userHasPermission: vi.fn()
     }
   }
 }))
 
 import { auth } from "../lib/auth.js"
-import { authNAnnotate, authNRequire, createAuthAnnotate } from "./auth.js"
+import {
+  authNAnnotate,
+  authNRequire,
+  createAuthAnnotate,
+  createRequirePermission
+} from "./auth.js"
 
-interface AuthTestVariables {
-  user: User | null
-  session: {
-    id: string
-    createdAt: Date
-    updatedAt: Date
-    userId: string
-    expiresAt: Date
-    token: string
-    ipAddress?: string | null
-    userAgent?: string | null
-  } | null
+type TestSession = {
+  id: string
+  createdAt: Date
+  updatedAt: Date
+  userId: string
+  expiresAt: Date
+  token: string
+  ipAddress?: string | null
+  userAgent?: string | null
 }
 
 describe("auth middleware", () => {
   const user = createTestUser()
-  const session = {
+  const session: TestSession = {
     id: "a2ca50c9-1e4d-4533-97bc-e060f58b6747",
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -48,7 +51,7 @@ describe("auth middleware", () => {
   it("annotates requests with null user and session when no session exists", async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(null)
 
-    const app = new Hono<{ Variables: AuthTestVariables }>()
+    const app = new Hono<{ Variables: ContextVariables }>()
     app.use("*", authNAnnotate())
     app.get("/", (c) => {
       return c.json({
@@ -74,7 +77,7 @@ describe("auth middleware", () => {
       session
     })
 
-    const app = new Hono<{ Variables: AuthTestVariables }>()
+    const app = new Hono<{ Variables: ContextVariables }>()
     app.use("*", authNAnnotate())
     app.get("/", (c) => {
       return c.json({
@@ -108,12 +111,14 @@ describe("auth middleware", () => {
       session
     })
 
-    const app = new Hono<{ Variables: AuthTestVariables }>()
+    const app = new Hono<{ Variables: ContextVariables }>()
     app.use("*", createAuthAnnotate({ getSession }))
     app.get("/", (c) => {
+      const currentSession = c.get("session") as TestSession | null
+
       return c.json({
         userId: c.get("user")?.id ?? null,
-        sessionId: c.get("session")?.id ?? null
+        sessionId: currentSession?.id ?? null
       })
     })
 
@@ -131,7 +136,7 @@ describe("auth middleware", () => {
   it("rejects requests without an authenticated user", async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(null)
 
-    const protectedAssets = new Hono()
+    const protectedAssets = new Hono<{ Variables: ContextVariables }>()
     protectedAssets.get("/", (c) => c.json({ ok: true }))
 
     const app = createTestApp({
@@ -156,7 +161,7 @@ describe("auth middleware", () => {
   })
 
   it("allows requests with an authenticated user", async () => {
-    const app = new Hono<{ Variables: AuthTestVariables }>()
+    const app = new Hono<{ Variables: ContextVariables }>()
     app.use("*", async (c, next) => {
       c.set("user", user)
       c.set("session", session)
@@ -172,5 +177,111 @@ describe("auth middleware", () => {
     expect(body).toEqual({
       userId: user.id
     })
+  })
+
+  it("returns 403 when the authenticated user lacks the required permission", async () => {
+    const viewer = createTestUser({ role: "viewer" })
+    const userHasPermission = vi.fn().mockResolvedValue(false)
+
+    const protectedRoute = new Hono<{ Variables: ContextVariables }>()
+    protectedRoute.get(
+      "/",
+      createRequirePermission(userHasPermission, { asset: ["delete"] }),
+      (c) => c.json({ ok: true })
+    )
+
+    const app = new Hono<{ Variables: ContextVariables }>()
+    app.use("*", async (c, next) => {
+      c.set("user", viewer)
+      c.set("session", session)
+      await next()
+    })
+    app.route("/assets", protectedRoute)
+
+    const response = await app.request("/assets")
+
+    expect(response.status).toBe(403)
+  })
+
+  it("allows requests when the permission result is true", async () => {
+    const userHasPermission = vi.fn().mockResolvedValue(true)
+
+    const protectedRoute = new Hono<{ Variables: ContextVariables }>()
+    protectedRoute.get(
+      "/",
+      createRequirePermission(userHasPermission, { asset: ["read"] }),
+      (c) => c.json({ ok: true })
+    )
+
+    const app = new Hono<{ Variables: ContextVariables }>()
+    app.use("*", async (c, next) => {
+      c.set("user", user)
+      c.set("session", session)
+      await next()
+    })
+    app.route("/assets", protectedRoute)
+
+    const response = await app.request("/assets")
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({ ok: true })
+  })
+
+  it("allows a comma-separated multi-role user through the permission middleware path", async () => {
+    const multiRoleUser = createTestUser({ role: "viewer,editor" })
+    const userHasPermission = vi.fn().mockResolvedValue(true)
+
+    const protectedRoute = new Hono<{ Variables: ContextVariables }>()
+    protectedRoute.get(
+      "/",
+      createRequirePermission(userHasPermission, { asset: ["read"] }),
+      (c) => c.json({ ok: true, role: c.get("user")?.role ?? null })
+    )
+
+    const app = new Hono<{ Variables: ContextVariables }>()
+    app.use("*", async (c, next) => {
+      c.set("user", multiRoleUser)
+      c.set("session", session)
+      await next()
+    })
+    app.route("/assets", protectedRoute)
+
+    const response = await app.request("/assets")
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({ ok: true, role: "viewer,editor" })
+    expect(userHasPermission).toHaveBeenCalledWith({
+      body: {
+        userId: multiRoleUser.id,
+        permissions: { asset: ["read"] }
+      }
+    })
+  })
+
+  it("allows requests when the permission result is { success: true }", async () => {
+    const userHasPermission = vi.fn().mockResolvedValue({ success: true })
+
+    const protectedRoute = new Hono<{ Variables: ContextVariables }>()
+    protectedRoute.get(
+      "/",
+      createRequirePermission(userHasPermission, { asset: ["read"] }),
+      (c) => c.json({ ok: true })
+    )
+
+    const app = new Hono<{ Variables: ContextVariables }>()
+    app.use("*", async (c, next) => {
+      c.set("user", user)
+      c.set("session", session)
+      await next()
+    })
+    app.route("/assets", protectedRoute)
+
+    const response = await app.request("/assets")
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({ ok: true })
   })
 })
