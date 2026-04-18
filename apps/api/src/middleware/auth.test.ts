@@ -1,5 +1,9 @@
 import { Hono } from "hono"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest"
+import {
+  PermissionResource,
+  PermissionVerb
+} from "@openvlp/types/model/rbac"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import { createTestApp, createTestUser } from "../test/app.js"
 
@@ -13,6 +17,15 @@ vi.mock("../lib/auth.js", () => ({
 }))
 
 import { auth } from "../lib/auth.js"
+import type {
+  AuthApiPermissionClient,
+  AuthApiPermissionResult
+} from "../lib/auth.js"
+import {
+  userManagementPermissions,
+  type DomainPermissionPayload,
+  type UserManagementPermissionPayload
+} from "../lib/permissions.js"
 import {
   authNAnnotate,
   authNRequire,
@@ -46,6 +59,35 @@ describe("auth middleware", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it("uses narrowed permission boundary types", () => {
+    type MiddlewarePermissionPayload = Parameters<typeof createRequirePermission>[1]
+    type InvalidDomainVerb = {
+      [PermissionResource.Asset]: ["list"]
+    } extends MiddlewarePermissionPayload
+      ? true
+      : false
+    type BogusResource = {
+      bogus: [PermissionVerb.Read]
+    } extends MiddlewarePermissionPayload
+      ? true
+      : false
+
+    expectTypeOf<MiddlewarePermissionPayload>().toEqualTypeOf<
+      DomainPermissionPayload | UserManagementPermissionPayload
+    >()
+    expectTypeOf<typeof userManagementPermissions.read>().toExtend<
+      MiddlewarePermissionPayload
+    >()
+    expectTypeOf<
+      Parameters<AuthApiPermissionClient["userHasPermission"]>[0]["body"]["permissions"]
+    >().toEqualTypeOf<MiddlewarePermissionPayload>()
+    expectTypeOf<InvalidDomainVerb>().toEqualTypeOf<false>()
+    expectTypeOf<BogusResource>().toEqualTypeOf<false>()
+    expectTypeOf<AuthApiPermissionResult>().toEqualTypeOf<
+      boolean | { success?: boolean }
+    >()
   })
 
   it("annotates requests with null user and session when no session exists", async () => {
@@ -186,7 +228,9 @@ describe("auth middleware", () => {
     const protectedRoute = new Hono<{ Variables: ContextVariables }>()
     protectedRoute.get(
       "/",
-      createRequirePermission(userHasPermission, { asset: ["delete"] }),
+      createRequirePermission(userHasPermission, {
+        [PermissionResource.Asset]: [PermissionVerb.Delete]
+      }),
       (c) => c.json({ ok: true })
     )
 
@@ -209,7 +253,9 @@ describe("auth middleware", () => {
     const protectedRoute = new Hono<{ Variables: ContextVariables }>()
     protectedRoute.get(
       "/",
-      createRequirePermission(userHasPermission, { asset: ["read"] }),
+      createRequirePermission(userHasPermission, {
+        [PermissionResource.Asset]: [PermissionVerb.Read]
+      }),
       (c) => c.json({ ok: true })
     )
 
@@ -235,7 +281,9 @@ describe("auth middleware", () => {
     const protectedRoute = new Hono<{ Variables: ContextVariables }>()
     protectedRoute.get(
       "/",
-      createRequirePermission(userHasPermission, { asset: ["read"] }),
+      createRequirePermission(userHasPermission, {
+        [PermissionResource.Asset]: [PermissionVerb.Read]
+      }),
       (c) => c.json({ ok: true, role: c.get("user")?.role ?? null })
     )
 
@@ -255,7 +303,9 @@ describe("auth middleware", () => {
     expect(userHasPermission).toHaveBeenCalledWith({
       body: {
         userId: multiRoleUser.id,
-        permissions: { asset: ["read"] }
+        permissions: {
+          [PermissionResource.Asset]: [PermissionVerb.Read]
+        }
       }
     })
   })
@@ -266,7 +316,9 @@ describe("auth middleware", () => {
     const protectedRoute = new Hono<{ Variables: ContextVariables }>()
     protectedRoute.get(
       "/",
-      createRequirePermission(userHasPermission, { asset: ["read"] }),
+      createRequirePermission(userHasPermission, {
+        [PermissionResource.Asset]: [PermissionVerb.Read]
+      }),
       (c) => c.json({ ok: true })
     )
 

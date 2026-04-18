@@ -18,6 +18,9 @@
     },
     "./model/user": {
       "import": "./src/model/user.ts"
+    },
+    "./model/rbac": {
+      "import": "./src/model/rbac.ts"
     }
   },
   "files": [
