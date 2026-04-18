@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createTestUser } from "../test/app.js"
+import { ac, roles } from "./permissions.js"
 
 const { adminMock, betterAuthMock, usernameMock } = vi.hoisted(() => ({
   adminMock: vi.fn(() => "admin-plugin"),
@@ -45,7 +46,8 @@ describe("auth factory", () => {
   it("creates a better-auth instance from injected dependencies", () => {
     const authInstance = {
       api: {
-        signUpEmail: vi.fn()
+        signUpEmail: vi.fn(),
+        userHasPermission: vi.fn()
       }
     }
     const pool = { end: vi.fn() }
@@ -73,8 +75,9 @@ describe("auth factory", () => {
       plugins: ["username-plugin", "admin-plugin"]
     })
     expect(adminMock).toHaveBeenCalledWith({
-      defaultRole: "user",
-      adminRoles: ["admin"]
+      ac,
+      roles,
+      defaultRole: "viewer"
     })
     expect(usernameMock).toHaveBeenCalledOnce()
   })

@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth"
 import { db, pool, logger as dbLogger } from "../db/index.js"
 import { env } from "../env.js"
 import { admin, username } from "better-auth/plugins"
+import { ac, roles } from "./permissions.js"
 import type { Kysely } from "kysely"
 import type { Database } from "../db/index.js"
 import type { Logger } from "pino"
@@ -41,8 +42,20 @@ export interface AuthApiUserManagementClient {
   }>
 }
 
+export interface AuthApiPermissionClient {
+  userHasPermission(input: {
+    body: {
+      userId: string
+      permissions: Record<string, string[]>
+    }
+  }): Promise<unknown>
+}
+
 export interface AuthClient {
-  api: AuthApiSessionClient & AuthApiSignupClient & AuthApiUserManagementClient
+  api: AuthApiSessionClient &
+    AuthApiSignupClient &
+    AuthApiUserManagementClient &
+    AuthApiPermissionClient
   handler(request: Request): Response | Promise<Response>
 }
 
@@ -75,8 +88,9 @@ export function createAuth({
     plugins: [
       username(),
       admin({
-        defaultRole: "user",
-        adminRoles: ["admin"]
+        ac,
+        roles,
+        defaultRole: "viewer"
       })
     ]
   }) as AuthClient
