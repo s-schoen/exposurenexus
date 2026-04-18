@@ -90,10 +90,9 @@ export function requirePermission(
   return createRequirePermission(auth.api.userHasPermission, permissions)
 }
 
-export function requireDomainPermission<Resource extends DomainPermissionResource>(
-  resource: Resource,
-  action: DomainPermissionAction
-): AuthMiddleware {
+export function requireDomainPermission<
+  Resource extends DomainPermissionResource
+>(resource: Resource, action: DomainPermissionAction): AuthMiddleware {
   return requirePermission(
     domainPermission(resource as PermissionResource, action as PermissionVerb)
   )

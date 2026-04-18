@@ -1,5 +1,7 @@
 import { z } from "zod/v4"
 
+import { roleSchema } from "./rbac.js"
+
 export const createUserSchema = z.strictObject({
   name: z.string().trim().min(1),
   email: z.email(),
@@ -24,6 +26,7 @@ export const userSchema = z.strictObject({
   email: z.email(),
   emailVerified: z.boolean,
   image: z.string().nullable(),
+  roles: z.array(roleSchema),
   createdAt: z.date(),
   updatedAt: z.date()
 })

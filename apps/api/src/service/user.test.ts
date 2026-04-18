@@ -28,6 +28,7 @@ describe("user service", () => {
     email: "alice@example.com",
     emailVerified: true,
     image: null,
+    roles: [],
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     username: "alice",
@@ -100,13 +101,14 @@ describe("user service", () => {
       password: "correct-horse-battery-staple"
     }
 
-    auth.api.signUpEmail.mockResolvedValue({ user })
+    auth.api.signUpEmail.mockResolvedValue({ user: { id: user.id } })
+    userRepository.getByID.mockResolvedValue(user)
 
     await expect(service.create(createUser)).resolves.toEqual(user)
     expect(auth.api.signUpEmail).toHaveBeenCalledWith({
       body: createUser
     })
-    expect(userRepository.getByID).not.toHaveBeenCalled()
+    expect(userRepository.getByID).toHaveBeenCalledWith(user.id)
   })
 
   it("maps create conflicts to an HTTP 409", async () => {
@@ -130,10 +132,11 @@ describe("user service", () => {
     } satisfies Partial<HTTPException>)
   })
 
-  it("returns the created auth user without a follow-up repository lookup", async () => {
+  it("maps missing created users after signup to an HTTP 500", async () => {
     const service = createUserService({ userRepository, auth, logger })
 
-    auth.api.signUpEmail.mockResolvedValue({ user })
+    auth.api.signUpEmail.mockResolvedValue({ user: { id: user.id } })
+    userRepository.getByID.mockResolvedValue(null)
 
     await expect(
       service.create({
@@ -143,9 +146,9 @@ describe("user service", () => {
         displayUsername: "Alice",
         password: "correct-horse-battery-staple"
       })
-    ).resolves.toEqual(user)
+    ).rejects.toThrow("failed to load created user")
 
-    expect(userRepository.getByID).not.toHaveBeenCalled()
+    expect(userRepository.getByID).toHaveBeenCalledWith(user.id)
   })
 
   it("updates a user while preserving the immutable username", async () => {

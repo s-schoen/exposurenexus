@@ -27,18 +27,24 @@ describe("rbac permissions", () => {
       PermissionResource.Import,
       PermissionResource.Stats
     ])
-    expect([...domainResources].sort()).toEqual([...Object.values(PermissionResource)].sort())
+    expect([...domainResources].sort()).toEqual(
+      [...Object.values(PermissionResource)].sort()
+    )
 
     expect(domainActions).toEqual([
       PermissionVerb.Read,
       PermissionVerb.Write,
       PermissionVerb.Delete
     ])
-    expect([...domainActions].sort()).toEqual([...Object.values(PermissionVerb)].sort())
+    expect([...domainActions].sort()).toEqual(
+      [...Object.values(PermissionVerb)].sort()
+    )
   })
 
   it("builds domain permission payloads for route middleware", () => {
-    expect(domainPermission(PermissionResource.Asset, PermissionVerb.Read)).toEqual({
+    expect(
+      domainPermission(PermissionResource.Asset, PermissionVerb.Read)
+    ).toEqual({
       asset: ["read"]
     })
     expect(
@@ -46,7 +52,9 @@ describe("rbac permissions", () => {
     ).toEqual({
       finding: ["delete"]
     })
-    expect(domainPermission(PermissionResource.Stats, PermissionVerb.Delete)).toEqual({
+    expect(
+      domainPermission(PermissionResource.Stats, PermissionVerb.Delete)
+    ).toEqual({
       stats: ["delete"]
     })
   })

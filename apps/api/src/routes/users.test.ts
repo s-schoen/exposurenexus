@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { viewerRole } from "@openvlp/types/model/rbac"
 
 vi.mock("../lib/auth.js", () => ({
   auth: {
@@ -25,6 +26,7 @@ describe("user routes", () => {
     email: "alice@example.com",
     emailVerified: true,
     image: null,
+    roles: [viewerRole],
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     username: "alice",
@@ -120,6 +122,7 @@ describe("user routes", () => {
         items: [
           {
             ...listedUser,
+            roles: [viewerRole],
             createdAt: listedUser.createdAt.toISOString(),
             updatedAt: listedUser.updatedAt.toISOString()
           }
@@ -184,6 +187,7 @@ describe("user routes", () => {
       correlationId: requestId,
       data: {
         ...listedUser,
+        roles: [viewerRole],
         createdAt: listedUser.createdAt.toISOString(),
         updatedAt: listedUser.updatedAt.toISOString()
       }
@@ -224,6 +228,7 @@ describe("user routes", () => {
       correlationId: requestId,
       data: {
         ...listedUser,
+        roles: [viewerRole],
         createdAt: listedUser.createdAt.toISOString(),
         updatedAt: listedUser.updatedAt.toISOString()
       }
@@ -297,6 +302,7 @@ describe("user routes", () => {
       correlationId: requestId,
       data: {
         ...updatedUser,
+        roles: [viewerRole],
         createdAt: updatedUser.createdAt.toISOString(),
         updatedAt: updatedUser.updatedAt.toISOString()
       }
@@ -343,6 +349,7 @@ describe("user routes", () => {
       correlationId: requestId,
       data: {
         ...updatedUser,
+        roles: [viewerRole],
         createdAt: updatedUser.createdAt.toISOString(),
         updatedAt: updatedUser.updatedAt.toISOString()
       }

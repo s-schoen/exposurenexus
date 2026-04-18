@@ -74,7 +74,9 @@ export function toPermissionStatements(
   }, {})
 }
 
-export function toRoleStatement(role: Pick<Role, "permissions">): DomainRoleStatement {
+export function toRoleStatement(
+  role: Pick<Role, "permissions">
+): DomainRoleStatement {
   return toPermissionStatements(role.permissions)
 }
 

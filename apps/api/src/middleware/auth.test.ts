@@ -1,9 +1,6 @@
 import { Hono } from "hono"
 import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest"
-import {
-  PermissionResource,
-  PermissionVerb
-} from "@openvlp/types/model/rbac"
+import { PermissionResource, PermissionVerb } from "@openvlp/types/model/rbac"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import { createTestApp, createTestUser } from "../test/app.js"
 
@@ -65,7 +62,9 @@ describe("auth middleware", () => {
   })
 
   it("uses narrowed permission boundary types", () => {
-    type MiddlewarePermissionPayload = Parameters<typeof createRequirePermission>[1]
+    type MiddlewarePermissionPayload = Parameters<
+      typeof createRequirePermission
+    >[1]
     type InvalidDomainVerb = {
       [PermissionResource.Asset]: ["list"]
     } extends MiddlewarePermissionPayload
@@ -80,17 +79,19 @@ describe("auth middleware", () => {
     expectTypeOf<MiddlewarePermissionPayload>().toEqualTypeOf<
       DomainPermissionPayload | UserManagementPermissionPayload
     >()
-    expectTypeOf<typeof userManagementPermissions.read>().toExtend<
-      MiddlewarePermissionPayload
-    >()
     expectTypeOf<
-      Parameters<AuthApiPermissionClient["userHasPermission"]>[0]["body"]["permissions"]
+      typeof userManagementPermissions.read
+    >().toExtend<MiddlewarePermissionPayload>()
+    expectTypeOf<
+      Parameters<
+        AuthApiPermissionClient["userHasPermission"]
+      >[0]["body"]["permissions"]
     >().toEqualTypeOf<MiddlewarePermissionPayload>()
     expectTypeOf<InvalidDomainVerb>().toEqualTypeOf<false>()
     expectTypeOf<BogusResource>().toEqualTypeOf<false>()
-    expectTypeOf<ReturnType<AuthApiPermissionClient["userHasPermission"]>>().toEqualTypeOf<
-      Promise<boolean>
-    >()
+    expectTypeOf<
+      ReturnType<AuthApiPermissionClient["userHasPermission"]>
+    >().toEqualTypeOf<Promise<boolean>>()
   })
 
   it("annotates requests with null user and session when no session exists", async () => {
@@ -312,5 +313,4 @@ describe("auth middleware", () => {
       }
     })
   })
-
 })
