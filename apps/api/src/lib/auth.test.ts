@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { BuiltInRoleName } from "@openvlp/types/model/rbac"
 import { createTestUser } from "../test/app.js"
 import { ac, roles } from "./permissions.js"
 
@@ -77,7 +78,7 @@ describe("auth factory", () => {
     expect(adminMock).toHaveBeenCalledWith({
       ac,
       roles,
-      defaultRole: "viewer"
+      defaultRole: BuiltInRoleName.Viewer
     })
     expect(usernameMock).toHaveBeenCalledOnce()
   })
@@ -124,18 +125,17 @@ describe("auth factory", () => {
     const selectFrom = vi.fn().mockReturnValue({
       select
     })
+    const set = vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockReturnValue({
+          executeTakeFirstOrThrow: vi.fn().mockResolvedValue({ id: user.id })
+        })
+      })
+    })
     const db = {
       selectFrom,
       updateTable: vi.fn().mockReturnValue({
-        set: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            returning: vi.fn().mockReturnValue({
-              executeTakeFirstOrThrow: vi
-                .fn()
-                .mockResolvedValue({ id: user.id })
-            })
-          })
-        })
+        set
       }),
       fn: {
         countAll: vi.fn().mockReturnValue({
@@ -174,6 +174,7 @@ describe("auth factory", () => {
       }
     })
     expect(db.updateTable).toHaveBeenCalledWith("user")
+    expect(set).toHaveBeenCalledWith({ role: BuiltInRoleName.Admin })
     expect(logger.info).toHaveBeenCalledWith(
       "created admin user: username=admin, password=00000000-0000-0000-0000-000000000000"
     )

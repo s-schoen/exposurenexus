@@ -1,32 +1,38 @@
 import type { MiddlewareHandler } from "hono"
+import type {
+  PermissionResource,
+  PermissionVerb
+} from "@openvlp/types/model/rbac"
 import { auth } from "../lib/auth.js"
 import { HTTPException } from "hono/http-exception"
 import type {
   AuthApiPermissionClient,
+  AuthApiPermissionResult,
   AuthApiSessionClient
 } from "../lib/auth.js"
 import type { AuthenticatedUser, ContextVariables } from "../lib/hono-schema.js"
 import {
+  type ApiPermissionPayload,
   domainPermission,
-  userManagementPermissions,
-  type DomainAction,
-  type DomainResource
+  userManagementPermissions
 } from "../lib/permissions.js"
 
-type PermissionPayload = Record<string, readonly string[]>
+type PermissionPayload = ApiPermissionPayload
+
+type DomainPermissionResource = PermissionResource | `${PermissionResource}`
+type DomainPermissionAction = PermissionVerb | `${PermissionVerb}`
 
 type PermissionChecker = AuthApiPermissionClient["userHasPermission"]
 
 type AuthMiddleware = MiddlewareHandler<{ Variables: ContextVariables }>
 
-function normalizePermissionResult(result: unknown): boolean {
+function normalizePermissionResult(result: AuthApiPermissionResult): boolean {
   if (typeof result === "boolean") {
     return result
   }
 
-  if (typeof result === "object" && result !== null) {
-    const normalized = result as { success?: unknown }
-    return normalized.success === true
+  if (typeof result === "object") {
+    return result.success === true
   }
 
   return false
@@ -79,7 +85,7 @@ export function createRequirePermission(
     const result = await permissionChecker({
       body: {
         userId: user.id,
-        permissions: permissions as Record<string, string[]>
+        permissions
       }
     })
 
@@ -97,11 +103,13 @@ export function requirePermission(
   return createRequirePermission(auth.api.userHasPermission, permissions)
 }
 
-export function requireDomainPermission<Resource extends DomainResource>(
+export function requireDomainPermission<Resource extends DomainPermissionResource>(
   resource: Resource,
-  action: DomainAction
+  action: DomainPermissionAction
 ): AuthMiddleware {
-  return requirePermission(domainPermission(resource, action))
+  return requirePermission(
+    domainPermission(resource as PermissionResource, action as PermissionVerb)
+  )
 }
 
 export function requireUserManagementRead(): AuthMiddleware {

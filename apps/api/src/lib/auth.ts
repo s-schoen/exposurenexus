@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth"
+import { BuiltInRoleName } from "@openvlp/types/model/rbac"
 import { db, pool, logger as dbLogger } from "../db/index.js"
 import { env } from "../env.js"
 import { admin, username } from "better-auth/plugins"
@@ -8,6 +9,7 @@ import type { Database } from "../db/index.js"
 import type { Logger } from "pino"
 import type { Pool } from "pg"
 import type { User } from "@openvlp/types/model/user"
+import type { ApiPermissionPayload } from "./permissions.js"
 
 export interface AuthApiSessionClient {
   getSession(input: { headers: Headers }): Promise<{
@@ -42,13 +44,15 @@ export interface AuthApiUserManagementClient {
   }>
 }
 
+export type AuthApiPermissionResult = boolean | { success?: boolean }
+
 export interface AuthApiPermissionClient {
   userHasPermission(input: {
     body: {
       userId: string
-      permissions: Record<string, string[]>
+      permissions: ApiPermissionPayload
     }
-  }): Promise<unknown>
+  }): Promise<AuthApiPermissionResult>
 }
 
 export interface AuthClient {
@@ -90,7 +94,7 @@ export function createAuth({
       admin({
         ac,
         roles,
-        defaultRole: "viewer"
+        defaultRole: BuiltInRoleName.Viewer
       })
     ]
   }) as AuthClient
@@ -133,7 +137,7 @@ export async function createDefaultAdmin(
 
   await options.db
     .updateTable("user")
-    .set({ role: "admin" })
+    .set({ role: BuiltInRoleName.Admin })
     .where("id", "=", created.user.id)
     .returning("id")
     .executeTakeFirstOrThrow()
