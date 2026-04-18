@@ -33,6 +33,9 @@ export default defineConfig({
     }
   },
   test: {
+    coverage: {
+      exclude: ["src/components/ui/**"]
+    },
     projects: [
       {
         extends: true,

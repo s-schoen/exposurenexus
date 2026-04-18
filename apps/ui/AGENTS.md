@@ -6,6 +6,7 @@
 - `pnpm build` to build code with `tsc` and check for syntax errors
 - `pnpm check` to lint code with `eslint`
 - `pnpm test` to run the full Vitest suite
+- `pnpm test:unit` to run unit tests only; pass a file path after `--` to target an individual test file
 - `pnpm test:coverage` to run the test suite with coverage output
 - `pnpm storybook` to run Storybook locally
 - `pnpm build-storybook` to build the static Storybook site
@@ -38,6 +39,12 @@ Do NOT commit any changes to git unless you are explicitly asked.
   and loading or error transitions.
 - Prefer user-visible assertions over implementation-detail assertions. Only assert data attributes or internal markers
   when they are the intentional public output of the component.
+- Keep tests robust by preferring roles, labels, button types, callback effects, row counts, and state changes over exact
+  button copy, placeholder copy, or decorative text whenever that text is not the behavior being tested.
+- Only assert concrete text when the text itself is the user-visible output under test, such as filtered row values,
+  sorted row order, validation messages, or submitted data.
+- When a third-party UI primitive is hard to drive reliably in jsdom, prefer a minimal harness that exercises the
+  component through its real public API instead of brittle DOM-structure assertions.
 - If a component needs browser APIs that jsdom does not provide, add the smallest possible test-local polyfill in the
   test file.
 - Validate new component work with `pnpm check` and `pnpm test`. Use `pnpm test:coverage` when you need a coverage
