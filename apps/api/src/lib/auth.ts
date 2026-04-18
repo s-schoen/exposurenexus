@@ -44,15 +44,13 @@ export interface AuthApiUserManagementClient {
   }>
 }
 
-export type AuthApiPermissionResult = boolean | { success?: boolean }
-
 export interface AuthApiPermissionClient {
   userHasPermission(input: {
     body: {
       userId: string
       permissions: ApiPermissionPayload
     }
-  }): Promise<AuthApiPermissionResult>
+  }): Promise<boolean>
 }
 
 export interface AuthClient {
@@ -97,7 +95,7 @@ export function createAuth({
         defaultRole: BuiltInRoleName.Viewer
       })
     ]
-  }) as AuthClient
+  }) as unknown as AuthClient
 }
 
 export const auth = createAuth({

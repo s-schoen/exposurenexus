@@ -7,7 +7,6 @@ import { auth } from "../lib/auth.js"
 import { HTTPException } from "hono/http-exception"
 import type {
   AuthApiPermissionClient,
-  AuthApiPermissionResult,
   AuthApiSessionClient
 } from "../lib/auth.js"
 import type { AuthenticatedUser, ContextVariables } from "../lib/hono-schema.js"
@@ -25,18 +24,6 @@ type DomainPermissionAction = PermissionVerb | `${PermissionVerb}`
 type PermissionChecker = AuthApiPermissionClient["userHasPermission"]
 
 type AuthMiddleware = MiddlewareHandler<{ Variables: ContextVariables }>
-
-function normalizePermissionResult(result: AuthApiPermissionResult): boolean {
-  if (typeof result === "boolean") {
-    return result
-  }
-
-  if (typeof result === "object") {
-    return result.success === true
-  }
-
-  return false
-}
 
 export function createAuthAnnotate(
   authApi: AuthApiSessionClient
@@ -89,7 +76,7 @@ export function createRequirePermission(
       }
     })
 
-    if (!normalizePermissionResult(result)) {
+    if (!result) {
       throw new HTTPException(403, { message: "Forbidden" })
     }
 

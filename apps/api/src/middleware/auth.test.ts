@@ -17,10 +17,7 @@ vi.mock("../lib/auth.js", () => ({
 }))
 
 import { auth } from "../lib/auth.js"
-import type {
-  AuthApiPermissionClient,
-  AuthApiPermissionResult
-} from "../lib/auth.js"
+import type { AuthApiPermissionClient } from "../lib/auth.js"
 import {
   userManagementPermissions,
   type DomainPermissionPayload,
@@ -45,6 +42,12 @@ type TestSession = {
 }
 
 describe("auth middleware", () => {
+  const invalidPermissionChecker: AuthApiPermissionClient["userHasPermission"] =
+    // @ts-expect-error permission checks must resolve to boolean only
+    async () => ({ success: true })
+
+  void invalidPermissionChecker
+
   const user = createTestUser()
   const session: TestSession = {
     id: "a2ca50c9-1e4d-4533-97bc-e060f58b6747",
@@ -85,8 +88,8 @@ describe("auth middleware", () => {
     >().toEqualTypeOf<MiddlewarePermissionPayload>()
     expectTypeOf<InvalidDomainVerb>().toEqualTypeOf<false>()
     expectTypeOf<BogusResource>().toEqualTypeOf<false>()
-    expectTypeOf<AuthApiPermissionResult>().toEqualTypeOf<
-      boolean | { success?: boolean }
+    expectTypeOf<ReturnType<AuthApiPermissionClient["userHasPermission"]>>().toEqualTypeOf<
+      Promise<boolean>
     >()
   })
 
@@ -310,30 +313,4 @@ describe("auth middleware", () => {
     })
   })
 
-  it("allows requests when the permission result is { success: true }", async () => {
-    const userHasPermission = vi.fn().mockResolvedValue({ success: true })
-
-    const protectedRoute = new Hono<{ Variables: ContextVariables }>()
-    protectedRoute.get(
-      "/",
-      createRequirePermission(userHasPermission, {
-        [PermissionResource.Asset]: [PermissionVerb.Read]
-      }),
-      (c) => c.json({ ok: true })
-    )
-
-    const app = new Hono<{ Variables: ContextVariables }>()
-    app.use("*", async (c, next) => {
-      c.set("user", user)
-      c.set("session", session)
-      await next()
-    })
-    app.route("/assets", protectedRoute)
-
-    const response = await app.request("/assets")
-    const body = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(body).toEqual({ ok: true })
-  })
 })
