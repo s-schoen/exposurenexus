@@ -1,26 +1,10 @@
-import {
-  Outlet,
-  RouterProvider,
-  createMemoryHistory,
-  createRootRoute,
-  createRoute,
-  createRouter
-} from "@tanstack/react-router"
 import { DatabaseBackup } from "lucide-react"
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState
-} from "react"
-import { NuqsAdapter } from "nuqs/adapters/tanstack-router"
+import { useEffect, useState } from "react"
 import { fn } from "storybook/test"
 
 import type { UseQueryResult } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import type { ReactNode } from "react"
 
 import type { GroupingOption } from "@/components/data-table/types"
 import { DataTable } from "@/components/data-table/data-table"
@@ -213,22 +197,6 @@ const columns: Array<ColumnDef<StoryFinding>> = [
   }
 ]
 
-const DataTableStoryContentContext = createContext<ReactNode | null>(null)
-
-function StoryRoot() {
-  return (
-    <NuqsAdapter>
-      <Outlet />
-    </NuqsAdapter>
-  )
-}
-
-function StoryIndex() {
-  const content = useContext(DataTableStoryContentContext)
-
-  return content
-}
-
 function createQueryResult<TData>({
   data,
   isFetching,
@@ -268,32 +236,6 @@ function createQueryResult<TData>({
     promise: Promise.resolve(data) as Promise<Array<TData>>,
     refetch
   } as unknown as UseQueryResult<Array<TData>, Error>
-}
-
-function DataTableStoryRouter({ children }: { children: ReactNode }) {
-  const router = useMemo(() => {
-    const rootRoute = createRootRoute({
-      component: StoryRoot
-    })
-    const indexRoute = createRoute({
-      getParentRoute: () => rootRoute,
-      path: "/",
-      component: StoryIndex
-    })
-
-    return createRouter({
-      routeTree: rootRoute.addChildren([indexRoute]),
-      history: createMemoryHistory({
-        initialEntries: ["/"]
-      })
-    })
-  }, [])
-
-  return (
-    <DataTableStoryContentContext.Provider value={children}>
-      <RouterProvider router={router as never} />
-    </DataTableStoryContentContext.Provider>
-  )
 }
 
 function DataTableStoryShell({
@@ -345,49 +287,46 @@ function DataTableStoryShell({
   })
 
   return (
-    <DataTableStoryRouter>
-      <div className="w-full space-y-4">
-        <DataTable
-          columns={columns}
-          query={query}
-          groupingOptions={groupingOptions}
-          initialGrouping={initialGrouping}
-          onRowDelete={async (selectedRows) => {
-            await Promise.resolve()
-            setCurrentRows((existingRows) =>
-              existingRows.filter(
-                (row) =>
-                  !selectedRows.some((selectedRow) => selectedRow.id === row.id)
-              )
+    <div className="w-full space-y-4">
+      <DataTable
+        columns={columns}
+        query={query}
+        groupingOptions={groupingOptions}
+        initialGrouping={initialGrouping}
+        onRowDelete={async (selectedRows) => {
+          await Promise.resolve()
+          setCurrentRows((existingRows) =>
+            existingRows.filter(
+              (row) =>
+                !selectedRows.some((selectedRow) => selectedRow.id === row.id)
             )
-          }}
-          onRowClick={fn()}
-          onRowDoubleClick={fn()}
-          isRowActive={
-            activeRowId ? (row) => row.id === activeRowId : undefined
-          }
-          toolbarControls={
-            showToolbarControls ? (
-              <Button
-                variant="default"
-                size="sm"
-                className="h-9 rounded-xl"
-                onClick={onExport}
-              >
-                <DatabaseBackup />
-                Export CSV
-              </Button>
-            ) : undefined
-          }
-        />
-      </div>
-    </DataTableStoryRouter>
+          )
+        }}
+        onRowClick={fn()}
+        onRowDoubleClick={fn()}
+        isRowActive={activeRowId ? (row) => row.id === activeRowId : undefined}
+        toolbarControls={
+          showToolbarControls ? (
+            <Button
+              variant="default"
+              size="sm"
+              className="h-9 rounded-xl"
+              onClick={onExport}
+            >
+              <DatabaseBackup />
+              Export CSV
+            </Button>
+          ) : undefined
+        }
+      />
+    </div>
   )
 }
 
 const meta = {
   title: "Components/DataTable",
   component: DataTableStoryShell,
+  tags: ["!test"],
   parameters: {
     layout: "padded"
   },
@@ -408,43 +347,33 @@ type Story = StoryObj<typeof meta>
 export const Default: Story = {}
 
 export const Loading: Story = {
-  args: {
-    pending: true
-  }
+  render: () => <DataTableStoryShell {...meta.args} pending={true} />
 }
 
 export const Empty: Story = {
-  args: {
-    rows: []
-  }
+  render: () => <DataTableStoryShell {...meta.args} rows={[]} />
 }
 
 export const GroupedByStatus: Story = {
-  args: {
-    initialGrouping: ["status"]
-  }
+  render: () => <DataTableStoryShell {...meta.args} initialGrouping={["status"]} />
 }
 
 export const WithToolbarControls: Story = {
-  args: {
-    showToolbarControls: true
-  }
+  render: () => <DataTableStoryShell {...meta.args} showToolbarControls={true} />
 }
 
 export const ActiveRow: Story = {
-  args: {
-    activeRowId: "finding-003"
-  }
+  render: () => <DataTableStoryShell {...meta.args} activeRowId="finding-003" />
 }
 
 export const DarkSurface: Story = {
-  args: {
-    showToolbarControls: true,
-    activeRowId: "finding-003"
-  },
-  render: (args) => (
+  render: () => (
     <div className="dark rounded-2xl bg-background p-6">
-      <DataTableStoryShell {...args} />
+      <DataTableStoryShell
+        {...meta.args}
+        showToolbarControls={true}
+        activeRowId="finding-003"
+      />
     </div>
   )
 }

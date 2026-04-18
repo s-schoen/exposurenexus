@@ -1,7 +1,15 @@
 "use client"
 
+/* eslint-disable import/consistent-type-specifier-style */
 import {
+  type ColumnDef,
+  type ColumnFiltersState,
+  type ExpandedState,
+  type GroupingState,
+  type Row,
+  type SortingState,
   flexRender,
+  functionalUpdate,
   getCoreRowModel,
   getExpandedRowModel,
   getFilteredRowModel,
@@ -11,17 +19,13 @@ import {
   useReactTable
 } from "@tanstack/react-table"
 import { ChevronDown, ChevronRight, DatabaseZap } from "lucide-react"
-import { useRef, useState } from "react"
-import type {
-  ColumnDef,
-  ExpandedState,
-  GroupingState,
-  Row,
-  SortingState
-} from "@tanstack/react-table"
+import { useMemo, useRef, useState } from "react"
 import type { UseQueryResult } from "@tanstack/react-query"
 import type { MouseEvent, ReactElement, ReactNode, RefObject } from "react"
-import type { GroupingOption } from "@/components/data-table/types.ts"
+import type {
+  DataTableFilterState,
+  GroupingOption
+} from "@/components/data-table/types.ts"
 import {
   Table,
   TableBody,
@@ -46,6 +50,8 @@ interface DataTableProps<TData, TValue> {
   onRowDoubleClick?: (row: TData) => void
   isRowActive?: (row: TData) => boolean
   toolbarControls?: ReactElement | ((selectedRows: Array<TData>) => ReactNode)
+  filterState?: DataTableFilterState
+  onFilterStateChange?: (state: DataTableFilterState) => void
   contextMenu?: (
     rowsRef: RefObject<Array<TData>>,
     children: ReactElement,
@@ -64,11 +70,47 @@ export function DataTable<TData, TValue>({
   onRowDoubleClick,
   isRowActive,
   toolbarControls,
+  filterState,
+  onFilterStateChange,
   contextMenu
 }: DataTableProps<TData, TValue>) {
   const [grouping, setGrouping] = useState<GroupingState>(initialGrouping)
   const [expanded, setExpanded] = useState<ExpandedState>(true)
   const [sorting, setSorting] = useState<SortingState>(initialSorting)
+  const [localFilterState, setLocalFilterState] = useState<DataTableFilterState>({
+    globalFilter: "",
+    selectFilters: {}
+  })
+  const resolvedFilterState = filterState ?? localFilterState
+
+  const columnFilters = useMemo<ColumnFiltersState>(
+    () =>
+      Object.entries(resolvedFilterState.selectFilters).flatMap(
+        ([id, value]) =>
+          Array.isArray(value) && value.length > 0
+            ? [
+                {
+                  id,
+                  value
+                }
+              ]
+            : []
+      ),
+    [resolvedFilterState.selectFilters]
+  )
+
+  const updateFilterState = (
+    updater: (currentState: DataTableFilterState) => DataTableFilterState
+  ) => {
+    const nextState = updater(resolvedFilterState)
+
+    if (filterState && onFilterStateChange) {
+      onFilterStateChange(nextState)
+      return
+    }
+
+    setLocalFilterState(nextState)
+  }
 
   const selectColumn: ColumnDef<TData, TValue> = {
     id: "select",
@@ -100,11 +142,56 @@ export function DataTable<TData, TValue>({
     state: {
       grouping,
       expanded,
-      sorting
+      sorting,
+      globalFilter: resolvedFilterState.globalFilter,
+      columnFilters
     },
     onGroupingChange: setGrouping,
     onExpandedChange: setExpanded,
     onSortingChange: setSorting,
+    onGlobalFilterChange: (updater) => {
+      updateFilterState((currentState) => {
+        const nextValue = functionalUpdate(
+          updater,
+          currentState.globalFilter || undefined
+        )
+
+        return {
+          ...currentState,
+          globalFilter: typeof nextValue === "string" ? nextValue : ""
+        }
+      })
+    },
+    onColumnFiltersChange: (updater) => {
+      updateFilterState((currentState) => {
+        const currentFilters = Object.entries(currentState.selectFilters).flatMap(
+          ([id, value]) =>
+            Array.isArray(value) && value.length > 0
+              ? [
+                  {
+                    id,
+                    value
+                  }
+                ]
+              : []
+        )
+        const nextFilters = functionalUpdate(updater, currentFilters)
+
+        return {
+          ...currentState,
+          selectFilters: nextFilters.reduce<Record<string, Array<string>>>(
+            (filters, filter) => {
+              if (Array.isArray(filter.value) && filter.value.length > 0) {
+                filters[filter.id] = filter.value.map(String)
+              }
+
+              return filters
+            },
+            {}
+          )
+        }
+      })
+    },
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -170,6 +257,13 @@ export function DataTable<TData, TValue>({
         .getFilteredSelectedRowModel()
         .rows.map((r) => r.original)
     }
+  }
+
+  const handleClearAllFilters = () => {
+    updateFilterState(() => ({
+      globalFilter: "",
+      selectFilters: {}
+    }))
   }
 
   function NoDataPlaceholder() {
@@ -316,6 +410,9 @@ export function DataTable<TData, TValue>({
         additionalElements={resolvedToolbarControls}
         onRequestRefresh={handleOnRefresh}
         onRequestDelete={handleOnRowsDelete}
+        globalFilterValue={resolvedFilterState.globalFilter}
+        onGlobalFilterChange={(value) => table.setGlobalFilter(value || undefined)}
+        onClearAllFilters={handleClearAllFilters}
       />
       <div className="overflow-hidden rounded-[1.5rem] border border-shell-border-strong/70 bg-shell-panel shadow-sm">
         <Table className="min-w-full">
