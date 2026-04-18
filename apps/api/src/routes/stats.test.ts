@@ -1,6 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { FindingSource, FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+
+vi.mock("../lib/auth.js", () => ({
+  auth: {
+    api: {
+      userHasPermission: vi.fn()
+    }
+  }
+}))
+
+import { auth } from "../lib/auth.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -17,6 +27,7 @@ describe("finding stats routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(auth.api.userHasPermission).mockResolvedValue(true)
   })
 
   it("returns 401 for unauthenticated requests", async () => {
@@ -92,6 +103,33 @@ describe("finding stats routes", () => {
       correlationId: requestId,
       data: stats
     })
+  })
+
+  it("returns 403 when reading stats without read permission", async () => {
+    vi.mocked(auth.api.userHasPermission).mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingStatsRoute: createFindingStatsRoute(statsService)
+    })
+
+    const response = await app.request("/api/findings/stats", {
+      headers: {
+        "X-Request-Id": "findings-stats-forbidden-request"
+      }
+    })
+
+    expect(response.status).toBe(403)
+    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+      body: {
+        userId: user.id,
+        permissions: {
+          stats: ["read"]
+        }
+      }
+    })
+    expect(statsService.getFindingStats).not.toHaveBeenCalled()
   })
 
   it("maps unexpected service errors to a 500 reply", async () => {

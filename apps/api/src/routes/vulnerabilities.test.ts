@@ -3,6 +3,16 @@ import {
   VulnerabilitySeverity,
   type Vulnerability
 } from "@openvlp/types/model/vulnerability"
+
+vi.mock("../lib/auth.js", () => ({
+  auth: {
+    api: {
+      userHasPermission: vi.fn()
+    }
+  }
+}))
+
+import { auth } from "../lib/auth.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -33,6 +43,7 @@ describe("vulnerability routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(auth.api.userHasPermission).mockResolvedValue(true)
   })
 
   it("returns 401 for unauthenticated requests", async () => {
@@ -93,6 +104,33 @@ describe("vulnerability routes", () => {
         currentItemCount: 1
       }
     })
+  })
+
+  it("returns 403 when listing vulnerabilities without read permission", async () => {
+    vi.mocked(auth.api.userHasPermission).mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService)
+    })
+
+    const response = await app.request("/api/vulnerabilities", {
+      headers: {
+        "X-Request-Id": "vulnerabilities-list-forbidden-request"
+      }
+    })
+
+    expect(response.status).toBe(403)
+    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+      body: {
+        userId: user.id,
+        permissions: {
+          vulnerability: ["read"]
+        }
+      }
+    })
+    expect(vulnerabilityService.listAll).not.toHaveBeenCalled()
   })
 
   it("returns a vulnerability by id", async () => {

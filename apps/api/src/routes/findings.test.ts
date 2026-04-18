@@ -5,6 +5,16 @@ import {
   type Finding
 } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+
+vi.mock("../lib/auth.js", () => ({
+  auth: {
+    api: {
+      userHasPermission: vi.fn()
+    }
+  }
+}))
+
+import { auth } from "../lib/auth.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -61,6 +71,7 @@ describe("finding routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(auth.api.userHasPermission).mockResolvedValue(true)
   })
 
   it("returns all findings for authenticated requests", async () => {
@@ -205,6 +216,36 @@ describe("finding routes", () => {
         }
       }
     })
+  })
+
+  it("returns 403 when creating a finding without write permission", async () => {
+    vi.mocked(auth.api.userHasPermission).mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService)
+    })
+
+    const response = await app.request("/api/findings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "findings-create-forbidden-request"
+      },
+      body: JSON.stringify(createPayload)
+    })
+
+    expect(response.status).toBe(403)
+    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+      body: {
+        userId: user.id,
+        permissions: {
+          finding: ["write"]
+        }
+      }
+    })
+    expect(findingService.create).not.toHaveBeenCalled()
   })
 
   it("rejects invalid finding create bodies before calling the service", async () => {

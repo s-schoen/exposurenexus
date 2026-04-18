@@ -1,4 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
+vi.mock("../lib/auth.js", () => ({
+  auth: {
+    api: {
+      userHasPermission: vi.fn()
+    }
+  }
+}))
+
+import { auth } from "../lib/auth.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -29,6 +39,7 @@ describe("user routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(auth.api.userHasPermission).mockResolvedValue(true)
   })
 
   it("returns 401 for unauthenticated requests", async () => {
@@ -50,6 +61,34 @@ describe("user routes", () => {
       correlationId: requestId,
       status: 401,
       error: "Unauthorized"
+    })
+    expect(userService.listAll).not.toHaveBeenCalled()
+  })
+
+  it("returns 403 for authenticated users without admin user-management access", async () => {
+    const requestId = "users-forbidden-request"
+    const viewer = createTestUser({ role: "viewer" })
+
+    vi.mocked(auth.api.userHasPermission).mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(viewer),
+      requireAuth: requireAuthenticatedUser,
+      userRoute: createUserRoute(userService)
+    })
+
+    const response = await app.request("/api/users", {
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(403)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 403,
+      error: "Forbidden"
     })
     expect(userService.listAll).not.toHaveBeenCalled()
   })
