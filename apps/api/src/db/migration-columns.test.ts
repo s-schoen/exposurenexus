@@ -26,8 +26,11 @@ describe("db migration columns", () => {
   })
 
   it("creates better-auth admin plugin columns", async () => {
-    const userColumns = await sql<{ column_name: string }>`
-      select column_name
+    const userColumns = await sql<{
+      column_name: string
+      column_default: string | null
+    }>`
+      select column_name, column_default
       from information_schema.columns
       where table_name = 'user'
     `.execute(testDb.db)
@@ -44,5 +47,11 @@ describe("db migration columns", () => {
     expect(sessionColumns.rows.map((row) => row.column_name)).toContain(
       "impersonatedBy"
     )
+
+    const roleColumn = userColumns.rows.find(
+      (row) => row.column_name === "role"
+    )
+
+    expect(roleColumn?.column_default).toContain("viewer")
   })
 })

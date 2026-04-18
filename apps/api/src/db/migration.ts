@@ -3,6 +3,7 @@ import * as m1 from "./migrations/20251219-init-better-auth.js"
 import * as m2 from "./migrations/20251220-assets.js"
 import * as m3 from "./migrations/20260118-vulnerability-mapping.js"
 import * as m4 from "./migrations/20260414-better-auth-admin.js"
+import * as m5 from "./migrations/20260418-rbac-role-default.js"
 import { db, logger } from "./index.js"
 import type { Database } from "./index.js"
 import type { Kysely } from "kysely"
@@ -14,7 +15,8 @@ class ManualMigrationProvider implements MigrationProvider {
       "20251219-init-better-auth": { up: m1.up, down: m1.down },
       "20251220-assets": { up: m2.up, down: m2.down },
       "20260118-vulnerability-mapping": { up: m3.up, down: m3.down },
-      "20260414-better-auth-admin": { up: m4.up, down: m4.down }
+      "20260414-better-auth-admin": { up: m4.up, down: m4.down },
+      "20260418-rbac-role-default": { up: m5.up, down: m5.down }
     }
 
     return Promise.resolve(migrations)
