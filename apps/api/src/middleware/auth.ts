@@ -8,8 +8,8 @@ import type {
 import type { AuthenticatedUser, ContextVariables } from "../lib/hono-schema.js"
 import {
   domainPermission,
-  domainStatements,
   userManagementPermissions,
+  type DomainAction,
   type DomainResource
 } from "../lib/permissions.js"
 
@@ -97,12 +97,9 @@ export function requirePermission(
   return createRequirePermission(auth.api.userHasPermission, permissions)
 }
 
-export type DomainActionFor<Resource extends DomainResource> =
-  (typeof domainStatements)[Resource][number]
-
 export function requireDomainPermission<Resource extends DomainResource>(
   resource: Resource,
-  action: DomainActionFor<Resource>
+  action: DomainAction
 ): AuthMiddleware {
   return requirePermission(domainPermission(resource, action))
 }

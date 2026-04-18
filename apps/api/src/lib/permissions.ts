@@ -11,13 +11,16 @@ export const domainResources = [
 
 export const domainActions = ["read", "write", "delete"] as const
 
-export const domainStatements = {
-  asset: ["read", "write", "delete"],
-  finding: ["read", "write", "delete"],
-  vulnerability: ["read", "write", "delete"],
-  import: ["write"],
-  stats: ["read"]
-} as const
+export type DomainResource = (typeof domainResources)[number]
+export type DomainAction = (typeof domainActions)[number]
+
+export const domainStatements = domainResources.reduce(
+  (statements, resource) => {
+    statements[resource] = domainActions
+    return statements
+  },
+  {} as Record<DomainResource, readonly DomainAction[]>
+)
 
 export const statements = {
   ...defaultStatements,
@@ -56,16 +59,11 @@ export const roles = {
   admin: ac.newRole(roleStatements.admin)
 } as const
 
-export type DomainResource = keyof typeof domainStatements
-
 export function domainPermission<Resource extends DomainResource>(
   resource: Resource,
-  action: (typeof domainStatements)[Resource][number]
+  action: DomainAction
 ) {
-  return { [resource]: [action] } as Record<
-    Resource,
-    Array<(typeof domainStatements)[Resource][number]>
-  >
+  return { [resource]: [action] } as Record<Resource, DomainAction[]>
 }
 
 export const userManagementPermissions = {

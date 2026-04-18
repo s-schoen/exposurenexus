@@ -26,6 +26,9 @@ describe("rbac permissions", () => {
     expect(domainPermission("finding", "delete")).toEqual({
       finding: ["delete"]
     })
+    expect(domainPermission("stats", "delete")).toEqual({
+      stats: ["delete"]
+    })
   })
 
   it("keeps viewer, editor, and admin role grants explicit", () => {
