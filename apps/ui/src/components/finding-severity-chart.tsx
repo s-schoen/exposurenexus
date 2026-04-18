@@ -59,7 +59,7 @@ export function FindingSeverityChart({
     },
     [VulnerabilitySeverity.Critical]: {
       label: formatSeverity(VulnerabilitySeverity.Critical),
-      color: `var(--color-${severityColor(VulnerabilitySeverity.Info, false)})`
+      color: `var(--color-${severityColor(VulnerabilitySeverity.Critical, false)})`
     }
   } satisfies ChartConfig
 

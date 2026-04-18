@@ -1,37 +1,23 @@
-import { useEffect } from "react"
-import { useQueryState } from "nuqs"
 import { Search, XIcon } from "lucide-react"
-import { useRouter } from "@tanstack/react-router"
 import type { ChangeEvent } from "react"
-import type { Table } from "@tanstack/react-table"
 import { Button } from "@/components/ui/button.tsx"
 import { Input } from "@/components/ui/input.tsx"
 
-interface DataTableFilterProps<TData> {
-  table: Table<TData>
+interface DataTableFilterProps {
+  value: string
   hasActiveFilters?: boolean
+  onFilterChange: (value: string) => void
+  onClearAll: () => void
 }
 
-export function DataTableFilter<TData>({
-  table,
-  hasActiveFilters = false
-}: DataTableFilterProps<TData>) {
-  const router = useRouter()
-  const [filter, setFilter] = useQueryState("filter")
-
-  useEffect(() => {
-    table.setGlobalFilter(filter || undefined)
-  }, [filter, table])
-
+export function DataTableFilter({
+  value,
+  hasActiveFilters = false,
+  onFilterChange,
+  onClearAll
+}: DataTableFilterProps) {
   const onFilter = (e: ChangeEvent<HTMLInputElement>) => {
-    setFilter(e.target.value || null)
-  }
-
-  const handleClearAll = () => {
-    table.resetColumnFilters()
-    table.setGlobalFilter(undefined)
-    // @ts-ignore this we dont know the page and want to reset whatever query
-    router.navigate({ search: {} })
+    onFilterChange(e.target.value)
   }
 
   return (
@@ -42,14 +28,14 @@ export function DataTableFilter<TData>({
           type="text"
           placeholder="Search across visible columns"
           onChange={onFilter}
-          value={filter ?? ""}
+          value={value}
           className="h-9 rounded-xl bg-background pl-9"
         />
       </div>
       <Button
         variant="outline"
         size="sm"
-        onClick={handleClearAll}
+        onClick={onClearAll}
         className="h-9 rounded-xl"
         disabled={!hasActiveFilters}
       >

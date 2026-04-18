@@ -1,6 +1,5 @@
 import { Check, PlusCircle, XCircle } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
-import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
+import { useMemo, useState } from "react"
 import type { MouseEvent } from "react"
 import type { Column } from "@tanstack/react-table"
 import type { SelectOption } from "@/components/data-table/types.ts"
@@ -26,53 +25,34 @@ export interface FilterFieldProps<TData> {
 }
 
 export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
-  const [querySelectedOptionValues, setQuerySelectedOptionValues] =
-    useQueryState(column.id, parseAsArrayOf(parseAsString).withDefault([]))
   const [open, setOpen] = useState(false)
+  const selectedValues =
+    (column.getFilterValue() as Array<string> | undefined) ?? []
 
   const selectedOptions = useMemo(() => {
     return (column.columnDef.meta!.options || []).filter((opt) =>
-      querySelectedOptionValues.includes(opt.value)
+      selectedValues.includes(opt.value)
     )
-  }, [querySelectedOptionValues, column.columnDef.meta])
-
-  useEffect(() => {
-    const nextValue =
-      querySelectedOptionValues.length > 0
-        ? querySelectedOptionValues
-        : undefined
-    const currentValue = column.getFilterValue() as Array<string> | undefined
-
-    const isEqual =
-      (currentValue === undefined && nextValue === undefined) ||
-      (Array.isArray(currentValue) &&
-        Array.isArray(nextValue) &&
-        currentValue.length === nextValue.length &&
-        currentValue.every((value, index) => value === nextValue[index]))
-
-    if (!isEqual) {
-      column.setFilterValue(nextValue)
-    }
-  }, [column, querySelectedOptionValues])
+  }, [selectedValues, column.columnDef.meta])
 
   const handleClear = (event?: MouseEvent) => {
     if (selectedOptions.length > 0) {
       // prevent command from opening
       event?.stopPropagation()
-      setQuerySelectedOptionValues(null)
+      column.setFilterValue(undefined)
     }
   }
 
   const handleSelectOption = (option: SelectOption) => {
-    let newSelection = []
+    let newSelection: Array<string> = []
     if (selectedOptions.includes(option)) {
       // deselect
-      newSelection = querySelectedOptionValues.filter((v) => v !== option.value)
+      newSelection = selectedValues.filter((v) => v !== option.value)
     } else {
       // select
-      newSelection = [...querySelectedOptionValues, option.value]
+      newSelection = [...selectedValues, option.value]
     }
-    setQuerySelectedOptionValues(newSelection)
+    column.setFilterValue(newSelection.length > 0 ? newSelection : undefined)
   }
 
   return (

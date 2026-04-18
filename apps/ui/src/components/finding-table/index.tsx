@@ -1,10 +1,14 @@
 import { Check, Layers3, Plus } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import { useMemo } from "react"
 import { toast } from "sonner"
 import type { Finding } from "@openvlp/types/model/finding"
-import type { GroupingOption } from "@/components/data-table/types.ts"
+import type {
+  DataTableFilterState,
+  GroupingOption
+} from "@/components/data-table/types.ts"
 import { DataTable } from "@/components/data-table/data-table.tsx"
 import { createFindingColumns } from "@/components/finding-table/columns.tsx"
 import {
@@ -44,6 +48,26 @@ export function FindingTable({
   const queryClient = useQueryClient()
   const findingsQuery = useQuery(createListFindingsQueryOptions())
   const assetsQuery = useQuery(createListAssetsQueryOptions())
+  const [filter, setFilter] = useQueryState("filter")
+  const [severityFilter, setSeverityFilter] = useQueryState(
+    "severity",
+    parseAsArrayOf(parseAsString).withDefault([])
+  )
+  const [statusFilter, setStatusFilter] = useQueryState(
+    "status",
+    parseAsArrayOf(parseAsString).withDefault([])
+  )
+
+  const filterState = useMemo<DataTableFilterState>(
+    () => ({
+      globalFilter: filter ?? "",
+      selectFilters: {
+        ...(severityFilter.length > 0 ? { severity: severityFilter } : {}),
+        ...(statusFilter.length > 0 ? { status: statusFilter } : {})
+      }
+    }),
+    [filter, severityFilter, statusFilter]
+  )
 
   const assetNamesById = useMemo(
     () =>
@@ -238,12 +262,23 @@ export function FindingTable({
     )
   }
 
+  const handleFilterStateChange = (nextState: DataTableFilterState) => {
+    void setFilter(nextState.globalFilter ? nextState.globalFilter : null)
+    const nextSeverityFilter = nextState.selectFilters.severity ?? []
+    const nextStatusFilter = nextState.selectFilters.status ?? []
+
+    void setSeverityFilter(nextSeverityFilter.length ? nextSeverityFilter : null)
+    void setStatusFilter(nextStatusFilter.length ? nextStatusFilter : null)
+  }
+
   return (
     <DataTable
       columns={columns}
       query={findingsQuery}
       groupingOptions={groupingOptions}
       initialGrouping={initialGrouping}
+      filterState={filterState}
+      onFilterStateChange={handleFilterStateChange}
       initialSorting={[
         { id: "severity", desc: true },
         { id: "lastSeen", desc: true }

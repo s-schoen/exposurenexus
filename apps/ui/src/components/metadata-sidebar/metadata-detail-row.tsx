@@ -8,7 +8,7 @@ interface MetadataDetailRowBaseProps {
 }
 
 interface StaticMetadataDetailRowProps extends MetadataDetailRowBaseProps {
-  value: string
+  value: ReactNode
   editable?: never
 }
 

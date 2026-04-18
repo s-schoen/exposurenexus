@@ -1,5 +1,4 @@
 import { RotateCw, Rows3, Trash, X } from "lucide-react"
-import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import type { Column, Table } from "@tanstack/react-table"
 import type { ReactNode } from "react"
 import type { GroupingOption } from "@/components/data-table/types.ts"
@@ -25,11 +24,18 @@ interface DataTableToolbarProps<TData> {
   additionalElements?: ReactNode
   onRequestRefresh: () => void
   onRequestDelete: () => void
+  globalFilterValue: string
+  onGlobalFilterChange: (value: string) => void
+  onClearAllFilters: () => void
 }
 
-function GlobalFilterChip<TData>({ table }: { table: Table<TData> }) {
-  const [filter, setFilter] = useQueryState("filter")
-
+function GlobalFilterChip({
+  filter,
+  onClear
+}: {
+  filter: string
+  onClear: () => void
+}) {
   if (!filter) {
     return null
   }
@@ -44,10 +50,7 @@ function GlobalFilterChip<TData>({ table }: { table: Table<TData> }) {
       <button
         type="button"
         className="rounded-full text-muted-foreground transition-colors hover:text-foreground"
-        onClick={() => {
-          setFilter(null)
-          table.setGlobalFilter(undefined)
-        }}
+        onClick={onClear}
         aria-label="Clear search filter"
       >
         <X className="size-3.5" />
@@ -57,10 +60,8 @@ function GlobalFilterChip<TData>({ table }: { table: Table<TData> }) {
 }
 
 function SelectFilterChips<TData>({ column }: { column: Column<TData> }) {
-  const [selectedValues, setSelectedValues] = useQueryState(
-    column.id,
-    parseAsArrayOf(parseAsString).withDefault([])
-  )
+  const selectedValues =
+    (column.getFilterValue() as Array<string> | undefined) ?? []
 
   const options = column.columnDef.meta?.options ?? []
   const label = column.columnDef.meta?.label || column.id
@@ -87,7 +88,6 @@ function SelectFilterChips<TData>({ column }: { column: Column<TData> }) {
           const nextValues = selectedValues.filter(
             (value) => value !== option.value
           )
-          setSelectedValues(nextValues.length > 0 ? nextValues : null)
           column.setFilterValue(nextValues.length > 0 ? nextValues : undefined)
         }}
         aria-label={`Clear ${label} filter ${option.label}`}
@@ -105,7 +105,10 @@ export function DataTableToolbar<TData>({
   groupingOptions = [],
   additionalElements,
   onRequestRefresh,
-  onRequestDelete
+  onRequestDelete,
+  globalFilterValue,
+  onGlobalFilterChange,
+  onClearAllFilters
 }: DataTableToolbarProps<TData>) {
   const selectedRows = table.getFilteredSelectedRowModel().rows.length
   const totalRows = table.getCoreRowModel().rows.length
@@ -114,9 +117,16 @@ export function DataTableToolbar<TData>({
   const activeGroupingOption = groupingOptions.find(
     (option) => option.id === activeGrouping
   )
+  const activeSelectFilters = table
+    .getAllColumns()
+    .filter(
+      (column) =>
+        column.getCanFilter() &&
+        column.columnDef.meta?.filterVariant === "select" &&
+        ((column.getFilterValue() as Array<string> | undefined)?.length ?? 0) > 0
+    )
   const hasActiveFilters =
-    Boolean(table.getState().globalFilter) ||
-    table.getState().columnFilters.length > 0
+    Boolean(globalFilterValue) || activeSelectFilters.length > 0
 
   function getFilterField(column: Column<TData>) {
     switch (column.columnDef.meta?.filterVariant) {
@@ -133,8 +143,10 @@ export function DataTableToolbar<TData>({
         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
             <DataTableFilter
-              table={table}
+              value={globalFilterValue}
               hasActiveFilters={hasActiveFilters}
+              onFilterChange={onGlobalFilterChange}
+              onClearAll={onClearAllFilters}
             />
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -215,15 +227,13 @@ export function DataTableToolbar<TData>({
         </div>
         {hasActiveFilters && (
           <div className="flex flex-wrap items-center gap-2">
-            <GlobalFilterChip table={table} />
-            {table
-              .getAllColumns()
-              .map((column) =>
-                column.getCanFilter() &&
-                column.columnDef.meta?.filterVariant === "select" ? (
-                  <SelectFilterChips key={column.id} column={column} />
-                ) : null
-              )}
+            <GlobalFilterChip
+              filter={globalFilterValue}
+              onClear={() => onGlobalFilterChange("")}
+            />
+            {activeSelectFilters.map((column) => (
+              <SelectFilterChips key={column.id} column={column} />
+            ))}
           </div>
         )}
         <div className="flex flex-wrap gap-2">

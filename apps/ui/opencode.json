@@ -16,6 +16,11 @@
       "type": "remote",
       "url": "http://127.0.0.1:64342/stream",
       "enabled": true
+    },
+    "storybook": {
+      "type": "remote",
+      "url": "http://localhost:6006/mcp",
+      "enabled": true
     }
   }
 }

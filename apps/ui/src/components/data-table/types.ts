@@ -13,6 +13,11 @@ export interface GroupingOption {
   formatValue?: (value: unknown) => string
 }
 
+export interface DataTableFilterState {
+  globalFilter: string
+  selectFilters: Partial<Record<string, Array<string>>>
+}
+
 export const NO_GROUPING_VALUE = "none"
 
 declare module "@tanstack/react-table" {

@@ -46,6 +46,7 @@ import { FindingStatusBadge } from "@/components/finding-status-badge.tsx"
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
 import { MetadataSidebar } from "@/components/metadata-sidebar"
 import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx"
+import { UserLabel } from "@/components/user-label.tsx"
 import {
   Tabs,
   TabsContent,
@@ -248,6 +249,14 @@ export function FindingDetailContent({
         </div>
         <Separator />
         <div className="space-y-3">
+          <MetadataDetailRow
+            label="Created by"
+            value={<UserLabel userId={displayData!.createdBy} />}
+          />
+          <MetadataDetailRow
+            label="Updated by"
+            value={<UserLabel userId={displayData!.updatedBy} />}
+          />
           <MetadataDetailRow
             label="Asset"
             value={asset.data?.name ?? "Unknown asset"}
