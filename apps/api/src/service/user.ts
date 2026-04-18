@@ -126,8 +126,15 @@ export function createUserService({
           body: user
         })
 
+        const persisted = await userRepository.getByID(created.user.id)
+        if (!persisted) {
+          throw new HTTPException(500, {
+            message: "failed to load created user"
+          })
+        }
+
         logger.info({ userId: created.user.id }, "created user")
-        return created.user
+        return persisted
       } catch (error) {
         if (error instanceof HTTPException) {
           throw error

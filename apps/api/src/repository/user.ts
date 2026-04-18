@@ -1,11 +1,30 @@
 import type { Database } from "../db/index.js"
 import type { Kysely } from "kysely"
+import {
+  builtInRoles,
+  type BuiltInRoleName,
+  type Role
+} from "@openvlp/types/model/rbac"
 import type { User } from "@openvlp/types/model/user"
 
 type UserProfileUpdate = Pick<
   Database["user"],
   "name" | "email" | "displayUsername" | "image" | "updatedAt"
 >
+
+const builtInRoleByName = new Map(builtInRoles.map((role) => [role.name, role]))
+
+function toUserRoles(roleValue: string | null): Role[] {
+  if (!roleValue) {
+    return []
+  }
+
+  return roleValue
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value): value is BuiltInRoleName => builtInRoleByName.has(value))
+    .map((value) => builtInRoleByName.get(value)!)
+}
 
 function toUser(user: Database["user"]): User {
   return {
@@ -17,7 +36,8 @@ function toUser(user: Database["user"]): User {
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
     username: user.username,
-    displayUsername: user.displayUsername
+    displayUsername: user.displayUsername,
+    roles: toUserRoles(user.role)
   }
 }
 

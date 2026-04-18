@@ -8,7 +8,6 @@ import type { Kysely } from "kysely"
 import type { Database } from "../db/index.js"
 import type { Logger } from "pino"
 import type { Pool } from "pg"
-import type { User } from "@openvlp/types/model/user"
 import type { ApiPermissionPayload } from "./permissions.js"
 
 export interface AuthApiSessionClient {
@@ -28,7 +27,9 @@ export interface AuthApiSignupClient {
       password: string
     }
   }): Promise<{
-    user: User
+    user: {
+      id: string
+    }
   }>
 }
 
