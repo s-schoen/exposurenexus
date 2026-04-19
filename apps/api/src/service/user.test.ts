@@ -72,7 +72,7 @@ describe("user service", () => {
   }
 
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
     vi.useRealTimers()
   })
 
@@ -346,7 +346,7 @@ describe("user service", () => {
     )
   })
 
-  it("updates a user while preserving the immutable username", async () => {
+  it("updates a user while preserving the immutable username without rereading after auth mutations", async () => {
     const service = createUserService({ userRepository, roleService, auth, logger })
     const now = new Date("2026-02-03T04:05:06.000Z")
     const updatedUser = {
@@ -366,15 +366,7 @@ describe("user service", () => {
         ...persistedUser,
         roleNames: [BuiltInRoleName.Viewer]
       })
-      .mockResolvedValueOnce({
-        ...persistedUser,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        displayUsername: updatedUser.displayUsername,
-        image: updatedUser.image,
-        updatedAt: updatedUser.updatedAt,
-        roleNames: [BuiltInRoleName.Viewer, BuiltInRoleName.Editor]
-      })
+      .mockRejectedValueOnce(new Error("should not reread updated user"))
     userRepository.updateByID.mockResolvedValue({
       ...persistedUser,
       name: updatedUser.name,
@@ -388,7 +380,6 @@ describe("user service", () => {
       BuiltInRoleName.Viewer,
       BuiltInRoleName.Editor
     ])
-    roleService.getByNames.mockResolvedValue([viewerRole, editorRole])
     auth.api.setRole.mockResolvedValue({ user: { id: user.id } })
     auth.api.setUserPassword.mockResolvedValue({ status: true })
 
@@ -425,6 +416,8 @@ describe("user service", () => {
         newPassword: "new-correct-horse-battery-staple"
       }
     })
+    expect(userRepository.getByID).toHaveBeenCalledOnce()
+    expect(roleService.getByNames).not.toHaveBeenCalled()
   })
 
   it("updates profile fields without resetting the password when omitted", async () => {
@@ -522,24 +515,33 @@ describe("user service", () => {
     } satisfies Partial<HTTPException>)
   })
 
-  it("rolls back profile changes when password update fails", async () => {
+  it("rolls back profile and roles when password update fails after a role change", async () => {
     const service = createUserService({ userRepository, roleService, auth, logger })
     const now = new Date("2026-02-03T04:05:06.000Z")
+    const existingUser = {
+      ...persistedUser,
+      roleNames: [BuiltInRoleName.Viewer]
+    }
 
     vi.useFakeTimers()
     vi.setSystemTime(now)
 
-    userRepository.getByID.mockResolvedValue(persistedUser)
+    userRepository.getByID.mockResolvedValue(existingUser)
     userRepository.updateByID
       .mockResolvedValueOnce({
-        ...persistedUser,
+        ...existingUser,
         name: "Alice Updated",
         email: "alice.updated@example.com",
         displayUsername: "Alice Updated",
         image: "https://example.com/alice.png",
         updatedAt: now
       })
-      .mockResolvedValueOnce(persistedUser)
+      .mockResolvedValueOnce(existingUser)
+    roleService.requireRoleNamesFromIds.mockResolvedValue([
+      BuiltInRoleName.Viewer,
+      BuiltInRoleName.Editor
+    ])
+    auth.api.setRole.mockResolvedValue({ user: { id: user.id } })
     auth.api.setUserPassword.mockResolvedValue({ status: false } as never)
 
     await expect(
@@ -548,7 +550,8 @@ describe("user service", () => {
         email: "alice.updated@example.com",
         displayUsername: "Alice Updated",
         image: "https://example.com/alice.png",
-        password: "new-correct-horse-battery-staple"
+        password: "new-correct-horse-battery-staple",
+        roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
       })
     ).rejects.toMatchObject({
       status: 500,
@@ -568,6 +571,18 @@ describe("user service", () => {
       displayUsername: user.displayUsername,
       image: user.image,
       updatedAt: user.updatedAt
+    })
+    expect(auth.api.setRole).toHaveBeenNthCalledWith(1, {
+      body: {
+        userId: user.id,
+        role: [BuiltInRoleName.Viewer, BuiltInRoleName.Editor]
+      }
+    })
+    expect(auth.api.setRole).toHaveBeenNthCalledWith(2, {
+      body: {
+        userId: user.id,
+        role: [BuiltInRoleName.Viewer]
+      }
     })
   })
 })
