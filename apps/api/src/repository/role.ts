@@ -1,6 +1,6 @@
 import type { Kysely } from "kysely"
 import type { Database } from "../db/index.js"
-import type { Role } from "@openvlp/types/model/rbac"
+import type { Role, UpdateRole } from "@openvlp/types/model/rbac"
 
 type RoleRow = {
   id: string
@@ -53,6 +53,25 @@ function createRoleBaseQuery(database: Kysely<Database>) {
     ])
 }
 
+function dedupePermissions(
+  permissions: UpdateRole["permissions"]
+): UpdateRole["permissions"] {
+  const seenPermissions = new Set<string>()
+  const dedupedPermissions: UpdateRole["permissions"] = []
+
+  for (const permission of permissions) {
+    const permissionKey = `${permission.resource}:${permission.verb}`
+    if (seenPermissions.has(permissionKey)) {
+      continue
+    }
+
+    seenPermissions.add(permissionKey)
+    dedupedPermissions.push(permission)
+  }
+
+  return dedupedPermissions
+}
+
 export function createRoleRepository(database: Kysely<Database>) {
   return {
     async list(): Promise<Role[]> {
@@ -91,6 +110,65 @@ export function createRoleRepository(database: Kysely<Database>) {
         .execute()
 
       return toRoles(rows)
+    },
+
+    async updateByID(id: string, roleUpdate: UpdateRole): Promise<Role | null> {
+      return database.transaction().execute(async (trx) => {
+        const updatedRole = await trx
+          .updateTable("role")
+          .set({ name: roleUpdate.name })
+          .where("id", "=", id)
+          .returning(["id", "name"])
+          .executeTakeFirst()
+
+        if (!updatedRole) {
+          return null
+        }
+
+        await trx
+          .deleteFrom("role_permission_assignment")
+          .where("role_id", "=", id)
+          .execute()
+
+        const permissions = dedupePermissions(roleUpdate.permissions)
+
+        if (permissions.length > 0) {
+          await trx
+            .insertInto("role_permission_assignment")
+            .values(
+              permissions.map((permission) => ({
+                role_id: id,
+                resource: permission.resource,
+                verb: permission.verb
+              }))
+            )
+            .execute()
+        }
+
+        const rows = await createRoleBaseQuery(trx)
+          .where("role.id", "=", id)
+          .execute()
+
+        const [role] = toRoles(rows)
+        return role ?? null
+      })
+    },
+
+    async deleteByID(id: string): Promise<Role | null> {
+      return database.transaction().execute(async (trx) => {
+        const rows = await createRoleBaseQuery(trx)
+          .where("role.id", "=", id)
+          .execute()
+        const [role] = toRoles(rows)
+
+        if (!role) {
+          return null
+        }
+
+        await trx.deleteFrom("role").where("id", "=", id).executeTakeFirst()
+
+        return role
+      })
     }
   }
 }

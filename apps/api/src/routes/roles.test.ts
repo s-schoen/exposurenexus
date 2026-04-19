@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { HTTPException } from "hono/http-exception"
 import {
   BuiltInRoleName,
   PermissionResource,
@@ -12,6 +13,7 @@ import {
   requireAuthenticatedUser
 } from "../test/app.js"
 import { createRequireDomainPermission } from "../middleware/auth.js"
+import { updateRoleSchema } from "@openvlp/types/model/rbac"
 import { createRoleRoute } from "./roles.js"
 
 describe("role routes", () => {
@@ -30,7 +32,9 @@ describe("role routes", () => {
   }
   const roleService = {
     listAll: vi.fn(),
-    getByID: vi.fn()
+    getByID: vi.fn(),
+    updateByID: vi.fn(),
+    deleteByID: vi.fn()
   }
 
   beforeEach(() => {
@@ -196,6 +200,301 @@ describe("role routes", () => {
     expect(body).toEqual({
       correlationId: requestId,
       data: listedRole
+    })
+  })
+
+  it("returns 200 when updating a role", async () => {
+    const requestId = "roles-update-request"
+    const payload = {
+      name: "security-viewer",
+      permissions: [
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Read }
+      ]
+    } satisfies typeof updateRoleSchema._output
+    const updatedRole = {
+      ...listedRole,
+      ...payload
+    }
+
+    roleService.updateByID.mockResolvedValue(updatedRole)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/roles/${listedRole.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(roleService.updateByID).toHaveBeenCalledWith(listedRole.id, payload)
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: updatedRole
+    })
+  })
+
+  it("returns 403 when updating a role without permission", async () => {
+    const requestId = "roles-update-forbidden-request"
+
+    userHasPermission.mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/roles/${listedRole.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify({ name: listedRole.name, permissions: [] })
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(403)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 403,
+      error: "Forbidden"
+    })
+    expect(roleService.updateByID).not.toHaveBeenCalled()
+  })
+
+  it("rejects invalid role update payloads", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/roles/${listedRole.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "roles-invalid-update-request"
+      },
+      body: JSON.stringify({ name: "", permissions: [] })
+    })
+
+    expect(response.status).toBe(400)
+    expect(roleService.updateByID).not.toHaveBeenCalled()
+  })
+
+  it("returns 404 when updating a missing role", async () => {
+    const requestId = "roles-update-missing-request"
+
+    roleService.updateByID.mockResolvedValue(null)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/roles/${listedRole.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify({ name: listedRole.name, permissions: [] })
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: `role with id ${listedRole.id} does not exist`
+    })
+  })
+
+  it("returns 403 when trying to update a built-in role", async () => {
+    const requestId = "roles-update-protected-request"
+
+    roleService.updateByID.mockRejectedValue(
+      new HTTPException(403, {
+        message: "built-in roles cannot be modified"
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/roles/${builtInRoleIds.viewer}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify({ name: listedRole.name, permissions: [] })
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(403)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 403,
+      error: "built-in roles cannot be modified"
+    })
+  })
+
+  it("returns 200 when deleting a role", async () => {
+    const requestId = "roles-delete-request"
+
+    roleService.deleteByID.mockResolvedValue(listedRole)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/roles/${listedRole.id}`, {
+      method: "DELETE",
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(roleService.deleteByID).toHaveBeenCalledWith(listedRole.id)
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: listedRole
+    })
+  })
+
+  it("returns 403 when deleting a role without permission", async () => {
+    const requestId = "roles-delete-forbidden-request"
+
+    userHasPermission.mockResolvedValueOnce(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/roles/${listedRole.id}`, {
+      method: "DELETE",
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(403)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 403,
+      error: "Forbidden"
+    })
+    expect(roleService.deleteByID).not.toHaveBeenCalled()
+  })
+
+  it("returns 404 when deleting a missing role", async () => {
+    const requestId = "roles-delete-missing-request"
+
+    roleService.deleteByID.mockResolvedValue(null)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/roles/${listedRole.id}`, {
+      method: "DELETE",
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: `role with id ${listedRole.id} does not exist`
+    })
+  })
+
+  it("returns 403 when trying to delete a built-in role", async () => {
+    const requestId = "roles-delete-protected-request"
+
+    roleService.deleteByID.mockRejectedValue(
+      new HTTPException(403, {
+        message: "built-in roles cannot be modified"
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/roles/${builtInRoleIds.viewer}`, {
+      method: "DELETE",
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(403)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 403,
+      error: "built-in roles cannot be modified"
+    })
+  })
+
+  it("returns 409 when trying to delete an assigned role", async () => {
+    const requestId = "roles-delete-assigned-request"
+
+    roleService.deleteByID.mockRejectedValue(
+      new HTTPException(409, {
+        message: `role ${listedRole.name} is still assigned to users`
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/roles/${listedRole.id}`, {
+      method: "DELETE",
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(409)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 409,
+      error: `role ${listedRole.name} is still assigned to users`
     })
   })
 })

@@ -15,8 +15,14 @@ describe("role service", () => {
     list: vi.fn(),
     getByID: vi.fn(),
     getByIDs: vi.fn(),
-    getByNames: vi.fn()
+    getByNames: vi.fn(),
+    updateByID: vi.fn(),
+    deleteByID: vi.fn()
   }
+  const userRepository = {
+    hasUsersWithRoleName: vi.fn()
+  }
+  const onRolesChanged = vi.fn()
   const logger = pino({ enabled: false })
   const viewerRole: Role = {
     id: builtInRoleIds.viewer,
@@ -32,13 +38,27 @@ describe("role service", () => {
       { resource: PermissionResource.User, verb: PermissionVerb.Write }
     ]
   }
+  const analystRole: Role = {
+    id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830",
+    name: "analyst",
+    permissions: [
+      { resource: PermissionResource.Asset, verb: PermissionVerb.Read }
+    ]
+  }
 
   beforeEach(() => {
     vi.clearAllMocks()
+    userRepository.hasUsersWithRoleName.mockResolvedValue(false)
+    onRolesChanged.mockResolvedValue(undefined)
   })
 
   it("gets roles by name", async () => {
-    const service = createRoleService({ roleRepository, logger })
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
 
     roleRepository.getByNames.mockResolvedValue([viewerRole, adminRole])
 
@@ -52,7 +72,12 @@ describe("role service", () => {
   })
 
   it("lists all roles", async () => {
-    const service = createRoleService({ roleRepository, logger })
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
 
     roleRepository.list.mockResolvedValue([adminRole, viewerRole])
 
@@ -61,7 +86,12 @@ describe("role service", () => {
   })
 
   it("maps list failures to an HTTP 500", async () => {
-    const service = createRoleService({ roleRepository, logger })
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
 
     roleRepository.list.mockRejectedValue(new Error("db offline"))
 
@@ -72,7 +102,12 @@ describe("role service", () => {
   })
 
   it("returns a role by id", async () => {
-    const service = createRoleService({ roleRepository, logger })
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
 
     roleRepository.getByID.mockResolvedValue(viewerRole)
 
@@ -81,7 +116,12 @@ describe("role service", () => {
   })
 
   it("returns null when a role does not exist", async () => {
-    const service = createRoleService({ roleRepository, logger })
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
 
     roleRepository.getByID.mockResolvedValue(null)
 
@@ -89,7 +129,12 @@ describe("role service", () => {
   })
 
   it("maps get-by-id failures to an HTTP 500", async () => {
-    const service = createRoleService({ roleRepository, logger })
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
 
     roleRepository.getByID.mockRejectedValue(new Error("db offline"))
 
@@ -100,7 +145,12 @@ describe("role service", () => {
   })
 
   it("resolves role ids from persisted role names", async () => {
-    const service = createRoleService({ roleRepository, logger })
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
 
     roleRepository.getByNames.mockResolvedValue([viewerRole, adminRole])
 
@@ -117,7 +167,12 @@ describe("role service", () => {
   })
 
   it("requires known role ids and resolves them to role names", async () => {
-    const service = createRoleService({ roleRepository, logger })
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
 
     roleRepository.getByIDs.mockResolvedValue([adminRole, viewerRole])
 
@@ -135,7 +190,12 @@ describe("role service", () => {
   })
 
   it("rejects unknown role ids with an HTTP 400", async () => {
-    const service = createRoleService({ roleRepository, logger })
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
 
     roleRepository.getByIDs.mockResolvedValue([viewerRole])
 
@@ -151,7 +211,12 @@ describe("role service", () => {
   })
 
   it("maps role resolution failures to an HTTP 500", async () => {
-    const service = createRoleService({ roleRepository, logger })
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
 
     roleRepository.getByNames.mockRejectedValue(new Error("db offline"))
 
@@ -160,6 +225,133 @@ describe("role service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to resolve role ids"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("updates a custom role and reloads better-auth", async () => {
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
+    const updatedRole = {
+      ...analystRole,
+      name: "security-analyst",
+      permissions: [
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Write }
+      ]
+    }
+
+    roleRepository.updateByID.mockResolvedValue(updatedRole)
+
+    await expect(
+      service.updateByID(analystRole.id, {
+        name: "security-analyst",
+        permissions: updatedRole.permissions
+      })
+    ).resolves.toEqual(updatedRole)
+    expect(onRolesChanged).toHaveBeenCalledOnce()
+  })
+
+  it("rejects attempts to modify built-in roles", async () => {
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
+
+    await expect(
+      service.updateByID(builtInRoleIds.viewer, {
+        name: "updated-viewer",
+        permissions: []
+      })
+    ).rejects.toMatchObject({
+      status: 403,
+      message: "built-in roles cannot be modified"
+    } satisfies Partial<HTTPException>)
+
+    expect(roleRepository.updateByID).not.toHaveBeenCalled()
+  })
+
+  it("deletes a custom role and reloads better-auth", async () => {
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
+
+    roleRepository.getByID.mockResolvedValue(analystRole)
+    roleRepository.deleteByID.mockResolvedValue(analystRole)
+
+    await expect(service.deleteByID(analystRole.id)).resolves.toEqual(
+      analystRole
+    )
+    expect(userRepository.hasUsersWithRoleName).toHaveBeenCalledWith(
+      analystRole.name
+    )
+    expect(onRolesChanged).toHaveBeenCalledOnce()
+  })
+
+  it("rejects trying to delete a built-in role", async () => {
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
+
+    await expect(service.deleteByID(builtInRoleIds.admin)).rejects.toMatchObject(
+      {
+        status: 403,
+        message: "built-in roles cannot be modified"
+      } satisfies Partial<HTTPException>
+    )
+
+    expect(roleRepository.deleteByID).not.toHaveBeenCalled()
+  })
+
+  it("rejects deleting a role that is still assigned to users", async () => {
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
+
+    roleRepository.getByID.mockResolvedValue(analystRole)
+    userRepository.hasUsersWithRoleName.mockResolvedValue(true)
+
+    await expect(service.deleteByID(analystRole.id)).rejects.toMatchObject({
+      status: 409,
+      message: `role ${analystRole.name} is still assigned to users`
+    } satisfies Partial<HTTPException>)
+
+    expect(roleRepository.deleteByID).not.toHaveBeenCalled()
+  })
+
+  it("surfaces a reload failure after role updates", async () => {
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
+
+    roleRepository.updateByID.mockResolvedValue(analystRole)
+    onRolesChanged.mockRejectedValue(new Error("reload failed"))
+
+    await expect(
+      service.updateByID(analystRole.id, {
+        name: analystRole.name,
+        permissions: analystRole.permissions
+      })
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "role updated but failed to reload auth"
     } satisfies Partial<HTTPException>)
   })
 })

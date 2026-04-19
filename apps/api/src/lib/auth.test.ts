@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { BuiltInRoleName } from "@openvlp/types/model/rbac"
+import {
+  BuiltInRoleName,
+  PermissionResource,
+  PermissionVerb
+} from "@openvlp/types/model/rbac"
 import { createTestUser } from "../test/app.js"
 import { ac } from "./permissions.js"
 
@@ -35,7 +39,12 @@ vi.mock("../env.js", () => ({
   }
 }))
 
-import { createAuth, createDefaultAdmin, createReloadableAuth } from "./auth.js"
+import {
+  createAuth,
+  createDefaultAdmin,
+  createReloadableAuth,
+  reloadAuthFromRoles
+} from "./auth.js"
 
 describe("auth factory", () => {
   const user = createTestUser()
@@ -135,7 +144,7 @@ describe("auth factory", () => {
       auth.api.userHasPermission({
         body: {
           userId: "user-1",
-          permissions: { user: ["read"] }
+          permissions: { [PermissionResource.User]: [PermissionVerb.Read] }
         }
       })
     ).resolves.toBe(true)
@@ -189,7 +198,7 @@ describe("auth factory", () => {
       auth.api.userHasPermission({
         body: {
           userId: "user-2",
-          permissions: { user: ["read"] }
+          permissions: { [PermissionResource.User]: [PermissionVerb.Read] }
         }
       })
     ).resolves.toBe(false)
@@ -203,6 +212,68 @@ describe("auth factory", () => {
     expect(secondAuth.api.getSession).toHaveBeenCalledOnce()
     expect(secondAuth.api.userHasPermission).toHaveBeenCalledOnce()
     expect(secondAuth.handler).toHaveBeenCalledOnce()
+  })
+
+  it("reloads better-auth from role definitions and applies the new client", async () => {
+    const auth = createReloadableAuth({
+      api: {
+        getSession: vi.fn().mockResolvedValue(null),
+        signUpEmail: vi.fn(),
+        setRole: vi.fn(),
+        setUserPassword: vi.fn(),
+        userHasPermission: vi.fn().mockResolvedValue(true)
+      },
+      handler: vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    } as never)
+    const pool = { end: vi.fn() }
+    const runtimeRoles = [
+      {
+        id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830",
+        name: "analyst",
+        permissions: [{ resource: "asset", verb: "read" }]
+      }
+    ]
+    const reloadedAuth = {
+      api: {
+        getSession: vi.fn().mockResolvedValue(null),
+        signUpEmail: vi.fn(),
+        setRole: vi.fn(),
+        setUserPassword: vi.fn(),
+        userHasPermission: vi.fn().mockResolvedValue(false)
+      },
+      handler: vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
+    }
+
+    betterAuthMock.mockReturnValue(reloadedAuth)
+
+    await reloadAuthFromRoles({
+      auth,
+      listRoles: vi.fn().mockResolvedValue(runtimeRoles),
+      pool: pool as never,
+      authUrl: "http://localhost:3000",
+      authSecret:
+        "012345678901234567890123456789012345678901234567890123456789",
+      defaultRole: BuiltInRoleName.Viewer
+    })
+
+    await expect(
+      auth.api.userHasPermission({
+        body: {
+          userId: "user-1",
+          permissions: { [PermissionResource.Asset]: [PermissionVerb.Read] }
+        }
+      })
+    ).resolves.toBe(false)
+    expect(adminMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        roles: expect.objectContaining({
+          analyst: expect.objectContaining({
+            authorize: expect.any(Function)
+          })
+        }),
+        defaultRole: BuiltInRoleName.Viewer
+      })
+    )
   })
 
   it("skips default admin creation when users already exist", async () => {

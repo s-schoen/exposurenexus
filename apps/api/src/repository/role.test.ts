@@ -175,4 +175,116 @@ describe("role repository", () => {
       ])
     )
   })
+
+  it("updates a role and replaces its permissions", async () => {
+    const repository = createRoleRepository(testDb.db)
+    const roleId = "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830"
+
+    await testDb.db
+      .insertInto("role")
+      .values({ id: roleId, name: "analyst" })
+      .execute()
+    await testDb.db
+      .insertInto("role_permission_assignment")
+      .values([
+        {
+          role_id: roleId,
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Read
+        },
+        {
+          role_id: roleId,
+          resource: PermissionResource.Finding,
+          verb: PermissionVerb.Read
+        }
+      ])
+      .execute()
+
+    await expect(
+      repository.updateByID(roleId, {
+        name: "security-analyst",
+        permissions: [
+          {
+            resource: PermissionResource.Asset,
+            verb: PermissionVerb.Read
+          },
+          {
+            resource: PermissionResource.Asset,
+            verb: PermissionVerb.Read
+          },
+          {
+            resource: PermissionResource.Asset,
+            verb: PermissionVerb.Write
+          }
+        ]
+      })
+    ).resolves.toEqual({
+      id: roleId,
+      name: "security-analyst",
+      permissions: [
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Read
+        },
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Write
+        }
+      ]
+    })
+
+    await expect(repository.getByID(roleId)).resolves.toEqual({
+      id: roleId,
+      name: "security-analyst",
+      permissions: [
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Read
+        },
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Write
+        }
+      ]
+    })
+  })
+
+  it("deletes a role and cascades its permission assignments", async () => {
+    const repository = createRoleRepository(testDb.db)
+    const roleId = "27ff3776-a905-481e-8e53-444cc55f1af5"
+
+    await testDb.db
+      .insertInto("role")
+      .values({ id: roleId, name: "contractor" })
+      .execute()
+    await testDb.db
+      .insertInto("role_permission_assignment")
+      .values({
+        role_id: roleId,
+        resource: PermissionResource.Asset,
+        verb: PermissionVerb.Read
+      })
+      .execute()
+
+    await expect(repository.deleteByID(roleId)).resolves.toEqual({
+      id: roleId,
+      name: "contractor",
+      permissions: [
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Read
+        }
+      ]
+    })
+
+    await expect(repository.getByID(roleId)).resolves.toBeNull()
+
+    const assignments = await testDb.db
+      .selectFrom("role_permission_assignment")
+      .selectAll()
+      .where("role_id", "=", roleId)
+      .execute()
+
+    expect(assignments).toEqual([])
+  })
 })

@@ -1,9 +1,30 @@
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
-import type { Role } from "@openvlp/types/model/rbac"
+import {
+  builtInRoleIds,
+  type Role,
+  type UpdateRole
+} from "@openvlp/types/model/rbac"
+
+const protectedRoleIds = new Set<string>(Object.values(builtInRoleIds))
 
 function uniqueValues(values: readonly string[]): string[] {
   return [...new Set(values)]
+}
+
+function isProtectedRoleId(id: string): boolean {
+  return protectedRoleIds.has(id)
+}
+
+function isConflictError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  const errorWithCode = error as Error & { code?: string }
+  const message = error.message.toLowerCase()
+
+  return errorWithCode.code === "23505" || message.includes("duplicate")
 }
 
 interface RoleRepository {
@@ -11,15 +32,27 @@ interface RoleRepository {
   getByID(id: string): Promise<Role | null>
   getByIDs(ids: readonly string[]): Promise<Role[]>
   getByNames(names: readonly string[]): Promise<Role[]>
+  updateByID(id: string, roleUpdate: UpdateRole): Promise<Role | null>
+  deleteByID(id: string): Promise<Role | null>
+}
+
+interface UserRepository {
+  hasUsersWithRoleName(roleName: string): Promise<boolean>
 }
 
 interface RoleServiceDependencies {
   roleRepository: RoleRepository
+  userRepository?: UserRepository
+  onRolesChanged?: () => Promise<void>
   logger: Logger
 }
 
 export function createRoleService({
   roleRepository,
+  userRepository = {
+    hasUsersWithRoleName: async () => false
+  },
+  onRolesChanged = async () => {},
   logger
 }: RoleServiceDependencies) {
   return {
@@ -100,6 +133,105 @@ export function createRoleService({
         logger.error(error, "failed to resolve role names")
         throw new HTTPException(500, {
           message: "failed to resolve role names"
+        })
+      }
+    },
+
+    async updateByID(id: string, roleUpdate: UpdateRole): Promise<Role | null> {
+      if (isProtectedRoleId(id)) {
+        throw new HTTPException(403, {
+          message: "built-in roles cannot be modified"
+        })
+      }
+
+      try {
+        const updatedRole = await roleRepository.updateByID(id, roleUpdate)
+        if (!updatedRole) {
+          logger.debug(`role with id ${id} not found`)
+          return null
+        }
+
+        // Role definitions are stored in the database, while Better Auth keeps
+        // an in-memory role config. We persist first and then reload Better
+        // Auth. If reload fails, we surface 500 so the drift is visible instead
+        // of silently serving stale permissions.
+        try {
+          await onRolesChanged()
+        } catch (error) {
+          logger.error(error, "failed to reload auth after role update")
+          throw new HTTPException(500, {
+            message: "role updated but failed to reload auth"
+          })
+        }
+
+        return updatedRole
+      } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error
+        }
+
+        if (isConflictError(error)) {
+          logger.debug(error, "role update conflict")
+          throw new HTTPException(409, {
+            message: "role already exists"
+          })
+        }
+
+        logger.error(error, `failed to update role with id ${id}`)
+        throw new HTTPException(500, {
+          message: "failed to update role"
+        })
+      }
+    },
+
+    async deleteByID(id: string): Promise<Role | null> {
+      if (isProtectedRoleId(id)) {
+        throw new HTTPException(403, {
+          message: "built-in roles cannot be modified"
+        })
+      }
+
+      try {
+        const existingRole = await roleRepository.getByID(id)
+        if (!existingRole) {
+          logger.debug(`role with id ${id} not found`)
+          return null
+        }
+
+        if (await userRepository.hasUsersWithRoleName(existingRole.name)) {
+          throw new HTTPException(409, {
+            message: `role ${existingRole.name} is still assigned to users`
+          })
+        }
+
+        const deletedRole = await roleRepository.deleteByID(id)
+        if (!deletedRole) {
+          logger.debug(`role with id ${id} not found during delete`)
+          return null
+        }
+
+        // Role definitions are stored in the database, while Better Auth keeps
+        // an in-memory role config. We persist first and then reload Better
+        // Auth. If reload fails, we surface 500 so the drift is visible instead
+        // of silently serving stale permissions.
+        try {
+          await onRolesChanged()
+        } catch (error) {
+          logger.error(error, "failed to reload auth after role delete")
+          throw new HTTPException(500, {
+            message: "role deleted but failed to reload auth"
+          })
+        }
+
+        return deletedRole
+      } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error
+        }
+
+        logger.error(error, `failed to delete role with id ${id}`)
+        throw new HTTPException(500, {
+          message: "failed to delete role"
         })
       }
     }
