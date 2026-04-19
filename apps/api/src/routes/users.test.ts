@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { viewerRole } from "@openvlp/types/model/rbac"
+import {
+  PermissionResource,
+  PermissionVerb,
+  viewerRole
+} from "@openvlp/types/model/rbac"
 
 vi.mock("../lib/auth.js", () => ({
   auth: {
@@ -92,6 +96,14 @@ describe("user routes", () => {
       status: 403,
       error: "Forbidden"
     })
+    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+      body: {
+        userId: viewer.id,
+        permissions: {
+          [PermissionResource.User]: [PermissionVerb.Read]
+        }
+      }
+    })
     expect(userService.listAll).not.toHaveBeenCalled()
   })
 
@@ -115,6 +127,14 @@ describe("user routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
+    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+      body: {
+        userId: authenticatedUser.id,
+        permissions: {
+          [PermissionResource.User]: [PermissionVerb.Read]
+        }
+      }
+    })
     expect(userService.listAll).toHaveBeenCalledOnce()
     expect(body).toEqual({
       correlationId: requestId,
@@ -223,6 +243,14 @@ describe("user routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(201)
+    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+      body: {
+        userId: authenticatedUser.id,
+        permissions: {
+          [PermissionResource.User]: [PermissionVerb.Write]
+        }
+      }
+    })
     expect(userService.create).toHaveBeenCalledWith(payload)
     expect(body).toEqual({
       correlationId: requestId,
@@ -297,6 +325,14 @@ describe("user routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
+    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+      body: {
+        userId: authenticatedUser.id,
+        permissions: {
+          [PermissionResource.User]: [PermissionVerb.Write]
+        }
+      }
+    })
     expect(userService.updateByID).toHaveBeenCalledWith(userId, payload)
     expect(body).toEqual({
       correlationId: requestId,

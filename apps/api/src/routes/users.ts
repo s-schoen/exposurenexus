@@ -4,11 +4,7 @@ import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
 import type { User } from "@openvlp/types/model/user"
 import type { ContextVariables } from "../lib/hono-schema.js"
-import {
-  requireUserManagementCreate,
-  requireUserManagementRead,
-  requireUserManagementUpdate
-} from "../middleware/auth.js"
+import { requireDomainPermission } from "../middleware/auth.js"
 
 const createUserSchema = z.strictObject({
   name: z.string().trim().min(1),
@@ -41,25 +37,30 @@ const idParamValidator = zValidator("param", z.object({ id: z.string() }))
 export function createUserRoute(userService: UserRouteService) {
   const user = new Hono<{ Variables: ContextVariables }>()
 
-  user.get("/", requireUserManagementRead(), async (c) => {
+  user.get("/", requireDomainPermission("user", "read"), async (c) => {
     const users = await userService.listAll()
     return replyArray(c, users)
   })
 
-  user.get("/:id", requireUserManagementRead(), idParamValidator, async (c) => {
-    const params = c.req.valid("param")
+  user.get(
+    "/:id",
+    requireDomainPermission("user", "read"),
+    idParamValidator,
+    async (c) => {
+      const params = c.req.valid("param")
 
-    const userResult = await userService.getByID(params.id)
-    if (!userResult) {
-      notFound("user", params.id)
+      const userResult = await userService.getByID(params.id)
+      if (!userResult) {
+        notFound("user", params.id)
+      }
+
+      return replyObject(c, userResult!)
     }
-
-    return replyObject(c, userResult!)
-  })
+  )
 
   user.post(
     "/",
-    requireUserManagementCreate(),
+    requireDomainPermission("user", "write"),
     zValidator("json", createUserSchema),
     async (c) => {
       const body = c.req.valid("json")
@@ -70,7 +71,7 @@ export function createUserRoute(userService: UserRouteService) {
 
   user.put(
     "/:id",
-    requireUserManagementUpdate(),
+    requireDomainPermission("user", "write"),
     idParamValidator,
     zValidator("json", updateUserSchema),
     async (c) => {

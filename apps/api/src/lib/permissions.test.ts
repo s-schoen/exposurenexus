@@ -6,62 +6,61 @@ import {
   PermissionVerb,
   viewerRole
 } from "@openvlp/types/model/rbac"
-import { adminAc } from "better-auth/plugins/admin/access"
 import {
-  domainActions,
+  betterAuthPermission,
   domainPermission,
-  domainResources,
+  groupPermission,
   roleStatements,
-  toPermissionStatement,
   toPermissionStatements,
-  toRoleStatement,
-  userManagementPermissions
+  toBetterAuthPermissionAssignment,
+  toRoleStatement
 } from "./permissions.js"
 
 describe("rbac permissions", () => {
-  it("derives domain resources and actions from the shared enums", () => {
-    expect(domainResources).toEqual([
-      PermissionResource.Asset,
-      PermissionResource.Finding,
-      PermissionResource.Vulnerability,
-      PermissionResource.Import,
-      PermissionResource.Stats
-    ])
-    expect([...domainResources].sort()).toEqual(
-      [...Object.values(PermissionResource)].sort()
-    )
-
-    expect(domainActions).toEqual([
-      PermissionVerb.Read,
-      PermissionVerb.Write,
-      PermissionVerb.Delete
-    ])
-    expect([...domainActions].sort()).toEqual(
-      [...Object.values(PermissionVerb)].sort()
-    )
-  })
-
-  it("builds domain permission payloads for route middleware", () => {
+  it("builds shared permission objects for route middleware", () => {
     expect(
       domainPermission(PermissionResource.Asset, PermissionVerb.Read)
     ).toEqual({
-      asset: ["read"]
+      resource: PermissionResource.Asset,
+      verb: PermissionVerb.Read
     })
     expect(
       domainPermission(PermissionResource.Finding, PermissionVerb.Delete)
     ).toEqual({
-      finding: ["delete"]
+      resource: PermissionResource.Finding,
+      verb: PermissionVerb.Delete
     })
     expect(
       domainPermission(PermissionResource.Stats, PermissionVerb.Delete)
     ).toEqual({
-      stats: ["delete"]
+      resource: PermissionResource.Stats,
+      verb: PermissionVerb.Delete
+    })
+    expect(
+      domainPermission(PermissionResource.User, PermissionVerb.Write)
+    ).toEqual({
+      resource: PermissionResource.User,
+      verb: PermissionVerb.Write
+    })
+    expect(
+      domainPermission(PermissionResource.Session, PermissionVerb.Read)
+    ).toEqual({
+      resource: PermissionResource.Session,
+      verb: PermissionVerb.Read
+    })
+    expect(
+      groupPermission({
+        resource: PermissionResource.Session,
+        verb: PermissionVerb.Read
+      })
+    ).toEqual({
+      session: ["read"]
     })
   })
 
-  it("adapts single and multiple shared permissions into Better Auth statements", () => {
+  it("groups shared permissions and adapts them into Better Auth statements", () => {
     expect(
-      toPermissionStatement({
+      groupPermission({
         resource: PermissionResource.Asset,
         verb: PermissionVerb.Read
       })
@@ -76,6 +75,44 @@ describe("rbac permissions", () => {
     ).toEqual({
       asset: ["read", "write"],
       stats: ["read"]
+    })
+
+    expect(
+      toBetterAuthPermissionAssignment([
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Write },
+        { resource: PermissionResource.Stats, verb: PermissionVerb.Read }
+      ])
+    ).toEqual({
+      asset: ["read", "write"],
+      stats: ["read"]
+    })
+
+    expect(
+      betterAuthPermission({
+        resource: PermissionResource.Session,
+        verb: PermissionVerb.Write
+      })
+    ).toEqual({
+      session: ["write", "revoke"]
+    })
+
+    expect(
+      betterAuthPermission({
+        resource: PermissionResource.User,
+        verb: PermissionVerb.Write
+      })
+    ).toEqual({
+      session: ["read", "list", "write", "revoke"],
+      user: [
+        "write",
+        "create",
+        "update",
+        "set-role",
+        "set-password",
+        "ban",
+        "impersonate"
+      ]
     })
   })
 
@@ -99,15 +136,48 @@ describe("rbac permissions", () => {
 
     expect(roleStatements.editor).toEqual(toRoleStatement(editorRole))
 
-    expect(roleStatements.admin).toEqual({
-      ...adminAc.statements,
-      ...toRoleStatement(adminRole)
+    expect(toRoleStatement(adminRole)).toEqual({
+      asset: ["read", "write", "delete"],
+      finding: ["read", "write", "delete"],
+      session: ["read", "list", "write", "revoke"],
+      user: [
+        "read",
+        "list",
+        "get",
+        "write",
+        "create",
+        "update",
+        "set-role",
+        "set-password",
+        "ban",
+        "impersonate",
+        "delete"
+      ],
+      vulnerability: ["read", "write", "delete"],
+      import: ["write"],
+      stats: ["read"]
     })
-  })
 
-  it("centralizes Better Auth user-route permission mappings", () => {
-    expect(userManagementPermissions.read).toEqual({ user: ["list"] })
-    expect(userManagementPermissions.create).toEqual({ user: ["create"] })
-    expect(userManagementPermissions.update).toEqual({ user: ["update"] })
+    expect(roleStatements.admin).toEqual({
+      asset: ["read", "write", "delete"],
+      finding: ["read", "write", "delete"],
+      import: ["write"],
+      session: ["list", "revoke", "delete", "read", "write"],
+      stats: ["read"],
+      user: [
+        "create",
+        "list",
+        "set-role",
+        "ban",
+        "impersonate",
+        "delete",
+        "set-password",
+        "get",
+        "update",
+        "read",
+        "write"
+      ],
+      vulnerability: ["read", "write", "delete"]
+    })
   })
 })
