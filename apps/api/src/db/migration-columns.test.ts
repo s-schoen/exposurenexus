@@ -1,5 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { sql } from "kysely"
+import {
+  BuiltInRoleName,
+  PermissionResource,
+  PermissionVerb,
+  builtInRoleIds
+} from "@openvlp/types/model/rbac"
 
 vi.mock("../env.js", () => ({
   env: {
@@ -53,5 +59,97 @@ describe("db migration columns", () => {
     )
 
     expect(roleColumn?.column_default).toContain("viewer")
+  })
+
+  it("creates normalized rbac tables with seeded built-in data", async () => {
+    const roleColumns = await sql<{
+      column_name: string
+      data_type: string
+      column_default: string | null
+    }>`
+      select column_name, data_type, column_default
+      from information_schema.columns
+      where table_name = 'role'
+    `.execute(testDb.db)
+
+    const permissionAssignmentColumns = await sql<{
+      column_name: string
+      data_type: string
+      udt_name: string
+    }>`
+      select column_name, data_type, udt_name
+      from information_schema.columns
+      where table_name = 'role_permission_assignment'
+    `.execute(testDb.db)
+
+    const roleRows = await sql<{ id: string; name: string }>`
+      select id, name
+      from role
+      order by name asc
+    `.execute(testDb.db)
+
+    const adminPermissions = await sql<{
+      resource: string
+      verb: string
+    }>`
+      select resource, verb
+      from role_permission_assignment
+      where role_id = ${builtInRoleIds.admin}
+    `.execute(testDb.db)
+
+    expect(roleColumns.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          column_name: "id",
+          data_type: "uuid"
+        }),
+        expect.objectContaining({
+          column_name: "name",
+          data_type: "text"
+        })
+      ])
+    )
+
+    expect(permissionAssignmentColumns.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          column_name: "role_id",
+          data_type: "uuid"
+        }),
+        expect.objectContaining({
+          column_name: "resource",
+          data_type: "USER-DEFINED",
+          udt_name: "permission_resource"
+        }),
+        expect.objectContaining({
+          column_name: "verb",
+          data_type: "USER-DEFINED",
+          udt_name: "permission_verb"
+        })
+      ])
+    )
+
+    const roleIdColumn = roleColumns.rows.find((row) => row.column_name === "id")
+
+    expect(roleIdColumn?.column_default).toContain("gen_random_uuid()")
+    expect(roleRows.rows).toEqual(
+      expect.arrayContaining([
+        { id: builtInRoleIds.admin, name: BuiltInRoleName.Admin },
+        { id: builtInRoleIds.editor, name: BuiltInRoleName.Editor },
+        { id: builtInRoleIds.viewer, name: BuiltInRoleName.Viewer }
+      ])
+    )
+    expect(adminPermissions.rows).toEqual(
+      expect.arrayContaining([
+        {
+          resource: PermissionResource.User,
+          verb: PermissionVerb.Write
+        },
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Delete
+        }
+      ])
+    )
   })
 })

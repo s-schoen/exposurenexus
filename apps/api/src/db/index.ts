@@ -5,6 +5,10 @@ import type { UserTable } from "./schema/auth.js"
 import type { AssetTable } from "./schema/asset.js"
 import type { FindingTable } from "./schema/finding.js"
 import type {
+  RolePermissionAssignmentTable,
+  RoleTable
+} from "./schema/rbac.js"
+import type {
   VulnerabilitySourceMappingTable,
   VulnerabilityTable
 } from "./schema/vulnerability.js"
@@ -12,6 +16,8 @@ import { createDatabase } from "./factory.js"
 
 export interface Database {
   user: UserTable
+  role: RoleTable
+  role_permission_assignment: RolePermissionAssignmentTable
   asset: AssetTable
   finding: FindingTable
   vulnerability: VulnerabilityTable
