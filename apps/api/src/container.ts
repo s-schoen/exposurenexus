@@ -43,6 +43,7 @@ type LoggerFactory = (moduleName: string) => Logger
 export interface CreateAppContainerOptions {
   db: Kysely<Database>
   auth: AuthClient
+  onRolesChanged?: () => Promise<void>
   authUrl: string
   apiTimeoutMs: number
   logger: Logger
@@ -72,6 +73,8 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   })
   const roleService = createRoleService({
     roleRepository: repositories.roleRepository,
+    userRepository: repositories.userRepository,
+    onRolesChanged: options.onRolesChanged,
     logger: loggerFactory("service/role")
   })
   const userService = createUserService({

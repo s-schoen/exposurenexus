@@ -1,3 +1,4 @@
+import { sql } from "kysely"
 import type { Database } from "../db/index.js"
 import type { Kysely } from "kysely"
 import type { User } from "@openvlp/types/model/user"
@@ -78,6 +79,19 @@ export function createUserRepository(database: Kysely<Database>) {
         .executeTakeFirst()
 
       return user ? toPersistedUser(user) : null
+    },
+
+    async hasUsersWithRoleName(roleName: string): Promise<boolean> {
+      const result = await database
+        .selectFrom("user")
+        .select(({ fn }) => fn.countAll<number>().as("count"))
+        .where("role", "is not", null)
+        .where(
+          sql<boolean>`${roleName} = any(string_to_array(replace(${sql.ref("user.role")}, ' ', ''), ','))`
+        )
+        .executeTakeFirstOrThrow()
+
+      return result.count > 0
     }
   }
 }

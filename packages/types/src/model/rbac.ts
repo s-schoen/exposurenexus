@@ -39,5 +39,11 @@ export const roleSchema = z.strictObject({
   permissions: z.array(permissionSchema)
 })
 
+export const updateRoleSchema = z.strictObject({
+  name: z.string().trim().min(1),
+  permissions: z.array(permissionSchema)
+})
+
 export type Permission = z.infer<typeof permissionSchema>
 export type Role = z.infer<typeof roleSchema>
+export type UpdateRole = z.infer<typeof updateRoleSchema>

@@ -1,7 +1,12 @@
 import { betterAuth } from "better-auth"
-import { BuiltInRoleName } from "@openvlp/types/model/rbac"
+import { BuiltInRoleName, type Role } from "@openvlp/types/model/rbac"
 import { admin, username } from "better-auth/plugins"
-import { ac, type ApiPermissionPayload, type BetterAuthRoles } from "./permissions.js"
+import {
+  ac,
+  buildBetterAuthRoleConfig,
+  type ApiPermissionPayload,
+  type BetterAuthRoles
+} from "./permissions.js"
 import type { Kysely } from "kysely"
 import type { Database } from "../db/index.js"
 import type { Logger } from "pino"
@@ -88,6 +93,15 @@ interface CreateDefaultAdminOptions {
   logger: Logger
 }
 
+interface ReloadAuthFromRolesOptions {
+  auth: ReloadableAuthClient
+  listRoles: () => Promise<Role[]>
+  pool: Pool
+  authUrl: string
+  authSecret: string
+  defaultRole: string
+}
+
 export function createAuth({
   pool,
   authUrl,
@@ -151,6 +165,28 @@ export function createReloadableAuth(
       currentAuth = auth
     }
   }
+}
+
+export async function reloadAuthFromRoles({
+  auth,
+  listRoles,
+  pool,
+  authUrl,
+  authSecret,
+  defaultRole
+}: ReloadAuthFromRolesOptions): Promise<void> {
+  const runtimeRoles = await listRoles()
+  const authRoleConfig = buildBetterAuthRoleConfig(runtimeRoles)
+
+  auth.reload(
+    createAuth({
+      pool,
+      authUrl,
+      authSecret,
+      roles: authRoleConfig.roles,
+      defaultRole
+    })
+  )
 }
 
 export async function createDefaultAdmin(

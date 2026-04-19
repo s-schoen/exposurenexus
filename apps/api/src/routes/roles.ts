@@ -1,7 +1,7 @@
 import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
-import type { Role } from "@openvlp/types/model/rbac"
+import { updateRoleSchema, type Role, type UpdateRole } from "@openvlp/types/model/rbac"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
@@ -9,6 +9,8 @@ import type { RequireDomainPermission } from "../middleware/auth.js"
 interface RoleRouteService {
   listAll(): Promise<Role[]>
   getByID(id: string): Promise<Role | null>
+  updateByID(id: string, role: UpdateRole): Promise<Role | null>
+  deleteByID(id: string): Promise<Role | null>
 }
 
 interface RoleRouteDependencies {
@@ -41,6 +43,40 @@ export function createRoleRoute(
       }
 
       return replyObject(c, roleResult!)
+    }
+  )
+
+  role.put(
+    "/:id",
+    requireDomainPermission("user", "write"),
+    idParamValidator,
+    zValidator("json", updateRoleSchema),
+    async (c) => {
+      const params = c.req.valid("param")
+      const body = c.req.valid("json")
+
+      const updatedRole = await roleService.updateByID(params.id, body)
+      if (!updatedRole) {
+        notFound("role", params.id)
+      }
+
+      return replyObject(c, updatedRole!)
+    }
+  )
+
+  role.delete(
+    "/:id",
+    requireDomainPermission("user", "delete"),
+    idParamValidator,
+    async (c) => {
+      const params = c.req.valid("param")
+
+      const deletedRole = await roleService.deleteByID(params.id)
+      if (!deletedRole) {
+        notFound("role", params.id)
+      }
+
+      return replyObject(c, deletedRole!)
     }
   )
 

@@ -299,4 +299,42 @@ describe("user repository", () => {
       roleNames: []
     })
   })
+
+  it("detects whether a role name is assigned to any user", async () => {
+    const repository = createUserRepository(testDb.db)
+
+    await testDb.db
+      .insertInto("user")
+      .values([
+        {
+          id: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+          name: "Alice Example",
+          email: "alice@example.com",
+          emailVerified: true,
+          image: null,
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+          username: "alice",
+          displayUsername: "Alice",
+          role: "viewer,editor"
+        },
+        {
+          id: "05aa7671-ef43-4cd1-bf4c-76ca2c33b4ab",
+          name: "Bob Example",
+          email: "bob@example.com",
+          emailVerified: true,
+          image: null,
+          createdAt: new Date("2026-01-02T00:00:00.000Z"),
+          updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+          username: "bob",
+          displayUsername: "Bob",
+          role: "viewer-admin"
+        }
+      ])
+      .execute()
+
+    await expect(repository.hasUsersWithRoleName("viewer")).resolves.toBe(true)
+    await expect(repository.hasUsersWithRoleName("editor")).resolves.toBe(true)
+    await expect(repository.hasUsersWithRoleName("admin")).resolves.toBe(false)
+  })
 })
