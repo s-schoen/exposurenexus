@@ -85,6 +85,7 @@ vi.mock("./routes/import.js", () => ({
 vi.mock("./repository/index.js", () => ({
   createAssetRepository: vi.fn(() => ({ kind: "asset-repo" })),
   createFindingRepository: vi.fn(() => ({ kind: "finding-repo" })),
+  createRoleRepository: vi.fn(() => ({ kind: "role-repo" })),
   createUserRepository: vi.fn(() => ({ kind: "user-repo" })),
   createVulnerabilityRepository: vi.fn(() => ({ kind: "vulnerability-repo" }))
 }))
@@ -92,6 +93,7 @@ vi.mock("./repository/index.js", () => ({
 vi.mock("./service/index.js", () => ({
   createAssetService: vi.fn(() => ({ kind: "asset-service" })),
   createFindingService: vi.fn(() => ({ kind: "finding-service" })),
+  createRoleService: vi.fn(() => ({ kind: "role-service" })),
   createStatsService: vi.fn(() => ({ kind: "stats-service" })),
   createUserService: vi.fn(() => ({ kind: "user-service" })),
   createVulnerabilityService: vi.fn(() => ({ kind: "vulnerability-service" }))

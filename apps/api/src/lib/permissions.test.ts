@@ -1,16 +1,15 @@
 import { describe, expect, it } from "vitest"
 import {
-  adminRole,
-  editorRole,
+  BuiltInRoleName,
   PermissionResource,
   PermissionVerb,
-  viewerRole
+  builtInRoleIds
 } from "@openvlp/types/model/rbac"
 import {
   betterAuthPermission,
+  buildBetterAuthRoleConfig,
   domainPermission,
   groupPermission,
-  roleStatements,
   toPermissionStatements,
   toBetterAuthPermissionAssignment,
   toRoleStatement
@@ -117,14 +116,63 @@ describe("rbac permissions", () => {
   })
 
   it("derives viewer, editor, and admin role grants from the shared built-in roles", () => {
+    const viewerRole = {
+      id: builtInRoleIds.viewer,
+      name: BuiltInRoleName.Viewer,
+      permissions: [
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+        { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
+        {
+          resource: PermissionResource.Vulnerability,
+          verb: PermissionVerb.Read
+        },
+        { resource: PermissionResource.Stats, verb: PermissionVerb.Read }
+      ]
+    }
+    const editorRole = {
+      id: builtInRoleIds.editor,
+      name: BuiltInRoleName.Editor,
+      permissions: [
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Write },
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Delete },
+        { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
+        { resource: PermissionResource.Finding, verb: PermissionVerb.Write },
+        { resource: PermissionResource.Finding, verb: PermissionVerb.Delete },
+        {
+          resource: PermissionResource.Vulnerability,
+          verb: PermissionVerb.Read
+        },
+        {
+          resource: PermissionResource.Vulnerability,
+          verb: PermissionVerb.Write
+        },
+        {
+          resource: PermissionResource.Vulnerability,
+          verb: PermissionVerb.Delete
+        },
+        { resource: PermissionResource.Import, verb: PermissionVerb.Write },
+        { resource: PermissionResource.Stats, verb: PermissionVerb.Read }
+      ]
+    }
+    const adminRole = {
+      id: builtInRoleIds.admin,
+      name: BuiltInRoleName.Admin,
+      permissions: [
+        ...editorRole.permissions,
+        { resource: PermissionResource.User, verb: PermissionVerb.Read },
+        { resource: PermissionResource.User, verb: PermissionVerb.Write },
+        { resource: PermissionResource.User, verb: PermissionVerb.Delete }
+      ]
+    }
+    const builtRoles = [viewerRole, editorRole, adminRole]
+
     expect(toRoleStatement(viewerRole)).toEqual({
       asset: ["read"],
       finding: ["read"],
       vulnerability: ["read"],
       stats: ["read"]
     })
-
-    expect(roleStatements.viewer).toEqual(toRoleStatement(viewerRole))
 
     expect(toRoleStatement(editorRole)).toEqual({
       asset: ["read", "write", "delete"],
@@ -133,8 +181,6 @@ describe("rbac permissions", () => {
       import: ["write"],
       stats: ["read"]
     })
-
-    expect(roleStatements.editor).toEqual(toRoleStatement(editorRole))
 
     expect(toRoleStatement(adminRole)).toEqual({
       asset: ["read", "write", "delete"],
@@ -158,7 +204,7 @@ describe("rbac permissions", () => {
       stats: ["read"]
     })
 
-    expect(roleStatements.admin).toEqual({
+    expect(buildBetterAuthRoleConfig(builtRoles).roleStatements.admin).toEqual({
       asset: ["read", "write", "delete"],
       finding: ["read", "write", "delete"],
       import: ["write"],
@@ -179,5 +225,11 @@ describe("rbac permissions", () => {
       ],
       vulnerability: ["read", "write", "delete"]
     })
+
+    expect(
+      buildBetterAuthRoleConfig(builtRoles).roles.admin.authorize({
+        user: ["delete"]
+      }).success
+    ).toBe(true)
   })
 })

@@ -12,12 +12,14 @@ import {
 import {
   createAssetRepository,
   createFindingRepository,
+  createRoleRepository,
   createUserRepository,
   createVulnerabilityRepository
 } from "./repository/index.js"
 import {
   createAssetService,
   createFindingService,
+  createRoleService,
   createStatsService,
   createUserService,
   createVulnerabilityService
@@ -58,6 +60,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const repositories = {
     assetRepository: createAssetRepository(options.db),
     findingRepository: createFindingRepository(options.db),
+    roleRepository: createRoleRepository(options.db),
     userRepository: createUserRepository(options.db),
     vulnerabilityRepository: createVulnerabilityRepository(options.db)
   }
@@ -66,8 +69,13 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     assetRepository: repositories.assetRepository,
     logger: loggerFactory("service/asset")
   })
+  const roleService = createRoleService({
+    roleRepository: repositories.roleRepository,
+    logger: loggerFactory("service/role")
+  })
   const userService = createUserService({
     userRepository: repositories.userRepository,
+    roleService,
     auth,
     logger: loggerFactory("service/user")
   })
@@ -143,6 +151,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     repositories,
     services: {
       assetService,
+      roleService,
       userService,
       vulnerabilityService,
       findingService,

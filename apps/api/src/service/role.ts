@@ -1,6 +1,10 @@
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
-import { BuiltInRoleName, type Role } from "@openvlp/types/model/rbac"
+import type { Role } from "@openvlp/types/model/rbac"
+
+function uniqueValues(values: readonly string[]): string[] {
+  return [...new Set(values)]
+}
 
 interface RoleRepository {
   list(): Promise<Role[]>
@@ -45,10 +49,27 @@ export function createRoleService({
       }
     },
 
+    async getByNames(names: readonly string[]): Promise<Role[]> {
+      try {
+        return await roleRepository.getByNames(uniqueValues(names))
+      } catch (error) {
+        logger.error(error, "failed to get roles by name")
+        throw new HTTPException(500, {
+          message: "failed to get roles"
+        })
+      }
+    },
+
     async resolveRoleIdsFromNames(names: readonly string[]): Promise<string[]> {
       try {
-        const roles = await roleRepository.getByNames(names)
-        return roles.map((role) => role.id)
+        const uniqueNames = uniqueValues(names)
+        const roles = await roleRepository.getByNames(uniqueNames)
+        const roleIdByName = new Map(roles.map((role) => [role.name, role.id]))
+
+        return uniqueNames.flatMap((name) => {
+          const roleId = roleIdByName.get(name)
+          return roleId ? [roleId] : []
+        })
       } catch (error) {
         logger.error(error, "failed to resolve role ids")
         throw new HTTPException(500, {
@@ -57,11 +78,25 @@ export function createRoleService({
       }
     },
 
-    async resolveRoleNamesFromIds(ids: readonly string[]): Promise<string[]> {
+    async requireRoleNamesFromIds(ids: readonly string[]): Promise<string[]> {
       try {
-        const roles = await roleRepository.getByIDs(ids)
-        return roles.map((role) => role.name)
+        const uniqueIds = uniqueValues(ids)
+        const roles = await roleRepository.getByIDs(uniqueIds)
+        const roleNameById = new Map(roles.map((role) => [role.id, role.name]))
+        const missingRoleIds = uniqueIds.filter((id) => !roleNameById.has(id))
+
+        if (missingRoleIds.length > 0) {
+          throw new HTTPException(400, {
+            message: `unknown role ids: ${missingRoleIds.join(", ")}`
+          })
+        }
+
+        return uniqueIds.map((id) => roleNameById.get(id)!)
       } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error
+        }
+
         logger.error(error, "failed to resolve role names")
         throw new HTTPException(500, {
           message: "failed to resolve role names"

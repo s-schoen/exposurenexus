@@ -1,40 +1,40 @@
 import type { Database } from "../db/index.js"
 import type { Kysely } from "kysely"
-import {
-  BuiltInRoleName,
-  builtInRoleIds,
-  builtInRoles,
-  type BuiltInRoleId
-} from "@openvlp/types/model/rbac"
 import type { User } from "@openvlp/types/model/user"
+
+// better-auth persists roles as a comma-separated name string on the user row.
+// The repository keeps that storage-oriented shape, while the service resolves
+// those role names to API-facing roleIds through the role service.
+export type PersistedUser = Omit<User, "roleIds"> & {
+  roleNames: string[]
+}
 
 type UserProfileUpdate = Pick<
   Database["user"],
   "name" | "email" | "displayUsername" | "image" | "updatedAt"
-> & {
-  roleIds?: BuiltInRoleId[]
-}
+>
 
-const builtInRoleByName = new Map(builtInRoles.map((role) => [role.name, role]))
-const builtInRoleIdByName: Record<BuiltInRoleName, BuiltInRoleId> = {
-  [BuiltInRoleName.Viewer]: builtInRoleIds[BuiltInRoleName.Viewer],
-  [BuiltInRoleName.Editor]: builtInRoleIds[BuiltInRoleName.Editor],
-  [BuiltInRoleName.Admin]: builtInRoleIds[BuiltInRoleName.Admin]
-}
-
-function toUserRoleIds(roleValue: string | null): BuiltInRoleId[] {
+function toRoleNames(roleValue: string | null): string[] {
   if (!roleValue) {
     return []
   }
 
-  return roleValue
-    .split(",")
-    .map((value) => value.trim())
-    .filter((value): value is BuiltInRoleName => builtInRoleByName.has(value))
-    .map((value) => builtInRoleIdByName[value])
+  const roleNames: string[] = []
+  const seenRoleNames = new Set<string>()
+
+  for (const roleName of roleValue.split(",").map((value) => value.trim())) {
+    if (roleName.length === 0 || seenRoleNames.has(roleName)) {
+      continue
+    }
+
+    seenRoleNames.add(roleName)
+    roleNames.push(roleName)
+  }
+
+  return roleNames
 }
 
-function toUser(user: Database["user"]): User {
+function toPersistedUser(user: Database["user"]): PersistedUser {
   return {
     id: user.id,
     name: user.name,
@@ -45,41 +45,39 @@ function toUser(user: Database["user"]): User {
     updatedAt: user.updatedAt,
     username: user.username,
     displayUsername: user.displayUsername,
-    roleIds: toUserRoleIds(user.role)
+    roleNames: toRoleNames(user.role)
   }
 }
 
 export function createUserRepository(database: Kysely<Database>) {
   return {
-    async list(): Promise<User[]> {
+    async list(): Promise<PersistedUser[]> {
       const users = await database.selectFrom("user").selectAll().execute()
-      return users.map(toUser)
+      return users.map(toPersistedUser)
     },
 
-    async getByID(id: string): Promise<User | null> {
+    async getByID(id: string): Promise<PersistedUser | null> {
       const user = await database
         .selectFrom("user")
         .selectAll()
         .where("id", "=", id)
         .executeTakeFirst()
 
-      return user ? toUser(user) : null
+      return user ? toPersistedUser(user) : null
     },
 
     async updateByID(
       id: string,
       userUpdate: UserProfileUpdate
-    ): Promise<User | null> {
-      const { roleIds: _roleIds, ...persistedUserUpdate } = userUpdate
-
+    ): Promise<PersistedUser | null> {
       const user = await database
         .updateTable("user")
-        .set(persistedUserUpdate)
+        .set(userUpdate)
         .where("id", "=", id)
         .returningAll()
         .executeTakeFirst()
 
-      return user ? toUser(user) : null
+      return user ? toPersistedUser(user) : null
     }
   }
 }

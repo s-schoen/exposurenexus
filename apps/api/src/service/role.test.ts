@@ -37,6 +37,20 @@ describe("role service", () => {
     vi.clearAllMocks()
   })
 
+  it("gets roles by name", async () => {
+    const service = createRoleService({ roleRepository, logger })
+
+    roleRepository.getByNames.mockResolvedValue([viewerRole, adminRole])
+
+    await expect(
+      service.getByNames([BuiltInRoleName.Viewer, BuiltInRoleName.Admin])
+    ).resolves.toEqual([viewerRole, adminRole])
+    expect(roleRepository.getByNames).toHaveBeenCalledWith([
+      BuiltInRoleName.Viewer,
+      BuiltInRoleName.Admin
+    ])
+  })
+
   it("lists all roles", async () => {
     const service = createRoleService({ roleRepository, logger })
 
@@ -102,21 +116,38 @@ describe("role service", () => {
     ])
   })
 
-  it("resolves persisted role names from role ids", async () => {
+  it("requires known role ids and resolves them to role names", async () => {
     const service = createRoleService({ roleRepository, logger })
 
     roleRepository.getByIDs.mockResolvedValue([adminRole, viewerRole])
 
     await expect(
-      service.resolveRoleNamesFromIds([
+      service.requireRoleNamesFromIds([
         builtInRoleIds.admin,
-        builtInRoleIds.viewer
+        builtInRoleIds.viewer,
+        builtInRoleIds.admin
       ])
     ).resolves.toEqual([BuiltInRoleName.Admin, BuiltInRoleName.Viewer])
     expect(roleRepository.getByIDs).toHaveBeenCalledWith([
       builtInRoleIds.admin,
       builtInRoleIds.viewer
     ])
+  })
+
+  it("rejects unknown role ids with an HTTP 400", async () => {
+    const service = createRoleService({ roleRepository, logger })
+
+    roleRepository.getByIDs.mockResolvedValue([viewerRole])
+
+    await expect(
+      service.requireRoleNamesFromIds([
+        builtInRoleIds.viewer,
+        "0671d03d-57f1-49c8-8f62-5de6ed0924db"
+      ])
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "unknown role ids: 0671d03d-57f1-49c8-8f62-5de6ed0924db"
+    } satisfies Partial<HTTPException>)
   })
 
   it("maps role resolution failures to an HTTP 500", async () => {
