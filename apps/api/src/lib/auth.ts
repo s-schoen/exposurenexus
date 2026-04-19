@@ -70,6 +70,10 @@ export interface AuthClient {
   handler(request: Request): Response | Promise<Response>
 }
 
+export interface ReloadableAuthClient extends AuthClient {
+  reload(auth: AuthClient): void
+}
+
 interface CreateAuthOptions {
   pool: Pool
   authUrl: string
@@ -109,6 +113,44 @@ export function createAuth({
       })
     ]
   }) as unknown as AuthClient
+}
+
+export function createReloadableAuth(
+  initialAuth: AuthClient
+): ReloadableAuthClient {
+  let currentAuth = initialAuth
+
+  return {
+    api: {
+      getSession(input) {
+        return currentAuth.api.getSession(input)
+      },
+
+      signUpEmail(input) {
+        return currentAuth.api.signUpEmail(input)
+      },
+
+      setRole(input) {
+        return currentAuth.api.setRole(input)
+      },
+
+      setUserPassword(input) {
+        return currentAuth.api.setUserPassword(input)
+      },
+
+      userHasPermission(input) {
+        return currentAuth.api.userHasPermission(input)
+      }
+    },
+
+    handler(request) {
+      return currentAuth.handler(request)
+    },
+
+    reload(auth) {
+      currentAuth = auth
+    }
+  }
 }
 
 export async function createDefaultAdmin(
