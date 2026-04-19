@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
 import { pino } from "pino"
+import { builtInRoleIds } from "@openvlp/types/model/rbac"
 import { createUserService } from "./user.js"
 import type { User } from "@openvlp/types/model/user"
 import type { AuthClient } from "../lib/auth.js"
@@ -28,7 +29,7 @@ describe("user service", () => {
     email: "alice@example.com",
     emailVerified: true,
     image: null,
-    roles: [],
+    roleIds: [],
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     username: "alice",
@@ -98,15 +99,31 @@ describe("user service", () => {
       email: "alice@example.com",
       username: "alice",
       displayUsername: "Alice",
-      password: "correct-horse-battery-staple"
+      password: "correct-horse-battery-staple",
+      roleIds: [builtInRoleIds.viewer]
     }
 
     auth.api.signUpEmail.mockResolvedValue({ user: { id: user.id } })
+    userRepository.updateByID.mockResolvedValue(user)
     userRepository.getByID.mockResolvedValue(user)
 
     await expect(service.create(createUser)).resolves.toEqual(user)
     expect(auth.api.signUpEmail).toHaveBeenCalledWith({
-      body: createUser
+      body: {
+        name: createUser.name,
+        email: createUser.email,
+        username: createUser.username,
+        displayUsername: createUser.displayUsername,
+        password: createUser.password
+      }
+    })
+    expect(userRepository.updateByID).toHaveBeenCalledWith(user.id, {
+      name: createUser.name,
+      email: createUser.email,
+      displayUsername: createUser.displayUsername,
+      image: null,
+      updatedAt: expect.any(Date),
+      roleIds: [builtInRoleIds.viewer]
     })
     expect(userRepository.getByID).toHaveBeenCalledWith(user.id)
   })
@@ -175,7 +192,8 @@ describe("user service", () => {
         email: "alice.updated@example.com",
         displayUsername: "Alice Updated",
         image: "https://example.com/alice.png",
-        password: "new-correct-horse-battery-staple"
+        password: "new-correct-horse-battery-staple",
+        roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
       })
     ).resolves.toEqual(updatedUser)
 
@@ -184,7 +202,8 @@ describe("user service", () => {
       email: "alice.updated@example.com",
       displayUsername: "Alice Updated",
       image: "https://example.com/alice.png",
-      updatedAt: now
+      updatedAt: now,
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
     })
     expect(auth.api.setUserPassword).toHaveBeenCalledWith({
       body: {
@@ -226,7 +245,8 @@ describe("user service", () => {
       email: "alice.updated@example.com",
       displayUsername: "Alice Updated",
       image: null,
-      updatedAt: now
+      updatedAt: now,
+      roleIds: undefined
     })
     expect(auth.api.setUserPassword).not.toHaveBeenCalled()
   })
@@ -309,7 +329,8 @@ describe("user service", () => {
       email: "alice.updated@example.com",
       displayUsername: "Alice Updated",
       image: "https://example.com/alice.png",
-      updatedAt: now
+      updatedAt: now,
+      roleIds: undefined
     })
     expect(userRepository.updateByID).toHaveBeenNthCalledWith(2, user.id, {
       name: user.name,

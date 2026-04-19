@@ -22,6 +22,18 @@ export enum BuiltInRoleName {
   Admin = "admin"
 }
 
+export const builtInRoleIds = Object.freeze({
+  [BuiltInRoleName.Viewer]: "6d0d8a47-0f6d-47b6-9b9a-d8f0d3f4dd01",
+  [BuiltInRoleName.Editor]: "5d5f5c6f-a9d6-4d49-9f4d-9462b873a902",
+  [BuiltInRoleName.Admin]: "0e7b7e25-47f2-4baf-a2c1-6ec48b0d8b03"
+} as const)
+
+export const builtInRoleIdSchema = z.enum([
+  builtInRoleIds[BuiltInRoleName.Viewer],
+  builtInRoleIds[BuiltInRoleName.Editor],
+  builtInRoleIds[BuiltInRoleName.Admin]
+])
+
 export const permissionSchema = z.strictObject({
   resource: z.enum(PermissionResource),
   verb: z.enum(PermissionVerb)
@@ -34,6 +46,7 @@ export const roleSchema = z.strictObject({
 })
 
 export type Permission = z.infer<typeof permissionSchema>
+export type BuiltInRoleId = z.infer<typeof builtInRoleIdSchema>
 export type Role = z.infer<typeof roleSchema>
 
 const freezePermissions = (permissions: Permission[]): Role["permissions"] =>
@@ -42,12 +55,6 @@ const freezePermissions = (permissions: Permission[]): Role["permissions"] =>
   ) as Role["permissions"]
 
 const freezeRole = (role: Role): Role => Object.freeze(role) as Role
-
-export const builtInRoleIds = Object.freeze({
-  [BuiltInRoleName.Viewer]: "6d0d8a47-0f6d-47b6-9b9a-d8f0d3f4dd01",
-  [BuiltInRoleName.Editor]: "5d5f5c6f-a9d6-4d49-9f4d-9462b873a902",
-  [BuiltInRoleName.Admin]: "0e7b7e25-47f2-4baf-a2c1-6ec48b0d8b03"
-} as const)
 
 const editorPermissions = freezePermissions([
   { resource: PermissionResource.Asset, verb: PermissionVerb.Read },

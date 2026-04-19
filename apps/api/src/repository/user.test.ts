@@ -7,7 +7,7 @@ import {
   it,
   vi
 } from "vitest"
-import { editorRole, viewerRole } from "@openvlp/types/model/rbac"
+import { builtInRoleIds } from "@openvlp/types/model/rbac"
 import { createUserRepository } from "./user.js"
 import { createTestDatabase, resetTestDatabase } from "../test/db.js"
 
@@ -68,7 +68,7 @@ describe("user repository", () => {
       updatedAt: firstUserRecord.updatedAt,
       username: firstUserRecord.username,
       displayUsername: firstUserRecord.displayUsername,
-      roles: []
+      roleIds: []
     }
     const secondUser = {
       id: secondUserRecord.id,
@@ -80,7 +80,7 @@ describe("user repository", () => {
       updatedAt: secondUserRecord.updatedAt,
       username: secondUserRecord.username,
       displayUsername: secondUserRecord.displayUsername,
-      roles: []
+      roleIds: []
     }
 
     await testDb.db
@@ -129,7 +129,7 @@ describe("user repository", () => {
       updatedAt: userRecord.updatedAt,
       username: userRecord.username,
       displayUsername: userRecord.displayUsername,
-      roles: []
+      roleIds: []
     }
     const updatedAt = new Date("2026-02-03T04:05:06.000Z")
 
@@ -153,7 +153,7 @@ describe("user repository", () => {
     })
   })
 
-  it("maps persisted auth roles to shared roles", async () => {
+  it("maps persisted auth roles to shared role ids", async () => {
     const repository = createUserRepository(testDb.db)
     const viewerUser = {
       id: "c73bdfe4-b29c-4c9d-a452-45188d59f845",
@@ -207,7 +207,7 @@ describe("user repository", () => {
       updatedAt: viewerUser.updatedAt,
       username: viewerUser.username,
       displayUsername: viewerUser.displayUsername,
-      roles: [viewerRole]
+      roleIds: [builtInRoleIds.viewer]
     })
     await expect(repository.getByID(editorViewerUser.id)).resolves.toEqual({
       id: editorViewerUser.id,
@@ -219,7 +219,7 @@ describe("user repository", () => {
       updatedAt: editorViewerUser.updatedAt,
       username: editorViewerUser.username,
       displayUsername: editorViewerUser.displayUsername,
-      roles: [viewerRole, editorRole]
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
     })
     await expect(repository.getByID(noRoleUser.id)).resolves.toEqual({
       id: noRoleUser.id,
@@ -231,7 +231,7 @@ describe("user repository", () => {
       updatedAt: noRoleUser.updatedAt,
       username: noRoleUser.username,
       displayUsername: noRoleUser.displayUsername,
-      roles: []
+      roleIds: []
     })
   })
 
@@ -247,5 +247,62 @@ describe("user repository", () => {
         updatedAt: new Date("2026-02-03T04:05:06.000Z")
       })
     ).resolves.toBeNull()
+  })
+
+  it("accepts role ids in update payloads without persisting them yet", async () => {
+    const repository = createUserRepository(testDb.db)
+    const userRecord = {
+      id: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+      name: "Alice Example",
+      email: "alice@example.com",
+      emailVerified: true,
+      image: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      username: "alice",
+      displayUsername: "Alice",
+      role: null
+    }
+
+    await testDb.db.insertInto("user").values(userRecord).execute()
+
+    await expect(
+      repository.updateByID(userRecord.id, {
+        name: userRecord.name,
+        email: userRecord.email,
+        displayUsername: userRecord.displayUsername,
+        image: userRecord.image,
+        updatedAt: new Date("2026-02-03T04:05:06.000Z"),
+        roleIds: [
+          builtInRoleIds.viewer,
+          builtInRoleIds.editor,
+          builtInRoleIds.viewer
+        ]
+      })
+    ).resolves.toEqual({
+      id: userRecord.id,
+      name: userRecord.name,
+      email: userRecord.email,
+      emailVerified: userRecord.emailVerified,
+      image: userRecord.image,
+      createdAt: userRecord.createdAt,
+      updatedAt: new Date("2026-02-03T04:05:06.000Z"),
+      username: userRecord.username,
+      displayUsername: userRecord.displayUsername,
+      roleIds: []
+    })
+
+    await expect(repository.getByID(userRecord.id)).resolves.toEqual({
+      id: userRecord.id,
+      name: userRecord.name,
+      email: userRecord.email,
+      emailVerified: userRecord.emailVerified,
+      image: userRecord.image,
+      createdAt: userRecord.createdAt,
+      updatedAt: new Date("2026-02-03T04:05:06.000Z"),
+      username: userRecord.username,
+      displayUsername: userRecord.displayUsername,
+      roleIds: []
+    })
   })
 })
