@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
+  builtInRoleIds,
   PermissionResource,
-  PermissionVerb,
-  viewerRole
+  PermissionVerb
 } from "@openvlp/types/model/rbac"
 
 vi.mock("../lib/auth.js", () => ({
@@ -30,7 +30,7 @@ describe("user routes", () => {
     email: "alice@example.com",
     emailVerified: true,
     image: null,
-    roles: [viewerRole],
+    roleIds: [builtInRoleIds.viewer],
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     username: "alice",
@@ -142,7 +142,6 @@ describe("user routes", () => {
         items: [
           {
             ...listedUser,
-            roles: [viewerRole],
             createdAt: listedUser.createdAt.toISOString(),
             updatedAt: listedUser.updatedAt.toISOString()
           }
@@ -207,7 +206,6 @@ describe("user routes", () => {
       correlationId: requestId,
       data: {
         ...listedUser,
-        roles: [viewerRole],
         createdAt: listedUser.createdAt.toISOString(),
         updatedAt: listedUser.updatedAt.toISOString()
       }
@@ -221,7 +219,8 @@ describe("user routes", () => {
       email: "alice@example.com",
       username: "alice",
       displayUsername: "Alice",
-      password: "correct-horse-battery-staple"
+      password: "correct-horse-battery-staple",
+      roleIds: [builtInRoleIds.viewer]
     }
 
     userService.create.mockResolvedValue(listedUser)
@@ -256,7 +255,6 @@ describe("user routes", () => {
       correlationId: requestId,
       data: {
         ...listedUser,
-        roles: [viewerRole],
         createdAt: listedUser.createdAt.toISOString(),
         updatedAt: listedUser.updatedAt.toISOString()
       }
@@ -297,7 +295,8 @@ describe("user routes", () => {
       email: "alice.updated@example.com",
       displayUsername: "Alice Updated",
       image: "https://example.com/alice.png",
-      password: "new-correct-horse-battery-staple"
+      password: "new-correct-horse-battery-staple",
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
     }
     const updatedUser = {
       ...listedUser,
@@ -338,7 +337,6 @@ describe("user routes", () => {
       correlationId: requestId,
       data: {
         ...updatedUser,
-        roles: [viewerRole],
         createdAt: updatedUser.createdAt.toISOString(),
         updatedAt: updatedUser.updatedAt.toISOString()
       }
@@ -385,7 +383,6 @@ describe("user routes", () => {
       correlationId: requestId,
       data: {
         ...updatedUser,
-        roles: [viewerRole],
         createdAt: updatedUser.createdAt.toISOString(),
         updatedAt: updatedUser.updatedAt.toISOString()
       }
@@ -437,6 +434,32 @@ describe("user routes", () => {
         displayUsername: "Alice Updated",
         image: null,
         password: ""
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(userService.updateByID).not.toHaveBeenCalled()
+  })
+
+  it("rejects invalid role ids on user update", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      userRoute: createUserRoute(userService)
+    })
+
+    const response = await app.request(`/api/users/${listedUser.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "users-invalid-role-ids-update-body-request"
+      },
+      body: JSON.stringify({
+        name: "Alice Updated",
+        email: "alice.updated@example.com",
+        displayUsername: "Alice Updated",
+        image: null,
+        roleIds: ["not-a-role-id"]
       })
     })
 

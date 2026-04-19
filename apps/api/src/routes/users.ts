@@ -1,26 +1,14 @@
 import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
+import {
+  createUserSchema,
+  updateUserSchema,
+  type User
+} from "@openvlp/types/model/user"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
-import type { User } from "@openvlp/types/model/user"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import { requireDomainPermission } from "../middleware/auth.js"
-
-const createUserSchema = z.strictObject({
-  name: z.string().trim().min(1),
-  email: z.email(),
-  username: z.string().trim().min(1),
-  displayUsername: z.string().trim().min(1),
-  password: z.string().min(1)
-})
-
-const updateUserSchema = z.strictObject({
-  name: z.string().trim().min(1),
-  email: z.email(),
-  displayUsername: z.string().trim().min(1),
-  image: z.string().nullable(),
-  password: z.string().min(1).optional()
-})
 
 interface UserRouteService {
   listAll(): Promise<User[]>

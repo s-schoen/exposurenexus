@@ -1,29 +1,14 @@
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
-import type { User } from "@openvlp/types/model/user"
+import type { CreateUser, UpdateUser, User } from "@openvlp/types/model/user"
 import type { AuthClient } from "../lib/auth.js"
-
-export interface CreateUser {
-  name: string
-  email: string
-  username: string
-  displayUsername: string
-  password: string
-}
-
-export interface UpdateUser {
-  name: string
-  email: string
-  displayUsername: string
-  image: string | null
-  password?: string
-}
 
 type UserProfileUpdate = Pick<
   User,
   "name" | "email" | "displayUsername" | "image"
 > & {
   updatedAt: Date
+  roleIds?: UpdateUser["roleIds"]
 }
 
 interface UserRepository {
@@ -122,9 +107,22 @@ export function createUserService({
 
     async create(user: CreateUser): Promise<User> {
       try {
+        const { roleIds, ...createUser } = user
+
         const created = await auth.api.signUpEmail({
-          body: user
+          body: createUser
         })
+
+        if (roleIds !== undefined) {
+          await userRepository.updateByID(created.user.id, {
+            name: createUser.name,
+            email: createUser.email,
+            displayUsername: createUser.displayUsername,
+            image: null,
+            updatedAt: new Date(),
+            roleIds
+          })
+        }
 
         const persisted = await userRepository.getByID(created.user.id)
         if (!persisted) {
@@ -164,7 +162,8 @@ export function createUserService({
           email: user.email,
           displayUsername: user.displayUsername,
           image: user.image,
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          roleIds: user.roleIds
         })
 
         if (!updated) {

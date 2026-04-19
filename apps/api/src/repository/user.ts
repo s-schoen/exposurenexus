@@ -1,20 +1,28 @@
 import type { Database } from "../db/index.js"
 import type { Kysely } from "kysely"
 import {
+  BuiltInRoleName,
+  builtInRoleIds,
   builtInRoles,
-  type BuiltInRoleName,
-  type Role
+  type BuiltInRoleId
 } from "@openvlp/types/model/rbac"
 import type { User } from "@openvlp/types/model/user"
 
 type UserProfileUpdate = Pick<
   Database["user"],
   "name" | "email" | "displayUsername" | "image" | "updatedAt"
->
+> & {
+  roleIds?: BuiltInRoleId[]
+}
 
 const builtInRoleByName = new Map(builtInRoles.map((role) => [role.name, role]))
+const builtInRoleIdByName: Record<BuiltInRoleName, BuiltInRoleId> = {
+  [BuiltInRoleName.Viewer]: builtInRoleIds[BuiltInRoleName.Viewer],
+  [BuiltInRoleName.Editor]: builtInRoleIds[BuiltInRoleName.Editor],
+  [BuiltInRoleName.Admin]: builtInRoleIds[BuiltInRoleName.Admin]
+}
 
-function toUserRoles(roleValue: string | null): Role[] {
+function toUserRoleIds(roleValue: string | null): BuiltInRoleId[] {
   if (!roleValue) {
     return []
   }
@@ -23,7 +31,7 @@ function toUserRoles(roleValue: string | null): Role[] {
     .split(",")
     .map((value) => value.trim())
     .filter((value): value is BuiltInRoleName => builtInRoleByName.has(value))
-    .map((value) => builtInRoleByName.get(value)!)
+    .map((value) => builtInRoleIdByName[value])
 }
 
 function toUser(user: Database["user"]): User {
@@ -37,7 +45,7 @@ function toUser(user: Database["user"]): User {
     updatedAt: user.updatedAt,
     username: user.username,
     displayUsername: user.displayUsername,
-    roles: toUserRoles(user.role)
+    roleIds: toUserRoleIds(user.role)
   }
 }
 
@@ -62,9 +70,11 @@ export function createUserRepository(database: Kysely<Database>) {
       id: string,
       userUpdate: UserProfileUpdate
     ): Promise<User | null> {
+      const { roleIds: _roleIds, ...persistedUserUpdate } = userUpdate
+
       const user = await database
         .updateTable("user")
-        .set(userUpdate)
+        .set(persistedUserUpdate)
         .where("id", "=", id)
         .returningAll()
         .executeTakeFirst()

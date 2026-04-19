@@ -1,13 +1,14 @@
 import { z } from "zod/v4"
 
-import { roleSchema } from "./rbac.js"
+import { builtInRoleIdSchema } from "./rbac.js"
 
 export const createUserSchema = z.strictObject({
   name: z.string().trim().min(1),
   email: z.email(),
   username: z.string().trim().min(1),
   displayUsername: z.string().trim().min(1),
-  password: z.string().min(1)
+  password: z.string().min(1),
+  roleIds: z.array(builtInRoleIdSchema).optional()
 })
 
 export const updateUserSchema = z.strictObject({
@@ -15,7 +16,8 @@ export const updateUserSchema = z.strictObject({
   email: z.email(),
   displayUsername: z.string().trim().min(1),
   image: z.string().nullable(),
-  password: z.string().min(1).optional()
+  password: z.string().min(1).optional(),
+  roleIds: z.array(builtInRoleIdSchema).optional()
 })
 
 export const userSchema = z.strictObject({
@@ -26,7 +28,7 @@ export const userSchema = z.strictObject({
   email: z.email(),
   emailVerified: z.boolean,
   image: z.string().nullable(),
-  roles: z.array(roleSchema),
+  roleIds: z.array(builtInRoleIdSchema),
   createdAt: z.date(),
   updatedAt: z.date()
 })
