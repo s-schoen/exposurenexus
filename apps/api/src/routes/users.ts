@@ -8,7 +8,7 @@ import {
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
 import type { ContextVariables } from "../lib/hono-schema.js"
-import { requireDomainPermission } from "../middleware/auth.js"
+import type { RequireDomainPermission } from "../middleware/auth.js"
 
 interface UserRouteService {
   listAll(): Promise<User[]>
@@ -20,9 +20,16 @@ interface UserRouteService {
   ): Promise<User | null>
 }
 
+interface UserRouteDependencies {
+  requireDomainPermission: RequireDomainPermission
+}
+
 const idParamValidator = zValidator("param", z.object({ id: z.string() }))
 
-export function createUserRoute(userService: UserRouteService) {
+export function createUserRoute(
+  userService: UserRouteService,
+  { requireDomainPermission }: UserRouteDependencies
+) {
   const user = new Hono<{ Variables: ContextVariables }>()
 
   user.get("/", requireDomainPermission("user", "read"), async (c) => {

@@ -1,7 +1,5 @@
 import { betterAuth } from "better-auth"
 import { BuiltInRoleName } from "@openvlp/types/model/rbac"
-import { db, pool, logger as dbLogger } from "../db/index.js"
-import { env } from "../env.js"
 import { admin, username } from "better-auth/plugins"
 import { ac, roles } from "./permissions.js"
 import type { Kysely } from "kysely"
@@ -99,18 +97,8 @@ export function createAuth({
   }) as unknown as AuthClient
 }
 
-export const auth = createAuth({
-  pool,
-  authUrl: env.AUTH_URL,
-  authSecret: env.AUTH_SECRET
-})
-
 export async function createDefaultAdmin(
-  options: CreateDefaultAdminOptions = {
-    db,
-    auth,
-    logger: dbLogger
-  }
+  options: CreateDefaultAdminOptions
 ): Promise<void> {
   const { count } = await options.db
     .selectFrom("user")

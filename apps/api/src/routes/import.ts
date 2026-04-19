@@ -4,7 +4,7 @@ import { badRequest, replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { Logger } from "pino"
 import type { ImportContext } from "../import/importer.js"
-import { requireDomainPermission } from "../middleware/auth.js"
+import type { RequireDomainPermission } from "../middleware/auth.js"
 
 interface FindingImportService {
   parseFindingsFromFile(
@@ -17,11 +17,13 @@ interface FindingImportService {
 interface ImportRouteDependencies {
   importer: FindingImportService
   logger: Logger
+  requireDomainPermission: RequireDomainPermission
 }
 
 export function createImportRoute({
   importer,
-  logger
+  logger,
+  requireDomainPermission
 }: ImportRouteDependencies) {
   const importRoute = new Hono<{ Variables: ContextVariables }>()
 

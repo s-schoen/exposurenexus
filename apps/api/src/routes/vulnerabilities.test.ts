@@ -3,26 +3,21 @@ import {
   VulnerabilitySeverity,
   type Vulnerability
 } from "@openvlp/types/model/vulnerability"
-
-vi.mock("../lib/auth.js", () => ({
-  auth: {
-    api: {
-      userHasPermission: vi.fn()
-    }
-  }
-}))
-
-import { auth } from "../lib/auth.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
+import { createRequireDomainPermission } from "../middleware/auth.js"
 import { createVulnerabilityRoute } from "./vulnerabilities.js"
 
 describe("vulnerability routes", () => {
   const user = createTestUser()
+  const userHasPermission = vi.fn()
+  const routeDependencies = {
+    requireDomainPermission: createRequireDomainPermission(userHasPermission)
+  }
   const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
   const vulnerabilityService = {
     listAll: vi.fn(),
@@ -43,13 +38,16 @@ describe("vulnerability routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(auth.api.userHasPermission).mockResolvedValue(true)
+    userHasPermission.mockResolvedValue(true)
   })
 
   it("returns 401 for unauthenticated requests", async () => {
     const requestId = "vulnerabilities-unauthorized-request"
     const app = createTestApp({
-      vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService),
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      ),
       requireAuth: requireAuthenticatedUser
     })
 
@@ -77,7 +75,10 @@ describe("vulnerability routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService)
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/vulnerabilities", {
@@ -107,12 +108,15 @@ describe("vulnerability routes", () => {
   })
 
   it("returns 403 when listing vulnerabilities without read permission", async () => {
-    vi.mocked(auth.api.userHasPermission).mockResolvedValue(false)
+    userHasPermission.mockResolvedValue(false)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService)
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/vulnerabilities", {
@@ -122,7 +126,7 @@ describe("vulnerability routes", () => {
     })
 
     expect(response.status).toBe(403)
-    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+    expect(userHasPermission).toHaveBeenCalledWith({
       body: {
         userId: user.id,
         permissions: {
@@ -141,7 +145,10 @@ describe("vulnerability routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService)
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(
@@ -170,7 +177,10 @@ describe("vulnerability routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService)
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/vulnerabilities/not-a-uuid", {
@@ -191,7 +201,10 @@ describe("vulnerability routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService)
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(

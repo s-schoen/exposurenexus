@@ -1,39 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { FindingSource, FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
-
-vi.mock("../lib/auth.js", () => ({
-  auth: {
-    api: {
-      userHasPermission: vi.fn()
-    }
-  }
-}))
-
-import { auth } from "../lib/auth.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
+import { createRequireDomainPermission } from "../middleware/auth.js"
 import { createFindingStatsRoute } from "./stats.js"
 
 describe("finding stats routes", () => {
   const user = createTestUser()
+  const userHasPermission = vi.fn()
+  const routeDependencies = {
+    requireDomainPermission: createRequireDomainPermission(userHasPermission)
+  }
   const statsService = {
     getFindingStats: vi.fn()
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(auth.api.userHasPermission).mockResolvedValue(true)
+    userHasPermission.mockResolvedValue(true)
   })
 
   it("returns 401 for unauthenticated requests", async () => {
     const requestId = "findings-stats-unauthorized-request"
     const app = createTestApp({
-      findingStatsRoute: createFindingStatsRoute(statsService),
+      findingStatsRoute: createFindingStatsRoute(statsService, routeDependencies),
       requireAuth: requireAuthenticatedUser
     })
 
@@ -87,7 +82,7 @@ describe("finding stats routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingStatsRoute: createFindingStatsRoute(statsService)
+      findingStatsRoute: createFindingStatsRoute(statsService, routeDependencies)
     })
 
     const response = await app.request("/api/findings/stats", {
@@ -106,12 +101,12 @@ describe("finding stats routes", () => {
   })
 
   it("returns 403 when reading stats without read permission", async () => {
-    vi.mocked(auth.api.userHasPermission).mockResolvedValue(false)
+    userHasPermission.mockResolvedValue(false)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingStatsRoute: createFindingStatsRoute(statsService)
+      findingStatsRoute: createFindingStatsRoute(statsService, routeDependencies)
     })
 
     const response = await app.request("/api/findings/stats", {
@@ -121,7 +116,7 @@ describe("finding stats routes", () => {
     })
 
     expect(response.status).toBe(403)
-    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+    expect(userHasPermission).toHaveBeenCalledWith({
       body: {
         userId: user.id,
         permissions: {
@@ -142,7 +137,7 @@ describe("finding stats routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingStatsRoute: createFindingStatsRoute(statsService)
+      findingStatsRoute: createFindingStatsRoute(statsService, routeDependencies)
     })
 
     const response = await app.request("/api/findings/stats", {

@@ -1,34 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
 import { pino } from "pino"
-
-vi.mock("../lib/auth.js", () => ({
-  auth: {
-    api: {
-      userHasPermission: vi.fn()
-    }
-  }
-}))
-
-import { auth } from "../lib/auth.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
+import { createRequireDomainPermission } from "../middleware/auth.js"
 import { createImportRoute } from "./import.js"
 
 describe("finding import routes", () => {
   const user = createTestUser()
   const logger = pino({ enabled: false })
+  const userHasPermission = vi.fn()
+  const routeDependencies = {
+    requireDomainPermission: createRequireDomainPermission(userHasPermission)
+  }
   const importer = {
     parseFindingsFromFile: vi.fn()
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(auth.api.userHasPermission).mockResolvedValue(true)
+    userHasPermission.mockResolvedValue(true)
   })
 
   it("returns 401 for unauthenticated requests", async () => {
@@ -43,7 +38,11 @@ describe("finding import routes", () => {
     )
 
     const app = createTestApp({
-      importerRoute: createImportRoute({ importer, logger }),
+      importerRoute: createImportRoute({
+        importer,
+        logger,
+        ...routeDependencies
+      }),
       requireAuth: requireAuthenticatedUser
     })
 
@@ -78,7 +77,11 @@ describe("finding import routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      importerRoute: createImportRoute({ importer, logger })
+      importerRoute: createImportRoute({
+        importer,
+        logger,
+        ...routeDependencies
+      })
     })
 
     const response = await app.request("/api/findings/import", {
@@ -107,7 +110,11 @@ describe("finding import routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      importerRoute: createImportRoute({ importer, logger })
+      importerRoute: createImportRoute({
+        importer,
+        logger,
+        ...routeDependencies
+      })
     })
 
     const response = await app.request("/api/findings/import", {
@@ -146,7 +153,11 @@ describe("finding import routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      importerRoute: createImportRoute({ importer, logger })
+      importerRoute: createImportRoute({
+        importer,
+        logger,
+        ...routeDependencies
+      })
     })
 
     const response = await app.request("/api/findings/import", {
@@ -186,12 +197,16 @@ describe("finding import routes", () => {
       })
     )
 
-    vi.mocked(auth.api.userHasPermission).mockResolvedValue(false)
+    userHasPermission.mockResolvedValue(false)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      importerRoute: createImportRoute({ importer, logger })
+      importerRoute: createImportRoute({
+        importer,
+        logger,
+        ...routeDependencies
+      })
     })
 
     const response = await app.request("/api/findings/import", {
@@ -203,7 +218,7 @@ describe("finding import routes", () => {
     })
 
     expect(response.status).toBe(403)
-    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+    expect(userHasPermission).toHaveBeenCalledWith({
       body: {
         userId: user.id,
         permissions: {
@@ -233,7 +248,11 @@ describe("finding import routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      importerRoute: createImportRoute({ importer, logger })
+      importerRoute: createImportRoute({
+        importer,
+        logger,
+        ...routeDependencies
+      })
     })
 
     const response = await app.request("/api/findings/import", {

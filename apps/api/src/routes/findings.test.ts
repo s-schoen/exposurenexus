@@ -5,26 +5,21 @@ import {
   type Finding
 } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
-
-vi.mock("../lib/auth.js", () => ({
-  auth: {
-    api: {
-      userHasPermission: vi.fn()
-    }
-  }
-}))
-
-import { auth } from "../lib/auth.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
+import { createRequireDomainPermission } from "../middleware/auth.js"
 import { createFindingRoute } from "./findings.js"
 
 describe("finding routes", () => {
   const user = createTestUser()
+  const userHasPermission = vi.fn()
+  const routeDependencies = {
+    requireDomainPermission: createRequireDomainPermission(userHasPermission)
+  }
   const findingId = "2713d833-eb13-4517-ac7c-7761545ed42a"
   const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
   const assetId = "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c"
@@ -71,7 +66,7 @@ describe("finding routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(auth.api.userHasPermission).mockResolvedValue(true)
+    userHasPermission.mockResolvedValue(true)
   })
 
   it("returns all findings for authenticated requests", async () => {
@@ -93,7 +88,7 @@ describe("finding routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService)
+      findingRoute: createFindingRoute(findingService, routeDependencies)
     })
 
     const response = await app.request("/api/findings", {
@@ -143,7 +138,7 @@ describe("finding routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService)
+      findingRoute: createFindingRoute(findingService, routeDependencies)
     })
 
     const response = await app.request(`/api/findings/${findingId}`, {
@@ -186,7 +181,7 @@ describe("finding routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService)
+      findingRoute: createFindingRoute(findingService, routeDependencies)
     })
 
     const response = await app.request("/api/findings", {
@@ -219,12 +214,12 @@ describe("finding routes", () => {
   })
 
   it("returns 403 when creating a finding without write permission", async () => {
-    vi.mocked(auth.api.userHasPermission).mockResolvedValue(false)
+    userHasPermission.mockResolvedValue(false)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService)
+      findingRoute: createFindingRoute(findingService, routeDependencies)
     })
 
     const response = await app.request("/api/findings", {
@@ -237,7 +232,7 @@ describe("finding routes", () => {
     })
 
     expect(response.status).toBe(403)
-    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+    expect(userHasPermission).toHaveBeenCalledWith({
       body: {
         userId: user.id,
         permissions: {
@@ -252,7 +247,7 @@ describe("finding routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService)
+      findingRoute: createFindingRoute(findingService, routeDependencies)
     })
 
     const response = await app.request("/api/findings", {
@@ -296,7 +291,7 @@ describe("finding routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService)
+      findingRoute: createFindingRoute(findingService, routeDependencies)
     })
 
     const response = await app.request(`/api/findings/${findingId}`, {
@@ -336,7 +331,7 @@ describe("finding routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService)
+      findingRoute: createFindingRoute(findingService, routeDependencies)
     })
 
     const response = await app.request(`/api/findings/${findingId}`, {
@@ -359,7 +354,7 @@ describe("finding routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService)
+      findingRoute: createFindingRoute(findingService, routeDependencies)
     })
 
     const response = await app.request("/api/findings/not-a-uuid", {
@@ -383,7 +378,7 @@ describe("finding routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService)
+      findingRoute: createFindingRoute(findingService, routeDependencies)
     })
 
     const response = await app.request(`/api/findings/${findingId}`, {
@@ -426,7 +421,7 @@ describe("finding routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService)
+      findingRoute: createFindingRoute(findingService, routeDependencies)
     })
 
     const response = await app.request(`/api/findings/${findingId}`, {
@@ -461,7 +456,7 @@ describe("finding routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService)
+      findingRoute: createFindingRoute(findingService, routeDependencies)
     })
 
     const response = await app.request(`/api/findings/${findingId}`, {
