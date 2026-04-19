@@ -255,6 +255,31 @@ describe("role service", () => {
     expect(onRolesChanged).toHaveBeenCalledOnce()
   })
 
+  it("maps duplicate role name updates to an HTTP 409", async () => {
+    const service = createRoleService({
+      roleRepository,
+      userRepository,
+      onRolesChanged,
+      logger
+    })
+
+    roleRepository.updateByID.mockRejectedValueOnce(
+      Object.assign(new Error("duplicate key value"), { code: "23505" })
+    )
+
+    await expect(
+      service.updateByID(analystRole.id, {
+        name: BuiltInRoleName.Viewer,
+        permissions: analystRole.permissions
+      })
+    ).rejects.toMatchObject({
+      status: 409,
+      message: "role already exists"
+    } satisfies Partial<HTTPException>)
+
+    expect(onRolesChanged).not.toHaveBeenCalled()
+  })
+
   it("rejects attempts to modify built-in roles", async () => {
     const service = createRoleService({
       roleRepository,
