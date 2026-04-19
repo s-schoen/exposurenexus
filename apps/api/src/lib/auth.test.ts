@@ -35,7 +35,7 @@ vi.mock("../env.js", () => ({
   }
 }))
 
-import { createAuth, createDefaultAdmin } from "./auth.js"
+import { createAuth, createDefaultAdmin, createReloadableAuth } from "./auth.js"
 
 describe("auth factory", () => {
   const user = createTestUser()
@@ -87,6 +87,122 @@ describe("auth factory", () => {
       defaultRole: BuiltInRoleName.Viewer
     })
     expect(usernameMock).toHaveBeenCalledOnce()
+  })
+
+  it("delegates auth operations through the current auth instance", async () => {
+    const firstAuth = {
+      api: {
+        getSession: vi.fn().mockResolvedValue(null),
+        signUpEmail: vi.fn().mockResolvedValue({ user: { id: "user-1" } }),
+        setRole: vi.fn().mockResolvedValue({ success: true }),
+        setUserPassword: vi.fn().mockResolvedValue({ success: true }),
+        userHasPermission: vi.fn().mockResolvedValue(true)
+      },
+      handler: vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    }
+    const auth = createReloadableAuth(firstAuth as never)
+    const headers = new Headers({ authorization: "Bearer token" })
+
+    await expect(auth.api.getSession({ headers })).resolves.toBeNull()
+    await expect(
+      auth.api.signUpEmail({
+        body: {
+          username: "alice",
+          name: "Alice Example",
+          displayUsername: "Alice",
+          email: "alice@example.com",
+          password: "correct-horse-battery-staple"
+        }
+      })
+    ).resolves.toEqual({ user: { id: "user-1" } })
+    await expect(
+      auth.api.setRole({
+        body: {
+          userId: "user-1",
+          role: ["viewer"]
+        }
+      })
+    ).resolves.toEqual({ success: true })
+    await expect(
+      auth.api.setUserPassword({
+        body: {
+          userId: "user-1",
+          newPassword: "new-correct-horse-battery-staple"
+        }
+      })
+    ).resolves.toEqual({ success: true })
+    await expect(
+      auth.api.userHasPermission({
+        body: {
+          userId: "user-1",
+          permissions: { user: ["read"] }
+        }
+      })
+    ).resolves.toBe(true)
+
+    const response = await auth.handler(new Request("http://localhost/test"))
+
+    expect(response.status).toBe(204)
+    expect(firstAuth.api.getSession).toHaveBeenCalledWith({ headers })
+    expect(firstAuth.api.signUpEmail).toHaveBeenCalledOnce()
+    expect(firstAuth.api.setRole).toHaveBeenCalledOnce()
+    expect(firstAuth.api.setUserPassword).toHaveBeenCalledOnce()
+    expect(firstAuth.api.userHasPermission).toHaveBeenCalledOnce()
+    expect(firstAuth.handler).toHaveBeenCalledOnce()
+  })
+
+  it("reloads to a new auth instance without recreating the wrapper", async () => {
+    const firstAuth = {
+      api: {
+        getSession: vi.fn().mockResolvedValue(null),
+        signUpEmail: vi.fn().mockResolvedValue({ user: { id: "user-1" } }),
+        setRole: vi.fn().mockResolvedValue({ success: true }),
+        setUserPassword: vi.fn().mockResolvedValue({ success: true }),
+        userHasPermission: vi.fn().mockResolvedValue(true)
+      },
+      handler: vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    }
+    const secondAuth = {
+      api: {
+        getSession: vi.fn().mockResolvedValue({
+          user: { id: "user-2" },
+          session: { userId: "user-2" }
+        }),
+        signUpEmail: vi.fn().mockResolvedValue({ user: { id: "user-2" } }),
+        setRole: vi.fn().mockResolvedValue({ success: false, status: true }),
+        setUserPassword: vi.fn().mockResolvedValue({ status: true }),
+        userHasPermission: vi.fn().mockResolvedValue(false)
+      },
+      handler: vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
+    }
+    const auth = createReloadableAuth(firstAuth as never)
+
+    auth.reload(secondAuth as never)
+
+    await expect(
+      auth.api.getSession({ headers: new Headers() })
+    ).resolves.toEqual({
+      user: { id: "user-2" },
+      session: { userId: "user-2" }
+    })
+    await expect(
+      auth.api.userHasPermission({
+        body: {
+          userId: "user-2",
+          permissions: { user: ["read"] }
+        }
+      })
+    ).resolves.toBe(false)
+
+    const response = await auth.handler(new Request("http://localhost/test"))
+
+    expect(response.status).toBe(200)
+    expect(firstAuth.api.getSession).not.toHaveBeenCalled()
+    expect(firstAuth.api.userHasPermission).not.toHaveBeenCalled()
+    expect(firstAuth.handler).not.toHaveBeenCalled()
+    expect(secondAuth.api.getSession).toHaveBeenCalledOnce()
+    expect(secondAuth.api.userHasPermission).toHaveBeenCalledOnce()
+    expect(secondAuth.handler).toHaveBeenCalledOnce()
   })
 
   it("skips default admin creation when users already exist", async () => {
