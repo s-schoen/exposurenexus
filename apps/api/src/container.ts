@@ -27,6 +27,7 @@ import {
 import health from "./routes/health.js"
 import { createAuthRoute } from "./routes/auth.js"
 import { createAssetRoute } from "./routes/assets.js"
+import { createRoleRoute } from "./routes/roles.js"
 import { createUserRoute } from "./routes/users.js"
 import { createVulnerabilityRoute } from "./routes/vulnerabilities.js"
 import { createFindingStatsRoute } from "./routes/stats.js"
@@ -114,6 +115,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     healthRoute: health,
     authRoute: createAuthRoute(auth),
     assetRoute: createAssetRoute(assetService, { requireDomainPermission }),
+    roleRoute: createRoleRoute(roleService, { requireDomainPermission }),
     userRoute: createUserRoute(userService, { requireDomainPermission }),
     vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService, {
       requireDomainPermission

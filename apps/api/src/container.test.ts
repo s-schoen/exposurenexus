@@ -10,6 +10,7 @@ const {
   createDefaultAdminMock,
   createAuthMock,
   createAssetRouteMock,
+  createRoleRouteMock,
   createUserRouteMock,
   createVulnerabilityRouteMock,
   createFindingStatsRouteMock,
@@ -24,6 +25,7 @@ const {
   createDefaultAdminMock: vi.fn(),
   createAuthMock: vi.fn(),
   createAssetRouteMock: vi.fn(() => ({ route: "assets" })),
+  createRoleRouteMock: vi.fn(() => ({ route: "roles" })),
   createUserRouteMock: vi.fn(() => ({ route: "users" })),
   createVulnerabilityRouteMock: vi.fn(() => ({ route: "vulnerabilities" })),
   createFindingStatsRouteMock: vi.fn(() => ({ route: "stats" })),
@@ -60,6 +62,10 @@ vi.mock("./routes/auth.js", () => ({
 
 vi.mock("./routes/assets.js", () => ({
   createAssetRoute: createAssetRouteMock
+}))
+
+vi.mock("./routes/roles.js", () => ({
+  createRoleRoute: createRoleRouteMock
 }))
 
 vi.mock("./routes/users.js", () => ({
@@ -147,6 +153,7 @@ describe("app container", () => {
     expect(createRequireDomainPermissionMock).toHaveBeenCalledWith(
       auth.api.userHasPermission
     )
+    expect(createRoleRouteMock).toHaveBeenCalledOnce()
     expect(container.auth).toBe(auth)
   })
 })

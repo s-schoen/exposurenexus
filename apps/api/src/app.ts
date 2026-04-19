@@ -19,6 +19,7 @@ export interface CreateAppOptions {
   healthRoute: Hono
   authRoute: Hono
   assetRoute: Hono<{ Variables: ContextVariables }>
+  roleRoute: Hono<{ Variables: ContextVariables }>
   userRoute: Hono<{ Variables: ContextVariables }>
   vulnerabilityRoute: Hono<{ Variables: ContextVariables }>
   findingStatsRoute: Hono<{ Variables: ContextVariables }>
@@ -54,6 +55,7 @@ export function createApp(options: CreateAppOptions) {
   app.use("*", options.requireAuth)
 
   app.route("/assets", options.assetRoute)
+  app.route("/roles", options.roleRoute)
   app.route("/users", options.userRoute)
   app.route("/vulnerabilities", options.vulnerabilityRoute)
   app.route("/findings", options.findingStatsRoute)
