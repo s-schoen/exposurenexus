@@ -12,6 +12,7 @@ interface CreateTestAppOptions {
   healthRoute?: Hono
   authRoute?: Hono
   assetRoute?: Hono<{ Variables: ContextVariables }>
+  roleRoute?: Hono<{ Variables: ContextVariables }>
   userRoute?: Hono<{ Variables: ContextVariables }>
   vulnerabilityRoute?: Hono<{ Variables: ContextVariables }>
   findingStatsRoute?: Hono<{ Variables: ContextVariables }>
@@ -78,6 +79,7 @@ export function createTestApp(options: CreateTestAppOptions = {}) {
     healthRoute: options.healthRoute ?? health,
     authRoute: options.authRoute ?? emptyRoute,
     assetRoute: options.assetRoute ?? protectedEmptyRoute,
+    roleRoute: options.roleRoute ?? protectedEmptyRoute,
     userRoute: options.userRoute ?? protectedEmptyRoute,
     vulnerabilityRoute: options.vulnerabilityRoute ?? protectedEmptyRoute,
     findingStatsRoute: options.findingStatsRoute ?? protectedEmptyRoute,
