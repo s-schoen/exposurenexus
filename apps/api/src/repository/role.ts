@@ -1,4 +1,4 @@
-import type { Kysely } from "kysely"
+import { sql, type Kysely } from "kysely"
 import type { Database } from "../db/index.js"
 import type { Role, UpdateRole } from "@openvlp/types/model/rbac"
 
@@ -72,6 +72,23 @@ function dedupePermissions(
   return dedupedPermissions
 }
 
+async function renameAssignedUsers(
+  database: Kysely<Database>,
+  previousRoleName: string,
+  nextRoleName: string
+): Promise<void> {
+  await database
+    .updateTable("user")
+    .set({
+      role: sql<string>`array_to_string(array_replace(string_to_array(replace(${sql.ref("user.role")}, ' ', ''), ','), ${previousRoleName}, ${nextRoleName}), ',')`
+    })
+    .where("role", "is not", null)
+    .where(
+      sql<boolean>`${previousRoleName} = any(string_to_array(replace(${sql.ref("user.role")}, ' ', ''), ','))`
+    )
+    .execute()
+}
+
 export function createRoleRepository(database: Kysely<Database>) {
   return {
     async list(): Promise<Role[]> {
@@ -114,6 +131,16 @@ export function createRoleRepository(database: Kysely<Database>) {
 
     async updateByID(id: string, roleUpdate: UpdateRole): Promise<Role | null> {
       return database.transaction().execute(async (trx) => {
+        const existingRole = await trx
+          .selectFrom("role")
+          .select(["id", "name"])
+          .where("id", "=", id)
+          .executeTakeFirst()
+
+        if (!existingRole) {
+          return null
+        }
+
         const updatedRole = await trx
           .updateTable("role")
           .set({ name: roleUpdate.name })
@@ -123,6 +150,10 @@ export function createRoleRepository(database: Kysely<Database>) {
 
         if (!updatedRole) {
           return null
+        }
+
+        if (existingRole.name !== roleUpdate.name) {
+          await renameAssignedUsers(trx, existingRole.name, roleUpdate.name)
         }
 
         await trx

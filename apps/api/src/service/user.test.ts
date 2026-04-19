@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
-import { pino } from "pino"
+import type { Logger } from "pino"
 import {
   BuiltInRoleName,
   builtInRoleIds,
@@ -11,7 +11,10 @@ import type { User } from "@openvlp/types/model/user"
 import type { AuthClient } from "../lib/auth.js"
 
 type UserServiceAuth = {
-  api: Pick<AuthClient["api"], "signUpEmail" | "setRole" | "setUserPassword">
+  api: Pick<
+    AuthClient["api"],
+    "signUpEmail" | "setRole" | "setUserPassword" | "removeUser"
+  >
 }
 
 describe("user service", () => {
@@ -32,10 +35,15 @@ describe("user service", () => {
     api: {
       signUpEmail: vi.fn<AuthClient["api"]["signUpEmail"]>(),
       setRole: vi.fn<AuthClient["api"]["setRole"]>(),
-      setUserPassword: vi.fn<AuthClient["api"]["setUserPassword"]>()
+      setUserPassword: vi.fn<AuthClient["api"]["setUserPassword"]>(),
+      removeUser: vi.fn<AuthClient["api"]["removeUser"]>()
     }
   } satisfies UserServiceAuth
-  const logger = pino({ enabled: false })
+  const logger = {
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn()
+  } as unknown as Logger
   const user: User = {
     id: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
     name: "Alice Example",
@@ -139,7 +147,7 @@ describe("user service", () => {
     }
 
     auth.api.signUpEmail.mockResolvedValue({ user: { id: user.id } })
-    auth.api.setRole.mockResolvedValue({ success: true })
+    auth.api.setRole.mockResolvedValue({ user: { id: user.id } })
     roleService.requireRoleNamesFromIds.mockResolvedValue([
       BuiltInRoleName.Viewer
     ])
@@ -225,6 +233,7 @@ describe("user service", () => {
     const service = createUserService({ userRepository, roleService, auth, logger })
 
     auth.api.signUpEmail.mockResolvedValue({ user: { id: user.id } })
+    auth.api.removeUser.mockResolvedValue({ success: true })
     userRepository.getByID.mockResolvedValue(null)
 
     await expect(
@@ -238,6 +247,103 @@ describe("user service", () => {
     ).rejects.toThrow("failed to load created user")
 
     expect(userRepository.getByID).toHaveBeenCalledWith(user.id)
+    expect(auth.api.removeUser).toHaveBeenCalledWith({
+      body: {
+        userId: user.id
+      }
+    })
+  })
+
+  it("removes the created user when role assignment fails", async () => {
+    const service = createUserService({ userRepository, roleService, auth, logger })
+
+    auth.api.signUpEmail.mockResolvedValue({ user: { id: user.id } })
+    roleService.requireRoleNamesFromIds.mockResolvedValue([
+      BuiltInRoleName.Viewer
+    ])
+    auth.api.setRole.mockRejectedValue(new Error("auth offline"))
+    auth.api.removeUser.mockResolvedValue({ success: true })
+
+    await expect(
+      service.create({
+        name: "Alice Example",
+        email: "alice@example.com",
+        username: "alice",
+        displayUsername: "Alice",
+        password: "correct-horse-battery-staple",
+        roleIds: [builtInRoleIds.viewer]
+      })
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to create user"
+    } satisfies Partial<HTTPException>)
+
+    expect(auth.api.removeUser).toHaveBeenCalledWith({
+      body: {
+        userId: user.id
+      }
+    })
+  })
+
+  it("removes the created user when role assignment reports failure", async () => {
+    const service = createUserService({ userRepository, roleService, auth, logger })
+
+    auth.api.signUpEmail.mockResolvedValue({ user: { id: user.id } })
+    roleService.requireRoleNamesFromIds.mockResolvedValue([
+      BuiltInRoleName.Viewer
+    ])
+    auth.api.setRole.mockResolvedValue({} as never)
+    auth.api.removeUser.mockResolvedValue({ success: true })
+
+    await expect(
+      service.create({
+        name: "Alice Example",
+        email: "alice@example.com",
+        username: "alice",
+        displayUsername: "Alice",
+        password: "correct-horse-battery-staple",
+        roleIds: [builtInRoleIds.viewer]
+      })
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to create user"
+    } satisfies Partial<HTTPException>)
+
+    expect(auth.api.removeUser).toHaveBeenCalledWith({
+      body: {
+        userId: user.id
+      }
+    })
+  })
+
+  it("logs rollback failures when removing a partially created user fails", async () => {
+    const service = createUserService({ userRepository, roleService, auth, logger })
+
+    auth.api.signUpEmail.mockResolvedValue({ user: { id: user.id } })
+    roleService.requireRoleNamesFromIds.mockResolvedValue([
+      BuiltInRoleName.Viewer
+    ])
+    auth.api.setRole.mockRejectedValue(new Error("auth offline"))
+    auth.api.removeUser.mockRejectedValue(new Error("remove failed"))
+
+    await expect(
+      service.create({
+        name: "Alice Example",
+        email: "alice@example.com",
+        username: "alice",
+        displayUsername: "Alice",
+        password: "correct-horse-battery-staple",
+        roleIds: [builtInRoleIds.viewer]
+      })
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to create user"
+    } satisfies Partial<HTTPException>)
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.any(Error),
+      `failed to roll back created user for id ${user.id}`
+    )
   })
 
   it("updates a user while preserving the immutable username", async () => {
@@ -283,7 +389,8 @@ describe("user service", () => {
       BuiltInRoleName.Editor
     ])
     roleService.getByNames.mockResolvedValue([viewerRole, editorRole])
-    auth.api.setRole.mockResolvedValue({ success: true })
+    auth.api.setRole.mockResolvedValue({ user: { id: user.id } })
+    auth.api.setUserPassword.mockResolvedValue({ status: true })
 
     await expect(
       service.updateByID(user.id, {
@@ -433,7 +540,7 @@ describe("user service", () => {
         updatedAt: now
       })
       .mockResolvedValueOnce(persistedUser)
-    auth.api.setUserPassword.mockRejectedValue(new Error("auth offline"))
+    auth.api.setUserPassword.mockResolvedValue({ status: false } as never)
 
     await expect(
       service.updateByID(user.id, {

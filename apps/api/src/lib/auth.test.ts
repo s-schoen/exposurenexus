@@ -57,6 +57,7 @@ describe("auth factory", () => {
     const authInstance = {
       api: {
         signUpEmail: vi.fn(),
+        removeUser: vi.fn(),
         userHasPermission: vi.fn()
       }
     }
@@ -103,8 +104,9 @@ describe("auth factory", () => {
       api: {
         getSession: vi.fn().mockResolvedValue(null),
         signUpEmail: vi.fn().mockResolvedValue({ user: { id: "user-1" } }),
-        setRole: vi.fn().mockResolvedValue({ success: true }),
-        setUserPassword: vi.fn().mockResolvedValue({ success: true }),
+        setRole: vi.fn().mockResolvedValue({ user: { id: "user-1" } }),
+        removeUser: vi.fn().mockResolvedValue({ success: true }),
+        setUserPassword: vi.fn().mockResolvedValue({ status: true }),
         userHasPermission: vi.fn().mockResolvedValue(true)
       },
       handler: vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
@@ -131,6 +133,13 @@ describe("auth factory", () => {
           role: ["viewer"]
         }
       })
+    ).resolves.toEqual({ user: { id: "user-1" } })
+    await expect(
+      auth.api.removeUser({
+        body: {
+          userId: "user-1"
+        }
+      })
     ).resolves.toEqual({ success: true })
     await expect(
       auth.api.setUserPassword({
@@ -139,7 +148,7 @@ describe("auth factory", () => {
           newPassword: "new-correct-horse-battery-staple"
         }
       })
-    ).resolves.toEqual({ success: true })
+    ).resolves.toEqual({ status: true })
     await expect(
       auth.api.userHasPermission({
         body: {
@@ -155,6 +164,7 @@ describe("auth factory", () => {
     expect(firstAuth.api.getSession).toHaveBeenCalledWith({ headers })
     expect(firstAuth.api.signUpEmail).toHaveBeenCalledOnce()
     expect(firstAuth.api.setRole).toHaveBeenCalledOnce()
+    expect(firstAuth.api.removeUser).toHaveBeenCalledOnce()
     expect(firstAuth.api.setUserPassword).toHaveBeenCalledOnce()
     expect(firstAuth.api.userHasPermission).toHaveBeenCalledOnce()
     expect(firstAuth.handler).toHaveBeenCalledOnce()
@@ -165,8 +175,9 @@ describe("auth factory", () => {
       api: {
         getSession: vi.fn().mockResolvedValue(null),
         signUpEmail: vi.fn().mockResolvedValue({ user: { id: "user-1" } }),
-        setRole: vi.fn().mockResolvedValue({ success: true }),
-        setUserPassword: vi.fn().mockResolvedValue({ success: true }),
+        setRole: vi.fn().mockResolvedValue({ user: { id: "user-1" } }),
+        removeUser: vi.fn().mockResolvedValue({ success: true }),
+        setUserPassword: vi.fn().mockResolvedValue({ status: true }),
         userHasPermission: vi.fn().mockResolvedValue(true)
       },
       handler: vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
@@ -178,7 +189,8 @@ describe("auth factory", () => {
           session: { userId: "user-2" }
         }),
         signUpEmail: vi.fn().mockResolvedValue({ user: { id: "user-2" } }),
-        setRole: vi.fn().mockResolvedValue({ success: false, status: true }),
+        setRole: vi.fn().mockResolvedValue({ user: { id: "user-2" } }),
+        removeUser: vi.fn().mockResolvedValue({ success: true }),
         setUserPassword: vi.fn().mockResolvedValue({ status: true }),
         userHasPermission: vi.fn().mockResolvedValue(false)
       },
@@ -208,6 +220,7 @@ describe("auth factory", () => {
     expect(response.status).toBe(200)
     expect(firstAuth.api.getSession).not.toHaveBeenCalled()
     expect(firstAuth.api.userHasPermission).not.toHaveBeenCalled()
+    expect(firstAuth.api.removeUser).not.toHaveBeenCalled()
     expect(firstAuth.handler).not.toHaveBeenCalled()
     expect(secondAuth.api.getSession).toHaveBeenCalledOnce()
     expect(secondAuth.api.userHasPermission).toHaveBeenCalledOnce()
@@ -220,6 +233,7 @@ describe("auth factory", () => {
         getSession: vi.fn().mockResolvedValue(null),
         signUpEmail: vi.fn(),
         setRole: vi.fn(),
+        removeUser: vi.fn(),
         setUserPassword: vi.fn(),
         userHasPermission: vi.fn().mockResolvedValue(true)
       },
@@ -238,6 +252,7 @@ describe("auth factory", () => {
         getSession: vi.fn().mockResolvedValue(null),
         signUpEmail: vi.fn(),
         setRole: vi.fn(),
+        removeUser: vi.fn(),
         setUserPassword: vi.fn(),
         userHasPermission: vi.fn().mockResolvedValue(false)
       },

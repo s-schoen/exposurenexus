@@ -42,9 +42,15 @@ export interface AuthApiUserManagementClient {
       role: string | string[]
     }
   }): Promise<{
-    user?: unknown
-    success?: boolean
-    status?: boolean
+    user: unknown
+  }>
+
+  removeUser(input: {
+    body: {
+      userId: string
+    }
+  }): Promise<{
+    success: boolean
   }>
 
   setUserPassword(input: {
@@ -53,8 +59,7 @@ export interface AuthApiUserManagementClient {
       newPassword: string
     }
   }): Promise<{
-    success?: boolean
-    status?: boolean
+    status: boolean
   }>
 }
 
@@ -146,6 +151,10 @@ export function createReloadableAuth(
 
       setRole(input) {
         return currentAuth.api.setRole(input)
+      },
+
+      removeUser(input) {
+        return currentAuth.api.removeUser(input)
       },
 
       setUserPassword(input) {

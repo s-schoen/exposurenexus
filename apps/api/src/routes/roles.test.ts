@@ -285,7 +285,7 @@ describe("role routes", () => {
         "Content-Type": "application/json",
         "X-Request-Id": "roles-invalid-update-request"
       },
-      body: JSON.stringify({ name: "", permissions: [] })
+      body: JSON.stringify({ name: "security analyst", permissions: [] })
     })
 
     expect(response.status).toBe(400)

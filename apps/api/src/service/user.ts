@@ -19,12 +19,18 @@ async function mapPersistedUsersToUsers(
   logger: Logger
 ): Promise<User[]> {
   const roleNames = uniqueValues(users.flatMap((user) => user.roleNames))
-  const roles = roleNames.length === 0 ? [] : await roleService.getByNames(roleNames)
+  const roles =
+    roleNames.length === 0 ? [] : await roleService.getByNames(roleNames)
   const roleIdByName = buildRoleIdsByName(roles)
-  const missingRoleNames = roleNames.filter((roleName) => !roleIdByName.has(roleName))
+  const missingRoleNames = roleNames.filter(
+    (roleName) => !roleIdByName.has(roleName)
+  )
 
   if (missingRoleNames.length > 0) {
-    logger.debug({ missingRoleNames }, "ignoring unresolved persisted role names")
+    logger.debug(
+      { missingRoleNames },
+      "ignoring unresolved persisted role names"
+    )
   }
 
   return users.map(({ roleNames: persistedRoleNames, ...user }) => ({
@@ -60,7 +66,10 @@ interface UserServiceDependencies {
   userRepository: UserRepository
   roleService: RoleService
   auth: {
-    api: Pick<AuthClient["api"], "signUpEmail" | "setRole" | "setUserPassword">
+    api: Pick<
+      AuthClient["api"],
+      "signUpEmail" | "setRole" | "setUserPassword" | "removeUser"
+    >
   }
   logger: Logger
 }
@@ -119,16 +128,41 @@ async function rollbackUserRoleUpdate(
   logger: Logger
 ): Promise<void> {
   try {
-    await auth.api.setRole({
+    const roleResult = await auth.api.setRole({
       body: {
         userId: user.id,
         role: user.roleNames
       }
     })
+    if (roleResult.user === undefined) {
+      throw new Error("failed to set user role")
+    }
   } catch (rollbackError) {
     logger.error(
       rollbackError,
       `failed to roll back user role update for id ${user.id}`
+    )
+  }
+}
+
+async function rollbackCreatedUser(
+  auth: UserServiceDependencies["auth"],
+  userId: string,
+  logger: Logger
+): Promise<void> {
+  try {
+    const removeUserResult = await auth.api.removeUser({
+      body: {
+        userId
+      }
+    })
+    if (!removeUserResult.success) {
+      throw new Error("failed to remove user")
+    }
+  } catch (rollbackError) {
+    logger.error(
+      rollbackError,
+      `failed to roll back created user for id ${userId}`
     )
   }
 }
@@ -189,30 +223,38 @@ export function createUserService({
           body: createUser
         })
 
-        if (roleNames !== undefined) {
-          await auth.api.setRole({
-            body: {
-              userId: created.user.id,
-              role: roleNames
+        try {
+          if (roleNames !== undefined) {
+            const roleResult = await auth.api.setRole({
+              body: {
+                userId: created.user.id,
+                role: roleNames
+              }
+            })
+            if (roleResult.user === undefined) {
+              throw new Error("failed to set user role")
             }
-          })
+          }
+
+          const persisted = await userRepository.getByID(created.user.id)
+          if (!persisted) {
+            throw new HTTPException(500, {
+              message: "failed to load created user"
+            })
+          }
+
+          const [createdUser] = await mapPersistedUsersToUsers(
+            [persisted],
+            roleService,
+            logger
+          )
+
+          logger.info({ userId: created.user.id }, "created user")
+          return createdUser!
+        } catch (error) {
+          await rollbackCreatedUser(auth, created.user.id, logger)
+          throw error
         }
-
-        const persisted = await userRepository.getByID(created.user.id)
-        if (!persisted) {
-          throw new HTTPException(500, {
-            message: "failed to load created user"
-          })
-        }
-
-        const [createdUser] = await mapPersistedUsersToUsers(
-          [persisted],
-          roleService,
-          logger
-        )
-
-        logger.info({ userId: created.user.id }, "created user")
-        return createdUser!
       } catch (error) {
         if (error instanceof HTTPException) {
           throw error
@@ -257,21 +299,27 @@ export function createUserService({
 
         try {
           if (roleNames !== undefined) {
-            await auth.api.setRole({
+            const roleResult = await auth.api.setRole({
               body: {
                 userId: id,
                 role: roleNames
               }
             })
+            if (roleResult.user === undefined) {
+              throw new Error("failed to set user role")
+            }
           }
 
           if (user.password !== undefined) {
-            await auth.api.setUserPassword({
+            const passwordResult = await auth.api.setUserPassword({
               body: {
                 userId: id,
                 newPassword: user.password
               }
             })
+            if (!passwordResult.status) {
+              throw new Error("failed to set user password")
+            }
           }
         } catch (error) {
           await rollbackUserProfileUpdate(userRepository, existing, logger)
