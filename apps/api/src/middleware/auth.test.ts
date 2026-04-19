@@ -1,6 +1,10 @@
 import { Hono } from "hono"
 import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest"
-import { PermissionResource, PermissionVerb } from "@openvlp/types/model/rbac"
+import {
+  type Permission,
+  PermissionResource,
+  PermissionVerb
+} from "@openvlp/types/model/rbac"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import { createTestApp, createTestUser } from "../test/app.js"
 
@@ -15,11 +19,7 @@ vi.mock("../lib/auth.js", () => ({
 
 import { auth } from "../lib/auth.js"
 import type { AuthApiPermissionClient } from "../lib/auth.js"
-import {
-  userManagementPermissions,
-  type DomainPermissionPayload,
-  type UserManagementPermissionPayload
-} from "../lib/permissions.js"
+import { type ResourcePermissionVerbAssignment } from "../lib/permissions.js"
 import {
   authNAnnotate,
   authNRequire,
@@ -65,29 +65,28 @@ describe("auth middleware", () => {
     type MiddlewarePermissionPayload = Parameters<
       typeof createRequirePermission
     >[1]
-    type InvalidDomainVerb = {
-      [PermissionResource.Asset]: ["list"]
+    type InvalidPermissionVerb = {
+      resource: PermissionResource.Asset
+      verb: "list"
     } extends MiddlewarePermissionPayload
       ? true
       : false
     type BogusResource = {
-      bogus: [PermissionVerb.Read]
+      resource: "bogus"
+      verb: PermissionVerb.Read
     } extends MiddlewarePermissionPayload
       ? true
       : false
 
     expectTypeOf<MiddlewarePermissionPayload>().toEqualTypeOf<
-      DomainPermissionPayload | UserManagementPermissionPayload
+      Permission | Permission[]
     >()
-    expectTypeOf<
-      typeof userManagementPermissions.read
-    >().toExtend<MiddlewarePermissionPayload>()
     expectTypeOf<
       Parameters<
         AuthApiPermissionClient["userHasPermission"]
       >[0]["body"]["permissions"]
-    >().toEqualTypeOf<MiddlewarePermissionPayload>()
-    expectTypeOf<InvalidDomainVerb>().toEqualTypeOf<false>()
+    >().toEqualTypeOf<ResourcePermissionVerbAssignment>()
+    expectTypeOf<InvalidPermissionVerb>().toEqualTypeOf<false>()
     expectTypeOf<BogusResource>().toEqualTypeOf<false>()
     expectTypeOf<
       ReturnType<AuthApiPermissionClient["userHasPermission"]>
@@ -233,7 +232,8 @@ describe("auth middleware", () => {
     protectedRoute.get(
       "/",
       createRequirePermission(userHasPermission, {
-        [PermissionResource.Asset]: [PermissionVerb.Delete]
+        resource: PermissionResource.Asset,
+        verb: PermissionVerb.Delete
       }),
       (c) => c.json({ ok: true })
     )
@@ -258,7 +258,8 @@ describe("auth middleware", () => {
     protectedRoute.get(
       "/",
       createRequirePermission(userHasPermission, {
-        [PermissionResource.Asset]: [PermissionVerb.Read]
+        resource: PermissionResource.Asset,
+        verb: PermissionVerb.Read
       }),
       (c) => c.json({ ok: true })
     )
@@ -286,7 +287,8 @@ describe("auth middleware", () => {
     protectedRoute.get(
       "/",
       createRequirePermission(userHasPermission, {
-        [PermissionResource.Asset]: [PermissionVerb.Read]
+        resource: PermissionResource.Asset,
+        verb: PermissionVerb.Read
       }),
       (c) => c.json({ ok: true, role: c.get("user")?.role ?? null })
     )

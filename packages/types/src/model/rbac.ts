@@ -5,6 +5,8 @@ export enum PermissionResource {
   Vulnerability = "vulnerability",
   Import = "import",
   Finding = "finding",
+  Session = "session",
+  User = "user",
   Stats = "stats"
 }
 
@@ -61,6 +63,13 @@ const editorPermissions = freezePermissions([
   { resource: PermissionResource.Stats, verb: PermissionVerb.Read }
 ])
 
+const adminPermissions = freezePermissions([
+  ...editorPermissions,
+  { resource: PermissionResource.User, verb: PermissionVerb.Read },
+  { resource: PermissionResource.User, verb: PermissionVerb.Write },
+  { resource: PermissionResource.User, verb: PermissionVerb.Delete }
+])
+
 export const viewerRole: Role = freezeRole({
   id: builtInRoleIds[BuiltInRoleName.Viewer],
   name: BuiltInRoleName.Viewer,
@@ -81,7 +90,7 @@ export const editorRole: Role = freezeRole({
 export const adminRole: Role = freezeRole({
   id: builtInRoleIds[BuiltInRoleName.Admin],
   name: BuiltInRoleName.Admin,
-  permissions: editorPermissions
+  permissions: adminPermissions
 })
 
 export const builtInRoles = Object.freeze([

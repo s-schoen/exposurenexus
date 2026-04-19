@@ -1,5 +1,6 @@
 import type { MiddlewareHandler } from "hono"
 import type {
+  Permission,
   PermissionResource,
   PermissionVerb
 } from "@openvlp/types/model/rbac"
@@ -10,13 +11,7 @@ import type {
   AuthApiSessionClient
 } from "../lib/auth.js"
 import type { AuthenticatedUser, ContextVariables } from "../lib/hono-schema.js"
-import {
-  type ApiPermissionPayload,
-  domainPermission,
-  userManagementPermissions
-} from "../lib/permissions.js"
-
-type PermissionPayload = ApiPermissionPayload
+import { domainPermission, toPermissionStatements } from "../lib/permissions.js"
 
 type DomainPermissionResource = PermissionResource | `${PermissionResource}`
 type DomainPermissionAction = PermissionVerb | `${PermissionVerb}`
@@ -24,6 +19,15 @@ type DomainPermissionAction = PermissionVerb | `${PermissionVerb}`
 type PermissionChecker = AuthApiPermissionClient["userHasPermission"]
 
 type AuthMiddleware = MiddlewareHandler<{ Variables: ContextVariables }>
+
+function normalizePermissions(
+  permissions: Permission | Permission[]
+): readonly Permission[] {
+  if (Array.isArray(permissions)) {
+    return permissions
+  }
+  return [permissions]
+}
 
 export function createAuthAnnotate(
   authApi: AuthApiSessionClient
@@ -60,7 +64,7 @@ export const authNRequire = (): AuthMiddleware => {
 
 export function createRequirePermission(
   permissionChecker: PermissionChecker,
-  permissions: PermissionPayload
+  permissions: Permission | Permission[]
 ): AuthMiddleware {
   return async function requirePermission(c, next) {
     const user = c.get("user")
@@ -72,7 +76,7 @@ export function createRequirePermission(
     const result = await permissionChecker({
       body: {
         userId: user.id,
-        permissions
+        permissions: toPermissionStatements(normalizePermissions(permissions))
       }
     })
 
@@ -85,7 +89,7 @@ export function createRequirePermission(
 }
 
 export function requirePermission(
-  permissions: PermissionPayload
+  permissions: Permission | Permission[]
 ): AuthMiddleware {
   return createRequirePermission(auth.api.userHasPermission, permissions)
 }
@@ -96,16 +100,4 @@ export function requireDomainPermission<
   return requirePermission(
     domainPermission(resource as PermissionResource, action as PermissionVerb)
   )
-}
-
-export function requireUserManagementRead(): AuthMiddleware {
-  return requirePermission(userManagementPermissions.read)
-}
-
-export function requireUserManagementCreate(): AuthMiddleware {
-  return requirePermission(userManagementPermissions.create)
-}
-
-export function requireUserManagementUpdate(): AuthMiddleware {
-  return requirePermission(userManagementPermissions.update)
 }
