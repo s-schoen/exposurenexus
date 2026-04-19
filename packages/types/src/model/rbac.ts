@@ -33,14 +33,20 @@ export const permissionSchema = z.strictObject({
   verb: z.enum(PermissionVerb)
 })
 
+export const roleNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .regex(/^[a-zA-Z0-9_-]+$/)
+
 export const roleSchema = z.strictObject({
   id: z.uuidv4(),
-  name: z.string().nonempty(),
+  name: roleNameSchema,
   permissions: z.array(permissionSchema)
 })
 
 export const updateRoleSchema = z.strictObject({
-  name: z.string().trim().min(1),
+  name: roleNameSchema,
   permissions: z.array(permissionSchema)
 })
 

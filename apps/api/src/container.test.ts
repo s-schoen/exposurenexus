@@ -131,6 +131,8 @@ describe("app container", () => {
         getSession: vi.fn(),
         userHasPermission: vi.fn(),
         signUpEmail: vi.fn(),
+        setRole: vi.fn(),
+        removeUser: vi.fn(),
         setUserPassword: vi.fn()
       },
       handler: vi.fn()
