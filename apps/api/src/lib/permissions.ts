@@ -1,13 +1,11 @@
 import { adminAc, defaultStatements } from "better-auth/plugins/admin/access"
 import { createAccessControl } from "better-auth/plugins/access"
 import {
-  adminRole,
-  editorRole,
+  BuiltInRoleName,
   PermissionResource,
   type Permission,
   PermissionVerb,
-  type Role,
-  viewerRole
+  type Role
 } from "@openvlp/types/model/rbac"
 
 // better-auth native actions that the admin plugin checks on the user resource.
@@ -294,22 +292,42 @@ export function toRoleStatement(
   return toBetterAuthPermissionAssignment(role.permissions)
 }
 
-export const roleStatements = {
-  viewer: toRoleStatement(viewerRole),
-  editor: toRoleStatement(editorRole),
-  admin: mergeResourcePermissions(
-    adminAc.statements,
-    toRoleStatement(adminRole)
-  )
-} as const satisfies Record<string, BetterAuthResourcePermissionVerbAssignment>
-
 type AccessRoleStatement = Parameters<typeof ac.newRole>[0]
 
-export const roles = {
-  viewer: ac.newRole(roleStatements.viewer as AccessRoleStatement),
-  editor: ac.newRole(roleStatements.editor as AccessRoleStatement),
-  admin: ac.newRole(roleStatements.admin as AccessRoleStatement)
-} as const
+export type BetterAuthRoleStatements = Record<
+  string,
+  BetterAuthResourcePermissionVerbAssignment
+>
+
+export type BetterAuthRoles = Record<string, ReturnType<typeof ac.newRole>>
+
+export function buildBetterAuthRoleConfig(runtimeRoles: readonly Role[]): {
+  roleStatements: BetterAuthRoleStatements
+  roles: BetterAuthRoles
+} {
+  const roleStatements = Object.fromEntries(
+    runtimeRoles.map((role) => {
+      const roleStatement =
+        role.name === BuiltInRoleName.Admin
+          ? mergeResourcePermissions(adminAc.statements, toRoleStatement(role))
+          : toRoleStatement(role)
+
+      return [role.name, roleStatement]
+    })
+  ) as BetterAuthRoleStatements
+
+  const roles = Object.fromEntries(
+    Object.entries(roleStatements).map(([roleName, roleStatement]) => [
+      roleName,
+      ac.newRole(roleStatement as AccessRoleStatement)
+    ])
+  ) as BetterAuthRoles
+
+  return {
+    roleStatements,
+    roles
+  }
+}
 
 /**
  * Creates a canonical shared permission object for route-level authorization

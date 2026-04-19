@@ -1,12 +1,11 @@
 import { betterAuth } from "better-auth"
 import { BuiltInRoleName } from "@openvlp/types/model/rbac"
 import { admin, username } from "better-auth/plugins"
-import { ac, roles } from "./permissions.js"
+import { ac, type ApiPermissionPayload, type BetterAuthRoles } from "./permissions.js"
 import type { Kysely } from "kysely"
 import type { Database } from "../db/index.js"
 import type { Logger } from "pino"
 import type { Pool } from "pg"
-import type { ApiPermissionPayload } from "./permissions.js"
 
 export interface AuthApiSessionClient {
   getSession(input: { headers: Headers }): Promise<{
@@ -32,6 +31,17 @@ export interface AuthApiSignupClient {
 }
 
 export interface AuthApiUserManagementClient {
+  setRole(input: {
+    body: {
+      userId: string
+      role: string | string[]
+    }
+  }): Promise<{
+    user?: unknown
+    success?: boolean
+    status?: boolean
+  }>
+
   setUserPassword(input: {
     body: {
       userId: string
@@ -64,6 +74,8 @@ interface CreateAuthOptions {
   pool: Pool
   authUrl: string
   authSecret: string
+  roles: BetterAuthRoles
+  defaultRole: string
 }
 
 interface CreateDefaultAdminOptions {
@@ -75,7 +87,9 @@ interface CreateDefaultAdminOptions {
 export function createAuth({
   pool,
   authUrl,
-  authSecret
+  authSecret,
+  roles,
+  defaultRole
 }: CreateAuthOptions): AuthClient {
   return betterAuth({
     database: pool,
@@ -91,7 +105,7 @@ export function createAuth({
       admin({
         ac,
         roles,
-        defaultRole: BuiltInRoleName.Viewer
+        defaultRole
       })
     ]
   }) as unknown as AuthClient

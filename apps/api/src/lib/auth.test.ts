@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { BuiltInRoleName } from "@openvlp/types/model/rbac"
 import { createTestUser } from "../test/app.js"
-import { ac, roles } from "./permissions.js"
+import { ac } from "./permissions.js"
 
 const { adminMock, betterAuthMock, usernameMock } = vi.hoisted(() => ({
   adminMock: vi.fn(() => "admin-plugin"),
@@ -52,6 +52,10 @@ describe("auth factory", () => {
       }
     }
     const pool = { end: vi.fn() }
+    const roles = {
+      viewer: { authorize: vi.fn() },
+      admin: { authorize: vi.fn() }
+    }
 
     betterAuthMock.mockReturnValue(authInstance)
 
@@ -60,7 +64,9 @@ describe("auth factory", () => {
         pool: pool as never,
         authUrl: "http://localhost:3000",
         authSecret:
-          "012345678901234567890123456789012345678901234567890123456789"
+          "012345678901234567890123456789012345678901234567890123456789",
+        roles: roles as never,
+        defaultRole: BuiltInRoleName.Viewer
       })
     ).toBe(authInstance)
 

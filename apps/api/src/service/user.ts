@@ -1,26 +1,66 @@
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
+import type { Role } from "@openvlp/types/model/rbac"
 import type { CreateUser, UpdateUser, User } from "@openvlp/types/model/user"
 import type { AuthClient } from "../lib/auth.js"
+import type { PersistedUser } from "../repository/user.js"
+
+function uniqueValues(values: readonly string[]): string[] {
+  return [...new Set(values)]
+}
+
+function buildRoleIdsByName(roles: readonly Pick<Role, "id" | "name">[]) {
+  return new Map(roles.map((role) => [role.name, role.id]))
+}
+
+async function mapPersistedUsersToUsers(
+  users: readonly PersistedUser[],
+  roleService: RoleService,
+  logger: Logger
+): Promise<User[]> {
+  const roleNames = uniqueValues(users.flatMap((user) => user.roleNames))
+  const roles = roleNames.length === 0 ? [] : await roleService.getByNames(roleNames)
+  const roleIdByName = buildRoleIdsByName(roles)
+  const missingRoleNames = roleNames.filter((roleName) => !roleIdByName.has(roleName))
+
+  if (missingRoleNames.length > 0) {
+    logger.debug({ missingRoleNames }, "ignoring unresolved persisted role names")
+  }
+
+  return users.map(({ roleNames: persistedRoleNames, ...user }) => ({
+    ...user,
+    roleIds: uniqueValues(
+      persistedRoleNames.flatMap((roleName) => {
+        const roleId = roleIdByName.get(roleName)
+        return roleId ? [roleId] : []
+      })
+    )
+  }))
+}
 
 type UserProfileUpdate = Pick<
-  User,
+  PersistedUser,
   "name" | "email" | "displayUsername" | "image"
 > & {
   updatedAt: Date
-  roleIds?: UpdateUser["roleIds"]
 }
 
 interface UserRepository {
-  list(): Promise<User[]>
-  getByID(id: string): Promise<User | null>
-  updateByID(id: string, user: UserProfileUpdate): Promise<User | null>
+  list(): Promise<PersistedUser[]>
+  getByID(id: string): Promise<PersistedUser | null>
+  updateByID(id: string, user: UserProfileUpdate): Promise<PersistedUser | null>
+}
+
+interface RoleService {
+  getByNames(names: readonly string[]): Promise<Role[]>
+  requireRoleNamesFromIds(ids: readonly string[]): Promise<string[]>
 }
 
 interface UserServiceDependencies {
   userRepository: UserRepository
+  roleService: RoleService
   auth: {
-    api: Pick<AuthClient["api"], "signUpEmail" | "setUserPassword">
+    api: Pick<AuthClient["api"], "signUpEmail" | "setRole" | "setUserPassword">
   }
   logger: Logger
 }
@@ -54,7 +94,7 @@ function userConflict(): HTTPException {
 
 async function rollbackUserProfileUpdate(
   userRepository: UserRepository,
-  user: User,
+  user: PersistedUser,
   logger: Logger
 ): Promise<void> {
   try {
@@ -73,15 +113,40 @@ async function rollbackUserProfileUpdate(
   }
 }
 
+async function rollbackUserRoleUpdate(
+  auth: UserServiceDependencies["auth"],
+  user: PersistedUser,
+  logger: Logger
+): Promise<void> {
+  try {
+    await auth.api.setRole({
+      body: {
+        userId: user.id,
+        role: user.roleNames
+      }
+    })
+  } catch (rollbackError) {
+    logger.error(
+      rollbackError,
+      `failed to roll back user role update for id ${user.id}`
+    )
+  }
+}
+
 export function createUserService({
   userRepository,
+  roleService,
   auth,
   logger
 }: UserServiceDependencies) {
   return {
     async listAll(): Promise<User[]> {
       try {
-        return await userRepository.list()
+        return await mapPersistedUsersToUsers(
+          await userRepository.list(),
+          roleService,
+          logger
+        )
       } catch (error) {
         logger.error(error, "failed to list users")
         throw new HTTPException(500, {
@@ -92,10 +157,17 @@ export function createUserService({
 
     async getByID(id: string): Promise<User | null> {
       try {
-        const user = await userRepository.getByID(id)
-        if (!user) {
+        const persistedUser = await userRepository.getByID(id)
+        if (!persistedUser) {
           logger.debug(`user with id ${id} not found`)
+          return null
         }
+
+        const [user] = await mapPersistedUsersToUsers(
+          [persistedUser],
+          roleService,
+          logger
+        )
         return user
       } catch (error) {
         logger.error(error, `failed to get user with id ${id}`)
@@ -108,19 +180,21 @@ export function createUserService({
     async create(user: CreateUser): Promise<User> {
       try {
         const { roleIds, ...createUser } = user
+        const roleNames =
+          roleIds === undefined
+            ? undefined
+            : await roleService.requireRoleNamesFromIds(roleIds)
 
         const created = await auth.api.signUpEmail({
           body: createUser
         })
 
-        if (roleIds !== undefined) {
-          await userRepository.updateByID(created.user.id, {
-            name: createUser.name,
-            email: createUser.email,
-            displayUsername: createUser.displayUsername,
-            image: null,
-            updatedAt: new Date(),
-            roleIds
+        if (roleNames !== undefined) {
+          await auth.api.setRole({
+            body: {
+              userId: created.user.id,
+              role: roleNames
+            }
           })
         }
 
@@ -131,8 +205,14 @@ export function createUserService({
           })
         }
 
+        const [createdUser] = await mapPersistedUsersToUsers(
+          [persisted],
+          roleService,
+          logger
+        )
+
         logger.info({ userId: created.user.id }, "created user")
-        return persisted
+        return createdUser!
       } catch (error) {
         if (error instanceof HTTPException) {
           throw error
@@ -157,13 +237,17 @@ export function createUserService({
           return null
         }
 
+        const roleNames =
+          user.roleIds === undefined
+            ? undefined
+            : await roleService.requireRoleNamesFromIds(user.roleIds)
+
         const updated = await userRepository.updateByID(id, {
           name: user.name,
           email: user.email,
           displayUsername: user.displayUsername,
           image: user.image,
-          updatedAt: new Date(),
-          roleIds: user.roleIds
+          updatedAt: new Date()
         })
 
         if (!updated) {
@@ -171,23 +255,52 @@ export function createUserService({
           return null
         }
 
-        if (user.password !== undefined) {
-          try {
+        try {
+          if (roleNames !== undefined) {
+            await auth.api.setRole({
+              body: {
+                userId: id,
+                role: roleNames
+              }
+            })
+          }
+
+          if (user.password !== undefined) {
             await auth.api.setUserPassword({
               body: {
                 userId: id,
                 newPassword: user.password
               }
             })
-          } catch (error) {
-            await rollbackUserProfileUpdate(userRepository, existing, logger)
-            throw error
           }
+        } catch (error) {
+          await rollbackUserProfileUpdate(userRepository, existing, logger)
+          if (roleNames !== undefined) {
+            await rollbackUserRoleUpdate(auth, existing, logger)
+          }
+          throw error
         }
 
+        const persisted = await userRepository.getByID(id)
+        if (!persisted) {
+          throw new HTTPException(500, {
+            message: "failed to load updated user"
+          })
+        }
+
+        const [mappedUser] = await mapPersistedUsersToUsers(
+          [persisted],
+          roleService,
+          logger
+        )
+
         logger.info({ userId: id }, "updated user")
-        return updated
+        return mappedUser!
       } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error
+        }
+
         if (isConflictError(error)) {
           logger.debug(error, "user update conflict")
           throw userConflict()

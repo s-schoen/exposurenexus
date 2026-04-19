@@ -7,7 +7,6 @@ import {
   it,
   vi
 } from "vitest"
-import { builtInRoleIds } from "@openvlp/types/model/rbac"
 import { createUserRepository } from "./user.js"
 import { createTestDatabase, resetTestDatabase } from "../test/db.js"
 
@@ -68,7 +67,7 @@ describe("user repository", () => {
       updatedAt: firstUserRecord.updatedAt,
       username: firstUserRecord.username,
       displayUsername: firstUserRecord.displayUsername,
-      roleIds: []
+      roleNames: []
     }
     const secondUser = {
       id: secondUserRecord.id,
@@ -80,7 +79,7 @@ describe("user repository", () => {
       updatedAt: secondUserRecord.updatedAt,
       username: secondUserRecord.username,
       displayUsername: secondUserRecord.displayUsername,
-      roleIds: []
+      roleNames: []
     }
 
     await testDb.db
@@ -129,7 +128,7 @@ describe("user repository", () => {
       updatedAt: userRecord.updatedAt,
       username: userRecord.username,
       displayUsername: userRecord.displayUsername,
-      roleIds: []
+      roleNames: []
     }
     const updatedAt = new Date("2026-02-03T04:05:06.000Z")
 
@@ -153,7 +152,7 @@ describe("user repository", () => {
     })
   })
 
-  it("maps persisted auth roles to shared role ids", async () => {
+  it("maps persisted auth roles to persisted role names", async () => {
     const repository = createUserRepository(testDb.db)
     const viewerUser = {
       id: "c73bdfe4-b29c-4c9d-a452-45188d59f845",
@@ -207,7 +206,7 @@ describe("user repository", () => {
       updatedAt: viewerUser.updatedAt,
       username: viewerUser.username,
       displayUsername: viewerUser.displayUsername,
-      roleIds: [builtInRoleIds.viewer]
+      roleNames: ["viewer"]
     })
     await expect(repository.getByID(editorViewerUser.id)).resolves.toEqual({
       id: editorViewerUser.id,
@@ -219,7 +218,7 @@ describe("user repository", () => {
       updatedAt: editorViewerUser.updatedAt,
       username: editorViewerUser.username,
       displayUsername: editorViewerUser.displayUsername,
-      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
+      roleNames: ["viewer", "editor"]
     })
     await expect(repository.getByID(noRoleUser.id)).resolves.toEqual({
       id: noRoleUser.id,
@@ -231,7 +230,7 @@ describe("user repository", () => {
       updatedAt: noRoleUser.updatedAt,
       username: noRoleUser.username,
       displayUsername: noRoleUser.displayUsername,
-      roleIds: []
+      roleNames: []
     })
   })
 
@@ -249,7 +248,7 @@ describe("user repository", () => {
     ).resolves.toBeNull()
   })
 
-  it("accepts role ids in update payloads without persisting them yet", async () => {
+  it("updates profile fields without changing persisted role names", async () => {
     const repository = createUserRepository(testDb.db)
     const userRecord = {
       id: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
@@ -272,12 +271,7 @@ describe("user repository", () => {
         email: userRecord.email,
         displayUsername: userRecord.displayUsername,
         image: userRecord.image,
-        updatedAt: new Date("2026-02-03T04:05:06.000Z"),
-        roleIds: [
-          builtInRoleIds.viewer,
-          builtInRoleIds.editor,
-          builtInRoleIds.viewer
-        ]
+        updatedAt: new Date("2026-02-03T04:05:06.000Z")
       })
     ).resolves.toEqual({
       id: userRecord.id,
@@ -289,7 +283,7 @@ describe("user repository", () => {
       updatedAt: new Date("2026-02-03T04:05:06.000Z"),
       username: userRecord.username,
       displayUsername: userRecord.displayUsername,
-      roleIds: []
+      roleNames: []
     })
 
     await expect(repository.getByID(userRecord.id)).resolves.toEqual({
@@ -302,7 +296,7 @@ describe("user repository", () => {
       updatedAt: new Date("2026-02-03T04:05:06.000Z"),
       username: userRecord.username,
       displayUsername: userRecord.displayUsername,
-      roleIds: []
+      roleNames: []
     })
   })
 })
