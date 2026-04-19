@@ -78,5 +78,8 @@ jobs:
       - name: Run API unit tests
         run: pnpm --filter @openvlp/api test
 
-      - name: Run UI unit tests
-        run: pnpm --filter @openvlp/ui test:unit
+      - name: Install Playwright Chromium
+        run: pnpm --filter @openvlp/ui exec playwright install --with-deps chromium
+
+      - name: Run UI tests
+        run: pnpm --filter @openvlp/ui test
