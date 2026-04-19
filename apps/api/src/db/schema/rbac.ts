@@ -1,7 +1,4 @@
-import {
-  PermissionResource,
-  PermissionVerb
-} from "@openvlp/types/model/rbac"
+import { PermissionResource, PermissionVerb } from "@openvlp/types/model/rbac"
 
 export interface RoleTable {
   id: string

@@ -61,11 +61,6 @@ describe("user service", () => {
     name: BuiltInRoleName.Viewer,
     permissions: []
   }
-  const editorRole: Role = {
-    id: builtInRoleIds.editor,
-    name: BuiltInRoleName.Editor,
-    permissions: []
-  }
   const persistedUser: PersistedUser = {
     ...user,
     roleNames: []
@@ -77,7 +72,12 @@ describe("user service", () => {
   })
 
   it("lists all users from the repository", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
     const users: User[] = [user]
 
     userRepository.list.mockResolvedValue([persistedUser])
@@ -88,7 +88,12 @@ describe("user service", () => {
   })
 
   it("maps repository list failures to an HTTP 500", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
 
     userRepository.list.mockRejectedValue(new Error("db offline"))
 
@@ -99,7 +104,12 @@ describe("user service", () => {
   })
 
   it("returns a user by id", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
 
     userRepository.getByID.mockResolvedValue({
       ...persistedUser,
@@ -115,7 +125,12 @@ describe("user service", () => {
   })
 
   it("returns null when a user does not exist", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
     const userId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f"
 
     userRepository.getByID.mockResolvedValue(null)
@@ -124,7 +139,12 @@ describe("user service", () => {
   })
 
   it("maps repository get failures to an HTTP 500", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
     const userId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f"
 
     userRepository.getByID.mockRejectedValue(new Error("db offline"))
@@ -136,7 +156,12 @@ describe("user service", () => {
   })
 
   it("creates a user through better-auth and returns the persisted user", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
     const createUser = {
       name: "Alice Example",
       email: "alice@example.com",
@@ -183,7 +208,12 @@ describe("user service", () => {
   })
 
   it("rejects unknown role ids before creating a user", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
 
     roleService.requireRoleNamesFromIds.mockRejectedValue(
       new HTTPException(400, {
@@ -209,7 +239,12 @@ describe("user service", () => {
   })
 
   it("maps create conflicts to an HTTP 409", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
 
     auth.api.signUpEmail.mockRejectedValue(
       Object.assign(new Error("email already exists"), { status: 409 })
@@ -230,7 +265,12 @@ describe("user service", () => {
   })
 
   it("maps missing created users after signup to an HTTP 500", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
 
     auth.api.signUpEmail.mockResolvedValue({ user: { id: user.id } })
     auth.api.removeUser.mockResolvedValue({ success: true })
@@ -255,7 +295,12 @@ describe("user service", () => {
   })
 
   it("removes the created user when role assignment fails", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
 
     auth.api.signUpEmail.mockResolvedValue({ user: { id: user.id } })
     roleService.requireRoleNamesFromIds.mockResolvedValue([
@@ -286,7 +331,12 @@ describe("user service", () => {
   })
 
   it("removes the created user when role assignment reports failure", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
 
     auth.api.signUpEmail.mockResolvedValue({ user: { id: user.id } })
     roleService.requireRoleNamesFromIds.mockResolvedValue([
@@ -317,7 +367,12 @@ describe("user service", () => {
   })
 
   it("logs rollback failures when removing a partially created user fails", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
 
     auth.api.signUpEmail.mockResolvedValue({ user: { id: user.id } })
     roleService.requireRoleNamesFromIds.mockResolvedValue([
@@ -347,7 +402,12 @@ describe("user service", () => {
   })
 
   it("updates a user while preserving the immutable username without rereading after auth mutations", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
     const now = new Date("2026-02-03T04:05:06.000Z")
     const updatedUser = {
       ...user,
@@ -421,7 +481,12 @@ describe("user service", () => {
   })
 
   it("updates profile fields without resetting the password when omitted", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
     const now = new Date("2026-02-03T04:05:06.000Z")
     const updatedUser = {
       ...user,
@@ -476,7 +541,12 @@ describe("user service", () => {
   })
 
   it("returns null when updating a missing user", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
 
     userRepository.getByID.mockResolvedValue(null)
 
@@ -494,7 +564,12 @@ describe("user service", () => {
   })
 
   it("maps update conflicts to an HTTP 409", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
 
     userRepository.getByID.mockResolvedValue(persistedUser)
     userRepository.updateByID.mockRejectedValue(
@@ -516,7 +591,12 @@ describe("user service", () => {
   })
 
   it("rolls back profile and roles when password update fails after a role change", async () => {
-    const service = createUserService({ userRepository, roleService, auth, logger })
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
     const now = new Date("2026-02-03T04:05:06.000Z")
     const existingUser = {
       ...persistedUser,

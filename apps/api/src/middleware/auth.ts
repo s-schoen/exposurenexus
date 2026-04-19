@@ -18,7 +18,9 @@ type DomainPermissionAction = PermissionVerb | `${PermissionVerb}`
 type PermissionChecker = AuthApiPermissionClient["userHasPermission"]
 
 export type AuthMiddleware = MiddlewareHandler<{ Variables: ContextVariables }>
-export type RequireDomainPermission = <Resource extends DomainPermissionResource>(
+export type RequireDomainPermission = <
+  Resource extends DomainPermissionResource
+>(
   resource: Resource,
   action: DomainPermissionAction
 ) => AuthMiddleware

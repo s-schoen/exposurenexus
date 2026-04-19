@@ -4,7 +4,11 @@ import { createLogger } from "./logging.js"
 import { migrateToLatest } from "./db/migration.js"
 import { db, logger as dbLogger, pool } from "./db/index.js"
 import { createAppContainer } from "./container.js"
-import { createAuth, createReloadableAuth, reloadAuthFromRoles } from "./lib/auth.js"
+import {
+  createAuth,
+  createReloadableAuth,
+  reloadAuthFromRoles
+} from "./lib/auth.js"
 import { BuiltInRoleName } from "@openvlp/types/model/rbac"
 import { createRoleRepository } from "./repository/index.js"
 import { buildBetterAuthRoleConfig } from "./lib/permissions.js"

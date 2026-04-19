@@ -329,12 +329,12 @@ describe("role service", () => {
       logger
     })
 
-    await expect(service.deleteByID(builtInRoleIds.admin)).rejects.toMatchObject(
-      {
-        status: 403,
-        message: "built-in roles cannot be modified"
-      } satisfies Partial<HTTPException>
-    )
+    await expect(
+      service.deleteByID(builtInRoleIds.admin)
+    ).rejects.toMatchObject({
+      status: 403,
+      message: "built-in roles cannot be modified"
+    } satisfies Partial<HTTPException>)
 
     expect(roleRepository.deleteByID).not.toHaveBeenCalled()
   })
