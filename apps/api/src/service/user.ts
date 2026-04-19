@@ -44,6 +44,26 @@ async function mapPersistedUsersToUsers(
   }))
 }
 
+async function resolvePersistedUserRoleIds(
+  user: PersistedUser,
+  roleService: RoleService,
+  logger: Logger
+): Promise<string[]> {
+  const [mappedUser] = await mapPersistedUsersToUsers([user], roleService, logger)
+  return mappedUser?.roleIds ?? []
+}
+
+function buildUserFromPersistedUser(
+  user: PersistedUser,
+  roleIds: readonly string[]
+): User {
+  const { roleNames: _roleNames, ...persistedUser } = user
+  return {
+    ...persistedUser,
+    roleIds: uniqueValues(roleIds)
+  }
+}
+
 type UserProfileUpdate = Pick<
   PersistedUser,
   "name" | "email" | "displayUsername" | "image"
@@ -283,6 +303,10 @@ export function createUserService({
           user.roleIds === undefined
             ? undefined
             : await roleService.requireRoleNamesFromIds(user.roleIds)
+        const finalRoleIds =
+          user.roleIds === undefined
+            ? await resolvePersistedUserRoleIds(existing, roleService, logger)
+            : uniqueValues(user.roleIds)
 
         const updated = await userRepository.updateByID(id, {
           name: user.name,
@@ -329,21 +353,8 @@ export function createUserService({
           throw error
         }
 
-        const persisted = await userRepository.getByID(id)
-        if (!persisted) {
-          throw new HTTPException(500, {
-            message: "failed to load updated user"
-          })
-        }
-
-        const [mappedUser] = await mapPersistedUsersToUsers(
-          [persisted],
-          roleService,
-          logger
-        )
-
         logger.info({ userId: id }, "updated user")
-        return mappedUser!
+        return buildUserFromPersistedUser(updated, finalRoleIds)
       } catch (error) {
         if (error instanceof HTTPException) {
           throw error
