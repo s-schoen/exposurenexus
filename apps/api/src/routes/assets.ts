@@ -4,7 +4,7 @@ import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
 import { createAssetSchema, type Asset } from "@openvlp/types/model/asset"
 import type { ContextVariables } from "../lib/hono-schema.js"
-import { requireDomainPermission } from "../middleware/auth.js"
+import type { RequireDomainPermission } from "../middleware/auth.js"
 
 interface AssetRouteService {
   listAll(): Promise<Asset[]>
@@ -13,9 +13,16 @@ interface AssetRouteService {
   deleteByID(id: string): Promise<Asset | null>
 }
 
+interface AssetRouteDependencies {
+  requireDomainPermission: RequireDomainPermission
+}
+
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
 
-export function createAssetRoute(assetService: AssetRouteService) {
+export function createAssetRoute(
+  assetService: AssetRouteService,
+  { requireDomainPermission }: AssetRouteDependencies
+) {
   const asset = new Hono<{ Variables: ContextVariables }>()
 
   asset.get("/", requireDomainPermission("asset", "read"), async (c) => {

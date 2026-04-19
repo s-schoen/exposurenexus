@@ -7,23 +7,12 @@ import {
 } from "@openvlp/types/model/rbac"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import { createTestApp, createTestUser } from "../test/app.js"
-
-vi.mock("../lib/auth.js", () => ({
-  auth: {
-    api: {
-      getSession: vi.fn(),
-      userHasPermission: vi.fn()
-    }
-  }
-}))
-
-import { auth } from "../lib/auth.js"
 import type { AuthApiPermissionClient } from "../lib/auth.js"
 import { type ResourcePermissionVerbAssignment } from "../lib/permissions.js"
 import {
-  authNAnnotate,
   authNRequire,
   createAuthAnnotate,
+  createRequireDomainPermission,
   createRequirePermission
 } from "./auth.js"
 
@@ -94,10 +83,10 @@ describe("auth middleware", () => {
   })
 
   it("annotates requests with null user and session when no session exists", async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValue(null)
+    const getSession = vi.fn().mockResolvedValue(null)
 
     const app = new Hono<{ Variables: ContextVariables }>()
-    app.use("*", authNAnnotate())
+    app.use("*", createAuthAnnotate({ getSession }))
     app.get("/", (c) => {
       return c.json({
         user: c.get("user"),
@@ -109,7 +98,7 @@ describe("auth middleware", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(auth.api.getSession).toHaveBeenCalledOnce()
+    expect(getSession).toHaveBeenCalledOnce()
     expect(body).toEqual({
       user: null,
       session: null
@@ -117,13 +106,13 @@ describe("auth middleware", () => {
   })
 
   it("annotates requests with the authenticated user and session", async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValue({
+    const getSession = vi.fn().mockResolvedValue({
       user,
       session
     })
 
     const app = new Hono<{ Variables: ContextVariables }>()
-    app.use("*", authNAnnotate())
+    app.use("*", createAuthAnnotate({ getSession }))
     app.get("/", (c) => {
       return c.json({
         user: c.get("user"),
@@ -179,13 +168,13 @@ describe("auth middleware", () => {
   })
 
   it("rejects requests without an authenticated user", async () => {
-    vi.mocked(auth.api.getSession).mockResolvedValue(null)
+    const getSession = vi.fn().mockResolvedValue(null)
 
     const protectedAssets = new Hono<{ Variables: ContextVariables }>()
     protectedAssets.get("/", (c) => c.json({ ok: true }))
 
     const app = createTestApp({
-      annotateAuth: authNAnnotate(),
+      annotateAuth: createAuthAnnotate({ getSession }),
       requireAuth: authNRequire(),
       assetRoute: protectedAssets
     })
@@ -277,6 +266,42 @@ describe("auth middleware", () => {
 
     expect(response.status).toBe(200)
     expect(body).toEqual({ ok: true })
+  })
+
+  it("creates a domain-permission middleware factory from an injected checker", async () => {
+    const userHasPermission = vi.fn().mockResolvedValue(true)
+    const requireDomainPermission = createRequireDomainPermission(
+      userHasPermission
+    )
+
+    const protectedRoute = new Hono<{ Variables: ContextVariables }>()
+    protectedRoute.get(
+      "/",
+      requireDomainPermission(PermissionResource.Asset, PermissionVerb.Delete),
+      (c) => c.json({ ok: true })
+    )
+
+    const app = new Hono<{ Variables: ContextVariables }>()
+    app.use("*", async (c, next) => {
+      c.set("user", user)
+      c.set("session", session)
+      await next()
+    })
+    app.route("/assets", protectedRoute)
+
+    const response = await app.request("/assets")
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body).toEqual({ ok: true })
+    expect(userHasPermission).toHaveBeenCalledWith({
+      body: {
+        userId: user.id,
+        permissions: {
+          [PermissionResource.Asset]: [PermissionVerb.Delete]
+        }
+      }
+    })
   })
 
   it("allows a comma-separated multi-role user through the permission middleware path", async () => {

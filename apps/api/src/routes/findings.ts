@@ -6,7 +6,7 @@ import { z } from "zod/v4"
 import { createFindingSchema, type Finding } from "@openvlp/types/model/finding"
 import type { User } from "better-auth"
 import type { ContextVariables } from "../lib/hono-schema.js"
-import { requireDomainPermission } from "../middleware/auth.js"
+import type { RequireDomainPermission } from "../middleware/auth.js"
 
 interface FindingRouteService {
   listAll(): Promise<Finding[]>
@@ -23,9 +23,16 @@ interface FindingRouteService {
   deleteByID(id: string): Promise<Finding | null>
 }
 
+interface FindingRouteDependencies {
+  requireDomainPermission: RequireDomainPermission
+}
+
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
 
-export function createFindingRoute(findingService: FindingRouteService) {
+export function createFindingRoute(
+  findingService: FindingRouteService,
+  { requireDomainPermission }: FindingRouteDependencies
+) {
   const finding = new Hono<{ Variables: ContextVariables }>()
 
   finding.get("/", requireDomainPermission("finding", "read"), async (c) => {

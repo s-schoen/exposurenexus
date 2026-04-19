@@ -1,25 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { AssetType } from "@openvlp/types/model/asset"
-
-vi.mock("../lib/auth.js", () => ({
-  auth: {
-    api: {
-      userHasPermission: vi.fn()
-    }
-  }
-}))
-
-import { auth } from "../lib/auth.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
+import { createRequireDomainPermission } from "../middleware/auth.js"
 import { createAssetRoute } from "./assets.js"
 
 describe("asset routes", () => {
   const user = createTestUser()
+  const userHasPermission = vi.fn()
+  const routeDependencies = {
+    requireDomainPermission: createRequireDomainPermission(userHasPermission)
+  }
   const assetService = {
     listAll: vi.fn(),
     getByID: vi.fn(),
@@ -29,13 +24,13 @@ describe("asset routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(auth.api.userHasPermission).mockResolvedValue(true)
+    userHasPermission.mockResolvedValue(true)
   })
 
   it("returns 401 for unauthenticated requests", async () => {
     const requestId = "assets-unauthorized-request"
     const app = createTestApp({
-      assetRoute: createAssetRoute(assetService),
+      assetRoute: createAssetRoute(assetService, routeDependencies),
       requireAuth: requireAuthenticatedUser
     })
 
@@ -70,7 +65,7 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService)
+      assetRoute: createAssetRoute(assetService, routeDependencies)
     })
 
     const response = await app.request("/api/assets", {
@@ -97,7 +92,7 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService)
+      assetRoute: createAssetRoute(assetService, routeDependencies)
     })
 
     const response = await app.request("/api/assets/not-a-uuid", {
@@ -119,7 +114,7 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService)
+      assetRoute: createAssetRoute(assetService, routeDependencies)
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {
@@ -152,7 +147,7 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService)
+      assetRoute: createAssetRoute(assetService, routeDependencies)
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {
@@ -186,7 +181,7 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService)
+      assetRoute: createAssetRoute(assetService, routeDependencies)
     })
 
     const response = await app.request("/api/assets", {
@@ -211,7 +206,7 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService)
+      assetRoute: createAssetRoute(assetService, routeDependencies)
     })
 
     const response = await app.request("/api/assets", {
@@ -244,7 +239,7 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService)
+      assetRoute: createAssetRoute(assetService, routeDependencies)
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {
@@ -266,12 +261,12 @@ describe("asset routes", () => {
   it("returns 403 when deleting an asset without delete permission", async () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
 
-    vi.mocked(auth.api.userHasPermission).mockResolvedValue(false)
+    userHasPermission.mockResolvedValue(false)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService)
+      assetRoute: createAssetRoute(assetService, routeDependencies)
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {
@@ -282,7 +277,7 @@ describe("asset routes", () => {
     })
 
     expect(response.status).toBe(403)
-    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+    expect(userHasPermission).toHaveBeenCalledWith({
       body: {
         userId: user.id,
         permissions: {
@@ -302,7 +297,7 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService)
+      assetRoute: createAssetRoute(assetService, routeDependencies)
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {

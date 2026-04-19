@@ -4,7 +4,6 @@ import type {
   PermissionResource,
   PermissionVerb
 } from "@openvlp/types/model/rbac"
-import { auth } from "../lib/auth.js"
 import { HTTPException } from "hono/http-exception"
 import type {
   AuthApiPermissionClient,
@@ -18,7 +17,11 @@ type DomainPermissionAction = PermissionVerb | `${PermissionVerb}`
 
 type PermissionChecker = AuthApiPermissionClient["userHasPermission"]
 
-type AuthMiddleware = MiddlewareHandler<{ Variables: ContextVariables }>
+export type AuthMiddleware = MiddlewareHandler<{ Variables: ContextVariables }>
+export type RequireDomainPermission = <Resource extends DomainPermissionResource>(
+  resource: Resource,
+  action: DomainPermissionAction
+) => AuthMiddleware
 
 function normalizePermissions(
   permissions: Permission | Permission[]
@@ -46,10 +49,6 @@ export function createAuthAnnotate(
     c.set("session", session.session)
     await next()
   }
-}
-
-export const authNAnnotate = (): AuthMiddleware => {
-  return createAuthAnnotate(auth.api)
 }
 
 export const authNRequire = (): AuthMiddleware => {
@@ -88,16 +87,15 @@ export function createRequirePermission(
   }
 }
 
-export function requirePermission(
-  permissions: Permission | Permission[]
-): AuthMiddleware {
-  return createRequirePermission(auth.api.userHasPermission, permissions)
-}
-
-export function requireDomainPermission<
-  Resource extends DomainPermissionResource
->(resource: Resource, action: DomainPermissionAction): AuthMiddleware {
-  return requirePermission(
-    domainPermission(resource as PermissionResource, action as PermissionVerb)
-  )
+export function createRequireDomainPermission(
+  permissionChecker: PermissionChecker
+): RequireDomainPermission {
+  return function requireDomainPermission<
+    Resource extends DomainPermissionResource
+  >(resource: Resource, action: DomainPermissionAction): AuthMiddleware {
+    return createRequirePermission(
+      permissionChecker,
+      domainPermission(resource as PermissionResource, action as PermissionVerb)
+    )
+  }
 }

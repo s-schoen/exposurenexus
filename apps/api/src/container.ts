@@ -1,11 +1,14 @@
 import type { Kysely } from "kysely"
-import type { Pool } from "pg"
 import type { Logger } from "pino"
 import { createApp } from "./app.js"
 import type { Database } from "./db/index.js"
-import { createDefaultAdmin, createAuth } from "./lib/auth.js"
+import { createDefaultAdmin } from "./lib/auth.js"
 import { createLogger } from "./logging.js"
-import { createAuthAnnotate, authNRequire } from "./middleware/auth.js"
+import {
+  createAuthAnnotate,
+  authNRequire,
+  createRequireDomainPermission
+} from "./middleware/auth.js"
 import {
   createAssetRepository,
   createFindingRepository,
@@ -30,14 +33,14 @@ import { createImportRoute } from "./routes/import.js"
 import { createGetOrCreateAsset } from "./import/util.js"
 import { createNucleiFindingParser } from "./import/nuclei.js"
 import { createFindingImporter } from "./import/importer.js"
+import type { AuthClient } from "./lib/auth.js"
 
 type LoggerFactory = (moduleName: string) => Logger
 
 export interface CreateAppContainerOptions {
   db: Kysely<Database>
-  pool: Pool
+  auth: AuthClient
   authUrl: string
-  authSecret: string
   apiTimeoutMs: number
   logger: Logger
   accessLogger: Logger
@@ -47,12 +50,10 @@ export interface CreateAppContainerOptions {
 
 export function createAppContainer(options: CreateAppContainerOptions) {
   const loggerFactory = options.loggerFactory ?? createLogger
-
-  const auth = createAuth({
-    pool: options.pool,
-    authUrl: options.authUrl,
-    authSecret: options.authSecret
-  })
+  const auth = options.auth
+  const requireDomainPermission = createRequireDomainPermission(
+    auth.api.userHasPermission
+  )
 
   const repositories = {
     assetRepository: createAssetRepository(options.db),
@@ -104,14 +105,21 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const routes = {
     healthRoute: health,
     authRoute: createAuthRoute(auth),
-    assetRoute: createAssetRoute(assetService),
-    userRoute: createUserRoute(userService),
-    vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService),
-    findingStatsRoute: createFindingStatsRoute(statsService),
-    findingRoute: createFindingRoute(findingService),
+    assetRoute: createAssetRoute(assetService, { requireDomainPermission }),
+    userRoute: createUserRoute(userService, { requireDomainPermission }),
+    vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService, {
+      requireDomainPermission
+    }),
+    findingStatsRoute: createFindingStatsRoute(statsService, {
+      requireDomainPermission
+    }),
+    findingRoute: createFindingRoute(findingService, {
+      requireDomainPermission
+    }),
     importerRoute: createImportRoute({
       importer,
-      logger: importLogger
+      logger: importLogger,
+      requireDomainPermission
     })
   }
 

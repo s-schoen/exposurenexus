@@ -4,26 +4,21 @@ import {
   PermissionResource,
   PermissionVerb
 } from "@openvlp/types/model/rbac"
-
-vi.mock("../lib/auth.js", () => ({
-  auth: {
-    api: {
-      userHasPermission: vi.fn()
-    }
-  }
-}))
-
-import { auth } from "../lib/auth.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
+import { createRequireDomainPermission } from "../middleware/auth.js"
 import { createUserRoute } from "./users.js"
 
 describe("user routes", () => {
   const authenticatedUser = createTestUser()
+  const userHasPermission = vi.fn()
+  const routeDependencies = {
+    requireDomainPermission: createRequireDomainPermission(userHasPermission)
+  }
   const listedUser = {
     id: "r9yYWvWAKPdsNDMB3xDgmmMMBwPTCCB0",
     name: "Alice Example",
@@ -45,13 +40,13 @@ describe("user routes", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(auth.api.userHasPermission).mockResolvedValue(true)
+    userHasPermission.mockResolvedValue(true)
   })
 
   it("returns 401 for unauthenticated requests", async () => {
     const requestId = "users-unauthorized-request"
     const app = createTestApp({
-      userRoute: createUserRoute(userService),
+      userRoute: createUserRoute(userService, routeDependencies),
       requireAuth: requireAuthenticatedUser
     })
 
@@ -75,12 +70,12 @@ describe("user routes", () => {
     const requestId = "users-forbidden-request"
     const viewer = createTestUser({ role: "viewer" })
 
-    vi.mocked(auth.api.userHasPermission).mockResolvedValue(false)
+    userHasPermission.mockResolvedValue(false)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(viewer),
       requireAuth: requireAuthenticatedUser,
-      userRoute: createUserRoute(userService)
+      userRoute: createUserRoute(userService, routeDependencies)
     })
 
     const response = await app.request("/api/users", {
@@ -96,7 +91,7 @@ describe("user routes", () => {
       status: 403,
       error: "Forbidden"
     })
-    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+    expect(userHasPermission).toHaveBeenCalledWith({
       body: {
         userId: viewer.id,
         permissions: {
@@ -116,7 +111,7 @@ describe("user routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
       requireAuth: requireAuthenticatedUser,
-      userRoute: createUserRoute(userService)
+      userRoute: createUserRoute(userService, routeDependencies)
     })
 
     const response = await app.request("/api/users", {
@@ -127,7 +122,7 @@ describe("user routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+    expect(userHasPermission).toHaveBeenCalledWith({
       body: {
         userId: authenticatedUser.id,
         permissions: {
@@ -162,7 +157,7 @@ describe("user routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
       requireAuth: requireAuthenticatedUser,
-      userRoute: createUserRoute(userService)
+      userRoute: createUserRoute(userService, routeDependencies)
     })
 
     const response = await app.request(`/api/users/${userId}`, {
@@ -190,7 +185,7 @@ describe("user routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
       requireAuth: requireAuthenticatedUser,
-      userRoute: createUserRoute(userService)
+      userRoute: createUserRoute(userService, routeDependencies)
     })
 
     const response = await app.request(`/api/users/${userId}`, {
@@ -228,7 +223,7 @@ describe("user routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
       requireAuth: requireAuthenticatedUser,
-      userRoute: createUserRoute(userService)
+      userRoute: createUserRoute(userService, routeDependencies)
     })
 
     const response = await app.request("/api/users", {
@@ -242,7 +237,7 @@ describe("user routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(201)
-    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+    expect(userHasPermission).toHaveBeenCalledWith({
       body: {
         userId: authenticatedUser.id,
         permissions: {
@@ -265,7 +260,7 @@ describe("user routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
       requireAuth: requireAuthenticatedUser,
-      userRoute: createUserRoute(userService)
+      userRoute: createUserRoute(userService, routeDependencies)
     })
 
     const response = await app.request("/api/users", {
@@ -310,7 +305,7 @@ describe("user routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
       requireAuth: requireAuthenticatedUser,
-      userRoute: createUserRoute(userService)
+      userRoute: createUserRoute(userService, routeDependencies)
     })
 
     const response = await app.request(`/api/users/${userId}`, {
@@ -324,7 +319,7 @@ describe("user routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(auth.api.userHasPermission).toHaveBeenCalledWith({
+    expect(userHasPermission).toHaveBeenCalledWith({
       body: {
         userId: authenticatedUser.id,
         permissions: {
@@ -364,7 +359,7 @@ describe("user routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
       requireAuth: requireAuthenticatedUser,
-      userRoute: createUserRoute(userService)
+      userRoute: createUserRoute(userService, routeDependencies)
     })
 
     const response = await app.request(`/api/users/${userId}`, {
@@ -393,7 +388,7 @@ describe("user routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
       requireAuth: requireAuthenticatedUser,
-      userRoute: createUserRoute(userService)
+      userRoute: createUserRoute(userService, routeDependencies)
     })
 
     const response = await app.request(`/api/users/${listedUser.id}`, {
@@ -419,7 +414,7 @@ describe("user routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
       requireAuth: requireAuthenticatedUser,
-      userRoute: createUserRoute(userService)
+      userRoute: createUserRoute(userService, routeDependencies)
     })
 
     const response = await app.request(`/api/users/${listedUser.id}`, {
@@ -445,7 +440,7 @@ describe("user routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
       requireAuth: requireAuthenticatedUser,
-      userRoute: createUserRoute(userService)
+      userRoute: createUserRoute(userService, routeDependencies)
     })
 
     const response = await app.request(`/api/users/${listedUser.id}`, {
@@ -476,7 +471,7 @@ describe("user routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
       requireAuth: requireAuthenticatedUser,
-      userRoute: createUserRoute(userService)
+      userRoute: createUserRoute(userService, routeDependencies)
     })
 
     const response = await app.request(`/api/users/${userId}`, {
