@@ -4,10 +4,7 @@ import { Kysely } from "kysely"
 import type { UserTable } from "./schema/auth.js"
 import type { AssetTable } from "./schema/asset.js"
 import type { FindingTable } from "./schema/finding.js"
-import type {
-  RolePermissionAssignmentTable,
-  RoleTable
-} from "./schema/rbac.js"
+import type { RolePermissionAssignmentTable, RoleTable } from "./schema/rbac.js"
 import type {
   VulnerabilitySourceMappingTable,
   VulnerabilityTable

@@ -1,7 +1,11 @@
 import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
-import { updateRoleSchema, type Role, type UpdateRole } from "@openvlp/types/model/rbac"
+import {
+  updateRoleSchema,
+  type Role,
+  type UpdateRole
+} from "@openvlp/types/model/rbac"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"

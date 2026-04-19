@@ -9,9 +9,7 @@ type RoleRow = {
   verb: Database["role_permission_assignment"]["verb"] | null
 }
 
-function toRoles(
-  rows: RoleRow[]
-): Role[] {
+function toRoles(rows: RoleRow[]): Role[] {
   const rolesById = new Map<string, Role>()
 
   for (const row of rows) {

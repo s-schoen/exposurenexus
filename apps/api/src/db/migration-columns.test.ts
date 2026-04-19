@@ -129,7 +129,9 @@ describe("db migration columns", () => {
       ])
     )
 
-    const roleIdColumn = roleColumns.rows.find((row) => row.column_name === "id")
+    const roleIdColumn = roleColumns.rows.find(
+      (row) => row.column_name === "id"
+    )
 
     expect(roleIdColumn?.column_default).toContain("gen_random_uuid()")
     expect(roleRows.rows).toEqual(

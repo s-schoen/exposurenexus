@@ -92,7 +92,10 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable("role")
     .addColumn("id", "uuid", (col) =>
-      col.primaryKey().notNull().defaultTo(sql`gen_random_uuid()`)
+      col
+        .primaryKey()
+        .notNull()
+        .defaultTo(sql`gen_random_uuid()`)
     )
     .addColumn("name", "text", (col) => col.notNull().unique())
     .execute()

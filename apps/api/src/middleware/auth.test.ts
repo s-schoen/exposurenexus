@@ -270,9 +270,8 @@ describe("auth middleware", () => {
 
   it("creates a domain-permission middleware factory from an injected checker", async () => {
     const userHasPermission = vi.fn().mockResolvedValue(true)
-    const requireDomainPermission = createRequireDomainPermission(
-      userHasPermission
-    )
+    const requireDomainPermission =
+      createRequireDomainPermission(userHasPermission)
 
     const protectedRoute = new Hono<{ Variables: ContextVariables }>()
     protectedRoute.get(

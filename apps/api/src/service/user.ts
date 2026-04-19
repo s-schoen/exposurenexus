@@ -49,7 +49,11 @@ async function resolvePersistedUserRoleIds(
   roleService: RoleService,
   logger: Logger
 ): Promise<string[]> {
-  const [mappedUser] = await mapPersistedUsersToUsers([user], roleService, logger)
+  const [mappedUser] = await mapPersistedUsersToUsers(
+    [user],
+    roleService,
+    logger
+  )
   return mappedUser?.roleIds ?? []
 }
 
@@ -57,9 +61,27 @@ function buildUserFromPersistedUser(
   user: PersistedUser,
   roleIds: readonly string[]
 ): User {
-  const { roleNames: _roleNames, ...persistedUser } = user
+  const {
+    id,
+    name,
+    email,
+    emailVerified,
+    image,
+    createdAt,
+    updatedAt,
+    username,
+    displayUsername
+  } = user
   return {
-    ...persistedUser,
+    id,
+    name,
+    email,
+    emailVerified,
+    image,
+    createdAt,
+    updatedAt,
+    username,
+    displayUsername,
     roleIds: uniqueValues(roleIds)
   }
 }

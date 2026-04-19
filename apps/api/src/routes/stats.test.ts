@@ -28,7 +28,10 @@ describe("finding stats routes", () => {
   it("returns 401 for unauthenticated requests", async () => {
     const requestId = "findings-stats-unauthorized-request"
     const app = createTestApp({
-      findingStatsRoute: createFindingStatsRoute(statsService, routeDependencies),
+      findingStatsRoute: createFindingStatsRoute(
+        statsService,
+        routeDependencies
+      ),
       requireAuth: requireAuthenticatedUser
     })
 
@@ -82,7 +85,10 @@ describe("finding stats routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingStatsRoute: createFindingStatsRoute(statsService, routeDependencies)
+      findingStatsRoute: createFindingStatsRoute(
+        statsService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/findings/stats", {
@@ -106,7 +112,10 @@ describe("finding stats routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingStatsRoute: createFindingStatsRoute(statsService, routeDependencies)
+      findingStatsRoute: createFindingStatsRoute(
+        statsService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/findings/stats", {
@@ -137,7 +146,10 @@ describe("finding stats routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      findingStatsRoute: createFindingStatsRoute(statsService, routeDependencies)
+      findingStatsRoute: createFindingStatsRoute(
+        statsService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/findings/stats", {
