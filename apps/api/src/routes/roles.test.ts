@@ -242,6 +242,46 @@ describe("role routes", () => {
     })
   })
 
+  it("returns 409 when updating a role with a duplicate name", async () => {
+    const requestId = "roles-update-conflict-request"
+    const payload = {
+      name: BuiltInRoleName.Viewer,
+      permissions: [
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Read }
+      ]
+    } satisfies typeof updateRoleSchema._output
+
+    roleService.updateByID.mockRejectedValueOnce(
+      new HTTPException(409, {
+        message: "role already exists"
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/roles/${listedRole.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(409)
+    expect(roleService.updateByID).toHaveBeenCalledWith(listedRole.id, payload)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 409,
+      error: "role already exists"
+    })
+  })
+
   it("returns 403 when updating a role without permission", async () => {
     const requestId = "roles-update-forbidden-request"
 
