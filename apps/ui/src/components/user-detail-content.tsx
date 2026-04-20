@@ -1,6 +1,7 @@
 import { CircleAlert, Mail, User as UserIcon } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactNode } from "react"
+import { createListRolesQueryOptions } from "@/api/role.ts"
 import { createUserByIDQueryOptions } from "@/api/user.ts"
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
 import { MetadataSidebar } from "@/components/metadata-sidebar"
@@ -41,6 +42,7 @@ export function UserDetailContent({
   titleAction
 }: UserDetailContentProps) {
   const user = useQuery(createUserByIDQueryOptions(userId))
+  const roles = useQuery(createListRolesQueryOptions())
 
   function formatDateTime(value: Date | string | null | undefined) {
     if (!value) return "Not available"
@@ -102,6 +104,56 @@ export function UserDetailContent({
   const userData = user.data
   const emailVerified = Boolean(userData.emailVerified)
   const displayName = userData.displayUsername ?? userData.name
+  const roleLabelById = new Map(
+    (roles.data ?? []).map((role) => [role.id, role.name])
+  )
+  const resolvedRoleLabels = userData.roleIds.flatMap((roleId) => {
+    const roleLabel = roleLabelById.get(roleId)
+    return roleLabel ? [roleLabel] : []
+  })
+  const unresolvedRoleCount = Math.max(
+    userData.roleIds.length - resolvedRoleLabels.length,
+    0
+  )
+
+  function UserRoleBadges({ compact = false }: { compact?: boolean }) {
+    if (userData.roleIds.length === 0) {
+      return <span className="text-muted-foreground">No roles</span>
+    }
+
+    if (roles.isPending) {
+      return <span className="text-muted-foreground">Loading roles...</span>
+    }
+
+    if (!roles.data) {
+      return (
+        <span className="text-muted-foreground">
+          {userData.roleIds.length} role{userData.roleIds.length === 1 ? "" : "s"} assigned
+        </span>
+      )
+    }
+
+    return (
+      <div
+        className={
+          compact
+            ? "flex max-w-[16rem] flex-wrap justify-end gap-1"
+            : "flex flex-wrap gap-2"
+        }
+      >
+        {resolvedRoleLabels.map((roleLabel) => (
+          <Badge key={roleLabel} variant="outline" className="rounded-full">
+            {roleLabel}
+          </Badge>
+        ))}
+        {unresolvedRoleCount > 0 && (
+          <Badge variant="outline" className="rounded-full text-muted-foreground">
+            +{unresolvedRoleCount} unknown
+          </Badge>
+        )}
+      </div>
+    )
+  }
 
   function UserOverviewCard() {
     const username = userData.username
@@ -123,7 +175,7 @@ export function UserDetailContent({
                 identifiers, and audit timestamps.
               </CardDescription>
             </div>
-            <div className="grid gap-3 xl:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <DetailHighlightCard
                 label="Email"
                 value={userData.email}
@@ -138,6 +190,11 @@ export function UserDetailContent({
                 label="Status"
                 value={<UserStatusBadge emailVerified={emailVerified} />}
                 description="Whether the email address has been verified"
+              />
+              <DetailHighlightCard
+                label="Roles"
+                value={<UserRoleBadges />}
+                description="Assigned access roles for the account"
               />
             </div>
           </div>
@@ -207,6 +264,10 @@ export function UserDetailContent({
           <MetadataDetailRow
             label="Email status"
             value={emailVerified ? "Verified" : "Unverified"}
+          />
+          <MetadataDetailRow
+            label="Roles"
+            value={<UserRoleBadges compact />}
           />
         </div>
         <div className="space-y-3 border-t border-border/70 pt-5">

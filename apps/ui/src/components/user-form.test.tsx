@@ -1,16 +1,29 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { composeStories } from "@storybook/react-vite"
+import { builtInRoleIds } from "@openvlp/types/model/rbac"
 import type { UserFormValues } from "@/components/user-form"
+import { ROLE_FIXTURES } from "@/components/user-form.stories"
 
 import * as stories from "@/components/user-form.stories"
 import {
   UserForm,
   mapCreateUserFormValues,
-  mapUpdateUserFormValues,
+  mapUpdateUserFormValues
 } from "@/components/user-form"
 
 const { Create, CustomSubmitLabel, EditPrefilled } = composeStories(stories)
+
+class ResizeObserverMock {
+  observe() {}
+
+  unobserve() {}
+
+  disconnect() {}
+}
+
+globalThis.ResizeObserver = ResizeObserverMock as typeof ResizeObserver
+HTMLElement.prototype.scrollIntoView = vi.fn()
 
 afterEach(() => {
   cleanup()
@@ -43,18 +56,20 @@ function getInputByLabel(label: RegExp) {
 
 describe("UserForm", () => {
   it("renders the create-mode inputs and actions", () => {
-    const { container } = render(<Create />)
+    render(<Create />)
 
     expect(screen.getByLabelText(/display name/i)).toBeTruthy()
     expect(screen.getByLabelText(/username/i)).toBeTruthy()
     expect(screen.getByLabelText(/email/i)).toBeTruthy()
+    expect(screen.getByRole("combobox", { name: /roles/i })).toBeTruthy()
     expect(screen.getByLabelText(/password/i)).toBeTruthy()
-    expect(container.querySelector('button[type="submit"]')).toBeTruthy()
-    expect(container.querySelector('button[type="button"]')).toBeTruthy()
+    expect(screen.getByRole("button", { name: /create user/i })).toBeTruthy()
+    expect(screen.getByRole("button", { name: /^cancel$/i })).toBeTruthy()
   })
 
   it("renders the edit-mode inputs without username", () => {
-    const { container } = render(<EditPrefilled />)
+    render(<EditPrefilled />)
+
     const displayNameInput = getInputByLabel(/display name/i)
     const emailInput = getInputByLabel(/email/i)
     const passwordInput = getInputByLabel(/password/i)
@@ -62,34 +77,39 @@ describe("UserForm", () => {
     expect(displayNameInput.value).toBe("Alice Example")
     expect(screen.queryByLabelText(/username/i)).toBeNull()
     expect(emailInput.value).toBe("alice@example.com")
+    expect(screen.getByRole("combobox", { name: /roles/i }).textContent).toContain(
+      "viewer, editor"
+    )
     expect(passwordInput.value).toBe("")
-    expect(container.querySelector('button[type="submit"]')).toBeTruthy()
-    expect(container.querySelector('button[type="button"]')).toBeTruthy()
+    expect(screen.getByRole("button", { name: /save changes/i })).toBeTruthy()
+    expect(screen.getByRole("button", { name: /^cancel$/i })).toBeTruthy()
   })
 
   it("renders a submit button when a custom submit label is provided", () => {
-    const { container } = render(<CustomSubmitLabel />)
+    render(<CustomSubmitLabel />)
 
-    expect(container.querySelector('button[type="submit"]')).toBeTruthy()
+    expect(screen.getByRole("button", { name: /update account/i })).toBeTruthy()
   })
 
   it("shows validation errors after submitting an empty create form", async () => {
-    const { container } = render(<Create />)
+    render(<Create />)
 
-    fireEvent.click(container.querySelector('button[type="submit"]') as HTMLButtonElement)
+    fireEvent.click(screen.getByRole("button", { name: /create user/i }))
 
     await waitFor(() => {
       expect(screen.getAllByRole("alert").length).toBeGreaterThan(0)
     })
   })
 
-  it("submits entered values", async () => {
+  it("submits entered values including selected roles", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined)
     const onCancel = vi.fn()
 
-    const { container } = render(
+    render(
       <UserForm
         mode="create"
+        roles={ROLE_FIXTURES}
+        defaultValues={{ roleIds: [builtInRoleIds.viewer] }}
         onSubmit={onSubmit}
         onCancel={onCancel}
       />
@@ -99,11 +119,14 @@ describe("UserForm", () => {
       displayUsername: "Alice Example",
       username: "alice",
       email: "alice@example.com",
-      password: "correct horse battery staple"
+      password: "correct horse battery staple",
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.admin]
     }
 
     fillCreateFields(values)
-    fireEvent.click(container.querySelector('button[type="submit"]') as HTMLButtonElement)
+    fireEvent.click(screen.getByRole("combobox", { name: /roles/i }))
+    fireEvent.click(screen.getByText("admin"))
+    fireEvent.click(screen.getByRole("button", { name: /create user/i }))
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledTimes(1)
@@ -111,23 +134,48 @@ describe("UserForm", () => {
     })
   })
 
+  it("filters and clears role selections", () => {
+    render(
+      <UserForm
+        mode="create"
+        roles={ROLE_FIXTURES}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    )
+
+    fireEvent.click(screen.getByRole("combobox", { name: /roles/i }))
+    fireEvent.change(screen.getByPlaceholderText(/search roles/i), {
+      target: { value: "admin" }
+    })
+    fireEvent.click(screen.getByText("admin"))
+
+    expect(screen.getByRole("combobox", { name: /roles/i }).textContent).toContain(
+      "admin"
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: /clear selection/i }))
+
+    expect(screen.getByRole("combobox", { name: /roles/i }).textContent).toContain(
+      "Select roles..."
+    )
+  })
+
   it("calls the cancel handler", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined)
     const onCancel = vi.fn()
 
-    const { container } = render(
+    render(
       <UserForm
         mode="create"
+        roles={ROLE_FIXTURES}
+        defaultValues={{ roleIds: [builtInRoleIds.viewer] }}
         onSubmit={onSubmit}
         onCancel={onCancel}
       />
     )
 
-    const cancelButton = container.querySelector(
-      'button[type="button"]'
-    ) as HTMLButtonElement
-
-    fireEvent.click(cancelButton)
+    fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }))
 
     await waitFor(() => {
       expect(onCancel).toHaveBeenCalledTimes(1)
@@ -140,14 +188,16 @@ describe("UserForm", () => {
         displayUsername: "  Alice Example  ",
         username: "  alice  ",
         email: "  alice@example.com  ",
-        password: "secret"
+        password: "secret",
+        roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
       })
     ).toEqual({
       name: "Alice Example",
       displayUsername: "Alice Example",
       username: "alice",
       email: "alice@example.com",
-      password: "secret"
+      password: "secret",
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
     })
   })
 
@@ -158,7 +208,8 @@ describe("UserForm", () => {
           displayUsername: "  Alice Example  ",
           username: "ignored",
           email: "  alice@example.com  ",
-          password: ""
+          password: "",
+          roleIds: [builtInRoleIds.viewer]
         },
         "avatar.png"
       )
@@ -166,7 +217,8 @@ describe("UserForm", () => {
       name: "Alice Example",
       displayUsername: "Alice Example",
       email: "alice@example.com",
-      image: "avatar.png"
+      image: "avatar.png",
+      roleIds: [builtInRoleIds.viewer]
     })
   })
 
@@ -176,14 +228,16 @@ describe("UserForm", () => {
         displayUsername: "Alice Example",
         username: "ignored",
         email: "alice@example.com",
-        password: "secret"
+        password: "secret",
+        roleIds: [builtInRoleIds.admin]
       })
     ).toEqual({
       name: "Alice Example",
       displayUsername: "Alice Example",
       email: "alice@example.com",
       image: null,
-      password: "secret"
+      password: "secret",
+      roleIds: [builtInRoleIds.admin]
     })
   })
 })
