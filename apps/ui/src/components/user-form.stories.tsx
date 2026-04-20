@@ -1,5 +1,17 @@
 import { useState } from "react"
-import { fn, userEvent, within } from "storybook/test"
+import {
+  expect,
+  fn,
+  userEvent,
+  within
+} from "storybook/test"
+import {
+  BuiltInRoleName,
+  PermissionResource,
+  PermissionVerb,
+  builtInRoleIds
+} from "@openvlp/types/model/rbac"
+import type { Role } from "@openvlp/types/model/rbac"
 
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { ComponentProps } from "react"
@@ -7,6 +19,33 @@ import type { ComponentProps } from "react"
 import { UserForm } from "@/components/user-form"
 
 type UserFormStoryArgs = ComponentProps<typeof UserForm>
+
+export const ROLE_FIXTURES: Array<Role> = [
+  {
+    id: builtInRoleIds.viewer,
+    name: BuiltInRoleName.Viewer,
+    permissions: [
+      { resource: PermissionResource.User, verb: PermissionVerb.Read }
+    ]
+  },
+  {
+    id: builtInRoleIds.editor,
+    name: BuiltInRoleName.Editor,
+    permissions: [
+      { resource: PermissionResource.User, verb: PermissionVerb.Read },
+      { resource: PermissionResource.User, verb: PermissionVerb.Write }
+    ]
+  },
+  {
+    id: builtInRoleIds.admin,
+    name: BuiltInRoleName.Admin,
+    permissions: [
+      { resource: PermissionResource.User, verb: PermissionVerb.Read },
+      { resource: PermissionResource.User, verb: PermissionVerb.Write },
+      { resource: PermissionResource.User, verb: PermissionVerb.Delete }
+    ]
+  }
+]
 
 function UserFormStoryShell(args: UserFormStoryArgs) {
   const [lastSubmittedValues, setLastSubmittedValues] =
@@ -40,6 +79,10 @@ const meta = {
   },
   args: {
     mode: "create",
+    roles: ROLE_FIXTURES,
+    defaultValues: {
+      roleIds: [builtInRoleIds.viewer]
+    },
     onSubmit: fn(async (_values) => {
       await new Promise((resolve) => setTimeout(resolve, 300))
     }),
@@ -61,7 +104,8 @@ export const EditPrefilled: Story = {
       displayUsername: "Alice Example",
       username: "alice",
       email: "alice@example.com",
-      password: ""
+      password: "",
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
     }
   }
 }
@@ -73,7 +117,8 @@ export const CustomSubmitLabel: Story = {
       displayUsername: "Alice Example",
       username: "alice",
       email: "alice@example.com",
-      password: ""
+      password: "",
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
     },
     submitLabel: "Update account"
   }
@@ -95,7 +140,7 @@ export const Submitting: Story = {
       await new Promise((resolve) => setTimeout(resolve, 4000))
     })
   },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
 
     await userEvent.type(
@@ -114,6 +159,24 @@ export const Submitting: Story = {
     await userEvent.click(
       await canvas.findByRole("button", { name: /create user/i })
     )
+
+    await expect(args.onSubmit).toHaveBeenCalled()
+  }
+}
+
+export const RoleSelection: Story = {
+  play: async ({ canvasElement, args }) => {
+    const canvas = within(canvasElement)
+    const page = within(canvasElement.ownerDocument.body)
+
+    await userEvent.click(await canvas.findByRole("combobox", { name: /roles/i }))
+    await userEvent.type(await page.findByPlaceholderText(/search roles/i), "admin")
+    await userEvent.click(await page.findByText("admin"))
+
+    await expect(
+      await canvas.findByRole("combobox", { name: /roles/i })
+    ).toHaveTextContent(/viewer, admin/i)
+    await expect(args.onSubmit).not.toHaveBeenCalled()
   }
 }
 
@@ -124,7 +187,8 @@ export const DarkSurface: Story = {
       displayUsername: "Alice Example",
       username: "alice",
       email: "alice@example.com",
-      password: ""
+      password: "",
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
     }
   },
   render: (args) => (

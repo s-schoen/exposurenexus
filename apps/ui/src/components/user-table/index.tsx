@@ -8,8 +8,9 @@ import type {
   GroupingOption
 } from "@/components/data-table/types.ts"
 import { DataTable } from "@/components/data-table/data-table.tsx"
+import { createListRolesQueryOptions } from "@/api/role.ts"
 import { createListUsersQueryOptions } from "@/api/user.ts"
-import { columns } from "@/components/user-table/columns.tsx"
+import { createColumns } from "@/components/user-table/columns.tsx"
 
 const groupingOptions: Array<GroupingOption> = [
   {
@@ -30,6 +31,7 @@ export function UserTable({
 }: UserTableProps = {}) {
   const navigate = useNavigate()
   const usersQuery = useQuery(createListUsersQueryOptions())
+  const rolesQuery = useQuery(createListRolesQueryOptions())
   const [filter, setFilter] = useQueryState("filter")
   const [emailVerifiedFilter, setEmailVerifiedFilter] = useQueryState(
     "emailVerified",
@@ -45,6 +47,14 @@ export function UserTable({
           : {}
     }),
     [filter, emailVerifiedFilter]
+  )
+  const roleLabelById = useMemo(
+    () => new Map((rolesQuery.data ?? []).map((role) => [role.id, role.name])),
+    [rolesQuery.data]
+  )
+  const columns = useMemo(
+    () => createColumns(roleLabelById, rolesQuery.isSuccess),
+    [roleLabelById, rolesQuery.isSuccess]
   )
 
   const handleOpenUser = async (user: User) => {

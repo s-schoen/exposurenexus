@@ -7,6 +7,7 @@ import {
   createUserByIDQueryOptions,
   updateUser
 } from "@/api/user.ts"
+import { createListRolesQueryOptions } from "@/api/role.ts"
 import { UserForm, mapUpdateUserFormValues } from "@/components/user-form.tsx"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
 import {
@@ -28,6 +29,7 @@ function RouteComponent() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const user = useQuery(createUserByIDQueryOptions(id))
+  const roles = useQuery(createListRolesQueryOptions())
 
   usePageMeta({
     title: user.data?.displayUsername ?? user.data?.name ?? "Edit User",
@@ -53,9 +55,14 @@ function RouteComponent() {
         id,
         mapUpdateUserFormValues(values, user.data.image ?? null)
       )
-      await queryClient.invalidateQueries({
-        queryKey: createListUsersQueryOptions().queryKey
-      })
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: createListUsersQueryOptions().queryKey
+        }),
+        queryClient.invalidateQueries({
+          queryKey: createUserByIDQueryOptions(id).queryKey
+        })
+      ])
       toast.success(`Updated user ${values.displayUsername.trim()}`)
       await navigate({
         to: "/users/$id",
@@ -67,12 +74,12 @@ function RouteComponent() {
     }
   }
 
-  if (user.isPending) {
+  if (user.isPending || roles.isPending) {
     return (
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader>
           <CardTitle>Edit user</CardTitle>
-          <CardDescription>Loading user details.</CardDescription>
+          <CardDescription>Loading user details and roles.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Skeleton className="h-20 w-full" />
@@ -83,20 +90,24 @@ function RouteComponent() {
     )
   }
 
-  if (!user.data) {
+  if (!user.data || !roles.data) {
     return (
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader>
           <CardTitle>Edit user</CardTitle>
           <CardDescription>
-            The selected user could not be loaded.
+            The selected user could not be loaded for editing.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
             <CircleAlert />
-            <AlertTitle>Unable to load user</AlertTitle>
-            <AlertDescription>{user.error.message}</AlertDescription>
+            <AlertTitle>Unable to load edit form</AlertTitle>
+            <AlertDescription>
+              {user.error?.message ??
+                roles.error?.message ??
+                "The API did not return the required user data."}
+            </AlertDescription>
           </Alert>
         </CardContent>
       </Card>
@@ -106,11 +117,13 @@ function RouteComponent() {
   return (
     <UserForm
       mode="edit"
+      roles={roles.data}
       defaultValues={{
         displayUsername: user.data.displayUsername ?? user.data.name,
         username: user.data.username ?? "",
         email: user.data.email,
-        password: ""
+        password: "",
+        roleIds: user.data.roleIds
       }}
       onSubmit={handleSubmit}
       onCancel={handleCancel}

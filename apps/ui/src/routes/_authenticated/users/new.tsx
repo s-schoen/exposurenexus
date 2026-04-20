@@ -1,8 +1,20 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { CircleAlert } from "lucide-react"
+import { builtInRoleIds } from "@openvlp/types/model/rbac"
 import { toast } from "sonner"
 import { createListUsersQueryOptions, createUser } from "@/api/user.ts"
+import { createListRolesQueryOptions } from "@/api/role.ts"
 import { UserForm, mapCreateUserFormValues } from "@/components/user-form.tsx"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card.tsx"
+import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
 
 export const Route = createFileRoute("/_authenticated/users/new")({
@@ -12,6 +24,7 @@ export const Route = createFileRoute("/_authenticated/users/new")({
 function RouteComponent() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const roles = useQuery(createListRolesQueryOptions())
 
   usePageMeta({
     title: "Create User",
@@ -46,7 +59,51 @@ function RouteComponent() {
     }
   }
 
+  if (roles.isPending) {
+    return (
+      <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+        <CardHeader>
+          <CardTitle>Create user</CardTitle>
+          <CardDescription>Loading available roles.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!roles.data) {
+    return (
+      <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+        <CardHeader>
+          <CardTitle>Create user</CardTitle>
+          <CardDescription>
+            Available roles could not be loaded.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <CircleAlert />
+            <AlertTitle>Unable to load roles</AlertTitle>
+            <AlertDescription>
+              {roles.error.message}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
-    <UserForm mode="create" onSubmit={handleSubmit} onCancel={handleCancel} />
+    <UserForm
+      mode="create"
+      roles={roles.data}
+      defaultValues={{ roleIds: [builtInRoleIds.viewer] }}
+      onSubmit={handleSubmit}
+      onCancel={handleCancel}
+    />
   )
 }
