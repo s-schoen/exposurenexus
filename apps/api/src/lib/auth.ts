@@ -36,7 +36,10 @@ export interface AuthApiSignupClient {
 }
 
 export interface AuthApiUserManagementClient {
+  // Better Auth admin APIs validate the caller session from request headers,
+  // even when invoked from server-side code.
   setRole(input: {
+    headers: Headers
     body: {
       userId: string
       role: string | string[]
@@ -46,6 +49,7 @@ export interface AuthApiUserManagementClient {
   }>
 
   removeUser(input: {
+    headers: Headers
     body: {
       userId: string
     }
@@ -54,6 +58,7 @@ export interface AuthApiUserManagementClient {
   }>
 
   setUserPassword(input: {
+    headers: Headers
     body: {
       userId: string
       newPassword: string

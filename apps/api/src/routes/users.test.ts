@@ -245,7 +245,10 @@ describe("user routes", () => {
         }
       }
     })
-    expect(userService.create).toHaveBeenCalledWith(payload)
+    expect(userService.create).toHaveBeenCalledWith(
+      payload,
+      expect.any(Headers)
+    )
     expect(body).toEqual({
       correlationId: requestId,
       data: {
@@ -327,7 +330,11 @@ describe("user routes", () => {
         }
       }
     })
-    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload)
+    expect(userService.updateByID).toHaveBeenCalledWith(
+      userId,
+      payload,
+      expect.any(Headers)
+    )
     expect(body).toEqual({
       correlationId: requestId,
       data: {
@@ -373,7 +380,11 @@ describe("user routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload)
+    expect(userService.updateByID).toHaveBeenCalledWith(
+      userId,
+      payload,
+      expect.any(Headers)
+    )
     expect(body).toEqual({
       correlationId: requestId,
       data: {
@@ -491,13 +502,17 @@ describe("user routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(userService.updateByID).toHaveBeenCalledWith(userId, {
-      name: "Alice Updated",
-      email: "alice.updated@example.com",
-      displayUsername: "Alice Updated",
-      image: null,
-      password: "new-correct-horse-battery-staple"
-    })
+    expect(userService.updateByID).toHaveBeenCalledWith(
+      userId,
+      {
+        name: "Alice Updated",
+        email: "alice.updated@example.com",
+        displayUsername: "Alice Updated",
+        image: null,
+        password: "new-correct-horse-battery-staple"
+      },
+      expect.any(Headers)
+    )
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,

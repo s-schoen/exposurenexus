@@ -143,6 +143,45 @@ function userConflict(): HTTPException {
   })
 }
 
+function stripBetterAuthSessionDataCookie(headers: Headers): Headers {
+  const cookieHeader = headers.get("cookie")
+
+  if (!cookieHeader) {
+    return headers
+  }
+
+  const cookies = cookieHeader
+    .split(";")
+    .map((cookie) => cookie.trim())
+    .filter(Boolean)
+  const filteredCookies = cookies.filter((cookie) => {
+    const [name] = cookie.split("=", 1)
+
+    return !/^(__Secure-)?[^=]+\.session_data(?:\.\d+)?$/.test(name ?? "")
+  })
+
+  if (filteredCookies.length === cookies.length) {
+    return headers
+  }
+
+  const sanitizedHeaders = new Headers(headers)
+
+  if (filteredCookies.length === 0) {
+    sanitizedHeaders.delete("cookie")
+  } else {
+    sanitizedHeaders.set("cookie", filteredCookies.join("; "))
+  }
+
+  return sanitizedHeaders
+}
+
+function buildBetterAuthAdminHeaders(headers: Headers): Headers {
+  // Work around Better Auth's session_data cookie cache so internal admin calls
+  // re-read the acting user's current role from the database instead of using a
+  // stale cached role embedded in the cookie.
+  return stripBetterAuthSessionDataCookie(headers)
+}
+
 async function rollbackUserProfileUpdate(
   userRepository: UserRepository,
   user: PersistedUser,
@@ -167,10 +206,12 @@ async function rollbackUserProfileUpdate(
 async function rollbackUserRoleUpdate(
   auth: UserServiceDependencies["auth"],
   user: PersistedUser,
+  headers: Headers,
   logger: Logger
 ): Promise<void> {
   try {
     const roleResult = await auth.api.setRole({
+      headers: buildBetterAuthAdminHeaders(headers),
       body: {
         userId: user.id,
         role: user.roleNames
@@ -190,10 +231,12 @@ async function rollbackUserRoleUpdate(
 async function rollbackCreatedUser(
   auth: UserServiceDependencies["auth"],
   userId: string,
+  headers: Headers,
   logger: Logger
 ): Promise<void> {
   try {
     const removeUserResult = await auth.api.removeUser({
+      headers: buildBetterAuthAdminHeaders(headers),
       body: {
         userId
       }
@@ -253,7 +296,7 @@ export function createUserService({
       }
     },
 
-    async create(user: CreateUser): Promise<User> {
+    async create(user: CreateUser, headers: Headers): Promise<User> {
       try {
         const { roleIds, ...createUser } = user
         const roleNames =
@@ -266,8 +309,11 @@ export function createUserService({
         })
 
         try {
+          // Better Auth admin APIs require the caller's request headers to
+          // resolve the acting session, even for internal server-side calls.
           if (roleNames !== undefined) {
             const roleResult = await auth.api.setRole({
+              headers: buildBetterAuthAdminHeaders(headers),
               body: {
                 userId: created.user.id,
                 role: roleNames
@@ -294,7 +340,7 @@ export function createUserService({
           logger.info({ userId: created.user.id }, "created user")
           return createdUser!
         } catch (error) {
-          await rollbackCreatedUser(auth, created.user.id, logger)
+          await rollbackCreatedUser(auth, created.user.id, headers, logger)
           throw error
         }
       } catch (error) {
@@ -313,7 +359,11 @@ export function createUserService({
       }
     },
 
-    async updateByID(id: string, user: UpdateUser): Promise<User | null> {
+    async updateByID(
+      id: string,
+      user: UpdateUser,
+      headers: Headers
+    ): Promise<User | null> {
       try {
         const existing = await userRepository.getByID(id)
         if (!existing) {
@@ -344,8 +394,11 @@ export function createUserService({
         }
 
         try {
+          // Better Auth admin APIs require the caller's request headers to
+          // resolve the acting session, even for internal server-side calls.
           if (roleNames !== undefined) {
             const roleResult = await auth.api.setRole({
+              headers: buildBetterAuthAdminHeaders(headers),
               body: {
                 userId: id,
                 role: roleNames
@@ -358,6 +411,7 @@ export function createUserService({
 
           if (user.password !== undefined) {
             const passwordResult = await auth.api.setUserPassword({
+              headers: buildBetterAuthAdminHeaders(headers),
               body: {
                 userId: id,
                 newPassword: user.password
@@ -370,7 +424,7 @@ export function createUserService({
         } catch (error) {
           await rollbackUserProfileUpdate(userRepository, existing, logger)
           if (roleNames !== undefined) {
-            await rollbackUserRoleUpdate(auth, existing, logger)
+            await rollbackUserRoleUpdate(auth, existing, headers, logger)
           }
           throw error
         }

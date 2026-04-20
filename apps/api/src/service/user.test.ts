@@ -44,6 +44,7 @@ describe("user service", () => {
     info: vi.fn(),
     debug: vi.fn()
   } as unknown as Logger
+  const authHeaders = new Headers({ cookie: "session=token" })
   const user: User = {
     id: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
     name: "Alice Example",
@@ -182,7 +183,7 @@ describe("user service", () => {
     })
     roleService.getByNames.mockResolvedValue([viewerRole])
 
-    await expect(service.create(createUser)).resolves.toEqual({
+    await expect(service.create(createUser, authHeaders)).resolves.toEqual({
       ...user,
       roleIds: [builtInRoleIds.viewer]
     })
@@ -199,12 +200,73 @@ describe("user service", () => {
       builtInRoleIds.viewer
     ])
     expect(auth.api.setRole).toHaveBeenCalledWith({
+      headers: authHeaders,
       body: {
         userId: user.id,
         role: [BuiltInRoleName.Viewer]
       }
     })
     expect(userRepository.getByID).toHaveBeenCalledWith(user.id)
+  })
+
+  it("drops the Better Auth session cache cookie before admin auth calls", async () => {
+    const service = createUserService({
+      userRepository,
+      roleService,
+      auth,
+      logger
+    })
+    const staleSessionHeaders = new Headers({
+      cookie:
+        "better-auth.session_token=session-token; better-auth.session_data=stale-cache; theme=dark"
+    })
+
+    userRepository.getByID
+      .mockResolvedValueOnce({
+        ...persistedUser,
+        roleNames: [BuiltInRoleName.Viewer]
+      })
+      .mockRejectedValueOnce(new Error("should not reread updated user"))
+    userRepository.updateByID.mockResolvedValue({
+      ...persistedUser,
+      name: "Alice Updated",
+      email: "alice.updated@example.com",
+      displayUsername: "Alice Updated",
+      image: null,
+      updatedAt: new Date("2026-02-03T04:05:06.000Z"),
+      roleNames: [BuiltInRoleName.Viewer]
+    })
+    roleService.requireRoleNamesFromIds.mockResolvedValue([
+      BuiltInRoleName.Viewer,
+      BuiltInRoleName.Editor
+    ])
+    auth.api.setRole.mockResolvedValue({ user: { id: user.id } })
+
+    await service.updateByID(
+      user.id,
+      {
+        name: "Alice Updated",
+        email: "alice.updated@example.com",
+        displayUsername: "Alice Updated",
+        image: null,
+        roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
+      },
+      staleSessionHeaders
+    )
+
+    expect(auth.api.setRole).toHaveBeenCalledWith({
+      headers: expect.any(Headers),
+      body: {
+        userId: user.id,
+        role: [BuiltInRoleName.Viewer, BuiltInRoleName.Editor]
+      }
+    })
+
+    const forwardedHeaders = auth.api.setRole.mock.calls[0]?.[0].headers
+
+    expect(forwardedHeaders?.get("cookie")).toBe(
+      "better-auth.session_token=session-token; theme=dark"
+    )
   })
 
   it("rejects unknown role ids before creating a user", async () => {
@@ -222,14 +284,17 @@ describe("user service", () => {
     )
 
     await expect(
-      service.create({
-        name: "Alice Example",
-        email: "alice@example.com",
-        username: "alice",
-        displayUsername: "Alice",
-        password: "correct-horse-battery-staple",
-        roleIds: ["0671d03d-57f1-49c8-8f62-5de6ed0924db"]
-      })
+      service.create(
+        {
+          name: "Alice Example",
+          email: "alice@example.com",
+          username: "alice",
+          displayUsername: "Alice",
+          password: "correct-horse-battery-staple",
+          roleIds: ["0671d03d-57f1-49c8-8f62-5de6ed0924db"]
+        },
+        authHeaders
+      )
     ).rejects.toMatchObject({
       status: 400,
       message: "unknown role ids: 0671d03d-57f1-49c8-8f62-5de6ed0924db"
@@ -251,13 +316,16 @@ describe("user service", () => {
     )
 
     await expect(
-      service.create({
-        name: "Alice Example",
-        email: "alice@example.com",
-        username: "alice",
-        displayUsername: "Alice",
-        password: "correct-horse-battery-staple"
-      })
+      service.create(
+        {
+          name: "Alice Example",
+          email: "alice@example.com",
+          username: "alice",
+          displayUsername: "Alice",
+          password: "correct-horse-battery-staple"
+        },
+        authHeaders
+      )
     ).rejects.toMatchObject({
       status: 409,
       message: "user already exists"
@@ -277,17 +345,21 @@ describe("user service", () => {
     userRepository.getByID.mockResolvedValue(null)
 
     await expect(
-      service.create({
-        name: "Alice Example",
-        email: "alice@example.com",
-        username: "alice",
-        displayUsername: "Alice",
-        password: "correct-horse-battery-staple"
-      })
+      service.create(
+        {
+          name: "Alice Example",
+          email: "alice@example.com",
+          username: "alice",
+          displayUsername: "Alice",
+          password: "correct-horse-battery-staple"
+        },
+        authHeaders
+      )
     ).rejects.toThrow("failed to load created user")
 
     expect(userRepository.getByID).toHaveBeenCalledWith(user.id)
     expect(auth.api.removeUser).toHaveBeenCalledWith({
+      headers: authHeaders,
       body: {
         userId: user.id
       }
@@ -310,20 +382,24 @@ describe("user service", () => {
     auth.api.removeUser.mockResolvedValue({ success: true })
 
     await expect(
-      service.create({
-        name: "Alice Example",
-        email: "alice@example.com",
-        username: "alice",
-        displayUsername: "Alice",
-        password: "correct-horse-battery-staple",
-        roleIds: [builtInRoleIds.viewer]
-      })
+      service.create(
+        {
+          name: "Alice Example",
+          email: "alice@example.com",
+          username: "alice",
+          displayUsername: "Alice",
+          password: "correct-horse-battery-staple",
+          roleIds: [builtInRoleIds.viewer]
+        },
+        authHeaders
+      )
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to create user"
     } satisfies Partial<HTTPException>)
 
     expect(auth.api.removeUser).toHaveBeenCalledWith({
+      headers: authHeaders,
       body: {
         userId: user.id
       }
@@ -346,20 +422,24 @@ describe("user service", () => {
     auth.api.removeUser.mockResolvedValue({ success: true })
 
     await expect(
-      service.create({
-        name: "Alice Example",
-        email: "alice@example.com",
-        username: "alice",
-        displayUsername: "Alice",
-        password: "correct-horse-battery-staple",
-        roleIds: [builtInRoleIds.viewer]
-      })
+      service.create(
+        {
+          name: "Alice Example",
+          email: "alice@example.com",
+          username: "alice",
+          displayUsername: "Alice",
+          password: "correct-horse-battery-staple",
+          roleIds: [builtInRoleIds.viewer]
+        },
+        authHeaders
+      )
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to create user"
     } satisfies Partial<HTTPException>)
 
     expect(auth.api.removeUser).toHaveBeenCalledWith({
+      headers: authHeaders,
       body: {
         userId: user.id
       }
@@ -382,14 +462,17 @@ describe("user service", () => {
     auth.api.removeUser.mockRejectedValue(new Error("remove failed"))
 
     await expect(
-      service.create({
-        name: "Alice Example",
-        email: "alice@example.com",
-        username: "alice",
-        displayUsername: "Alice",
-        password: "correct-horse-battery-staple",
-        roleIds: [builtInRoleIds.viewer]
-      })
+      service.create(
+        {
+          name: "Alice Example",
+          email: "alice@example.com",
+          username: "alice",
+          displayUsername: "Alice",
+          password: "correct-horse-battery-staple",
+          roleIds: [builtInRoleIds.viewer]
+        },
+        authHeaders
+      )
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to create user"
@@ -444,14 +527,18 @@ describe("user service", () => {
     auth.api.setUserPassword.mockResolvedValue({ status: true })
 
     await expect(
-      service.updateByID(user.id, {
-        name: "Alice Updated",
-        email: "alice.updated@example.com",
-        displayUsername: "Alice Updated",
-        image: "https://example.com/alice.png",
-        password: "new-correct-horse-battery-staple",
-        roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
-      })
+      service.updateByID(
+        user.id,
+        {
+          name: "Alice Updated",
+          email: "alice.updated@example.com",
+          displayUsername: "Alice Updated",
+          image: "https://example.com/alice.png",
+          password: "new-correct-horse-battery-staple",
+          roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
+        },
+        authHeaders
+      )
     ).resolves.toEqual({
       ...updatedUser,
       roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
@@ -465,12 +552,14 @@ describe("user service", () => {
       updatedAt: now
     })
     expect(auth.api.setRole).toHaveBeenCalledWith({
+      headers: authHeaders,
       body: {
         userId: user.id,
         role: [BuiltInRoleName.Viewer, BuiltInRoleName.Editor]
       }
     })
     expect(auth.api.setUserPassword).toHaveBeenCalledWith({
+      headers: authHeaders,
       body: {
         userId: user.id,
         newPassword: "new-correct-horse-battery-staple"
@@ -521,12 +610,16 @@ describe("user service", () => {
     roleService.getByNames.mockResolvedValue([])
 
     await expect(
-      service.updateByID(user.id, {
-        name: "Alice Updated",
-        email: "alice.updated@example.com",
-        displayUsername: "Alice Updated",
-        image: null
-      })
+      service.updateByID(
+        user.id,
+        {
+          name: "Alice Updated",
+          email: "alice.updated@example.com",
+          displayUsername: "Alice Updated",
+          image: null
+        },
+        authHeaders
+      )
     ).resolves.toEqual(updatedUser)
 
     expect(userRepository.updateByID).toHaveBeenCalledWith(user.id, {
@@ -551,13 +644,17 @@ describe("user service", () => {
     userRepository.getByID.mockResolvedValue(null)
 
     await expect(
-      service.updateByID(user.id, {
-        name: "Alice Updated",
-        email: "alice.updated@example.com",
-        displayUsername: "Alice Updated",
-        image: null,
-        password: "new-correct-horse-battery-staple"
-      })
+      service.updateByID(
+        user.id,
+        {
+          name: "Alice Updated",
+          email: "alice.updated@example.com",
+          displayUsername: "Alice Updated",
+          image: null,
+          password: "new-correct-horse-battery-staple"
+        },
+        authHeaders
+      )
     ).resolves.toBeNull()
     expect(userRepository.updateByID).not.toHaveBeenCalled()
     expect(auth.api.setUserPassword).not.toHaveBeenCalled()
@@ -577,13 +674,17 @@ describe("user service", () => {
     )
 
     await expect(
-      service.updateByID(user.id, {
-        name: "Alice Updated",
-        email: "alice@example.com",
-        displayUsername: "Alice Updated",
-        image: null,
-        password: "new-correct-horse-battery-staple"
-      })
+      service.updateByID(
+        user.id,
+        {
+          name: "Alice Updated",
+          email: "alice@example.com",
+          displayUsername: "Alice Updated",
+          image: null,
+          password: "new-correct-horse-battery-staple"
+        },
+        authHeaders
+      )
     ).rejects.toMatchObject({
       status: 409,
       message: "user already exists"
@@ -625,14 +726,18 @@ describe("user service", () => {
     auth.api.setUserPassword.mockResolvedValue({ status: false } as never)
 
     await expect(
-      service.updateByID(user.id, {
-        name: "Alice Updated",
-        email: "alice.updated@example.com",
-        displayUsername: "Alice Updated",
-        image: "https://example.com/alice.png",
-        password: "new-correct-horse-battery-staple",
-        roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
-      })
+      service.updateByID(
+        user.id,
+        {
+          name: "Alice Updated",
+          email: "alice.updated@example.com",
+          displayUsername: "Alice Updated",
+          image: "https://example.com/alice.png",
+          password: "new-correct-horse-battery-staple",
+          roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
+        },
+        authHeaders
+      )
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to update user"
@@ -653,12 +758,14 @@ describe("user service", () => {
       updatedAt: user.updatedAt
     })
     expect(auth.api.setRole).toHaveBeenNthCalledWith(1, {
+      headers: authHeaders,
       body: {
         userId: user.id,
         role: [BuiltInRoleName.Viewer, BuiltInRoleName.Editor]
       }
     })
     expect(auth.api.setRole).toHaveBeenNthCalledWith(2, {
+      headers: authHeaders,
       body: {
         userId: user.id,
         role: [BuiltInRoleName.Viewer]
