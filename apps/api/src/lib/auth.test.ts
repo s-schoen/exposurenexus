@@ -128,6 +128,7 @@ describe("auth factory", () => {
     ).resolves.toEqual({ user: { id: "user-1" } })
     await expect(
       auth.api.setRole({
+        headers,
         body: {
           userId: "user-1",
           role: ["viewer"]
@@ -136,6 +137,7 @@ describe("auth factory", () => {
     ).resolves.toEqual({ user: { id: "user-1" } })
     await expect(
       auth.api.removeUser({
+        headers,
         body: {
           userId: "user-1"
         }
@@ -143,6 +145,7 @@ describe("auth factory", () => {
     ).resolves.toEqual({ success: true })
     await expect(
       auth.api.setUserPassword({
+        headers,
         body: {
           userId: "user-1",
           newPassword: "new-correct-horse-battery-staple"
@@ -163,9 +166,26 @@ describe("auth factory", () => {
     expect(response.status).toBe(204)
     expect(firstAuth.api.getSession).toHaveBeenCalledWith({ headers })
     expect(firstAuth.api.signUpEmail).toHaveBeenCalledOnce()
-    expect(firstAuth.api.setRole).toHaveBeenCalledOnce()
-    expect(firstAuth.api.removeUser).toHaveBeenCalledOnce()
-    expect(firstAuth.api.setUserPassword).toHaveBeenCalledOnce()
+    expect(firstAuth.api.setRole).toHaveBeenCalledWith({
+      headers,
+      body: {
+        userId: "user-1",
+        role: ["viewer"]
+      }
+    })
+    expect(firstAuth.api.removeUser).toHaveBeenCalledWith({
+      headers,
+      body: {
+        userId: "user-1"
+      }
+    })
+    expect(firstAuth.api.setUserPassword).toHaveBeenCalledWith({
+      headers,
+      body: {
+        userId: "user-1",
+        newPassword: "new-correct-horse-battery-staple"
+      }
+    })
     expect(firstAuth.api.userHasPermission).toHaveBeenCalledOnce()
     expect(firstAuth.handler).toHaveBeenCalledOnce()
   })

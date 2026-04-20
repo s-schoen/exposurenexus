@@ -13,10 +13,14 @@ import type { RequireDomainPermission } from "../middleware/auth.js"
 interface UserRouteService {
   listAll(): Promise<User[]>
   getByID(id: string): Promise<User | null>
-  create(user: z.infer<typeof createUserSchema>): Promise<User>
+  create(
+    user: z.infer<typeof createUserSchema>,
+    headers: Headers
+  ): Promise<User>
   updateByID(
     id: string,
-    user: z.infer<typeof updateUserSchema>
+    user: z.infer<typeof updateUserSchema>,
+    headers: Headers
   ): Promise<User | null>
 }
 
@@ -59,7 +63,7 @@ export function createUserRoute(
     zValidator("json", createUserSchema),
     async (c) => {
       const body = c.req.valid("json")
-      const createdUser = await userService.create(body)
+      const createdUser = await userService.create(body, c.req.raw.headers)
       return replyObject(c, createdUser, true)
     }
   )
@@ -73,7 +77,11 @@ export function createUserRoute(
       const params = c.req.valid("param")
       const body = c.req.valid("json")
 
-      const updatedUser = await userService.updateByID(params.id, body)
+      const updatedUser = await userService.updateByID(
+        params.id,
+        body,
+        c.req.raw.headers
+      )
       if (!updatedUser) {
         notFound("user", params.id)
       }
