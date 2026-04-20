@@ -2,6 +2,7 @@ import {
   Bug,
   ClipboardCheck,
   Home,
+  KeyRound,
   Server,
   ShieldAlert,
   UploadCloud,
@@ -103,6 +104,13 @@ export function AppSidebar() {
           icon: Users,
           description: "Platform access and accounts",
           activeMatch: /^\/users(?:\/.+)?$/
+        },
+        {
+          title: "Roles",
+          url: "/roles",
+          icon: KeyRound,
+          description: "Manage permissions",
+          activeMatch: /^\/roles(?:\/.+)?$/
         },
         {
           title: "Import",
