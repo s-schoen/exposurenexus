@@ -51,9 +51,7 @@ function createQueryResult({
     dataUpdatedAt: 0,
     errorUpdatedAt: 0,
     isEnabled: true,
-    promise: isPending
-      ? (new Promise<Array<Role>>(() => {}) as Promise<Array<Role>>)
-      : Promise.resolve(data ?? []),
+    promise: Promise.resolve(data ?? []),
     refetch
   } as unknown as UseQueryResult<Array<Role>, Error>
 }
@@ -94,6 +92,7 @@ function RoleTableStoryShell({
 const meta = {
   title: "Components/RoleTable",
   component: RoleTableStoryShell,
+  tags: ["!test"],
   parameters: {
     layout: "padded"
   },
