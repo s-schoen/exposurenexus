@@ -1,6 +1,5 @@
 import { Check, PlusCircle, XCircle } from "lucide-react"
 import { useMemo, useState } from "react"
-import type { MouseEvent } from "react"
 import type { Column } from "@tanstack/react-table"
 import type { SelectOption } from "@/components/data-table/types.ts"
 import {
@@ -35,14 +34,6 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
     )
   }, [selectedValues, column.columnDef.meta])
 
-  const handleClear = (event?: MouseEvent) => {
-    if (selectedOptions.length > 0) {
-      // prevent command from opening
-      event?.stopPropagation()
-      column.setFilterValue(undefined)
-    }
-  }
-
   const handleSelectOption = (option: SelectOption) => {
     let newSelection: Array<string> = []
     if (selectedOptions.includes(option)) {
@@ -66,14 +57,12 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
               size="sm"
               className="h-9 rounded-xl border-dashed bg-background font-normal"
             >
-              <div
-                role="button"
-                tabIndex={0}
-                className="rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                onClick={handleClear}
+              <span
+                aria-hidden="true"
+                className="rounded-sm opacity-70 transition-opacity"
               >
                 {selectedOptions.length > 0 ? <XCircle /> : <PlusCircle />}
-              </div>
+              </span>
               {column.columnDef.meta!.label || column.id}
               {selectedOptions.length > 0 && (
                 <>

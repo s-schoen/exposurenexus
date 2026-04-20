@@ -181,7 +181,10 @@ export function DataTableToolbar<TData>({
                   table.setExpanded(true)
                 }}
               >
-                <SelectTrigger className="h-9 min-w-52 rounded-xl bg-background">
+                <SelectTrigger
+                  aria-label="Group rows"
+                  className="h-9 min-w-52 rounded-xl bg-background"
+                >
                   <Rows3 className="size-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Group by</span>
                   <span className="min-w-0 truncate font-medium text-foreground">

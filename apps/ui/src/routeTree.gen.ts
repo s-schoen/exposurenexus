@@ -14,11 +14,13 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedVulnerabilitiesIndexRouteImport } from './routes/_authenticated/vulnerabilities/index'
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
+import { Route as AuthenticatedRolesIndexRouteImport } from './routes/_authenticated/roles/index'
 import { Route as AuthenticatedFindingsIndexRouteImport } from './routes/_authenticated/findings/index'
 import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets/index'
 import { Route as AuthenticatedVulnerabilitiesIdRouteImport } from './routes/_authenticated/vulnerabilities/$id'
 import { Route as AuthenticatedUsersNewRouteImport } from './routes/_authenticated/users/new'
 import { Route as AuthenticatedUsersIdRouteImport } from './routes/_authenticated/users/$id'
+import { Route as AuthenticatedRolesIdRouteImport } from './routes/_authenticated/roles/$id'
 import { Route as AuthenticatedFindingsTriageRouteImport } from './routes/_authenticated/findings/triage'
 import { Route as AuthenticatedFindingsNewRouteImport } from './routes/_authenticated/findings/new'
 import { Route as AuthenticatedFindingsImportRouteImport } from './routes/_authenticated/findings/import'
@@ -51,6 +53,11 @@ const AuthenticatedUsersIndexRoute = AuthenticatedUsersIndexRouteImport.update({
   path: '/users/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedRolesIndexRoute = AuthenticatedRolesIndexRouteImport.update({
+  id: '/roles/',
+  path: '/roles/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedFindingsIndexRoute =
   AuthenticatedFindingsIndexRouteImport.update({
     id: '/findings/',
@@ -77,6 +84,11 @@ const AuthenticatedUsersNewRoute = AuthenticatedUsersNewRouteImport.update({
 const AuthenticatedUsersIdRoute = AuthenticatedUsersIdRouteImport.update({
   id: '/users/$id',
   path: '/users/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedRolesIdRoute = AuthenticatedRolesIdRouteImport.update({
+  id: '/roles/$id',
+  path: '/roles/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedFindingsTriageRoute =
@@ -122,11 +134,13 @@ export interface FileRoutesByFullPath {
   '/findings/import': typeof AuthenticatedFindingsImportRoute
   '/findings/new': typeof AuthenticatedFindingsNewRoute
   '/findings/triage': typeof AuthenticatedFindingsTriageRoute
+  '/roles/$id': typeof AuthenticatedRolesIdRoute
   '/users/$id': typeof AuthenticatedUsersIdRouteWithChildren
   '/users/new': typeof AuthenticatedUsersNewRoute
   '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
   '/assets/': typeof AuthenticatedAssetsIndexRoute
   '/findings/': typeof AuthenticatedFindingsIndexRoute
+  '/roles/': typeof AuthenticatedRolesIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
   '/vulnerabilities/': typeof AuthenticatedVulnerabilitiesIndexRoute
   '/users/$id/edit': typeof AuthenticatedUsersIdEditRoute
@@ -139,11 +153,13 @@ export interface FileRoutesByTo {
   '/findings/import': typeof AuthenticatedFindingsImportRoute
   '/findings/new': typeof AuthenticatedFindingsNewRoute
   '/findings/triage': typeof AuthenticatedFindingsTriageRoute
+  '/roles/$id': typeof AuthenticatedRolesIdRoute
   '/users/$id': typeof AuthenticatedUsersIdRouteWithChildren
   '/users/new': typeof AuthenticatedUsersNewRoute
   '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
   '/assets': typeof AuthenticatedAssetsIndexRoute
   '/findings': typeof AuthenticatedFindingsIndexRoute
+  '/roles': typeof AuthenticatedRolesIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
   '/vulnerabilities': typeof AuthenticatedVulnerabilitiesIndexRoute
   '/users/$id/edit': typeof AuthenticatedUsersIdEditRoute
@@ -158,11 +174,13 @@ export interface FileRoutesById {
   '/_authenticated/findings/import': typeof AuthenticatedFindingsImportRoute
   '/_authenticated/findings/new': typeof AuthenticatedFindingsNewRoute
   '/_authenticated/findings/triage': typeof AuthenticatedFindingsTriageRoute
+  '/_authenticated/roles/$id': typeof AuthenticatedRolesIdRoute
   '/_authenticated/users/$id': typeof AuthenticatedUsersIdRouteWithChildren
   '/_authenticated/users/new': typeof AuthenticatedUsersNewRoute
   '/_authenticated/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
   '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
   '/_authenticated/findings/': typeof AuthenticatedFindingsIndexRoute
+  '/_authenticated/roles/': typeof AuthenticatedRolesIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
   '/_authenticated/vulnerabilities/': typeof AuthenticatedVulnerabilitiesIndexRoute
   '/_authenticated/users/$id/edit': typeof AuthenticatedUsersIdEditRoute
@@ -177,11 +195,13 @@ export interface FileRouteTypes {
     | '/findings/import'
     | '/findings/new'
     | '/findings/triage'
+    | '/roles/$id'
     | '/users/$id'
     | '/users/new'
     | '/vulnerabilities/$id'
     | '/assets/'
     | '/findings/'
+    | '/roles/'
     | '/users/'
     | '/vulnerabilities/'
     | '/users/$id/edit'
@@ -194,11 +214,13 @@ export interface FileRouteTypes {
     | '/findings/import'
     | '/findings/new'
     | '/findings/triage'
+    | '/roles/$id'
     | '/users/$id'
     | '/users/new'
     | '/vulnerabilities/$id'
     | '/assets'
     | '/findings'
+    | '/roles'
     | '/users'
     | '/vulnerabilities'
     | '/users/$id/edit'
@@ -212,11 +234,13 @@ export interface FileRouteTypes {
     | '/_authenticated/findings/import'
     | '/_authenticated/findings/new'
     | '/_authenticated/findings/triage'
+    | '/_authenticated/roles/$id'
     | '/_authenticated/users/$id'
     | '/_authenticated/users/new'
     | '/_authenticated/vulnerabilities/$id'
     | '/_authenticated/assets/'
     | '/_authenticated/findings/'
+    | '/_authenticated/roles/'
     | '/_authenticated/users/'
     | '/_authenticated/vulnerabilities/'
     | '/_authenticated/users/$id/edit'
@@ -264,6 +288,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsersIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/roles/': {
+      id: '/_authenticated/roles/'
+      path: '/roles'
+      fullPath: '/roles/'
+      preLoaderRoute: typeof AuthenticatedRolesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/findings/': {
       id: '/_authenticated/findings/'
       path: '/findings'
@@ -297,6 +328,13 @@ declare module '@tanstack/react-router' {
       path: '/users/$id'
       fullPath: '/users/$id'
       preLoaderRoute: typeof AuthenticatedUsersIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/roles/$id': {
+      id: '/_authenticated/roles/$id'
+      path: '/roles/$id'
+      fullPath: '/roles/$id'
+      preLoaderRoute: typeof AuthenticatedRolesIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/findings/triage': {
@@ -362,11 +400,13 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFindingsImportRoute: typeof AuthenticatedFindingsImportRoute
   AuthenticatedFindingsNewRoute: typeof AuthenticatedFindingsNewRoute
   AuthenticatedFindingsTriageRoute: typeof AuthenticatedFindingsTriageRoute
+  AuthenticatedRolesIdRoute: typeof AuthenticatedRolesIdRoute
   AuthenticatedUsersIdRoute: typeof AuthenticatedUsersIdRouteWithChildren
   AuthenticatedUsersNewRoute: typeof AuthenticatedUsersNewRoute
   AuthenticatedVulnerabilitiesIdRoute: typeof AuthenticatedVulnerabilitiesIdRoute
   AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute
   AuthenticatedFindingsIndexRoute: typeof AuthenticatedFindingsIndexRoute
+  AuthenticatedRolesIndexRoute: typeof AuthenticatedRolesIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
   AuthenticatedVulnerabilitiesIndexRoute: typeof AuthenticatedVulnerabilitiesIndexRoute
 }
@@ -378,11 +418,13 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFindingsImportRoute: AuthenticatedFindingsImportRoute,
   AuthenticatedFindingsNewRoute: AuthenticatedFindingsNewRoute,
   AuthenticatedFindingsTriageRoute: AuthenticatedFindingsTriageRoute,
+  AuthenticatedRolesIdRoute: AuthenticatedRolesIdRoute,
   AuthenticatedUsersIdRoute: AuthenticatedUsersIdRouteWithChildren,
   AuthenticatedUsersNewRoute: AuthenticatedUsersNewRoute,
   AuthenticatedVulnerabilitiesIdRoute: AuthenticatedVulnerabilitiesIdRoute,
   AuthenticatedAssetsIndexRoute: AuthenticatedAssetsIndexRoute,
   AuthenticatedFindingsIndexRoute: AuthenticatedFindingsIndexRoute,
+  AuthenticatedRolesIndexRoute: AuthenticatedRolesIndexRoute,
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
   AuthenticatedVulnerabilitiesIndexRoute:
     AuthenticatedVulnerabilitiesIndexRoute,
