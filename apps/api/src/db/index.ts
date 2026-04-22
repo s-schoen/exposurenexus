@@ -1,10 +1,18 @@
 import { Pool } from "pg"
 import { env } from "../env.js"
 import { Kysely } from "kysely"
-import type { UserTable } from "./schema/auth.js"
+import type {
+  UserProfileTable,
+  UserSessionTable,
+  UserTable
+} from "./schema/auth.js"
 import type { AssetTable } from "./schema/asset.js"
 import type { FindingTable } from "./schema/finding.js"
-import type { RolePermissionAssignmentTable, RoleTable } from "./schema/rbac.js"
+import type {
+  RolePermissionAssignmentTable,
+  RoleTable,
+  UserRoleAssignmentTable
+} from "./schema/rbac.js"
 import type {
   VulnerabilitySourceMappingTable,
   VulnerabilityTable
@@ -13,8 +21,11 @@ import { createDatabase } from "./factory.js"
 
 export interface Database {
   user: UserTable
+  user_profile: UserProfileTable
   role: RoleTable
   role_permission_assignment: RolePermissionAssignmentTable
+  user_role_assignment: UserRoleAssignmentTable
+  user_session: UserSessionTable
   asset: AssetTable
   finding: FindingTable
   vulnerability: VulnerabilityTable
