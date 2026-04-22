@@ -13,3 +13,22 @@ export interface UserTable {
   banReason: string | null
   banExpires: Date | null
 }
+
+export interface UserProfileTable {
+  id: string
+  username: string
+  email: string
+  displayName: string
+  enabled: boolean
+  passwordHash: string
+}
+
+export interface UserSessionTable {
+  id: string
+  sessionId: string
+  userId: string
+  sourceIp: string | null
+  userAgent: string | null
+  createdAt: Date
+  expiresAt: Date
+}

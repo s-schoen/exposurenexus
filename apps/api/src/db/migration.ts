@@ -5,6 +5,7 @@ import * as m3 from "./migrations/20260118-vulnerability-mapping.js"
 import * as m4 from "./migrations/20260414-better-auth-admin.js"
 import * as m5 from "./migrations/20260418-rbac-role-default.js"
 import * as m6 from "./migrations/20260419-rbac-role-permissions.js"
+import * as m7 from "./migrations/20260422-custom-auth.js"
 import { db, logger } from "./index.js"
 import type { Database } from "./index.js"
 import type { Kysely } from "kysely"
@@ -18,7 +19,8 @@ class ManualMigrationProvider implements MigrationProvider {
       "20260118-vulnerability-mapping": { up: m3.up, down: m3.down },
       "20260414-better-auth-admin": { up: m4.up, down: m4.down },
       "20260418-rbac-role-default": { up: m5.up, down: m5.down },
-      "20260419-rbac-role-permissions": { up: m6.up, down: m6.down }
+      "20260419-rbac-role-permissions": { up: m6.up, down: m6.down },
+      "20260422-custom-auth": { up: m7.up, down: m7.down }
     }
 
     return Promise.resolve(migrations)
