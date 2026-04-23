@@ -12,17 +12,17 @@ export async function up(db: Kysely<any>): Promise<void> {
     )
     .addColumn("username", "varchar(255)", (col) => col.notNull().unique())
     .addColumn("email", "varchar(255)", (col) => col.notNull().unique())
-    .addColumn("display_name", "varchar(255)", (col) => col.notNull())
+    .addColumn("displayName", "varchar(255)", (col) => col.notNull())
     .addColumn("enabled", "boolean", (col) => col.defaultTo(true))
-    .addColumn("password_hash", "text", (col) => col.notNull())
+    .addColumn("passwordHash", "text", (col) => col.notNull())
     .execute()
 
   await db.schema
     .createTable("user_role_assignment")
-    .addColumn("user_id", "uuid", (col) =>
+    .addColumn("userId", "uuid", (col) =>
       col.references("user_profile.id").onDelete("cascade").notNull()
     )
-    .addColumn("role_id", "uuid", (col) =>
+    .addColumn("roleId", "uuid", (col) =>
       col.references("role.id").onDelete("cascade").notNull()
     )
     .execute()
@@ -35,16 +35,16 @@ export async function up(db: Kysely<any>): Promise<void> {
         .notNull()
         .defaultTo(sql`gen_random_uuid()`)
     )
-    .addColumn("session_id", "uuid", (col) => col.unique().notNull())
-    .addColumn("user_id", "uuid", (col) =>
+    .addColumn("sessionId", "uuid", (col) => col.unique().notNull())
+    .addColumn("userId", "uuid", (col) =>
       col.references("user_profile.id").onDelete("cascade").notNull()
     )
-    .addColumn("user_agent", "text")
-    .addColumn("source_ip", "text")
-    .addColumn("created_at", "timestamptz", (col) =>
+    .addColumn("userAgent", "text")
+    .addColumn("sourceIp", "text")
+    .addColumn("createdAt", "timestamptz", (col) =>
       col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
     )
-    .addColumn("expires_at", "timestamptz", (col) => col.notNull())
+    .addColumn("expiresAt", "timestamptz", (col) => col.notNull())
     .execute()
 }
 

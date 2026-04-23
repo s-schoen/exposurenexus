@@ -1,3 +1,5 @@
+import type { Generated } from "kysely"
+
 export interface UserTable {
   id: string
   name: string
@@ -15,7 +17,7 @@ export interface UserTable {
 }
 
 export interface UserProfileTable {
-  id: string
+  id: Generated<string>
   username: string
   email: string
   displayName: string
@@ -24,7 +26,7 @@ export interface UserProfileTable {
 }
 
 export interface UserSessionTable {
-  id: string
+  id: Generated<string>
   sessionId: string
   userId: string
   sourceIp: string | null
