@@ -151,4 +151,53 @@ describe("user session repository", () => {
     ).resolves.toBeNull()
     await expect(repository.list()).resolves.toEqual([])
   })
+
+  it("deletes only sessions that expired before the provided time", async () => {
+    const repository = createUserSessionRepository(testDb.db)
+    const now = new Date("2026-04-23T10:00:00.000Z")
+
+    await testDb.db.insertInto("user_profile").values(userProfile).execute()
+
+    const expiredSession = await repository.create({
+      sessionId: "3783ac06-42be-43d4-bad3-6aa2c5c5363d",
+      userId: userProfile.id,
+      sourceIp: "203.0.113.10",
+      userAgent: "Mozilla/5.0",
+      createdAt: new Date("2026-04-23T08:00:00.000Z"),
+      expiresAt: new Date("2026-04-23T09:59:59.000Z")
+    })
+    const boundarySession = await repository.create({
+      sessionId: "1d06e984-3c8a-470f-b559-7f732ab73602",
+      userId: userProfile.id,
+      sourceIp: null,
+      userAgent: null,
+      createdAt: new Date("2026-04-23T08:30:00.000Z"),
+      expiresAt: now
+    })
+    const activeSession = await repository.create({
+      sessionId: "b1da5aac-53f9-41c3-8b30-0937f845741d",
+      userId: userProfile.id,
+      sourceIp: "203.0.113.11",
+      userAgent: "curl/8.0.1",
+      createdAt: new Date("2026-04-23T09:00:00.000Z"),
+      expiresAt: new Date("2026-04-23T10:00:01.000Z")
+    })
+
+    await expect(repository.expireSessions(now)).resolves.toEqual([
+      expiredSession
+    ])
+    await expect(repository.list()).resolves.toEqual(
+      expect.arrayContaining([boundarySession, activeSession])
+    )
+    await expect(repository.list()).resolves.toHaveLength(2)
+    await expect(
+      repository.getBySessionID(expiredSession.sessionId)
+    ).resolves.toBeNull()
+    await expect(
+      repository.getBySessionID(boundarySession.sessionId)
+    ).resolves.toEqual(boundarySession)
+    await expect(
+      repository.getBySessionID(activeSession.sessionId)
+    ).resolves.toEqual(activeSession)
+  })
 })

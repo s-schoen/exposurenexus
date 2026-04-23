@@ -38,6 +38,14 @@ export function createUserSessionRepository(database: Kysely<Database>) {
         .executeTakeFirst()
 
       return deletedSession || null
+    },
+
+    async expireSessions(thresholdDate: Date): Promise<UserSession[]> {
+      return await database
+        .deleteFrom("user_session")
+        .where("expiresAt", "<", thresholdDate)
+        .returningAll()
+        .execute()
     }
   }
 }
