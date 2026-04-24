@@ -44,6 +44,21 @@ export const userProfileSchema = userProfileInternalSchema.omit({
   passwordHash: true
 })
 
+export const createUserProfileSchema = userProfileSchema
+  .omit({
+    id: true
+  })
+  .extend({
+    password: z.string().nonempty()
+  })
+
+export const updateUserProfileSchema = userProfileSchema
+  .omit({ id: true, username: true })
+  .partial()
+  .extend({
+    password: z.string().nonempty().optional()
+  })
+
 export const userSessionSchema = z.strictObject({
   id: z.uuidv4().nonempty(),
   sessionId: z.uuidv4().nonempty(),
@@ -59,4 +74,6 @@ export type UpdateUser = z.infer<typeof updateUserSchema>
 export type User = z.infer<typeof userSchema>
 export type UserProfileInternal = z.infer<typeof userProfileInternalSchema>
 export type UserProfile = z.infer<typeof userProfileSchema>
+export type CreateUserProfile = z.infer<typeof createUserProfileSchema>
+export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>
 export type UserSession = z.infer<typeof userSessionSchema>

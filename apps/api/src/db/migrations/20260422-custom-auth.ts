@@ -1,7 +1,6 @@
-// eslint-disable-next-line
 import { type Kysely, sql } from "kysely"
 
-export async function up(db: Kysely<any>): Promise<void> {
+export async function up(db: Kysely<object>): Promise<void> {
   await db.schema
     .createTable("user_profile")
     .addColumn("id", "uuid", (col) =>
@@ -48,8 +47,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute()
 }
 
-// eslint-disable-next-line
-export async function down(db: Kysely<any>): Promise<void> {
+export async function down(db: Kysely<object>): Promise<void> {
   await db.schema.dropTable("user_profile").execute()
   await db.schema.dropTable("user_role_assignment").execute()
   await db.schema.dropTable("user_session").execute()
