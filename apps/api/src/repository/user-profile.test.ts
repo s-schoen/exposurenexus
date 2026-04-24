@@ -51,12 +51,16 @@ describe("user profile repository", () => {
     const repository = createUserProfileRepository(testDb.db)
 
     await expect(repository.create(firstProfile)).resolves.toEqual(firstProfile)
-    await expect(repository.create(secondProfile)).resolves.toEqual(secondProfile)
-
-    await expect(repository.getByID(firstProfile.id)).resolves.toEqual(firstProfile)
-    await expect(repository.getByUsername(secondProfile.username)).resolves.toEqual(
+    await expect(repository.create(secondProfile)).resolves.toEqual(
       secondProfile
     )
+
+    await expect(repository.getByID(firstProfile.id)).resolves.toEqual(
+      firstProfile
+    )
+    await expect(
+      repository.getByUsername(secondProfile.username)
+    ).resolves.toEqual(secondProfile)
 
     const profiles = await repository.list()
 
@@ -87,7 +91,9 @@ describe("user profile repository", () => {
     await expect(repository.getByID(firstProfile.id)).resolves.toEqual(
       updatedFirstProfile
     )
-    await expect(repository.getByUsername(firstProfile.username)).resolves.toBeNull()
+    await expect(
+      repository.getByUsername(firstProfile.username)
+    ).resolves.toBeNull()
     await expect(
       repository.getByUsername(updatedFirstProfile.username)
     ).resolves.toEqual(updatedFirstProfile)
