@@ -155,6 +155,7 @@ describe("app container", () => {
       authSessionHmacSecret:
         "012345678901234567890123456789012345678901234567890123456789",
       authCookieSecure: true,
+      authTrustedProxies: ["127.0.0.1"],
       apiTimeoutMs: 5000,
       logger,
       accessLogger: logger,
@@ -175,7 +176,8 @@ describe("app container", () => {
       createAuthServiceMock.mock.results[0]?.value,
       {
         csrf: createCsrfProtectionMock.mock.results[0]?.value,
-        cookiePolicy: createAuthCookiePolicyMock.mock.results[0]?.value
+        cookiePolicy: createAuthCookiePolicyMock.mock.results[0]?.value,
+        trustedProxies: ["127.0.0.1"]
       }
     )
     expect(createAuthAnnotateMock).toHaveBeenCalledWith(
@@ -214,6 +216,7 @@ describe("app container", () => {
         authSessionHmacSecret:
           "012345678901234567890123456789012345678901234567890123456789",
         authCookieSecure: false,
+        authTrustedProxies: [],
         apiTimeoutMs: 5000,
         logger,
         accessLogger: logger,
