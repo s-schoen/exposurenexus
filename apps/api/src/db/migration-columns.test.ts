@@ -11,7 +11,7 @@ vi.mock("../env.js", () => ({
   env: {
     PORT: 3001,
     LOG_LEVEL: "info",
-    AUTH_URL: "http://localhost:3000",
+    CORS_ORIGIN: "http://localhost:3000",
     AUTH_SESSION_LIFETIME: 12,
     AUTH_SECRET: "012345678901234567890123456789012345678901234567890123456789",
     DATABASE_URL: "postgres://openvlp:openvlp@localhost:5432/openvlp",
@@ -32,7 +32,7 @@ describe("db migration columns", () => {
     await testDb.dispose()
   })
 
-  it("creates better-auth admin plugin columns", async () => {
+  it("keeps legacy auth columns and creates custom session columns", async () => {
     const userColumns = await sql<{
       column_name: string
       column_default: string | null

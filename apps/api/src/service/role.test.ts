@@ -17,10 +17,8 @@ describe("role service", () => {
     getByIDs: vi.fn(),
     getByNames: vi.fn(),
     updateByID: vi.fn(),
-    deleteByID: vi.fn()
-  }
-  const userRepository = {
-    hasUsersWithRoleName: vi.fn()
+    deleteByID: vi.fn(),
+    hasUsersWithRoleID: vi.fn()
   }
   const logger = pino({ enabled: false })
   const viewerRole: Role = {
@@ -47,13 +45,12 @@ describe("role service", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    userRepository.hasUsersWithRoleName.mockResolvedValue(false)
+    roleRepository.hasUsersWithRoleID.mockResolvedValue(false)
   })
 
   it("gets roles by name", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -71,7 +68,6 @@ describe("role service", () => {
   it("lists all roles", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -84,7 +80,6 @@ describe("role service", () => {
   it("maps list failures to an HTTP 500", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -99,7 +94,6 @@ describe("role service", () => {
   it("returns a role by id", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -112,7 +106,6 @@ describe("role service", () => {
   it("returns null when a role does not exist", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -124,7 +117,6 @@ describe("role service", () => {
   it("maps get-by-id failures to an HTTP 500", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -139,7 +131,6 @@ describe("role service", () => {
   it("resolves role ids from persisted role names", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -160,7 +151,6 @@ describe("role service", () => {
   it("requires known role ids and resolves them to role names", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -182,7 +172,6 @@ describe("role service", () => {
   it("rejects unknown role ids with an HTTP 400", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -202,7 +191,6 @@ describe("role service", () => {
   it("maps role resolution failures to an HTTP 500", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -219,7 +207,6 @@ describe("role service", () => {
   it("updates a custom role", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
     const updatedRole = {
@@ -244,7 +231,6 @@ describe("role service", () => {
   it("maps duplicate role name updates to an HTTP 409", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -266,7 +252,6 @@ describe("role service", () => {
   it("rejects attempts to modify built-in roles", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -286,7 +271,6 @@ describe("role service", () => {
   it("deletes a custom role", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -296,15 +280,14 @@ describe("role service", () => {
     await expect(service.deleteByID(analystRole.id)).resolves.toEqual(
       analystRole
     )
-    expect(userRepository.hasUsersWithRoleName).toHaveBeenCalledWith(
-      analystRole.name
+    expect(roleRepository.hasUsersWithRoleID).toHaveBeenCalledWith(
+      analystRole.id
     )
   })
 
   it("rejects trying to delete a built-in role", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
@@ -321,12 +304,11 @@ describe("role service", () => {
   it("rejects deleting a role that is still assigned to users", async () => {
     const service = createRoleService({
       roleRepository,
-      userRepository,
       logger
     })
 
     roleRepository.getByID.mockResolvedValue(analystRole)
-    userRepository.hasUsersWithRoleName.mockResolvedValue(true)
+    roleRepository.hasUsersWithRoleID.mockResolvedValue(true)
 
     await expect(service.deleteByID(analystRole.id)).rejects.toMatchObject({
       status: 409,

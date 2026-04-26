@@ -12,7 +12,7 @@ import type { ContextVariables } from "./lib/hono-schema.js"
 export interface CreateAppOptions {
   logger: Logger
   accessLogger: Logger
-  authUrl: string
+  corsOrigin: string
   apiTimeoutMs: number
   annotateAuth: MiddlewareHandler<{ Variables: ContextVariables }>
   requireAuth: MiddlewareHandler<{ Variables: ContextVariables }>
@@ -37,7 +37,7 @@ export function createApp(options: CreateAppOptions) {
   app.use(
     "*",
     cors({
-      origin: options.authUrl,
+      origin: options.corsOrigin,
       allowHeaders: ["Content-Type", "Authorization"],
       allowMethods: ["POST", "GET", "DELETE", "PUT", "PATCH", "OPTIONS"],
       exposeHeaders: ["Content-Length"],

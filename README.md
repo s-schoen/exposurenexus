@@ -42,7 +42,7 @@ To run OpenVLP locally you need Node.js, `pnpm`, and PostgreSQL.
    PORT=3001
    LOG_LEVEL=info
    API_TIMEOUT_MS=5000
-   AUTH_URL=http://localhost:3000
+   CORS_ORIGIN=http://localhost:3000
    AUTH_SECRET=replace-with-a-random-secret-at-least-32-characters
    DATABASE_URL=postgres://postgres:postgres@localhost:5432/openvlp
    ```
@@ -108,8 +108,8 @@ OpenVLP is implemented as a `pnpm` monorepo with three main workspaces:
 - `apps/ui` provides the dashboard, assets, findings, vulnerabilities, triage, and import screens
 - `packages/types` contains the shared domain schemas for assets, vulnerabilities, findings, and API contracts
 
-The current stack uses Hono for the API, PostgreSQL for storage, Better Auth for authentication, and a React/Vite
-frontend with TanStack Router and TanStack Query.
+The current stack uses Hono for the API, PostgreSQL for storage, custom opaque-session authentication, and a
+React/Vite frontend with TanStack Router and TanStack Query.
 
 ## License
 
