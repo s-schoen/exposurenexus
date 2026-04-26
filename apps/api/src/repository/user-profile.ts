@@ -78,6 +78,19 @@ async function replaceRoleAssignments(
   return distinctRoleIds
 }
 
+async function deleteSessionsByUserID(
+  database: DatabaseExecutor,
+  userId: string
+): Promise<number> {
+  const deletedSessions = await database
+    .deleteFrom("user_session")
+    .where("userId", "=", userId)
+    .returning("id")
+    .execute()
+
+  return deletedSessions.length
+}
+
 export function createUserProfileRepository(database: Kysely<Database>) {
   return {
     async list(): Promise<UserProfileInternalWithRoles[]> {
@@ -148,8 +161,12 @@ export function createUserProfileRepository(database: Kysely<Database>) {
     async update(
       id: string,
       updatedProfile: Omit<UserProfileInternal, "id">,
-      roleIds: readonly string[]
-    ): Promise<UserProfileInternalWithRoles | null> {
+      roleIds: readonly string[],
+      options: { revokeSessions?: boolean } = {}
+    ): Promise<{
+      userProfile: UserProfileInternalWithRoles
+      revokedSessionCount: number
+    } | null> {
       return await database.transaction().execute(async (trx) => {
         const updated = await trx
           .updateTable("user_profile")
@@ -165,10 +182,16 @@ export function createUserProfileRepository(database: Kysely<Database>) {
         }
 
         const assignedRoleIds = await replaceRoleAssignments(trx, id, roleIds)
+        const revokedSessionCount = options.revokeSessions
+          ? await deleteSessionsByUserID(trx, id)
+          : 0
 
         return {
-          ...updated,
-          roleIds: assignedRoleIds
+          userProfile: {
+            ...updated,
+            roleIds: assignedRoleIds
+          },
+          revokedSessionCount
         }
       })
     },

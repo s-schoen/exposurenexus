@@ -318,7 +318,10 @@ describe("user profile service", () => {
     }
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
-    userProfileRepository.update.mockResolvedValue(updatedProfile)
+    userProfileRepository.update.mockResolvedValue({
+      userProfile: updatedProfile,
+      revokedSessionCount: 2
+    })
 
     await expect(
       service.updateByID(firstProfile.id, {
@@ -344,7 +347,8 @@ describe("user profile service", () => {
         enabled: false,
         passwordHash: firstProfile.passwordHash
       },
-      [builtInRoleIds.admin]
+      [builtInRoleIds.admin],
+      { revokeSessions: true }
     )
   })
 
@@ -359,7 +363,10 @@ describe("user profile service", () => {
     }
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
-    userProfileRepository.update.mockResolvedValue(updatedProfile)
+    userProfileRepository.update.mockResolvedValue({
+      userProfile: updatedProfile,
+      revokedSessionCount: 1
+    })
 
     await expect(
       service.updateByID(firstProfile.id, {
@@ -386,7 +393,94 @@ describe("user profile service", () => {
         enabled: firstProfile.enabled,
         passwordHash: "argon2-password-hash"
       },
-      []
+      [],
+      { revokeSessions: true }
+    )
+  })
+
+  it("revokes sessions when disabling a user profile", async () => {
+    const service = createUserProfileService({
+      userProfileRepository,
+      logger
+    })
+    const updatedProfile = {
+      ...firstProfile,
+      enabled: false
+    }
+
+    userProfileRepository.getByID.mockResolvedValue(firstProfile)
+    userProfileRepository.update.mockResolvedValue({
+      userProfile: updatedProfile,
+      revokedSessionCount: 1
+    })
+
+    await expect(
+      service.updateByID(firstProfile.id, {
+        enabled: false,
+        roleIds: firstProfile.roleIds
+      })
+    ).resolves.toEqual({
+      id: firstProfile.id,
+      username: firstProfile.username,
+      displayName: firstProfile.displayName,
+      email: firstProfile.email,
+      enabled: false,
+      roleIds: firstProfile.roleIds
+    })
+    expect(userProfileRepository.update).toHaveBeenCalledWith(
+      firstProfile.id,
+      {
+        username: firstProfile.username,
+        displayName: firstProfile.displayName,
+        email: firstProfile.email,
+        enabled: false,
+        passwordHash: firstProfile.passwordHash
+      },
+      firstProfile.roleIds,
+      { revokeSessions: true }
+    )
+  })
+
+  it("does not revoke sessions for non-sensitive user profile updates", async () => {
+    const service = createUserProfileService({
+      userProfileRepository,
+      logger
+    })
+    const updatedProfile = {
+      ...firstProfile,
+      displayName: "Alice Updated"
+    }
+
+    userProfileRepository.getByID.mockResolvedValue(firstProfile)
+    userProfileRepository.update.mockResolvedValue({
+      userProfile: updatedProfile,
+      revokedSessionCount: 0
+    })
+
+    await expect(
+      service.updateByID(firstProfile.id, {
+        displayName: "Alice Updated",
+        roleIds: [...firstProfile.roleIds].reverse()
+      })
+    ).resolves.toEqual({
+      id: firstProfile.id,
+      username: firstProfile.username,
+      displayName: "Alice Updated",
+      email: firstProfile.email,
+      enabled: firstProfile.enabled,
+      roleIds: firstProfile.roleIds
+    })
+    expect(userProfileRepository.update).toHaveBeenCalledWith(
+      firstProfile.id,
+      {
+        username: firstProfile.username,
+        displayName: "Alice Updated",
+        email: firstProfile.email,
+        enabled: firstProfile.enabled,
+        passwordHash: firstProfile.passwordHash
+      },
+      firstProfile.roleIds,
+      { revokeSessions: false }
     )
   })
 

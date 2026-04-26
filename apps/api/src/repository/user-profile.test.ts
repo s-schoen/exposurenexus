@@ -105,7 +105,10 @@ describe("user profile repository", () => {
         },
         [builtInRoleIds.admin]
       )
-    ).resolves.toEqual(updatedFirstProfileWithRoles)
+    ).resolves.toEqual({
+      userProfile: updatedFirstProfileWithRoles,
+      revokedSessionCount: 0
+    })
 
     await expect(repository.getByID(firstProfile.id)).resolves.toEqual(
       updatedFirstProfileWithRoles
@@ -150,6 +153,67 @@ describe("user profile repository", () => {
         []
       )
     ).resolves.toBeNull()
+  })
+
+  it("revokes user sessions during a sensitive profile update", async () => {
+    const repository = createUserProfileRepository(testDb.db)
+
+    await repository.create(firstProfile, [builtInRoleIds.viewer])
+    await repository.create(secondProfile, [builtInRoleIds.editor])
+    await testDb.db
+      .insertInto("user_session")
+      .values([
+        {
+          sessionId: "first-user-session-digest",
+          userId: firstProfile.id,
+          sourceIp: "203.0.113.10",
+          userAgent: "Mozilla/5.0",
+          createdAt: new Date("2026-04-23T08:00:00.000Z"),
+          expiresAt: new Date("2026-04-23T10:00:00.000Z")
+        },
+        {
+          sessionId: "second-user-session-digest",
+          userId: secondProfile.id,
+          sourceIp: "203.0.113.11",
+          userAgent: "curl/8.0.1",
+          createdAt: new Date("2026-04-23T08:00:00.000Z"),
+          expiresAt: new Date("2026-04-23T10:00:00.000Z")
+        }
+      ])
+      .execute()
+
+    await expect(
+      repository.update(
+        firstProfile.id,
+        {
+          username: firstProfile.username,
+          displayName: "Alice Updated",
+          email: firstProfile.email,
+          enabled: firstProfile.enabled,
+          passwordHash: firstProfile.passwordHash
+        },
+        [builtInRoleIds.viewer],
+        { revokeSessions: true }
+      )
+    ).resolves.toEqual({
+      userProfile: {
+        ...firstProfileWithRoles,
+        displayName: "Alice Updated"
+      },
+      revokedSessionCount: 1
+    })
+
+    const remainingSessions = await testDb.db
+      .selectFrom("user_session")
+      .select(["sessionId", "userId"])
+      .execute()
+
+    expect(remainingSessions).toEqual([
+      {
+        sessionId: "second-user-session-digest",
+        userId: secondProfile.id
+      }
+    ])
   })
 
   it("returns null when deleting a user profile that does not exist", async () => {

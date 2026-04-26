@@ -32,7 +32,15 @@ interface RoleRepository {
   getByID(id: string): Promise<Role | null>
   getByIDs(ids: readonly string[]): Promise<Role[]>
   getByNames(names: readonly string[]): Promise<Role[]>
-  updateByID(id: string, roleUpdate: UpdateRole): Promise<Role | null>
+  updateByID(
+    id: string,
+    roleUpdate: UpdateRole
+  ): Promise<{
+    role: Role
+    permissionsChanged: boolean
+    affectedUserCount: number
+    revokedSessionCount: number
+  } | null>
   deleteByID(id: string): Promise<Role | null>
   hasUsersWithRoleID(roleId: string): Promise<boolean>
 }
@@ -136,13 +144,24 @@ export function createRoleService({
       }
 
       try {
-        const updatedRole = await roleRepository.updateByID(id, roleUpdate)
-        if (!updatedRole) {
+        const updateResult = await roleRepository.updateByID(id, roleUpdate)
+        if (!updateResult) {
           logger.debug(`role with id ${id} not found`)
           return null
         }
 
-        return updatedRole
+        if (updateResult.permissionsChanged) {
+          logger.info(
+            {
+              roleId: id,
+              affectedUserCount: updateResult.affectedUserCount,
+              revokedSessionCount: updateResult.revokedSessionCount
+            },
+            "revoked user sessions after role permission update"
+          )
+        }
+
+        return updateResult.role
       } catch (error) {
         if (error instanceof HTTPException) {
           throw error
