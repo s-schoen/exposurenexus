@@ -35,6 +35,7 @@ vi.mock("../db/index.js", () => ({
 vi.mock("../env.js", () => ({
   env: {
     AUTH_URL: "http://localhost:3000",
+    AUTH_SESSION_LIFETIME: 12,
     AUTH_SECRET: "012345678901234567890123456789012345678901234567890123456789"
   }
 }))

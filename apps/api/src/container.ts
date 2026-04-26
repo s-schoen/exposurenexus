@@ -15,6 +15,7 @@ import {
   createRoleRepository,
   createUserProfileRepository,
   createUserRepository,
+  createUserSessionRepository,
   createVulnerabilityRepository
 } from "./repository/index.js"
 import {
@@ -47,6 +48,8 @@ export interface CreateAppContainerOptions {
   auth: AuthClient
   onRolesChanged?: () => Promise<void>
   authUrl: string
+  authSessionLifetimeHours: number
+  authSessionHmacSecret: string
   apiTimeoutMs: number
   logger: Logger
   accessLogger: Logger
@@ -67,11 +70,15 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     roleRepository: createRoleRepository(options.db),
     userProfileRepository: createUserProfileRepository(options.db),
     userRepository: createUserRepository(options.db),
+    userSessionRepository: createUserSessionRepository(options.db),
     vulnerabilityRepository: createVulnerabilityRepository(options.db)
   }
 
   const authService = createAuthService({
     userProfileRepository: repositories.userProfileRepository,
+    userSessionRepository: repositories.userSessionRepository,
+    sessionLifetimeHours: options.authSessionLifetimeHours,
+    sessionHmacSecret: options.authSessionHmacSecret,
     logger: loggerFactory("service/auth")
   })
   const assetService = createAssetService({

@@ -12,6 +12,7 @@ vi.mock("../env.js", () => ({
     PORT: 3001,
     LOG_LEVEL: "info",
     AUTH_URL: "http://localhost:3000",
+    AUTH_SESSION_LIFETIME: 12,
     AUTH_SECRET: "012345678901234567890123456789012345678901234567890123456789",
     DATABASE_URL: "postgres://openvlp:openvlp@localhost:5432/openvlp",
     API_TIMEOUT_MS: 5000
@@ -46,12 +47,28 @@ describe("db migration columns", () => {
       from information_schema.columns
       where table_name = 'session'
     `.execute(testDb.db)
+    const userSessionColumns = await sql<{
+      column_name: string
+      data_type: string
+    }>`
+      select column_name, data_type
+      from information_schema.columns
+      where table_name = 'user_session'
+    `.execute(testDb.db)
 
     expect(userColumns.rows.map((row) => row.column_name)).toEqual(
       expect.arrayContaining(["role", "banned", "banReason", "banExpires"])
     )
     expect(sessionColumns.rows.map((row) => row.column_name)).toContain(
       "impersonatedBy"
+    )
+    expect(userSessionColumns.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          column_name: "sessionId",
+          data_type: "text"
+        })
+      ])
     )
 
     const roleColumn = userColumns.rows.find(

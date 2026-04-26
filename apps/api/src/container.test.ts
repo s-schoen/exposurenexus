@@ -94,6 +94,7 @@ vi.mock("./repository/index.js", () => ({
   createRoleRepository: vi.fn(() => ({ kind: "role-repo" })),
   createUserProfileRepository: vi.fn(() => ({ kind: "user-profile-repo" })),
   createUserRepository: vi.fn(() => ({ kind: "user-repo" })),
+  createUserSessionRepository: vi.fn(() => ({ kind: "user-session-repo" })),
   createVulnerabilityRepository: vi.fn(() => ({ kind: "vulnerability-repo" }))
 }))
 
@@ -144,6 +145,9 @@ describe("app container", () => {
       db: {} as never,
       auth: auth as never,
       authUrl: "http://localhost:3000",
+      authSessionLifetimeHours: 12,
+      authSessionHmacSecret:
+        "012345678901234567890123456789012345678901234567890123456789",
       apiTimeoutMs: 5000,
       logger,
       accessLogger: logger,

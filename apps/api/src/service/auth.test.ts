@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
@@ -14,9 +15,16 @@ import { createAuthService } from "./auth.js"
 
 describe("auth service", () => {
   const userProfileRepository = {
+    getByID: vi.fn(),
     getByUsername: vi.fn()
   }
+  const userSessionRepository = {
+    getBySessionID: vi.fn(),
+    create: vi.fn(),
+    deleteBySessionID: vi.fn()
+  }
   const logger = {
+    debug: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
     warn: vi.fn()
@@ -29,17 +37,43 @@ describe("auth service", () => {
     enabled: true,
     passwordHash: "argon2-password-hash"
   }
+  const sessionHmacSecret =
+    "012345678901234567890123456789012345678901234567890123456789"
+  const sessionLifetimeHours = 12
+  const storedSession = {
+    id: "48f2e3a5-4560-4a47-85b6-137106940bbb",
+    sessionId: "stored-session-id-digest",
+    userId: enabledProfile.id,
+    sourceIp: "203.0.113.10",
+    userAgent: "Mozilla/5.0",
+    createdAt: new Date("2026-04-26T08:00:00.000Z"),
+    expiresAt: new Date("2026-04-26T20:00:00.000Z")
+  }
+
+  function createService() {
+    return createAuthService({
+      userProfileRepository,
+      userSessionRepository,
+      sessionLifetimeHours,
+      sessionHmacSecret,
+      logger
+    })
+  }
+
+  function hmacSessionId(sessionId: string): string {
+    return createHmac("sha256", sessionHmacSecret)
+      .update(sessionId)
+      .digest("base64url")
+  }
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useRealTimers()
     verifyPasswordHashMock.mockResolvedValue(false)
   })
 
   it("returns true for valid enabled user credentials", async () => {
-    const service = createAuthService({
-      userProfileRepository,
-      logger
-    })
+    const service = createService()
 
     userProfileRepository.getByUsername.mockResolvedValue(enabledProfile)
     verifyPasswordHashMock.mockResolvedValue(true)
@@ -55,10 +89,7 @@ describe("auth service", () => {
   })
 
   it("returns false for a missing username after verifying a dummy hash", async () => {
-    const service = createAuthService({
-      userProfileRepository,
-      logger
-    })
+    const service = createService()
 
     userProfileRepository.getByUsername.mockResolvedValue(null)
 
@@ -74,10 +105,7 @@ describe("auth service", () => {
   })
 
   it("returns false for an incorrect password", async () => {
-    const service = createAuthService({
-      userProfileRepository,
-      logger
-    })
+    const service = createService()
 
     userProfileRepository.getByUsername.mockResolvedValue(enabledProfile)
     verifyPasswordHashMock.mockResolvedValue(false)
@@ -92,10 +120,7 @@ describe("auth service", () => {
   })
 
   it("returns false for disabled users after verifying the stored hash", async () => {
-    const service = createAuthService({
-      userProfileRepository,
-      logger
-    })
+    const service = createService()
     const disabledProfile = {
       ...enabledProfile,
       enabled: false
@@ -114,10 +139,7 @@ describe("auth service", () => {
   })
 
   it("returns false when the stored password hash cannot be verified", async () => {
-    const service = createAuthService({
-      userProfileRepository,
-      logger
-    })
+    const service = createService()
     const profileWithMalformedHash = {
       ...enabledProfile,
       passwordHash: "not-a-password-hash"
@@ -138,10 +160,7 @@ describe("auth service", () => {
   })
 
   it("logs and maps repository failures to an HTTP 500", async () => {
-    const service = createAuthService({
-      userProfileRepository,
-      logger
-    })
+    const service = createService()
     const error = new Error("db offline")
 
     userProfileRepository.getByUsername.mockRejectedValue(error)
@@ -157,5 +176,221 @@ describe("auth service", () => {
       "failed to check user credentials"
     )
     expect(verifyPasswordHashMock).not.toHaveBeenCalled()
+  })
+
+  it("creates sessions with an opaque token and stores only an HMAC digest", async () => {
+    const service = createService()
+    const now = new Date("2026-04-26T08:00:00.000Z")
+
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+    userSessionRepository.create.mockImplementation(async (session) => ({
+      id: storedSession.id,
+      ...session
+    }))
+
+    const result = await service.createSession({
+      userId: enabledProfile.id,
+      sourceIp: "203.0.113.10",
+      userAgent: "Mozilla/5.0"
+    })
+
+    expect(result.sessionId).toEqual(expect.any(String))
+    expect(result.sessionId).not.toBe(result.session.sessionId)
+    expect(userSessionRepository.create).toHaveBeenCalledWith({
+      sessionId: hmacSessionId(result.sessionId),
+      userId: enabledProfile.id,
+      sourceIp: "203.0.113.10",
+      userAgent: "Mozilla/5.0",
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + sessionLifetimeHours * 60 * 60 * 1000)
+    })
+  })
+
+  it("creates sessions with null source metadata when omitted", async () => {
+    const service = createService()
+    const now = new Date("2026-04-26T08:00:00.000Z")
+
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+    userSessionRepository.create.mockImplementation(async (session) => ({
+      id: storedSession.id,
+      ...session
+    }))
+
+    const result = await service.createSession({
+      userId: enabledProfile.id
+    })
+
+    expect(userSessionRepository.create).toHaveBeenCalledWith({
+      sessionId: hmacSessionId(result.sessionId),
+      userId: enabledProfile.id,
+      sourceIp: null,
+      userAgent: null,
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + sessionLifetimeHours * 60 * 60 * 1000)
+    })
+  })
+
+  it("maps session creation failures to an HTTP 500", async () => {
+    const service = createService()
+    const error = new Error("db offline")
+
+    userSessionRepository.create.mockRejectedValue(error)
+
+    await expect(
+      service.createSession({
+        userId: enabledProfile.id
+      })
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to create user session"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("validates active sessions and returns the public user profile", async () => {
+    const service = createService()
+    const sessionId = "public-session-token"
+
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-04-26T08:00:00.000Z"))
+    userSessionRepository.getBySessionID.mockResolvedValue(storedSession)
+    userProfileRepository.getByID.mockResolvedValue(enabledProfile)
+
+    await expect(service.validateSession(sessionId)).resolves.toEqual({
+      session: storedSession,
+      user: {
+        id: enabledProfile.id,
+        username: enabledProfile.username,
+        displayName: enabledProfile.displayName,
+        email: enabledProfile.email,
+        enabled: enabledProfile.enabled
+      }
+    })
+    expect(userSessionRepository.getBySessionID).toHaveBeenCalledWith(
+      hmacSessionId(sessionId)
+    )
+    expect(userProfileRepository.getByID).toHaveBeenCalledWith(
+      storedSession.userId
+    )
+  })
+
+  it("maps session lookup failures during validation to an HTTP 500", async () => {
+    const service = createService()
+
+    userSessionRepository.getBySessionID.mockRejectedValue(
+      new Error("db offline")
+    )
+
+    await expect(
+      service.validateSession("public-session-token")
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to validate user session"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("maps user lookup failures during validation to an HTTP 500", async () => {
+    const service = createService()
+
+    userSessionRepository.getBySessionID.mockResolvedValue(storedSession)
+    userProfileRepository.getByID.mockRejectedValue(new Error("db offline"))
+
+    await expect(
+      service.validateSession("public-session-token")
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to validate user session"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("returns null when validating a missing session", async () => {
+    const service = createService()
+
+    userSessionRepository.getBySessionID.mockResolvedValue(null)
+
+    await expect(
+      service.validateSession("missing-session-token")
+    ).resolves.toBeNull()
+    expect(userProfileRepository.getByID).not.toHaveBeenCalled()
+  })
+
+  it("returns null when validating an expired session", async () => {
+    const service = createService()
+    const expiredSession = {
+      ...storedSession,
+      expiresAt: new Date("2026-04-26T07:59:59.000Z")
+    }
+
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-04-26T08:00:00.000Z"))
+    userSessionRepository.getBySessionID.mockResolvedValue(expiredSession)
+
+    await expect(
+      service.validateSession("expired-session-token")
+    ).resolves.toBeNull()
+    expect(userProfileRepository.getByID).not.toHaveBeenCalled()
+  })
+
+  it("returns null when validating a session for a deleted user", async () => {
+    const service = createService()
+
+    userSessionRepository.getBySessionID.mockResolvedValue(storedSession)
+    userProfileRepository.getByID.mockResolvedValue(null)
+
+    await expect(
+      service.validateSession("deleted-user-session-token")
+    ).resolves.toBeNull()
+  })
+
+  it("returns null when validating a session for a disabled user", async () => {
+    const service = createService()
+
+    userSessionRepository.getBySessionID.mockResolvedValue(storedSession)
+    userProfileRepository.getByID.mockResolvedValue({
+      ...enabledProfile,
+      enabled: false
+    })
+
+    await expect(
+      service.validateSession("disabled-user-session-token")
+    ).resolves.toBeNull()
+  })
+
+  it("revokes existing sessions by deleting the stored HMAC digest", async () => {
+    const service = createService()
+    const sessionId = "public-session-token"
+
+    userSessionRepository.deleteBySessionID.mockResolvedValue(storedSession)
+
+    await expect(service.revokeSession(sessionId)).resolves.toBe(true)
+    expect(userSessionRepository.deleteBySessionID).toHaveBeenCalledWith(
+      hmacSessionId(sessionId)
+    )
+  })
+
+  it("returns false when revoking a missing session", async () => {
+    const service = createService()
+
+    userSessionRepository.deleteBySessionID.mockResolvedValue(null)
+
+    await expect(service.revokeSession("missing-session-token")).resolves.toBe(
+      false
+    )
+  })
+
+  it("maps session revocation failures to an HTTP 500", async () => {
+    const service = createService()
+
+    userSessionRepository.deleteBySessionID.mockRejectedValue(
+      new Error("db offline")
+    )
+
+    await expect(
+      service.revokeSession("public-session-token")
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to revoke user session"
+    } satisfies Partial<HTTPException>)
   })
 })

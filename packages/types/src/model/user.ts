@@ -61,7 +61,7 @@ export const updateUserProfileSchema = userProfileSchema
 
 export const userSessionSchema = z.strictObject({
   id: z.uuidv4().nonempty(),
-  sessionId: z.uuidv4().nonempty(),
+  sessionId: z.string().nonempty(),
   userId: z.uuidv4().nonempty(),
   sourceIp: z.string().nullable(),
   userAgent: z.string().nullable(),

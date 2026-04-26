@@ -48,6 +48,8 @@ const container = createAppContainer({
   auth,
   onRolesChanged,
   authUrl: env.AUTH_URL,
+  authSessionLifetimeHours: env.AUTH_SESSION_LIFETIME,
+  authSessionHmacSecret: env.AUTH_SECRET,
   apiTimeoutMs: env.API_TIMEOUT_MS,
   logger,
   accessLogger: auditLogger,
