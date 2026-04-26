@@ -1,9 +1,11 @@
 import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import {
-  createUserSchema,
-  updateUserSchema,
-  type User
+  createUserProfileSchema,
+  updateUserProfileSchema,
+  type CreateUserProfile,
+  type UpdateUserProfile,
+  type UserProfile
 } from "@openvlp/types/model/user"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
@@ -11,24 +13,17 @@ import type { ContextVariables } from "../lib/hono-schema.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 
 interface UserRouteService {
-  listAll(): Promise<User[]>
-  getByID(id: string): Promise<User | null>
-  create(
-    user: z.infer<typeof createUserSchema>,
-    headers: Headers
-  ): Promise<User>
-  updateByID(
-    id: string,
-    user: z.infer<typeof updateUserSchema>,
-    headers: Headers
-  ): Promise<User | null>
+  listAll(): Promise<UserProfile[]>
+  getByID(id: string): Promise<UserProfile | null>
+  create(user: CreateUserProfile): Promise<UserProfile>
+  updateByID(id: string, user: UpdateUserProfile): Promise<UserProfile | null>
 }
 
 interface UserRouteDependencies {
   requireDomainPermission: RequireDomainPermission
 }
 
-const idParamValidator = zValidator("param", z.object({ id: z.string() }))
+const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
 
 export function createUserRoute(
   userService: UserRouteService,
@@ -60,10 +55,10 @@ export function createUserRoute(
   user.post(
     "/",
     requireDomainPermission("user", "write"),
-    zValidator("json", createUserSchema),
+    zValidator("json", createUserProfileSchema),
     async (c) => {
       const body = c.req.valid("json")
-      const createdUser = await userService.create(body, c.req.raw.headers)
+      const createdUser = await userService.create(body)
       return replyObject(c, createdUser, true)
     }
   )
@@ -72,16 +67,12 @@ export function createUserRoute(
     "/:id",
     requireDomainPermission("user", "write"),
     idParamValidator,
-    zValidator("json", updateUserSchema),
+    zValidator("json", updateUserProfileSchema),
     async (c) => {
       const params = c.req.valid("param")
       const body = c.req.valid("json")
 
-      const updatedUser = await userService.updateByID(
-        params.id,
-        body,
-        c.req.raw.headers
-      )
+      const updatedUser = await userService.updateByID(params.id, body)
       if (!updatedUser) {
         notFound("user", params.id)
       }

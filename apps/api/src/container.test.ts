@@ -105,6 +105,7 @@ vi.mock("./service/index.js", () => ({
   createFindingService: vi.fn(() => ({ kind: "finding-service" })),
   createRoleService: vi.fn(() => ({ kind: "role-service" })),
   createStatsService: vi.fn(() => ({ kind: "stats-service" })),
+  createUserProfileService: vi.fn(() => ({ kind: "user-profile-service" })),
   createUserService: vi.fn(() => ({ kind: "user-service" })),
   createVulnerabilityService: vi.fn(() => ({ kind: "vulnerability-service" }))
 }))
@@ -163,6 +164,10 @@ describe("app container", () => {
       auth.api.userHasPermission
     )
     expect(createRoleRouteMock).toHaveBeenCalledOnce()
+    expect(createUserRouteMock).toHaveBeenCalledWith(
+      { kind: "user-profile-service" },
+      { requireDomainPermission: expect.any(Function) }
+    )
     expect(container.auth).toBe(auth)
   })
 })

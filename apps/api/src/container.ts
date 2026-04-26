@@ -25,6 +25,7 @@ import {
   createFindingService,
   createRoleService,
   createStatsService,
+  createUserProfileService,
   createUserService,
   createVulnerabilityService
 } from "./service/index.js"
@@ -94,6 +95,10 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     onRolesChanged: options.onRolesChanged,
     logger: loggerFactory("service/role")
   })
+  const userProfileService = createUserProfileService({
+    userProfileRepository: repositories.userProfileRepository,
+    logger: loggerFactory("service/user-profile")
+  })
   const userService = createUserService({
     userRepository: repositories.userRepository,
     roleService,
@@ -136,7 +141,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     authRoute: createAuthRoute(auth),
     assetRoute: createAssetRoute(assetService, { requireDomainPermission }),
     roleRoute: createRoleRoute(roleService, { requireDomainPermission }),
-    userRoute: createUserRoute(userService, { requireDomainPermission }),
+    userRoute: createUserRoute(userProfileService, { requireDomainPermission }),
     vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService, {
       requireDomainPermission
     }),
@@ -175,6 +180,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
       authService,
       assetService,
       roleService,
+      userProfileService,
       userService,
       vulnerabilityService,
       findingService,
