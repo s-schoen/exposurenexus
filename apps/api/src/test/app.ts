@@ -38,6 +38,7 @@ export function createTestUser(
     username: "tester",
     displayName: "Test User",
     enabled: true,
+    roleIds: [],
     ...overrides
   }
 }

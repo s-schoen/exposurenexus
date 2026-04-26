@@ -3,22 +3,24 @@ import type { Logger } from "pino"
 import type {
   CreateUserProfile,
   UserProfile,
-  UserProfileInternal,
+  UserProfileInternalWithRoles,
   UpdateUserProfile
 } from "@openvlp/types/model/user"
 import { hashPlaintextPassword } from "../lib/argon2.js"
 
 interface UserProfileRepository {
-  list(): Promise<UserProfileInternal[]>
-  getByID(id: string): Promise<UserProfileInternal | null>
-  getByUsername(username: string): Promise<UserProfileInternal | null>
+  list(): Promise<UserProfileInternalWithRoles[]>
+  getByID(id: string): Promise<UserProfileInternalWithRoles | null>
+  getByUsername(username: string): Promise<UserProfileInternalWithRoles | null>
   create(
-    userProfile: Omit<UserProfileInternal, "id">
-  ): Promise<UserProfileInternal>
+    userProfile: Omit<UserProfileInternalWithRoles, "id" | "roleIds">,
+    roleIds: readonly string[]
+  ): Promise<UserProfileInternalWithRoles>
   update(
     id: string,
-    userProfile: Omit<UserProfileInternal, "id">
-  ): Promise<UserProfileInternal | null>
+    userProfile: Omit<UserProfileInternalWithRoles, "id" | "roleIds">,
+    roleIds: readonly string[]
+  ): Promise<UserProfileInternalWithRoles | null>
 }
 
 interface UserProfileServiceDependencies {
@@ -26,13 +28,14 @@ interface UserProfileServiceDependencies {
   logger: Logger
 }
 
-function toUserProfile(userProfile: UserProfileInternal): UserProfile {
+function toUserProfile(userProfile: UserProfileInternalWithRoles): UserProfile {
   return {
     id: userProfile.id,
     username: userProfile.username,
     displayName: userProfile.displayName,
     email: userProfile.email,
-    enabled: userProfile.enabled
+    enabled: userProfile.enabled,
+    roleIds: userProfile.roleIds
   }
 }
 
@@ -57,9 +60,32 @@ function isConflictError(error: unknown): boolean {
   )
 }
 
+function isForeignKeyError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  const errorWithStatus = error as Error & {
+    code?: string
+  }
+  const message = error.message.toLowerCase()
+
+  return (
+    errorWithStatus.code === "23503" ||
+    message.includes("foreign key") ||
+    message.includes("violates foreign key constraint")
+  )
+}
+
 function userProfileConflict(): HTTPException {
   return new HTTPException(409, {
     message: "user profile already exists"
+  })
+}
+
+function invalidUserRoleAssignment(): HTTPException {
+  return new HTTPException(400, {
+    message: "invalid user role assignment"
   })
 }
 
@@ -118,11 +144,14 @@ export function createUserProfileService({
 
     async create(userProfile: CreateUserProfile): Promise<UserProfile> {
       try {
-        const { password, ...profile } = userProfile
-        const createdProfile = await userProfileRepository.create({
-          ...profile,
-          passwordHash: await hashPlaintextPassword(password)
-        })
+        const { password, roleIds, ...profile } = userProfile
+        const createdProfile = await userProfileRepository.create(
+          {
+            ...profile,
+            passwordHash: await hashPlaintextPassword(password)
+          },
+          roleIds
+        )
 
         logger.info(
           { userProfileId: createdProfile.id },
@@ -133,6 +162,10 @@ export function createUserProfileService({
         if (isConflictError(error)) {
           logger.debug(error, "user profile create conflict")
           throw userProfileConflict()
+        }
+        if (isForeignKeyError(error)) {
+          logger.debug(error, "user profile create role assignment invalid")
+          throw invalidUserRoleAssignment()
         }
 
         logger.error(
@@ -156,17 +189,21 @@ export function createUserProfileService({
           return null
         }
 
-        const { password, ...profile } = userProfile
-        const updatedProfile = await userProfileRepository.update(id, {
-          username: existingProfile.username,
-          displayName: profile.displayName ?? existingProfile.displayName,
-          email: profile.email ?? existingProfile.email,
-          enabled: profile.enabled ?? existingProfile.enabled,
-          passwordHash:
-            password === undefined
-              ? existingProfile.passwordHash
-              : await hashPlaintextPassword(password)
-        })
+        const { password, roleIds, ...profile } = userProfile
+        const updatedProfile = await userProfileRepository.update(
+          id,
+          {
+            username: existingProfile.username,
+            displayName: profile.displayName ?? existingProfile.displayName,
+            email: profile.email ?? existingProfile.email,
+            enabled: profile.enabled ?? existingProfile.enabled,
+            passwordHash:
+              password === undefined
+                ? existingProfile.passwordHash
+                : await hashPlaintextPassword(password)
+          },
+          roleIds
+        )
 
         if (!updatedProfile) {
           logger.debug(`cannot update user profile ${id}: not found`)
@@ -179,6 +216,10 @@ export function createUserProfileService({
         if (isConflictError(error)) {
           logger.debug(error, "user profile update conflict")
           throw userProfileConflict()
+        }
+        if (isForeignKeyError(error)) {
+          logger.debug(error, "user profile update role assignment invalid")
+          throw invalidUserRoleAssignment()
         }
 
         logger.error(error, `failed to update user profile with id ${id}`)

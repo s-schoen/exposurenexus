@@ -14,6 +14,7 @@ import {
   builtInRoleIds
 } from "@openvlp/types/model/rbac"
 import { createUserRoleRepository } from "./user-role.js"
+import { createUserProfileRepository } from "./user-profile.js"
 import { createTestDatabase, resetTestDatabase } from "../test/db.js"
 
 vi.mock("../db/index.js", () => ({
@@ -172,6 +173,36 @@ describe("user role repository", () => {
     await expect(
       repository.listPermissionsByUserID("ca8be35f-b523-47d1-a9d8-743dc272c0cb")
     ).resolves.toEqual([])
+  })
+
+  it("returns permissions for roles assigned through user profile creation", async () => {
+    const userProfileRepository = createUserProfileRepository(testDb.db)
+    const userRoleRepository = createUserRoleRepository(testDb.db)
+    const createdUser = await userProfileRepository.create(
+      {
+        username: "charlie",
+        displayName: "Charlie Example",
+        email: "charlie@example.com",
+        enabled: true,
+        passwordHash: "hash-charlie"
+      },
+      [builtInRoleIds.viewer]
+    )
+
+    await expect(
+      userRoleRepository.listPermissionsByUserID(createdUser.id)
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Read
+        },
+        {
+          resource: PermissionResource.Finding,
+          verb: PermissionVerb.Read
+        }
+      ])
+    )
   })
 
   it("creates a role with permissions", async () => {

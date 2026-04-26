@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
 import { pino } from "pino"
+import { builtInRoleIds } from "@openvlp/types/model/rbac"
 
 const { hashPlaintextPasswordMock } = vi.hoisted(() => ({
   hashPlaintextPasswordMock: vi.fn()
@@ -27,7 +28,8 @@ describe("user profile service", () => {
     displayName: "Alice Example",
     email: "alice@example.com",
     enabled: true,
-    passwordHash: "hash-alice"
+    passwordHash: "hash-alice",
+    roleIds: [builtInRoleIds.viewer]
   }
   const secondProfile = {
     id: "4fa42fa9-3ff9-48d4-9150-34681f393885",
@@ -35,7 +37,8 @@ describe("user profile service", () => {
     displayName: "Bob Example",
     email: "bob@example.com",
     enabled: false,
-    passwordHash: "hash-bob"
+    passwordHash: "hash-bob",
+    roleIds: [builtInRoleIds.editor]
   }
 
   beforeEach(() => {
@@ -57,14 +60,16 @@ describe("user profile service", () => {
         username: firstProfile.username,
         displayName: firstProfile.displayName,
         email: firstProfile.email,
-        enabled: firstProfile.enabled
+        enabled: firstProfile.enabled,
+        roleIds: firstProfile.roleIds
       },
       {
         id: secondProfile.id,
         username: secondProfile.username,
         displayName: secondProfile.displayName,
         email: secondProfile.email,
-        enabled: secondProfile.enabled
+        enabled: secondProfile.enabled,
+        roleIds: secondProfile.roleIds
       }
     ])
     expect(userProfileRepository.list).toHaveBeenCalledOnce()
@@ -97,7 +102,8 @@ describe("user profile service", () => {
       username: firstProfile.username,
       displayName: firstProfile.displayName,
       email: firstProfile.email,
-      enabled: firstProfile.enabled
+      enabled: firstProfile.enabled,
+      roleIds: firstProfile.roleIds
     })
     expect(userProfileRepository.getByID).toHaveBeenCalledWith(firstProfile.id)
   })
@@ -144,7 +150,8 @@ describe("user profile service", () => {
       username: secondProfile.username,
       displayName: secondProfile.displayName,
       email: secondProfile.email,
-      enabled: secondProfile.enabled
+      enabled: secondProfile.enabled,
+      roleIds: secondProfile.roleIds
     })
     expect(userProfileRepository.getByUsername).toHaveBeenCalledWith(
       secondProfile.username
@@ -185,7 +192,8 @@ describe("user profile service", () => {
     })
     const createdProfile = {
       ...firstProfile,
-      passwordHash: "argon2-password-hash"
+      passwordHash: "argon2-password-hash",
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.admin]
     }
 
     userProfileRepository.create.mockResolvedValue(createdProfile)
@@ -196,6 +204,7 @@ describe("user profile service", () => {
         displayName: firstProfile.displayName,
         email: firstProfile.email,
         enabled: firstProfile.enabled,
+        roleIds: [builtInRoleIds.viewer, builtInRoleIds.admin],
         password: "correct-horse-battery-staple"
       })
     ).resolves.toEqual({
@@ -203,18 +212,22 @@ describe("user profile service", () => {
       username: firstProfile.username,
       displayName: firstProfile.displayName,
       email: firstProfile.email,
-      enabled: firstProfile.enabled
+      enabled: firstProfile.enabled,
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.admin]
     })
     expect(hashPlaintextPasswordMock).toHaveBeenCalledWith(
       "correct-horse-battery-staple"
     )
-    expect(userProfileRepository.create).toHaveBeenCalledWith({
-      username: firstProfile.username,
-      displayName: firstProfile.displayName,
-      email: firstProfile.email,
-      enabled: firstProfile.enabled,
-      passwordHash: "argon2-password-hash"
-    })
+    expect(userProfileRepository.create).toHaveBeenCalledWith(
+      {
+        username: firstProfile.username,
+        displayName: firstProfile.displayName,
+        email: firstProfile.email,
+        enabled: firstProfile.enabled,
+        passwordHash: "argon2-password-hash"
+      },
+      [builtInRoleIds.viewer, builtInRoleIds.admin]
+    )
   })
 
   it("maps create conflicts to an HTTP 409", async () => {
@@ -233,11 +246,39 @@ describe("user profile service", () => {
         displayName: firstProfile.displayName,
         email: firstProfile.email,
         enabled: firstProfile.enabled,
+        roleIds: [builtInRoleIds.viewer],
         password: "correct-horse-battery-staple"
       })
     ).rejects.toMatchObject({
       status: 409,
       message: "user profile already exists"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("maps invalid create role assignments to an HTTP 400", async () => {
+    const service = createUserProfileService({
+      userProfileRepository,
+      logger
+    })
+
+    userProfileRepository.create.mockRejectedValue(
+      Object.assign(new Error("violates foreign key constraint"), {
+        code: "23503"
+      })
+    )
+
+    await expect(
+      service.create({
+        username: firstProfile.username,
+        displayName: firstProfile.displayName,
+        email: firstProfile.email,
+        enabled: firstProfile.enabled,
+        roleIds: ["9d9e119a-9c9a-41b0-b2fe-c40a05c45be7"],
+        password: "correct-horse-battery-staple"
+      })
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "invalid user role assignment"
     } satisfies Partial<HTTPException>)
   })
 
@@ -255,6 +296,7 @@ describe("user profile service", () => {
         displayName: firstProfile.displayName,
         email: firstProfile.email,
         enabled: firstProfile.enabled,
+        roleIds: [builtInRoleIds.viewer],
         password: "correct-horse-battery-staple"
       })
     ).rejects.toMatchObject({
@@ -271,7 +313,8 @@ describe("user profile service", () => {
     const updatedProfile = {
       ...firstProfile,
       displayName: "Alice Updated",
-      enabled: false
+      enabled: false,
+      roleIds: [builtInRoleIds.admin]
     }
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
@@ -280,23 +323,29 @@ describe("user profile service", () => {
     await expect(
       service.updateByID(firstProfile.id, {
         displayName: "Alice Updated",
-        enabled: false
+        enabled: false,
+        roleIds: [builtInRoleIds.admin]
       })
     ).resolves.toEqual({
       id: firstProfile.id,
       username: firstProfile.username,
       displayName: "Alice Updated",
       email: firstProfile.email,
-      enabled: false
+      enabled: false,
+      roleIds: [builtInRoleIds.admin]
     })
     expect(hashPlaintextPasswordMock).not.toHaveBeenCalled()
-    expect(userProfileRepository.update).toHaveBeenCalledWith(firstProfile.id, {
-      username: firstProfile.username,
-      displayName: "Alice Updated",
-      email: firstProfile.email,
-      enabled: false,
-      passwordHash: firstProfile.passwordHash
-    })
+    expect(userProfileRepository.update).toHaveBeenCalledWith(
+      firstProfile.id,
+      {
+        username: firstProfile.username,
+        displayName: "Alice Updated",
+        email: firstProfile.email,
+        enabled: false,
+        passwordHash: firstProfile.passwordHash
+      },
+      [builtInRoleIds.admin]
+    )
   })
 
   it("updates a user profile password when provided", async () => {
@@ -314,25 +363,31 @@ describe("user profile service", () => {
 
     await expect(
       service.updateByID(firstProfile.id, {
-        password: "new-correct-horse-battery-staple"
+        password: "new-correct-horse-battery-staple",
+        roleIds: []
       })
     ).resolves.toEqual({
       id: firstProfile.id,
       username: firstProfile.username,
       displayName: firstProfile.displayName,
       email: firstProfile.email,
-      enabled: firstProfile.enabled
+      enabled: firstProfile.enabled,
+      roleIds: firstProfile.roleIds
     })
     expect(hashPlaintextPasswordMock).toHaveBeenCalledWith(
       "new-correct-horse-battery-staple"
     )
-    expect(userProfileRepository.update).toHaveBeenCalledWith(firstProfile.id, {
-      username: firstProfile.username,
-      displayName: firstProfile.displayName,
-      email: firstProfile.email,
-      enabled: firstProfile.enabled,
-      passwordHash: "argon2-password-hash"
-    })
+    expect(userProfileRepository.update).toHaveBeenCalledWith(
+      firstProfile.id,
+      {
+        username: firstProfile.username,
+        displayName: firstProfile.displayName,
+        email: firstProfile.email,
+        enabled: firstProfile.enabled,
+        passwordHash: "argon2-password-hash"
+      },
+      []
+    )
   })
 
   it("returns null when updating a user profile that does not exist", async () => {
@@ -346,7 +401,8 @@ describe("user profile service", () => {
 
     await expect(
       service.updateByID(userProfileId, {
-        displayName: "Missing User"
+        displayName: "Missing User",
+        roleIds: []
       })
     ).resolves.toBeNull()
     expect(userProfileRepository.update).not.toHaveBeenCalled()
@@ -363,7 +419,8 @@ describe("user profile service", () => {
 
     await expect(
       service.updateByID(firstProfile.id, {
-        displayName: "Alice Updated"
+        displayName: "Alice Updated",
+        roleIds: firstProfile.roleIds
       })
     ).resolves.toBeNull()
   })
@@ -381,11 +438,35 @@ describe("user profile service", () => {
 
     await expect(
       service.updateByID(firstProfile.id, {
-        email: secondProfile.email
+        email: secondProfile.email,
+        roleIds: secondProfile.roleIds
       })
     ).rejects.toMatchObject({
       status: 409,
       message: "user profile already exists"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("maps invalid update role assignments to an HTTP 400", async () => {
+    const service = createUserProfileService({
+      userProfileRepository,
+      logger
+    })
+
+    userProfileRepository.getByID.mockResolvedValue(firstProfile)
+    userProfileRepository.update.mockRejectedValue(
+      Object.assign(new Error("violates foreign key constraint"), {
+        code: "23503"
+      })
+    )
+
+    await expect(
+      service.updateByID(firstProfile.id, {
+        roleIds: ["9d9e119a-9c9a-41b0-b2fe-c40a05c45be7"]
+      })
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "invalid user role assignment"
     } satisfies Partial<HTTPException>)
   })
 
@@ -400,7 +481,8 @@ describe("user profile service", () => {
 
     await expect(
       service.updateByID(firstProfile.id, {
-        displayName: "Alice Updated"
+        displayName: "Alice Updated",
+        roleIds: firstProfile.roleIds
       })
     ).rejects.toMatchObject({
       status: 500,
