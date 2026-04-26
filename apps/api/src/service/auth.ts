@@ -8,7 +8,7 @@ import type {
 } from "@openvlp/types/model/rbac"
 import type {
   UserProfile,
-  UserProfileInternal,
+  UserProfileInternalWithRoles,
   UserSession
 } from "@openvlp/types/model/user"
 import { verifyPasswordHash } from "../lib/argon2.js"
@@ -17,8 +17,8 @@ const DUMMY_PASSWORD_HASH =
   "$argon2id$v=19$m=65536,t=3,p=4$Wa8M0nF1X8xS27SqOFnmsw$98GFJBEC07TapmYXC8zGbR7ARdLfDSr2t1sWeARp0Ag"
 
 interface UserProfileRepository {
-  getByID(id: string): Promise<UserProfileInternal | null>
-  getByUsername(username: string): Promise<UserProfileInternal | null>
+  getByID(id: string): Promise<UserProfileInternalWithRoles | null>
+  getByUsername(username: string): Promise<UserProfileInternalWithRoles | null>
 }
 
 interface UserSessionRepository {
@@ -82,13 +82,14 @@ export interface AuthService {
   ): Promise<boolean>
 }
 
-function toUserProfile(userProfile: UserProfileInternal): UserProfile {
+function toUserProfile(userProfile: UserProfileInternalWithRoles): UserProfile {
   return {
     id: userProfile.id,
     username: userProfile.username,
     displayName: userProfile.displayName,
     email: userProfile.email,
-    enabled: userProfile.enabled
+    enabled: userProfile.enabled,
+    roleIds: userProfile.roleIds
   }
 }
 
@@ -141,7 +142,7 @@ export function createAuthService({
   async function authenticateUserProfile(
     username: string,
     password: string
-  ): Promise<UserProfileInternal | null> {
+  ): Promise<UserProfileInternalWithRoles | null> {
     const userProfile = await userProfileRepository.getByUsername(username)
     const passwordHash = userProfile?.passwordHash ?? DUMMY_PASSWORD_HASH
     const passwordMatches = await verifyPasswordHash(password, passwordHash)
@@ -155,7 +156,7 @@ export function createAuthService({
 
   async function createUserSession(
     input: CreateSessionInput,
-    userProfile?: UserProfileInternal
+    userProfile?: UserProfileInternalWithRoles
   ): Promise<CreatedSession> {
     const now = new Date()
     const sessionId = createSessionToken()

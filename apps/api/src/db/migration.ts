@@ -7,6 +7,7 @@ import * as m5 from "./migrations/20260418-rbac-role-default.js"
 import * as m6 from "./migrations/20260419-rbac-role-permissions.js"
 import * as m7 from "./migrations/20260422-custom-auth.js"
 import * as m8 from "./migrations/20260426-user-session-id-text.js"
+import * as m9 from "./migrations/20260427-user-role-assignment-primary-key.js"
 import { db, logger } from "./index.js"
 import type { Database } from "./index.js"
 import type { Kysely } from "kysely"
@@ -22,7 +23,11 @@ class ManualMigrationProvider implements MigrationProvider {
       "20260418-rbac-role-default": { up: m5.up, down: m5.down },
       "20260419-rbac-role-permissions": { up: m6.up, down: m6.down },
       "20260422-custom-auth": { up: m7.up, down: m7.down },
-      "20260426-user-session-id-text": { up: m8.up, down: m8.down }
+      "20260426-user-session-id-text": { up: m8.up, down: m8.down },
+      "20260427-user-role-assignment-primary-key": {
+        up: m9.up,
+        down: m9.down
+      }
     }
 
     return Promise.resolve(migrations)

@@ -6,7 +6,7 @@ export const createUserSchema = z.strictObject({
   username: z.string().trim().min(1),
   displayUsername: z.string().trim().min(1),
   password: z.string().min(1),
-  roleIds: z.array(z.uuidv4()).optional()
+  roleIds: z.array(z.uuidv4())
 })
 
 export const updateUserSchema = z.strictObject({
@@ -15,7 +15,7 @@ export const updateUserSchema = z.strictObject({
   displayUsername: z.string().trim().min(1),
   image: z.string().nullable(),
   password: z.string().min(1).optional(),
-  roleIds: z.array(z.uuidv4()).optional()
+  roleIds: z.array(z.uuidv4())
 })
 
 export const userSchema = z.strictObject({
@@ -40,9 +40,13 @@ export const userProfileInternalSchema = z.strictObject({
   passwordHash: z.string().nonempty()
 })
 
-export const userProfileSchema = userProfileInternalSchema.omit({
-  passwordHash: true
-})
+export const userProfileSchema = userProfileInternalSchema
+  .omit({
+    passwordHash: true
+  })
+  .extend({
+    roleIds: z.array(z.uuidv4())
+  })
 
 export const createUserProfileSchema = userProfileSchema
   .omit({
@@ -53,10 +57,11 @@ export const createUserProfileSchema = userProfileSchema
   })
 
 export const updateUserProfileSchema = userProfileSchema
-  .omit({ id: true, username: true })
+  .omit({ id: true, username: true, roleIds: true })
   .partial()
   .extend({
-    password: z.string().nonempty().optional()
+    password: z.string().nonempty().optional(),
+    roleIds: z.array(z.uuidv4())
   })
 
 export const userSessionSchema = z.strictObject({
@@ -73,6 +78,9 @@ export type CreateUser = z.infer<typeof createUserSchema>
 export type UpdateUser = z.infer<typeof updateUserSchema>
 export type User = z.infer<typeof userSchema>
 export type UserProfileInternal = z.infer<typeof userProfileInternalSchema>
+export type UserProfileInternalWithRoles = UserProfileInternal & {
+  roleIds: string[]
+}
 export type UserProfile = z.infer<typeof userProfileSchema>
 export type CreateUserProfile = z.infer<typeof createUserProfileSchema>
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>

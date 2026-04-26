@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { PermissionResource, PermissionVerb } from "@openvlp/types/model/rbac"
+import {
+  PermissionResource,
+  PermissionVerb,
+  builtInRoleIds
+} from "@openvlp/types/model/rbac"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -20,7 +24,8 @@ describe("user routes", () => {
     username: "alice",
     displayName: "Alice Example",
     email: "alice@example.com",
-    enabled: true
+    enabled: true,
+    roleIds: [builtInRoleIds.viewer]
   }
   const userService = {
     listAll: vi.fn(),
@@ -185,6 +190,7 @@ describe("user routes", () => {
       displayName: "Alice Example",
       email: "alice@example.com",
       enabled: true,
+      roleIds: [builtInRoleIds.viewer],
       password: "correct-horse-battery-staple"
     }
 
@@ -235,7 +241,34 @@ describe("user routes", () => {
         displayName: "Alice Example",
         email: "not-an-email",
         enabled: true,
+        roleIds: [builtInRoleIds.viewer],
         password: ""
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(userService.create).not.toHaveBeenCalled()
+  })
+
+  it("rejects user create bodies without role ids", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      userRoute: createUserRoute(userService, routeDependencies)
+    })
+
+    const response = await app.request("/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "users-create-missing-role-ids-request"
+      },
+      body: JSON.stringify({
+        username: "alice",
+        displayName: "Alice Example",
+        email: "alice@example.com",
+        enabled: true,
+        password: "correct-horse-battery-staple"
       })
     })
 
@@ -250,13 +283,15 @@ describe("user routes", () => {
       displayName: "Alice Updated",
       email: "alice.updated@example.com",
       enabled: false,
+      roleIds: [builtInRoleIds.admin],
       password: "new-correct-horse-battery-staple"
     }
     const updatedUser = {
       ...listedUser,
       displayName: payload.displayName,
       email: payload.email,
-      enabled: payload.enabled
+      enabled: payload.enabled,
+      roleIds: payload.roleIds
     }
 
     userService.updateByID.mockResolvedValue(updatedUser)
@@ -294,7 +329,8 @@ describe("user routes", () => {
     const payload = {
       displayName: "Alice Updated",
       email: "alice.updated@example.com",
-      enabled: true
+      enabled: true,
+      roleIds: []
     }
     const updatedUser = {
       ...listedUser,
@@ -341,7 +377,30 @@ describe("user routes", () => {
         "X-Request-Id": "users-invalid-update-body-request"
       },
       body: JSON.stringify({
-        email: "not-an-email"
+        email: "not-an-email",
+        roleIds: [builtInRoleIds.viewer]
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(userService.updateByID).not.toHaveBeenCalled()
+  })
+
+  it("rejects user update bodies without role ids", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      userRoute: createUserRoute(userService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/users/${listedUser.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "users-update-missing-role-ids-request"
+      },
+      body: JSON.stringify({
+        displayName: "Alice Updated"
       })
     })
 
@@ -363,6 +422,7 @@ describe("user routes", () => {
         "X-Request-Id": "users-empty-password-update-body-request"
       },
       body: JSON.stringify({
+        roleIds: [builtInRoleIds.viewer],
         password: ""
       })
     })
@@ -395,6 +455,7 @@ describe("user routes", () => {
       displayName: "Alice Updated",
       email: "alice.updated@example.com",
       enabled: true,
+      roleIds: [builtInRoleIds.viewer],
       password: "new-correct-horse-battery-staple"
     }
 

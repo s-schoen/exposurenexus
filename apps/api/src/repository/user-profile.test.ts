@@ -7,6 +7,7 @@ import {
   it,
   vi
 } from "vitest"
+import { builtInRoleIds } from "@openvlp/types/model/rbac"
 import { createUserProfileRepository } from "./user-profile.js"
 import { createTestDatabase, resetTestDatabase } from "../test/db.js"
 
@@ -26,6 +27,10 @@ describe("user profile repository", () => {
     enabled: true,
     passwordHash: "hash-alice"
   }
+  const firstProfileWithRoles = {
+    ...firstProfile,
+    roleIds: [builtInRoleIds.viewer]
+  }
   const secondProfile = {
     id: "4fa42fa9-3ff9-48d4-9150-34681f393885",
     username: "bob",
@@ -33,6 +38,10 @@ describe("user profile repository", () => {
     email: "bob@example.com",
     enabled: false,
     passwordHash: "hash-bob"
+  }
+  const secondProfileWithRoles = {
+    ...secondProfile,
+    roleIds: [builtInRoleIds.editor]
   }
 
   beforeAll(async () => {
@@ -50,23 +59,25 @@ describe("user profile repository", () => {
   it("creates, lists, loads, updates, and deletes user profiles", async () => {
     const repository = createUserProfileRepository(testDb.db)
 
-    await expect(repository.create(firstProfile)).resolves.toEqual(firstProfile)
-    await expect(repository.create(secondProfile)).resolves.toEqual(
-      secondProfile
-    )
+    await expect(
+      repository.create(firstProfile, [builtInRoleIds.viewer])
+    ).resolves.toEqual(firstProfileWithRoles)
+    await expect(
+      repository.create(secondProfile, [builtInRoleIds.editor])
+    ).resolves.toEqual(secondProfileWithRoles)
 
     await expect(repository.getByID(firstProfile.id)).resolves.toEqual(
-      firstProfile
+      firstProfileWithRoles
     )
     await expect(
       repository.getByUsername(secondProfile.username)
-    ).resolves.toEqual(secondProfile)
+    ).resolves.toEqual(secondProfileWithRoles)
 
     const profiles = await repository.list()
 
     expect(profiles).toHaveLength(2)
     expect(profiles).toEqual(
-      expect.arrayContaining([firstProfile, secondProfile])
+      expect.arrayContaining([firstProfileWithRoles, secondProfileWithRoles])
     )
 
     const updatedFirstProfile = {
@@ -77,32 +88,42 @@ describe("user profile repository", () => {
       enabled: false,
       passwordHash: "hash-alice-updated"
     }
+    const updatedFirstProfileWithRoles = {
+      ...updatedFirstProfile,
+      roleIds: [builtInRoleIds.admin]
+    }
 
     await expect(
-      repository.update(firstProfile.id, {
-        username: updatedFirstProfile.username,
-        displayName: updatedFirstProfile.displayName,
-        email: updatedFirstProfile.email,
-        enabled: updatedFirstProfile.enabled,
-        passwordHash: updatedFirstProfile.passwordHash
-      })
-    ).resolves.toEqual(updatedFirstProfile)
+      repository.update(
+        firstProfile.id,
+        {
+          username: updatedFirstProfile.username,
+          displayName: updatedFirstProfile.displayName,
+          email: updatedFirstProfile.email,
+          enabled: updatedFirstProfile.enabled,
+          passwordHash: updatedFirstProfile.passwordHash
+        },
+        [builtInRoleIds.admin]
+      )
+    ).resolves.toEqual(updatedFirstProfileWithRoles)
 
     await expect(repository.getByID(firstProfile.id)).resolves.toEqual(
-      updatedFirstProfile
+      updatedFirstProfileWithRoles
     )
     await expect(
       repository.getByUsername(firstProfile.username)
     ).resolves.toBeNull()
     await expect(
       repository.getByUsername(updatedFirstProfile.username)
-    ).resolves.toEqual(updatedFirstProfile)
+    ).resolves.toEqual(updatedFirstProfileWithRoles)
 
     await expect(repository.deleteByID(secondProfile.id)).resolves.toEqual(
       secondProfile
     )
     await expect(repository.getByID(secondProfile.id)).resolves.toBeNull()
-    await expect(repository.list()).resolves.toEqual([updatedFirstProfile])
+    await expect(repository.list()).resolves.toEqual([
+      updatedFirstProfileWithRoles
+    ])
   })
 
   it("returns null when a user profile does not exist", async () => {
@@ -117,13 +138,17 @@ describe("user profile repository", () => {
     const repository = createUserProfileRepository(testDb.db)
 
     await expect(
-      repository.update("ef2fb643-53e3-4b0c-9b68-253d0dd43f8f", {
-        username: "missing-user",
-        displayName: "Missing User",
-        email: "missing@example.com",
-        enabled: true,
-        passwordHash: "hash-missing"
-      })
+      repository.update(
+        "ef2fb643-53e3-4b0c-9b68-253d0dd43f8f",
+        {
+          username: "missing-user",
+          displayName: "Missing User",
+          email: "missing@example.com",
+          enabled: true,
+          passwordHash: "hash-missing"
+        },
+        []
+      )
     ).resolves.toBeNull()
   })
 
@@ -138,26 +163,73 @@ describe("user profile repository", () => {
   it("rejects duplicate usernames", async () => {
     const repository = createUserProfileRepository(testDb.db)
 
-    await repository.create(firstProfile)
+    await repository.create(firstProfile, [])
 
     await expect(
-      repository.create({
-        ...secondProfile,
-        username: firstProfile.username
-      })
+      repository.create(
+        {
+          ...secondProfile,
+          username: firstProfile.username
+        },
+        []
+      )
     ).rejects.toThrow()
   })
 
   it("rejects duplicate email addresses", async () => {
     const repository = createUserProfileRepository(testDb.db)
 
-    await repository.create(firstProfile)
+    await repository.create(firstProfile, [])
 
     await expect(
-      repository.create({
-        ...secondProfile,
-        email: firstProfile.email
-      })
+      repository.create(
+        {
+          ...secondProfile,
+          email: firstProfile.email
+        },
+        []
+      )
+    ).rejects.toThrow()
+  })
+
+  it("deduplicates role assignments on create", async () => {
+    const repository = createUserProfileRepository(testDb.db)
+
+    await expect(
+      repository.create(firstProfile, [
+        builtInRoleIds.viewer,
+        builtInRoleIds.viewer
+      ])
+    ).resolves.toEqual(firstProfileWithRoles)
+
+    const assignments = await testDb.db
+      .selectFrom("user_role_assignment")
+      .select(["userId", "roleId"])
+      .where("userId", "=", firstProfile.id)
+      .execute()
+
+    expect(assignments).toEqual([
+      {
+        userId: firstProfile.id,
+        roleId: builtInRoleIds.viewer
+      }
+    ])
+  })
+
+  it("rejects duplicate persisted role assignments", async () => {
+    const repository = createUserProfileRepository(testDb.db)
+    const createdProfile = await repository.create(firstProfile, [
+      builtInRoleIds.viewer
+    ])
+
+    await expect(
+      testDb.db
+        .insertInto("user_role_assignment")
+        .values({
+          userId: createdProfile.id,
+          roleId: builtInRoleIds.viewer
+        })
+        .execute()
     ).rejects.toThrow()
   })
 })

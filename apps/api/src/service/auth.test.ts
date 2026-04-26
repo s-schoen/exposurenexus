@@ -39,7 +39,8 @@ describe("auth service", () => {
     displayName: "Alice Example",
     email: "alice@example.com",
     enabled: true,
-    passwordHash: "argon2-password-hash"
+    passwordHash: "argon2-password-hash",
+    roleIds: []
   }
   const sessionHmacSecret =
     "012345678901234567890123456789012345678901234567890123456789"
@@ -208,7 +209,8 @@ describe("auth service", () => {
       username: enabledProfile.username,
       displayName: enabledProfile.displayName,
       email: enabledProfile.email,
-      enabled: enabledProfile.enabled
+      enabled: enabledProfile.enabled,
+      roleIds: enabledProfile.roleIds
     })
     expect(userSessionRepository.create).toHaveBeenCalledWith({
       sessionId: hmacSessionId(result.sessionId),
@@ -284,7 +286,8 @@ describe("auth service", () => {
         username: enabledProfile.username,
         displayName: enabledProfile.displayName,
         email: enabledProfile.email,
-        enabled: enabledProfile.enabled
+        enabled: enabledProfile.enabled,
+        roleIds: enabledProfile.roleIds
       }
     })
     expect(verifyPasswordHashMock).toHaveBeenCalledOnce()
@@ -337,7 +340,8 @@ describe("auth service", () => {
         username: enabledProfile.username,
         displayName: enabledProfile.displayName,
         email: enabledProfile.email,
-        enabled: enabledProfile.enabled
+        enabled: enabledProfile.enabled,
+        roleIds: enabledProfile.roleIds
       }
     })
     expect(userSessionRepository.getBySessionID).toHaveBeenCalledWith(
