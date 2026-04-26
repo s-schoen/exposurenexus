@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  builtInRoleIds,
-  PermissionResource,
-  PermissionVerb
-} from "@openvlp/types/model/rbac"
+import { PermissionResource, PermissionVerb } from "@openvlp/types/model/rbac"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -20,16 +16,11 @@ describe("user routes", () => {
     requireDomainPermission: createRequireDomainPermission(userHasPermission)
   }
   const listedUser = {
-    id: "r9yYWvWAKPdsNDMB3xDgmmMMBwPTCCB0",
-    name: "Alice Example",
-    email: "alice@example.com",
-    emailVerified: true,
-    image: null,
-    roleIds: [builtInRoleIds.viewer],
-    createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    id: "a7d3ef96-d3b4-48bb-8386-681eb3be7b12",
     username: "alice",
-    displayUsername: "Alice"
+    displayName: "Alice Example",
+    email: "alice@example.com",
+    enabled: true
   }
   const userService = {
     listAll: vi.fn(),
@@ -134,13 +125,7 @@ describe("user routes", () => {
     expect(body).toEqual({
       correlationId: requestId,
       data: {
-        items: [
-          {
-            ...listedUser,
-            createdAt: listedUser.createdAt.toISOString(),
-            updatedAt: listedUser.updatedAt.toISOString()
-          }
-        ],
+        items: [listedUser],
         totalItems: 1,
         startIndex: 0,
         currentItemCount: 1
@@ -150,7 +135,7 @@ describe("user routes", () => {
 
   it("returns 404 when the user does not exist", async () => {
     const requestId = "users-not-found-request"
-    const userId = "r9yYWvWAKPdsNDMB3xDgmmMMBwPTCCB0"
+    const userId = "4fa42fa9-3ff9-48d4-9150-34681f393885"
 
     userService.getByID.mockResolvedValue(null)
 
@@ -199,23 +184,18 @@ describe("user routes", () => {
     expect(userService.getByID).toHaveBeenCalledWith(userId)
     expect(body).toEqual({
       correlationId: requestId,
-      data: {
-        ...listedUser,
-        createdAt: listedUser.createdAt.toISOString(),
-        updatedAt: listedUser.updatedAt.toISOString()
-      }
+      data: listedUser
     })
   })
 
   it("returns 201 when creating a user", async () => {
     const requestId = "users-create-request"
     const payload = {
-      name: "Alice Example",
-      email: "alice@example.com",
       username: "alice",
-      displayUsername: "Alice",
-      password: "correct-horse-battery-staple",
-      roleIds: [builtInRoleIds.viewer]
+      displayName: "Alice Example",
+      email: "alice@example.com",
+      enabled: true,
+      password: "correct-horse-battery-staple"
     }
 
     userService.create.mockResolvedValue(listedUser)
@@ -245,17 +225,10 @@ describe("user routes", () => {
         }
       }
     })
-    expect(userService.create).toHaveBeenCalledWith(
-      payload,
-      expect.any(Headers)
-    )
+    expect(userService.create).toHaveBeenCalledWith(payload)
     expect(body).toEqual({
       correlationId: requestId,
-      data: {
-        ...listedUser,
-        createdAt: listedUser.createdAt.toISOString(),
-        updatedAt: listedUser.updatedAt.toISOString()
-      }
+      data: listedUser
     })
   })
 
@@ -273,11 +246,11 @@ describe("user routes", () => {
         "X-Request-Id": "users-invalid-create-body-request"
       },
       body: JSON.stringify({
-        name: "",
-        email: "not-an-email",
         username: "alice",
-        displayUsername: "Alice",
-        password: "correct-horse-battery-staple"
+        displayName: "Alice Example",
+        email: "not-an-email",
+        enabled: true,
+        password: ""
       })
     })
 
@@ -289,18 +262,16 @@ describe("user routes", () => {
     const requestId = "users-update-request"
     const userId = listedUser.id
     const payload = {
-      name: "Alice Updated",
+      displayName: "Alice Updated",
       email: "alice.updated@example.com",
-      displayUsername: "Alice Updated",
-      image: "https://example.com/alice.png",
-      password: "new-correct-horse-battery-staple",
-      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
+      enabled: false,
+      password: "new-correct-horse-battery-staple"
     }
     const updatedUser = {
       ...listedUser,
-      ...payload,
-      username: listedUser.username,
-      updatedAt: new Date("2026-02-03T04:05:06.000Z")
+      displayName: payload.displayName,
+      email: payload.email,
+      enabled: payload.enabled
     }
 
     userService.updateByID.mockResolvedValue(updatedUser)
@@ -330,18 +301,10 @@ describe("user routes", () => {
         }
       }
     })
-    expect(userService.updateByID).toHaveBeenCalledWith(
-      userId,
-      payload,
-      expect.any(Headers)
-    )
+    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload)
     expect(body).toEqual({
       correlationId: requestId,
-      data: {
-        ...updatedUser,
-        createdAt: updatedUser.createdAt.toISOString(),
-        updatedAt: updatedUser.updatedAt.toISOString()
-      }
+      data: updatedUser
     })
   })
 
@@ -349,16 +312,13 @@ describe("user routes", () => {
     const requestId = "users-update-without-password-request"
     const userId = listedUser.id
     const payload = {
-      name: "Alice Updated",
+      displayName: "Alice Updated",
       email: "alice.updated@example.com",
-      displayUsername: "Alice Updated",
-      image: null
+      enabled: true
     }
     const updatedUser = {
       ...listedUser,
-      ...payload,
-      username: listedUser.username,
-      updatedAt: new Date("2026-02-03T04:05:06.000Z")
+      ...payload
     }
 
     userService.updateByID.mockResolvedValue(updatedUser)
@@ -380,18 +340,10 @@ describe("user routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(userService.updateByID).toHaveBeenCalledWith(
-      userId,
-      payload,
-      expect.any(Headers)
-    )
+    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload)
     expect(body).toEqual({
       correlationId: requestId,
-      data: {
-        ...updatedUser,
-        createdAt: updatedUser.createdAt.toISOString(),
-        updatedAt: updatedUser.updatedAt.toISOString()
-      }
+      data: updatedUser
     })
   })
 
@@ -409,11 +361,7 @@ describe("user routes", () => {
         "X-Request-Id": "users-invalid-update-body-request"
       },
       body: JSON.stringify({
-        name: "Alice Updated",
-        email: "alice.updated@example.com",
-        displayUsername: "",
-        image: null,
-        password: "new-correct-horse-battery-staple"
+        email: "not-an-email"
       })
     })
 
@@ -435,10 +383,6 @@ describe("user routes", () => {
         "X-Request-Id": "users-empty-password-update-body-request"
       },
       body: JSON.stringify({
-        name: "Alice Updated",
-        email: "alice.updated@example.com",
-        displayUsername: "Alice Updated",
-        image: null,
         password: ""
       })
     })
@@ -447,35 +391,32 @@ describe("user routes", () => {
     expect(userService.updateByID).not.toHaveBeenCalled()
   })
 
-  it("rejects invalid role ids on user update", async () => {
+  it("returns 400 for invalid user ids", async () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
       requireAuth: requireAuthenticatedUser,
       userRoute: createUserRoute(userService, routeDependencies)
     })
 
-    const response = await app.request(`/api/users/${listedUser.id}`, {
-      method: "PUT",
+    const response = await app.request("/api/users/not-a-user-id", {
       headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": "users-invalid-role-ids-update-body-request"
-      },
-      body: JSON.stringify({
-        name: "Alice Updated",
-        email: "alice.updated@example.com",
-        displayUsername: "Alice Updated",
-        image: null,
-        roleIds: ["not-a-role-id"]
-      })
+        "X-Request-Id": "users-invalid-id-request"
+      }
     })
 
     expect(response.status).toBe(400)
-    expect(userService.updateByID).not.toHaveBeenCalled()
+    expect(userService.getByID).not.toHaveBeenCalled()
   })
 
   it("returns 404 when updating a missing user", async () => {
     const requestId = "users-update-not-found-request"
     const userId = listedUser.id
+    const payload = {
+      displayName: "Alice Updated",
+      email: "alice.updated@example.com",
+      enabled: true,
+      password: "new-correct-horse-battery-staple"
+    }
 
     userService.updateByID.mockResolvedValue(null)
 
@@ -491,28 +432,12 @@ describe("user routes", () => {
         "Content-Type": "application/json",
         "X-Request-Id": requestId
       },
-      body: JSON.stringify({
-        name: "Alice Updated",
-        email: "alice.updated@example.com",
-        displayUsername: "Alice Updated",
-        image: null,
-        password: "new-correct-horse-battery-staple"
-      })
+      body: JSON.stringify(payload)
     })
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(userService.updateByID).toHaveBeenCalledWith(
-      userId,
-      {
-        name: "Alice Updated",
-        email: "alice.updated@example.com",
-        displayUsername: "Alice Updated",
-        image: null,
-        password: "new-correct-horse-battery-staple"
-      },
-      expect.any(Headers)
-    )
+    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload)
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,
