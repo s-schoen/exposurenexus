@@ -16,6 +16,7 @@ const container = createAppContainer({
   authSessionLifetimeHours: env.AUTH_SESSION_LIFETIME,
   authSessionHmacSecret: env.AUTH_SECRET,
   authCookieSecure: env.AUTH_COOKIE_SECURE,
+  authTrustedProxies: env.AUTH_TRUSTED_PROXIES,
   apiTimeoutMs: env.API_TIMEOUT_MS,
   logger,
   accessLogger: auditLogger,

@@ -7,6 +7,7 @@ import { z } from "zod/v4"
 import type { AuthSessionDataReply, AuthSessionReply } from "@openvlp/types/api"
 import type { UserProfile, UserSession } from "@openvlp/types/model/user"
 import { replyObject } from "../lib/reply.js"
+import { resolveRequestSourceIp } from "../lib/source-ip.js"
 import {
   AUTH_SESSION_COOKIE,
   DEFAULT_AUTH_COOKIE_POLICY,
@@ -47,6 +48,7 @@ interface AuthRouteService {
 interface AuthRouteOptions {
   csrf?: Pick<CsrfProtection, "issueToken" | "clearToken">
   cookiePolicy?: AuthCookiePolicy
+  trustedProxies?: readonly string[]
 }
 
 function sessionReply(session: UserSession): AuthSessionReply {
@@ -61,26 +63,22 @@ function sessionReply(session: UserSession): AuthSessionReply {
 }
 
 function getRequestSourceIp(
-  c: Context<{ Variables: ContextVariables }>
+  c: Context<{ Variables: ContextVariables }>,
+  trustedProxies: readonly string[]
 ): string {
-  const forwardedFor = c.req.header("x-forwarded-for")
-  if (forwardedFor) {
-    const firstForwardedIp = forwardedFor.split(",", 1)[0]?.trim()
-    if (firstForwardedIp) {
-      return firstForwardedIp
-    }
-  }
-
-  const realIp = c.req.header("x-real-ip")?.trim()
-  if (realIp) {
-    return realIp
-  }
-
+  let remoteAddress: string | null
   try {
-    return getConnInfo(c).remote.address ?? "unknown"
+    remoteAddress = getConnInfo(c).remote.address ?? null
   } catch {
-    return "unknown"
+    remoteAddress = null
   }
+
+  return resolveRequestSourceIp({
+    remoteAddress,
+    forwardedFor: c.req.header("x-forwarded-for"),
+    realIp: c.req.header("x-real-ip"),
+    trustedProxies
+  })
 }
 
 export function createAuthRoute(
@@ -89,6 +87,7 @@ export function createAuthRoute(
 ) {
   const auth = new Hono<{ Variables: ContextVariables }>()
   const cookiePolicy = options.cookiePolicy ?? DEFAULT_AUTH_COOKIE_POLICY
+  const trustedProxies = options.trustedProxies ?? []
 
   async function createLoginResponse(
     c: Context<{ Variables: ContextVariables }>,
@@ -97,7 +96,7 @@ export function createAuthRoute(
     const createdSession = await authService.createSessionForCredentials({
       username: body.username,
       password: body.password,
-      sourceIp: getRequestSourceIp(c),
+      sourceIp: getRequestSourceIp(c, trustedProxies),
       userAgent: c.req.header("user-agent") ?? undefined
     })
 

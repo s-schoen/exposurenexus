@@ -1,5 +1,13 @@
 import { createEnv } from "@t3-oss/env-core"
 import { z } from "zod/v4"
+import { isValidTrustedProxy } from "./lib/source-ip.js"
+
+function trustedProxies(value: string): string[] {
+  return value
+    .split(",")
+    .map((proxy) => proxy.trim())
+    .filter((proxy) => proxy.length > 0)
+}
 
 export const env = createEnv({
   server: {
@@ -14,6 +22,25 @@ export const env = createEnv({
       .transform((value) => value === "true"),
 
     AUTH_SECRET: z.string().min(32),
+    AUTH_TRUSTED_PROXIES: z
+      .string()
+      .default("")
+      .transform((value, ctx) => {
+        const proxies = trustedProxies(value)
+        const invalidProxies = proxies.filter(
+          (proxy) => !isValidTrustedProxy(proxy)
+        )
+
+        if (invalidProxies.length > 0) {
+          ctx.addIssue({
+            code: "custom",
+            message: `invalid trusted proxy entries: ${invalidProxies.join(", ")}`
+          })
+          return z.NEVER
+        }
+
+        return proxies
+      }),
     DATABASE_URL: z.url()
   },
 

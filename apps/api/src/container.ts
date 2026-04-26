@@ -50,6 +50,7 @@ export interface CreateAppContainerOptions {
   authSessionLifetimeHours: number
   authSessionHmacSecret: string
   authCookieSecure: boolean
+  authTrustedProxies: readonly string[]
   apiTimeoutMs: number
   logger: Logger
   accessLogger: Logger
@@ -136,7 +137,8 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     healthRoute: health,
     authRoute: createAuthRoute(authService, {
       csrf: csrfProtection,
-      cookiePolicy: authCookiePolicy
+      cookiePolicy: authCookiePolicy,
+      trustedProxies: options.authTrustedProxies
     }),
     assetRoute: createAssetRoute(assetService, { requireDomainPermission }),
     roleRoute: createRoleRoute(roleService, { requireDomainPermission }),

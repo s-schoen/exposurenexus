@@ -56,7 +56,7 @@ describe("auth routes", () => {
     expect(authService.createSessionForCredentials).toHaveBeenCalledWith({
       username: "alice",
       password: "correct-horse-battery-staple",
-      sourceIp: "203.0.113.10",
+      sourceIp: "unknown",
       userAgent: "Mozilla/5.0"
     })
     expect(response.headers.get("set-cookie")).toContain(
