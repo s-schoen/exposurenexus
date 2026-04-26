@@ -1,9 +1,9 @@
 import { FindingSource, type Finding } from "@openvlp/types/model/finding"
-import type { User } from "better-auth"
+import type { UserProfile } from "@openvlp/types/model/user"
 import type { Logger } from "pino"
 
 export interface ImportContext {
-  user: User
+  user: UserProfile
 }
 
 interface NucleiFindingParser {

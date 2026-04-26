@@ -135,7 +135,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
 
   const routes = {
     healthRoute: health,
-    authRoute: createAuthRoute(auth),
+    authRoute: createAuthRoute(authService),
     assetRoute: createAssetRoute(assetService, { requireDomainPermission }),
     roleRoute: createRoleRoute(roleService, { requireDomainPermission }),
     userRoute: createUserRoute(userProfileService, { requireDomainPermission }),
@@ -156,7 +156,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   }
 
   const middleware = {
-    annotateAuth: createAuthAnnotate(auth.api),
+    annotateAuth: createAuthAnnotate(authService),
     requireAuth: authNRequire()
   }
 

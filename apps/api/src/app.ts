@@ -17,7 +17,7 @@ export interface CreateAppOptions {
   annotateAuth: MiddlewareHandler<{ Variables: ContextVariables }>
   requireAuth: MiddlewareHandler<{ Variables: ContextVariables }>
   healthRoute: Hono
-  authRoute: Hono
+  authRoute: Hono<{ Variables: ContextVariables }>
   assetRoute: Hono<{ Variables: ContextVariables }>
   roleRoute: Hono<{ Variables: ContextVariables }>
   userRoute: Hono<{ Variables: ContextVariables }>

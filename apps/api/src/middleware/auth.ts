@@ -1,12 +1,15 @@
 import type { MiddlewareHandler } from "hono"
+import type { Context } from "hono"
+import { deleteCookie, getCookie } from "hono/cookie"
+import type { CookieOptions } from "hono/utils/cookie"
 import type {
   Permission,
   PermissionResource,
   PermissionVerb
 } from "@openvlp/types/model/rbac"
+import type { UserProfile } from "@openvlp/types/model/user"
 import { HTTPException } from "hono/http-exception"
-import type { AuthApiSessionClient } from "../lib/auth.js"
-import type { AuthenticatedUser, ContextVariables } from "../lib/hono-schema.js"
+import type { ContextVariables } from "../lib/hono-schema.js"
 import {
   domainPermission,
   type ResourcePermissionVerbAssignment,
@@ -21,6 +24,17 @@ type PermissionChecker = (
   permissions: ResourcePermissionVerbAssignment
 ) => Promise<boolean>
 
+interface ValidatedSession {
+  user: UserProfile
+  session: ContextVariables["session"]
+}
+
+interface SessionValidator {
+  validateSession(sessionId: string): Promise<ValidatedSession | null>
+}
+
+export const AUTH_SESSION_COOKIE = "session"
+
 export type AuthMiddleware = MiddlewareHandler<{ Variables: ContextVariables }>
 export type RequireDomainPermission = <
   Resource extends DomainPermissionResource
@@ -28,6 +42,19 @@ export type RequireDomainPermission = <
   resource: Resource,
   action: DomainPermissionAction
 ) => AuthMiddleware
+
+export function cookieOptions(c: Context): CookieOptions {
+  const forwardedProto = c.req.header("x-forwarded-proto")
+  const secure =
+    forwardedProto === "https" || new URL(c.req.url).protocol === "https:"
+
+  return {
+    httpOnly: true,
+    sameSite: "Lax",
+    secure,
+    path: "/"
+  }
+}
 
 function normalizePermissions(
   permissions: Permission | Permission[]
@@ -39,20 +66,30 @@ function normalizePermissions(
 }
 
 export function createAuthAnnotate(
-  authApi: AuthApiSessionClient
+  authService: SessionValidator
 ): AuthMiddleware {
   return async function authNAnnotate(c, next) {
-    const session = await authApi.getSession({ headers: c.req.raw.headers })
+    const sessionId = getCookie(c, AUTH_SESSION_COOKIE)
 
-    if (!session) {
+    if (!sessionId) {
       c.set("user", null)
       c.set("session", null)
       await next()
       return
     }
 
-    c.set("user", session.user as AuthenticatedUser)
-    c.set("session", session.session)
+    const validatedSession = await authService.validateSession(sessionId)
+
+    if (!validatedSession) {
+      deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(c))
+      c.set("user", null)
+      c.set("session", null)
+      await next()
+      return
+    }
+
+    c.set("user", validatedSession.user)
+    c.set("session", validatedSession.session)
     await next()
   }
 }

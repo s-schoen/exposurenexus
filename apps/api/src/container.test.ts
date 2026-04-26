@@ -34,7 +34,10 @@ const {
   createImportRouteMock: vi.fn(() => ({ route: "import" })),
   createAuthServiceMock: vi.fn(() => ({
     kind: "auth-service",
-    userHasPermission: vi.fn()
+    userHasPermission: vi.fn(),
+    validateSession: vi.fn(),
+    createSessionForCredentials: vi.fn(),
+    revokeSession: vi.fn()
   }))
 }))
 
@@ -163,8 +166,12 @@ describe("app container", () => {
     })
 
     expect(createAuthMock).not.toHaveBeenCalled()
-    expect(createAuthRouteMock).toHaveBeenCalledWith(auth)
-    expect(createAuthAnnotateMock).toHaveBeenCalledWith(auth.api)
+    expect(createAuthRouteMock).toHaveBeenCalledWith(
+      createAuthServiceMock.mock.results[0]?.value
+    )
+    expect(createAuthAnnotateMock).toHaveBeenCalledWith(
+      createAuthServiceMock.mock.results[0]?.value
+    )
     expect(createRequireDomainPermissionMock).toHaveBeenCalledWith(
       createAuthServiceMock.mock.results[0]?.value.userHasPermission
     )

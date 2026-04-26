@@ -40,18 +40,26 @@ interface AuthServiceDependencies {
   logger: Logger
 }
 
-interface CreateSessionInput {
+export interface CreateSessionInput {
   userId: string
   sourceIp?: string
   userAgent?: string
 }
 
-interface CreatedSession {
-  sessionId: string
-  session: UserSession
+export interface CreateSessionForCredentialsInput {
+  username: string
+  password: string
+  sourceIp?: string
+  userAgent?: string
 }
 
-interface ValidatedSession {
+export interface CreatedSession {
+  sessionId: string
+  session: UserSession
+  user: UserProfile
+}
+
+export interface ValidatedSession {
   session: UserSession
   user: UserProfile
 }
@@ -59,6 +67,20 @@ interface ValidatedSession {
 type ResourcePermissionVerbAssignment = Partial<
   Record<PermissionResource, PermissionVerb[]>
 >
+
+export interface AuthService {
+  checkCredentials(username: string, password: string): Promise<boolean>
+  createSessionForCredentials(
+    input: CreateSessionForCredentialsInput
+  ): Promise<CreatedSession | null>
+  createSession(input: CreateSessionInput): Promise<CreatedSession>
+  validateSession(sessionId: string): Promise<ValidatedSession | null>
+  revokeSession(sessionId: string): Promise<boolean>
+  userHasPermission(
+    userId: string,
+    permissions: ResourcePermissionVerbAssignment
+  ): Promise<boolean>
+}
 
 function toUserProfile(userProfile: UserProfileInternal): UserProfile {
   return {
@@ -115,27 +137,73 @@ export function createAuthService({
   sessionLifetimeHours,
   sessionHmacSecret,
   logger
-}: AuthServiceDependencies) {
+}: AuthServiceDependencies): AuthService {
+  async function authenticateUserProfile(
+    username: string,
+    password: string
+  ): Promise<UserProfileInternal | null> {
+    const userProfile = await userProfileRepository.getByUsername(username)
+    const passwordHash = userProfile?.passwordHash ?? DUMMY_PASSWORD_HASH
+    const passwordMatches = await verifyPasswordHash(password, passwordHash)
+
+    if (!userProfile?.enabled || !passwordMatches) {
+      return null
+    }
+
+    return userProfile
+  }
+
+  async function createUserSession(
+    input: CreateSessionInput,
+    userProfile?: UserProfileInternal
+  ): Promise<CreatedSession> {
+    const now = new Date()
+    const sessionId = createSessionToken()
+    const sessionIdDigest = createSessionDigest(sessionId, sessionHmacSecret)
+    const session = await userSessionRepository.create({
+      sessionId: sessionIdDigest,
+      userId: input.userId,
+      sourceIp: input.sourceIp || null,
+      userAgent: input.userAgent || null,
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + sessionLifetimeHours * 60 * 60 * 1000)
+    })
+    const sessionUserProfile =
+      userProfile ?? (await userProfileRepository.getByID(input.userId))
+
+    if (!sessionUserProfile) {
+      throw new Error("failed to load session user")
+    }
+
+    logger.info(
+      {
+        userProfileId: input.userId,
+        userSessionId: session.id
+      },
+      "created user session"
+    )
+
+    return {
+      sessionId,
+      session,
+      user: toUserProfile(sessionUserProfile)
+    }
+  }
+
   return {
     async checkCredentials(
       username: string,
       password: string
     ): Promise<boolean> {
       try {
-        const userProfile = await userProfileRepository.getByUsername(username)
-        const passwordHash = userProfile?.passwordHash ?? DUMMY_PASSWORD_HASH
-        const passwordMatches = await verifyPasswordHash(password, passwordHash)
-        const authenticated = Boolean(userProfile?.enabled && passwordMatches)
+        const userProfile = await authenticateUserProfile(username, password)
+        const authenticated = Boolean(userProfile)
 
         if (authenticated) {
           logger.info(`user authentication success for ${username}`)
         } else {
           logger.warn(
-            `user authentication failed for ${username}: ${
-              userProfile && !userProfile.enabled
-                ? "user_disabled"
-                : "invalid_credentials"
-            }`
+            `user authentication failed for ${username}: invalid_credentials`
           )
         }
 
@@ -148,37 +216,43 @@ export function createAuthService({
       }
     },
 
+    async createSessionForCredentials(
+      input: CreateSessionForCredentialsInput
+    ): Promise<CreatedSession | null> {
+      try {
+        const userProfile = await authenticateUserProfile(
+          input.username,
+          input.password
+        )
+
+        if (!userProfile) {
+          logger.warn(
+            `user authentication failed for ${input.username}: invalid_credentials`
+          )
+          return null
+        }
+
+        logger.info(`user authentication success for ${input.username}`)
+
+        return await createUserSession(
+          {
+            userId: userProfile.id,
+            sourceIp: input.sourceIp,
+            userAgent: input.userAgent
+          },
+          userProfile
+        )
+      } catch (error) {
+        logger.error(error, "failed to create session for credentials")
+        throw new HTTPException(500, {
+          message: "failed to create session for credentials"
+        })
+      }
+    },
+
     async createSession(input: CreateSessionInput): Promise<CreatedSession> {
       try {
-        const now = new Date()
-        const sessionId = createSessionToken()
-        const sessionIdDigest = createSessionDigest(
-          sessionId,
-          sessionHmacSecret
-        )
-        const session = await userSessionRepository.create({
-          sessionId: sessionIdDigest,
-          userId: input.userId,
-          sourceIp: input.sourceIp || null,
-          userAgent: input.userAgent || null,
-          createdAt: now,
-          expiresAt: new Date(
-            now.getTime() + sessionLifetimeHours * 60 * 60 * 1000
-          )
-        })
-
-        logger.info(
-          {
-            userProfileId: input.userId,
-            userSessionId: session.id
-          },
-          "created user session"
-        )
-
-        return {
-          sessionId,
-          session
-        }
+        return await createUserSession(input)
       } catch (error) {
         logger.error(error, "failed to create user session")
         throw new HTTPException(500, {
