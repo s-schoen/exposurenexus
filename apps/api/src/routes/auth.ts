@@ -8,6 +8,7 @@ import type { AuthSessionDataReply, AuthSessionReply } from "@openvlp/types/api"
 import type { UserProfile, UserSession } from "@openvlp/types/model/user"
 import { replyObject } from "../lib/reply.js"
 import { AUTH_SESSION_COOKIE, cookieOptions } from "../middleware/auth.js"
+import type { CsrfProtection } from "../middleware/csrf.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 
 const loginSchema = z.strictObject({
@@ -36,6 +37,10 @@ interface AuthRouteService {
   }): Promise<CreatedSession | null>
   validateSession(sessionId: string): Promise<ValidatedSession | null>
   revokeSession(sessionId: string): Promise<boolean>
+}
+
+interface AuthRouteOptions {
+  csrf?: Pick<CsrfProtection, "issueToken" | "clearToken">
 }
 
 function sessionReply(session: UserSession): AuthSessionReply {
@@ -72,7 +77,10 @@ function getRequestSourceIp(
   }
 }
 
-export function createAuthRoute(authService: AuthRouteService) {
+export function createAuthRoute(
+  authService: AuthRouteService,
+  options: AuthRouteOptions = {}
+) {
   const auth = new Hono<{ Variables: ContextVariables }>()
 
   async function createLoginResponse(
@@ -94,6 +102,7 @@ export function createAuthRoute(authService: AuthRouteService) {
       ...cookieOptions(c),
       expires: createdSession.session.expiresAt
     })
+    options.csrf?.issueToken(c, createdSession.session)
 
     const reply: AuthSessionDataReply = {
       user: createdSession.user,
@@ -116,6 +125,7 @@ export function createAuthRoute(authService: AuthRouteService) {
     const validatedSession = await authService.validateSession(sessionId)
     if (!validatedSession) {
       deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(c))
+      options.csrf?.clearToken(c)
       throw new HTTPException(401, { message: "Unauthorized" })
     }
 
@@ -134,6 +144,7 @@ export function createAuthRoute(authService: AuthRouteService) {
       : false
 
     deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(c))
+    options.csrf?.clearToken(c)
 
     return replyObject(c, { revoked })
   })

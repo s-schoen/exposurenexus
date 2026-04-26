@@ -5,6 +5,7 @@ const {
   createAppMock,
   createAuthRouteMock,
   createAuthAnnotateMock,
+  createCsrfProtectionMock,
   authNRequireMock,
   createRequireDomainPermissionMock,
   createDefaultAdminMock,
@@ -20,6 +21,11 @@ const {
   createAppMock: vi.fn(() => ({ fetch: vi.fn() })),
   createAuthRouteMock: vi.fn(() => ({ route: "auth" })),
   createAuthAnnotateMock: vi.fn(() => vi.fn()),
+  createCsrfProtectionMock: vi.fn(() => ({
+    middleware: vi.fn(),
+    issueToken: vi.fn(),
+    clearToken: vi.fn()
+  })),
   authNRequireMock: vi.fn(() => vi.fn()),
   createRequireDomainPermissionMock: vi.fn(() => vi.fn(() => vi.fn())),
   createDefaultAdminMock: vi.fn(),
@@ -55,6 +61,10 @@ vi.mock("./middleware/auth.js", () => ({
   createAuthAnnotate: createAuthAnnotateMock,
   authNRequire: authNRequireMock,
   createRequireDomainPermission: createRequireDomainPermissionMock
+}))
+
+vi.mock("./middleware/csrf.js", () => ({
+  createCsrfProtection: createCsrfProtectionMock
 }))
 
 vi.mock("./routes/health.js", () => ({
@@ -148,8 +158,14 @@ describe("app container", () => {
       loggerFactory: () => logger
     })
 
+    expect(createCsrfProtectionMock).toHaveBeenCalledWith({
+      allowedOrigins: ["http://localhost:3000"],
+      tokenSecret:
+        "012345678901234567890123456789012345678901234567890123456789"
+    })
     expect(createAuthRouteMock).toHaveBeenCalledWith(
-      createAuthServiceMock.mock.results[0]?.value
+      createAuthServiceMock.mock.results[0]?.value,
+      { csrf: createCsrfProtectionMock.mock.results[0]?.value }
     )
     expect(createAuthAnnotateMock).toHaveBeenCalledWith(
       createAuthServiceMock.mock.results[0]?.value
