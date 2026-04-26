@@ -34,23 +34,16 @@ interface RoleRepository {
   getByNames(names: readonly string[]): Promise<Role[]>
   updateByID(id: string, roleUpdate: UpdateRole): Promise<Role | null>
   deleteByID(id: string): Promise<Role | null>
-}
-
-interface UserRepository {
-  hasUsersWithRoleName(roleName: string): Promise<boolean>
+  hasUsersWithRoleID(roleId: string): Promise<boolean>
 }
 
 interface RoleServiceDependencies {
   roleRepository: RoleRepository
-  userRepository?: UserRepository
   logger: Logger
 }
 
 export function createRoleService({
   roleRepository,
-  userRepository = {
-    hasUsersWithRoleName: async () => false
-  },
   logger
 }: RoleServiceDependencies) {
   return {
@@ -183,7 +176,7 @@ export function createRoleService({
           return null
         }
 
-        if (await userRepository.hasUsersWithRoleName(existingRole.name)) {
+        if (await roleRepository.hasUsersWithRoleID(existingRole.id)) {
           throw new HTTPException(409, {
             message: `role ${existingRole.name} is still assigned to users`
           })

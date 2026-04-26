@@ -2,7 +2,7 @@ import type { Kysely } from "kysely"
 import type { Logger } from "pino"
 import { createApp } from "./app.js"
 import type { Database } from "./db/index.js"
-import { createDefaultAdmin } from "./lib/auth.js"
+import { createDefaultAdmin } from "./lib/default-admin.js"
 import { createLogger } from "./logging.js"
 import {
   createAuthAnnotate,
@@ -14,7 +14,6 @@ import {
   createFindingRepository,
   createRoleRepository,
   createUserProfileRepository,
-  createUserRepository,
   createUserRoleRepository,
   createUserSessionRepository,
   createVulnerabilityRepository
@@ -26,7 +25,6 @@ import {
   createRoleService,
   createStatsService,
   createUserProfileService,
-  createUserService,
   createVulnerabilityService
 } from "./service/index.js"
 import health from "./routes/health.js"
@@ -41,14 +39,12 @@ import { createImportRoute } from "./routes/import.js"
 import { createGetOrCreateAsset } from "./import/util.js"
 import { createNucleiFindingParser } from "./import/nuclei.js"
 import { createFindingImporter } from "./import/importer.js"
-import type { AuthClient } from "./lib/auth.js"
 
 type LoggerFactory = (moduleName: string) => Logger
 
 export interface CreateAppContainerOptions {
   db: Kysely<Database>
-  auth: AuthClient
-  authUrl: string
+  corsOrigin: string
   authSessionLifetimeHours: number
   authSessionHmacSecret: string
   apiTimeoutMs: number
@@ -60,14 +56,12 @@ export interface CreateAppContainerOptions {
 
 export function createAppContainer(options: CreateAppContainerOptions) {
   const loggerFactory = options.loggerFactory ?? createLogger
-  const auth = options.auth
   const repositories = {
     assetRepository: createAssetRepository(options.db),
     findingRepository: createFindingRepository(options.db),
     roleRepository: createRoleRepository(options.db),
     userRoleRepository: createUserRoleRepository(options.db),
     userProfileRepository: createUserProfileRepository(options.db),
-    userRepository: createUserRepository(options.db),
     userSessionRepository: createUserSessionRepository(options.db),
     vulnerabilityRepository: createVulnerabilityRepository(options.db)
   }
@@ -89,18 +83,11 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   })
   const roleService = createRoleService({
     roleRepository: repositories.roleRepository,
-    userRepository: repositories.userRepository,
     logger: loggerFactory("service/role")
   })
   const userProfileService = createUserProfileService({
     userProfileRepository: repositories.userProfileRepository,
     logger: loggerFactory("service/user-profile")
-  })
-  const userService = createUserService({
-    userRepository: repositories.userRepository,
-    roleService,
-    auth,
-    logger: loggerFactory("service/user")
   })
   const vulnerabilityService = createVulnerabilityService({
     vulnerabilityRepository: repositories.vulnerabilityRepository,
@@ -163,7 +150,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const app = createApp({
     logger: options.logger,
     accessLogger: options.accessLogger,
-    authUrl: options.authUrl,
+    corsOrigin: options.corsOrigin,
     apiTimeoutMs: options.apiTimeoutMs,
     annotateAuth: middleware.annotateAuth,
     requireAuth: middleware.requireAuth,
@@ -171,14 +158,12 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   })
 
   return {
-    auth,
     repositories,
     services: {
       authService,
       assetService,
       roleService,
       userProfileService,
-      userService,
       vulnerabilityService,
       findingService,
       statsService
@@ -190,7 +175,6 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     createDefaultAdmin: () =>
       createDefaultAdmin({
         db: options.db,
-        auth,
         logger: options.dbLogger ?? loggerFactory("db")
       })
   }

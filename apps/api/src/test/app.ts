@@ -76,7 +76,7 @@ export function createTestApp(options: CreateTestAppOptions = {}) {
   return createApp({
     logger: pino({ enabled: false }),
     accessLogger: pino({ enabled: false }),
-    authUrl: "http://localhost:3000",
+    corsOrigin: "http://localhost:3000",
     apiTimeoutMs: 5000,
     annotateAuth: options.annotateAuth ?? passthrough,
     requireAuth: options.requireAuth ?? passthrough,

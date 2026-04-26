@@ -8,7 +8,6 @@ const {
   authNRequireMock,
   createRequireDomainPermissionMock,
   createDefaultAdminMock,
-  createAuthMock,
   createAssetRouteMock,
   createRoleRouteMock,
   createUserRouteMock,
@@ -24,7 +23,6 @@ const {
   authNRequireMock: vi.fn(() => vi.fn()),
   createRequireDomainPermissionMock: vi.fn(() => vi.fn(() => vi.fn())),
   createDefaultAdminMock: vi.fn(),
-  createAuthMock: vi.fn(),
   createAssetRouteMock: vi.fn(() => ({ route: "assets" })),
   createRoleRouteMock: vi.fn(() => ({ route: "roles" })),
   createUserRouteMock: vi.fn(() => ({ route: "users" })),
@@ -49,8 +47,7 @@ vi.mock("./logging.js", () => ({
   createLogger: vi.fn(() => pino({ enabled: false }))
 }))
 
-vi.mock("./lib/auth.js", () => ({
-  createAuth: createAuthMock,
+vi.mock("./lib/default-admin.js", () => ({
   createDefaultAdmin: createDefaultAdminMock
 }))
 
@@ -102,7 +99,6 @@ vi.mock("./repository/index.js", () => ({
   createRoleRepository: vi.fn(() => ({ kind: "role-repo" })),
   createUserRoleRepository: vi.fn(() => ({ kind: "user-role-repo" })),
   createUserProfileRepository: vi.fn(() => ({ kind: "user-profile-repo" })),
-  createUserRepository: vi.fn(() => ({ kind: "user-repo" })),
   createUserSessionRepository: vi.fn(() => ({ kind: "user-session-repo" })),
   createVulnerabilityRepository: vi.fn(() => ({ kind: "vulnerability-repo" }))
 }))
@@ -114,7 +110,6 @@ vi.mock("./service/index.js", () => ({
   createRoleService: vi.fn(() => ({ kind: "role-service" })),
   createStatsService: vi.fn(() => ({ kind: "stats-service" })),
   createUserProfileService: vi.fn(() => ({ kind: "user-profile-service" })),
-  createUserService: vi.fn(() => ({ kind: "user-service" })),
   createVulnerabilityService: vi.fn(() => ({ kind: "vulnerability-service" }))
 }))
 
@@ -137,24 +132,12 @@ describe("app container", () => {
     vi.clearAllMocks()
   })
 
-  it("uses an injected auth instance instead of creating one", () => {
+  it("wires custom auth services and routes", () => {
     const logger = pino({ enabled: false })
-    const auth = {
-      api: {
-        getSession: vi.fn(),
-        userHasPermission: vi.fn(),
-        signUpEmail: vi.fn(),
-        setRole: vi.fn(),
-        removeUser: vi.fn(),
-        setUserPassword: vi.fn()
-      },
-      handler: vi.fn()
-    }
 
     const container = createAppContainer({
       db: {} as never,
-      auth: auth as never,
-      authUrl: "http://localhost:3000",
+      corsOrigin: "http://localhost:3000",
       authSessionLifetimeHours: 12,
       authSessionHmacSecret:
         "012345678901234567890123456789012345678901234567890123456789",
@@ -165,7 +148,6 @@ describe("app container", () => {
       loggerFactory: () => logger
     })
 
-    expect(createAuthMock).not.toHaveBeenCalled()
     expect(createAuthRouteMock).toHaveBeenCalledWith(
       createAuthServiceMock.mock.results[0]?.value
     )
@@ -180,6 +162,12 @@ describe("app container", () => {
       { kind: "user-profile-service" },
       { requireDomainPermission: expect.any(Function) }
     )
-    expect(container.auth).toBe(auth)
+
+    container.createDefaultAdmin()
+
+    expect(createDefaultAdminMock).toHaveBeenCalledWith({
+      db: {},
+      logger
+    })
   })
 })

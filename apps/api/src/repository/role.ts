@@ -1,4 +1,4 @@
-import { sql, type Kysely } from "kysely"
+import type { Kysely } from "kysely"
 import type { Database } from "../db/index.js"
 import type { Role, UpdateRole } from "@openvlp/types/model/rbac"
 
@@ -70,23 +70,6 @@ function dedupePermissions(
   return dedupedPermissions
 }
 
-async function renameAssignedUsers(
-  database: Kysely<Database>,
-  previousRoleName: string,
-  nextRoleName: string
-): Promise<void> {
-  await database
-    .updateTable("user")
-    .set({
-      role: sql<string>`array_to_string(array_replace(string_to_array(replace(${sql.ref("user.role")}, ' ', ''), ','), ${previousRoleName}, ${nextRoleName}), ',')`
-    })
-    .where("role", "is not", null)
-    .where(
-      sql<boolean>`${previousRoleName} = any(string_to_array(replace(${sql.ref("user.role")}, ' ', ''), ','))`
-    )
-    .execute()
-}
-
 export function createRoleRepository(database: Kysely<Database>) {
   return {
     async list(): Promise<Role[]> {
@@ -150,10 +133,6 @@ export function createRoleRepository(database: Kysely<Database>) {
           return null
         }
 
-        if (existingRole.name !== roleUpdate.name) {
-          await renameAssignedUsers(trx, existingRole.name, roleUpdate.name)
-        }
-
         await trx
           .deleteFrom("role_permission_assignment")
           .where("role_id", "=", id)
@@ -198,6 +177,16 @@ export function createRoleRepository(database: Kysely<Database>) {
 
         return role
       })
+    },
+
+    async hasUsersWithRoleID(roleId: string): Promise<boolean> {
+      const result = await database
+        .selectFrom("user_role_assignment")
+        .select(({ fn }) => fn.countAll<number>().as("count"))
+        .where("roleId", "=", roleId)
+        .executeTakeFirstOrThrow()
+
+      return result.count > 0
     }
   }
 }

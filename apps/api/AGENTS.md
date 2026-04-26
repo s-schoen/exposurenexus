@@ -5,7 +5,6 @@ Hono.js API Server
 ## Tech Stack
 
 - Hono.js
-- `better-auth` for authentication
 - `kysely` as query builder for PostgreSQL
 - `zod/v4` for validation
 
