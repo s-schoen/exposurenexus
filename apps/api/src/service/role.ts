@@ -43,7 +43,6 @@ interface UserRepository {
 interface RoleServiceDependencies {
   roleRepository: RoleRepository
   userRepository?: UserRepository
-  onRolesChanged?: () => Promise<void>
   logger: Logger
 }
 
@@ -52,7 +51,6 @@ export function createRoleService({
   userRepository = {
     hasUsersWithRoleName: async () => false
   },
-  onRolesChanged = async () => {},
   logger
 }: RoleServiceDependencies) {
   return {
@@ -151,19 +149,6 @@ export function createRoleService({
           return null
         }
 
-        // Role definitions are stored in the database, while Better Auth keeps
-        // an in-memory role config. We persist first and then reload Better
-        // Auth. If reload fails, we surface 500 so the drift is visible instead
-        // of silently serving stale permissions.
-        try {
-          await onRolesChanged()
-        } catch (error) {
-          logger.error(error, "failed to reload auth after role update")
-          throw new HTTPException(500, {
-            message: "role updated but failed to reload auth"
-          })
-        }
-
         return updatedRole
       } catch (error) {
         if (error instanceof HTTPException) {
@@ -208,19 +193,6 @@ export function createRoleService({
         if (!deletedRole) {
           logger.debug(`role with id ${id} not found during delete`)
           return null
-        }
-
-        // Role definitions are stored in the database, while Better Auth keeps
-        // an in-memory role config. We persist first and then reload Better
-        // Auth. If reload fails, we surface 500 so the drift is visible instead
-        // of silently serving stale permissions.
-        try {
-          await onRolesChanged()
-        } catch (error) {
-          logger.error(error, "failed to reload auth after role delete")
-          throw new HTTPException(500, {
-            message: "role deleted but failed to reload auth"
-          })
         }
 
         return deletedRole

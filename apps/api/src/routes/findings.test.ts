@@ -232,13 +232,8 @@ describe("finding routes", () => {
     })
 
     expect(response.status).toBe(403)
-    expect(userHasPermission).toHaveBeenCalledWith({
-      body: {
-        userId: user.id,
-        permissions: {
-          finding: ["write"]
-        }
-      }
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      finding: ["write"]
     })
     expect(findingService.create).not.toHaveBeenCalled()
   })

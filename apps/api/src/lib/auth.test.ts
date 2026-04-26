@@ -1,11 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  BuiltInRoleName,
-  PermissionResource,
-  PermissionVerb
-} from "@openvlp/types/model/rbac"
+import { BuiltInRoleName } from "@openvlp/types/model/rbac"
 import { createTestUser } from "../test/app.js"
-import { ac } from "./permissions.js"
 
 const { adminMock, betterAuthMock, usernameMock } = vi.hoisted(() => ({
   adminMock: vi.fn(() => "admin-plugin"),
@@ -40,12 +35,7 @@ vi.mock("../env.js", () => ({
   }
 }))
 
-import {
-  createAuth,
-  createDefaultAdmin,
-  createReloadableAuth,
-  reloadAuthFromRoles
-} from "./auth.js"
+import { createAuth, createDefaultAdmin } from "./auth.js"
 
 describe("auth factory", () => {
   const user = createTestUser()
@@ -58,15 +48,10 @@ describe("auth factory", () => {
     const authInstance = {
       api: {
         signUpEmail: vi.fn(),
-        removeUser: vi.fn(),
-        userHasPermission: vi.fn()
+        removeUser: vi.fn()
       }
     }
     const pool = { end: vi.fn() }
-    const roles = {
-      viewer: { authorize: vi.fn() },
-      admin: { authorize: vi.fn() }
-    }
 
     betterAuthMock.mockReturnValue(authInstance)
 
@@ -76,8 +61,8 @@ describe("auth factory", () => {
         authUrl: "http://localhost:3000",
         authSecret:
           "012345678901234567890123456789012345678901234567890123456789",
-        roles: roles as never,
-        defaultRole: BuiltInRoleName.Viewer
+        defaultRole: BuiltInRoleName.Viewer,
+        adminRoles: [BuiltInRoleName.Admin]
       })
     ).toBe(authInstance)
 
@@ -93,223 +78,10 @@ describe("auth factory", () => {
       plugins: ["username-plugin", "admin-plugin"]
     })
     expect(adminMock).toHaveBeenCalledWith({
-      ac,
-      roles,
-      defaultRole: BuiltInRoleName.Viewer
+      defaultRole: BuiltInRoleName.Viewer,
+      adminRoles: [BuiltInRoleName.Admin]
     })
     expect(usernameMock).toHaveBeenCalledOnce()
-  })
-
-  it("delegates auth operations through the current auth instance", async () => {
-    const firstAuth = {
-      api: {
-        getSession: vi.fn().mockResolvedValue(null),
-        signUpEmail: vi.fn().mockResolvedValue({ user: { id: "user-1" } }),
-        setRole: vi.fn().mockResolvedValue({ user: { id: "user-1" } }),
-        removeUser: vi.fn().mockResolvedValue({ success: true }),
-        setUserPassword: vi.fn().mockResolvedValue({ status: true }),
-        userHasPermission: vi.fn().mockResolvedValue(true)
-      },
-      handler: vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
-    }
-    const auth = createReloadableAuth(firstAuth as never)
-    const headers = new Headers({ authorization: "Bearer token" })
-
-    await expect(auth.api.getSession({ headers })).resolves.toBeNull()
-    await expect(
-      auth.api.signUpEmail({
-        body: {
-          username: "alice",
-          name: "Alice Example",
-          displayUsername: "Alice",
-          email: "alice@example.com",
-          password: "correct-horse-battery-staple"
-        }
-      })
-    ).resolves.toEqual({ user: { id: "user-1" } })
-    await expect(
-      auth.api.setRole({
-        headers,
-        body: {
-          userId: "user-1",
-          role: ["viewer"]
-        }
-      })
-    ).resolves.toEqual({ user: { id: "user-1" } })
-    await expect(
-      auth.api.removeUser({
-        headers,
-        body: {
-          userId: "user-1"
-        }
-      })
-    ).resolves.toEqual({ success: true })
-    await expect(
-      auth.api.setUserPassword({
-        headers,
-        body: {
-          userId: "user-1",
-          newPassword: "new-correct-horse-battery-staple"
-        }
-      })
-    ).resolves.toEqual({ status: true })
-    await expect(
-      auth.api.userHasPermission({
-        body: {
-          userId: "user-1",
-          permissions: { [PermissionResource.User]: [PermissionVerb.Read] }
-        }
-      })
-    ).resolves.toBe(true)
-
-    const response = await auth.handler(new Request("http://localhost/test"))
-
-    expect(response.status).toBe(204)
-    expect(firstAuth.api.getSession).toHaveBeenCalledWith({ headers })
-    expect(firstAuth.api.signUpEmail).toHaveBeenCalledOnce()
-    expect(firstAuth.api.setRole).toHaveBeenCalledWith({
-      headers,
-      body: {
-        userId: "user-1",
-        role: ["viewer"]
-      }
-    })
-    expect(firstAuth.api.removeUser).toHaveBeenCalledWith({
-      headers,
-      body: {
-        userId: "user-1"
-      }
-    })
-    expect(firstAuth.api.setUserPassword).toHaveBeenCalledWith({
-      headers,
-      body: {
-        userId: "user-1",
-        newPassword: "new-correct-horse-battery-staple"
-      }
-    })
-    expect(firstAuth.api.userHasPermission).toHaveBeenCalledOnce()
-    expect(firstAuth.handler).toHaveBeenCalledOnce()
-  })
-
-  it("reloads to a new auth instance without recreating the wrapper", async () => {
-    const firstAuth = {
-      api: {
-        getSession: vi.fn().mockResolvedValue(null),
-        signUpEmail: vi.fn().mockResolvedValue({ user: { id: "user-1" } }),
-        setRole: vi.fn().mockResolvedValue({ user: { id: "user-1" } }),
-        removeUser: vi.fn().mockResolvedValue({ success: true }),
-        setUserPassword: vi.fn().mockResolvedValue({ status: true }),
-        userHasPermission: vi.fn().mockResolvedValue(true)
-      },
-      handler: vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
-    }
-    const secondAuth = {
-      api: {
-        getSession: vi.fn().mockResolvedValue({
-          user: { id: "user-2" },
-          session: { userId: "user-2" }
-        }),
-        signUpEmail: vi.fn().mockResolvedValue({ user: { id: "user-2" } }),
-        setRole: vi.fn().mockResolvedValue({ user: { id: "user-2" } }),
-        removeUser: vi.fn().mockResolvedValue({ success: true }),
-        setUserPassword: vi.fn().mockResolvedValue({ status: true }),
-        userHasPermission: vi.fn().mockResolvedValue(false)
-      },
-      handler: vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
-    }
-    const auth = createReloadableAuth(firstAuth as never)
-
-    auth.reload(secondAuth as never)
-
-    await expect(
-      auth.api.getSession({ headers: new Headers() })
-    ).resolves.toEqual({
-      user: { id: "user-2" },
-      session: { userId: "user-2" }
-    })
-    await expect(
-      auth.api.userHasPermission({
-        body: {
-          userId: "user-2",
-          permissions: { [PermissionResource.User]: [PermissionVerb.Read] }
-        }
-      })
-    ).resolves.toBe(false)
-
-    const response = await auth.handler(new Request("http://localhost/test"))
-
-    expect(response.status).toBe(200)
-    expect(firstAuth.api.getSession).not.toHaveBeenCalled()
-    expect(firstAuth.api.userHasPermission).not.toHaveBeenCalled()
-    expect(firstAuth.api.removeUser).not.toHaveBeenCalled()
-    expect(firstAuth.handler).not.toHaveBeenCalled()
-    expect(secondAuth.api.getSession).toHaveBeenCalledOnce()
-    expect(secondAuth.api.userHasPermission).toHaveBeenCalledOnce()
-    expect(secondAuth.handler).toHaveBeenCalledOnce()
-  })
-
-  it("reloads better-auth from role definitions and applies the new client", async () => {
-    const auth = createReloadableAuth({
-      api: {
-        getSession: vi.fn().mockResolvedValue(null),
-        signUpEmail: vi.fn(),
-        setRole: vi.fn(),
-        removeUser: vi.fn(),
-        setUserPassword: vi.fn(),
-        userHasPermission: vi.fn().mockResolvedValue(true)
-      },
-      handler: vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
-    } as never)
-    const pool = { end: vi.fn() }
-    const runtimeRoles = [
-      {
-        id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830",
-        name: "analyst",
-        permissions: [{ resource: "asset", verb: "read" }]
-      }
-    ]
-    const reloadedAuth = {
-      api: {
-        getSession: vi.fn().mockResolvedValue(null),
-        signUpEmail: vi.fn(),
-        setRole: vi.fn(),
-        removeUser: vi.fn(),
-        setUserPassword: vi.fn(),
-        userHasPermission: vi.fn().mockResolvedValue(false)
-      },
-      handler: vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
-    }
-
-    betterAuthMock.mockReturnValue(reloadedAuth)
-
-    await reloadAuthFromRoles({
-      auth,
-      listRoles: vi.fn().mockResolvedValue(runtimeRoles),
-      pool: pool as never,
-      authUrl: "http://localhost:3000",
-      authSecret:
-        "012345678901234567890123456789012345678901234567890123456789",
-      defaultRole: BuiltInRoleName.Viewer
-    })
-
-    await expect(
-      auth.api.userHasPermission({
-        body: {
-          userId: "user-1",
-          permissions: { [PermissionResource.Asset]: [PermissionVerb.Read] }
-        }
-      })
-    ).resolves.toBe(false)
-    expect(adminMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        roles: expect.objectContaining({
-          analyst: expect.objectContaining({
-            authorize: expect.any(Function)
-          })
-        }),
-        defaultRole: BuiltInRoleName.Viewer
-      })
-    )
   })
 
   it("skips default admin creation when users already exist", async () => {

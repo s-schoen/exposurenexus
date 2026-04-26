@@ -89,13 +89,8 @@ describe("role routes", () => {
       status: 403,
       error: "Forbidden"
     })
-    expect(userHasPermission).toHaveBeenCalledWith({
-      body: {
-        userId: authenticatedUser.id,
-        permissions: {
-          [PermissionResource.User]: [PermissionVerb.Read]
-        }
-      }
+    expect(userHasPermission).toHaveBeenCalledWith(authenticatedUser.id, {
+      [PermissionResource.User]: [PermissionVerb.Read]
     })
     expect(roleService.listAll).not.toHaveBeenCalled()
   })

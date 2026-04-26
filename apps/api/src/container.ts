@@ -48,7 +48,6 @@ type LoggerFactory = (moduleName: string) => Logger
 export interface CreateAppContainerOptions {
   db: Kysely<Database>
   auth: AuthClient
-  onRolesChanged?: () => Promise<void>
   authUrl: string
   authSessionLifetimeHours: number
   authSessionHmacSecret: string
@@ -62,10 +61,6 @@ export interface CreateAppContainerOptions {
 export function createAppContainer(options: CreateAppContainerOptions) {
   const loggerFactory = options.loggerFactory ?? createLogger
   const auth = options.auth
-  const requireDomainPermission = createRequireDomainPermission(
-    auth.api.userHasPermission
-  )
-
   const repositories = {
     assetRepository: createAssetRepository(options.db),
     findingRepository: createFindingRepository(options.db),
@@ -85,6 +80,9 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     sessionHmacSecret: options.authSessionHmacSecret,
     logger: loggerFactory("service/auth")
   })
+  const requireDomainPermission = createRequireDomainPermission(
+    authService.userHasPermission
+  )
   const assetService = createAssetService({
     assetRepository: repositories.assetRepository,
     logger: loggerFactory("service/asset")
@@ -92,7 +90,6 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const roleService = createRoleService({
     roleRepository: repositories.roleRepository,
     userRepository: repositories.userRepository,
-    onRolesChanged: options.onRolesChanged,
     logger: loggerFactory("service/role")
   })
   const userProfileService = createUserProfileService({

@@ -7,7 +7,6 @@ import {
 } from "@openvlp/types/model/rbac"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import { createTestApp, createTestUser } from "../test/app.js"
-import type { AuthApiPermissionClient } from "../lib/auth.js"
 import { type ResourcePermissionVerbAssignment } from "../lib/permissions.js"
 import {
   authNRequire,
@@ -28,7 +27,9 @@ type TestSession = {
 }
 
 describe("auth middleware", () => {
-  const invalidPermissionChecker: AuthApiPermissionClient["userHasPermission"] =
+  type PermissionChecker = Parameters<typeof createRequirePermission>[0]
+
+  const invalidPermissionChecker: PermissionChecker =
     // @ts-expect-error permission checks must resolve to boolean only
     async () => ({ success: true })
 
@@ -70,16 +71,15 @@ describe("auth middleware", () => {
     expectTypeOf<MiddlewarePermissionPayload>().toEqualTypeOf<
       Permission | Permission[]
     >()
+    expectTypeOf<Parameters<PermissionChecker>[0]>().toEqualTypeOf<string>()
     expectTypeOf<
-      Parameters<
-        AuthApiPermissionClient["userHasPermission"]
-      >[0]["body"]["permissions"]
+      Parameters<PermissionChecker>[1]
     >().toEqualTypeOf<ResourcePermissionVerbAssignment>()
     expectTypeOf<InvalidPermissionVerb>().toEqualTypeOf<false>()
     expectTypeOf<BogusResource>().toEqualTypeOf<false>()
-    expectTypeOf<
-      ReturnType<AuthApiPermissionClient["userHasPermission"]>
-    >().toEqualTypeOf<Promise<boolean>>()
+    expectTypeOf<ReturnType<PermissionChecker>>().toEqualTypeOf<
+      Promise<boolean>
+    >()
   })
 
   it("annotates requests with null user and session when no session exists", async () => {
@@ -293,13 +293,8 @@ describe("auth middleware", () => {
 
     expect(response.status).toBe(200)
     expect(body).toEqual({ ok: true })
-    expect(userHasPermission).toHaveBeenCalledWith({
-      body: {
-        userId: user.id,
-        permissions: {
-          [PermissionResource.Asset]: [PermissionVerb.Delete]
-        }
-      }
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      [PermissionResource.Asset]: [PermissionVerb.Delete]
     })
   })
 
@@ -330,13 +325,8 @@ describe("auth middleware", () => {
 
     expect(response.status).toBe(200)
     expect(body).toEqual({ ok: true, role: "viewer,editor" })
-    expect(userHasPermission).toHaveBeenCalledWith({
-      body: {
-        userId: multiRoleUser.id,
-        permissions: {
-          [PermissionResource.Asset]: [PermissionVerb.Read]
-        }
-      }
+    expect(userHasPermission).toHaveBeenCalledWith(multiRoleUser.id, {
+      [PermissionResource.Asset]: [PermissionVerb.Read]
     })
   })
 })

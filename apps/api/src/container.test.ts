@@ -15,7 +15,8 @@ const {
   createVulnerabilityRouteMock,
   createFindingStatsRouteMock,
   createFindingRouteMock,
-  createImportRouteMock
+  createImportRouteMock,
+  createAuthServiceMock
 } = vi.hoisted(() => ({
   createAppMock: vi.fn(() => ({ fetch: vi.fn() })),
   createAuthRouteMock: vi.fn(() => ({ route: "auth" })),
@@ -30,7 +31,11 @@ const {
   createVulnerabilityRouteMock: vi.fn(() => ({ route: "vulnerabilities" })),
   createFindingStatsRouteMock: vi.fn(() => ({ route: "stats" })),
   createFindingRouteMock: vi.fn(() => ({ route: "findings" })),
-  createImportRouteMock: vi.fn(() => ({ route: "import" }))
+  createImportRouteMock: vi.fn(() => ({ route: "import" })),
+  createAuthServiceMock: vi.fn(() => ({
+    kind: "auth-service",
+    userHasPermission: vi.fn()
+  }))
 }))
 
 vi.mock("./app.js", () => ({
@@ -100,7 +105,7 @@ vi.mock("./repository/index.js", () => ({
 }))
 
 vi.mock("./service/index.js", () => ({
-  createAuthService: vi.fn(() => ({ kind: "auth-service" })),
+  createAuthService: createAuthServiceMock,
   createAssetService: vi.fn(() => ({ kind: "asset-service" })),
   createFindingService: vi.fn(() => ({ kind: "finding-service" })),
   createRoleService: vi.fn(() => ({ kind: "role-service" })),
@@ -161,7 +166,7 @@ describe("app container", () => {
     expect(createAuthRouteMock).toHaveBeenCalledWith(auth)
     expect(createAuthAnnotateMock).toHaveBeenCalledWith(auth.api)
     expect(createRequireDomainPermissionMock).toHaveBeenCalledWith(
-      auth.api.userHasPermission
+      createAuthServiceMock.mock.results[0]?.value.userHasPermission
     )
     expect(createRoleRouteMock).toHaveBeenCalledOnce()
     expect(createUserRouteMock).toHaveBeenCalledWith(

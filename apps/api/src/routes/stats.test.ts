@@ -125,13 +125,8 @@ describe("finding stats routes", () => {
     })
 
     expect(response.status).toBe(403)
-    expect(userHasPermission).toHaveBeenCalledWith({
-      body: {
-        userId: user.id,
-        permissions: {
-          stats: ["read"]
-        }
-      }
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      stats: ["read"]
     })
     expect(statsService.getFindingStats).not.toHaveBeenCalled()
   })

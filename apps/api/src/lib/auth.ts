@@ -1,12 +1,6 @@
 import { betterAuth } from "better-auth"
-import { BuiltInRoleName, type Role } from "@openvlp/types/model/rbac"
+import { BuiltInRoleName } from "@openvlp/types/model/rbac"
 import { admin, username } from "better-auth/plugins"
-import {
-  ac,
-  buildBetterAuthRoleConfig,
-  type ApiPermissionPayload,
-  type BetterAuthRoles
-} from "./permissions.js"
 import type { Kysely } from "kysely"
 import type { Database } from "../db/index.js"
 import type { Logger } from "pino"
@@ -68,33 +62,17 @@ export interface AuthApiUserManagementClient {
   }>
 }
 
-export interface AuthApiPermissionClient {
-  userHasPermission(input: {
-    body: {
-      userId: string
-      permissions: ApiPermissionPayload
-    }
-  }): Promise<boolean>
-}
-
 export interface AuthClient {
-  api: AuthApiSessionClient &
-    AuthApiSignupClient &
-    AuthApiUserManagementClient &
-    AuthApiPermissionClient
+  api: AuthApiSessionClient & AuthApiSignupClient & AuthApiUserManagementClient
   handler(request: Request): Response | Promise<Response>
-}
-
-export interface ReloadableAuthClient extends AuthClient {
-  reload(auth: AuthClient): void
 }
 
 interface CreateAuthOptions {
   pool: Pool
   authUrl: string
   authSecret: string
-  roles: BetterAuthRoles
   defaultRole: string
+  adminRoles?: string[]
 }
 
 interface CreateDefaultAdminOptions {
@@ -103,21 +81,12 @@ interface CreateDefaultAdminOptions {
   logger: Logger
 }
 
-interface ReloadAuthFromRolesOptions {
-  auth: ReloadableAuthClient
-  listRoles: () => Promise<Role[]>
-  pool: Pool
-  authUrl: string
-  authSecret: string
-  defaultRole: string
-}
-
 export function createAuth({
   pool,
   authUrl,
   authSecret,
-  roles,
-  defaultRole
+  defaultRole,
+  adminRoles
 }: CreateAuthOptions): AuthClient {
   return betterAuth({
     database: pool,
@@ -131,76 +100,11 @@ export function createAuth({
     plugins: [
       username(),
       admin({
-        ac,
-        roles,
-        defaultRole
+        defaultRole,
+        adminRoles
       })
     ]
   }) as unknown as AuthClient
-}
-
-export function createReloadableAuth(
-  initialAuth: AuthClient
-): ReloadableAuthClient {
-  let currentAuth = initialAuth
-
-  return {
-    api: {
-      getSession(input) {
-        return currentAuth.api.getSession(input)
-      },
-
-      signUpEmail(input) {
-        return currentAuth.api.signUpEmail(input)
-      },
-
-      setRole(input) {
-        return currentAuth.api.setRole(input)
-      },
-
-      removeUser(input) {
-        return currentAuth.api.removeUser(input)
-      },
-
-      setUserPassword(input) {
-        return currentAuth.api.setUserPassword(input)
-      },
-
-      userHasPermission(input) {
-        return currentAuth.api.userHasPermission(input)
-      }
-    },
-
-    handler(request) {
-      return currentAuth.handler(request)
-    },
-
-    reload(auth) {
-      currentAuth = auth
-    }
-  }
-}
-
-export async function reloadAuthFromRoles({
-  auth,
-  listRoles,
-  pool,
-  authUrl,
-  authSecret,
-  defaultRole
-}: ReloadAuthFromRolesOptions): Promise<void> {
-  const runtimeRoles = await listRoles()
-  const authRoleConfig = buildBetterAuthRoleConfig(runtimeRoles)
-
-  auth.reload(
-    createAuth({
-      pool,
-      authUrl,
-      authSecret,
-      roles: authRoleConfig.roles,
-      defaultRole
-    })
-  )
 }
 
 export async function createDefaultAdmin(
