@@ -13,6 +13,7 @@ vi.mock("../env.js", () => ({
     LOG_LEVEL: "info",
     CORS_ORIGIN: "http://localhost:3000",
     AUTH_SESSION_LIFETIME: 12,
+    AUTH_COOKIE_SECURE: true,
     AUTH_SECRET: "012345678901234567890123456789012345678901234567890123456789",
     DATABASE_URL: "postgres://openvlp:openvlp@localhost:5432/openvlp",
     API_TIMEOUT_MS: 5000

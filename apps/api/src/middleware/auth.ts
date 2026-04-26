@@ -1,5 +1,4 @@
 import type { MiddlewareHandler } from "hono"
-import type { Context } from "hono"
 import { deleteCookie, getCookie } from "hono/cookie"
 import type { CookieOptions } from "hono/utils/cookie"
 import type {
@@ -33,7 +32,14 @@ interface SessionValidator {
   validateSession(sessionId: string): Promise<ValidatedSession | null>
 }
 
-export const AUTH_SESSION_COOKIE = "session"
+export interface AuthCookiePolicy {
+  secure: true
+}
+
+export const AUTH_SESSION_COOKIE = "__Host-openvlp-session"
+export const DEFAULT_AUTH_COOKIE_POLICY: AuthCookiePolicy = Object.freeze({
+  secure: true
+})
 
 export type AuthMiddleware = MiddlewareHandler<{ Variables: ContextVariables }>
 export type RequireDomainPermission = <
@@ -43,15 +49,24 @@ export type RequireDomainPermission = <
   action: DomainPermissionAction
 ) => AuthMiddleware
 
-export function cookieOptions(c: Context): CookieOptions {
-  const forwardedProto = c.req.header("x-forwarded-proto")
-  const secure =
-    forwardedProto === "https" || new URL(c.req.url).protocol === "https:"
+export function createAuthCookiePolicy(options: {
+  secure: boolean
+}): AuthCookiePolicy {
+  if (!options.secure) {
+    throw new Error("__Host auth cookies require AUTH_COOKIE_SECURE=true")
+  }
 
+  return DEFAULT_AUTH_COOKIE_POLICY
+}
+
+export function cookieOptions(
+  policy: AuthCookiePolicy = DEFAULT_AUTH_COOKIE_POLICY,
+  httpOnly = true
+): CookieOptions {
   return {
-    httpOnly: true,
+    httpOnly,
     sameSite: "Lax",
-    secure,
+    secure: policy.secure,
     path: "/"
   }
 }
@@ -66,7 +81,8 @@ function normalizePermissions(
 }
 
 export function createAuthAnnotate(
-  authService: SessionValidator
+  authService: SessionValidator,
+  cookiePolicy: AuthCookiePolicy = DEFAULT_AUTH_COOKIE_POLICY
 ): AuthMiddleware {
   return async function authNAnnotate(c, next) {
     const sessionId = getCookie(c, AUTH_SESSION_COOKIE)
@@ -81,7 +97,7 @@ export function createAuthAnnotate(
     const validatedSession = await authService.validateSession(sessionId)
 
     if (!validatedSession) {
-      deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(c))
+      deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(cookiePolicy))
       c.set("user", null)
       c.set("session", null)
       await next()

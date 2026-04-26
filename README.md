@@ -43,6 +43,7 @@ To run OpenVLP locally you need Node.js, `pnpm`, and PostgreSQL.
    LOG_LEVEL=info
    API_TIMEOUT_MS=5000
    CORS_ORIGIN=http://localhost:3000
+   AUTH_COOKIE_SECURE=true
    AUTH_SECRET=replace-with-a-random-secret-at-least-32-characters
    DATABASE_URL=postgres://postgres:postgres@localhost:5432/openvlp
    ```

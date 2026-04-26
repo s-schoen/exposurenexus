@@ -76,6 +76,31 @@ describe("csrf protection", () => {
     return token
   }
 
+  it("issues csrf tokens as readable secure __Host cookies", async () => {
+    const csrf = createCsrf()
+    const tokenApp = new Hono<{ Variables: ContextVariables }>()
+
+    tokenApp.use("*", annotateAuthenticatedUser(user))
+    tokenApp.get("/", (c) => {
+      const currentSession = c.get("session")
+      if (!currentSession) {
+        throw new Error("expected authenticated test session")
+      }
+
+      csrf.issueToken(c, currentSession)
+      return c.json({ ok: true })
+    })
+
+    const response = await tokenApp.request("/")
+    const setCookie = response.headers.get("set-cookie") ?? ""
+
+    expect(setCookie).toContain(`${CSRF_COOKIE}=`)
+    expect(setCookie).toContain("Secure")
+    expect(setCookie).toContain("Path=/")
+    expect(setCookie).not.toContain("HttpOnly")
+    expect(setCookie).not.toContain("Domain=")
+  })
+
   it("allows safe methods without csrf request headers", async () => {
     const csrf = createCsrf()
     const assets = new Hono<{ Variables: ContextVariables }>()

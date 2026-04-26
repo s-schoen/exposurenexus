@@ -15,6 +15,7 @@ const container = createAppContainer({
   corsOrigin: env.CORS_ORIGIN,
   authSessionLifetimeHours: env.AUTH_SESSION_LIFETIME,
   authSessionHmacSecret: env.AUTH_SECRET,
+  authCookieSecure: env.AUTH_COOKIE_SECURE,
   apiTimeoutMs: env.API_TIMEOUT_MS,
   logger,
   accessLogger: auditLogger,
