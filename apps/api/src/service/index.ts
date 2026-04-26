@@ -1,3 +1,4 @@
+export { createAuthService } from "./auth.js"
 export { createAssetService } from "./asset.js"
 export { createFindingService } from "./finding.js"
 export { createRoleService } from "./role.js"
