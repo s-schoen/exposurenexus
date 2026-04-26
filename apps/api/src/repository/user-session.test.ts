@@ -26,6 +26,9 @@ describe("user session repository", () => {
     enabled: true,
     passwordHash: "hash-alice"
   }
+  const firstSessionIdDigest = "session-digest-first"
+  const secondSessionIdDigest = "session-digest-second"
+  const thirdSessionIdDigest = "session-digest-third"
 
   beforeAll(async () => {
     await testDb.start()
@@ -42,7 +45,7 @@ describe("user session repository", () => {
   it("creates, lists, loads, and deletes user sessions", async () => {
     const repository = createUserSessionRepository(testDb.db)
     const firstSession = {
-      sessionId: "3783ac06-42be-43d4-bad3-6aa2c5c5363d",
+      sessionId: firstSessionIdDigest,
       userId: userProfile.id,
       sourceIp: "203.0.113.10",
       userAgent: "Mozilla/5.0",
@@ -50,7 +53,7 @@ describe("user session repository", () => {
       expiresAt: new Date("2026-04-23T10:00:00.000Z")
     }
     const secondSession = {
-      sessionId: "1d06e984-3c8a-470f-b559-7f732ab73602",
+      sessionId: secondSessionIdDigest,
       userId: userProfile.id,
       sourceIp: null,
       userAgent: null,
@@ -96,10 +99,10 @@ describe("user session repository", () => {
     const repository = createUserSessionRepository(testDb.db)
 
     await expect(
-      repository.getBySessionID("9cdbdf3c-c4c0-48f4-8f91-c9b337d5f6df")
+      repository.getBySessionID("missing-session-digest")
     ).resolves.toBeNull()
     await expect(
-      repository.deleteBySessionID("9cdbdf3c-c4c0-48f4-8f91-c9b337d5f6df")
+      repository.deleteBySessionID("missing-session-digest")
     ).resolves.toBeNull()
   })
 
@@ -108,7 +111,7 @@ describe("user session repository", () => {
 
     await testDb.db.insertInto("user_profile").values(userProfile).execute()
     await repository.create({
-      sessionId: "3783ac06-42be-43d4-bad3-6aa2c5c5363d",
+      sessionId: firstSessionIdDigest,
       userId: userProfile.id,
       sourceIp: "203.0.113.10",
       userAgent: "Mozilla/5.0",
@@ -118,7 +121,7 @@ describe("user session repository", () => {
 
     await expect(
       repository.create({
-        sessionId: "3783ac06-42be-43d4-bad3-6aa2c5c5363d",
+        sessionId: firstSessionIdDigest,
         userId: userProfile.id,
         sourceIp: "203.0.113.11",
         userAgent: "curl/8.0.1",
@@ -133,7 +136,7 @@ describe("user session repository", () => {
 
     await testDb.db.insertInto("user_profile").values(userProfile).execute()
     await repository.create({
-      sessionId: "3783ac06-42be-43d4-bad3-6aa2c5c5363d",
+      sessionId: firstSessionIdDigest,
       userId: userProfile.id,
       sourceIp: "203.0.113.10",
       userAgent: "Mozilla/5.0",
@@ -147,7 +150,7 @@ describe("user session repository", () => {
       .execute()
 
     await expect(
-      repository.getBySessionID("3783ac06-42be-43d4-bad3-6aa2c5c5363d")
+      repository.getBySessionID(firstSessionIdDigest)
     ).resolves.toBeNull()
     await expect(repository.list()).resolves.toEqual([])
   })
@@ -159,7 +162,7 @@ describe("user session repository", () => {
     await testDb.db.insertInto("user_profile").values(userProfile).execute()
 
     const expiredSession = await repository.create({
-      sessionId: "3783ac06-42be-43d4-bad3-6aa2c5c5363d",
+      sessionId: firstSessionIdDigest,
       userId: userProfile.id,
       sourceIp: "203.0.113.10",
       userAgent: "Mozilla/5.0",
@@ -167,7 +170,7 @@ describe("user session repository", () => {
       expiresAt: new Date("2026-04-23T09:59:59.000Z")
     })
     const boundarySession = await repository.create({
-      sessionId: "1d06e984-3c8a-470f-b559-7f732ab73602",
+      sessionId: secondSessionIdDigest,
       userId: userProfile.id,
       sourceIp: null,
       userAgent: null,
@@ -175,7 +178,7 @@ describe("user session repository", () => {
       expiresAt: now
     })
     const activeSession = await repository.create({
-      sessionId: "b1da5aac-53f9-41c3-8b30-0937f845741d",
+      sessionId: thirdSessionIdDigest,
       userId: userProfile.id,
       sourceIp: "203.0.113.11",
       userAgent: "curl/8.0.1",

@@ -7,6 +7,7 @@ export const env = createEnv({
     LOG_LEVEL: z.string().optional().default("info"),
     API_TIMEOUT_MS: z.number().min(1).default(5000),
     AUTH_URL: z.url().default("http://localhost:3000"),
+    AUTH_SESSION_LIFETIME: z.number().min(1).default(12),
 
     AUTH_SECRET: z.string().min(32),
     DATABASE_URL: z.url()
