@@ -189,6 +189,7 @@ describe("auth service", () => {
 
     vi.useFakeTimers()
     vi.setSystemTime(now)
+    userProfileRepository.getByID.mockResolvedValue(enabledProfile)
     userSessionRepository.create.mockImplementation(async (session) => ({
       id: storedSession.id,
       ...session
@@ -202,6 +203,13 @@ describe("auth service", () => {
 
     expect(result.sessionId).toEqual(expect.any(String))
     expect(result.sessionId).not.toBe(result.session.sessionId)
+    expect(result.user).toEqual({
+      id: enabledProfile.id,
+      username: enabledProfile.username,
+      displayName: enabledProfile.displayName,
+      email: enabledProfile.email,
+      enabled: enabledProfile.enabled
+    })
     expect(userSessionRepository.create).toHaveBeenCalledWith({
       sessionId: hmacSessionId(result.sessionId),
       userId: enabledProfile.id,
@@ -218,6 +226,7 @@ describe("auth service", () => {
 
     vi.useFakeTimers()
     vi.setSystemTime(now)
+    userProfileRepository.getByID.mockResolvedValue(enabledProfile)
     userSessionRepository.create.mockImplementation(async (session) => ({
       id: storedSession.id,
       ...session
@@ -235,6 +244,65 @@ describe("auth service", () => {
       createdAt: now,
       expiresAt: new Date(now.getTime() + sessionLifetimeHours * 60 * 60 * 1000)
     })
+  })
+
+  it("creates a session for valid credentials without verifying the password twice", async () => {
+    const service = createService()
+    const now = new Date("2026-04-26T08:00:00.000Z")
+
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+    userProfileRepository.getByUsername.mockResolvedValue(enabledProfile)
+    verifyPasswordHashMock.mockResolvedValue(true)
+    userSessionRepository.create.mockImplementation(async (session) => ({
+      id: storedSession.id,
+      ...session
+    }))
+
+    const result = await service.createSessionForCredentials({
+      username: enabledProfile.username,
+      password: "correct-horse-battery-staple",
+      sourceIp: "203.0.113.10",
+      userAgent: "Mozilla/5.0"
+    })
+
+    expect(result).toEqual({
+      sessionId: expect.any(String),
+      session: {
+        id: storedSession.id,
+        sessionId: hmacSessionId(result!.sessionId),
+        userId: enabledProfile.id,
+        sourceIp: "203.0.113.10",
+        userAgent: "Mozilla/5.0",
+        createdAt: now,
+        expiresAt: new Date(
+          now.getTime() + sessionLifetimeHours * 60 * 60 * 1000
+        )
+      },
+      user: {
+        id: enabledProfile.id,
+        username: enabledProfile.username,
+        displayName: enabledProfile.displayName,
+        email: enabledProfile.email,
+        enabled: enabledProfile.enabled
+      }
+    })
+    expect(verifyPasswordHashMock).toHaveBeenCalledOnce()
+  })
+
+  it("does not create a session for invalid credentials", async () => {
+    const service = createService()
+
+    userProfileRepository.getByUsername.mockResolvedValue(enabledProfile)
+    verifyPasswordHashMock.mockResolvedValue(false)
+
+    await expect(
+      service.createSessionForCredentials({
+        username: enabledProfile.username,
+        password: "wrong-password"
+      })
+    ).resolves.toBeNull()
+    expect(userSessionRepository.create).not.toHaveBeenCalled()
   })
 
   it("maps session creation failures to an HTTP 500", async () => {

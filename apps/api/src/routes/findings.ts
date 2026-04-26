@@ -4,7 +4,7 @@ import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
 import { createFindingSchema, type Finding } from "@openvlp/types/model/finding"
-import type { User } from "better-auth"
+import type { UserProfile } from "@openvlp/types/model/user"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 
@@ -13,12 +13,12 @@ interface FindingRouteService {
   getByID(id: string): Promise<Finding | null>
   create(options: {
     finding: typeof createFindingSchema._output
-    user: User
+    user: UserProfile
   }): Promise<Finding>
   update(options: {
     id: string
     finding: typeof createFindingSchema._output
-    user: User
+    user: UserProfile
   }): Promise<Finding | null>
   deleteByID(id: string): Promise<Finding | null>
 }

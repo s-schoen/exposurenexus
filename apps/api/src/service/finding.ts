@@ -4,7 +4,7 @@ import type {
 } from "@openvlp/types/model/finding"
 import { HTTPException } from "hono/http-exception"
 import type { Finding } from "@openvlp/types/model/finding"
-import type { User } from "better-auth"
+import type { UserProfile } from "@openvlp/types/model/user"
 import { createHash } from "node:crypto"
 import type { Logger } from "pino"
 
@@ -46,14 +46,14 @@ function calculateFingerprint(
 
 export interface CreateFindingOptions {
   finding: CreateFinding
-  user: User
+  user: UserProfile
   firstSeen?: Date
 }
 
 export interface UpdateFindingOptions {
   id: string
   finding: CreateFinding
-  user: User
+  user: UserProfile
 }
 
 export interface CreateOrUpdateFindingResult {

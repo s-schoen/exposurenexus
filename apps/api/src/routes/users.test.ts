@@ -59,7 +59,7 @@ describe("user routes", () => {
 
   it("returns 403 for authenticated users without admin user-management access", async () => {
     const requestId = "users-forbidden-request"
-    const viewer = createTestUser({ role: "viewer" })
+    const viewer = createTestUser()
 
     userHasPermission.mockResolvedValue(false)
 

@@ -1,3 +1,5 @@
+import type { UserProfile, UserSession } from "../model/user.js"
+
 interface APIReply {
   correlationId: string
 }
@@ -18,6 +20,13 @@ export interface APIArrayDataReply<T extends object> extends APIReply {
 export interface APIErrorReply extends APIReply {
   status: number
   error: string
+}
+
+export type AuthSessionReply = Omit<UserSession, "sessionId">
+
+export interface AuthSessionDataReply {
+  user: UserProfile
+  session: AuthSessionReply
 }
 
 export function createObjectReply<T extends object>(
