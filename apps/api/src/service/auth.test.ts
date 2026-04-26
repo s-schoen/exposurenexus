@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
+import { PermissionResource, PermissionVerb } from "@openvlp/types/model/rbac"
 
 const { verifyPasswordHashMock } = vi.hoisted(() => ({
   verifyPasswordHashMock: vi.fn()
@@ -22,6 +23,9 @@ describe("auth service", () => {
     getBySessionID: vi.fn(),
     create: vi.fn(),
     deleteBySessionID: vi.fn()
+  }
+  const userRoleRepository = {
+    listPermissionsByUserID: vi.fn()
   }
   const logger = {
     debug: vi.fn(),
@@ -54,6 +58,7 @@ describe("auth service", () => {
     return createAuthService({
       userProfileRepository,
       userSessionRepository,
+      userRoleRepository,
       sessionLifetimeHours,
       sessionHmacSecret,
       logger
@@ -391,6 +396,81 @@ describe("auth service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to revoke user session"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("returns true when the user has all requested permissions", async () => {
+    const service = createService()
+
+    userRoleRepository.listPermissionsByUserID.mockResolvedValue([
+      {
+        resource: PermissionResource.Asset,
+        verb: PermissionVerb.Read
+      },
+      {
+        resource: PermissionResource.Asset,
+        verb: PermissionVerb.Write
+      },
+      {
+        resource: PermissionResource.Finding,
+        verb: PermissionVerb.Read
+      }
+    ])
+
+    await expect(
+      service.userHasPermission(enabledProfile.id, {
+        [PermissionResource.Asset]: [PermissionVerb.Read, PermissionVerb.Write],
+        [PermissionResource.Finding]: [PermissionVerb.Read]
+      })
+    ).resolves.toBe(true)
+    expect(userRoleRepository.listPermissionsByUserID).toHaveBeenCalledWith(
+      enabledProfile.id
+    )
+  })
+
+  it("returns false when the user lacks any requested permission", async () => {
+    const service = createService()
+
+    userRoleRepository.listPermissionsByUserID.mockResolvedValue([
+      {
+        resource: PermissionResource.Asset,
+        verb: PermissionVerb.Read
+      }
+    ])
+
+    await expect(
+      service.userHasPermission(enabledProfile.id, {
+        [PermissionResource.Asset]: [PermissionVerb.Read, PermissionVerb.Write]
+      })
+    ).resolves.toBe(false)
+  })
+
+  it("returns false when the user has no assigned permissions", async () => {
+    const service = createService()
+
+    userRoleRepository.listPermissionsByUserID.mockResolvedValue([])
+
+    await expect(
+      service.userHasPermission(enabledProfile.id, {
+        [PermissionResource.Asset]: [PermissionVerb.Read]
+      })
+    ).resolves.toBe(false)
+  })
+
+  it("maps permission lookup failures to an HTTP 500", async () => {
+    const service = createService()
+
+    userRoleRepository.listPermissionsByUserID.mockRejectedValue(
+      new Error("db offline")
+    )
+
+    await expect(
+      service.userHasPermission(enabledProfile.id, {
+        [PermissionResource.Asset]: [PermissionVerb.Read]
+      })
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to check user permissions"
     } satisfies Partial<HTTPException>)
   })
 })

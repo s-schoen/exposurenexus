@@ -1,5 +1,5 @@
 import type { Kysely } from "kysely"
-import type { Role, UpdateRole } from "@openvlp/types/model/rbac"
+import type { Permission, Role, UpdateRole } from "@openvlp/types/model/rbac"
 import type { Database } from "../db/index.js"
 
 type RoleRow = {
@@ -65,6 +65,23 @@ export function createUserRoleRepository(database: Kysely<Database>) {
 
       const [role] = toRoles(rows)
       return role ?? null
+    },
+
+    async listPermissionsByUserID(userId: string): Promise<Permission[]> {
+      return await database
+        .selectFrom("user_role_assignment")
+        .innerJoin(
+          "role_permission_assignment",
+          "role_permission_assignment.role_id",
+          "user_role_assignment.roleId"
+        )
+        .select([
+          "role_permission_assignment.resource as resource",
+          "role_permission_assignment.verb as verb"
+        ])
+        .where("user_role_assignment.userId", "=", userId)
+        .distinct()
+        .execute()
     },
 
     async create(role: UpdateRole): Promise<Role> {
