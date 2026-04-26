@@ -9,6 +9,7 @@ import health from "../routes/health.js"
 
 interface CreateTestAppOptions {
   annotateAuth?: MiddlewareHandler<{ Variables: ContextVariables }>
+  csrfProtection?: MiddlewareHandler<{ Variables: ContextVariables }>
   requireAuth?: MiddlewareHandler<{ Variables: ContextVariables }>
   healthRoute?: Hono
   authRoute?: Hono<{ Variables: ContextVariables }>
@@ -79,6 +80,7 @@ export function createTestApp(options: CreateTestAppOptions = {}) {
     corsOrigin: "http://localhost:3000",
     apiTimeoutMs: 5000,
     annotateAuth: options.annotateAuth ?? passthrough,
+    csrfProtection: options.csrfProtection ?? passthrough,
     requireAuth: options.requireAuth ?? passthrough,
     healthRoute: options.healthRoute ?? health,
     authRoute: options.authRoute ?? emptyRoute,

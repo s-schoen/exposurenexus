@@ -9,6 +9,7 @@ import {
   authNRequire,
   createRequireDomainPermission
 } from "./middleware/auth.js"
+import { createCsrfProtection } from "./middleware/csrf.js"
 import {
   createAssetRepository,
   createFindingRepository,
@@ -120,9 +121,14 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     logger: importLogger
   })
 
+  const csrfProtection = createCsrfProtection({
+    allowedOrigins: [options.corsOrigin],
+    tokenSecret: options.authSessionHmacSecret
+  })
+
   const routes = {
     healthRoute: health,
-    authRoute: createAuthRoute(authService),
+    authRoute: createAuthRoute(authService, { csrf: csrfProtection }),
     assetRoute: createAssetRoute(assetService, { requireDomainPermission }),
     roleRoute: createRoleRoute(roleService, { requireDomainPermission }),
     userRoute: createUserRoute(userProfileService, { requireDomainPermission }),
@@ -144,6 +150,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
 
   const middleware = {
     annotateAuth: createAuthAnnotate(authService),
+    csrfProtection: csrfProtection.middleware,
     requireAuth: authNRequire()
   }
 
@@ -153,6 +160,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     corsOrigin: options.corsOrigin,
     apiTimeoutMs: options.apiTimeoutMs,
     annotateAuth: middleware.annotateAuth,
+    csrfProtection: middleware.csrfProtection,
     requireAuth: middleware.requireAuth,
     ...routes
   })

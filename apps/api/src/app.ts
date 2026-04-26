@@ -15,6 +15,7 @@ export interface CreateAppOptions {
   corsOrigin: string
   apiTimeoutMs: number
   annotateAuth: MiddlewareHandler<{ Variables: ContextVariables }>
+  csrfProtection: MiddlewareHandler<{ Variables: ContextVariables }>
   requireAuth: MiddlewareHandler<{ Variables: ContextVariables }>
   healthRoute: Hono
   authRoute: Hono<{ Variables: ContextVariables }>
@@ -38,7 +39,7 @@ export function createApp(options: CreateAppOptions) {
     "*",
     cors({
       origin: options.corsOrigin,
-      allowHeaders: ["Content-Type", "Authorization"],
+      allowHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
       allowMethods: ["POST", "GET", "DELETE", "PUT", "PATCH", "OPTIONS"],
       exposeHeaders: ["Content-Length"],
       maxAge: 600,
@@ -46,6 +47,7 @@ export function createApp(options: CreateAppOptions) {
     })
   )
   app.use("*", options.annotateAuth)
+  app.use("*", options.csrfProtection)
 
   registerErrorHandler(app, options.logger)
 
