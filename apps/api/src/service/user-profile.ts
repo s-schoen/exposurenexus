@@ -19,8 +19,12 @@ interface UserProfileRepository {
   update(
     id: string,
     userProfile: Omit<UserProfileInternalWithRoles, "id" | "roleIds">,
-    roleIds: readonly string[]
-  ): Promise<UserProfileInternalWithRoles | null>
+    roleIds: readonly string[],
+    options?: { revokeSessions?: boolean }
+  ): Promise<{
+    userProfile: UserProfileInternalWithRoles
+    revokedSessionCount: number
+  } | null>
 }
 
 interface UserProfileServiceDependencies {
@@ -87,6 +91,20 @@ function invalidUserRoleAssignment(): HTTPException {
   return new HTTPException(400, {
     message: "invalid user role assignment"
   })
+}
+
+function sameStringSet(
+  left: readonly string[],
+  right: readonly string[]
+): boolean {
+  const leftSet = new Set(left)
+  const rightSet = new Set(right)
+
+  if (leftSet.size !== rightSet.size) {
+    return false
+  }
+
+  return [...leftSet].every((value) => rightSet.has(value))
 }
 
 export function createUserProfileService({
@@ -190,7 +208,16 @@ export function createUserProfileService({
         }
 
         const { password, roleIds, ...profile } = userProfile
-        const updatedProfile = await userProfileRepository.update(
+        const sessionRevocationReasons = [
+          ...(password === undefined ? [] : ["password_changed"]),
+          ...(existingProfile.enabled && profile.enabled === false
+            ? ["user_disabled"]
+            : []),
+          ...(sameStringSet(existingProfile.roleIds, roleIds)
+            ? []
+            : ["role_assignments_changed"])
+        ]
+        const updateResult = await userProfileRepository.update(
           id,
           {
             username: existingProfile.username,
@@ -202,12 +229,27 @@ export function createUserProfileService({
                 ? existingProfile.passwordHash
                 : await hashPlaintextPassword(password)
           },
-          roleIds
+          roleIds,
+          { revokeSessions: sessionRevocationReasons.length > 0 }
         )
 
-        if (!updatedProfile) {
+        if (!updateResult) {
           logger.debug(`cannot update user profile ${id}: not found`)
           return null
+        }
+
+        const { userProfile: updatedProfile, revokedSessionCount } =
+          updateResult
+
+        if (sessionRevocationReasons.length > 0) {
+          logger.info(
+            {
+              userProfileId: id,
+              reasons: sessionRevocationReasons,
+              revokedSessionCount
+            },
+            `revoked user sessions after sensitive user profile update`
+          )
         }
 
         logger.info({ userProfileId: id }, "updated user profile")

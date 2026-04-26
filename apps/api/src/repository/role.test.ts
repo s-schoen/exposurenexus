@@ -219,18 +219,23 @@ describe("role repository", () => {
         ]
       })
     ).resolves.toEqual({
-      id: roleId,
-      name: "incident-analyst",
-      permissions: [
-        {
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
-        },
-        {
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Write
-        }
-      ]
+      role: {
+        id: roleId,
+        name: "incident-analyst",
+        permissions: [
+          {
+            resource: PermissionResource.Asset,
+            verb: PermissionVerb.Read
+          },
+          {
+            resource: PermissionResource.Asset,
+            verb: PermissionVerb.Write
+          }
+        ]
+      },
+      permissionsChanged: true,
+      affectedUserCount: 0,
+      revokedSessionCount: 0
     })
 
     await expect(repository.getByID(roleId)).resolves.toEqual({
@@ -247,6 +252,199 @@ describe("role repository", () => {
         }
       ]
     })
+  })
+
+  it("revokes assigned user sessions when role permissions change", async () => {
+    const repository = createRoleRepository(testDb.db)
+    const roleId = "3fb9f330-637a-4779-a65b-cc9a44d67850"
+    const assignedUserId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f"
+    const unrelatedUserId = "86f9cb55-857c-4316-a4f1-a7e63ee680ad"
+
+    await testDb.db
+      .insertInto("role")
+      .values({ id: roleId, name: "analyst" })
+      .execute()
+    await testDb.db
+      .insertInto("role_permission_assignment")
+      .values({
+        role_id: roleId,
+        resource: PermissionResource.Asset,
+        verb: PermissionVerb.Read
+      })
+      .execute()
+    await testDb.db
+      .insertInto("user_profile")
+      .values([
+        {
+          id: assignedUserId,
+          username: "assigned-user",
+          displayName: "Assigned User",
+          email: "assigned@example.com",
+          enabled: true,
+          passwordHash: "hash"
+        },
+        {
+          id: unrelatedUserId,
+          username: "unrelated-user",
+          displayName: "Unrelated User",
+          email: "unrelated@example.com",
+          enabled: true,
+          passwordHash: "hash"
+        }
+      ])
+      .execute()
+    await testDb.db
+      .insertInto("user_role_assignment")
+      .values({
+        userId: assignedUserId,
+        roleId
+      })
+      .execute()
+    await testDb.db
+      .insertInto("user_session")
+      .values([
+        {
+          sessionId: "assigned-user-session-digest",
+          userId: assignedUserId,
+          sourceIp: "203.0.113.10",
+          userAgent: "Mozilla/5.0",
+          createdAt: new Date("2026-04-23T08:00:00.000Z"),
+          expiresAt: new Date("2026-04-23T10:00:00.000Z")
+        },
+        {
+          sessionId: "unrelated-user-session-digest",
+          userId: unrelatedUserId,
+          sourceIp: "203.0.113.11",
+          userAgent: "curl/8.0.1",
+          createdAt: new Date("2026-04-23T08:00:00.000Z"),
+          expiresAt: new Date("2026-04-23T10:00:00.000Z")
+        }
+      ])
+      .execute()
+
+    await expect(
+      repository.updateByID(roleId, {
+        name: "analyst",
+        permissions: [
+          {
+            resource: PermissionResource.Asset,
+            verb: PermissionVerb.Read
+          },
+          {
+            resource: PermissionResource.Asset,
+            verb: PermissionVerb.Write
+          }
+        ]
+      })
+    ).resolves.toEqual({
+      role: {
+        id: roleId,
+        name: "analyst",
+        permissions: [
+          {
+            resource: PermissionResource.Asset,
+            verb: PermissionVerb.Read
+          },
+          {
+            resource: PermissionResource.Asset,
+            verb: PermissionVerb.Write
+          }
+        ]
+      },
+      permissionsChanged: true,
+      affectedUserCount: 1,
+      revokedSessionCount: 1
+    })
+
+    const remainingSessions = await testDb.db
+      .selectFrom("user_session")
+      .select(["sessionId", "userId"])
+      .execute()
+
+    expect(remainingSessions).toEqual([
+      {
+        sessionId: "unrelated-user-session-digest",
+        userId: unrelatedUserId
+      }
+    ])
+  })
+
+  it("does not revoke assigned user sessions for role name-only updates", async () => {
+    const repository = createRoleRepository(testDb.db)
+    const roleId = "38f9a236-e78d-4776-a373-ee25908be7b1"
+    const assignedUserId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f"
+
+    await testDb.db
+      .insertInto("role")
+      .values({ id: roleId, name: "name-only-analyst" })
+      .execute()
+    await testDb.db
+      .insertInto("role_permission_assignment")
+      .values({
+        role_id: roleId,
+        resource: PermissionResource.Asset,
+        verb: PermissionVerb.Read
+      })
+      .execute()
+    await testDb.db
+      .insertInto("user_profile")
+      .values({
+        id: assignedUserId,
+        username: "assigned-user",
+        displayName: "Assigned User",
+        email: "assigned@example.com",
+        enabled: true,
+        passwordHash: "hash"
+      })
+      .execute()
+    await testDb.db
+      .insertInto("user_role_assignment")
+      .values({
+        userId: assignedUserId,
+        roleId
+      })
+      .execute()
+    await testDb.db
+      .insertInto("user_session")
+      .values({
+        sessionId: "assigned-user-session-digest",
+        userId: assignedUserId,
+        sourceIp: "203.0.113.10",
+        userAgent: "Mozilla/5.0",
+        createdAt: new Date("2026-04-23T08:00:00.000Z"),
+        expiresAt: new Date("2026-04-23T10:00:00.000Z")
+      })
+      .execute()
+
+    await expect(
+      repository.updateByID(roleId, {
+        name: "renamed-analyst",
+        permissions: [
+          {
+            resource: PermissionResource.Asset,
+            verb: PermissionVerb.Read
+          }
+        ]
+      })
+    ).resolves.toEqual({
+      role: {
+        id: roleId,
+        name: "renamed-analyst",
+        permissions: [
+          {
+            resource: PermissionResource.Asset,
+            verb: PermissionVerb.Read
+          }
+        ]
+      },
+      permissionsChanged: false,
+      affectedUserCount: 0,
+      revokedSessionCount: 0
+    })
+
+    await expect(
+      testDb.db.selectFrom("user_session").selectAll().execute()
+    ).resolves.toHaveLength(1)
   })
 
   it("deletes a role and cascades its permission assignments", async () => {

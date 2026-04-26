@@ -218,7 +218,12 @@ describe("role service", () => {
       ]
     }
 
-    roleRepository.updateByID.mockResolvedValue(updatedRole)
+    roleRepository.updateByID.mockResolvedValue({
+      role: updatedRole,
+      permissionsChanged: true,
+      affectedUserCount: 2,
+      revokedSessionCount: 3
+    })
 
     await expect(
       service.updateByID(analystRole.id, {

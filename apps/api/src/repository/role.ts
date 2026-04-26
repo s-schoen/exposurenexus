@@ -1,6 +1,8 @@
-import type { Kysely } from "kysely"
+import type { Kysely, Transaction } from "kysely"
 import type { Database } from "../db/index.js"
 import type { Role, UpdateRole } from "@openvlp/types/model/rbac"
+
+type DatabaseExecutor = Kysely<Database> | Transaction<Database>
 
 type RoleRow = {
   id: string
@@ -35,7 +37,7 @@ function toRoles(rows: RoleRow[]): Role[] {
   return [...rolesById.values()]
 }
 
-function createRoleBaseQuery(database: Kysely<Database>) {
+function createRoleBaseQuery(database: DatabaseExecutor) {
   return database
     .selectFrom("role")
     .leftJoin(
@@ -51,6 +53,24 @@ function createRoleBaseQuery(database: Kysely<Database>) {
     ])
 }
 
+function permissionKey(permission: UpdateRole["permissions"][number]): string {
+  return `${permission.resource}:${permission.verb}`
+}
+
+function samePermissionSet(
+  left: UpdateRole["permissions"],
+  right: UpdateRole["permissions"]
+): boolean {
+  const leftKeys = new Set(left.map(permissionKey))
+  const rightKeys = new Set(right.map(permissionKey))
+
+  if (leftKeys.size !== rightKeys.size) {
+    return false
+  }
+
+  return [...leftKeys].every((key) => rightKeys.has(key))
+}
+
 function dedupePermissions(
   permissions: UpdateRole["permissions"]
 ): UpdateRole["permissions"] {
@@ -58,16 +78,46 @@ function dedupePermissions(
   const dedupedPermissions: UpdateRole["permissions"] = []
 
   for (const permission of permissions) {
-    const permissionKey = `${permission.resource}:${permission.verb}`
-    if (seenPermissions.has(permissionKey)) {
+    const key = permissionKey(permission)
+    if (seenPermissions.has(key)) {
       continue
     }
 
-    seenPermissions.add(permissionKey)
+    seenPermissions.add(key)
     dedupedPermissions.push(permission)
   }
 
   return dedupedPermissions
+}
+
+async function listUserIdsByRoleID(
+  database: DatabaseExecutor,
+  roleId: string
+): Promise<string[]> {
+  const rows = await database
+    .selectFrom("user_role_assignment")
+    .select("userId")
+    .where("roleId", "=", roleId)
+    .execute()
+
+  return rows.map((row) => row.userId)
+}
+
+async function deleteSessionsByUserIDs(
+  database: DatabaseExecutor,
+  userIds: readonly string[]
+): Promise<number> {
+  if (userIds.length === 0) {
+    return 0
+  }
+
+  const deletedSessions = await database
+    .deleteFrom("user_session")
+    .where("userId", "in", [...userIds])
+    .returning("id")
+    .execute()
+
+  return deletedSessions.length
 }
 
 export function createRoleRepository(database: Kysely<Database>) {
@@ -110,7 +160,15 @@ export function createRoleRepository(database: Kysely<Database>) {
       return toRoles(rows)
     },
 
-    async updateByID(id: string, roleUpdate: UpdateRole): Promise<Role | null> {
+    async updateByID(
+      id: string,
+      roleUpdate: UpdateRole
+    ): Promise<{
+      role: Role
+      permissionsChanged: boolean
+      affectedUserCount: number
+      revokedSessionCount: number
+    } | null> {
       return database.transaction().execute(async (trx) => {
         const existingRole = await trx
           .selectFrom("role")
@@ -121,6 +179,20 @@ export function createRoleRepository(database: Kysely<Database>) {
         if (!existingRole) {
           return null
         }
+
+        const existingPermissions = await trx
+          .selectFrom("role_permission_assignment")
+          .select(["resource", "verb"])
+          .where("role_id", "=", id)
+          .execute()
+        const permissions = dedupePermissions(roleUpdate.permissions)
+        const permissionsChanged = !samePermissionSet(
+          existingPermissions,
+          permissions
+        )
+        const affectedUserIds = permissionsChanged
+          ? await listUserIdsByRoleID(trx, id)
+          : []
 
         const updatedRole = await trx
           .updateTable("role")
@@ -137,8 +209,6 @@ export function createRoleRepository(database: Kysely<Database>) {
           .deleteFrom("role_permission_assignment")
           .where("role_id", "=", id)
           .execute()
-
-        const permissions = dedupePermissions(roleUpdate.permissions)
 
         if (permissions.length > 0) {
           await trx
@@ -158,7 +228,20 @@ export function createRoleRepository(database: Kysely<Database>) {
           .execute()
 
         const [role] = toRoles(rows)
-        return role ?? null
+        if (!role) {
+          return null
+        }
+
+        const revokedSessionCount = permissionsChanged
+          ? await deleteSessionsByUserIDs(trx, affectedUserIds)
+          : 0
+
+        return {
+          role,
+          permissionsChanged,
+          affectedUserCount: affectedUserIds.length,
+          revokedSessionCount
+        }
       })
     },
 
