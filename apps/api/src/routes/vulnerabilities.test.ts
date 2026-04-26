@@ -126,13 +126,8 @@ describe("vulnerability routes", () => {
     })
 
     expect(response.status).toBe(403)
-    expect(userHasPermission).toHaveBeenCalledWith({
-      body: {
-        userId: user.id,
-        permissions: {
-          vulnerability: ["read"]
-        }
-      }
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      vulnerability: ["read"]
     })
     expect(vulnerabilityService.listAll).not.toHaveBeenCalled()
   })

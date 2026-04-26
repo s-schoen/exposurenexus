@@ -22,7 +22,6 @@ describe("role service", () => {
   const userRepository = {
     hasUsersWithRoleName: vi.fn()
   }
-  const onRolesChanged = vi.fn()
   const logger = pino({ enabled: false })
   const viewerRole: Role = {
     id: builtInRoleIds.viewer,
@@ -49,14 +48,12 @@ describe("role service", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     userRepository.hasUsersWithRoleName.mockResolvedValue(false)
-    onRolesChanged.mockResolvedValue(undefined)
   })
 
   it("gets roles by name", async () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -75,7 +72,6 @@ describe("role service", () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -89,7 +85,6 @@ describe("role service", () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -105,7 +100,6 @@ describe("role service", () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -119,7 +113,6 @@ describe("role service", () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -132,7 +125,6 @@ describe("role service", () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -148,7 +140,6 @@ describe("role service", () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -170,7 +161,6 @@ describe("role service", () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -193,7 +183,6 @@ describe("role service", () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -214,7 +203,6 @@ describe("role service", () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -228,11 +216,10 @@ describe("role service", () => {
     } satisfies Partial<HTTPException>)
   })
 
-  it("updates a custom role and reloads better-auth", async () => {
+  it("updates a custom role", async () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
     const updatedRole = {
@@ -252,14 +239,12 @@ describe("role service", () => {
         permissions: updatedRole.permissions
       })
     ).resolves.toEqual(updatedRole)
-    expect(onRolesChanged).toHaveBeenCalledOnce()
   })
 
   it("maps duplicate role name updates to an HTTP 409", async () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -276,15 +261,12 @@ describe("role service", () => {
       status: 409,
       message: "role already exists"
     } satisfies Partial<HTTPException>)
-
-    expect(onRolesChanged).not.toHaveBeenCalled()
   })
 
   it("rejects attempts to modify built-in roles", async () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -301,11 +283,10 @@ describe("role service", () => {
     expect(roleRepository.updateByID).not.toHaveBeenCalled()
   })
 
-  it("deletes a custom role and reloads better-auth", async () => {
+  it("deletes a custom role", async () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -318,14 +299,12 @@ describe("role service", () => {
     expect(userRepository.hasUsersWithRoleName).toHaveBeenCalledWith(
       analystRole.name
     )
-    expect(onRolesChanged).toHaveBeenCalledOnce()
   })
 
   it("rejects trying to delete a built-in role", async () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -343,7 +322,6 @@ describe("role service", () => {
     const service = createRoleService({
       roleRepository,
       userRepository,
-      onRolesChanged,
       logger
     })
 
@@ -356,27 +334,5 @@ describe("role service", () => {
     } satisfies Partial<HTTPException>)
 
     expect(roleRepository.deleteByID).not.toHaveBeenCalled()
-  })
-
-  it("surfaces a reload failure after role updates", async () => {
-    const service = createRoleService({
-      roleRepository,
-      userRepository,
-      onRolesChanged,
-      logger
-    })
-
-    roleRepository.updateByID.mockResolvedValue(analystRole)
-    onRolesChanged.mockRejectedValue(new Error("reload failed"))
-
-    await expect(
-      service.updateByID(analystRole.id, {
-        name: analystRole.name,
-        permissions: analystRole.permissions
-      })
-    ).rejects.toMatchObject({
-      status: 500,
-      message: "role updated but failed to reload auth"
-    } satisfies Partial<HTTPException>)
   })
 })

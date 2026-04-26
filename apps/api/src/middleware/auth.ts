@@ -5,17 +5,21 @@ import type {
   PermissionVerb
 } from "@openvlp/types/model/rbac"
 import { HTTPException } from "hono/http-exception"
-import type {
-  AuthApiPermissionClient,
-  AuthApiSessionClient
-} from "../lib/auth.js"
+import type { AuthApiSessionClient } from "../lib/auth.js"
 import type { AuthenticatedUser, ContextVariables } from "../lib/hono-schema.js"
-import { domainPermission, toPermissionStatements } from "../lib/permissions.js"
+import {
+  domainPermission,
+  type ResourcePermissionVerbAssignment,
+  toPermissionStatements
+} from "../lib/permissions.js"
 
 type DomainPermissionResource = PermissionResource | `${PermissionResource}`
 type DomainPermissionAction = PermissionVerb | `${PermissionVerb}`
 
-type PermissionChecker = AuthApiPermissionClient["userHasPermission"]
+type PermissionChecker = (
+  userId: string,
+  permissions: ResourcePermissionVerbAssignment
+) => Promise<boolean>
 
 export type AuthMiddleware = MiddlewareHandler<{ Variables: ContextVariables }>
 export type RequireDomainPermission = <
@@ -74,12 +78,10 @@ export function createRequirePermission(
       throw new HTTPException(401, { message: "Unauthorized" })
     }
 
-    const result = await permissionChecker({
-      body: {
-        userId: user.id,
-        permissions: toPermissionStatements(normalizePermissions(permissions))
-      }
-    })
+    const result = await permissionChecker(
+      user.id,
+      toPermissionStatements(normalizePermissions(permissions))
+    )
 
     if (!result) {
       throw new HTTPException(403, { message: "Forbidden" })

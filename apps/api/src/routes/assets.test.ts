@@ -277,13 +277,8 @@ describe("asset routes", () => {
     })
 
     expect(response.status).toBe(403)
-    expect(userHasPermission).toHaveBeenCalledWith({
-      body: {
-        userId: user.id,
-        permissions: {
-          asset: ["delete"]
-        }
-      }
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      asset: ["delete"]
     })
     expect(assetService.deleteByID).not.toHaveBeenCalled()
   })

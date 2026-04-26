@@ -218,13 +218,8 @@ describe("finding import routes", () => {
     })
 
     expect(response.status).toBe(403)
-    expect(userHasPermission).toHaveBeenCalledWith({
-      body: {
-        userId: user.id,
-        permissions: {
-          import: ["write"]
-        }
-      }
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      import: ["write"]
     })
     expect(importer.parseFindingsFromFile).not.toHaveBeenCalled()
   })
