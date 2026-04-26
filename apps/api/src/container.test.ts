@@ -5,6 +5,7 @@ const {
   createAppMock,
   createAuthRouteMock,
   createAuthAnnotateMock,
+  createAuthCookiePolicyMock,
   createCsrfProtectionMock,
   authNRequireMock,
   createRequireDomainPermissionMock,
@@ -21,6 +22,7 @@ const {
   createAppMock: vi.fn(() => ({ fetch: vi.fn() })),
   createAuthRouteMock: vi.fn(() => ({ route: "auth" })),
   createAuthAnnotateMock: vi.fn(() => vi.fn()),
+  createAuthCookiePolicyMock: vi.fn(() => ({ secure: true })),
   createCsrfProtectionMock: vi.fn(() => ({
     middleware: vi.fn(),
     issueToken: vi.fn(),
@@ -59,6 +61,7 @@ vi.mock("./lib/default-admin.js", () => ({
 
 vi.mock("./middleware/auth.js", () => ({
   createAuthAnnotate: createAuthAnnotateMock,
+  createAuthCookiePolicy: createAuthCookiePolicyMock,
   authNRequire: authNRequireMock,
   createRequireDomainPermission: createRequireDomainPermissionMock
 }))
@@ -151,6 +154,7 @@ describe("app container", () => {
       authSessionLifetimeHours: 12,
       authSessionHmacSecret:
         "012345678901234567890123456789012345678901234567890123456789",
+      authCookieSecure: true,
       apiTimeoutMs: 5000,
       logger,
       accessLogger: logger,
@@ -158,17 +162,25 @@ describe("app container", () => {
       loggerFactory: () => logger
     })
 
+    expect(createAuthCookiePolicyMock).toHaveBeenCalledWith({
+      secure: true
+    })
     expect(createCsrfProtectionMock).toHaveBeenCalledWith({
       allowedOrigins: ["http://localhost:3000"],
       tokenSecret:
-        "012345678901234567890123456789012345678901234567890123456789"
+        "012345678901234567890123456789012345678901234567890123456789",
+      cookiePolicy: createAuthCookiePolicyMock.mock.results[0]?.value
     })
     expect(createAuthRouteMock).toHaveBeenCalledWith(
       createAuthServiceMock.mock.results[0]?.value,
-      { csrf: createCsrfProtectionMock.mock.results[0]?.value }
+      {
+        csrf: createCsrfProtectionMock.mock.results[0]?.value,
+        cookiePolicy: createAuthCookiePolicyMock.mock.results[0]?.value
+      }
     )
     expect(createAuthAnnotateMock).toHaveBeenCalledWith(
-      createAuthServiceMock.mock.results[0]?.value
+      createAuthServiceMock.mock.results[0]?.value,
+      createAuthCookiePolicyMock.mock.results[0]?.value
     )
     expect(createRequireDomainPermissionMock).toHaveBeenCalledWith(
       createAuthServiceMock.mock.results[0]?.value.userHasPermission
@@ -184,6 +196,33 @@ describe("app container", () => {
     expect(createDefaultAdminMock).toHaveBeenCalledWith({
       db: {},
       logger
+    })
+  })
+
+  it("fails fast when auth cookies are configured as insecure", () => {
+    const logger = pino({ enabled: false })
+
+    createAuthCookiePolicyMock.mockImplementationOnce(() => {
+      throw new Error("__Host auth cookies require AUTH_COOKIE_SECURE=true")
+    })
+
+    expect(() =>
+      createAppContainer({
+        db: {} as never,
+        corsOrigin: "http://localhost:3000",
+        authSessionLifetimeHours: 12,
+        authSessionHmacSecret:
+          "012345678901234567890123456789012345678901234567890123456789",
+        authCookieSecure: false,
+        apiTimeoutMs: 5000,
+        logger,
+        accessLogger: logger,
+        dbLogger: logger,
+        loggerFactory: () => logger
+      })
+    ).toThrow("__Host auth cookies require AUTH_COOKIE_SECURE=true")
+    expect(createAuthCookiePolicyMock).toHaveBeenCalledWith({
+      secure: false
     })
   })
 })

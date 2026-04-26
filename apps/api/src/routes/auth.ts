@@ -7,7 +7,12 @@ import { z } from "zod/v4"
 import type { AuthSessionDataReply, AuthSessionReply } from "@openvlp/types/api"
 import type { UserProfile, UserSession } from "@openvlp/types/model/user"
 import { replyObject } from "../lib/reply.js"
-import { AUTH_SESSION_COOKIE, cookieOptions } from "../middleware/auth.js"
+import {
+  AUTH_SESSION_COOKIE,
+  DEFAULT_AUTH_COOKIE_POLICY,
+  cookieOptions,
+  type AuthCookiePolicy
+} from "../middleware/auth.js"
 import type { CsrfProtection } from "../middleware/csrf.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 
@@ -41,6 +46,7 @@ interface AuthRouteService {
 
 interface AuthRouteOptions {
   csrf?: Pick<CsrfProtection, "issueToken" | "clearToken">
+  cookiePolicy?: AuthCookiePolicy
 }
 
 function sessionReply(session: UserSession): AuthSessionReply {
@@ -82,6 +88,7 @@ export function createAuthRoute(
   options: AuthRouteOptions = {}
 ) {
   const auth = new Hono<{ Variables: ContextVariables }>()
+  const cookiePolicy = options.cookiePolicy ?? DEFAULT_AUTH_COOKIE_POLICY
 
   async function createLoginResponse(
     c: Context<{ Variables: ContextVariables }>,
@@ -99,7 +106,7 @@ export function createAuthRoute(
     }
 
     setCookie(c, AUTH_SESSION_COOKIE, createdSession.sessionId, {
-      ...cookieOptions(c),
+      ...cookieOptions(cookiePolicy),
       expires: createdSession.session.expiresAt
     })
     options.csrf?.issueToken(c, createdSession.session)
@@ -124,7 +131,7 @@ export function createAuthRoute(
 
     const validatedSession = await authService.validateSession(sessionId)
     if (!validatedSession) {
-      deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(c))
+      deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(cookiePolicy))
       options.csrf?.clearToken(c)
       throw new HTTPException(401, { message: "Unauthorized" })
     }
@@ -143,7 +150,7 @@ export function createAuthRoute(
       ? await authService.revokeSession(sessionId)
       : false
 
-    deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(c))
+    deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(cookiePolicy))
     options.csrf?.clearToken(c)
 
     return replyObject(c, { revoked })

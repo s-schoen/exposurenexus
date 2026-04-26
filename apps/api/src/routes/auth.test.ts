@@ -62,7 +62,11 @@ describe("auth routes", () => {
     expect(response.headers.get("set-cookie")).toContain(
       sessionCookie("public-session-token")
     )
-    expect(response.headers.get("set-cookie")).toContain("HttpOnly")
+    const setCookie = response.headers.get("set-cookie") ?? ""
+    expect(setCookie).toContain("Secure")
+    expect(setCookie).toContain("HttpOnly")
+    expect(setCookie).toContain("Path=/")
+    expect(setCookie).not.toContain("Domain=")
     expect(body).toEqual({
       correlationId: "auth-login-request",
       data: {
@@ -172,6 +176,7 @@ describe("auth routes", () => {
       "invalid-session-token"
     )
     expect(response.headers.get("set-cookie")).toContain(sessionCookie(""))
+    expect(response.headers.get("set-cookie")).toContain("Secure")
     expect(body).toEqual({
       correlationId: "auth-invalid-session-request",
       status: 401,
@@ -200,6 +205,7 @@ describe("auth routes", () => {
       "public-session-token"
     )
     expect(response.headers.get("set-cookie")).toContain(sessionCookie(""))
+    expect(response.headers.get("set-cookie")).toContain("Secure")
     expect(body).toEqual({
       correlationId: "auth-logout-request",
       data: {

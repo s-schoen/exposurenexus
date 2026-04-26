@@ -11,6 +11,7 @@ import { type ResourcePermissionVerbAssignment } from "../lib/permissions.js"
 import {
   AUTH_SESSION_COOKIE,
   authNRequire,
+  createAuthCookiePolicy,
   createAuthAnnotate,
   createRequireDomainPermission,
   createRequirePermission
@@ -42,6 +43,12 @@ describe("auth middleware", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it("rejects insecure policy for __Host auth cookies", () => {
+    expect(() => createAuthCookiePolicy({ secure: false })).toThrow(
+      "__Host auth cookies require AUTH_COOKIE_SECURE=true"
+    )
   })
 
   it("uses narrowed permission boundary types", () => {

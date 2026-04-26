@@ -5,7 +5,11 @@ import type { CookieOptions } from "hono/utils/cookie"
 import { HTTPException } from "hono/http-exception"
 import type { UserSession } from "@openvlp/types/model/user"
 import type { ContextVariables } from "../lib/hono-schema.js"
-import { cookieOptions } from "./auth.js"
+import {
+  DEFAULT_AUTH_COOKIE_POLICY,
+  cookieOptions,
+  type AuthCookiePolicy
+} from "./auth.js"
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"])
 const VALID_FETCH_SITE_VALUES = new Set([
@@ -17,7 +21,7 @@ const VALID_FETCH_SITE_VALUES = new Set([
 const TOKEN_SEPARATOR = "."
 const CSRF_HMAC_CONTEXT = "openvlp.csrf.v1"
 
-export const CSRF_COOKIE = "csrf_token"
+export const CSRF_COOKIE = "__Host-openvlp-csrf"
 export const CSRF_HEADER = "X-CSRF-Token"
 
 type CsrfContext = Context<{ Variables: ContextVariables }>
@@ -32,11 +36,12 @@ export interface CsrfProtection {
 interface CsrfProtectionOptions {
   allowedOrigins: string[]
   tokenSecret: string
+  cookiePolicy?: AuthCookiePolicy
 }
 
-function csrfCookieOptions(c: Context): CookieOptions {
+function csrfCookieOptions(cookiePolicy: AuthCookiePolicy): CookieOptions {
   return {
-    ...cookieOptions(c),
+    ...cookieOptions(cookiePolicy),
     httpOnly: false
   }
 }
@@ -149,7 +154,8 @@ function verifyCsrfToken(c: CsrfContext, tokenSecret: string): void {
 
 export function createCsrfProtection({
   allowedOrigins,
-  tokenSecret
+  tokenSecret,
+  cookiePolicy = DEFAULT_AUTH_COOKIE_POLICY
 }: CsrfProtectionOptions): CsrfProtection {
   const normalizedAllowedOrigins = new Set(
     allowedOrigins.map((origin) => normalizeOrigin(origin))
@@ -174,13 +180,13 @@ export function createCsrfProtection({
 
     issueToken(c, session) {
       setCookie(c, CSRF_COOKIE, createToken(session, tokenSecret), {
-        ...csrfCookieOptions(c),
+        ...csrfCookieOptions(cookiePolicy),
         expires: session.expiresAt
       })
     },
 
     clearToken(c) {
-      deleteCookie(c, CSRF_COOKIE, csrfCookieOptions(c))
+      deleteCookie(c, CSRF_COOKIE, csrfCookieOptions(cookiePolicy))
     }
   }
 }

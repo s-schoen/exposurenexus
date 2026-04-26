@@ -7,7 +7,8 @@ import { createLogger } from "./logging.js"
 import {
   createAuthAnnotate,
   authNRequire,
-  createRequireDomainPermission
+  createRequireDomainPermission,
+  createAuthCookiePolicy
 } from "./middleware/auth.js"
 import { createCsrfProtection } from "./middleware/csrf.js"
 import {
@@ -48,6 +49,7 @@ export interface CreateAppContainerOptions {
   corsOrigin: string
   authSessionLifetimeHours: number
   authSessionHmacSecret: string
+  authCookieSecure: boolean
   apiTimeoutMs: number
   logger: Logger
   accessLogger: Logger
@@ -57,6 +59,9 @@ export interface CreateAppContainerOptions {
 
 export function createAppContainer(options: CreateAppContainerOptions) {
   const loggerFactory = options.loggerFactory ?? createLogger
+  const authCookiePolicy = createAuthCookiePolicy({
+    secure: options.authCookieSecure
+  })
   const repositories = {
     assetRepository: createAssetRepository(options.db),
     findingRepository: createFindingRepository(options.db),
@@ -123,12 +128,16 @@ export function createAppContainer(options: CreateAppContainerOptions) {
 
   const csrfProtection = createCsrfProtection({
     allowedOrigins: [options.corsOrigin],
-    tokenSecret: options.authSessionHmacSecret
+    tokenSecret: options.authSessionHmacSecret,
+    cookiePolicy: authCookiePolicy
   })
 
   const routes = {
     healthRoute: health,
-    authRoute: createAuthRoute(authService, { csrf: csrfProtection }),
+    authRoute: createAuthRoute(authService, {
+      csrf: csrfProtection,
+      cookiePolicy: authCookiePolicy
+    }),
     assetRoute: createAssetRoute(assetService, { requireDomainPermission }),
     roleRoute: createRoleRoute(roleService, { requireDomainPermission }),
     userRoute: createUserRoute(userProfileService, { requireDomainPermission }),
@@ -149,7 +158,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   }
 
   const middleware = {
-    annotateAuth: createAuthAnnotate(authService),
+    annotateAuth: createAuthAnnotate(authService, authCookiePolicy),
     csrfProtection: csrfProtection.middleware,
     requireAuth: authNRequire()
   }
