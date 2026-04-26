@@ -15,6 +15,7 @@ import {
   createRoleRepository,
   createUserProfileRepository,
   createUserRepository,
+  createUserRoleRepository,
   createUserSessionRepository,
   createVulnerabilityRepository
 } from "./repository/index.js"
@@ -68,6 +69,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     assetRepository: createAssetRepository(options.db),
     findingRepository: createFindingRepository(options.db),
     roleRepository: createRoleRepository(options.db),
+    userRoleRepository: createUserRoleRepository(options.db),
     userProfileRepository: createUserProfileRepository(options.db),
     userRepository: createUserRepository(options.db),
     userSessionRepository: createUserSessionRepository(options.db),
@@ -77,6 +79,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const authService = createAuthService({
     userProfileRepository: repositories.userProfileRepository,
     userSessionRepository: repositories.userSessionRepository,
+    userRoleRepository: repositories.userRoleRepository,
     sessionLifetimeHours: options.authSessionLifetimeHours,
     sessionHmacSecret: options.authSessionHmacSecret,
     logger: loggerFactory("service/auth")

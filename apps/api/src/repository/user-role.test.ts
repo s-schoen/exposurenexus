@@ -124,6 +124,56 @@ describe("user role repository", () => {
     ).resolves.toBeNull()
   })
 
+  it("lists distinct permissions assigned to a user through their roles", async () => {
+    const repository = createUserRoleRepository(testDb.db)
+    const userProfile = {
+      id: "ca8be35f-b523-47d1-a9d8-743dc272c0cb",
+      username: "alice",
+      displayName: "Alice Example",
+      email: "alice@example.com",
+      enabled: true,
+      passwordHash: "hash-alice"
+    }
+
+    await testDb.db.insertInto("user_profile").values(userProfile).execute()
+    await testDb.db
+      .insertInto("user_role_assignment")
+      .values([
+        {
+          userId: userProfile.id,
+          roleId: builtInRoleIds.viewer
+        },
+        {
+          userId: userProfile.id,
+          roleId: builtInRoleIds.editor
+        }
+      ])
+      .execute()
+
+    await expect(
+      repository.listPermissionsByUserID(userProfile.id)
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Read
+        },
+        {
+          resource: PermissionResource.Import,
+          verb: PermissionVerb.Write
+        }
+      ])
+    )
+  })
+
+  it("returns no permissions for users without assigned roles", async () => {
+    const repository = createUserRoleRepository(testDb.db)
+
+    await expect(
+      repository.listPermissionsByUserID("ca8be35f-b523-47d1-a9d8-743dc272c0cb")
+    ).resolves.toEqual([])
+  })
+
   it("creates a role with permissions", async () => {
     const repository = createUserRoleRepository(testDb.db)
 

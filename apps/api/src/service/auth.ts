@@ -2,6 +2,11 @@ import { createHmac, randomBytes } from "node:crypto"
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
 import type {
+  Permission,
+  PermissionResource,
+  PermissionVerb
+} from "@openvlp/types/model/rbac"
+import type {
   UserProfile,
   UserProfileInternal,
   UserSession
@@ -22,9 +27,14 @@ interface UserSessionRepository {
   deleteBySessionID(sessionId: string): Promise<UserSession | null>
 }
 
+interface UserRoleRepository {
+  listPermissionsByUserID(userId: string): Promise<Permission[]>
+}
+
 interface AuthServiceDependencies {
   userProfileRepository: UserProfileRepository
   userSessionRepository: UserSessionRepository
+  userRoleRepository: UserRoleRepository
   sessionLifetimeHours: number
   sessionHmacSecret: string
   logger: Logger
@@ -46,6 +56,10 @@ interface ValidatedSession {
   user: UserProfile
 }
 
+type ResourcePermissionVerbAssignment = Partial<
+  Record<PermissionResource, PermissionVerb[]>
+>
+
 function toUserProfile(userProfile: UserProfileInternal): UserProfile {
   return {
     id: userProfile.id,
@@ -64,9 +78,40 @@ function createSessionDigest(sessionId: string, secret: string): string {
   return createHmac("sha256", secret).update(sessionId).digest("base64url")
 }
 
+function hasRequiredPermissions(
+  assignedPermissions: readonly Permission[],
+  requiredPermissions: ResourcePermissionVerbAssignment
+): boolean {
+  const assignedVerbsByResource = new Map<
+    PermissionResource,
+    Set<PermissionVerb>
+  >()
+
+  for (const permission of assignedPermissions) {
+    const assignedVerbs =
+      assignedVerbsByResource.get(permission.resource) ?? new Set()
+    assignedVerbs.add(permission.verb)
+    assignedVerbsByResource.set(permission.resource, assignedVerbs)
+  }
+
+  for (const [resource, verbs] of Object.entries(requiredPermissions)) {
+    const typedResource = resource as PermissionResource
+    const assignedVerbs = assignedVerbsByResource.get(typedResource)
+
+    for (const verb of verbs ?? []) {
+      if (!assignedVerbs?.has(verb)) {
+        return false
+      }
+    }
+  }
+
+  return true
+}
+
 export function createAuthService({
   userProfileRepository,
   userSessionRepository,
+  userRoleRepository,
   sessionLifetimeHours,
   sessionHmacSecret,
   logger
@@ -234,6 +279,23 @@ export function createAuthService({
         logger.error(error, "failed to revoke user session")
         throw new HTTPException(500, {
           message: "failed to revoke user session"
+        })
+      }
+    },
+
+    async userHasPermission(
+      userId: string,
+      permissions: ResourcePermissionVerbAssignment
+    ): Promise<boolean> {
+      try {
+        const assignedPermissions =
+          await userRoleRepository.listPermissionsByUserID(userId)
+
+        return hasRequiredPermissions(assignedPermissions, permissions)
+      } catch (error) {
+        logger.error(error, "failed to check user permissions")
+        throw new HTTPException(500, {
+          message: "failed to check user permissions"
         })
       }
     }

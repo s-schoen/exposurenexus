@@ -13,6 +13,6 @@ export interface RolePermissionAssignmentTable {
 }
 
 export interface UserRoleAssignmentTable {
-  role_id: string
-  user_id: string
+  roleId: string
+  userId: string
 }
