@@ -26,6 +26,8 @@ import { Route as AuthenticatedFindingsTriageRouteImport } from './routes/_authe
 import { Route as AuthenticatedFindingsNewRouteImport } from './routes/_authenticated/findings/new'
 import { Route as AuthenticatedFindingsImportRouteImport } from './routes/_authenticated/findings/import'
 import { Route as AuthenticatedFindingsIdRouteImport } from './routes/_authenticated/findings/$id'
+import { Route as AuthenticatedCustomFieldsNewRouteImport } from './routes/_authenticated/custom-fields/new'
+import { Route as AuthenticatedCustomFieldsIdRouteImport } from './routes/_authenticated/custom-fields/$id'
 import { Route as AuthenticatedAssetsIdRouteImport } from './routes/_authenticated/assets/$id'
 import { Route as AuthenticatedUsersIdEditRouteImport } from './routes/_authenticated/users/$id.edit'
 
@@ -121,6 +123,18 @@ const AuthenticatedFindingsIdRoute = AuthenticatedFindingsIdRouteImport.update({
   path: '/findings/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCustomFieldsNewRoute =
+  AuthenticatedCustomFieldsNewRouteImport.update({
+    id: '/custom-fields/new',
+    path: '/custom-fields/new',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCustomFieldsIdRoute =
+  AuthenticatedCustomFieldsIdRouteImport.update({
+    id: '/custom-fields/$id',
+    path: '/custom-fields/$id',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedAssetsIdRoute = AuthenticatedAssetsIdRouteImport.update({
   id: '/assets/$id',
   path: '/assets/$id',
@@ -137,6 +151,8 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/assets/$id': typeof AuthenticatedAssetsIdRoute
+  '/custom-fields/$id': typeof AuthenticatedCustomFieldsIdRoute
+  '/custom-fields/new': typeof AuthenticatedCustomFieldsNewRoute
   '/findings/$id': typeof AuthenticatedFindingsIdRoute
   '/findings/import': typeof AuthenticatedFindingsImportRoute
   '/findings/new': typeof AuthenticatedFindingsNewRoute
@@ -157,6 +173,8 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/': typeof AuthenticatedIndexRoute
   '/assets/$id': typeof AuthenticatedAssetsIdRoute
+  '/custom-fields/$id': typeof AuthenticatedCustomFieldsIdRoute
+  '/custom-fields/new': typeof AuthenticatedCustomFieldsNewRoute
   '/findings/$id': typeof AuthenticatedFindingsIdRoute
   '/findings/import': typeof AuthenticatedFindingsImportRoute
   '/findings/new': typeof AuthenticatedFindingsNewRoute
@@ -179,6 +197,8 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/assets/$id': typeof AuthenticatedAssetsIdRoute
+  '/_authenticated/custom-fields/$id': typeof AuthenticatedCustomFieldsIdRoute
+  '/_authenticated/custom-fields/new': typeof AuthenticatedCustomFieldsNewRoute
   '/_authenticated/findings/$id': typeof AuthenticatedFindingsIdRoute
   '/_authenticated/findings/import': typeof AuthenticatedFindingsImportRoute
   '/_authenticated/findings/new': typeof AuthenticatedFindingsNewRoute
@@ -201,6 +221,8 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/assets/$id'
+    | '/custom-fields/$id'
+    | '/custom-fields/new'
     | '/findings/$id'
     | '/findings/import'
     | '/findings/new'
@@ -221,6 +243,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/'
     | '/assets/$id'
+    | '/custom-fields/$id'
+    | '/custom-fields/new'
     | '/findings/$id'
     | '/findings/import'
     | '/findings/new'
@@ -242,6 +266,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/'
     | '/_authenticated/assets/$id'
+    | '/_authenticated/custom-fields/$id'
+    | '/_authenticated/custom-fields/new'
     | '/_authenticated/findings/$id'
     | '/_authenticated/findings/import'
     | '/_authenticated/findings/new'
@@ -385,6 +411,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFindingsIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/custom-fields/new': {
+      id: '/_authenticated/custom-fields/new'
+      path: '/custom-fields/new'
+      fullPath: '/custom-fields/new'
+      preLoaderRoute: typeof AuthenticatedCustomFieldsNewRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/custom-fields/$id': {
+      id: '/_authenticated/custom-fields/$id'
+      path: '/custom-fields/$id'
+      fullPath: '/custom-fields/$id'
+      preLoaderRoute: typeof AuthenticatedCustomFieldsIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/assets/$id': {
       id: '/_authenticated/assets/$id'
       path: '/assets/$id'
@@ -416,6 +456,8 @@ const AuthenticatedUsersIdRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAssetsIdRoute: typeof AuthenticatedAssetsIdRoute
+  AuthenticatedCustomFieldsIdRoute: typeof AuthenticatedCustomFieldsIdRoute
+  AuthenticatedCustomFieldsNewRoute: typeof AuthenticatedCustomFieldsNewRoute
   AuthenticatedFindingsIdRoute: typeof AuthenticatedFindingsIdRoute
   AuthenticatedFindingsImportRoute: typeof AuthenticatedFindingsImportRoute
   AuthenticatedFindingsNewRoute: typeof AuthenticatedFindingsNewRoute
@@ -435,6 +477,8 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAssetsIdRoute: AuthenticatedAssetsIdRoute,
+  AuthenticatedCustomFieldsIdRoute: AuthenticatedCustomFieldsIdRoute,
+  AuthenticatedCustomFieldsNewRoute: AuthenticatedCustomFieldsNewRoute,
   AuthenticatedFindingsIdRoute: AuthenticatedFindingsIdRoute,
   AuthenticatedFindingsImportRoute: AuthenticatedFindingsImportRoute,
   AuthenticatedFindingsNewRoute: AuthenticatedFindingsNewRoute,

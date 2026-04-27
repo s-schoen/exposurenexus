@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
@@ -11,6 +12,7 @@ import { DataTable } from "@/components/data-table/data-table.tsx"
 import { createListRolesQueryOptions } from "@/api/role.ts"
 import { createListUsersQueryOptions } from "@/api/user.ts"
 import { createColumns } from "@/components/user-table/columns.tsx"
+import { Button } from "@/components/ui/button.tsx"
 
 const groupingOptions: Array<GroupingOption> = [
   {
@@ -23,11 +25,13 @@ const groupingOptions: Array<GroupingOption> = [
 interface UserTableProps {
   selectedUserId?: string
   onSelectUser?: (user: UserProfile) => void
+  onCreateUser?: () => void
 }
 
 export function UserTable({
   selectedUserId,
-  onSelectUser
+  onSelectUser,
+  onCreateUser
 }: UserTableProps = {}) {
   const navigate = useNavigate()
   const usersQuery = useQuery(createListUsersQueryOptions())
@@ -70,6 +74,20 @@ export function UserTable({
     void setEnabledFilter(nextEnabledFilter.length ? nextEnabledFilter : null)
   }
 
+  function ToolbarElements() {
+    return (
+      <Button
+        variant="default"
+        size="sm"
+        className="h-9 rounded-xl"
+        onClick={onCreateUser}
+      >
+        <Plus />
+        New user
+      </Button>
+    )
+  }
+
   return (
     <DataTable
       columns={columns}
@@ -80,6 +98,7 @@ export function UserTable({
       onRowClick={onSelectUser}
       onRowDoubleClick={handleOpenUser}
       isRowActive={(user) => user.id === selectedUserId}
+      toolbarControls={onCreateUser ? <ToolbarElements /> : undefined}
     />
   )
 }

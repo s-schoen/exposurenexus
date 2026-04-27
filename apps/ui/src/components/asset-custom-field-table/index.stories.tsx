@@ -11,6 +11,10 @@ type AssetCustomFieldTableStoryArgs = {
   selectedCustomFieldId?: string
   onSelectCustomField?: (field: AssetCustomFieldDefinition) => void
   onOpenCustomField?: (field: AssetCustomFieldDefinition) => void
+  onCreateCustomField?: () => void
+  onDeleteCustomFields?: (
+    fields: Array<AssetCustomFieldDefinition>
+  ) => Promise<void>
   fields: Array<AssetCustomFieldDefinition>
   pending?: boolean
 }
@@ -61,7 +65,9 @@ function AssetCustomFieldTableStoryShell({
   pending = false,
   selectedCustomFieldId,
   onSelectCustomField,
-  onOpenCustomField
+  onOpenCustomField,
+  onCreateCustomField,
+  onDeleteCustomFields
 }: AssetCustomFieldTableStoryArgs) {
   const [filterState, setFilterState] = useState<DataTableFilterState>({
     globalFilter: "",
@@ -80,6 +86,8 @@ function AssetCustomFieldTableStoryShell({
         selectedCustomFieldId={selectedCustomFieldId}
         onSelectCustomField={onSelectCustomField}
         onOpenCustomField={onOpenCustomField}
+        onCreateCustomField={onCreateCustomField}
+        onDeleteCustomFields={onDeleteCustomFields}
         filterState={filterState}
         onFilterStateChange={setFilterState}
       />
@@ -137,5 +145,23 @@ export const Selection: Story = {
 
     await userEvent.dblClick(rowLabel)
     await expect(args.onOpenCustomField).toHaveBeenCalled()
+  }
+}
+
+export const Deletable: Story = {
+  args: {
+    onDeleteCustomFields: fn(async () => {})
+  }
+}
+
+export const Creatable: Story = {
+  args: {
+    onCreateCustomField: fn()
+  },
+  play: async ({ canvas, args }) => {
+    await userEvent.click(
+      await canvas.findByRole("button", { name: /new custom field/i })
+    )
+    await expect(args.onCreateCustomField).toHaveBeenCalled()
   }
 }

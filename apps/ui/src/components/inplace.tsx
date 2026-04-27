@@ -6,8 +6,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue
+  SelectTrigger
 } from "@/components/ui/select.tsx"
 import { Input } from "@/components/ui/input.tsx"
 import { cn } from "@/lib/utils.ts"
@@ -105,14 +104,15 @@ export function Inplace<T>({
     }
 
     if (editElement.type === "select") {
+      const selectedLabel =
+        editElement.options.find((opt) => opt.value === draft)?.label ??
+        String(draft)
+
       return (
         <Select
           open={selectOpen}
           onOpenChange={setSelectOpen}
-          value={
-            editElement.options.find((opt) => opt.value === draft)?.label ??
-            String(draft)
-          }
+          value={String(draft)}
           onValueChange={(v) => {
             const typed =
               typeof value === "number" ? (Number(v) as T) : (v as T)
@@ -121,7 +121,9 @@ export function Inplace<T>({
           }}
         >
           <SelectTrigger className="h-7 min-w-32 text-sm">
-            <SelectValue />
+            <span className="min-w-0 flex-1 truncate text-left">
+              {selectedLabel}
+            </span>
           </SelectTrigger>
           <SelectContent>
             {editElement.options.map((opt) => (
