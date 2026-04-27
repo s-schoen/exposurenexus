@@ -65,8 +65,4 @@ export async function resetTestDatabase(db: Kysely<Database>): Promise<void> {
   await db.deleteFrom("user_session").execute()
   await db.deleteFrom("user_role_assignment").execute()
   await db.deleteFrom("user_profile").execute()
-  await db.executeQuery(sql`DELETE FROM "account"`.compile(db))
-  await db.executeQuery(sql`DELETE FROM "session"`.compile(db))
-  await db.executeQuery(sql`DELETE FROM "verification"`.compile(db))
-  await db.executeQuery(sql`DELETE FROM "user"`.compile(db))
 }

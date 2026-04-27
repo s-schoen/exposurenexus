@@ -370,6 +370,8 @@ describe("auth service", () => {
   it("maps user lookup failures during validation to an HTTP 500", async () => {
     const service = createService()
 
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-04-26T08:00:00.000Z"))
     userSessionRepository.getBySessionID.mockResolvedValue(storedSession)
     userProfileRepository.getByID.mockRejectedValue(new Error("db offline"))
 

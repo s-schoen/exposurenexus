@@ -8,7 +8,6 @@ import {
   vi
 } from "vitest"
 import { AssetType } from "@openvlp/types/model/asset"
-import { sql } from "kysely"
 import {
   FindingSource,
   FindingStatus,
@@ -28,7 +27,7 @@ vi.mock("../db/index.js", () => ({
 
 describe("finding repository", () => {
   const testDb = createTestDatabase()
-  const createdBy = "test-user"
+  const createdBy = "85196743-cfba-4afb-b286-d36be32a64a4"
 
   beforeAll(async () => {
     await testDb.start()
@@ -40,25 +39,17 @@ describe("finding repository", () => {
 
   beforeEach(async () => {
     await resetTestDatabase(testDb.db)
-    await testDb.db.executeQuery(
-      sql`
-      INSERT INTO "user" (
-        "id",
-        "name",
-        "email",
-        "emailVerified",
-        "createdAt",
-        "updatedAt"
-      ) VALUES (
-        ${createdBy},
-        ${"Test User"},
-        ${"tester@example.com"},
-        ${true},
-        ${new Date("2026-01-01T00:00:00.000Z")},
-        ${new Date("2026-01-01T00:00:00.000Z")}
-      )
-    `.compile(testDb.db)
-    )
+    await testDb.db
+      .insertInto("user_profile")
+      .values({
+        id: createdBy,
+        username: "tester",
+        displayName: "Test User",
+        email: "tester@example.com",
+        enabled: true,
+        passwordHash: "password-hash"
+      })
+      .execute()
   })
 
   it("persists, updates, counts, and deletes findings against a real database", async () => {

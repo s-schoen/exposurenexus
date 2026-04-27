@@ -2,14 +2,28 @@ import { afterEach, describe, expect, it } from "vitest"
 import { PGlite } from "@electric-sql/pglite"
 import { Kysely, sql } from "kysely"
 import { PGliteDialect } from "kysely-pglite-dialect"
-import type { Database } from "../index.js"
 import * as initBetterAuth from "./20251219-init-better-auth.js"
 import * as betterAuthAdmin from "./20260414-better-auth-admin.js"
 import * as roleDefault from "./20260418-rbac-role-default.js"
 
+interface LegacyAuthMigrationDatabase {
+  user: {
+    id: string
+    name: string
+    email: string
+    emailVerified: boolean
+    image: string | null
+    createdAt: Date
+    updatedAt: Date
+    username: string | null
+    displayUsername: string | null
+    role: string | null
+  }
+}
+
 describe("20260418 rbac role default migration", () => {
   let pgLite: PGlite | null = null
-  let db: Kysely<Database> | null = null
+  let db: Kysely<LegacyAuthMigrationDatabase> | null = null
 
   afterEach(async () => {
     if (db) {
