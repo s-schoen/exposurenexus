@@ -235,4 +235,103 @@ describe("db migration columns", () => {
       ])
     )
   })
+
+  it("creates asset custom field tables with typed defaults and values", async () => {
+    const customFieldColumns = await sql<{
+      column_name: string
+      data_type: string
+      udt_name: string
+      column_default: string | null
+    }>`
+      select column_name, data_type, udt_name, column_default
+      from information_schema.columns
+      where table_name = 'asset_custom_field'
+    `.execute(testDb.db)
+
+    const optionColumns = await sql<{
+      column_name: string
+      data_type: string
+    }>`
+      select column_name, data_type
+      from information_schema.columns
+      where table_name = 'asset_custom_field_option'
+    `.execute(testDb.db)
+
+    const valueColumns = await sql<{
+      column_name: string
+      data_type: string
+    }>`
+      select column_name, data_type
+      from information_schema.columns
+      where table_name = 'asset_custom_field_value'
+    `.execute(testDb.db)
+
+    expect(customFieldColumns.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          column_name: "id",
+          data_type: "uuid"
+        }),
+        expect.objectContaining({
+          column_name: "key",
+          data_type: "text"
+        }),
+        expect.objectContaining({
+          column_name: "type",
+          data_type: "USER-DEFINED",
+          udt_name: "asset_custom_field_type"
+        }),
+        expect.objectContaining({
+          column_name: "required",
+          data_type: "boolean"
+        }),
+        expect.objectContaining({
+          column_name: "defaultValue",
+          data_type: "jsonb"
+        })
+      ])
+    )
+
+    const customFieldIdColumn = customFieldColumns.rows.find(
+      (row) => row.column_name === "id"
+    )
+    const customFieldRequiredColumn = customFieldColumns.rows.find(
+      (row) => row.column_name === "required"
+    )
+
+    expect(customFieldIdColumn?.column_default).toContain("gen_random_uuid()")
+    expect(customFieldRequiredColumn?.column_default).toBe("false")
+    expect(optionColumns.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          column_name: "fieldId",
+          data_type: "uuid"
+        }),
+        expect.objectContaining({
+          column_name: "value",
+          data_type: "text"
+        }),
+        expect.objectContaining({
+          column_name: "label",
+          data_type: "text"
+        })
+      ])
+    )
+    expect(valueColumns.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          column_name: "assetId",
+          data_type: "uuid"
+        }),
+        expect.objectContaining({
+          column_name: "fieldId",
+          data_type: "uuid"
+        }),
+        expect.objectContaining({
+          column_name: "value",
+          data_type: "jsonb"
+        })
+      ])
+    )
+  })
 })
