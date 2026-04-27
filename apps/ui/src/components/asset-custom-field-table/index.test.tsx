@@ -11,7 +11,8 @@ import { composeStories } from "@storybook/react-vite"
 
 import * as stories from "@/components/asset-custom-field-table/index.stories"
 
-const { ActiveRow, Default, Empty, Loading } = composeStories(stories)
+const { ActiveRow, Creatable, Default, Empty, Loading } =
+  composeStories(stories)
 
 class ResizeObserverMock {
   observe() {}
@@ -67,6 +68,19 @@ describe("AssetCustomFieldTable stories", () => {
       expect(
         within(activeRow as HTMLTableRowElement).getByText("Environment")
       ).toBeTruthy()
+    })
+  })
+
+  it("renders the toolbar create action", async () => {
+    render(<Creatable />)
+
+    const createButton = await screen.findByRole("button", {
+      name: /new custom field/i
+    })
+    fireEvent.click(createButton)
+
+    await waitFor(() => {
+      expect(stories.Creatable.args?.onCreateCustomField).toHaveBeenCalled()
     })
   })
 
