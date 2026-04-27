@@ -7,11 +7,11 @@ import * as m5 from "./migrations/20260418-rbac-role-default.js"
 import * as m6 from "./migrations/20260419-rbac-role-permissions.js"
 import * as m7 from "./migrations/20260422-custom-auth.js"
 import * as m8 from "./migrations/20260426-user-session-id-text.js"
-import * as m9 from "./migrations/20260427-rbac-custom-field-permissions.js"
-import * as m10 from "./migrations/20260427-rbac-custom-field-built-in-roles.js"
-import * as m11 from "./migrations/20260427-user-role-assignment-primary-key.js"
-import * as m12 from "./migrations/20260427-drop-better-auth-tables.js"
-import * as m13 from "./migrations/20260427-asset-custom-fields.js"
+import * as m9 from "./migrations/20260427-user-role-assignment-primary-key.js"
+import * as m10 from "./migrations/20260427-drop-better-auth-tables.js"
+import * as m11 from "./migrations/20260427-asset-custom-fields.js"
+import * as m12 from "./migrations/20260430-01-rbac-custom-field-permissions.js"
+import * as m13 from "./migrations/20260430-02-rbac-custom-field-built-in-roles.js"
 import { db, logger } from "./index.js"
 import type { Database } from "./index.js"
 import type { Kysely } from "kysely"
@@ -28,23 +28,23 @@ class ManualMigrationProvider implements MigrationProvider {
       "20260419-rbac-role-permissions": { up: m6.up, down: m6.down },
       "20260422-custom-auth": { up: m7.up, down: m7.down },
       "20260426-user-session-id-text": { up: m8.up, down: m8.down },
-      "20260427-01-rbac-custom-field-permissions": {
+      "20260427-user-role-assignment-primary-key": {
         up: m9.up,
         down: m9.down
       },
-      "20260427-02-rbac-custom-field-built-in-roles": {
+      "20260428-drop-better-auth-tables": {
         up: m10.up,
         down: m10.down
       },
-      "20260427-user-role-assignment-primary-key": {
+      "20260429-asset-custom-fields": {
         up: m11.up,
         down: m11.down
       },
-      "20260428-drop-better-auth-tables": {
+      "20260430-01-rbac-custom-field-permissions": {
         up: m12.up,
         down: m12.down
       },
-      "20260429-asset-custom-fields": {
+      "20260430-02-rbac-custom-field-built-in-roles": {
         up: m13.up,
         down: m13.down
       }
@@ -64,23 +64,33 @@ export async function migrateToLatest(
   })
 
   targetLogger.info("migrating database")
-  const { error, results } = await migrator.migrateToLatest()
+  let appliedMigration = false
 
-  if (results && results.length === 0) {
-    targetLogger.info("no migrations to apply")
-  }
+  while (true) {
+    const { error, results } = await migrator.migrateUp()
 
-  results?.forEach((it) => {
-    if (it.status === "Success") {
-      targetLogger.info(`migration "${it.migrationName}" applied successfully`)
-    } else if (it.status === "Error") {
-      targetLogger.error(`failed to apply migration "${it.migrationName}"`)
+    if (results && results.length === 0) {
+      if (!appliedMigration) {
+        targetLogger.info("no migrations to apply")
+      }
+      break
     }
-  })
 
-  if (error) {
-    targetLogger.error("failed to migrate")
-    targetLogger.error(error)
-    process.exit(1)
+    results?.forEach((it) => {
+      if (it.status === "Success") {
+        appliedMigration = true
+        targetLogger.info(
+          `migration "${it.migrationName}" applied successfully`
+        )
+      } else if (it.status === "Error") {
+        targetLogger.error(`failed to apply migration "${it.migrationName}"`)
+      }
+    })
+
+    if (error) {
+      targetLogger.error("failed to migrate")
+      targetLogger.error(error)
+      process.exit(1)
+    }
   }
 }
