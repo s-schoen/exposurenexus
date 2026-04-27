@@ -1,17 +1,16 @@
 import { keepPreviousData } from "@tanstack/react-query"
 import type { CreateUser, UpdateUser, User } from "@openvlp/types/model/user"
-import { env } from "@/env.ts"
 import {
   DEFAULT_QUERY_STALE_TIME,
+  apiRequest,
   parseArrayReply,
   parseErrorReply,
   parseObjectReply
 } from "@/api/common.ts"
 
 async function listUsers(): Promise<Array<User>> {
-  const response = await fetch(`${env.VITE_API_URL}/api/users`, {
-    method: "GET",
-    credentials: "include"
+  const response = await apiRequest("/api/users", {
+    method: "GET"
   })
 
   if (!response.ok) {
@@ -24,9 +23,8 @@ async function listUsers(): Promise<Array<User>> {
 }
 
 async function getUserByID(id: string): Promise<User> {
-  const response = await fetch(`${env.VITE_API_URL}/api/users/${id}`, {
-    method: "GET",
-    credentials: "include"
+  const response = await apiRequest(`/api/users/${id}`, {
+    method: "GET"
   })
 
   if (!response.ok) {
@@ -39,9 +37,8 @@ async function getUserByID(id: string): Promise<User> {
 }
 
 export async function createUser(user: CreateUser): Promise<User> {
-  const response = await fetch(`${env.VITE_API_URL}/api/users`, {
+  const response = await apiRequest("/api/users", {
     method: "POST",
-    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },
@@ -58,9 +55,8 @@ export async function createUser(user: CreateUser): Promise<User> {
 }
 
 export async function updateUser(id: string, user: UpdateUser): Promise<User> {
-  const response = await fetch(`${env.VITE_API_URL}/api/users/${id}`, {
+  const response = await apiRequest(`/api/users/${id}`, {
     method: "PUT",
-    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },

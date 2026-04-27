@@ -54,6 +54,15 @@ function errorResponse(status: number, error: string): Response {
   )
 }
 
+function requestInit(): RequestInit {
+  const init = fetchMock.mock.calls[0]?.[1]
+  if (!init) {
+    throw new Error("fetch was not called")
+  }
+
+  return init
+}
+
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock)
   fetchMock.mockReset()
@@ -62,6 +71,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 describe("custom auth client", () => {
@@ -75,17 +85,22 @@ describe("custom auth client", () => {
       })
     ).resolves.toEqual({ data: authSession })
 
-    expect(fetchMock).toHaveBeenCalledWith("http://localhost:3001/api/auth", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        username: "alice",
-        password: "correct-horse-battery-staple"
+    const init = requestInit()
+    const headers = init.headers as Headers
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:3001/api/auth",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify({
+          username: "alice",
+          password: "correct-horse-battery-staple"
+        })
       })
-    })
+    )
+    expect(headers.get("Content-Type")).toBe("application/json")
+    expect(headers.get("X-CSRF-Token")).toBeNull()
   })
 
   it("loads the current authenticated session", async () => {
@@ -95,10 +110,10 @@ describe("custom auth client", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:3001/api/auth/session",
-      {
+      expect.objectContaining({
         method: "GET",
         credentials: "include"
-      }
+      })
     )
   })
 
@@ -128,13 +143,17 @@ describe("custom auth client", () => {
       data: { revoked: true }
     })
 
-    expect(fetchMock).toHaveBeenCalledWith("http://localhost:3001/api/auth", {
-      method: "DELETE",
-      credentials: "include",
-      headers: {
-        "X-CSRF-Token": "csrf-token"
-      }
-    })
+    const init = requestInit()
+    const headers = init.headers as Headers
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:3001/api/auth",
+      expect.objectContaining({
+        method: "DELETE",
+        credentials: "include"
+      })
+    )
+    expect(headers.get("X-CSRF-Token")).toBe("csrf-token")
     expect(onSuccess).toHaveBeenCalledOnce()
   })
 

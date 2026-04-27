@@ -1,17 +1,16 @@
 import { keepPreviousData } from "@tanstack/react-query"
 import type { Role, UpdateRole } from "@openvlp/types/model/rbac"
-import { env } from "@/env.ts"
 import {
   DEFAULT_QUERY_STALE_TIME,
+  apiRequest,
   parseArrayReply,
   parseErrorReply,
   parseObjectReply
 } from "@/api/common.ts"
 
 async function listRoles(): Promise<Array<Role>> {
-  const response = await fetch(`${env.VITE_API_URL}/api/roles`, {
-    method: "GET",
-    credentials: "include"
+  const response = await apiRequest("/api/roles", {
+    method: "GET"
   })
 
   if (!response.ok) {
@@ -24,9 +23,8 @@ async function listRoles(): Promise<Array<Role>> {
 }
 
 async function getRoleByID(id: string): Promise<Role> {
-  const response = await fetch(`${env.VITE_API_URL}/api/roles/${id}`, {
-    method: "GET",
-    credentials: "include"
+  const response = await apiRequest(`/api/roles/${id}`, {
+    method: "GET"
   })
 
   if (!response.ok) {
@@ -39,9 +37,8 @@ async function getRoleByID(id: string): Promise<Role> {
 }
 
 export async function updateRole(id: string, role: UpdateRole): Promise<Role> {
-  const response = await fetch(`${env.VITE_API_URL}/api/roles/${id}`, {
+  const response = await apiRequest(`/api/roles/${id}`, {
     method: "PUT",
-    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },
@@ -58,9 +55,8 @@ export async function updateRole(id: string, role: UpdateRole): Promise<Role> {
 }
 
 export async function deleteRole(id: string): Promise<Role> {
-  const response = await fetch(`${env.VITE_API_URL}/api/roles/${id}`, {
-    method: "DELETE",
-    credentials: "include"
+  const response = await apiRequest(`/api/roles/${id}`, {
+    method: "DELETE"
   })
 
   if (!response.ok) {

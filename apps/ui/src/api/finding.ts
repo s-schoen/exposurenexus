@@ -4,18 +4,17 @@ import type {
   Finding,
   FindingStatistics
 } from "@openvlp/types/model/finding"
-import { env } from "@/env.ts"
 import {
   DEFAULT_QUERY_STALE_TIME,
+  apiRequest,
   parseArrayReply,
   parseErrorReply,
   parseObjectReply
 } from "@/api/common.ts"
 
 async function listFindings(): Promise<Array<Finding>> {
-  const response = await fetch(`${env.VITE_API_URL}/api/findings`, {
-    method: "GET",
-    credentials: "include"
+  const response = await apiRequest("/api/findings", {
+    method: "GET"
   })
 
   if (!response.ok) {
@@ -28,9 +27,8 @@ async function listFindings(): Promise<Array<Finding>> {
 }
 
 export async function deleteFinding(id: string): Promise<Finding> {
-  const response = await fetch(`${env.VITE_API_URL}/api/findings/${id}`, {
-    method: "DELETE",
-    credentials: "include"
+  const response = await apiRequest(`/api/findings/${id}`, {
+    method: "DELETE"
   })
 
   if (!response.ok) {
@@ -43,9 +41,8 @@ export async function deleteFinding(id: string): Promise<Finding> {
 }
 
 async function getFindingByID(id: string): Promise<Finding> {
-  const response = await fetch(`${env.VITE_API_URL}/api/findings/${id}`, {
-    method: "GET",
-    credentials: "include"
+  const response = await apiRequest(`/api/findings/${id}`, {
+    method: "GET"
   })
 
   if (!response.ok) {
@@ -58,9 +55,8 @@ async function getFindingByID(id: string): Promise<Finding> {
 }
 
 async function getFindingStats(): Promise<FindingStatistics> {
-  const response = await fetch(`${env.VITE_API_URL}/api/findings/stats`, {
-    method: "GET",
-    credentials: "include"
+  const response = await apiRequest("/api/findings/stats", {
+    method: "GET"
   })
 
   if (!response.ok) {
@@ -73,9 +69,8 @@ async function getFindingStats(): Promise<FindingStatistics> {
 }
 
 export async function createFinding(f: CreateFinding): Promise<Finding> {
-  const response = await fetch(`${env.VITE_API_URL}/api/findings`, {
+  const response = await apiRequest("/api/findings", {
     method: "POST",
-    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },
@@ -102,9 +97,8 @@ export async function updateFinding(f: Finding): Promise<Finding> {
     assetId: f.assetId
   }
 
-  const response = await fetch(`${env.VITE_API_URL}/api/findings/${f.id}`, {
+  const response = await apiRequest(`/api/findings/${f.id}`, {
     method: "PUT",
-    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },
@@ -125,9 +119,8 @@ export async function uploadFindingFile(type: string, file: File) {
   formData.append("file", file)
   formData.append("type", type)
 
-  const response = await fetch(`${env.VITE_API_URL}/api/findings/import`, {
+  const response = await apiRequest("/api/findings/import", {
     method: "POST",
-    credentials: "include",
     body: formData
   })
 
