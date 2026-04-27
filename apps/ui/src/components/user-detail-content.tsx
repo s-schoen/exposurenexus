@@ -22,17 +22,17 @@ interface UserDetailContentProps {
   titleAction?: ReactNode
 }
 
-function UserStatusBadge({ emailVerified }: { emailVerified: boolean }) {
+function UserStatusBadge({ enabled }: { enabled: boolean }) {
   return (
     <Badge
       variant="outline"
       className={
-        emailVerified
+        enabled
           ? "rounded-full border-emerald-200 bg-emerald-50 text-emerald-700"
           : "rounded-full border-amber-200 bg-amber-50 text-amber-700"
       }
     >
-      {emailVerified ? "Verified" : "Unverified"}
+      {enabled ? "Enabled" : "Disabled"}
     </Badge>
   )
 }
@@ -43,18 +43,6 @@ export function UserDetailContent({
 }: UserDetailContentProps) {
   const user = useQuery(createUserByIDQueryOptions(userId))
   const roles = useQuery(createListRolesQueryOptions())
-
-  function formatDateTime(value: Date | string | null | undefined) {
-    if (!value) return "Not available"
-
-    const date = value instanceof Date ? value : new Date(value)
-
-    if (Number.isNaN(date.getTime())) {
-      return "Invalid date"
-    }
-
-    return date.toLocaleString()
-  }
 
   function CardPlaceholder() {
     return (
@@ -102,8 +90,7 @@ export function UserDetailContent({
   }
 
   const userData = user.data
-  const emailVerified = Boolean(userData.emailVerified)
-  const displayName = userData.displayUsername ?? userData.name
+  const displayName = userData.displayName
   const roleLabelById = new Map(
     (roles.data ?? []).map((role) => [role.id, role.name])
   )
@@ -128,7 +115,8 @@ export function UserDetailContent({
     if (!roles.data) {
       return (
         <span className="text-muted-foreground">
-          {userData.roleIds.length} role{userData.roleIds.length === 1 ? "" : "s"} assigned
+          {userData.roleIds.length} role
+          {userData.roleIds.length === 1 ? "" : "s"} assigned
         </span>
       )
     }
@@ -147,7 +135,10 @@ export function UserDetailContent({
           </Badge>
         ))}
         {unresolvedRoleCount > 0 && (
-          <Badge variant="outline" className="rounded-full text-muted-foreground">
+          <Badge
+            variant="outline"
+            className="rounded-full text-muted-foreground"
+          >
             +{unresolvedRoleCount} unknown
           </Badge>
         )}
@@ -163,7 +154,7 @@ export function UserDetailContent({
         <CardHeader className="gap-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">{titleAction}</div>
-            <UserStatusBadge emailVerified={emailVerified} />
+            <UserStatusBadge enabled={userData.enabled} />
           </div>
           <div className="space-y-3">
             <div className="space-y-2">
@@ -172,7 +163,7 @@ export function UserDetailContent({
               </CardTitle>
               <CardDescription className="max-w-3xl text-sm leading-6">
                 Platform user account with access credentials, profile
-                identifiers, and audit timestamps.
+                identifiers, and role assignments.
               </CardDescription>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -183,13 +174,13 @@ export function UserDetailContent({
               />
               <DetailHighlightCard
                 label="Username"
-                value={username ?? "Not assigned"}
+                value={username}
                 description="Unique sign-in handle for the account"
               />
               <DetailHighlightCard
                 label="Status"
-                value={<UserStatusBadge emailVerified={emailVerified} />}
-                description="Whether the email address has been verified"
+                value={<UserStatusBadge enabled={userData.enabled} />}
+                description="Whether the user can authenticate"
               />
               <DetailHighlightCard
                 label="Roles"
@@ -213,8 +204,7 @@ export function UserDetailContent({
             <div className="space-y-2">
               <CardTitle className="text-xl font-semibold">Profile</CardTitle>
               <CardDescription>
-                Identity fields exposed by the authentication provider for this
-                account.
+                Identity fields stored by the OpenVLP user profile service.
               </CardDescription>
             </div>
             <Badge variant="outline" className="rounded-md">
@@ -241,7 +231,7 @@ export function UserDetailContent({
           <div className="space-y-2">
             <div className="text-sm font-medium text-foreground">Username</div>
             <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-              {username ?? "Not assigned"}
+              {username}
             </div>
           </div>
         </CardContent>
@@ -257,28 +247,12 @@ export function UserDetailContent({
         <div className="space-y-3">
           <MetadataDetailRow label="Display name" value={displayName} />
           <MetadataDetailRow label="Email" value={userData.email} />
+          <MetadataDetailRow label="Username" value={username} />
           <MetadataDetailRow
-            label="Username"
-            value={username ?? "Not assigned"}
+            label="Status"
+            value={userData.enabled ? "Enabled" : "Disabled"}
           />
-          <MetadataDetailRow
-            label="Email status"
-            value={emailVerified ? "Verified" : "Unverified"}
-          />
-          <MetadataDetailRow
-            label="Roles"
-            value={<UserRoleBadges compact />}
-          />
-        </div>
-        <div className="space-y-3 border-t border-border/70 pt-5">
-          <MetadataDetailRow
-            label="Created"
-            value={formatDateTime(userData.createdAt)}
-          />
-          <MetadataDetailRow
-            label="Updated"
-            value={formatDateTime(userData.updatedAt)}
-          />
+          <MetadataDetailRow label="Roles" value={<UserRoleBadges compact />} />
         </div>
       </MetadataSidebar>
     )

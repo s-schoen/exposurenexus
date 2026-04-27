@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor
+} from "@testing-library/react"
 import { composeStories } from "@storybook/react-vite"
 import { builtInRoleIds } from "@openvlp/types/model/rbac"
 import type { UserFormValues } from "@/components/user-form"
@@ -31,7 +37,7 @@ afterEach(() => {
 
 function fillCreateFields(values: UserFormValues) {
   fireEvent.change(screen.getByLabelText(/display name/i), {
-    target: { value: values.displayUsername }
+    target: { value: values.displayName }
   })
   fireEvent.change(screen.getByLabelText(/username/i), {
     target: { value: values.username }
@@ -62,6 +68,7 @@ describe("UserForm", () => {
     expect(screen.getByLabelText(/username/i)).toBeTruthy()
     expect(screen.getByLabelText(/email/i)).toBeTruthy()
     expect(screen.getByRole("combobox", { name: /roles/i })).toBeTruthy()
+    expect(screen.getByRole("checkbox", { name: /enabled/i })).toBeTruthy()
     expect(screen.getByLabelText(/password/i)).toBeTruthy()
     expect(screen.getByRole("button", { name: /create user/i })).toBeTruthy()
     expect(screen.getByRole("button", { name: /^cancel$/i })).toBeTruthy()
@@ -77,9 +84,9 @@ describe("UserForm", () => {
     expect(displayNameInput.value).toBe("Alice Example")
     expect(screen.queryByLabelText(/username/i)).toBeNull()
     expect(emailInput.value).toBe("alice@example.com")
-    expect(screen.getByRole("combobox", { name: /roles/i }).textContent).toContain(
-      "viewer, editor"
-    )
+    expect(
+      screen.getByRole("combobox", { name: /roles/i }).textContent
+    ).toContain("viewer, editor")
     expect(passwordInput.value).toBe("")
     expect(screen.getByRole("button", { name: /save changes/i })).toBeTruthy()
     expect(screen.getByRole("button", { name: /^cancel$/i })).toBeTruthy()
@@ -116,9 +123,10 @@ describe("UserForm", () => {
     )
 
     const values: UserFormValues = {
-      displayUsername: "Alice Example",
+      displayName: "Alice Example",
       username: "alice",
       email: "alice@example.com",
+      enabled: true,
       password: "correct horse battery staple",
       roleIds: [builtInRoleIds.viewer, builtInRoleIds.admin]
     }
@@ -150,15 +158,15 @@ describe("UserForm", () => {
     })
     fireEvent.click(screen.getByText("admin"))
 
-    expect(screen.getByRole("combobox", { name: /roles/i }).textContent).toContain(
-      "admin"
-    )
+    expect(
+      screen.getByRole("combobox", { name: /roles/i }).textContent
+    ).toContain("admin")
 
     fireEvent.click(screen.getByRole("button", { name: /clear selection/i }))
 
-    expect(screen.getByRole("combobox", { name: /roles/i }).textContent).toContain(
-      "Select roles..."
-    )
+    expect(
+      screen.getByRole("combobox", { name: /roles/i }).textContent
+    ).toContain("Select roles...")
   })
 
   it("calls the cancel handler", async () => {
@@ -185,17 +193,18 @@ describe("UserForm", () => {
   it("maps create form values with trimmed identity fields", () => {
     expect(
       mapCreateUserFormValues({
-        displayUsername: "  Alice Example  ",
+        displayName: "  Alice Example  ",
         username: "  alice  ",
         email: "  alice@example.com  ",
+        enabled: true,
         password: "secret",
         roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
       })
     ).toEqual({
-      name: "Alice Example",
-      displayUsername: "Alice Example",
+      displayName: "Alice Example",
       username: "alice",
       email: "alice@example.com",
+      enabled: true,
       password: "secret",
       roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
     })
@@ -203,21 +212,18 @@ describe("UserForm", () => {
 
   it("maps update form values without a blank password", () => {
     expect(
-      mapUpdateUserFormValues(
-        {
-          displayUsername: "  Alice Example  ",
-          username: "ignored",
-          email: "  alice@example.com  ",
-          password: "",
-          roleIds: [builtInRoleIds.viewer]
-        },
-        "avatar.png"
-      )
+      mapUpdateUserFormValues({
+        displayName: "  Alice Example  ",
+        username: "ignored",
+        email: "  alice@example.com  ",
+        enabled: true,
+        password: "",
+        roleIds: [builtInRoleIds.viewer]
+      })
     ).toEqual({
-      name: "Alice Example",
-      displayUsername: "Alice Example",
+      displayName: "Alice Example",
       email: "alice@example.com",
-      image: "avatar.png",
+      enabled: true,
       roleIds: [builtInRoleIds.viewer]
     })
   })
@@ -225,17 +231,17 @@ describe("UserForm", () => {
   it("maps update form values with a provided password", () => {
     expect(
       mapUpdateUserFormValues({
-        displayUsername: "Alice Example",
+        displayName: "Alice Example",
         username: "ignored",
         email: "alice@example.com",
+        enabled: false,
         password: "secret",
         roleIds: [builtInRoleIds.admin]
       })
     ).toEqual({
-      name: "Alice Example",
-      displayUsername: "Alice Example",
+      displayName: "Alice Example",
       email: "alice@example.com",
-      image: null,
+      enabled: false,
       password: "secret",
       roleIds: [builtInRoleIds.admin]
     })

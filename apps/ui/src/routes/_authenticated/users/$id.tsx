@@ -53,9 +53,9 @@ function UserDetailPage({ id }: { id: string }) {
   )
 
   usePageMeta({
-    title: user.data?.displayUsername ?? user.data?.name ?? "User",
+    title: user.data?.displayName ?? "User",
     description:
-      "Review account identity fields, verification state, and audit timestamps.",
+      "Review account identity fields, status, and role assignments.",
     actions
   })
 

@@ -1,5 +1,9 @@
 import { keepPreviousData } from "@tanstack/react-query"
-import type { CreateUser, UpdateUser, User } from "@openvlp/types/model/user"
+import type {
+  CreateUserProfile,
+  UpdateUserProfile,
+  UserProfile
+} from "@openvlp/types/model/user"
 import {
   DEFAULT_QUERY_STALE_TIME,
   apiRequest,
@@ -8,7 +12,7 @@ import {
   parseObjectReply
 } from "@/api/common.ts"
 
-async function listUsers(): Promise<Array<User>> {
+async function listUsers(): Promise<Array<UserProfile>> {
   const response = await apiRequest("/api/users", {
     method: "GET"
   })
@@ -19,10 +23,10 @@ async function listUsers(): Promise<Array<User>> {
     throw error
   }
 
-  return parseArrayReply<User>(response)
+  return parseArrayReply<UserProfile>(response)
 }
 
-async function getUserByID(id: string): Promise<User> {
+async function getUserByID(id: string): Promise<UserProfile> {
   const response = await apiRequest(`/api/users/${id}`, {
     method: "GET"
   })
@@ -33,10 +37,12 @@ async function getUserByID(id: string): Promise<User> {
     throw error
   }
 
-  return parseObjectReply<User>(response)
+  return parseObjectReply<UserProfile>(response)
 }
 
-export async function createUser(user: CreateUser): Promise<User> {
+export async function createUser(
+  user: CreateUserProfile
+): Promise<UserProfile> {
   const response = await apiRequest("/api/users", {
     method: "POST",
     headers: {
@@ -51,10 +57,13 @@ export async function createUser(user: CreateUser): Promise<User> {
     throw error
   }
 
-  return parseObjectReply<User>(response)
+  return parseObjectReply<UserProfile>(response)
 }
 
-export async function updateUser(id: string, user: UpdateUser): Promise<User> {
+export async function updateUser(
+  id: string,
+  user: UpdateUserProfile
+): Promise<UserProfile> {
   const response = await apiRequest(`/api/users/${id}`, {
     method: "PUT",
     headers: {
@@ -69,7 +78,7 @@ export async function updateUser(id: string, user: UpdateUser): Promise<User> {
     throw error
   }
 
-  return parseObjectReply<User>(response)
+  return parseObjectReply<UserProfile>(response)
 }
 
 export function createListUsersQueryOptions() {

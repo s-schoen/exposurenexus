@@ -32,7 +32,7 @@ function RouteComponent() {
   const roles = useQuery(createListRolesQueryOptions())
 
   usePageMeta({
-    title: user.data?.displayUsername ?? user.data?.name ?? "Edit User",
+    title: user.data?.displayName ?? "Edit User",
     description: "Update user profile fields and optionally reset the password."
   })
 
@@ -51,10 +51,7 @@ function RouteComponent() {
     }
 
     try {
-      await updateUser(
-        id,
-        mapUpdateUserFormValues(values, user.data.image ?? null)
-      )
+      await updateUser(id, mapUpdateUserFormValues(values))
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: createListUsersQueryOptions().queryKey
@@ -63,7 +60,7 @@ function RouteComponent() {
           queryKey: createUserByIDQueryOptions(id).queryKey
         })
       ])
-      toast.success(`Updated user ${values.displayUsername.trim()}`)
+      toast.success(`Updated user ${values.displayName.trim()}`)
       await navigate({
         to: "/users/$id",
         params: { id }
@@ -119,9 +116,10 @@ function RouteComponent() {
       mode="edit"
       roles={roles.data}
       defaultValues={{
-        displayUsername: user.data.displayUsername ?? user.data.name,
-        username: user.data.username ?? "",
+        displayName: user.data.displayName,
+        username: user.data.username,
         email: user.data.email,
+        enabled: user.data.enabled,
         password: "",
         roleIds: user.data.roleIds
       }}

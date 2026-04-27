@@ -2,10 +2,17 @@ import { Check, ChevronsUpDownIcon } from "lucide-react"
 import { useForm } from "@tanstack/react-form"
 import { useMemo, useState } from "react"
 import { z } from "zod/v4"
-import { createUserSchema, updateUserSchema } from "@openvlp/types/model/user"
-import type { CreateUser, UpdateUser } from "@openvlp/types/model/user"
+import {
+  createUserProfileSchema,
+  updateUserProfileSchema
+} from "@openvlp/types/model/user"
+import type {
+  CreateUserProfile,
+  UpdateUserProfile
+} from "@openvlp/types/model/user"
 import type { Role } from "@openvlp/types/model/rbac"
 import { Button } from "@/components/ui/button.tsx"
+import { Checkbox } from "@/components/ui/checkbox.tsx"
 import {
   Command,
   CommandEmpty,
@@ -39,9 +46,10 @@ import { Spinner } from "@/components/ui/spinner.tsx"
 export type UserFormMode = "create" | "edit"
 
 export interface UserFormValues {
-  displayUsername: string
+  displayName: string
   username: string
   email: string
+  enabled: boolean
   password: string
   roleIds: Array<string>
 }
@@ -60,25 +68,31 @@ const roleIdsFieldSchema = z
   .min(1, "Select at least one role")
 
 const createUserFormSchema = z.strictObject({
-  displayUsername: createUserSchema.shape.displayUsername,
-  username: createUserSchema.shape.username,
-  email: createUserSchema.shape.email,
-  password: createUserSchema.shape.password,
+  displayName: createUserProfileSchema.shape.displayName,
+  username: createUserProfileSchema.shape.username,
+  email: createUserProfileSchema.shape.email,
+  enabled: createUserProfileSchema.shape.enabled,
+  password: createUserProfileSchema.shape.password,
   roleIds: roleIdsFieldSchema
 })
 
 const editUserFormSchema = z.strictObject({
-  displayUsername: updateUserSchema.shape.displayUsername,
+  displayName: updateUserProfileSchema.shape.displayName.unwrap(),
   username: z.string(),
-  email: updateUserSchema.shape.email,
-  password: z.union([z.literal(""), updateUserSchema.shape.password.unwrap()]),
+  email: updateUserProfileSchema.shape.email.unwrap(),
+  enabled: updateUserProfileSchema.shape.enabled.unwrap(),
+  password: z.union([
+    z.literal(""),
+    updateUserProfileSchema.shape.password.unwrap()
+  ]),
   roleIds: roleIdsFieldSchema
 })
 
 const DEFAULT_USER_FORM_VALUES: UserFormValues = {
-  displayUsername: "",
+  displayName: "",
   username: "",
   email: "",
+  enabled: true,
   password: "",
   roleIds: []
 }
@@ -116,7 +130,8 @@ function RoleMultiSelect({
   const selectedSummary =
     value.length === 0
       ? "Select roles..."
-      : selectedRoleNames.length === value.length && selectedRoleNames.length <= 2
+      : selectedRoleNames.length === value.length &&
+          selectedRoleNames.length <= 2
         ? selectedRoleNames.join(", ")
         : `${value.length} roles selected`
 
@@ -192,7 +207,9 @@ function RoleMultiSelect({
                     onSelect={() => handleToggleRole(role.id)}
                   >
                     <span className="truncate">{role.name}</span>
-                    {isSelected && <Check className="ml-auto size-4 text-foreground" />}
+                    {isSelected && (
+                      <Check className="ml-auto size-4 text-foreground" />
+                    )}
                   </CommandItem>
                 )
               })}
@@ -217,30 +234,30 @@ function RoleMultiSelect({
   )
 }
 
-export function mapCreateUserFormValues(values: UserFormValues): CreateUser {
-  const displayUsername = values.displayUsername.trim()
+export function mapCreateUserFormValues(
+  values: UserFormValues
+): CreateUserProfile {
+  const displayName = values.displayName.trim()
 
   return {
-    name: displayUsername,
-    displayUsername,
+    displayName,
     username: values.username.trim(),
     email: values.email.trim(),
+    enabled: values.enabled,
     password: values.password,
     roleIds: values.roleIds
   }
 }
 
 export function mapUpdateUserFormValues(
-  values: UserFormValues,
-  image: string | null = null
-): UpdateUser {
-  const displayUsername = values.displayUsername.trim()
+  values: UserFormValues
+): UpdateUserProfile {
+  const displayName = values.displayName.trim()
 
   return {
-    name: displayUsername,
-    displayUsername,
+    displayName,
     email: values.email.trim(),
-    image,
+    enabled: values.enabled,
     roleIds: values.roleIds,
     ...(values.password === "" ? {} : { password: values.password })
   }
@@ -294,7 +311,7 @@ export function UserForm({
         >
           <FieldGroup>
             <form.Field
-              name="displayUsername"
+              name="displayName"
               children={(field) => {
                 const isInvalid =
                   field.state.meta.isTouched && !field.state.meta.isValid
@@ -314,8 +331,7 @@ export function UserForm({
                       placeholder="Alice Example"
                     />
                     <FieldDescription>
-                      This value is shown in the UI and is also sent as the user
-                      name.
+                      This value is shown in the UI as the user&apos;s name.
                     </FieldDescription>
                     {isInvalid && (
                       <FieldError errors={field.state.meta.errors} />
@@ -411,6 +427,28 @@ export function UserForm({
                     {isInvalid && (
                       <FieldError errors={field.state.meta.errors} />
                     )}
+                  </Field>
+                )
+              }}
+            />
+            <form.Field
+              name="enabled"
+              children={(field) => {
+                return (
+                  <Field orientation="horizontal">
+                    <Checkbox
+                      id={field.name}
+                      checked={field.state.value}
+                      onCheckedChange={(value) => field.handleChange(!!value)}
+                      onBlur={field.handleBlur}
+                      disabled={isSubmitting}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <FieldLabel htmlFor={field.name}>Enabled</FieldLabel>
+                      <FieldDescription>
+                        Disabled users cannot authenticate.
+                      </FieldDescription>
+                    </div>
                   </Field>
                 )
               }}

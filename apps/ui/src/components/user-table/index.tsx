@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import { useMemo } from "react"
-import type { User } from "@openvlp/types/model/user"
+import type { UserProfile } from "@openvlp/types/model/user"
 import type {
   DataTableFilterState,
   GroupingOption
@@ -14,15 +14,15 @@ import { createColumns } from "@/components/user-table/columns.tsx"
 
 const groupingOptions: Array<GroupingOption> = [
   {
-    id: "emailVerified",
+    id: "enabled",
     label: "Status",
-    formatValue: (value) => (value ? "Verified" : "Unverified")
+    formatValue: (value) => (value ? "Enabled" : "Disabled")
   }
 ]
 
 interface UserTableProps {
   selectedUserId?: string
-  onSelectUser?: (user: User) => void
+  onSelectUser?: (user: UserProfile) => void
 }
 
 export function UserTable({
@@ -33,20 +33,17 @@ export function UserTable({
   const usersQuery = useQuery(createListUsersQueryOptions())
   const rolesQuery = useQuery(createListRolesQueryOptions())
   const [filter, setFilter] = useQueryState("filter")
-  const [emailVerifiedFilter, setEmailVerifiedFilter] = useQueryState(
-    "emailVerified",
+  const [enabledFilter, setEnabledFilter] = useQueryState(
+    "enabled",
     parseAsArrayOf(parseAsString).withDefault([])
   )
 
   const filterState = useMemo<DataTableFilterState>(
     () => ({
       globalFilter: filter ?? "",
-      selectFilters:
-        emailVerifiedFilter.length > 0
-          ? { emailVerified: emailVerifiedFilter }
-          : {}
+      selectFilters: enabledFilter.length > 0 ? { enabled: enabledFilter } : {}
     }),
-    [filter, emailVerifiedFilter]
+    [filter, enabledFilter]
   )
   const roleLabelById = useMemo(
     () => new Map((rolesQuery.data ?? []).map((role) => [role.id, role.name])),
@@ -57,7 +54,7 @@ export function UserTable({
     [roleLabelById, rolesQuery.isSuccess]
   )
 
-  const handleOpenUser = async (user: User) => {
+  const handleOpenUser = async (user: UserProfile) => {
     await navigate({
       to: "/users/$id",
       params: {
@@ -68,11 +65,9 @@ export function UserTable({
 
   const handleFilterStateChange = (nextState: DataTableFilterState) => {
     void setFilter(nextState.globalFilter ? nextState.globalFilter : null)
-    const nextEmailVerifiedFilter = nextState.selectFilters.emailVerified ?? []
+    const nextEnabledFilter = nextState.selectFilters.enabled ?? []
 
-    void setEmailVerifiedFilter(
-      nextEmailVerifiedFilter.length ? nextEmailVerifiedFilter : null
-    )
+    void setEnabledFilter(nextEnabledFilter.length ? nextEnabledFilter : null)
   }
 
   return (

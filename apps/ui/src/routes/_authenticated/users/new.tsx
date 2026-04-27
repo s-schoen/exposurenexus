@@ -48,7 +48,7 @@ function RouteComponent() {
       await queryClient.invalidateQueries({
         queryKey: createListUsersQueryOptions().queryKey
       })
-      toast.success(`Created user ${payload.displayUsername}`)
+      toast.success(`Created user ${payload.displayName}`)
       await navigate({
         to: "/users",
         search: { selected: undefined }
@@ -88,9 +88,7 @@ function RouteComponent() {
           <Alert variant="destructive">
             <CircleAlert />
             <AlertTitle>Unable to load roles</AlertTitle>
-            <AlertDescription>
-              {roles.error.message}
-            </AlertDescription>
+            <AlertDescription>{roles.error.message}</AlertDescription>
           </Alert>
         </CardContent>
       </Card>
