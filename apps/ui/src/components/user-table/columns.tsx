@@ -1,7 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table"
-import type { User } from "@openvlp/types/model/user"
+import type { UserProfile } from "@openvlp/types/model/user"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
-import { Timestamp } from "@/components/timestamp.tsx"
 import { Badge } from "@/components/ui/badge.tsx"
 
 function resolveRoleLabels(
@@ -17,18 +16,18 @@ function resolveRoleLabels(
 export function createColumns(
   roleLabelById: ReadonlyMap<string, string>,
   rolesResolved: boolean
-): Array<ColumnDef<User>> {
+): Array<ColumnDef<UserProfile>> {
   return [
     {
-      id: "displayUsername",
-      accessorFn: (user) => user.displayUsername ?? user.name,
+      id: "displayName",
+      accessorFn: (user) => user.displayName,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Display name" />
       )
     },
     {
       id: "username",
-      accessorFn: (user) => user.username ?? "",
+      accessorFn: (user) => user.username,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Username" />
       ),
@@ -50,7 +49,8 @@ export function createColumns(
     },
     {
       id: "roles",
-      accessorFn: (user) => resolveRoleLabels(user.roleIds, roleLabelById).join(", "),
+      accessorFn: (user) =>
+        resolveRoleLabels(user.roleIds, roleLabelById).join(", "),
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Roles" />
       ),
@@ -71,8 +71,14 @@ export function createColumns(
 
         const roleLabels = resolveRoleLabels(roleIds, roleLabelById)
         const visibleRoleLabels = roleLabels.slice(0, 2)
-        const hiddenRoleCount = Math.max(roleLabels.length - visibleRoleLabels.length, 0)
-        const unresolvedRoleCount = Math.max(roleIds.length - roleLabels.length, 0)
+        const hiddenRoleCount = Math.max(
+          roleLabels.length - visibleRoleLabels.length,
+          0
+        )
+        const unresolvedRoleCount = Math.max(
+          roleIds.length - roleLabels.length,
+          0
+        )
 
         return (
           <div className="flex items-center gap-1">
@@ -87,7 +93,10 @@ export function createColumns(
               </Badge>
             )}
             {unresolvedRoleCount > 0 && (
-              <Badge variant="outline" className="rounded-full text-muted-foreground">
+              <Badge
+                variant="outline"
+                className="rounded-full text-muted-foreground"
+              >
                 +{unresolvedRoleCount} unknown
               </Badge>
             )}
@@ -96,46 +105,39 @@ export function createColumns(
       }
     },
     {
-      accessorKey: "emailVerified",
+      accessorKey: "enabled",
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Status" />
       ),
       cell: ({ row }) => {
-        const isVerified = row.getValue<boolean>("emailVerified")
+        const enabled = row.getValue<boolean>("enabled")
 
         return (
           <Badge
             variant="outline"
             className={
-              isVerified
+              enabled
                 ? "rounded-full border-emerald-200 bg-emerald-50 text-emerald-700"
                 : "rounded-full border-amber-200 bg-amber-50 text-amber-700"
             }
           >
-            {isVerified ? "Verified" : "Unverified"}
+            {enabled ? "Enabled" : "Disabled"}
           </Badge>
         )
       },
       filterFn: (row, _columnId, filterValue: Array<string>) => {
         if (filterValue.length === 0) return true
 
-        return filterValue.includes(String(row.getValue("emailVerified")))
+        return filterValue.includes(String(row.getValue("enabled")))
       },
       meta: {
         label: "Status",
         filterVariant: "select",
         options: [
-          { label: "Verified", value: "true" },
-          { label: "Unverified", value: "false" }
+          { label: "Enabled", value: "true" },
+          { label: "Disabled", value: "false" }
         ]
       }
-    },
-    {
-      accessorKey: "createdAt",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Created" />
-      ),
-      cell: ({ row }) => <Timestamp timestamp={row.getValue("createdAt")} />
     }
   ]
 }

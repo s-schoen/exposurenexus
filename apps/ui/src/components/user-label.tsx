@@ -12,7 +12,8 @@ export function UserLabel({ userId, className }: UserLabelProps) {
   const displayName = useQuery({
     ...createListUsersQueryOptions(),
     enabled: Boolean(userId),
-    select: (users) => users.find((user) => user.id === userId)?.displayUsername ?? ""
+    select: (users) =>
+      users.find((user) => user.id === userId)?.displayName ?? ""
   })
 
   if (!userId) {

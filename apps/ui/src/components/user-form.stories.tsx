@@ -1,10 +1,5 @@
 import { useState } from "react"
-import {
-  expect,
-  fn,
-  userEvent,
-  within
-} from "storybook/test"
+import { expect, fn, userEvent, within } from "storybook/test"
 import {
   BuiltInRoleName,
   PermissionResource,
@@ -101,9 +96,10 @@ export const EditPrefilled: Story = {
   args: {
     mode: "edit",
     defaultValues: {
-      displayUsername: "Alice Example",
+      displayName: "Alice Example",
       username: "alice",
       email: "alice@example.com",
+      enabled: true,
       password: "",
       roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
     }
@@ -114,9 +110,10 @@ export const CustomSubmitLabel: Story = {
   args: {
     mode: "edit",
     defaultValues: {
-      displayUsername: "Alice Example",
+      displayName: "Alice Example",
       username: "alice",
       email: "alice@example.com",
+      enabled: true,
       password: "",
       roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
     },
@@ -169,8 +166,13 @@ export const RoleSelection: Story = {
     const canvas = within(canvasElement)
     const page = within(canvasElement.ownerDocument.body)
 
-    await userEvent.click(await canvas.findByRole("combobox", { name: /roles/i }))
-    await userEvent.type(await page.findByPlaceholderText(/search roles/i), "admin")
+    await userEvent.click(
+      await canvas.findByRole("combobox", { name: /roles/i })
+    )
+    await userEvent.type(
+      await page.findByPlaceholderText(/search roles/i),
+      "admin"
+    )
     await userEvent.click(await page.findByText("admin"))
 
     await expect(
@@ -184,9 +186,10 @@ export const DarkSurface: Story = {
   args: {
     mode: "edit",
     defaultValues: {
-      displayUsername: "Alice Example",
+      displayName: "Alice Example",
       username: "alice",
       email: "alice@example.com",
+      enabled: true,
       password: "",
       roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
     }

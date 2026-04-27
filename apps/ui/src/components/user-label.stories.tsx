@@ -7,35 +7,27 @@ import { UserLabel } from "@/components/user-label"
 
 type UserLabelStoryArgs = ComponentProps<typeof UserLabel> & {
   scenario: "success" | "loading" | "error"
-  displayUsername: string
-  name: string
+  displayName: string
   username: string
   email: string
 }
 
 function buildUserReply({
   userId,
-  displayUsername,
-  name,
+  displayName,
   username,
   email
-}: Pick<
-  UserLabelStoryArgs,
-  "userId" | "displayUsername" | "name" | "username" | "email"
->) {
+}: Pick<UserLabelStoryArgs, "userId" | "displayName" | "username" | "email">) {
   return {
     data: {
       items: [
         {
           id: userId,
-          name,
           username,
-          displayUsername,
+          displayName,
           email,
-          emailVerified: true,
-          image: null,
-          createdAt: new Date("2026-04-17T08:00:00.000Z").toISOString(),
-          updatedAt: new Date("2026-04-17T09:00:00.000Z").toISOString()
+          enabled: true,
+          roleIds: []
         }
       ]
     }
@@ -45,7 +37,7 @@ function buildUserReply({
 function buildUsers(
   args: Pick<
     UserLabelStoryArgs,
-    "userId" | "displayUsername" | "name" | "username" | "email"
+    "userId" | "displayName" | "username" | "email"
   >
 ) {
   return buildUserReply(args).data.items
@@ -55,8 +47,7 @@ function UserLabelStoryShell({
   scenario,
   userId,
   className,
-  displayUsername,
-  name,
+  displayName,
   username,
   email
 }: UserLabelStoryArgs) {
@@ -72,7 +63,7 @@ function UserLabelStoryShell({
     if (scenario === "success") {
       client.setQueryData(
         ["users"],
-        buildUsers({ userId, displayUsername, name, username, email })
+        buildUsers({ userId, displayName, username, email })
       )
     }
 
@@ -81,7 +72,7 @@ function UserLabelStoryShell({
     }
 
     return client
-  }, [scenario, userId])
+  }, [scenario, userId, displayName, username, email])
   const [ready, setReady] = useState(scenario !== "loading")
 
   useLayoutEffect(() => {
@@ -115,14 +106,14 @@ function UserLabelStoryShell({
     if (scenario === "success") {
       queryClient.setQueryData(
         ["users"],
-        buildUsers({ userId, displayUsername, name, username, email })
+        buildUsers({ userId, displayName, username, email })
       )
     }
 
     if (scenario === "error") {
       queryClient.setQueryData(["users"], [])
     }
-  }, [queryClient, scenario, userId, displayUsername, name, username, email])
+  }, [queryClient, scenario, userId, displayName, username, email])
 
   if (!ready) {
     return null
@@ -154,8 +145,7 @@ const meta = {
   args: {
     userId: "11111111-1111-4111-8111-111111111111",
     scenario: "success",
-    displayUsername: "Alice Example",
-    name: "Alice Example",
+    displayName: "Alice Example",
     username: "alice",
     email: "alice@example.com"
   },
