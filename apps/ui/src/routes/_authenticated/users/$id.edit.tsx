@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
+import { toastActionError } from "@/lib/action-error-toast.ts"
 
 export const Route = createFileRoute("/_authenticated/users/$id/edit")({
   component: RouteComponent
@@ -66,7 +67,7 @@ function RouteComponent() {
         params: { id }
       })
     } catch (error) {
-      toast.error(`Failed to update user: ${error}`)
+      toastActionError(error, `Failed to update user: ${error}`)
       console.error(error)
     }
   }

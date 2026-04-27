@@ -53,6 +53,7 @@ import {
   TabsList,
   TabsTrigger
 } from "@/components/ui/tabs.tsx"
+import { toastActionError } from "@/lib/action-error-toast.ts"
 
 interface FindingDetailContentProps {
   findingId: string
@@ -91,7 +92,7 @@ export function FindingDetailContent({
       } catch (error) {
         queryClient.setQueryData(["findings", findingId], finding.data)
         console.error("Error updating finding:", error)
-        toast.error("Failed to update finding")
+        toastActionError(error, "Failed to update finding")
       }
     },
     [finding.data, findingId, queryClient]

@@ -30,6 +30,7 @@ import { Textarea } from "@/components/ui/textarea.tsx"
 import { createFinding, createListFindingsQueryOptions } from "@/api/finding.ts"
 import { formatFindingStatus } from "@/lib/format.ts"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
+import { toastActionError } from "@/lib/action-error-toast.ts"
 
 export const Route = createFileRoute("/_authenticated/findings/new")({
   component: RouteComponent
@@ -67,7 +68,7 @@ function RouteComponent() {
         })
         router.history.back()
       } catch (error) {
-        toast.error(`Failed to create finding: ${error}`)
+        toastActionError(error, `Failed to create finding: ${error}`)
         console.error(error)
       }
     }

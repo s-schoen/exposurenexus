@@ -21,6 +21,7 @@ import {
 } from "@/components/finding-table/constants"
 import { formatFindingStatus } from "@/lib/format"
 import { createListFindingsQueryOptions, updateFinding } from "@/api/finding"
+import { toastActionError } from "@/lib/action-error-toast"
 
 interface FindingContextMenuProps {
   findingsRef: React.RefObject<Array<Finding>>
@@ -58,7 +59,10 @@ export function FindingContextMenu({
         await updateFinding({ ...finding, [key]: value })
       } catch (error) {
         success = false
-        toast.error(`Failed to update finding ${finding.id}: ${error}`)
+        toastActionError(
+          error,
+          `Failed to update finding ${finding.id}: ${error}`
+        )
         console.error(error)
       }
     }

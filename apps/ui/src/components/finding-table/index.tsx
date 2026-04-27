@@ -32,6 +32,7 @@ import {
   updateFinding
 } from "@/api/finding.ts"
 import { formatFindingStatus, formatSeverity } from "@/lib/format.ts"
+import { toastActionError } from "@/lib/action-error-toast.ts"
 
 interface FindingTableProps {
   initialGrouping?: Array<string>
@@ -131,7 +132,10 @@ export function FindingTable({
           await deleteFinding(finding.id)
         } catch (error) {
           success = false
-          toast.error(`Failed to delete finding ${finding.id}: ${error}`)
+          toastActionError(
+            error,
+            `Failed to delete finding ${finding.id}: ${error}`
+          )
           console.error(error)
         }
       }
@@ -166,7 +170,10 @@ export function FindingTable({
         await updateFinding({ ...finding, [key]: value })
       } catch (error) {
         success = false
-        toast.error(`Failed to update finding ${finding.id}: ${error}`)
+        toastActionError(
+          error,
+          `Failed to update finding ${finding.id}: ${error}`
+        )
         console.error(error)
       }
     }
@@ -267,7 +274,9 @@ export function FindingTable({
     const nextSeverityFilter = nextState.selectFilters.severity ?? []
     const nextStatusFilter = nextState.selectFilters.status ?? []
 
-    void setSeverityFilter(nextSeverityFilter.length ? nextSeverityFilter : null)
+    void setSeverityFilter(
+      nextSeverityFilter.length ? nextSeverityFilter : null
+    )
     void setStatusFilter(nextStatusFilter.length ? nextStatusFilter : null)
   }
 

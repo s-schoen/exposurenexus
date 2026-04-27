@@ -15,6 +15,7 @@ import {
 } from "@/api/asset.ts"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
 import { capitalizeFirstLetter } from "@/lib/format.ts"
+import { toastActionError } from "@/lib/action-error-toast.ts"
 
 const groupingOptions: Array<GroupingOption> = [
   {
@@ -61,7 +62,10 @@ export function AssetTable({
           await deleteAsset(asset.id)
         } catch (error) {
           success = false
-          toast.error(`Failed to delete asset ${asset.id}: ${error}`)
+          toastActionError(
+            error,
+            `Failed to delete asset ${asset.id}: ${error}`
+          )
           console.error(error)
         }
       }
@@ -85,7 +89,7 @@ export function AssetTable({
           queryKey: createListAssetsQueryOptions().queryKey
         })
       } catch (error) {
-        toast.error(`Failed to create asset: ${error}`)
+        toastActionError(error, `Failed to create asset: ${error}`)
         console.error(error)
       }
     }
