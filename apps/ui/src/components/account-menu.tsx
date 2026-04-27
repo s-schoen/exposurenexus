@@ -27,7 +27,8 @@ export function AccountMenu() {
     })
   }
 
-  const displayName = session?.user.name ?? session?.user.email ?? "Account"
+  const displayName =
+    session?.user.displayName ?? session?.user.email ?? "Account"
   const initial = displayName.at(0)?.toUpperCase() ?? "?"
 
   return (

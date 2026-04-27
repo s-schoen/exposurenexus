@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const session = await getSession()
       setIsAuthenticated(true)
-      setUser(session.data!.user)
+      setUser(session.data.user)
       return true
     } catch {
       setIsAuthenticated(false)
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (username: string, password: string) => {
     const data = await signIn.username({ username, password })
-    setUser(data.data!.user)
+    setUser(data.data.user)
     setIsAuthenticated(true)
   }, [])
 
