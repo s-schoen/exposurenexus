@@ -436,7 +436,7 @@ describe("asset routes", () => {
 
     expect(response.status).toBe(403)
     expect(userHasPermission).toHaveBeenCalledWith(user.id, {
-      asset: ["write"]
+      "custom-field": ["write"]
     })
     expect(assetService.createCustomFieldDefinition).not.toHaveBeenCalled()
   })

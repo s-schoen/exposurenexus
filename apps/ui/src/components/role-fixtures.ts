@@ -12,6 +12,7 @@ export const ROLE_FIXTURES: Array<Role> = [
     name: BuiltInRoleName.Viewer,
     permissions: [
       { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Read },
       { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
       { resource: PermissionResource.Vulnerability, verb: PermissionVerb.Read },
       { resource: PermissionResource.Stats, verb: PermissionVerb.Read }
@@ -24,12 +25,21 @@ export const ROLE_FIXTURES: Array<Role> = [
       { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
       { resource: PermissionResource.Asset, verb: PermissionVerb.Write },
       { resource: PermissionResource.Asset, verb: PermissionVerb.Delete },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Read },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Write },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Delete },
       { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
       { resource: PermissionResource.Finding, verb: PermissionVerb.Write },
       { resource: PermissionResource.Finding, verb: PermissionVerb.Delete },
       { resource: PermissionResource.Vulnerability, verb: PermissionVerb.Read },
-      { resource: PermissionResource.Vulnerability, verb: PermissionVerb.Write },
-      { resource: PermissionResource.Vulnerability, verb: PermissionVerb.Delete },
+      {
+        resource: PermissionResource.Vulnerability,
+        verb: PermissionVerb.Write
+      },
+      {
+        resource: PermissionResource.Vulnerability,
+        verb: PermissionVerb.Delete
+      },
       { resource: PermissionResource.Import, verb: PermissionVerb.Write },
       { resource: PermissionResource.Stats, verb: PermissionVerb.Read }
     ]
@@ -41,12 +51,21 @@ export const ROLE_FIXTURES: Array<Role> = [
       { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
       { resource: PermissionResource.Asset, verb: PermissionVerb.Write },
       { resource: PermissionResource.Asset, verb: PermissionVerb.Delete },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Read },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Write },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Delete },
       { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
       { resource: PermissionResource.Finding, verb: PermissionVerb.Write },
       { resource: PermissionResource.Finding, verb: PermissionVerb.Delete },
       { resource: PermissionResource.Vulnerability, verb: PermissionVerb.Read },
-      { resource: PermissionResource.Vulnerability, verb: PermissionVerb.Write },
-      { resource: PermissionResource.Vulnerability, verb: PermissionVerb.Delete },
+      {
+        resource: PermissionResource.Vulnerability,
+        verb: PermissionVerb.Write
+      },
+      {
+        resource: PermissionResource.Vulnerability,
+        verb: PermissionVerb.Delete
+      },
       { resource: PermissionResource.Import, verb: PermissionVerb.Write },
       { resource: PermissionResource.Stats, verb: PermissionVerb.Read },
       { resource: PermissionResource.User, verb: PermissionVerb.Read },

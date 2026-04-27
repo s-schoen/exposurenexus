@@ -1,6 +1,4 @@
-import {
-  builtInRoleIds
-} from "@openvlp/types/model/rbac"
+import { builtInRoleIds } from "@openvlp/types/model/rbac"
 import type {
   Permission,
   PermissionResource,
@@ -27,7 +25,10 @@ export function getUniqueRoleResources(
 export function groupRolePermissionsByResource(
   permissions: ReadonlyArray<Permission>
 ): Array<{ resource: PermissionResource; verbs: Array<PermissionVerb> }> {
-  const permissionsByResource = new Map<PermissionResource, Array<PermissionVerb>>()
+  const permissionsByResource = new Map<
+    PermissionResource,
+    Array<PermissionVerb>
+  >()
 
   for (const permission of permissions) {
     const resourcePermissions =
@@ -47,5 +48,5 @@ export function groupRolePermissionsByResource(
 }
 
 export function formatPermissionLabel(value: string) {
-  return capitalizeFirstLetter(value)
+  return capitalizeFirstLetter(value.replaceAll("-", " "))
 }
