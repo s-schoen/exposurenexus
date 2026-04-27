@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
+import { toastActionError } from "@/lib/action-error-toast.ts"
 
 export const Route = createFileRoute("/_authenticated/users/new")({
   component: RouteComponent
@@ -54,7 +55,7 @@ function RouteComponent() {
         search: { selected: undefined }
       })
     } catch (error) {
-      toast.error(`Failed to create user: ${error}`)
+      toastActionError(error, `Failed to create user: ${error}`)
       console.error(error)
     }
   }

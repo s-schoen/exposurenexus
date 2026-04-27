@@ -15,6 +15,10 @@ import {
 } from "@/components/ui/card.tsx"
 import { Input } from "@/components/ui/input.tsx"
 import { usePageMeta } from "@/context/page.tsx"
+import {
+  actionErrorMessage,
+  toastActionError
+} from "@/lib/action-error-toast.ts"
 import { cn } from "@/lib/utils.ts"
 
 export const Route = createFileRoute("/_authenticated/findings/import")({
@@ -71,9 +75,12 @@ function RouteComponent() {
       toast.success(`Imported ${file.name}`)
       handleClearFile()
     } catch (error) {
-      const message = `Failed to upload findings for import: ${error}`
+      const message = actionErrorMessage(
+        error,
+        `Failed to upload findings for import: ${error}`
+      )
       setErrorMessage(message)
-      toast.error(message)
+      toastActionError(error, message)
     } finally {
       setIsUploading(false)
     }
