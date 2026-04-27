@@ -9,6 +9,7 @@ import * as m7 from "./migrations/20260422-custom-auth.js"
 import * as m8 from "./migrations/20260426-user-session-id-text.js"
 import * as m9 from "./migrations/20260427-user-role-assignment-primary-key.js"
 import * as m10 from "./migrations/20260428-drop-better-auth-tables.js"
+import * as m11 from "./migrations/20260429-asset-custom-fields.js"
 import { db, logger } from "./index.js"
 import type { Database } from "./index.js"
 import type { Kysely } from "kysely"
@@ -32,6 +33,10 @@ class ManualMigrationProvider implements MigrationProvider {
       "20260428-drop-better-auth-tables": {
         up: m10.up,
         down: m10.down
+      },
+      "20260429-asset-custom-fields": {
+        up: m11.up,
+        down: m11.down
       }
     }
 
