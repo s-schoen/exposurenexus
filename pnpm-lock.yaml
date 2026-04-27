@@ -12,10 +12,10 @@ importers:
     dependencies:
       '@hono/node-server':
         specifier: ^1.19.13
-        version: 1.19.13(hono@4.12.12)
+        version: 1.19.13(hono@4.12.15)
       '@hono/zod-validator':
         specifier: ^0.7.6
-        version: 0.7.6(hono@4.12.12)(zod@4.3.6)
+        version: 0.7.6(hono@4.12.15)(zod@4.3.6)
       '@openvlp/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -23,8 +23,8 @@ importers:
         specifier: ^0.13.11
         version: 0.13.11(typescript@5.9.3)(valibot@1.2.0(typescript@5.9.3))(zod@4.3.6)
       hono:
-        specifier: ^4.12.12
-        version: 4.12.12
+        specifier: ^4.12.14
+        version: 4.12.15
       kysely:
         specifier: ^0.28.16
         version: 0.28.16
@@ -3218,8 +3218,8 @@ packages:
   help-me@5.0.0:
     resolution: {integrity: sha512-7xgomUX6ADmcYzFik0HzAxh/73YlKR9bmFzf51CZwR+b6YtzU2m0u49hQCqV6SvlqIqsaxovfwdvbnsw3b/zpg==}
 
-  hono@4.12.12:
-    resolution: {integrity: sha512-p1JfQMKaceuCbpJKAPKVqyqviZdS0eUxH9v82oWo1kb9xjQ5wA6iP3FNVAPDFlz5/p7d45lO+BpSk1tuSZMF4Q==}
+  hono@4.12.15:
+    resolution: {integrity: sha512-qM0jDhFEaCBb4TxoW7f53Qrpv9RBiayUHo0S52JudprkhvpjIrGoU1mnnr29Fvd1U335ZFPZQY1wlkqgfGXyLg==}
     engines: {node: '>=16.9.0'}
 
   html-encoding-sniffer@6.0.0:
@@ -5674,13 +5674,13 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
-  '@hono/node-server@1.19.13(hono@4.12.12)':
+  '@hono/node-server@1.19.13(hono@4.12.15)':
     dependencies:
-      hono: 4.12.12
+      hono: 4.12.15
 
-  '@hono/zod-validator@0.7.6(hono@4.12.12)(zod@4.3.6)':
+  '@hono/zod-validator@0.7.6(hono@4.12.15)(zod@4.3.6)':
     dependencies:
-      hono: 4.12.12
+      hono: 4.12.15
       zod: 4.3.6
 
   '@humanfs/core@0.19.1': {}
@@ -5767,7 +5767,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.29.0(zod@3.25.76)':
     dependencies:
-      '@hono/node-server': 1.19.13(hono@4.12.12)
+      '@hono/node-server': 1.19.13(hono@4.12.15)
       ajv: 8.18.0
       ajv-formats: 3.0.1(ajv@8.18.0)
       content-type: 1.0.5
@@ -5777,7 +5777,7 @@ snapshots:
       eventsource-parser: 3.0.6
       express: 5.2.1
       express-rate-limit: 8.3.2(express@5.2.1)
-      hono: 4.12.12
+      hono: 4.12.15
       jose: 6.2.2
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -8145,7 +8145,7 @@ snapshots:
 
   help-me@5.0.0: {}
 
-  hono@4.12.12: {}
+  hono@4.12.15: {}
 
   html-encoding-sniffer@6.0.0(@noble/hashes@2.0.1):
     dependencies:
