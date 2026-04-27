@@ -2,6 +2,7 @@ import { z } from "zod/v4"
 
 export enum PermissionResource {
   Asset = "asset",
+  CustomField = "custom-field",
   Vulnerability = "vulnerability",
   Import = "import",
   Finding = "finding",

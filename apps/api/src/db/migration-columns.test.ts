@@ -231,6 +231,10 @@ describe("db migration columns", () => {
         {
           resource: PermissionResource.Asset,
           verb: PermissionVerb.Delete
+        },
+        {
+          resource: PermissionResource.CustomField,
+          verb: PermissionVerb.Delete
         }
       ])
     )

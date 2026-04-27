@@ -57,6 +57,10 @@ describe("user role repository", () => {
             {
               resource: PermissionResource.Asset,
               verb: PermissionVerb.Delete
+            },
+            {
+              resource: PermissionResource.CustomField,
+              verb: PermissionVerb.Delete
             }
           ])
         },
@@ -67,6 +71,10 @@ describe("user role repository", () => {
             {
               resource: PermissionResource.Import,
               verb: PermissionVerb.Write
+            },
+            {
+              resource: PermissionResource.CustomField,
+              verb: PermissionVerb.Write
             }
           ])
         },
@@ -75,6 +83,10 @@ describe("user role repository", () => {
           name: BuiltInRoleName.Viewer,
           permissions: expect.arrayContaining([
             { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+            {
+              resource: PermissionResource.CustomField,
+              verb: PermissionVerb.Read
+            },
             {
               resource: PermissionResource.Finding,
               verb: PermissionVerb.Read
@@ -101,6 +113,10 @@ describe("user role repository", () => {
       name: BuiltInRoleName.Viewer,
       permissions: expect.arrayContaining([
         { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+        {
+          resource: PermissionResource.CustomField,
+          verb: PermissionVerb.Read
+        },
         {
           resource: PermissionResource.Finding,
           verb: PermissionVerb.Read

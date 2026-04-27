@@ -41,14 +41,18 @@ export function createAssetCustomFieldRoute(
 ) {
   const customField = new Hono<{ Variables: ContextVariables }>()
 
-  customField.get("/", requireDomainPermission("asset", "read"), async (c) => {
-    const definitions = await assetService.listCustomFieldDefinitions()
-    return replyArray(c, definitions)
-  })
+  customField.get(
+    "/",
+    requireDomainPermission("custom-field", "read"),
+    async (c) => {
+      const definitions = await assetService.listCustomFieldDefinitions()
+      return replyArray(c, definitions)
+    }
+  )
 
   customField.get(
     "/:fieldId",
-    requireDomainPermission("asset", "read"),
+    requireDomainPermission("custom-field", "read"),
     fieldIdParamValidator,
     async (c) => {
       const params = c.req.valid("param")
@@ -66,7 +70,7 @@ export function createAssetCustomFieldRoute(
 
   customField.post(
     "/",
-    requireDomainPermission("asset", "write"),
+    requireDomainPermission("custom-field", "write"),
     zValidator("json", createAssetCustomFieldDefinitionSchema),
     async (c) => {
       const body = c.req.valid("json")
@@ -77,7 +81,7 @@ export function createAssetCustomFieldRoute(
 
   customField.put(
     "/:fieldId",
-    requireDomainPermission("asset", "write"),
+    requireDomainPermission("custom-field", "write"),
     fieldIdParamValidator,
     zValidator("json", createAssetCustomFieldDefinitionSchema),
     async (c) => {
@@ -98,7 +102,7 @@ export function createAssetCustomFieldRoute(
 
   customField.delete(
     "/:fieldId",
-    requireDomainPermission("asset", "delete"),
+    requireDomainPermission("custom-field", "delete"),
     fieldIdParamValidator,
     async (c) => {
       const params = c.req.valid("param")
