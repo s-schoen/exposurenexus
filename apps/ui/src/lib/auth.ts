@@ -1,12 +1,14 @@
 import { useQuery } from "@tanstack/react-query"
 import type { AuthSessionDataReply } from "@openvlp/types/api"
 import type { UserProfile } from "@openvlp/types/model/user"
-import { env } from "@/env.ts"
-import { APIError, parseErrorReply, parseObjectReply } from "@/api/common.ts"
+import {
+  APIError,
+  apiRequest,
+  parseErrorReply,
+  parseObjectReply
+} from "@/api/common.ts"
 
 const AUTH_SESSION_QUERY_KEY = ["auth", "session"] as const
-const CSRF_COOKIE = "__Host-openvlp-csrf"
-const CSRF_HEADER = "X-CSRF-Token"
 
 export type Session = AuthSessionDataReply
 export type User = UserProfile
@@ -26,39 +28,6 @@ interface SignOutOptions {
   }
 }
 
-function authUrl(path = ""): string {
-  return `${env.VITE_API_URL}/api/auth${path}`
-}
-
-function readCookie(name: string): string | null {
-  if (typeof document === "undefined") {
-    return null
-  }
-
-  const prefix = `${name}=`
-  const cookie = document.cookie
-    .split(";")
-    .map((part) => part.trim())
-    .find((part) => part.startsWith(prefix))
-
-  if (!cookie) {
-    return null
-  }
-
-  return decodeURIComponent(cookie.slice(prefix.length))
-}
-
-function csrfHeaders(): HeadersInit {
-  const csrfToken = readCookie(CSRF_COOKIE)
-  if (!csrfToken) {
-    return {}
-  }
-
-  return {
-    [CSRF_HEADER]: csrfToken
-  }
-}
-
 async function parseAuthSessionReply(
   response: Response
 ): Promise<AuthSessionDataReply> {
@@ -72,9 +41,8 @@ async function parseAuthSessionReply(
 export async function getSession(): Promise<
   AuthClientResult<AuthSessionDataReply>
 > {
-  const response = await fetch(authUrl("/session"), {
-    method: "GET",
-    credentials: "include"
+  const response = await apiRequest("/api/auth/session", {
+    method: "GET"
   })
 
   return {
@@ -87,14 +55,17 @@ export const signIn = {
     username,
     password
   }: SignInUsernameInput): Promise<AuthClientResult<AuthSessionDataReply>> {
-    const response = await fetch(authUrl(), {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
+    const response = await apiRequest(
+      "/api/auth",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ username, password })
       },
-      body: JSON.stringify({ username, password })
-    })
+      { csrf: false }
+    )
 
     return {
       data: await parseAuthSessionReply(response)
@@ -105,10 +76,8 @@ export const signIn = {
 export async function signOut(
   options: SignOutOptions = {}
 ): Promise<AuthClientResult<{ revoked: boolean }>> {
-  const response = await fetch(authUrl(), {
-    method: "DELETE",
-    credentials: "include",
-    headers: csrfHeaders()
+  const response = await apiRequest("/api/auth", {
+    method: "DELETE"
   })
 
   if (!response.ok) {

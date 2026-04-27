@@ -1,17 +1,16 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import type { Asset, AssetType } from "@openvlp/types/model/asset"
-import { env } from "@/env.ts"
 import {
   DEFAULT_QUERY_STALE_TIME,
+  apiRequest,
   parseArrayReply,
   parseErrorReply,
   parseObjectReply
 } from "@/api/common.ts"
 
 async function listAssets(): Promise<Array<Asset>> {
-  const response = await fetch(`${env.VITE_API_URL}/api/assets`, {
-    method: "GET",
-    credentials: "include"
+  const response = await apiRequest("/api/assets", {
+    method: "GET"
   })
 
   if (!response.ok) {
@@ -24,9 +23,8 @@ async function listAssets(): Promise<Array<Asset>> {
 }
 
 export async function deleteAsset(id: string): Promise<Asset> {
-  const response = await fetch(`${env.VITE_API_URL}/api/assets/${id}`, {
-    method: "DELETE",
-    credentials: "include"
+  const response = await apiRequest(`/api/assets/${id}`, {
+    method: "DELETE"
   })
 
   if (!response.ok) {
@@ -39,9 +37,8 @@ export async function deleteAsset(id: string): Promise<Asset> {
 }
 
 async function getAssetByID(id: string): Promise<Asset> {
-  const response = await fetch(`${env.VITE_API_URL}/api/assets/${id}`, {
-    method: "GET",
-    credentials: "include"
+  const response = await apiRequest(`/api/assets/${id}`, {
+    method: "GET"
   })
 
   if (!response.ok) {
@@ -57,9 +54,8 @@ export async function createAsset(
   name: string,
   type: AssetType
 ): Promise<Asset> {
-  const response = await fetch(`${env.VITE_API_URL}/api/assets`, {
+  const response = await apiRequest("/api/assets", {
     method: "POST",
-    credentials: "include",
     headers: {
       "Content-Type": "application/json"
     },
