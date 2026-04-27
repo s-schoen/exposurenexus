@@ -5,6 +5,7 @@ import {
   type Role,
   type UpdateRole
 } from "@openvlp/types/model/rbac"
+import { conflict, isConflictError } from "./errors.js"
 
 const protectedRoleIds = new Set<string>(Object.values(builtInRoleIds))
 
@@ -14,17 +15,6 @@ function uniqueValues(values: readonly string[]): string[] {
 
 function isProtectedRoleId(id: string): boolean {
   return protectedRoleIds.has(id)
-}
-
-function isConflictError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return false
-  }
-
-  const errorWithCode = error as Error & { code?: string }
-  const message = error.message.toLowerCase()
-
-  return errorWithCode.code === "23505" || message.includes("duplicate")
 }
 
 interface RoleRepository {
@@ -169,9 +159,7 @@ export function createRoleService({
 
         if (isConflictError(error)) {
           logger.debug(error, "role update conflict")
-          throw new HTTPException(409, {
-            message: "role already exists"
-          })
+          throw conflict("role already exists")
         }
 
         logger.error(error, `failed to update role with id ${id}`)

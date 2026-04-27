@@ -7,6 +7,12 @@ import type {
   UpdateUserProfile
 } from "@openvlp/types/model/user"
 import { hashPlaintextPassword } from "../lib/argon2.js"
+import {
+  badRequest,
+  conflict,
+  isConflictError,
+  isForeignKeyError
+} from "./errors.js"
 
 interface UserProfileRepository {
   list(): Promise<UserProfileInternalWithRoles[]>
@@ -43,54 +49,12 @@ function toUserProfile(userProfile: UserProfileInternalWithRoles): UserProfile {
   }
 }
 
-function isConflictError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return false
-  }
-
-  const errorWithStatus = error as Error & {
-    status?: number
-    statusCode?: number
-    code?: string
-  }
-  const message = error.message.toLowerCase()
-
-  return (
-    errorWithStatus.status === 409 ||
-    errorWithStatus.statusCode === 409 ||
-    errorWithStatus.code === "23505" ||
-    message.includes("already exists") ||
-    message.includes("duplicate")
-  )
-}
-
-function isForeignKeyError(error: unknown): boolean {
-  if (!(error instanceof Error)) {
-    return false
-  }
-
-  const errorWithStatus = error as Error & {
-    code?: string
-  }
-  const message = error.message.toLowerCase()
-
-  return (
-    errorWithStatus.code === "23503" ||
-    message.includes("foreign key") ||
-    message.includes("violates foreign key constraint")
-  )
-}
-
 function userProfileConflict(): HTTPException {
-  return new HTTPException(409, {
-    message: "user profile already exists"
-  })
+  return conflict("user profile already exists")
 }
 
 function invalidUserRoleAssignment(): HTTPException {
-  return new HTTPException(400, {
-    message: "invalid user role assignment"
-  })
+  return badRequest("invalid user role assignment")
 }
 
 function sameStringSet(
