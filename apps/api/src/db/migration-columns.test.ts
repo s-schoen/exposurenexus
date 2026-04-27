@@ -33,21 +33,14 @@ describe("db migration columns", () => {
     await testDb.dispose()
   })
 
-  it("keeps legacy auth columns and creates custom session columns", async () => {
-    const userColumns = await sql<{
-      column_name: string
-      column_default: string | null
-    }>`
-      select column_name, column_default
-      from information_schema.columns
-      where table_name = 'user'
+  it("drops legacy auth tables and points audit columns at user profiles", async () => {
+    const legacyAuthTables = await sql<{ table_name: string }>`
+      select table_name
+      from information_schema.tables
+      where table_schema = 'public'
+        and table_name in ('user', 'session', 'account', 'verification')
     `.execute(testDb.db)
 
-    const sessionColumns = await sql<{ column_name: string }>`
-      select column_name
-      from information_schema.columns
-      where table_name = 'session'
-    `.execute(testDb.db)
     const userSessionColumns = await sql<{
       column_name: string
       data_type: string
@@ -56,13 +49,45 @@ describe("db migration columns", () => {
       from information_schema.columns
       where table_name = 'user_session'
     `.execute(testDb.db)
+    const auditColumns = await sql<{
+      table_name: string
+      column_name: string
+      data_type: string
+    }>`
+      select table_name, column_name, data_type
+      from information_schema.columns
+      where table_name in ('vulnerability', 'finding')
+        and column_name in ('createdBy', 'updatedBy')
+      order by table_name asc, column_name asc
+    `.execute(testDb.db)
+    const auditForeignKeys = await sql<{
+      constraint_name: string
+      source_table: string
+      target_table: string
+    }>`
+      select
+        rc.constraint_name,
+        kcu.table_name as source_table,
+        ccu.table_name as target_table
+      from information_schema.referential_constraints rc
+      join information_schema.key_column_usage kcu
+        on kcu.constraint_catalog = rc.constraint_catalog
+        and kcu.constraint_schema = rc.constraint_schema
+        and kcu.constraint_name = rc.constraint_name
+      join information_schema.constraint_column_usage ccu
+        on ccu.constraint_catalog = rc.unique_constraint_catalog
+        and ccu.constraint_schema = rc.unique_constraint_schema
+        and ccu.constraint_name = rc.unique_constraint_name
+      where rc.constraint_name in (
+        'vulnerability_createdBy_fkey',
+        'vulnerability_updatedBy_fkey',
+        'finding_createdBy_fkey',
+        'finding_updatedBy_fkey'
+      )
+      order by constraint_name asc
+    `.execute(testDb.db)
 
-    expect(userColumns.rows.map((row) => row.column_name)).toEqual(
-      expect.arrayContaining(["role", "banned", "banReason", "banExpires"])
-    )
-    expect(sessionColumns.rows.map((row) => row.column_name)).toContain(
-      "impersonatedBy"
-    )
+    expect(legacyAuthTables.rows).toEqual([])
     expect(userSessionColumns.rows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -71,12 +96,50 @@ describe("db migration columns", () => {
         })
       ])
     )
-
-    const roleColumn = userColumns.rows.find(
-      (row) => row.column_name === "role"
+    expect(auditColumns.rows).toEqual(
+      expect.arrayContaining([
+        {
+          table_name: "finding",
+          column_name: "createdBy",
+          data_type: "uuid"
+        },
+        {
+          table_name: "finding",
+          column_name: "updatedBy",
+          data_type: "uuid"
+        },
+        {
+          table_name: "vulnerability",
+          column_name: "createdBy",
+          data_type: "uuid"
+        },
+        {
+          table_name: "vulnerability",
+          column_name: "updatedBy",
+          data_type: "uuid"
+        }
+      ])
     )
-
-    expect(roleColumn?.column_default).toContain("viewer")
+    expect(auditForeignKeys.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          constraint_name: "finding_createdBy_fkey",
+          target_table: "user_profile"
+        }),
+        expect.objectContaining({
+          constraint_name: "finding_updatedBy_fkey",
+          target_table: "user_profile"
+        }),
+        expect.objectContaining({
+          constraint_name: "vulnerability_createdBy_fkey",
+          target_table: "user_profile"
+        }),
+        expect.objectContaining({
+          constraint_name: "vulnerability_updatedBy_fkey",
+          target_table: "user_profile"
+        })
+      ])
+    )
   })
 
   it("creates normalized rbac tables with seeded built-in data", async () => {

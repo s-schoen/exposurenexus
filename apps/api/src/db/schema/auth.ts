@@ -1,21 +1,5 @@
 import type { Generated } from "kysely"
 
-export interface UserTable {
-  id: string
-  name: string
-  email: string
-  emailVerified: boolean
-  image: string | null
-  createdAt: Date
-  updatedAt: Date
-  username: string | null
-  displayUsername: string | null
-  role: string | null
-  banned: boolean | null
-  banReason: string | null
-  banExpires: Date | null
-}
-
 export interface UserProfileTable {
   id: Generated<string>
   username: string
