@@ -5,6 +5,7 @@ import {
   KeyRound,
   Server,
   ShieldAlert,
+  Tags,
   UploadCloud,
   Users
 } from "lucide-react"
@@ -111,6 +112,13 @@ export function AppSidebar() {
           icon: KeyRound,
           description: "Manage permissions",
           activeMatch: /^\/roles(?:\/.+)?$/
+        },
+        {
+          title: "Custom Fields",
+          url: "/custom-fields",
+          icon: Tags,
+          description: "Asset metadata schema",
+          activeMatch: /^\/custom-fields(?:\/.+)?$/
         },
         {
           title: "Import",

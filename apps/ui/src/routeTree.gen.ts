@@ -16,6 +16,7 @@ import { Route as AuthenticatedVulnerabilitiesIndexRouteImport } from './routes/
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
 import { Route as AuthenticatedRolesIndexRouteImport } from './routes/_authenticated/roles/index'
 import { Route as AuthenticatedFindingsIndexRouteImport } from './routes/_authenticated/findings/index'
+import { Route as AuthenticatedCustomFieldsIndexRouteImport } from './routes/_authenticated/custom-fields/index'
 import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets/index'
 import { Route as AuthenticatedVulnerabilitiesIdRouteImport } from './routes/_authenticated/vulnerabilities/$id'
 import { Route as AuthenticatedUsersNewRouteImport } from './routes/_authenticated/users/new'
@@ -62,6 +63,12 @@ const AuthenticatedFindingsIndexRoute =
   AuthenticatedFindingsIndexRouteImport.update({
     id: '/findings/',
     path: '/findings/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCustomFieldsIndexRoute =
+  AuthenticatedCustomFieldsIndexRouteImport.update({
+    id: '/custom-fields/',
+    path: '/custom-fields/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedAssetsIndexRoute =
@@ -139,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/users/new': typeof AuthenticatedUsersNewRoute
   '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
   '/assets/': typeof AuthenticatedAssetsIndexRoute
+  '/custom-fields/': typeof AuthenticatedCustomFieldsIndexRoute
   '/findings/': typeof AuthenticatedFindingsIndexRoute
   '/roles/': typeof AuthenticatedRolesIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
@@ -158,6 +166,7 @@ export interface FileRoutesByTo {
   '/users/new': typeof AuthenticatedUsersNewRoute
   '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
   '/assets': typeof AuthenticatedAssetsIndexRoute
+  '/custom-fields': typeof AuthenticatedCustomFieldsIndexRoute
   '/findings': typeof AuthenticatedFindingsIndexRoute
   '/roles': typeof AuthenticatedRolesIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
@@ -179,6 +188,7 @@ export interface FileRoutesById {
   '/_authenticated/users/new': typeof AuthenticatedUsersNewRoute
   '/_authenticated/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
   '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
+  '/_authenticated/custom-fields/': typeof AuthenticatedCustomFieldsIndexRoute
   '/_authenticated/findings/': typeof AuthenticatedFindingsIndexRoute
   '/_authenticated/roles/': typeof AuthenticatedRolesIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
     | '/users/new'
     | '/vulnerabilities/$id'
     | '/assets/'
+    | '/custom-fields/'
     | '/findings/'
     | '/roles/'
     | '/users/'
@@ -219,6 +230,7 @@ export interface FileRouteTypes {
     | '/users/new'
     | '/vulnerabilities/$id'
     | '/assets'
+    | '/custom-fields'
     | '/findings'
     | '/roles'
     | '/users'
@@ -239,6 +251,7 @@ export interface FileRouteTypes {
     | '/_authenticated/users/new'
     | '/_authenticated/vulnerabilities/$id'
     | '/_authenticated/assets/'
+    | '/_authenticated/custom-fields/'
     | '/_authenticated/findings/'
     | '/_authenticated/roles/'
     | '/_authenticated/users/'
@@ -300,6 +313,13 @@ declare module '@tanstack/react-router' {
       path: '/findings'
       fullPath: '/findings/'
       preLoaderRoute: typeof AuthenticatedFindingsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/custom-fields/': {
+      id: '/_authenticated/custom-fields/'
+      path: '/custom-fields'
+      fullPath: '/custom-fields/'
+      preLoaderRoute: typeof AuthenticatedCustomFieldsIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/assets/': {
@@ -405,6 +425,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedUsersNewRoute: typeof AuthenticatedUsersNewRoute
   AuthenticatedVulnerabilitiesIdRoute: typeof AuthenticatedVulnerabilitiesIdRoute
   AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute
+  AuthenticatedCustomFieldsIndexRoute: typeof AuthenticatedCustomFieldsIndexRoute
   AuthenticatedFindingsIndexRoute: typeof AuthenticatedFindingsIndexRoute
   AuthenticatedRolesIndexRoute: typeof AuthenticatedRolesIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
@@ -423,6 +444,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedUsersNewRoute: AuthenticatedUsersNewRoute,
   AuthenticatedVulnerabilitiesIdRoute: AuthenticatedVulnerabilitiesIdRoute,
   AuthenticatedAssetsIndexRoute: AuthenticatedAssetsIndexRoute,
+  AuthenticatedCustomFieldsIndexRoute: AuthenticatedCustomFieldsIndexRoute,
   AuthenticatedFindingsIndexRoute: AuthenticatedFindingsIndexRoute,
   AuthenticatedRolesIndexRoute: AuthenticatedRolesIndexRoute,
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
