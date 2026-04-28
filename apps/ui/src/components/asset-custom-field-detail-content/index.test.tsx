@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import { composeStories } from "@storybook/react-vite"
 import { AssetCustomFieldType } from "@openvlp/types/model/asset"
 import type { AssetCustomFieldDefinition } from "@openvlp/types/model/asset"
-import * as stories from "@/components/asset-custom-field-detail-content.stories"
+import * as stories from "@/components/asset-custom-field-detail-content/index.stories"
 import {
   addAssetCustomFieldOption,
   createAssetCustomFieldUpdatePayload,
@@ -11,7 +11,7 @@ import {
   updateAssetCustomFieldOption,
   updateAssetCustomFieldType,
   validateAssetCustomFieldDefinition
-} from "@/components/asset-custom-field-detail-content.tsx"
+} from "@/components/asset-custom-field-detail-content"
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
 
 const { ErrorState, Loading, SelectField, TextField } = composeStories(stories)

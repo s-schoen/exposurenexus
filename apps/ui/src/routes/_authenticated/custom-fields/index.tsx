@@ -10,7 +10,7 @@ import {
   deleteAssetCustomFieldDefinition
 } from "@/api/asset-custom-field.ts"
 import { AssetCustomFieldTable } from "@/components/asset-custom-field-table"
-import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content.tsx"
+import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx"
 import { usePageMeta } from "@/context/page.tsx"
