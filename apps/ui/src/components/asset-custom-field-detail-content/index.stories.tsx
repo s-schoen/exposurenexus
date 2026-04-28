@@ -4,7 +4,7 @@ import { AssetCustomFieldType } from "@openvlp/types/model/asset"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { AssetCustomFieldDefinition } from "@openvlp/types/model/asset"
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
-import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content.tsx"
+import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content"
 
 type AssetCustomFieldDetailStoryArgs = {
   customFieldId: string
