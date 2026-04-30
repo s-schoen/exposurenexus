@@ -1,19 +1,23 @@
 import { useState } from "react"
-import { AlertCircle, RotateCcw, Server } from "lucide-react"
+import { AlertCircle, Plus, RotateCcw, Server, X } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource
 } from "@openvlp/types/model/asset"
 import type {
+  AssetCustomFieldDefinition,
   AssetCustomFieldValue,
   AssetCustomFieldValueLiteral
 } from "@openvlp/types/model/asset"
 import type { ReactNode } from "react"
 import {
+  assignAssetCustomFields,
   clearAssetCustomFieldValue,
   createAssetByIDQueryOptions,
   createAssetCustomFieldValuesQueryOptions,
+  createAvailableAssetCustomFieldDefinitionsQueryOptions,
+  detachAssetCustomField,
   updateAssetCustomFieldValues
 } from "@/api/asset.ts"
 import {
@@ -35,6 +39,19 @@ import { Inplace } from "@/components/inplace.tsx"
 import { Button } from "@/components/ui/button.tsx"
 import { cn } from "@/lib/utils.ts"
 import { toastActionError } from "@/lib/action-error-toast.ts"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from "@/components/ui/popover.tsx"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList
+} from "@/components/ui/command.tsx"
 
 interface AssetDetailContentProps {
   assetId: string
@@ -84,7 +101,12 @@ export function AssetDetailContent({
   const asset = useQuery(createAssetByIDQueryOptions(assetId))
   const customFieldValuesQueryOptions =
     createAssetCustomFieldValuesQueryOptions(assetId)
+  const availableCustomFieldDefinitionsQueryOptions =
+    createAvailableAssetCustomFieldDefinitionsQueryOptions(assetId)
   const customFields = useQuery(customFieldValuesQueryOptions)
+  const availableCustomFields = useQuery(
+    availableCustomFieldDefinitionsQueryOptions
+  )
 
   async function handleSaveCustomFieldValue(
     field: AssetCustomFieldValue,
@@ -118,6 +140,40 @@ export function AssetDetailContent({
       })
     } catch (error) {
       toastActionError(error, "Failed to reset asset custom field")
+    }
+  }
+
+  async function handleAssignCustomField(field: AssetCustomFieldDefinition) {
+    try {
+      const updated = await assignAssetCustomFields(assetId, [field.id])
+
+      queryClient.setQueryData(customFieldValuesQueryOptions.queryKey, updated)
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: customFieldValuesQueryOptions.queryKey
+        }),
+        queryClient.invalidateQueries({
+          queryKey: availableCustomFieldDefinitionsQueryOptions.queryKey
+        })
+      ])
+    } catch (error) {
+      toastActionError(error, "Failed to assign asset custom field")
+    }
+  }
+
+  async function handleDetachCustomField(field: AssetCustomFieldValue) {
+    try {
+      await detachAssetCustomField(assetId, field.fieldId)
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: customFieldValuesQueryOptions.queryKey
+        }),
+        queryClient.invalidateQueries({
+          queryKey: availableCustomFieldDefinitionsQueryOptions.queryKey
+        })
+      ])
+    } catch (error) {
+      toastActionError(error, "Failed to detach asset custom field")
     }
   }
 
@@ -187,9 +243,13 @@ export function AssetDetailContent({
         </div>
         <Separator />
         <AssetCustomFieldsSidebarSection
+          availableCustomFields={availableCustomFields.data}
           customFields={customFields.data}
+          isAvailablePending={availableCustomFields.isPending}
           isError={customFields.isError}
           isPending={customFields.isPending}
+          onAssign={handleAssignCustomField}
+          onDetach={handleDetachCustomField}
           onReset={handleResetCustomFieldValue}
           onSave={handleSaveCustomFieldValue}
         />
@@ -210,24 +270,36 @@ export function AssetDetailContent({
 }
 
 interface AssetCustomFieldsSidebarSectionProps {
+  availableCustomFields?: Array<AssetCustomFieldDefinition>
   customFields?: Array<AssetCustomFieldValue>
+  isAvailablePending: boolean
   isError: boolean
   isPending: boolean
+  onAssign: (field: AssetCustomFieldDefinition) => void | Promise<void>
+  onDetach: (field: AssetCustomFieldValue) => void | Promise<void>
   onReset: (field: AssetCustomFieldValue) => void | Promise<void>
   onSave: (field: AssetCustomFieldValue, value: string) => void | Promise<void>
 }
 
 function AssetCustomFieldsSidebarSection({
+  availableCustomFields,
   customFields,
+  isAvailablePending,
   isError,
   isPending,
+  onAssign,
+  onDetach,
   onReset,
   onSave
 }: AssetCustomFieldsSidebarSectionProps) {
   if (isPending) {
     return (
       <div className="space-y-3" aria-label="Custom fields loading">
-        <CustomFieldsSectionTitle />
+        <CustomFieldsSectionTitle
+          availableCustomFields={availableCustomFields}
+          isAvailablePending={isAvailablePending}
+          onAssign={onAssign}
+        />
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-3/4" />
@@ -238,7 +310,11 @@ function AssetCustomFieldsSidebarSection({
   if (isError) {
     return (
       <div className="space-y-3">
-        <CustomFieldsSectionTitle />
+        <CustomFieldsSectionTitle
+          availableCustomFields={availableCustomFields}
+          isAvailablePending={isAvailablePending}
+          onAssign={onAssign}
+        />
         <Alert variant="destructive" className="px-3 py-2">
           <AlertCircle className="size-4" />
           <AlertTitle className="text-sm">
@@ -255,7 +331,11 @@ function AssetCustomFieldsSidebarSection({
   if (!customFields || customFields.length === 0) {
     return (
       <div className="space-y-3">
-        <CustomFieldsSectionTitle />
+        <CustomFieldsSectionTitle
+          availableCustomFields={availableCustomFields}
+          isAvailablePending={isAvailablePending}
+          onAssign={onAssign}
+        />
         <p className="text-sm text-muted-foreground">No custom fields</p>
       </div>
     )
@@ -263,11 +343,16 @@ function AssetCustomFieldsSidebarSection({
 
   return (
     <div className="space-y-4">
-      <CustomFieldsSectionTitle />
+      <CustomFieldsSectionTitle
+        availableCustomFields={availableCustomFields}
+        isAvailablePending={isAvailablePending}
+        onAssign={onAssign}
+      />
       {customFields.map((field) => (
         <AssetCustomFieldSidebarRow
           key={field.fieldId}
           field={field}
+          onDetach={onDetach}
           onReset={onReset}
           onSave={onSave}
         />
@@ -276,22 +361,102 @@ function AssetCustomFieldsSidebarSection({
   )
 }
 
-function CustomFieldsSectionTitle() {
+interface CustomFieldsSectionTitleProps {
+  availableCustomFields?: Array<AssetCustomFieldDefinition>
+  isAvailablePending: boolean
+  onAssign: (field: AssetCustomFieldDefinition) => void | Promise<void>
+}
+
+function CustomFieldsSectionTitle({
+  availableCustomFields,
+  isAvailablePending,
+  onAssign
+}: CustomFieldsSectionTitleProps) {
   return (
-    <h3 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-      Custom fields
-    </h3>
+    <div className="flex items-center justify-between gap-2">
+      <h3 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        Custom fields
+      </h3>
+      <AssetCustomFieldAssignmentPicker
+        availableCustomFields={availableCustomFields}
+        isPending={isAvailablePending}
+        onAssign={onAssign}
+      />
+    </div>
+  )
+}
+
+interface AssetCustomFieldAssignmentPickerProps {
+  availableCustomFields?: Array<AssetCustomFieldDefinition>
+  isPending: boolean
+  onAssign: (field: AssetCustomFieldDefinition) => void | Promise<void>
+}
+
+function AssetCustomFieldAssignmentPicker({
+  availableCustomFields = [],
+  isPending,
+  onAssign
+}: AssetCustomFieldAssignmentPickerProps) {
+  const [open, setOpen] = useState(false)
+  const hasAvailableFields = availableCustomFields.length > 0
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Add custom field"
+            title="Add custom field"
+            disabled={isPending || !hasAvailableFields}
+          >
+            <Plus />
+          </Button>
+        }
+      />
+      <PopoverContent align="end" className="w-72 p-0">
+        <Command>
+          <CommandInput placeholder="Search custom fields..." />
+          <CommandList>
+            <CommandEmpty>No custom fields available</CommandEmpty>
+            <CommandGroup>
+              {availableCustomFields.map((field) => (
+                <CommandItem
+                  key={field.id}
+                  value={`${field.name} ${field.key}`}
+                  onSelect={() => {
+                    setOpen(false)
+                    void onAssign(field)
+                  }}
+                >
+                  <div className="min-w-0">
+                    <span className="block truncate">{field.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {field.key} · {capitalizeFirstLetter(field.type)}
+                    </span>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   )
 }
 
 interface AssetCustomFieldSidebarRowProps {
   field: AssetCustomFieldValue
+  onDetach: (field: AssetCustomFieldValue) => void | Promise<void>
   onReset: (field: AssetCustomFieldValue) => void | Promise<void>
   onSave: (field: AssetCustomFieldValue, value: string) => void | Promise<void>
 }
 
 function AssetCustomFieldSidebarRow({
   field,
+  onDetach,
   onReset,
   onSave
 }: AssetCustomFieldSidebarRowProps) {
@@ -323,17 +488,31 @@ function AssetCustomFieldSidebarRow({
             onEditingChange={setIsEditing}
           />
         </div>
-        {isAssetValue && !isEditing ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            aria-label={`Reset ${field.name}`}
-            title="Reset to default"
-            onClick={() => onReset(field)}
-          >
-            <RotateCcw />
-          </Button>
+        {!isEditing ? (
+          <div className="flex shrink-0 items-center gap-1">
+            {isAssetValue ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                aria-label={`Reset ${field.name}`}
+                title="Reset to default"
+                onClick={() => onReset(field)}
+              >
+                <RotateCcw />
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label={`Remove ${field.name}`}
+              title="Remove custom field"
+              onClick={() => onDetach(field)}
+            >
+              <X />
+            </Button>
+          </div>
         ) : null}
       </div>
     </div>
