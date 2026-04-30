@@ -4,6 +4,7 @@ import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
   AssetType,
+  AssetWithCustomFields,
   UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues
 } from "@openvlp/types/model/asset"
@@ -35,6 +36,22 @@ async function listAssets(): Promise<Array<Asset>> {
   }
 
   return parseArrayReply<Asset>(response)
+}
+
+export async function listAssetsWithCustomFields(): Promise<
+  Array<AssetWithCustomFields>
+> {
+  const response = await apiRequest("/api/assets?includeCustomFields=true", {
+    method: "GET"
+  })
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response)
+    console.error(error)
+    throw error
+  }
+
+  return parseArrayReply<AssetWithCustomFields>(response)
 }
 
 export async function deleteAsset(id: string): Promise<Asset> {
@@ -213,6 +230,15 @@ export function createListAssetsQueryOptions() {
   return queryOptions({
     queryKey: ["assets"],
     queryFn: () => listAssets(),
+    placeholderData: keepPreviousData,
+    staleTime: DEFAULT_QUERY_STALE_TIME
+  })
+}
+
+export function createListAssetsWithCustomFieldsQueryOptions() {
+  return queryOptions({
+    queryKey: ["assets", "with-custom-fields"],
+    queryFn: () => listAssetsWithCustomFields(),
     placeholderData: keepPreviousData,
     staleTime: DEFAULT_QUERY_STALE_TIME
   })
