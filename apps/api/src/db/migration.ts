@@ -12,6 +12,7 @@ import * as m10 from "./migrations/20260427-drop-better-auth-tables.js"
 import * as m11 from "./migrations/20260427-asset-custom-fields.js"
 import * as m12 from "./migrations/20260430-01-rbac-custom-field-permissions.js"
 import * as m13 from "./migrations/20260430-02-rbac-custom-field-built-in-roles.js"
+import * as m14 from "./migrations/20260430-03-asset-custom-field-assignments.js"
 import { db, logger } from "./index.js"
 import type { Database } from "./index.js"
 import type { Kysely } from "kysely"
@@ -47,6 +48,10 @@ class ManualMigrationProvider implements MigrationProvider {
       "20260430-02-rbac-custom-field-built-in-roles": {
         up: m13.up,
         down: m13.down
+      },
+      "20260430-03-asset-custom-field-assignments": {
+        up: m14.up,
+        down: m14.down
       }
     }
 

@@ -33,3 +33,8 @@ export interface AssetCustomFieldValueTable {
   fieldId: string
   value: AssetCustomFieldStoredValue
 }
+
+export interface AssetCustomFieldAssignmentTable {
+  assetId: string
+  fieldId: string
+}
