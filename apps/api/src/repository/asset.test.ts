@@ -478,4 +478,75 @@ describe("asset repository", () => {
 
     expect(detachedValueRows).toEqual([])
   })
+
+  it("lists assets with assigned effective custom field values", async () => {
+    const repository = createAssetRepository(testDb.db)
+    const apiAsset = await repository.create({
+      id: "",
+      name: "api.openvlp.local",
+      type: AssetType.Host
+    })
+    const workerAsset = await repository.create({
+      id: "",
+      name: "worker.openvlp.local",
+      type: AssetType.Host
+    })
+    const category = await repository.createCustomFieldDefinition({
+      key: "category",
+      name: "Category",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: "platform"
+    })
+    const priority = await repository.createCustomFieldDefinition({
+      key: "priority",
+      name: "Priority",
+      required: false,
+      type: AssetCustomFieldType.Number,
+      defaultValue: null
+    })
+
+    await repository.assignCustomFields(apiAsset.id, [category.id, priority.id])
+    await repository.assignCustomFields(workerAsset.id, [category.id])
+    await repository.upsertCustomFieldValues(apiAsset.id, [
+      { fieldId: priority.id, value: 4 }
+    ])
+
+    await expect(repository.listWithCustomFields()).resolves.toEqual([
+      {
+        ...apiAsset,
+        customFields: [
+          {
+            fieldId: category.id,
+            key: "category",
+            name: "Category",
+            source: AssetCustomFieldValueSource.Default,
+            type: AssetCustomFieldType.Text,
+            value: "platform"
+          },
+          {
+            fieldId: priority.id,
+            key: "priority",
+            name: "Priority",
+            source: AssetCustomFieldValueSource.Asset,
+            type: AssetCustomFieldType.Number,
+            value: 4
+          }
+        ]
+      },
+      {
+        ...workerAsset,
+        customFields: [
+          {
+            fieldId: category.id,
+            key: "category",
+            name: "Category",
+            source: AssetCustomFieldValueSource.Default,
+            type: AssetCustomFieldType.Text,
+            value: "platform"
+          }
+        ]
+      }
+    ])
+  })
 })

@@ -4,6 +4,7 @@ import {
   type AssetCustomFieldValue,
   type AssetCustomFieldValueLiteral,
   type CreateAssetCustomFieldDefinition,
+  type AssetWithCustomFields,
   AssetCustomFieldType,
   AssetType,
   type CreateAsset,
@@ -82,6 +83,7 @@ function validateCustomFieldDefinition(
 
 interface AssetRepository {
   list(): Promise<Asset[]>
+  listWithCustomFields(): Promise<AssetWithCustomFields[]>
   getByID(id: string): Promise<Asset | null>
   getByName(name: string, type?: AssetType): Promise<Asset | null>
   create(asset: Asset): Promise<Asset>
@@ -131,6 +133,17 @@ export function createAssetService({
         return await assetRepository.list()
       } catch (error) {
         logger.error(error, "failed to list assets")
+        throw new HTTPException(500, {
+          message: "failed to list assets"
+        })
+      }
+    },
+
+    async listAllWithCustomFields(): Promise<AssetWithCustomFields[]> {
+      try {
+        return await assetRepository.listWithCustomFields()
+      } catch (error) {
+        logger.error(error, "failed to list assets with custom fields")
         throw new HTTPException(500, {
           message: "failed to list assets"
         })

@@ -21,6 +21,7 @@ describe("asset routes", () => {
   }
   const assetService = {
     listAll: vi.fn(),
+    listAllWithCustomFields: vi.fn(),
     getByID: vi.fn(),
     create: vi.fn(),
     deleteByID: vi.fn(),
@@ -92,6 +93,98 @@ describe("asset routes", () => {
 
     expect(response.status).toBe(200)
     expect(assetService.listAll).toHaveBeenCalledOnce()
+    expect(assetService.listAllWithCustomFields).not.toHaveBeenCalled()
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: {
+        items: assets,
+        totalItems: 1,
+        startIndex: 0,
+        currentItemCount: 1
+      }
+    })
+  })
+
+  it("returns assets with custom field values when requested", async () => {
+    const requestId = "assets-list-with-custom-fields-request"
+    const assets = [
+      {
+        id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+        name: "api.openvlp.local",
+        type: AssetType.Host,
+        customFields: [
+          {
+            fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+            key: "category",
+            name: "Category",
+            source: AssetCustomFieldValueSource.Default,
+            type: AssetCustomFieldType.Text,
+            value: "platform"
+          }
+        ]
+      }
+    ]
+
+    assetService.listAllWithCustomFields.mockResolvedValue(assets)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request("/api/assets?includeCustomFields=true", {
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(assetService.listAll).not.toHaveBeenCalled()
+    expect(assetService.listAllWithCustomFields).toHaveBeenCalledOnce()
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: {
+        items: assets,
+        totalItems: 1,
+        startIndex: 0,
+        currentItemCount: 1
+      }
+    })
+  })
+
+  it("returns plain assets when custom field values are explicitly disabled", async () => {
+    const requestId = "assets-list-with-custom-fields-disabled-request"
+    const assets = [
+      {
+        id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+        name: "api.openvlp.local",
+        type: AssetType.Host
+      }
+    ]
+
+    assetService.listAll.mockResolvedValue(assets)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(
+      "/api/assets?includeCustomFields=false",
+      {
+        headers: {
+          "X-Request-Id": requestId
+        }
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(assetService.listAll).toHaveBeenCalledOnce()
+    expect(assetService.listAllWithCustomFields).not.toHaveBeenCalled()
     expect(body).toEqual({
       correlationId: requestId,
       data: {
