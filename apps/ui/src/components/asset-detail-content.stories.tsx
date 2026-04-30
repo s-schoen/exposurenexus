@@ -7,7 +7,9 @@ import {
 } from "@openvlp/types/model/asset"
 import type {
   Asset,
+  AssetCustomFieldDefinition,
   AssetCustomFieldValue,
+  UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues
 } from "@openvlp/types/model/asset"
 import type { Meta, StoryObj } from "@storybook/react-vite"
@@ -15,6 +17,7 @@ import { AssetDetailContent } from "@/components/asset-detail-content.tsx"
 
 type AssetDetailStoryArgs = {
   asset: Asset
+  availableCustomFields: Array<AssetCustomFieldDefinition>
   customFields: Array<AssetCustomFieldValue>
   scenario:
     | "success"
@@ -78,8 +81,20 @@ const CUSTOM_FIELDS: Array<AssetCustomFieldValue> = [
   }
 ]
 
+const AVAILABLE_CUSTOM_FIELDS: Array<AssetCustomFieldDefinition> = [
+  {
+    id: "497eab4a-74aa-46e4-8fda-3f160dc91f72",
+    key: "lifecycle",
+    name: "Lifecycle",
+    required: false,
+    type: AssetCustomFieldType.Text,
+    defaultValue: null
+  }
+]
+
 function AssetDetailContentStoryShell({
   asset,
+  availableCustomFields,
   customFields,
   scenario
 }: AssetDetailStoryArgs) {
@@ -89,6 +104,9 @@ function AssetDetailContentStoryShell({
   )
   const customFieldsRef = useRef<Array<AssetCustomFieldValue>>(
     effectiveInitialCustomFields
+  )
+  const availableCustomFieldsRef = useRef<Array<AssetCustomFieldDefinition>>(
+    availableCustomFields
   )
   const queryClient = useMemo(() => {
     const client = new QueryClient({
@@ -107,10 +125,19 @@ function AssetDetailContentStoryShell({
         ["assets", asset.id, "custom-fields"],
         effectiveInitialCustomFields
       )
+      client.setQueryData(
+        ["assets", asset.id, "custom-fields", "available"],
+        scenario === "empty"
+          ? [
+              ...availableCustomFields,
+              ...customFields.map(assetCustomFieldValueToDefinition)
+            ]
+          : availableCustomFields
+      )
     }
 
     return client
-  }, [asset, effectiveInitialCustomFields, scenario])
+  }, [asset, availableCustomFields, customFields, effectiveInitialCustomFields, scenario])
   const [ready, setReady] = useState(
     scenario !== "loading-custom-fields" && scenario !== "error-custom-fields"
   )
@@ -119,6 +146,13 @@ function AssetDetailContentStoryShell({
     const originalFetch = globalThis.fetch
     const customFieldPath = `/api/assets/${asset.id}/custom-fields`
     customFieldsRef.current = effectiveInitialCustomFields
+    availableCustomFieldsRef.current =
+      scenario === "empty"
+        ? [
+            ...availableCustomFields,
+            ...customFields.map(assetCustomFieldValueToDefinition)
+          ]
+        : availableCustomFields
 
     globalThis.fetch = async (input, init) => {
       const requestUrl = input instanceof Request ? input.url : String(input)
@@ -139,6 +173,58 @@ function AssetDetailContentStoryShell({
             "Content-Type": "application/json"
           }
         })
+      }
+
+      if (requestUrl.endsWith(`${customFieldPath}/available`)) {
+        return createAssetCustomFieldDefinitionsResponse(
+          availableCustomFieldsRef.current
+        )
+      }
+
+      if (requestUrl.includes(`${customFieldPath}/associations`)) {
+        if (method === "PUT") {
+          const body = JSON.parse(
+            String(init?.body ?? '{"fieldIds":[]}')
+          ) as UpdateAssetCustomFieldAssociations
+          const fieldsToAssign = availableCustomFieldsRef.current.filter(
+            (field) => body.fieldIds.includes(field.id)
+          )
+
+          customFieldsRef.current = [
+            ...customFieldsRef.current,
+            ...fieldsToAssign.map(assetCustomFieldDefinitionToValue)
+          ]
+          availableCustomFieldsRef.current =
+            availableCustomFieldsRef.current.filter(
+              (field) => !body.fieldIds.includes(field.id)
+            )
+
+          return createAssetCustomFieldValuesResponse(customFieldsRef.current)
+        }
+
+        if (method === "DELETE") {
+          const fieldId = requestUrl.slice(requestUrl.lastIndexOf("/") + 1)
+          const removedField = customFieldsRef.current.find(
+            (field) => field.fieldId === fieldId
+          )
+
+          customFieldsRef.current = customFieldsRef.current.filter(
+            (field) => field.fieldId !== fieldId
+          )
+
+          if (removedField) {
+            availableCustomFieldsRef.current = [
+              ...availableCustomFieldsRef.current,
+              assetCustomFieldValueToDefinition(removedField)
+            ]
+          }
+
+          return new Response(JSON.stringify({ data: { detached: true } }), {
+            headers: {
+              "Content-Type": "application/json"
+            }
+          })
+        }
       }
 
       if (method === "PUT") {
@@ -175,7 +261,13 @@ function AssetDetailContentStoryShell({
     return () => {
       globalThis.fetch = originalFetch
     }
-  }, [asset.id, effectiveInitialCustomFields, scenario])
+  }, [
+    asset.id,
+    availableCustomFields,
+    customFields,
+    effectiveInitialCustomFields,
+    scenario
+  ])
 
   if (!ready) {
     return null
@@ -198,6 +290,95 @@ function createAssetCustomFieldValuesResponse(
       "Content-Type": "application/json"
     }
   })
+}
+
+function createAssetCustomFieldDefinitionsResponse(
+  customFields: Array<AssetCustomFieldDefinition>
+): Response {
+  return new Response(JSON.stringify({ data: { items: customFields } }), {
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
+}
+
+function assetCustomFieldValueToDefinition(
+  field: AssetCustomFieldValue
+): AssetCustomFieldDefinition {
+  switch (field.type) {
+    case AssetCustomFieldType.Text:
+      return {
+        id: field.fieldId,
+        key: field.key,
+        name: field.name,
+        required: false,
+        type: field.type,
+        defaultValue: null
+      }
+    case AssetCustomFieldType.Number:
+      return {
+        id: field.fieldId,
+        key: field.key,
+        name: field.name,
+        required: false,
+        type: field.type,
+        defaultValue: null
+      }
+    case AssetCustomFieldType.Select:
+      return {
+        id: field.fieldId,
+        key: field.key,
+        name: field.name,
+        required: false,
+        type: field.type,
+        defaultValue: null,
+        options: field.options
+      }
+  }
+}
+
+function assetCustomFieldDefinitionToValue(
+  field: AssetCustomFieldDefinition
+): AssetCustomFieldValue {
+  switch (field.type) {
+    case AssetCustomFieldType.Text:
+      return {
+        fieldId: field.id,
+        key: field.key,
+        name: field.name,
+        source:
+          field.defaultValue === null
+            ? AssetCustomFieldValueSource.Empty
+            : AssetCustomFieldValueSource.Default,
+        type: field.type,
+        value: field.defaultValue
+      }
+    case AssetCustomFieldType.Number:
+      return {
+        fieldId: field.id,
+        key: field.key,
+        name: field.name,
+        source:
+          field.defaultValue === null
+            ? AssetCustomFieldValueSource.Empty
+            : AssetCustomFieldValueSource.Default,
+        type: field.type,
+        value: field.defaultValue
+      }
+    case AssetCustomFieldType.Select:
+      return {
+        fieldId: field.id,
+        key: field.key,
+        name: field.name,
+        source:
+          field.defaultValue === null
+            ? AssetCustomFieldValueSource.Empty
+            : AssetCustomFieldValueSource.Default,
+        type: field.type,
+        value: field.defaultValue,
+        options: field.options
+      }
+  }
 }
 
 function applyCustomFieldValueUpdates(
@@ -249,6 +430,7 @@ const meta = {
   },
   args: {
     asset: ASSET,
+    availableCustomFields: AVAILABLE_CUSTOM_FIELDS,
     customFields: CUSTOM_FIELDS,
     scenario: "success"
   },

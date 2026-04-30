@@ -19,6 +19,17 @@ import {
   getAssetCustomFieldDraftValue
 } from "@/components/asset-detail-content.tsx"
 
+class ResizeObserverMock {
+  observe() {}
+
+  unobserve() {}
+
+  disconnect() {}
+}
+
+globalThis.ResizeObserver = ResizeObserverMock as typeof ResizeObserver
+Element.prototype.scrollIntoView = () => undefined
+
 const {
   CustomFieldsError,
   EmptyCustomFields,
@@ -144,6 +155,40 @@ describe("AssetDetailContent stories", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Staging")).toBeTruthy()
+    })
+  })
+
+  it("assigns available custom fields from the sidebar picker", async () => {
+    render(<WithCustomFields />)
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Add custom field" })
+      ).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: "Add custom field" }))
+    fireEvent.click(await screen.findByText("Lifecycle"))
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Lifecycle").length).toBeGreaterThan(0)
+      expect(screen.getByRole("button", { name: "Remove Lifecycle" }))
+    })
+  })
+
+  it("detaches custom fields from the asset sidebar", async () => {
+    render(<WithCustomFields />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Owner").length).toBeGreaterThan(0)
+      expect(screen.getByRole("button", { name: "Remove Owner" })).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Owner" }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Remove Owner" })).toBeNull()
+      expect(screen.queryByText("Owner")).toBeNull()
     })
   })
 
