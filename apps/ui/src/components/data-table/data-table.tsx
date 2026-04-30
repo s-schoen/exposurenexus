@@ -8,6 +8,7 @@ import {
   type GroupingState,
   type Row,
   type SortingState,
+  type VisibilityState,
   flexRender,
   functionalUpdate,
   getCoreRowModel,
@@ -19,7 +20,7 @@ import {
   useReactTable
 } from "@tanstack/react-table"
 import { ChevronDown, ChevronRight, DatabaseZap } from "lucide-react"
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { UseQueryResult } from "@tanstack/react-query"
 import type { MouseEvent, ReactElement, ReactNode, RefObject } from "react"
 import type {
@@ -39,12 +40,15 @@ import { DataTableToolbar } from "@/components/data-table/toolbar.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { Checkbox } from "@/components/ui/checkbox.tsx"
 
+const defaultInitialColumnVisibility: VisibilityState = {}
+
 interface DataTableProps<TData, TValue> {
   columns: Array<ColumnDef<TData, TValue>>
   query: UseQueryResult<Array<TData>, Error>
   groupingOptions?: Array<GroupingOption>
   initialGrouping?: GroupingState
   initialSorting?: SortingState
+  initialColumnVisibility?: VisibilityState
   onRowDelete?: (rows: Array<TData>) => Promise<void>
   onRowClick?: (row: TData) => void
   onRowDoubleClick?: (row: TData) => void
@@ -65,6 +69,7 @@ export function DataTable<TData, TValue>({
   groupingOptions = [],
   initialGrouping = [],
   initialSorting = [],
+  initialColumnVisibility = defaultInitialColumnVisibility,
   onRowDelete,
   onRowClick,
   onRowDoubleClick,
@@ -77,11 +82,20 @@ export function DataTable<TData, TValue>({
   const [grouping, setGrouping] = useState<GroupingState>(initialGrouping)
   const [expanded, setExpanded] = useState<ExpandedState>(true)
   const [sorting, setSorting] = useState<SortingState>(initialSorting)
+  const [columnVisibility, setColumnVisibility] =
+    useState<VisibilityState>(initialColumnVisibility)
   const [localFilterState, setLocalFilterState] = useState<DataTableFilterState>({
     globalFilter: "",
     selectFilters: {}
   })
   const resolvedFilterState = filterState ?? localFilterState
+
+  useEffect(() => {
+    setColumnVisibility((currentVisibility) => ({
+      ...initialColumnVisibility,
+      ...currentVisibility
+    }))
+  }, [initialColumnVisibility])
 
   const columnFilters = useMemo<ColumnFiltersState>(
     () =>
@@ -143,12 +157,14 @@ export function DataTable<TData, TValue>({
       grouping,
       expanded,
       sorting,
+      columnVisibility,
       globalFilter: resolvedFilterState.globalFilter,
       columnFilters
     },
     onGroupingChange: setGrouping,
     onExpandedChange: setExpanded,
     onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: (updater) => {
       updateFilterState((currentState) => {
         const nextValue = functionalUpdate(

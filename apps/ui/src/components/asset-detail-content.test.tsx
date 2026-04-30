@@ -15,9 +15,9 @@ import type { AssetCustomFieldValue } from "@openvlp/types/model/asset"
 import * as stories from "@/components/asset-detail-content.stories"
 import {
   createAssetCustomFieldValuePayload,
-  formatAssetCustomFieldValue,
   getAssetCustomFieldDraftValue
 } from "@/components/asset-detail-content.tsx"
+import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts"
 
 class ResizeObserverMock {
   observe() {}

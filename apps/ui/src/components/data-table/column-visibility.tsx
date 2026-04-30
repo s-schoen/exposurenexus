@@ -30,7 +30,7 @@ export function DataTableColumnVisibilityOptions<TData>({
           </Button>
         }
       ></DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[150px]">
+      <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuSeparator />
         {table
           .getAllColumns()
@@ -42,11 +42,13 @@ export function DataTableColumnVisibilityOptions<TData>({
             return (
               <DropdownMenuCheckboxItem
                 key={column.id}
-                className="capitalize"
+                className="min-w-0"
                 checked={column.getIsVisible()}
                 onCheckedChange={(value) => column.toggleVisibility(!!value)}
               >
-                {column.id}
+                <span className="truncate">
+                  {column.columnDef.meta?.label ?? column.id}
+                </span>
               </DropdownMenuCheckboxItem>
             )
           })}
