@@ -21,6 +21,7 @@ interface EditableMetadataDetailRowProps<T> extends MetadataDetailRowBaseProps {
     editElement?: EditElement<T>
     editOnClick?: boolean
     showEditIcon?: boolean
+    onEditingChange?: (editing: boolean) => void
   }
 }
 
@@ -49,6 +50,7 @@ export function MetadataDetailRow<T>({
             editElement={editable.editElement}
             editOnClick={editable.editOnClick}
             showEditIcon={editable.showEditIcon}
+            onEditingChange={editable.onEditingChange}
           />
         </div>
       </div>
