@@ -5,6 +5,7 @@ import {
   AssetCustomFieldValueSource,
   AssetType
 } from "@openvlp/types/model/asset"
+import type { CreateAssetCustomFieldDefinition } from "@openvlp/types/model/asset"
 import { pino } from "pino"
 import { createAssetService } from "./asset.js"
 
@@ -21,8 +22,11 @@ describe("asset service", () => {
     updateCustomFieldDefinitionByID: vi.fn(),
     deleteCustomFieldDefinitionByID: vi.fn(),
     listCustomFieldValues: vi.fn(),
+    listAvailableCustomFieldDefinitions: vi.fn(),
     upsertCustomFieldValues: vi.fn(),
-    clearCustomFieldValue: vi.fn()
+    clearCustomFieldValue: vi.fn(),
+    assignCustomFields: vi.fn(),
+    detachCustomField: vi.fn()
   }
   const logger = pino({ enabled: false })
 
@@ -213,7 +217,7 @@ describe("asset service", () => {
   })
 
   it("creates a valid custom field definition", async () => {
-    const payload = {
+    const payload: CreateAssetCustomFieldDefinition = {
       key: "environment",
       name: "Environment",
       required: true,
@@ -346,7 +350,7 @@ describe("asset service", () => {
   })
 
   it("updates valid custom field definitions", async () => {
-    const payload = {
+    const payload: CreateAssetCustomFieldDefinition = {
       key: "category",
       name: "Category",
       required: false,
@@ -446,6 +450,37 @@ describe("asset service", () => {
     expect(assetRepository.listCustomFieldValues).toHaveBeenCalledWith(asset.id)
   })
 
+  it("lists custom field definitions available for an existing asset", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.openvlp.local",
+      type: AssetType.Host
+    }
+    const definitions = [
+      {
+        id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+        key: "category",
+        name: "Category",
+        required: false,
+        type: AssetCustomFieldType.Text,
+        defaultValue: null
+      }
+    ]
+    const assetService = createAssetService({ assetRepository, logger })
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetRepository.listAvailableCustomFieldDefinitions.mockResolvedValue(
+      definitions
+    )
+
+    await expect(
+      assetService.listAvailableCustomFieldDefinitions(asset.id)
+    ).resolves.toEqual(definitions)
+    expect(
+      assetRepository.listAvailableCustomFieldDefinitions
+    ).toHaveBeenCalledWith(asset.id)
+  })
+
   it("returns null when upserting custom field values for a missing asset", async () => {
     const assetService = createAssetService({ assetRepository, logger })
 
@@ -475,6 +510,7 @@ describe("asset service", () => {
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([])
+    assetRepository.listCustomFieldValues.mockResolvedValue([])
 
     await expect(
       assetService.upsertCustomFieldValues(asset.id, [
@@ -508,6 +544,16 @@ describe("asset service", () => {
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
+    assetRepository.listCustomFieldValues.mockResolvedValue([
+      {
+        fieldId: definition.id,
+        key: definition.key,
+        name: definition.name,
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Number,
+        value: null
+      }
+    ])
 
     await expect(
       assetService.upsertCustomFieldValues(asset.id, [
@@ -520,6 +566,40 @@ describe("asset service", () => {
       status: 400,
       message: "invalid value for asset custom field priority"
     } satisfies Partial<HTTPException>)
+  })
+
+  it("rejects upserts for unassigned custom fields", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.openvlp.local",
+      type: AssetType.Host
+    }
+    const definition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "priority",
+      name: "Priority",
+      required: false,
+      type: AssetCustomFieldType.Number,
+      defaultValue: null
+    }
+    const assetService = createAssetService({ assetRepository, logger })
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
+    assetRepository.listCustomFieldValues.mockResolvedValue([])
+
+    await expect(
+      assetService.upsertCustomFieldValues(asset.id, [
+        {
+          fieldId: definition.id,
+          value: 5
+        }
+      ])
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "asset custom field is not assigned to asset"
+    } satisfies Partial<HTTPException>)
+    expect(assetRepository.upsertCustomFieldValues).not.toHaveBeenCalled()
   })
 
   it("rejects select custom field values outside the option set", async () => {
@@ -548,6 +628,17 @@ describe("asset service", () => {
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
+    assetRepository.listCustomFieldValues.mockResolvedValue([
+      {
+        fieldId: definition.id,
+        key: definition.key,
+        name: definition.name,
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Select,
+        value: null,
+        options: definition.options
+      }
+    ])
 
     await expect(
       assetService.upsertCustomFieldValues(asset.id, [
@@ -590,6 +681,16 @@ describe("asset service", () => {
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
+    assetRepository.listCustomFieldValues.mockResolvedValue([
+      {
+        fieldId: definition.id,
+        key: definition.key,
+        name: definition.name,
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Number,
+        value: null
+      }
+    ])
     assetRepository.upsertCustomFieldValues.mockResolvedValue(values)
 
     await expect(
@@ -643,6 +744,35 @@ describe("asset service", () => {
     } satisfies Partial<HTTPException>)
   })
 
+  it("rejects clearing unassigned custom field ids", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.openvlp.local",
+      type: AssetType.Host
+    }
+    const definition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "category",
+      name: "Category",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: null
+    }
+    const assetService = createAssetService({ assetRepository, logger })
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(definition)
+    assetRepository.listCustomFieldValues.mockResolvedValue([])
+
+    await expect(
+      assetService.clearCustomFieldValue(asset.id, definition.id)
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "asset custom field is not assigned to asset"
+    } satisfies Partial<HTTPException>)
+    expect(assetRepository.clearCustomFieldValue).not.toHaveBeenCalled()
+  })
+
   it("clears custom field values for existing assets and fields", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
@@ -661,12 +791,112 @@ describe("asset service", () => {
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(definition)
+    assetRepository.listCustomFieldValues.mockResolvedValue([
+      {
+        fieldId: definition.id,
+        key: definition.key,
+        name: definition.name,
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Text,
+        value: null
+      }
+    ])
     assetRepository.clearCustomFieldValue.mockResolvedValue(undefined)
 
     await expect(
       assetService.clearCustomFieldValue(asset.id, definition.id)
     ).resolves.toBe(true)
     expect(assetRepository.clearCustomFieldValue).toHaveBeenCalledWith(
+      asset.id,
+      definition.id
+    )
+  })
+
+  it("assigns custom fields to an existing asset", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.openvlp.local",
+      type: AssetType.Host
+    }
+    const definition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "category",
+      name: "Category",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: null
+    }
+    const values = [
+      {
+        fieldId: definition.id,
+        key: definition.key,
+        name: definition.name,
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Text,
+        value: null
+      }
+    ]
+    const assetService = createAssetService({ assetRepository, logger })
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
+    assetRepository.assignCustomFields.mockResolvedValue(values)
+
+    await expect(
+      assetService.assignCustomFields(asset.id, [definition.id])
+    ).resolves.toEqual(values)
+    expect(assetRepository.assignCustomFields).toHaveBeenCalledWith(asset.id, [
+      definition.id
+    ])
+  })
+
+  it("rejects assigning unknown custom field ids", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.openvlp.local",
+      type: AssetType.Host
+    }
+    const assetService = createAssetService({ assetRepository, logger })
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetRepository.listCustomFieldDefinitions.mockResolvedValue([])
+
+    await expect(
+      assetService.assignCustomFields(asset.id, [
+        "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+      ])
+    ).rejects.toMatchObject({
+      status: 400,
+      message:
+        "unknown asset custom field id 5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+    } satisfies Partial<HTTPException>)
+    expect(assetRepository.assignCustomFields).not.toHaveBeenCalled()
+  })
+
+  it("detaches custom fields from existing assets", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.openvlp.local",
+      type: AssetType.Host
+    }
+    const definition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "category",
+      name: "Category",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: null
+    }
+    const assetService = createAssetService({ assetRepository, logger })
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(definition)
+    assetRepository.detachCustomField.mockResolvedValue(undefined)
+
+    await expect(
+      assetService.detachCustomField(asset.id, definition.id)
+    ).resolves.toBe(true)
+    expect(assetRepository.detachCustomField).toHaveBeenCalledWith(
       asset.id,
       definition.id
     )

@@ -155,6 +155,10 @@ export const updateAssetCustomFieldValuesSchema = z.strictObject({
   values: z.array(updateAssetCustomFieldValueSchema)
 })
 
+export const updateAssetCustomFieldAssociationsSchema = z.strictObject({
+  fieldIds: z.array(z.uuidv4())
+})
+
 export type Asset = z.infer<typeof assetSchema>
 export type CreateAsset = z.infer<typeof createAssetSchema>
 export type AssetCustomFieldOption = z.infer<
@@ -178,4 +182,7 @@ export type UpdateAssetCustomFieldValue = z.infer<
 >
 export type UpdateAssetCustomFieldValues = z.infer<
   typeof updateAssetCustomFieldValuesSchema
+>
+export type UpdateAssetCustomFieldAssociations = z.infer<
+  typeof updateAssetCustomFieldAssociationsSchema
 >
