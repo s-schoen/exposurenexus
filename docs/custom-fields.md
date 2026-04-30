@@ -2,8 +2,9 @@
 
 OpenVLP asset custom fields extend the asset registry with user-defined
 metadata without changing the core `asset` table for every new attribute.
-Custom fields are defined once at the registry level and then exposed on every
-asset with either an asset-specific value, a default value, or an empty value.
+Custom fields are defined once at the registry level and can then be assigned
+to individual assets. Assigned fields expose an effective value for the asset:
+an asset-specific value, a default value, or an empty value.
 
 This document describes the architecture, data model, validation behavior, and
 authorization model. It is not an endpoint reference.
@@ -14,7 +15,7 @@ authorization model. It is not an endpoint reference.
 - Keep supported field value types explicit and controlled by code.
 - Store custom field values flexibly without adding one database column per
   custom field.
-- Make every custom field available on every asset.
+- Allow assets to opt in to the custom fields that are relevant to them.
 - Support default values while still allowing per-asset overrides.
 - Keep field definition management separate from editing asset values.
 - Validate field definitions and values in the application layer.
@@ -28,8 +29,11 @@ service, and route layers.
   definition shapes, value shapes, and request validation schemas.
 - `apps/api/src/db/migrations/20260427-asset-custom-fields.ts` creates the
   custom field tables and the database enum for field types.
+- `apps/api/src/db/migrations/20260430-03-asset-custom-field-assignments.ts`
+  creates the asset-to-field assignment table and backfills existing assets
+  with existing definitions.
 - `apps/api/src/repository/asset.ts` persists field definitions, select
-  options, and per-asset value overrides.
+  options, asset assignments, and per-asset value overrides.
 - `apps/api/src/service/asset.ts` validates definitions and values before data
   is written.
 - `apps/api/src/routes/asset-custom-fields.ts` exposes registry-level custom
@@ -95,6 +99,17 @@ Important fields include:
 The `(assetId, fieldId)` pair is the primary key. This means an asset can have
 at most one stored override for each custom field.
 
+Asset-to-field associations are stored in `asset_custom_field_assignment`.
+
+Important fields include:
+
+- `assetId`
+- `fieldId`
+
+The `(assetId, fieldId)` pair is the primary key. This means a field can be
+assigned to an asset at most once. Assignments are separate from values: an
+asset may have an assigned field without an asset-specific override.
+
 `defaultValue` and `value` are stored as `jsonb`. The database stores the raw
 JSON scalar, while the service layer interprets and validates it according to
 the field definition type. This keeps the schema simple and avoids separate
@@ -114,15 +129,35 @@ Custom field definitions are global to the asset registry.
 
 Updating a definition replaces the persisted definition and replaces select
 options for that field. Deleting a definition removes the definition and relies
-on cascading foreign keys to remove its options and per-asset values.
+on cascading foreign keys to remove its options, asset assignments, and
+per-asset values.
+
+## Assignment Flow
+
+Custom field definitions are global, but assets explicitly choose which fields
+are associated with them.
+
+When a client lists available fields for an asset, the API returns the field
+definitions that exist globally but are not currently assigned to that asset.
+
+Assigning fields to an asset:
+
+1. The target asset must exist.
+2. Every requested field ID must reference an existing definition.
+3. The repository inserts missing `(assetId, fieldId)` assignments.
+4. The API returns the effective values for the assigned fields.
+
+Assignment is idempotent. Sending an already assigned field ID does not create a
+duplicate because the assignment table is keyed by `(assetId, fieldId)`.
+
+Detaching a field from an asset removes both the assignment and any stored
+per-asset override for that field. It does not delete the global field
+definition, and it does not affect other assets.
 
 ## Value Flow
 
-Custom fields apply to every asset. The system does not attach or detach field
-definitions per asset.
-
 When custom field values are listed for an asset, the API returns one effective
-value object per field definition:
+value object per assigned field:
 
 - `source = "asset"` when the asset has a stored override.
 - `source = "default"` when no override exists and the definition has a
@@ -130,9 +165,9 @@ value object per field definition:
 - `source = "empty"` when neither an override nor a default value exists.
 
 Writing custom field values only stores per-asset overrides in
-`asset_custom_field_value`. Sending `null` for a field removes the stored
-override, so the effective value falls back to the field default or becomes
-empty.
+`asset_custom_field_value`. The field must already be assigned to the asset.
+Sending `null` for a field removes the stored override, so the effective value
+falls back to the field default or becomes empty.
 
 Clearing a value also removes the stored override and returns a standard object
 reply indicating that the clear operation was applied.
@@ -155,12 +190,19 @@ Value validation includes:
 
 - The target asset must exist.
 - Each updated field ID must reference an existing custom field definition.
+- Each updated or cleared field must be assigned to the target asset.
 - Text field values must be strings or `null`.
 - Number field values must be numbers or `null`.
 - Select field values must be strings matching an option value, or `null`.
 
 `null` is treated as a request to remove the per-asset override, not as a stored
 JSON value.
+
+Assignment validation includes:
+
+- The target asset must exist.
+- Each assigned or detached field ID must reference an existing custom field
+  definition.
 
 ## Authorization
 
@@ -176,7 +218,9 @@ resource:
 
 Asset-specific custom field value operations require the `asset` resource:
 
+- listing available fields for an asset requires `asset:read`
 - reading effective field values for an asset requires `asset:read`
+- assigning or detaching fields on an asset requires `asset:write`
 - writing or clearing values on an asset requires `asset:write`
 
 This allows administrators to control who may change the asset metadata schema
@@ -191,7 +235,10 @@ errors.
 - Duplicate custom field keys return conflict responses.
 - Missing assets return not-found responses from asset-specific routes.
 - Missing field definitions return not-found responses for definition routes
-  and bad-request responses when referenced by asset value updates.
+  and bad-request responses when referenced by asset value or assignment
+  updates.
+- Writing or clearing values for fields that are not assigned to the asset
+  returns a bad-request response.
 - Unexpected repository or database failures return internal server errors.
 
 Route handlers keep response envelopes consistent by using the shared reply
@@ -205,7 +252,7 @@ metadata.
 The API does not currently support:
 
 - custom fields for vulnerabilities, findings, or other domain objects
-- per-asset field attachment or field visibility rules
+- field groups or advanced field visibility rules
 - multi-select fields
 - date, boolean, file, or rich-text field types
 - database-level JSON type check constraints for stored values
