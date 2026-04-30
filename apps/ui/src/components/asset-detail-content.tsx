@@ -37,6 +37,7 @@ import { Separator } from "@/components/ui/separator.tsx"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
 import { Inplace } from "@/components/inplace.tsx"
 import { Button } from "@/components/ui/button.tsx"
+import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts"
 import { cn } from "@/lib/utils.ts"
 import { toastActionError } from "@/lib/action-error-toast.ts"
 import {
@@ -56,23 +57,6 @@ import {
 interface AssetDetailContentProps {
   assetId: string
   titleAction?: ReactNode
-}
-
-export function formatAssetCustomFieldValue(
-  field: AssetCustomFieldValue
-): string {
-  if (field.value === null) {
-    return "None"
-  }
-
-  if (field.type === AssetCustomFieldType.Select) {
-    return (
-      field.options.find((option) => option.value === field.value)?.label ??
-      field.value
-    )
-  }
-
-  return String(field.value)
 }
 
 export function getAssetCustomFieldDraftValue(

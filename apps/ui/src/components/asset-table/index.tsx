@@ -2,17 +2,23 @@ import { Plus } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import type { Asset } from "@openvlp/types/model/asset"
+import { useMemo } from "react"
+import type { Asset, AssetWithCustomFields } from "@openvlp/types/model/asset"
 import type { GroupingOption } from "@/components/data-table/types.ts"
 import { DataTable } from "@/components/data-table/data-table.tsx"
-import { columns } from "@/components/asset-table/columns.tsx"
+import {
+  createAssetTableColumns,
+  getAssetCustomFieldColumnId
+} from "@/components/asset-table/columns.tsx"
 import { Button } from "@/components/ui/button.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import {
   createAsset,
   createListAssetsQueryOptions,
+  createListAssetsWithCustomFieldsQueryOptions,
   deleteAsset
 } from "@/api/asset.ts"
+import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/api/asset-custom-field.ts"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
 import { capitalizeFirstLetter } from "@/lib/format.ts"
 import { toastActionError } from "@/lib/action-error-toast.ts"
@@ -36,9 +42,26 @@ export function AssetTable({
 }: AssetTableProps = {}) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const assetsQuery = useQuery(createListAssetsQueryOptions())
+  const assetsQuery = useQuery(createListAssetsWithCustomFieldsQueryOptions())
+  const customFieldDefinitionsQuery = useQuery(
+    createListAssetCustomFieldDefinitionsQueryOptions()
+  )
+  const tableColumns = useMemo(
+    () => createAssetTableColumns(customFieldDefinitionsQuery.data ?? []),
+    [customFieldDefinitionsQuery.data]
+  )
+  const initialColumnVisibility = useMemo(
+    () =>
+      Object.fromEntries(
+        (customFieldDefinitionsQuery.data ?? []).map((definition) => [
+          getAssetCustomFieldColumnId(definition.id),
+          false
+        ])
+      ),
+    [customFieldDefinitionsQuery.data]
+  )
 
-  const handleOpenAsset = async (asset: Asset) => {
+  const handleOpenAsset = async (asset: AssetWithCustomFields) => {
     await navigate({
       to: "/assets/$id",
       params: {
@@ -47,7 +70,7 @@ export function AssetTable({
     })
   }
 
-  const handleDeleteAssets = async (assets: Array<Asset>) => {
+  const handleDeleteAssets = async (assets: Array<AssetWithCustomFields>) => {
     const confirmed = await ConfirmDialog.call({
       title: "Delete Assets",
       description: "This action cannot be undone",
@@ -75,6 +98,9 @@ export function AssetTable({
       queryClient.invalidateQueries({
         queryKey: createListAssetsQueryOptions().queryKey
       })
+      queryClient.invalidateQueries({
+        queryKey: createListAssetsWithCustomFieldsQueryOptions().queryKey
+      })
     }
   }
 
@@ -87,6 +113,9 @@ export function AssetTable({
         toast.success(`Created new asset ${assetToCreate.name}`)
         queryClient.invalidateQueries({
           queryKey: createListAssetsQueryOptions().queryKey
+        })
+        queryClient.invalidateQueries({
+          queryKey: createListAssetsWithCustomFieldsQueryOptions().queryKey
         })
       } catch (error) {
         toastActionError(error, `Failed to create asset: ${error}`)
@@ -111,7 +140,7 @@ export function AssetTable({
 
   return (
     <DataTable
-      columns={columns}
+      columns={tableColumns}
       query={assetsQuery}
       groupingOptions={groupingOptions}
       onRowClick={onSelectAsset}
@@ -119,6 +148,7 @@ export function AssetTable({
       isRowActive={(asset) => asset.id === selectedAssetId}
       onRowDelete={handleDeleteAssets}
       toolbarControls={ToolbarElements()}
+      initialColumnVisibility={initialColumnVisibility}
     />
   )
 }
