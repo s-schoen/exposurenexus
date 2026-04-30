@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import { LucideCheck, PencilIcon, XIcon } from "lucide-react"
 import type { HTMLInputTypeAttribute, ReactNode } from "react"
 import { Button } from "@/components/ui/button"
@@ -34,6 +34,7 @@ interface InplaceProps<T> {
   editElement?: EditElement<T>
   editOnClick?: boolean
   showEditIcon?: boolean
+  onEditingChange?: (editing: boolean) => void
 }
 
 export function Inplace<T>({
@@ -42,13 +43,18 @@ export function Inplace<T>({
   displayElement,
   editElement = { type: "input" },
   editOnClick = false,
-  showEditIcon = true
+  showEditIcon = true,
+  onEditingChange
 }: InplaceProps<T>) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<T>(value)
   const [hovered, setHovered] = useState(false)
   const [selectOpen, setSelectOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    onEditingChange?.(editing)
+  }, [editing, onEditingChange])
 
   const enterEdit = useCallback(() => {
     setDraft(value)

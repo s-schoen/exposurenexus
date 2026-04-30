@@ -1,0 +1,176 @@
+import { afterEach, describe, expect, it } from "vitest"
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor
+} from "@testing-library/react"
+import { composeStories } from "@storybook/react-vite"
+import {
+  AssetCustomFieldType,
+  AssetCustomFieldValueSource
+} from "@openvlp/types/model/asset"
+import type { AssetCustomFieldValue } from "@openvlp/types/model/asset"
+import * as stories from "@/components/asset-detail-content.stories"
+import {
+  createAssetCustomFieldValuePayload,
+  formatAssetCustomFieldValue,
+  getAssetCustomFieldDraftValue
+} from "@/components/asset-detail-content.tsx"
+
+const {
+  CustomFieldsError,
+  EmptyCustomFields,
+  LoadingCustomFields,
+  WithCustomFields
+} = composeStories(stories)
+
+afterEach(() => {
+  cleanup()
+})
+
+const selectValue: AssetCustomFieldValue = {
+  fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+  key: "environment",
+  name: "Environment",
+  source: AssetCustomFieldValueSource.Asset,
+  type: AssetCustomFieldType.Select,
+  value: "production",
+  options: [
+    {
+      id: "6b567696-6808-45be-ab67-a8683d98a138",
+      fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+      value: "production",
+      label: "Production"
+    }
+  ]
+}
+
+describe("asset detail custom field helpers", () => {
+  it("formats select values with their option label", () => {
+    expect(formatAssetCustomFieldValue(selectValue)).toBe("Production")
+  })
+
+  it("formats empty values and source labels", () => {
+    const emptyValue: AssetCustomFieldValue = {
+      fieldId: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
+      key: "category",
+      name: "Category",
+      source: AssetCustomFieldValueSource.Empty,
+      type: AssetCustomFieldType.Text,
+      value: null
+    }
+
+    expect(formatAssetCustomFieldValue(emptyValue)).toBe("None")
+    expect(getAssetCustomFieldDraftValue(emptyValue)).toBe("")
+  })
+
+  it("normalizes number edits for the asset value update payload", () => {
+    const numberValue: AssetCustomFieldValue = {
+      fieldId: "2808e68c-9a48-4b50-9a2d-d1df4c83ff06",
+      key: "priority",
+      name: "Priority",
+      source: AssetCustomFieldValueSource.Default,
+      type: AssetCustomFieldType.Number,
+      value: 3
+    }
+
+    expect(createAssetCustomFieldValuePayload(numberValue, "4")).toBe(4)
+    expect(createAssetCustomFieldValuePayload(numberValue, "")).toBeNull()
+  })
+})
+
+describe("AssetDetailContent stories", () => {
+  it("renders custom fields in the asset sidebar", async () => {
+    render(<WithCustomFields />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Custom fields").length).toBeGreaterThan(0)
+      expect(screen.getAllByText("Category").length).toBeGreaterThan(0)
+      expect(screen.getByText("Internet-facing")).toBeTruthy()
+      expect(screen.getAllByText("Priority").length).toBeGreaterThan(0)
+      expect(screen.getByText("3")).toBeTruthy()
+      expect(screen.getAllByText("Environment").length).toBeGreaterThan(0)
+      expect(screen.getByText("Production")).toBeTruthy()
+      expect(screen.getByText("None")).toBeTruthy()
+    })
+  })
+
+  it("shows reset actions only for asset-specific values", async () => {
+    render(<WithCustomFields />)
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Reset Category" })
+      ).toBeTruthy()
+      expect(
+        screen.getByRole("button", { name: "Reset Environment" })
+      ).toBeTruthy()
+      expect(
+        screen.queryByRole("button", { name: "Reset Priority" })
+      ).toBeNull()
+    })
+  })
+
+  it("hides a custom field reset action while inline editing", async () => {
+    render(<WithCustomFields />)
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Reset Category" })
+      ).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByText("Internet-facing"))
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Internet-facing")).toBeTruthy()
+      expect(
+        screen.queryByRole("button", { name: "Reset Category" })
+      ).toBeNull()
+    })
+  })
+
+  it("keeps selected custom field values in the Storybook mock", async () => {
+    render(<WithCustomFields />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Production")).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByText("Production"))
+    fireEvent.click(await screen.findByText("Staging"))
+
+    await waitFor(() => {
+      expect(screen.getByText("Staging")).toBeTruthy()
+    })
+  })
+
+  it("renders an empty custom field state", async () => {
+    render(<EmptyCustomFields />)
+
+    await waitFor(() => {
+      expect(screen.getByText("No custom fields")).toBeTruthy()
+    })
+  })
+
+  it("renders a loading state for custom fields without hiding asset details", async () => {
+    const { container } = render(<LoadingCustomFields />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText("web-01").length).toBeGreaterThan(0)
+      expect(screen.getByLabelText("Custom fields loading")).toBeTruthy()
+      expect(container.querySelector('[data-slot="skeleton"]')).toBeTruthy()
+    })
+  })
+
+  it("renders a custom field error state without hiding asset details", async () => {
+    render(<CustomFieldsError />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText("web-01").length).toBeGreaterThan(0)
+      expect(screen.getByText("Unable to load custom fields")).toBeTruthy()
+    })
+  })
+})
