@@ -169,6 +169,33 @@ async function listCustomFieldDefinitions(
   )
 }
 
+async function listAssignedCustomFieldDefinitions(
+  database: DatabaseExecutor,
+  assetId: string
+): Promise<AssetCustomFieldDefinition[]> {
+  const fields = await database
+    .selectFrom("asset_custom_field_assignment")
+    .innerJoin(
+      "asset_custom_field",
+      "asset_custom_field.id",
+      "asset_custom_field_assignment.fieldId"
+    )
+    .selectAll("asset_custom_field")
+    .where("asset_custom_field_assignment.assetId", "=", assetId)
+    .orderBy("asset_custom_field.key", "asc")
+    .execute()
+  const optionsByFieldId = toOptionsByFieldId(
+    await listCustomFieldOptions(
+      database,
+      fields.map((field) => field.id)
+    )
+  )
+
+  return fields.map((field) =>
+    toCustomFieldDefinition(field, optionsByFieldId.get(field.id) ?? [])
+  )
+}
+
 async function getCustomFieldDefinitionByID(
   database: DatabaseExecutor,
   id: string
@@ -353,7 +380,10 @@ export function createAssetRepository(database: Kysely<Database>) {
     async listCustomFieldValues(
       assetId: string
     ): Promise<AssetCustomFieldValue[]> {
-      const definitions = await listCustomFieldDefinitions(database)
+      const definitions = await listAssignedCustomFieldDefinitions(
+        database,
+        assetId
+      )
       const overrides = await database
         .selectFrom("asset_custom_field_value")
         .select(["fieldId", "value"])
@@ -398,7 +428,10 @@ export function createAssetRepository(database: Kysely<Database>) {
             .execute()
         }
 
-        const definitions = await listCustomFieldDefinitions(trx)
+        const definitions = await listAssignedCustomFieldDefinitions(
+          trx,
+          assetId
+        )
         const overrides = await trx
           .selectFrom("asset_custom_field_value")
           .select(["fieldId", "value"])
@@ -423,6 +456,89 @@ export function createAssetRepository(database: Kysely<Database>) {
         .where("assetId", "=", assetId)
         .where("fieldId", "=", fieldId)
         .execute()
+    },
+
+    async listAvailableCustomFieldDefinitions(
+      assetId: string
+    ): Promise<AssetCustomFieldDefinition[]> {
+      const fields = await database
+        .selectFrom("asset_custom_field")
+        .selectAll("asset_custom_field")
+        .where((eb) =>
+          eb.not(
+            eb.exists(
+              eb
+                .selectFrom("asset_custom_field_assignment")
+                .select("asset_custom_field_assignment.fieldId")
+                .whereRef(
+                  "asset_custom_field_assignment.fieldId",
+                  "=",
+                  "asset_custom_field.id"
+                )
+                .where("asset_custom_field_assignment.assetId", "=", assetId)
+            )
+          )
+        )
+        .orderBy("asset_custom_field.key", "asc")
+        .execute()
+      const optionsByFieldId = toOptionsByFieldId(
+        await listCustomFieldOptions(
+          database,
+          fields.map((field) => field.id)
+        )
+      )
+
+      return fields.map((field) =>
+        toCustomFieldDefinition(field, optionsByFieldId.get(field.id) ?? [])
+      )
+    },
+
+    async assignCustomFields(
+      assetId: string,
+      fieldIds: string[]
+    ): Promise<AssetCustomFieldValue[]> {
+      return await database.transaction().execute(async (trx) => {
+        if (fieldIds.length > 0) {
+          await trx
+            .insertInto("asset_custom_field_assignment")
+            .values(fieldIds.map((fieldId) => ({ assetId, fieldId })))
+            .onConflict((oc) => oc.columns(["assetId", "fieldId"]).doNothing())
+            .execute()
+        }
+
+        const definitions = await listAssignedCustomFieldDefinitions(
+          trx,
+          assetId
+        )
+        const overrides = await trx
+          .selectFrom("asset_custom_field_value")
+          .select(["fieldId", "value"])
+          .where("assetId", "=", assetId)
+          .execute()
+        const overridesByFieldId = new Map(
+          overrides.map((override) => [override.fieldId, override.value])
+        )
+
+        return definitions.map((definition) =>
+          toCustomFieldValue(definition, overridesByFieldId.get(definition.id))
+        )
+      })
+    },
+
+    async detachCustomField(assetId: string, fieldId: string): Promise<void> {
+      await database.transaction().execute(async (trx) => {
+        await trx
+          .deleteFrom("asset_custom_field_value")
+          .where("assetId", "=", assetId)
+          .where("fieldId", "=", fieldId)
+          .execute()
+
+        await trx
+          .deleteFrom("asset_custom_field_assignment")
+          .where("assetId", "=", assetId)
+          .where("fieldId", "=", fieldId)
+          .execute()
+      })
     }
   }
 }
