@@ -1,8 +1,10 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import type {
   Asset,
+  AssetCustomFieldDefinition,
   AssetCustomFieldValue,
   AssetType,
+  UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues
 } from "@openvlp/types/model/asset"
 import {
@@ -15,6 +17,10 @@ import {
 
 interface ClearAssetCustomFieldValueResult {
   cleared: boolean
+}
+
+interface DetachAssetCustomFieldResult {
+  detached: boolean
 }
 
 async function listAssets(): Promise<Array<Asset>> {
@@ -75,6 +81,25 @@ export async function listAssetCustomFieldValues(
   return parseArrayReply<AssetCustomFieldValue>(response)
 }
 
+export async function listAvailableAssetCustomFieldDefinitions(
+  assetId: string
+): Promise<Array<AssetCustomFieldDefinition>> {
+  const response = await apiRequest(
+    `/api/assets/${assetId}/custom-fields/available`,
+    {
+      method: "GET"
+    }
+  )
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response)
+    console.error(error)
+    throw error
+  }
+
+  return parseArrayReply<AssetCustomFieldDefinition>(response)
+}
+
 export async function updateAssetCustomFieldValues(
   assetId: string,
   values: UpdateAssetCustomFieldValues["values"]
@@ -86,6 +111,30 @@ export async function updateAssetCustomFieldValues(
     },
     body: JSON.stringify({ values })
   })
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response)
+    console.error(error)
+    throw error
+  }
+
+  return parseArrayReply<AssetCustomFieldValue>(response)
+}
+
+export async function assignAssetCustomFields(
+  assetId: string,
+  fieldIds: UpdateAssetCustomFieldAssociations["fieldIds"]
+): Promise<Array<AssetCustomFieldValue>> {
+  const response = await apiRequest(
+    `/api/assets/${assetId}/custom-fields/associations`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ fieldIds })
+    }
+  )
 
   if (!response.ok) {
     const error = await parseErrorReply(response)
@@ -114,6 +163,26 @@ export async function clearAssetCustomFieldValue(
   }
 
   return parseObjectReply<ClearAssetCustomFieldValueResult>(response)
+}
+
+export async function detachAssetCustomField(
+  assetId: string,
+  fieldId: string
+): Promise<DetachAssetCustomFieldResult> {
+  const response = await apiRequest(
+    `/api/assets/${assetId}/custom-fields/associations/${fieldId}`,
+    {
+      method: "DELETE"
+    }
+  )
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response)
+    console.error(error)
+    throw error
+  }
+
+  return parseObjectReply<DetachAssetCustomFieldResult>(response)
 }
 
 export async function createAsset(
@@ -160,6 +229,17 @@ export function createAssetCustomFieldValuesQueryOptions(assetId: string) {
   return queryOptions({
     queryKey: ["assets", assetId, "custom-fields"],
     queryFn: () => listAssetCustomFieldValues(assetId),
+    placeholderData: keepPreviousData,
+    staleTime: DEFAULT_QUERY_STALE_TIME
+  })
+}
+
+export function createAvailableAssetCustomFieldDefinitionsQueryOptions(
+  assetId: string
+) {
+  return queryOptions({
+    queryKey: ["assets", assetId, "custom-fields", "available"],
+    queryFn: () => listAvailableAssetCustomFieldDefinitions(assetId),
     placeholderData: keepPreviousData,
     staleTime: DEFAULT_QUERY_STALE_TIME
   })
