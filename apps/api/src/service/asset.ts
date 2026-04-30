@@ -87,6 +87,9 @@ interface AssetRepository {
   create(asset: Asset): Promise<Asset>
   deleteByID(id: string): Promise<Asset | null>
   listCustomFieldDefinitions(): Promise<AssetCustomFieldDefinition[]>
+  listAvailableCustomFieldDefinitions(
+    assetId: string
+  ): Promise<AssetCustomFieldDefinition[]>
   getCustomFieldDefinitionByID(
     id: string
   ): Promise<AssetCustomFieldDefinition | null>
@@ -106,6 +109,11 @@ interface AssetRepository {
     values: UpdateAssetCustomFieldValue[]
   ): Promise<AssetCustomFieldValue[]>
   clearCustomFieldValue(assetId: string, fieldId: string): Promise<void>
+  assignCustomFields(
+    assetId: string,
+    fieldIds: string[]
+  ): Promise<AssetCustomFieldValue[]>
+  detachCustomField(assetId: string, fieldId: string): Promise<void>
 }
 
 interface AssetServiceDependencies {
@@ -323,6 +331,30 @@ export function createAssetService({
       }
     },
 
+    async listAvailableCustomFieldDefinitions(
+      assetId: string
+    ): Promise<AssetCustomFieldDefinition[] | null> {
+      try {
+        const asset = await assetRepository.getByID(assetId)
+        if (!asset) {
+          logger.debug(`asset with id ${assetId} not found`)
+          return null
+        }
+
+        return await assetRepository.listAvailableCustomFieldDefinitions(
+          assetId
+        )
+      } catch (error) {
+        logger.error(
+          error,
+          `failed to list available asset custom fields for asset ${assetId}`
+        )
+        throw new HTTPException(500, {
+          message: "failed to list available asset custom fields"
+        })
+      }
+    },
+
     async upsertCustomFieldValues(
       assetId: string,
       values: UpdateAssetCustomFieldValue[]
@@ -338,6 +370,11 @@ export function createAssetService({
         const definitionsById = new Map(
           definitions.map((definition) => [definition.id, definition])
         )
+        const assignedValues =
+          await assetRepository.listCustomFieldValues(assetId)
+        const assignedFieldIds = new Set(
+          assignedValues.map((value) => value.fieldId)
+        )
 
         for (const valueUpdate of values) {
           const definition = definitionsById.get(valueUpdate.fieldId)
@@ -345,6 +382,10 @@ export function createAssetService({
             throw badRequest(
               `unknown asset custom field id ${valueUpdate.fieldId}`
             )
+          }
+
+          if (!assignedFieldIds.has(valueUpdate.fieldId)) {
+            throw badRequest("asset custom field is not assigned to asset")
           }
 
           if (
@@ -390,6 +431,12 @@ export function createAssetService({
           throw badRequest(`unknown asset custom field id ${fieldId}`)
         }
 
+        const assignedValues =
+          await assetRepository.listCustomFieldValues(assetId)
+        if (!assignedValues.some((value) => value.fieldId === fieldId)) {
+          throw badRequest("asset custom field is not assigned to asset")
+        }
+
         await assetRepository.clearCustomFieldValue(assetId, fieldId)
         return true
       } catch (error) {
@@ -403,6 +450,78 @@ export function createAssetService({
         )
         throw new HTTPException(500, {
           message: "failed to clear asset custom field value"
+        })
+      }
+    },
+
+    async assignCustomFields(
+      assetId: string,
+      fieldIds: string[]
+    ): Promise<AssetCustomFieldValue[] | null> {
+      try {
+        const asset = await assetRepository.getByID(assetId)
+        if (!asset) {
+          logger.debug(`asset with id ${assetId} not found`)
+          return null
+        }
+
+        const definitions = await assetRepository.listCustomFieldDefinitions()
+        const definitionIds = new Set(
+          definitions.map((definition) => definition.id)
+        )
+
+        for (const fieldId of fieldIds) {
+          if (!definitionIds.has(fieldId)) {
+            throw badRequest(`unknown asset custom field id ${fieldId}`)
+          }
+        }
+
+        return await assetRepository.assignCustomFields(assetId, fieldIds)
+      } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error
+        }
+
+        logger.error(
+          error,
+          `failed to assign asset custom fields for asset ${assetId}`
+        )
+        throw new HTTPException(500, {
+          message: "failed to assign asset custom fields"
+        })
+      }
+    },
+
+    async detachCustomField(
+      assetId: string,
+      fieldId: string
+    ): Promise<boolean | null> {
+      try {
+        const asset = await assetRepository.getByID(assetId)
+        if (!asset) {
+          logger.debug(`asset with id ${assetId} not found`)
+          return null
+        }
+
+        const definition =
+          await assetRepository.getCustomFieldDefinitionByID(fieldId)
+        if (!definition) {
+          throw badRequest(`unknown asset custom field id ${fieldId}`)
+        }
+
+        await assetRepository.detachCustomField(assetId, fieldId)
+        return true
+      } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error
+        }
+
+        logger.error(
+          error,
+          `failed to detach asset custom field ${fieldId} for asset ${assetId}`
+        )
+        throw new HTTPException(500, {
+          message: "failed to detach asset custom field"
         })
       }
     }
