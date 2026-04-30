@@ -3,7 +3,11 @@ import { useNavigate } from "@tanstack/react-router"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useMemo } from "react"
-import type { Asset, AssetWithCustomFields } from "@openvlp/types/model/asset"
+import type {
+  Asset,
+  AssetCustomFieldDefinition,
+  AssetWithCustomFields
+} from "@openvlp/types/model/asset"
 import type { GroupingOption } from "@/components/data-table/types.ts"
 import { DataTable } from "@/components/data-table/data-table.tsx"
 import {
@@ -23,13 +27,23 @@ import { AssetDialog } from "@/components/asset-dialog.tsx"
 import { capitalizeFirstLetter } from "@/lib/format.ts"
 import { toastActionError } from "@/lib/action-error-toast.ts"
 
-const groupingOptions: Array<GroupingOption> = [
-  {
-    id: "type",
-    label: "Type",
-    formatValue: (value) => capitalizeFirstLetter(String(value))
-  }
-]
+export function createAssetTableGroupingOptions(
+  customFieldDefinitions: Array<AssetCustomFieldDefinition>
+): Array<GroupingOption> {
+  return [
+    {
+      id: "type",
+      label: "Type",
+      formatValue: (value) => capitalizeFirstLetter(String(value))
+    },
+    ...customFieldDefinitions.map((definition) => ({
+      id: getAssetCustomFieldColumnId(definition.id),
+      label: definition.name,
+      formatValue: (value: unknown) =>
+        typeof value === "string" && value.length > 0 ? value : "None"
+    }))
+  ]
+}
 
 interface AssetTableProps {
   selectedAssetId?: string
@@ -48,6 +62,10 @@ export function AssetTable({
   )
   const tableColumns = useMemo(
     () => createAssetTableColumns(customFieldDefinitionsQuery.data ?? []),
+    [customFieldDefinitionsQuery.data]
+  )
+  const groupingOptions = useMemo(
+    () => createAssetTableGroupingOptions(customFieldDefinitionsQuery.data ?? []),
     [customFieldDefinitionsQuery.data]
   )
   const initialColumnVisibility = useMemo(
