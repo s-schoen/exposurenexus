@@ -3,6 +3,7 @@ import { env } from "../env.js"
 import { Kysely } from "kysely"
 import type { UserProfileTable, UserSessionTable } from "./schema/auth.js"
 import type {
+  AssetCustomFieldAssignmentTable,
   AssetCustomFieldOptionTable,
   AssetCustomFieldTable,
   AssetCustomFieldValueTable,
@@ -28,6 +29,7 @@ export interface Database {
   user_session: UserSessionTable
   asset: AssetTable
   asset_custom_field: AssetCustomFieldTable
+  asset_custom_field_assignment: AssetCustomFieldAssignmentTable
   asset_custom_field_option: AssetCustomFieldOptionTable
   asset_custom_field_value: AssetCustomFieldValueTable
   finding: FindingTable

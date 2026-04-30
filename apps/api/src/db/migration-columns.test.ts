@@ -269,6 +269,14 @@ describe("db migration columns", () => {
       from information_schema.columns
       where table_name = 'asset_custom_field_value'
     `.execute(testDb.db)
+    const assignmentColumns = await sql<{
+      column_name: string
+      data_type: string
+    }>`
+      select column_name, data_type
+      from information_schema.columns
+      where table_name = 'asset_custom_field_assignment'
+    `.execute(testDb.db)
 
     expect(customFieldColumns.rows).toEqual(
       expect.arrayContaining([
@@ -334,6 +342,18 @@ describe("db migration columns", () => {
         expect.objectContaining({
           column_name: "value",
           data_type: "jsonb"
+        })
+      ])
+    )
+    expect(assignmentColumns.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          column_name: "assetId",
+          data_type: "uuid"
+        }),
+        expect.objectContaining({
+          column_name: "fieldId",
+          data_type: "uuid"
         })
       ])
     )
