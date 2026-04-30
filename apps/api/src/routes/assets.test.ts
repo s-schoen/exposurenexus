@@ -30,8 +30,11 @@ describe("asset routes", () => {
     updateCustomFieldDefinitionByID: vi.fn(),
     deleteCustomFieldDefinitionByID: vi.fn(),
     listCustomFieldValues: vi.fn(),
+    listAvailableCustomFieldDefinitions: vi.fn(),
     upsertCustomFieldValues: vi.fn(),
-    clearCustomFieldValue: vi.fn()
+    clearCustomFieldValue: vi.fn(),
+    assignCustomFields: vi.fn(),
+    detachCustomField: vi.fn()
   }
 
   beforeEach(() => {
@@ -544,6 +547,55 @@ describe("asset routes", () => {
     })
   })
 
+  it("returns custom field definitions available for an asset", async () => {
+    const requestId = "assets-custom-field-values-available-request"
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const definitions = [
+      {
+        id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+        key: "category",
+        name: "Category",
+        required: false,
+        type: AssetCustomFieldType.Text,
+        defaultValue: null
+      }
+    ]
+
+    assetService.listAvailableCustomFieldDefinitions.mockResolvedValue(
+      definitions
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(
+      `/api/assets/${assetId}/custom-fields/available`,
+      {
+        headers: {
+          "X-Request-Id": requestId
+        }
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(
+      assetService.listAvailableCustomFieldDefinitions
+    ).toHaveBeenCalledWith(assetId)
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: {
+        items: definitions,
+        totalItems: 1,
+        startIndex: 0,
+        currentItemCount: 1
+      }
+    })
+  })
+
   it("returns 404 when listing custom field values for a missing asset", async () => {
     const requestId = "assets-custom-field-values-list-missing-asset-request"
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
@@ -643,6 +695,85 @@ describe("asset routes", () => {
         currentItemCount: 1
       }
     })
+  })
+
+  it("assigns custom fields to an asset", async () => {
+    const requestId = "assets-custom-field-associations-assign-request"
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const payload = {
+      fieldIds: ["5bde818a-bb4f-4a0f-a5eb-a190d5142a25"]
+    }
+    const values = [
+      {
+        fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+        key: "category",
+        name: "Category",
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Text,
+        value: null
+      }
+    ]
+
+    assetService.assignCustomFields.mockResolvedValue(values)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(
+      `/api/assets/${assetId}/custom-fields/associations`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": requestId
+        },
+        body: JSON.stringify(payload)
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(assetService.assignCustomFields).toHaveBeenCalledWith(
+      assetId,
+      payload.fieldIds
+    )
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: {
+        items: values,
+        totalItems: 1,
+        startIndex: 0,
+        currentItemCount: 1
+      }
+    })
+  })
+
+  it("rejects invalid custom field association bodies before calling the service", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(
+      `/api/assets/${assetId}/custom-fields/associations`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id":
+            "assets-custom-field-associations-invalid-body-request"
+        },
+        body: JSON.stringify({ fieldIds: ["not-a-uuid"] })
+      }
+    )
+
+    expect(response.status).toBe(400)
+    expect(assetService.assignCustomFields).not.toHaveBeenCalled()
   })
 
   it("rejects invalid custom field value bodies before calling the service", async () => {
@@ -748,6 +879,43 @@ describe("asset routes", () => {
       correlationId: requestId,
       data: {
         cleared: true
+      }
+    })
+  })
+
+  it("detaches a custom field from an asset", async () => {
+    const requestId = "assets-custom-field-associations-detach-request"
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+
+    assetService.detachCustomField.mockResolvedValue(true)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(
+      `/api/assets/${assetId}/custom-fields/associations/${fieldId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "X-Request-Id": requestId
+        }
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(assetService.detachCustomField).toHaveBeenCalledWith(
+      assetId,
+      fieldId
+    )
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: {
+        detached: true
       }
     })
   })

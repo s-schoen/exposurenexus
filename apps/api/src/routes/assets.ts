@@ -4,8 +4,10 @@ import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
 import {
   type Asset,
+  type AssetCustomFieldDefinition,
   type AssetCustomFieldValue,
   createAssetSchema,
+  updateAssetCustomFieldAssociationsSchema,
   updateAssetCustomFieldValuesSchema
 } from "@openvlp/types/model/asset"
 import type { ContextVariables } from "../lib/hono-schema.js"
@@ -23,6 +25,9 @@ interface AssetRouteService extends AssetCustomFieldRouteService {
   listCustomFieldValues(
     assetId: string
   ): Promise<AssetCustomFieldValue[] | null>
+  listAvailableCustomFieldDefinitions(
+    assetId: string
+  ): Promise<AssetCustomFieldDefinition[] | null>
   upsertCustomFieldValues(
     assetId: string,
     values: typeof updateAssetCustomFieldValuesSchema._output.values
@@ -31,6 +36,11 @@ interface AssetRouteService extends AssetCustomFieldRouteService {
     assetId: string,
     fieldId: string
   ): Promise<boolean | null>
+  assignCustomFields(
+    assetId: string,
+    fieldIds: typeof updateAssetCustomFieldAssociationsSchema._output.fieldIds
+  ): Promise<AssetCustomFieldValue[] | null>
+  detachCustomField(assetId: string, fieldId: string): Promise<boolean | null>
 }
 
 interface AssetRouteDependencies {
@@ -63,6 +73,23 @@ export function createAssetRoute(
   )
 
   asset.get(
+    "/:id/custom-fields/available",
+    requireDomainPermission("asset", "read"),
+    idParamValidator,
+    async (c) => {
+      const params = c.req.valid("param")
+
+      const definitions =
+        await assetService.listAvailableCustomFieldDefinitions(params.id)
+      if (!definitions) {
+        notFound("asset", params.id)
+      }
+
+      return replyArray(c, definitions!)
+    }
+  )
+
+  asset.get(
     "/:id/custom-fields",
     requireDomainPermission("asset", "read"),
     idParamValidator,
@@ -75,6 +102,46 @@ export function createAssetRoute(
       }
 
       return replyArray(c, values!)
+    }
+  )
+
+  asset.put(
+    "/:id/custom-fields/associations",
+    requireDomainPermission("asset", "write"),
+    idParamValidator,
+    zValidator("json", updateAssetCustomFieldAssociationsSchema),
+    async (c) => {
+      const params = c.req.valid("param")
+      const body = c.req.valid("json")
+
+      const values = await assetService.assignCustomFields(
+        params.id,
+        body.fieldIds
+      )
+      if (!values) {
+        notFound("asset", params.id)
+      }
+
+      return replyArray(c, values!)
+    }
+  )
+
+  asset.delete(
+    "/:id/custom-fields/associations/:fieldId",
+    requireDomainPermission("asset", "write"),
+    assetAndFieldIdParamValidator,
+    async (c) => {
+      const params = c.req.valid("param")
+
+      const detached = await assetService.detachCustomField(
+        params.id,
+        params.fieldId
+      )
+      if (!detached) {
+        notFound("asset", params.id)
+      }
+
+      return replyObject(c, { detached })
     }
   )
 
