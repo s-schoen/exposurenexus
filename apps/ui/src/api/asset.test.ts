@@ -1,21 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   AssetCustomFieldType,
-  AssetCustomFieldValueSource
+  AssetCustomFieldValueSource,
+  AssetType
 } from "@openvlp/types/model/asset"
 import {
   assignAssetCustomFields,
   clearAssetCustomFieldValue,
   createAssetCustomFieldValuesQueryOptions,
   createAvailableAssetCustomFieldDefinitionsQueryOptions,
+  createListAssetsWithCustomFieldsQueryOptions,
   detachAssetCustomField,
   listAssetCustomFieldValues,
+  listAssetsWithCustomFields,
   listAvailableAssetCustomFieldDefinitions,
   updateAssetCustomFieldValues
 } from "./asset.ts"
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
+  AssetWithCustomFields,
   UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues
 } from "@openvlp/types/model/asset"
@@ -65,6 +69,14 @@ const values: Array<AssetCustomFieldValue> = [
     value: "production"
   }
 ]
+const assetsWithCustomFields: Array<AssetWithCustomFields> = [
+  {
+    id: assetId,
+    name: "api.openvlp.local",
+    type: AssetType.Host,
+    customFields: values
+  }
+]
 const associationUpdates: UpdateAssetCustomFieldAssociations["fieldIds"] = [
   fieldId
 ]
@@ -87,6 +99,28 @@ afterEach(() => {
 })
 
 describe("asset custom field value api", () => {
+  it("lists assets with custom field values", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          items: assetsWithCustomFields
+        }
+      })
+    )
+
+    await expect(listAssetsWithCustomFields()).resolves.toEqual(
+      assetsWithCustomFields
+    )
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:3001/api/assets?includeCustomFields=true",
+      expect.objectContaining({
+        method: "GET",
+        credentials: "include"
+      })
+    )
+  })
+
   it("lists custom field values for an asset", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
@@ -252,6 +286,13 @@ describe("asset custom field value api", () => {
       "assets",
       assetId,
       "custom-fields"
+    ])
+  })
+
+  it("creates query options for assets with custom field values", () => {
+    expect(createListAssetsWithCustomFieldsQueryOptions().queryKey).toEqual([
+      "assets",
+      "with-custom-fields"
     ])
   })
 
