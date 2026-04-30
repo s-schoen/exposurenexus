@@ -8,6 +8,7 @@ import {
   vi
 } from "vitest"
 import {
+  type AssetCustomFieldDefinition,
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
   AssetType
@@ -20,6 +21,16 @@ vi.mock("../db/index.js", () => ({
   logger: {},
   pool: {}
 }))
+
+function expectSelectDefinition(
+  definition: AssetCustomFieldDefinition | null
+): asserts definition is Extract<
+  AssetCustomFieldDefinition,
+  { type: AssetCustomFieldType.Select }
+> {
+  expect(definition).toBeTruthy()
+  expect(definition?.type).toBe(AssetCustomFieldType.Select)
+}
 
 describe("asset repository", () => {
   const testDb = createTestDatabase()
@@ -107,6 +118,7 @@ describe("asset repository", () => {
       type: AssetCustomFieldType.Select,
       defaultValue: "prod"
     })
+    expectSelectDefinition(environment)
     expect(environment.options).toEqual([
       expect.objectContaining({
         fieldId: environment.id,
@@ -167,7 +179,8 @@ describe("asset repository", () => {
       type: AssetCustomFieldType.Select,
       defaultValue: "stage"
     })
-    expect(updated?.options).toEqual([
+    expectSelectDefinition(updated)
+    expect(updated.options).toEqual([
       expect.objectContaining({
         fieldId: environment.id,
         value: "prod",
@@ -211,6 +224,7 @@ describe("asset repository", () => {
     await repository.upsertCustomFieldValues(asset.id, [
       { fieldId: environment.id, value: "prod" }
     ])
+    await repository.assignCustomFields(asset.id, [environment.id])
 
     await expect(
       repository.deleteCustomFieldDefinitionByID(environment.id)
@@ -225,9 +239,14 @@ describe("asset repository", () => {
       .selectFrom("asset_custom_field_value")
       .selectAll()
       .execute()
+    const assignmentRows = await testDb.db
+      .selectFrom("asset_custom_field_assignment")
+      .selectAll()
+      .execute()
 
     expect(optionRows).toEqual([])
     expect(valueRows).toEqual([])
+    expect(assignmentRows).toEqual([])
   })
 
   it("lists, upserts, and clears effective custom field values", async () => {
@@ -262,6 +281,48 @@ describe("asset repository", () => {
         { value: "internal", label: "Internal" }
       ]
     })
+    expectSelectDefinition(exposure)
+
+    await expect(
+      repository.listAvailableCustomFieldDefinitions(asset.id)
+    ).resolves.toEqual([environment, exposure, priority])
+
+    await expect(
+      repository.assignCustomFields(asset.id, [
+        environment.id,
+        priority.id,
+        exposure.id
+      ])
+    ).resolves.toEqual([
+      {
+        fieldId: environment.id,
+        key: "environment",
+        name: "Environment",
+        source: AssetCustomFieldValueSource.Default,
+        type: AssetCustomFieldType.Text,
+        value: "prod"
+      },
+      {
+        fieldId: exposure.id,
+        key: "exposure",
+        name: "Exposure",
+        source: AssetCustomFieldValueSource.Default,
+        type: AssetCustomFieldType.Select,
+        value: "internal",
+        options: exposure.options
+      },
+      {
+        fieldId: priority.id,
+        key: "priority",
+        name: "Priority",
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Number,
+        value: null
+      }
+    ])
+    await expect(
+      repository.listAvailableCustomFieldDefinitions(asset.id)
+    ).resolves.toEqual([])
 
     await expect(repository.listCustomFieldValues(asset.id)).resolves.toEqual([
       {
@@ -386,5 +447,35 @@ describe("asset repository", () => {
         value: null
       }
     ])
+
+    await repository.detachCustomField(asset.id, exposure.id)
+
+    await expect(repository.listCustomFieldValues(asset.id)).resolves.toEqual([
+      {
+        fieldId: environment.id,
+        key: "environment",
+        name: "Environment",
+        source: AssetCustomFieldValueSource.Default,
+        type: AssetCustomFieldType.Text,
+        value: "prod"
+      },
+      {
+        fieldId: priority.id,
+        key: "priority",
+        name: "Priority",
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Number,
+        value: null
+      }
+    ])
+
+    const detachedValueRows = await testDb.db
+      .selectFrom("asset_custom_field_value")
+      .selectAll()
+      .where("assetId", "=", asset.id)
+      .where("fieldId", "=", exposure.id)
+      .execute()
+
+    expect(detachedValueRows).toEqual([])
   })
 })
