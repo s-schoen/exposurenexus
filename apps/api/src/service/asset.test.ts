@@ -12,6 +12,7 @@ import { createAssetService } from "./asset.js"
 describe("asset service", () => {
   const assetRepository = {
     list: vi.fn(),
+    listWithCustomFields: vi.fn(),
     getByID: vi.fn(),
     getByName: vi.fn(),
     create: vi.fn(),
@@ -56,6 +57,47 @@ describe("asset service", () => {
     assetRepository.list.mockRejectedValue(new Error("db offline"))
 
     await expect(assetService.listAll()).rejects.toMatchObject({
+      status: 500,
+      message: "failed to list assets"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("lists all assets with custom fields from the repository", async () => {
+    const assets = [
+      {
+        id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+        name: "api.openvlp.local",
+        type: AssetType.Host,
+        customFields: [
+          {
+            fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+            key: "category",
+            name: "Category",
+            source: AssetCustomFieldValueSource.Default,
+            type: AssetCustomFieldType.Text,
+            value: "platform"
+          }
+        ]
+      }
+    ]
+    const assetService = createAssetService({ assetRepository, logger })
+
+    assetRepository.listWithCustomFields.mockResolvedValue(assets)
+
+    await expect(assetService.listAllWithCustomFields()).resolves.toEqual(
+      assets
+    )
+    expect(assetRepository.listWithCustomFields).toHaveBeenCalledOnce()
+  })
+
+  it("maps repository list with custom fields failures to an HTTP 500", async () => {
+    const assetService = createAssetService({ assetRepository, logger })
+
+    assetRepository.listWithCustomFields.mockRejectedValue(
+      new Error("db offline")
+    )
+
+    await expect(assetService.listAllWithCustomFields()).rejects.toMatchObject({
       status: 500,
       message: "failed to list assets"
     } satisfies Partial<HTTPException>)
@@ -1267,10 +1309,9 @@ describe("asset service", () => {
     assetRepository.getByID.mockResolvedValue(null)
 
     await expect(
-      assetService.assignCustomFields(
-        "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-        ["5bde818a-bb4f-4a0f-a5eb-a190d5142a25"]
-      )
+      assetService.assignCustomFields("76b1885f-2d28-4b7d-93da-2751ff385aa3", [
+        "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+      ])
     ).resolves.toBeNull()
     expect(assetRepository.listCustomFieldDefinitions).not.toHaveBeenCalled()
     expect(assetRepository.assignCustomFields).not.toHaveBeenCalled()

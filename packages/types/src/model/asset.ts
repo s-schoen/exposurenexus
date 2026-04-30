@@ -146,6 +146,10 @@ export const assetCustomFieldValueSchema = z.discriminatedUnion("type", [
   selectAssetCustomFieldValueSchema
 ])
 
+export const assetWithCustomFieldsSchema = assetSchema.extend({
+  customFields: z.array(assetCustomFieldValueSchema)
+})
+
 export const updateAssetCustomFieldValueSchema = z.strictObject({
   fieldId: z.uuidv4(),
   value: assetCustomFieldValueLiteralSchema
@@ -160,6 +164,7 @@ export const updateAssetCustomFieldAssociationsSchema = z.strictObject({
 })
 
 export type Asset = z.infer<typeof assetSchema>
+export type AssetWithCustomFields = z.infer<typeof assetWithCustomFieldsSchema>
 export type CreateAsset = z.infer<typeof createAssetSchema>
 export type AssetCustomFieldOption = z.infer<
   typeof assetCustomFieldOptionSchema

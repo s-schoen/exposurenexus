@@ -6,6 +6,7 @@ import {
   type Asset,
   type AssetCustomFieldDefinition,
   type AssetCustomFieldValue,
+  type AssetWithCustomFields,
   createAssetSchema,
   updateAssetCustomFieldAssociationsSchema,
   updateAssetCustomFieldValuesSchema
@@ -19,6 +20,7 @@ import {
 
 interface AssetRouteService extends AssetCustomFieldRouteService {
   listAll(): Promise<Asset[]>
+  listAllWithCustomFields(): Promise<AssetWithCustomFields[]>
   getByID(id: string): Promise<Asset | null>
   create(asset: typeof createAssetSchema._output): Promise<Asset>
   deleteByID(id: string): Promise<Asset | null>
@@ -48,6 +50,17 @@ interface AssetRouteDependencies {
 }
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
+const listAssetQueryValidator = zValidator(
+  "query",
+  z.object({
+    includeCustomFields: z
+      .stringbool({
+        truthy: ["true"],
+        falsy: ["false"]
+      })
+      .optional()
+  })
+)
 const assetAndFieldIdParamValidator = zValidator(
   "param",
   z.object({
@@ -62,10 +75,19 @@ export function createAssetRoute(
 ) {
   const asset = new Hono<{ Variables: ContextVariables }>()
 
-  asset.get("/", requireDomainPermission("asset", "read"), async (c) => {
-    const assets = await assetService.listAll()
-    return replyArray(c, assets)
-  })
+  asset.get(
+    "/",
+    requireDomainPermission("asset", "read"),
+    listAssetQueryValidator,
+    async (c) => {
+      const query = c.req.valid("query")
+      const assets =
+        query.includeCustomFields === true
+          ? await assetService.listAllWithCustomFields()
+          : await assetService.listAll()
+      return replyArray(c, assets)
+    }
+  )
 
   asset.route(
     "/custom-fields",
