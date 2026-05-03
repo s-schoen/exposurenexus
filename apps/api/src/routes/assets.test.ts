@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { HTTPException } from "hono/http-exception"
 import {
+  AssetCustomFieldRuleViolationCode,
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
   AssetType
@@ -422,6 +424,55 @@ describe("asset routes", () => {
     expect(assetService.createCustomFieldDefinition).not.toHaveBeenCalled()
   })
 
+  it("returns custom field rule codes for create validation failures", async () => {
+    const requestId = "assets-custom-fields-create-rule-failure-request"
+    const payload = {
+      key: "category",
+      name: "Category",
+      required: true,
+      type: AssetCustomFieldType.Text,
+      defaultValue: null
+    }
+    const violation = {
+      code: AssetCustomFieldRuleViolationCode.RequiredDefaultMissing,
+      path: ["defaultValue"]
+    }
+
+    assetService.createCustomFieldDefinition.mockRejectedValue(
+      new HTTPException(400, {
+        message: "required custom fields must define a default value",
+        cause: violation
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request("/api/assets/custom-fields", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(assetService.createCustomFieldDefinition).toHaveBeenCalledWith(
+      payload
+    )
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 400,
+      error: "required custom fields must define a default value",
+      code: AssetCustomFieldRuleViolationCode.RequiredDefaultMissing
+    })
+  })
+
   it("updates an asset custom field definition", async () => {
     const requestId = "assets-custom-fields-update-request"
     const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
@@ -463,6 +514,58 @@ describe("asset routes", () => {
     expect(body).toEqual({
       correlationId: requestId,
       data: updated
+    })
+  })
+
+  it("returns custom field rule codes for update validation failures", async () => {
+    const requestId = "assets-custom-fields-update-rule-failure-request"
+    const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+    const payload = {
+      key: "environment",
+      name: "Environment",
+      required: false,
+      type: AssetCustomFieldType.Select,
+      defaultValue: "dev",
+      options: [{ value: "prod", label: "Production" }]
+    }
+    const violation = {
+      code: AssetCustomFieldRuleViolationCode.SelectDefaultMustMatchOption,
+      path: ["defaultValue"]
+    }
+
+    assetService.updateCustomFieldDefinitionByID.mockRejectedValue(
+      new HTTPException(400, {
+        message: "select custom field default must match an option value",
+        cause: violation
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/assets/custom-fields/${fieldId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(assetService.updateCustomFieldDefinitionByID).toHaveBeenCalledWith(
+      fieldId,
+      payload
+    )
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 400,
+      error: "select custom field default must match an option value",
+      code: AssetCustomFieldRuleViolationCode.SelectDefaultMustMatchOption
     })
   })
 
