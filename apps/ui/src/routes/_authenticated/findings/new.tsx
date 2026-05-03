@@ -4,8 +4,6 @@ import {
   createFindingSchema
 } from "@openvlp/types/model/finding"
 import { useForm } from "@tanstack/react-form"
-import { toast } from "sonner"
-import { useQueryClient } from "@tanstack/react-query"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import type { CreateFinding } from "@openvlp/types/model/finding"
 import { usePageMeta } from "@/context/page.tsx"
@@ -27,10 +25,9 @@ import {
 } from "@/components/ui/select.tsx"
 import { AssetCombobox } from "@/components/asset-combobox.tsx"
 import { Textarea } from "@/components/ui/textarea.tsx"
-import { createFinding, createListFindingsQueryOptions } from "@/api/finding.ts"
 import { formatFindingStatus } from "@/lib/format.ts"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts"
 
 export const Route = createFileRoute("/_authenticated/findings/new")({
   component: RouteComponent
@@ -43,7 +40,7 @@ function RouteComponent() {
   })
 
   const router = useRouter()
-  const queryClient = useQueryClient()
+  const { createFinding } = useFindingLifecycle()
 
   const form = useForm({
     defaultValues: {
@@ -59,17 +56,10 @@ function RouteComponent() {
       onSubmit: createFindingSchema
     },
     onSubmit: async ({ value }) => {
-      console.log(value)
-      try {
-        await createFinding(value)
-        toast.success("Finding created")
-        queryClient.invalidateQueries({
-          queryKey: [createListFindingsQueryOptions().queryKey]
-        })
+      const createdFinding = await createFinding(value)
+
+      if (createdFinding) {
         router.history.back()
-      } catch (error) {
-        toastActionError(error, `Failed to create finding: ${error}`)
-        console.error(error)
       }
     }
   })

@@ -1,6 +1,4 @@
 import * as React from "react"
-import { useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
 import { Check } from "lucide-react"
 import type { Finding } from "@openvlp/types/model/finding"
 import type { ReactElement } from "react"
@@ -20,8 +18,7 @@ import {
   STATUS_ORDER
 } from "@/components/finding-table/constants"
 import { formatFindingStatus } from "@/lib/format"
-import { createListFindingsQueryOptions, updateFinding } from "@/api/finding"
-import { toastActionError } from "@/lib/action-error-toast"
+import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts"
 
 interface FindingContextMenuProps {
   findingsRef: React.RefObject<Array<Finding>>
@@ -34,7 +31,7 @@ export function FindingContextMenu({
   onDelete,
   children
 }: FindingContextMenuProps) {
-  const queryClient = useQueryClient()
+  const { bulkUpdateFindingField } = useFindingLifecycle()
   const findings = findingsRef.current
 
   const sharedSeverity =
@@ -53,25 +50,7 @@ export function FindingContextMenu({
     key: TKey,
     value: Finding[TKey]
   ) => {
-    let success = true
-    for (const finding of findings) {
-      try {
-        await updateFinding({ ...finding, [key]: value })
-      } catch (error) {
-        success = false
-        toastActionError(
-          error,
-          `Failed to update finding ${finding.id}: ${error}`
-        )
-        console.error(error)
-      }
-    }
-    if (success) {
-      toast.success(`Updated ${findings.length} finding(s)`)
-    }
-    queryClient.invalidateQueries({
-      queryKey: createListFindingsQueryOptions().queryKey
-    })
+    await bulkUpdateFindingField(findings, key, value)
   }
 
   return (
