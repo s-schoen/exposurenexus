@@ -7,6 +7,10 @@ import type { ColumnDef } from "@tanstack/react-table"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
 
 import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts"
+import {
+  formatAssetOwner,
+  isAssetOwnerFallbackLabel
+} from "@/lib/asset-owner.ts"
 import { capitalizeFirstLetter } from "@/lib/format.ts"
 
 const emptyCustomFieldFilterValue = "__empty__"
@@ -15,29 +19,58 @@ export function getAssetCustomFieldColumnId(fieldId: string) {
   return `custom-field:${fieldId}`
 }
 
-const baseColumns: Array<ColumnDef<AssetWithCustomFields>> = [
-  {
-    accessorKey: "name",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
-    meta: {
-      label: "Name"
-    }
-  },
-  {
-    accessorKey: "type",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Type" />
-    ),
-    cell: ({ row }) => {
-      return <span>{capitalizeFirstLetter(row.getValue("type"))}</span>
+function createBaseColumns(
+  userDisplayNameById: Map<string, string>,
+  usersLoading = false
+): Array<ColumnDef<AssetWithCustomFields>> {
+  return [
+    {
+      accessorKey: "name",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Name" />
+      ),
+      meta: {
+        label: "Name"
+      }
     },
-    meta: {
-      label: "Type"
+    {
+      accessorKey: "type",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Type" />
+      ),
+      cell: ({ row }) => {
+        return <span>{capitalizeFirstLetter(row.getValue("type"))}</span>
+      },
+      meta: {
+        label: "Type"
+      }
+    },
+    {
+      id: "ownerId",
+      accessorFn: (asset) =>
+        formatAssetOwner(asset.ownerId, userDisplayNameById, usersLoading),
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Owner" />
+      ),
+      cell: ({ getValue }) => {
+        const value = getValue<string>()
+
+        return (
+          <span
+            className={
+              isAssetOwnerFallbackLabel(value) ? "text-muted-foreground" : ""
+            }
+          >
+            {value}
+          </span>
+        )
+      },
+      meta: {
+        label: "Owner"
+      }
     }
-  }
-]
+  ]
+}
 
 function createCustomFieldColumn(
   definition: AssetCustomFieldDefinition
@@ -133,10 +166,12 @@ function createCustomFieldColumn(
 }
 
 export function createAssetTableColumns(
-  customFieldDefinitions: Array<AssetCustomFieldDefinition>
+  customFieldDefinitions: Array<AssetCustomFieldDefinition>,
+  userDisplayNameById: Map<string, string> = new Map(),
+  usersLoading = false
 ): Array<ColumnDef<AssetWithCustomFields>> {
   return [
-    ...baseColumns,
+    ...createBaseColumns(userDisplayNameById, usersLoading),
     ...customFieldDefinitions.map((definition) =>
       createCustomFieldColumn(definition)
     )

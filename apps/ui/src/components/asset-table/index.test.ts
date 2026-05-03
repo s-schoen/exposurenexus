@@ -175,6 +175,38 @@ describe("asset table custom field grouping", () => {
     ).toBe("select")
   })
 
+  it("resolves owner display values from user profiles", () => {
+    const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
+    const columns = createAssetTableColumns(
+      [],
+      new Map([[ownerId, "Robin Owner"]])
+    )
+    const ownerColumn = columns.find((column) => column.id === "ownerId") as
+      | AccessorFnColumnDef<AssetWithCustomFields, string>
+      | undefined
+    const asset: AssetWithCustomFields = {
+      id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
+      name: "api-01",
+      type: AssetType.Host,
+      ownerId,
+      customFields: []
+    }
+
+    expect(ownerColumn?.accessorFn(asset, 0)).toBe("Robin Owner")
+    expect(ownerColumn?.accessorFn({ ...asset, ownerId: null }, 0)).toBe(
+      "No Owner"
+    )
+    expect(
+      ownerColumn?.accessorFn(
+        {
+          ...asset,
+          ownerId: "a7d3ef96-d3b4-48bb-8386-681eb3be7b12"
+        },
+        0
+      )
+    ).toBe("Unknown owner")
+  })
+
   it("adds custom field definitions to the grouping options", () => {
     const groupingOptions = createAssetTableGroupingOptions(
       ASSET_CUSTOM_FIELD_FIXTURES
@@ -182,12 +214,14 @@ describe("asset table custom field grouping", () => {
 
     expect(groupingOptions.map((option) => option.label)).toEqual([
       "Type",
+      "Owner",
       "Category",
       "Priority",
       "Environment"
     ])
     expect(groupingOptions.map((option) => option.id)).toEqual([
       "type",
+      "ownerId",
       getAssetCustomFieldColumnId("8f0365b2-1bbb-46e2-b1f4-06300ade23f3"),
       getAssetCustomFieldColumnId("2808e68c-9a48-4b50-9a2d-d1df4c83ff06"),
       getAssetCustomFieldColumnId("7f732d2b-8985-4551-b45d-0eaf527a1577")

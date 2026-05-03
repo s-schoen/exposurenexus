@@ -9,7 +9,8 @@ import {
 import { composeStories } from "@storybook/react-vite"
 import {
   AssetCustomFieldType,
-  AssetCustomFieldValueSource
+  AssetCustomFieldValueSource,
+  AssetType
 } from "@openvlp/types/model/asset"
 import type { AssetCustomFieldValue } from "@openvlp/types/model/asset"
 import * as stories from "@/components/asset-detail-content.stories"
@@ -97,6 +98,7 @@ describe("AssetDetailContent stories", () => {
     render(<WithCustomFields />)
 
     await waitFor(() => {
+      expect(screen.getAllByText("Robin Owner").length).toBeGreaterThan(0)
       expect(screen.getAllByText("Custom fields").length).toBeGreaterThan(0)
       expect(screen.getAllByText("Category").length).toBeGreaterThan(0)
       expect(screen.getByText("Internet-facing")).toBeTruthy()
@@ -105,6 +107,33 @@ describe("AssetDetailContent stories", () => {
       expect(screen.getAllByText("Environment").length).toBeGreaterThan(0)
       expect(screen.getByText("Production")).toBeTruthy()
       expect(screen.getByText("None")).toBeTruthy()
+    })
+  })
+
+  it("renders no-owner and unknown owner states", async () => {
+    const noOwnerAsset = {
+      id: "4b4f4dc9-77d5-4bb5-90a4-0d764a5fbf4b",
+      name: "web-01",
+      type: AssetType.Host,
+      ownerId: null
+    }
+    const unknownOwnerAsset = {
+      ...noOwnerAsset,
+      ownerId: "a7d3ef96-d3b4-48bb-8386-681eb3be7b12"
+    }
+
+    const noOwner = render(<WithCustomFields asset={noOwnerAsset} />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText("No Owner").length).toBeGreaterThan(0)
+    })
+
+    noOwner.unmount()
+
+    render(<WithCustomFields asset={unknownOwnerAsset} />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Unknown owner").length).toBeGreaterThan(0)
     })
   })
 
@@ -180,15 +209,15 @@ describe("AssetDetailContent stories", () => {
     render(<WithCustomFields />)
 
     await waitFor(() => {
-      expect(screen.getAllByText("Owner").length).toBeGreaterThan(0)
-      expect(screen.getByRole("button", { name: "Remove Owner" })).toBeTruthy()
+      expect(screen.getAllByText("Team").length).toBeGreaterThan(0)
+      expect(screen.getByRole("button", { name: "Remove Team" })).toBeTruthy()
     })
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove Owner" }))
+    fireEvent.click(screen.getByRole("button", { name: "Remove Team" }))
 
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Remove Owner" })).toBeNull()
-      expect(screen.queryByText("Owner")).toBeNull()
+      expect(screen.queryByRole("button", { name: "Remove Team" })).toBeNull()
+      expect(screen.queryByText("Team")).toBeNull()
     })
   })
 

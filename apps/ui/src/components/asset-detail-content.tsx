@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { AlertCircle, Plus, RotateCcw, Server, X } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
@@ -20,6 +20,7 @@ import {
   detachAssetCustomField,
   updateAssetCustomFieldValues
 } from "@/api/asset.ts"
+import { createListUsersQueryOptions } from "@/api/user.ts"
 import {
   Card,
   CardContent,
@@ -40,6 +41,11 @@ import { Button } from "@/components/ui/button.tsx"
 import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts"
 import { cn } from "@/lib/utils.ts"
 import { toastActionError } from "@/lib/action-error-toast.ts"
+import {
+  createUserDisplayNameById,
+  formatAssetOwner,
+  isAssetOwnerFallbackLabel
+} from "@/lib/asset-owner.ts"
 import {
   Popover,
   PopoverContent,
@@ -83,6 +89,7 @@ export function AssetDetailContent({
 }: AssetDetailContentProps) {
   const queryClient = useQueryClient()
   const asset = useQuery(createAssetByIDQueryOptions(assetId))
+  const users = useQuery(createListUsersQueryOptions())
   const customFieldValuesQueryOptions =
     createAssetCustomFieldValuesQueryOptions(assetId)
   const availableCustomFieldDefinitionsQueryOptions =
@@ -91,6 +98,29 @@ export function AssetDetailContent({
   const availableCustomFields = useQuery(
     availableCustomFieldDefinitionsQueryOptions
   )
+  const userDisplayNameById = useMemo(
+    () => createUserDisplayNameById(users.data),
+    [users.data]
+  )
+
+  function AssetOwnerText({ className }: { className?: string }) {
+    const value = formatAssetOwner(
+      asset.data!.ownerId,
+      userDisplayNameById,
+      users.isPending
+    )
+
+    return (
+      <span
+        className={cn(
+          isAssetOwnerFallbackLabel(value) && "text-muted-foreground",
+          className
+        )}
+      >
+        {value}
+      </span>
+    )
+  }
 
   async function handleSaveCustomFieldValue(
     field: AssetCustomFieldValue,
@@ -208,6 +238,11 @@ export function AssetDetailContent({
                 value={capitalizeFirstLetter(asset.data!.type)}
                 description="Inventory classification for this asset"
               />
+              <DetailHighlightCard
+                label="Asset owner"
+                value={<AssetOwnerText />}
+                description="User profile responsible for findings on this asset"
+              />
             </div>
           </div>
         </CardHeader>
@@ -224,6 +259,7 @@ export function AssetDetailContent({
             label="Type"
             value={capitalizeFirstLetter(asset.data!.type)}
           />
+          <MetadataDetailRow label="Owner" value={<AssetOwnerText />} />
         </div>
         <Separator />
         <AssetCustomFieldsSidebarSection

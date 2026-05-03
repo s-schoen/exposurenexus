@@ -27,7 +27,12 @@ import {
   deleteAsset
 } from "@/api/asset.ts"
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/api/asset-custom-field.ts"
+import { createListUsersQueryOptions } from "@/api/user.ts"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
+import {
+  createUserDisplayNameById,
+  formatAssetOwner
+} from "@/lib/asset-owner.ts"
 import { capitalizeFirstLetter } from "@/lib/format.ts"
 import { toastActionError } from "@/lib/action-error-toast.ts"
 
@@ -55,9 +60,9 @@ function getSearchParamString(value: unknown): string | undefined {
   }
 
   if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === "string").join(
-      ","
-    )
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .join(",")
   }
 
   return undefined
@@ -69,7 +74,9 @@ function getFilterValue(
 ) {
   const value = filters?.[columnId]
 
-  return typeof value === "string" && value.trim().length > 0 ? value : undefined
+  return typeof value === "string" && value.trim().length > 0
+    ? value
+    : undefined
 }
 
 export function isAssetTableReservedSearchParam(key: string) {
@@ -156,7 +163,9 @@ export function createClearedAssetCustomFieldSearchParams(
     customFields: undefined,
     ...Object.fromEntries(
       customFieldDefinitions
-        .filter((definition) => !isAssetTableReservedSearchParam(definition.key))
+        .filter(
+          (definition) => !isAssetTableReservedSearchParam(definition.key)
+        )
         .map((definition) => [definition.key, undefined])
     )
   }
@@ -227,13 +236,22 @@ function mergeAssetCustomFieldFilterSearchStates(
 }
 
 export function createAssetTableGroupingOptions(
-  customFieldDefinitions: Array<AssetCustomFieldDefinition>
+  customFieldDefinitions: Array<AssetCustomFieldDefinition>,
+  userDisplayNameById: Map<string, string> = new Map()
 ): Array<GroupingOption> {
   return [
     {
       id: "type",
       label: "Type",
       formatValue: (value) => capitalizeFirstLetter(String(value))
+    },
+    {
+      id: "ownerId",
+      label: "Owner",
+      formatValue: (value) =>
+        typeof value === "string"
+          ? value
+          : formatAssetOwner(null, userDisplayNameById)
     },
     ...customFieldDefinitions.map((definition) => ({
       id: getAssetCustomFieldColumnId(definition.id),
@@ -257,21 +275,35 @@ export function AssetTable({
   const location = useLocation()
   const queryClient = useQueryClient()
   const assetsQuery = useQuery(createListAssetsWithCustomFieldsQueryOptions())
+  const usersQuery = useQuery(createListUsersQueryOptions())
   const customFieldDefinitionsQuery = useQuery(
     createListAssetCustomFieldDefinitionsQueryOptions()
   )
   const customFieldDefinitions = customFieldDefinitionsQuery.data ?? []
+  const userDisplayNameById = useMemo(
+    () => createUserDisplayNameById(usersQuery.data),
+    [usersQuery.data]
+  )
   const [reservedCustomFieldFilters, setReservedCustomFieldFilters] =
     useState<AssetCustomFieldFilterSearchState>(
       emptyCustomFieldFilterSearchState
     )
   const tableColumns = useMemo(
-    () => createAssetTableColumns(customFieldDefinitions),
-    [customFieldDefinitions]
+    () =>
+      createAssetTableColumns(
+        customFieldDefinitions,
+        userDisplayNameById,
+        usersQuery.isPending
+      ),
+    [customFieldDefinitions, userDisplayNameById, usersQuery.isPending]
   )
   const groupingOptions = useMemo(
-    () => createAssetTableGroupingOptions(customFieldDefinitions),
-    [customFieldDefinitions]
+    () =>
+      createAssetTableGroupingOptions(
+        customFieldDefinitions,
+        userDisplayNameById
+      ),
+    [customFieldDefinitions, userDisplayNameById]
   )
   const initialColumnVisibility = useMemo(
     () =>
@@ -297,7 +329,9 @@ export function AssetTable({
   const filterState = useMemo<DataTableFilterState>(
     () => ({
       globalFilter:
-        typeof location.search.filter === "string" ? location.search.filter : "",
+        typeof location.search.filter === "string"
+          ? location.search.filter
+          : "",
       selectFilters: customFieldFilters.select,
       textFilters: customFieldFilters.text,
       numberFilters: customFieldFilters.number

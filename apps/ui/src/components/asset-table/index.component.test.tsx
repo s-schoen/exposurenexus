@@ -17,9 +17,19 @@ const mocks = vi.hoisted(() => {
     id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
     name: "api-01",
     type: "host" as AssetType,
-    ownerId: null,
+    ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
     customFields: []
   }
+  const users = [
+    {
+      id: asset.ownerId!,
+      username: "robin",
+      displayName: "Robin Owner",
+      email: "robin@example.com",
+      enabled: false,
+      roleIds: []
+    }
+  ]
 
   return {
     asset,
@@ -32,7 +42,8 @@ const mocks = vi.hoisted(() => {
     locationSearch: {} as Record<string, unknown>,
     navigate: vi.fn(),
     toastActionError: vi.fn(),
-    toastSuccess: vi.fn()
+    toastSuccess: vi.fn(),
+    users
   }
 })
 
@@ -44,10 +55,19 @@ vi.mock("@tanstack/react-router", () => ({
 }))
 
 vi.mock("@tanstack/react-query", () => ({
+  keepPreviousData: Symbol("keepPreviousData"),
   useQuery: (options: { queryKey: Array<string> }) => {
     if (options.queryKey.join("/") === "asset-custom-fields") {
       return {
         data: ASSET_CUSTOM_FIELD_FIXTURES,
+        isPending: false,
+        isSuccess: true
+      }
+    }
+
+    if (options.queryKey.join("/") === "users") {
+      return {
+        data: mocks.users,
         isPending: false,
         isSuccess: true
       }
@@ -234,6 +254,13 @@ describe("AssetTable workflow wiring", () => {
       [getAssetCustomFieldColumnId("7f732d2b-8985-4551-b45d-0eaf527a1577")]:
         false
     })
+    const ownerColumn = (
+      mocks.dataTableProps?.columns as Array<{
+        id?: string
+        accessorFn?: (asset: AssetWithCustomFields, index: number) => unknown
+      }>
+    ).find((column) => column.id === "ownerId")
+    expect(ownerColumn?.accessorFn?.(mocks.asset, 0)).toBe("Robin Owner")
 
     fireEvent.click(screen.getByRole("button", { name: /select row/i }))
     expect(onSelectAsset).toHaveBeenCalledWith(mocks.asset)
@@ -354,12 +381,14 @@ describe("AssetTable workflow wiring", () => {
     mocks.assetDialogCall.mockResolvedValueOnce({
       id: "",
       name: "worker-01",
-      type: AssetType.Container
+      type: AssetType.Container,
+      ownerId: null
     })
     mocks.createAsset.mockResolvedValueOnce({
       id: "08488dd1-4f23-445b-81e5-74e76361caa0",
       name: "worker-01",
-      type: AssetType.Container
+      type: AssetType.Container,
+      ownerId: null
     })
 
     render(<AssetTable />)
@@ -388,7 +417,8 @@ describe("AssetTable workflow wiring", () => {
     mocks.assetDialogCall.mockResolvedValueOnce({
       id: "",
       name: "worker-01",
-      type: AssetType.Container
+      type: AssetType.Container,
+      ownerId: null
     })
     mocks.createAsset.mockRejectedValueOnce(error)
 
