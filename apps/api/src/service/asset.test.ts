@@ -30,7 +30,18 @@ describe("asset service", () => {
     assignCustomFields: vi.fn(),
     detachCustomField: vi.fn()
   }
+  const userProfileService = {
+    getByID: vi.fn()
+  }
   const logger = pino({ enabled: false })
+
+  function createTestAssetService() {
+    return createAssetService({
+      assetRepository,
+      userProfileService,
+      logger
+    })
+  }
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -44,7 +55,7 @@ describe("asset service", () => {
         type: AssetType.Host
       }
     ]
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.list.mockResolvedValue(assets)
 
@@ -53,7 +64,7 @@ describe("asset service", () => {
   })
 
   it("maps repository list failures to an HTTP 500", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.list.mockRejectedValue(new Error("db offline"))
 
@@ -81,7 +92,7 @@ describe("asset service", () => {
         ]
       }
     ]
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.listWithCustomFields.mockResolvedValue(assets)
 
@@ -92,7 +103,7 @@ describe("asset service", () => {
   })
 
   it("maps repository list with custom fields failures to an HTTP 500", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.listWithCustomFields.mockRejectedValue(
       new Error("db offline")
@@ -110,7 +121,7 @@ describe("asset service", () => {
       name: "api.openvlp.local",
       type: AssetType.Host
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
 
@@ -120,7 +131,7 @@ describe("asset service", () => {
 
   it("returns null when an asset does not exist", async () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(null)
 
@@ -128,7 +139,7 @@ describe("asset service", () => {
   })
 
   it("maps repository get by id failures to an HTTP 500", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockRejectedValue(new Error("select failed"))
 
@@ -146,7 +157,7 @@ describe("asset service", () => {
       name: "api.openvlp.local",
       type: AssetType.Host
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByName.mockResolvedValue(asset)
 
@@ -160,7 +171,7 @@ describe("asset service", () => {
   })
 
   it("returns null when an asset name lookup does not match", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByName.mockResolvedValue(null)
 
@@ -170,7 +181,7 @@ describe("asset service", () => {
   })
 
   it("maps repository get by name failures to an HTTP 500", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByName.mockRejectedValue(new Error("select failed"))
 
@@ -189,13 +200,15 @@ describe("asset service", () => {
     }
     const createdAsset = {
       id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+      ownerId: null,
       ...payload
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.create.mockResolvedValue(createdAsset)
 
     await expect(assetService.create(payload)).resolves.toEqual(createdAsset)
+    expect(userProfileService.getByID).not.toHaveBeenCalled()
     expect(assetRepository.create).toHaveBeenCalledWith({
       id: "",
       ownerId: null,
@@ -203,8 +216,89 @@ describe("asset service", () => {
     })
   })
 
+  it("creates assets with an existing enabled owner", async () => {
+    const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
+    const payload = {
+      name: "worker.openvlp.local",
+      type: AssetType.Host,
+      ownerId
+    }
+    const createdAsset = {
+      id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+      ...payload
+    }
+    const assetService = createTestAssetService()
+
+    userProfileService.getByID.mockResolvedValue({
+      id: ownerId,
+      username: "owner",
+      displayName: "Asset Owner",
+      email: "owner@example.com",
+      enabled: true,
+      roleIds: []
+    })
+    assetRepository.create.mockResolvedValue(createdAsset)
+
+    await expect(assetService.create(payload)).resolves.toEqual(createdAsset)
+    expect(userProfileService.getByID).toHaveBeenCalledWith(ownerId)
+    expect(assetRepository.create).toHaveBeenCalledWith({
+      id: "",
+      ...payload
+    })
+  })
+
+  it("creates assets with an existing disabled owner", async () => {
+    const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
+    const payload = {
+      name: "worker.openvlp.local",
+      type: AssetType.Host,
+      ownerId
+    }
+    const createdAsset = {
+      id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+      ...payload
+    }
+    const assetService = createTestAssetService()
+
+    userProfileService.getByID.mockResolvedValue({
+      id: ownerId,
+      username: "owner",
+      displayName: "Asset Owner",
+      email: "owner@example.com",
+      enabled: false,
+      roleIds: []
+    })
+    assetRepository.create.mockResolvedValue(createdAsset)
+
+    await expect(assetService.create(payload)).resolves.toEqual(createdAsset)
+    expect(userProfileService.getByID).toHaveBeenCalledWith(ownerId)
+    expect(assetRepository.create).toHaveBeenCalledWith({
+      id: "",
+      ...payload
+    })
+  })
+
+  it("rejects unknown asset owners before creating assets", async () => {
+    const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
+    const assetService = createTestAssetService()
+
+    userProfileService.getByID.mockResolvedValue(null)
+
+    await expect(
+      assetService.create({
+        name: "worker.openvlp.local",
+        type: AssetType.Host,
+        ownerId
+      })
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "asset owner does not exist"
+    } satisfies Partial<HTTPException>)
+    expect(assetRepository.create).not.toHaveBeenCalled()
+  })
+
   it("maps repository create failures to an HTTP 500", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.create.mockRejectedValue(new Error("insert failed"))
 
@@ -225,7 +319,7 @@ describe("asset service", () => {
       name: "api.openvlp.local",
       type: AssetType.Host
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.deleteByID.mockResolvedValue(asset)
 
@@ -235,7 +329,7 @@ describe("asset service", () => {
 
   it("returns null when deleting a missing asset", async () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.deleteByID.mockResolvedValue(null)
 
@@ -243,7 +337,7 @@ describe("asset service", () => {
   })
 
   it("maps repository delete failures to an HTTP 500", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.deleteByID.mockRejectedValue(new Error("delete failed"))
 
@@ -266,7 +360,7 @@ describe("asset service", () => {
         defaultValue: null
       }
     ]
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.listCustomFieldDefinitions.mockResolvedValue(definitions)
 
@@ -277,7 +371,7 @@ describe("asset service", () => {
   })
 
   it("maps custom field definition list failures to an HTTP 500", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.listCustomFieldDefinitions.mockRejectedValue(
       new Error("select failed")
@@ -300,7 +394,7 @@ describe("asset service", () => {
       type: AssetCustomFieldType.Text,
       defaultValue: null
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(definition)
 
@@ -313,7 +407,7 @@ describe("asset service", () => {
   })
 
   it("returns null when a custom field definition does not exist", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(null)
 
@@ -325,7 +419,7 @@ describe("asset service", () => {
   })
 
   it("maps custom field definition get failures to an HTTP 500", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getCustomFieldDefinitionByID.mockRejectedValue(
       new Error("select failed")
@@ -362,7 +456,7 @@ describe("asset service", () => {
         ...option
       }))
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.createCustomFieldDefinition.mockResolvedValue(created)
 
@@ -375,7 +469,7 @@ describe("asset service", () => {
   })
 
   it("rejects required custom fields without defaults", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     await expect(
       assetService.createCustomFieldDefinition({
@@ -397,7 +491,7 @@ describe("asset service", () => {
   })
 
   it("rejects invalid custom field default types", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     await expect(
       assetService.createCustomFieldDefinition({
@@ -414,7 +508,7 @@ describe("asset service", () => {
   })
 
   it("rejects text custom field defaults that are not strings", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     await expect(
       assetService.createCustomFieldDefinition({
@@ -431,7 +525,7 @@ describe("asset service", () => {
   })
 
   it("rejects select custom field defaults that are not strings", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     await expect(
       assetService.createCustomFieldDefinition({
@@ -449,7 +543,7 @@ describe("asset service", () => {
   })
 
   it("rejects select defaults that do not match an option", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     await expect(
       assetService.createCustomFieldDefinition({
@@ -467,7 +561,7 @@ describe("asset service", () => {
   })
 
   it("rejects duplicate select option values", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     await expect(
       assetService.createCustomFieldDefinition({
@@ -488,7 +582,7 @@ describe("asset service", () => {
   })
 
   it("maps custom field definition create conflicts to an HTTP 409", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.createCustomFieldDefinition.mockRejectedValue(
       Object.assign(
@@ -514,7 +608,7 @@ describe("asset service", () => {
   })
 
   it("maps custom field definition create failures to an HTTP 500", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.createCustomFieldDefinition.mockRejectedValue(
       new Error("insert failed")
@@ -546,7 +640,7 @@ describe("asset service", () => {
       id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
       ...payload
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.updateCustomFieldDefinitionByID.mockResolvedValue(updated)
 
@@ -559,7 +653,7 @@ describe("asset service", () => {
   })
 
   it("returns null when updating a missing custom field definition", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.updateCustomFieldDefinitionByID.mockResolvedValue(null)
 
@@ -578,7 +672,7 @@ describe("asset service", () => {
   })
 
   it("maps custom field definition update conflicts to an HTTP 409", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.updateCustomFieldDefinitionByID.mockRejectedValue(
       Object.assign(
@@ -607,7 +701,7 @@ describe("asset service", () => {
   })
 
   it("maps custom field definition update failures to an HTTP 500", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.updateCustomFieldDefinitionByID.mockRejectedValue(
       new Error("update failed")
@@ -639,7 +733,7 @@ describe("asset service", () => {
       type: AssetCustomFieldType.Text,
       defaultValue: null
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.deleteCustomFieldDefinitionByID.mockResolvedValue(
       definition
@@ -651,7 +745,7 @@ describe("asset service", () => {
   })
 
   it("returns null when deleting a missing custom field definition", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.deleteCustomFieldDefinitionByID.mockResolvedValue(null)
 
@@ -663,7 +757,7 @@ describe("asset service", () => {
   })
 
   it("maps custom field definition delete failures to an HTTP 500", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.deleteCustomFieldDefinitionByID.mockRejectedValue(
       new Error("delete failed")
@@ -680,7 +774,7 @@ describe("asset service", () => {
   })
 
   it("returns null when listing custom field values for a missing asset", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(null)
 
@@ -706,7 +800,7 @@ describe("asset service", () => {
         value: "platform"
       }
     ]
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldValues.mockResolvedValue(values)
@@ -723,7 +817,7 @@ describe("asset service", () => {
       name: "api.openvlp.local",
       type: AssetType.Host
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldValues.mockRejectedValue(
@@ -754,7 +848,7 @@ describe("asset service", () => {
         defaultValue: null
       }
     ]
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listAvailableCustomFieldDefinitions.mockResolvedValue(
@@ -770,7 +864,7 @@ describe("asset service", () => {
   })
 
   it("returns null when listing available custom fields for a missing asset", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(null)
 
@@ -790,7 +884,7 @@ describe("asset service", () => {
       name: "api.openvlp.local",
       type: AssetType.Host
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listAvailableCustomFieldDefinitions.mockRejectedValue(
@@ -806,7 +900,7 @@ describe("asset service", () => {
   })
 
   it("returns null when upserting custom field values for a missing asset", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(null)
 
@@ -830,7 +924,7 @@ describe("asset service", () => {
       name: "api.openvlp.local",
       type: AssetType.Host
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([])
@@ -864,7 +958,7 @@ describe("asset service", () => {
       type: AssetCustomFieldType.Number,
       defaultValue: null
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
@@ -906,7 +1000,7 @@ describe("asset service", () => {
       type: AssetCustomFieldType.Number,
       defaultValue: null
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
@@ -948,7 +1042,7 @@ describe("asset service", () => {
         }
       ]
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
@@ -1001,7 +1095,7 @@ describe("asset service", () => {
         value: 5
       }
     ]
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
@@ -1055,7 +1149,7 @@ describe("asset service", () => {
         value: "platform"
       }
     ]
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
@@ -1095,7 +1189,7 @@ describe("asset service", () => {
       type: AssetCustomFieldType.Text,
       defaultValue: null
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
@@ -1127,7 +1221,7 @@ describe("asset service", () => {
   })
 
   it("returns null when clearing a custom field value for a missing asset", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(null)
 
@@ -1146,7 +1240,7 @@ describe("asset service", () => {
       name: "api.openvlp.local",
       type: AssetType.Host
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(null)
@@ -1177,7 +1271,7 @@ describe("asset service", () => {
       type: AssetCustomFieldType.Text,
       defaultValue: null
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(definition)
@@ -1206,7 +1300,7 @@ describe("asset service", () => {
       type: AssetCustomFieldType.Text,
       defaultValue: null
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(definition)
@@ -1245,7 +1339,7 @@ describe("asset service", () => {
       type: AssetCustomFieldType.Text,
       defaultValue: null
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(definition)
@@ -1295,7 +1389,7 @@ describe("asset service", () => {
         value: null
       }
     ]
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
@@ -1310,7 +1404,7 @@ describe("asset service", () => {
   })
 
   it("returns null when assigning custom fields to a missing asset", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(null)
 
@@ -1329,7 +1423,7 @@ describe("asset service", () => {
       name: "api.openvlp.local",
       type: AssetType.Host
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([])
@@ -1360,7 +1454,7 @@ describe("asset service", () => {
       type: AssetCustomFieldType.Text,
       defaultValue: null
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
@@ -1390,7 +1484,7 @@ describe("asset service", () => {
       type: AssetCustomFieldType.Text,
       defaultValue: null
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(definition)
@@ -1406,7 +1500,7 @@ describe("asset service", () => {
   })
 
   it("returns null when detaching custom fields from a missing asset", async () => {
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(null)
 
@@ -1426,7 +1520,7 @@ describe("asset service", () => {
       name: "api.openvlp.local",
       type: AssetType.Host
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(null)
@@ -1458,7 +1552,7 @@ describe("asset service", () => {
       type: AssetCustomFieldType.Text,
       defaultValue: null
     }
-    const assetService = createAssetService({ assetRepository, logger })
+    const assetService = createTestAssetService()
 
     assetRepository.getByID.mockResolvedValue(asset)
     assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(definition)

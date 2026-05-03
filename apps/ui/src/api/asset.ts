@@ -204,7 +204,8 @@ export async function detachAssetCustomField(
 
 export async function createAsset(
   name: string,
-  type: AssetType
+  type: AssetType,
+  ownerId: string | null = null
 ): Promise<Asset> {
   const response = await apiRequest("/api/assets", {
     method: "POST",
@@ -213,7 +214,8 @@ export async function createAsset(
     },
     body: JSON.stringify({
       name,
-      type
+      type,
+      ownerId
     })
   })
 

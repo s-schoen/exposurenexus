@@ -388,7 +388,11 @@ export function AssetTable({
 
     if (assetToCreate) {
       try {
-        await createAsset(assetToCreate.name, assetToCreate.type)
+        await createAsset(
+          assetToCreate.name,
+          assetToCreate.type,
+          assetToCreate.ownerId
+        )
         toast.success(`Created new asset ${assetToCreate.name}`)
         queryClient.invalidateQueries({
           queryKey: createListAssetsQueryOptions().queryKey

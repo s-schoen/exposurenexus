@@ -84,10 +84,6 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const requireDomainPermission = createRequireDomainPermission(
     authService.userHasPermission
   )
-  const assetService = createAssetService({
-    assetRepository: repositories.assetRepository,
-    logger: loggerFactory("service/asset")
-  })
   const roleService = createRoleService({
     roleRepository: repositories.roleRepository,
     logger: loggerFactory("service/role")
@@ -95,6 +91,11 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const userProfileService = createUserProfileService({
     userProfileRepository: repositories.userProfileRepository,
     logger: loggerFactory("service/user-profile")
+  })
+  const assetService = createAssetService({
+    assetRepository: repositories.assetRepository,
+    userProfileService,
+    logger: loggerFactory("service/asset")
   })
   const vulnerabilityService = createVulnerabilityService({
     vulnerabilityRepository: repositories.vulnerabilityRepository,

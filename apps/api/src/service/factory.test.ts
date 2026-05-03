@@ -82,7 +82,13 @@ describe("service factories", () => {
       assignCustomFields: vi.fn(),
       detachCustomField: vi.fn()
     }
-    const service = createAssetService({ assetRepository: repository, logger })
+    const service = createAssetService({
+      assetRepository: repository,
+      userProfileService: {
+        getByID: vi.fn()
+      },
+      logger
+    })
 
     await service.listAll()
 

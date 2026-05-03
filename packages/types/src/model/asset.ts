@@ -25,10 +25,13 @@ export const assetSchema = z.strictObject({
   ownerId: z.uuidv4().nullable()
 })
 
-export const createAssetSchema = assetSchema.omit({
-  id: true,
-  ownerId: true
-})
+export const createAssetSchema = assetSchema
+  .omit({
+    id: true
+  })
+  .extend({
+    ownerId: assetSchema.shape.ownerId.optional()
+  })
 
 export const assetCustomFieldKeySchema = z
   .string()

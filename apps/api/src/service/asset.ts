@@ -15,6 +15,7 @@ import {
 } from "@openvlp/types/model/asset"
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
+import type { UserProfile } from "@openvlp/types/model/user"
 import { badRequest, conflict, isConflictError } from "./errors.js"
 
 function isValidValueForDefinition(
@@ -103,13 +104,19 @@ interface AssetRepository {
   detachCustomField(assetId: string, fieldId: string): Promise<void>
 }
 
+interface UserProfileLookupService {
+  getByID(id: string): Promise<UserProfile | null>
+}
+
 interface AssetServiceDependencies {
   assetRepository: AssetRepository
+  userProfileService: UserProfileLookupService
   logger: Logger
 }
 
 export function createAssetService({
   assetRepository,
+  userProfileService,
   logger
 }: AssetServiceDependencies) {
   return {
@@ -170,6 +177,14 @@ export function createAssetService({
 
     async create(asset: CreateAsset): Promise<Asset> {
       try {
+        if (asset.ownerId) {
+          const owner = await userProfileService.getByID(asset.ownerId)
+
+          if (!owner) {
+            throw badRequest("asset owner does not exist")
+          }
+        }
+
         const created = await assetRepository.create({
           id: "",
           ownerId: null,
@@ -179,6 +194,10 @@ export function createAssetService({
         logger.info(`created asset ${created.id}: ${created.name}`)
         return created
       } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error
+        }
+
         logger.error(error, `failed to create new asset ${asset.name}`)
         throw new HTTPException(500, {
           message: "failed to create asset"
