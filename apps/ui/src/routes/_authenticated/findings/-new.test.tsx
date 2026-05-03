@@ -1,0 +1,151 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor
+} from "@testing-library/react"
+import { FindingStatus } from "@openvlp/types/model/finding"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+
+const mocks = vi.hoisted(() => ({
+  createFinding: vi.fn(),
+  historyBack: vi.fn(),
+  usePageMeta: vi.fn()
+}))
+
+vi.mock("@tanstack/react-router", async (importOriginal) => {
+  const actual = await importOriginal()
+
+  return Object.assign({}, actual, {
+    createFileRoute: () => (options: Record<string, unknown>) => ({
+      options
+    }),
+    useRouter: () => ({
+      history: {
+        back: mocks.historyBack
+      }
+    })
+  })
+})
+
+vi.mock("@/components/asset-combobox.tsx", () => ({
+  AssetCombobox: ({
+    onChange
+  }: {
+    onChange?: (asset: { id: string }) => void
+  }) => (
+    <button
+      type="button"
+      onClick={() =>
+        onChange?.({
+          id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c"
+        })
+      }
+    >
+      Select asset
+    </button>
+  )
+}))
+
+vi.mock("@/context/page.tsx", () => ({
+  usePageMeta: mocks.usePageMeta
+}))
+
+vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
+  useFindingLifecycle: () => ({
+    createFinding: mocks.createFinding
+  })
+}))
+
+async function renderCreateFindingRoute() {
+  const { RouteComponent } =
+    await import("@/routes/_authenticated/findings/new.tsx")
+
+  return render(<RouteComponent />)
+}
+
+describe("create finding route", () => {
+  beforeEach(() => {
+    mocks.createFinding.mockReset()
+    mocks.historyBack.mockReset()
+    mocks.usePageMeta.mockReset()
+  })
+
+  afterEach(() => {
+    cleanup()
+  })
+
+  it("does not submit invalid required fields", async () => {
+    await renderCreateFindingRoute()
+
+    fireEvent.click(screen.getByRole("button", { name: /^create$/i }))
+
+    expect(mocks.createFinding).not.toHaveBeenCalled()
+  })
+
+  it("cancels back to the previous page", async () => {
+    await renderCreateFindingRoute()
+
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }))
+
+    expect(mocks.historyBack).toHaveBeenCalledTimes(1)
+  })
+
+  it("submits a valid finding and navigates back on success", async () => {
+    await renderCreateFindingRoute()
+    mocks.createFinding.mockResolvedValueOnce({
+      id: "2713d833-eb13-4517-ac7c-7761545ed42a"
+    })
+
+    fireEvent.change(screen.getByLabelText(/vulnerability id/i), {
+      target: {
+        value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
+      }
+    })
+    fireEvent.click(screen.getByRole("button", { name: /select asset/i }))
+    fireEvent.change(screen.getByLabelText(/source/i), {
+      target: {
+        value: "manual"
+      }
+    })
+    fireEvent.click(screen.getByRole("button", { name: /^create$/i }))
+
+    await waitFor(() => {
+      expect(mocks.createFinding).toHaveBeenCalledWith({
+        assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
+        evidence: null,
+        mitigation: null,
+        severity: VulnerabilitySeverity.Medium,
+        source: "manual",
+        status: FindingStatus.Active,
+        vulnerabilityId: "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
+      })
+    })
+    expect(mocks.historyBack).toHaveBeenCalledTimes(1)
+  })
+
+  it("stays on the form when create finding fails", async () => {
+    await renderCreateFindingRoute()
+    mocks.createFinding.mockResolvedValueOnce(null)
+
+    fireEvent.change(screen.getByLabelText(/vulnerability id/i), {
+      target: {
+        value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
+      }
+    })
+    fireEvent.click(screen.getByRole("button", { name: /select asset/i }))
+    fireEvent.change(screen.getByLabelText(/source/i), {
+      target: {
+        value: "manual"
+      }
+    })
+    fireEvent.click(screen.getByRole("button", { name: /^create$/i }))
+
+    await waitFor(() => {
+      expect(mocks.createFinding).toHaveBeenCalledTimes(1)
+    })
+    expect(mocks.historyBack).not.toHaveBeenCalled()
+  })
+})
