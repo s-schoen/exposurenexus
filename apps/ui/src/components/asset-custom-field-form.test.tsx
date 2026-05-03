@@ -7,7 +7,10 @@ import {
   waitFor
 } from "@testing-library/react"
 import { composeStories } from "@storybook/react-vite"
-import { AssetCustomFieldType } from "@openvlp/types/model/asset"
+import {
+  AssetCustomFieldRuleViolationReason,
+  AssetCustomFieldType
+} from "@openvlp/types/model/asset"
 import type { AssetCustomFieldFormValues } from "@/components/asset-custom-field-form"
 import * as stories from "@/components/asset-custom-field-form.stories"
 import {
@@ -17,6 +20,7 @@ import {
   mapAssetCustomFieldFormValues
 } from "@/components/asset-custom-field-form"
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
+import { validateAssetCustomFieldFormRuleValues } from "@/components/asset-custom-field-rule-validation.ts"
 
 const { CreateNumber, CreateSelect, CreateText, EditSelect } =
   composeStories(stories)
@@ -131,32 +135,51 @@ describe("AssetCustomFieldForm", () => {
   })
 
   it("validates required fields have a default value", () => {
-    expect(
-      assetCustomFieldFormSchema.safeParse({
-        name: "Priority",
-        key: "priority",
-        type: AssetCustomFieldType.Number,
-        required: true,
-        defaultValue: "",
-        options: [{ value: "", label: "" }]
-      }).success
-    ).toBe(false)
+    const values = {
+      name: "Priority",
+      key: "priority",
+      type: AssetCustomFieldType.Number,
+      required: true,
+      defaultValue: "",
+      options: [{ value: "", label: "" }]
+    }
+    const result = assetCustomFieldFormSchema.safeParse(values)
+
+    expect(result.success).toBe(false)
+    expect(validateAssetCustomFieldFormRuleValues(values)).toEqual([
+      {
+        reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
+        path: ["defaultValue"],
+        message: "Required fields need a default value"
+      }
+    ])
   })
 
   it("validates duplicate select option values", () => {
-    expect(
-      assetCustomFieldFormSchema.safeParse({
-        name: "Environment",
-        key: "environment",
-        type: AssetCustomFieldType.Select,
-        required: false,
-        defaultValue: "",
-        options: [
-          { value: "production", label: "Production" },
-          { value: "production", label: "Production duplicate" }
-        ]
-      }).success
-    ).toBe(false)
+    const result = assetCustomFieldFormSchema.safeParse({
+      name: "Environment",
+      key: "environment",
+      type: AssetCustomFieldType.Select,
+      required: false,
+      defaultValue: "",
+      options: [
+        { value: "production", label: "Production" },
+        { value: "production", label: "Production duplicate" }
+      ]
+    })
+
+    expect(result.success).toBe(false)
+    if (result.success) {
+      throw new Error("expected validation to fail")
+    }
+    expect(result.error.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: ["options"],
+          message: "Option values must be unique"
+        })
+      ])
+    )
   })
 
   it("maps text, number, and select form values to API payloads", () => {

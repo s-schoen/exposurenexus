@@ -8,6 +8,7 @@ import type {
   AssetCustomFieldOption,
   CreateAssetCustomFieldDefinition
 } from "@openvlp/types/model/asset"
+import { validateAssetCustomFieldRulePayload } from "@/components/asset-custom-field-rule-validation.ts"
 
 export interface CustomFieldUpdateResult {
   field?: AssetCustomFieldDefinition
@@ -134,37 +135,9 @@ export function validateAssetCustomFieldDefinition(
     return parseResult.error.issues[0]?.message ?? "Invalid custom field"
   }
 
-  if (field.required && field.defaultValue === null) {
-    return "Required fields need a default value"
-  }
-
-  if (field.type !== AssetCustomFieldType.Select) {
-    return null
-  }
-
-  const optionValues = field.options.map((option) => option.value.trim())
-  const optionLabels = field.options.map((option) => option.label.trim())
-
-  if (optionValues.some((value) => value === "")) {
-    return "Option values cannot be empty"
-  }
-
-  if (optionLabels.some((label) => label === "")) {
-    return "Option labels cannot be empty"
-  }
-
-  if (new Set(optionValues).size !== optionValues.length) {
-    return "Option values must be unique"
-  }
-
-  if (
-    field.defaultValue !== null &&
-    !optionValues.includes(field.defaultValue)
-  ) {
-    return "Default value must match an available option"
-  }
-
-  return null
+  return validateAssetCustomFieldRulePayload(parseResult.data, "detail")[0]
+    ?.message
+    ?? null
 }
 
 /**

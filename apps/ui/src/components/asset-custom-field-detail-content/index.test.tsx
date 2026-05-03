@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import { composeStories } from "@storybook/react-vite"
-import { AssetCustomFieldType } from "@openvlp/types/model/asset"
+import {
+  AssetCustomFieldRuleViolationReason,
+  AssetCustomFieldType
+} from "@openvlp/types/model/asset"
 import type { AssetCustomFieldDefinition } from "@openvlp/types/model/asset"
 import * as stories from "@/components/asset-custom-field-detail-content/index.stories"
 import {
@@ -13,6 +16,7 @@ import {
   validateAssetCustomFieldDefinition
 } from "@/components/asset-custom-field-detail-content"
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
+import { validateAssetCustomFieldRulePayload } from "@/components/asset-custom-field-rule-validation.ts"
 
 const { ErrorState, Loading, SelectField, TextField } = composeStories(stories)
 
@@ -126,6 +130,25 @@ describe("asset custom field detail helpers", () => {
 
     expect(validateAssetCustomFieldDefinition(result.field!)).toBeNull()
     expect(result.field?.defaultValue).toBe("option_3")
+  })
+
+  it("validates detail saves through shared rule reasons", () => {
+    const field = {
+      ...getSelectFixture(),
+      defaultValue: "development"
+    }
+    const payload = createAssetCustomFieldUpdatePayload(field)
+
+    expect(validateAssetCustomFieldDefinition(field)).toBe(
+      "Default value must match an available option"
+    )
+    expect(validateAssetCustomFieldRulePayload(payload, "detail")).toEqual([
+      {
+        reason: AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption,
+        path: ["defaultValue"],
+        message: "Default value must match an available option"
+      }
+    ])
   })
 })
 

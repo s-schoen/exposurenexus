@@ -142,7 +142,8 @@ describe("api common helpers", () => {
         {
           correlationId: "api-test-request",
           status: 403,
-          error: "Forbidden"
+          error: "Forbidden",
+          reason: "forbidden"
         },
         { status: 403 }
       )
@@ -151,7 +152,8 @@ describe("api common helpers", () => {
     expect(error).toBeInstanceOf(APIError)
     expect(error).toMatchObject({
       statusCode: 403,
-      message: "Forbidden"
+      message: "Forbidden",
+      reason: "forbidden"
     })
   })
 
