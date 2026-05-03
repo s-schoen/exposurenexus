@@ -41,6 +41,107 @@ import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { Checkbox } from "@/components/ui/checkbox.tsx"
 
 const defaultInitialColumnVisibility: VisibilityState = {}
+type FilterVariant = "number" | "select" | "text"
+
+function getColumnId<TData, TValue>(column: ColumnDef<TData, TValue>) {
+  if (column.id) {
+    return column.id
+  }
+
+  if (
+    "accessorKey" in column &&
+    typeof column.accessorKey === "string" &&
+    column.accessorKey.length > 0
+  ) {
+    return column.accessorKey
+  }
+
+  return undefined
+}
+
+function dataTableFilterStateToColumnFilters(
+  state: DataTableFilterState
+): ColumnFiltersState {
+  return [
+    ...Object.entries(state.selectFilters).flatMap(([id, value]) =>
+      Array.isArray(value) && value.length > 0
+        ? [
+            {
+              id,
+              value
+            }
+          ]
+        : []
+    ),
+    ...Object.entries(state.textFilters ?? {}).flatMap(([id, value]) =>
+      typeof value === "string" && value.trim().length > 0
+        ? [
+            {
+              id,
+              value
+            }
+          ]
+        : []
+    ),
+    ...Object.entries(state.numberFilters ?? {}).flatMap(([id, value]) =>
+      typeof value === "string" && value.trim().length > 0
+        ? [
+            {
+              id,
+              value
+            }
+          ]
+        : []
+    )
+  ]
+}
+
+function columnFiltersToDataTableFilterState(
+  currentState: DataTableFilterState,
+  columnFilters: ColumnFiltersState,
+  filterVariantByColumnId: Map<string, FilterVariant>
+): DataTableFilterState {
+  const selectFilters: Record<string, Array<string>> = {}
+  const textFilters: Record<string, string> = {}
+  const numberFilters: Record<string, string> = {}
+
+  for (const filter of columnFilters) {
+    const filterVariant = filterVariantByColumnId.get(filter.id)
+
+    if (
+      filterVariant === "select" &&
+      Array.isArray(filter.value) &&
+      filter.value.length > 0
+    ) {
+      selectFilters[filter.id] = filter.value.map(String)
+      continue
+    }
+
+    if (
+      filterVariant === "text" &&
+      typeof filter.value === "string" &&
+      filter.value.trim()
+    ) {
+      textFilters[filter.id] = filter.value
+      continue
+    }
+
+    if (
+      filterVariant === "number" &&
+      typeof filter.value === "string" &&
+      filter.value.trim()
+    ) {
+      numberFilters[filter.id] = filter.value
+    }
+  }
+
+  return {
+    ...currentState,
+    selectFilters,
+    textFilters,
+    numberFilters
+  }
+}
 
 interface DataTableProps<TData, TValue> {
   columns: Array<ColumnDef<TData, TValue>>
@@ -86,9 +187,25 @@ export function DataTable<TData, TValue>({
     useState<VisibilityState>(initialColumnVisibility)
   const [localFilterState, setLocalFilterState] = useState<DataTableFilterState>({
     globalFilter: "",
-    selectFilters: {}
+    selectFilters: {},
+    textFilters: {},
+    numberFilters: {}
   })
   const resolvedFilterState = filterState ?? localFilterState
+  const filterVariantByColumnId = useMemo(
+    () =>
+      columns.reduce<Map<string, FilterVariant>>((variants, column) => {
+        const columnId = getColumnId(column)
+        const filterVariant = column.meta?.filterVariant
+
+        if (columnId && filterVariant) {
+          variants.set(columnId, filterVariant)
+        }
+
+        return variants
+      }, new Map()),
+    [columns]
+  )
 
   useEffect(() => {
     setColumnVisibility((currentVisibility) => ({
@@ -98,19 +215,12 @@ export function DataTable<TData, TValue>({
   }, [initialColumnVisibility])
 
   const columnFilters = useMemo<ColumnFiltersState>(
-    () =>
-      Object.entries(resolvedFilterState.selectFilters).flatMap(
-        ([id, value]) =>
-          Array.isArray(value) && value.length > 0
-            ? [
-                {
-                  id,
-                  value
-                }
-              ]
-            : []
-      ),
-    [resolvedFilterState.selectFilters]
+    () => dataTableFilterStateToColumnFilters(resolvedFilterState),
+    [
+      resolvedFilterState.numberFilters,
+      resolvedFilterState.selectFilters,
+      resolvedFilterState.textFilters
+    ]
   )
 
   const updateFilterState = (
@@ -180,32 +290,16 @@ export function DataTable<TData, TValue>({
     },
     onColumnFiltersChange: (updater) => {
       updateFilterState((currentState) => {
-        const currentFilters = Object.entries(currentState.selectFilters).flatMap(
-          ([id, value]) =>
-            Array.isArray(value) && value.length > 0
-              ? [
-                  {
-                    id,
-                    value
-                  }
-                ]
-              : []
-        )
+        // TanStack owns column filters as one array; our table state keeps them
+        // split by control type so callers can sync each category independently.
+        const currentFilters = dataTableFilterStateToColumnFilters(currentState)
         const nextFilters = functionalUpdate(updater, currentFilters)
 
-        return {
-          ...currentState,
-          selectFilters: nextFilters.reduce<Record<string, Array<string>>>(
-            (filters, filter) => {
-              if (Array.isArray(filter.value) && filter.value.length > 0) {
-                filters[filter.id] = filter.value.map(String)
-              }
-
-              return filters
-            },
-            {}
-          )
-        }
+        return columnFiltersToDataTableFilterState(
+          currentState,
+          nextFilters,
+          filterVariantByColumnId
+        )
       })
     },
     getCoreRowModel: getCoreRowModel(),
@@ -278,7 +372,9 @@ export function DataTable<TData, TValue>({
   const handleClearAllFilters = () => {
     updateFilterState(() => ({
       globalFilter: "",
-      selectFilters: {}
+      selectFilters: {},
+      textFilters: {},
+      numberFilters: {}
     }))
   }
 

@@ -1,6 +1,6 @@
 import type { RowData } from "@tanstack/react-table"
 
-type FilterVariant = "select"
+type FilterVariant = "number" | "select" | "text"
 
 export interface SelectOption {
   label: string
@@ -16,6 +16,8 @@ export interface GroupingOption {
 export interface DataTableFilterState {
   globalFilter: string
   selectFilters: Partial<Record<string, Array<string>>>
+  textFilters?: Partial<Record<string, string>>
+  numberFilters?: Partial<Record<string, string>>
 }
 
 export const NO_GROUPING_VALUE = "none"

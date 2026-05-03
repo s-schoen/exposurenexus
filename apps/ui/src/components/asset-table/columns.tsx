@@ -43,6 +43,16 @@ function createCustomFieldColumn(
   definition: AssetCustomFieldDefinition
 ): ColumnDef<AssetWithCustomFields> {
   const columnId = getAssetCustomFieldColumnId(definition.id)
+  const filterVariant = (() => {
+    switch (definition.type) {
+      case AssetCustomFieldType.Number:
+        return "number" as const
+      case AssetCustomFieldType.Select:
+        return "select" as const
+      case AssetCustomFieldType.Text:
+        return "text" as const
+    }
+  })()
 
   return {
     id: columnId,
@@ -62,26 +72,53 @@ function createCustomFieldColumn(
         </span>
       )
     },
-    filterFn: (row, _columnId, filterValue: Array<string>) => {
-      if (filterValue.length === 0) {
-        return true
-      }
-
+    filterFn: (row, _columnId, filterValue: Array<string> | string) => {
       const value = row.original.customFields.find(
         (field) => field.fieldId === definition.id
       )
-      const resolvedValue =
-        value?.value === null || typeof value === "undefined"
-          ? emptyCustomFieldFilterValue
-          : String(value.value)
 
-      return filterValue.includes(resolvedValue)
+      switch (definition.type) {
+        case AssetCustomFieldType.Number: {
+          if (typeof filterValue !== "string" || !filterValue.trim()) {
+            return true
+          }
+
+          const parsedFilterValue = Number(filterValue)
+
+          return (
+            Number.isFinite(parsedFilterValue) &&
+            typeof value?.value === "number" &&
+            value.value === parsedFilterValue
+          )
+        }
+        case AssetCustomFieldType.Select: {
+          if (!Array.isArray(filterValue) || filterValue.length === 0) {
+            return true
+          }
+
+          const resolvedValue =
+            value?.value === null || typeof value === "undefined"
+              ? emptyCustomFieldFilterValue
+              : String(value.value)
+
+          return filterValue.includes(resolvedValue)
+        }
+        case AssetCustomFieldType.Text: {
+          if (typeof filterValue !== "string" || !filterValue.trim()) {
+            return true
+          }
+
+          return formatAssetCustomFieldValue(value)
+            .toLocaleLowerCase()
+            .includes(filterValue.toLocaleLowerCase())
+        }
+      }
     },
     meta: {
       label: definition.name,
+      filterVariant,
       ...(definition.type === AssetCustomFieldType.Select
         ? {
-            filterVariant: "select" as const,
             options: [
               { label: "None", value: emptyCustomFieldFilterValue },
               ...definition.options.map((option) => ({
