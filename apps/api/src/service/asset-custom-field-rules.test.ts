@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest"
 import {
-  AssetCustomFieldRuleViolationCode,
+  AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   type CreateAssetCustomFieldDefinition,
   validateAssetCustomFieldDefinitionRules
 } from "@openvlp/types/model/asset"
 
-function violationCodes(
+function violationReasons(
   definition: CreateAssetCustomFieldDefinition
-): AssetCustomFieldRuleViolationCode[] {
+): AssetCustomFieldRuleViolationReason[] {
   return validateAssetCustomFieldDefinitionRules(definition).map(
-    (violation) => violation.code
+    (violation) => violation.reason
   )
 }
 
@@ -58,7 +58,7 @@ describe("asset custom field definition rules", () => {
       })
     ).toEqual([
       {
-        code: AssetCustomFieldRuleViolationCode.RequiredDefaultMissing,
+        reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
         path: ["defaultValue"]
       }
     ])
@@ -66,25 +66,25 @@ describe("asset custom field definition rules", () => {
 
   it("reports typed default violations", () => {
     expect(
-      violationCodes({
+      violationReasons({
         key: "category",
         name: "Category",
         required: false,
         type: AssetCustomFieldType.Text,
         defaultValue: 5 as never
       })
-    ).toEqual([AssetCustomFieldRuleViolationCode.TextDefaultMustBeString])
+    ).toEqual([AssetCustomFieldRuleViolationReason.TextDefaultMustBeString])
     expect(
-      violationCodes({
+      violationReasons({
         key: "priority",
         name: "Priority",
         required: false,
         type: AssetCustomFieldType.Number,
         defaultValue: "high" as never
       })
-    ).toEqual([AssetCustomFieldRuleViolationCode.NumberDefaultMustBeNumber])
+    ).toEqual([AssetCustomFieldRuleViolationReason.NumberDefaultMustBeNumber])
     expect(
-      violationCodes({
+      violationReasons({
         key: "environment",
         name: "Environment",
         required: false,
@@ -92,12 +92,12 @@ describe("asset custom field definition rules", () => {
         defaultValue: 5 as never,
         options: [{ value: "prod", label: "Production" }]
       })
-    ).toEqual([AssetCustomFieldRuleViolationCode.SelectDefaultMustBeString])
+    ).toEqual([AssetCustomFieldRuleViolationReason.SelectDefaultMustBeString])
   })
 
   it("reports select option rule violations in API-compatible order", () => {
     expect(
-      violationCodes({
+      violationReasons({
         key: "environment",
         name: "Environment",
         required: false,
@@ -109,8 +109,8 @@ describe("asset custom field definition rules", () => {
         ]
       })
     ).toEqual([
-      AssetCustomFieldRuleViolationCode.SelectOptionValuesMustBeUnique,
-      AssetCustomFieldRuleViolationCode.SelectDefaultMustBeString
+      AssetCustomFieldRuleViolationReason.SelectOptionValuesMustBeUnique,
+      AssetCustomFieldRuleViolationReason.SelectDefaultMustBeString
     ])
   })
 
@@ -126,7 +126,8 @@ describe("asset custom field definition rules", () => {
       })
     ).toEqual([
       {
-        code: AssetCustomFieldRuleViolationCode.SelectDefaultMustMatchOption,
+        reason:
+          AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption,
         path: ["defaultValue"]
       }
     ])

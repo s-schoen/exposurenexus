@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
 import {
-  AssetCustomFieldRuleViolationCode,
+  AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
   AssetType
@@ -388,7 +388,7 @@ describe("asset service", () => {
       status: 400,
       message: "required custom fields must define a default value",
       cause: {
-        code: AssetCustomFieldRuleViolationCode.RequiredDefaultMissing,
+        reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
         path: ["defaultValue"]
       }
     } satisfies Partial<HTTPException>)

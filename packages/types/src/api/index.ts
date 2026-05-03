@@ -20,6 +20,7 @@ export interface APIArrayDataReply<T extends object> extends APIReply {
 export interface APIErrorReply extends APIReply {
   status: number
   error: string
+  reason?: string
 }
 
 export type AuthSessionReply = Omit<UserSession, "sessionId">
