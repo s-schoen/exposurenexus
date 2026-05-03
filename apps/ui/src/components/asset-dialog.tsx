@@ -1,5 +1,5 @@
 import { createCallable } from "react-call"
-import { AssetType, assetSchema } from "@openvlp/types/model/asset"
+import { AssetType, createAssetSchema } from "@openvlp/types/model/asset"
 import { useForm } from "@tanstack/react-form"
 import type { ReactCall } from "react-call"
 import type { Asset } from "@openvlp/types/model/asset"
@@ -32,7 +32,7 @@ import { capitalizeFirstLetter } from "@/lib/format.ts"
 
 interface AssetDialogProps {}
 
-const formSchema = assetSchema.omit({ id: true })
+const formSchema = createAssetSchema
 
 export const AssetDialog = ({
   call
@@ -49,7 +49,8 @@ export const AssetDialog = ({
       call.end({
         id: "",
         name: value.name,
-        type: value.type
+        type: value.type,
+        ownerId: null
       })
     }
   })

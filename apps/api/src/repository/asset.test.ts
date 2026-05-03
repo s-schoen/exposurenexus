@@ -60,12 +60,56 @@ describe("asset repository", () => {
     )
     expect(created.name).toBe("api.openvlp.local")
     expect(created.type).toBe(AssetType.Host)
+    expect(created.ownerId).toBeNull()
 
     await expect(repository.getByID(created.id)).resolves.toEqual(created)
     await expect(
       repository.getByName("api.openvlp.local", AssetType.Host)
     ).resolves.toEqual(created)
     await expect(repository.list()).resolves.toEqual([created])
+  })
+
+  it("stores nullable asset owners and clears them when the user profile is deleted", async () => {
+    const repository = createAssetRepository(testDb.db)
+    const ownerId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12"
+
+    await testDb.db
+      .insertInto("user_profile")
+      .values({
+        id: ownerId,
+        username: "owner",
+        displayName: "Asset Owner",
+        email: "owner@example.com",
+        enabled: false,
+        passwordHash: "hash-owner"
+      })
+      .execute()
+
+    const ownedAsset = await repository.create({
+      id: "",
+      name: "owned.openvlp.local",
+      type: AssetType.Host,
+      ownerId
+    })
+    const ownerlessAsset = await repository.create({
+      id: "",
+      name: "ownerless.openvlp.local",
+      type: AssetType.Host,
+      ownerId: null
+    })
+
+    expect(ownedAsset.ownerId).toBe(ownerId)
+    expect(ownerlessAsset.ownerId).toBeNull()
+
+    await testDb.db
+      .deleteFrom("user_profile")
+      .where("id", "=", ownerId)
+      .execute()
+
+    await expect(repository.getByID(ownedAsset.id)).resolves.toMatchObject({
+      id: ownedAsset.id,
+      ownerId: null
+    })
   })
 
   it("persists and retrieves custom field definitions with options", async () => {

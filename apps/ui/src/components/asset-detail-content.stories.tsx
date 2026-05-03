@@ -29,7 +29,8 @@ type AssetDetailStoryArgs = {
 const ASSET: Asset = {
   id: "4b4f4dc9-77d5-4bb5-90a4-0d764a5fbf4b",
   name: "web-01",
-  type: AssetType.Host
+  type: AssetType.Host,
+  ownerId: null
 }
 
 const CUSTOM_FIELDS: Array<AssetCustomFieldValue> = [

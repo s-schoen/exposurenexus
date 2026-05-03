@@ -74,7 +74,8 @@ describe("asset routes", () => {
       {
         id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
         name: "api.openvlp.local",
-        type: AssetType.Host
+        type: AssetType.Host,
+        ownerId: null
       }
     ]
 
@@ -114,6 +115,7 @@ describe("asset routes", () => {
         id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
         name: "api.openvlp.local",
         type: AssetType.Host,
+        ownerId: null,
         customFields: [
           {
             fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
@@ -162,7 +164,8 @@ describe("asset routes", () => {
       {
         id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
         name: "api.openvlp.local",
-        type: AssetType.Host
+        type: AssetType.Host,
+        ownerId: null
       }
     ]
 
@@ -674,7 +677,8 @@ describe("asset routes", () => {
     const assetRecord = {
       id: assetId,
       name: "api.openvlp.local",
-      type: AssetType.Host
+      type: AssetType.Host,
+      ownerId: null
     }
 
     assetService.getByID.mockResolvedValue(assetRecord)
@@ -1194,6 +1198,7 @@ describe("asset routes", () => {
     }
     const createdAsset = {
       id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+      ownerId: null,
       ...payload
     }
 
@@ -1252,7 +1257,8 @@ describe("asset routes", () => {
     const deletedAsset = {
       id: assetId,
       name: "api.openvlp.local",
-      type: AssetType.Host
+      type: AssetType.Host,
+      ownerId: null
     }
 
     assetService.deleteByID.mockResolvedValue(deletedAsset)

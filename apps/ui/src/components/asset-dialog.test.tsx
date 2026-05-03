@@ -113,7 +113,8 @@ describe("AssetDialog", () => {
       expect(call.end).toHaveBeenCalledWith({
         id: "",
         name: "api-01",
-        type: AssetType.Host
+        type: AssetType.Host,
+        ownerId: null
       })
     })
   })
@@ -132,7 +133,8 @@ describe("AssetDialog", () => {
       expect(call.end).toHaveBeenCalledWith({
         id: "",
         name: "container-01",
-        type: AssetType.Container
+        type: AssetType.Container,
+        ownerId: null
       })
     })
   })

@@ -56,7 +56,8 @@ beforeEach(() => {
     data: {
       id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
       name: "api-01",
-      type: AssetType.Host
+      type: AssetType.Host,
+      ownerId: null
     },
     isLoading: false
   }
@@ -139,7 +140,8 @@ describe("shared display components", () => {
       data: {
         id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
         name: "api-01",
-        type: AssetType.Container
+        type: AssetType.Container,
+        ownerId: null
       },
       isLoading: false
     }

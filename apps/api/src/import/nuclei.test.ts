@@ -44,7 +44,8 @@ describe("nuclei importer", () => {
   const asset = {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
     name: "api.openvlp.local",
-    type: AssetType.Host
+    type: AssetType.Host,
+    ownerId: null
   }
   const nucleiFinding = {
     "template-id": "admin-panel",

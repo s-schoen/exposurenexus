@@ -227,6 +227,7 @@ describe("asset table custom field grouping", () => {
       id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
       name: "api-01",
       type: AssetType.Host,
+      ownerId: null,
       customFields: [
         {
           fieldId: environmentDefinition.id,

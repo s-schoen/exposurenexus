@@ -26,6 +26,9 @@ type AssetCustomFieldRow = Selectable<Database["asset_custom_field"]>
 type AssetCustomFieldAssignmentDefinitionRow = AssetCustomFieldRow & {
   assetId: string
 }
+type CreateAssetRecord = Omit<Asset, "ownerId"> & {
+  ownerId?: Asset["ownerId"]
+}
 
 function toJsonbValue(
   value: AssetCustomFieldStoredValue
@@ -346,12 +349,13 @@ export function createAssetRepository(database: Kysely<Database>) {
       return asset || null
     },
 
-    async create(asset: Asset): Promise<Asset> {
+    async create(asset: CreateAssetRecord): Promise<Asset> {
       const createdAsset = await database
         .insertInto("asset")
         .values({
           name: asset.name,
-          type: asset.type
+          type: asset.type,
+          ownerId: asset.ownerId ?? null
         })
         .returningAll()
         .executeTakeFirst()

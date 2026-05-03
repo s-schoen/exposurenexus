@@ -198,6 +198,7 @@ describe("asset service", () => {
     await expect(assetService.create(payload)).resolves.toEqual(createdAsset)
     expect(assetRepository.create).toHaveBeenCalledWith({
       id: "",
+      ownerId: null,
       ...payload
     })
   })
