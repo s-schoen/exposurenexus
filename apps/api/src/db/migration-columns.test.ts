@@ -142,6 +142,57 @@ describe("db migration columns", () => {
     )
   })
 
+  it("adds nullable asset owner identity pointing at user profiles", async () => {
+    const assetOwnerColumns = await sql<{
+      column_name: string
+      data_type: string
+      is_nullable: string
+    }>`
+      select column_name, data_type, is_nullable
+      from information_schema.columns
+      where table_name = 'asset'
+        and column_name = 'ownerId'
+    `.execute(testDb.db)
+    const assetOwnerForeignKeys = await sql<{
+      constraint_name: string
+      source_table: string
+      target_table: string
+      delete_rule: string
+    }>`
+      select
+        rc.constraint_name,
+        kcu.table_name as source_table,
+        ccu.table_name as target_table,
+        rc.delete_rule
+      from information_schema.referential_constraints rc
+      join information_schema.key_column_usage kcu
+        on kcu.constraint_catalog = rc.constraint_catalog
+        and kcu.constraint_schema = rc.constraint_schema
+        and kcu.constraint_name = rc.constraint_name
+      join information_schema.constraint_column_usage ccu
+        on ccu.constraint_catalog = rc.unique_constraint_catalog
+        and ccu.constraint_schema = rc.unique_constraint_schema
+        and ccu.constraint_name = rc.unique_constraint_name
+      where kcu.table_name = 'asset'
+        and kcu.column_name = 'ownerId'
+    `.execute(testDb.db)
+
+    expect(assetOwnerColumns.rows).toEqual([
+      {
+        column_name: "ownerId",
+        data_type: "uuid",
+        is_nullable: "YES"
+      }
+    ])
+    expect(assetOwnerForeignKeys.rows).toEqual([
+      expect.objectContaining({
+        source_table: "asset",
+        target_table: "user_profile",
+        delete_rule: "SET NULL"
+      })
+    ])
+  })
+
   it("creates normalized rbac tables with seeded built-in data", async () => {
     const roleColumns = await sql<{
       column_name: string

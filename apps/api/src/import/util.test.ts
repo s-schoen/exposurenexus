@@ -19,7 +19,8 @@ describe("import util", () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
       name: "api.openvlp.local",
-      type: AssetType.Host
+      type: AssetType.Host,
+      ownerId: null
     }
 
     assetService.getByName.mockResolvedValue(asset)
@@ -39,7 +40,8 @@ describe("import util", () => {
     const createdAsset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
       name: "api.openvlp.local",
-      type: AssetType.Host
+      type: AssetType.Host,
+      ownerId: null
     }
 
     assetService.getByName.mockResolvedValue(null)

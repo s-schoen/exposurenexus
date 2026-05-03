@@ -55,7 +55,8 @@ const mocks = vi.hoisted(() => {
   const asset: Asset = {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
     name: "web-01",
-    type: "host" as AssetType
+    type: "host" as AssetType,
+    ownerId: null
   }
 
   return {

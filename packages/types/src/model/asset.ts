@@ -21,10 +21,14 @@ export enum AssetCustomFieldValueSource {
 export const assetSchema = z.strictObject({
   id: z.uuidv4(),
   name: z.string().nonempty(),
-  type: z.enum(AssetType)
+  type: z.enum(AssetType),
+  ownerId: z.uuidv4().nullable()
 })
 
-export const createAssetSchema = assetSchema.omit({ id: true })
+export const createAssetSchema = assetSchema.omit({
+  id: true,
+  ownerId: true
+})
 
 export const assetCustomFieldKeySchema = z
   .string()

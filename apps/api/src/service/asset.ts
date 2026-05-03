@@ -172,6 +172,7 @@ export function createAssetService({
       try {
         const created = await assetRepository.create({
           id: "",
+          ownerId: null,
           ...asset
         })
 

@@ -10,6 +10,7 @@ export interface AssetTable {
   id: Generated<string>
   name: string
   type: AssetType
+  ownerId: string | null
 }
 
 export interface AssetCustomFieldTable {

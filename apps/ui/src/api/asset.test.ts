@@ -59,7 +59,8 @@ const fieldId = "33d63e64-8f2b-4f88-b26f-fb090b4366ff"
 const asset: Asset = {
   id: assetId,
   name: "api.openvlp.local",
-  type: AssetType.Host
+  type: AssetType.Host,
+  ownerId: null
 }
 const definition: AssetCustomFieldDefinition = {
   id: fieldId,
@@ -84,6 +85,7 @@ const assetsWithCustomFields: Array<AssetWithCustomFields> = [
     id: assetId,
     name: "api.openvlp.local",
     type: AssetType.Host,
+    ownerId: null,
     customFields: values
   }
 ]

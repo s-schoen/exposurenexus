@@ -19,6 +19,24 @@ Assets are the things affected by findings. Imports may create assets when an
 external finding references an asset that is not already in the registry.
 Treat asset type values as labels without deeper domain semantics for now.
 
+### Asset Owner
+
+An **asset owner** is the single user profile responsible for handling findings
+on an asset.
+
+Assets may have no known owner. Avoid using owner as free text; asset ownership
+refers to a link to a user profile. A finding's responsible owner is derived
+from its asset; findings do not have separate owners unless a later workflow
+requires finding-level assignment. Imported assets start without an owner unless
+ownership is set explicitly after import. A disabled user profile can remain an
+asset owner. If an asset owner user profile is deleted, their assets become
+ownerless. Changing asset ownership is treated as editing asset metadata.
+Asset ownership can be set when an asset is created or changed later.
+Ownership can be cleared explicitly. When set, the owner must reference an
+existing user profile, including disabled user profiles. Asset responses expose
+the owner as an owner user profile ID; clients resolve user profile display data
+separately when needed. Owner identity is part of the base asset representation.
+
 ### Vulnerability
 
 A **vulnerability** is a catalog entry describing a weakness that can affect one
@@ -206,6 +224,7 @@ or high exposure, affected assets, and mitigation rate.
 
 - Say **finding** for an observed vulnerability on an asset.
 - Say **vulnerability** for the reusable catalog entry.
+- Say **asset owner** for the user profile responsible for findings on an asset.
 - Say **asset custom field** when referring to custom metadata; do not shorten
   to custom field if the surrounding context could imply findings or users.
 - Say **user profile** for account data and **user session** for authentication
