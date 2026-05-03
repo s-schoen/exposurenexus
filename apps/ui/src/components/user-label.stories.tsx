@@ -2,55 +2,42 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useEffect, useLayoutEffect, useMemo, useState } from "react"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { ComponentProps } from "react"
+import type { UserProfile } from "@openvlp/types/model/user"
 
 import { UserLabel } from "@/components/user-label"
 
+const alice: UserProfile = {
+  id: "11111111-1111-4111-8111-111111111111",
+  username: "alice",
+  displayName: "Alice Example",
+  email: "alice@example.com",
+  enabled: true,
+  roleIds: []
+}
+
+const disabledUser: UserProfile = {
+  id: "22222222-2222-4222-8222-222222222222",
+  username: "disabled",
+  displayName: "Taylor Example",
+  email: "disabled@example.com",
+  enabled: false,
+  roleIds: []
+}
+
 type UserLabelStoryArgs = ComponentProps<typeof UserLabel> & {
-  scenario: "success" | "loading" | "error"
-  displayName: string
-  username: string
-  email: string
-}
-
-function buildUserReply({
-  userId,
-  displayName,
-  username,
-  email
-}: Pick<UserLabelStoryArgs, "userId" | "displayName" | "username" | "email">) {
-  return {
-    data: {
-      items: [
-        {
-          id: userId,
-          username,
-          displayName,
-          email,
-          enabled: true,
-          roleIds: []
-        }
-      ]
-    }
-  }
-}
-
-function buildUsers(
-  args: Pick<
-    UserLabelStoryArgs,
-    "userId" | "displayName" | "username" | "email"
-  >
-) {
-  return buildUserReply(args).data.items
+  scenario: "loading" | "success" | "unknown"
 }
 
 function UserLabelStoryShell({
   scenario,
+  user,
   userId,
   className,
-  displayName,
-  username,
-  email
+  emptyLabel,
+  unknownLabel,
+  variant
 }: UserLabelStoryArgs) {
+  const users = useMemo(() => [alice, disabledUser], [])
   const queryClient = useMemo(() => {
     const client = new QueryClient({
       defaultOptions: {
@@ -61,18 +48,15 @@ function UserLabelStoryShell({
     })
 
     if (scenario === "success") {
-      client.setQueryData(
-        ["users"],
-        buildUsers({ userId, displayName, username, email })
-      )
+      client.setQueryData(["users"], users)
     }
 
-    if (scenario === "error") {
+    if (scenario === "unknown") {
       client.setQueryData(["users"], [])
     }
 
     return client
-  }, [scenario, userId, displayName, username, email])
+  }, [scenario, users])
   const [ready, setReady] = useState(scenario !== "loading")
 
   useLayoutEffect(() => {
@@ -104,16 +88,13 @@ function UserLabelStoryShell({
     queryClient.clear()
 
     if (scenario === "success") {
-      queryClient.setQueryData(
-        ["users"],
-        buildUsers({ userId, displayName, username, email })
-      )
+      queryClient.setQueryData(["users"], users)
     }
 
-    if (scenario === "error") {
+    if (scenario === "unknown") {
       queryClient.setQueryData(["users"], [])
     }
-  }, [queryClient, scenario, userId, displayName, username, email])
+  }, [queryClient, scenario, users])
 
   if (!ready) {
     return null
@@ -123,7 +104,14 @@ function UserLabelStoryShell({
     <QueryClientProvider client={queryClient}>
       <div className="w-64 rounded-xl border border-border/70 bg-card p-4">
         <div className="min-h-5">
-          <UserLabel userId={userId} className={className} />
+          <UserLabel
+            user={user}
+            userId={userId}
+            className={className}
+            emptyLabel={emptyLabel}
+            unknownLabel={unknownLabel}
+            variant={variant}
+          />
         </div>
       </div>
     </QueryClientProvider>
@@ -139,15 +127,17 @@ const meta = {
   argTypes: {
     scenario: {
       control: "radio",
-      options: ["success", "loading", "error"]
+      options: ["success", "loading", "unknown"]
+    },
+    variant: {
+      control: "radio",
+      options: ["text", "chip"]
     }
   },
   args: {
-    userId: "11111111-1111-4111-8111-111111111111",
+    userId: alice.id,
     scenario: "success",
-    displayName: "Alice Example",
-    username: "alice",
-    email: "alice@example.com"
+    variant: "text"
   },
   render: (args) => <UserLabelStoryShell {...args} />
 } satisfies Meta<UserLabelStoryArgs>
@@ -158,17 +148,44 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
 
-export const Loading: Story = {
+export const ResolvedProfile: Story = {
   args: {
-    userId: "22222222-2222-4222-8222-222222222222",
-    scenario: "loading"
+    user: alice,
+    userId: undefined
   }
 }
 
-export const RequestFailure: Story = {
+export const Chip: Story = {
+  args: {
+    variant: "chip"
+  }
+}
+
+export const NoUser: Story = {
+  args: {
+    userId: null,
+    emptyLabel: "No Owner"
+  }
+}
+
+export const UnknownUser: Story = {
   args: {
     userId: "33333333-3333-4333-8333-333333333333",
-    scenario: "error"
+    scenario: "unknown",
+    unknownLabel: "Unknown Owner"
+  }
+}
+
+export const DisabledUser: Story = {
+  args: {
+    userId: disabledUser.id
+  }
+}
+
+export const Loading: Story = {
+  args: {
+    userId: "44444444-4444-4444-8444-444444444444",
+    scenario: "loading"
   }
 }
 

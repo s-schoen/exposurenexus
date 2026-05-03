@@ -9,6 +9,7 @@ import type {
   AssetCustomFieldDefinition,
   AssetWithCustomFields
 } from "@openvlp/types/model/asset"
+import type { UserProfile } from "@openvlp/types/model/user"
 import type {
   DataTableFilterState,
   GroupingOption
@@ -30,9 +31,9 @@ import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/api/asset-c
 import { createListUsersQueryOptions } from "@/api/user.ts"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
 import {
-  createUserDisplayNameById,
-  formatAssetOwner
-} from "@/lib/asset-owner.ts"
+  createUserProfileById,
+  formatUserProfileReference
+} from "@/components/user-label.tsx"
 import { capitalizeFirstLetter } from "@/lib/format.ts"
 import { toastActionError } from "@/lib/action-error-toast.ts"
 
@@ -237,7 +238,7 @@ function mergeAssetCustomFieldFilterSearchStates(
 
 export function createAssetTableGroupingOptions(
   customFieldDefinitions: Array<AssetCustomFieldDefinition>,
-  userDisplayNameById: Map<string, string> = new Map()
+  userProfileById: Map<string, UserProfile> = new Map()
 ): Array<GroupingOption> {
   return [
     {
@@ -251,7 +252,10 @@ export function createAssetTableGroupingOptions(
       formatValue: (value) =>
         typeof value === "string"
           ? value
-          : formatAssetOwner(null, userDisplayNameById)
+          : formatUserProfileReference(null, userProfileById, {
+              emptyLabel: "No Owner",
+              unknownLabel: "Unknown Owner"
+            })
     },
     ...customFieldDefinitions.map((definition) => ({
       id: getAssetCustomFieldColumnId(definition.id),
@@ -280,8 +284,8 @@ export function AssetTable({
     createListAssetCustomFieldDefinitionsQueryOptions()
   )
   const customFieldDefinitions = customFieldDefinitionsQuery.data ?? []
-  const userDisplayNameById = useMemo(
-    () => createUserDisplayNameById(usersQuery.data),
+  const userProfileById = useMemo(
+    () => createUserProfileById(usersQuery.data),
     [usersQuery.data]
   )
   const [reservedCustomFieldFilters, setReservedCustomFieldFilters] =
@@ -292,18 +296,15 @@ export function AssetTable({
     () =>
       createAssetTableColumns(
         customFieldDefinitions,
-        userDisplayNameById,
+        userProfileById,
         usersQuery.isPending
       ),
-    [customFieldDefinitions, userDisplayNameById, usersQuery.isPending]
+    [customFieldDefinitions, userProfileById, usersQuery.isPending]
   )
   const groupingOptions = useMemo(
     () =>
-      createAssetTableGroupingOptions(
-        customFieldDefinitions,
-        userDisplayNameById
-      ),
-    [customFieldDefinitions, userDisplayNameById]
+      createAssetTableGroupingOptions(customFieldDefinitions, userProfileById),
+    [customFieldDefinitions, userProfileById]
   )
   const initialColumnVisibility = useMemo(
     () =>

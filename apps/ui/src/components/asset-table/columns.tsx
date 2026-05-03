@@ -3,14 +3,15 @@ import type {
   AssetCustomFieldDefinition,
   AssetWithCustomFields
 } from "@openvlp/types/model/asset"
+import type { UserProfile } from "@openvlp/types/model/user"
 import type { ColumnDef } from "@tanstack/react-table"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
+import {
+  UserLabel,
+  formatUserProfileReference
+} from "@/components/user-label.tsx"
 
 import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts"
-import {
-  formatAssetOwner,
-  isAssetOwnerFallbackLabel
-} from "@/lib/asset-owner.ts"
 import { capitalizeFirstLetter } from "@/lib/format.ts"
 
 const emptyCustomFieldFilterValue = "__empty__"
@@ -20,7 +21,7 @@ export function getAssetCustomFieldColumnId(fieldId: string) {
 }
 
 function createBaseColumns(
-  userDisplayNameById: Map<string, string>,
+  userProfileById: Map<string, UserProfile>,
   usersLoading = false
 ): Array<ColumnDef<AssetWithCustomFields>> {
   return [
@@ -48,23 +49,27 @@ function createBaseColumns(
     {
       id: "ownerId",
       accessorFn: (asset) =>
-        formatAssetOwner(asset.ownerId, userDisplayNameById, usersLoading),
+        formatUserProfileReference(asset.ownerId, userProfileById, {
+          emptyLabel: "No Owner",
+          unknownLabel: "Unknown Owner"
+        }),
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Owner" />
       ),
-      cell: ({ getValue }) => {
-        const value = getValue<string>()
-
-        return (
-          <span
-            className={
-              isAssetOwnerFallbackLabel(value) ? "text-muted-foreground" : ""
-            }
-          >
-            {value}
-          </span>
-        )
-      },
+      cell: ({ row }) => (
+        <UserLabel
+          userId={row.original.ownerId}
+          user={
+            row.original.ownerId && usersLoading
+              ? undefined
+              : row.original.ownerId
+                ? (userProfileById.get(row.original.ownerId) ?? null)
+                : null
+          }
+          emptyLabel="No Owner"
+          unknownLabel="Unknown Owner"
+        />
+      ),
       meta: {
         label: "Owner"
       }
@@ -167,11 +172,11 @@ function createCustomFieldColumn(
 
 export function createAssetTableColumns(
   customFieldDefinitions: Array<AssetCustomFieldDefinition>,
-  userDisplayNameById: Map<string, string> = new Map(),
+  userProfileById: Map<string, UserProfile> = new Map(),
   usersLoading = false
 ): Array<ColumnDef<AssetWithCustomFields>> {
   return [
-    ...createBaseColumns(userDisplayNameById, usersLoading),
+    ...createBaseColumns(userProfileById, usersLoading),
     ...customFieldDefinitions.map((definition) =>
       createCustomFieldColumn(definition)
     )
