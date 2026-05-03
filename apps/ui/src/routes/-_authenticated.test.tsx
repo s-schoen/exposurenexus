@@ -1,7 +1,19 @@
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { ReactNode } from "react"
 
 const mocks = vi.hoisted(() => ({
+  actionClick: vi.fn(),
+  page: {
+    actions: [] as Array<{
+      disabled?: boolean
+      label: string
+      onClick: () => void
+      variant?: "default" | "outline" | "ghost" | "destructive"
+    }>,
+    description: "Page description",
+    title: "Page title"
+  },
   redirect: vi.fn((options: unknown) => ({
     redirect: true,
     options
@@ -56,14 +68,24 @@ vi.mock("nuqs/adapters/tanstack-router", () => ({
 }))
 
 vi.mock("@/context/page.tsx", () => ({
-  usePage: () => ({
-    actions: [],
-    description: "Page description",
-    title: "Page title"
-  })
+  usePage: () => mocks.page
 }))
 
 describe("authenticated route guard", () => {
+  beforeEach(() => {
+    mocks.actionClick.mockReset()
+    mocks.redirect.mockClear()
+    mocks.page = {
+      actions: [],
+      description: "Page description",
+      title: "Page title"
+    }
+  })
+
+  afterEach(() => {
+    cleanup()
+  })
+
   it("redirects unauthenticated users to login with the current location", async () => {
     const { Route } = await import("@/routes/_authenticated.tsx")
     const ensureSession = vi.fn().mockResolvedValue(false)
@@ -124,5 +146,47 @@ describe("authenticated route guard", () => {
       })
     ).resolves.toBeUndefined()
     expect(ensureSession).toHaveBeenCalledTimes(1)
+  })
+
+  it("renders page metadata and actions in the authenticated shell", async () => {
+    const { Route } = await import("@/routes/_authenticated.tsx")
+    mocks.page = {
+      actions: [
+        {
+          label: "Create finding",
+          onClick: mocks.actionClick
+        },
+        {
+          disabled: true,
+          label: "Disabled action",
+          onClick: vi.fn(),
+          variant: "outline"
+        }
+      ],
+      description: "Review active findings that need analyst attention.",
+      title: "Triage queue"
+    }
+    const Component = Route.options.component as () => ReactNode
+
+    await act(() => {
+      render(<Component />)
+    })
+
+    expect(await screen.findByText("Header")).toBeTruthy()
+    expect(screen.getByText("Sidebar")).toBeTruthy()
+    expect(screen.getByText("Outlet")).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "Triage queue" })).toBeTruthy()
+    expect(
+      screen.getByText("Review active findings that need analyst attention.")
+    ).toBeTruthy()
+
+    fireEvent.click(screen.getByRole("button", { name: "Create finding" }))
+
+    expect(mocks.actionClick).toHaveBeenCalledTimes(1)
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", {
+        name: "Disabled action"
+      }).disabled
+    ).toBe(true)
   })
 })
