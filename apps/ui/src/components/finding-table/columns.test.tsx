@@ -3,10 +3,45 @@ import { cleanup, render, screen } from "@testing-library/react"
 import { FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import type { ReactNode } from "react"
+import type { Asset, AssetType } from "@openvlp/types/model/asset"
 import type { Finding } from "@openvlp/types/model/finding"
+import type { UserProfile } from "@openvlp/types/model/user"
 
 vi.mock("@/components/data-table/column-header.tsx", () => ({
   DataTableColumnHeader: ({ title }: { title: string }) => <span>{title}</span>
+}))
+
+vi.mock("@/components/user-label.tsx", () => ({
+  formatUserProfileReference: (
+    userId: string | null | undefined,
+    usersById: Map<string, UserProfile>,
+    {
+      emptyLabel,
+      unknownLabel
+    }: {
+      emptyLabel: string
+      unknownLabel: string
+    }
+  ) => {
+    if (!userId) return emptyLabel
+
+    return usersById.get(userId)?.displayName ?? unknownLabel
+  },
+  UserLabel: ({
+    emptyLabel,
+    unknownLabel,
+    user,
+    userId
+  }: {
+    emptyLabel: string
+    unknownLabel: string
+    user?: UserProfile | null
+    userId?: string | null
+  }) => {
+    if (!userId && !user) return <span>{emptyLabel}</span>
+    if (user) return <span>{user.displayName}</span>
+    return <span>{unknownLabel}</span>
+  }
 }))
 
 const finding: Finding = {
@@ -38,6 +73,20 @@ const finding: Finding = {
     updatedAt: new Date("2026-01-01T00:00:00.000Z")
   }
 }
+const asset: Asset = {
+  id: finding.assetId,
+  name: "api-01",
+  type: "host" as AssetType,
+  ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21"
+}
+const user: UserProfile = {
+  id: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+  username: "robin",
+  displayName: "Robin Owner",
+  email: "robin@example.com",
+  enabled: false,
+  roleIds: []
+}
 
 interface RowStub {
   getValue: (columnId: string) => unknown
@@ -45,18 +94,16 @@ interface RowStub {
 }
 
 interface TestColumn {
+  id?: string
   accessorKey: string
+  accessorFn?: (finding: Finding) => unknown
   cell?: (context: { row: RowStub }) => ReactNode
   filterFn?: (
     row: RowStub,
     columnId: string,
     filterValue: Array<string>
   ) => boolean
-  sortingFn?: (
-    rowA: RowStub,
-    rowB: RowStub,
-    columnId: string
-  ) => number
+  sortingFn?: (rowA: RowStub, rowB: RowStub, columnId: string) => number
 }
 
 function createRow(original: Finding): RowStub {
@@ -74,16 +121,25 @@ function createRow(original: Finding): RowStub {
   }
 }
 
-async function createColumns(assetNamesById = new Map([[finding.assetId, "api-01"]])) {
-  const { createFindingColumns } = await import(
-    "@/components/finding-table/columns.tsx"
-  )
+async function createColumns(
+  assetNamesById = new Map([[finding.assetId, "api-01"]]),
+  assetsById = new Map([[asset.id, asset]]),
+  userProfileById = new Map([[user.id, user]])
+) {
+  const { createFindingColumns } =
+    await import("@/components/finding-table/columns.tsx")
 
-  return createFindingColumns(assetNamesById) as unknown as Array<TestColumn>
+  return createFindingColumns(
+    assetNamesById,
+    assetsById,
+    userProfileById
+  ) as unknown as Array<TestColumn>
 }
 
 function findColumn(columns: Array<TestColumn>, accessorKey: string) {
-  const column = columns.find((item) => item.accessorKey === accessorKey)
+  const column = columns.find(
+    (item) => item.accessorKey === accessorKey || item.id === accessorKey
+  )
 
   if (!column) {
     throw new Error(`Missing column ${accessorKey}`)
@@ -124,6 +180,10 @@ describe("createFindingColumns", () => {
     expect(screen.getByText("api-01")).toBeTruthy()
     cleanup()
 
+    renderCell(findColumn(columns, "responsibleOwner"))
+    expect(screen.getByText("Robin Owner")).toBeTruthy()
+    cleanup()
+
     renderCell(findColumn(columns, "source"))
     expect(screen.getByText("nuclei")).toBeTruthy()
     cleanup()
@@ -133,7 +193,7 @@ describe("createFindingColumns", () => {
   })
 
   it("renders fallback labels for unresolved assets, empty source, and missing dates", async () => {
-    const columns = await createColumns(new Map())
+    const columns = await createColumns(new Map(), new Map(), new Map())
     const fallbackFinding = {
       ...finding,
       firstSeen: null,
@@ -145,12 +205,37 @@ describe("createFindingColumns", () => {
     expect(screen.getByText("Unknown asset")).toBeTruthy()
     cleanup()
 
+    renderCell(findColumn(columns, "responsibleOwner"), fallbackFinding)
+    expect(screen.getByText("Unknown Asset")).toBeTruthy()
+    cleanup()
+
     renderCell(findColumn(columns, "source"), fallbackFinding)
     expect(screen.getByText("Manual")).toBeTruthy()
     cleanup()
 
     renderCell(findColumn(columns, "lastSeen"), fallbackFinding)
     expect(screen.getByText("Not available")).toBeTruthy()
+  })
+
+  it("renders responsible owner fallbacks for ownerless assets and unknown users", async () => {
+    const ownerlessColumns = await createColumns(
+      new Map([[finding.assetId, "api-01"]]),
+      new Map([[asset.id, { ...asset, ownerId: null }]]),
+      new Map()
+    )
+
+    renderCell(findColumn(ownerlessColumns, "responsibleOwner"))
+    expect(screen.getByText("No Owner")).toBeTruthy()
+    cleanup()
+
+    const unknownOwnerColumns = await createColumns(
+      new Map([[finding.assetId, "api-01"]]),
+      new Map([[asset.id, asset]]),
+      new Map()
+    )
+
+    renderCell(findColumn(unknownOwnerColumns, "responsibleOwner"))
+    expect(screen.getByText("Unknown Owner")).toBeTruthy()
   })
 
   it("sorts severities and dates with null dates last for ascending order", async () => {
@@ -194,9 +279,9 @@ describe("createFindingColumns", () => {
     const columns = await createColumns()
     const row = createRow(finding)
 
-    expect(findColumn(columns, "severity").filterFn?.(row, "severity", [])).toBe(
-      true
-    )
+    expect(
+      findColumn(columns, "severity").filterFn?.(row, "severity", [])
+    ).toBe(true)
     expect(
       findColumn(columns, "severity").filterFn?.(row, "severity", [
         VulnerabilitySeverity.High

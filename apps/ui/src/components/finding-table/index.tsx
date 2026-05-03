@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/dropdown-menu.tsx"
 import { createListAssetsQueryOptions } from "@/api/asset.ts"
 import { createListFindingsQueryOptions } from "@/api/finding.ts"
+import { createListUsersQueryOptions } from "@/api/user.ts"
+import { createUserProfileById } from "@/components/user-label.tsx"
 import { formatFindingStatus, formatSeverity } from "@/lib/format.ts"
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts"
 
@@ -44,6 +46,7 @@ export function FindingTable({
   const { bulkUpdateFindingField, deleteFindings } = useFindingLifecycle()
   const findingsQuery = useQuery(createListFindingsQueryOptions())
   const assetsQuery = useQuery(createListAssetsQueryOptions())
+  const usersQuery = useQuery(createListUsersQueryOptions())
   const [filter, setFilter] = useQueryState("filter")
   const [severityFilter, setSeverityFilter] = useQueryState(
     "severity",
@@ -65,15 +68,29 @@ export function FindingTable({
     [filter, severityFilter, statusFilter]
   )
 
+  const assetsById = useMemo(
+    () => new Map((assetsQuery.data ?? []).map((asset) => [asset.id, asset])),
+    [assetsQuery.data]
+  )
   const assetNamesById = useMemo(
     () =>
       new Map((assetsQuery.data ?? []).map((asset) => [asset.id, asset.name])),
     [assetsQuery.data]
   )
+  const userProfileById = useMemo(
+    () => createUserProfileById(usersQuery.data),
+    [usersQuery.data]
+  )
 
   const columns = useMemo(
-    () => createFindingColumns(assetNamesById),
-    [assetNamesById]
+    () =>
+      createFindingColumns(
+        assetNamesById,
+        assetsById,
+        userProfileById,
+        usersQuery.isPending
+      ),
+    [assetNamesById, assetsById, userProfileById, usersQuery.isPending]
   )
 
   const groupingOptions = useMemo<Array<GroupingOption>>(
@@ -93,6 +110,11 @@ export function FindingTable({
         label: "Asset",
         formatValue: (value) =>
           assetNamesById.get(String(value)) ?? "Unknown asset"
+      },
+      {
+        id: "responsibleOwner",
+        label: "Responsible Owner",
+        formatValue: (value) => String(value)
       },
       {
         id: "source",

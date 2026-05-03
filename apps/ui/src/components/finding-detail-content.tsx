@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
-import { useCallback } from "react"
+import { useCallback, useMemo } from "react"
 import { FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import {
@@ -19,6 +19,7 @@ import type { Finding } from "@openvlp/types/model/finding"
 import type { FindingEditableField } from "@/hooks/use-finding-lifecycle.ts"
 import { createFindingByIDQueryOptions } from "@/api/finding.ts"
 import { createAssetByIDQueryOptions } from "@/api/asset.ts"
+import { createListUsersQueryOptions } from "@/api/user.ts"
 import {
   Card,
   CardAction,
@@ -43,7 +44,7 @@ import { FindingStatusBadge } from "@/components/finding-status-badge.tsx"
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
 import { MetadataSidebar } from "@/components/metadata-sidebar"
 import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx"
-import { UserLabel } from "@/components/user-label.tsx"
+import { UserLabel, createUserProfileById } from "@/components/user-label.tsx"
 import {
   Tabs,
   TabsContent,
@@ -62,12 +63,17 @@ export function FindingDetailContent({
   titleAction
 }: FindingDetailContentProps) {
   const finding = useQuery(createFindingByIDQueryOptions(findingId))
+  const users = useQuery(createListUsersQueryOptions())
   const { updateFindingField } = useFindingLifecycle()
   const displayData = finding.data
   const asset = useQuery({
     ...createAssetByIDQueryOptions(displayData?.assetId ?? ""),
     enabled: Boolean(displayData?.assetId)
   })
+  const userProfileById = useMemo(
+    () => createUserProfileById(users.data),
+    [users.data]
+  )
 
   const handleUpdate = useCallback(
     async <TKey extends FindingEditableField>(
@@ -97,6 +103,32 @@ export function FindingDetailContent({
     if (!value) return "Not available"
 
     return value.toLocaleString()
+  }
+
+  function ResponsibleOwnerLabel({ className }: { className?: string }) {
+    if (asset.isPending) {
+      return <Skeleton className="inline-flex h-4 w-24" />
+    }
+
+    if (!asset.data) {
+      return <span className="text-muted-foreground">Unknown Asset</span>
+    }
+
+    return (
+      <UserLabel
+        userId={asset.data.ownerId}
+        user={
+          asset.data.ownerId && users.isPending
+            ? undefined
+            : asset.data.ownerId
+              ? (userProfileById.get(asset.data.ownerId) ?? null)
+              : null
+        }
+        emptyLabel="No Owner"
+        unknownLabel="Unknown Owner"
+        className={className}
+      />
+    )
   }
 
   function CardPlaceholder() {
@@ -141,13 +173,18 @@ export function FindingDetailContent({
                 triage state from the action panel.
               </CardDescription>
             </div>
-            <div className="grid gap-3 xl:grid-cols-4">
+            <div className="grid gap-3 xl:grid-cols-5">
               <DetailHighlightCard
                 label="Affected asset"
                 value={asset.data?.name ?? "Unknown asset"}
                 description={capitalizeFirstLetter(
                   asset.data?.type ?? "Unclassified"
                 )}
+              />
+              <DetailHighlightCard
+                label="Responsible owner"
+                value={<ResponsibleOwnerLabel />}
+                description="Derived from the affected asset"
               />
               <DetailHighlightCard
                 label="Source"
@@ -243,6 +280,10 @@ export function FindingDetailContent({
           <MetadataDetailRow
             label="Asset"
             value={asset.data?.name ?? "Unknown asset"}
+          />
+          <MetadataDetailRow
+            label="Responsible owner"
+            value={<ResponsibleOwnerLabel />}
           />
           <MetadataDetailRow
             label="Asset type"
