@@ -177,10 +177,15 @@ describe("asset table custom field grouping", () => {
 
   it("resolves owner display values from user profiles", () => {
     const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
-    const columns = createAssetTableColumns(
-      [],
-      new Map([[ownerId, "Robin Owner"]])
-    )
+    const owner = {
+      id: ownerId,
+      username: "robin",
+      displayName: "Robin Owner",
+      email: "robin@example.com",
+      enabled: false,
+      roleIds: []
+    }
+    const columns = createAssetTableColumns([], new Map([[ownerId, owner]]))
     const ownerColumn = columns.find((column) => column.id === "ownerId") as
       | AccessorFnColumnDef<AssetWithCustomFields, string>
       | undefined
@@ -204,7 +209,7 @@ describe("asset table custom field grouping", () => {
         },
         0
       )
-    ).toBe("Unknown owner")
+    ).toBe("Unknown Owner")
   })
 
   it("adds custom field definitions to the grouping options", () => {

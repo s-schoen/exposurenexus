@@ -41,11 +41,7 @@ import { Button } from "@/components/ui/button.tsx"
 import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts"
 import { cn } from "@/lib/utils.ts"
 import { toastActionError } from "@/lib/action-error-toast.ts"
-import {
-  createUserDisplayNameById,
-  formatAssetOwner,
-  isAssetOwnerFallbackLabel
-} from "@/lib/asset-owner.ts"
+import { UserLabel, createUserProfileById } from "@/components/user-label.tsx"
 import {
   Popover,
   PopoverContent,
@@ -98,27 +94,26 @@ export function AssetDetailContent({
   const availableCustomFields = useQuery(
     availableCustomFieldDefinitionsQueryOptions
   )
-  const userDisplayNameById = useMemo(
-    () => createUserDisplayNameById(users.data),
+  const userProfileById = useMemo(
+    () => createUserProfileById(users.data),
     [users.data]
   )
 
   function AssetOwnerText({ className }: { className?: string }) {
-    const value = formatAssetOwner(
-      asset.data!.ownerId,
-      userDisplayNameById,
-      users.isPending
-    )
-
     return (
-      <span
-        className={cn(
-          isAssetOwnerFallbackLabel(value) && "text-muted-foreground",
-          className
-        )}
-      >
-        {value}
-      </span>
+      <UserLabel
+        userId={asset.data!.ownerId}
+        user={
+          asset.data!.ownerId && users.isPending
+            ? undefined
+            : asset.data!.ownerId
+              ? (userProfileById.get(asset.data!.ownerId) ?? null)
+              : null
+        }
+        emptyLabel="No Owner"
+        unknownLabel="Unknown Owner"
+        className={className}
+      />
     )
   }
 

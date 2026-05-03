@@ -133,7 +133,7 @@ describe("AssetDetailContent stories", () => {
     render(<WithCustomFields asset={unknownOwnerAsset} />)
 
     await waitFor(() => {
-      expect(screen.getAllByText("Unknown owner").length).toBeGreaterThan(0)
+      expect(screen.getAllByText("Unknown Owner").length).toBeGreaterThan(0)
     })
   })
 
