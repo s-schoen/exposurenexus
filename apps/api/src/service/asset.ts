@@ -1,28 +1,21 @@
 import {
   type Asset,
   type AssetCustomFieldDefinition,
+  type AssetCustomFieldRuleViolation,
   type AssetCustomFieldValue,
   type AssetCustomFieldValueLiteral,
   type CreateAssetCustomFieldDefinition,
   type AssetWithCustomFields,
+  AssetCustomFieldRuleViolationCode,
   AssetCustomFieldType,
   AssetType,
   type CreateAsset,
-  type UpdateAssetCustomFieldValue
+  type UpdateAssetCustomFieldValue,
+  validateAssetCustomFieldDefinitionRules
 } from "@openvlp/types/model/asset"
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
 import { badRequest, conflict, isConflictError } from "./errors.js"
-
-function hasDuplicateValues(values: readonly string[]): boolean {
-  return new Set(values).size !== values.length
-}
-
-function getDefaultValue(
-  definition: CreateAssetCustomFieldDefinition
-): AssetCustomFieldValueLiteral {
-  return definition.defaultValue ?? null
-}
 
 function isValidValueForDefinition(
   definition: AssetCustomFieldDefinition,
@@ -41,43 +34,35 @@ function isValidValueForDefinition(
   }
 }
 
+function customFieldRuleViolationMessage(
+  violation: AssetCustomFieldRuleViolation
+): string {
+  switch (violation.code) {
+    case AssetCustomFieldRuleViolationCode.RequiredDefaultMissing:
+      return "required custom fields must define a default value"
+    case AssetCustomFieldRuleViolationCode.TextDefaultMustBeString:
+      return "text custom field default must be a string"
+    case AssetCustomFieldRuleViolationCode.NumberDefaultMustBeNumber:
+      return "number custom field default must be a number"
+    case AssetCustomFieldRuleViolationCode.SelectDefaultMustBeString:
+      return "select custom field default must be a string"
+    case AssetCustomFieldRuleViolationCode.SelectDefaultMustMatchOption:
+      return "select custom field default must match an option value"
+    case AssetCustomFieldRuleViolationCode.SelectOptionValuesMustBeUnique:
+      return "select custom field options must be unique"
+  }
+}
+
 function validateCustomFieldDefinition(
   definition: CreateAssetCustomFieldDefinition
 ): void {
-  const defaultValue = getDefaultValue(definition)
+  const [violation] = validateAssetCustomFieldDefinitionRules(definition)
 
-  if (definition.required && defaultValue === null) {
-    throw badRequest("required custom fields must define a default value")
-  }
-
-  switch (definition.type) {
-    case AssetCustomFieldType.Text:
-      if (defaultValue !== null && typeof defaultValue !== "string") {
-        throw badRequest("text custom field default must be a string")
-      }
-      return
-    case AssetCustomFieldType.Number:
-      if (defaultValue !== null && typeof defaultValue !== "number") {
-        throw badRequest("number custom field default must be a number")
-      }
-      return
-    case AssetCustomFieldType.Select: {
-      const optionValues = definition.options.map((option) => option.value)
-
-      if (hasDuplicateValues(optionValues)) {
-        throw badRequest("select custom field options must be unique")
-      }
-
-      if (defaultValue !== null && typeof defaultValue !== "string") {
-        throw badRequest("select custom field default must be a string")
-      }
-
-      if (defaultValue !== null && !optionValues.includes(defaultValue)) {
-        throw badRequest(
-          "select custom field default must match an option value"
-        )
-      }
-    }
+  if (violation) {
+    throw new HTTPException(400, {
+      message: customFieldRuleViolationMessage(violation),
+      cause: violation
+    })
   }
 }
 

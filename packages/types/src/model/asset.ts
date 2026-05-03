@@ -191,3 +191,95 @@ export type UpdateAssetCustomFieldValues = z.infer<
 export type UpdateAssetCustomFieldAssociations = z.infer<
   typeof updateAssetCustomFieldAssociationsSchema
 >
+
+export enum AssetCustomFieldRuleViolationCode {
+  RequiredDefaultMissing = "required_default_missing",
+  TextDefaultMustBeString = "text_default_must_be_string",
+  NumberDefaultMustBeNumber = "number_default_must_be_number",
+  SelectDefaultMustBeString = "select_default_must_be_string",
+  SelectDefaultMustMatchOption = "select_default_must_match_option",
+  SelectOptionValuesMustBeUnique = "select_option_values_must_be_unique"
+}
+
+export interface AssetCustomFieldRuleViolation {
+  code: AssetCustomFieldRuleViolationCode
+  path: ReadonlyArray<string | number>
+}
+
+function hasDuplicateAssetCustomFieldValues(
+  values: readonly string[]
+): boolean {
+  return new Set(values).size !== values.length
+}
+
+function getAssetCustomFieldDefaultValue(
+  definition: CreateAssetCustomFieldDefinition
+): unknown {
+  return definition.defaultValue ?? null
+}
+
+export function validateAssetCustomFieldDefinitionRules(
+  definition: CreateAssetCustomFieldDefinition
+): AssetCustomFieldRuleViolation[] {
+  const defaultValue = getAssetCustomFieldDefaultValue(definition)
+
+  if (definition.required && defaultValue === null) {
+    return [
+      {
+        code: AssetCustomFieldRuleViolationCode.RequiredDefaultMissing,
+        path: ["defaultValue"]
+      }
+    ]
+  }
+
+  switch (definition.type) {
+    case AssetCustomFieldType.Text:
+      if (defaultValue !== null && typeof defaultValue !== "string") {
+        return [
+          {
+            code: AssetCustomFieldRuleViolationCode.TextDefaultMustBeString,
+            path: ["defaultValue"]
+          }
+        ]
+      }
+      return []
+    case AssetCustomFieldType.Number:
+      if (defaultValue !== null && typeof defaultValue !== "number") {
+        return [
+          {
+            code: AssetCustomFieldRuleViolationCode.NumberDefaultMustBeNumber,
+            path: ["defaultValue"]
+          }
+        ]
+      }
+      return []
+    case AssetCustomFieldType.Select: {
+      const optionValues = definition.options.map((option) => option.value)
+      const violations: AssetCustomFieldRuleViolation[] = []
+
+      if (hasDuplicateAssetCustomFieldValues(optionValues)) {
+        violations.push({
+          code: AssetCustomFieldRuleViolationCode.SelectOptionValuesMustBeUnique,
+          path: ["options"]
+        })
+      }
+
+      if (defaultValue !== null && typeof defaultValue !== "string") {
+        violations.push({
+          code: AssetCustomFieldRuleViolationCode.SelectDefaultMustBeString,
+          path: ["defaultValue"]
+        })
+        return violations
+      }
+
+      if (defaultValue !== null && !optionValues.includes(defaultValue)) {
+        violations.push({
+          code: AssetCustomFieldRuleViolationCode.SelectDefaultMustMatchOption,
+          path: ["defaultValue"]
+        })
+      }
+
+      return violations
+    }
+  }
+}

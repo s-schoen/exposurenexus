@@ -1,8 +1,11 @@
-import { Hono } from "hono"
+import { Hono, type Context } from "hono"
+import { HTTPException } from "hono/http-exception"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
 import {
   type AssetCustomFieldDefinition,
+  type AssetCustomFieldRuleViolation,
+  AssetCustomFieldRuleViolationCode,
   createAssetCustomFieldDefinitionSchema
 } from "@openvlp/types/model/asset"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
@@ -34,6 +37,47 @@ const fieldIdParamValidator = zValidator(
   "param",
   z.object({ fieldId: z.uuidv4() })
 )
+
+const assetCustomFieldRuleViolationCodes = new Set<string>(
+  Object.values(AssetCustomFieldRuleViolationCode)
+)
+
+function isAssetCustomFieldRuleViolation(
+  cause: unknown
+): cause is AssetCustomFieldRuleViolation {
+  if (!cause || typeof cause !== "object") {
+    return false
+  }
+
+  const code = (cause as { code?: unknown }).code
+  return (
+    typeof code === "string" && assetCustomFieldRuleViolationCodes.has(code)
+  )
+}
+
+function isAssetCustomFieldRuleValidationError(
+  error: unknown
+): error is HTTPException & { cause: AssetCustomFieldRuleViolation } {
+  return (
+    error instanceof HTTPException &&
+    error.status === 400 &&
+    isAssetCustomFieldRuleViolation(error.cause)
+  )
+}
+
+function replyCustomFieldRuleValidationError(
+  c: Context<{ Variables: ContextVariables }>,
+  error: HTTPException & { cause: AssetCustomFieldRuleViolation }
+) {
+  const correlationId = c.get("requestId")
+  c.status(error.status)
+  return c.json({
+    correlationId,
+    status: error.status,
+    error: error.message,
+    code: error.cause.code
+  })
+}
 
 export function createAssetCustomFieldRoute(
   assetService: AssetCustomFieldRouteService,
@@ -74,8 +118,16 @@ export function createAssetCustomFieldRoute(
     zValidator("json", createAssetCustomFieldDefinitionSchema),
     async (c) => {
       const body = c.req.valid("json")
-      const definition = await assetService.createCustomFieldDefinition(body)
-      return replyObject(c, definition, true)
+      try {
+        const definition = await assetService.createCustomFieldDefinition(body)
+        return replyObject(c, definition, true)
+      } catch (error) {
+        if (isAssetCustomFieldRuleValidationError(error)) {
+          return replyCustomFieldRuleValidationError(c, error)
+        }
+
+        throw error
+      }
     }
   )
 
@@ -88,15 +140,23 @@ export function createAssetCustomFieldRoute(
       const params = c.req.valid("param")
       const body = c.req.valid("json")
 
-      const definition = await assetService.updateCustomFieldDefinitionByID(
-        params.fieldId,
-        body
-      )
-      if (!definition) {
-        notFound("asset custom field", params.fieldId)
-      }
+      try {
+        const definition = await assetService.updateCustomFieldDefinitionByID(
+          params.fieldId,
+          body
+        )
+        if (!definition) {
+          notFound("asset custom field", params.fieldId)
+        }
 
-      return replyObject(c, definition!)
+        return replyObject(c, definition!)
+      } catch (error) {
+        if (isAssetCustomFieldRuleValidationError(error)) {
+          return replyCustomFieldRuleValidationError(c, error)
+        }
+
+        throw error
+      }
     }
   )
 
