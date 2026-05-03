@@ -113,8 +113,7 @@ export function FindingDetailContent({
   function formatDateTime(value: Date | null | undefined) {
     if (!value) return "Not available"
 
-    const date = value instanceof Date ? value : new Date(value)
-    return date.toLocaleString()
+    return value.toLocaleString()
   }
 
   function CardPlaceholder() {

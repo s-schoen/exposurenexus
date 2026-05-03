@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { z } from "zod/v4"
 import {
   APIError,
   apiRequest,
+  parseArrayReply,
   parseErrorReply,
   parseObjectReply
 } from "./common.ts"
@@ -162,5 +164,31 @@ describe("api common helpers", () => {
         })
       )
     ).resolves.toEqual({ ok: true })
+  })
+
+  it("parses object replies with a schema", async () => {
+    await expect(
+      parseObjectReply(
+        jsonResponse({
+          correlationId: "api-test-request",
+          data: { ok: true }
+        }),
+        z.strictObject({ ok: z.boolean() })
+      )
+    ).resolves.toEqual({ ok: true })
+  })
+
+  it("parses array replies with a schema", async () => {
+    await expect(
+      parseArrayReply(
+        jsonResponse({
+          correlationId: "api-test-request",
+          data: {
+            items: [{ ok: true }]
+          }
+        }),
+        z.strictObject({ ok: z.boolean() })
+      )
+    ).resolves.toEqual([{ ok: true }])
   })
 })

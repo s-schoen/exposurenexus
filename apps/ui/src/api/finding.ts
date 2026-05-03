@@ -1,4 +1,5 @@
 import { keepPreviousData } from "@tanstack/react-query"
+import { findingSchema } from "@openvlp/types/model/finding"
 import type {
   CreateFinding,
   Finding,
@@ -23,7 +24,7 @@ async function listFindings(): Promise<Array<Finding>> {
     throw error
   }
 
-  return parseArrayReply<Finding>(response)
+  return parseArrayReply(response, findingSchema)
 }
 
 export async function deleteFinding(id: string): Promise<Finding> {
@@ -37,7 +38,7 @@ export async function deleteFinding(id: string): Promise<Finding> {
     throw error
   }
 
-  return parseObjectReply<Finding>(response)
+  return parseObjectReply(response, findingSchema)
 }
 
 async function getFindingByID(id: string): Promise<Finding> {
@@ -51,7 +52,7 @@ async function getFindingByID(id: string): Promise<Finding> {
     throw error
   }
 
-  return parseObjectReply<Finding>(response)
+  return parseObjectReply(response, findingSchema)
 }
 
 async function getFindingStats(): Promise<FindingStatistics> {
@@ -83,7 +84,7 @@ export async function createFinding(f: CreateFinding): Promise<Finding> {
     throw error
   }
 
-  return parseObjectReply<Finding>(response)
+  return parseObjectReply(response, findingSchema)
 }
 
 export async function updateFinding(f: Finding): Promise<Finding> {
@@ -111,7 +112,7 @@ export async function updateFinding(f: Finding): Promise<Finding> {
     throw error
   }
 
-  return parseObjectReply<Finding>(response)
+  return parseObjectReply(response, findingSchema)
 }
 
 export async function uploadFindingFile(type: string, file: File) {

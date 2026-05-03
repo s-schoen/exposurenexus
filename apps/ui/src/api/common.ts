@@ -3,6 +3,7 @@ import type {
   APIErrorReply,
   APISingleDataReply
 } from "@openvlp/types/api"
+import type { z } from "zod/v4"
 import { env } from "@/env.ts"
 
 export const DEFAULT_QUERY_STALE_TIME = 1000 * 60 * 5
@@ -90,15 +91,25 @@ export async function parseErrorReply(r: Response): Promise<Error> {
 }
 
 export async function parseArrayReply<T extends object>(
-  r: Response
+  r: Response,
+  schema?: z.ZodType<T>
 ): Promise<Array<T>> {
   const parsed = (await r.json()) as APIArrayDataReply<T>
-  return parsed.data.items
+  if (!schema) {
+    return parsed.data.items
+  }
+
+  return parsed.data.items.map((item) => schema.parse(item))
 }
 
 export async function parseObjectReply<T extends object>(
-  r: Response
+  r: Response,
+  schema?: z.ZodType<T>
 ): Promise<T> {
   const parsed = (await r.json()) as APISingleDataReply<T>
-  return parsed.data
+  if (!schema) {
+    return parsed.data
+  }
+
+  return schema.parse(parsed.data)
 }

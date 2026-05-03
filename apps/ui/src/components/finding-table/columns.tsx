@@ -20,35 +20,29 @@ function FindingStatusBadge({ status }: { status: FindingStatus }) {
   )
 }
 
-function getDateTimestamp(value: Date | string | null | undefined) {
+function getDateTimestamp(value: Date | null | undefined) {
   if (!value) {
     return 0
   }
 
-  return new Date(value).getTime()
+  return value.getTime()
 }
 
 function compareDateValues(
-  left: Date | string | null | undefined,
-  right: Date | string | null | undefined
+  left: Date | null | undefined,
+  right: Date | null | undefined
 ) {
   return getDateTimestamp(left) - getDateTimestamp(right)
 }
 
-function FindingDateCell({
-  value
-}: {
-  value: Date | string | null | undefined
-}) {
+function FindingDateCell({ value }: { value: Date | null | undefined }) {
   if (!value) {
     return <span className="text-muted-foreground">Not available</span>
   }
 
-  const date = new Date(value)
-
   return (
     <span className="whitespace-nowrap font-medium text-foreground">
-      {date.toLocaleString()}
+      {value.toLocaleString()}
     </span>
   )
 }
