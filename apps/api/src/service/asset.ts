@@ -6,7 +6,7 @@ import {
   type AssetCustomFieldValueLiteral,
   type CreateAssetCustomFieldDefinition,
   type AssetWithCustomFields,
-  AssetCustomFieldRuleViolationCode,
+  AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   AssetType,
   type CreateAsset,
@@ -37,18 +37,18 @@ function isValidValueForDefinition(
 function customFieldRuleViolationMessage(
   violation: AssetCustomFieldRuleViolation
 ): string {
-  switch (violation.code) {
-    case AssetCustomFieldRuleViolationCode.RequiredDefaultMissing:
+  switch (violation.reason) {
+    case AssetCustomFieldRuleViolationReason.RequiredDefaultMissing:
       return "required custom fields must define a default value"
-    case AssetCustomFieldRuleViolationCode.TextDefaultMustBeString:
+    case AssetCustomFieldRuleViolationReason.TextDefaultMustBeString:
       return "text custom field default must be a string"
-    case AssetCustomFieldRuleViolationCode.NumberDefaultMustBeNumber:
+    case AssetCustomFieldRuleViolationReason.NumberDefaultMustBeNumber:
       return "number custom field default must be a number"
-    case AssetCustomFieldRuleViolationCode.SelectDefaultMustBeString:
+    case AssetCustomFieldRuleViolationReason.SelectDefaultMustBeString:
       return "select custom field default must be a string"
-    case AssetCustomFieldRuleViolationCode.SelectDefaultMustMatchOption:
+    case AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption:
       return "select custom field default must match an option value"
-    case AssetCustomFieldRuleViolationCode.SelectOptionValuesMustBeUnique:
+    case AssetCustomFieldRuleViolationReason.SelectOptionValuesMustBeUnique:
       return "select custom field options must be unique"
   }
 }

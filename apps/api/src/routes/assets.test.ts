@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
 import {
-  AssetCustomFieldRuleViolationCode,
+  AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
   AssetType
@@ -424,7 +424,7 @@ describe("asset routes", () => {
     expect(assetService.createCustomFieldDefinition).not.toHaveBeenCalled()
   })
 
-  it("returns custom field rule codes for create validation failures", async () => {
+  it("returns custom field rule reasons for create validation failures", async () => {
     const requestId = "assets-custom-fields-create-rule-failure-request"
     const payload = {
       key: "category",
@@ -434,7 +434,7 @@ describe("asset routes", () => {
       defaultValue: null
     }
     const violation = {
-      code: AssetCustomFieldRuleViolationCode.RequiredDefaultMissing,
+      reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
       path: ["defaultValue"]
     }
 
@@ -469,7 +469,7 @@ describe("asset routes", () => {
       correlationId: requestId,
       status: 400,
       error: "required custom fields must define a default value",
-      code: AssetCustomFieldRuleViolationCode.RequiredDefaultMissing
+      reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing
     })
   })
 
@@ -517,7 +517,7 @@ describe("asset routes", () => {
     })
   })
 
-  it("returns custom field rule codes for update validation failures", async () => {
+  it("returns custom field rule reasons for update validation failures", async () => {
     const requestId = "assets-custom-fields-update-rule-failure-request"
     const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
     const payload = {
@@ -529,7 +529,7 @@ describe("asset routes", () => {
       options: [{ value: "prod", label: "Production" }]
     }
     const violation = {
-      code: AssetCustomFieldRuleViolationCode.SelectDefaultMustMatchOption,
+      reason: AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption,
       path: ["defaultValue"]
     }
 
@@ -565,7 +565,7 @@ describe("asset routes", () => {
       correlationId: requestId,
       status: 400,
       error: "select custom field default must match an option value",
-      code: AssetCustomFieldRuleViolationCode.SelectDefaultMustMatchOption
+      reason: AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption
     })
   })
 

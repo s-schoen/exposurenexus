@@ -5,7 +5,7 @@ import { z } from "zod/v4"
 import {
   type AssetCustomFieldDefinition,
   type AssetCustomFieldRuleViolation,
-  AssetCustomFieldRuleViolationCode,
+  AssetCustomFieldRuleViolationReason,
   createAssetCustomFieldDefinitionSchema
 } from "@openvlp/types/model/asset"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
@@ -38,8 +38,8 @@ const fieldIdParamValidator = zValidator(
   z.object({ fieldId: z.uuidv4() })
 )
 
-const assetCustomFieldRuleViolationCodes = new Set<string>(
-  Object.values(AssetCustomFieldRuleViolationCode)
+const assetCustomFieldRuleViolationReasons = new Set<string>(
+  Object.values(AssetCustomFieldRuleViolationReason)
 )
 
 function isAssetCustomFieldRuleViolation(
@@ -49,9 +49,10 @@ function isAssetCustomFieldRuleViolation(
     return false
   }
 
-  const code = (cause as { code?: unknown }).code
+  const reason = (cause as { reason?: unknown }).reason
   return (
-    typeof code === "string" && assetCustomFieldRuleViolationCodes.has(code)
+    typeof reason === "string" &&
+    assetCustomFieldRuleViolationReasons.has(reason)
   )
 }
 
@@ -75,7 +76,7 @@ function replyCustomFieldRuleValidationError(
     correlationId,
     status: error.status,
     error: error.message,
-    code: error.cause.code
+    reason: error.cause.reason
   })
 }
 

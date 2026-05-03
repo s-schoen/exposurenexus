@@ -192,7 +192,7 @@ export type UpdateAssetCustomFieldAssociations = z.infer<
   typeof updateAssetCustomFieldAssociationsSchema
 >
 
-export enum AssetCustomFieldRuleViolationCode {
+export enum AssetCustomFieldRuleViolationReason {
   RequiredDefaultMissing = "required_default_missing",
   TextDefaultMustBeString = "text_default_must_be_string",
   NumberDefaultMustBeNumber = "number_default_must_be_number",
@@ -202,7 +202,7 @@ export enum AssetCustomFieldRuleViolationCode {
 }
 
 export interface AssetCustomFieldRuleViolation {
-  code: AssetCustomFieldRuleViolationCode
+  reason: AssetCustomFieldRuleViolationReason
   path: ReadonlyArray<string | number>
 }
 
@@ -226,7 +226,7 @@ export function validateAssetCustomFieldDefinitionRules(
   if (definition.required && defaultValue === null) {
     return [
       {
-        code: AssetCustomFieldRuleViolationCode.RequiredDefaultMissing,
+        reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
         path: ["defaultValue"]
       }
     ]
@@ -237,7 +237,7 @@ export function validateAssetCustomFieldDefinitionRules(
       if (defaultValue !== null && typeof defaultValue !== "string") {
         return [
           {
-            code: AssetCustomFieldRuleViolationCode.TextDefaultMustBeString,
+            reason: AssetCustomFieldRuleViolationReason.TextDefaultMustBeString,
             path: ["defaultValue"]
           }
         ]
@@ -247,7 +247,8 @@ export function validateAssetCustomFieldDefinitionRules(
       if (defaultValue !== null && typeof defaultValue !== "number") {
         return [
           {
-            code: AssetCustomFieldRuleViolationCode.NumberDefaultMustBeNumber,
+            reason:
+              AssetCustomFieldRuleViolationReason.NumberDefaultMustBeNumber,
             path: ["defaultValue"]
           }
         ]
@@ -259,14 +260,15 @@ export function validateAssetCustomFieldDefinitionRules(
 
       if (hasDuplicateAssetCustomFieldValues(optionValues)) {
         violations.push({
-          code: AssetCustomFieldRuleViolationCode.SelectOptionValuesMustBeUnique,
+          reason:
+            AssetCustomFieldRuleViolationReason.SelectOptionValuesMustBeUnique,
           path: ["options"]
         })
       }
 
       if (defaultValue !== null && typeof defaultValue !== "string") {
         violations.push({
-          code: AssetCustomFieldRuleViolationCode.SelectDefaultMustBeString,
+          reason: AssetCustomFieldRuleViolationReason.SelectDefaultMustBeString,
           path: ["defaultValue"]
         })
         return violations
@@ -274,7 +276,8 @@ export function validateAssetCustomFieldDefinitionRules(
 
       if (defaultValue !== null && !optionValues.includes(defaultValue)) {
         violations.push({
-          code: AssetCustomFieldRuleViolationCode.SelectDefaultMustMatchOption,
+          reason:
+            AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption,
           path: ["defaultValue"]
         })
       }
