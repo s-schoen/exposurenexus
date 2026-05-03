@@ -1,5 +1,6 @@
 import { z } from "zod/v4"
 import { vulnerabilitySchema, VulnerabilitySeverity } from "./vulnerability.js"
+import { dateSchema } from "./date.js"
 
 export enum FindingSource {
   Manual = "manual",
@@ -25,14 +26,14 @@ export const findingInternalSchema = z.strictObject({
   source: z.string().nonempty(),
   evidence: z.string().nullable(),
   mitigation: z.string().nullable(),
-  firstSeen: z.date().nullable(),
-  lastSeen: z.date().nullable(),
+  firstSeen: dateSchema.nullable(),
+  lastSeen: dateSchema.nullable(),
   fingerprint: z.string(),
   assetId: z.uuidv4(),
   createdBy: z.uuidv4(),
   updatedBy: z.uuidv4(),
-  createdAt: z.date(),
-  updatedAt: z.date()
+  createdAt: dateSchema,
+  updatedAt: dateSchema
 })
 
 export const findingSchema = findingInternalSchema.extend({
