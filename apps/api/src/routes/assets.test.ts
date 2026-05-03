@@ -26,6 +26,7 @@ describe("asset routes", () => {
     listAllWithCustomFields: vi.fn(),
     getByID: vi.fn(),
     create: vi.fn(),
+    updateOwnerByID: vi.fn(),
     deleteByID: vi.fn(),
     listCustomFieldDefinitions: vi.fn(),
     getCustomFieldDefinitionByID: vi.fn(),
@@ -1287,6 +1288,155 @@ describe("asset routes", () => {
 
     expect(response.status).toBe(400)
     expect(assetService.create).not.toHaveBeenCalled()
+  })
+
+  it("updates an asset owner", async () => {
+    const requestId = "assets-owner-update-request"
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
+    const updatedAsset = {
+      id: assetId,
+      name: "worker.openvlp.local",
+      type: AssetType.Host,
+      ownerId
+    }
+
+    assetService.updateOwnerByID.mockResolvedValue(updatedAsset)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/assets/${assetId}/owner`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify({ ownerId })
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      asset: ["write"]
+    })
+    expect(assetService.updateOwnerByID).toHaveBeenCalledWith(assetId, ownerId)
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: updatedAsset
+    })
+  })
+
+  it("clears an asset owner", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const updatedAsset = {
+      id: assetId,
+      name: "worker.openvlp.local",
+      type: AssetType.Host,
+      ownerId: null
+    }
+
+    assetService.updateOwnerByID.mockResolvedValue(updatedAsset)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/assets/${assetId}/owner`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "assets-owner-clear-request"
+      },
+      body: JSON.stringify({ ownerId: null })
+    })
+
+    expect(response.status).toBe(200)
+    expect(assetService.updateOwnerByID).toHaveBeenCalledWith(assetId, null)
+  })
+
+  it("returns 403 when updating an asset owner without write permission", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+
+    userHasPermission.mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/assets/${assetId}/owner`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "assets-owner-update-forbidden-request"
+      },
+      body: JSON.stringify({ ownerId: null })
+    })
+
+    expect(response.status).toBe(403)
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      asset: ["write"]
+    })
+    expect(assetService.updateOwnerByID).not.toHaveBeenCalled()
+  })
+
+  it("rejects invalid asset owner update bodies before calling the service", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/assets/${assetId}/owner`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "assets-owner-invalid-update-request"
+      },
+      body: JSON.stringify({ ownerId: "not-a-user-id" })
+    })
+
+    expect(response.status).toBe(400)
+    expect(assetService.updateOwnerByID).not.toHaveBeenCalled()
+  })
+
+  it("returns 404 when updating a missing asset owner", async () => {
+    const requestId = "assets-owner-update-not-found-request"
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+
+    assetService.updateOwnerByID.mockResolvedValue(null)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/assets/${assetId}/owner`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify({ ownerId: null })
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(assetService.updateOwnerByID).toHaveBeenCalledWith(assetId, null)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: `asset with id ${assetId} does not exist`
+    })
   })
 
   it("deletes an asset by id", async () => {

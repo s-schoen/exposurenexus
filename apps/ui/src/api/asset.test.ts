@@ -18,7 +18,8 @@ import {
   listAssetCustomFieldValues,
   listAssetsWithCustomFields,
   listAvailableAssetCustomFieldDefinitions,
-  updateAssetCustomFieldValues
+  updateAssetCustomFieldValues,
+  updateAssetOwner
 } from "./asset.ts"
 import type {
   Asset,
@@ -207,6 +208,37 @@ describe("asset custom field value api", () => {
       type: asset.type,
       ownerId
     })
+  })
+
+  it("updates asset owners", async () => {
+    const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
+    const updatedAsset = {
+      ...asset,
+      ownerId
+    }
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({ data: updatedAsset }))
+
+    await expect(updateAssetOwner(asset.id, ownerId)).resolves.toEqual(
+      updatedAsset
+    )
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:3001/api/assets/${asset.id}/owner`,
+      expect.objectContaining({
+        credentials: "include",
+        method: "PUT"
+      })
+    )
+    expect(requestJsonBody()).toEqual({ ownerId })
+  })
+
+  it("clears asset owners", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ data: asset }))
+
+    await expect(updateAssetOwner(asset.id, null)).resolves.toEqual(asset)
+
+    expect(requestJsonBody()).toEqual({ ownerId: null })
   })
 
   it("deletes assets", async () => {

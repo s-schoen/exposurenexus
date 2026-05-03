@@ -6,7 +6,8 @@ import type {
   AssetType,
   AssetWithCustomFields,
   UpdateAssetCustomFieldAssociations,
-  UpdateAssetCustomFieldValues
+  UpdateAssetCustomFieldValues,
+  UpdateAssetOwner
 } from "@openvlp/types/model/asset"
 import {
   DEFAULT_QUERY_STALE_TIME,
@@ -215,6 +216,29 @@ export async function createAsset(
     body: JSON.stringify({
       name,
       type,
+      ownerId
+    })
+  })
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response)
+    console.error(error)
+    throw error
+  }
+
+  return parseObjectReply<Asset>(response)
+}
+
+export async function updateAssetOwner(
+  assetId: string,
+  ownerId: UpdateAssetOwner["ownerId"]
+): Promise<Asset> {
+  const response = await apiRequest(`/api/assets/${assetId}/owner`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
       ownerId
     })
   })

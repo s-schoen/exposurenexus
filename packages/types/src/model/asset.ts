@@ -33,6 +33,10 @@ export const createAssetSchema = assetSchema
     ownerId: assetSchema.shape.ownerId.optional()
   })
 
+export const updateAssetOwnerSchema = z.strictObject({
+  ownerId: assetSchema.shape.ownerId
+})
+
 export const assetCustomFieldKeySchema = z
   .string()
   .trim()
@@ -173,6 +177,7 @@ export const updateAssetCustomFieldAssociationsSchema = z.strictObject({
 export type Asset = z.infer<typeof assetSchema>
 export type AssetWithCustomFields = z.infer<typeof assetWithCustomFieldsSchema>
 export type CreateAsset = z.infer<typeof createAssetSchema>
+export type UpdateAssetOwner = z.infer<typeof updateAssetOwnerSchema>
 export type AssetCustomFieldOption = z.infer<
   typeof assetCustomFieldOptionSchema
 >

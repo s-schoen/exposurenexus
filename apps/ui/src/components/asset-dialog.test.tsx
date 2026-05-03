@@ -89,8 +89,14 @@ describe("AssetDialog", () => {
 
     expect(nameInput).toBeInstanceOf(HTMLInputElement)
     expect((nameInput as HTMLInputElement).value).toBe("")
-    expect(screen.getByLabelText(/^type$/i).value).toBe(AssetType.Host)
-    expect(screen.getByLabelText(/^owner$/i).value).toBe("__no_owner__")
+    expect(screen.getByLabelText(/^type$/i)).toHaveProperty(
+      "value",
+      AssetType.Host
+    )
+    expect(screen.getByLabelText(/^owner$/i)).toHaveProperty(
+      "value",
+      "__no_owner__"
+    )
   })
 
   it("resolves null when cancelled", () => {
