@@ -34,7 +34,17 @@ export default defineConfig({
   },
   test: {
     coverage: {
-      exclude: ["src/components/ui/**"]
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        "src/**/*.test.{ts,tsx}",
+        "src/**/*.stories.{ts,tsx}",
+        "src/**/*.d.ts",
+        "src/components/ui/**",
+        "src/integrations/tanstack-query/devtools.tsx",
+        "src/main.tsx",
+        "src/reportWebVitals.ts",
+        "src/routeTree.gen.ts"
+      ]
     },
     projects: [
       {
