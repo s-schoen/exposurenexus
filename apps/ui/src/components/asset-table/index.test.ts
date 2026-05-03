@@ -22,26 +22,38 @@ import {
   parseAssetCustomFieldFiltersFromSearch
 } from "@/components/asset-table/index.tsx"
 
+function getColumnFilterFn(column: { filterFn?: unknown } | undefined) {
+  if (!column || typeof column.filterFn !== "function") {
+    throw new Error("Expected column to define a filter function")
+  }
+
+  return column.filterFn as (
+    row: unknown,
+    columnId: string,
+    filterValue: unknown
+  ) => boolean
+}
+
 describe("asset table custom field grouping", () => {
   it("serializes custom field filters for route search params", () => {
-    const searchParams = createAssetCustomFieldSearchParams({
-      globalFilter: "",
-      selectFilters: {
-        [getAssetCustomFieldColumnId(
-          "7f732d2b-8985-4551-b45d-0eaf527a1577"
-        )]: ["production"]
+    const searchParams = createAssetCustomFieldSearchParams(
+      {
+        globalFilter: "",
+        selectFilters: {
+          [getAssetCustomFieldColumnId("7f732d2b-8985-4551-b45d-0eaf527a1577")]:
+            ["production"]
+        },
+        textFilters: {
+          [getAssetCustomFieldColumnId("8f0365b2-1bbb-46e2-b1f4-06300ade23f3")]:
+            "internet"
+        },
+        numberFilters: {
+          [getAssetCustomFieldColumnId("2808e68c-9a48-4b50-9a2d-d1df4c83ff06")]:
+            "3"
+        }
       },
-      textFilters: {
-        [getAssetCustomFieldColumnId(
-          "8f0365b2-1bbb-46e2-b1f4-06300ade23f3"
-        )]: "internet"
-      },
-      numberFilters: {
-        [getAssetCustomFieldColumnId(
-          "2808e68c-9a48-4b50-9a2d-d1df4c83ff06"
-        )]: "3"
-      }
-    }, ASSET_CUSTOM_FIELD_FIXTURES)
+      ASSET_CUSTOM_FIELD_FIXTURES
+    )
 
     expect(searchParams).toEqual({
       category: "internet",
@@ -80,19 +92,18 @@ describe("asset table custom field grouping", () => {
       )
     ).toEqual({
       select: {
-        [getAssetCustomFieldColumnId(
-          "7f732d2b-8985-4551-b45d-0eaf527a1577"
-        )]: ["production", "staging"]
+        [getAssetCustomFieldColumnId("7f732d2b-8985-4551-b45d-0eaf527a1577")]: [
+          "production",
+          "staging"
+        ]
       },
       text: {
-        [getAssetCustomFieldColumnId(
-          "8f0365b2-1bbb-46e2-b1f4-06300ade23f3"
-        )]: "internet"
+        [getAssetCustomFieldColumnId("8f0365b2-1bbb-46e2-b1f4-06300ade23f3")]:
+          "internet"
       },
       number: {
-        [getAssetCustomFieldColumnId(
-          "2808e68c-9a48-4b50-9a2d-d1df4c83ff06"
-        )]: "3"
+        [getAssetCustomFieldColumnId("2808e68c-9a48-4b50-9a2d-d1df4c83ff06")]:
+          "3"
       }
     })
   })
@@ -230,5 +241,139 @@ describe("asset table custom field grouping", () => {
     }
 
     expect(environmentColumn.accessorFn(asset, 0)).toBe("Production")
+  })
+
+  it("filters text custom fields case-insensitively and ignores empty filters", () => {
+    const categoryDefinition = ASSET_CUSTOM_FIELD_FIXTURES.find(
+      (definition) => definition.name === "Category"
+    )!
+    const categoryColumn = createAssetTableColumns(
+      ASSET_CUSTOM_FIELD_FIXTURES
+    ).find(
+      (column) =>
+        column.id === getAssetCustomFieldColumnId(categoryDefinition.id)
+    )
+    if (!categoryColumn) {
+      throw new Error("Expected category custom field column")
+    }
+    const filterFn = getColumnFilterFn(categoryColumn)
+    const row = {
+      original: {
+        id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
+        name: "api-01",
+        type: AssetType.Host,
+        customFields: [
+          {
+            fieldId: categoryDefinition.id,
+            key: categoryDefinition.key,
+            name: categoryDefinition.name,
+            source: AssetCustomFieldValueSource.Asset,
+            type: AssetCustomFieldType.Text,
+            value: "Internet-facing"
+          }
+        ]
+      }
+    }
+
+    expect(filterFn(row, categoryColumn.id!, "INTERNET")).toBe(true)
+    expect(filterFn(row, categoryColumn.id!, "internal")).toBe(false)
+    expect(filterFn(row, categoryColumn.id!, "")).toBe(true)
+  })
+
+  it("filters number custom fields by exact numeric value", () => {
+    const priorityDefinition = ASSET_CUSTOM_FIELD_FIXTURES.find(
+      (definition) => definition.name === "Priority"
+    )!
+    const priorityColumn = createAssetTableColumns(
+      ASSET_CUSTOM_FIELD_FIXTURES
+    ).find(
+      (column) =>
+        column.id === getAssetCustomFieldColumnId(priorityDefinition.id)
+    )
+    if (!priorityColumn) {
+      throw new Error("Expected priority custom field column")
+    }
+    const filterFn = getColumnFilterFn(priorityColumn)
+    const row = {
+      original: {
+        id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
+        name: "api-01",
+        type: AssetType.Host,
+        customFields: [
+          {
+            fieldId: priorityDefinition.id,
+            key: priorityDefinition.key,
+            name: priorityDefinition.name,
+            source: AssetCustomFieldValueSource.Asset,
+            type: AssetCustomFieldType.Number,
+            value: 3
+          }
+        ]
+      }
+    }
+
+    expect(filterFn(row, priorityColumn.id!, "3")).toBe(true)
+    expect(filterFn(row, priorityColumn.id!, "4")).toBe(false)
+    expect(filterFn(row, priorityColumn.id!, "not-a-number")).toBe(false)
+    expect(filterFn(row, priorityColumn.id!, "")).toBe(true)
+  })
+
+  it("filters select custom fields including empty values", () => {
+    const environmentDefinition = ASSET_CUSTOM_FIELD_FIXTURES.find(
+      (
+        definition
+      ): definition is Extract<
+        AssetCustomFieldDefinition,
+        { type: AssetCustomFieldType.Select }
+      > =>
+        definition.name === "Environment" &&
+        definition.type === AssetCustomFieldType.Select
+    )!
+    const environmentColumn = createAssetTableColumns(
+      ASSET_CUSTOM_FIELD_FIXTURES
+    ).find(
+      (column) =>
+        column.id === getAssetCustomFieldColumnId(environmentDefinition.id)
+    )
+    if (!environmentColumn) {
+      throw new Error("Expected environment custom field column")
+    }
+    const filterFn = getColumnFilterFn(environmentColumn)
+    const noneOptionValue = environmentColumn.meta?.options?.find(
+      (option) => option.label === "None"
+    )?.value
+    const row = {
+      original: {
+        id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
+        name: "api-01",
+        type: AssetType.Host,
+        customFields: [
+          {
+            fieldId: environmentDefinition.id,
+            key: environmentDefinition.key,
+            name: environmentDefinition.name,
+            source: AssetCustomFieldValueSource.Asset,
+            type: environmentDefinition.type,
+            value: "production",
+            options: environmentDefinition.options
+          }
+        ]
+      }
+    }
+    const emptyRow = {
+      original: {
+        id: "08488dd1-4f23-445b-81e5-74e76361caa0",
+        name: "worker-01",
+        type: AssetType.Host,
+        customFields: []
+      }
+    }
+
+    expect(filterFn(row, environmentColumn.id!, ["production"])).toBe(true)
+    expect(filterFn(row, environmentColumn.id!, ["staging"])).toBe(false)
+    expect(filterFn(row, environmentColumn.id!, [])).toBe(true)
+    expect(filterFn(emptyRow, environmentColumn.id!, [noneOptionValue])).toBe(
+      true
+    )
   })
 })
