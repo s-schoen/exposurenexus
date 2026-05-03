@@ -104,9 +104,7 @@ export const AssetDialog = ({
                       value={field.state.value}
                       name={field.name}
                       onValueChange={(e) => {
-                        field.handleChange(
-                          AssetType[e as unknown as keyof typeof AssetType]
-                        )
+                        field.handleChange(e as AssetType)
                       }}
                     >
                       <SelectTrigger>
