@@ -7,9 +7,13 @@ import {
 import {
   assignAssetCustomFields,
   clearAssetCustomFieldValue,
+  createAsset,
+  createAssetByIDQueryOptions,
   createAssetCustomFieldValuesQueryOptions,
   createAvailableAssetCustomFieldDefinitionsQueryOptions,
+  createListAssetsQueryOptions,
   createListAssetsWithCustomFieldsQueryOptions,
+  deleteAsset,
   detachAssetCustomField,
   listAssetCustomFieldValues,
   listAssetsWithCustomFields,
@@ -17,6 +21,7 @@ import {
   updateAssetCustomFieldValues
 } from "./asset.ts"
 import type {
+  Asset,
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
   AssetWithCustomFields,
@@ -51,6 +56,11 @@ function requestJsonBody(): unknown {
 
 const assetId = "0bb9b410-7763-4e7a-9942-b752367fd63d"
 const fieldId = "33d63e64-8f2b-4f88-b26f-fb090b4366ff"
+const asset: Asset = {
+  id: assetId,
+  name: "api.openvlp.local",
+  type: AssetType.Host
+}
 const definition: AssetCustomFieldDefinition = {
   id: fieldId,
   key: "environment",
@@ -99,6 +109,94 @@ afterEach(() => {
 })
 
 describe("asset custom field value api", () => {
+  it("creates list query options and lists assets", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          items: [asset]
+        }
+      })
+    )
+
+    const queryOptions = createListAssetsQueryOptions()
+    const queryFn = queryOptions.queryFn as () => Promise<Array<Asset>>
+    const assets = await queryFn()
+
+    expect(queryOptions.queryKey).toEqual(["assets"])
+    expect(assets).toEqual([asset])
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:3001/api/assets",
+      expect.objectContaining({
+        credentials: "include",
+        method: "GET"
+      })
+    )
+  })
+
+  it("creates detail query options and gets assets by id", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: asset
+      })
+    )
+
+    const queryOptions = createAssetByIDQueryOptions(assetId)
+    const queryFn = queryOptions.queryFn as () => Promise<Asset>
+    const result = await queryFn()
+
+    expect(queryOptions.queryKey).toEqual(["asset", assetId])
+    expect(result).toEqual(asset)
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:3001/api/assets/${assetId}`,
+      expect.objectContaining({
+        credentials: "include",
+        method: "GET"
+      })
+    )
+  })
+
+  it("creates assets with a JSON request body", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: asset
+      })
+    )
+
+    await expect(createAsset(asset.name, asset.type)).resolves.toEqual(asset)
+
+    const headers = requestInit().headers as Headers
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:3001/api/assets",
+      expect.objectContaining({
+        credentials: "include",
+        method: "POST"
+      })
+    )
+    expect(headers.get("Content-Type")).toBe("application/json")
+    expect(requestJsonBody()).toEqual({
+      name: asset.name,
+      type: asset.type
+    })
+  })
+
+  it("deletes assets", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: asset
+      })
+    )
+
+    await expect(deleteAsset(assetId)).resolves.toEqual(asset)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:3001/api/assets/${assetId}`,
+      expect.objectContaining({
+        credentials: "include",
+        method: "DELETE"
+      })
+    )
+  })
+
   it("lists assets with custom field values", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
@@ -279,6 +377,20 @@ describe("asset custom field value api", () => {
       statusCode: 400,
       message: "invalid value for asset custom field environment"
     })
+  })
+
+  it("throws api errors for failed asset requests", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: "Asset request failed",
+          reason: "not found"
+        },
+        { status: 404 }
+      )
+    )
+
+    await expect(deleteAsset(assetId)).rejects.toThrow("Asset request failed")
   })
 
   it("creates query options for asset custom field values", () => {
