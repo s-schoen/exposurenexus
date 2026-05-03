@@ -73,6 +73,7 @@ interface AssetRepository {
   getByID(id: string): Promise<Asset | null>
   getByName(name: string, type?: AssetType): Promise<Asset | null>
   create(asset: Asset): Promise<Asset>
+  updateOwnerByID(id: string, ownerId: Asset["ownerId"]): Promise<Asset | null>
   deleteByID(id: string): Promise<Asset | null>
   listCustomFieldDefinitions(): Promise<AssetCustomFieldDefinition[]>
   listAvailableCustomFieldDefinitions(
@@ -201,6 +202,36 @@ export function createAssetService({
         logger.error(error, `failed to create new asset ${asset.name}`)
         throw new HTTPException(500, {
           message: "failed to create asset"
+        })
+      }
+    },
+
+    async updateOwnerByID(
+      id: string,
+      ownerId: Asset["ownerId"]
+    ): Promise<Asset | null> {
+      try {
+        if (ownerId) {
+          const owner = await userProfileService.getByID(ownerId)
+
+          if (!owner) {
+            throw badRequest("asset owner does not exist")
+          }
+        }
+
+        const updated = await assetRepository.updateOwnerByID(id, ownerId)
+        if (!updated) {
+          logger.debug(`cannot update asset ${id} owner: not found`)
+        }
+        return updated
+      } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error
+        }
+
+        logger.error(error, `failed to update asset ${id} owner`)
+        throw new HTTPException(500, {
+          message: "failed to update asset owner"
         })
       }
     },

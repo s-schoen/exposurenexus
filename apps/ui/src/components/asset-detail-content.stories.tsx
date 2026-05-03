@@ -25,6 +25,7 @@ type AssetDetailStoryArgs = {
     | "empty"
     | "loading-custom-fields"
     | "error-custom-fields"
+    | "error-owner-update"
 }
 
 const ASSET: Asset = {
@@ -41,6 +42,14 @@ const USERS: Array<UserProfile> = [
     displayName: "Robin Owner",
     email: "robin@example.com",
     enabled: false,
+    roleIds: []
+  },
+  {
+    id: "bb9f2b64-2f45-4bb8-9f16-659d633cb398",
+    username: "morgan",
+    displayName: "Morgan Owner",
+    email: "morgan@example.com",
+    enabled: true,
     roleIds: []
   }
 ]
@@ -118,6 +127,7 @@ function AssetDetailContentStoryShell({
   const customFieldsRef = useRef<Array<AssetCustomFieldValue>>(
     effectiveInitialCustomFields
   )
+  const assetRef = useRef<Asset>(asset)
   const availableCustomFieldsRef = useRef<Array<AssetCustomFieldDefinition>>(
     availableCustomFields
   )
@@ -134,7 +144,11 @@ function AssetDetailContentStoryShell({
     client.setQueryData(["asset", asset.id], asset)
     client.setQueryData(["users"], USERS)
 
-    if (scenario === "success" || scenario === "empty") {
+    if (
+      scenario === "success" ||
+      scenario === "empty" ||
+      scenario === "error-owner-update"
+    ) {
       client.setQueryData(
         ["assets", asset.id, "custom-fields"],
         effectiveInitialCustomFields
@@ -164,7 +178,10 @@ function AssetDetailContentStoryShell({
 
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch
+    const assetPath = `/api/assets/${asset.id}`
+    const ownerPath = `${assetPath}/owner`
     const customFieldPath = `/api/assets/${asset.id}/custom-fields`
+    assetRef.current = asset
     customFieldsRef.current = effectiveInitialCustomFields
     availableCustomFieldsRef.current =
       scenario === "empty"
@@ -178,7 +195,36 @@ function AssetDetailContentStoryShell({
       const requestUrl = input instanceof Request ? input.url : String(input)
       const method = (init?.method ?? "GET").toUpperCase()
 
+      if (requestUrl.includes(ownerPath) && method === "PUT") {
+        if (scenario === "error-owner-update") {
+          return new Response(
+            JSON.stringify({ error: "Owner update failed" }),
+            {
+              status: 400,
+              headers: {
+                "Content-Type": "application/json"
+              }
+            }
+          )
+        }
+
+        const body = JSON.parse(
+          String(init?.body ?? '{"ownerId":null}')
+        ) as Pick<Asset, "ownerId">
+        assetRef.current = {
+          ...assetRef.current,
+          ownerId: body.ownerId
+        }
+        queryClient.setQueryData(["asset", asset.id], assetRef.current)
+
+        return createAssetResponse(assetRef.current)
+      }
+
       if (!requestUrl.includes(customFieldPath)) {
+        if (requestUrl.includes(assetPath)) {
+          return createAssetResponse(assetRef.current)
+        }
+
         return originalFetch(input, init)
       }
 
@@ -306,6 +352,14 @@ function createAssetCustomFieldValuesResponse(
   customFields: Array<AssetCustomFieldValue>
 ): Response {
   return new Response(JSON.stringify({ data: { items: customFields } }), {
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
+}
+
+function createAssetResponse(asset: Asset): Response {
+  return new Response(JSON.stringify({ data: asset }), {
     headers: {
       "Content-Type": "application/json"
     }
@@ -478,5 +532,11 @@ export const LoadingCustomFields: Story = {
 export const CustomFieldsError: Story = {
   args: {
     scenario: "error-custom-fields"
+  }
+}
+
+export const OwnerUpdateError: Story = {
+  args: {
+    scenario: "error-owner-update"
   }
 }

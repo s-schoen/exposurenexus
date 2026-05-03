@@ -19,10 +19,11 @@ export type EditElement<T> =
     }
   | {
       type: "custom"
+      hideActions?: boolean
       render: (props: {
         value: T
         onChange: (value: T) => void
-        onCommit: () => void
+        onCommit: (value?: T) => void
         onCancel: () => void
       }) => ReactNode
     }
@@ -161,6 +162,10 @@ export function Inplace<T>({
   }
 
   function getIcons(): ReactNode {
+    if (editing && editElement.type === "custom" && editElement.hideActions) {
+      return null
+    }
+
     return (
       <div className="flex items-center gap-1">
         {editing ? (

@@ -17,8 +17,11 @@ import {
   createAssetByIDQueryOptions,
   createAssetCustomFieldValuesQueryOptions,
   createAvailableAssetCustomFieldDefinitionsQueryOptions,
+  createListAssetsQueryOptions,
+  createListAssetsWithCustomFieldsQueryOptions,
   detachAssetCustomField,
-  updateAssetCustomFieldValues
+  updateAssetCustomFieldValues,
+  updateAssetOwner
 } from "@/api/asset.ts"
 import { createListUsersQueryOptions } from "@/api/user.ts"
 import {
@@ -41,7 +44,11 @@ import { Button } from "@/components/ui/button.tsx"
 import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts"
 import { cn } from "@/lib/utils.ts"
 import { toastActionError } from "@/lib/action-error-toast.ts"
-import { UserLabel, createUserProfileById } from "@/components/user-label.tsx"
+import {
+  UserLabel,
+  createUserProfileById,
+  formatUserProfileReference
+} from "@/components/user-label.tsx"
 import {
   Popover,
   PopoverContent,
@@ -60,6 +67,8 @@ interface AssetDetailContentProps {
   assetId: string
   titleAction?: ReactNode
 }
+
+const noOwnerValue = "__no_owner__"
 
 export function getAssetCustomFieldDraftValue(
   field: AssetCustomFieldValue
@@ -84,7 +93,8 @@ export function AssetDetailContent({
   titleAction
 }: AssetDetailContentProps) {
   const queryClient = useQueryClient()
-  const asset = useQuery(createAssetByIDQueryOptions(assetId))
+  const assetQueryOptions = createAssetByIDQueryOptions(assetId)
+  const asset = useQuery(assetQueryOptions)
   const users = useQuery(createListUsersQueryOptions())
   const customFieldValuesQueryOptions =
     createAssetCustomFieldValuesQueryOptions(assetId)
@@ -115,6 +125,122 @@ export function AssetDetailContent({
         className={className}
       />
     )
+  }
+
+  function getAssetOwnerEditValue() {
+    return asset.data!.ownerId ?? noOwnerValue
+  }
+
+  function AssetOwnerPicker({
+    value,
+    onCancel,
+    onCommit
+  }: {
+    value: string
+    onCancel: () => void
+    onCommit: (value: string) => void
+  }) {
+    const [open, setOpen] = useState(false)
+    const ownerId = value === noOwnerValue ? null : value
+    const ownerLabel =
+      ownerId && users.isPending
+        ? "Loading owner"
+        : formatUserProfileReference(ownerId, userProfileById, {
+            emptyLabel: "No Owner",
+            unknownLabel: "Unknown Owner"
+          })
+
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          render={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              aria-label="Asset owner"
+              disabled={users.isPending}
+              className="max-w-full min-w-36 justify-between"
+            >
+              <span className="min-w-0 truncate">{ownerLabel}</span>
+            </Button>
+          }
+        />
+        <PopoverContent align="end" className="w-72 p-0">
+          <Command>
+            <CommandInput placeholder="Search owners..." />
+            <CommandList>
+              <CommandEmpty>No owners found</CommandEmpty>
+              <CommandGroup>
+                <CommandItem
+                  value={noOwnerValue}
+                  onSelect={() => {
+                    setOpen(false)
+                    onCommit(noOwnerValue)
+                  }}
+                >
+                  No Owner
+                </CommandItem>
+                {users.data?.map((user) => (
+                  <CommandItem
+                    key={user.id}
+                    value={`${user.displayName} ${user.username}`}
+                    onSelect={() => {
+                      setOpen(false)
+                      onCommit(user.id)
+                    }}
+                  >
+                    <div className="min-w-0">
+                      <span className="block truncate">{user.displayName}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {user.username}
+                      </span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          aria-label="Cancel asset owner edit"
+          title="Cancel"
+          onClick={onCancel}
+        >
+          <X />
+        </Button>
+      </Popover>
+    )
+  }
+
+  async function handleSaveAssetOwner(value: string) {
+    const ownerId = value === noOwnerValue ? null : value
+
+    if (asset.data!.ownerId === ownerId) {
+      return
+    }
+
+    try {
+      const updated = await updateAssetOwner(assetId, ownerId)
+
+      queryClient.setQueryData(assetQueryOptions.queryKey, updated)
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: assetQueryOptions.queryKey
+        }),
+        queryClient.invalidateQueries({
+          queryKey: createListAssetsQueryOptions().queryKey
+        }),
+        queryClient.invalidateQueries({
+          queryKey: createListAssetsWithCustomFieldsQueryOptions().queryKey
+        })
+      ])
+    } catch (error) {
+      toastActionError(error, "Failed to update asset owner")
+    }
   }
 
   async function handleSaveCustomFieldValue(
@@ -254,7 +380,27 @@ export function AssetDetailContent({
             label="Type"
             value={capitalizeFirstLetter(asset.data!.type)}
           />
-          <MetadataDetailRow label="Owner" value={<AssetOwnerText />} />
+          <MetadataDetailRow
+            label="Owner"
+            editable={{
+              value: getAssetOwnerEditValue(),
+              onSave: handleSaveAssetOwner,
+              displayElement: () => <AssetOwnerText />,
+              editElement: {
+                type: "custom",
+                hideActions: true,
+                render: ({ value, onCancel, onCommit }) => (
+                  <AssetOwnerPicker
+                    value={value}
+                    onCancel={onCancel}
+                    onCommit={onCommit}
+                  />
+                )
+              },
+              editOnClick: true,
+              showEditIcon: false
+            }}
+          />
         </div>
         <Separator />
         <AssetCustomFieldsSidebarSection

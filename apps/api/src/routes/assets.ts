@@ -8,6 +8,7 @@ import {
   type AssetCustomFieldValue,
   type AssetWithCustomFields,
   createAssetSchema,
+  updateAssetOwnerSchema,
   updateAssetCustomFieldAssociationsSchema,
   updateAssetCustomFieldValuesSchema
 } from "@openvlp/types/model/asset"
@@ -23,6 +24,10 @@ interface AssetRouteService extends AssetCustomFieldRouteService {
   listAllWithCustomFields(): Promise<AssetWithCustomFields[]>
   getByID(id: string): Promise<Asset | null>
   create(asset: typeof createAssetSchema._output): Promise<Asset>
+  updateOwnerByID(
+    id: string,
+    ownerId: typeof updateAssetOwnerSchema._output.ownerId
+  ): Promise<Asset | null>
   deleteByID(id: string): Promise<Asset | null>
   listCustomFieldValues(
     assetId: string
@@ -231,6 +236,27 @@ export function createAssetRoute(
       const body = c.req.valid("json")
       const createdAsset = await assetService.create(body)
       return replyObject(c, createdAsset, true)
+    }
+  )
+
+  asset.put(
+    "/:id/owner",
+    requireDomainPermission("asset", "write"),
+    idParamValidator,
+    zValidator("json", updateAssetOwnerSchema),
+    async (c) => {
+      const params = c.req.valid("param")
+      const body = c.req.valid("json")
+
+      const updatedAsset = await assetService.updateOwnerByID(
+        params.id,
+        body.ownerId
+      )
+      if (!updatedAsset) {
+        notFound("asset", params.id)
+      }
+
+      return replyObject(c, updatedAsset!)
     }
   )
 

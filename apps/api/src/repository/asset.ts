@@ -363,6 +363,22 @@ export function createAssetRepository(database: Kysely<Database>) {
       return createdAsset!
     },
 
+    async updateOwnerByID(
+      id: string,
+      ownerId: Asset["ownerId"]
+    ): Promise<Asset | null> {
+      const updatedAsset = await database
+        .updateTable("asset")
+        .set({
+          ownerId
+        })
+        .where("id", "=", id)
+        .returningAll()
+        .executeTakeFirst()
+
+      return updatedAsset ?? null
+    },
+
     async deleteByID(id: string): Promise<Asset | null> {
       const deletedAsset = await database
         .deleteFrom("asset")

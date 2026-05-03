@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   cleanup,
   fireEvent,
@@ -20,6 +20,14 @@ import {
 } from "@/components/asset-detail-content.tsx"
 import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts"
 
+const mocks = vi.hoisted(() => ({
+  toastActionError: vi.fn()
+}))
+
+vi.mock("@/lib/action-error-toast.ts", () => ({
+  toastActionError: mocks.toastActionError
+}))
+
 class ResizeObserverMock {
   observe() {}
 
@@ -35,8 +43,13 @@ const {
   CustomFieldsError,
   EmptyCustomFields,
   LoadingCustomFields,
+  OwnerUpdateError,
   WithCustomFields
 } = composeStories(stories)
+
+beforeEach(() => {
+  mocks.toastActionError.mockReset()
+})
 
 afterEach(() => {
   cleanup()
@@ -137,6 +150,26 @@ describe("AssetDetailContent stories", () => {
     })
   })
 
+  it("renders asset owners as user labels until owner editing starts", async () => {
+    render(<WithCustomFields />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Robin Owner").length).toBeGreaterThan(0)
+    })
+
+    expect(screen.queryByRole("button", { name: "Asset owner" })).toBeNull()
+    expect(
+      screen.queryByRole("button", { name: "Edit asset owner" })
+    ).toBeNull()
+
+    const ownerLabels = screen.getAllByText("Robin Owner")
+    fireEvent.click(ownerLabels[ownerLabels.length - 1])
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Asset owner" })).toBeTruthy()
+    })
+  })
+
   it("shows reset actions only for asset-specific values", async () => {
     render(<WithCustomFields />)
 
@@ -202,6 +235,62 @@ describe("AssetDetailContent stories", () => {
     await waitFor(() => {
       expect(screen.getAllByText("Lifecycle").length).toBeGreaterThan(0)
       expect(screen.getByRole("button", { name: "Remove Lifecycle" }))
+    })
+  })
+
+  it("changes asset owners from the sidebar", async () => {
+    render(<WithCustomFields />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Robin Owner").length).toBeGreaterThan(0)
+    })
+
+    const ownerLabels = screen.getAllByText("Robin Owner")
+    fireEvent.click(ownerLabels[ownerLabels.length - 1])
+    fireEvent.click(screen.getByRole("button", { name: "Asset owner" }))
+    fireEvent.click(await screen.findByText("Morgan Owner"))
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Asset owner" })).toBeNull()
+      expect(screen.getAllByText("Morgan Owner").length).toBeGreaterThan(0)
+    })
+  })
+
+  it("clears asset owners from the sidebar", async () => {
+    render(<WithCustomFields />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Robin Owner").length).toBeGreaterThan(0)
+    })
+
+    const ownerLabels = screen.getAllByText("Robin Owner")
+    fireEvent.click(ownerLabels[ownerLabels.length - 1])
+    fireEvent.click(screen.getByRole("button", { name: "Asset owner" }))
+    fireEvent.click(await screen.findByText("No Owner"))
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Asset owner" })).toBeNull()
+      expect(screen.getAllByText("No Owner").length).toBeGreaterThan(0)
+    })
+  })
+
+  it("shows an error when asset owner updates fail", async () => {
+    render(<OwnerUpdateError />)
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Robin Owner").length).toBeGreaterThan(0)
+    })
+
+    const ownerLabels = screen.getAllByText("Robin Owner")
+    fireEvent.click(ownerLabels[ownerLabels.length - 1])
+    fireEvent.click(screen.getByRole("button", { name: "Asset owner" }))
+    fireEvent.click(await screen.findByText("Morgan Owner"))
+
+    await waitFor(() => {
+      expect(mocks.toastActionError).toHaveBeenCalledWith(
+        expect.anything(),
+        "Failed to update asset owner"
+      )
     })
   })
 

@@ -17,6 +17,7 @@ describe("asset service", () => {
     getByID: vi.fn(),
     getByName: vi.fn(),
     create: vi.fn(),
+    updateOwnerByID: vi.fn(),
     deleteByID: vi.fn(),
     listCustomFieldDefinitions: vi.fn(),
     getCustomFieldDefinitionByID: vi.fn(),
@@ -310,6 +311,129 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to create asset"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("clears asset owners", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const updatedAsset = {
+      id: assetId,
+      name: "worker.openvlp.local",
+      type: AssetType.Host,
+      ownerId: null
+    }
+    const assetService = createTestAssetService()
+
+    assetRepository.updateOwnerByID.mockResolvedValue(updatedAsset)
+
+    await expect(assetService.updateOwnerByID(assetId, null)).resolves.toEqual(
+      updatedAsset
+    )
+    expect(userProfileService.getByID).not.toHaveBeenCalled()
+    expect(assetRepository.updateOwnerByID).toHaveBeenCalledWith(assetId, null)
+  })
+
+  it("updates asset owners to existing enabled users", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
+    const updatedAsset = {
+      id: assetId,
+      name: "worker.openvlp.local",
+      type: AssetType.Host,
+      ownerId
+    }
+    const assetService = createTestAssetService()
+
+    userProfileService.getByID.mockResolvedValue({
+      id: ownerId,
+      username: "owner",
+      displayName: "Asset Owner",
+      email: "owner@example.com",
+      enabled: true,
+      roleIds: []
+    })
+    assetRepository.updateOwnerByID.mockResolvedValue(updatedAsset)
+
+    await expect(
+      assetService.updateOwnerByID(assetId, ownerId)
+    ).resolves.toEqual(updatedAsset)
+    expect(userProfileService.getByID).toHaveBeenCalledWith(ownerId)
+    expect(assetRepository.updateOwnerByID).toHaveBeenCalledWith(
+      assetId,
+      ownerId
+    )
+  })
+
+  it("updates asset owners to existing disabled users", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
+    const updatedAsset = {
+      id: assetId,
+      name: "worker.openvlp.local",
+      type: AssetType.Host,
+      ownerId
+    }
+    const assetService = createTestAssetService()
+
+    userProfileService.getByID.mockResolvedValue({
+      id: ownerId,
+      username: "owner",
+      displayName: "Asset Owner",
+      email: "owner@example.com",
+      enabled: false,
+      roleIds: []
+    })
+    assetRepository.updateOwnerByID.mockResolvedValue(updatedAsset)
+
+    await expect(
+      assetService.updateOwnerByID(assetId, ownerId)
+    ).resolves.toEqual(updatedAsset)
+    expect(userProfileService.getByID).toHaveBeenCalledWith(ownerId)
+    expect(assetRepository.updateOwnerByID).toHaveBeenCalledWith(
+      assetId,
+      ownerId
+    )
+  })
+
+  it("rejects unknown asset owner updates before changing assets", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
+    const assetService = createTestAssetService()
+
+    userProfileService.getByID.mockResolvedValue(null)
+
+    await expect(
+      assetService.updateOwnerByID(assetId, ownerId)
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "asset owner does not exist"
+    } satisfies Partial<HTTPException>)
+    expect(assetRepository.updateOwnerByID).not.toHaveBeenCalled()
+  })
+
+  it("returns null when updating the owner of a missing asset", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const assetService = createTestAssetService()
+
+    assetRepository.updateOwnerByID.mockResolvedValue(null)
+
+    await expect(
+      assetService.updateOwnerByID(assetId, null)
+    ).resolves.toBeNull()
+  })
+
+  it("maps repository owner update failures to an HTTP 500", async () => {
+    const assetService = createTestAssetService()
+
+    assetRepository.updateOwnerByID.mockRejectedValue(
+      new Error("update failed")
+    )
+
+    await expect(
+      assetService.updateOwnerByID("76b1885f-2d28-4b7d-93da-2751ff385aa3", null)
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to update asset owner"
     } satisfies Partial<HTTPException>)
   })
 

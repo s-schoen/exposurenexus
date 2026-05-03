@@ -112,6 +112,44 @@ describe("asset repository", () => {
     })
   })
 
+  it("updates and clears asset owners", async () => {
+    const repository = createAssetRepository(testDb.db)
+    const ownerId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12"
+
+    await testDb.db
+      .insertInto("user_profile")
+      .values({
+        id: ownerId,
+        username: "owner",
+        displayName: "Asset Owner",
+        email: "owner@example.com",
+        enabled: false,
+        passwordHash: "hash-owner"
+      })
+      .execute()
+
+    const asset = await repository.create({
+      id: "",
+      name: "owned.openvlp.local",
+      type: AssetType.Host,
+      ownerId: null
+    })
+
+    await expect(
+      repository.updateOwnerByID(asset.id, ownerId)
+    ).resolves.toMatchObject({
+      id: asset.id,
+      ownerId
+    })
+    await expect(repository.updateOwnerByID(asset.id, null)).resolves.toEqual({
+      ...asset,
+      ownerId: null
+    })
+    await expect(
+      repository.updateOwnerByID("76b1885f-2d28-4b7d-93da-2751ff385aa3", null)
+    ).resolves.toBeNull()
+  })
+
   it("persists and retrieves custom field definitions with options", async () => {
     const repository = createAssetRepository(testDb.db)
 
