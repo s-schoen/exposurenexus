@@ -1,8 +1,10 @@
 import { createCallable } from "react-call"
-import { AssetType, createAssetSchema } from "@openvlp/types/model/asset"
+import { AssetType, assetSchema } from "@openvlp/types/model/asset"
 import { useForm } from "@tanstack/react-form"
+import { useQuery } from "@tanstack/react-query"
 import type { ReactCall } from "react-call"
 import type { Asset } from "@openvlp/types/model/asset"
+import { createListUsersQueryOptions } from "@/api/user.ts"
 import { Button } from "@/components/ui/button.tsx"
 import {
   Dialog,
@@ -32,15 +34,18 @@ import { capitalizeFirstLetter } from "@/lib/format.ts"
 
 interface AssetDialogProps {}
 
-const formSchema = createAssetSchema
+const formSchema = assetSchema.omit({ id: true })
+const noOwnerValue = "__no_owner__"
 
 export const AssetDialog = ({
   call
 }: ReactCall.Props<AssetDialogProps, Asset | null, {}>) => {
+  const users = useQuery(createListUsersQueryOptions())
   const form = useForm({
     defaultValues: {
       name: "",
-      type: AssetType.Host
+      type: AssetType.Host,
+      ownerId: null as string | null
     },
     validators: {
       onSubmit: formSchema
@@ -50,7 +55,7 @@ export const AssetDialog = ({
         id: "",
         name: value.name,
         type: value.type,
-        ownerId: null
+        ownerId: value.ownerId ?? null
       })
     }
   })
@@ -116,6 +121,39 @@ export const AssetDialog = ({
                           {Object.values(AssetType).map((t) => (
                             <SelectItem key={t} value={t}>
                               {capitalizeFirstLetter(t)}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                )
+              }}
+            />
+            <form.Field
+              name="ownerId"
+              children={(field) => {
+                return (
+                  <Field>
+                    <FieldLabel htmlFor={field.name}>Owner</FieldLabel>
+                    <Select
+                      value={field.state.value ?? noOwnerValue}
+                      name={field.name}
+                      onValueChange={(value) => {
+                        field.handleChange(
+                          value === noOwnerValue ? null : value
+                        )
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select asset owner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value={noOwnerValue}>No Owner</SelectItem>
+                          {users.data?.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.displayName}
                             </SelectItem>
                           ))}
                         </SelectGroup>

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   cleanup,
   fireEvent,
@@ -10,59 +10,58 @@ import { AssetType } from "@openvlp/types/model/asset"
 import type { ReactNode } from "react"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
 
-const selectMocks = vi.hoisted(() => ({
-  onValueChange: undefined as undefined | ((value: string) => void),
-  value: ""
+const queryMocks = vi.hoisted(() => ({
+  ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+  users: [
+    {
+      id: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+      username: "owner",
+      displayName: "Asset Owner",
+      email: "owner@example.com",
+      enabled: false,
+      roleIds: []
+    }
+  ]
+}))
+
+vi.mock("@tanstack/react-query", () => ({
+  keepPreviousData: Symbol("keepPreviousData"),
+  useQuery: () => ({
+    data: queryMocks.users,
+    isLoading: false,
+    isPending: false
+  })
 }))
 
 vi.mock("@/components/ui/select.tsx", () => ({
   Select: ({
     children,
+    name,
     onValueChange,
     value
   }: {
     children: ReactNode
+    name?: string
     onValueChange?: (value: string) => void
     value?: string
-  }) => {
-    selectMocks.onValueChange = onValueChange
-    selectMocks.value = value ?? ""
-
-    return <div>{children}</div>
-  },
-  SelectContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SelectGroup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SelectItem: ({ children, value }: { children: ReactNode; value: string }) => (
-    <button
-      type="button"
-      role="option"
-      onClick={() => selectMocks.onValueChange?.(value)}
+  }) => (
+    <select
+      id={name}
+      name={name}
+      value={value ?? ""}
+      onChange={(event) => onValueChange?.(event.target.value)}
     >
       {children}
-    </button>
+    </select>
   ),
-  SelectTrigger: ({ children }: { children: ReactNode }) => (
-    <button type="button" role="combobox">
-      {children}
-    </button>
+  SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
+  SelectGroup: ({ children }: { children: ReactNode }) => <>{children}</>,
+  SelectItem: ({ children, value }: { children: ReactNode; value: string }) => (
+    <option value={value}>{children}</option>
   ),
-  SelectValue: () => (
-    <span>
-      {selectMocks.value === AssetType.Container
-        ? "Container"
-        : selectMocks.value === AssetType.Software
-          ? "Software"
-          : "Host"}
-    </span>
-  )
+  SelectTrigger: () => null,
+  SelectValue: () => null
 }))
-
-beforeEach(() => {
-  selectMocks.onValueChange = undefined
-  selectMocks.value = ""
-})
 
 afterEach(() => {
   cleanup()
@@ -90,7 +89,8 @@ describe("AssetDialog", () => {
 
     expect(nameInput).toBeInstanceOf(HTMLInputElement)
     expect((nameInput as HTMLInputElement).value).toBe("")
-    expect(screen.getByRole("combobox").textContent).toContain("Host")
+    expect(screen.getByLabelText(/^type$/i).value).toBe(AssetType.Host)
+    expect(screen.getByLabelText(/^owner$/i).value).toBe("__no_owner__")
   })
 
   it("resolves null when cancelled", () => {
@@ -125,8 +125,9 @@ describe("AssetDialog", () => {
     fireEvent.change(screen.getByLabelText(/^name$/i), {
       target: { value: "container-01" }
     })
-    fireEvent.click(screen.getByRole("combobox"))
-    fireEvent.click(await screen.findByRole("option", { name: "Container" }))
+    fireEvent.change(screen.getByLabelText(/^type$/i), {
+      target: { value: AssetType.Container }
+    })
     fireEvent.submit(container.querySelector("#asset-form")!)
 
     await waitFor(() => {
@@ -135,6 +136,27 @@ describe("AssetDialog", () => {
         name: "container-01",
         type: AssetType.Container,
         ownerId: null
+      })
+    })
+  })
+
+  it("submits the selected owner", async () => {
+    const { call, container } = renderAssetDialog()
+
+    fireEvent.change(screen.getByLabelText(/^name$/i), {
+      target: { value: "api-01" }
+    })
+    fireEvent.change(screen.getByLabelText(/^owner$/i), {
+      target: { value: queryMocks.ownerId }
+    })
+    fireEvent.submit(container.querySelector("#asset-form")!)
+
+    await waitFor(() => {
+      expect(call.end).toHaveBeenCalledWith({
+        id: "",
+        name: "api-01",
+        type: AssetType.Host,
+        ownerId: queryMocks.ownerId
       })
     })
   })

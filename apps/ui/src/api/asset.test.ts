@@ -164,7 +164,9 @@ describe("asset custom field value api", () => {
       })
     )
 
-    await expect(createAsset(asset.name, asset.type)).resolves.toEqual(asset)
+    await expect(
+      createAsset(asset.name, asset.type, asset.ownerId)
+    ).resolves.toEqual(asset)
 
     const headers = requestInit().headers as Headers
     expect(fetchMock).toHaveBeenCalledWith(
@@ -177,7 +179,33 @@ describe("asset custom field value api", () => {
     expect(headers.get("Content-Type")).toBe("application/json")
     expect(requestJsonBody()).toEqual({
       name: asset.name,
-      type: asset.type
+      type: asset.type,
+      ownerId: asset.ownerId
+    })
+  })
+
+  it("creates assets with owner ids", async () => {
+    const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          ...asset,
+          ownerId
+        }
+      })
+    )
+
+    await expect(createAsset(asset.name, asset.type, ownerId)).resolves.toEqual(
+      {
+        ...asset,
+        ownerId
+      }
+    )
+
+    expect(requestJsonBody()).toEqual({
+      name: asset.name,
+      type: asset.type,
+      ownerId
     })
   })
 

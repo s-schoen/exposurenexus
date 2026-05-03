@@ -397,7 +397,8 @@ describe("AssetTable workflow wiring", () => {
     await waitFor(() => {
       expect(mocks.createAsset).toHaveBeenCalledWith(
         "worker-01",
-        AssetType.Container
+        AssetType.Container,
+        null
       )
     })
     expect(mocks.toastSuccess).toHaveBeenCalledWith(
@@ -432,5 +433,32 @@ describe("AssetTable workflow wiring", () => {
       )
     })
     expect(mocks.toastSuccess).not.toHaveBeenCalled()
+  })
+
+  it("passes selected owner ids when creating assets", async () => {
+    const { AssetTable } = await import("@/components/asset-table/index.tsx")
+    mocks.assetDialogCall.mockResolvedValueOnce({
+      id: "",
+      name: "worker-01",
+      type: AssetType.Container,
+      ownerId: mocks.asset.ownerId
+    })
+    mocks.createAsset.mockResolvedValueOnce({
+      id: "08488dd1-4f23-445b-81e5-74e76361caa0",
+      name: "worker-01",
+      type: AssetType.Container,
+      ownerId: mocks.asset.ownerId
+    })
+
+    render(<AssetTable />)
+    fireEvent.click(screen.getByRole("button", { name: /new asset/i }))
+
+    await waitFor(() => {
+      expect(mocks.createAsset).toHaveBeenCalledWith(
+        "worker-01",
+        AssetType.Container,
+        mocks.asset.ownerId
+      )
+    })
   })
 })

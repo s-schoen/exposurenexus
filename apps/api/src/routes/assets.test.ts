@@ -1228,6 +1228,44 @@ describe("asset routes", () => {
     })
   })
 
+  it("passes nullable asset owner ids when creating an asset", async () => {
+    const requestId = "assets-create-with-owner-request"
+    const payload = {
+      name: "worker.openvlp.local",
+      type: AssetType.Host,
+      ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
+    }
+    const createdAsset = {
+      id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+      ...payload
+    }
+
+    assetService.create.mockResolvedValue(createdAsset)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request("/api/assets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(201)
+    expect(assetService.create).toHaveBeenCalledWith(payload)
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: createdAsset
+    })
+  })
+
   it("rejects invalid asset create bodies before calling the service", async () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
