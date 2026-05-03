@@ -11,6 +11,7 @@ import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import type { ReactNode } from "react"
 import type { Finding } from "@openvlp/types/model/finding"
 import type { Asset, AssetType } from "@openvlp/types/model/asset"
+import type { UserProfile } from "@openvlp/types/model/user"
 
 interface QueryState<TData> {
   data?: TData
@@ -56,8 +57,18 @@ const mocks = vi.hoisted(() => {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
     name: "web-01",
     type: "host" as AssetType,
-    ownerId: null
+    ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21"
   }
+  const users: Array<UserProfile> = [
+    {
+      id: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+      username: "robin",
+      displayName: "Robin Owner",
+      email: "robin@example.com",
+      enabled: false,
+      roleIds: []
+    }
+  ]
 
   return {
     asset,
@@ -78,9 +89,17 @@ const mocks = vi.hoisted(() => {
     toastError: vi.fn(),
     toastSuccess: vi.fn(),
     updateFindingField: vi.fn(),
+    users,
+    usersQuery: {
+      data: users,
+      isLoading: false,
+      isPending: false,
+      isSuccess: true
+    } as QueryState<Array<UserProfile>>,
     userLabels: {
       "1f9c36d2-1355-49d1-8464-b01ce955d88f": "Alice Example",
-      "4e33f42e-764b-4812-88fb-11a183d43434": "Bob Example"
+      "4e33f42e-764b-4812-88fb-11a183d43434": "Bob Example",
+      "8f5f4c3b-c369-481d-98f7-cf7148d80d21": "Robin Owner"
     } as Record<string, string>
   }
 })
@@ -89,6 +108,10 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: { queryKey?: Array<string> }) => {
     if (options.queryKey?.[0] === "assets") {
       return mocks.assetQuery
+    }
+
+    if (options.queryKey?.[0] === "users") {
+      return mocks.usersQuery
     }
 
     return mocks.findingQuery
@@ -108,6 +131,12 @@ vi.mock("@/api/asset.ts", () => ({
 vi.mock("@/api/finding.ts", () => ({
   createFindingByIDQueryOptions: (id: string) => ({
     queryKey: ["findings", id]
+  })
+}))
+
+vi.mock("@/api/user.ts", () => ({
+  createListUsersQueryOptions: () => ({
+    queryKey: ["users"]
   })
 }))
 
@@ -145,9 +174,29 @@ vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
 }))
 
 vi.mock("@/components/user-label.tsx", () => ({
-  UserLabel: ({ userId }: { userId: string }) => (
-    <span>{mocks.userLabels[userId] ?? ""}</span>
-  )
+  createUserProfileById: (users: Array<UserProfile> | undefined) =>
+    new Map((users ?? []).map((user) => [user.id, user])),
+  UserLabel: ({
+    emptyLabel = "No User",
+    unknownLabel = "Unknown User",
+    user,
+    userId
+  }: {
+    emptyLabel?: string
+    unknownLabel?: string
+    user?: UserProfile | null
+    userId?: string | null
+  }) => {
+    if (!userId && !user) {
+      return <span>{emptyLabel}</span>
+    }
+
+    if (user) {
+      return <span>{user.displayName}</span>
+    }
+
+    return <span>{mocks.userLabels[userId ?? ""] ?? unknownLabel}</span>
+  }
 }))
 
 vi.mock("sonner", () => ({
@@ -166,6 +215,12 @@ function resetQueries() {
   }
   mocks.assetQuery = {
     data: mocks.asset,
+    isLoading: false,
+    isPending: false,
+    isSuccess: true
+  }
+  mocks.usersQuery = {
+    data: mocks.users,
     isLoading: false,
     isPending: false,
     isSuccess: true
@@ -193,9 +248,8 @@ describe("FindingDetailContent", () => {
   })
 
   it("renders a placeholder while the finding is pending", async () => {
-    const { FindingDetailContent } = await import(
-      "@/components/finding-detail-content.tsx"
-    )
+    const { FindingDetailContent } =
+      await import("@/components/finding-detail-content.tsx")
     mocks.findingQuery = {
       isLoading: true,
       isPending: true,
@@ -209,9 +263,8 @@ describe("FindingDetailContent", () => {
   })
 
   it("renders finding, asset, vulnerability, evidence, and user context", async () => {
-    const { FindingDetailContent } = await import(
-      "@/components/finding-detail-content.tsx"
-    )
+    const { FindingDetailContent } =
+      await import("@/components/finding-detail-content.tsx")
 
     render(
       <FindingDetailContent
@@ -221,27 +274,29 @@ describe("FindingDetailContent", () => {
     )
 
     expect(screen.getByRole("button", { name: "Edit finding" })).toBeTruthy()
-    expect(screen.getAllByText("Exposed Admin Endpoint").length).toBeGreaterThan(
-      0
-    )
+    expect(
+      screen.getAllByText("Exposed Admin Endpoint").length
+    ).toBeGreaterThan(0)
     expect(screen.getAllByText("High").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Active").length).toBeGreaterThan(0)
     expect(screen.getAllByText("web-01").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Host").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Robin Owner").length).toBeGreaterThan(0)
     expect(screen.getByRole("heading", { name: "Validation" })).toBeTruthy()
     expect(screen.getByText(/Scanner reported/)).toBeTruthy()
     expect(screen.getByText("remote access")).toBeTruthy()
     expect(screen.getByText(/open port 8443/)).toBeTruthy()
     expect(screen.getByRole("heading", { name: "Impact" })).toBeTruthy()
-    expect(screen.getByText(/Administrative interface is reachable/)).toBeTruthy()
+    expect(
+      screen.getByText(/Administrative interface is reachable/)
+    ).toBeTruthy()
     expect(screen.getByText("Alice Example")).toBeTruthy()
     expect(screen.getByText("Bob Example")).toBeTruthy()
   })
 
   it("updates editable severity, status, and source metadata", async () => {
-    const { FindingDetailContent } = await import(
-      "@/components/finding-detail-content.tsx"
-    )
+    const { FindingDetailContent } =
+      await import("@/components/finding-detail-content.tsx")
 
     render(<FindingDetailContent findingId={mocks.finding.id} />)
 
@@ -283,9 +338,8 @@ describe("FindingDetailContent", () => {
   })
 
   it("copies evidence and reports success or failure", async () => {
-    const { FindingDetailContent } = await import(
-      "@/components/finding-detail-content.tsx"
-    )
+    const { FindingDetailContent } =
+      await import("@/components/finding-detail-content.tsx")
     const clipboardWrite = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
@@ -315,9 +369,8 @@ describe("FindingDetailContent", () => {
   })
 
   it("renders fallbacks for empty evidence, unknown assets, and missing dates", async () => {
-    const { FindingDetailContent } = await import(
-      "@/components/finding-detail-content.tsx"
-    )
+    const { FindingDetailContent } =
+      await import("@/components/finding-detail-content.tsx")
     mocks.findingQuery = {
       data: {
         ...mocks.finding,
@@ -344,6 +397,7 @@ describe("FindingDetailContent", () => {
       )
     ).toBeTruthy()
     expect(screen.getAllByText("Unknown asset").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Unknown Asset").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Unclassified").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Unknown").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Not available").length).toBeGreaterThanOrEqual(
@@ -355,10 +409,51 @@ describe("FindingDetailContent", () => {
     ).toBe(true)
   })
 
-  it("keeps asset sections stable while linked asset data is loading", async () => {
-    const { FindingDetailContent } = await import(
-      "@/components/finding-detail-content.tsx"
+  it("renders responsible owner fallbacks for ownerless assets and unknown users", async () => {
+    const { FindingDetailContent } =
+      await import("@/components/finding-detail-content.tsx")
+
+    mocks.assetQuery = {
+      data: {
+        ...mocks.asset,
+        ownerId: null
+      },
+      isLoading: false,
+      isPending: false,
+      isSuccess: true
+    }
+
+    const ownerless = render(
+      <FindingDetailContent findingId={mocks.finding.id} />
     )
+
+    expect(screen.getAllByText("No Owner").length).toBeGreaterThan(0)
+
+    ownerless.unmount()
+    mocks.assetQuery = {
+      data: {
+        ...mocks.asset,
+        ownerId: "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206"
+      },
+      isLoading: false,
+      isPending: false,
+      isSuccess: true
+    }
+    mocks.usersQuery = {
+      data: [],
+      isLoading: false,
+      isPending: false,
+      isSuccess: true
+    }
+
+    render(<FindingDetailContent findingId={mocks.finding.id} />)
+
+    expect(screen.getAllByText("Unknown Owner").length).toBeGreaterThan(0)
+  })
+
+  it("keeps asset sections stable while linked asset data is loading", async () => {
+    const { FindingDetailContent } =
+      await import("@/components/finding-detail-content.tsx")
     mocks.assetQuery = {
       isLoading: true,
       isPending: true,

@@ -1,11 +1,17 @@
 import { FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import type { Asset } from "@openvlp/types/model/asset"
 import type { Finding } from "@openvlp/types/model/finding"
+import type { UserProfile } from "@openvlp/types/model/user"
 import type { ColumnDef } from "@tanstack/react-table"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
 import { SEVERITY_ORDER } from "@/components/finding-table/constants.ts"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
 import { Badge } from "@/components/ui/badge.tsx"
+import {
+  UserLabel,
+  formatUserProfileReference
+} from "@/components/user-label.tsx"
 import { formatFindingStatus } from "@/lib/format.ts"
 
 const severityRank = new Map(
@@ -47,8 +53,28 @@ function FindingDateCell({ value }: { value: Date | null | undefined }) {
   )
 }
 
+export function formatFindingResponsibleOwner(
+  assetId: string,
+  assetsById: ReadonlyMap<string, Asset>,
+  userProfileById: Map<string, UserProfile>
+): string {
+  const asset = assetsById.get(assetId)
+
+  if (!asset) {
+    return "Unknown Asset"
+  }
+
+  return formatUserProfileReference(asset.ownerId, userProfileById, {
+    emptyLabel: "No Owner",
+    unknownLabel: "Unknown Owner"
+  })
+}
+
 export function createFindingColumns(
-  assetNamesById: ReadonlyMap<string, string>
+  assetNamesById: ReadonlyMap<string, string>,
+  assetsById: ReadonlyMap<string, Asset> = new Map(),
+  userProfileById: Map<string, UserProfile> = new Map(),
+  usersLoading = false
 ): Array<ColumnDef<Finding>> {
   return [
     {
@@ -132,6 +158,41 @@ export function createFindingColumns(
           </div>
         )
       }
+    },
+    {
+      id: "responsibleOwner",
+      accessorFn: (finding) =>
+        formatFindingResponsibleOwner(
+          finding.assetId,
+          assetsById,
+          userProfileById
+        ),
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Responsible Owner" />
+      ),
+      cell: ({ row }) => {
+        const asset = assetsById.get(row.original.assetId)
+
+        if (!asset) {
+          return <span className="text-muted-foreground">Unknown Asset</span>
+        }
+
+        return (
+          <UserLabel
+            userId={asset.ownerId}
+            user={
+              asset.ownerId && usersLoading
+                ? undefined
+                : asset.ownerId
+                  ? (userProfileById.get(asset.ownerId) ?? null)
+                  : null
+            }
+            emptyLabel="No Owner"
+            unknownLabel="Unknown Owner"
+          />
+        )
+      },
+      enableColumnFilter: false
     },
     {
       accessorKey: "source",

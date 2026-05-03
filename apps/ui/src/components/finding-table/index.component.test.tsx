@@ -72,7 +72,25 @@ vi.mock("@tanstack/react-query", () => ({
           {
             id: mocks.finding.assetId,
             name: "api-01",
-            type: "host"
+            type: "host",
+            ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21"
+          }
+        ],
+        isPending: false,
+        isSuccess: true
+      }
+    }
+
+    if (options.queryKey.join("/") === "users") {
+      return {
+        data: [
+          {
+            id: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+            username: "robin",
+            displayName: "Robin Owner",
+            email: "robin@example.com",
+            enabled: false,
+            roleIds: []
           }
         ],
         isPending: false,
@@ -116,6 +134,28 @@ vi.mock("@/api/finding.ts", () => ({
   createListFindingsQueryOptions: () => ({
     queryKey: ["findings"]
   })
+}))
+
+vi.mock("@/api/user.ts", () => ({
+  createListUsersQueryOptions: () => ({
+    queryKey: ["users"]
+  })
+}))
+
+vi.mock("@/components/user-label.tsx", () => ({
+  createUserProfileById: (
+    users: Array<{ displayName: string; id: string }> | undefined
+  ) => new Map((users ?? []).map((user) => [user.id, user])),
+  formatUserProfileReference: (
+    userId: string | null | undefined,
+    usersById: Map<string, { displayName: string }>
+  ) =>
+    !userId
+      ? "No Owner"
+      : (usersById.get(userId)?.displayName ?? "Unknown Owner"),
+  UserLabel: ({ user }: { user?: { displayName: string } | null }) => (
+    <span>{user?.displayName ?? "No Owner"}</span>
+  )
 }))
 
 vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
@@ -294,6 +334,19 @@ describe("FindingTable workflow wiring", () => {
       { id: "severity", desc: true },
       { id: "lastSeen", desc: true }
     ])
+    expect(
+      (mocks.dataTableProps?.columns as Array<{ id?: string }>).some(
+        (column) => column.id === "responsibleOwner"
+      )
+    ).toBe(true)
+    expect(mocks.dataTableProps?.groupingOptions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "responsibleOwner",
+          label: "Responsible Owner"
+        })
+      ])
+    )
 
     fireEvent.click(screen.getByRole("button", { name: /select finding/i }))
     expect(onSelectFinding).toHaveBeenCalledWith(mocks.finding)

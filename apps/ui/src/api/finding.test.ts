@@ -223,8 +223,10 @@ describe("finding api", () => {
 
     const updatedFinding = await updateFinding({
       ...finding,
-      status: FindingStatus.Confirmed
-    })
+      status: FindingStatus.Confirmed,
+      ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+      assigneeId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21"
+    } as Finding)
 
     expect(updatedFinding.status).toBe(FindingStatus.Confirmed)
     const headers = requestInit().headers as Headers
@@ -240,6 +242,8 @@ describe("finding api", () => {
       ...createFindingPayload,
       status: FindingStatus.Confirmed
     })
+    expect(requestJsonBody()).not.toHaveProperty("ownerId")
+    expect(requestJsonBody()).not.toHaveProperty("assigneeId")
   })
 
   it("deletes findings", async () => {
