@@ -18,10 +18,12 @@ interface APIRequestOptions {
 
 export class APIError extends Error {
   statusCode: number
+  reason?: string
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, reason?: string) {
     super(message)
     this.statusCode = status
+    this.reason = reason
   }
 }
 
@@ -87,7 +89,7 @@ export async function apiRequest(
 
 export async function parseErrorReply(r: Response): Promise<Error> {
   const errorJson = (await r.json()) as APIErrorReply
-  return new APIError(r.status, errorJson.error)
+  return new APIError(r.status, errorJson.error, errorJson.reason)
 }
 
 export async function parseArrayReply<T extends object>(

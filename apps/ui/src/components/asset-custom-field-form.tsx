@@ -5,6 +5,10 @@ import {
   AssetCustomFieldType,
   assetCustomFieldKeySchema
 } from "@openvlp/types/model/asset"
+import {
+  createAssetCustomFieldDefinitionPayloadFromFormValues,
+  validateAssetCustomFieldFormRuleValues
+} from "./asset-custom-field-rule-validation.ts"
 import type {
   AssetCustomFieldDefinition,
   CreateAssetCustomFieldDefinition
@@ -77,14 +81,6 @@ export const assetCustomFieldFormSchema = z
   .superRefine((values, ctx) => {
     const defaultValue = values.defaultValue.trim()
 
-    if (values.required && defaultValue === "") {
-      ctx.addIssue({
-        code: "custom",
-        path: ["defaultValue"],
-        message: "Required fields need a default value"
-      })
-    }
-
     if (
       values.type === AssetCustomFieldType.Number &&
       defaultValue !== "" &&
@@ -97,65 +93,47 @@ export const assetCustomFieldFormSchema = z
       })
     }
 
-    if (values.type !== AssetCustomFieldType.Select) {
-      return
+    if (values.type === AssetCustomFieldType.Select) {
+      const normalizedOptions = values.options.map((option) => ({
+        value: option.value.trim(),
+        label: option.label.trim()
+      }))
+      const nonEmptyOptions = normalizedOptions.filter(
+        (option) => option.value !== "" || option.label !== ""
+      )
+
+      if (nonEmptyOptions.length === 0) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["options"],
+          message: "Add at least one option"
+        })
+      }
+
+      for (const [index, option] of normalizedOptions.entries()) {
+        if (option.value === "") {
+          ctx.addIssue({
+            code: "custom",
+            path: ["options", index, "value"],
+            message: "Enter an option value"
+          })
+        }
+
+        if (option.label === "") {
+          ctx.addIssue({
+            code: "custom",
+            path: ["options", index, "label"],
+            message: "Enter an option label"
+          })
+        }
+      }
     }
 
-    const normalizedOptions = values.options.map((option) => ({
-      value: option.value.trim(),
-      label: option.label.trim()
-    }))
-    const nonEmptyOptions = normalizedOptions.filter(
-      (option) => option.value !== "" || option.label !== ""
-    )
-
-    if (nonEmptyOptions.length === 0) {
+    for (const issue of validateAssetCustomFieldFormRuleValues(values)) {
       ctx.addIssue({
         code: "custom",
-        path: ["options"],
-        message: "Add at least one option"
-      })
-    }
-
-    for (const [index, option] of normalizedOptions.entries()) {
-      if (option.value === "") {
-        ctx.addIssue({
-          code: "custom",
-          path: ["options", index, "value"],
-          message: "Enter an option value"
-        })
-      }
-
-      if (option.label === "") {
-        ctx.addIssue({
-          code: "custom",
-          path: ["options", index, "label"],
-          message: "Enter an option label"
-        })
-      }
-    }
-
-    const seenOptionValues = new Set<string>()
-    for (const [index, option] of normalizedOptions.entries()) {
-      if (option.value === "") {
-        continue
-      }
-
-      if (seenOptionValues.has(option.value)) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["options", index, "value"],
-          message: "Option values must be unique"
-        })
-      }
-      seenOptionValues.add(option.value)
-    }
-
-    if (defaultValue !== "" && !seenOptionValues.has(defaultValue)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["defaultValue"],
-        message: "Select a default from the available options"
+        path: [...issue.path],
+        message: issue.message
       })
     }
   })
@@ -202,37 +180,7 @@ export function mapAssetCustomFieldDefinitionToFormValues(
 export function mapAssetCustomFieldFormValues(
   values: AssetCustomFieldFormValues
 ): CreateAssetCustomFieldDefinition {
-  const base = {
-    name: values.name.trim(),
-    key: values.key.trim(),
-    required: values.required
-  }
-  const defaultValue = values.defaultValue.trim()
-
-  switch (values.type) {
-    case AssetCustomFieldType.Text:
-      return {
-        ...base,
-        type: AssetCustomFieldType.Text,
-        defaultValue: defaultValue === "" ? null : values.defaultValue
-      }
-    case AssetCustomFieldType.Number:
-      return {
-        ...base,
-        type: AssetCustomFieldType.Number,
-        defaultValue: defaultValue === "" ? null : Number(defaultValue)
-      }
-    case AssetCustomFieldType.Select:
-      return {
-        ...base,
-        type: AssetCustomFieldType.Select,
-        defaultValue: defaultValue === "" ? null : defaultValue,
-        options: values.options.map((option) => ({
-          value: option.value.trim(),
-          label: option.label.trim()
-        }))
-      }
-  }
+  return createAssetCustomFieldDefinitionPayloadFromFormValues(values)
 }
 
 function getOptionErrorMessages(
