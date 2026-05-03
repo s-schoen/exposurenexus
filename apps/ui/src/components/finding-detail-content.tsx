@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
@@ -16,11 +16,8 @@ import {
 import { toast } from "sonner"
 import type { ReactNode } from "react"
 import type { Finding } from "@openvlp/types/model/finding"
-import {
-  createFindingByIDQueryOptions,
-  createListFindingsQueryOptions,
-  updateFinding
-} from "@/api/finding.ts"
+import type { FindingEditableField } from "@/hooks/use-finding-lifecycle.ts"
+import { createFindingByIDQueryOptions } from "@/api/finding.ts"
 import { createAssetByIDQueryOptions } from "@/api/asset.ts"
 import {
   Card,
@@ -53,7 +50,7 @@ import {
   TabsList,
   TabsTrigger
 } from "@/components/ui/tabs.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts"
 
 interface FindingDetailContentProps {
   findingId: string
@@ -65,7 +62,7 @@ export function FindingDetailContent({
   titleAction
 }: FindingDetailContentProps) {
   const finding = useQuery(createFindingByIDQueryOptions(findingId))
-  const queryClient = useQueryClient()
+  const { updateFindingField } = useFindingLifecycle()
   const displayData = finding.data
   const asset = useQuery({
     ...createAssetByIDQueryOptions(displayData?.assetId ?? ""),
@@ -73,29 +70,15 @@ export function FindingDetailContent({
   })
 
   const handleUpdate = useCallback(
-    async <TKey extends keyof Finding>(key: TKey, value: Finding[TKey]) => {
-      if (!finding.data || finding.data[key] === value) return
+    async <TKey extends FindingEditableField>(
+      key: TKey,
+      value: Finding[TKey]
+    ) => {
+      if (!finding.data) return
 
-      const nextFinding = { ...finding.data, [key]: value }
-
-      try {
-        queryClient.setQueryData(["findings", findingId], nextFinding)
-        await updateFinding(nextFinding)
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: ["findings", findingId]
-          }),
-          queryClient.invalidateQueries({
-            queryKey: createListFindingsQueryOptions().queryKey
-          })
-        ])
-      } catch (error) {
-        queryClient.setQueryData(["findings", findingId], finding.data)
-        console.error("Error updating finding:", error)
-        toastActionError(error, "Failed to update finding")
-      }
+      await updateFindingField(finding.data, key, value)
     },
-    [finding.data, findingId, queryClient]
+    [finding.data, updateFindingField]
   )
 
   const handleCopyEvidence = useCallback(async () => {

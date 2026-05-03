@@ -1,9 +1,8 @@
 import { Check, Layers3, Plus } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import { useMemo } from "react"
-import { toast } from "sonner"
 import type { Finding } from "@openvlp/types/model/finding"
 import type {
   DataTableFilterState,
@@ -26,13 +25,9 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu.tsx"
 import { createListAssetsQueryOptions } from "@/api/asset.ts"
-import {
-  createListFindingsQueryOptions,
-  deleteFinding,
-  updateFinding
-} from "@/api/finding.ts"
+import { createListFindingsQueryOptions } from "@/api/finding.ts"
 import { formatFindingStatus, formatSeverity } from "@/lib/format.ts"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts"
 
 interface FindingTableProps {
   initialGrouping?: Array<string>
@@ -46,7 +41,7 @@ export function FindingTable({
   onSelectFinding
 }: FindingTableProps) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
+  const { bulkUpdateFindingField, deleteFindings } = useFindingLifecycle()
   const findingsQuery = useQuery(createListFindingsQueryOptions())
   const assetsQuery = useQuery(createListAssetsQueryOptions())
   const [filter, setFilter] = useQueryState("filter")
@@ -126,25 +121,7 @@ export function FindingTable({
     })
 
     if (confirmed) {
-      let success = true
-      for (const finding of findings) {
-        try {
-          await deleteFinding(finding.id)
-        } catch (error) {
-          success = false
-          toastActionError(
-            error,
-            `Failed to delete finding ${finding.id}: ${error}`
-          )
-          console.error(error)
-        }
-      }
-      if (success) {
-        toast.success(`Deleted ${findings.length} findings(s)!`)
-      }
-      queryClient.invalidateQueries({
-        queryKey: createListFindingsQueryOptions().queryKey
-      })
+      await deleteFindings(findings)
     }
   }
 
@@ -159,32 +136,7 @@ export function FindingTable({
     key: TKey,
     value: Finding[TKey]
   ) => {
-    if (findings.length === 0) {
-      return
-    }
-
-    let success = true
-
-    for (const finding of findings) {
-      try {
-        await updateFinding({ ...finding, [key]: value })
-      } catch (error) {
-        success = false
-        toastActionError(
-          error,
-          `Failed to update finding ${finding.id}: ${error}`
-        )
-        console.error(error)
-      }
-    }
-
-    if (success) {
-      toast.success(`Updated ${findings.length} finding(s)`)
-    }
-
-    queryClient.invalidateQueries({
-      queryKey: createListFindingsQueryOptions().queryKey
-    })
+    await bulkUpdateFindingField(findings, key, value)
   }
 
   function ToolbarElements(selectedRows: Array<Finding>) {
