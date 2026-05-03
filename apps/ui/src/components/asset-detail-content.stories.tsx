@@ -12,6 +12,7 @@ import type {
   UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues
 } from "@openvlp/types/model/asset"
+import type { UserProfile } from "@openvlp/types/model/user"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { AssetDetailContent } from "@/components/asset-detail-content.tsx"
 
@@ -30,8 +31,19 @@ const ASSET: Asset = {
   id: "4b4f4dc9-77d5-4bb5-90a4-0d764a5fbf4b",
   name: "web-01",
   type: AssetType.Host,
-  ownerId: null
+  ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
 }
+
+const USERS: Array<UserProfile> = [
+  {
+    id: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+    username: "robin",
+    displayName: "Robin Owner",
+    email: "robin@example.com",
+    enabled: false,
+    roleIds: []
+  }
+]
 
 const CUSTOM_FIELDS: Array<AssetCustomFieldValue> = [
   {
@@ -74,8 +86,8 @@ const CUSTOM_FIELDS: Array<AssetCustomFieldValue> = [
   },
   {
     fieldId: "635ad27e-14c7-4c03-ab2a-81333eabfa4c",
-    key: "owner",
-    name: "Owner",
+    key: "team",
+    name: "Team",
     source: AssetCustomFieldValueSource.Empty,
     type: AssetCustomFieldType.Text,
     value: null
@@ -120,6 +132,7 @@ function AssetDetailContentStoryShell({
     })
 
     client.setQueryData(["asset", asset.id], asset)
+    client.setQueryData(["users"], USERS)
 
     if (scenario === "success" || scenario === "empty") {
       client.setQueryData(
@@ -138,7 +151,13 @@ function AssetDetailContentStoryShell({
     }
 
     return client
-  }, [asset, availableCustomFields, customFields, effectiveInitialCustomFields, scenario])
+  }, [
+    asset,
+    availableCustomFields,
+    customFields,
+    effectiveInitialCustomFields,
+    scenario
+  ])
   const [ready, setReady] = useState(
     scenario !== "loading-custom-fields" && scenario !== "error-custom-fields"
   )
