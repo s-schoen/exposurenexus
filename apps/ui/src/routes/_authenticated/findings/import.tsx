@@ -37,7 +37,7 @@ function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function RouteComponent() {
+export function RouteComponent() {
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -159,7 +159,7 @@ function RouteComponent() {
           ) : null}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button onClick={handleImport} disabled={!file || isUploading}>
+            <Button onClick={handleImport} disabled={isUploading}>
               <UploadCloud />
               {isUploading ? "Importing..." : "Import findings"}
             </Button>

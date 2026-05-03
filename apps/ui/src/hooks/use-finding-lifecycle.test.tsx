@@ -1,16 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  FindingSource,
-  FindingStatus
-} from "@openvlp/types/model/finding"
+import { FindingSource, FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import type { ReactNode } from "react"
-import type {
-  CreateFinding,
-  Finding
-} from "@openvlp/types/model/finding"
+import type { CreateFinding, Finding } from "@openvlp/types/model/finding"
 import type * as FindingApi from "@/api/finding.ts"
 import type { FindingLifecycleBatchResult } from "@/hooks/use-finding-lifecycle.ts"
 import {
@@ -55,9 +49,7 @@ vi.mock("@/api/finding.ts", async (importOriginal) => {
 const userId = "1f9c36d2-1355-49d1-8464-b01ce955d88f"
 const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
 
-function createFindingFixture(
-  overrides: Partial<Finding> = {}
-): Finding {
+function createFindingFixture(overrides: Partial<Finding> = {}): Finding {
   const id = overrides.id ?? "2713d833-eb13-4517-ac7c-7761545ed42a"
   const createdAt = new Date("2026-01-02T00:00:00.000Z")
   const updatedAt = new Date("2026-01-03T00:00:00.000Z")
@@ -359,6 +351,45 @@ describe("useFindingLifecycle", () => {
     expect(toastErrorMock).toHaveBeenCalledWith(
       "Updated 1 finding(s); failed 1"
     )
+  })
+
+  it("bulk-updates finding status successfully", async () => {
+    const finding = createFindingFixture()
+    const updatedFinding = {
+      ...finding,
+      status: FindingStatus.Confirmed,
+      updatedAt: new Date("2026-01-04T00:00:00.000Z")
+    }
+    updateFindingRequestMock.mockResolvedValueOnce(updatedFinding)
+    const { queryClient, result } = renderLifecycleHook()
+
+    queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [
+      finding
+    ])
+
+    let batchResult: FindingLifecycleBatchResult | undefined
+    await act(async () => {
+      batchResult = await result.current.bulkUpdateFindingField(
+        [finding],
+        "status",
+        FindingStatus.Confirmed
+      )
+    })
+
+    expect(batchResult).toEqual({
+      successful: [updatedFinding],
+      failed: []
+    })
+    expect(updateFindingRequestMock.mock.calls[0][0]).toEqual({
+      ...finding,
+      status: FindingStatus.Confirmed
+    })
+    expect(
+      queryClient.getQueryData<Array<Finding>>(
+        createListFindingsQueryOptions().queryKey
+      )
+    ).toEqual([updatedFinding])
+    expect(toastSuccessMock).toHaveBeenCalledWith("Updated 1 finding(s)")
   })
 
   it("reports partial delete failures and invalidates affected reads", async () => {

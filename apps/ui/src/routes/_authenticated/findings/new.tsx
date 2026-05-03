@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_authenticated/findings/new")({
   component: RouteComponent
 })
 
-function RouteComponent() {
+export function RouteComponent() {
   usePageMeta({
     title: "Create Finding",
     description: "Create and new finding manually."
@@ -85,6 +85,31 @@ function RouteComponent() {
               <TabsTrigger value="details">Details</TabsTrigger>
             </TabsList>
             <TabsContent value="general" className="grid gap-2 grid-cols-2">
+              <form.Field
+                name="vulnerabilityId"
+                children={(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>
+                        Vulnerability ID
+                      </FieldLabel>
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        aria-invalid={isInvalid}
+                      />
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
+                    </Field>
+                  )
+                }}
+              />
               <form.Field
                 name="assetId"
                 children={(field) => {
