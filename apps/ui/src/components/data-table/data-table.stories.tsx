@@ -21,6 +21,7 @@ interface StoryFinding {
   status: StoryFindingStatus
   source: StoryFindingSource
   owner: string
+  score: number
   updatedAt: string
 }
 
@@ -61,6 +62,7 @@ const defaultRows: Array<StoryFinding> = [
     status: "active",
     source: "scanner",
     owner: "Platform",
+    score: 9,
     updatedAt: "2026-04-16T08:45:00.000Z"
   },
   {
@@ -69,6 +71,7 @@ const defaultRows: Array<StoryFinding> = [
     status: "review",
     source: "vendor-feed",
     owner: "Backend",
+    score: 7,
     updatedAt: "2026-04-15T14:20:00.000Z"
   },
   {
@@ -77,6 +80,7 @@ const defaultRows: Array<StoryFinding> = [
     status: "active",
     source: "manual",
     owner: "Identity",
+    score: 8,
     updatedAt: "2026-04-14T10:05:00.000Z"
   },
   {
@@ -85,6 +89,7 @@ const defaultRows: Array<StoryFinding> = [
     status: "mitigated",
     source: "scanner",
     owner: "Cloud",
+    score: 4,
     updatedAt: "2026-04-12T17:30:00.000Z"
   },
   {
@@ -93,6 +98,7 @@ const defaultRows: Array<StoryFinding> = [
     status: "review",
     source: "manual",
     owner: "DevOps",
+    score: 6,
     updatedAt: "2026-04-11T09:15:00.000Z"
   },
   {
@@ -101,6 +107,7 @@ const defaultRows: Array<StoryFinding> = [
     status: "active",
     source: "vendor-feed",
     owner: "Edge",
+    score: 7,
     updatedAt: "2026-04-10T12:00:00.000Z"
   }
 ]
@@ -182,7 +189,43 @@ const columns: Array<ColumnDef<StoryFinding>> = [
     accessorKey: "owner",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Owner" />
-    )
+    ),
+    filterFn: (row, _columnId, filterValue: string) => {
+      if (!filterValue.trim()) {
+        return true
+      }
+
+      return row
+        .getValue<string>("owner")
+        .toLocaleLowerCase()
+        .includes(filterValue.toLocaleLowerCase())
+    },
+    meta: {
+      label: "Owner",
+      filterVariant: "text"
+    }
+  },
+  {
+    accessorKey: "score",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Score" />
+    ),
+    filterFn: (row, _columnId, filterValue: string) => {
+      if (!filterValue.trim()) {
+        return true
+      }
+
+      const parsedFilterValue = Number(filterValue)
+
+      return (
+        Number.isFinite(parsedFilterValue) &&
+        row.getValue<number>("score") === parsedFilterValue
+      )
+    },
+    meta: {
+      label: "Score",
+      filterVariant: "number"
+    }
   },
   {
     accessorKey: "updatedAt",

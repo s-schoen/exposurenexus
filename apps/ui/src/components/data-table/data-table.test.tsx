@@ -158,4 +158,69 @@ describe("DataTable stories", () => {
       ).toBeNull()
     })
   })
+
+  it("filters rows from a text filter and clears the active chip", async () => {
+    render(<Default />)
+
+    const ownerFilter = await screen.findByRole("textbox", {
+      name: /owner filter/i
+    })
+
+    expect(screen.getAllByText("Owner").length).toBeGreaterThan(0)
+
+    fireEvent.change(ownerFilter, {
+      target: { value: "identity" }
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText("Missing MFA enforcement for staging")).toBeTruthy()
+      expect(screen.getAllByText("Owner").length).toBeGreaterThan(0)
+      expect(screen.queryByText("Exposed admin interface")).toBeNull()
+      expect(
+        screen.getByRole("button", {
+          name: /clear owner filter identity/i
+        })
+      ).toBeTruthy()
+    })
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /clear owner filter identity/i })
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("Missing MFA enforcement for staging")).toBeTruthy()
+      expect(screen.getByText("Exposed admin interface")).toBeTruthy()
+      expect(
+        screen.queryByRole("button", {
+          name: /clear owner filter identity/i
+        })
+      ).toBeNull()
+    })
+  })
+
+  it("filters rows from a number filter and clears all filters", async () => {
+    render(<Default />)
+
+    const scoreFilter = await screen.findByRole("spinbutton", {
+      name: /score filter/i
+    })
+
+    fireEvent.change(scoreFilter, {
+      target: { value: "4" }
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText("Public S3 bucket policy drift")).toBeTruthy()
+      expect(screen.queryByText("Exposed admin interface")).toBeNull()
+      expect(screen.getByText("Filters active")).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /clear all/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText("Public S3 bucket policy drift")).toBeTruthy()
+      expect(screen.getByText("Exposed admin interface")).toBeTruthy()
+      expect(screen.queryByText("Filters active")).toBeNull()
+    })
+  })
 })

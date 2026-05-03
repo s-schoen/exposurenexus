@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select.tsx"
 import { Spinner } from "@/components/ui/spinner.tsx"
 import { SelectFilterField } from "@/components/data-table/filter/select-filter-field.tsx"
+import { InputFilterField } from "@/components/data-table/filter/input-filter-field.tsx"
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>
@@ -98,6 +99,34 @@ function SelectFilterChips<TData>({ column }: { column: Column<TData> }) {
   ))
 }
 
+function ScalarFilterChip<TData>({ column }: { column: Column<TData> }) {
+  const value = column.getFilterValue() as string | undefined
+  const label = column.columnDef.meta?.label || column.id
+
+  if (!value) {
+    return null
+  }
+
+  return (
+    <Badge
+      key={`${column.id}-${value}`}
+      variant="outline"
+      className="h-8 gap-2 rounded-full bg-background px-3"
+    >
+      <span className="text-muted-foreground">{label}</span>
+      <span className="max-w-48 truncate text-foreground">{value}</span>
+      <button
+        type="button"
+        className="rounded-full text-muted-foreground transition-colors hover:text-foreground"
+        onClick={() => column.setFilterValue(undefined)}
+        aria-label={`Clear ${label} filter ${value}`}
+      >
+        <X className="size-3.5" />
+      </button>
+    </Badge>
+  )
+}
+
 export function DataTableToolbar<TData>({
   table,
   isFetching,
@@ -125,13 +154,29 @@ export function DataTableToolbar<TData>({
         column.columnDef.meta?.filterVariant === "select" &&
         ((column.getFilterValue() as Array<string> | undefined)?.length ?? 0) > 0
     )
+  const activeScalarFilters = table
+    .getAllColumns()
+    .filter(
+      (column) =>
+        column.getCanFilter() &&
+        (column.columnDef.meta?.filterVariant === "text" ||
+          column.columnDef.meta?.filterVariant === "number") &&
+        ((column.getFilterValue() as string | undefined)?.trim().length ?? 0) >
+          0
+    )
   const hasActiveFilters =
-    Boolean(globalFilterValue) || activeSelectFilters.length > 0
+    Boolean(globalFilterValue) ||
+    activeSelectFilters.length > 0 ||
+    activeScalarFilters.length > 0
 
   function getFilterField(column: Column<TData>) {
     switch (column.columnDef.meta?.filterVariant) {
+      case "number":
+        return <InputFilterField key={column.id} column={column} type="number" />
       case "select":
         return <SelectFilterField key={column.id} column={column} />
+      case "text":
+        return <InputFilterField key={column.id} column={column} type="text" />
       default:
         return null
     }
@@ -236,6 +281,9 @@ export function DataTableToolbar<TData>({
             />
             {activeSelectFilters.map((column) => (
               <SelectFilterChips key={column.id} column={column} />
+            ))}
+            {activeScalarFilters.map((column) => (
+              <ScalarFilterChip key={column.id} column={column} />
             ))}
           </div>
         )}

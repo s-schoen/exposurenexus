@@ -5,9 +5,10 @@ import { usePageMeta } from "@/context/page.tsx"
 import { AssetTable } from "@/components/asset-table"
 
 export const Route = createFileRoute("/_authenticated/assets/")({
-  validateSearch: (search) => ({
+  validateSearch: (search: Record<string, unknown>) => ({
     ...search,
-    selected: typeof search.selected === "string" ? search.selected : undefined
+    selected: typeof search.selected === "string" ? search.selected : undefined,
+    filter: typeof search.filter === "string" ? search.filter : undefined
   }),
   component: RouteComponent
 })
@@ -30,6 +31,7 @@ function RouteComponent() {
             to: "/assets",
             search: (prev) => ({
               ...prev,
+              filter: prev.filter,
               selected: asset.id
             })
           })
@@ -42,6 +44,7 @@ function RouteComponent() {
             to: "/assets",
             search: (prev) => ({
               ...prev,
+              filter: prev.filter,
               selected: undefined
             })
           })
