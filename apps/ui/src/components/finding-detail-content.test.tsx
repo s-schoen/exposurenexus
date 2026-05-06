@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => {
     evidence:
       "## Validation\n\nScanner reported **remote access**.\n\n```\nopen port 8443\n```",
     mitigation: "Restrict access to internal networks",
+    assigneeId: null,
     firstSeen: new Date("2026-01-02T00:00:00.000Z"),
     lastSeen: new Date("2026-01-03T00:00:00.000Z"),
     fingerprint: "fingerprint-2713d833",
