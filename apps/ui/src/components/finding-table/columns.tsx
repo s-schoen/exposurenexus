@@ -1,5 +1,6 @@
 import { FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { normalizeDateToUtcStart } from "@openvlp/types/model/date"
 import type { Asset } from "@openvlp/types/model/asset"
 import type { Finding } from "@openvlp/types/model/finding"
 import type { UserProfile } from "@openvlp/types/model/user"
@@ -21,6 +22,11 @@ export const FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE =
 const severityRank = new Map(
   [...SEVERITY_ORDER].reverse().map((severity, index) => [severity, index])
 )
+
+const overdueStatuses = new Set<FindingStatus>([
+  FindingStatus.Active,
+  FindingStatus.Confirmed
+])
 
 function FindingStatusBadge({ status }: { status: FindingStatus }) {
   return (
@@ -45,6 +51,28 @@ function compareDateValues(
   return getDateTimestamp(left) - getDateTimestamp(right)
 }
 
+function getDueDateTimestamp(value: Date | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  return normalizeDateToUtcStart(value).getTime()
+}
+
+function compareDueDateValues(
+  left: Date | null | undefined,
+  right: Date | null | undefined
+) {
+  const leftTime = getDueDateTimestamp(left)
+  const rightTime = getDueDateTimestamp(right)
+
+  if (leftTime === null && rightTime === null) return 0
+  if (leftTime === null) return 1
+  if (rightTime === null) return -1
+
+  return leftTime - rightTime
+}
+
 function FindingDateCell({ value }: { value: Date | null | undefined }) {
   if (!value) {
     return <span className="text-muted-foreground">Not available</span>
@@ -53,6 +81,48 @@ function FindingDateCell({ value }: { value: Date | null | undefined }) {
   return (
     <span className="whitespace-nowrap font-medium text-foreground">
       {value.toLocaleString()}
+    </span>
+  )
+}
+
+export function formatFindingDueDate(value: Date | null | undefined) {
+  if (!value) {
+    return "No due date"
+  }
+
+  return normalizeDateToUtcStart(value).toISOString().slice(0, 10)
+}
+
+export function isFindingOverdue(
+  finding: Pick<Finding, "status" | "dueDate">,
+  today = new Date()
+) {
+  if (!finding.dueDate || !overdueStatuses.has(finding.status)) {
+    return false
+  }
+
+  const dueDateTime = normalizeDateToUtcStart(finding.dueDate).getTime()
+  const todayTime = normalizeDateToUtcStart(today).getTime()
+
+  return dueDateTime < todayTime
+}
+
+function FindingDueDateCell({ finding }: { finding: Finding }) {
+  if (!finding.dueDate) {
+    return <span className="text-muted-foreground">No due date</span>
+  }
+
+  const overdue = isFindingOverdue(finding)
+
+  return (
+    <span
+      className={
+        overdue
+          ? "block -mx-2 -my-2 whitespace-nowrap bg-destructive/5 px-2 py-2 font-medium text-foreground"
+          : "whitespace-nowrap font-medium text-foreground"
+      }
+    >
+      {formatFindingDueDate(finding.dueDate)}
     </span>
   )
 }
@@ -253,6 +323,16 @@ export function createFindingColumns(
           }))
         ]
       }
+    },
+    {
+      accessorKey: "dueDate",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Due Date" />
+      ),
+      sortingFn: (rowA, rowB) =>
+        compareDueDateValues(rowA.original.dueDate, rowB.original.dueDate),
+      cell: ({ row }) => <FindingDueDateCell finding={row.original} />,
+      enableColumnFilter: false
     },
     {
       accessorKey: "source",
