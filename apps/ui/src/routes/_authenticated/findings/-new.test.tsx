@@ -8,11 +8,30 @@ import {
 } from "@testing-library/react"
 import { FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import type { ReactNode } from "react"
 
 const mocks = vi.hoisted(() => ({
   createFinding: vi.fn(),
   historyBack: vi.fn(),
-  usePageMeta: vi.fn()
+  usePageMeta: vi.fn(),
+  users: [
+    {
+      id: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+      username: "alex",
+      displayName: "Alex Assignee",
+      email: "alex@example.com",
+      enabled: true,
+      roleIds: []
+    },
+    {
+      id: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+      username: "sam",
+      displayName: "",
+      email: "sam@example.com",
+      enabled: false,
+      roleIds: []
+    }
+  ]
 }))
 
 vi.mock("@tanstack/react-router", async (importOriginal) => {
@@ -48,6 +67,70 @@ vi.mock("@/components/asset-combobox.tsx", () => ({
     </button>
   )
 }))
+
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: () => ({
+    data: mocks.users,
+    isPending: false,
+    isSuccess: true
+  })
+}))
+
+vi.mock("@/api/user.ts", () => ({
+  createListUsersQueryOptions: () => ({
+    queryKey: ["users"]
+  })
+}))
+
+vi.mock("@/components/ui/select.tsx", async () => {
+  const React = await import("react")
+  const SelectContext = React.createContext<{
+    onValueChange?: (value: string) => void
+  }>({})
+
+  return {
+    Select: ({
+      children,
+      onValueChange
+    }: {
+      children: ReactNode
+      onValueChange?: (value: string) => void
+    }) => (
+      <SelectContext.Provider value={{ onValueChange }}>
+        <div>{children}</div>
+      </SelectContext.Provider>
+    ),
+    SelectContent: ({ children }: { children: ReactNode }) => (
+      <div>{children}</div>
+    ),
+    SelectGroup: ({ children }: { children: ReactNode }) => (
+      <div>{children}</div>
+    ),
+    SelectItem: ({
+      children,
+      value
+    }: {
+      children: ReactNode
+      value: string
+    }) => {
+      const { onValueChange } = React.useContext(SelectContext)
+
+      return (
+        <button type="button" onClick={() => onValueChange?.(value)}>
+          {children}
+        </button>
+      )
+    },
+    SelectTrigger: ({ children }: { children: ReactNode }) => (
+      <button type="button" role="combobox">
+        {children}
+      </button>
+    ),
+    SelectValue: ({ placeholder }: { placeholder?: string }) => (
+      <span>{placeholder}</span>
+    )
+  }
+})
 
 vi.mock("@/context/page.tsx", () => ({
   usePageMeta: mocks.usePageMeta
@@ -116,6 +199,7 @@ describe("create finding route", () => {
       expect(mocks.createFinding).toHaveBeenCalledWith({
         assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
         evidence: null,
+        assigneeId: null,
         mitigation: null,
         severity: VulnerabilitySeverity.Medium,
         source: "manual",
@@ -124,6 +208,65 @@ describe("create finding route", () => {
       })
     })
     expect(mocks.historyBack).toHaveBeenCalledTimes(1)
+  })
+
+  it("submits a valid finding with a selected assignee", async () => {
+    await renderCreateFindingRoute()
+    mocks.createFinding.mockResolvedValueOnce({
+      id: "2713d833-eb13-4517-ac7c-7761545ed42a"
+    })
+
+    fireEvent.change(screen.getByLabelText(/vulnerability id/i), {
+      target: {
+        value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
+      }
+    })
+    fireEvent.click(screen.getByRole("button", { name: /select asset/i }))
+    fireEvent.change(screen.getByLabelText(/source/i), {
+      target: {
+        value: "manual"
+      }
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Alex Assignee" }))
+    fireEvent.click(screen.getByRole("button", { name: /^create$/i }))
+
+    await waitFor(() => {
+      expect(mocks.createFinding).toHaveBeenCalledWith(
+        expect.objectContaining({
+          assigneeId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
+        })
+      )
+    })
+  })
+
+  it("clears a selected assignee before creating", async () => {
+    await renderCreateFindingRoute()
+    mocks.createFinding.mockResolvedValueOnce({
+      id: "2713d833-eb13-4517-ac7c-7761545ed42a"
+    })
+
+    fireEvent.change(screen.getByLabelText(/vulnerability id/i), {
+      target: {
+        value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
+      }
+    })
+    fireEvent.click(screen.getByRole("button", { name: /select asset/i }))
+    fireEvent.change(screen.getByLabelText(/source/i), {
+      target: {
+        value: "manual"
+      }
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Alex Assignee" }))
+    fireEvent.click(screen.getByRole("button", { name: "Unassigned" }))
+    fireEvent.click(screen.getByRole("button", { name: /^create$/i }))
+
+    await waitFor(() => {
+      expect(mocks.createFinding).toHaveBeenCalledWith(
+        expect.objectContaining({
+          assigneeId: null
+        })
+      )
+    })
   })
 
   it("stays on the form when create finding fails", async () => {
