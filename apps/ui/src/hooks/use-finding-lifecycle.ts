@@ -21,6 +21,7 @@ export type FindingEditableField =
   | "evidence"
   | "mitigation"
   | "assigneeId"
+  | "dueDate"
 
 export type FindingBulkEditableField = "severity" | "status"
 

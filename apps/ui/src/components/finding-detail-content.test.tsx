@@ -486,6 +486,81 @@ describe("FindingDetailContent", () => {
     })
   })
 
+  it("sets, changes, and clears due dates from metadata", async () => {
+    const { FindingDetailContent } =
+      await import("@/components/finding-detail-content.tsx")
+
+    const undated = render(
+      <FindingDetailContent findingId={mocks.finding.id} />
+    )
+
+    const emptyDueDate = screen.getByText("No due date")
+    fireEvent.click(emptyDueDate)
+    fireEvent.change(screen.getByDisplayValue(""), {
+      target: { value: "2026-05-06" }
+    })
+    fireEvent.keyDown(screen.getByDisplayValue("2026-05-06"), {
+      key: "Enter"
+    })
+
+    await waitFor(() => {
+      expect(mocks.updateFindingField).toHaveBeenCalledWith(
+        mocks.finding,
+        "dueDate",
+        new Date("2026-05-06T00:00:00.000Z")
+      )
+    })
+
+    undated.unmount()
+    mocks.updateFindingField.mockReset()
+    mocks.findingQuery = {
+      data: {
+        ...mocks.finding,
+        dueDate: new Date("2026-05-06T00:00:00.000Z")
+      },
+      isLoading: false,
+      isPending: false,
+      isSuccess: true
+    }
+
+    const dated = render(<FindingDetailContent findingId={mocks.finding.id} />)
+
+    fireEvent.click(screen.getByText("2026-05-06"))
+    fireEvent.change(screen.getByDisplayValue("2026-05-06"), {
+      target: { value: "2026-05-07" }
+    })
+    fireEvent.keyDown(screen.getByDisplayValue("2026-05-07"), {
+      key: "Enter"
+    })
+
+    await waitFor(() => {
+      expect(mocks.updateFindingField).toHaveBeenCalledWith(
+        mocks.findingQuery.data,
+        "dueDate",
+        new Date("2026-05-07T00:00:00.000Z")
+      )
+    })
+
+    dated.unmount()
+    mocks.updateFindingField.mockReset()
+
+    render(<FindingDetailContent findingId={mocks.finding.id} />)
+
+    fireEvent.click(screen.getByText("2026-05-06"))
+    fireEvent.change(screen.getByDisplayValue("2026-05-06"), {
+      target: { value: "" }
+    })
+    fireEvent.keyDown(screen.getByDisplayValue(""), { key: "Enter" })
+
+    await waitFor(() => {
+      expect(mocks.updateFindingField).toHaveBeenCalledWith(
+        mocks.findingQuery.data,
+        "dueDate",
+        null
+      )
+    })
+  })
+
   it("copies evidence and reports success or failure", async () => {
     const { FindingDetailContent } =
       await import("@/components/finding-detail-content.tsx")
