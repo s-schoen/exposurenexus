@@ -63,6 +63,7 @@ function createFindingFixture(overrides: Partial<Finding> = {}): Finding {
     evidence: "Observed exposed admin endpoint",
     mitigation: "Restrict access to internal networks",
     assigneeId: null,
+    dueDate: null,
     firstSeen: createdAt,
     lastSeen: updatedAt,
     fingerprint: `fingerprint-${id}`,

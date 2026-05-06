@@ -97,6 +97,7 @@ export async function updateFinding(f: Finding): Promise<Finding> {
     evidence: f.evidence,
     mitigation: f.mitigation,
     assigneeId: f.assigneeId,
+    dueDate: f.dueDate,
     assetId: f.assetId
   }
 
