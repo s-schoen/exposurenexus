@@ -208,7 +208,8 @@ export function createNucleiFindingParser({
                 severity: vulnerability.severity,
                 evidence: parseEvidence(nucleiFinding),
                 mitigation: nucleiFinding.info.remediation || "",
-                assigneeId: null
+                assigneeId: null,
+                dueDate: null
               },
               firstSeen: new Date()
             },

@@ -1,10 +1,11 @@
-import type {
-  CreateFinding,
-  FindingInternal,
-  UpdateFinding
+import {
+  FindingStatus,
+  type CreateFinding,
+  type Finding,
+  type FindingInternal,
+  type UpdateFinding
 } from "@openvlp/types/model/finding"
 import { HTTPException } from "hono/http-exception"
-import type { Finding } from "@openvlp/types/model/finding"
 import type { UserProfile } from "@openvlp/types/model/user"
 import { normalizeDateToUtcStart } from "@openvlp/types/model/date"
 import { createHash } from "node:crypto"
@@ -54,6 +55,17 @@ function calculateFingerprint(
 
 function normalizeOptionalDueDate(dueDate: Date | null | undefined) {
   return dueDate ? normalizeDateToUtcStart(dueDate) : null
+}
+
+function resolveImportedFindingStatus(
+  existingStatus: FindingInternal["status"],
+  importedStatus: CreateFinding["status"]
+) {
+  if (existingStatus === FindingStatus.Inactive) {
+    return importedStatus
+  }
+
+  return existingStatus
 }
 
 export interface CreateFindingOptions {
@@ -261,6 +273,10 @@ export function createFindingService({
       if (finding) {
         const updatedObservation = {
           ...finding,
+          status: resolveImportedFindingStatus(
+            finding.status,
+            opts.finding.status
+          ),
           lastSeen: new Date()
         }
         finding = await findingRepository.update(finding.id, updatedObservation)

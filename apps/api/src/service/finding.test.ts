@@ -841,7 +841,7 @@ describe("finding service", () => {
     expect(findingRepository.create).not.toHaveBeenCalled()
   })
 
-  it("preserves an existing assignee when an imported finding dedupes", async () => {
+  it("preserves existing assignment and due date when an imported finding dedupes", async () => {
     const service = createFindingService({
       findingRepository,
       userProfileService,
@@ -849,10 +849,11 @@ describe("finding service", () => {
       logger
     })
     const now = new Date("2026-04-05T06:07:08.000Z")
+    const dueDate = new Date("2026-05-06T00:00:00.000Z")
     const existingFinding = {
       ...baseFinding,
       assigneeId,
-      dueDate: null,
+      dueDate,
       source: FindingSource.Nuclei,
       lastSeen: new Date("2026-01-20T00:00:00.000Z")
     }
@@ -873,7 +874,8 @@ describe("finding service", () => {
         finding: {
           ...createPayload,
           source: FindingSource.Nuclei,
-          assigneeId: null
+          assigneeId: null,
+          dueDate: null
         },
         user
       })
@@ -891,7 +893,7 @@ describe("finding service", () => {
     })
     expect(findingRepository.update.mock.calls[0]?.[1]).toMatchObject({
       assigneeId,
-      dueDate: null,
+      dueDate,
       source: FindingSource.Nuclei,
       lastSeen: now
     })
@@ -899,7 +901,68 @@ describe("finding service", () => {
     expect(findingRepository.create).not.toHaveBeenCalled()
   })
 
-  it("creates a finding when the fingerprint does not exist", async () => {
+  it("reopens inactive imported findings while preserving their due date", async () => {
+    const service = createFindingService({
+      findingRepository,
+      userProfileService,
+      vulnerabilityService,
+      logger
+    })
+    const now = new Date("2026-04-05T06:07:08.000Z")
+    const dueDate = new Date("2026-05-06T00:00:00.000Z")
+    const existingFinding = {
+      ...baseFinding,
+      dueDate,
+      status: FindingStatus.Inactive,
+      source: FindingSource.Nuclei,
+      lastSeen: new Date("2026-01-20T00:00:00.000Z")
+    }
+    const updatedFinding = {
+      ...existingFinding,
+      status: FindingStatus.Active,
+      lastSeen: now
+    }
+
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+
+    findingRepository.getByFingerprint.mockResolvedValue(existingFinding)
+    findingRepository.update.mockResolvedValue(updatedFinding)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
+
+    await expect(
+      service.createOrUpdate({
+        finding: {
+          ...createPayload,
+          source: FindingSource.Nuclei,
+          status: FindingStatus.Active,
+          assigneeId: null,
+          dueDate: null
+        },
+        user
+      })
+    ).resolves.toEqual({
+      finding: {
+        ...updatedFinding,
+        vulnerability
+      },
+      created: false
+    })
+
+    expect(findingRepository.update).toHaveBeenCalledWith(existingFinding.id, {
+      ...existingFinding,
+      status: FindingStatus.Active,
+      lastSeen: now
+    })
+    expect(findingRepository.update.mock.calls[0]?.[1]).toMatchObject({
+      dueDate,
+      status: FindingStatus.Active,
+      lastSeen: now
+    })
+    expect(findingRepository.create).not.toHaveBeenCalled()
+  })
+
+  it("creates undated imported findings when the fingerprint does not exist", async () => {
     const service = createFindingService({
       findingRepository,
       userProfileService,
@@ -920,13 +983,19 @@ describe("finding service", () => {
 
     await expect(
       service.createOrUpdate({
-        finding: createPayload,
+        finding: {
+          ...createPayload,
+          source: FindingSource.Nuclei,
+          assigneeId: null,
+          dueDate: null
+        },
         user
       })
     ).resolves.toEqual({
       finding: {
         id: baseFinding.id,
         ...createPayload,
+        source: FindingSource.Nuclei,
         assigneeId: null,
         dueDate: null,
         fingerprint: createHash("sha256")
@@ -942,6 +1011,12 @@ describe("finding service", () => {
         vulnerability
       },
       created: true
+    })
+
+    expect(findingRepository.create.mock.calls[0]?.[0]).toMatchObject({
+      source: FindingSource.Nuclei,
+      assigneeId: null,
+      dueDate: null
     })
   })
 
