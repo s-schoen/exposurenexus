@@ -4,6 +4,7 @@ import {
   FindingStatus,
   createFindingSchema
 } from "@openvlp/types/model/finding"
+import { normalizeDateToUtcStart } from "@openvlp/types/model/date"
 import { useForm } from "@tanstack/react-form"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import type { CreateFinding } from "@openvlp/types/model/finding"
@@ -39,6 +40,18 @@ export const Route = createFileRoute("/_authenticated/findings/new")({
 
 const unassignedAssigneeValue = "__unassigned__"
 
+function formatDateInputValue(value: Date | null | undefined) {
+  if (!value) return ""
+
+  return normalizeDateToUtcStart(value).toISOString().slice(0, 10)
+}
+
+function parseDateInputValue(value: string) {
+  if (!value) return null
+
+  return normalizeDateToUtcStart(new Date(`${value}T00:00:00.000Z`))
+}
+
 export function RouteComponent() {
   usePageMeta({
     title: "Create Finding",
@@ -58,7 +71,8 @@ export function RouteComponent() {
       source: "",
       evidence: null,
       mitigation: null,
-      assigneeId: null
+      assigneeId: null,
+      dueDate: null
     } as CreateFinding,
     validators: {
       onSubmit: createFindingSchema
@@ -244,6 +258,35 @@ export function RouteComponent() {
                           </SelectGroup>
                         </SelectContent>
                       </Select>
+                    </Field>
+                  )
+                }}
+              />
+              <form.Field
+                name="dueDate"
+                children={(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid
+
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>Due Date</FieldLabel>
+                      <Input
+                        id={field.name}
+                        name={field.name}
+                        type="date"
+                        value={formatDateInputValue(field.state.value)}
+                        onBlur={field.handleBlur}
+                        onChange={(e) =>
+                          field.handleChange(
+                            parseDateInputValue(e.target.value)
+                          )
+                        }
+                        aria-invalid={isInvalid}
+                      />
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
                     </Field>
                   )
                 }}
