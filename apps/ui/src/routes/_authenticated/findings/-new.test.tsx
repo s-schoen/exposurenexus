@@ -200,6 +200,7 @@ describe("create finding route", () => {
         assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
         evidence: null,
         assigneeId: null,
+        dueDate: null,
         mitigation: null,
         severity: VulnerabilitySeverity.Medium,
         source: "manual",
@@ -208,6 +209,39 @@ describe("create finding route", () => {
       })
     })
     expect(mocks.historyBack).toHaveBeenCalledTimes(1)
+  })
+
+  it("submits a valid finding with a selected due date", async () => {
+    await renderCreateFindingRoute()
+    mocks.createFinding.mockResolvedValueOnce({
+      id: "2713d833-eb13-4517-ac7c-7761545ed42a"
+    })
+
+    fireEvent.change(screen.getByLabelText(/vulnerability id/i), {
+      target: {
+        value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
+      }
+    })
+    fireEvent.click(screen.getByRole("button", { name: /select asset/i }))
+    fireEvent.change(screen.getByLabelText(/source/i), {
+      target: {
+        value: "manual"
+      }
+    })
+    fireEvent.change(screen.getByLabelText(/due date/i), {
+      target: {
+        value: "2026-05-06"
+      }
+    })
+    fireEvent.click(screen.getByRole("button", { name: /^create$/i }))
+
+    await waitFor(() => {
+      expect(mocks.createFinding).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dueDate: new Date("2026-05-06T00:00:00.000Z")
+        })
+      )
+    })
   })
 
   it("submits a valid finding with a selected assignee", async () => {
