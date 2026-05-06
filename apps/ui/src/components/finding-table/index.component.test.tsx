@@ -51,10 +51,12 @@ const mocks = vi.hoisted(() => {
     finding,
     navigate: vi.fn(),
     queryStates: {
+      assignee: ["__unassigned_assignee__"],
       filter: "admin",
       severity: ["high"],
       status: ["active"]
     } as Record<string, string | Array<string> | null>,
+    setAssigneeFilter: vi.fn(),
     setFilter: vi.fn(),
     setSeverityFilter: vi.fn(),
     setStatusFilter: vi.fn()
@@ -92,6 +94,14 @@ vi.mock("@tanstack/react-query", () => ({
             email: "robin@example.com",
             enabled: false,
             roleIds: []
+          },
+          {
+            id: "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206",
+            username: "alex",
+            displayName: "Alex Assignee",
+            email: "alex@example.com",
+            enabled: true,
+            roleIds: []
           }
         ],
         isPending: false,
@@ -121,7 +131,11 @@ vi.mock("nuqs", () => ({
       return [mocks.queryStates.severity, mocks.setSeverityFilter]
     }
 
-    return [mocks.queryStates.status, mocks.setStatusFilter]
+    if (key === "status") {
+      return [mocks.queryStates.status, mocks.setStatusFilter]
+    }
+
+    return [mocks.queryStates.assignee, mocks.setAssigneeFilter]
   }
 }))
 
@@ -149,11 +163,20 @@ vi.mock("@/components/user-label.tsx", () => ({
   ) => new Map((users ?? []).map((user) => [user.id, user])),
   formatUserProfileReference: (
     userId: string | null | undefined,
-    usersById: Map<string, { displayName: string }>
+    usersById: Map<string, { displayName: string }>,
+    {
+      emptyLabel = "No Owner",
+      unknownLabel = "Unknown Owner"
+    }: {
+      emptyLabel?: string
+      unknownLabel?: string
+    } = {}
   ) =>
     !userId
-      ? "No Owner"
-      : (usersById.get(userId)?.displayName ?? "Unknown Owner"),
+      ? emptyLabel
+      : (usersById.get(userId)?.displayName ?? unknownLabel),
+  getUserProfileDisplayName: (user: { displayName: string }) =>
+    user.displayName,
   UserLabel: ({ user }: { user?: { displayName: string } | null }) => (
     <span>{user?.displayName ?? "No Owner"}</span>
   )
@@ -266,6 +289,7 @@ vi.mock("@/components/data-table/data-table.tsx", () => ({
             onFilterStateChange?.({
               globalFilter: "edge",
               selectFilters: {
+                assignee: ["1fab3f6c-4b82-4a52-a5d0-59d9c33f8206"],
                 severity: ["critical"],
                 status: ["confirmed"]
               }
@@ -298,10 +322,12 @@ describe("FindingTable workflow wiring", () => {
     mocks.deleteFindings.mockReset()
     mocks.navigate.mockReset()
     mocks.queryStates = {
+      assignee: ["__unassigned_assignee__"],
       filter: "admin",
       severity: ["high"],
       status: ["active"]
     }
+    mocks.setAssigneeFilter.mockReset()
     mocks.setFilter.mockReset()
     mocks.setSeverityFilter.mockReset()
     mocks.setStatusFilter.mockReset()
@@ -327,6 +353,7 @@ describe("FindingTable workflow wiring", () => {
     expect(mocks.dataTableProps?.filterState).toEqual({
       globalFilter: "admin",
       selectFilters: {
+        assignee: ["__unassigned_assignee__"],
         severity: ["high"],
         status: ["active"]
       }
@@ -350,7 +377,29 @@ describe("FindingTable workflow wiring", () => {
         expect.objectContaining({
           id: "responsibleOwner",
           label: "Responsible Owner"
+        }),
+        expect.objectContaining({
+          id: "assignee",
+          label: "Assignee"
         })
+      ])
+    )
+    const assigneeColumn = (
+      mocks.dataTableProps?.columns as Array<{
+        id?: string
+        meta?: { options?: Array<{ label: string; value: string }> }
+      }>
+    ).find((column) => column.id === "assignee")
+    expect(assigneeColumn?.meta?.options).toEqual(
+      expect.arrayContaining([
+        {
+          label: "Unassigned",
+          value: "__unassigned_assignee__"
+        },
+        {
+          label: "Alex Assignee",
+          value: "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206"
+        }
       ])
     )
 
@@ -378,6 +427,9 @@ describe("FindingTable workflow wiring", () => {
     expect(mocks.setFilter).toHaveBeenCalledWith("edge")
     expect(mocks.setSeverityFilter).toHaveBeenCalledWith(["critical"])
     expect(mocks.setStatusFilter).toHaveBeenCalledWith(["confirmed"])
+    expect(mocks.setAssigneeFilter).toHaveBeenCalledWith([
+      "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206"
+    ])
   })
 
   it("navigates to create finding from the toolbar", async () => {
