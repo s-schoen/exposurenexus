@@ -77,6 +77,7 @@ describe("finding routes", () => {
         id: findingId,
         ...createPayload,
         assigneeId: null,
+        dueDate: null,
         fingerprint: "abc123",
         ...findingDates,
         createdBy: user.id,
@@ -129,6 +130,7 @@ describe("finding routes", () => {
       id: findingId,
       ...createPayload,
       assigneeId: null,
+      dueDate: null,
       fingerprint: "abc123",
       ...findingDates,
       createdBy: user.id,
@@ -173,6 +175,7 @@ describe("finding routes", () => {
       id: findingId,
       ...createPayload,
       assigneeId: null,
+      dueDate: null,
       fingerprint: "abc123",
       ...findingDates,
       createdBy: user.id,
@@ -296,6 +299,91 @@ describe("finding routes", () => {
     })
   })
 
+  it("accepts and normalizes due dates during finding creation", async () => {
+    const payload = {
+      ...createPayload,
+      dueDate: "2026-05-06T18:30:00.000Z"
+    }
+    const normalizedDueDate = new Date("2026-05-06T00:00:00.000Z")
+    const createdFinding = {
+      id: findingId,
+      ...createPayload,
+      assigneeId: null,
+      dueDate: normalizedDueDate,
+      fingerprint: "abc123",
+      ...findingDates,
+      createdBy: user.id,
+      updatedBy: user.id,
+      vulnerability
+    }
+
+    findingService.create.mockResolvedValue(createdFinding as Finding)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request("/api/findings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "findings-create-with-due-date-request"
+      },
+      body: JSON.stringify(payload)
+    })
+
+    expect(response.status).toBe(201)
+    expect(findingService.create).toHaveBeenCalledWith({
+      finding: {
+        ...createPayload,
+        dueDate: normalizedDueDate
+      },
+      user
+    })
+  })
+
+  it("accepts null due dates during finding creation", async () => {
+    const payload = {
+      ...createPayload,
+      dueDate: null
+    }
+    const createdFinding = {
+      id: findingId,
+      ...payload,
+      assigneeId: null,
+      fingerprint: "abc123",
+      ...findingDates,
+      createdBy: user.id,
+      updatedBy: user.id,
+      vulnerability
+    }
+
+    findingService.create.mockResolvedValue(createdFinding as Finding)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request("/api/findings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "findings-create-with-null-due-date-request"
+      },
+      body: JSON.stringify(payload)
+    })
+
+    expect(response.status).toBe(201)
+    expect(findingService.create).toHaveBeenCalledWith({
+      finding: payload,
+      user
+    })
+  })
+
   it("returns 403 when creating a finding without write permission", async () => {
     userHasPermission.mockResolvedValue(false)
 
@@ -378,6 +466,7 @@ describe("finding routes", () => {
       id: findingId,
       ...updatePayload,
       assigneeId: null,
+      dueDate: null,
       fingerprint: "abc123",
       firstSeen: new Date("2026-01-02T00:00:00.000Z"),
       lastSeen: new Date("2026-01-03T00:00:00.000Z"),
@@ -516,6 +605,99 @@ describe("finding routes", () => {
     })
   })
 
+  it("accepts and normalizes due dates when updating a finding", async () => {
+    const updatePayload = {
+      ...createPayload,
+      dueDate: "2026-05-06T18:30:00.000Z"
+    }
+    const normalizedDueDate = new Date("2026-05-06T00:00:00.000Z")
+    const updatedFinding = {
+      id: findingId,
+      ...createPayload,
+      assigneeId: null,
+      dueDate: normalizedDueDate,
+      fingerprint: "abc123",
+      firstSeen: new Date("2026-01-02T00:00:00.000Z"),
+      lastSeen: new Date("2026-01-03T00:00:00.000Z"),
+      createdBy: user.id,
+      updatedBy: user.id,
+      createdAt: new Date("2026-01-02T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-03T00:00:00.000Z"),
+      vulnerability
+    }
+
+    findingService.update.mockResolvedValue(updatedFinding as Finding)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/findings/${findingId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "findings-update-due-date-request"
+      },
+      body: JSON.stringify(updatePayload)
+    })
+
+    expect(response.status).toBe(200)
+    expect(findingService.update).toHaveBeenCalledWith({
+      id: findingId,
+      finding: {
+        ...createPayload,
+        dueDate: normalizedDueDate
+      },
+      user
+    })
+  })
+
+  it("accepts null due dates when updating a finding", async () => {
+    const updatePayload = {
+      ...createPayload,
+      dueDate: null
+    }
+    const updatedFinding = {
+      id: findingId,
+      ...updatePayload,
+      assigneeId: null,
+      fingerprint: "abc123",
+      firstSeen: new Date("2026-01-02T00:00:00.000Z"),
+      lastSeen: new Date("2026-01-03T00:00:00.000Z"),
+      createdBy: user.id,
+      updatedBy: user.id,
+      createdAt: new Date("2026-01-02T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-03T00:00:00.000Z"),
+      vulnerability
+    }
+
+    findingService.update.mockResolvedValue(updatedFinding as Finding)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/findings/${findingId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "findings-update-null-due-date-request"
+      },
+      body: JSON.stringify(updatePayload)
+    })
+
+    expect(response.status).toBe(200)
+    expect(findingService.update).toHaveBeenCalledWith({
+      id: findingId,
+      finding: updatePayload,
+      user
+    })
+  })
+
   it("rejects invalid finding update bodies before calling the service", async () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -622,6 +804,7 @@ describe("finding routes", () => {
       id: findingId,
       ...createPayload,
       assigneeId: null,
+      dueDate: null,
       fingerprint: "abc123",
       ...findingDates,
       createdBy: user.id,

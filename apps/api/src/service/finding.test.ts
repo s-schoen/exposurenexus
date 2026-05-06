@@ -54,6 +54,7 @@ describe("finding service", () => {
     id: "2713d833-eb13-4517-ac7c-7761545ed42a",
     ...createPayload,
     assigneeId: null,
+    dueDate: null,
     fingerprint: "abc123",
     firstSeen: new Date("2026-01-02T00:00:00.000Z"),
     lastSeen: new Date("2026-01-02T00:00:00.000Z"),
@@ -169,6 +170,7 @@ describe("finding service", () => {
       id: baseFinding.id,
       ...createPayload,
       assigneeId: null,
+      dueDate: null,
       fingerprint,
       firstSeen: now,
       lastSeen: now,
@@ -182,6 +184,7 @@ describe("finding service", () => {
     expect(findingRepository.create).toHaveBeenCalledWith({
       ...createPayload,
       assigneeId: null,
+      dueDate: null,
       fingerprint,
       firstSeen: now,
       lastSeen: now,
@@ -223,6 +226,37 @@ describe("finding service", () => {
     expect(findingRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         assigneeId: null
+      })
+    )
+  })
+
+  it("normalizes finding due dates during creation", async () => {
+    const service = createFindingService({
+      findingRepository,
+      userProfileService,
+      vulnerabilityService,
+      logger
+    })
+    const dueDate = new Date("2026-05-06T18:30:00.000Z")
+    const normalizedDueDate = new Date("2026-05-06T00:00:00.000Z")
+
+    findingRepository.create.mockImplementation(async (input) => ({
+      id: baseFinding.id,
+      ...input
+    }))
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
+
+    await service.create({
+      finding: {
+        ...createPayload,
+        dueDate
+      },
+      user
+    })
+
+    expect(findingRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dueDate: normalizedDueDate
       })
     )
   })
@@ -405,6 +439,7 @@ describe("finding service", () => {
     expect(findingRepository.update).toHaveBeenCalledWith(baseFinding.id, {
       ...updatePayload,
       assigneeId: baseFinding.assigneeId,
+      dueDate: null,
       firstSeen: baseFinding.firstSeen,
       lastSeen: baseFinding.lastSeen,
       createdAt: baseFinding.createdAt,
@@ -414,6 +449,76 @@ describe("finding service", () => {
       updatedBy: user.id
     })
     expect(userProfileService.getByID).not.toHaveBeenCalled()
+  })
+
+  it("normalizes finding due dates during updates", async () => {
+    const service = createFindingService({
+      findingRepository,
+      userProfileService,
+      vulnerabilityService,
+      logger
+    })
+    const dueDate = new Date("2026-05-06T18:30:00.000Z")
+    const normalizedDueDate = new Date("2026-05-06T00:00:00.000Z")
+    const updatePayload = {
+      ...createPayload,
+      dueDate
+    }
+    const updatedFinding = {
+      ...baseFinding,
+      dueDate: normalizedDueDate
+    }
+
+    findingRepository.getByID.mockResolvedValue(baseFinding)
+    findingRepository.update.mockResolvedValue(updatedFinding)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
+
+    await service.update({
+      id: baseFinding.id,
+      finding: updatePayload,
+      user
+    })
+
+    expect(findingRepository.update).toHaveBeenCalledWith(
+      baseFinding.id,
+      expect.objectContaining({
+        dueDate: normalizedDueDate
+      })
+    )
+  })
+
+  it("clears finding due dates when update payloads omit them", async () => {
+    const service = createFindingService({
+      findingRepository,
+      userProfileService,
+      vulnerabilityService,
+      logger
+    })
+    const datedFinding = {
+      ...baseFinding,
+      dueDate: new Date("2026-05-06T00:00:00.000Z")
+    }
+    const updatedFinding = {
+      ...datedFinding,
+      dueDate: null
+    }
+
+    findingRepository.getByID.mockResolvedValue(datedFinding)
+    findingRepository.update.mockResolvedValue(updatedFinding)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
+
+    await service.update({
+      id: baseFinding.id,
+      finding: createPayload,
+      user
+    })
+
+    expect(findingRepository.update).toHaveBeenCalledWith(
+      baseFinding.id,
+      expect.objectContaining({
+        dueDate: null
+      })
+    )
   })
 
   it("updates findings to an existing enabled assignee", async () => {
@@ -747,6 +852,7 @@ describe("finding service", () => {
     const existingFinding = {
       ...baseFinding,
       assigneeId,
+      dueDate: null,
       source: FindingSource.Nuclei,
       lastSeen: new Date("2026-01-20T00:00:00.000Z")
     }
@@ -785,6 +891,7 @@ describe("finding service", () => {
     })
     expect(findingRepository.update.mock.calls[0]?.[1]).toMatchObject({
       assigneeId,
+      dueDate: null,
       source: FindingSource.Nuclei,
       lastSeen: now
     })
@@ -821,6 +928,7 @@ describe("finding service", () => {
         id: baseFinding.id,
         ...createPayload,
         assigneeId: null,
+        dueDate: null,
         fingerprint: createHash("sha256")
           .update(createPayload.vulnerabilityId)
           .update(createPayload.assetId)
