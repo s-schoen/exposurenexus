@@ -229,6 +229,59 @@ describe("useFindingLifecycle", () => {
     expect(toastErrorMock).toHaveBeenCalledWith("Failed to update finding")
   })
 
+  it("rolls assignee cache changes back and reports errors when assignment fails", async () => {
+    const finding = createFindingFixture()
+    const assigneeId = "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12"
+    const update = createDeferred<Finding>()
+    updateFindingRequestMock.mockReturnValueOnce(update.promise)
+    const { queryClient, result } = renderLifecycleHook()
+
+    queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [
+      finding
+    ])
+    queryClient.setQueryData(
+      createFindingByIDQueryOptions(finding.id).queryKey,
+      finding
+    )
+
+    let operation!: Promise<Finding | null>
+    act(() => {
+      operation = result.current.updateFindingField(
+        finding,
+        "assigneeId",
+        assigneeId
+      )
+    })
+
+    expect(
+      queryClient.getQueryData<Finding>(
+        createFindingByIDQueryOptions(finding.id).queryKey
+      )?.assigneeId
+    ).toBe(assigneeId)
+    expect(
+      queryClient.getQueryData<Array<Finding>>(
+        createListFindingsQueryOptions().queryKey
+      )?.[0].assigneeId
+    ).toBe(assigneeId)
+
+    await act(async () => {
+      update.reject(new Error("Assignment failed"))
+      await operation
+    })
+
+    expect(
+      queryClient.getQueryData<Finding>(
+        createFindingByIDQueryOptions(finding.id).queryKey
+      )
+    ).toEqual(finding)
+    expect(
+      queryClient.getQueryData<Array<Finding>>(
+        createListFindingsQueryOptions().queryKey
+      )
+    ).toEqual([finding])
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to update finding")
+  })
+
   it("invalidates detail, list, and stats after a successful single-field update", async () => {
     const finding = createFindingFixture()
     const updatedFinding = {

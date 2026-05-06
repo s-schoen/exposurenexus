@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
-import { useCallback, useMemo } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import {
@@ -11,7 +11,8 @@ import {
   ExternalLink,
   FileCode2,
   FileText,
-  ShieldAlert
+  ShieldAlert,
+  X
 } from "lucide-react"
 import { toast } from "sonner"
 import type { ReactNode } from "react"
@@ -44,7 +45,24 @@ import { FindingStatusBadge } from "@/components/finding-status-badge.tsx"
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
 import { MetadataSidebar } from "@/components/metadata-sidebar"
 import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx"
-import { UserLabel, createUserProfileById } from "@/components/user-label.tsx"
+import {
+  UserLabel,
+  createUserProfileById,
+  formatUserProfileReference
+} from "@/components/user-label.tsx"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from "@/components/ui/popover.tsx"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList
+} from "@/components/ui/command.tsx"
 import {
   Tabs,
   TabsContent,
@@ -57,6 +75,8 @@ interface FindingDetailContentProps {
   findingId: string
   titleAction?: ReactNode
 }
+
+const unassignedAssigneeValue = "__unassigned_assignee__"
 
 export function FindingDetailContent({
   findingId,
@@ -147,6 +167,101 @@ export function FindingDetailContent({
         className={className}
       />
     )
+  }
+
+  function getAssigneeEditValue() {
+    return displayData!.assigneeId ?? unassignedAssigneeValue
+  }
+
+  function AssigneePicker({
+    value,
+    onCancel,
+    onCommit
+  }: {
+    value: string
+    onCancel: () => void
+    onCommit: (value: string) => void
+  }) {
+    const [open, setOpen] = useState(false)
+    const assigneeId = value === unassignedAssigneeValue ? null : value
+    const assigneeLabel =
+      assigneeId && users.isPending
+        ? "Loading assignee"
+        : formatUserProfileReference(assigneeId, userProfileById, {
+            emptyLabel: "Unassigned",
+            unknownLabel: "Unknown Assignee"
+          })
+
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          render={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              aria-label="Finding assignee"
+              disabled={users.isPending}
+              className="max-w-full min-w-36 justify-between"
+            >
+              <span className="min-w-0 truncate">{assigneeLabel}</span>
+            </Button>
+          }
+        />
+        <PopoverContent align="end" className="w-72 p-0">
+          <Command>
+            <CommandInput placeholder="Search assignees..." />
+            <CommandList>
+              <CommandEmpty>No assignees found</CommandEmpty>
+              <CommandGroup>
+                <CommandItem
+                  value={unassignedAssigneeValue}
+                  onSelect={() => {
+                    setOpen(false)
+                    onCommit(unassignedAssigneeValue)
+                  }}
+                >
+                  Unassigned
+                </CommandItem>
+                {users.data?.map((user) => (
+                  <CommandItem
+                    key={user.id}
+                    value={`${user.displayName} ${user.username}`}
+                    onSelect={() => {
+                      setOpen(false)
+                      onCommit(user.id)
+                    }}
+                  >
+                    <div className="min-w-0">
+                      <span className="block truncate">{user.displayName}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {user.username}
+                      </span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          aria-label="Cancel finding assignee edit"
+          title="Cancel"
+          onClick={onCancel}
+        >
+          <X />
+        </Button>
+      </Popover>
+    )
+  }
+
+  async function handleSaveAssignee(value: string) {
+    const assigneeId = value === unassignedAssigneeValue ? null : value
+
+    await handleUpdate("assigneeId", assigneeId)
   }
 
   function CardPlaceholder() {
@@ -303,7 +418,27 @@ export function FindingDetailContent({
             label="Responsible owner"
             value={<ResponsibleOwnerLabel />}
           />
-          <MetadataDetailRow label="Assignee" value={<AssigneeLabel />} />
+          <MetadataDetailRow
+            label="Assignee"
+            editable={{
+              value: getAssigneeEditValue(),
+              onSave: handleSaveAssignee,
+              displayElement: () => <AssigneeLabel />,
+              editElement: {
+                type: "custom",
+                hideActions: true,
+                render: ({ value, onCancel, onCommit }) => (
+                  <AssigneePicker
+                    value={value}
+                    onCancel={onCancel}
+                    onCommit={onCommit}
+                  />
+                )
+              },
+              editOnClick: true,
+              showEditIcon: false
+            }}
+          />
           <MetadataDetailRow
             label="Asset type"
             value={capitalizeFirstLetter(asset.data?.type ?? "Unknown")}

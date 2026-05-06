@@ -3,7 +3,8 @@ import { findingSchema } from "@openvlp/types/model/finding"
 import type {
   CreateFinding,
   Finding,
-  FindingStatistics
+  FindingStatistics,
+  UpdateFinding
 } from "@openvlp/types/model/finding"
 import {
   DEFAULT_QUERY_STALE_TIME,
@@ -88,13 +89,14 @@ export async function createFinding(f: CreateFinding): Promise<Finding> {
 }
 
 export async function updateFinding(f: Finding): Promise<Finding> {
-  const payload: CreateFinding = {
+  const payload: UpdateFinding = {
     vulnerabilityId: f.vulnerabilityId,
     severity: f.severity,
     status: f.status,
     source: f.source,
     evidence: f.evidence,
     mitigation: f.mitigation,
+    assigneeId: f.assigneeId,
     assetId: f.assetId
   }
 
