@@ -49,6 +49,7 @@ describe("finding service", () => {
   const baseFinding: FindingInternal = {
     id: "2713d833-eb13-4517-ac7c-7761545ed42a",
     ...createPayload,
+    assigneeId: null,
     fingerprint: "abc123",
     firstSeen: new Date("2026-01-02T00:00:00.000Z"),
     lastSeen: new Date("2026-01-02T00:00:00.000Z"),
@@ -158,6 +159,7 @@ describe("finding service", () => {
     ).resolves.toEqual({
       id: baseFinding.id,
       ...createPayload,
+      assigneeId: null,
       fingerprint,
       firstSeen: now,
       lastSeen: now,
@@ -170,6 +172,7 @@ describe("finding service", () => {
 
     expect(findingRepository.create).toHaveBeenCalledWith({
       ...createPayload,
+      assigneeId: null,
       fingerprint,
       firstSeen: now,
       lastSeen: now,
@@ -253,6 +256,7 @@ describe("finding service", () => {
 
     expect(findingRepository.update).toHaveBeenCalledWith(baseFinding.id, {
       ...updatePayload,
+      assigneeId: baseFinding.assigneeId,
       firstSeen: baseFinding.firstSeen,
       lastSeen: baseFinding.lastSeen,
       createdAt: baseFinding.createdAt,
@@ -361,6 +365,7 @@ describe("finding service", () => {
       finding: {
         id: baseFinding.id,
         ...createPayload,
+        assigneeId: null,
         fingerprint: createHash("sha256")
           .update(createPayload.vulnerabilityId)
           .update(createPayload.assetId)

@@ -94,6 +94,7 @@ export function createFindingService({
         updatedAt: now,
         createdBy: opts.user.id,
         updatedBy: opts.user.id,
+        assigneeId: null,
         firstSeen: opts.firstSeen ?? now,
         lastSeen: opts.firstSeen ?? now,
         fingerprint: calculateFingerprint(
@@ -173,6 +174,7 @@ export function createFindingService({
           lastSeen: finding.lastSeen,
           createdAt: finding.createdAt,
           createdBy: finding.createdBy,
+          assigneeId: finding.assigneeId,
           fingerprint: finding.fingerprint,
           updatedAt: new Date(),
           updatedBy: opts.user.id,

@@ -28,6 +28,7 @@ vi.mock("../db/index.js", () => ({
 describe("finding repository", () => {
   const testDb = createTestDatabase()
   const createdBy = "85196743-cfba-4afb-b286-d36be32a64a4"
+  const assigneeId = "c7f0f5a8-f3e7-4d24-8f72-e3fbc2a48aa6"
 
   beforeAll(async () => {
     await testDb.start()
@@ -41,14 +42,24 @@ describe("finding repository", () => {
     await resetTestDatabase(testDb.db)
     await testDb.db
       .insertInto("user_profile")
-      .values({
-        id: createdBy,
-        username: "tester",
-        displayName: "Test User",
-        email: "tester@example.com",
-        enabled: true,
-        passwordHash: "password-hash"
-      })
+      .values([
+        {
+          id: createdBy,
+          username: "tester",
+          displayName: "Test User",
+          email: "tester@example.com",
+          enabled: true,
+          passwordHash: "password-hash"
+        },
+        {
+          id: assigneeId,
+          username: "assignee",
+          displayName: "Assigned User",
+          email: "assignee@example.com",
+          enabled: false,
+          passwordHash: "password-hash"
+        }
+      ])
       .execute()
   })
 
@@ -82,6 +93,7 @@ describe("finding repository", () => {
       evidence: "Observed exposed admin endpoint",
       source: FindingSource.Manual,
       mitigation: "Restrict access to internal networks",
+      assigneeId: null,
       firstSeen: new Date("2026-01-03T00:00:00.000Z"),
       lastSeen: new Date("2026-01-03T00:00:00.000Z"),
       fingerprint: "finding-fingerprint",
@@ -131,5 +143,57 @@ describe("finding repository", () => {
     })
     await expect(repository.deleteByID(created.id)).resolves.toEqual(updated)
     await expect(repository.getByID(created.id)).resolves.toBeNull()
+  })
+
+  it("clears assignee identity when the assigned user profile is deleted", async () => {
+    const assetRepository = createAssetRepository(testDb.db)
+    const vulnerabilityRepository = createVulnerabilityRepository(testDb.db)
+    const repository = createFindingRepository(testDb.db)
+
+    const asset = await assetRepository.create({
+      id: "",
+      name: "api.openvlp.local",
+      type: AssetType.Host
+    })
+    const vulnerability = await vulnerabilityRepository.create({
+      title: "Exposed Admin Endpoint",
+      description: "Administrative interface is reachable externally",
+      severity: VulnerabilitySeverity.High,
+      cve: null,
+      cwe: 284,
+      createdBy,
+      updatedBy: createdBy,
+      createdAt: new Date("2026-01-02T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z")
+    })
+    const created = await repository.create({
+      assetId: asset.id,
+      vulnerabilityId: vulnerability.id,
+      severity: VulnerabilitySeverity.High,
+      status: FindingStatus.Active,
+      evidence: "Observed exposed admin endpoint",
+      source: FindingSource.Manual,
+      mitigation: "Restrict access to internal networks",
+      assigneeId,
+      firstSeen: new Date("2026-01-03T00:00:00.000Z"),
+      lastSeen: new Date("2026-01-03T00:00:00.000Z"),
+      fingerprint: "assigned-finding-fingerprint",
+      createdAt: new Date("2026-01-03T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-03T00:00:00.000Z"),
+      createdBy,
+      updatedBy: createdBy
+    })
+
+    expect(created.assigneeId).toBe(assigneeId)
+
+    await testDb.db
+      .deleteFrom("user_profile")
+      .where("id", "=", assigneeId)
+      .execute()
+
+    await expect(repository.getByID(created.id)).resolves.toMatchObject({
+      id: created.id,
+      assigneeId: null
+    })
   })
 })

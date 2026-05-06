@@ -14,6 +14,7 @@ import * as m12 from "./migrations/20260430-01-rbac-custom-field-permissions.js"
 import * as m13 from "./migrations/20260430-02-rbac-custom-field-built-in-roles.js"
 import * as m14 from "./migrations/20260430-03-asset-custom-field-assignments.js"
 import * as m15 from "./migrations/20260503-asset-owner.js"
+import * as m16 from "./migrations/20260506-finding-assignee.js"
 import { db, logger } from "./index.js"
 import type { Database } from "./index.js"
 import type { Kysely } from "kysely"
@@ -57,6 +58,10 @@ class ManualMigrationProvider implements MigrationProvider {
       "20260503-asset-owner": {
         up: m15.up,
         down: m15.down
+      },
+      "20260506-finding-assignee": {
+        up: m16.up,
+        down: m16.down
       }
     }
 
