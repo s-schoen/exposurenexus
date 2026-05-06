@@ -207,7 +207,8 @@ describe("finding api", () => {
       jsonResponse({
         data: {
           ...findingJson,
-          status: FindingStatus.Confirmed
+          status: FindingStatus.Confirmed,
+          assigneeId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21"
         }
       })
     )
@@ -217,7 +218,8 @@ describe("finding api", () => {
       jsonResponse({
         data: {
           ...findingJson,
-          status: FindingStatus.Confirmed
+          status: FindingStatus.Confirmed,
+          assigneeId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21"
         }
       })
     )
@@ -230,6 +232,9 @@ describe("finding api", () => {
     } as Finding)
 
     expect(updatedFinding.status).toBe(FindingStatus.Confirmed)
+    expect(updatedFinding.assigneeId).toBe(
+      "8f5f4c3b-c369-481d-98f7-cf7148d80d21"
+    )
     const headers = requestInit().headers as Headers
     expect(fetchMock).toHaveBeenCalledWith(
       `http://localhost:3001/api/findings/${findingId}`,
@@ -241,10 +246,10 @@ describe("finding api", () => {
     expect(headers.get("Content-Type")).toBe("application/json")
     expect(requestJsonBody()).toEqual({
       ...createFindingPayload,
-      status: FindingStatus.Confirmed
+      status: FindingStatus.Confirmed,
+      assigneeId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21"
     })
     expect(requestJsonBody()).not.toHaveProperty("ownerId")
-    expect(requestJsonBody()).not.toHaveProperty("assigneeId")
   })
 
   it("deletes findings", async () => {

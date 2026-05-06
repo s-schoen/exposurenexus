@@ -20,6 +20,7 @@ export type FindingEditableField =
   | "source"
   | "evidence"
   | "mitigation"
+  | "assigneeId"
 
 export type FindingBulkEditableField = "severity" | "status"
 

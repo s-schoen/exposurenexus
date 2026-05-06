@@ -76,6 +76,14 @@ const mocks = vi.hoisted(() => {
       email: "alex@example.com",
       enabled: true,
       roleIds: []
+    },
+    {
+      id: "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12",
+      username: "casey",
+      displayName: "Casey Handler",
+      email: "casey@example.com",
+      enabled: false,
+      roleIds: []
     }
   ]
 
@@ -108,6 +116,7 @@ const mocks = vi.hoisted(() => {
     userLabels: {
       "1f9c36d2-1355-49d1-8464-b01ce955d88f": "Alice Example",
       "4e33f42e-764b-4812-88fb-11a183d43434": "Bob Example",
+      "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12": "Casey Handler",
       "7b2b7d98-6242-4efe-b630-5908727103fb": "Alex Assignee",
       "8f5f4c3b-c369-481d-98f7-cf7148d80d21": "Robin Owner"
     } as Record<string, string>
@@ -177,6 +186,37 @@ vi.mock("@/components/ui/select.tsx", () => ({
   )
 }))
 
+vi.mock("@/components/ui/popover.tsx", () => ({
+  Popover: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  PopoverContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  PopoverTrigger: ({ render }: { render: ReactNode }) => <>{render}</>
+}))
+
+vi.mock("@/components/ui/command.tsx", () => ({
+  Command: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  CommandEmpty: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+  CommandGroup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  CommandInput: ({ placeholder }: { placeholder?: string }) => (
+    <input aria-label={placeholder} />
+  ),
+  CommandItem: ({
+    children,
+    onSelect
+  }: {
+    children: ReactNode
+    onSelect?: () => void
+  }) => (
+    <button type="button" onClick={() => onSelect?.()}>
+      {children}
+    </button>
+  ),
+  CommandList: ({ children }: { children: ReactNode }) => <div>{children}</div>
+}))
+
 vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
   useFindingLifecycle: () => ({
     updateFindingField: mocks.updateFindingField
@@ -186,6 +226,23 @@ vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
 vi.mock("@/components/user-label.tsx", () => ({
   createUserProfileById: (users: Array<UserProfile> | undefined) =>
     new Map((users ?? []).map((user) => [user.id, user])),
+  formatUserProfileReference: (
+    userId: string | null | undefined,
+    userProfileById: Map<string, UserProfile>,
+    {
+      emptyLabel = "No User",
+      unknownLabel = "Unknown User"
+    }: {
+      emptyLabel?: string
+      unknownLabel?: string
+    } = {}
+  ) => {
+    if (!userId) {
+      return emptyLabel
+    }
+
+    return userProfileById.get(userId)?.displayName ?? unknownLabel
+  },
   UserLabel: ({
     emptyLabel = "No User",
     unknownLabel = "Unknown User",
@@ -352,6 +409,82 @@ describe("FindingDetailContent", () => {
     })
   })
 
+  it("assigns and reassigns an existing finding from the assignee metadata", async () => {
+    const { FindingDetailContent } =
+      await import("@/components/finding-detail-content.tsx")
+
+    render(<FindingDetailContent findingId={mocks.finding.id} />)
+
+    const editableAssignee = screen.getAllByText("Alex Assignee").at(-1)
+    expect(editableAssignee).toBeTruthy()
+    fireEvent.click(editableAssignee!)
+    fireEvent.click(screen.getByText("Casey Handler"))
+
+    await waitFor(() => {
+      expect(mocks.updateFindingField).toHaveBeenCalledWith(
+        mocks.finding,
+        "assigneeId",
+        "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12"
+      )
+    })
+  })
+
+  it("assigns an unassigned finding and clears an existing assignee", async () => {
+    const { FindingDetailContent } =
+      await import("@/components/finding-detail-content.tsx")
+
+    mocks.findingQuery = {
+      data: {
+        ...mocks.finding,
+        assigneeId: null
+      },
+      isLoading: false,
+      isPending: false,
+      isSuccess: true
+    }
+
+    const unassigned = render(
+      <FindingDetailContent findingId={mocks.finding.id} />
+    )
+
+    const editableUnassigned = screen.getAllByText("Unassigned").at(-1)
+    expect(editableUnassigned).toBeTruthy()
+    fireEvent.click(editableUnassigned!)
+    fireEvent.click(screen.getByText("Casey Handler"))
+
+    await waitFor(() => {
+      expect(mocks.updateFindingField).toHaveBeenCalledWith(
+        mocks.findingQuery.data,
+        "assigneeId",
+        "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12"
+      )
+    })
+
+    unassigned.unmount()
+    mocks.updateFindingField.mockReset()
+    mocks.findingQuery = {
+      data: mocks.finding,
+      isLoading: false,
+      isPending: false,
+      isSuccess: true
+    }
+
+    render(<FindingDetailContent findingId={mocks.finding.id} />)
+
+    const editableAssignee = screen.getAllByText("Alex Assignee").at(-1)
+    expect(editableAssignee).toBeTruthy()
+    fireEvent.click(editableAssignee!)
+    fireEvent.click(screen.getByText("Unassigned"))
+
+    await waitFor(() => {
+      expect(mocks.updateFindingField).toHaveBeenCalledWith(
+        mocks.finding,
+        "assigneeId",
+        null
+      )
+    })
+  })
+
   it("copies evidence and reports success or failure", async () => {
     const { FindingDetailContent } =
       await import("@/components/finding-detail-content.tsx")
@@ -490,7 +623,7 @@ describe("FindingDetailContent", () => {
     mocks.findingQuery = {
       data: {
         ...mocks.finding,
-        assigneeId: "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12"
+        assigneeId: "9d760e21-9439-4fa9-b708-8e2a30a80895"
       },
       isLoading: false,
       isPending: false,
