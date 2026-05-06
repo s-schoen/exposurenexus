@@ -413,6 +413,254 @@ describe("finding service", () => {
       updatedAt: now,
       updatedBy: user.id
     })
+    expect(userProfileService.getByID).not.toHaveBeenCalled()
+  })
+
+  it("updates findings to an existing enabled assignee", async () => {
+    const service = createFindingService({
+      findingRepository,
+      userProfileService,
+      vulnerabilityService,
+      logger
+    })
+    const updatePayload = {
+      ...createPayload,
+      assigneeId
+    }
+    const updatedFinding = {
+      ...baseFinding,
+      ...updatePayload
+    }
+
+    userProfileService.getByID.mockResolvedValue({
+      id: assigneeId,
+      username: "assignee",
+      displayName: "Assigned User",
+      email: "assignee@example.com",
+      enabled: true,
+      roleIds: []
+    })
+    findingRepository.getByID.mockResolvedValue(baseFinding)
+    findingRepository.update.mockResolvedValue(updatedFinding)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
+
+    await expect(
+      service.update({
+        id: baseFinding.id,
+        finding: updatePayload,
+        user
+      })
+    ).resolves.toEqual({
+      ...updatedFinding,
+      vulnerability
+    })
+
+    expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId)
+    expect(findingRepository.update).toHaveBeenCalledWith(
+      baseFinding.id,
+      expect.objectContaining({
+        assigneeId
+      })
+    )
+  })
+
+  it("updates findings to an existing disabled assignee", async () => {
+    const service = createFindingService({
+      findingRepository,
+      userProfileService,
+      vulnerabilityService,
+      logger
+    })
+    const updatePayload = {
+      ...createPayload,
+      assigneeId
+    }
+    const updatedFinding = {
+      ...baseFinding,
+      ...updatePayload
+    }
+
+    userProfileService.getByID.mockResolvedValue({
+      id: assigneeId,
+      username: "disabled-assignee",
+      displayName: "Disabled Assignee",
+      email: "disabled-assignee@example.com",
+      enabled: false,
+      roleIds: []
+    })
+    findingRepository.getByID.mockResolvedValue(baseFinding)
+    findingRepository.update.mockResolvedValue(updatedFinding)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
+
+    await service.update({
+      id: baseFinding.id,
+      finding: updatePayload,
+      user
+    })
+
+    expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId)
+    expect(findingRepository.update).toHaveBeenCalledWith(
+      baseFinding.id,
+      expect.objectContaining({
+        assigneeId
+      })
+    )
+  })
+
+  it("reassigns findings from one assignee to another", async () => {
+    const service = createFindingService({
+      findingRepository,
+      userProfileService,
+      vulnerabilityService,
+      logger
+    })
+    const nextAssigneeId = "98f0b0bb-af64-4d25-ae0d-03629d53444b"
+    const assignedFinding = {
+      ...baseFinding,
+      assigneeId
+    }
+    const updatePayload = {
+      ...createPayload,
+      assigneeId: nextAssigneeId
+    }
+    const updatedFinding = {
+      ...assignedFinding,
+      assigneeId: nextAssigneeId
+    }
+
+    userProfileService.getByID.mockResolvedValue({
+      id: nextAssigneeId,
+      username: "next-assignee",
+      displayName: "Next Assignee",
+      email: "next-assignee@example.com",
+      enabled: true,
+      roleIds: []
+    })
+    findingRepository.getByID.mockResolvedValue(assignedFinding)
+    findingRepository.update.mockResolvedValue(updatedFinding)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
+
+    await service.update({
+      id: baseFinding.id,
+      finding: updatePayload,
+      user
+    })
+
+    expect(userProfileService.getByID).toHaveBeenCalledWith(nextAssigneeId)
+    expect(findingRepository.update).toHaveBeenCalledWith(
+      baseFinding.id,
+      expect.objectContaining({
+        assigneeId: nextAssigneeId
+      })
+    )
+  })
+
+  it("clears finding assignees", async () => {
+    const service = createFindingService({
+      findingRepository,
+      userProfileService,
+      vulnerabilityService,
+      logger
+    })
+    const assignedFinding = {
+      ...baseFinding,
+      assigneeId
+    }
+    const updatePayload = {
+      ...createPayload,
+      assigneeId: null
+    }
+    const updatedFinding = {
+      ...assignedFinding,
+      assigneeId: null
+    }
+
+    findingRepository.getByID.mockResolvedValue(assignedFinding)
+    findingRepository.update.mockResolvedValue(updatedFinding)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
+
+    await service.update({
+      id: baseFinding.id,
+      finding: updatePayload,
+      user
+    })
+
+    expect(userProfileService.getByID).not.toHaveBeenCalled()
+    expect(findingRepository.update).toHaveBeenCalledWith(
+      baseFinding.id,
+      expect.objectContaining({
+        assigneeId: null
+      })
+    )
+  })
+
+  it("preserves existing assignee when updating finding status", async () => {
+    const service = createFindingService({
+      findingRepository,
+      userProfileService,
+      vulnerabilityService,
+      logger
+    })
+    const assignedFinding = {
+      ...baseFinding,
+      assigneeId
+    }
+    const updatePayload = {
+      ...createPayload,
+      status: FindingStatus.Confirmed
+    }
+    const updatedFinding = {
+      ...assignedFinding,
+      status: FindingStatus.Confirmed
+    }
+
+    findingRepository.getByID.mockResolvedValue(assignedFinding)
+    findingRepository.update.mockResolvedValue(updatedFinding)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
+
+    await service.update({
+      id: baseFinding.id,
+      finding: updatePayload,
+      user
+    })
+
+    expect(userProfileService.getByID).not.toHaveBeenCalled()
+    expect(findingRepository.update).toHaveBeenCalledWith(
+      baseFinding.id,
+      expect.objectContaining({
+        status: FindingStatus.Confirmed,
+        assigneeId
+      })
+    )
+  })
+
+  it("rejects unknown finding assignees before updating findings", async () => {
+    const service = createFindingService({
+      findingRepository,
+      userProfileService,
+      vulnerabilityService,
+      logger
+    })
+    const updatePayload = {
+      ...createPayload,
+      assigneeId
+    }
+
+    userProfileService.getByID.mockResolvedValue(null)
+    findingRepository.getByID.mockResolvedValue(baseFinding)
+
+    await expect(
+      service.update({
+        id: baseFinding.id,
+        finding: updatePayload,
+        user
+      })
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "finding assignee does not exist"
+    } satisfies Partial<HTTPException>)
+    expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId)
+    expect(findingRepository.update).not.toHaveBeenCalled()
   })
 
   it("returns null when updating a missing finding", async () => {

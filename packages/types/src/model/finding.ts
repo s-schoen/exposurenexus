@@ -57,9 +57,7 @@ export const createFindingSchema = findingInternalSchema
     assigneeId: findingInternalSchema.shape.assigneeId.optional()
   })
 
-export const updateFindingSchema = createFindingSchema.omit({
-  assigneeId: true
-})
+export const updateFindingSchema = createFindingSchema
 
 export const FindingStatistics = z.strictObject({
   total: z.int(),
