@@ -215,7 +215,7 @@ export function createFindingService({
             : opts.finding.assigneeId
         const dueDate =
           typeof opts.finding.dueDate === "undefined"
-            ? null
+            ? finding.dueDate
             : normalizeOptionalDueDate(opts.finding.dueDate)
 
         if (typeof opts.finding.assigneeId !== "undefined" && assigneeId) {
