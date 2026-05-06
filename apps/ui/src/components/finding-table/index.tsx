@@ -56,16 +56,21 @@ export function FindingTable({
     "status",
     parseAsArrayOf(parseAsString).withDefault([])
   )
+  const [assigneeFilter, setAssigneeFilter] = useQueryState(
+    "assignee",
+    parseAsArrayOf(parseAsString).withDefault([])
+  )
 
   const filterState = useMemo<DataTableFilterState>(
     () => ({
       globalFilter: filter ?? "",
       selectFilters: {
         ...(severityFilter.length > 0 ? { severity: severityFilter } : {}),
-        ...(statusFilter.length > 0 ? { status: statusFilter } : {})
+        ...(statusFilter.length > 0 ? { status: statusFilter } : {}),
+        ...(assigneeFilter.length > 0 ? { assignee: assigneeFilter } : {})
       }
     }),
-    [filter, severityFilter, statusFilter]
+    [assigneeFilter, filter, severityFilter, statusFilter]
   )
 
   const assetsById = useMemo(
@@ -114,6 +119,11 @@ export function FindingTable({
       {
         id: "responsibleOwner",
         label: "Responsible Owner",
+        formatValue: (value) => String(value)
+      },
+      {
+        id: "assignee",
+        label: "Assignee",
         formatValue: (value) => String(value)
       },
       {
@@ -247,11 +257,15 @@ export function FindingTable({
     void setFilter(nextState.globalFilter ? nextState.globalFilter : null)
     const nextSeverityFilter = nextState.selectFilters.severity ?? []
     const nextStatusFilter = nextState.selectFilters.status ?? []
+    const nextAssigneeFilter = nextState.selectFilters.assignee ?? []
 
     void setSeverityFilter(
       nextSeverityFilter.length ? nextSeverityFilter : null
     )
     void setStatusFilter(nextStatusFilter.length ? nextStatusFilter : null)
+    void setAssigneeFilter(
+      nextAssigneeFilter.length ? nextAssigneeFilter : null
+    )
   }
 
   return (

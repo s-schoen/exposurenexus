@@ -10,9 +10,13 @@ import { SeverityBadge } from "@/components/severity-badge.tsx"
 import { Badge } from "@/components/ui/badge.tsx"
 import {
   UserLabel,
-  formatUserProfileReference
+  formatUserProfileReference,
+  getUserProfileDisplayName
 } from "@/components/user-label.tsx"
 import { formatFindingStatus } from "@/lib/format.ts"
+
+export const FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE =
+  "__unassigned_assignee__"
 
 const severityRank = new Map(
   [...SEVERITY_ORDER].reverse().map((severity, index) => [severity, index])
@@ -225,7 +229,28 @@ export function createFindingColumns(
           unknownLabel="Unknown Assignee"
         />
       ),
-      enableColumnFilter: false
+      filterFn: (row, _columnId, filterValue: Array<string>) => {
+        if (filterValue.length === 0) return true
+
+        const assigneeFilterValue =
+          row.original.assigneeId ?? FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE
+
+        return filterValue.includes(assigneeFilterValue)
+      },
+      meta: {
+        label: "Assignee",
+        filterVariant: "select",
+        options: [
+          {
+            label: "Unassigned",
+            value: FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE
+          },
+          ...Array.from(userProfileById.values()).map((user) => ({
+            label: getUserProfileDisplayName(user),
+            value: user.id
+          }))
+        ]
+      }
     },
     {
       accessorKey: "source",

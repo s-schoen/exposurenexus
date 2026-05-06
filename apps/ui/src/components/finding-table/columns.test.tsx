@@ -27,6 +27,7 @@ vi.mock("@/components/user-label.tsx", () => ({
 
     return usersById.get(userId)?.displayName ?? unknownLabel
   },
+  getUserProfileDisplayName: (user: UserProfile) => user.displayName,
   UserLabel: ({
     emptyLabel,
     unknownLabel,
@@ -113,6 +114,9 @@ interface TestColumn {
     columnId: string,
     filterValue: Array<string>
   ) => boolean
+  meta?: {
+    options?: Array<{ label: string; value: string }>
+  }
   sortingFn?: (rowA: RowStub, rowB: RowStub, columnId: string) => number
 }
 
@@ -130,6 +134,8 @@ function createRow(original: Finding): RowStub {
     original
   }
 }
+
+const unassignedAssigneeFilterValue = "__unassigned_assignee__"
 
 async function createColumns(
   assetNamesById = new Map([[finding.assetId, "api-01"]]),
@@ -288,6 +294,28 @@ describe("createFindingColumns", () => {
     expect(screen.getByText("Loading User")).toBeTruthy()
   })
 
+  it("formats assignee grouping values with explicit fallback labels", async () => {
+    const columns = await createColumns()
+    const assigneeColumn = findColumn(columns, "assignee")
+
+    expect(assigneeColumn.accessorFn?.(finding)).toBe("Alex Assignee")
+    expect(
+      assigneeColumn.accessorFn?.({
+        ...finding,
+        assigneeId: null
+      })
+    ).toBe("Unassigned")
+
+    const unknownAssigneeColumns = await createColumns(
+      new Map([[finding.assetId, "api-01"]]),
+      new Map([[asset.id, asset]]),
+      new Map([[user.id, user]])
+    )
+
+    expect(findColumn(unknownAssigneeColumns, "assignee").accessorFn?.(finding))
+      .toBe("Unknown Assignee")
+  })
+
   it("sorts severities and dates with null dates last for ascending order", async () => {
     const columns = await createColumns()
     const severityColumn = findColumn(columns, "severity")
@@ -352,5 +380,53 @@ describe("createFindingColumns", () => {
         FindingStatus.Mitigated
       ])
     ).toBe(false)
+  })
+
+  it("filters assignee values by user profile and unassigned state", async () => {
+    const columns = await createColumns()
+    const assigneeColumn = findColumn(columns, "assignee")
+    const row = createRow(finding)
+    const unassignedRow = createRow({
+      ...finding,
+      assigneeId: null
+    })
+
+    expect(assigneeColumn.filterFn?.(row, "assignee", [])).toBe(true)
+    expect(assigneeColumn.filterFn?.(row, "assignee", [assignee.id])).toBe(
+      true
+    )
+    expect(
+      assigneeColumn.filterFn?.(row, "assignee", [
+        "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12"
+      ])
+    ).toBe(false)
+    expect(
+      assigneeColumn.filterFn?.(row, "assignee", [
+        unassignedAssigneeFilterValue
+      ])
+    ).toBe(false)
+    expect(
+      assigneeColumn.filterFn?.(unassignedRow, "assignee", [
+        unassignedAssigneeFilterValue
+      ])
+    ).toBe(true)
+  })
+
+  it("exposes assignee select filter options with users and unassigned", async () => {
+    const columns = await createColumns()
+    const assigneeColumn = findColumn(columns, "assignee")
+
+    expect(assigneeColumn.meta?.options).toEqual(
+      expect.arrayContaining([
+        {
+          label: "Unassigned",
+          value: unassignedAssigneeFilterValue
+        },
+        {
+          label: "Alex Assignee",
+          value: assignee.id
+        }
+      ])
+    )
   })
 })
