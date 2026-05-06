@@ -193,6 +193,57 @@ describe("db migration columns", () => {
     ])
   })
 
+  it("adds nullable finding assignee identity pointing at user profiles", async () => {
+    const findingAssigneeColumns = await sql<{
+      column_name: string
+      data_type: string
+      is_nullable: string
+    }>`
+      select column_name, data_type, is_nullable
+      from information_schema.columns
+      where table_name = 'finding'
+        and column_name = 'assigneeId'
+    `.execute(testDb.db)
+    const findingAssigneeForeignKeys = await sql<{
+      constraint_name: string
+      source_table: string
+      target_table: string
+      delete_rule: string
+    }>`
+      select
+        rc.constraint_name,
+        kcu.table_name as source_table,
+        ccu.table_name as target_table,
+        rc.delete_rule
+      from information_schema.referential_constraints rc
+      join information_schema.key_column_usage kcu
+        on kcu.constraint_catalog = rc.constraint_catalog
+        and kcu.constraint_schema = rc.constraint_schema
+        and kcu.constraint_name = rc.constraint_name
+      join information_schema.constraint_column_usage ccu
+        on ccu.constraint_catalog = rc.unique_constraint_catalog
+        and ccu.constraint_schema = rc.unique_constraint_schema
+        and ccu.constraint_name = rc.unique_constraint_name
+      where kcu.table_name = 'finding'
+        and kcu.column_name = 'assigneeId'
+    `.execute(testDb.db)
+
+    expect(findingAssigneeColumns.rows).toEqual([
+      {
+        column_name: "assigneeId",
+        data_type: "uuid",
+        is_nullable: "YES"
+      }
+    ])
+    expect(findingAssigneeForeignKeys.rows).toEqual([
+      expect.objectContaining({
+        source_table: "finding",
+        target_table: "user_profile",
+        delete_rule: "SET NULL"
+      })
+    ])
+  })
+
   it("creates normalized rbac tables with seeded built-in data", async () => {
     const roleColumns = await sql<{
       column_name: string

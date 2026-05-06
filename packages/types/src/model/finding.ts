@@ -26,6 +26,7 @@ export const findingInternalSchema = z.strictObject({
   source: z.string().nonempty(),
   evidence: z.string().nullable(),
   mitigation: z.string().nullable(),
+  assigneeId: z.uuidv4().nullable(),
   firstSeen: dateSchema.nullable(),
   lastSeen: dateSchema.nullable(),
   fingerprint: z.string(),
@@ -46,6 +47,7 @@ export const createFindingSchema = findingInternalSchema.omit({
   updatedAt: true,
   createdBy: true,
   updatedBy: true,
+  assigneeId: true,
   fingerprint: true,
   firstSeen: true,
   lastSeen: true

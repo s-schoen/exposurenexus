@@ -75,6 +75,7 @@ describe("finding routes", () => {
       {
         id: findingId,
         ...createPayload,
+        assigneeId: null,
         fingerprint: "abc123",
         ...findingDates,
         createdBy: user.id,
@@ -126,6 +127,7 @@ describe("finding routes", () => {
     const findingRecord = {
       id: findingId,
       ...createPayload,
+      assigneeId: null,
       fingerprint: "abc123",
       ...findingDates,
       createdBy: user.id,
@@ -169,6 +171,7 @@ describe("finding routes", () => {
     const createdFinding = {
       id: findingId,
       ...createPayload,
+      assigneeId: null,
       fingerprint: "abc123",
       ...findingDates,
       createdBy: user.id,
@@ -271,6 +274,7 @@ describe("finding routes", () => {
     const updatedFinding = {
       id: findingId,
       ...updatePayload,
+      assigneeId: null,
       fingerprint: "abc123",
       firstSeen: new Date("2026-01-02T00:00:00.000Z"),
       lastSeen: new Date("2026-01-03T00:00:00.000Z"),
@@ -404,6 +408,7 @@ describe("finding routes", () => {
     const deletedFinding = {
       id: findingId,
       ...createPayload,
+      assigneeId: null,
       fingerprint: "abc123",
       ...findingDates,
       createdBy: user.id,
