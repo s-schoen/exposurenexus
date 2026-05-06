@@ -54,6 +54,7 @@ const findingJson = {
   evidence: "Observed exposed admin endpoint",
   mitigation: "Restrict access to internal networks",
   assigneeId: null,
+  dueDate: "2026-05-06T00:00:00.000Z",
   firstSeen: "2026-01-02T00:00:00.000Z",
   lastSeen: "2026-01-03T00:00:00.000Z",
   fingerprint: "abc123",
@@ -112,12 +113,14 @@ const findingStats: FindingStatistics = {
 }
 
 function expectFindingDates(finding: Finding) {
+  expect(finding.dueDate).toBeInstanceOf(Date)
   expect(finding.firstSeen).toBeInstanceOf(Date)
   expect(finding.lastSeen).toBeInstanceOf(Date)
   expect(finding.createdAt).toBeInstanceOf(Date)
   expect(finding.updatedAt).toBeInstanceOf(Date)
   expect(finding.vulnerability.createdAt).toBeInstanceOf(Date)
   expect(finding.vulnerability.updatedAt).toBeInstanceOf(Date)
+  expect(finding.dueDate?.toISOString()).toBe("2026-05-06T00:00:00.000Z")
   expect(finding.lastSeen?.toISOString()).toBe("2026-01-03T00:00:00.000Z")
 }
 
@@ -247,7 +250,8 @@ describe("finding api", () => {
     expect(requestJsonBody()).toEqual({
       ...createFindingPayload,
       status: FindingStatus.Confirmed,
-      assigneeId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21"
+      assigneeId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+      dueDate: "2026-05-06T00:00:00.000Z"
     })
     expect(requestJsonBody()).not.toHaveProperty("ownerId")
   })

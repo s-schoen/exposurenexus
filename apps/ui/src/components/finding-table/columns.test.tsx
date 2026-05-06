@@ -55,6 +55,7 @@ const finding: Finding = {
   evidence: "Observed exposed admin endpoint",
   mitigation: "Restrict access to internal networks",
   assigneeId: "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206",
+  dueDate: null,
   firstSeen: new Date("2026-01-02T00:00:00.000Z"),
   lastSeen: new Date("2026-01-03T00:00:00.000Z"),
   fingerprint: "fingerprint-1",
