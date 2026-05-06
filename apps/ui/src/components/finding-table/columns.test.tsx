@@ -52,6 +52,7 @@ const finding: Finding = {
   source: "nuclei",
   evidence: "Observed exposed admin endpoint",
   mitigation: "Restrict access to internal networks",
+  assigneeId: null,
   firstSeen: new Date("2026-01-02T00:00:00.000Z"),
   lastSeen: new Date("2026-01-03T00:00:00.000Z"),
   fingerprint: "fingerprint-1",

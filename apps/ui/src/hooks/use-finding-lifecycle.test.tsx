@@ -62,6 +62,7 @@ function createFindingFixture(overrides: Partial<Finding> = {}): Finding {
     source: FindingSource.Manual,
     evidence: "Observed exposed admin endpoint",
     mitigation: "Restrict access to internal networks",
+    assigneeId: null,
     firstSeen: createdAt,
     lastSeen: updatedAt,
     fingerprint: `fingerprint-${id}`,
