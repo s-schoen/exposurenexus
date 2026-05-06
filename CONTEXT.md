@@ -25,17 +25,17 @@ An **asset owner** is the single user profile responsible for handling findings
 on an asset.
 
 Assets may have no known owner. Avoid using owner as free text; asset ownership
-refers to a link to a user profile. A finding's responsible owner is derived
-from its asset; findings do not have separate owners unless a later workflow
-requires finding-level assignment. Imported assets start without an owner unless
-ownership is set explicitly after import. A disabled user profile can remain an
-asset owner. If an asset owner user profile is deleted, their assets become
-ownerless. Changing asset ownership is treated as editing asset metadata.
-Asset ownership can be set when an asset is created or changed later.
-Ownership can be cleared explicitly. When set, the owner must reference an
-existing user profile, including disabled user profiles. Asset responses expose
-the owner as an owner user profile ID; clients resolve user profile display data
-separately when needed. Owner identity is part of the base asset representation.
+refers to a link to a user profile. Asset ownership is distinct from finding
+assignment: the asset owner is not necessarily the assignee for a specific
+finding. Imported assets start without an owner unless ownership is set
+explicitly after import. A disabled user profile can remain an asset owner. If
+an asset owner user profile is deleted, their assets become ownerless. Changing
+asset ownership is treated as editing asset metadata. Asset ownership can be
+set when an asset is created or changed later. Ownership can be cleared
+explicitly. When set, the owner must reference an existing user profile,
+including disabled user profiles. Asset responses expose the owner as an owner
+user profile ID; clients resolve user profile display data separately when
+needed. Owner identity is part of the base asset representation.
 
 ### Vulnerability
 
@@ -50,12 +50,36 @@ asset. The concrete occurrence is a finding.
 
 A **finding** is an occurrence of a vulnerability on a specific asset. It links
 one asset to one vulnerability and carries the operational lifecycle data:
-severity, status, source, evidence, mitigation, first seen time, last seen time,
-and fingerprint.
+severity, status, source, evidence, mitigation, assignee, first seen time, last
+seen time, and fingerprint.
 
 Use **finding** for anything being triaged, deduplicated, imported, mitigated,
 or displayed in the finding table. Do not call this an issue unless referring to
 the project issue tracker.
+
+### Finding Assignee
+
+A **finding assignee** is the single user profile explicitly assigned to handle
+a specific finding.
+
+Assignment is optional. An unassigned finding is valid and means no user profile
+has been chosen to handle that finding yet. Assignment is distinct from asset
+ownership: the asset owner may suggest responsibility, but a finding's assignee
+is a per-finding operational decision. When set, the assignee must reference an
+existing user profile, including disabled user profiles. If an assigned user
+profile is deleted, their findings become unassigned. Assignment is independent
+of finding status and remains until explicitly changed or cleared. New findings
+start unassigned, including imported findings and manually created findings.
+Manual finding creation may set an assignee explicitly.
+Imports that update an existing finding preserve the existing assignee.
+Changing or clearing assignment is treated as editing the finding itself.
+Finding responses expose assignment as an assignee user profile ID; clients
+resolve user profile display data separately when needed.
+Use **assignee** for finding-level work; avoid calling the assignee an owner.
+Use **assigneeId** for the stored and API field that references the assigned
+user profile. `assigneeId` is nullable; `null` means the finding is
+unassigned. Manual creation may omit `assigneeId`, which also creates an
+unassigned finding.
 
 ### Finding Source
 

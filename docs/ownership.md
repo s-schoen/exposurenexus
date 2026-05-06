@@ -18,18 +18,17 @@ Asset ownership is part of core asset metadata. Each asset has a nullable
 owner is not known. Ownerless assets are valid, explicit domain state rather
 than incomplete records.
 
-Findings do not store owners directly. A finding's responsible owner is derived
-from its asset, because a finding is an occurrence of a vulnerability on a
-specific asset. This keeps responsibility aligned with the existing
-finding-to-asset relationship and avoids creating a competing finding-level
-assignment model before a workflow requires it.
+Findings do not store owners directly. A finding may have one assignee, which is
+distinct from the asset owner. Asset ownership describes durable responsibility
+for an asset; finding assignment describes who is handling one specific finding.
 
 ## Goals
 
 - Identify the user profile responsible for findings on an asset.
 - Allow assets to be explicitly ownerless.
 - Keep ownership as a validated user profile reference instead of free text.
-- Let finding workflows derive responsibility from linked assets.
+- Let finding workflows assign specific findings without changing asset
+  ownership.
 - Keep asset ownership editable as normal asset metadata.
 - Avoid embedding user display data in asset responses.
 
@@ -75,20 +74,77 @@ If an owner user profile is deleted, assets owned by that profile become
 ownerless at the data level. This keeps asset records valid after user cleanup
 and makes responsibility gaps explicit.
 
-## Finding Responsibility
+## Finding Responsibility And Assignment
 
-Finding responsibility is derived from the finding's asset:
+Finding responsibility can be understood at two levels:
 
 1. A finding links to an asset.
-2. The asset exposes `ownerId`.
-3. The UI resolves that user profile separately when displaying the responsible
-   owner.
+2. The asset exposes `ownerId`, identifying the asset owner.
+3. The finding may expose one assignee, identifying the user profile currently
+   assigned to handle that specific finding.
 
-Findings should not gain `ownerId`, assignee, or owner name fields as part of
-asset ownership. A separate finding-level assignment model can be introduced
-later only if a workflow needs exceptions per finding.
+Finding assignees should not be called owners. The asset owner is not
+necessarily the finding assignee, and a finding may have no assignee at all.
 
 When a finding's asset has `ownerId: null`, responsible-owner displays should
 show an explicit no-owner fallback. When the linked asset or referenced user
 profile cannot be resolved, displays should use unknown-state fallbacks instead
 of silently hiding responsibility.
+
+When a finding has no assignee, assignment displays should show an explicit
+unassigned fallback rather than deriving or copying the asset owner.
+
+Finding assignees are user profiles. Disabled user profiles can be assigned,
+matching asset-owner semantics: login state and operational responsibility are
+separate concerns.
+
+If an assignee user profile is deleted, findings assigned to that profile
+become unassigned at the data level.
+
+Finding assignment is independent of finding status. Status changes such as
+confirming, accepting risk, mitigating, reactivating, or importing an update do
+not clear or change the assignee.
+
+New findings start unassigned, including imported findings and manually created
+findings. Asset ownership can be shown as context, but it is not copied into the
+finding assignment.
+
+Manual finding creation may set an assignee explicitly, but the default is
+unassigned.
+
+Imports that update an existing finding preserve the existing assignment.
+Imports should not assign, clear, or infer finding assignees in the first
+assignment model.
+
+The first assignment model does not keep dedicated assignment history. The
+normal finding audit fields still show the most recent update metadata, but
+OpenVLP will not answer historical assignment questions until a later workflow
+requires it.
+
+The first assignment workflow does not send email or in-app notifications.
+Assignees discover assigned findings through the normal finding views, grouping,
+and filters.
+
+Creating, changing, or clearing a finding assignee uses the existing
+`finding:write` permission.
+
+Changing or clearing assignment is a normal finding edit. It does not require a
+separate assignment workflow object.
+
+Finding responses expose assignee identity as an assignee user profile ID.
+Clients resolve user profile display data separately through user profile APIs
+when they need to show names or other user details.
+Use `assigneeId` consistently for the stored field and API payload property.
+`assigneeId` is nullable: a user profile ID means the finding has that user
+profile as its assignee, and `null` means the finding is unassigned. Manual
+finding creation may omit `assigneeId`, matching asset-owner creation
+semantics.
+
+The first finding-assignment workflow should show assignment in the findings
+table, finding detail page, and triage queue. Assignment should be editable from
+the finding detail workflow and any normal finding create or edit form. Inline
+table editing and bulk assignment are outside the first assignment workflow.
+The findings table should treat assignee as a first-class workload dimension:
+show it as a column, support grouping by assignee, and support filtering by
+assignee with an explicit unassigned option where the existing table filter
+model can support it cleanly.
