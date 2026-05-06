@@ -103,6 +103,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   })
   const findingService = createFindingService({
     findingRepository: repositories.findingRepository,
+    userProfileService,
     vulnerabilityService,
     logger: loggerFactory("service/finding")
   })

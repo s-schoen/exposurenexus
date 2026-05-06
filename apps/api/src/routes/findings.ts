@@ -3,7 +3,11 @@ import { HTTPException } from "hono/http-exception"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
-import { createFindingSchema, type Finding } from "@openvlp/types/model/finding"
+import {
+  createFindingSchema,
+  updateFindingSchema,
+  type Finding
+} from "@openvlp/types/model/finding"
 import type { UserProfile } from "@openvlp/types/model/user"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
@@ -17,7 +21,7 @@ interface FindingRouteService {
   }): Promise<Finding>
   update(options: {
     id: string
-    finding: typeof createFindingSchema._output
+    finding: typeof updateFindingSchema._output
     user: UserProfile
   }): Promise<Finding | null>
   deleteByID(id: string): Promise<Finding | null>
@@ -81,7 +85,7 @@ export function createFindingRoute(
     "/:id",
     requireDomainPermission("finding", "write"),
     idParamValidator,
-    zValidator("json", createFindingSchema),
+    zValidator("json", updateFindingSchema),
     async (c) => {
       const body = c.req.valid("json")
       const params = c.req.valid("param")

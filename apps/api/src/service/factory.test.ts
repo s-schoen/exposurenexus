@@ -189,6 +189,9 @@ describe("service factories", () => {
 
     const service = createFindingService({
       findingRepository,
+      userProfileService: {
+        getByID: vi.fn()
+      },
       vulnerabilityService,
       logger
     })

@@ -23,6 +23,7 @@ describe("finding routes", () => {
   const findingId = "2713d833-eb13-4517-ac7c-7761545ed42a"
   const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
   const assetId = "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c"
+  const assigneeId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
   const findingService = {
     listAll: vi.fn(),
     getByID: vi.fn(),
@@ -216,6 +217,85 @@ describe("finding routes", () => {
     })
   })
 
+  it("accepts nullable assignee identity during finding creation", async () => {
+    const requestId = "findings-create-with-assignee-request"
+    const payload = {
+      ...createPayload,
+      assigneeId
+    }
+    const createdFinding = {
+      id: findingId,
+      ...payload,
+      fingerprint: "abc123",
+      ...findingDates,
+      createdBy: user.id,
+      updatedBy: user.id,
+      vulnerability
+    }
+
+    findingService.create.mockResolvedValue(createdFinding as Finding)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request("/api/findings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+
+    expect(response.status).toBe(201)
+    expect(findingService.create).toHaveBeenCalledWith({
+      finding: payload,
+      user
+    })
+  })
+
+  it("accepts null assignee identity during finding creation", async () => {
+    const payload = {
+      ...createPayload,
+      assigneeId: null
+    }
+    const createdFinding = {
+      id: findingId,
+      ...payload,
+      fingerprint: "abc123",
+      ...findingDates,
+      createdBy: user.id,
+      updatedBy: user.id,
+      vulnerability
+    }
+
+    findingService.create.mockResolvedValue(createdFinding as Finding)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request("/api/findings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "findings-create-with-null-assignee-request"
+      },
+      body: JSON.stringify(payload)
+    })
+
+    expect(response.status).toBe(201)
+    expect(findingService.create).toHaveBeenCalledWith({
+      finding: payload,
+      user
+    })
+  })
+
   it("returns 403 when creating a finding without write permission", async () => {
     userHasPermission.mockResolvedValue(false)
 
@@ -257,6 +337,29 @@ describe("finding routes", () => {
       body: JSON.stringify({
         ...createPayload,
         assetId: "not-a-uuid"
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(findingService.create).not.toHaveBeenCalled()
+  })
+
+  it("rejects invalid finding assignee ids before calling the service", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request("/api/findings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "findings-invalid-assignee-create-body-request"
+      },
+      body: JSON.stringify({
+        ...createPayload,
+        assigneeId: "not-a-user-id"
       })
     })
 
