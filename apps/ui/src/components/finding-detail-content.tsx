@@ -131,6 +131,24 @@ export function FindingDetailContent({
     )
   }
 
+  function AssigneeLabel({ className }: { className?: string }) {
+    return (
+      <UserLabel
+        userId={displayData!.assigneeId}
+        user={
+          displayData!.assigneeId && users.isPending
+            ? undefined
+            : displayData!.assigneeId
+              ? (userProfileById.get(displayData!.assigneeId) ?? null)
+              : null
+        }
+        emptyLabel="Unassigned"
+        unknownLabel="Unknown Assignee"
+        className={className}
+      />
+    )
+  }
+
   function CardPlaceholder() {
     return (
       <Card className="w-full">
@@ -173,7 +191,7 @@ export function FindingDetailContent({
                 triage state from the action panel.
               </CardDescription>
             </div>
-            <div className="grid gap-3 xl:grid-cols-5">
+            <div className="grid gap-3 xl:grid-cols-6">
               <DetailHighlightCard
                 label="Affected asset"
                 value={asset.data?.name ?? "Unknown asset"}
@@ -285,6 +303,7 @@ export function FindingDetailContent({
             label="Responsible owner"
             value={<ResponsibleOwnerLabel />}
           />
+          <MetadataDetailRow label="Assignee" value={<AssigneeLabel />} />
           <MetadataDetailRow
             label="Asset type"
             value={capitalizeFirstLetter(asset.data?.type ?? "Unknown")}

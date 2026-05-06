@@ -340,6 +340,11 @@ describe("FindingTable workflow wiring", () => {
         (column) => column.id === "responsibleOwner"
       )
     ).toBe(true)
+    expect(
+      (mocks.dataTableProps?.columns as Array<{ id?: string }>).some(
+        (column) => column.id === "assignee"
+      )
+    ).toBe(true)
     expect(mocks.dataTableProps?.groupingOptions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

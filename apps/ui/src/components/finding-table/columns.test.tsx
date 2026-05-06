@@ -40,6 +40,7 @@ vi.mock("@/components/user-label.tsx", () => ({
   }) => {
     if (!userId && !user) return <span>{emptyLabel}</span>
     if (user) return <span>{user.displayName}</span>
+    if (typeof user === "undefined" && userId) return <span>Loading User</span>
     return <span>{unknownLabel}</span>
   }
 }))
@@ -52,7 +53,7 @@ const finding: Finding = {
   source: "nuclei",
   evidence: "Observed exposed admin endpoint",
   mitigation: "Restrict access to internal networks",
-  assigneeId: null,
+  assigneeId: "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206",
   firstSeen: new Date("2026-01-02T00:00:00.000Z"),
   lastSeen: new Date("2026-01-03T00:00:00.000Z"),
   fingerprint: "fingerprint-1",
@@ -86,6 +87,14 @@ const user: UserProfile = {
   displayName: "Robin Owner",
   email: "robin@example.com",
   enabled: false,
+  roleIds: []
+}
+const assignee: UserProfile = {
+  id: "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206",
+  username: "alex",
+  displayName: "Alex Assignee",
+  email: "alex@example.com",
+  enabled: true,
   roleIds: []
 }
 
@@ -125,7 +134,11 @@ function createRow(original: Finding): RowStub {
 async function createColumns(
   assetNamesById = new Map([[finding.assetId, "api-01"]]),
   assetsById = new Map([[asset.id, asset]]),
-  userProfileById = new Map([[user.id, user]])
+  userProfileById = new Map([
+    [user.id, user],
+    [assignee.id, assignee]
+  ]),
+  usersLoading = false
 ) {
   const { createFindingColumns } =
     await import("@/components/finding-table/columns.tsx")
@@ -133,7 +146,8 @@ async function createColumns(
   return createFindingColumns(
     assetNamesById,
     assetsById,
-    userProfileById
+    userProfileById,
+    usersLoading
   ) as unknown as Array<TestColumn>
 }
 
@@ -183,6 +197,10 @@ describe("createFindingColumns", () => {
 
     renderCell(findColumn(columns, "responsibleOwner"))
     expect(screen.getByText("Robin Owner")).toBeTruthy()
+    cleanup()
+
+    renderCell(findColumn(columns, "assignee"))
+    expect(screen.getByText("Alex Assignee")).toBeTruthy()
     cleanup()
 
     renderCell(findColumn(columns, "source"))
@@ -237,6 +255,37 @@ describe("createFindingColumns", () => {
 
     renderCell(findColumn(unknownOwnerColumns, "responsibleOwner"))
     expect(screen.getByText("Unknown Owner")).toBeTruthy()
+  })
+
+  it("renders assignee fallbacks and loading state", async () => {
+    const columns = await createColumns()
+
+    renderCell(findColumn(columns, "assignee"), {
+      ...finding,
+      assigneeId: null
+    })
+    expect(screen.getByText("Unassigned")).toBeTruthy()
+    cleanup()
+
+    const unknownAssigneeColumns = await createColumns(
+      new Map([[finding.assetId, "api-01"]]),
+      new Map([[asset.id, asset]]),
+      new Map([[user.id, user]])
+    )
+
+    renderCell(findColumn(unknownAssigneeColumns, "assignee"))
+    expect(screen.getByText("Unknown Assignee")).toBeTruthy()
+    cleanup()
+
+    const loadingAssigneeColumns = await createColumns(
+      new Map([[finding.assetId, "api-01"]]),
+      new Map([[asset.id, asset]]),
+      new Map([[user.id, user]]),
+      true
+    )
+
+    renderCell(findColumn(loadingAssigneeColumns, "assignee"))
+    expect(screen.getByText("Loading User")).toBeTruthy()
   })
 
   it("sorts severities and dates with null dates last for ascending order", async () => {

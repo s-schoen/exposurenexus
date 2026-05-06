@@ -70,6 +70,16 @@ export function formatFindingResponsibleOwner(
   })
 }
 
+export function formatFindingAssignee(
+  assigneeId: string | null,
+  userProfileById: Map<string, UserProfile>
+): string {
+  return formatUserProfileReference(assigneeId, userProfileById, {
+    emptyLabel: "Unassigned",
+    unknownLabel: "Unknown Assignee"
+  })
+}
+
 export function createFindingColumns(
   assetNamesById: ReadonlyMap<string, string>,
   assetsById: ReadonlyMap<string, Asset> = new Map(),
@@ -192,6 +202,29 @@ export function createFindingColumns(
           />
         )
       },
+      enableColumnFilter: false
+    },
+    {
+      id: "assignee",
+      accessorFn: (finding) =>
+        formatFindingAssignee(finding.assigneeId, userProfileById),
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Assignee" />
+      ),
+      cell: ({ row }) => (
+        <UserLabel
+          userId={row.original.assigneeId}
+          user={
+            row.original.assigneeId && usersLoading
+              ? undefined
+              : row.original.assigneeId
+                ? (userProfileById.get(row.original.assigneeId) ?? null)
+                : null
+          }
+          emptyLabel="Unassigned"
+          unknownLabel="Unknown Assignee"
+        />
+      ),
       enableColumnFilter: false
     },
     {
