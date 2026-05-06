@@ -317,6 +317,66 @@ describe("useFindingLifecycle", () => {
     })
   })
 
+  it("preserves due dates when updating another finding field", async () => {
+    const dueDate = new Date("2026-05-06T00:00:00.000Z")
+    const finding = createFindingFixture({
+      dueDate
+    })
+    const updatedFinding = {
+      ...finding,
+      status: FindingStatus.Confirmed
+    }
+    updateFindingRequestMock.mockResolvedValueOnce(updatedFinding)
+    const { result } = renderLifecycleHook()
+
+    await act(async () => {
+      await result.current.updateFindingField(
+        finding,
+        "status",
+        FindingStatus.Confirmed
+      )
+    })
+
+    expect(updateFindingRequestMock).toHaveBeenCalledWith({
+      ...finding,
+      status: FindingStatus.Confirmed,
+      dueDate
+    })
+  })
+
+  it("updates finding due dates as editable lifecycle fields", async () => {
+    const finding = createFindingFixture()
+    const dueDate = new Date("2026-05-06T00:00:00.000Z")
+    const updatedFinding = {
+      ...finding,
+      dueDate
+    }
+    updateFindingRequestMock.mockResolvedValueOnce(updatedFinding)
+    const { queryClient, result } = renderLifecycleHook()
+
+    queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [
+      finding
+    ])
+    queryClient.setQueryData(
+      createFindingByIDQueryOptions(finding.id).queryKey,
+      finding
+    )
+
+    await act(async () => {
+      await result.current.updateFindingField(finding, "dueDate", dueDate)
+    })
+
+    expect(updateFindingRequestMock).toHaveBeenCalledWith({
+      ...finding,
+      dueDate
+    })
+    expect(
+      queryClient.getQueryData<Finding>(
+        createFindingByIDQueryOptions(finding.id).queryKey
+      )?.dueDate
+    ).toEqual(dueDate)
+  })
+
   it("creates findings and invalidates the unnested list query key plus stats", async () => {
     const finding = createFindingFixture()
     const value: CreateFinding = {

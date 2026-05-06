@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { useCallback, useMemo, useState } from "react"
 import { FindingStatus } from "@openvlp/types/model/finding"
+import { normalizeDateToUtcStart } from "@openvlp/types/model/date"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import {
   Copy,
@@ -77,6 +78,18 @@ interface FindingDetailContentProps {
 }
 
 const unassignedAssigneeValue = "__unassigned_assignee__"
+
+function formatDateOnly(value: Date | null | undefined) {
+  if (!value) return "No due date"
+
+  return normalizeDateToUtcStart(value).toISOString().slice(0, 10)
+}
+
+function parseDateInputValue(value: string) {
+  if (!value) return null
+
+  return normalizeDateToUtcStart(new Date(`${value}T00:00:00.000Z`))
+}
 
 export function FindingDetailContent({
   findingId,
@@ -264,6 +277,10 @@ export function FindingDetailContent({
     await handleUpdate("assigneeId", assigneeId)
   }
 
+  async function handleSaveDueDate(value: string) {
+    await handleUpdate("dueDate", parseDateInputValue(value))
+  }
+
   function CardPlaceholder() {
     return (
       <Card className="w-full">
@@ -397,6 +414,25 @@ export function FindingDetailContent({
               editOnClick: true,
               showEditIcon: false,
               onSave: (value) => handleUpdate("source", value)
+            }}
+          />
+          <MetadataDetailRow
+            label="Due Date"
+            editable={{
+              value: formatDateOnly(displayData!.dueDate),
+              displayElement: () => (
+                <span
+                  className={
+                    displayData!.dueDate ? undefined : "text-muted-foreground"
+                  }
+                >
+                  {formatDateOnly(displayData!.dueDate)}
+                </span>
+              ),
+              editElement: { type: "input", inputType: "date" },
+              editOnClick: true,
+              showEditIcon: false,
+              onSave: handleSaveDueDate
             }}
           />
         </div>
