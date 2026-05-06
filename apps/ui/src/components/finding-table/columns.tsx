@@ -212,6 +212,8 @@ export function createFindingColumns(
       id: "assignee",
       accessorFn: (finding) =>
         formatFindingAssignee(finding.assigneeId, userProfileById),
+      getGroupingValue: (finding) =>
+        finding.assigneeId ?? FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Assignee" />
       ),

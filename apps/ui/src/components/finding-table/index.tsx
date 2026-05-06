@@ -9,7 +9,11 @@ import type {
   GroupingOption
 } from "@/components/data-table/types.ts"
 import { DataTable } from "@/components/data-table/data-table.tsx"
-import { createFindingColumns } from "@/components/finding-table/columns.tsx"
+import {
+  FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE,
+  createFindingColumns,
+  formatFindingAssignee
+} from "@/components/finding-table/columns.tsx"
 import {
   SEVERITY_ORDER,
   STATUS_ORDER
@@ -124,7 +128,10 @@ export function FindingTable({
       {
         id: "assignee",
         label: "Assignee",
-        formatValue: (value) => String(value)
+        formatValue: (value) =>
+          String(value) === FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE
+            ? "Unassigned"
+            : formatFindingAssignee(String(value), userProfileById)
       },
       {
         id: "source",
@@ -132,7 +139,7 @@ export function FindingTable({
         formatValue: (value) => String(value || "Manual")
       }
     ],
-    [assetNamesById]
+    [assetNamesById, userProfileById]
   )
 
   const handleOpenFinding = async (finding: Finding) => {

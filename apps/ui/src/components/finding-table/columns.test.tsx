@@ -108,6 +108,7 @@ interface TestColumn {
   id?: string
   accessorKey: string
   accessorFn?: (finding: Finding) => unknown
+  getGroupingValue?: (finding: Finding) => unknown
   cell?: (context: { row: RowStub }) => ReactNode
   filterFn?: (
     row: RowStub,
@@ -294,9 +295,24 @@ describe("createFindingColumns", () => {
     expect(screen.getByText("Loading User")).toBeTruthy()
   })
 
-  it("formats assignee grouping values with explicit fallback labels", async () => {
+  it("keeps assignee accessors label-based while grouping by stable identity", async () => {
     const columns = await createColumns()
     const assigneeColumn = findColumn(columns, "assignee")
+    const duplicateNameAssignee: UserProfile = {
+      ...assignee,
+      id: "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12",
+      username: "alex-2"
+    }
+    const duplicateNameColumns = await createColumns(
+      new Map([[finding.assetId, "api-01"]]),
+      new Map([[asset.id, asset]]),
+      new Map([
+        [user.id, user],
+        [assignee.id, assignee],
+        [duplicateNameAssignee.id, duplicateNameAssignee]
+      ])
+    )
+    const duplicateNameColumn = findColumn(duplicateNameColumns, "assignee")
 
     expect(assigneeColumn.accessorFn?.(finding)).toBe("Alex Assignee")
     expect(
@@ -305,6 +321,26 @@ describe("createFindingColumns", () => {
         assigneeId: null
       })
     ).toBe("Unassigned")
+    expect(duplicateNameColumn.accessorFn?.(finding)).toBe("Alex Assignee")
+    expect(
+      duplicateNameColumn.accessorFn?.({
+        ...finding,
+        assigneeId: duplicateNameAssignee.id
+      })
+    ).toBe("Alex Assignee")
+    expect(duplicateNameColumn.getGroupingValue?.(finding)).toBe(assignee.id)
+    expect(
+      duplicateNameColumn.getGroupingValue?.({
+        ...finding,
+        assigneeId: duplicateNameAssignee.id
+      })
+    ).toBe(duplicateNameAssignee.id)
+    expect(
+      assigneeColumn.getGroupingValue?.({
+        ...finding,
+        assigneeId: null
+      })
+    ).toBe(unassignedAssigneeFilterValue)
 
     const unknownAssigneeColumns = await createColumns(
       new Map([[finding.assetId, "api-01"]]),
@@ -312,8 +348,28 @@ describe("createFindingColumns", () => {
       new Map([[user.id, user]])
     )
 
-    expect(findColumn(unknownAssigneeColumns, "assignee").accessorFn?.(finding))
-      .toBe("Unknown Assignee")
+    const unknownAssigneeColumn = findColumn(unknownAssigneeColumns, "assignee")
+    const firstUnknownFinding = {
+      ...finding,
+      assigneeId: assignee.id
+    }
+    const secondUnknownFinding = {
+      ...finding,
+      assigneeId: "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12"
+    }
+
+    expect(unknownAssigneeColumn.accessorFn?.(firstUnknownFinding)).toBe(
+      "Unknown Assignee"
+    )
+    expect(unknownAssigneeColumn.accessorFn?.(secondUnknownFinding)).toBe(
+      "Unknown Assignee"
+    )
+    expect(unknownAssigneeColumn.getGroupingValue?.(firstUnknownFinding)).toBe(
+      assignee.id
+    )
+    expect(unknownAssigneeColumn.getGroupingValue?.(secondUnknownFinding)).toBe(
+      secondUnknownFinding.assigneeId
+    )
   })
 
   it("sorts severities and dates with null dates last for ascending order", async () => {
