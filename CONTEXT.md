@@ -50,8 +50,8 @@ asset. The concrete occurrence is a finding.
 
 A **finding** is an occurrence of a vulnerability on a specific asset. It links
 one asset to one vulnerability and carries the operational lifecycle data:
-severity, status, source, evidence, mitigation, assignee, first seen time, last
-seen time, and fingerprint.
+severity, status, source, evidence, mitigation, assignee, due date, first seen
+time, last seen time, and fingerprint.
 
 Use **finding** for anything being triaged, deduplicated, imported, mitigated,
 or displayed in the finding table. Do not call this an issue unless referring to
@@ -81,6 +81,29 @@ user profile. `assigneeId` is nullable; `null` means the finding is
 unassigned. Manual creation may omit `assigneeId`, which also creates an
 unassigned finding.
 
+### Finding Due Date
+
+A **finding due date** is the date by which a finding is expected to reach an
+explicit handling outcome.
+
+The due date is about handling the finding, not necessarily technical
+remediation. A finding satisfies its due date when it reaches `inactive`,
+`mitigated`, `risk_accepted`, `false_positive`, `duplicate`, or `out_of_scope`.
+A finding remains open against its due date while it is `active` or
+`confirmed`. A finding may have no due date; existing findings, imported
+findings, and manually created findings without an explicit due date are
+undated until a user or later policy assigns one. Use **dueDate** for the
+stored and API field. `dueDate` represents a date-only value normalized to the
+start of that date, not a user-selected time of day.
+Changing finding status does not automatically change or clear the due date.
+Past due dates are valid and represent findings that are already overdue.
+If a handled finding is reopened, its existing due date becomes active again.
+Only findings that are still open against their due date can be overdue; past
+due dates on handled findings are historical context. Overdue is derived from
+status and due date, not stored as separate finding data.
+Users with permission to edit findings may set, change, or clear a due date
+regardless of the finding's current status.
+
 ### Finding Source
 
 A **finding source** identifies where a finding came from. Current sources are:
@@ -99,7 +122,8 @@ The Nuclei importer includes port and path in the fingerprint options.
 
 When an imported finding has the same fingerprint as an existing finding, the
 existing finding is updated and its `lastSeen` timestamp moves forward instead
-of creating a duplicate.
+of creating a duplicate. Imports preserve the existing finding due date when
+updating a finding and do not assign a due date when creating a finding.
 
 ### Finding Status
 
@@ -110,8 +134,8 @@ Current statuses are:
   duplicate, out of scope, risk accepted, or another terminal state.
 - `confirmed`: validated as a real finding and awaiting remediation or another
   explicit handling decision.
-- `inactive`: no longer discovered by scans, but not necessarily fixed,
-  mitigated, or accepted.
+- `inactive`: no longer discovered by scans and closed for human follow-up
+  unless it is reopened.
 - `false_positive`: determined not to be a real finding.
 - `risk_accepted`: real finding whose risk has been explicitly accepted.
 - `duplicate`
