@@ -6,6 +6,7 @@ import type {
 import { HTTPException } from "hono/http-exception"
 import type { Finding } from "@openvlp/types/model/finding"
 import type { UserProfile } from "@openvlp/types/model/user"
+import { normalizeDateToUtcStart } from "@openvlp/types/model/date"
 import { createHash } from "node:crypto"
 import type { Logger } from "pino"
 import { badRequest } from "./errors.js"
@@ -49,6 +50,10 @@ function calculateFingerprint(
     hash.update(JSON.stringify(fingerprintOpt))
   }
   return hash.digest("hex")
+}
+
+function normalizeOptionalDueDate(dueDate: Date | null | undefined) {
+  return dueDate ? normalizeDateToUtcStart(dueDate) : null
 }
 
 export interface CreateFindingOptions {
@@ -97,6 +102,7 @@ export function createFindingService({
     try {
       const now = new Date()
       const assigneeId = opts.finding.assigneeId ?? null
+      const dueDate = normalizeOptionalDueDate(opts.finding.dueDate)
 
       if (assigneeId) {
         const assignee = await userProfileService.getByID(assigneeId)
@@ -113,6 +119,7 @@ export function createFindingService({
         createdBy: opts.user.id,
         updatedBy: opts.user.id,
         assigneeId,
+        dueDate,
         firstSeen: opts.firstSeen ?? now,
         lastSeen: opts.firstSeen ?? now,
         fingerprint: calculateFingerprint(
@@ -194,6 +201,10 @@ export function createFindingService({
           typeof opts.finding.assigneeId === "undefined"
             ? finding.assigneeId
             : opts.finding.assigneeId
+        const dueDate =
+          typeof opts.finding.dueDate === "undefined"
+            ? null
+            : normalizeOptionalDueDate(opts.finding.dueDate)
 
         if (typeof opts.finding.assigneeId !== "undefined" && assigneeId) {
           const assignee = await userProfileService.getByID(assigneeId)
@@ -212,7 +223,8 @@ export function createFindingService({
           fingerprint: finding.fingerprint,
           updatedAt: new Date(),
           updatedBy: opts.user.id,
-          ...opts.finding
+          ...opts.finding,
+          dueDate
         }
 
         const updatedFinding = await findingRepository.update(

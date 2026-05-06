@@ -244,6 +244,27 @@ describe("db migration columns", () => {
     ])
   })
 
+  it("adds nullable finding due dates", async () => {
+    const findingDueDateColumns = await sql<{
+      column_name: string
+      data_type: string
+      is_nullable: string
+    }>`
+      select column_name, data_type, is_nullable
+      from information_schema.columns
+      where table_name = 'finding'
+        and column_name = 'dueDate'
+    `.execute(testDb.db)
+
+    expect(findingDueDateColumns.rows).toEqual([
+      {
+        column_name: "dueDate",
+        data_type: "timestamp with time zone",
+        is_nullable: "YES"
+      }
+    ])
+  })
+
   it("creates normalized rbac tables with seeded built-in data", async () => {
     const roleColumns = await sql<{
       column_name: string

@@ -74,6 +74,7 @@ describe("nuclei importer", () => {
     evidence: "evidence",
     mitigation: nucleiFinding.info.remediation,
     assigneeId: null,
+    dueDate: null,
     fingerprint: "abc123",
     firstSeen: new Date("2026-01-02T00:00:00.000Z"),
     lastSeen: new Date("2026-01-02T00:00:00.000Z"),

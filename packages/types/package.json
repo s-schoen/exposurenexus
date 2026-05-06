@@ -13,6 +13,9 @@
     "./model/finding": {
       "import": "./src/model/finding.ts"
     },
+    "./model/date": {
+      "import": "./src/model/date.ts"
+    },
     "./model/vulnerability": {
       "import": "./src/model/vulnerability.ts"
     },

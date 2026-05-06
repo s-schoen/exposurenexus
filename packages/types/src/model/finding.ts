@@ -1,6 +1,8 @@
 import { z } from "zod/v4"
 import { vulnerabilitySchema, VulnerabilitySeverity } from "./vulnerability.js"
-import { dateSchema } from "./date.js"
+import { dateSchema, utcStartDateSchema } from "./date.js"
+
+const dueDateSchema = utcStartDateSchema as z.ZodType<Date, Date>
 
 export enum FindingSource {
   Manual = "manual",
@@ -27,6 +29,7 @@ export const findingInternalSchema = z.strictObject({
   evidence: z.string().nullable(),
   mitigation: z.string().nullable(),
   assigneeId: z.uuidv4().nullable(),
+  dueDate: dueDateSchema.nullable(),
   firstSeen: dateSchema.nullable(),
   lastSeen: dateSchema.nullable(),
   fingerprint: z.string(),
@@ -49,12 +52,14 @@ export const createFindingSchema = findingInternalSchema
     createdBy: true,
     updatedBy: true,
     assigneeId: true,
+    dueDate: true,
     fingerprint: true,
     firstSeen: true,
     lastSeen: true
   })
   .extend({
-    assigneeId: findingInternalSchema.shape.assigneeId.optional()
+    assigneeId: findingInternalSchema.shape.assigneeId.optional(),
+    dueDate: findingInternalSchema.shape.dueDate.optional()
   })
 
 export const updateFindingSchema = createFindingSchema

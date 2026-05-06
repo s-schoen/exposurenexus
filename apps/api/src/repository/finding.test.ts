@@ -94,6 +94,7 @@ describe("finding repository", () => {
       source: FindingSource.Manual,
       mitigation: "Restrict access to internal networks",
       assigneeId: null,
+      dueDate: new Date("2026-01-10T00:00:00.000Z"),
       firstSeen: new Date("2026-01-03T00:00:00.000Z"),
       lastSeen: new Date("2026-01-03T00:00:00.000Z"),
       fingerprint: "finding-fingerprint",
@@ -123,12 +124,14 @@ describe("finding repository", () => {
       ...created,
       status: FindingStatus.Mitigated,
       mitigation: "Administrative interface restricted to VPN",
+      dueDate: null,
       updatedAt: new Date("2026-01-04T00:00:00.000Z")
     }
 
     const updated = await repository.update(created.id, updatedInput)
 
     await expect(repository.getByID(created.id)).resolves.toEqual(updated)
+    expect(updated.dueDate).toBeNull()
     await expect(repository.countBy("status")).resolves.toEqual({
       [FindingStatus.Mitigated]: 1
     })
@@ -175,6 +178,7 @@ describe("finding repository", () => {
       source: FindingSource.Manual,
       mitigation: "Restrict access to internal networks",
       assigneeId,
+      dueDate: null,
       firstSeen: new Date("2026-01-03T00:00:00.000Z"),
       lastSeen: new Date("2026-01-03T00:00:00.000Z"),
       fingerprint: "assigned-finding-fingerprint",
