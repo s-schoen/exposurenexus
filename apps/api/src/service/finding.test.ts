@@ -487,7 +487,7 @@ describe("finding service", () => {
     )
   })
 
-  it("clears finding due dates when update payloads omit them", async () => {
+  it("preserves finding due dates when update payloads omit them", async () => {
     const service = createFindingService({
       findingRepository,
       userProfileService,
@@ -500,7 +500,7 @@ describe("finding service", () => {
     }
     const updatedFinding = {
       ...datedFinding,
-      dueDate: null
+      status: FindingStatus.Mitigated
     }
 
     findingRepository.getByID.mockResolvedValue(datedFinding)
@@ -509,14 +509,18 @@ describe("finding service", () => {
 
     await service.update({
       id: baseFinding.id,
-      finding: createPayload,
+      finding: {
+        ...createPayload,
+        status: FindingStatus.Mitigated
+      },
       user
     })
 
     expect(findingRepository.update).toHaveBeenCalledWith(
       baseFinding.id,
       expect.objectContaining({
-        dueDate: null
+        dueDate: datedFinding.dueDate,
+        status: FindingStatus.Mitigated
       })
     )
   })
