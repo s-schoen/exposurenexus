@@ -247,8 +247,11 @@ export function createFindingService({
 
       let finding = await findingRepository.getByFingerprint(fingerprint)
       if (finding) {
-        finding.lastSeen = new Date()
-        finding = await findingRepository.update(finding.id, finding)
+        const updatedObservation = {
+          ...finding,
+          lastSeen: new Date()
+        }
+        finding = await findingRepository.update(finding.id, updatedObservation)
         return {
           finding: await extendWithVulnerability(finding),
           created: false
