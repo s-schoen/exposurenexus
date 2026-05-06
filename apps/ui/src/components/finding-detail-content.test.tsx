@@ -30,7 +30,7 @@ const mocks = vi.hoisted(() => {
     evidence:
       "## Validation\n\nScanner reported **remote access**.\n\n```\nopen port 8443\n```",
     mitigation: "Restrict access to internal networks",
-    assigneeId: null,
+    assigneeId: "7b2b7d98-6242-4efe-b630-5908727103fb",
     firstSeen: new Date("2026-01-02T00:00:00.000Z"),
     lastSeen: new Date("2026-01-03T00:00:00.000Z"),
     fingerprint: "fingerprint-2713d833",
@@ -68,6 +68,14 @@ const mocks = vi.hoisted(() => {
       email: "robin@example.com",
       enabled: false,
       roleIds: []
+    },
+    {
+      id: "7b2b7d98-6242-4efe-b630-5908727103fb",
+      username: "alex",
+      displayName: "Alex Assignee",
+      email: "alex@example.com",
+      enabled: true,
+      roleIds: []
     }
   ]
 
@@ -100,6 +108,7 @@ const mocks = vi.hoisted(() => {
     userLabels: {
       "1f9c36d2-1355-49d1-8464-b01ce955d88f": "Alice Example",
       "4e33f42e-764b-4812-88fb-11a183d43434": "Bob Example",
+      "7b2b7d98-6242-4efe-b630-5908727103fb": "Alex Assignee",
       "8f5f4c3b-c369-481d-98f7-cf7148d80d21": "Robin Owner"
     } as Record<string, string>
   }
@@ -196,6 +205,10 @@ vi.mock("@/components/user-label.tsx", () => ({
       return <span>{user.displayName}</span>
     }
 
+    if (emptyLabel === "Unassigned" && typeof user === "undefined") {
+      return <span>Loading Assignee</span>
+    }
+
     return <span>{mocks.userLabels[userId ?? ""] ?? unknownLabel}</span>
   }
 }))
@@ -283,6 +296,7 @@ describe("FindingDetailContent", () => {
     expect(screen.getAllByText("web-01").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Host").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Robin Owner").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Alex Assignee").length).toBeGreaterThan(0)
     expect(screen.getByRole("heading", { name: "Validation" })).toBeTruthy()
     expect(screen.getByText(/Scanner reported/)).toBeTruthy()
     expect(screen.getByText("remote access")).toBeTruthy()
@@ -450,6 +464,62 @@ describe("FindingDetailContent", () => {
     render(<FindingDetailContent findingId={mocks.finding.id} />)
 
     expect(screen.getAllByText("Unknown Owner").length).toBeGreaterThan(0)
+  })
+
+  it("renders assignee fallbacks for unassigned and unknown users", async () => {
+    const { FindingDetailContent } =
+      await import("@/components/finding-detail-content.tsx")
+
+    mocks.findingQuery = {
+      data: {
+        ...mocks.finding,
+        assigneeId: null
+      },
+      isLoading: false,
+      isPending: false,
+      isSuccess: true
+    }
+
+    const unassigned = render(
+      <FindingDetailContent findingId={mocks.finding.id} />
+    )
+
+    expect(screen.getAllByText("Unassigned").length).toBeGreaterThan(0)
+
+    unassigned.unmount()
+    mocks.findingQuery = {
+      data: {
+        ...mocks.finding,
+        assigneeId: "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12"
+      },
+      isLoading: false,
+      isPending: false,
+      isSuccess: true
+    }
+    mocks.usersQuery = {
+      data: [],
+      isLoading: false,
+      isPending: false,
+      isSuccess: true
+    }
+
+    render(<FindingDetailContent findingId={mocks.finding.id} />)
+
+    expect(screen.getAllByText("Unknown Assignee").length).toBeGreaterThan(0)
+  })
+
+  it("renders assignee loading state while user profiles are loading", async () => {
+    const { FindingDetailContent } =
+      await import("@/components/finding-detail-content.tsx")
+    mocks.usersQuery = {
+      isLoading: true,
+      isPending: true,
+      isSuccess: false
+    }
+
+    render(<FindingDetailContent findingId={mocks.finding.id} />)
+
+    expect(screen.getAllByText("Loading Assignee").length).toBeGreaterThan(0)
   })
 
   it("keeps asset sections stable while linked asset data is loading", async () => {
