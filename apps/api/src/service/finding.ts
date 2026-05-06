@@ -190,12 +190,25 @@ export function createFindingService({
           return null
         }
 
+        const assigneeId =
+          typeof opts.finding.assigneeId === "undefined"
+            ? finding.assigneeId
+            : opts.finding.assigneeId
+
+        if (typeof opts.finding.assigneeId !== "undefined" && assigneeId) {
+          const assignee = await userProfileService.getByID(assigneeId)
+
+          if (!assignee) {
+            throw badRequest("finding assignee does not exist")
+          }
+        }
+
         const findingUpdate: Omit<FindingInternal, "id"> = {
           firstSeen: finding.firstSeen,
           lastSeen: finding.lastSeen,
           createdAt: finding.createdAt,
           createdBy: finding.createdBy,
-          assigneeId: finding.assigneeId,
+          assigneeId,
           fingerprint: finding.fingerprint,
           updatedAt: new Date(),
           updatedBy: opts.user.id,
@@ -211,6 +224,10 @@ export function createFindingService({
 
         return await extendWithVulnerability(updatedFinding)
       } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error
+        }
+
         logger.error(error, `failed to get finding with id ${opts.id}`)
         throw new HTTPException(500, {
           message: "failed to update finding"
