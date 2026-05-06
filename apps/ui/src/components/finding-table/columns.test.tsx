@@ -127,6 +127,7 @@ function createRow(original: Finding): RowStub {
     getValue: (columnId) => {
       if (columnId === "severity") return original.severity
       if (columnId === "status") return original.status
+      if (columnId === "dueDate") return original.dueDate
       if (columnId === "firstSeen") return original.firstSeen
       if (columnId === "lastSeen") return original.lastSeen
       if (columnId === "assetId") return original.assetId
@@ -211,6 +212,13 @@ describe("createFindingColumns", () => {
     expect(screen.getByText("Alex Assignee")).toBeTruthy()
     cleanup()
 
+    renderCell(findColumn(columns, "dueDate"), {
+      ...finding,
+      dueDate: new Date("2026-05-06T00:00:00.000Z")
+    })
+    expect(screen.getByText("2026-05-06")).toBeTruthy()
+    cleanup()
+
     renderCell(findColumn(columns, "source"))
     expect(screen.getByText("nuclei")).toBeTruthy()
     cleanup()
@@ -223,6 +231,7 @@ describe("createFindingColumns", () => {
     const columns = await createColumns(new Map(), new Map(), new Map())
     const fallbackFinding = {
       ...finding,
+      dueDate: null,
       firstSeen: null,
       lastSeen: null,
       source: ""
@@ -240,8 +249,106 @@ describe("createFindingColumns", () => {
     expect(screen.getByText("Manual")).toBeTruthy()
     cleanup()
 
+    renderCell(findColumn(columns, "dueDate"), fallbackFinding)
+    expect(screen.getByText("No due date")).toBeTruthy()
+    cleanup()
+
     renderCell(findColumn(columns, "lastSeen"), fallbackFinding)
     expect(screen.getByText("Not available")).toBeTruthy()
+  })
+
+  it("formats due dates without shifting the UTC date key", async () => {
+    const { formatFindingDueDate } =
+      await import("@/components/finding-table/columns.tsx")
+
+    expect(
+      formatFindingDueDate(new Date("2026-05-06T23:30:00.000Z"))
+    ).toBe("2026-05-06")
+    expect(formatFindingDueDate(null)).toBe("No due date")
+  })
+
+  it("emphasizes overdue due date cells without changing date alignment", async () => {
+    const columns = await createColumns()
+    const { container } = renderCell(findColumn(columns, "dueDate"), {
+      ...finding,
+      dueDate: new Date("2000-01-01T00:00:00.000Z")
+    })
+
+    const dueDate = screen.getByText("2000-01-01")
+
+    expect(dueDate).toBeTruthy()
+    expect(container.querySelector(".bg-destructive\\/5")).toBeTruthy()
+    expect(container.querySelector(".border-destructive\\/25")).toBeNull()
+  })
+
+  it("only treats active and confirmed findings with past due dates as overdue", async () => {
+    const { isFindingOverdue } =
+      await import("@/components/finding-table/columns.tsx")
+    const today = new Date("2026-05-06T12:00:00.000Z")
+    const yesterday = new Date("2026-05-05T00:00:00.000Z")
+    const dueToday = new Date("2026-05-06T00:00:00.000Z")
+    const tomorrow = new Date("2026-05-07T00:00:00.000Z")
+
+    expect(
+      isFindingOverdue(
+        {
+          ...finding,
+          status: FindingStatus.Active,
+          dueDate: yesterday
+        },
+        today
+      )
+    ).toBe(true)
+    expect(
+      isFindingOverdue(
+        {
+          ...finding,
+          status: FindingStatus.Confirmed,
+          dueDate: yesterday
+        },
+        today
+      )
+    ).toBe(true)
+    expect(
+      isFindingOverdue(
+        {
+          ...finding,
+          status: FindingStatus.Active,
+          dueDate: dueToday
+        },
+        today
+      )
+    ).toBe(false)
+    expect(
+      isFindingOverdue(
+        {
+          ...finding,
+          status: FindingStatus.Active,
+          dueDate: tomorrow
+        },
+        today
+      )
+    ).toBe(false)
+
+    for (const status of [
+      FindingStatus.Inactive,
+      FindingStatus.Mitigated,
+      FindingStatus.RiskAccepted,
+      FindingStatus.FalsePositive,
+      FindingStatus.Duplicate,
+      FindingStatus.OutOfScope
+    ]) {
+      expect(
+        isFindingOverdue(
+          {
+            ...finding,
+            status,
+            dueDate: yesterday
+          },
+          today
+        )
+      ).toBe(false)
+    }
   })
 
   it("renders responsible owner fallbacks for ownerless assets and unknown users", async () => {
@@ -377,6 +484,7 @@ describe("createFindingColumns", () => {
     const columns = await createColumns()
     const severityColumn = findColumn(columns, "severity")
     const firstSeenColumn = findColumn(columns, "firstSeen")
+    const dueDateColumn = findColumn(columns, "dueDate")
     const criticalFinding = {
       ...finding,
       severity: VulnerabilitySeverity.Critical
@@ -393,6 +501,18 @@ describe("createFindingColumns", () => {
       ...finding,
       firstSeen: null
     }
+    const earlierDueDateFinding = {
+      ...finding,
+      dueDate: new Date("2026-05-06T00:00:00.000Z")
+    }
+    const laterDueDateFinding = {
+      ...finding,
+      dueDate: new Date("2026-05-07T00:00:00.000Z")
+    }
+    const missingDueDateFinding = {
+      ...finding,
+      dueDate: null
+    }
 
     expect(
       severityColumn.sortingFn?.(
@@ -408,6 +528,20 @@ describe("createFindingColumns", () => {
         "firstSeen"
       )
     ).toBeLessThan(0)
+    expect(
+      dueDateColumn.sortingFn?.(
+        createRow(earlierDueDateFinding),
+        createRow(laterDueDateFinding),
+        "dueDate"
+      )
+    ).toBeLessThan(0)
+    expect(
+      dueDateColumn.sortingFn?.(
+        createRow(missingDueDateFinding),
+        createRow(laterDueDateFinding),
+        "dueDate"
+      )
+    ).toBeGreaterThan(0)
   })
 
   it("filters severity and status values", async () => {
