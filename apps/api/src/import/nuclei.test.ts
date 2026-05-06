@@ -136,7 +136,8 @@ describe("nuclei importer", () => {
           assetId: asset.id,
           severity: vulnerability.severity,
           evidence: expect.stringContaining("GET /admin HTTP/1.1"),
-          mitigation: "Restrict access to internal networks"
+          mitigation: "Restrict access to internal networks",
+          assigneeId: null
         },
         firstSeen: expect.any(Date)
       },
@@ -302,7 +303,8 @@ describe("nuclei importer", () => {
     expect(findingService.createOrUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         finding: expect.objectContaining({
-          evidence: ""
+          evidence: "",
+          assigneeId: null
         })
       }),
       {

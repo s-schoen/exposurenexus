@@ -736,6 +736,62 @@ describe("finding service", () => {
     expect(findingRepository.create).not.toHaveBeenCalled()
   })
 
+  it("preserves an existing assignee when an imported finding dedupes", async () => {
+    const service = createFindingService({
+      findingRepository,
+      userProfileService,
+      vulnerabilityService,
+      logger
+    })
+    const now = new Date("2026-04-05T06:07:08.000Z")
+    const existingFinding = {
+      ...baseFinding,
+      assigneeId,
+      source: FindingSource.Nuclei,
+      lastSeen: new Date("2026-01-20T00:00:00.000Z")
+    }
+    const updatedFinding = {
+      ...existingFinding,
+      lastSeen: now
+    }
+
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+
+    findingRepository.getByFingerprint.mockResolvedValue(existingFinding)
+    findingRepository.update.mockResolvedValue(updatedFinding)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
+
+    await expect(
+      service.createOrUpdate({
+        finding: {
+          ...createPayload,
+          source: FindingSource.Nuclei,
+          assigneeId: null
+        },
+        user
+      })
+    ).resolves.toEqual({
+      finding: {
+        ...updatedFinding,
+        vulnerability
+      },
+      created: false
+    })
+
+    expect(findingRepository.update).toHaveBeenCalledWith(existingFinding.id, {
+      ...existingFinding,
+      lastSeen: now
+    })
+    expect(findingRepository.update.mock.calls[0]?.[1]).toMatchObject({
+      assigneeId,
+      source: FindingSource.Nuclei,
+      lastSeen: now
+    })
+    expect(userProfileService.getByID).not.toHaveBeenCalled()
+    expect(findingRepository.create).not.toHaveBeenCalled()
+  })
+
   it("creates a finding when the fingerprint does not exist", async () => {
     const service = createFindingService({
       findingRepository,
