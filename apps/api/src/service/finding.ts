@@ -1,12 +1,14 @@
 import type {
   CreateFinding,
-  FindingInternal
+  FindingInternal,
+  UpdateFinding
 } from "@openvlp/types/model/finding"
 import { HTTPException } from "hono/http-exception"
 import type { Finding } from "@openvlp/types/model/finding"
 import type { UserProfile } from "@openvlp/types/model/user"
 import { createHash } from "node:crypto"
 import type { Logger } from "pino"
+import { badRequest } from "./errors.js"
 
 interface FindingRepository {
   list(): Promise<FindingInternal[]>
@@ -24,8 +26,13 @@ interface VulnerabilityLookupService {
   getByID(id: string): Promise<Finding["vulnerability"] | null>
 }
 
+interface UserProfileLookupService {
+  getByID(id: string): Promise<UserProfile | null>
+}
+
 interface FindingServiceDependencies {
   findingRepository: FindingRepository
+  userProfileService: UserProfileLookupService
   vulnerabilityService: VulnerabilityLookupService
   logger: Logger
 }
@@ -52,7 +59,7 @@ export interface CreateFindingOptions {
 
 export interface UpdateFindingOptions {
   id: string
-  finding: CreateFinding
+  finding: UpdateFinding
   user: UserProfile
 }
 
@@ -63,6 +70,7 @@ export interface CreateOrUpdateFindingResult {
 
 export function createFindingService({
   findingRepository,
+  userProfileService,
   vulnerabilityService,
   logger
 }: FindingServiceDependencies) {
@@ -88,26 +96,39 @@ export function createFindingService({
   ): Promise<Finding> {
     try {
       const now = new Date()
+      const assigneeId = opts.finding.assigneeId ?? null
+
+      if (assigneeId) {
+        const assignee = await userProfileService.getByID(assigneeId)
+
+        if (!assignee) {
+          throw badRequest("finding assignee does not exist")
+        }
+      }
 
       const created = await findingRepository.create({
+        ...opts.finding,
         createdAt: now,
         updatedAt: now,
         createdBy: opts.user.id,
         updatedBy: opts.user.id,
-        assigneeId: null,
+        assigneeId,
         firstSeen: opts.firstSeen ?? now,
         lastSeen: opts.firstSeen ?? now,
         fingerprint: calculateFingerprint(
           opts.finding.assetId,
           opts.finding.vulnerabilityId,
           fingerprintOpt
-        ),
-        ...opts.finding
+        )
       })
 
       logger.info(`created finding ${created.id}}`)
       return await extendWithVulnerability(created)
     } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error
+      }
+
       logger.error(
         error,
         `failed to create new finding for ${opts.finding.vulnerabilityId}`

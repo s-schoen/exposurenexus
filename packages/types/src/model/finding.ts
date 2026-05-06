@@ -41,16 +41,24 @@ export const findingSchema = findingInternalSchema.extend({
   vulnerability: vulnerabilitySchema
 })
 
-export const createFindingSchema = findingInternalSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  createdBy: true,
-  updatedBy: true,
-  assigneeId: true,
-  fingerprint: true,
-  firstSeen: true,
-  lastSeen: true
+export const createFindingSchema = findingInternalSchema
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    createdBy: true,
+    updatedBy: true,
+    assigneeId: true,
+    fingerprint: true,
+    firstSeen: true,
+    lastSeen: true
+  })
+  .extend({
+    assigneeId: findingInternalSchema.shape.assigneeId.optional()
+  })
+
+export const updateFindingSchema = createFindingSchema.omit({
+  assigneeId: true
 })
 
 export const FindingStatistics = z.strictObject({
@@ -79,4 +87,5 @@ export const FindingStatistics = z.strictObject({
 export type FindingInternal = z.infer<typeof findingInternalSchema>
 export type Finding = z.infer<typeof findingSchema>
 export type CreateFinding = z.infer<typeof createFindingSchema>
+export type UpdateFinding = z.infer<typeof updateFindingSchema>
 export type FindingStatistics = z.infer<typeof FindingStatistics>
