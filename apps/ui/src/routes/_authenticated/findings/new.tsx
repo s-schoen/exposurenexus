@@ -1,4 +1,5 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router"
+import { useQuery } from "@tanstack/react-query"
 import {
   FindingStatus,
   createFindingSchema
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input.tsx"
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue
@@ -28,10 +30,14 @@ import { Textarea } from "@/components/ui/textarea.tsx"
 import { formatFindingStatus } from "@/lib/format.ts"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts"
+import { createListUsersQueryOptions } from "@/api/user.ts"
+import { getUserProfileDisplayName } from "@/components/user-label.tsx"
 
 export const Route = createFileRoute("/_authenticated/findings/new")({
   component: RouteComponent
 })
+
+const unassignedAssigneeValue = "__unassigned__"
 
 export function RouteComponent() {
   usePageMeta({
@@ -41,6 +47,7 @@ export function RouteComponent() {
 
   const router = useRouter()
   const { createFinding } = useFindingLifecycle()
+  const users = useQuery(createListUsersQueryOptions())
 
   const form = useForm({
     defaultValues: {
@@ -50,7 +57,8 @@ export function RouteComponent() {
       status: FindingStatus.Active,
       source: "",
       evidence: null,
-      mitigation: null
+      mitigation: null,
+      assigneeId: null
     } as CreateFinding,
     validators: {
       onSubmit: createFindingSchema
@@ -201,6 +209,41 @@ export function RouteComponent() {
                       {isInvalid && (
                         <FieldError errors={field.state.meta.errors} />
                       )}
+                    </Field>
+                  )
+                }}
+              />
+              <form.Field
+                name="assigneeId"
+                children={(field) => {
+                  return (
+                    <Field>
+                      <FieldLabel htmlFor={field.name}>Assignee</FieldLabel>
+                      <Select
+                        value={field.state.value ?? unassignedAssigneeValue}
+                        name={field.name}
+                        onValueChange={(value) =>
+                          field.handleChange(
+                            value === unassignedAssigneeValue ? null : value
+                          )
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select assignee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectItem value={unassignedAssigneeValue}>
+                              Unassigned
+                            </SelectItem>
+                            {users.data?.map((user) => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {getUserProfileDisplayName(user)}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
                     </Field>
                   )
                 }}
