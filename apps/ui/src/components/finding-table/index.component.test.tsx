@@ -384,6 +384,25 @@ describe("FindingTable workflow wiring", () => {
         })
       ])
     )
+    const assigneeGroupingOption = (
+      mocks.dataTableProps?.groupingOptions as Array<{
+        id: string
+        formatValue?: (value: unknown) => string
+      }>
+    ).find((option) => option.id === "assignee")
+    expect(assigneeGroupingOption?.formatValue?.("__unassigned_assignee__")).toBe(
+      "Unassigned"
+    )
+    expect(
+      assigneeGroupingOption?.formatValue?.(
+        "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206"
+      )
+    ).toBe("Alex Assignee")
+    expect(
+      assigneeGroupingOption?.formatValue?.(
+        "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12"
+      )
+    ).toBe("Unknown Assignee")
     const assigneeColumn = (
       mocks.dataTableProps?.columns as Array<{
         id?: string
