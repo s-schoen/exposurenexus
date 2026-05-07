@@ -2,8 +2,14 @@ import { describe, expect, expectTypeOf, it } from "vitest"
 import { EventBus } from "./eventbus.js"
 import type { DomainEventPayloadBase } from "./events/index.js"
 
-type UserCreatedEvent = DomainEventPayloadBase<"user.created", { userId: string }>
-type UserDeletedEvent = DomainEventPayloadBase<"user.deleted", { userId: string }>
+type UserCreatedEvent = DomainEventPayloadBase<
+  "user.created",
+  { userId: string }
+>
+type UserDeletedEvent = DomainEventPayloadBase<
+  "user.deleted",
+  { userId: string }
+>
 type UserAuthenticationFailureEvent = DomainEventPayloadBase<
   "user.authentication.failure",
   { reason: string; userId?: string }
