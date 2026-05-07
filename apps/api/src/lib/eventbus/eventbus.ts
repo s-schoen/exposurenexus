@@ -1,6 +1,15 @@
-export type EventListener<TPayload, TEventName extends string = string> = (
-  payload: TPayload,
-  eventName: TEventName
+export type EventSubject = {
+  subject: string
+}
+
+type EventSubjectName<TEvent extends EventSubject> = TEvent["subject"] & string
+
+type ReadonlyEvent<TEvent extends EventSubject> = TEvent extends unknown
+  ? Readonly<TEvent>
+  : never
+
+export type EventListener<TEvent extends EventSubject> = (
+  event: ReadonlyEvent<TEvent>
 ) => void | Promise<void>
 
 // Builds every valid namespace wildcard for an event name.
@@ -18,58 +27,62 @@ type NamespaceWildcard<TEventName extends string> =
 // to exact events, the global wildcard, and derived namespace wildcards. When
 // the event-name type is the default broad `string`, listener names stay broad
 // too so untyped buses remain ergonomic.
-export type EventListenerName<TEventName extends string = string> =
-  string extends TEventName
+export type EventListenerName<TEvent extends EventSubject = EventSubject> =
+  string extends EventSubjectName<TEvent>
     ? string
-    : TEventName | "*" | NamespaceWildcard<TEventName>
+    :
+        | EventSubjectName<TEvent>
+        | "*"
+        | NamespaceWildcard<EventSubjectName<TEvent>>
 
-// Narrows the eventName argument passed into a listener callback based on the
-// listener registration. A `user.*` listener only receives emitted event names
+// Narrows the event passed into a listener callback based on the listener
+// registration. A `user.*` listener only receives events whose subjects are
 // below `user.`, while a `*` listener can receive any known event.
-export type EmittedEventNameForListener<
-  TEventName extends string,
-  TListenerEventName extends EventListenerName<TEventName>
-> = string extends TEventName
-  ? string
-  : TListenerEventName extends "*"
-    ? TEventName
-    : TListenerEventName extends `${infer Namespace}.*`
-      ? Extract<TEventName, `${Namespace}.${string}`>
-      : Extract<TEventName, TListenerEventName>
+export type EventForListener<
+  TEvent extends EventSubject,
+  TListenerEventName extends EventListenerName<TEvent>
+> =
+  string extends EventSubjectName<TEvent>
+    ? TEvent
+    : TListenerEventName extends "*"
+      ? TEvent
+      : TListenerEventName extends `${infer Namespace}.*`
+        ? Extract<TEvent, { subject: `${Namespace}.${string}` }>
+        : Extract<TEvent, { subject: TListenerEventName }>
 
-export type EventErrorContext<TPayload, TEventName extends string = string> = {
+export type EventErrorContext<TEvent extends EventSubject> = {
   error: unknown
-  eventName: TEventName
-  listenerEventName: EventListenerName<TEventName>
-  payload: TPayload
+  event: ReadonlyEvent<TEvent>
+  listenerEventName: EventListenerName<TEvent>
 }
 
-export type EventErrorHandler<TPayload, TEventName extends string = string> = (
-  context: EventErrorContext<TPayload, TEventName>
+export type EventErrorHandler<TEvent extends EventSubject> = (
+  context: EventErrorContext<TEvent>
 ) => void | Promise<void>
 
-type ListenerEntry<TPayload, TEventName extends string> = {
-  eventName: EventListenerName<TEventName>
-  listener: EventListener<TPayload, TEventName>
+type ListenerEntry<TEvent extends EventSubject> = {
+  eventName: EventListenerName<TEvent>
+  listener: EventListener<TEvent>
   once: boolean
 }
 
 /**
- * A small async event bus with typed payloads and namespace wildcard listeners.
+ * A small async event bus with typed domain events and namespace wildcard
+ * listeners.
  *
- * Listener names are derived from the event-name generic when it is a literal
- * union. Exact names match only themselves, `*` matches every emitted event, and
- * names ending in `.*` match every descendant event below that namespace. For
- * example, `user.*` matches `user.created` and `user.profile.updated`, but not
- * `user`. When the event-name generic is omitted, listener names remain plain
- * strings.
+ * Listener names are derived from the event `subject` union when it is a
+ * literal union. Exact names match only themselves, `*` matches every emitted
+ * event, and names ending in `.*` match every descendant event below that
+ * namespace. For example, `user.*` matches `user.created` and
+ * `user.profile.updated`, but not `user`. When the event subject type is the
+ * broad `string`, listener names remain plain strings.
  *
  * Listeners run sequentially in registration order. Listener failures are passed
  * to the configured `onError` handler and never cause `emit` to reject.
  */
-export class EventBus<TPayload, TEventName extends string = string> {
-  private listeners: ListenerEntry<TPayload, TEventName>[] = []
-  private errorHandler?: EventErrorHandler<TPayload, TEventName>
+export class EventBus<TEvent extends EventSubject = EventSubject> {
+  private listeners: ListenerEntry<TEvent>[] = []
+  private errorHandler?: EventErrorHandler<TEvent>
 
   /**
    * Registers a listener for an exact event name, `*`, or a namespace wildcard
@@ -77,16 +90,13 @@ export class EventBus<TPayload, TEventName extends string = string> {
    *
    * @returns A function that removes this specific listener registration.
    */
-  on<TListenerEventName extends EventListenerName<TEventName>>(
+  on<TListenerEventName extends EventListenerName<TEvent>>(
     eventName: TListenerEventName,
-    listener: EventListener<
-      TPayload,
-      EmittedEventNameForListener<TEventName, TListenerEventName>
-    >
+    listener: EventListener<EventForListener<TEvent, TListenerEventName>>
   ): () => void {
     const entry = {
       eventName,
-      listener: listener as EventListener<TPayload, TEventName>,
+      listener: listener as EventListener<TEvent>,
       once: false
     }
     this.listeners.push(entry)
@@ -100,16 +110,13 @@ export class EventBus<TPayload, TEventName extends string = string> {
    * @returns A function that removes this specific listener registration if it
    * has not already run.
    */
-  once<TListenerEventName extends EventListenerName<TEventName>>(
+  once<TListenerEventName extends EventListenerName<TEvent>>(
     eventName: TListenerEventName,
-    listener: EventListener<
-      TPayload,
-      EmittedEventNameForListener<TEventName, TListenerEventName>
-    >
+    listener: EventListener<EventForListener<TEvent, TListenerEventName>>
   ): () => void {
     const entry = {
       eventName,
-      listener: listener as EventListener<TPayload, TEventName>,
+      listener: listener as EventListener<TEvent>,
       once: true
     }
     this.listeners.push(entry)
@@ -121,12 +128,9 @@ export class EventBus<TPayload, TEventName extends string = string> {
    * Removes all registrations for the given listener function on the given
    * listener event name.
    */
-  off<TListenerEventName extends EventListenerName<TEventName>>(
+  off<TListenerEventName extends EventListenerName<TEvent>>(
     eventName: TListenerEventName,
-    listener: EventListener<
-      TPayload,
-      EmittedEventNameForListener<TEventName, TListenerEventName>
-    >
+    listener: EventListener<EventForListener<TEvent, TListenerEventName>>
   ): void {
     this.listeners = this.listeners.filter(
       (entry) => entry.eventName !== eventName || entry.listener !== listener
@@ -141,7 +145,7 @@ export class EventBus<TPayload, TEventName extends string = string> {
    *
    * @returns A function that clears this handler if it is still active.
    */
-  onError(handler: EventErrorHandler<TPayload, TEventName>): () => void {
+  onError(handler: EventErrorHandler<TEvent>): () => void {
     this.errorHandler = handler
 
     return () => {
@@ -152,17 +156,19 @@ export class EventBus<TPayload, TEventName extends string = string> {
   }
 
   /**
-   * Emits an event with a typed payload.
+   * Emits a typed event.
    *
    * Matching listeners are awaited sequentially in registration order. If a
    * listener throws or rejects, the error handler is awaited and emission then
    * continues with later listeners. This method always resolves successfully.
    */
-  async emit(eventName: TEventName, payload: TPayload): Promise<void> {
+  async emit(event: TEvent): Promise<void> {
     const listeners = [...this.listeners]
 
+    const readonlyEvent = event as ReadonlyEvent<TEvent>
+
     for (const entry of listeners) {
-      if (!this.matches(entry.eventName, eventName)) {
+      if (!this.matches(entry.eventName, event.subject)) {
         continue
       }
 
@@ -171,13 +177,12 @@ export class EventBus<TPayload, TEventName extends string = string> {
       }
 
       try {
-        await entry.listener(payload, eventName)
+        await entry.listener(readonlyEvent)
       } catch (error) {
         await this.handleError({
           error,
-          eventName,
           listenerEventName: entry.eventName,
-          payload
+          event: readonlyEvent
         })
       }
     }
@@ -197,9 +202,7 @@ export class EventBus<TPayload, TEventName extends string = string> {
     return eventName.startsWith(`${namespace}.`)
   }
 
-  private async handleError(
-    context: EventErrorContext<TPayload, TEventName>
-  ): Promise<void> {
+  private async handleError(context: EventErrorContext<TEvent>): Promise<void> {
     try {
       await this.errorHandler?.(context)
     } catch {
@@ -207,7 +210,7 @@ export class EventBus<TPayload, TEventName extends string = string> {
     }
   }
 
-  private removeEntry(entry: ListenerEntry<TPayload, TEventName>): void {
+  private removeEntry(entry: ListenerEntry<TEvent>): void {
     this.listeners = this.listeners.filter(
       (currentEntry) => currentEntry !== entry
     )
