@@ -9,6 +9,7 @@ import {
 import type { AssetEventPayloads } from "./asset.js"
 import type { AuthEventPayloads } from "./auth.js"
 import type { FindingEventPayloads } from "./finding.js"
+import type { RoleEventPayloads } from "./role.js"
 import type { UserEventPayloads } from "./user.js"
 import type { VulnerabilityEventPayloads } from "./vulnerability.js"
 
@@ -229,6 +230,31 @@ describe("createDomainEventPayload", () => {
         "asset.updated",
         AssetEventPayloads["asset.updated"]
       >
+    >()
+    expectTypeOf(event).toMatchTypeOf<DomainEvent>()
+  })
+
+  it("includes role events in the aggregate event catalog", () => {
+    const role = {
+      id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830",
+      name: "analyst",
+      permissions: [{ resource: "asset", verb: "read" }]
+    } as RoleEventPayloads["role.deleted"]["role"]
+
+    const event = createEventPayload({
+      subject: "role.updated",
+      source: "role",
+      data: {
+        previous: role,
+        current: {
+          ...role,
+          name: "security-analyst"
+        }
+      }
+    })
+
+    expectTypeOf(event).toEqualTypeOf<
+      DomainEventPayloadBase<"role.updated", RoleEventPayloads["role.updated"]>
     >()
     expectTypeOf(event).toMatchTypeOf<DomainEvent>()
   })

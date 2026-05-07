@@ -230,7 +230,14 @@ describe("role routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(roleService.updateByID).toHaveBeenCalledWith(listedRole.id, payload)
+    expect(roleService.updateByID).toHaveBeenCalledWith({
+      id: listedRole.id,
+      role: payload,
+      eventContext: {
+        actor: authenticatedUser.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: updatedRole
@@ -269,7 +276,14 @@ describe("role routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(409)
-    expect(roleService.updateByID).toHaveBeenCalledWith(listedRole.id, payload)
+    expect(roleService.updateByID).toHaveBeenCalledWith({
+      id: listedRole.id,
+      role: payload,
+      eventContext: {
+        actor: authenticatedUser.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 409,
@@ -349,6 +363,14 @@ describe("role routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
+    expect(roleService.updateByID).toHaveBeenCalledWith({
+      id: listedRole.id,
+      role: { name: listedRole.name, permissions: [] },
+      eventContext: {
+        actor: authenticatedUser.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,
@@ -409,7 +431,13 @@ describe("role routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(roleService.deleteByID).toHaveBeenCalledWith(listedRole.id)
+    expect(roleService.deleteByID).toHaveBeenCalledWith({
+      id: listedRole.id,
+      eventContext: {
+        actor: authenticatedUser.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: listedRole
@@ -464,6 +492,13 @@ describe("role routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
+    expect(roleService.deleteByID).toHaveBeenCalledWith({
+      id: listedRole.id,
+      eventContext: {
+        actor: authenticatedUser.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import type { Logger } from "pino"
 import { AssetType } from "@openvlp/types/model/asset"
 import { FindingSource, FindingStatus } from "@openvlp/types/model/finding"
+import { PermissionResource, PermissionVerb } from "@openvlp/types/model/rbac"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import { createTestUser } from "../test/app.js"
 import { EventBus } from "../lib/eventbus/eventbus.js"
@@ -70,6 +71,13 @@ describe("registerAuditLogger", () => {
     type: AssetType.Host,
     ownerId: null,
     customFields: []
+  }
+  const role = {
+    id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830",
+    name: "analyst",
+    permissions: [
+      { resource: PermissionResource.Asset, verb: PermissionVerb.Read }
+    ]
   }
 
   function createLogger() {
@@ -322,10 +330,57 @@ describe("registerAuditLogger", () => {
     expect(logger.warn).not.toHaveBeenCalled()
   })
 
-  it("audits asset, auth, user, finding, and vulnerability events by default", () => {
+  it("logs role events at info with serialized fields", async () => {
+    const eventBus = new EventBus<DomainEvent>()
+    const logger = createLogger()
+    const eventTime = new Date("2026-05-07T10:30:00.000Z")
+
+    registerAuditLogger({ eventBus, logger })
+
+    await eventBus.emit(
+      createEventPayload({
+        id: "event-8",
+        time: eventTime,
+        subject: "role.updated",
+        source: "role",
+        actor: user.id,
+        correlationId: "request-8",
+        data: {
+          previous: role,
+          current: {
+            ...role,
+            name: "security-analyst"
+          }
+        }
+      })
+    )
+
+    expect(logger.info).toHaveBeenCalledWith(
+      {
+        eventId: "event-8",
+        eventSubject: "role.updated",
+        eventSource: "role",
+        eventTime,
+        actor: user.id,
+        correlationId: "request-8",
+        data: {
+          previous: role,
+          current: {
+            ...role,
+            name: "security-analyst"
+          }
+        }
+      },
+      "role.updated"
+    )
+    expect(logger.warn).not.toHaveBeenCalled()
+  })
+
+  it("audits asset, auth, role, user, finding, and vulnerability events by default", () => {
     expect(DEFAULT_AUDIT_EVENT_PATTERNS).toEqual([
       "asset.*",
       "auth.*",
+      "role.*",
       "user.*",
       "finding.*",
       "vulnerability.*"

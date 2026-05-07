@@ -9,8 +9,10 @@ import {
   type Role
 } from "@openvlp/types/model/rbac"
 import { createRoleService } from "./role.js"
+import { createDomainEventCollector } from "../test/eventbus.js"
 
 describe("role service", () => {
+  const domainEvents = createDomainEventCollector()
   const roleRepository = {
     list: vi.fn(),
     getByID: vi.fn(),
@@ -42,17 +44,27 @@ describe("role service", () => {
       { resource: PermissionResource.Asset, verb: PermissionVerb.Read }
     ]
   }
+  const eventContext = {
+    actor: "95d5909c-a9ab-4350-a515-4b89eb1065ae",
+    correlationId: "role-service-request"
+  }
+
+  function createService() {
+    return createRoleService({
+      roleRepository,
+      domainEventEmitter: domainEvents.emitter,
+      logger
+    })
+  }
 
   beforeEach(() => {
     vi.clearAllMocks()
+    domainEvents.clear()
     roleRepository.hasUsersWithRoleID.mockResolvedValue(false)
   })
 
   it("gets roles by name", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     roleRepository.getByNames.mockResolvedValue([viewerRole, adminRole])
 
@@ -66,10 +78,7 @@ describe("role service", () => {
   })
 
   it("lists all roles", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     roleRepository.list.mockResolvedValue([adminRole, viewerRole])
 
@@ -78,10 +87,7 @@ describe("role service", () => {
   })
 
   it("maps list failures to an HTTP 500", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     roleRepository.list.mockRejectedValue(new Error("db offline"))
 
@@ -92,10 +98,7 @@ describe("role service", () => {
   })
 
   it("returns a role by id", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     roleRepository.getByID.mockResolvedValue(viewerRole)
 
@@ -104,10 +107,7 @@ describe("role service", () => {
   })
 
   it("returns null when a role does not exist", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     roleRepository.getByID.mockResolvedValue(null)
 
@@ -115,10 +115,7 @@ describe("role service", () => {
   })
 
   it("maps get-by-id failures to an HTTP 500", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     roleRepository.getByID.mockRejectedValue(new Error("db offline"))
 
@@ -129,10 +126,7 @@ describe("role service", () => {
   })
 
   it("resolves role ids from persisted role names", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     roleRepository.getByNames.mockResolvedValue([viewerRole, adminRole])
 
@@ -149,10 +143,7 @@ describe("role service", () => {
   })
 
   it("requires known role ids and resolves them to role names", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     roleRepository.getByIDs.mockResolvedValue([adminRole, viewerRole])
 
@@ -170,10 +161,7 @@ describe("role service", () => {
   })
 
   it("rejects unknown role ids with an HTTP 400", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     roleRepository.getByIDs.mockResolvedValue([viewerRole])
 
@@ -189,10 +177,7 @@ describe("role service", () => {
   })
 
   it("maps role resolution failures to an HTTP 500", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     roleRepository.getByNames.mockRejectedValue(new Error("db offline"))
 
@@ -205,10 +190,7 @@ describe("role service", () => {
   })
 
   it("updates a custom role", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
     const updatedRole = {
       ...analystRole,
       name: "security-analyst",
@@ -218,6 +200,7 @@ describe("role service", () => {
       ]
     }
 
+    roleRepository.getByID.mockResolvedValue(analystRole)
     roleRepository.updateByID.mockResolvedValue({
       role: updatedRole,
       permissionsChanged: true,
@@ -226,27 +209,72 @@ describe("role service", () => {
     })
 
     await expect(
-      service.updateByID(analystRole.id, {
-        name: "security-analyst",
-        permissions: updatedRole.permissions
+      service.updateByID({
+        id: analystRole.id,
+        role: {
+          name: "security-analyst",
+          permissions: updatedRole.permissions
+        },
+        eventContext
       })
     ).resolves.toEqual(updatedRole)
+    expect(roleRepository.getByID).toHaveBeenCalledWith(analystRole.id)
+    expect(roleRepository.updateByID).toHaveBeenCalledWith(analystRole.id, {
+      name: "security-analyst",
+      permissions: updatedRole.permissions
+    })
+    expect(domainEvents.subjects()).toEqual(["role.updated"])
+    expect(domainEvents.eventsFor("role.updated")[0]).toMatchObject({
+      subject: "role.updated",
+      source: "role",
+      actor: eventContext.actor,
+      correlationId: eventContext.correlationId,
+      data: {
+        previous: analystRole,
+        current: updatedRole
+      }
+    })
+  })
+
+  it("does not emit role update events for unchanged roles", async () => {
+    const service = createService()
+
+    roleRepository.getByID.mockResolvedValue(analystRole)
+    roleRepository.updateByID.mockResolvedValue({
+      role: analystRole,
+      permissionsChanged: false,
+      affectedUserCount: 0,
+      revokedSessionCount: 0
+    })
+
+    await expect(
+      service.updateByID({
+        id: analystRole.id,
+        role: {
+          name: analystRole.name,
+          permissions: analystRole.permissions
+        },
+        eventContext
+      })
+    ).resolves.toEqual(analystRole)
+    expect(domainEvents.subjects()).toEqual([])
   })
 
   it("maps duplicate role name updates to an HTTP 409", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
+    roleRepository.getByID.mockResolvedValue(analystRole)
     roleRepository.updateByID.mockRejectedValueOnce(
       Object.assign(new Error("duplicate key value"), { code: "23505" })
     )
 
     await expect(
-      service.updateByID(analystRole.id, {
-        name: BuiltInRoleName.Viewer,
-        permissions: analystRole.permissions
+      service.updateByID({
+        id: analystRole.id,
+        role: {
+          name: BuiltInRoleName.Viewer,
+          permissions: analystRole.permissions
+        }
       })
     ).rejects.toMatchObject({
       status: 409,
@@ -255,15 +283,15 @@ describe("role service", () => {
   })
 
   it("rejects attempts to modify built-in roles", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     await expect(
-      service.updateByID(builtInRoleIds.viewer, {
-        name: "updated-viewer",
-        permissions: []
+      service.updateByID({
+        id: builtInRoleIds.viewer,
+        role: {
+          name: "updated-viewer",
+          permissions: []
+        }
       })
     ).rejects.toMatchObject({
       status: 403,
@@ -274,30 +302,34 @@ describe("role service", () => {
   })
 
   it("deletes a custom role", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     roleRepository.getByID.mockResolvedValue(analystRole)
     roleRepository.deleteByID.mockResolvedValue(analystRole)
 
-    await expect(service.deleteByID(analystRole.id)).resolves.toEqual(
-      analystRole
-    )
+    await expect(
+      service.deleteByID({ id: analystRole.id, eventContext })
+    ).resolves.toEqual(analystRole)
     expect(roleRepository.hasUsersWithRoleID).toHaveBeenCalledWith(
       analystRole.id
     )
+    expect(domainEvents.subjects()).toEqual(["role.deleted"])
+    expect(domainEvents.eventsFor("role.deleted")[0]).toMatchObject({
+      subject: "role.deleted",
+      source: "role",
+      actor: eventContext.actor,
+      correlationId: eventContext.correlationId,
+      data: {
+        role: analystRole
+      }
+    })
   })
 
   it("rejects trying to delete a built-in role", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     await expect(
-      service.deleteByID(builtInRoleIds.admin)
+      service.deleteByID({ id: builtInRoleIds.admin })
     ).rejects.toMatchObject({
       status: 403,
       message: "built-in roles cannot be modified"
@@ -307,15 +339,14 @@ describe("role service", () => {
   })
 
   it("rejects deleting a role that is still assigned to users", async () => {
-    const service = createRoleService({
-      roleRepository,
-      logger
-    })
+    const service = createService()
 
     roleRepository.getByID.mockResolvedValue(analystRole)
     roleRepository.hasUsersWithRoleID.mockResolvedValue(true)
 
-    await expect(service.deleteByID(analystRole.id)).rejects.toMatchObject({
+    await expect(
+      service.deleteByID({ id: analystRole.id })
+    ).rejects.toMatchObject({
       status: 409,
       message: `role ${analystRole.name} is still assigned to users`
     } satisfies Partial<HTTPException>)
