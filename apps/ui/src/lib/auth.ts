@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
-import type { AuthSessionDataReply } from "@openvlp/types/api"
-import type { UserProfile } from "@openvlp/types/model/user"
+import type { AuthSessionDataReply } from "@exposurenexus/types/api"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 import {
   APIError,
   apiRequest,

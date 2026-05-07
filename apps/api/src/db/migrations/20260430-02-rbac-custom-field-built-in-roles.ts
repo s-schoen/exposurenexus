@@ -3,7 +3,7 @@ import {
   PermissionResource,
   PermissionVerb,
   builtInRoleIds
-} from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/rbac"
 
 const customFieldBuiltInPermissions = [
   {

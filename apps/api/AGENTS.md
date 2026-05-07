@@ -1,4 +1,4 @@
-# OpenVLP API
+# ExposureNexus API
 
 Hono.js API Server
 

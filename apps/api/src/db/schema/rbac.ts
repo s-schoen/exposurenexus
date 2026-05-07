@@ -1,5 +1,8 @@
 import type { Generated } from "kysely"
-import { PermissionResource, PermissionVerb } from "@openvlp/types/model/rbac"
+import {
+  PermissionResource,
+  PermissionVerb
+} from "@exposurenexus/types/model/rbac"
 
 export interface RoleTable {
   id: Generated<string>

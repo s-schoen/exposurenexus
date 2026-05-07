@@ -12,7 +12,7 @@ import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
   AssetType
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import { createAssetRepository } from "./asset.js"
 import { createTestDatabase, resetTestDatabase } from "../test/db.js"
 
@@ -51,20 +51,20 @@ describe("asset repository", () => {
     const repository = createAssetRepository(testDb.db)
     const created = await repository.create({
       id: "",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     })
 
     expect(created.id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     )
-    expect(created.name).toBe("api.openvlp.local")
+    expect(created.name).toBe("api.exposurenexus.local")
     expect(created.type).toBe(AssetType.Host)
     expect(created.ownerId).toBeNull()
 
     await expect(repository.getByID(created.id)).resolves.toEqual(created)
     await expect(
-      repository.getByName("api.openvlp.local", AssetType.Host)
+      repository.getByName("api.exposurenexus.local", AssetType.Host)
     ).resolves.toEqual(created)
     await expect(repository.list()).resolves.toEqual([created])
   })
@@ -87,13 +87,13 @@ describe("asset repository", () => {
 
     const ownedAsset = await repository.create({
       id: "",
-      name: "owned.openvlp.local",
+      name: "owned.exposurenexus.local",
       type: AssetType.Host,
       ownerId
     })
     const ownerlessAsset = await repository.create({
       id: "",
-      name: "ownerless.openvlp.local",
+      name: "ownerless.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null
     })
@@ -130,7 +130,7 @@ describe("asset repository", () => {
 
     const asset = await repository.create({
       id: "",
-      name: "owned.openvlp.local",
+      name: "owned.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null
     })
@@ -291,7 +291,7 @@ describe("asset repository", () => {
     const repository = createAssetRepository(testDb.db)
     const asset = await repository.create({
       id: "",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     })
     const environment = await repository.createCustomFieldDefinition({
@@ -335,7 +335,7 @@ describe("asset repository", () => {
     const repository = createAssetRepository(testDb.db)
     const asset = await repository.create({
       id: "",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     })
     const environment = await repository.createCustomFieldDefinition({
@@ -565,12 +565,12 @@ describe("asset repository", () => {
     const repository = createAssetRepository(testDb.db)
     const apiAsset = await repository.create({
       id: "",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     })
     const workerAsset = await repository.create({
       id: "",
-      name: "worker.openvlp.local",
+      name: "worker.exposurenexus.local",
       type: AssetType.Host
     })
     const category = await repository.createCustomFieldDefinition({
@@ -636,7 +636,7 @@ describe("asset repository", () => {
     const repository = createAssetRepository(testDb.db)
     const apiAsset = await repository.create({
       id: "",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     })
     const category = await repository.createCustomFieldDefinition({

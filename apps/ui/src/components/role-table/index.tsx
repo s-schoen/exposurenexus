@@ -1,5 +1,5 @@
 import type { UseQueryResult } from "@tanstack/react-query"
-import type { Role } from "@openvlp/types/model/rbac"
+import type { Role } from "@exposurenexus/types/model/rbac"
 import type {
   DataTableFilterState,
   GroupingOption

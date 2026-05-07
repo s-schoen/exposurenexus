@@ -1,4 +1,4 @@
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 
 export function severityColor(
   severity: VulnerabilitySeverity,

@@ -1,18 +1,18 @@
-# OpenVLP
+# ExposureNexus
 
-OpenVLP (Open Vulnerability Lifecycle Platform) is a fullstack application to manage vulnerability that can be
-imported from different sources.
+ExposureNexus is a fullstack open-source CTEM application for managing security findings imported from different
+sources.
 
 ## Tech Stack
 
-- `pnmp` Monorepo
+- `pnpm` Monorepo
     - `apps/api`: API Server based on Hono
     - `apps/ui`: React frontend
     - `packages/types`: Types common to both apps
 
 ## Commands
 
-- Always use `pnmp`, NEVER use `npm` or `yarn`
+- Always use `pnpm`, NEVER use `npm` or `yarn`
 - Use `pnpm lint` to run linter on all workspaces
 - Use `pnpm build` to build all workspaces and check for TypeScript errors
 

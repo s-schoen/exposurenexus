@@ -2,7 +2,7 @@ import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import type {
   AssetCustomFieldDefinition,
   CreateAssetCustomFieldDefinition
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import {
   DEFAULT_QUERY_STALE_TIME,
   apiRequest,

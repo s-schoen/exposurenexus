@@ -6,12 +6,12 @@ import {
   screen,
   waitFor
 } from "@testing-library/react"
-import { FindingSource, FindingStatus } from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { ReactNode } from "react"
-import type { Finding } from "@openvlp/types/model/finding"
-import type { Asset, AssetType } from "@openvlp/types/model/asset"
-import type { UserProfile } from "@openvlp/types/model/user"
+import type { Finding } from "@exposurenexus/types/model/finding"
+import type { Asset, AssetType } from "@exposurenexus/types/model/asset"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 
 interface QueryState<TData> {
   data?: TData

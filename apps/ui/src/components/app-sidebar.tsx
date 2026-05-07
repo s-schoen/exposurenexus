@@ -11,7 +11,7 @@ import {
 } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { Link, useLocation } from "@tanstack/react-router"
-import { FindingStatus } from "@openvlp/types/model/finding"
+import { FindingStatus } from "@exposurenexus/types/model/finding"
 import {
   Sidebar,
   SidebarContent,

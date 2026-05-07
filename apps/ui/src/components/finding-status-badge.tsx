@@ -1,4 +1,4 @@
-import { FindingStatus } from "@openvlp/types/model/finding"
+import { FindingStatus } from "@exposurenexus/types/model/finding"
 import { Badge } from "@/components/ui/badge.tsx"
 import { formatFindingStatus } from "@/lib/format.ts"
 import { cn } from "@/lib/utils.ts"

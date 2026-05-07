@@ -1,6 +1,6 @@
 import type { Generated } from "kysely"
-import { FindingStatus } from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { FindingStatus } from "@exposurenexus/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 
 export interface FindingTable {
   id: Generated<string>

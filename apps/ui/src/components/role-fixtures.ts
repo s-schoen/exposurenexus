@@ -3,8 +3,8 @@ import {
   PermissionResource,
   PermissionVerb,
   builtInRoleIds
-} from "@openvlp/types/model/rbac"
-import type { Role } from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/rbac"
+import type { Role } from "@exposurenexus/types/model/rbac"
 
 export const ROLE_FIXTURES: Array<Role> = [
   {

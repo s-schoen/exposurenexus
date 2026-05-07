@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
-import { builtInRoleIds } from "@openvlp/types/model/rbac"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 import { toast } from "sonner"
 import { createListUsersQueryOptions, createUser } from "@/api/user.ts"
 import { createListRolesQueryOptions } from "@/api/role.ts"

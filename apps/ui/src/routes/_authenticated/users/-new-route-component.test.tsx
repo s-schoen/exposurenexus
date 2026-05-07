@@ -6,8 +6,8 @@ import {
   screen,
   waitFor
 } from "@testing-library/react"
-import { builtInRoleIds } from "@openvlp/types/model/rbac"
-import type { Role } from "@openvlp/types/model/rbac"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
+import type { Role } from "@exposurenexus/types/model/rbac"
 import type { UserFormValues } from "@/components/user-form.tsx"
 import { CreateUserRouteComponent } from "@/routes/_authenticated/users/-new-route-component.tsx"
 

@@ -3,15 +3,15 @@ import {
   type Finding,
   FindingSource,
   FindingStatus
-} from "@openvlp/types/model/finding"
-import { AssetType, type Asset } from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/finding"
+import { AssetType, type Asset } from "@exposurenexus/types/model/asset"
 import { z } from "zod/v4"
 import { HTTPException } from "hono/http-exception"
 import type { ImportContext } from "./importer.js"
 import {
   type Vulnerability,
   VulnerabilitySeverity
-} from "@openvlp/types/model/vulnerability"
+} from "@exposurenexus/types/model/vulnerability"
 import type { CreateOrUpdateFindingResult } from "../service/finding.js"
 import type {
   CreateVulnerabilityMappingOptions,

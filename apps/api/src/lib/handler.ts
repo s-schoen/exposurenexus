@@ -1,6 +1,6 @@
 import { HTTPException } from "hono/http-exception"
 import type { Hono } from "hono"
-import { createErrorReply } from "@openvlp/types/api"
+import { createErrorReply } from "@exposurenexus/types/api"
 import type { Logger } from "pino"
 
 export function registerErrorHandler(app: Hono, logger: Logger) {

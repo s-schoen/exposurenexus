@@ -6,9 +6,9 @@ import {
   screen,
   waitFor
 } from "@testing-library/react"
-import { AssetType } from "@openvlp/types/model/asset"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import type { ReactNode } from "react"
-import type { AssetWithCustomFields } from "@openvlp/types/model/asset"
+import type { AssetWithCustomFields } from "@exposurenexus/types/model/asset"
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
 import { getAssetCustomFieldColumnId } from "@/components/asset-table/columns.tsx"
 

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   VulnerabilitySeverity,
   type Vulnerability
-} from "@openvlp/types/model/vulnerability"
+} from "@exposurenexus/types/model/vulnerability"
 import {
   annotateAuthenticatedUser,
   createTestApp,

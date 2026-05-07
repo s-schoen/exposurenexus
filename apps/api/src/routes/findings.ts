@@ -7,8 +7,8 @@ import {
   createFindingSchema,
   updateFindingSchema,
   type Finding
-} from "@openvlp/types/model/finding"
-import type { UserProfile } from "@openvlp/types/model/user"
+} from "@exposurenexus/types/model/finding"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 import { requestEventContext } from "../lib/request-event-context.js"

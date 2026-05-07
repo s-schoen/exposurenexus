@@ -1,17 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
-import { AssetType } from "@openvlp/types/model/asset"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import { pino } from "pino"
 import {
   FindingSource,
   FindingStatus,
   type Finding
-} from "@openvlp/types/model/finding"
+} from "@exposurenexus/types/model/finding"
 import {
   VulnerabilitySeverity,
   type Vulnerability,
   type VulnerabilitySourceMapping
-} from "@openvlp/types/model/vulnerability"
+} from "@exposurenexus/types/model/vulnerability"
 import { createTestUser } from "../test/app.js"
 import { createNucleiFindingParser } from "./nuclei.js"
 
@@ -49,7 +49,7 @@ describe("nuclei importer", () => {
   }
   const asset = {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-    name: "api.openvlp.local",
+    name: "api.exposurenexus.local",
     type: AssetType.Host,
     ownerId: null
   }
@@ -62,12 +62,12 @@ describe("nuclei importer", () => {
       severity: "high"
     },
     type: "http",
-    host: "api.openvlp.local:443",
+    host: "api.exposurenexus.local:443",
     port: "443",
     path: "/admin",
     request: "GET /admin HTTP/1.1",
     response: "HTTP/1.1 200 OK",
-    "curl-command": "curl https://api.openvlp.local/admin",
+    "curl-command": "curl https://api.exposurenexus.local/admin",
     timestamp: "2026-01-02T03:04:05+00:00"
   }
   const finding: Finding = {
@@ -131,7 +131,7 @@ describe("nuclei importer", () => {
     expect(vulnerabilityService.createMapping).not.toHaveBeenCalled()
     expect(getOrCreateAsset).toHaveBeenCalledWith(
       AssetType.Host,
-      "api.openvlp.local",
+      "api.exposurenexus.local",
       ctx.eventContext
     )
     expect(findingService.createOrUpdate).toHaveBeenCalledWith(

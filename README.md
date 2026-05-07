@@ -1,8 +1,8 @@
-# OpenVLP
+# ExposureNexus
 
-OpenVLP is a vulnerability lifecycle platform for collecting, reviewing, and tracking security findings from multiple
-sources. It gives teams a single place to import findings, organize affected assets, review vulnerabilities, and track
-remediation work over time.
+ExposureNexus is an open-source continuous threat exposure management (CTEM) platform for collecting, normalizing,
+triaging, and tracking security findings across assets and vulnerability sources. It gives teams a single place to
+import findings, organize affected assets, review vulnerabilities, and track remediation work over time.
 
 The platform currently supports:
 
@@ -15,7 +15,7 @@ The platform currently supports:
 
 ## What You Can Do With It
 
-OpenVLP is built around a few core workflows:
+ExposureNexus is built around a few core CTEM workflows:
 
 - monitor overall exposure from the dashboard
 - review active findings in a triage queue
@@ -26,7 +26,7 @@ OpenVLP is built around a few core workflows:
 
 ## Getting Started
 
-To run OpenVLP locally you need Node.js, `pnpm`, and PostgreSQL.
+To run ExposureNexus locally you need Node.js, `pnpm`, and PostgreSQL.
 
 1. Install dependencies:
 
@@ -46,7 +46,7 @@ To run OpenVLP locally you need Node.js, `pnpm`, and PostgreSQL.
    AUTH_COOKIE_SECURE=true
    AUTH_SECRET=replace-with-a-random-secret-at-least-32-characters
    AUTH_TRUSTED_PROXIES=
-   DATABASE_URL=postgres://postgres:postgres@localhost:5432/openvlp
+   DATABASE_URL=postgres://postgres:postgres@localhost:5432/exposurenexus
    ```
 
 4. Optional: create `apps/ui/.env` if you want to override the default API URL:
@@ -98,13 +98,13 @@ Useful workspace commands:
 ```bash
 pnpm dev:api
 pnpm dev:ui
-pnpm --filter @openvlp/api test
-pnpm --filter @openvlp/ui test
+pnpm --filter @exposurenexus/api test
+pnpm --filter @exposurenexus/ui test
 ```
 
 ## Technical Notes
 
-OpenVLP is implemented as a `pnpm` monorepo with three main workspaces:
+ExposureNexus is implemented as a `pnpm` monorepo with three main workspaces:
 
 - `apps/api` owns persistence, auth, imports, and domain services
 - `apps/ui` provides the dashboard, assets, findings, vulnerabilities, triage, and import screens

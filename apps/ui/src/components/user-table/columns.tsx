@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table"
-import type { UserProfile } from "@openvlp/types/model/user"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
 import { Badge } from "@/components/ui/badge.tsx"
 

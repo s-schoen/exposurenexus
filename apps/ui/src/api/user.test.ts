@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { builtInRoleIds } from "@openvlp/types/model/rbac"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 import {
   createListUsersQueryOptions,
   createUser,
@@ -10,7 +10,7 @@ import type {
   CreateUserProfile,
   UpdateUserProfile,
   UserProfile
-} from "@openvlp/types/model/user"
+} from "@exposurenexus/types/model/user"
 
 const fetchMock = vi.fn<typeof fetch>()
 

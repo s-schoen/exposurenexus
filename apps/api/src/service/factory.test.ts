@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { FindingSource, FindingStatus } from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import {
+  FindingSource,
+  FindingStatus
+} from "@exposurenexus/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import { createTestUser } from "../test/app.js"
 import { pino } from "pino"
 

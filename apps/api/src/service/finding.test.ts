@@ -6,8 +6,8 @@ import {
   FindingSource,
   FindingStatus,
   type FindingInternal
-} from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+} from "@exposurenexus/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import { createDomainEventCollector } from "../test/eventbus.js"
 import { createTestUser } from "../test/app.js"
 import { createFindingService } from "./finding.js"

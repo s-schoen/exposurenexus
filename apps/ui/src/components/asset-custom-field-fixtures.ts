@@ -1,5 +1,5 @@
-import { AssetCustomFieldType } from "@openvlp/types/model/asset"
-import type { AssetCustomFieldDefinition } from "@openvlp/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
 
 export const ASSET_CUSTOM_FIELD_FIXTURES: Array<AssetCustomFieldDefinition> = [
   {

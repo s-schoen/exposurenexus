@@ -3,11 +3,11 @@ import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
   AssetType
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import type {
   AssetCustomFieldDefinition,
   AssetWithCustomFields
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import type { AccessorFnColumnDef } from "@tanstack/react-table"
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
 import {

@@ -1,9 +1,9 @@
-import { AssetCustomFieldType } from "@openvlp/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
 import type {
   AssetCustomFieldDefinition,
   AssetWithCustomFields
-} from "@openvlp/types/model/asset"
-import type { UserProfile } from "@openvlp/types/model/user"
+} from "@exposurenexus/types/model/asset"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 import type { ColumnDef } from "@tanstack/react-table"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
 import {

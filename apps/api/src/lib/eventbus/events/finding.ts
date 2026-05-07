@@ -1,4 +1,4 @@
-import type { Finding } from "@openvlp/types/model/finding"
+import type { Finding } from "@exposurenexus/types/model/finding"
 
 export type FindingEventPayloads = {
   "finding.created": {

@@ -1,4 +1,4 @@
-import type { UserProfile, UserSession } from "@openvlp/types/model/user"
+import type { UserProfile, UserSession } from "@exposurenexus/types/model/user"
 
 export type AuthFailureReason =
   | "invalid-credentials"

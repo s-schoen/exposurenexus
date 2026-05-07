@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { FindingSource, FindingStatus } from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { ReactNode } from "react"
-import type { CreateFinding, Finding } from "@openvlp/types/model/finding"
+import type { CreateFinding, Finding } from "@exposurenexus/types/model/finding"
 import type * as FindingApi from "@/api/finding.ts"
 import type { FindingLifecycleBatchResult } from "@/hooks/use-finding-lifecycle.ts"
 import {

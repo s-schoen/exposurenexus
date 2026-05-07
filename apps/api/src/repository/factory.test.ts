@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { AssetType } from "@openvlp/types/model/asset"
+import { AssetType } from "@exposurenexus/types/model/asset"
 
 vi.mock("../db/index.js", () => ({
   db: {},
@@ -31,14 +31,14 @@ describe("repository factories", () => {
 
     const repository = createAssetRepository(db as never)
 
-    await repository.getByName("api.openvlp.local", AssetType.Host)
+    await repository.getByName("api.exposurenexus.local", AssetType.Host)
 
     expect(selectFrom).toHaveBeenCalledWith("asset")
     expect(query.where).toHaveBeenNthCalledWith(
       1,
       "name",
       "=",
-      "api.openvlp.local"
+      "api.exposurenexus.local"
     )
     expect(query.where).toHaveBeenNthCalledWith(2, "type", "=", AssetType.Host)
     expect(execute).toHaveBeenCalledOnce()

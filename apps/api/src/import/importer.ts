@@ -1,5 +1,5 @@
-import { FindingSource, type Finding } from "@openvlp/types/model/finding"
-import type { UserProfile } from "@openvlp/types/model/user"
+import { FindingSource, type Finding } from "@exposurenexus/types/model/finding"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 import type { Logger } from "pino"
 import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 

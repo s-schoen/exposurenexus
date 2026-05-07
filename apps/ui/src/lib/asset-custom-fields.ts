@@ -1,5 +1,5 @@
-import { AssetCustomFieldType } from "@openvlp/types/model/asset"
-import type { AssetCustomFieldValue } from "@openvlp/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
+import type { AssetCustomFieldValue } from "@exposurenexus/types/model/asset"
 
 export function formatAssetCustomFieldValue(
   field: AssetCustomFieldValue | undefined

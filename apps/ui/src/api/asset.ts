@@ -8,7 +8,7 @@ import type {
   UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues,
   UpdateAssetOwner
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import {
   DEFAULT_QUERY_STALE_TIME,
   apiRequest,

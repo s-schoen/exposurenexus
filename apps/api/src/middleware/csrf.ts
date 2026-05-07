@@ -3,7 +3,7 @@ import type { Context, MiddlewareHandler } from "hono"
 import { deleteCookie, getCookie, setCookie } from "hono/cookie"
 import type { CookieOptions } from "hono/utils/cookie"
 import { HTTPException } from "hono/http-exception"
-import type { UserSession } from "@openvlp/types/model/user"
+import type { UserSession } from "@exposurenexus/types/model/user"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import {
   DEFAULT_AUTH_COOKIE_POLICY,
@@ -19,9 +19,9 @@ const VALID_FETCH_SITE_VALUES = new Set([
   "none"
 ])
 const TOKEN_SEPARATOR = "."
-const CSRF_HMAC_CONTEXT = "openvlp.csrf.v1"
+const CSRF_HMAC_CONTEXT = "exposurenexus.csrf.v1"
 
-export const CSRF_COOKIE = "__Host-openvlp-csrf"
+export const CSRF_COOKIE = "__Host-exposurenexus-csrf"
 export const CSRF_HEADER = "X-CSRF-Token"
 
 type CsrfContext = Context<{ Variables: ContextVariables }>

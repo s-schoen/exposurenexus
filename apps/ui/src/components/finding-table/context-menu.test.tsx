@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { FindingStatus } from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { FindingStatus } from "@exposurenexus/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { ReactElement, ReactNode, RefObject } from "react"
-import type { Finding } from "@openvlp/types/model/finding"
+import type { Finding } from "@exposurenexus/types/model/finding"
 import type { FindingContextMenu } from "@/components/finding-table/context-menu.tsx"
 
 const mocks = vi.hoisted(() => ({

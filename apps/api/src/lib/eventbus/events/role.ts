@@ -1,4 +1,4 @@
-import type { Role } from "@openvlp/types/model/rbac"
+import type { Role } from "@exposurenexus/types/model/rbac"
 
 export type RoleEventPayloads = {
   "role.updated": {

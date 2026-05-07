@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useLayoutEffect, useMemo, useState } from "react"
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import type { Role } from "@openvlp/types/model/rbac"
+import type { Role } from "@exposurenexus/types/model/rbac"
 import {
   BUILT_IN_ADMIN_ROLE,
   CUSTOM_AUDITOR_ROLE

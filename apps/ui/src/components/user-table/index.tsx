@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import { useMemo } from "react"
-import type { UserProfile } from "@openvlp/types/model/user"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 import type {
   DataTableFilterState,
   GroupingOption

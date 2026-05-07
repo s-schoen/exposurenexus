@@ -1,9 +1,15 @@
 import { describe, expect, it, vi } from "vitest"
 import type { Logger } from "pino"
-import { AssetType } from "@openvlp/types/model/asset"
-import { FindingSource, FindingStatus } from "@openvlp/types/model/finding"
-import { PermissionResource, PermissionVerb } from "@openvlp/types/model/rbac"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { AssetType } from "@exposurenexus/types/model/asset"
+import {
+  FindingSource,
+  FindingStatus
+} from "@exposurenexus/types/model/finding"
+import {
+  PermissionResource,
+  PermissionVerb
+} from "@exposurenexus/types/model/rbac"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import { createTestUser } from "../test/app.js"
 import { EventBus } from "../lib/eventbus/eventbus.js"
 import {
@@ -67,7 +73,7 @@ describe("registerAuditLogger", () => {
   }
   const asset = {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-    name: "api.openvlp.local",
+    name: "api.exposurenexus.local",
     type: AssetType.Host,
     ownerId: null,
     customFields: []

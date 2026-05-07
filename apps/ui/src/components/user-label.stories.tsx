@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useEffect, useLayoutEffect, useMemo, useState } from "react"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { ComponentProps } from "react"
-import type { UserProfile } from "@openvlp/types/model/user"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 
 import { UserLabel } from "@/components/user-label"
 

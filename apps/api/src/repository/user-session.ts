@@ -1,6 +1,6 @@
 import type { Database } from "../db/index.js"
 import type { Kysely } from "kysely"
-import type { UserSession } from "@openvlp/types/model/user"
+import type { UserSession } from "@exposurenexus/types/model/user"
 
 export function createUserSessionRepository(database: Kysely<Database>) {
   return {

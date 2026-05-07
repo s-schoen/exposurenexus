@@ -5,12 +5,12 @@ import { z } from "zod/v4"
 import {
   createUserProfileSchema,
   updateUserProfileSchema
-} from "@openvlp/types/model/user"
+} from "@exposurenexus/types/model/user"
 import type {
   CreateUserProfile,
   UpdateUserProfile
-} from "@openvlp/types/model/user"
-import type { Role } from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/user"
+import type { Role } from "@exposurenexus/types/model/rbac"
 import { Button } from "@/components/ui/button.tsx"
 import { Checkbox } from "@/components/ui/checkbox.tsx"
 import {

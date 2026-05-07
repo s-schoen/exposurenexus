@@ -2,12 +2,12 @@ import type {
   APIArrayDataReply,
   APIErrorReply,
   APISingleDataReply
-} from "@openvlp/types/api"
+} from "@exposurenexus/types/api"
 import type { z } from "zod/v4"
 import { env } from "@/env.ts"
 
 export const DEFAULT_QUERY_STALE_TIME = 1000 * 60 * 5
-export const CSRF_COOKIE = "__Host-openvlp-csrf"
+export const CSRF_COOKIE = "__Host-exposurenexus-csrf"
 export const CSRF_HEADER = "X-CSRF-Token"
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"])

@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
-import type { Vulnerability } from "@openvlp/types/model/vulnerability"
+import type { Vulnerability } from "@exposurenexus/types/model/vulnerability"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 

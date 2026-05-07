@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto"
 import type { Kysely } from "kysely"
 import type { Logger } from "pino"
-import { builtInRoleIds } from "@openvlp/types/model/rbac"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 import type { Database } from "../db/index.js"
 import { hashPlaintextPassword } from "./argon2.js"
 

@@ -1,5 +1,5 @@
 import { keepPreviousData } from "@tanstack/react-query"
-import type { Role, UpdateRole } from "@openvlp/types/model/rbac"
+import type { Role, UpdateRole } from "@exposurenexus/types/model/rbac"
 import {
   DEFAULT_QUERY_STALE_TIME,
   apiRequest,

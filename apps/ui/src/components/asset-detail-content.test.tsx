@@ -11,8 +11,8 @@ import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
   AssetType
-} from "@openvlp/types/model/asset"
-import type { AssetCustomFieldValue } from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
+import type { AssetCustomFieldValue } from "@exposurenexus/types/model/asset"
 import * as stories from "@/components/asset-detail-content.stories"
 import {
   createAssetCustomFieldValuePayload,

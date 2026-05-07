@@ -5,7 +5,7 @@ import type {
   UserProfile,
   UserProfileInternalWithRoles,
   UpdateUserProfile
-} from "@openvlp/types/model/user"
+} from "@exposurenexus/types/model/user"
 import { hashPlaintextPassword } from "../lib/argon2.js"
 import {
   createDomainEventEmitter,

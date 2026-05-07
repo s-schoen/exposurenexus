@@ -6,10 +6,10 @@ import {
   screen,
   waitFor
 } from "@testing-library/react"
-import { FindingStatus } from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { FindingStatus } from "@exposurenexus/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { ReactElement, ReactNode, RefObject } from "react"
-import type { Finding } from "@openvlp/types/model/finding"
+import type { Finding } from "@exposurenexus/types/model/finding"
 
 const mocks = vi.hoisted(() => {
   const finding: Finding = {

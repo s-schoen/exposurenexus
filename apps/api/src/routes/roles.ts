@@ -5,7 +5,7 @@ import {
   updateRoleSchema,
   type Role,
   type UpdateRole
-} from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/rbac"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { DomainEventContext } from "../lib/eventbus/events/index.js"

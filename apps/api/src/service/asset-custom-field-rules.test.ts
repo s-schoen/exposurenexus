@@ -4,7 +4,7 @@ import {
   AssetCustomFieldType,
   type CreateAssetCustomFieldDefinition,
   validateAssetCustomFieldDefinitionRules
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 
 function violationReasons(
   definition: CreateAssetCustomFieldDefinition

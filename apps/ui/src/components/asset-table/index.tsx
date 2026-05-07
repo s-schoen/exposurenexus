@@ -3,13 +3,13 @@ import { useLocation, useNavigate } from "@tanstack/react-router"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useMemo, useState } from "react"
-import { AssetCustomFieldType } from "@openvlp/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
 import type {
   Asset,
   AssetCustomFieldDefinition,
   AssetWithCustomFields
-} from "@openvlp/types/model/asset"
-import type { UserProfile } from "@openvlp/types/model/user"
+} from "@exposurenexus/types/model/asset"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 import type {
   DataTableFilterState,
   GroupingOption

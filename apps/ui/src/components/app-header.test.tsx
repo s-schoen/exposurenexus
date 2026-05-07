@@ -15,8 +15,8 @@ describe("AppHeader", () => {
 
     render(<AppHeader />)
 
-    expect(screen.getByText("OpenVLP")).toBeTruthy()
-    expect(screen.getByAltText("OpenVLP Logo")).toBeTruthy()
+    expect(screen.getByText("ExposureNexus")).toBeTruthy()
+    expect(screen.getByAltText("ExposureNexus Logo")).toBeTruthy()
     expect(screen.getByText("Account menu slot")).toBeTruthy()
   })
 })

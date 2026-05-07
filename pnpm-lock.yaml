@@ -16,7 +16,7 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.7.6
         version: 0.7.6(hono@4.12.12)(zod@4.3.6)
-      '@openvlp/types':
+      '@exposurenexus/types':
         specifier: workspace:*
         version: link:../../packages/types
       '@t3-oss/env-core':
@@ -89,7 +89,7 @@ importers:
       '@faker-js/faker':
         specifier: ^10.4.0
         version: 10.4.0
-      '@openvlp/types':
+      '@exposurenexus/types':
         specifier: workspace:*
         version: link:../../packages/types
       '@t3-oss/env-core':

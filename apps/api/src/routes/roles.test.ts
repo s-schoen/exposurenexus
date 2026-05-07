@@ -5,7 +5,7 @@ import {
   PermissionResource,
   PermissionVerb,
   builtInRoleIds
-} from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/rbac"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -13,7 +13,7 @@ import {
   requireAuthenticatedUser
 } from "../test/app.js"
 import { createRequireDomainPermission } from "../middleware/auth.js"
-import { updateRoleSchema } from "@openvlp/types/model/rbac"
+import { updateRoleSchema } from "@exposurenexus/types/model/rbac"
 import { createRoleRoute } from "./roles.js"
 
 describe("role routes", () => {

@@ -1,9 +1,9 @@
 # API Authentication Design
 
-OpenVLP uses a custom API authentication system built around user profiles,
+ExposureNexus uses a custom API authentication system built around user profiles,
 opaque server-side sessions, and role-based authorization. The design replaces
 the previous better-auth integration for API authentication while keeping the
-authentication state and permission model inside OpenVLP-owned tables and
+authentication state and permission model inside ExposureNexus-owned tables and
 services.
 
 This document describes the architecture, data flow, and security controls. It
@@ -13,7 +13,7 @@ is not an endpoint reference.
 
 - Keep authentication state server-side and opaque to clients.
 - Avoid storing raw session tokens in the database.
-- Keep user identity, role assignments, and permissions in OpenVLP-owned
+- Keep user identity, role assignments, and permissions in ExposureNexus-owned
   domain tables.
 - Enforce authorization through service-level permission checks instead of
   better-auth role conventions.
@@ -88,8 +88,8 @@ Login starts in the auth route and then moves into the auth service.
 7. A random opaque session token is generated.
 8. The token is HMAC-SHA-256 hashed with `AUTH_SECRET`.
 9. Only the digest is stored in `user_session`.
-10. The raw session token is set in the `__Host-openvlp-session` cookie.
-11. A signed CSRF token is issued in the `__Host-openvlp-csrf` cookie.
+10. The raw session token is set in the `__Host-exposurenexus-session` cookie.
+11. A signed CSRF token is issued in the `__Host-exposurenexus-csrf` cookie.
 
 The auth service uses a dummy Argon2 hash when a username does not exist. This
 keeps credential checks closer in timing between existing and non-existing
@@ -100,7 +100,7 @@ users and reduces username enumeration risk.
 For normal API requests, authentication is handled by middleware before route
 handlers run.
 
-1. `createAuthAnnotate` reads the `__Host-openvlp-session` cookie.
+1. `createAuthAnnotate` reads the `__Host-exposurenexus-session` cookie.
 2. If no cookie exists, the request context receives `user = null` and
    `session = null`.
 3. If a cookie exists, the auth service HMACs the presented token and looks up
@@ -131,7 +131,7 @@ These revocations happen in the same database transaction as the sensitive
 write where possible. This prevents a password or permission change from being
 committed while old sessions remain active.
 
-OpenVLP stores only HMAC digests of session tokens. Because the raw token cannot
+ExposureNexus stores only HMAC digests of session tokens. Because the raw token cannot
 be recovered from the database, the system does not try to transparently rotate
 arbitrary existing sessions. Revocation is stricter: affected users must
 authenticate again and receive a new session token through the normal login
@@ -139,7 +139,7 @@ flow.
 
 ## Authorization Flow
 
-Authorization is role-based but checked through OpenVLP's own RBAC model.
+Authorization is role-based but checked through ExposureNexus's own RBAC model.
 
 1. A route declares the required domain permission.
 2. The permission middleware requires an authenticated user.
@@ -174,9 +174,9 @@ The CSRF cookie is readable by frontend code so it can be copied into the
 
 ## Cookie Policy
 
-The session cookie is named `__Host-openvlp-session`.
+The session cookie is named `__Host-exposurenexus-session`.
 
-The CSRF cookie is named `__Host-openvlp-csrf`.
+The CSRF cookie is named `__Host-exposurenexus-csrf`.
 
 Both cookies use the `__Host-` prefix constraints:
 
@@ -204,7 +204,7 @@ Accepted trusted proxy entries are exact IPs or CIDRs, for example:
 AUTH_TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8,2001:db8::/32
 ```
 
-If the remote address is trusted, OpenVLP considers `X-Forwarded-For` first and
+If the remote address is trusted, ExposureNexus considers `X-Forwarded-For` first and
 then `X-Real-IP`. If the remote address is not trusted, forwarding headers are
 ignored to avoid spoofed session metadata.
 

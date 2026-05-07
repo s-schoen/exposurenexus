@@ -1,4 +1,4 @@
-import type { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import type { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import { formatSeverity } from "@/lib/format.ts"
 import { Badge } from "@/components/ui/badge.tsx"
 import { cn } from "@/lib/utils.ts"

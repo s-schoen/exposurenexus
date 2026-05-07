@@ -1,5 +1,5 @@
 {
-  "name": "@openvlp/api",
+  "name": "@exposurenexus/api",
   "type": "module",
   "scripts": {
     "dev": "tsx watch --env-file=.env src/index.ts | pino-pretty",
@@ -16,7 +16,7 @@
   "dependencies": {
     "@hono/node-server": "^1.19.13",
     "@hono/zod-validator": "^0.7.6",
-    "@openvlp/types": "workspace:*",
+    "@exposurenexus/types": "workspace:*",
     "@t3-oss/env-core": "^0.13.11",
     "hono": "^4.12.12",
     "kysely": "^0.28.16",

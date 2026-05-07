@@ -1,9 +1,9 @@
-import { builtInRoleIds } from "@openvlp/types/model/rbac"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 import type {
   Permission,
   PermissionResource,
   PermissionVerb
-} from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/rbac"
 import { capitalizeFirstLetter } from "@/lib/format.ts"
 
 const builtInRoleIdSet = new Set<string>(Object.values(builtInRoleIds))

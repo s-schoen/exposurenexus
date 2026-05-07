@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { PermissionResource, PermissionVerb } from "@openvlp/types/model/rbac"
+import {
+  PermissionResource,
+  PermissionVerb
+} from "@exposurenexus/types/model/rbac"
 import {
   domainPermission,
   groupPermission,
