@@ -1,7 +1,7 @@
 import type {
   AssetCustomFieldType,
   AssetType
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import type { Generated } from "kysely"
 
 export type AssetCustomFieldStoredValue = string | number

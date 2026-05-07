@@ -10,7 +10,7 @@ import {
   AssetCustomFieldType,
   AssetType,
   type UpdateAssetCustomFieldValue
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import { type Database } from "../db/index.js"
 import {
   sql,

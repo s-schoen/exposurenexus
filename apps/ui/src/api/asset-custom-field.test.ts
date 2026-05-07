@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { AssetCustomFieldType } from "@openvlp/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
 import { APIError } from "./common.ts"
 import {
   createAssetCustomFieldDefinition,
@@ -13,7 +13,7 @@ import {
 import type {
   AssetCustomFieldDefinition,
   CreateAssetCustomFieldDefinition
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 
 const fetchMock = vi.fn<typeof fetch>()
 

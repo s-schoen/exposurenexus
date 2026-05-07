@@ -3,14 +3,14 @@ import {
   PermissionResource,
   PermissionVerb,
   builtInRoleIds
-} from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/rbac"
 import {
   createListRolesQueryOptions,
   createRoleByIDQueryOptions,
   deleteRole,
   updateRole
 } from "./role.ts"
-import type { Role, UpdateRole } from "@openvlp/types/model/rbac"
+import type { Role, UpdateRole } from "@exposurenexus/types/model/rbac"
 
 const fetchMock = vi.fn<typeof fetch>()
 

@@ -4,9 +4,9 @@ import Markdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import rehypeRaw from "rehype-raw"
 import { useCallback, useMemo, useState } from "react"
-import { FindingStatus } from "@openvlp/types/model/finding"
-import { normalizeDateToUtcStart } from "@openvlp/types/model/date"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { FindingStatus } from "@exposurenexus/types/model/finding"
+import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import {
   Copy,
   ExternalLink,
@@ -17,7 +17,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import type { ReactNode } from "react"
-import type { Finding } from "@openvlp/types/model/finding"
+import type { Finding } from "@exposurenexus/types/model/finding"
 import type { FindingEditableField } from "@/hooks/use-finding-lifecycle.ts"
 import { createFindingByIDQueryOptions } from "@/api/finding.ts"
 import { createAssetByIDQueryOptions } from "@/api/asset.ts"

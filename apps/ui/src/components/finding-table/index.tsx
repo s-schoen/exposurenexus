@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import { useMemo } from "react"
-import type { Finding } from "@openvlp/types/model/finding"
+import type { Finding } from "@exposurenexus/types/model/finding"
 import type {
   DataTableFilterState,
   GroupingOption

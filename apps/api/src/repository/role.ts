@@ -1,6 +1,6 @@
 import type { Kysely, Transaction } from "kysely"
 import type { Database } from "../db/index.js"
-import type { Role, UpdateRole } from "@openvlp/types/model/rbac"
+import type { Role, UpdateRole } from "@exposurenexus/types/model/rbac"
 
 type DatabaseExecutor = Kysely<Database> | Transaction<Database>
 

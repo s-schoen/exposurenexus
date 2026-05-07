@@ -12,10 +12,10 @@ import {
   type CreateAsset,
   type UpdateAssetCustomFieldValue,
   validateAssetCustomFieldDefinitionRules
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
-import type { UserProfile } from "@openvlp/types/model/user"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 import { badRequest, conflict, isConflictError } from "./errors.js"
 import {
   createDomainEventEmitter,

@@ -1,6 +1,6 @@
 # API Event Bus Design
 
-OpenVLP uses an in-process domain event bus inside the API service to publish
+ExposureNexus uses an in-process domain event bus inside the API service to publish
 important domain changes and authentication events. The first subscriber is the
 audit logger, but the event system is intentionally generic so other handlers
 can be added without coupling domain services to logging, notifications, or

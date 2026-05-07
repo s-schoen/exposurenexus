@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
-import { BuiltInRoleName, builtInRoleIds } from "@openvlp/types/model/rbac"
+import { BuiltInRoleName, builtInRoleIds } from "@exposurenexus/types/model/rbac"
 import type { ReactNode } from "react"
-import type { Role } from "@openvlp/types/model/rbac"
-import type { UserProfile } from "@openvlp/types/model/user"
+import type { Role } from "@exposurenexus/types/model/rbac"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 
 interface QueryState<TData> {
   data?: TData

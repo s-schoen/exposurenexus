@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
-import { FindingStatus } from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { FindingStatus } from "@exposurenexus/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { ReactNode } from "react"
-import type { Asset, AssetType } from "@openvlp/types/model/asset"
-import type { Finding } from "@openvlp/types/model/finding"
-import type { UserProfile } from "@openvlp/types/model/user"
+import type { Asset, AssetType } from "@exposurenexus/types/model/asset"
+import type { Finding } from "@exposurenexus/types/model/finding"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 
 vi.mock("@/components/data-table/column-header.tsx", () => ({
   DataTableColumnHeader: ({ title }: { title: string }) => <span>{title}</span>

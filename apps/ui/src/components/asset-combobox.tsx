@@ -1,7 +1,7 @@
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
-import type { Asset } from "@openvlp/types/model/asset"
+import type { Asset } from "@exposurenexus/types/model/asset"
 import {
   Command,
   CommandEmpty,

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import type { UserProfile } from "@openvlp/types/model/user"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 import { createListUsersQueryOptions } from "@/api/user.ts"
 import { Badge } from "@/components/ui/badge.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"

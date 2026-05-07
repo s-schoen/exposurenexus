@@ -4,7 +4,7 @@ import type { ReactNode } from "react"
 import type {
   Vulnerability,
   VulnerabilitySeverity
-} from "@openvlp/types/model/vulnerability"
+} from "@exposurenexus/types/model/vulnerability"
 
 const mocks = vi.hoisted(() => {
   const vulnerability: Vulnerability = {

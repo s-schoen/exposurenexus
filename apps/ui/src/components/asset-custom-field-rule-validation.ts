@@ -2,8 +2,8 @@ import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   validateAssetCustomFieldDefinitionRules
-} from "@openvlp/types/model/asset"
-import type { CreateAssetCustomFieldDefinition } from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
+import type { CreateAssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
 
 interface AssetCustomFieldFormRuleOptionValue {
   value: string

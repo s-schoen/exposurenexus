@@ -3,7 +3,7 @@ import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
   AssetType
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import {
   assignAssetCustomFields,
   clearAssetCustomFieldValue,
@@ -28,7 +28,7 @@ import type {
   AssetWithCustomFields,
   UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -59,7 +59,7 @@ const assetId = "0bb9b410-7763-4e7a-9942-b752367fd63d"
 const fieldId = "33d63e64-8f2b-4f88-b26f-fb090b4366ff"
 const asset: Asset = {
   id: assetId,
-  name: "api.openvlp.local",
+  name: "api.exposurenexus.local",
   type: AssetType.Host,
   ownerId: null
 }
@@ -84,7 +84,7 @@ const values: Array<AssetCustomFieldValue> = [
 const assetsWithCustomFields: Array<AssetWithCustomFields> = [
   {
     id: assetId,
-    name: "api.openvlp.local",
+    name: "api.exposurenexus.local",
     type: AssetType.Host,
     ownerId: null,
     customFields: values

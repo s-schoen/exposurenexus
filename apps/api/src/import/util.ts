@@ -1,4 +1,8 @@
-import type { Asset, AssetType, CreateAsset } from "@openvlp/types/model/asset"
+import type {
+  Asset,
+  AssetType,
+  CreateAsset
+} from "@exposurenexus/types/model/asset"
 import type { Logger } from "pino"
 import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 

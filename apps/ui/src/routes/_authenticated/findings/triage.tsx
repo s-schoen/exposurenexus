@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
-import { FindingStatus } from "@openvlp/types/model/finding"
+import { FindingStatus } from "@exposurenexus/types/model/finding"
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx"
 import { FindingTable } from "@/components/finding-table"
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx"

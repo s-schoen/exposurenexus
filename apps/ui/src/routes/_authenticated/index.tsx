@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link, createFileRoute } from "@tanstack/react-router"
-import { FindingStatus } from "@openvlp/types/model/finding"
+import { FindingStatus } from "@exposurenexus/types/model/finding"
 import {
   Activity,
   Bug,

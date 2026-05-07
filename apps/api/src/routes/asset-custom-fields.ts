@@ -7,7 +7,7 @@ import {
   type AssetCustomFieldRuleViolation,
   AssetCustomFieldRuleViolationReason,
   createAssetCustomFieldDefinitionSchema
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"

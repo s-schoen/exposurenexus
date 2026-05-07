@@ -1,4 +1,4 @@
-import type { AssetWithCustomFields } from "@openvlp/types/model/asset"
+import type { AssetWithCustomFields } from "@exposurenexus/types/model/asset"
 
 export type AssetEventPayloads = {
   "asset.created": {

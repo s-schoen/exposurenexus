@@ -1,6 +1,6 @@
 # Asset Custom Fields Design
 
-OpenVLP asset custom fields extend the asset registry with user-defined
+ExposureNexus asset custom fields extend the asset registry with user-defined
 metadata without changing the core `asset` table for every new attribute.
 Custom fields are defined once at the registry level and can then be assigned
 to individual assets. Assigned fields expose an effective value for the asset:

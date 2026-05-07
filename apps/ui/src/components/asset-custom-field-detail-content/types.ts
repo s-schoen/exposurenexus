@@ -1,4 +1,4 @@
-import type { AssetCustomFieldDefinition } from "@openvlp/types/model/asset"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
 import type { CustomFieldUpdateResult } from "@/components/asset-custom-field-detail-content/helpers.ts"
 
 export type CustomFieldUpdateHandler = (

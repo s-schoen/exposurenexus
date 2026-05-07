@@ -3,8 +3,8 @@ import {
   FindingSource,
   FindingStatus,
   type Finding
-} from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+} from "@exposurenexus/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import {
   annotateAuthenticatedUser,
   createTestApp,

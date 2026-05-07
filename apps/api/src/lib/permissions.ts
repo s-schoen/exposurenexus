@@ -2,7 +2,7 @@ import {
   PermissionResource,
   type Permission,
   PermissionVerb
-} from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/rbac"
 
 // assignment of verbs to resources
 export type ResourcePermissionVerbAssignment = Partial<

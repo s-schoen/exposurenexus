@@ -1,5 +1,5 @@
 import { sql, type Kysely } from "kysely"
-import { PermissionResource } from "@openvlp/types/model/rbac"
+import { PermissionResource } from "@exposurenexus/types/model/rbac"
 
 // eslint-disable-next-line
 export async function up(db: Kysely<any>): Promise<void> {

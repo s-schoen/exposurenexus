@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { FindingSource, FindingStatus } from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import {
   createFinding,
   createFindingByIDQueryOptions,
@@ -14,7 +14,7 @@ import type {
   CreateFinding,
   Finding,
   FindingStatistics
-} from "@openvlp/types/model/finding"
+} from "@exposurenexus/types/model/finding"
 
 const fetchMock = vi.fn<typeof fetch>()
 

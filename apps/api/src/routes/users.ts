@@ -6,7 +6,7 @@ import {
   type CreateUserProfile,
   type UpdateUserProfile,
   type UserProfile
-} from "@openvlp/types/model/user"
+} from "@exposurenexus/types/model/user"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
 import type { ContextVariables } from "../lib/hono-schema.js"

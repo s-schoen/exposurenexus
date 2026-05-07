@@ -5,8 +5,8 @@ import type {
   Permission,
   PermissionResource,
   PermissionVerb
-} from "@openvlp/types/model/rbac"
-import type { UserProfile } from "@openvlp/types/model/user"
+} from "@exposurenexus/types/model/rbac"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 import { HTTPException } from "hono/http-exception"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import {
@@ -39,7 +39,7 @@ export interface AuthCookiePolicy {
   secure: true
 }
 
-export const AUTH_SESSION_COOKIE = "__Host-openvlp-session"
+export const AUTH_SESSION_COOKIE = "__Host-exposurenexus-session"
 export const DEFAULT_AUTH_COOKIE_POLICY: AuthCookiePolicy = Object.freeze({
   secure: true
 })

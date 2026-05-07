@@ -5,8 +5,8 @@ import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
   AssetType
-} from "@openvlp/types/model/asset"
-import type { CreateAssetCustomFieldDefinition } from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
+import type { CreateAssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
 import { pino } from "pino"
 import { createAssetService } from "./asset.js"
 import { createDomainEventCollector } from "../test/eventbus.js"
@@ -75,7 +75,7 @@ describe("asset service", () => {
     const assets = [
       {
         id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-        name: "api.openvlp.local",
+        name: "api.exposurenexus.local",
         type: AssetType.Host
       }
     ]
@@ -102,7 +102,7 @@ describe("asset service", () => {
     const assets = [
       {
         id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-        name: "api.openvlp.local",
+        name: "api.exposurenexus.local",
         type: AssetType.Host,
         customFields: [
           {
@@ -142,7 +142,7 @@ describe("asset service", () => {
   it("returns an asset by id", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const assetService = createTestAssetService()
@@ -178,7 +178,7 @@ describe("asset service", () => {
   it("passes the lookup name and type to the repository", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const assetService = createTestAssetService()
@@ -200,7 +200,7 @@ describe("asset service", () => {
     assetRepository.getByName.mockResolvedValue(null)
 
     await expect(
-      assetService.getByName("missing.openvlp.local", AssetType.Host)
+      assetService.getByName("missing.exposurenexus.local", AssetType.Host)
     ).resolves.toBeNull()
   })
 
@@ -210,7 +210,7 @@ describe("asset service", () => {
     assetRepository.getByName.mockRejectedValue(new Error("select failed"))
 
     await expect(
-      assetService.getByName("api.openvlp.local", AssetType.Host)
+      assetService.getByName("api.exposurenexus.local", AssetType.Host)
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to get asset"
@@ -219,7 +219,7 @@ describe("asset service", () => {
 
   it("creates assets with a generated repository id", async () => {
     const payload = {
-      name: "worker.openvlp.local",
+      name: "worker.exposurenexus.local",
       type: AssetType.Host
     }
     const createdAsset = {
@@ -262,7 +262,7 @@ describe("asset service", () => {
   it("creates assets with an existing enabled owner", async () => {
     const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
     const payload = {
-      name: "worker.openvlp.local",
+      name: "worker.exposurenexus.local",
       type: AssetType.Host,
       ownerId
     }
@@ -299,7 +299,7 @@ describe("asset service", () => {
   it("creates assets with an existing disabled owner", async () => {
     const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
     const payload = {
-      name: "worker.openvlp.local",
+      name: "worker.exposurenexus.local",
       type: AssetType.Host,
       ownerId
     }
@@ -342,7 +342,7 @@ describe("asset service", () => {
     await expect(
       assetService.create({
         asset: {
-          name: "worker.openvlp.local",
+          name: "worker.exposurenexus.local",
           type: AssetType.Host,
           ownerId
         }
@@ -362,7 +362,7 @@ describe("asset service", () => {
     await expect(
       assetService.create({
         asset: {
-          name: "worker.openvlp.local",
+          name: "worker.exposurenexus.local",
           type: AssetType.Host
         }
       })
@@ -376,7 +376,7 @@ describe("asset service", () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
     const updatedAsset = {
       id: assetId,
-      name: "worker.openvlp.local",
+      name: "worker.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null
     }
@@ -422,7 +422,7 @@ describe("asset service", () => {
     const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
     const updatedAsset = {
       id: assetId,
-      name: "worker.openvlp.local",
+      name: "worker.exposurenexus.local",
       type: AssetType.Host,
       ownerId
     }
@@ -463,7 +463,7 @@ describe("asset service", () => {
     const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
     const updatedAsset = {
       id: assetId,
-      name: "worker.openvlp.local",
+      name: "worker.exposurenexus.local",
       type: AssetType.Host,
       ownerId
     }
@@ -532,7 +532,7 @@ describe("asset service", () => {
 
     assetRepository.getByIDWithCustomFields.mockResolvedValue({
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
       customFields: []
@@ -555,7 +555,7 @@ describe("asset service", () => {
   it("deletes an asset by id", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const assetService = createTestAssetService()
@@ -602,7 +602,7 @@ describe("asset service", () => {
 
     assetRepository.getByIDWithCustomFields.mockResolvedValue({
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
       customFields: []
@@ -1057,7 +1057,7 @@ describe("asset service", () => {
   it("lists custom field values for an existing asset", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const values = [
@@ -1084,7 +1084,7 @@ describe("asset service", () => {
   it("maps custom field value list failures to an HTTP 500", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const assetService = createTestAssetService()
@@ -1105,7 +1105,7 @@ describe("asset service", () => {
   it("lists custom field definitions available for an existing asset", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definitions = [
@@ -1151,7 +1151,7 @@ describe("asset service", () => {
   it("maps available custom field list failures to an HTTP 500", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const assetService = createTestAssetService()
@@ -1191,7 +1191,7 @@ describe("asset service", () => {
   it("rejects upserts for unknown custom field ids", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const assetService = createTestAssetService()
@@ -1220,7 +1220,7 @@ describe("asset service", () => {
   it("rejects invalid custom field value types", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definition = {
@@ -1265,7 +1265,7 @@ describe("asset service", () => {
   it("rejects upserts for unassigned custom fields", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definition = {
@@ -1302,7 +1302,7 @@ describe("asset service", () => {
   it("rejects select custom field values outside the option set", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definition = {
@@ -1356,7 +1356,7 @@ describe("asset service", () => {
   it("forwards valid custom field value upserts", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definition = {
@@ -1443,7 +1443,7 @@ describe("asset service", () => {
   it("does not emit asset update events for unchanged custom field values", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null
     }
@@ -1495,7 +1495,7 @@ describe("asset service", () => {
   it("forwards valid text custom field value upserts", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definition = {
@@ -1548,7 +1548,7 @@ describe("asset service", () => {
   it("maps custom field value upsert failures to an HTTP 500", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definition = {
@@ -1610,7 +1610,7 @@ describe("asset service", () => {
   it("rejects clearing unknown custom field ids", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const assetService = createTestAssetService()
@@ -1633,7 +1633,7 @@ describe("asset service", () => {
   it("rejects clearing unassigned custom field ids", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definition = {
@@ -1665,7 +1665,7 @@ describe("asset service", () => {
   it("clears custom field values for existing assets and fields", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definition = {
@@ -1708,7 +1708,7 @@ describe("asset service", () => {
   it("maps custom field value clear failures to an HTTP 500", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definition = {
@@ -1751,7 +1751,7 @@ describe("asset service", () => {
   it("assigns custom fields to an existing asset", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definition = {
@@ -1819,7 +1819,7 @@ describe("asset service", () => {
   it("rejects assigning unknown custom field ids", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const assetService = createTestAssetService()
@@ -1843,7 +1843,7 @@ describe("asset service", () => {
   it("maps custom field assignment failures to an HTTP 500", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definition = {
@@ -1876,7 +1876,7 @@ describe("asset service", () => {
   it("detaches custom fields from existing assets", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definition = {
@@ -1924,7 +1924,7 @@ describe("asset service", () => {
   it("rejects detaching unknown custom field ids", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const assetService = createTestAssetService()
@@ -1948,7 +1948,7 @@ describe("asset service", () => {
   it("maps custom field detach failures to an HTTP 500", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     }
     const definition = {

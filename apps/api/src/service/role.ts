@@ -4,7 +4,7 @@ import {
   builtInRoleIds,
   type Role,
   type UpdateRole
-} from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/rbac"
 import { conflict, isConflictError } from "./errors.js"
 import {
   createDomainEventEmitter,

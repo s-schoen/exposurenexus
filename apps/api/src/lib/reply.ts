@@ -1,6 +1,6 @@
 import { HTTPException } from "hono/http-exception"
 import type { Context } from "hono"
-import { createArrayReply, createObjectReply } from "@openvlp/types/api"
+import { createArrayReply, createObjectReply } from "@exposurenexus/types/api"
 
 export function notFound(type: string, id: string) {
   throw new HTTPException(404, {

@@ -3,7 +3,7 @@ import type { Kysely, Transaction } from "kysely"
 import type {
   UserProfileInternal,
   UserProfileInternalWithRoles
-} from "@openvlp/types/model/user"
+} from "@exposurenexus/types/model/user"
 
 type DatabaseExecutor = Kysely<Database> | Transaction<Database>
 

@@ -4,12 +4,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
   AssetCustomFieldValueLiteral
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import type { ReactNode } from "react"
 import {
   assignAssetCustomFields,

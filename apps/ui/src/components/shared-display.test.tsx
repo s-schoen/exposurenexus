@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
-import { FindingStatus } from "@openvlp/types/model/finding"
-import { AssetType } from "@openvlp/types/model/asset"
+import { FindingStatus } from "@exposurenexus/types/model/finding"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import type { ReactNode } from "react"
-import type { Asset } from "@openvlp/types/model/asset"
+import type { Asset } from "@exposurenexus/types/model/asset"
 
 interface QueryState {
   data?: Asset

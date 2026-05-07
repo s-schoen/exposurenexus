@@ -7,7 +7,7 @@ import {
   PermissionVerb,
   builtInRoleIds,
   type Role
-} from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/rbac"
 import { createRoleService } from "./role.js"
 import { createDomainEventCollector } from "../test/eventbus.js"
 

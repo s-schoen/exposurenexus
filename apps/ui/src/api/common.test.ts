@@ -32,7 +32,7 @@ function requestInit(): RequestInit {
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock)
   fetchMock.mockReset()
-  document.cookie = "__Host-openvlp-csrf=; Max-Age=0; path=/"
+  document.cookie = "__Host-exposurenexus-csrf=; Max-Age=0; path=/"
 })
 
 afterEach(() => {
@@ -61,7 +61,7 @@ describe("api common helpers", () => {
 
   it("adds csrf headers to unsafe JSON requests", async () => {
     vi.spyOn(document, "cookie", "get").mockReturnValue(
-      "__Host-openvlp-csrf=csrf-token"
+      "__Host-exposurenexus-csrf=csrf-token"
     )
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: { ok: true } }))
 
@@ -83,7 +83,7 @@ describe("api common helpers", () => {
 
   it("adds csrf headers to delete requests", async () => {
     vi.spyOn(document, "cookie", "get").mockReturnValue(
-      "__Host-openvlp-csrf=csrf-token"
+      "__Host-exposurenexus-csrf=csrf-token"
     )
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: { ok: true } }))
 
@@ -98,7 +98,7 @@ describe("api common helpers", () => {
 
   it("does not force content-type for form data uploads", async () => {
     vi.spyOn(document, "cookie", "get").mockReturnValue(
-      "__Host-openvlp-csrf=csrf-token"
+      "__Host-exposurenexus-csrf=csrf-token"
     )
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: { ok: true } }))
     const formData = new FormData()
@@ -119,7 +119,7 @@ describe("api common helpers", () => {
 
   it("can disable csrf headers for login", async () => {
     vi.spyOn(document, "cookie", "get").mockReturnValue(
-      "__Host-openvlp-csrf=csrf-token"
+      "__Host-exposurenexus-csrf=csrf-token"
     )
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: { ok: true } }))
 

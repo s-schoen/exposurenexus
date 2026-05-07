@@ -1,4 +1,4 @@
-import { AssetCustomFieldType } from "@openvlp/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
 import { Kysely, sql } from "kysely"
 
 // eslint-disable-next-line

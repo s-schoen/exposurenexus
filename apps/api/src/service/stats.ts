@@ -1,9 +1,9 @@
 import {
   type FindingStatistics,
   FindingStatus
-} from "@openvlp/types/model/finding"
+} from "@exposurenexus/types/model/finding"
 import { HTTPException } from "hono/http-exception"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { Logger } from "pino"
 
 interface FindingRepository {

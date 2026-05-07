@@ -5,7 +5,7 @@ import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
   AssetType
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -74,7 +74,7 @@ describe("asset routes", () => {
     const assets = [
       {
         id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-        name: "api.openvlp.local",
+        name: "api.exposurenexus.local",
         type: AssetType.Host,
         ownerId: null
       }
@@ -114,7 +114,7 @@ describe("asset routes", () => {
     const assets = [
       {
         id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-        name: "api.openvlp.local",
+        name: "api.exposurenexus.local",
         type: AssetType.Host,
         ownerId: null,
         customFields: [
@@ -164,7 +164,7 @@ describe("asset routes", () => {
     const assets = [
       {
         id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-        name: "api.openvlp.local",
+        name: "api.exposurenexus.local",
         type: AssetType.Host,
         ownerId: null
       }
@@ -677,7 +677,7 @@ describe("asset routes", () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
     const assetRecord = {
       id: assetId,
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null
     }
@@ -1218,7 +1218,7 @@ describe("asset routes", () => {
   it("returns 201 when creating an asset", async () => {
     const requestId = "assets-create-request"
     const payload = {
-      name: "worker.openvlp.local",
+      name: "worker.exposurenexus.local",
       type: AssetType.Host
     }
     const createdAsset = {
@@ -1262,7 +1262,7 @@ describe("asset routes", () => {
   it("passes nullable asset owner ids when creating an asset", async () => {
     const requestId = "assets-create-with-owner-request"
     const payload = {
-      name: "worker.openvlp.local",
+      name: "worker.exposurenexus.local",
       type: AssetType.Host,
       ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
     }
@@ -1332,7 +1332,7 @@ describe("asset routes", () => {
     const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
     const updatedAsset = {
       id: assetId,
-      name: "worker.openvlp.local",
+      name: "worker.exposurenexus.local",
       type: AssetType.Host,
       ownerId
     }
@@ -1377,7 +1377,7 @@ describe("asset routes", () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
     const updatedAsset = {
       id: assetId,
-      name: "worker.openvlp.local",
+      name: "worker.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null
     }
@@ -1501,7 +1501,7 @@ describe("asset routes", () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
     const deletedAsset = {
       id: assetId,
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null
     }

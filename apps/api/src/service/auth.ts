@@ -5,12 +5,12 @@ import type {
   Permission,
   PermissionResource,
   PermissionVerb
-} from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/rbac"
 import type {
   UserProfile,
   UserProfileInternalWithRoles,
   UserSession
-} from "@openvlp/types/model/user"
+} from "@exposurenexus/types/model/user"
 import { verifyPasswordHash } from "../lib/argon2.js"
 import {
   createDomainEventEmitter,

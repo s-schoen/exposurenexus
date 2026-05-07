@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
 import { pino } from "pino"
-import { builtInRoleIds } from "@openvlp/types/model/rbac"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 
 const { hashPlaintextPasswordMock } = vi.hoisted(() => ({
   hashPlaintextPasswordMock: vi.fn()

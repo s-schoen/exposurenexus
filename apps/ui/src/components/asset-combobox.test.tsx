@@ -6,7 +6,7 @@ import {
   screen,
   waitFor
 } from "@testing-library/react"
-import type { Asset, AssetType } from "@openvlp/types/model/asset"
+import type { Asset, AssetType } from "@exposurenexus/types/model/asset"
 
 class ResizeObserverMock {
   observe() {}

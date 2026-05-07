@@ -1,9 +1,13 @@
-# OpenVLP Context
+# ExposureNexus Context
 
-OpenVLP is a vulnerability lifecycle platform. It collects findings from manual
-entry and external scanners, normalizes them around assets and vulnerabilities,
-and gives users workflows for triage, mitigation tracking, asset metadata, and
-access control.
+ExposureNexus is an open-source continuous threat exposure management (CTEM)
+platform. It collects findings from manual entry and external scanners,
+normalizes them around assets and vulnerabilities, and gives users workflows
+for triage, mitigation tracking, asset metadata, and access control.
+
+Exposure is the product and category framing. Keep the core domain terms below
+precise: a vulnerability is the catalog item, a finding is the concrete
+occurrence on an asset, and an asset is the affected system or component.
 
 Use this file as the domain glossary for issues, PRDs, refactors, tests, and
 agent work. Prefer these terms over close synonyms.
@@ -12,7 +16,7 @@ agent work. Prefer these terms over close synonyms.
 
 ### Asset
 
-An **asset** is a system or component tracked by OpenVLP. Current asset types
+An **asset** is a system or component tracked by ExposureNexus. Current asset types
 are `host`, `software`, and `container`.
 
 Assets are the things affected by findings. Imports may create assets when an
@@ -194,7 +198,7 @@ Sending `null` for a custom field value clears the asset override.
 
 ### Import
 
-An **import** ingests external findings into OpenVLP. The current importer
+An **import** ingests external findings into ExposureNexus. The current importer
 supports Nuclei JSONL files.
 
 The import flow parses each source record, finds or creates the matching
@@ -204,8 +208,8 @@ finding based on its fingerprint.
 ### Vulnerability Source Mapping
 
 A **vulnerability source mapping** links an external source-specific match query
-to an OpenVLP vulnerability. Nuclei mappings currently use the template ID as
-the match query.
+to an ExposureNexus vulnerability. Nuclei mappings currently use the template
+ID as the match query.
 
 Use this term when discussing how imported scanner output maps onto the
 vulnerability catalog.
@@ -214,7 +218,7 @@ vulnerability catalog.
 
 ### User Profile
 
-A **user profile** is an OpenVLP account with username, email, display name,
+A **user profile** is an ExposureNexus account with username, email, display name,
 enabled flag, password hash, and role assignments.
 
 ### User Session

@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Check } from "lucide-react"
-import type { Finding } from "@openvlp/types/model/finding"
+import type { Finding } from "@exposurenexus/types/model/finding"
 import type { ReactElement } from "react"
 import {
   ContextMenu,

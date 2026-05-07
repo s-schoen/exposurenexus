@@ -204,7 +204,7 @@ export function UserDetailContent({
             <div className="space-y-2">
               <CardTitle className="text-xl font-semibold">Profile</CardTitle>
               <CardDescription>
-                Identity fields stored by the OpenVLP user profile service.
+                Identity fields stored by the ExposureNexus user profile service.
               </CardDescription>
             </div>
             <Badge variant="outline" className="rounded-md">

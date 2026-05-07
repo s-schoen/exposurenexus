@@ -12,7 +12,7 @@ import {
   PermissionResource,
   PermissionVerb,
   builtInRoleIds
-} from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/rbac"
 import { createUserRoleRepository } from "./user-role.js"
 import { createUserProfileRepository } from "./user-profile.js"
 import { createTestDatabase, resetTestDatabase } from "../test/db.js"

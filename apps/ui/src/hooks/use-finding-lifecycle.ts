@@ -3,7 +3,7 @@ import { toast } from "sonner"
 import type {
   CreateFinding,
   Finding
-} from "@openvlp/types/model/finding"
+} from "@exposurenexus/types/model/finding"
 import {
   createFindingByIDQueryOptions,
   createFinding as createFindingRequest,

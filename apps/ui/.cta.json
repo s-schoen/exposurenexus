@@ -1,5 +1,5 @@
 {
-  "projectName": "@openvlp/ui",
+  "projectName": "@exposurenexus/ui",
   "mode": "file-router",
   "typescript": true,
   "tailwind": true,

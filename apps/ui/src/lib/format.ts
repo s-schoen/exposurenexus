@@ -1,5 +1,5 @@
-import { FindingStatus } from "@openvlp/types/model/finding"
-import type { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { FindingStatus } from "@exposurenexus/types/model/finding"
+import type { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 
 export function capitalizeFirstLetter(val: string) {
   return String(val).charAt(0).toUpperCase() + String(val).slice(1)

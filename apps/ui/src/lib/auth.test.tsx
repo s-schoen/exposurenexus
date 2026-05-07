@@ -3,7 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { authClient, getSession, signIn, signOut } from "./auth.ts"
 import type { ReactNode } from "react"
-import type { AuthSessionDataReply } from "@openvlp/types/api"
+import type { AuthSessionDataReply } from "@exposurenexus/types/api"
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -66,7 +66,7 @@ function requestInit(): RequestInit {
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock)
   fetchMock.mockReset()
-  document.cookie = "__Host-openvlp-csrf=; Max-Age=0; path=/"
+  document.cookie = "__Host-exposurenexus-csrf=; Max-Age=0; path=/"
 })
 
 afterEach(() => {
@@ -128,7 +128,7 @@ describe("custom auth client", () => {
 
   it("logs out with the csrf token header when the cookie exists", async () => {
     vi.spyOn(document, "cookie", "get").mockReturnValue(
-      "__Host-openvlp-csrf=csrf-token"
+      "__Host-exposurenexus-csrf=csrf-token"
     )
     const onSuccess = vi.fn()
 

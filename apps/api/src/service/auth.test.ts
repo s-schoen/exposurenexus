@@ -2,7 +2,10 @@ import { createHmac } from "node:crypto"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
-import { PermissionResource, PermissionVerb } from "@openvlp/types/model/rbac"
+import {
+  PermissionResource,
+  PermissionVerb
+} from "@exposurenexus/types/model/rbac"
 
 const { verifyPasswordHashMock } = vi.hoisted(() => ({
   verifyPasswordHashMock: vi.fn()

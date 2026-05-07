@@ -6,7 +6,7 @@ import {
   screen,
   waitFor
 } from "@testing-library/react"
-import { AssetType } from "@openvlp/types/model/asset"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import type { ReactNode } from "react"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
 

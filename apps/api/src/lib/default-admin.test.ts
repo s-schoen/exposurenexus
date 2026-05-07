@@ -7,7 +7,7 @@ import {
   it,
   vi
 } from "vitest"
-import { builtInRoleIds } from "@openvlp/types/model/rbac"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 import { createDefaultAdmin } from "./default-admin.js"
 import { verifyPasswordHash } from "./argon2.js"
 import { createTestDatabase, resetTestDatabase } from "../test/db.js"
@@ -20,7 +20,8 @@ vi.mock("../env.js", () => ({
     AUTH_SESSION_LIFETIME: 12,
     AUTH_COOKIE_SECURE: true,
     AUTH_SECRET: "012345678901234567890123456789012345678901234567890123456789",
-    DATABASE_URL: "postgres://openvlp:openvlp@localhost:5432/openvlp",
+    DATABASE_URL:
+      "postgres://exposurenexus:exposurenexus@localhost:5432/exposurenexus",
     API_TIMEOUT_MS: 5000
   }
 }))

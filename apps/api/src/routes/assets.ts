@@ -11,7 +11,7 @@ import {
   updateAssetOwnerSchema,
   updateAssetCustomFieldAssociationsSchema,
   updateAssetCustomFieldValuesSchema
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 import { requestEventContext } from "../lib/request-event-context.js"

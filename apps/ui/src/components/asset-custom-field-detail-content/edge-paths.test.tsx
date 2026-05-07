@@ -8,12 +8,12 @@ import {
   waitFor,
   within
 } from "@testing-library/react"
-import { AssetCustomFieldType } from "@openvlp/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
 import type { ReactNode } from "react"
 import type {
   AssetCustomFieldDefinition,
   CreateAssetCustomFieldDefinition
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import type * as AssetCustomFieldApi from "@/api/asset-custom-field.ts"
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
 import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts"

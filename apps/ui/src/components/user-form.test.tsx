@@ -7,7 +7,7 @@ import {
   waitFor
 } from "@testing-library/react"
 import { composeStories } from "@storybook/react-vite"
-import { builtInRoleIds } from "@openvlp/types/model/rbac"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 import type { UserFormValues } from "@/components/user-form"
 import { ROLE_FIXTURES } from "@/components/user-form.stories"
 

@@ -4,7 +4,7 @@ import {
   type Permission,
   PermissionResource,
   PermissionVerb
-} from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/rbac"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import { createTestApp, createTestUser } from "../test/app.js"
 import { type ResourcePermissionVerbAssignment } from "../lib/permissions.js"

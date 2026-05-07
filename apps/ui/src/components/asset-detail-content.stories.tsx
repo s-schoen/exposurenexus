@@ -4,15 +4,15 @@ import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
   AssetType
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import type {
   Asset,
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
   UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues
-} from "@openvlp/types/model/asset"
-import type { UserProfile } from "@openvlp/types/model/user"
+} from "@exposurenexus/types/model/asset"
+import type { UserProfile } from "@exposurenexus/types/model/user"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { AssetDetailContent } from "@/components/asset-detail-content.tsx"
 

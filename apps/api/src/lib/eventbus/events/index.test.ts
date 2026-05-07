@@ -207,7 +207,7 @@ describe("createDomainEventPayload", () => {
   it("includes asset events in the aggregate event catalog", () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: "host",
       ownerId: null,
       customFields: []

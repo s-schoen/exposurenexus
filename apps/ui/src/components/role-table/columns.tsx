@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table"
-import type { Role } from "@openvlp/types/model/rbac"
+import type { Role } from "@exposurenexus/types/model/rbac"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
 import { Badge } from "@/components/ui/badge.tsx"
 import {

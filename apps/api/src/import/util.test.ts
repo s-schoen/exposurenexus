@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { AssetType } from "@openvlp/types/model/asset"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import { pino } from "pino"
 import { createGetOrCreateAsset } from "./util.js"
 
@@ -18,7 +18,7 @@ describe("import util", () => {
     const getOrCreateAsset = createGetOrCreateAsset({ assetService, logger })
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null
     }
@@ -43,7 +43,7 @@ describe("import util", () => {
     }
     const createdAsset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null
     }

@@ -1,5 +1,5 @@
-import { FindingStatus } from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { FindingStatus } from "@exposurenexus/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 
 export const SEVERITY_ORDER: Array<VulnerabilitySeverity> = [
   VulnerabilitySeverity.Critical,

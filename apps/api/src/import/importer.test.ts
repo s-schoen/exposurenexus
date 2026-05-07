@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { FindingSource, type Finding } from "@openvlp/types/model/finding"
+import { FindingSource, type Finding } from "@exposurenexus/types/model/finding"
 import { pino } from "pino"
 import { createTestUser } from "../test/app.js"
 import { createFindingImporter } from "./importer.js"

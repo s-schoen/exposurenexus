@@ -3,7 +3,7 @@ import type {
   CreateUserProfile,
   UpdateUserProfile,
   UserProfile
-} from "@openvlp/types/model/user"
+} from "@exposurenexus/types/model/user"
 import {
   DEFAULT_QUERY_STALE_TIME,
   apiRequest,

@@ -4,10 +4,10 @@ import {
   type Finding,
   type FindingInternal,
   type UpdateFinding
-} from "@openvlp/types/model/finding"
+} from "@exposurenexus/types/model/finding"
 import { HTTPException } from "hono/http-exception"
-import type { UserProfile } from "@openvlp/types/model/user"
-import { normalizeDateToUtcStart } from "@openvlp/types/model/date"
+import type { UserProfile } from "@exposurenexus/types/model/user"
+import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date"
 import { createHash } from "node:crypto"
 import type { Logger } from "pino"
 import {

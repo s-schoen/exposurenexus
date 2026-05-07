@@ -1,4 +1,4 @@
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 
 import { FindingSeverityChart } from "@/components/finding-severity-chart"

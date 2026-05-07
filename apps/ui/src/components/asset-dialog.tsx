@@ -1,9 +1,9 @@
 import { createCallable } from "react-call"
-import { AssetType, assetSchema } from "@openvlp/types/model/asset"
+import { AssetType, assetSchema } from "@exposurenexus/types/model/asset"
 import { useForm } from "@tanstack/react-form"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactCall } from "react-call"
-import type { Asset } from "@openvlp/types/model/asset"
+import type { Asset } from "@exposurenexus/types/model/asset"
 import { createListUsersQueryOptions } from "@/api/user.ts"
 import { Button } from "@/components/ui/button.tsx"
 import {

@@ -7,7 +7,7 @@ import {
   it,
   vi
 } from "vitest"
-import { builtInRoleIds } from "@openvlp/types/model/rbac"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 import { createUserProfileRepository } from "./user-profile.js"
 import { createTestDatabase, resetTestDatabase } from "../test/db.js"
 

@@ -10,7 +10,7 @@ import { composeStories } from "@storybook/react-vite"
 import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType
-} from "@openvlp/types/model/asset"
+} from "@exposurenexus/types/model/asset"
 import type { AssetCustomFieldFormValues } from "@/components/asset-custom-field-form"
 import * as stories from "@/components/asset-custom-field-form.stories"
 import {

@@ -1,7 +1,7 @@
 # Ownership Design
 
-OpenVLP uses ownership to describe who is responsible for operational follow-up
-work. Ownership should be modeled as explicit links to OpenVLP domain objects,
+ExposureNexus uses ownership to describe who is responsible for operational follow-up
+work. Ownership should be modeled as explicit links to ExposureNexus domain objects,
 not as free text, so responsibility can be validated, displayed consistently,
 and reused by workflows.
 
@@ -118,7 +118,7 @@ assignment model.
 
 The first assignment model does not keep dedicated assignment history. The
 normal finding audit fields still show the most recent update metadata, but
-OpenVLP will not answer historical assignment questions until a later workflow
+ExposureNexus will not answer historical assignment questions until a later workflow
 requires it.
 
 The first assignment workflow does not send email or in-app notifications.

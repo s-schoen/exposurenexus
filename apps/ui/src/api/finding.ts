@@ -1,11 +1,11 @@
 import { keepPreviousData } from "@tanstack/react-query"
-import { findingSchema } from "@openvlp/types/model/finding"
+import { findingSchema } from "@exposurenexus/types/model/finding"
 import type {
   CreateFinding,
   Finding,
   FindingStatistics,
   UpdateFinding
-} from "@openvlp/types/model/finding"
+} from "@exposurenexus/types/model/finding"
 import {
   DEFAULT_QUERY_STALE_TIME,
   apiRequest,

@@ -1,6 +1,6 @@
-import { AssetCustomFieldType } from "@openvlp/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
 import type { ColumnDef } from "@tanstack/react-table"
-import type { AssetCustomFieldDefinition } from "@openvlp/types/model/asset"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
 import { Badge } from "@/components/ui/badge.tsx"
 

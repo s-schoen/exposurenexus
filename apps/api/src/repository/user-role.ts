@@ -1,5 +1,9 @@
 import type { Kysely } from "kysely"
-import type { Permission, Role, UpdateRole } from "@openvlp/types/model/rbac"
+import type {
+  Permission,
+  Role,
+  UpdateRole
+} from "@exposurenexus/types/model/rbac"
 import type { Database } from "../db/index.js"
 
 type RoleRow = {

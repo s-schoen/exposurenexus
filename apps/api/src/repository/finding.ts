@@ -1,4 +1,4 @@
-import { type FindingInternal } from "@openvlp/types/model/finding"
+import { type FindingInternal } from "@exposurenexus/types/model/finding"
 import type { Database } from "../db/index.js"
 import type { Kysely } from "kysely"
 

@@ -7,13 +7,13 @@ import {
   it,
   vi
 } from "vitest"
-import { AssetType } from "@openvlp/types/model/asset"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import {
   FindingSource,
   FindingStatus,
   type FindingInternal
-} from "@openvlp/types/model/finding"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+} from "@exposurenexus/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import { createAssetRepository } from "./asset.js"
 import { createFindingRepository } from "./finding.js"
 import { createVulnerabilityRepository } from "./vulnerability.js"
@@ -70,7 +70,7 @@ describe("finding repository", () => {
 
     const asset = await assetRepository.create({
       id: "",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     })
     const vulnerability = await vulnerabilityRepository.create({
@@ -155,7 +155,7 @@ describe("finding repository", () => {
 
     const asset = await assetRepository.create({
       id: "",
-      name: "api.openvlp.local",
+      name: "api.exposurenexus.local",
       type: AssetType.Host
     })
     const vulnerability = await vulnerabilityRepository.create({

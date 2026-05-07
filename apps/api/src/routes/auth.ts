@@ -4,8 +4,11 @@ import { HTTPException } from "hono/http-exception"
 import { zValidator } from "@hono/zod-validator"
 import { getConnInfo } from "@hono/node-server/conninfo"
 import { z } from "zod/v4"
-import type { AuthSessionDataReply, AuthSessionReply } from "@openvlp/types/api"
-import type { UserProfile, UserSession } from "@openvlp/types/model/user"
+import type {
+  AuthSessionDataReply,
+  AuthSessionReply
+} from "@exposurenexus/types/api"
+import type { UserProfile, UserSession } from "@exposurenexus/types/model/user"
 import { replyObject } from "../lib/reply.js"
 import { resolveRequestSourceIp } from "../lib/source-ip.js"
 import {

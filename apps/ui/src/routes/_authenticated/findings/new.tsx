@@ -3,11 +3,11 @@ import { useQuery } from "@tanstack/react-query"
 import {
   FindingStatus,
   createFindingSchema
-} from "@openvlp/types/model/finding"
-import { normalizeDateToUtcStart } from "@openvlp/types/model/date"
+} from "@exposurenexus/types/model/finding"
+import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date"
 import { useForm } from "@tanstack/react-form"
-import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
-import type { CreateFinding } from "@openvlp/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
+import type { CreateFinding } from "@exposurenexus/types/model/finding"
 import { usePageMeta } from "@/context/page.tsx"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button.tsx"

@@ -5,7 +5,7 @@ import {
   PermissionResource,
   PermissionVerb,
   builtInRoleIds
-} from "@openvlp/types/model/rbac"
+} from "@exposurenexus/types/model/rbac"
 
 vi.mock("../env.js", () => ({
   env: {
@@ -15,7 +15,8 @@ vi.mock("../env.js", () => ({
     AUTH_SESSION_LIFETIME: 12,
     AUTH_COOKIE_SECURE: true,
     AUTH_SECRET: "012345678901234567890123456789012345678901234567890123456789",
-    DATABASE_URL: "postgres://openvlp:openvlp@localhost:5432/openvlp",
+    DATABASE_URL:
+      "postgres://exposurenexus:exposurenexus@localhost:5432/exposurenexus",
     API_TIMEOUT_MS: 5000
   }
 }))

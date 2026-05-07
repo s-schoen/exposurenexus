@@ -1,13 +1,13 @@
 {
-  "name": "openvlp",
+  "name": "exposurenexus",
   "version": "0.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "build": "pnpm -r build",
     "lint": "pnpm -r check",
-    "dev:ui": "pnpm --filter @openvlp/ui dev",
-    "dev:api": "pnpm --filter @openvlp/api dev"
+    "dev:ui": "pnpm --filter @exposurenexus/ui dev",
+    "dev:api": "pnpm --filter @exposurenexus/api dev"
   },
   "keywords": [],
   "author": "",

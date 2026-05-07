@@ -92,7 +92,7 @@ export function RouteComponent() {
         <CardHeader>
           <CardTitle>Upload file</CardTitle>
           <CardDescription>
-            Select a nuclei export file and import it into OpenVLP.
+            Select a nuclei export file and import it into ExposureNexus.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
