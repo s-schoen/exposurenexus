@@ -1,9 +1,11 @@
 import { FindingSource, type Finding } from "@openvlp/types/model/finding"
 import type { UserProfile } from "@openvlp/types/model/user"
 import type { Logger } from "pino"
+import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 
 export interface ImportContext {
   user: UserProfile
+  eventContext?: DomainEventContext
 }
 
 interface NucleiFindingParser {

@@ -10,6 +10,12 @@ import type { UserProfile } from "@openvlp/types/model/user"
 import { normalizeDateToUtcStart } from "@openvlp/types/model/date"
 import { createHash } from "node:crypto"
 import type { Logger } from "pino"
+import {
+  createDomainEventEmitter,
+  type DomainEventContext,
+  type DomainEventEmitter,
+  type FindingEventPayloads
+} from "../lib/eventbus/events/index.js"
 import { badRequest } from "./errors.js"
 
 interface FindingRepository {
@@ -36,6 +42,7 @@ interface FindingServiceDependencies {
   findingRepository: FindingRepository
   userProfileService: UserProfileLookupService
   vulnerabilityService: VulnerabilityLookupService
+  domainEventEmitter: DomainEventEmitter
   logger: Logger
 }
 
@@ -72,12 +79,19 @@ export interface CreateFindingOptions {
   finding: CreateFinding
   user: UserProfile
   firstSeen?: Date
+  eventContext?: DomainEventContext
 }
 
 export interface UpdateFindingOptions {
   id: string
   finding: UpdateFinding
   user: UserProfile
+  eventContext?: DomainEventContext
+}
+
+export interface DeleteFindingOptions {
+  id: string
+  eventContext?: DomainEventContext
 }
 
 export interface CreateOrUpdateFindingResult {
@@ -89,8 +103,15 @@ export function createFindingService({
   findingRepository,
   userProfileService,
   vulnerabilityService,
+  domainEventEmitter,
   logger
 }: FindingServiceDependencies) {
+  type FindingEventSubject = keyof FindingEventPayloads & string
+  const emitFindingEvent = createDomainEventEmitter<FindingEventSubject>(
+    domainEventEmitter,
+    "finding"
+  )
+
   async function extendWithVulnerability(
     intFinding: FindingInternal
   ): Promise<Finding> {
@@ -141,8 +162,13 @@ export function createFindingService({
         )
       })
 
-      logger.info(`created finding ${created.id}}`)
-      return await extendWithVulnerability(created)
+      const createdFinding = await extendWithVulnerability(created)
+      emitFindingEvent(
+        "finding.created",
+        { finding: createdFinding },
+        opts.eventContext
+      )
+      return createdFinding
     } catch (error) {
       if (error instanceof HTTPException) {
         throw error
@@ -244,9 +270,18 @@ export function createFindingService({
           findingUpdate
         )
 
-        logger.info(`updated finding ${opts.id}`)
+        const previousFinding = await extendWithVulnerability(finding)
+        const currentFinding = await extendWithVulnerability(updatedFinding)
+        emitFindingEvent(
+          "finding.updated",
+          {
+            previous: previousFinding,
+            current: currentFinding
+          },
+          opts.eventContext
+        )
 
-        return await extendWithVulnerability(updatedFinding)
+        return currentFinding
       } catch (error) {
         if (error instanceof HTTPException) {
           throw error
@@ -269,7 +304,7 @@ export function createFindingService({
         fingerprintOpt
       )
 
-      let finding = await findingRepository.getByFingerprint(fingerprint)
+      const finding = await findingRepository.getByFingerprint(fingerprint)
       if (finding) {
         const updatedObservation = {
           ...finding,
@@ -279,9 +314,22 @@ export function createFindingService({
           ),
           lastSeen: new Date()
         }
-        finding = await findingRepository.update(finding.id, updatedObservation)
+        const updatedFinding = await findingRepository.update(
+          finding.id,
+          updatedObservation
+        )
+        const previousFinding = await extendWithVulnerability(finding)
+        const currentFinding = await extendWithVulnerability(updatedFinding)
+        emitFindingEvent(
+          "finding.updated",
+          {
+            previous: previousFinding,
+            current: currentFinding
+          },
+          opts.eventContext
+        )
         return {
-          finding: await extendWithVulnerability(finding),
+          finding: currentFinding,
           created: false
         }
       }
@@ -292,18 +340,24 @@ export function createFindingService({
       }
     },
 
-    async deleteByID(id: string): Promise<Finding | null> {
+    async deleteByID(opts: DeleteFindingOptions): Promise<Finding | null> {
       try {
-        const finding = await findingRepository.deleteByID(id)
+        const finding = await findingRepository.deleteByID(opts.id)
 
         if (!finding) {
-          logger.debug(`cannot delete finding ${id}: not found`)
+          logger.debug(`cannot delete finding ${opts.id}: not found`)
           return null
         }
 
-        return await extendWithVulnerability(finding)
+        const deletedFinding = await extendWithVulnerability(finding)
+        emitFindingEvent(
+          "finding.deleted",
+          { finding: deletedFinding },
+          opts.eventContext
+        )
+        return deletedFinding
       } catch (error) {
-        logger.error(error, `failed to get finding with id ${id}`)
+        logger.error(error, `failed to get finding with id ${opts.id}`)
         throw new HTTPException(500, {
           message: "failed to get finding"
         })

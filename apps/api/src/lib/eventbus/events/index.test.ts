@@ -7,6 +7,7 @@ import {
   type DomainEventPayloadBase
 } from "./index.js"
 import type { AuthEventPayloads } from "./auth.js"
+import type { FindingEventPayloads } from "./finding.js"
 import type { UserEventPayloads } from "./user.js"
 
 const uuidV4Regex =
@@ -109,6 +110,56 @@ describe("createDomainEventPayload", () => {
       DomainEventPayloadBase<
         "auth.session.created",
         AuthEventPayloads["auth.session.created"]
+      >
+    >()
+    expectTypeOf(event).toMatchTypeOf<DomainEvent>()
+  })
+
+  it("includes finding events in the aggregate event catalog", () => {
+    const user = createTestUser()
+    const vulnerability = {
+      id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+      title: "Exposed Admin Endpoint",
+      severity: "high",
+      description: "Administrative interface is reachable externally",
+      cwe: 284,
+      cve: null,
+      createdBy: user.id,
+      updatedBy: user.id,
+      createdAt: new Date("2026-05-07T09:00:00.000Z"),
+      updatedAt: new Date("2026-05-07T09:00:00.000Z")
+    }
+    const finding = {
+      id: "2713d833-eb13-4517-ac7c-7761545ed42a",
+      source: "manual",
+      status: "active",
+      vulnerabilityId: vulnerability.id,
+      assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
+      severity: vulnerability.severity,
+      evidence: "Observed exposed admin endpoint",
+      mitigation: "Restrict access to internal networks",
+      assigneeId: null,
+      dueDate: null,
+      fingerprint: "abc123",
+      firstSeen: new Date("2026-05-07T09:10:00.000Z"),
+      lastSeen: new Date("2026-05-07T09:10:00.000Z"),
+      createdBy: user.id,
+      updatedBy: user.id,
+      createdAt: new Date("2026-05-07T09:10:00.000Z"),
+      updatedAt: new Date("2026-05-07T09:10:00.000Z"),
+      vulnerability
+    } as FindingEventPayloads["finding.created"]["finding"]
+
+    const event = createEventPayload({
+      subject: "finding.created",
+      source: "finding",
+      data: { finding }
+    })
+
+    expectTypeOf(event).toEqualTypeOf<
+      DomainEventPayloadBase<
+        "finding.created",
+        FindingEventPayloads["finding.created"]
       >
     >()
     expectTypeOf(event).toMatchTypeOf<DomainEvent>()

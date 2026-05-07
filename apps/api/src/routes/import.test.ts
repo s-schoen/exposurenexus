@@ -172,7 +172,11 @@ describe("finding import routes", () => {
     expect(response.status).toBe(200)
     expect(importer.parseFindingsFromFile).toHaveBeenCalledTimes(1)
     expect(importer.parseFindingsFromFile.mock.calls[0]?.[0]).toEqual({
-      user
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
     })
     expect(importer.parseFindingsFromFile.mock.calls[0]?.[1]).toBe("nuclei")
     expect(importer.parseFindingsFromFile.mock.calls[0]?.[2]?.toString()).toBe(

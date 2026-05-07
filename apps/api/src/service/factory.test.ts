@@ -195,6 +195,9 @@ describe("service factories", () => {
         getByID: vi.fn()
       },
       vulnerabilityService,
+      domainEventEmitter: {
+        emit: vi.fn()
+      },
       logger
     })
 
