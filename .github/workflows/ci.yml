@@ -83,3 +83,51 @@ jobs:
 
       - name: Run UI tests
         run: pnpm --filter @exposurenexus/ui test
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run API coverage
+        run: pnpm --filter @exposurenexus/api test:coverage
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @exposurenexus/ui exec playwright install --with-deps chromium
+
+      - name: Run UI coverage
+        run: pnpm --filter @exposurenexus/ui test:coverage
+
+      - name: Upload API coverage
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: apps/api/coverage/lcov.info
+          flags: api
+          fail_ci_if_error: true
+
+      - name: Upload UI coverage
+        uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: apps/ui/coverage/lcov.info
+          flags: ui
+          fail_ci_if_error: true
