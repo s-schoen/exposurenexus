@@ -57,7 +57,8 @@ describe("auth routes", () => {
       username: "alice",
       password: "correct-horse-battery-staple",
       sourceIp: "unknown",
-      userAgent: "Mozilla/5.0"
+      userAgent: "Mozilla/5.0",
+      correlationId: "auth-login-request"
     })
     expect(response.headers.get("set-cookie")).toContain(
       sessionCookie("public-session-token")
@@ -108,7 +109,8 @@ describe("auth routes", () => {
       username: "alice",
       password: "wrong-password",
       sourceIp: "unknown",
-      userAgent: undefined
+      userAgent: undefined,
+      correlationId: "auth-invalid-login-request"
     })
     expect(response.headers.get("set-cookie")).toBeNull()
     expect(body).toEqual({
@@ -137,9 +139,10 @@ describe("auth routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(authService.validateSession).toHaveBeenCalledWith(
-      "public-session-token"
-    )
+    expect(authService.validateSession).toHaveBeenCalledWith({
+      sessionId: "public-session-token",
+      correlationId: "auth-session-request"
+    })
     expect(body).toEqual({
       correlationId: "auth-session-request",
       data: {
@@ -172,9 +175,10 @@ describe("auth routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(401)
-    expect(authService.validateSession).toHaveBeenCalledWith(
-      "invalid-session-token"
-    )
+    expect(authService.validateSession).toHaveBeenCalledWith({
+      sessionId: "invalid-session-token",
+      correlationId: "auth-invalid-session-request"
+    })
     expect(response.headers.get("set-cookie")).toContain(sessionCookie(""))
     expect(response.headers.get("set-cookie")).toContain("Secure")
     expect(body).toEqual({
@@ -201,9 +205,10 @@ describe("auth routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(authService.revokeSession).toHaveBeenCalledWith(
-      "public-session-token"
-    )
+    expect(authService.revokeSession).toHaveBeenCalledWith({
+      sessionId: "public-session-token",
+      correlationId: "auth-logout-request"
+    })
     expect(response.headers.get("set-cookie")).toContain(sessionCookie(""))
     expect(response.headers.get("set-cookie")).toContain("Secure")
     expect(body).toEqual({

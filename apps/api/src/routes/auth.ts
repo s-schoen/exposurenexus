@@ -40,9 +40,16 @@ interface AuthRouteService {
     password: string
     sourceIp: string
     userAgent?: string
+    correlationId?: string
   }): Promise<CreatedSession | null>
-  validateSession(sessionId: string): Promise<ValidatedSession | null>
-  revokeSession(sessionId: string): Promise<boolean>
+  validateSession(input: {
+    sessionId: string
+    correlationId?: string
+  }): Promise<ValidatedSession | null>
+  revokeSession(input: {
+    sessionId: string
+    correlationId?: string
+  }): Promise<boolean>
 }
 
 interface AuthRouteOptions {
@@ -81,6 +88,14 @@ function getRequestSourceIp(
   })
 }
 
+function requestCorrelation(c: Context<{ Variables: ContextVariables }>): {
+  correlationId?: string
+} {
+  const requestId = c.get("requestId") as string | undefined
+
+  return requestId !== undefined ? { correlationId: requestId } : {}
+}
+
 export function createAuthRoute(
   authService: AuthRouteService,
   options: AuthRouteOptions = {}
@@ -97,7 +112,8 @@ export function createAuthRoute(
       username: body.username,
       password: body.password,
       sourceIp: getRequestSourceIp(c, trustedProxies),
-      userAgent: c.req.header("user-agent") ?? undefined
+      userAgent: c.req.header("user-agent") ?? undefined,
+      ...requestCorrelation(c)
     })
 
     if (!createdSession) {
@@ -128,7 +144,10 @@ export function createAuthRoute(
       throw new HTTPException(401, { message: "Unauthorized" })
     }
 
-    const validatedSession = await authService.validateSession(sessionId)
+    const validatedSession = await authService.validateSession({
+      sessionId,
+      ...requestCorrelation(c)
+    })
     if (!validatedSession) {
       deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(cookiePolicy))
       options.csrf?.clearToken(c)
@@ -146,7 +165,10 @@ export function createAuthRoute(
   auth.delete("/", async (c) => {
     const sessionId = getCookie(c, AUTH_SESSION_COOKIE)
     const revoked = sessionId
-      ? await authService.revokeSession(sessionId)
+      ? await authService.revokeSession({
+          sessionId,
+          ...requestCorrelation(c)
+        })
       : false
 
     deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(cookiePolicy))
