@@ -1,4 +1,4 @@
-import { Hono, type Context } from "hono"
+import { Hono } from "hono"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
@@ -14,6 +14,7 @@ import {
 } from "@openvlp/types/model/asset"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { DomainEventContext } from "../lib/eventbus/events/index.js"
+import { requestEventContext } from "../lib/request-event-context.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 import {
   createAssetCustomFieldRoute,
@@ -88,17 +89,6 @@ const assetAndFieldIdParamValidator = zValidator(
     fieldId: z.uuidv4()
   })
 )
-
-function requestEventContext(
-  c: Context<{ Variables: ContextVariables }>
-): DomainEventContext {
-  const actor = c.get("user")?.id
-
-  return {
-    ...(actor !== undefined ? { actor } : {}),
-    correlationId: c.get("requestId")
-  }
-}
 
 export function createAssetRoute(
   assetService: AssetRouteService,
