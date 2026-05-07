@@ -1,4 +1,4 @@
-import { Hono, type Context } from "hono"
+import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { zValidator } from "@hono/zod-validator"
@@ -11,6 +11,7 @@ import {
 import type { UserProfile } from "@openvlp/types/model/user"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { DomainEventContext } from "../lib/eventbus/events/index.js"
+import { requestEventContext } from "../lib/request-event-context.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 
 interface FindingRouteService {
@@ -38,17 +39,6 @@ interface FindingRouteDependencies {
 }
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
-
-function requestEventContext(
-  c: Context<{ Variables: ContextVariables }>
-): DomainEventContext {
-  const actor = c.get("user")?.id
-
-  return {
-    ...(actor !== undefined ? { actor } : {}),
-    correlationId: c.get("requestId")
-  }
-}
 
 export function createFindingRoute(
   findingService: FindingRouteService,

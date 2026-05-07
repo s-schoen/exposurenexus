@@ -1,4 +1,4 @@
-import { Hono, type Context } from "hono"
+import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import {
   createUserProfileSchema,
@@ -11,6 +11,7 @@ import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { DomainEventContext } from "../lib/eventbus/events/index.js"
+import { requestEventContext } from "../lib/request-event-context.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 
 interface UserRouteService {
@@ -32,17 +33,6 @@ interface UserRouteDependencies {
 }
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
-
-function requestEventContext(
-  c: Context<{ Variables: ContextVariables }>
-): DomainEventContext {
-  const actor = c.get("user")?.id
-
-  return {
-    ...(actor !== undefined ? { actor } : {}),
-    correlationId: c.get("requestId")
-  }
-}
 
 export function createUserRoute(
   userService: UserRouteService,
