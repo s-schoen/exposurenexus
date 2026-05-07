@@ -30,6 +30,10 @@ export type DomainEvents<TPayloads extends Record<string, object>> = {
 }[keyof TPayloads & string]
 
 export type DomainEvent = DomainEvents<EventPayloads>
+export type DomainEventFor<TSubject extends EventSubject> = Extract<
+  DomainEvent,
+  { subject: TSubject }
+>
 
 export interface DomainEventEmitter {
   emit(event: DomainEvent): Promise<void>
@@ -48,10 +52,12 @@ export type CreateDomainEventPayloadInput<TSubject extends EventSubject> = Omit<
 
 export function createEventPayload<TSubject extends EventSubject>(
   input: CreateDomainEventPayloadInput<TSubject>
-): DomainEventPayloadBase<TSubject, EventPayloads[TSubject]> {
-  return {
+): DomainEventFor<TSubject> {
+  const event = {
     ...input,
     id: input.id ?? randomUUID(),
     time: input.time ?? new Date()
-  }
+  } satisfies DomainEventPayloadBase<TSubject, EventPayloads[TSubject]>
+
+  return event as unknown as DomainEventFor<TSubject>
 }

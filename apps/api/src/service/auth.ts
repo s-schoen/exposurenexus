@@ -14,7 +14,9 @@ import type {
 import { verifyPasswordHash } from "../lib/argon2.js"
 import {
   createEventPayload,
-  type DomainEventEmitter
+  type AuthEventPayloads,
+  type DomainEventEmitter,
+  type EventPayloads
 } from "../lib/eventbus/events/index.js"
 
 const DUMMY_PASSWORD_HASH =
@@ -72,6 +74,8 @@ export interface ValidatedSession {
 type ResourcePermissionVerbAssignment = Partial<
   Record<PermissionResource, PermissionVerb[]>
 >
+type AuthEventSubject = keyof AuthEventPayloads & string
+type AuthEventData<TSubject extends AuthEventSubject> = EventPayloads[TSubject]
 
 export interface AuthService {
   createSessionForCredentials(
@@ -147,6 +151,20 @@ export function createAuthService(
     domainEventEmitter,
     logger
   } = dependencies
+
+  function emitAuthEvent<TSubject extends AuthEventSubject>(
+    subject: TSubject,
+    data: AuthEventData<TSubject>
+  ): void {
+    void domainEventEmitter.emit(
+      createEventPayload({
+        subject,
+        source: "auth",
+        data
+      })
+    )
+  }
+
   async function authenticateUserProfile(
     username: string,
     password: string
@@ -184,16 +202,10 @@ export function createAuthService(
       throw new Error("failed to load session user")
     }
 
-    domainEventEmitter.emit(
-      createEventPayload({
-        subject: "auth.session.created",
-        source: "auth",
-        data: {
-          user: sessionUserProfile,
-          session: session
-        }
-      })
-    )
+    emitAuthEvent("auth.session.created", {
+      user: sessionUserProfile,
+      session: session
+    })
 
     return {
       sessionId,
@@ -213,28 +225,16 @@ export function createAuthService(
         )
 
         if (!userProfile) {
-          domainEventEmitter.emit(
-            createEventPayload({
-              subject: "auth.failure",
-              source: "auth",
-              data: {
-                username: input.username,
-                reason: "invalid-credentials"
-              }
-            })
-          )
+          emitAuthEvent("auth.failure", {
+            username: input.username,
+            reason: "invalid-credentials"
+          })
           return null
         }
 
-        domainEventEmitter.emit(
-          createEventPayload({
-            subject: "auth.success",
-            source: "auth",
-            data: {
-              user: userProfile
-            }
-          })
-        )
+        emitAuthEvent("auth.success", {
+          user: userProfile
+        })
 
         return await createUserSession(
           {
@@ -273,59 +273,35 @@ export function createAuthService(
           await userSessionRepository.getBySessionID(sessionIdDigest)
 
         if (!session) {
-          domainEventEmitter.emit(
-            createEventPayload({
-              subject: "auth.failure",
-              source: "auth",
-              data: {
-                sessionId: sessionId,
-                reason: "invalid-session"
-              }
-            })
-          )
+          emitAuthEvent("auth.failure", {
+            sessionId: sessionId,
+            reason: "invalid-session"
+          })
           return null
         }
 
         if (session.expiresAt.getTime() <= Date.now()) {
-          domainEventEmitter.emit(
-            createEventPayload({
-              subject: "auth.failure",
-              source: "auth",
-              data: {
-                sessionId: sessionId,
-                reason: "session-expired"
-              }
-            })
-          )
+          emitAuthEvent("auth.failure", {
+            sessionId: sessionId,
+            reason: "session-expired"
+          })
           return null
         }
 
         const userProfile = await userProfileRepository.getByID(session.userId)
         if (!userProfile) {
-          domainEventEmitter.emit(
-            createEventPayload({
-              subject: "auth.failure",
-              source: "auth",
-              data: {
-                sessionId: sessionId,
-                reason: "unknown-user"
-              }
-            })
-          )
+          emitAuthEvent("auth.failure", {
+            sessionId: sessionId,
+            reason: "unknown-user"
+          })
           return null
         }
 
         if (!userProfile.enabled) {
-          domainEventEmitter.emit(
-            createEventPayload({
-              subject: "auth.failure",
-              source: "auth",
-              data: {
-                sessionId: sessionId,
-                reason: "disabled-user"
-              }
-            })
-          )
+          emitAuthEvent("auth.failure", {
+            sessionId: sessionId,
+            reason: "disabled-user"
+          })
           return null
         }
 
@@ -351,15 +327,9 @@ export function createAuthService(
           await userSessionRepository.deleteBySessionID(sessionIdDigest)
 
         if (revokedSession) {
-          domainEventEmitter.emit(
-            createEventPayload({
-              subject: "auth.session.revoked",
-              source: "auth",
-              data: {
-                session: revokedSession
-              }
-            })
-          )
+          emitAuthEvent("auth.session.revoked", {
+            session: revokedSession
+          })
         }
 
         return Boolean(revokedSession)
