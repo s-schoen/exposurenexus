@@ -34,6 +34,7 @@ export default defineConfig({
   },
   test: {
     coverage: {
+      reporter: ["text", "html", "lcov"],
       include: ["src/**/*.{ts,tsx}"],
       exclude: [
         "src/**/*.test.{ts,tsx}",
