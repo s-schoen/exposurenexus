@@ -46,6 +46,10 @@ The API and UI need local environment configuration before they can run successf
 
 For local environment setup, PostgreSQL configuration, workspace commands, and project structure, see [Development](docs/development.md).
 
+## Security
+
+Please report suspected vulnerabilities through GitHub private vulnerability reporting. See [SECURITY.md](SECURITY.md).
+
 ## License
 
 MIT
