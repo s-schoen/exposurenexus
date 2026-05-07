@@ -172,6 +172,13 @@ describe("app container", () => {
         "012345678901234567890123456789012345678901234567890123456789",
       cookiePolicy: createAuthCookiePolicyMock.mock.results[0]?.value
     })
+    expect(createAuthServiceMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        domainEventEmitter: expect.objectContaining({
+          emit: expect.any(Function)
+        })
+      })
+    )
     expect(createAuthRouteMock).toHaveBeenCalledWith(
       createAuthServiceMock.mock.results[0]?.value,
       {

@@ -41,6 +41,8 @@ import { createImportRoute } from "./routes/import.js"
 import { createGetOrCreateAsset } from "./import/util.js"
 import { createNucleiFindingParser } from "./import/nuclei.js"
 import { createFindingImporter } from "./import/importer.js"
+import { EventBus } from "./lib/eventbus/eventbus.js"
+import type { DomainEvent } from "./lib/eventbus/events/index.js"
 
 type LoggerFactory = (moduleName: string) => Logger
 
@@ -63,6 +65,10 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const authCookiePolicy = createAuthCookiePolicy({
     secure: options.authCookieSecure
   })
+
+  // setup event bus
+  const eventBus = new EventBus<DomainEvent>()
+
   const repositories = {
     assetRepository: createAssetRepository(options.db),
     findingRepository: createFindingRepository(options.db),
@@ -77,6 +83,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     userProfileRepository: repositories.userProfileRepository,
     userSessionRepository: repositories.userSessionRepository,
     userRoleRepository: repositories.userRoleRepository,
+    domainEventEmitter: eventBus,
     sessionLifetimeHours: options.authSessionLifetimeHours,
     sessionHmacSecret: options.authSessionHmacSecret,
     logger: loggerFactory("service/auth")
