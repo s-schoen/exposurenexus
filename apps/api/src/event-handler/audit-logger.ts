@@ -6,6 +6,7 @@ import { serializeDomainEventForLog } from "./log-event.js"
 export const DEFAULT_AUDIT_EVENT_PATTERNS = [
   "asset.*",
   "auth.*",
+  "role.*",
   "user.*",
   "finding.*",
   "vulnerability.*"

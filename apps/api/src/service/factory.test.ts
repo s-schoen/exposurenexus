@@ -51,6 +51,7 @@ vi.mock("./vulnerability.js", async () => {
 
 import { createAssetService } from "./asset.js"
 import { createFindingService } from "./finding.js"
+import { createRoleService } from "./role.js"
 import { createStatsService } from "./stats.js"
 import { createVulnerabilityService } from "./vulnerability.js"
 
@@ -90,6 +91,29 @@ describe("service factories", () => {
       userProfileService: {
         getByID: vi.fn()
       },
+      domainEventEmitter: {
+        emit: vi.fn()
+      },
+      logger
+    })
+
+    await service.listAll()
+
+    expect(repository.list).toHaveBeenCalledOnce()
+  })
+
+  it("creates a role service bound to the injected repository", async () => {
+    const repository = {
+      list: vi.fn().mockResolvedValue([]),
+      getByID: vi.fn(),
+      getByIDs: vi.fn(),
+      getByNames: vi.fn(),
+      updateByID: vi.fn(),
+      deleteByID: vi.fn(),
+      hasUsersWithRoleID: vi.fn()
+    }
+    const service = createRoleService({
+      roleRepository: repository,
       domainEventEmitter: {
         emit: vi.fn()
       },

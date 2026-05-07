@@ -95,6 +95,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   )
   const roleService = createRoleService({
     roleRepository: repositories.roleRepository,
+    domainEventEmitter: eventBus,
     logger: loggerFactory("service/role")
   })
   const userProfileService = createUserProfileService({

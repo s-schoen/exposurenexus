@@ -6,6 +6,12 @@ import {
   type UpdateRole
 } from "@openvlp/types/model/rbac"
 import { conflict, isConflictError } from "./errors.js"
+import {
+  createDomainEventEmitter,
+  type DomainEventContext,
+  type DomainEventEmitter,
+  type RoleEventPayloads
+} from "../lib/eventbus/events/index.js"
 
 const protectedRoleIds = new Set<string>(Object.values(builtInRoleIds))
 
@@ -15,6 +21,10 @@ function uniqueValues(values: readonly string[]): string[] {
 
 function isProtectedRoleId(id: string): boolean {
   return protectedRoleIds.has(id)
+}
+
+function roleSnapshotsEqual(previous: Role, current: Role): boolean {
+  return JSON.stringify(previous) === JSON.stringify(current)
 }
 
 interface RoleRepository {
@@ -37,13 +47,32 @@ interface RoleRepository {
 
 interface RoleServiceDependencies {
   roleRepository: RoleRepository
+  domainEventEmitter: DomainEventEmitter
   logger: Logger
+}
+
+export interface UpdateRoleOptions {
+  id: string
+  role: UpdateRole
+  eventContext?: DomainEventContext
+}
+
+export interface DeleteRoleOptions {
+  id: string
+  eventContext?: DomainEventContext
 }
 
 export function createRoleService({
   roleRepository,
+  domainEventEmitter,
   logger
 }: RoleServiceDependencies) {
+  type RoleEventSubject = keyof RoleEventPayloads & string
+  const emitRoleEvent = createDomainEventEmitter<RoleEventSubject>(
+    domainEventEmitter,
+    "role"
+  )
+
   return {
     async listAll(): Promise<Role[]> {
       try {
@@ -126,7 +155,9 @@ export function createRoleService({
       }
     },
 
-    async updateByID(id: string, roleUpdate: UpdateRole): Promise<Role | null> {
+    async updateByID(opts: UpdateRoleOptions): Promise<Role | null> {
+      const { id, role: roleUpdate, eventContext } = opts
+
       if (isProtectedRoleId(id)) {
         throw new HTTPException(403, {
           message: "built-in roles cannot be modified"
@@ -134,6 +165,12 @@ export function createRoleService({
       }
 
       try {
+        const previousRole = await roleRepository.getByID(id)
+        if (!previousRole) {
+          logger.debug(`role with id ${id} not found`)
+          return null
+        }
+
         const updateResult = await roleRepository.updateByID(id, roleUpdate)
         if (!updateResult) {
           logger.debug(`role with id ${id} not found`)
@@ -148,6 +185,17 @@ export function createRoleService({
               revokedSessionCount: updateResult.revokedSessionCount
             },
             "revoked user sessions after role permission update"
+          )
+        }
+
+        if (!roleSnapshotsEqual(previousRole, updateResult.role)) {
+          emitRoleEvent(
+            "role.updated",
+            {
+              previous: previousRole,
+              current: updateResult.role
+            },
+            eventContext
           )
         }
 
@@ -169,7 +217,9 @@ export function createRoleService({
       }
     },
 
-    async deleteByID(id: string): Promise<Role | null> {
+    async deleteByID(opts: DeleteRoleOptions): Promise<Role | null> {
+      const { id, eventContext } = opts
+
       if (isProtectedRoleId(id)) {
         throw new HTTPException(403, {
           message: "built-in roles cannot be modified"
@@ -195,6 +245,7 @@ export function createRoleService({
           return null
         }
 
+        emitRoleEvent("role.deleted", { role: deletedRole }, eventContext)
         return deletedRole
       } catch (error) {
         if (error instanceof HTTPException) {

@@ -1,4 +1,4 @@
-import { Hono } from "hono"
+import { Hono, type Context } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
 import {
@@ -8,13 +8,21 @@ import {
 } from "@openvlp/types/model/rbac"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
+import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 
 interface RoleRouteService {
   listAll(): Promise<Role[]>
   getByID(id: string): Promise<Role | null>
-  updateByID(id: string, role: UpdateRole): Promise<Role | null>
-  deleteByID(id: string): Promise<Role | null>
+  updateByID(options: {
+    id: string
+    role: UpdateRole
+    eventContext?: DomainEventContext
+  }): Promise<Role | null>
+  deleteByID(options: {
+    id: string
+    eventContext?: DomainEventContext
+  }): Promise<Role | null>
 }
 
 interface RoleRouteDependencies {
@@ -22,6 +30,17 @@ interface RoleRouteDependencies {
 }
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
+
+function requestEventContext(
+  c: Context<{ Variables: ContextVariables }>
+): DomainEventContext {
+  const actor = c.get("user")?.id
+
+  return {
+    ...(actor !== undefined ? { actor } : {}),
+    correlationId: c.get("requestId")
+  }
+}
 
 export function createRoleRoute(
   roleService: RoleRouteService,
@@ -59,7 +78,11 @@ export function createRoleRoute(
       const params = c.req.valid("param")
       const body = c.req.valid("json")
 
-      const updatedRole = await roleService.updateByID(params.id, body)
+      const updatedRole = await roleService.updateByID({
+        id: params.id,
+        role: body,
+        eventContext: requestEventContext(c)
+      })
       if (!updatedRole) {
         notFound("role", params.id)
       }
@@ -75,7 +98,10 @@ export function createRoleRoute(
     async (c) => {
       const params = c.req.valid("param")
 
-      const deletedRole = await roleService.deleteByID(params.id)
+      const deletedRole = await roleService.deleteByID({
+        id: params.id,
+        eventContext: requestEventContext(c)
+      })
       if (!deletedRole) {
         notFound("role", params.id)
       }
