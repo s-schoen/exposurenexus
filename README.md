@@ -1,7 +1,8 @@
 # ExposureNexus
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/s-schoen/exposurenexus/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/s-schoen/exposurenexus/actions/workflows/ci.yml)
 [![Test Coverage](https://codecov.io/gh/s-schoen/exposurenexus/branch/master/graph/badge.svg)](https://codecov.io/gh/s-schoen/exposurenexus)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ExposureNexus is an open-source continuous threat exposure management (CTEM) platform for importing scanner findings, normalizing them around assets and vulnerabilities, and tracking triage through remediation.
 
