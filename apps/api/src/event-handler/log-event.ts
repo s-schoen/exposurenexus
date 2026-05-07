@@ -3,7 +3,10 @@ import type { DomainEventPayloadBase } from "../lib/eventbus/events/index.js"
 export const REDACTED_EVENT_LOG_VALUE = "[REDACTED]"
 export const REDACTED_LOG_PROPERTY_NAMES = [
   "sessionId",
-  "passwordHash"
+  "passwordHash",
+  // Finding evidence can contain raw scanner request/response data.
+  // Keep it out of audit logs to avoid leaking sensitive details and log noise.
+  "evidence"
 ] as const
 
 export interface DomainEventLogFields<TSubject extends string = string> {

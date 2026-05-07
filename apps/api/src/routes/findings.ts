@@ -1,4 +1,4 @@
-import { Hono } from "hono"
+import { Hono, type Context } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { zValidator } from "@hono/zod-validator"
@@ -10,6 +10,7 @@ import {
 } from "@openvlp/types/model/finding"
 import type { UserProfile } from "@openvlp/types/model/user"
 import type { ContextVariables } from "../lib/hono-schema.js"
+import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 
 interface FindingRouteService {
@@ -18,13 +19,18 @@ interface FindingRouteService {
   create(options: {
     finding: typeof createFindingSchema._output
     user: UserProfile
+    eventContext?: DomainEventContext
   }): Promise<Finding>
   update(options: {
     id: string
     finding: typeof updateFindingSchema._output
     user: UserProfile
+    eventContext?: DomainEventContext
   }): Promise<Finding | null>
-  deleteByID(id: string): Promise<Finding | null>
+  deleteByID(options: {
+    id: string
+    eventContext?: DomainEventContext
+  }): Promise<Finding | null>
 }
 
 interface FindingRouteDependencies {
@@ -32,6 +38,17 @@ interface FindingRouteDependencies {
 }
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
+
+function requestEventContext(
+  c: Context<{ Variables: ContextVariables }>
+): DomainEventContext {
+  const actor = c.get("user")?.id
+
+  return {
+    ...(actor !== undefined ? { actor } : {}),
+    correlationId: c.get("requestId")
+  }
+}
 
 export function createFindingRoute(
   findingService: FindingRouteService,
@@ -74,7 +91,8 @@ export function createFindingRoute(
 
       const createdFinding = await findingService.create({
         finding: body,
-        user
+        user,
+        eventContext: requestEventContext(c)
       })
 
       return replyObject(c, createdFinding, true)
@@ -98,7 +116,8 @@ export function createFindingRoute(
       const updatedFinding = await findingService.update({
         id: params.id,
         finding: body,
-        user
+        user,
+        eventContext: requestEventContext(c)
       })
 
       if (!updatedFinding) {
@@ -115,8 +134,16 @@ export function createFindingRoute(
     idParamValidator,
     async (c) => {
       const params = c.req.valid("param")
+      const user = c.get("user")
 
-      const deleted = await findingService.deleteByID(params.id)
+      if (!user) {
+        throw new HTTPException(401, { message: "Unauthorized" })
+      }
+
+      const deleted = await findingService.deleteByID({
+        id: params.id,
+        eventContext: requestEventContext(c)
+      })
       if (!deleted) {
         notFound("finding", params.id)
       }

@@ -51,6 +51,7 @@ describe("serialize DomainEvent for log", () => {
           createdAt: Date
           expiresAt: Date
         }
+        evidence: string
         attempts: Array<{
           sessionId?: string
           nested?: {
@@ -76,6 +77,7 @@ describe("serialize DomainEvent for log", () => {
           createdAt,
           expiresAt
         },
+        evidence: "GET /admin HTTP/1.1\nHTTP/1.1 200 OK",
         attempts: [
           {
             sessionId: "attempt-session-id"
@@ -102,6 +104,7 @@ describe("serialize DomainEvent for log", () => {
         createdAt,
         expiresAt
       },
+      evidence: REDACTED_EVENT_LOG_VALUE,
       attempts: [
         {
           sessionId: REDACTED_EVENT_LOG_VALUE

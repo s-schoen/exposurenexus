@@ -1,11 +1,15 @@
 import { randomUUID } from "node:crypto"
 import type { UserEventPayloads } from "./user.js"
 import type { AuthEventPayloads } from "./auth.js"
+import type { FindingEventPayloads } from "./finding.js"
 
 export type { AuthEventPayloads } from "./auth.js"
+export type { FindingEventPayloads } from "./finding.js"
 export type { UserEventPayloads } from "./user.js"
 
-export type EventPayloads = UserEventPayloads & AuthEventPayloads
+export type EventPayloads = UserEventPayloads &
+  AuthEventPayloads &
+  FindingEventPayloads
 
 export type EventSubject = keyof EventPayloads & string
 

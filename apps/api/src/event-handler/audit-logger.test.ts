@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import type { Logger } from "pino"
+import { FindingSource, FindingStatus } from "@openvlp/types/model/finding"
+import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import { createTestUser } from "../test/app.js"
 import { EventBus } from "../lib/eventbus/eventbus.js"
 import {
@@ -22,6 +24,38 @@ describe("registerAuditLogger", () => {
     userAgent: "Mozilla/5.0",
     createdAt: new Date("2026-05-07T10:00:00.000Z"),
     expiresAt: new Date("2026-05-07T22:00:00.000Z")
+  }
+  const vulnerability = {
+    id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+    title: "Exposed Admin Endpoint",
+    severity: VulnerabilitySeverity.High,
+    description: "Administrative interface is reachable externally",
+    cwe: 284,
+    cve: null,
+    createdBy: user.id,
+    updatedBy: user.id,
+    createdAt: new Date("2026-05-07T09:00:00.000Z"),
+    updatedAt: new Date("2026-05-07T09:00:00.000Z")
+  }
+  const finding = {
+    id: "2713d833-eb13-4517-ac7c-7761545ed42a",
+    source: FindingSource.Nuclei,
+    status: FindingStatus.Active,
+    vulnerabilityId: vulnerability.id,
+    assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
+    severity: vulnerability.severity,
+    evidence: "GET /admin HTTP/1.1\nHTTP/1.1 200 OK",
+    mitigation: "Restrict access to internal networks",
+    assigneeId: null,
+    dueDate: null,
+    fingerprint: "abc123",
+    firstSeen: new Date("2026-05-07T09:10:00.000Z"),
+    lastSeen: new Date("2026-05-07T09:10:00.000Z"),
+    createdBy: user.id,
+    updatedBy: user.id,
+    createdAt: new Date("2026-05-07T09:10:00.000Z"),
+    updatedAt: new Date("2026-05-07T09:10:00.000Z"),
+    vulnerability
   }
 
   function createLogger() {
@@ -167,7 +201,50 @@ describe("registerAuditLogger", () => {
     expect(logger.warn).not.toHaveBeenCalled()
   })
 
-  it("audits auth and user events by default", () => {
-    expect(DEFAULT_AUDIT_EVENT_PATTERNS).toEqual(["auth.*", "user.*"])
+  it("logs finding events at info with redacted evidence", async () => {
+    const eventBus = new EventBus<DomainEvent>()
+    const logger = createLogger()
+    const eventTime = new Date("2026-05-07T10:15:00.000Z")
+
+    registerAuditLogger({ eventBus, logger })
+
+    await eventBus.emit(
+      createEventPayload({
+        id: "event-5",
+        time: eventTime,
+        subject: "finding.created",
+        source: "finding",
+        actor: user.id,
+        correlationId: "request-5",
+        data: { finding }
+      })
+    )
+
+    expect(logger.info).toHaveBeenCalledWith(
+      {
+        eventId: "event-5",
+        eventSubject: "finding.created",
+        eventSource: "finding",
+        eventTime,
+        actor: user.id,
+        correlationId: "request-5",
+        data: {
+          finding: {
+            ...finding,
+            evidence: REDACTED_EVENT_LOG_VALUE
+          }
+        }
+      },
+      "finding.created"
+    )
+    expect(logger.warn).not.toHaveBeenCalled()
+  })
+
+  it("audits auth, user, and finding events by default", () => {
+    expect(DEFAULT_AUDIT_EVENT_PATTERNS).toEqual([
+      "auth.*",
+      "user.*",
+      "finding.*"
+    ])
   })
 })

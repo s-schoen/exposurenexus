@@ -17,7 +17,13 @@ import { createNucleiFindingParser } from "./nuclei.js"
 
 describe("nuclei importer", () => {
   const user = createTestUser()
-  const ctx = { user }
+  const ctx = {
+    user,
+    eventContext: {
+      actor: user.id,
+      correlationId: "findings-import-request"
+    }
+  }
   const logger = pino({ enabled: false })
   const vulnerabilityService = {
     listMappings: vi.fn(),
@@ -141,7 +147,8 @@ describe("nuclei importer", () => {
           assigneeId: null,
           dueDate: null
         },
-        firstSeen: expect.any(Date)
+        firstSeen: expect.any(Date),
+        eventContext: ctx.eventContext
       },
       {
         port: "443",

@@ -204,7 +204,11 @@ describe("finding routes", () => {
     expect(response.status).toBe(201)
     expect(findingService.create).toHaveBeenCalledWith({
       finding: createPayload,
-      user
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
     })
     expect(body).toEqual({
       correlationId: requestId,
@@ -256,7 +260,11 @@ describe("finding routes", () => {
     expect(response.status).toBe(201)
     expect(findingService.create).toHaveBeenCalledWith({
       finding: payload,
-      user
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
     })
   })
 
@@ -295,7 +303,11 @@ describe("finding routes", () => {
     expect(response.status).toBe(201)
     expect(findingService.create).toHaveBeenCalledWith({
       finding: payload,
-      user
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: "findings-create-with-null-assignee-request"
+      }
     })
   })
 
@@ -340,7 +352,11 @@ describe("finding routes", () => {
         ...createPayload,
         dueDate: normalizedDueDate
       },
-      user
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: "findings-create-with-due-date-request"
+      }
     })
   })
 
@@ -380,7 +396,11 @@ describe("finding routes", () => {
     expect(response.status).toBe(201)
     expect(findingService.create).toHaveBeenCalledWith({
       finding: payload,
-      user
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: "findings-create-with-null-due-date-request"
+      }
     })
   })
 
@@ -499,7 +519,11 @@ describe("finding routes", () => {
     expect(findingService.update).toHaveBeenCalledWith({
       id: findingId,
       finding: updatePayload,
-      user
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
     })
     expect(body).toEqual({
       correlationId: requestId,
@@ -558,7 +582,11 @@ describe("finding routes", () => {
     expect(findingService.update).toHaveBeenCalledWith({
       id: findingId,
       finding: updatePayload,
-      user
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
     })
   })
 
@@ -601,7 +629,11 @@ describe("finding routes", () => {
     expect(findingService.update).toHaveBeenCalledWith({
       id: findingId,
       finding: updatePayload,
-      user
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: "findings-update-null-assignee-request"
+      }
     })
   })
 
@@ -650,7 +682,11 @@ describe("finding routes", () => {
         ...createPayload,
         dueDate: normalizedDueDate
       },
-      user
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: "findings-update-due-date-request"
+      }
     })
   })
 
@@ -694,7 +730,11 @@ describe("finding routes", () => {
     expect(findingService.update).toHaveBeenCalledWith({
       id: findingId,
       finding: updatePayload,
-      user
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: "findings-update-null-due-date-request"
+      }
     })
   })
 
@@ -789,7 +829,11 @@ describe("finding routes", () => {
     expect(findingService.update).toHaveBeenCalledWith({
       id: findingId,
       finding: createPayload,
-      user
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
     })
     expect(body).toEqual({
       correlationId: requestId,
@@ -829,7 +873,13 @@ describe("finding routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(findingService.deleteByID).toHaveBeenCalledWith(findingId)
+    expect(findingService.deleteByID).toHaveBeenCalledWith({
+      id: findingId,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: {
@@ -864,7 +914,13 @@ describe("finding routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(findingService.deleteByID).toHaveBeenCalledWith(findingId)
+    expect(findingService.deleteByID).toHaveBeenCalledWith({
+      id: findingId,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,

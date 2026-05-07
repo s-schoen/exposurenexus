@@ -87,6 +87,7 @@ interface NucleiFindingService {
       user: ImportContext["user"]
       finding: CreateFinding
       firstSeen: Date
+      eventContext?: ImportContext["eventContext"]
     },
     fingerprintOpt?: Record<string, string>
   ): Promise<CreateOrUpdateFindingResult>
@@ -211,7 +212,8 @@ export function createNucleiFindingParser({
                 assigneeId: null,
                 dueDate: null
               },
-              firstSeen: new Date()
+              firstSeen: new Date(),
+              eventContext: ctx.eventContext
             },
             fingerprintInfo
           )

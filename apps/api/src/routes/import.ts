@@ -1,7 +1,8 @@
-import { Hono } from "hono"
+import { Hono, type Context } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { badRequest, replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
+import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 import type { Logger } from "pino"
 import type { ImportContext } from "../import/importer.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
@@ -18,6 +19,17 @@ interface ImportRouteDependencies {
   importer: FindingImportService
   logger: Logger
   requireDomainPermission: RequireDomainPermission
+}
+
+function requestEventContext(
+  c: Context<{ Variables: ContextVariables }>
+): DomainEventContext {
+  const actor = c.get("user")?.id
+
+  return {
+    ...(actor !== undefined ? { actor } : {}),
+    correlationId: c.get("requestId")
+  }
 }
 
 export function createImportRoute({
@@ -55,7 +67,7 @@ export function createImportRoute({
       }
 
       const findings = await importer.parseFindingsFromFile(
-        { user },
+        { user, eventContext: requestEventContext(c) },
         type,
         buffer
       )

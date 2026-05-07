@@ -8,6 +8,7 @@ import {
   type FindingInternal
 } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
+import { createDomainEventCollector } from "../test/eventbus.js"
 import { createTestUser } from "../test/app.js"
 import { createFindingService } from "./finding.js"
 
@@ -29,6 +30,7 @@ describe("finding service", () => {
   const userProfileService = {
     getByID: vi.fn()
   }
+  const domainEvents = createDomainEventCollector()
   const vulnerability = {
     id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
     title: "Exposed Admin Endpoint",
@@ -67,15 +69,21 @@ describe("finding service", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useRealTimers()
+    domainEvents.clear()
   })
 
-  it("lists findings enriched with their vulnerability", async () => {
-    const service = createFindingService({
+  function createService() {
+    return createFindingService({
       findingRepository,
       userProfileService,
       vulnerabilityService,
+      domainEventEmitter: domainEvents.emitter,
       logger
     })
+  }
+
+  it("lists findings enriched with their vulnerability", async () => {
+    const service = createService()
 
     findingRepository.list.mockResolvedValue([baseFinding])
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
@@ -92,12 +100,7 @@ describe("finding service", () => {
   })
 
   it("returns a finding without enrichment when the vulnerability cannot be found", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
 
     findingRepository.getByID.mockResolvedValue(baseFinding)
     vulnerabilityService.getByID.mockResolvedValue(null)
@@ -106,12 +109,7 @@ describe("finding service", () => {
   })
 
   it("returns null when a finding does not exist", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
 
     findingRepository.getByID.mockResolvedValue(null)
 
@@ -120,12 +118,7 @@ describe("finding service", () => {
   })
 
   it("maps repository get failures to an HTTP 500", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
 
     findingRepository.getByID.mockRejectedValue(new Error("db offline"))
 
@@ -136,18 +129,27 @@ describe("finding service", () => {
   })
 
   it("creates findings with audit fields, timestamps, and a fingerprint", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const now = new Date("2026-02-03T04:05:06.000Z")
     const fingerprint = createHash("sha256")
       .update(createPayload.vulnerabilityId)
       .update(createPayload.assetId)
       .update(JSON.stringify({ port: "443", path: "/admin" }))
       .digest("hex")
+    const createdFinding = {
+      id: baseFinding.id,
+      ...createPayload,
+      assigneeId: null,
+      dueDate: null,
+      fingerprint,
+      firstSeen: now,
+      lastSeen: now,
+      createdBy: user.id,
+      updatedBy: user.id,
+      createdAt: now,
+      updatedAt: now,
+      vulnerability
+    }
 
     vi.useFakeTimers()
     vi.setSystemTime(now)
@@ -162,24 +164,15 @@ describe("finding service", () => {
       service.create(
         {
           finding: createPayload,
-          user
+          user,
+          eventContext: {
+            actor: user.id,
+            correlationId: "findings-create-request"
+          }
         },
         { port: "443", path: "/admin" }
       )
-    ).resolves.toEqual({
-      id: baseFinding.id,
-      ...createPayload,
-      assigneeId: null,
-      dueDate: null,
-      fingerprint,
-      firstSeen: now,
-      lastSeen: now,
-      createdBy: user.id,
-      updatedBy: user.id,
-      createdAt: now,
-      updatedAt: now,
-      vulnerability
-    })
+    ).resolves.toEqual(createdFinding)
 
     expect(findingRepository.create).toHaveBeenCalledWith({
       ...createPayload,
@@ -194,15 +187,20 @@ describe("finding service", () => {
       updatedAt: now
     })
     expect(userProfileService.getByID).not.toHaveBeenCalled()
+    expect(domainEvents.subjects()).toEqual(["finding.created"])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "finding.created",
+      source: "finding",
+      actor: user.id,
+      correlationId: "findings-create-request",
+      data: {
+        finding: createdFinding
+      }
+    })
   })
 
   it("creates findings with an explicit null assignee", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const now = new Date("2026-02-03T04:05:06.000Z")
 
     vi.useFakeTimers()
@@ -231,12 +229,7 @@ describe("finding service", () => {
   })
 
   it("normalizes finding due dates during creation", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const dueDate = new Date("2026-05-06T18:30:00.000Z")
     const normalizedDueDate = new Date("2026-05-06T00:00:00.000Z")
 
@@ -262,12 +255,7 @@ describe("finding service", () => {
   })
 
   it("creates findings with an existing enabled assignee", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
 
     userProfileService.getByID.mockResolvedValue({
       id: assigneeId,
@@ -300,12 +288,7 @@ describe("finding service", () => {
   })
 
   it("creates findings with an existing disabled assignee", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
 
     userProfileService.getByID.mockResolvedValue({
       id: assigneeId,
@@ -338,12 +321,7 @@ describe("finding service", () => {
   })
 
   it("rejects unknown finding assignees before creating findings", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
 
     userProfileService.getByID.mockResolvedValue(null)
 
@@ -364,12 +342,7 @@ describe("finding service", () => {
   })
 
   it("uses a provided firstSeen value during creation", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const now = new Date("2026-02-03T04:05:06.000Z")
     const firstSeen = new Date("2026-01-15T00:00:00.000Z")
 
@@ -399,12 +372,7 @@ describe("finding service", () => {
   })
 
   it("updates findings while preserving immutable fields", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const now = new Date("2026-03-04T05:06:07.000Z")
     const updatePayload = {
       ...createPayload,
@@ -416,6 +384,14 @@ describe("finding service", () => {
       ...updatePayload,
       updatedAt: now,
       updatedBy: user.id
+    }
+    const previousEventFinding = {
+      ...baseFinding,
+      vulnerability
+    }
+    const currentEventFinding = {
+      ...updatedFinding,
+      vulnerability
     }
 
     vi.useFakeTimers()
@@ -429,12 +405,13 @@ describe("finding service", () => {
       service.update({
         id: baseFinding.id,
         finding: updatePayload,
-        user
+        user,
+        eventContext: {
+          actor: user.id,
+          correlationId: "findings-update-request"
+        }
       })
-    ).resolves.toEqual({
-      ...updatedFinding,
-      vulnerability
-    })
+    ).resolves.toEqual(currentEventFinding)
 
     expect(findingRepository.update).toHaveBeenCalledWith(baseFinding.id, {
       ...updatePayload,
@@ -449,15 +426,21 @@ describe("finding service", () => {
       updatedBy: user.id
     })
     expect(userProfileService.getByID).not.toHaveBeenCalled()
+    expect(domainEvents.subjects()).toEqual(["finding.updated"])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "finding.updated",
+      source: "finding",
+      actor: user.id,
+      correlationId: "findings-update-request",
+      data: {
+        previous: previousEventFinding,
+        current: currentEventFinding
+      }
+    })
   })
 
   it("normalizes finding due dates during updates", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const dueDate = new Date("2026-05-06T18:30:00.000Z")
     const normalizedDueDate = new Date("2026-05-06T00:00:00.000Z")
     const updatePayload = {
@@ -488,12 +471,7 @@ describe("finding service", () => {
   })
 
   it("preserves finding due dates when update payloads omit them", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const datedFinding = {
       ...baseFinding,
       dueDate: new Date("2026-05-06T00:00:00.000Z")
@@ -526,12 +504,7 @@ describe("finding service", () => {
   })
 
   it("updates findings to an existing enabled assignee", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const updatePayload = {
       ...createPayload,
       assigneeId
@@ -574,12 +547,7 @@ describe("finding service", () => {
   })
 
   it("updates findings to an existing disabled assignee", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const updatePayload = {
       ...createPayload,
       assigneeId
@@ -617,12 +585,7 @@ describe("finding service", () => {
   })
 
   it("reassigns findings from one assignee to another", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const nextAssigneeId = "98f0b0bb-af64-4d25-ae0d-03629d53444b"
     const assignedFinding = {
       ...baseFinding,
@@ -665,12 +628,7 @@ describe("finding service", () => {
   })
 
   it("clears finding assignees", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const assignedFinding = {
       ...baseFinding,
       assigneeId
@@ -704,12 +662,7 @@ describe("finding service", () => {
   })
 
   it("preserves existing assignee when updating finding status", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const assignedFinding = {
       ...baseFinding,
       assigneeId
@@ -744,12 +697,7 @@ describe("finding service", () => {
   })
 
   it("rejects unknown finding assignees before updating findings", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const updatePayload = {
       ...createPayload,
       assigneeId
@@ -773,12 +721,7 @@ describe("finding service", () => {
   })
 
   it("returns null when updating a missing finding", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
 
     findingRepository.getByID.mockResolvedValue(null)
 
@@ -790,15 +733,11 @@ describe("finding service", () => {
       })
     ).resolves.toBeNull()
     expect(findingRepository.update).not.toHaveBeenCalled()
+    expect(domainEvents.subjects()).toEqual([])
   })
 
   it("updates lastSeen instead of creating when the fingerprint already exists", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const now = new Date("2026-04-05T06:07:08.000Z")
     const existingFinding = {
       ...baseFinding,
@@ -807,6 +746,14 @@ describe("finding service", () => {
     const updatedFinding = {
       ...existingFinding,
       lastSeen: now
+    }
+    const previousEventFinding = {
+      ...existingFinding,
+      vulnerability
+    }
+    const currentEventFinding = {
+      ...updatedFinding,
+      vulnerability
     }
     const fingerprint = createHash("sha256")
       .update(createPayload.vulnerabilityId)
@@ -825,15 +772,16 @@ describe("finding service", () => {
       service.createOrUpdate(
         {
           finding: createPayload,
-          user
+          user,
+          eventContext: {
+            actor: user.id,
+            correlationId: "findings-import-request"
+          }
         },
         { port: "443" }
       )
     ).resolves.toEqual({
-      finding: {
-        ...updatedFinding,
-        vulnerability
-      },
+      finding: currentEventFinding,
       created: false
     })
 
@@ -843,15 +791,21 @@ describe("finding service", () => {
       lastSeen: now
     })
     expect(findingRepository.create).not.toHaveBeenCalled()
+    expect(domainEvents.subjects()).toEqual(["finding.updated"])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "finding.updated",
+      source: "finding",
+      actor: user.id,
+      correlationId: "findings-import-request",
+      data: {
+        previous: previousEventFinding,
+        current: currentEventFinding
+      }
+    })
   })
 
   it("preserves existing assignment and due date when an imported finding dedupes", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const now = new Date("2026-04-05T06:07:08.000Z")
     const dueDate = new Date("2026-05-06T00:00:00.000Z")
     const existingFinding = {
@@ -906,12 +860,7 @@ describe("finding service", () => {
   })
 
   it("reopens inactive imported findings while preserving their due date", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const now = new Date("2026-04-05T06:07:08.000Z")
     const dueDate = new Date("2026-05-06T00:00:00.000Z")
     const existingFinding = {
@@ -967,12 +916,7 @@ describe("finding service", () => {
   })
 
   it("creates undated imported findings when the fingerprint does not exist", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
     const now = new Date("2026-04-05T06:07:08.000Z")
 
     vi.useFakeTimers()
@@ -1025,32 +969,44 @@ describe("finding service", () => {
   })
 
   it("deletes a finding and returns it enriched with its vulnerability", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
 
     findingRepository.deleteByID.mockResolvedValue(baseFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
-    await expect(service.deleteByID(baseFinding.id)).resolves.toEqual({
+    await expect(
+      service.deleteByID({
+        id: baseFinding.id,
+        eventContext: {
+          actor: user.id,
+          correlationId: "findings-delete-request"
+        }
+      })
+    ).resolves.toEqual({
       ...baseFinding,
       vulnerability
+    })
+    expect(domainEvents.subjects()).toEqual(["finding.deleted"])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "finding.deleted",
+      source: "finding",
+      actor: user.id,
+      correlationId: "findings-delete-request",
+      data: {
+        finding: {
+          ...baseFinding,
+          vulnerability
+        }
+      }
     })
   })
 
   it("returns null when deleting a missing finding", async () => {
-    const service = createFindingService({
-      findingRepository,
-      userProfileService,
-      vulnerabilityService,
-      logger
-    })
+    const service = createService()
 
     findingRepository.deleteByID.mockResolvedValue(null)
 
-    await expect(service.deleteByID(baseFinding.id)).resolves.toBeNull()
+    await expect(service.deleteByID({ id: baseFinding.id })).resolves.toBeNull()
+    expect(domainEvents.subjects()).toEqual([])
   })
 })
