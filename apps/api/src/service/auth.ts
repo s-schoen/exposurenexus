@@ -13,10 +13,9 @@ import type {
 } from "@openvlp/types/model/user"
 import { verifyPasswordHash } from "../lib/argon2.js"
 import {
-  createEventPayload,
+  createDomainEventEmitter,
   type AuthEventPayloads,
-  type DomainEventEmitter,
-  type EventPayloads
+  type DomainEventEmitter
 } from "../lib/eventbus/events/index.js"
 
 const DUMMY_PASSWORD_HASH =
@@ -87,10 +86,6 @@ type ResourcePermissionVerbAssignment = Partial<
   Record<PermissionResource, PermissionVerb[]>
 >
 type AuthEventSubject = keyof AuthEventPayloads & string
-type AuthEventData<TSubject extends AuthEventSubject> = EventPayloads[TSubject]
-type AuthEventContext = {
-  correlationId?: string
-}
 
 export interface AuthService {
   createSessionForCredentials(
@@ -166,23 +161,10 @@ export function createAuthService(
     domainEventEmitter,
     logger
   } = dependencies
-
-  function emitAuthEvent<TSubject extends AuthEventSubject>(
-    subject: TSubject,
-    data: AuthEventData<TSubject>,
-    context: AuthEventContext = {}
-  ): void {
-    void domainEventEmitter.emit(
-      createEventPayload({
-        subject,
-        source: "auth",
-        ...(context.correlationId !== undefined
-          ? { correlationId: context.correlationId }
-          : {}),
-        data
-      })
-    )
-  }
+  const emitAuthEvent = createDomainEventEmitter<AuthEventSubject>(
+    domainEventEmitter,
+    "auth"
+  )
 
   async function authenticateUserProfile(
     username: string,

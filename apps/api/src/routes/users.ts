@@ -1,4 +1,4 @@
-import { Hono } from "hono"
+import { Hono, type Context } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import {
   createUserProfileSchema,
@@ -10,13 +10,21 @@ import {
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
 import type { ContextVariables } from "../lib/hono-schema.js"
+import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 
 interface UserRouteService {
   listAll(): Promise<UserProfile[]>
   getByID(id: string): Promise<UserProfile | null>
-  create(user: CreateUserProfile): Promise<UserProfile>
-  updateByID(id: string, user: UpdateUserProfile): Promise<UserProfile | null>
+  create(
+    user: CreateUserProfile,
+    eventContext?: DomainEventContext
+  ): Promise<UserProfile>
+  updateByID(
+    id: string,
+    user: UpdateUserProfile,
+    eventContext?: DomainEventContext
+  ): Promise<UserProfile | null>
 }
 
 interface UserRouteDependencies {
@@ -24,6 +32,17 @@ interface UserRouteDependencies {
 }
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
+
+function requestEventContext(
+  c: Context<{ Variables: ContextVariables }>
+): DomainEventContext {
+  const actor = c.get("user")?.id
+
+  return {
+    ...(actor !== undefined ? { actor } : {}),
+    correlationId: c.get("requestId")
+  }
+}
 
 export function createUserRoute(
   userService: UserRouteService,
@@ -58,7 +77,7 @@ export function createUserRoute(
     zValidator("json", createUserProfileSchema),
     async (c) => {
       const body = c.req.valid("json")
-      const createdUser = await userService.create(body)
+      const createdUser = await userService.create(body, requestEventContext(c))
       return replyObject(c, createdUser, true)
     }
   )
@@ -72,7 +91,11 @@ export function createUserRoute(
       const params = c.req.valid("param")
       const body = c.req.valid("json")
 
-      const updatedUser = await userService.updateByID(params.id, body)
+      const updatedUser = await userService.updateByID(
+        params.id,
+        body,
+        requestEventContext(c)
+      )
       if (!updatedUser) {
         notFound("user", params.id)
       }

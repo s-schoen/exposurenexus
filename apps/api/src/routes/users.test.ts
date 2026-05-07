@@ -216,7 +216,10 @@ describe("user routes", () => {
     expect(userHasPermission).toHaveBeenCalledWith(authenticatedUser.id, {
       [PermissionResource.User]: [PermissionVerb.Write]
     })
-    expect(userService.create).toHaveBeenCalledWith(payload)
+    expect(userService.create).toHaveBeenCalledWith(payload, {
+      actor: authenticatedUser.id,
+      correlationId: requestId
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: listedUser
@@ -316,7 +319,10 @@ describe("user routes", () => {
     expect(userHasPermission).toHaveBeenCalledWith(authenticatedUser.id, {
       [PermissionResource.User]: [PermissionVerb.Write]
     })
-    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload)
+    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload, {
+      actor: authenticatedUser.id,
+      correlationId: requestId
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: updatedUser
@@ -356,7 +362,10 @@ describe("user routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload)
+    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload, {
+      actor: authenticatedUser.id,
+      correlationId: requestId
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: updatedUser
@@ -478,7 +487,10 @@ describe("user routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload)
+    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload, {
+      actor: authenticatedUser.id,
+      correlationId: requestId
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,

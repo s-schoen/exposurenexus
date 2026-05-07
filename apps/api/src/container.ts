@@ -99,6 +99,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   })
   const userProfileService = createUserProfileService({
     userProfileRepository: repositories.userProfileRepository,
+    domainEventEmitter: eventBus,
     logger: loggerFactory("service/user-profile")
   })
   const assetService = createAssetService({
