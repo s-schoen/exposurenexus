@@ -12,6 +12,7 @@ vi.mock("../lib/argon2.js", () => ({
   verifyPasswordHash: verifyPasswordHashMock
 }))
 
+import { createDomainEventCollector } from "../test/eventbus.js"
 import { createAuthService } from "./auth.js"
 
 describe("auth service", () => {
@@ -27,9 +28,7 @@ describe("auth service", () => {
   const userRoleRepository = {
     listPermissionsByUserID: vi.fn()
   }
-  const domainEventEmitter = {
-    emit: vi.fn()
-  }
+  const domainEvents = createDomainEventCollector()
   const logger = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -63,7 +62,7 @@ describe("auth service", () => {
       userProfileRepository,
       userSessionRepository,
       userRoleRepository,
-      domainEventEmitter,
+      domainEventEmitter: domainEvents.emitter,
       sessionLifetimeHours,
       sessionHmacSecret,
       logger
@@ -79,6 +78,7 @@ describe("auth service", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useRealTimers()
+    domainEvents.clear()
     verifyPasswordHashMock.mockResolvedValue(false)
   })
 
@@ -117,6 +117,15 @@ describe("auth service", () => {
       userAgent: "Mozilla/5.0",
       createdAt: now,
       expiresAt: new Date(now.getTime() + sessionLifetimeHours * 60 * 60 * 1000)
+    })
+    expect(domainEvents.subjects()).toEqual(["auth.session.created"])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "auth.session.created",
+      source: "auth",
+      data: {
+        user: enabledProfile,
+        session: result.session
+      }
     })
   })
 
@@ -189,6 +198,25 @@ describe("auth service", () => {
       }
     })
     expect(verifyPasswordHashMock).toHaveBeenCalledOnce()
+    expect(domainEvents.subjects()).toEqual([
+      "auth.success",
+      "auth.session.created"
+    ])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "auth.success",
+      source: "auth",
+      data: {
+        user: enabledProfile
+      }
+    })
+    expect(domainEvents.events[1]).toMatchObject({
+      subject: "auth.session.created",
+      source: "auth",
+      data: {
+        user: enabledProfile,
+        session: result!.session
+      }
+    })
   })
 
   it("does not create a session for invalid credentials", async () => {
@@ -204,6 +232,15 @@ describe("auth service", () => {
       })
     ).resolves.toBeNull()
     expect(userSessionRepository.create).not.toHaveBeenCalled()
+    expect(domainEvents.subjects()).toEqual(["auth.failure"])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "auth.failure",
+      source: "auth",
+      data: {
+        username: enabledProfile.username,
+        reason: "invalid-credentials"
+      }
+    })
   })
 
   it("does not create a session for a missing username after verifying a dummy hash", async () => {
@@ -224,6 +261,15 @@ describe("auth service", () => {
       )
     )
     expect(userSessionRepository.create).not.toHaveBeenCalled()
+    expect(domainEvents.subjects()).toEqual(["auth.failure"])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "auth.failure",
+      source: "auth",
+      data: {
+        username: "missing-user",
+        reason: "invalid-credentials"
+      }
+    })
   })
 
   it("does not create a session for disabled users after verifying the stored hash", async () => {
@@ -247,6 +293,15 @@ describe("auth service", () => {
       disabledProfile.passwordHash
     )
     expect(userSessionRepository.create).not.toHaveBeenCalled()
+    expect(domainEvents.subjects()).toEqual(["auth.failure"])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "auth.failure",
+      source: "auth",
+      data: {
+        username: disabledProfile.username,
+        reason: "invalid-credentials"
+      }
+    })
   })
 
   it("maps credential lookup failures to an HTTP 500", async () => {
@@ -355,6 +410,15 @@ describe("auth service", () => {
       service.validateSession("missing-session-token")
     ).resolves.toBeNull()
     expect(userProfileRepository.getByID).not.toHaveBeenCalled()
+    expect(domainEvents.subjects()).toEqual(["auth.failure"])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "auth.failure",
+      source: "auth",
+      data: {
+        sessionId: "missing-session-token",
+        reason: "invalid-session"
+      }
+    })
   })
 
   it("returns null when validating an expired session", async () => {
@@ -372,22 +436,44 @@ describe("auth service", () => {
       service.validateSession("expired-session-token")
     ).resolves.toBeNull()
     expect(userProfileRepository.getByID).not.toHaveBeenCalled()
+    expect(domainEvents.subjects()).toEqual(["auth.failure"])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "auth.failure",
+      source: "auth",
+      data: {
+        sessionId: "expired-session-token",
+        reason: "session-expired"
+      }
+    })
   })
 
   it("returns null when validating a session for a deleted user", async () => {
     const service = createService()
 
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-04-26T08:00:00.000Z"))
     userSessionRepository.getBySessionID.mockResolvedValue(storedSession)
     userProfileRepository.getByID.mockResolvedValue(null)
 
     await expect(
       service.validateSession("deleted-user-session-token")
     ).resolves.toBeNull()
+    expect(domainEvents.subjects()).toEqual(["auth.failure"])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "auth.failure",
+      source: "auth",
+      data: {
+        sessionId: "deleted-user-session-token",
+        reason: "unknown-user"
+      }
+    })
   })
 
   it("returns null when validating a session for a disabled user", async () => {
     const service = createService()
 
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-04-26T08:00:00.000Z"))
     userSessionRepository.getBySessionID.mockResolvedValue(storedSession)
     userProfileRepository.getByID.mockResolvedValue({
       ...enabledProfile,
@@ -397,6 +483,15 @@ describe("auth service", () => {
     await expect(
       service.validateSession("disabled-user-session-token")
     ).resolves.toBeNull()
+    expect(domainEvents.subjects()).toEqual(["auth.failure"])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "auth.failure",
+      source: "auth",
+      data: {
+        sessionId: "disabled-user-session-token",
+        reason: "disabled-user"
+      }
+    })
   })
 
   it("revokes existing sessions by deleting the stored HMAC digest", async () => {
@@ -409,6 +504,14 @@ describe("auth service", () => {
     expect(userSessionRepository.deleteBySessionID).toHaveBeenCalledWith(
       hmacSessionId(sessionId)
     )
+    expect(domainEvents.subjects()).toEqual(["auth.session.revoked"])
+    expect(domainEvents.events[0]).toMatchObject({
+      subject: "auth.session.revoked",
+      source: "auth",
+      data: {
+        session: storedSession
+      }
+    })
   })
 
   it("returns false when revoking a missing session", async () => {
