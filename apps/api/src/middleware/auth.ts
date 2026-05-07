@@ -29,7 +29,10 @@ interface ValidatedSession {
 }
 
 interface SessionValidator {
-  validateSession(sessionId: string): Promise<ValidatedSession | null>
+  validateSession(input: {
+    sessionId: string
+    correlationId?: string
+  }): Promise<ValidatedSession | null>
 }
 
 export interface AuthCookiePolicy {
@@ -94,7 +97,11 @@ export function createAuthAnnotate(
       return
     }
 
-    const validatedSession = await authService.validateSession(sessionId)
+    const requestId = c.get("requestId") as string | undefined
+    const validatedSession = await authService.validateSession({
+      sessionId,
+      ...(requestId !== undefined ? { correlationId: requestId } : {})
+    })
 
     if (!validatedSession) {
       deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(cookiePolicy))

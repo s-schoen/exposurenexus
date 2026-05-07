@@ -51,6 +51,7 @@ export interface CreateSessionInput {
   userId: string
   sourceIp?: string
   userAgent?: string
+  correlationId?: string
 }
 
 export interface CreateSessionForCredentialsInput {
@@ -58,6 +59,17 @@ export interface CreateSessionForCredentialsInput {
   password: string
   sourceIp?: string
   userAgent?: string
+  correlationId?: string
+}
+
+export interface ValidateSessionInput {
+  sessionId: string
+  correlationId?: string
+}
+
+export interface RevokeSessionInput {
+  sessionId: string
+  correlationId?: string
 }
 
 export interface CreatedSession {
@@ -76,14 +88,17 @@ type ResourcePermissionVerbAssignment = Partial<
 >
 type AuthEventSubject = keyof AuthEventPayloads & string
 type AuthEventData<TSubject extends AuthEventSubject> = EventPayloads[TSubject]
+type AuthEventContext = {
+  correlationId?: string
+}
 
 export interface AuthService {
   createSessionForCredentials(
     input: CreateSessionForCredentialsInput
   ): Promise<CreatedSession | null>
   createSession(input: CreateSessionInput): Promise<CreatedSession>
-  validateSession(sessionId: string): Promise<ValidatedSession | null>
-  revokeSession(sessionId: string): Promise<boolean>
+  validateSession(input: ValidateSessionInput): Promise<ValidatedSession | null>
+  revokeSession(input: RevokeSessionInput): Promise<boolean>
   userHasPermission(
     userId: string,
     permissions: ResourcePermissionVerbAssignment
@@ -154,12 +169,16 @@ export function createAuthService(
 
   function emitAuthEvent<TSubject extends AuthEventSubject>(
     subject: TSubject,
-    data: AuthEventData<TSubject>
+    data: AuthEventData<TSubject>,
+    context: AuthEventContext = {}
   ): void {
     void domainEventEmitter.emit(
       createEventPayload({
         subject,
         source: "auth",
+        ...(context.correlationId !== undefined
+          ? { correlationId: context.correlationId }
+          : {}),
         data
       })
     )
@@ -202,10 +221,14 @@ export function createAuthService(
       throw new Error("failed to load session user")
     }
 
-    emitAuthEvent("auth.session.created", {
-      user: sessionUserProfile,
-      session: session
-    })
+    emitAuthEvent(
+      "auth.session.created",
+      {
+        user: sessionUserProfile,
+        session: session
+      },
+      input
+    )
 
     return {
       sessionId,
@@ -225,22 +248,31 @@ export function createAuthService(
         )
 
         if (!userProfile) {
-          emitAuthEvent("auth.failure", {
-            username: input.username,
-            reason: "invalid-credentials"
-          })
+          emitAuthEvent(
+            "auth.failure",
+            {
+              username: input.username,
+              reason: "invalid-credentials"
+            },
+            input
+          )
           return null
         }
 
-        emitAuthEvent("auth.success", {
-          user: userProfile
-        })
+        emitAuthEvent(
+          "auth.success",
+          {
+            user: userProfile
+          },
+          input
+        )
 
         return await createUserSession(
           {
             userId: userProfile.id,
             sourceIp: input.sourceIp,
-            userAgent: input.userAgent
+            userAgent: input.userAgent,
+            correlationId: input.correlationId
           },
           userProfile
         )
@@ -263,45 +295,63 @@ export function createAuthService(
       }
     },
 
-    async validateSession(sessionId: string): Promise<ValidatedSession | null> {
+    async validateSession(
+      input: ValidateSessionInput
+    ): Promise<ValidatedSession | null> {
       try {
         const sessionIdDigest = createSessionDigest(
-          sessionId,
+          input.sessionId,
           sessionHmacSecret
         )
         const session =
           await userSessionRepository.getBySessionID(sessionIdDigest)
 
         if (!session) {
-          emitAuthEvent("auth.failure", {
-            sessionId: sessionId,
-            reason: "invalid-session"
-          })
+          emitAuthEvent(
+            "auth.failure",
+            {
+              sessionId: input.sessionId,
+              reason: "invalid-session"
+            },
+            input
+          )
           return null
         }
 
         if (session.expiresAt.getTime() <= Date.now()) {
-          emitAuthEvent("auth.failure", {
-            sessionId: sessionId,
-            reason: "session-expired"
-          })
+          emitAuthEvent(
+            "auth.failure",
+            {
+              sessionId: input.sessionId,
+              reason: "session-expired"
+            },
+            input
+          )
           return null
         }
 
         const userProfile = await userProfileRepository.getByID(session.userId)
         if (!userProfile) {
-          emitAuthEvent("auth.failure", {
-            sessionId: sessionId,
-            reason: "unknown-user"
-          })
+          emitAuthEvent(
+            "auth.failure",
+            {
+              sessionId: input.sessionId,
+              reason: "unknown-user"
+            },
+            input
+          )
           return null
         }
 
         if (!userProfile.enabled) {
-          emitAuthEvent("auth.failure", {
-            sessionId: sessionId,
-            reason: "disabled-user"
-          })
+          emitAuthEvent(
+            "auth.failure",
+            {
+              sessionId: input.sessionId,
+              reason: "disabled-user"
+            },
+            input
+          )
           return null
         }
 
@@ -317,19 +367,23 @@ export function createAuthService(
       }
     },
 
-    async revokeSession(sessionId: string): Promise<boolean> {
+    async revokeSession(input: RevokeSessionInput): Promise<boolean> {
       try {
         const sessionIdDigest = createSessionDigest(
-          sessionId,
+          input.sessionId,
           sessionHmacSecret
         )
         const revokedSession =
           await userSessionRepository.deleteBySessionID(sessionIdDigest)
 
         if (revokedSession) {
-          emitAuthEvent("auth.session.revoked", {
-            session: revokedSession
-          })
+          emitAuthEvent(
+            "auth.session.revoked",
+            {
+              session: revokedSession
+            },
+            input
+          )
         }
 
         return Boolean(revokedSession)

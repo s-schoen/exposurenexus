@@ -97,7 +97,8 @@ describe("auth service", () => {
     const result = await service.createSession({
       userId: enabledProfile.id,
       sourceIp: "203.0.113.10",
-      userAgent: "Mozilla/5.0"
+      userAgent: "Mozilla/5.0",
+      correlationId: "auth-create-session-request"
     })
 
     expect(result.sessionId).toEqual(expect.any(String))
@@ -122,6 +123,7 @@ describe("auth service", () => {
     expect(domainEvents.events[0]).toMatchObject({
       subject: "auth.session.created",
       source: "auth",
+      correlationId: "auth-create-session-request",
       data: {
         user: enabledProfile,
         session: result.session
@@ -153,6 +155,7 @@ describe("auth service", () => {
       createdAt: now,
       expiresAt: new Date(now.getTime() + sessionLifetimeHours * 60 * 60 * 1000)
     })
+    expect(domainEvents.events[0]).not.toHaveProperty("correlationId")
   })
 
   it("creates a session for valid credentials without verifying the password twice", async () => {
@@ -172,7 +175,8 @@ describe("auth service", () => {
       username: enabledProfile.username,
       password: "correct-horse-battery-staple",
       sourceIp: "203.0.113.10",
-      userAgent: "Mozilla/5.0"
+      userAgent: "Mozilla/5.0",
+      correlationId: "auth-credentials-request"
     })
 
     expect(result).toEqual({
@@ -205,6 +209,7 @@ describe("auth service", () => {
     expect(domainEvents.events[0]).toMatchObject({
       subject: "auth.success",
       source: "auth",
+      correlationId: "auth-credentials-request",
       data: {
         user: enabledProfile
       }
@@ -212,6 +217,7 @@ describe("auth service", () => {
     expect(domainEvents.events[1]).toMatchObject({
       subject: "auth.session.created",
       source: "auth",
+      correlationId: "auth-credentials-request",
       data: {
         user: enabledProfile,
         session: result!.session
@@ -228,7 +234,8 @@ describe("auth service", () => {
     await expect(
       service.createSessionForCredentials({
         username: enabledProfile.username,
-        password: "wrong-password"
+        password: "wrong-password",
+        correlationId: "auth-invalid-credentials-request"
       })
     ).resolves.toBeNull()
     expect(userSessionRepository.create).not.toHaveBeenCalled()
@@ -236,6 +243,7 @@ describe("auth service", () => {
     expect(domainEvents.events[0]).toMatchObject({
       subject: "auth.failure",
       source: "auth",
+      correlationId: "auth-invalid-credentials-request",
       data: {
         username: enabledProfile.username,
         reason: "invalid-credentials"
@@ -351,7 +359,7 @@ describe("auth service", () => {
     userSessionRepository.getBySessionID.mockResolvedValue(storedSession)
     userProfileRepository.getByID.mockResolvedValue(enabledProfile)
 
-    await expect(service.validateSession(sessionId)).resolves.toEqual({
+    await expect(service.validateSession({ sessionId })).resolves.toEqual({
       session: storedSession,
       user: {
         id: enabledProfile.id,
@@ -378,7 +386,7 @@ describe("auth service", () => {
     )
 
     await expect(
-      service.validateSession("public-session-token")
+      service.validateSession({ sessionId: "public-session-token" })
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to validate user session"
@@ -394,7 +402,7 @@ describe("auth service", () => {
     userProfileRepository.getByID.mockRejectedValue(new Error("db offline"))
 
     await expect(
-      service.validateSession("public-session-token")
+      service.validateSession({ sessionId: "public-session-token" })
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to validate user session"
@@ -407,13 +415,17 @@ describe("auth service", () => {
     userSessionRepository.getBySessionID.mockResolvedValue(null)
 
     await expect(
-      service.validateSession("missing-session-token")
+      service.validateSession({
+        sessionId: "missing-session-token",
+        correlationId: "auth-missing-session-request"
+      })
     ).resolves.toBeNull()
     expect(userProfileRepository.getByID).not.toHaveBeenCalled()
     expect(domainEvents.subjects()).toEqual(["auth.failure"])
     expect(domainEvents.events[0]).toMatchObject({
       subject: "auth.failure",
       source: "auth",
+      correlationId: "auth-missing-session-request",
       data: {
         sessionId: "missing-session-token",
         reason: "invalid-session"
@@ -433,7 +445,7 @@ describe("auth service", () => {
     userSessionRepository.getBySessionID.mockResolvedValue(expiredSession)
 
     await expect(
-      service.validateSession("expired-session-token")
+      service.validateSession({ sessionId: "expired-session-token" })
     ).resolves.toBeNull()
     expect(userProfileRepository.getByID).not.toHaveBeenCalled()
     expect(domainEvents.subjects()).toEqual(["auth.failure"])
@@ -456,7 +468,7 @@ describe("auth service", () => {
     userProfileRepository.getByID.mockResolvedValue(null)
 
     await expect(
-      service.validateSession("deleted-user-session-token")
+      service.validateSession({ sessionId: "deleted-user-session-token" })
     ).resolves.toBeNull()
     expect(domainEvents.subjects()).toEqual(["auth.failure"])
     expect(domainEvents.events[0]).toMatchObject({
@@ -481,7 +493,7 @@ describe("auth service", () => {
     })
 
     await expect(
-      service.validateSession("disabled-user-session-token")
+      service.validateSession({ sessionId: "disabled-user-session-token" })
     ).resolves.toBeNull()
     expect(domainEvents.subjects()).toEqual(["auth.failure"])
     expect(domainEvents.events[0]).toMatchObject({
@@ -500,7 +512,12 @@ describe("auth service", () => {
 
     userSessionRepository.deleteBySessionID.mockResolvedValue(storedSession)
 
-    await expect(service.revokeSession(sessionId)).resolves.toBe(true)
+    await expect(
+      service.revokeSession({
+        sessionId,
+        correlationId: "auth-revoke-session-request"
+      })
+    ).resolves.toBe(true)
     expect(userSessionRepository.deleteBySessionID).toHaveBeenCalledWith(
       hmacSessionId(sessionId)
     )
@@ -508,6 +525,7 @@ describe("auth service", () => {
     expect(domainEvents.events[0]).toMatchObject({
       subject: "auth.session.revoked",
       source: "auth",
+      correlationId: "auth-revoke-session-request",
       data: {
         session: storedSession
       }
@@ -519,9 +537,9 @@ describe("auth service", () => {
 
     userSessionRepository.deleteBySessionID.mockResolvedValue(null)
 
-    await expect(service.revokeSession("missing-session-token")).resolves.toBe(
-      false
-    )
+    await expect(
+      service.revokeSession({ sessionId: "missing-session-token" })
+    ).resolves.toBe(false)
   })
 
   it("maps session revocation failures to an HTTP 500", async () => {
@@ -532,7 +550,7 @@ describe("auth service", () => {
     )
 
     await expect(
-      service.revokeSession("public-session-token")
+      service.revokeSession({ sessionId: "public-session-token" })
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to revoke user session"

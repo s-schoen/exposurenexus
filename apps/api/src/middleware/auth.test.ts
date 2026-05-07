@@ -112,6 +112,10 @@ describe("auth middleware", () => {
     })
 
     const app = new Hono<{ Variables: ContextVariables }>()
+    app.use("*", async (c, next) => {
+      c.set("requestId", "auth-annotate-request")
+      await next()
+    })
     app.use("*", createAuthAnnotate({ validateSession }))
     app.get("/", (c) => {
       return c.json({
@@ -128,7 +132,10 @@ describe("auth middleware", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(validateSession).toHaveBeenCalledWith("public-session-token")
+    expect(validateSession).toHaveBeenCalledWith({
+      sessionId: "public-session-token",
+      correlationId: "auth-annotate-request"
+    })
     expect(body).toEqual({
       user,
       session: {
@@ -191,7 +198,9 @@ describe("auth middleware", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(validateSession).toHaveBeenCalledWith("invalid-session-token")
+    expect(validateSession).toHaveBeenCalledWith({
+      sessionId: "invalid-session-token"
+    })
     expect(response.headers.get("set-cookie")).toContain(sessionCookie(""))
     expect(body).toEqual({
       user: null,
