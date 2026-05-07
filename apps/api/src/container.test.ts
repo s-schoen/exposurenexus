@@ -17,6 +17,7 @@ const {
   createFindingStatsRouteMock,
   createFindingRouteMock,
   createImportRouteMock,
+  registerEventHandlersMock,
   createAuthServiceMock
 } = vi.hoisted(() => ({
   createAppMock: vi.fn(() => ({ fetch: vi.fn() })),
@@ -38,6 +39,7 @@ const {
   createFindingStatsRouteMock: vi.fn(() => ({ route: "stats" })),
   createFindingRouteMock: vi.fn(() => ({ route: "findings" })),
   createImportRouteMock: vi.fn(() => ({ route: "import" })),
+  registerEventHandlersMock: vi.fn(),
   createAuthServiceMock: vi.fn(() => ({
     kind: "auth-service",
     userHasPermission: vi.fn(),
@@ -138,6 +140,10 @@ vi.mock("./import/importer.js", () => ({
   createFindingImporter: vi.fn(() => ({ kind: "importer" }))
 }))
 
+vi.mock("./event-handler/index.js", () => ({
+  registerEventHandlers: registerEventHandlersMock
+}))
+
 import { createAppContainer } from "./container.js"
 
 describe("app container", () => {
@@ -179,6 +185,13 @@ describe("app container", () => {
         })
       })
     )
+    expect(registerEventHandlersMock).toHaveBeenCalledWith({
+      eventBus: expect.objectContaining({
+        emit: expect.any(Function),
+        on: expect.any(Function)
+      }),
+      loggerFactory: expect.any(Function)
+    })
     expect(createAuthRouteMock).toHaveBeenCalledWith(
       createAuthServiceMock.mock.results[0]?.value,
       {
