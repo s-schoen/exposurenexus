@@ -3,13 +3,16 @@ import type { UserEventPayloads } from "./user.js"
 import type { AuthEventPayloads } from "./auth.js"
 import type { FindingEventPayloads } from "./finding.js"
 import type { VulnerabilityEventPayloads } from "./vulnerability.js"
+import type { AssetEventPayloads } from "./asset.js"
 
+export type { AssetEventPayloads } from "./asset.js"
 export type { AuthEventPayloads } from "./auth.js"
 export type { FindingEventPayloads } from "./finding.js"
 export type { UserEventPayloads } from "./user.js"
 export type { VulnerabilityEventPayloads } from "./vulnerability.js"
 
-export type EventPayloads = UserEventPayloads &
+export type EventPayloads = AssetEventPayloads &
+  UserEventPayloads &
   AuthEventPayloads &
   FindingEventPayloads &
   VulnerabilityEventPayloads

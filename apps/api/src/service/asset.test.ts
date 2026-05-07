@@ -9,12 +9,15 @@ import {
 import type { CreateAssetCustomFieldDefinition } from "@openvlp/types/model/asset"
 import { pino } from "pino"
 import { createAssetService } from "./asset.js"
+import { createDomainEventCollector } from "../test/eventbus.js"
 
 describe("asset service", () => {
+  const domainEvents = createDomainEventCollector()
   const assetRepository = {
     list: vi.fn(),
     listWithCustomFields: vi.fn(),
     getByID: vi.fn(),
+    getByIDWithCustomFields: vi.fn(),
     getByName: vi.fn(),
     create: vi.fn(),
     updateOwnerByID: vi.fn(),
@@ -35,17 +38,37 @@ describe("asset service", () => {
     getByID: vi.fn()
   }
   const logger = pino({ enabled: false })
+  const eventContext = {
+    actor: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+    correlationId: "asset-service-request"
+  }
 
   function createTestAssetService() {
     return createAssetService({
       assetRepository,
       userProfileService,
+      domainEventEmitter: domainEvents.emitter,
       logger
     })
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
+    domainEvents.clear()
+    assetRepository.getByIDWithCustomFields.mockImplementation(async (id) => {
+      const asset = await assetRepository.getByID(id)
+      if (!asset) {
+        return null
+      }
+
+      const customFields =
+        (await assetRepository.listCustomFieldValues(id)) ?? []
+      return {
+        ...asset,
+        ownerId: asset.ownerId ?? null,
+        customFields
+      }
+    })
   })
 
   it("lists all assets from the repository", async () => {
@@ -207,13 +230,32 @@ describe("asset service", () => {
     const assetService = createTestAssetService()
 
     assetRepository.create.mockResolvedValue(createdAsset)
+    assetRepository.getByIDWithCustomFields.mockResolvedValue({
+      ...createdAsset,
+      customFields: []
+    })
 
-    await expect(assetService.create(payload)).resolves.toEqual(createdAsset)
+    await expect(
+      assetService.create({ asset: payload, eventContext })
+    ).resolves.toEqual(createdAsset)
     expect(userProfileService.getByID).not.toHaveBeenCalled()
     expect(assetRepository.create).toHaveBeenCalledWith({
       id: "",
       ownerId: null,
       ...payload
+    })
+    expect(domainEvents.subjects()).toEqual(["asset.created"])
+    expect(domainEvents.eventsFor("asset.created")[0]).toMatchObject({
+      subject: "asset.created",
+      source: "asset",
+      actor: eventContext.actor,
+      correlationId: eventContext.correlationId,
+      data: {
+        asset: {
+          ...createdAsset,
+          customFields: []
+        }
+      }
     })
   })
 
@@ -239,8 +281,14 @@ describe("asset service", () => {
       roleIds: []
     })
     assetRepository.create.mockResolvedValue(createdAsset)
+    assetRepository.getByIDWithCustomFields.mockResolvedValue({
+      ...createdAsset,
+      customFields: []
+    })
 
-    await expect(assetService.create(payload)).resolves.toEqual(createdAsset)
+    await expect(assetService.create({ asset: payload })).resolves.toEqual(
+      createdAsset
+    )
     expect(userProfileService.getByID).toHaveBeenCalledWith(ownerId)
     expect(assetRepository.create).toHaveBeenCalledWith({
       id: "",
@@ -270,8 +318,14 @@ describe("asset service", () => {
       roleIds: []
     })
     assetRepository.create.mockResolvedValue(createdAsset)
+    assetRepository.getByIDWithCustomFields.mockResolvedValue({
+      ...createdAsset,
+      customFields: []
+    })
 
-    await expect(assetService.create(payload)).resolves.toEqual(createdAsset)
+    await expect(assetService.create({ asset: payload })).resolves.toEqual(
+      createdAsset
+    )
     expect(userProfileService.getByID).toHaveBeenCalledWith(ownerId)
     expect(assetRepository.create).toHaveBeenCalledWith({
       id: "",
@@ -287,9 +341,11 @@ describe("asset service", () => {
 
     await expect(
       assetService.create({
-        name: "worker.openvlp.local",
-        type: AssetType.Host,
-        ownerId
+        asset: {
+          name: "worker.openvlp.local",
+          type: AssetType.Host,
+          ownerId
+        }
       })
     ).rejects.toMatchObject({
       status: 400,
@@ -305,8 +361,10 @@ describe("asset service", () => {
 
     await expect(
       assetService.create({
-        name: "worker.openvlp.local",
-        type: AssetType.Host
+        asset: {
+          name: "worker.openvlp.local",
+          type: AssetType.Host
+        }
       })
     ).rejects.toMatchObject({
       status: 500,
@@ -324,13 +382,39 @@ describe("asset service", () => {
     }
     const assetService = createTestAssetService()
 
+    assetRepository.getByIDWithCustomFields
+      .mockResolvedValueOnce({
+        ...updatedAsset,
+        ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+        customFields: []
+      })
+      .mockResolvedValueOnce({
+        ...updatedAsset,
+        customFields: []
+      })
     assetRepository.updateOwnerByID.mockResolvedValue(updatedAsset)
 
-    await expect(assetService.updateOwnerByID(assetId, null)).resolves.toEqual(
-      updatedAsset
-    )
+    await expect(
+      assetService.updateOwnerByID({ id: assetId, ownerId: null, eventContext })
+    ).resolves.toEqual(updatedAsset)
     expect(userProfileService.getByID).not.toHaveBeenCalled()
     expect(assetRepository.updateOwnerByID).toHaveBeenCalledWith(assetId, null)
+    expect(domainEvents.subjects()).toEqual(["asset.updated"])
+    expect(domainEvents.eventsFor("asset.updated")[0]).toMatchObject({
+      actor: eventContext.actor,
+      correlationId: eventContext.correlationId,
+      data: {
+        previous: {
+          ...updatedAsset,
+          ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+          customFields: []
+        },
+        current: {
+          ...updatedAsset,
+          customFields: []
+        }
+      }
+    })
   })
 
   it("updates asset owners to existing enabled users", async () => {
@@ -352,10 +436,20 @@ describe("asset service", () => {
       enabled: true,
       roleIds: []
     })
+    assetRepository.getByIDWithCustomFields
+      .mockResolvedValueOnce({
+        ...updatedAsset,
+        ownerId: null,
+        customFields: []
+      })
+      .mockResolvedValueOnce({
+        ...updatedAsset,
+        customFields: []
+      })
     assetRepository.updateOwnerByID.mockResolvedValue(updatedAsset)
 
     await expect(
-      assetService.updateOwnerByID(assetId, ownerId)
+      assetService.updateOwnerByID({ id: assetId, ownerId })
     ).resolves.toEqual(updatedAsset)
     expect(userProfileService.getByID).toHaveBeenCalledWith(ownerId)
     expect(assetRepository.updateOwnerByID).toHaveBeenCalledWith(
@@ -383,10 +477,20 @@ describe("asset service", () => {
       enabled: false,
       roleIds: []
     })
+    assetRepository.getByIDWithCustomFields
+      .mockResolvedValueOnce({
+        ...updatedAsset,
+        ownerId: null,
+        customFields: []
+      })
+      .mockResolvedValueOnce({
+        ...updatedAsset,
+        customFields: []
+      })
     assetRepository.updateOwnerByID.mockResolvedValue(updatedAsset)
 
     await expect(
-      assetService.updateOwnerByID(assetId, ownerId)
+      assetService.updateOwnerByID({ id: assetId, ownerId })
     ).resolves.toEqual(updatedAsset)
     expect(userProfileService.getByID).toHaveBeenCalledWith(ownerId)
     expect(assetRepository.updateOwnerByID).toHaveBeenCalledWith(
@@ -403,7 +507,7 @@ describe("asset service", () => {
     userProfileService.getByID.mockResolvedValue(null)
 
     await expect(
-      assetService.updateOwnerByID(assetId, ownerId)
+      assetService.updateOwnerByID({ id: assetId, ownerId })
     ).rejects.toMatchObject({
       status: 400,
       message: "asset owner does not exist"
@@ -415,22 +519,33 @@ describe("asset service", () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
     const assetService = createTestAssetService()
 
-    assetRepository.updateOwnerByID.mockResolvedValue(null)
+    assetRepository.getByIDWithCustomFields.mockResolvedValue(null)
 
     await expect(
-      assetService.updateOwnerByID(assetId, null)
+      assetService.updateOwnerByID({ id: assetId, ownerId: null })
     ).resolves.toBeNull()
+    expect(assetRepository.updateOwnerByID).not.toHaveBeenCalled()
   })
 
   it("maps repository owner update failures to an HTTP 500", async () => {
     const assetService = createTestAssetService()
 
+    assetRepository.getByIDWithCustomFields.mockResolvedValue({
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.openvlp.local",
+      type: AssetType.Host,
+      ownerId: null,
+      customFields: []
+    })
     assetRepository.updateOwnerByID.mockRejectedValue(
       new Error("update failed")
     )
 
     await expect(
-      assetService.updateOwnerByID("76b1885f-2d28-4b7d-93da-2751ff385aa3", null)
+      assetService.updateOwnerByID({
+        id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+        ownerId: null
+      })
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to update asset owner"
@@ -445,28 +560,59 @@ describe("asset service", () => {
     }
     const assetService = createTestAssetService()
 
+    assetRepository.getByIDWithCustomFields.mockResolvedValue({
+      ...asset,
+      ownerId: null,
+      customFields: []
+    })
     assetRepository.deleteByID.mockResolvedValue(asset)
 
-    await expect(assetService.deleteByID(asset.id)).resolves.toEqual(asset)
+    await expect(
+      assetService.deleteByID({ id: asset.id, eventContext })
+    ).resolves.toEqual(asset)
     expect(assetRepository.deleteByID).toHaveBeenCalledWith(asset.id)
+    expect(domainEvents.subjects()).toEqual(["asset.deleted"])
+    expect(domainEvents.eventsFor("asset.deleted")[0]).toMatchObject({
+      subject: "asset.deleted",
+      source: "asset",
+      actor: eventContext.actor,
+      correlationId: eventContext.correlationId,
+      data: {
+        asset: {
+          ...asset,
+          ownerId: null,
+          customFields: []
+        }
+      }
+    })
   })
 
   it("returns null when deleting a missing asset", async () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
     const assetService = createTestAssetService()
 
-    assetRepository.deleteByID.mockResolvedValue(null)
+    assetRepository.getByIDWithCustomFields.mockResolvedValue(null)
 
-    await expect(assetService.deleteByID(assetId)).resolves.toBeNull()
+    await expect(assetService.deleteByID({ id: assetId })).resolves.toBeNull()
+    expect(assetRepository.deleteByID).not.toHaveBeenCalled()
   })
 
   it("maps repository delete failures to an HTTP 500", async () => {
     const assetService = createTestAssetService()
 
+    assetRepository.getByIDWithCustomFields.mockResolvedValue({
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.openvlp.local",
+      type: AssetType.Host,
+      ownerId: null,
+      customFields: []
+    })
     assetRepository.deleteByID.mockRejectedValue(new Error("delete failed"))
 
     await expect(
-      assetService.deleteByID("76b1885f-2d28-4b7d-93da-2751ff385aa3")
+      assetService.deleteByID({
+        id: "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+      })
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to get asset"
@@ -1029,15 +1175,15 @@ describe("asset service", () => {
     assetRepository.getByID.mockResolvedValue(null)
 
     await expect(
-      assetService.upsertCustomFieldValues(
-        "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-        [
+      assetService.upsertCustomFieldValues({
+        assetId: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+        values: [
           {
             fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
             value: "platform"
           }
         ]
-      )
+      })
     ).resolves.toBeNull()
     expect(assetRepository.upsertCustomFieldValues).not.toHaveBeenCalled()
   })
@@ -1055,12 +1201,15 @@ describe("asset service", () => {
     assetRepository.listCustomFieldValues.mockResolvedValue([])
 
     await expect(
-      assetService.upsertCustomFieldValues(asset.id, [
-        {
-          fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
-          value: "platform"
-        }
-      ])
+      assetService.upsertCustomFieldValues({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+            value: "platform"
+          }
+        ]
+      })
     ).rejects.toMatchObject({
       status: 400,
       message:
@@ -1098,12 +1247,15 @@ describe("asset service", () => {
     ])
 
     await expect(
-      assetService.upsertCustomFieldValues(asset.id, [
-        {
-          fieldId: definition.id,
-          value: "high"
-        }
-      ])
+      assetService.upsertCustomFieldValues({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: definition.id,
+            value: "high"
+          }
+        ]
+      })
     ).rejects.toMatchObject({
       status: 400,
       message: "invalid value for asset custom field priority"
@@ -1131,12 +1283,15 @@ describe("asset service", () => {
     assetRepository.listCustomFieldValues.mockResolvedValue([])
 
     await expect(
-      assetService.upsertCustomFieldValues(asset.id, [
-        {
-          fieldId: definition.id,
-          value: 5
-        }
-      ])
+      assetService.upsertCustomFieldValues({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: definition.id,
+            value: 5
+          }
+        ]
+      })
     ).rejects.toMatchObject({
       status: 400,
       message: "asset custom field is not assigned to asset"
@@ -1183,12 +1338,15 @@ describe("asset service", () => {
     ])
 
     await expect(
-      assetService.upsertCustomFieldValues(asset.id, [
-        {
-          fieldId: definition.id,
-          value: "stage"
-        }
-      ])
+      assetService.upsertCustomFieldValues({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: definition.id,
+            value: "stage"
+          }
+        ]
+      })
     ).rejects.toMatchObject({
       status: 400,
       message: "invalid value for asset custom field environment"
@@ -1219,11 +1377,7 @@ describe("asset service", () => {
         value: 5
       }
     ]
-    const assetService = createTestAssetService()
-
-    assetRepository.getByID.mockResolvedValue(asset)
-    assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
-    assetRepository.listCustomFieldValues.mockResolvedValue([
+    const previousValues = [
       {
         fieldId: definition.id,
         key: definition.key,
@@ -1232,21 +1386,110 @@ describe("asset service", () => {
         type: AssetCustomFieldType.Number,
         value: null
       }
-    ])
+    ]
+    const assetService = createTestAssetService()
+
+    assetRepository.getByIDWithCustomFields
+      .mockResolvedValueOnce({
+        ...asset,
+        ownerId: null,
+        customFields: previousValues
+      })
+      .mockResolvedValueOnce({
+        ...asset,
+        ownerId: null,
+        customFields: values
+      })
+    assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
     assetRepository.upsertCustomFieldValues.mockResolvedValue(values)
 
     await expect(
-      assetService.upsertCustomFieldValues(asset.id, [
-        {
-          fieldId: definition.id,
-          value: 5
-        }
-      ])
+      assetService.upsertCustomFieldValues({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: definition.id,
+            value: 5
+          }
+        ],
+        eventContext
+      })
     ).resolves.toEqual(values)
     expect(assetRepository.upsertCustomFieldValues).toHaveBeenCalledWith(
       asset.id,
       [{ fieldId: definition.id, value: 5 }]
     )
+    expect(domainEvents.subjects()).toEqual(["asset.updated"])
+    expect(domainEvents.eventsFor("asset.updated")[0]).toMatchObject({
+      subject: "asset.updated",
+      source: "asset",
+      actor: eventContext.actor,
+      correlationId: eventContext.correlationId,
+      data: {
+        previous: {
+          ...asset,
+          ownerId: null,
+          customFields: previousValues
+        },
+        current: {
+          ...asset,
+          ownerId: null,
+          customFields: values
+        }
+      }
+    })
+  })
+
+  it("does not emit asset update events for unchanged custom field values", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.openvlp.local",
+      type: AssetType.Host,
+      ownerId: null
+    }
+    const definition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "priority",
+      name: "Priority",
+      required: false,
+      type: AssetCustomFieldType.Number,
+      defaultValue: null
+    }
+    const values = [
+      {
+        fieldId: definition.id,
+        key: "priority",
+        name: "Priority",
+        source: AssetCustomFieldValueSource.Asset,
+        type: AssetCustomFieldType.Number,
+        value: 5
+      }
+    ]
+    const snapshot = {
+      ...asset,
+      customFields: values
+    }
+    const assetService = createTestAssetService()
+
+    assetRepository.getByIDWithCustomFields
+      .mockResolvedValueOnce(snapshot)
+      .mockResolvedValueOnce(snapshot)
+    assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
+    assetRepository.upsertCustomFieldValues.mockResolvedValue(values)
+
+    await expect(
+      assetService.upsertCustomFieldValues({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: definition.id,
+            value: 5
+          }
+        ],
+        eventContext
+      })
+    ).resolves.toEqual(values)
+    expect(domainEvents.subjects()).toEqual([])
   })
 
   it("forwards valid text custom field value upserts", async () => {
@@ -1290,12 +1533,15 @@ describe("asset service", () => {
     assetRepository.upsertCustomFieldValues.mockResolvedValue(values)
 
     await expect(
-      assetService.upsertCustomFieldValues(asset.id, [
-        {
-          fieldId: definition.id,
-          value: "platform"
-        }
-      ])
+      assetService.upsertCustomFieldValues({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: definition.id,
+            value: "platform"
+          }
+        ]
+      })
     ).resolves.toEqual(values)
   })
 
@@ -1332,12 +1578,15 @@ describe("asset service", () => {
     )
 
     await expect(
-      assetService.upsertCustomFieldValues(asset.id, [
-        {
-          fieldId: definition.id,
-          value: "platform"
-        }
-      ])
+      assetService.upsertCustomFieldValues({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: definition.id,
+            value: "platform"
+          }
+        ]
+      })
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to update asset custom field values"
@@ -1350,10 +1599,10 @@ describe("asset service", () => {
     assetRepository.getByID.mockResolvedValue(null)
 
     await expect(
-      assetService.clearCustomFieldValue(
-        "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-        "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-      )
+      assetService.clearCustomFieldValue({
+        assetId: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+        fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+      })
     ).resolves.toBeNull()
     expect(assetRepository.clearCustomFieldValue).not.toHaveBeenCalled()
   })
@@ -1370,10 +1619,10 @@ describe("asset service", () => {
     assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(null)
 
     await expect(
-      assetService.clearCustomFieldValue(
-        asset.id,
-        "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-      )
+      assetService.clearCustomFieldValue({
+        assetId: asset.id,
+        fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+      })
     ).rejects.toMatchObject({
       status: 400,
       message:
@@ -1402,7 +1651,10 @@ describe("asset service", () => {
     assetRepository.listCustomFieldValues.mockResolvedValue([])
 
     await expect(
-      assetService.clearCustomFieldValue(asset.id, definition.id)
+      assetService.clearCustomFieldValue({
+        assetId: asset.id,
+        fieldId: definition.id
+      })
     ).rejects.toMatchObject({
       status: 400,
       message: "asset custom field is not assigned to asset"
@@ -1441,7 +1693,11 @@ describe("asset service", () => {
     assetRepository.clearCustomFieldValue.mockResolvedValue(undefined)
 
     await expect(
-      assetService.clearCustomFieldValue(asset.id, definition.id)
+      assetService.clearCustomFieldValue({
+        assetId: asset.id,
+        fieldId: definition.id,
+        eventContext
+      })
     ).resolves.toBe(true)
     expect(assetRepository.clearCustomFieldValue).toHaveBeenCalledWith(
       asset.id,
@@ -1482,7 +1738,10 @@ describe("asset service", () => {
     )
 
     await expect(
-      assetService.clearCustomFieldValue(asset.id, definition.id)
+      assetService.clearCustomFieldValue({
+        assetId: asset.id,
+        fieldId: definition.id
+      })
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to clear asset custom field value"
@@ -1515,16 +1774,31 @@ describe("asset service", () => {
     ]
     const assetService = createTestAssetService()
 
-    assetRepository.getByID.mockResolvedValue(asset)
+    assetRepository.getByIDWithCustomFields
+      .mockResolvedValueOnce({
+        ...asset,
+        ownerId: null,
+        customFields: []
+      })
+      .mockResolvedValueOnce({
+        ...asset,
+        ownerId: null,
+        customFields: values
+      })
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([definition])
     assetRepository.assignCustomFields.mockResolvedValue(values)
 
     await expect(
-      assetService.assignCustomFields(asset.id, [definition.id])
+      assetService.assignCustomFields({
+        assetId: asset.id,
+        fieldIds: [definition.id],
+        eventContext
+      })
     ).resolves.toEqual(values)
     expect(assetRepository.assignCustomFields).toHaveBeenCalledWith(asset.id, [
       definition.id
     ])
+    expect(domainEvents.subjects()).toEqual(["asset.updated"])
   })
 
   it("returns null when assigning custom fields to a missing asset", async () => {
@@ -1533,9 +1807,10 @@ describe("asset service", () => {
     assetRepository.getByID.mockResolvedValue(null)
 
     await expect(
-      assetService.assignCustomFields("76b1885f-2d28-4b7d-93da-2751ff385aa3", [
-        "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-      ])
+      assetService.assignCustomFields({
+        assetId: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+        fieldIds: ["5bde818a-bb4f-4a0f-a5eb-a190d5142a25"]
+      })
     ).resolves.toBeNull()
     expect(assetRepository.listCustomFieldDefinitions).not.toHaveBeenCalled()
     expect(assetRepository.assignCustomFields).not.toHaveBeenCalled()
@@ -1553,9 +1828,10 @@ describe("asset service", () => {
     assetRepository.listCustomFieldDefinitions.mockResolvedValue([])
 
     await expect(
-      assetService.assignCustomFields(asset.id, [
-        "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-      ])
+      assetService.assignCustomFields({
+        assetId: asset.id,
+        fieldIds: ["5bde818a-bb4f-4a0f-a5eb-a190d5142a25"]
+      })
     ).rejects.toMatchObject({
       status: 400,
       message:
@@ -1587,7 +1863,10 @@ describe("asset service", () => {
     )
 
     await expect(
-      assetService.assignCustomFields(asset.id, [definition.id])
+      assetService.assignCustomFields({
+        assetId: asset.id,
+        fieldIds: [definition.id]
+      })
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to assign asset custom fields"
@@ -1615,7 +1894,11 @@ describe("asset service", () => {
     assetRepository.detachCustomField.mockResolvedValue(undefined)
 
     await expect(
-      assetService.detachCustomField(asset.id, definition.id)
+      assetService.detachCustomField({
+        assetId: asset.id,
+        fieldId: definition.id,
+        eventContext
+      })
     ).resolves.toBe(true)
     expect(assetRepository.detachCustomField).toHaveBeenCalledWith(
       asset.id,
@@ -1629,10 +1912,10 @@ describe("asset service", () => {
     assetRepository.getByID.mockResolvedValue(null)
 
     await expect(
-      assetService.detachCustomField(
-        "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-        "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-      )
+      assetService.detachCustomField({
+        assetId: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+        fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+      })
     ).resolves.toBeNull()
     expect(assetRepository.getCustomFieldDefinitionByID).not.toHaveBeenCalled()
     expect(assetRepository.detachCustomField).not.toHaveBeenCalled()
@@ -1650,10 +1933,10 @@ describe("asset service", () => {
     assetRepository.getCustomFieldDefinitionByID.mockResolvedValue(null)
 
     await expect(
-      assetService.detachCustomField(
-        asset.id,
-        "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-      )
+      assetService.detachCustomField({
+        assetId: asset.id,
+        fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+      })
     ).rejects.toMatchObject({
       status: 400,
       message:
@@ -1685,7 +1968,10 @@ describe("asset service", () => {
     )
 
     await expect(
-      assetService.detachCustomField(asset.id, definition.id)
+      assetService.detachCustomField({
+        assetId: asset.id,
+        fieldId: definition.id
+      })
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to detach asset custom field"

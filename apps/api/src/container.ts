@@ -105,6 +105,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const assetService = createAssetService({
     assetRepository: repositories.assetRepository,
     userProfileService,
+    domainEventEmitter: eventBus,
     logger: loggerFactory("service/asset")
   })
   const vulnerabilityService = createVulnerabilityService({

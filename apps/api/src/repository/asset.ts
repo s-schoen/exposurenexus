@@ -282,6 +282,41 @@ async function insertCustomFieldOptions(
     .execute()
 }
 
+async function withCustomFieldValues(
+  database: DatabaseExecutor,
+  assets: Asset[]
+): Promise<AssetWithCustomFields[]> {
+  const assetIds = assets.map((asset) => asset.id)
+
+  if (assetIds.length === 0) {
+    return []
+  }
+
+  const definitionsByAssetId =
+    await listAssignedCustomFieldDefinitionsByAssetId(database, assetIds)
+  const overrides = await database
+    .selectFrom("asset_custom_field_value")
+    .select(["assetId", "fieldId", "value"])
+    .where("assetId", "in", assetIds)
+    .execute()
+  const overridesByAssetAndFieldId = new Map(
+    overrides.map((override) => [
+      `${override.assetId}:${override.fieldId}`,
+      override.value
+    ])
+  )
+
+  return assets.map((asset) => ({
+    ...asset,
+    customFields: (definitionsByAssetId.get(asset.id) ?? []).map((definition) =>
+      toCustomFieldValue(
+        definition,
+        overridesByAssetAndFieldId.get(`${asset.id}:${definition.id}`)
+      )
+    )
+  }))
+}
+
 export function createAssetRepository(database: Kysely<Database>) {
   return {
     async list(): Promise<Asset[]> {
@@ -291,36 +326,7 @@ export function createAssetRepository(database: Kysely<Database>) {
 
     async listWithCustomFields(): Promise<AssetWithCustomFields[]> {
       const assets = await database.selectFrom("asset").selectAll().execute()
-      const assetIds = assets.map((asset) => asset.id)
-
-      if (assetIds.length === 0) {
-        return []
-      }
-
-      const definitionsByAssetId =
-        await listAssignedCustomFieldDefinitionsByAssetId(database, assetIds)
-      const overrides = await database
-        .selectFrom("asset_custom_field_value")
-        .select(["assetId", "fieldId", "value"])
-        .where("assetId", "in", assetIds)
-        .execute()
-      const overridesByAssetAndFieldId = new Map(
-        overrides.map((override) => [
-          `${override.assetId}:${override.fieldId}`,
-          override.value
-        ])
-      )
-
-      return assets.map((asset) => ({
-        ...asset,
-        customFields: (definitionsByAssetId.get(asset.id) ?? []).map(
-          (definition) =>
-            toCustomFieldValue(
-              definition,
-              overridesByAssetAndFieldId.get(`${asset.id}:${definition.id}`)
-            )
-        )
-      }))
+      return await withCustomFieldValues(database, assets)
     },
 
     async getByID(id: string): Promise<Asset | null> {
@@ -334,6 +340,25 @@ export function createAssetRepository(database: Kysely<Database>) {
         return null
       }
       return assets[0]
+    },
+
+    async getByIDWithCustomFields(
+      id: string
+    ): Promise<AssetWithCustomFields | null> {
+      const asset = await database
+        .selectFrom("asset")
+        .selectAll()
+        .where("id", "=", id)
+        .executeTakeFirst()
+
+      if (!asset) {
+        return null
+      }
+
+      const [assetWithCustomFields] = await withCustomFieldValues(database, [
+        asset
+      ])
+      return assetWithCustomFields
     },
 
     async getByName(name: string, type?: AssetType): Promise<Asset | null> {

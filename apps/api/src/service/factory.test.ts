@@ -68,6 +68,7 @@ describe("service factories", () => {
       list: vi.fn().mockResolvedValue([]),
       listWithCustomFields: vi.fn(),
       getByID: vi.fn(),
+      getByIDWithCustomFields: vi.fn(),
       getByName: vi.fn(),
       create: vi.fn(),
       updateOwnerByID: vi.fn(),
@@ -88,6 +89,9 @@ describe("service factories", () => {
       assetRepository: repository,
       userProfileService: {
         getByID: vi.fn()
+      },
+      domainEventEmitter: {
+        emit: vi.fn()
       },
       logger
     })

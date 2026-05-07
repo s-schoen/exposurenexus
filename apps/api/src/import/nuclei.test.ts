@@ -131,7 +131,8 @@ describe("nuclei importer", () => {
     expect(vulnerabilityService.createMapping).not.toHaveBeenCalled()
     expect(getOrCreateAsset).toHaveBeenCalledWith(
       AssetType.Host,
-      "api.openvlp.local"
+      "api.openvlp.local",
+      ctx.eventContext
     )
     expect(findingService.createOrUpdate).toHaveBeenCalledWith(
       {

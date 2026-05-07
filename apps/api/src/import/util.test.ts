@@ -37,6 +37,10 @@ describe("import util", () => {
 
   it("creates an asset when no match exists", async () => {
     const getOrCreateAsset = createGetOrCreateAsset({ assetService, logger })
+    const eventContext = {
+      actor: "95d5909c-a9ab-4350-a515-4b89eb1065ae",
+      correlationId: "import-request"
+    }
     const createdAsset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
       name: "api.openvlp.local",
@@ -48,11 +52,14 @@ describe("import util", () => {
     assetService.create.mockResolvedValue(createdAsset)
 
     await expect(
-      getOrCreateAsset(AssetType.Host, createdAsset.name)
+      getOrCreateAsset(AssetType.Host, createdAsset.name, eventContext)
     ).resolves.toEqual(createdAsset)
     expect(assetService.create).toHaveBeenCalledWith({
-      name: createdAsset.name,
-      type: AssetType.Host
+      asset: {
+        name: createdAsset.name,
+        type: AssetType.Host
+      },
+      eventContext
     })
   })
 })

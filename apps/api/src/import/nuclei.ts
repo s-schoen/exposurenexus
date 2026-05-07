@@ -95,7 +95,11 @@ interface NucleiFindingService {
 interface NucleiFindingParserDependencies {
   vulnerabilityService: NucleiVulnerabilityService
   findingService: NucleiFindingService
-  getOrCreateAsset(type: AssetType, name: string): Promise<Asset>
+  getOrCreateAsset(
+    type: AssetType,
+    name: string,
+    eventContext?: ImportContext["eventContext"]
+  ): Promise<Asset>
   logger: Logger
 }
 
@@ -193,7 +197,11 @@ export function createNucleiFindingParser({
             `using vulnerability ${vulnerability.id} (${vulnerability.title}) for finding ${currentLine}`
           )
 
-          const asset = await getOrCreateAsset(AssetType.Host, host)
+          const asset = await getOrCreateAsset(
+            AssetType.Host,
+            host,
+            ctx.eventContext
+          )
           const fingerprintInfo = {
             port: nucleiFinding.port || "",
             path: nucleiFinding.path || ""
