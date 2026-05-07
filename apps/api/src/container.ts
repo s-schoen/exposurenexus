@@ -43,6 +43,7 @@ import { createNucleiFindingParser } from "./import/nuclei.js"
 import { createFindingImporter } from "./import/importer.js"
 import { EventBus } from "./lib/eventbus/eventbus.js"
 import type { DomainEvent } from "./lib/eventbus/events/index.js"
+import { registerEventHandlers } from "./event-handler/index.js"
 
 type LoggerFactory = (moduleName: string) => Logger
 
@@ -68,6 +69,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
 
   // setup event bus
   const eventBus = new EventBus<DomainEvent>()
+  registerEventHandlers({ eventBus, loggerFactory })
 
   const repositories = {
     assetRepository: createAssetRepository(options.db),
