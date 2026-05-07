@@ -12,6 +12,10 @@ import type {
   UserSession
 } from "@openvlp/types/model/user"
 import { verifyPasswordHash } from "../lib/argon2.js"
+import {
+  createEventPayload,
+  type DomainEventEmitter
+} from "../lib/eventbus/events/index.js"
 
 const DUMMY_PASSWORD_HASH =
   "$argon2id$v=19$m=65536,t=3,p=4$Wa8M0nF1X8xS27SqOFnmsw$98GFJBEC07TapmYXC8zGbR7ARdLfDSr2t1sWeARp0Ag"
@@ -35,6 +39,7 @@ interface AuthServiceDependencies {
   userProfileRepository: UserProfileRepository
   userSessionRepository: UserSessionRepository
   userRoleRepository: UserRoleRepository
+  domainEventEmitter: DomainEventEmitter
   sessionLifetimeHours: number
   sessionHmacSecret: string
   logger: Logger
@@ -69,7 +74,6 @@ type ResourcePermissionVerbAssignment = Partial<
 >
 
 export interface AuthService {
-  checkCredentials(username: string, password: string): Promise<boolean>
   createSessionForCredentials(
     input: CreateSessionForCredentialsInput
   ): Promise<CreatedSession | null>
@@ -131,14 +135,18 @@ function hasRequiredPermissions(
   return true
 }
 
-export function createAuthService({
-  userProfileRepository,
-  userSessionRepository,
-  userRoleRepository,
-  sessionLifetimeHours,
-  sessionHmacSecret,
-  logger
-}: AuthServiceDependencies): AuthService {
+export function createAuthService(
+  dependencies: AuthServiceDependencies
+): AuthService {
+  const {
+    userProfileRepository,
+    userSessionRepository,
+    userRoleRepository,
+    sessionLifetimeHours,
+    sessionHmacSecret,
+    domainEventEmitter,
+    logger
+  } = dependencies
   async function authenticateUserProfile(
     username: string,
     password: string
@@ -176,12 +184,15 @@ export function createAuthService({
       throw new Error("failed to load session user")
     }
 
-    logger.info(
-      {
-        userProfileId: input.userId,
-        userSessionId: session.id
-      },
-      "created user session"
+    domainEventEmitter.emit(
+      createEventPayload({
+        subject: "auth.session.created",
+        source: "auth",
+        data: {
+          user: sessionUserProfile,
+          session: session
+        }
+      })
     )
 
     return {
@@ -192,31 +203,6 @@ export function createAuthService({
   }
 
   return {
-    async checkCredentials(
-      username: string,
-      password: string
-    ): Promise<boolean> {
-      try {
-        const userProfile = await authenticateUserProfile(username, password)
-        const authenticated = Boolean(userProfile)
-
-        if (authenticated) {
-          logger.info(`user authentication success for ${username}`)
-        } else {
-          logger.warn(
-            `user authentication failed for ${username}: invalid_credentials`
-          )
-        }
-
-        return authenticated
-      } catch (error) {
-        logger.error(error, "failed to check user credentials")
-        throw new HTTPException(500, {
-          message: "failed to check user credentials"
-        })
-      }
-    },
-
     async createSessionForCredentials(
       input: CreateSessionForCredentialsInput
     ): Promise<CreatedSession | null> {
@@ -227,13 +213,28 @@ export function createAuthService({
         )
 
         if (!userProfile) {
-          logger.warn(
-            `user authentication failed for ${input.username}: invalid_credentials`
+          domainEventEmitter.emit(
+            createEventPayload({
+              subject: "auth.failure",
+              source: "auth",
+              data: {
+                username: input.username,
+                reason: "invalid-credentials"
+              }
+            })
           )
           return null
         }
 
-        logger.info(`user authentication success for ${input.username}`)
+        domainEventEmitter.emit(
+          createEventPayload({
+            subject: "auth.success",
+            source: "auth",
+            data: {
+              user: userProfile
+            }
+          })
+        )
 
         return await createUserSession(
           {
@@ -272,51 +273,61 @@ export function createAuthService({
           await userSessionRepository.getBySessionID(sessionIdDigest)
 
         if (!session) {
-          logger.warn("user session validation failed: session not found")
+          domainEventEmitter.emit(
+            createEventPayload({
+              subject: "auth.failure",
+              source: "auth",
+              data: {
+                sessionId: sessionId,
+                reason: "invalid-session"
+              }
+            })
+          )
           return null
         }
 
         if (session.expiresAt.getTime() <= Date.now()) {
-          logger.warn(
-            {
-              userProfileId: session.userId,
-              userSessionId: session.id
-            },
-            "user session validation failed: expired"
+          domainEventEmitter.emit(
+            createEventPayload({
+              subject: "auth.failure",
+              source: "auth",
+              data: {
+                sessionId: sessionId,
+                reason: "session-expired"
+              }
+            })
           )
           return null
         }
 
         const userProfile = await userProfileRepository.getByID(session.userId)
         if (!userProfile) {
-          logger.warn(
-            {
-              userProfileId: session.userId,
-              userSessionId: session.id
-            },
-            "user session validation failed: unknown user"
+          domainEventEmitter.emit(
+            createEventPayload({
+              subject: "auth.failure",
+              source: "auth",
+              data: {
+                sessionId: sessionId,
+                reason: "unknown-user"
+              }
+            })
           )
           return null
         }
 
         if (!userProfile.enabled) {
-          logger.warn(
-            {
-              userProfileId: session.userId,
-              userSessionId: session.id
-            },
-            "user session validation failed: user disabled"
+          domainEventEmitter.emit(
+            createEventPayload({
+              subject: "auth.failure",
+              source: "auth",
+              data: {
+                sessionId: sessionId,
+                reason: "disabled-user"
+              }
+            })
           )
           return null
         }
-
-        logger.debug(
-          {
-            userProfileId: session.userId,
-            userSessionId: session.id
-          },
-          "user session validation succeeded"
-        )
 
         return {
           session,
@@ -340,12 +351,14 @@ export function createAuthService({
           await userSessionRepository.deleteBySessionID(sessionIdDigest)
 
         if (revokedSession) {
-          logger.info(
-            {
-              userProfileId: revokedSession?.userId,
-              userSessionId: revokedSession?.id
-            },
-            "revoked user session"
+          domainEventEmitter.emit(
+            createEventPayload({
+              subject: "auth.session.revoked",
+              source: "auth",
+              data: {
+                session: revokedSession
+              }
+            })
           )
         }
 

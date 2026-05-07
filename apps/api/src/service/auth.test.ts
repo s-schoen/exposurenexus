@@ -27,6 +27,9 @@ describe("auth service", () => {
   const userRoleRepository = {
     listPermissionsByUserID: vi.fn()
   }
+  const domainEventEmitter = {
+    emit: vi.fn()
+  }
   const logger = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -60,6 +63,7 @@ describe("auth service", () => {
       userProfileRepository,
       userSessionRepository,
       userRoleRepository,
+      domainEventEmitter,
       sessionLifetimeHours,
       sessionHmacSecret,
       logger
@@ -76,112 +80,6 @@ describe("auth service", () => {
     vi.clearAllMocks()
     vi.useRealTimers()
     verifyPasswordHashMock.mockResolvedValue(false)
-  })
-
-  it("returns true for valid enabled user credentials", async () => {
-    const service = createService()
-
-    userProfileRepository.getByUsername.mockResolvedValue(enabledProfile)
-    verifyPasswordHashMock.mockResolvedValue(true)
-
-    await expect(
-      service.checkCredentials("alice", "correct-horse-battery-staple")
-    ).resolves.toBe(true)
-    expect(userProfileRepository.getByUsername).toHaveBeenCalledWith("alice")
-    expect(verifyPasswordHashMock).toHaveBeenCalledWith(
-      "correct-horse-battery-staple",
-      enabledProfile.passwordHash
-    )
-  })
-
-  it("returns false for a missing username after verifying a dummy hash", async () => {
-    const service = createService()
-
-    userProfileRepository.getByUsername.mockResolvedValue(null)
-
-    await expect(
-      service.checkCredentials("missing-user", "wrong-password")
-    ).resolves.toBe(false)
-    expect(verifyPasswordHashMock).toHaveBeenCalledWith(
-      "wrong-password",
-      expect.stringMatching(
-        /^\$argon2id\$v=19\$m=\d+,t=\d+,p=\d+\$[A-Za-z0-9_-]+\$[A-Za-z0-9_-]+$/
-      )
-    )
-  })
-
-  it("returns false for an incorrect password", async () => {
-    const service = createService()
-
-    userProfileRepository.getByUsername.mockResolvedValue(enabledProfile)
-    verifyPasswordHashMock.mockResolvedValue(false)
-
-    await expect(
-      service.checkCredentials("alice", "wrong-password")
-    ).resolves.toBe(false)
-    expect(verifyPasswordHashMock).toHaveBeenCalledWith(
-      "wrong-password",
-      enabledProfile.passwordHash
-    )
-  })
-
-  it("returns false for disabled users after verifying the stored hash", async () => {
-    const service = createService()
-    const disabledProfile = {
-      ...enabledProfile,
-      enabled: false
-    }
-
-    userProfileRepository.getByUsername.mockResolvedValue(disabledProfile)
-    verifyPasswordHashMock.mockResolvedValue(true)
-
-    await expect(
-      service.checkCredentials("alice", "correct-horse-battery-staple")
-    ).resolves.toBe(false)
-    expect(verifyPasswordHashMock).toHaveBeenCalledWith(
-      "correct-horse-battery-staple",
-      disabledProfile.passwordHash
-    )
-  })
-
-  it("returns false when the stored password hash cannot be verified", async () => {
-    const service = createService()
-    const profileWithMalformedHash = {
-      ...enabledProfile,
-      passwordHash: "not-a-password-hash"
-    }
-
-    userProfileRepository.getByUsername.mockResolvedValue(
-      profileWithMalformedHash
-    )
-    verifyPasswordHashMock.mockResolvedValue(false)
-
-    await expect(
-      service.checkCredentials("alice", "correct-horse-battery-staple")
-    ).resolves.toBe(false)
-    expect(verifyPasswordHashMock).toHaveBeenCalledWith(
-      "correct-horse-battery-staple",
-      profileWithMalformedHash.passwordHash
-    )
-  })
-
-  it("logs and maps repository failures to an HTTP 500", async () => {
-    const service = createService()
-    const error = new Error("db offline")
-
-    userProfileRepository.getByUsername.mockRejectedValue(error)
-
-    await expect(
-      service.checkCredentials("alice", "correct-horse-battery-staple")
-    ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to check user credentials"
-    } satisfies Partial<HTTPException>)
-    expect(logger.error).toHaveBeenCalledWith(
-      error,
-      "failed to check user credentials"
-    )
-    expect(verifyPasswordHashMock).not.toHaveBeenCalled()
   })
 
   it("creates sessions with an opaque token and stores only an HMAC digest", async () => {
@@ -306,6 +204,71 @@ describe("auth service", () => {
       })
     ).resolves.toBeNull()
     expect(userSessionRepository.create).not.toHaveBeenCalled()
+  })
+
+  it("does not create a session for a missing username after verifying a dummy hash", async () => {
+    const service = createService()
+
+    userProfileRepository.getByUsername.mockResolvedValue(null)
+
+    await expect(
+      service.createSessionForCredentials({
+        username: "missing-user",
+        password: "wrong-password"
+      })
+    ).resolves.toBeNull()
+    expect(verifyPasswordHashMock).toHaveBeenCalledWith(
+      "wrong-password",
+      expect.stringMatching(
+        /^\$argon2id\$v=19\$m=\d+,t=\d+,p=\d+\$[A-Za-z0-9_-]+\$[A-Za-z0-9_-]+$/
+      )
+    )
+    expect(userSessionRepository.create).not.toHaveBeenCalled()
+  })
+
+  it("does not create a session for disabled users after verifying the stored hash", async () => {
+    const service = createService()
+    const disabledProfile = {
+      ...enabledProfile,
+      enabled: false
+    }
+
+    userProfileRepository.getByUsername.mockResolvedValue(disabledProfile)
+    verifyPasswordHashMock.mockResolvedValue(true)
+
+    await expect(
+      service.createSessionForCredentials({
+        username: disabledProfile.username,
+        password: "correct-horse-battery-staple"
+      })
+    ).resolves.toBeNull()
+    expect(verifyPasswordHashMock).toHaveBeenCalledWith(
+      "correct-horse-battery-staple",
+      disabledProfile.passwordHash
+    )
+    expect(userSessionRepository.create).not.toHaveBeenCalled()
+  })
+
+  it("maps credential lookup failures to an HTTP 500", async () => {
+    const service = createService()
+    const error = new Error("db offline")
+
+    userProfileRepository.getByUsername.mockRejectedValue(error)
+
+    await expect(
+      service.createSessionForCredentials({
+        username: enabledProfile.username,
+        password: "correct-horse-battery-staple"
+      })
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to create session for credentials"
+    } satisfies Partial<HTTPException>)
+    expect(logger.error).toHaveBeenCalledWith(
+      error,
+      "failed to create session for credentials"
+    )
+    expect(verifyPasswordHashMock).not.toHaveBeenCalled()
   })
 
   it("maps session creation failures to an HTTP 500", async () => {
