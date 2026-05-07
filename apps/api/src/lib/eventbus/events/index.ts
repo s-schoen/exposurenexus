@@ -39,6 +39,19 @@ export interface DomainEventEmitter {
   emit(event: DomainEvent): Promise<void>
 }
 
+export interface DomainEventContext {
+  correlationId?: string
+  actor?: string
+}
+
+export type EmitDomainEvent<TSubject extends EventSubject = EventSubject> = <
+  TSelectedSubject extends TSubject
+>(
+  subject: TSelectedSubject,
+  data: EventPayloads[TSelectedSubject],
+  context?: DomainEventContext
+) => void
+
 export type CreateDomainEventPayloadInput<TSubject extends EventSubject> = Omit<
   DomainEventPayloadBase<TSubject, EventPayloads[TSubject]>,
   "id" | "time"
@@ -60,4 +73,29 @@ export function createEventPayload<TSubject extends EventSubject>(
   } satisfies DomainEventPayloadBase<TSubject, EventPayloads[TSubject]>
 
   return event as unknown as DomainEventFor<TSubject>
+}
+
+export function createDomainEventEmitter<
+  TSubject extends EventSubject = EventSubject
+>(
+  domainEventEmitter: DomainEventEmitter,
+  source: string
+): EmitDomainEvent<TSubject> {
+  return function emitDomainEvent<TSelectedSubject extends TSubject>(
+    subject: TSelectedSubject,
+    data: EventPayloads[TSelectedSubject],
+    context: DomainEventContext = {}
+  ): void {
+    void domainEventEmitter.emit(
+      createEventPayload({
+        subject,
+        source,
+        ...(context.actor !== undefined ? { actor: context.actor } : {}),
+        ...(context.correlationId !== undefined
+          ? { correlationId: context.correlationId }
+          : {}),
+        data
+      })
+    )
+  }
 }

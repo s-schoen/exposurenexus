@@ -18,7 +18,8 @@ const {
   createFindingRouteMock,
   createImportRouteMock,
   registerEventHandlersMock,
-  createAuthServiceMock
+  createAuthServiceMock,
+  createUserProfileServiceMock
 } = vi.hoisted(() => ({
   createAppMock: vi.fn(() => ({ fetch: vi.fn() })),
   createAuthRouteMock: vi.fn(() => ({ route: "auth" })),
@@ -46,7 +47,8 @@ const {
     validateSession: vi.fn(),
     createSessionForCredentials: vi.fn(),
     revokeSession: vi.fn()
-  }))
+  })),
+  createUserProfileServiceMock: vi.fn(() => ({ kind: "user-profile-service" }))
 }))
 
 vi.mock("./app.js", () => ({
@@ -124,7 +126,7 @@ vi.mock("./service/index.js", () => ({
   createFindingService: vi.fn(() => ({ kind: "finding-service" })),
   createRoleService: vi.fn(() => ({ kind: "role-service" })),
   createStatsService: vi.fn(() => ({ kind: "stats-service" })),
-  createUserProfileService: vi.fn(() => ({ kind: "user-profile-service" })),
+  createUserProfileService: createUserProfileServiceMock,
   createVulnerabilityService: vi.fn(() => ({ kind: "vulnerability-service" }))
 }))
 
@@ -206,6 +208,13 @@ describe("app container", () => {
     )
     expect(createRequireDomainPermissionMock).toHaveBeenCalledWith(
       createAuthServiceMock.mock.results[0]?.value.userHasPermission
+    )
+    expect(createUserProfileServiceMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        domainEventEmitter: expect.objectContaining({
+          emit: expect.any(Function)
+        })
+      })
     )
     expect(createRoleRouteMock).toHaveBeenCalledOnce()
     expect(createUserRouteMock).toHaveBeenCalledWith(

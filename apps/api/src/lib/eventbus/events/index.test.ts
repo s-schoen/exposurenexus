@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest"
 import { createTestUser } from "../../../test/app.js"
 import {
+  createDomainEventEmitter,
   createEventPayload,
   type DomainEvent,
   type DomainEventPayloadBase
@@ -111,5 +112,53 @@ describe("createDomainEventPayload", () => {
       >
     >()
     expectTypeOf(event).toMatchTypeOf<DomainEvent>()
+  })
+
+  it("creates source-bound emitters with subject-specific payload types", () => {
+    const emittedEvents: DomainEvent[] = []
+    const user = createTestUser()
+    const emitUserEvent = createDomainEventEmitter<
+      "user.created" | "user.updated"
+    >(
+      {
+        async emit(event) {
+          emittedEvents.push(event)
+        }
+      },
+      "user-service"
+    )
+
+    emitUserEvent(
+      "user.created",
+      { user },
+      {
+        actor: "admin-user",
+        correlationId: "correlation-1"
+      }
+    )
+
+    expect(emittedEvents).toHaveLength(1)
+    expect(emittedEvents[0]).toMatchObject({
+      source: "user-service",
+      actor: "admin-user",
+      correlationId: "correlation-1",
+      subject: "user.created",
+      data: { user }
+    })
+
+    const assertRejectedTypes = () => {
+      emitUserEvent(
+        // @ts-expect-error emitter only accepts the configured subject subset
+        "user.deleted",
+        { user }
+      )
+
+      emitUserEvent(
+        "user.created",
+        // @ts-expect-error data must match the selected subject
+        { previous: user, current: user }
+      )
+    }
+    void assertRejectedTypes
   })
 })

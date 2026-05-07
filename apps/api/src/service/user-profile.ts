@@ -8,6 +8,12 @@ import type {
 } from "@openvlp/types/model/user"
 import { hashPlaintextPassword } from "../lib/argon2.js"
 import {
+  createDomainEventEmitter,
+  type DomainEventContext,
+  type DomainEventEmitter,
+  type UserEventPayloads
+} from "../lib/eventbus/events/index.js"
+import {
   badRequest,
   conflict,
   isConflictError,
@@ -35,8 +41,11 @@ interface UserProfileRepository {
 
 interface UserProfileServiceDependencies {
   userProfileRepository: UserProfileRepository
+  domainEventEmitter: DomainEventEmitter
   logger: Logger
 }
+
+type UserEventSubject = keyof UserEventPayloads & string
 
 function toUserProfile(userProfile: UserProfileInternalWithRoles): UserProfile {
   return {
@@ -73,8 +82,14 @@ function sameStringSet(
 
 export function createUserProfileService({
   userProfileRepository,
+  domainEventEmitter,
   logger
 }: UserProfileServiceDependencies) {
+  const emitUserProfileEvent = createDomainEventEmitter<UserEventSubject>(
+    domainEventEmitter,
+    "user-profile"
+  )
+
   return {
     async listAll(): Promise<UserProfile[]> {
       try {
@@ -124,7 +139,10 @@ export function createUserProfileService({
       }
     },
 
-    async create(userProfile: CreateUserProfile): Promise<UserProfile> {
+    async create(
+      userProfile: CreateUserProfile,
+      eventContext: DomainEventContext = {}
+    ): Promise<UserProfile> {
       try {
         const { password, roleIds, ...profile } = userProfile
         const createdProfile = await userProfileRepository.create(
@@ -135,11 +153,13 @@ export function createUserProfileService({
           roleIds
         )
 
-        logger.info(
-          { userProfileId: createdProfile.id },
-          "created user profile"
+        const createdUserProfile = toUserProfile(createdProfile)
+        emitUserProfileEvent(
+          "user.created",
+          { user: createdUserProfile },
+          eventContext
         )
-        return toUserProfile(createdProfile)
+        return createdUserProfile
       } catch (error) {
         if (isConflictError(error)) {
           logger.debug(error, "user profile create conflict")
@@ -162,7 +182,8 @@ export function createUserProfileService({
 
     async updateByID(
       id: string,
-      userProfile: UpdateUserProfile
+      userProfile: UpdateUserProfile,
+      eventContext: DomainEventContext = {}
     ): Promise<UserProfile | null> {
       try {
         const existingProfile = await userProfileRepository.getByID(id)
@@ -216,8 +237,17 @@ export function createUserProfileService({
           )
         }
 
-        logger.info({ userProfileId: id }, "updated user profile")
-        return toUserProfile(updatedProfile)
+        const previousUserProfile = toUserProfile(existingProfile)
+        const updatedUserProfile = toUserProfile(updatedProfile)
+        emitUserProfileEvent(
+          "user.updated",
+          {
+            previous: previousUserProfile,
+            current: updatedUserProfile
+          },
+          eventContext
+        )
+        return updatedUserProfile
       } catch (error) {
         if (isConflictError(error)) {
           logger.debug(error, "user profile update conflict")
