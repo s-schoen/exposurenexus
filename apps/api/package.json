@@ -18,7 +18,7 @@
     "@hono/zod-validator": "^0.7.6",
     "@exposurenexus/types": "workspace:*",
     "@t3-oss/env-core": "^0.13.11",
-    "hono": "^4.12.12",
+    "hono": "^4.12.16",
     "kysely": "^0.28.16",
     "pg": "^8.20.0",
     "pino": "^10.3.1",
