@@ -631,4 +631,41 @@ describe("asset repository", () => {
       }
     ])
   })
+
+  it("gets one asset with assigned effective custom field values", async () => {
+    const repository = createAssetRepository(testDb.db)
+    const apiAsset = await repository.create({
+      id: "",
+      name: "api.openvlp.local",
+      type: AssetType.Host
+    })
+    const category = await repository.createCustomFieldDefinition({
+      key: "category",
+      name: "Category",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: "platform"
+    })
+
+    await repository.assignCustomFields(apiAsset.id, [category.id])
+
+    await expect(
+      repository.getByIDWithCustomFields(apiAsset.id)
+    ).resolves.toEqual({
+      ...apiAsset,
+      customFields: [
+        {
+          fieldId: category.id,
+          key: "category",
+          name: "Category",
+          source: AssetCustomFieldValueSource.Default,
+          type: AssetCustomFieldType.Text,
+          value: "platform"
+        }
+      ]
+    })
+    await expect(
+      repository.getByIDWithCustomFields("76b1885f-2d28-4b7d-93da-2751ff385aa3")
+    ).resolves.toBeNull()
+  })
 })

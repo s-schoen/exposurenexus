@@ -883,10 +883,14 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.upsertCustomFieldValues).toHaveBeenCalledWith(
+    expect(assetService.upsertCustomFieldValues).toHaveBeenCalledWith({
       assetId,
-      payload.values
-    )
+      values: payload.values,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: {
@@ -937,10 +941,14 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.assignCustomFields).toHaveBeenCalledWith(
+    expect(assetService.assignCustomFields).toHaveBeenCalledWith({
       assetId,
-      payload.fieldIds
-    )
+      fieldIds: payload.fieldIds,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: {
@@ -1036,10 +1044,14 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.upsertCustomFieldValues).toHaveBeenCalledWith(
+    expect(assetService.upsertCustomFieldValues).toHaveBeenCalledWith({
       assetId,
-      payload.values
-    )
+      values: payload.values,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,
@@ -1072,10 +1084,14 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.clearCustomFieldValue).toHaveBeenCalledWith(
+    expect(assetService.clearCustomFieldValue).toHaveBeenCalledWith({
       assetId,
-      fieldId
-    )
+      fieldId,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: {
@@ -1109,10 +1125,14 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.detachCustomField).toHaveBeenCalledWith(
+    expect(assetService.detachCustomField).toHaveBeenCalledWith({
       assetId,
-      fieldId
-    )
+      fieldId,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: {
@@ -1146,10 +1166,14 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.clearCustomFieldValue).toHaveBeenCalledWith(
+    expect(assetService.clearCustomFieldValue).toHaveBeenCalledWith({
       assetId,
-      fieldId
-    )
+      fieldId,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,
@@ -1222,7 +1246,13 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(201)
-    expect(assetService.create).toHaveBeenCalledWith(payload)
+    expect(assetService.create).toHaveBeenCalledWith({
+      asset: payload,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: createdAsset
@@ -1260,7 +1290,13 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(201)
-    expect(assetService.create).toHaveBeenCalledWith(payload)
+    expect(assetService.create).toHaveBeenCalledWith({
+      asset: payload,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: createdAsset
@@ -1323,7 +1359,14 @@ describe("asset routes", () => {
     expect(userHasPermission).toHaveBeenCalledWith(user.id, {
       asset: ["write"]
     })
-    expect(assetService.updateOwnerByID).toHaveBeenCalledWith(assetId, ownerId)
+    expect(assetService.updateOwnerByID).toHaveBeenCalledWith({
+      id: assetId,
+      ownerId,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: updatedAsset
@@ -1357,7 +1400,14 @@ describe("asset routes", () => {
     })
 
     expect(response.status).toBe(200)
-    expect(assetService.updateOwnerByID).toHaveBeenCalledWith(assetId, null)
+    expect(assetService.updateOwnerByID).toHaveBeenCalledWith({
+      id: assetId,
+      ownerId: null,
+      eventContext: {
+        actor: user.id,
+        correlationId: "assets-owner-clear-request"
+      }
+    })
   })
 
   it("returns 403 when updating an asset owner without write permission", async () => {
@@ -1431,7 +1481,14 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.updateOwnerByID).toHaveBeenCalledWith(assetId, null)
+    expect(assetService.updateOwnerByID).toHaveBeenCalledWith({
+      id: assetId,
+      ownerId: null,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,
@@ -1466,7 +1523,13 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.deleteByID).toHaveBeenCalledWith(assetId)
+    expect(assetService.deleteByID).toHaveBeenCalledWith({
+      id: assetId,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: deletedAsset
@@ -1519,7 +1582,13 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.deleteByID).toHaveBeenCalledWith(assetId)
+    expect(assetService.deleteByID).toHaveBeenCalledWith({
+      id: assetId,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,

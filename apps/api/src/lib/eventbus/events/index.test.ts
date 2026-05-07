@@ -6,6 +6,7 @@ import {
   type DomainEvent,
   type DomainEventPayloadBase
 } from "./index.js"
+import type { AssetEventPayloads } from "./asset.js"
 import type { AuthEventPayloads } from "./auth.js"
 import type { FindingEventPayloads } from "./finding.js"
 import type { UserEventPayloads } from "./user.js"
@@ -81,7 +82,7 @@ describe("createDomainEventPayload", () => {
 
       createEventPayload({
         // @ts-expect-error only known event subjects can be created
-        subject: "asset.created",
+        subject: "role.created",
         source: "asset-service",
         data: { user }
       })
@@ -197,6 +198,36 @@ describe("createDomainEventPayload", () => {
       DomainEventPayloadBase<
         "vulnerability.mapping.created",
         VulnerabilityEventPayloads["vulnerability.mapping.created"]
+      >
+    >()
+    expectTypeOf(event).toMatchTypeOf<DomainEvent>()
+  })
+
+  it("includes asset events in the aggregate event catalog", () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.openvlp.local",
+      type: "host",
+      ownerId: null,
+      customFields: []
+    } as AssetEventPayloads["asset.created"]["asset"]
+
+    const event = createEventPayload({
+      subject: "asset.updated",
+      source: "asset",
+      data: {
+        previous: asset,
+        current: {
+          ...asset,
+          ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
+        }
+      }
+    })
+
+    expectTypeOf(event).toEqualTypeOf<
+      DomainEventPayloadBase<
+        "asset.updated",
+        AssetEventPayloads["asset.updated"]
       >
     >()
     expectTypeOf(event).toMatchTypeOf<DomainEvent>()

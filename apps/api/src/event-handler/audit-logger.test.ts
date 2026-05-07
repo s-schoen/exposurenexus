@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import type { Logger } from "pino"
+import { AssetType } from "@openvlp/types/model/asset"
 import { FindingSource, FindingStatus } from "@openvlp/types/model/finding"
 import { VulnerabilitySeverity } from "@openvlp/types/model/vulnerability"
 import { createTestUser } from "../test/app.js"
@@ -62,6 +63,13 @@ describe("registerAuditLogger", () => {
     vulnerabilityId: vulnerability.id,
     source: FindingSource.Nuclei,
     matchQuery: '{"templateID":"admin-panel"}'
+  }
+  const asset = {
+    id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
+    name: "api.openvlp.local",
+    type: AssetType.Host,
+    ownerId: null,
+    customFields: []
   }
 
   function createLogger() {
@@ -280,8 +288,43 @@ describe("registerAuditLogger", () => {
     expect(logger.warn).not.toHaveBeenCalled()
   })
 
-  it("audits auth, user, finding, and vulnerability events by default", () => {
+  it("logs asset events at info with serialized fields", async () => {
+    const eventBus = new EventBus<DomainEvent>()
+    const logger = createLogger()
+    const eventTime = new Date("2026-05-07T10:25:00.000Z")
+
+    registerAuditLogger({ eventBus, logger })
+
+    await eventBus.emit(
+      createEventPayload({
+        id: "event-7",
+        time: eventTime,
+        subject: "asset.created",
+        source: "asset",
+        actor: user.id,
+        correlationId: "request-7",
+        data: { asset }
+      })
+    )
+
+    expect(logger.info).toHaveBeenCalledWith(
+      {
+        eventId: "event-7",
+        eventSubject: "asset.created",
+        eventSource: "asset",
+        eventTime,
+        actor: user.id,
+        correlationId: "request-7",
+        data: { asset }
+      },
+      "asset.created"
+    )
+    expect(logger.warn).not.toHaveBeenCalled()
+  })
+
+  it("audits asset, auth, user, finding, and vulnerability events by default", () => {
     expect(DEFAULT_AUDIT_EVENT_PATTERNS).toEqual([
+      "asset.*",
       "auth.*",
       "user.*",
       "finding.*",

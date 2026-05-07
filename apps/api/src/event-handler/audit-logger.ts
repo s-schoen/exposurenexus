@@ -4,6 +4,7 @@ import type { DomainEvent } from "../lib/eventbus/events/index.js"
 import { serializeDomainEventForLog } from "./log-event.js"
 
 export const DEFAULT_AUDIT_EVENT_PATTERNS = [
+  "asset.*",
   "auth.*",
   "user.*",
   "finding.*",

@@ -1,4 +1,4 @@
-import { Hono } from "hono"
+import { Hono, type Context } from "hono"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
@@ -13,6 +13,7 @@ import {
   updateAssetCustomFieldValuesSchema
 } from "@openvlp/types/model/asset"
 import type { ContextVariables } from "../lib/hono-schema.js"
+import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 import {
   createAssetCustomFieldRoute,
@@ -23,31 +24,45 @@ interface AssetRouteService extends AssetCustomFieldRouteService {
   listAll(): Promise<Asset[]>
   listAllWithCustomFields(): Promise<AssetWithCustomFields[]>
   getByID(id: string): Promise<Asset | null>
-  create(asset: typeof createAssetSchema._output): Promise<Asset>
-  updateOwnerByID(
-    id: string,
+  create(options: {
+    asset: typeof createAssetSchema._output
+    eventContext?: DomainEventContext
+  }): Promise<Asset>
+  updateOwnerByID(options: {
+    id: string
     ownerId: typeof updateAssetOwnerSchema._output.ownerId
-  ): Promise<Asset | null>
-  deleteByID(id: string): Promise<Asset | null>
+    eventContext?: DomainEventContext
+  }): Promise<Asset | null>
+  deleteByID(options: {
+    id: string
+    eventContext?: DomainEventContext
+  }): Promise<Asset | null>
   listCustomFieldValues(
     assetId: string
   ): Promise<AssetCustomFieldValue[] | null>
   listAvailableCustomFieldDefinitions(
     assetId: string
   ): Promise<AssetCustomFieldDefinition[] | null>
-  upsertCustomFieldValues(
-    assetId: string,
+  upsertCustomFieldValues(options: {
+    assetId: string
     values: typeof updateAssetCustomFieldValuesSchema._output.values
-  ): Promise<AssetCustomFieldValue[] | null>
-  clearCustomFieldValue(
-    assetId: string,
+    eventContext?: DomainEventContext
+  }): Promise<AssetCustomFieldValue[] | null>
+  clearCustomFieldValue(options: {
+    assetId: string
     fieldId: string
-  ): Promise<boolean | null>
-  assignCustomFields(
-    assetId: string,
+    eventContext?: DomainEventContext
+  }): Promise<boolean | null>
+  assignCustomFields(options: {
+    assetId: string
     fieldIds: typeof updateAssetCustomFieldAssociationsSchema._output.fieldIds
-  ): Promise<AssetCustomFieldValue[] | null>
-  detachCustomField(assetId: string, fieldId: string): Promise<boolean | null>
+    eventContext?: DomainEventContext
+  }): Promise<AssetCustomFieldValue[] | null>
+  detachCustomField(options: {
+    assetId: string
+    fieldId: string
+    eventContext?: DomainEventContext
+  }): Promise<boolean | null>
 }
 
 interface AssetRouteDependencies {
@@ -73,6 +88,17 @@ const assetAndFieldIdParamValidator = zValidator(
     fieldId: z.uuidv4()
   })
 )
+
+function requestEventContext(
+  c: Context<{ Variables: ContextVariables }>
+): DomainEventContext {
+  const actor = c.get("user")?.id
+
+  return {
+    ...(actor !== undefined ? { actor } : {}),
+    correlationId: c.get("requestId")
+  }
+}
 
 export function createAssetRoute(
   assetService: AssetRouteService,
@@ -141,10 +167,11 @@ export function createAssetRoute(
       const params = c.req.valid("param")
       const body = c.req.valid("json")
 
-      const values = await assetService.assignCustomFields(
-        params.id,
-        body.fieldIds
-      )
+      const values = await assetService.assignCustomFields({
+        assetId: params.id,
+        fieldIds: body.fieldIds,
+        eventContext: requestEventContext(c)
+      })
       if (!values) {
         notFound("asset", params.id)
       }
@@ -160,10 +187,11 @@ export function createAssetRoute(
     async (c) => {
       const params = c.req.valid("param")
 
-      const detached = await assetService.detachCustomField(
-        params.id,
-        params.fieldId
-      )
+      const detached = await assetService.detachCustomField({
+        assetId: params.id,
+        fieldId: params.fieldId,
+        eventContext: requestEventContext(c)
+      })
       if (!detached) {
         notFound("asset", params.id)
       }
@@ -181,10 +209,11 @@ export function createAssetRoute(
       const params = c.req.valid("param")
       const body = c.req.valid("json")
 
-      const values = await assetService.upsertCustomFieldValues(
-        params.id,
-        body.values
-      )
+      const values = await assetService.upsertCustomFieldValues({
+        assetId: params.id,
+        values: body.values,
+        eventContext: requestEventContext(c)
+      })
       if (!values) {
         notFound("asset", params.id)
       }
@@ -200,10 +229,11 @@ export function createAssetRoute(
     async (c) => {
       const params = c.req.valid("param")
 
-      const cleared = await assetService.clearCustomFieldValue(
-        params.id,
-        params.fieldId
-      )
+      const cleared = await assetService.clearCustomFieldValue({
+        assetId: params.id,
+        fieldId: params.fieldId,
+        eventContext: requestEventContext(c)
+      })
       if (!cleared) {
         notFound("asset", params.id)
       }
@@ -234,7 +264,10 @@ export function createAssetRoute(
     zValidator("json", createAssetSchema),
     async (c) => {
       const body = c.req.valid("json")
-      const createdAsset = await assetService.create(body)
+      const createdAsset = await assetService.create({
+        asset: body,
+        eventContext: requestEventContext(c)
+      })
       return replyObject(c, createdAsset, true)
     }
   )
@@ -248,10 +281,11 @@ export function createAssetRoute(
       const params = c.req.valid("param")
       const body = c.req.valid("json")
 
-      const updatedAsset = await assetService.updateOwnerByID(
-        params.id,
-        body.ownerId
-      )
+      const updatedAsset = await assetService.updateOwnerByID({
+        id: params.id,
+        ownerId: body.ownerId,
+        eventContext: requestEventContext(c)
+      })
       if (!updatedAsset) {
         notFound("asset", params.id)
       }
@@ -267,7 +301,10 @@ export function createAssetRoute(
     async (c) => {
       const params = c.req.valid("param")
 
-      const deleted = await assetService.deleteByID(params.id)
+      const deleted = await assetService.deleteByID({
+        id: params.id,
+        eventContext: requestEventContext(c)
+      })
       if (!deleted) {
         notFound("asset", params.id)
       }

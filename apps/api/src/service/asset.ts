@@ -17,6 +17,12 @@ import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
 import type { UserProfile } from "@openvlp/types/model/user"
 import { badRequest, conflict, isConflictError } from "./errors.js"
+import {
+  createDomainEventEmitter,
+  type AssetEventPayloads,
+  type DomainEventContext,
+  type DomainEventEmitter
+} from "../lib/eventbus/events/index.js"
 
 function isValidValueForDefinition(
   definition: AssetCustomFieldDefinition,
@@ -67,10 +73,18 @@ function validateCustomFieldDefinition(
   }
 }
 
+function assetSnapshotsEqual(
+  previous: AssetWithCustomFields,
+  current: AssetWithCustomFields
+): boolean {
+  return JSON.stringify(previous) === JSON.stringify(current)
+}
+
 interface AssetRepository {
   list(): Promise<Asset[]>
   listWithCustomFields(): Promise<AssetWithCustomFields[]>
   getByID(id: string): Promise<Asset | null>
+  getByIDWithCustomFields(id: string): Promise<AssetWithCustomFields | null>
   getByName(name: string, type?: AssetType): Promise<Asset | null>
   create(asset: Asset): Promise<Asset>
   updateOwnerByID(id: string, ownerId: Asset["ownerId"]): Promise<Asset | null>
@@ -112,14 +126,80 @@ interface UserProfileLookupService {
 interface AssetServiceDependencies {
   assetRepository: AssetRepository
   userProfileService: UserProfileLookupService
+  domainEventEmitter: DomainEventEmitter
   logger: Logger
+}
+
+export interface CreateAssetOptions {
+  asset: CreateAsset
+  eventContext?: DomainEventContext
+}
+
+export interface UpdateAssetOwnerOptions {
+  id: string
+  ownerId: Asset["ownerId"]
+  eventContext?: DomainEventContext
+}
+
+export interface DeleteAssetOptions {
+  id: string
+  eventContext?: DomainEventContext
+}
+
+export interface UpsertAssetCustomFieldValuesOptions {
+  assetId: string
+  values: UpdateAssetCustomFieldValue[]
+  eventContext?: DomainEventContext
+}
+
+export interface ClearAssetCustomFieldValueOptions {
+  assetId: string
+  fieldId: string
+  eventContext?: DomainEventContext
+}
+
+export interface AssignAssetCustomFieldsOptions {
+  assetId: string
+  fieldIds: string[]
+  eventContext?: DomainEventContext
+}
+
+export interface DetachAssetCustomFieldOptions {
+  assetId: string
+  fieldId: string
+  eventContext?: DomainEventContext
 }
 
 export function createAssetService({
   assetRepository,
   userProfileService,
+  domainEventEmitter,
   logger
 }: AssetServiceDependencies) {
+  type AssetEventSubject = keyof AssetEventPayloads & string
+  const emitAssetEvent = createDomainEventEmitter<AssetEventSubject>(
+    domainEventEmitter,
+    "asset"
+  )
+
+  async function getAssetSnapshot(
+    id: string
+  ): Promise<AssetWithCustomFields | null> {
+    return await assetRepository.getByIDWithCustomFields(id)
+  }
+
+  function emitUpdatedAssetEvent(
+    previous: AssetWithCustomFields,
+    current: AssetWithCustomFields,
+    eventContext?: DomainEventContext
+  ): void {
+    if (assetSnapshotsEqual(previous, current)) {
+      return
+    }
+
+    emitAssetEvent("asset.updated", { previous, current }, eventContext)
+  }
+
   return {
     async listAll(): Promise<Asset[]> {
       try {
@@ -176,7 +256,9 @@ export function createAssetService({
       }
     },
 
-    async create(asset: CreateAsset): Promise<Asset> {
+    async create(opts: CreateAssetOptions): Promise<Asset> {
+      const { asset, eventContext } = opts
+
       try {
         if (asset.ownerId) {
           const owner = await userProfileService.getByID(asset.ownerId)
@@ -192,7 +274,14 @@ export function createAssetService({
           ...asset
         })
 
-        logger.info(`created asset ${created.id}: ${created.name}`)
+        const createdSnapshot = await getAssetSnapshot(created.id)
+        if (createdSnapshot) {
+          emitAssetEvent(
+            "asset.created",
+            { asset: createdSnapshot },
+            eventContext
+          )
+        }
         return created
       } catch (error) {
         if (error instanceof HTTPException) {
@@ -207,9 +296,10 @@ export function createAssetService({
     },
 
     async updateOwnerByID(
-      id: string,
-      ownerId: Asset["ownerId"]
+      opts: UpdateAssetOwnerOptions
     ): Promise<Asset | null> {
+      const { id, ownerId, eventContext } = opts
+
       try {
         if (ownerId) {
           const owner = await userProfileService.getByID(ownerId)
@@ -219,9 +309,21 @@ export function createAssetService({
           }
         }
 
+        const previous = await getAssetSnapshot(id)
+        if (!previous) {
+          logger.debug(`cannot update asset ${id} owner: not found`)
+          return null
+        }
+
         const updated = await assetRepository.updateOwnerByID(id, ownerId)
         if (!updated) {
           logger.debug(`cannot update asset ${id} owner: not found`)
+          return null
+        }
+
+        const current = await getAssetSnapshot(id)
+        if (current) {
+          emitUpdatedAssetEvent(previous, current, eventContext)
         }
         return updated
       } catch (error) {
@@ -236,12 +338,26 @@ export function createAssetService({
       }
     },
 
-    async deleteByID(id: string): Promise<Asset | null> {
+    async deleteByID(opts: DeleteAssetOptions): Promise<Asset | null> {
+      const { id, eventContext } = opts
+
       try {
+        const deletedSnapshot = await getAssetSnapshot(id)
+        if (!deletedSnapshot) {
+          logger.debug(`cannot delete asset ${id}: not found`)
+          return null
+        }
+
         const asset = await assetRepository.deleteByID(id)
         if (!asset) {
           logger.debug(`cannot delete asset ${id}: not found`)
+          return null
         }
+        emitAssetEvent(
+          "asset.deleted",
+          { asset: deletedSnapshot },
+          eventContext
+        )
         return asset
       } catch (error) {
         logger.error(error, `failed to get asset with id ${id}`)
@@ -405,12 +521,13 @@ export function createAssetService({
     },
 
     async upsertCustomFieldValues(
-      assetId: string,
-      values: UpdateAssetCustomFieldValue[]
+      opts: UpsertAssetCustomFieldValuesOptions
     ): Promise<AssetCustomFieldValue[] | null> {
+      const { assetId, values, eventContext } = opts
+
       try {
-        const asset = await assetRepository.getByID(assetId)
-        if (!asset) {
+        const previous = await getAssetSnapshot(assetId)
+        if (!previous) {
           logger.debug(`asset with id ${assetId} not found`)
           return null
         }
@@ -419,10 +536,8 @@ export function createAssetService({
         const definitionsById = new Map(
           definitions.map((definition) => [definition.id, definition])
         )
-        const assignedValues =
-          await assetRepository.listCustomFieldValues(assetId)
         const assignedFieldIds = new Set(
-          assignedValues.map((value) => value.fieldId)
+          previous.customFields.map((value) => value.fieldId)
         )
 
         for (const valueUpdate of values) {
@@ -447,7 +562,15 @@ export function createAssetService({
           }
         }
 
-        return await assetRepository.upsertCustomFieldValues(assetId, values)
+        const updatedValues = await assetRepository.upsertCustomFieldValues(
+          assetId,
+          values
+        )
+        const current = await getAssetSnapshot(assetId)
+        if (current) {
+          emitUpdatedAssetEvent(previous, current, eventContext)
+        }
+        return updatedValues
       } catch (error) {
         if (error instanceof HTTPException) {
           throw error
@@ -464,12 +587,13 @@ export function createAssetService({
     },
 
     async clearCustomFieldValue(
-      assetId: string,
-      fieldId: string
+      opts: ClearAssetCustomFieldValueOptions
     ): Promise<boolean | null> {
+      const { assetId, fieldId, eventContext } = opts
+
       try {
-        const asset = await assetRepository.getByID(assetId)
-        if (!asset) {
+        const previous = await getAssetSnapshot(assetId)
+        if (!previous) {
           logger.debug(`asset with id ${assetId} not found`)
           return null
         }
@@ -480,13 +604,15 @@ export function createAssetService({
           throw badRequest(`unknown asset custom field id ${fieldId}`)
         }
 
-        const assignedValues =
-          await assetRepository.listCustomFieldValues(assetId)
-        if (!assignedValues.some((value) => value.fieldId === fieldId)) {
+        if (!previous.customFields.some((value) => value.fieldId === fieldId)) {
           throw badRequest("asset custom field is not assigned to asset")
         }
 
         await assetRepository.clearCustomFieldValue(assetId, fieldId)
+        const current = await getAssetSnapshot(assetId)
+        if (current) {
+          emitUpdatedAssetEvent(previous, current, eventContext)
+        }
         return true
       } catch (error) {
         if (error instanceof HTTPException) {
@@ -504,12 +630,13 @@ export function createAssetService({
     },
 
     async assignCustomFields(
-      assetId: string,
-      fieldIds: string[]
+      opts: AssignAssetCustomFieldsOptions
     ): Promise<AssetCustomFieldValue[] | null> {
+      const { assetId, fieldIds, eventContext } = opts
+
       try {
-        const asset = await assetRepository.getByID(assetId)
-        if (!asset) {
+        const previous = await getAssetSnapshot(assetId)
+        if (!previous) {
           logger.debug(`asset with id ${assetId} not found`)
           return null
         }
@@ -525,7 +652,15 @@ export function createAssetService({
           }
         }
 
-        return await assetRepository.assignCustomFields(assetId, fieldIds)
+        const values = await assetRepository.assignCustomFields(
+          assetId,
+          fieldIds
+        )
+        const current = await getAssetSnapshot(assetId)
+        if (current) {
+          emitUpdatedAssetEvent(previous, current, eventContext)
+        }
+        return values
       } catch (error) {
         if (error instanceof HTTPException) {
           throw error
@@ -542,12 +677,13 @@ export function createAssetService({
     },
 
     async detachCustomField(
-      assetId: string,
-      fieldId: string
+      opts: DetachAssetCustomFieldOptions
     ): Promise<boolean | null> {
+      const { assetId, fieldId, eventContext } = opts
+
       try {
-        const asset = await assetRepository.getByID(assetId)
-        if (!asset) {
+        const previous = await getAssetSnapshot(assetId)
+        if (!previous) {
           logger.debug(`asset with id ${assetId} not found`)
           return null
         }
@@ -559,6 +695,10 @@ export function createAssetService({
         }
 
         await assetRepository.detachCustomField(assetId, fieldId)
+        const current = await getAssetSnapshot(assetId)
+        if (current) {
+          emitUpdatedAssetEvent(previous, current, eventContext)
+        }
         return true
       } catch (error) {
         if (error instanceof HTTPException) {

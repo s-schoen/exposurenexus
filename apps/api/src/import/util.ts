@@ -1,9 +1,13 @@
 import type { Asset, AssetType, CreateAsset } from "@openvlp/types/model/asset"
 import type { Logger } from "pino"
+import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 
 interface AssetLookupService {
   getByName(name: string, type?: AssetType): Promise<Asset | null>
-  create(asset: CreateAsset): Promise<Asset>
+  create(options: {
+    asset: CreateAsset
+    eventContext?: DomainEventContext
+  }): Promise<Asset>
 }
 
 interface AssetImportDependencies {
@@ -17,7 +21,8 @@ export function createGetOrCreateAsset({
 }: AssetImportDependencies) {
   return async function getOrCreateAsset(
     type: AssetType,
-    name: string
+    name: string,
+    eventContext?: DomainEventContext
   ): Promise<Asset> {
     const asset = await assetService.getByName(name, type)
     if (asset) {
@@ -25,6 +30,9 @@ export function createGetOrCreateAsset({
     }
 
     logger.info(`creating new asset ${name} based on finding import`)
-    return assetService.create({ name, type })
+    return assetService.create({
+      asset: { name, type },
+      eventContext
+    })
   }
 }

@@ -19,6 +19,7 @@ const {
   createImportRouteMock,
   registerEventHandlersMock,
   createAuthServiceMock,
+  createAssetServiceMock,
   createUserProfileServiceMock,
   createFindingServiceMock,
   createVulnerabilityServiceMock
@@ -50,6 +51,7 @@ const {
     createSessionForCredentials: vi.fn(),
     revokeSession: vi.fn()
   })),
+  createAssetServiceMock: vi.fn(() => ({ kind: "asset-service" })),
   createUserProfileServiceMock: vi.fn(() => ({ kind: "user-profile-service" })),
   createFindingServiceMock: vi.fn(() => ({ kind: "finding-service" })),
   createVulnerabilityServiceMock: vi.fn(() => ({
@@ -128,7 +130,7 @@ vi.mock("./repository/index.js", () => ({
 
 vi.mock("./service/index.js", () => ({
   createAuthService: createAuthServiceMock,
-  createAssetService: vi.fn(() => ({ kind: "asset-service" })),
+  createAssetService: createAssetServiceMock,
   createFindingService: createFindingServiceMock,
   createRoleService: vi.fn(() => ({ kind: "role-service" })),
   createStatsService: vi.fn(() => ({ kind: "stats-service" })),
@@ -216,6 +218,13 @@ describe("app container", () => {
       createAuthServiceMock.mock.results[0]?.value.userHasPermission
     )
     expect(createUserProfileServiceMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        domainEventEmitter: expect.objectContaining({
+          emit: expect.any(Function)
+        })
+      })
+    )
+    expect(createAssetServiceMock).toHaveBeenCalledWith(
       expect.objectContaining({
         domainEventEmitter: expect.objectContaining({
           emit: expect.any(Function)
