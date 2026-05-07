@@ -110,33 +110,48 @@ describe("registerAuditLogger", () => {
     expect(logger.info).not.toHaveBeenCalled()
   })
 
-  it("ignores non-auth events", async () => {
+  it("logs user events at info with serialized fields", async () => {
     const eventBus = new EventBus<DomainEvent>()
     const logger = createLogger()
+    const eventTime = new Date("2026-05-07T10:10:00.000Z")
 
     registerAuditLogger({ eventBus, logger })
 
     await eventBus.emit(
       createEventPayload({
         id: "event-3",
+        time: eventTime,
         subject: "user.created",
-        source: "user-service",
+        source: "user-profile",
+        actor: "admin-user",
+        correlationId: "request-3",
         data: { user }
       })
     )
 
-    expect(logger.info).not.toHaveBeenCalled()
+    expect(logger.info).toHaveBeenCalledWith(
+      {
+        eventId: "event-3",
+        eventSubject: "user.created",
+        eventSource: "user-profile",
+        eventTime,
+        actor: "admin-user",
+        correlationId: "request-3",
+        data: { user }
+      },
+      "user.created"
+    )
     expect(logger.warn).not.toHaveBeenCalled()
   })
 
-  it("can audit another namespace when configured", async () => {
+  it("can restrict audit event patterns when configured", async () => {
     const eventBus = new EventBus<DomainEvent>()
     const logger = createLogger()
 
     registerAuditLogger({
       eventBus,
       logger,
-      eventPatterns: ["user.*"]
+      eventPatterns: ["auth.*"]
     })
 
     await eventBus.emit(
@@ -148,19 +163,11 @@ describe("registerAuditLogger", () => {
       })
     )
 
-    expect(logger.info).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventId: "event-4",
-        eventSubject: "user.created",
-        eventSource: "user-service",
-        data: { user }
-      }),
-      "user.created"
-    )
+    expect(logger.info).not.toHaveBeenCalled()
     expect(logger.warn).not.toHaveBeenCalled()
   })
 
-  it("audits auth events by default", () => {
-    expect(DEFAULT_AUDIT_EVENT_PATTERNS).toEqual(["auth.*"])
+  it("audits auth and user events by default", () => {
+    expect(DEFAULT_AUDIT_EVENT_PATTERNS).toEqual(["auth.*", "user.*"])
   })
 })
