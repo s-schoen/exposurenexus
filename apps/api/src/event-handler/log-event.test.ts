@@ -34,13 +34,17 @@ describe("serialize DomainEvent for log", () => {
     })
   })
 
-  it("redacts every sessionId key recursively while preserving surrounding data", () => {
+  it("redacts default secret keys recursively while preserving surrounding data", () => {
     const createdAt = new Date("2026-05-07T10:00:00.000Z")
     const expiresAt = new Date("2026-05-07T22:00:00.000Z")
     const event: DomainEventPayloadBase<
       "auth.session.created",
       {
         sessionId: string
+        user: {
+          username: string
+          passwordHash: string
+        }
         session: {
           id: string
           sessionId: string
@@ -62,6 +66,10 @@ describe("serialize DomainEvent for log", () => {
       time: createdAt,
       data: {
         sessionId: "public-session-token",
+        user: {
+          username: "alice",
+          passwordHash: "argon2-password-hash"
+        },
         session: {
           id: "session-1",
           sessionId: "stored-session-id-digest",
@@ -84,6 +92,10 @@ describe("serialize DomainEvent for log", () => {
 
     expect(serializeDomainEventForLog(event).data).toEqual({
       sessionId: REDACTED_EVENT_LOG_VALUE,
+      user: {
+        username: "alice",
+        passwordHash: REDACTED_EVENT_LOG_VALUE
+      },
       session: {
         id: "session-1",
         sessionId: REDACTED_EVENT_LOG_VALUE,
