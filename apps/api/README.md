@@ -1,8 +1,5 @@
-```
-npm install
-npm run dev
-```
+# ExposureNexus API
 
-```
-open http://localhost:3000
-```
+Hono API server for ExposureNexus.
+
+See [Development](../../docs/development.md) for local setup and workspace commands.

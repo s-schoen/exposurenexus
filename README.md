@@ -1,117 +1,48 @@
 # ExposureNexus
 
-ExposureNexus is an open-source continuous threat exposure management (CTEM) platform for collecting, normalizing,
-triaging, and tracking security findings across assets and vulnerability sources. It gives teams a single place to
-import findings, organize affected assets, review vulnerabilities, and track remediation work over time.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-The platform currently supports:
+ExposureNexus is an open-source continuous threat exposure management (CTEM) platform for importing scanner findings, normalizing them around assets and vulnerabilities, and tracking triage through remediation.
 
-- asset management
-- a vulnerability catalog
-- finding creation and lifecycle tracking
-- dashboard and triage views
-- importing findings from Nuclei JSONL exports
-- username/password authentication
+## Project Status
 
-## What You Can Do With It
+ExposureNexus is in early development. The current setup is intended for local evaluation and development, not as a production deployment guide. The first supported external finding source is Nuclei JSONL.
 
-ExposureNexus is built around a few core CTEM workflows:
+![ExposureNexus dashboard showing finding severity, status, affected assets, and source breakdowns](docs/assets/readme-dashboard.png)
 
-- monitor overall exposure from the dashboard
-- review active findings in a triage queue
-- inspect assets and see where issues are concentrated
-- browse the vulnerability catalog behind the findings
-- import external findings and normalize them into the platform
-- track finding status from discovery through mitigation
+## Key Features
 
-## Getting Started
+- Import Nuclei JSONL findings and normalize them into assets, vulnerabilities, and findings.
+- Review active findings in a triage queue grouped around affected assets.
+- Track finding status from discovery through confirmation, mitigation, accepted risk, false positive, duplicate, or out-of-scope.
+- Assign findings, set due dates, and manage remediation follow-up.
+- Manage asset inventory, owners, and asset-specific custom fields.
+- Browse the vulnerability catalog behind observed findings.
+- Use role-based access control for viewer, editor, and admin workflows.
 
-To run ExposureNexus locally you need Node.js, `pnpm`, and PostgreSQL.
+## How It Works
 
-1. Install dependencies:
+ExposureNexus models scanner output around three core objects:
 
-   ```bash
-   pnpm install
-   ```
+- **Assets** are the systems or components affected by findings.
+- **Vulnerabilities** are catalog entries describing reusable weaknesses.
+- **Findings** are concrete occurrences of vulnerabilities on assets.
 
-2. Start PostgreSQL:
+Imports map external scanner records into that model so teams can deduplicate, triage, assign, and track remediation over time.
 
-3. Create `apps/api/.env`:
-
-   ```env
-   PORT=3001
-   LOG_LEVEL=info
-   API_TIMEOUT_MS=5000
-   CORS_ORIGIN=http://localhost:3000
-   AUTH_COOKIE_SECURE=true
-   AUTH_SECRET=replace-with-a-random-secret-at-least-32-characters
-   AUTH_TRUSTED_PROXIES=
-   DATABASE_URL=postgres://postgres:postgres@localhost:5432/exposurenexus
-   ```
-
-4. Optional: create `apps/ui/.env` if you want to override the default API URL:
-
-   ```env
-   VITE_API_URL=http://localhost:3001
-   ```
-
-5. Start the backend and frontend in separate terminals:
-
-   ```bash
-   pnpm dev:api
-   pnpm dev:ui
-   ```
-
-6. Open `http://localhost:3000`.
-
-On first startup, the API runs database migrations automatically and creates a default admin user if the database is
-empty. The initial password is written to the API logs once, and the username is `admin`.
-
-## Repository Layout
-
-```text
-.
-├── apps/
-│   ├── api/      # Hono API server, auth, database, imports
-│   └── ui/       # React + Vite frontend
-├── packages/
-    └── types/    # Shared Zod schemas and TypeScript types
-```
-
-## Prerequisites
-
-- Node.js 20+
-- `pnpm` 10
-- PostgreSQL 17, or Docker/Podman to run the provided compose file
-
-## Development Workflow
-
-Run the normal repository-level checks from the workspace root:
+## Quickstart
 
 ```bash
-pnpm lint
-pnpm build
-```
-
-Useful workspace commands:
-
-```bash
+pnpm install
 pnpm dev:api
 pnpm dev:ui
-pnpm --filter @exposurenexus/api test
-pnpm --filter @exposurenexus/ui test
 ```
 
-## Technical Notes
+The API and UI need local environment configuration before they can run successfully. See [Development](docs/development.md) for PostgreSQL, environment variables, and workspace commands.
 
-ExposureNexus is implemented as a `pnpm` monorepo with three main workspaces:
+## Development
 
-- `apps/api` owns persistence, auth, imports, and domain services
-- `apps/ui` provides the dashboard, assets, findings, vulnerabilities, triage, and import screens
-- `packages/types` contains the shared domain schemas for assets, vulnerabilities, findings, and API contracts
-
-The current stack uses Hono for the API, PostgreSQL for storage, custom opaque-session authentication, and a
-React/Vite frontend with TanStack Router and TanStack Query.
+For local environment setup, PostgreSQL configuration, workspace commands, and project structure, see [Development](docs/development.md).
 
 ## License
 
