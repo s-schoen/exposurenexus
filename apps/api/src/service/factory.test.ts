@@ -117,6 +117,9 @@ describe("service factories", () => {
 
     const service = createVulnerabilityService({
       vulnerabilityRepository: repository,
+      domainEventEmitter: {
+        emit: vi.fn()
+      },
       logger
     })
 

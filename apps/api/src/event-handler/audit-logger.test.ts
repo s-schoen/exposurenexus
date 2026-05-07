@@ -57,6 +57,12 @@ describe("registerAuditLogger", () => {
     updatedAt: new Date("2026-05-07T09:10:00.000Z"),
     vulnerability
   }
+  const mapping = {
+    id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
+    vulnerabilityId: vulnerability.id,
+    source: FindingSource.Nuclei,
+    matchQuery: '{"templateID":"admin-panel"}'
+  }
 
   function createLogger() {
     return {
@@ -240,11 +246,46 @@ describe("registerAuditLogger", () => {
     expect(logger.warn).not.toHaveBeenCalled()
   })
 
-  it("audits auth, user, and finding events by default", () => {
+  it("logs vulnerability events at info with serialized fields", async () => {
+    const eventBus = new EventBus<DomainEvent>()
+    const logger = createLogger()
+    const eventTime = new Date("2026-05-07T10:20:00.000Z")
+
+    registerAuditLogger({ eventBus, logger })
+
+    await eventBus.emit(
+      createEventPayload({
+        id: "event-6",
+        time: eventTime,
+        subject: "vulnerability.mapping.created",
+        source: "vulnerability",
+        actor: user.id,
+        correlationId: "request-6",
+        data: { vulnerability, mapping }
+      })
+    )
+
+    expect(logger.info).toHaveBeenCalledWith(
+      {
+        eventId: "event-6",
+        eventSubject: "vulnerability.mapping.created",
+        eventSource: "vulnerability",
+        eventTime,
+        actor: user.id,
+        correlationId: "request-6",
+        data: { vulnerability, mapping }
+      },
+      "vulnerability.mapping.created"
+    )
+    expect(logger.warn).not.toHaveBeenCalled()
+  })
+
+  it("audits auth, user, finding, and vulnerability events by default", () => {
     expect(DEFAULT_AUDIT_EVENT_PATTERNS).toEqual([
       "auth.*",
       "user.*",
-      "finding.*"
+      "finding.*",
+      "vulnerability.*"
     ])
   })
 })

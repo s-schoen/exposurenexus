@@ -9,6 +9,7 @@ import {
 import type { AuthEventPayloads } from "./auth.js"
 import type { FindingEventPayloads } from "./finding.js"
 import type { UserEventPayloads } from "./user.js"
+import type { VulnerabilityEventPayloads } from "./vulnerability.js"
 
 const uuidV4Regex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u
@@ -80,8 +81,8 @@ describe("createDomainEventPayload", () => {
 
       createEventPayload({
         // @ts-expect-error only known event subjects can be created
-        subject: "finding.created",
-        source: "finding-service",
+        subject: "asset.created",
+        source: "asset-service",
         data: { user }
       })
     }
@@ -160,6 +161,42 @@ describe("createDomainEventPayload", () => {
       DomainEventPayloadBase<
         "finding.created",
         FindingEventPayloads["finding.created"]
+      >
+    >()
+    expectTypeOf(event).toMatchTypeOf<DomainEvent>()
+  })
+
+  it("includes vulnerability events in the aggregate event catalog", () => {
+    const user = createTestUser()
+    const vulnerability = {
+      id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+      title: "Exposed Admin Endpoint",
+      severity: "high",
+      description: "Administrative interface is reachable externally",
+      cwe: 284,
+      cve: null,
+      createdBy: user.id,
+      updatedBy: user.id,
+      createdAt: new Date("2026-05-07T09:00:00.000Z"),
+      updatedAt: new Date("2026-05-07T09:00:00.000Z")
+    } as VulnerabilityEventPayloads["vulnerability.created"]["vulnerability"]
+    const mapping = {
+      id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
+      vulnerabilityId: vulnerability.id,
+      source: "nuclei",
+      matchQuery: '{"templateID":"admin-panel"}'
+    }
+
+    const event = createEventPayload({
+      subject: "vulnerability.mapping.created",
+      source: "vulnerability",
+      data: { vulnerability, mapping }
+    })
+
+    expectTypeOf(event).toEqualTypeOf<
+      DomainEventPayloadBase<
+        "vulnerability.mapping.created",
+        VulnerabilityEventPayloads["vulnerability.mapping.created"]
       >
     >()
     expectTypeOf(event).toMatchTypeOf<DomainEvent>()

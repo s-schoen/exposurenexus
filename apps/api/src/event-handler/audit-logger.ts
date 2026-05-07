@@ -6,7 +6,8 @@ import { serializeDomainEventForLog } from "./log-event.js"
 export const DEFAULT_AUDIT_EVENT_PATTERNS = [
   "auth.*",
   "user.*",
-  "finding.*"
+  "finding.*",
+  "vulnerability.*"
 ] as const satisfies readonly EventListenerName<DomainEvent>[]
 
 const WARN_AUDIT_EVENT_SUBJECTS = new Set<string>(["auth.failure"])
