@@ -1,21 +1,6 @@
-export type EventPayloads = {
-  "user.created": {
-    userId: string
-  }
-  "user.updated": {
-    userId: string
-  }
-  "user.deleted": {
-    userId: string
-  }
-  "user.authentication.success": {
-    userId: string
-  }
-  "user.authentication.failure": {
-    userId?: string
-    reason: string
-  }
-}
+import type { UserEventPayloads } from "./user.js"
+
+export type EventPayloads = UserEventPayloads
 
 export type EventSubject = keyof EventPayloads & string
 
