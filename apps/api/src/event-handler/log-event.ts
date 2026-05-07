@@ -1,7 +1,10 @@
 import type { DomainEventPayloadBase } from "../lib/eventbus/events/index.js"
 
 export const REDACTED_EVENT_LOG_VALUE = "[REDACTED]"
-export const REDACTED_LOG_PROPERTY_NAMES = ["sessionId"] as const
+export const REDACTED_LOG_PROPERTY_NAMES = [
+  "sessionId",
+  "passwordHash"
+] as const
 
 export interface DomainEventLogFields<TSubject extends string = string> {
   eventId: string

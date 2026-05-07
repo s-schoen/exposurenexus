@@ -220,11 +220,12 @@ export function createAuthService(
     if (!sessionUserProfile) {
       throw new Error("failed to load session user")
     }
+    const publicUserProfile = toUserProfile(sessionUserProfile)
 
     emitAuthEvent(
       "auth.session.created",
       {
-        user: sessionUserProfile,
+        user: publicUserProfile,
         session: session
       },
       input
@@ -233,7 +234,7 @@ export function createAuthService(
     return {
       sessionId,
       session,
-      user: toUserProfile(sessionUserProfile)
+      user: publicUserProfile
     }
   }
 
@@ -258,11 +259,12 @@ export function createAuthService(
           )
           return null
         }
+        const publicUserProfile = toUserProfile(userProfile)
 
         emitAuthEvent(
           "auth.success",
           {
-            user: userProfile
+            user: publicUserProfile
           },
           input
         )

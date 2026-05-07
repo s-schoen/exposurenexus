@@ -13,6 +13,7 @@ vi.mock("../lib/argon2.js", () => ({
 }))
 
 import { createDomainEventCollector } from "../test/eventbus.js"
+import { serializeDomainEventForLog } from "../event-handler/log-event.js"
 import { createAuthService } from "./auth.js"
 
 describe("auth service", () => {
@@ -43,6 +44,14 @@ describe("auth service", () => {
     enabled: true,
     passwordHash: "argon2-password-hash",
     roleIds: []
+  }
+  const publicEnabledProfile = {
+    id: enabledProfile.id,
+    username: enabledProfile.username,
+    displayName: enabledProfile.displayName,
+    email: enabledProfile.email,
+    enabled: enabledProfile.enabled,
+    roleIds: enabledProfile.roleIds
   }
   const sessionHmacSecret =
     "012345678901234567890123456789012345678901234567890123456789"
@@ -103,14 +112,7 @@ describe("auth service", () => {
 
     expect(result.sessionId).toEqual(expect.any(String))
     expect(result.sessionId).not.toBe(result.session.sessionId)
-    expect(result.user).toEqual({
-      id: enabledProfile.id,
-      username: enabledProfile.username,
-      displayName: enabledProfile.displayName,
-      email: enabledProfile.email,
-      enabled: enabledProfile.enabled,
-      roleIds: enabledProfile.roleIds
-    })
+    expect(result.user).toEqual(publicEnabledProfile)
     expect(userSessionRepository.create).toHaveBeenCalledWith({
       sessionId: hmacSessionId(result.sessionId),
       userId: enabledProfile.id,
@@ -125,10 +127,17 @@ describe("auth service", () => {
       source: "auth",
       correlationId: "auth-create-session-request",
       data: {
-        user: enabledProfile,
+        user: publicEnabledProfile,
         session: result.session
       }
     })
+    const createdSessionEvent = domainEvents.eventsFor(
+      "auth.session.created"
+    )[0]!
+    expect(createdSessionEvent.data.user).not.toHaveProperty("passwordHash")
+    expect(
+      serializeDomainEventForLog(createdSessionEvent).data
+    ).not.toHaveProperty("user.passwordHash")
   })
 
   it("creates sessions with null source metadata when omitted", async () => {
@@ -192,14 +201,7 @@ describe("auth service", () => {
           now.getTime() + sessionLifetimeHours * 60 * 60 * 1000
         )
       },
-      user: {
-        id: enabledProfile.id,
-        username: enabledProfile.username,
-        displayName: enabledProfile.displayName,
-        email: enabledProfile.email,
-        enabled: enabledProfile.enabled,
-        roleIds: enabledProfile.roleIds
-      }
+      user: publicEnabledProfile
     })
     expect(verifyPasswordHashMock).toHaveBeenCalledOnce()
     expect(domainEvents.subjects()).toEqual([
@@ -211,7 +213,7 @@ describe("auth service", () => {
       source: "auth",
       correlationId: "auth-credentials-request",
       data: {
-        user: enabledProfile
+        user: publicEnabledProfile
       }
     })
     expect(domainEvents.events[1]).toMatchObject({
@@ -219,10 +221,22 @@ describe("auth service", () => {
       source: "auth",
       correlationId: "auth-credentials-request",
       data: {
-        user: enabledProfile,
+        user: publicEnabledProfile,
         session: result!.session
       }
     })
+    const successEvent = domainEvents.eventsFor("auth.success")[0]!
+    const createdSessionEvent = domainEvents.eventsFor(
+      "auth.session.created"
+    )[0]!
+    expect(successEvent.data.user).not.toHaveProperty("passwordHash")
+    expect(createdSessionEvent.data.user).not.toHaveProperty("passwordHash")
+    expect(serializeDomainEventForLog(successEvent).data).not.toHaveProperty(
+      "user.passwordHash"
+    )
+    expect(
+      serializeDomainEventForLog(createdSessionEvent).data
+    ).not.toHaveProperty("user.passwordHash")
   })
 
   it("does not create a session for invalid credentials", async () => {
