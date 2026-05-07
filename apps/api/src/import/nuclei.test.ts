@@ -188,6 +188,7 @@ describe("nuclei importer", () => {
 
     expect(vulnerabilityService.create).toHaveBeenCalledWith({
       user,
+      eventContext: ctx.eventContext,
       vulnerability: {
         title: "Exposed Admin Endpoint",
         severity: VulnerabilitySeverity.High,
@@ -196,11 +197,12 @@ describe("nuclei importer", () => {
         cwe: 0
       }
     })
-    expect(vulnerabilityService.createMapping).toHaveBeenCalledWith(
-      vulnerability.id,
-      FindingSource.Nuclei,
-      '{"templateID":"admin-panel"}'
-    )
+    expect(vulnerabilityService.createMapping).toHaveBeenCalledWith({
+      vulnerabilityId: vulnerability.id,
+      source: FindingSource.Nuclei,
+      matchQuery: '{"templateID":"admin-panel"}',
+      eventContext: ctx.eventContext
+    })
   })
 
   it("skips findings without a host", async () => {

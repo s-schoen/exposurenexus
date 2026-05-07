@@ -13,7 +13,10 @@ import {
   VulnerabilitySeverity
 } from "@openvlp/types/model/vulnerability"
 import type { CreateOrUpdateFindingResult } from "../service/finding.js"
-import type { CreateVulnerabilityOptions } from "../service/vulnerability.js"
+import type {
+  CreateVulnerabilityMappingOptions,
+  CreateVulnerabilityOptions
+} from "../service/vulnerability.js"
 import type { Logger } from "pino"
 
 const nucleiFindingSchema = z
@@ -74,11 +77,7 @@ interface NucleiVulnerabilityService {
   >
   getByID(id: string): Promise<Vulnerability | null>
   create(options: CreateVulnerabilityOptions): Promise<Vulnerability>
-  createMapping(
-    vulnerabilityId: string,
-    source: string,
-    matchQuery: string
-  ): Promise<unknown>
+  createMapping(options: CreateVulnerabilityMappingOptions): Promise<unknown>
 }
 
 interface NucleiFindingService {
@@ -132,6 +131,7 @@ export function createNucleiFindingParser({
 
     const createdVuln = await vulnerabilityService.create({
       user: ctx.user,
+      eventContext: ctx.eventContext,
       vulnerability: {
         title: finding.info.name,
         severity: parseNucleiSeverity(finding.info.severity || "info"),
@@ -141,11 +141,12 @@ export function createNucleiFindingParser({
       }
     })
 
-    await vulnerabilityService.createMapping(
-      createdVuln.id,
-      FindingSource.Nuclei,
-      query
-    )
+    await vulnerabilityService.createMapping({
+      vulnerabilityId: createdVuln.id,
+      source: FindingSource.Nuclei,
+      matchQuery: query,
+      eventContext: ctx.eventContext
+    })
 
     return createdVuln
   }

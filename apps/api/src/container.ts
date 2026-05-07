@@ -109,6 +109,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   })
   const vulnerabilityService = createVulnerabilityService({
     vulnerabilityRepository: repositories.vulnerabilityRepository,
+    domainEventEmitter: eventBus,
     logger: loggerFactory("service/vulnerability")
   })
   const findingService = createFindingService({
