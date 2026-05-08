@@ -1,6 +1,19 @@
 import { createEnv } from "@t3-oss/env-core"
 import { z } from "zod/v4"
 
+function isApiBaseUrl(value: string): boolean {
+  if (value.startsWith("/") && !value.startsWith("//")) {
+    return true
+  }
+
+  try {
+    new URL(value)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export const env = createEnv({
   /**
    * The prefix that client-side variables must have. This is enforced both at
@@ -9,7 +22,14 @@ export const env = createEnv({
   clientPrefix: "VITE_",
 
   client: {
-    VITE_API_URL: z.url().default("http://localhost:3001")
+    VITE_API_URL: z
+      .string()
+      .trim()
+      .min(1)
+      .refine(isApiBaseUrl, {
+        message: "Must be an absolute URL or same-origin path"
+      })
+      .default("/api")
   },
 
   /**

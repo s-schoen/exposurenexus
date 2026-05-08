@@ -34,12 +34,16 @@ Create `apps/api/.env`:
 PORT=3001
 LOG_LEVEL=info
 API_TIMEOUT_MS=5000
-CORS_ORIGIN=http://localhost:3000
+APP_ORIGIN=http://localhost:3000
 AUTH_COOKIE_SECURE=true
 AUTH_SECRET=replace-with-a-random-secret-at-least-32-characters
 AUTH_TRUSTED_PROXIES=
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/openvlp
 ```
+
+`APP_ORIGIN` is the browser origin allowed by CORS and CSRF Origin checks. Use
+the public application origin in deployed environments. `CORS_ORIGIN` is still
+accepted as a deprecated alias when `APP_ORIGIN` is not set.
 
 If you use a different local database, update `DATABASE_URL` accordingly.
 
@@ -47,7 +51,9 @@ On first startup, the API runs database migrations automatically and creates a d
 
 ## Configure The UI
 
-The UI defaults to `http://localhost:3001` for the API. Create `apps/ui/.env` only if you need to override it:
+The UI defaults to same-origin API calls under `/api`, which matches the
+single-container production layout. For split local development with Vite on
+port `3000` and the API on port `3001`, create `apps/ui/.env`:
 
 ```env
 VITE_API_URL=http://localhost:3001

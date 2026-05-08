@@ -3,6 +3,7 @@ import { z } from "zod/v4"
 import {
   APIError,
   apiRequest,
+  buildApiUrl,
   parseArrayReply,
   parseErrorReply,
   parseObjectReply
@@ -50,13 +51,24 @@ describe("api common helpers", () => {
     const headers = init.headers as Headers
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/assets",
+      "/api/assets",
       expect.objectContaining({
         method: "GET",
         credentials: "include"
       })
     )
     expect(headers.get("X-CSRF-Token")).toBeNull()
+  })
+
+  it("builds same-origin API URLs without duplicating the API prefix", () => {
+    expect(buildApiUrl("/api/assets", "/api")).toBe("/api/assets")
+    expect(buildApiUrl("api/assets", "/api/")).toBe("/api/assets")
+  })
+
+  it("supports split local development with an explicit API origin", () => {
+    expect(buildApiUrl("/api/assets", "http://localhost:3001")).toBe(
+      "http://localhost:3001/api/assets"
+    )
   })
 
   it("adds csrf headers to unsafe JSON requests", async () => {

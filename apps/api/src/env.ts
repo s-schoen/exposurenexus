@@ -9,12 +9,29 @@ function trustedProxies(value: string): string[] {
     .filter((proxy) => proxy.length > 0)
 }
 
+function configuredAppOrigin(
+  environment: NodeJS.ProcessEnv
+): string | undefined {
+  const appOrigin = environment.APP_ORIGIN?.trim()
+  if (appOrigin) {
+    return environment.APP_ORIGIN
+  }
+
+  const corsOrigin = environment.CORS_ORIGIN?.trim()
+  if (corsOrigin) {
+    return environment.CORS_ORIGIN
+  }
+
+  return undefined
+}
+
 export const env = createEnv({
   server: {
     PORT: z.number().min(1).max(65535).default(3001),
     LOG_LEVEL: z.string().optional().default("info"),
     API_TIMEOUT_MS: z.number().min(1).default(5000),
-    CORS_ORIGIN: z.url().default("http://localhost:3000"),
+    APP_ORIGIN: z.url().default("http://localhost:3000"),
+    CORS_ORIGIN: z.url().optional(),
     AUTH_SESSION_LIFETIME: z.number().min(1).default(12),
     AUTH_COOKIE_SECURE: z
       .enum(["true", "false"])
@@ -48,7 +65,10 @@ export const env = createEnv({
    * What object holds the environment variables at runtime. This is usually
    * `process.env` or `import.meta.env`.
    */
-  runtimeEnv: process.env,
+  runtimeEnv: {
+    ...process.env,
+    APP_ORIGIN: configuredAppOrigin(process.env)
+  },
 
   /**
    * By default, this library will feed the environment variables directly to
