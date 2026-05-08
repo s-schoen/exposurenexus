@@ -97,7 +97,7 @@ describe("asset custom field api", () => {
     ])
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/assets/custom-fields",
+      "/api/assets/custom-fields",
       expect.objectContaining({
         method: "GET",
         credentials: "include"
@@ -117,7 +117,7 @@ describe("asset custom field api", () => {
     ).resolves.toEqual(definition)
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/assets/custom-fields/${definition.id}`,
+      `/api/assets/custom-fields/${definition.id}`,
       expect.objectContaining({
         method: "GET"
       })
@@ -138,7 +138,7 @@ describe("asset custom field api", () => {
     const headers = requestInit().headers as Headers
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/assets/custom-fields",
+      "/api/assets/custom-fields",
       expect.objectContaining({
         method: "POST"
       })
@@ -159,7 +159,7 @@ describe("asset custom field api", () => {
     ).resolves.toEqual(definition)
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/assets/custom-fields/${definition.id}`,
+      `/api/assets/custom-fields/${definition.id}`,
       expect.objectContaining({
         method: "PUT"
       })
@@ -179,7 +179,7 @@ describe("asset custom field api", () => {
     ).resolves.toEqual(definition)
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/assets/custom-fields/${definition.id}`,
+      `/api/assets/custom-fields/${definition.id}`,
       expect.objectContaining({
         method: "DELETE"
       })
