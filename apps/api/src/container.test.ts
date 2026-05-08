@@ -169,6 +169,7 @@ describe("app container", () => {
     const container = createAppContainer({
       db: {} as never,
       appOrigin: "http://localhost:3000",
+      staticDir: "/app/public",
       authSessionLifetimeHours: 12,
       authSessionHmacSecret:
         "012345678901234567890123456789012345678901234567890123456789",
@@ -258,6 +259,12 @@ describe("app container", () => {
     expect(createUserRouteMock).toHaveBeenCalledWith(
       { kind: "user-profile-service" },
       { requireDomainPermission: expect.any(Function) }
+    )
+    expect(createAppMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appOrigin: "http://localhost:3000",
+        staticDir: "/app/public"
+      })
     )
 
     container.createDefaultAdmin()

@@ -8,6 +8,7 @@ import type { ContextVariables } from "../lib/hono-schema.js"
 import health from "../routes/health.js"
 
 interface CreateTestAppOptions {
+  staticDir?: string
   annotateAuth?: MiddlewareHandler<{ Variables: ContextVariables }>
   csrfProtection?: MiddlewareHandler<{ Variables: ContextVariables }>
   requireAuth?: MiddlewareHandler<{ Variables: ContextVariables }>
@@ -79,6 +80,7 @@ export function createTestApp(options: CreateTestAppOptions = {}) {
     logger: pino({ enabled: false }),
     accessLogger: pino({ enabled: false }),
     appOrigin: "http://localhost:3000",
+    staticDir: options.staticDir,
     apiTimeoutMs: 5000,
     annotateAuth: options.annotateAuth ?? passthrough,
     csrfProtection: options.csrfProtection ?? passthrough,

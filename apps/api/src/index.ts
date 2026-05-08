@@ -13,6 +13,7 @@ await migrateToLatest(db, dbLogger)
 const container = createAppContainer({
   db,
   appOrigin: env.APP_ORIGIN,
+  staticDir: env.STATIC_DIR,
   authSessionLifetimeHours: env.AUTH_SESSION_LIFETIME,
   authSessionHmacSecret: env.AUTH_SECRET,
   authCookieSecure: env.AUTH_COOKIE_SECURE,

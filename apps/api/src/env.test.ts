@@ -13,6 +13,7 @@ async function loadEnv(
   vi.stubEnv("DATABASE_URL", DATABASE_URL)
   vi.stubEnv("APP_ORIGIN", "")
   vi.stubEnv("CORS_ORIGIN", "")
+  vi.stubEnv("STATIC_DIR", "")
 
   for (const [key, value] of Object.entries(overrides)) {
     vi.stubEnv(key, value)
@@ -50,5 +51,13 @@ describe("api environment", () => {
 
     expect(env.APP_ORIGIN).toBe("http://localhost:3000")
     expect(env.CORS_ORIGIN).toBe("http://localhost:3000")
+  })
+
+  it("exposes the opt-in static asset directory", async () => {
+    const env = await loadEnv({
+      STATIC_DIR: "/app/public"
+    })
+
+    expect(env.STATIC_DIR).toBe("/app/public")
   })
 })
