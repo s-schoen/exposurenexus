@@ -60,4 +60,16 @@ describe("api environment", () => {
 
     expect(env.STATIC_DIR).toBe("/app/public")
   })
+
+  it("coerces numeric settings from process environment strings", async () => {
+    const env = await loadEnv({
+      PORT: "3002",
+      API_TIMEOUT_MS: "7000",
+      AUTH_SESSION_LIFETIME: "24"
+    })
+
+    expect(env.PORT).toBe(3002)
+    expect(env.API_TIMEOUT_MS).toBe(7000)
+    expect(env.AUTH_SESSION_LIFETIME).toBe(24)
+  })
 })
