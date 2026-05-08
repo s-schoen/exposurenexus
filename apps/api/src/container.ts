@@ -50,6 +50,7 @@ type LoggerFactory = (moduleName: string) => Logger
 export interface CreateAppContainerOptions {
   db: Kysely<Database>
   appOrigin: string
+  staticDir?: string
   authSessionLifetimeHours: number
   authSessionHmacSecret: string
   authCookieSecure: boolean
@@ -185,6 +186,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     logger: options.logger,
     accessLogger: options.accessLogger,
     appOrigin: options.appOrigin,
+    staticDir: options.staticDir,
     apiTimeoutMs: options.apiTimeoutMs,
     annotateAuth: middleware.annotateAuth,
     csrfProtection: middleware.csrfProtection,

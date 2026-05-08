@@ -2,8 +2,12 @@ import { HTTPException } from "hono/http-exception"
 import type { Hono } from "hono"
 import { createErrorReply } from "@exposurenexus/types/api"
 import type { Logger } from "pino"
+import type { ContextVariables } from "./hono-schema.js"
 
-export function registerErrorHandler(app: Hono, logger: Logger) {
+export function registerErrorHandler(
+  app: Hono<{ Variables: ContextVariables }>,
+  logger: Logger
+) {
   app.onError((error, c) => {
     const correlationId = c.get("requestId")
 

@@ -31,6 +31,7 @@ export const env = createEnv({
     LOG_LEVEL: z.string().optional().default("info"),
     API_TIMEOUT_MS: z.number().min(1).default(5000),
     APP_ORIGIN: z.url().default("http://localhost:3000"),
+    STATIC_DIR: z.string().min(1).optional(),
     CORS_ORIGIN: z.url().optional(),
     AUTH_SESSION_LIFETIME: z.number().min(1).default(12),
     AUTH_COOKIE_SECURE: z

@@ -35,6 +35,7 @@ PORT=3001
 LOG_LEVEL=info
 API_TIMEOUT_MS=5000
 APP_ORIGIN=http://localhost:3000
+STATIC_DIR=
 AUTH_COOKIE_SECURE=true
 AUTH_SECRET=replace-with-a-random-secret-at-least-32-characters
 AUTH_TRUSTED_PROXIES=
@@ -44,6 +45,9 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/openvlp
 `APP_ORIGIN` is the browser origin allowed by CORS and CSRF Origin checks. Use
 the public application origin in deployed environments. `CORS_ORIGIN` is still
 accepted as a deprecated alias when `APP_ORIGIN` is not set.
+
+Leave `STATIC_DIR` unset for split local development. Set it to a built UI
+asset directory when the API process should also serve the React app.
 
 If you use a different local database, update `DATABASE_URL` accordingly.
 

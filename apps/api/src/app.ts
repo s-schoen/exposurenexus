@@ -1,9 +1,11 @@
+import { createErrorReply } from "@exposurenexus/types/api"
+import { serveStatic } from "@hono/node-server/serve-static"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { requestId } from "hono/request-id"
 import { secureHeaders } from "hono/secure-headers"
 import { timeout } from "hono/timeout"
-import type { MiddlewareHandler } from "hono"
+import type { Context, MiddlewareHandler } from "hono"
 import type { Logger } from "pino"
 import { registerErrorHandler } from "./lib/handler.js"
 import { accessLogger } from "./middleware/logger.js"
@@ -13,6 +15,7 @@ export interface CreateAppOptions {
   logger: Logger
   accessLogger: Logger
   appOrigin: string
+  staticDir?: string
   apiTimeoutMs: number
   annotateAuth: MiddlewareHandler<{ Variables: ContextVariables }>
   csrfProtection: MiddlewareHandler<{ Variables: ContextVariables }>
@@ -28,14 +31,40 @@ export interface CreateAppOptions {
   importerRoute: Hono<{ Variables: ContextVariables }>
 }
 
-export function createApp(options: CreateAppOptions) {
-  const app = new Hono().basePath("/api")
+function registerStaticRoutes(
+  app: Hono<{ Variables: ContextVariables }>,
+  staticDir?: string
+) {
+  if (!staticDir) {
+    return
+  }
 
-  app.use("*", requestId())
-  app.use(accessLogger(options.accessLogger))
-  app.use(secureHeaders())
-  app.use("/api", timeout(options.apiTimeoutMs))
-  app.use(
+  const staticAssets = serveStatic<{ Variables: ContextVariables }>({
+    root: staticDir
+  })
+  const spaFallback = serveStatic<{ Variables: ContextVariables }>({
+    root: staticDir,
+    path: "index.html"
+  })
+
+  app.get("*", staticAssets)
+  app.on("HEAD", "*", staticAssets)
+  app.get("*", spaFallback)
+  app.on("HEAD", "*", spaFallback)
+}
+
+function apiNotFound(c: Context<{ Variables: ContextVariables }>) {
+  return c.json(
+    createErrorReply(c.get("requestId"), 404, new Error("Not Found")),
+    404
+  )
+}
+
+function createApiApp(options: CreateAppOptions) {
+  const api = new Hono<{ Variables: ContextVariables }>()
+
+  api.use("*", timeout(options.apiTimeoutMs))
+  api.use(
     "*",
     cors({
       origin: options.appOrigin,
@@ -46,23 +75,43 @@ export function createApp(options: CreateAppOptions) {
       credentials: true
     })
   )
-  app.use("*", options.annotateAuth)
-  app.use("*", options.csrfProtection)
+  api.use("*", options.annotateAuth)
+  api.use("*", options.csrfProtection)
+
+  registerErrorHandler(api, options.logger)
+
+  api.route("/health", options.healthRoute)
+  api.route("/auth", options.authRoute)
+
+  api.use("*", options.requireAuth)
+
+  api.route("/assets", options.assetRoute)
+  api.route("/roles", options.roleRoute)
+  api.route("/users", options.userRoute)
+  api.route("/vulnerabilities", options.vulnerabilityRoute)
+  api.route("/findings", options.findingStatsRoute)
+  api.route("/findings", options.findingRoute)
+  api.route("/findings", options.importerRoute)
+
+  api.all("*", apiNotFound)
+  api.notFound(apiNotFound)
+
+  return api
+}
+
+export function createApp(options: CreateAppOptions) {
+  const app = new Hono<{ Variables: ContextVariables }>()
+
+  app.use("*", requestId())
+  app.use("*", accessLogger(options.accessLogger))
+  app.use("*", secureHeaders())
 
   registerErrorHandler(app, options.logger)
 
-  app.route("/health", options.healthRoute)
-  app.route("/auth", options.authRoute)
-
-  app.use("*", options.requireAuth)
-
-  app.route("/assets", options.assetRoute)
-  app.route("/roles", options.roleRoute)
-  app.route("/users", options.userRoute)
-  app.route("/vulnerabilities", options.vulnerabilityRoute)
-  app.route("/findings", options.findingStatsRoute)
-  app.route("/findings", options.findingRoute)
-  app.route("/findings", options.importerRoute)
+  app.route("/api", createApiApp(options))
+  app.all("/api", apiNotFound)
+  app.all("/api/*", apiNotFound)
+  registerStaticRoutes(app, options.staticDir)
 
   return app
 }
