@@ -9,6 +9,9 @@
     "dev:ui": "pnpm --filter @exposurenexus/ui dev",
     "dev:api": "pnpm --filter @exposurenexus/api dev"
   },
+  "engines": {
+    "node": ">=24.15.0 <25"
+  },
   "keywords": [],
   "author": "",
   "license": "MIT",
