@@ -6,6 +6,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "lint": "pnpm -r check",
+    "verify:container": "sh scripts/verify-container-build.sh",
     "dev:ui": "pnpm --filter @exposurenexus/ui dev",
     "dev:api": "pnpm --filter @exposurenexus/api dev"
   },
