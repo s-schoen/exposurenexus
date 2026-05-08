@@ -94,14 +94,26 @@ pnpm lint
 pnpm build
 ```
 
+`@exposurenexus/types` exports its built `dist` files. `pnpm build` uses pnpm's
+recursive workspace execution, which runs dependencies before dependents.
+Focused root scripts use pnpm's dependency filter, such as
+`@exposurenexus/api^...`, to build workspace dependencies before running the
+package-local command.
+
+Run focused checks through the root scripts below. Direct package commands such
+as `pnpm --filter @exposurenexus/api test` assume `packages/types/dist` already
+exists. When editing shared types while a dev server is already running, rebuild
+the package with `pnpm --filter @exposurenexus/types build` before restarting
+the dependent API or UI process.
+
 Useful workspace commands:
 
 ```bash
 pnpm dev:api
 pnpm dev:ui
-pnpm --filter @exposurenexus/api test
-pnpm --filter @exposurenexus/ui test
-pnpm --filter @exposurenexus/ui storybook
+pnpm test:api
+pnpm test:ui
+pnpm storybook:ui
 ```
 
 ## Technical Notes

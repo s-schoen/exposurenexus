@@ -89,13 +89,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run API unit tests
-        run: pnpm --filter @exposurenexus/api test
+        run: pnpm test:api
 
       - name: Install Playwright Chromium
         run: pnpm --filter @exposurenexus/ui exec playwright install --with-deps chromium
 
       - name: Run UI tests
-        run: pnpm --filter @exposurenexus/ui test
+        run: pnpm test:ui
 
   coverage:
     name: Coverage
@@ -121,13 +121,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run API coverage
-        run: pnpm --filter @exposurenexus/api test:coverage
+        run: pnpm coverage:api
 
       - name: Install Playwright Chromium
         run: pnpm --filter @exposurenexus/ui exec playwright install --with-deps chromium
 
       - name: Run UI coverage
-        run: pnpm --filter @exposurenexus/ui test:coverage
+        run: pnpm coverage:ui
 
       - name: Upload API coverage
         uses: codecov/codecov-action@v6
