@@ -5,25 +5,32 @@
   "type": "module",
   "exports": {
     "./api": {
-      "import": "./src/api/index.ts"
+      "types": "./dist/api/index.d.ts",
+      "import": "./dist/api/index.js"
     },
     "./model/asset": {
-      "import": "./src/model/asset.ts"
+      "types": "./dist/model/asset.d.ts",
+      "import": "./dist/model/asset.js"
     },
     "./model/finding": {
-      "import": "./src/model/finding.ts"
+      "types": "./dist/model/finding.d.ts",
+      "import": "./dist/model/finding.js"
     },
     "./model/date": {
-      "import": "./src/model/date.ts"
+      "types": "./dist/model/date.d.ts",
+      "import": "./dist/model/date.js"
     },
     "./model/vulnerability": {
-      "import": "./src/model/vulnerability.ts"
+      "types": "./dist/model/vulnerability.d.ts",
+      "import": "./dist/model/vulnerability.js"
     },
     "./model/user": {
-      "import": "./src/model/user.ts"
+      "types": "./dist/model/user.d.ts",
+      "import": "./dist/model/user.js"
     },
     "./model/rbac": {
-      "import": "./src/model/rbac.ts"
+      "types": "./dist/model/rbac.d.ts",
+      "import": "./dist/model/rbac.js"
     }
   },
   "files": [

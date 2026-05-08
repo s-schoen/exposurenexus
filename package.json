@@ -6,9 +6,16 @@
   "scripts": {
     "build": "pnpm -r build",
     "lint": "pnpm -r check",
+    "test": "pnpm test:api && pnpm test:ui",
+    "test:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api test",
+    "test:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test",
+    "test:ui:unit": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test:unit",
+    "coverage:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api test:coverage",
+    "coverage:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test:coverage",
     "verify:container": "sh scripts/verify-container-build.sh",
-    "dev:ui": "pnpm --filter @exposurenexus/ui dev",
-    "dev:api": "pnpm --filter @exposurenexus/api dev"
+    "dev:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui dev",
+    "dev:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api dev",
+    "storybook:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui storybook"
   },
   "engines": {
     "node": ">=24.15.0 <25"
