@@ -14,7 +14,7 @@ class ResizeObserverMock {
   disconnect() {}
 }
 
-globalThis.ResizeObserver = ResizeObserverMock as typeof ResizeObserver
+globalThis.ResizeObserver = ResizeObserverMock
 Element.prototype.scrollIntoView = () => undefined
 
 interface QueryState {
@@ -37,13 +37,14 @@ const mocks = vi.hoisted(() => {
       ownerId: null
     }
   ]
+  const query: QueryState = {
+    data: assets,
+    isLoading: false
+  }
 
   return {
     assets,
-    query: {
-      data: assets,
-      isLoading: false
-    } as QueryState
+    query
   }
 })
 

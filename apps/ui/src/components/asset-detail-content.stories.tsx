@@ -492,7 +492,7 @@ function clearAssetCustomFieldValue(
       ...field,
       source: AssetCustomFieldValueSource.Empty,
       value: null
-    } as AssetCustomFieldValue
+    }
   })
 }
 

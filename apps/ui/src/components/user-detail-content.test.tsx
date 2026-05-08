@@ -33,20 +33,22 @@ const mocks = vi.hoisted(() => {
       permissions: []
     }
   ]
+  const rolesQuery: QueryState<Array<Role>> = {
+    data: roles,
+    isPending: false,
+    isSuccess: true
+  }
+  const userQuery: QueryState<UserProfile> = {
+    data: user,
+    isPending: false,
+    isSuccess: true
+  }
 
   return {
     roles,
-    rolesQuery: {
-      data: roles,
-      isPending: false,
-      isSuccess: true
-    } as QueryState<Array<Role>>,
+    rolesQuery,
     user,
-    userQuery: {
-      data: user,
-      isPending: false,
-      isSuccess: true
-    } as QueryState<UserProfile>
+    userQuery
   }
 })
 

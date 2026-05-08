@@ -19,7 +19,7 @@ class ResizeObserverMock {
   disconnect() {}
 }
 
-globalThis.ResizeObserver = ResizeObserverMock as typeof ResizeObserver
+globalThis.ResizeObserver = ResizeObserverMock
 
 afterEach(() => {
   cleanup()

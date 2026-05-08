@@ -40,6 +40,18 @@ export const Route = createFileRoute("/_authenticated/findings/new")({
 
 const unassignedAssigneeValue = "__unassigned__"
 
+const defaultFindingValues: CreateFinding = {
+  vulnerabilityId: "",
+  assetId: "",
+  severity: VulnerabilitySeverity.Medium,
+  status: FindingStatus.Active,
+  source: "",
+  evidence: null,
+  mitigation: null,
+  assigneeId: null,
+  dueDate: null
+}
+
 function formatDateInputValue(value: Date | null | undefined) {
   if (!value) return ""
 
@@ -63,17 +75,7 @@ export function RouteComponent() {
   const users = useQuery(createListUsersQueryOptions())
 
   const form = useForm({
-    defaultValues: {
-      vulnerabilityId: "",
-      assetId: "",
-      severity: VulnerabilitySeverity.Medium,
-      status: FindingStatus.Active,
-      source: "",
-      evidence: null,
-      mitigation: null,
-      assigneeId: null,
-      dueDate: null
-    } as CreateFinding,
+    defaultValues: defaultFindingValues,
     validators: {
       onSubmit: createFindingSchema
     },
