@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "pnpm -r build",
-    "lint": "pnpm -r check",
+    "lint": "pnpm --filter @exposurenexus/types build && pnpm -r check",
     "test": "pnpm test:api && pnpm test:ui",
     "test:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api test",
     "test:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test",
