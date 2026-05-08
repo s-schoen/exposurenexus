@@ -49,7 +49,7 @@ type LoggerFactory = (moduleName: string) => Logger
 
 export interface CreateAppContainerOptions {
   db: Kysely<Database>
-  corsOrigin: string
+  appOrigin: string
   authSessionLifetimeHours: number
   authSessionHmacSecret: string
   authCookieSecure: boolean
@@ -144,7 +144,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   })
 
   const csrfProtection = createCsrfProtection({
-    allowedOrigins: [options.corsOrigin],
+    allowedOrigins: [options.appOrigin],
     tokenSecret: options.authSessionHmacSecret,
     cookiePolicy: authCookiePolicy
   })
@@ -184,7 +184,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const app = createApp({
     logger: options.logger,
     accessLogger: options.accessLogger,
-    corsOrigin: options.corsOrigin,
+    appOrigin: options.appOrigin,
     apiTimeoutMs: options.apiTimeoutMs,
     annotateAuth: middleware.annotateAuth,
     csrfProtection: middleware.csrfProtection,

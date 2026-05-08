@@ -233,7 +233,9 @@ Authentication-related configuration is provided through environment variables.
 - `AUTH_COOKIE_SECURE`: must be `true` for `__Host-` cookie behavior.
 - `AUTH_TRUSTED_PROXIES`: comma-separated exact IPs or CIDRs whose forwarding
   headers may be trusted.
-- `CORS_ORIGIN`: expected browser origin and CSRF Origin allowlist entry.
+- `APP_ORIGIN`: expected browser origin for CORS and CSRF Origin allowlisting.
+  `CORS_ORIGIN` is accepted only as a deprecated alias when `APP_ORIGIN` is not
+  set.
 
 ## Security Properties
 

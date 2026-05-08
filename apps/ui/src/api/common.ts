@@ -27,8 +27,22 @@ export class APIError extends Error {
   }
 }
 
+export function buildApiUrl(path: string, apiBaseUrl: string): string {
+  const normalizedBase = apiBaseUrl.replace(/\/+$/, "")
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`
+
+  if (
+    normalizedBase.endsWith("/api") &&
+    (normalizedPath === "/api" || normalizedPath.startsWith("/api/"))
+  ) {
+    return `${normalizedBase}${normalizedPath.slice("/api".length)}`
+  }
+
+  return `${normalizedBase}${normalizedPath}`
+}
+
 function apiUrl(path: string): string {
-  return `${env.VITE_API_URL}${path.startsWith("/") ? path : `/${path}`}`
+  return buildApiUrl(path, env.VITE_API_URL)
 }
 
 export function readCookie(name: string): string | null {

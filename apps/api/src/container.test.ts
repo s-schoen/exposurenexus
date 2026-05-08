@@ -168,7 +168,7 @@ describe("app container", () => {
 
     const container = createAppContainer({
       db: {} as never,
-      corsOrigin: "http://localhost:3000",
+      appOrigin: "http://localhost:3000",
       authSessionLifetimeHours: 12,
       authSessionHmacSecret:
         "012345678901234567890123456789012345678901234567890123456789",
@@ -278,7 +278,7 @@ describe("app container", () => {
     expect(() =>
       createAppContainer({
         db: {} as never,
-        corsOrigin: "http://localhost:3000",
+        appOrigin: "http://localhost:3000",
         authSessionLifetimeHours: 12,
         authSessionHmacSecret:
           "012345678901234567890123456789012345678901234567890123456789",
