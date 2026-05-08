@@ -25,15 +25,16 @@ const mocks = vi.hoisted(() => {
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-02T00:00:00.000Z")
   }
+  const vulnerabilityQuery: QueryState<Vulnerability> = {
+    data: vulnerability,
+    isPending: false,
+    isSuccess: true
+  }
 
   return {
     usePageMeta: vi.fn(),
     vulnerability,
-    vulnerabilityQuery: {
-      data: vulnerability,
-      isPending: false,
-      isSuccess: true
-    } as QueryState<Vulnerability>
+    vulnerabilityQuery
   }
 })
 

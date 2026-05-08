@@ -12,10 +12,8 @@ interface SessionQuery {
   isPending: boolean
 }
 
-const mocks = vi.hoisted(() => ({
-  navigate: vi.fn(),
-  signOut: vi.fn(),
-  sessionQuery: {
+const mocks = vi.hoisted(() => {
+  const sessionQuery: SessionQuery = {
     data: {
       user: {
         displayName: "Alice Example",
@@ -23,8 +21,14 @@ const mocks = vi.hoisted(() => ({
       }
     },
     isPending: false
-  } as SessionQuery
-}))
+  }
+
+  return {
+    navigate: vi.fn(),
+    sessionQuery,
+    signOut: vi.fn()
+  }
+})
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate

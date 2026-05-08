@@ -39,17 +39,18 @@ const mocks = vi.hoisted(() => {
     password: "correct horse battery staple",
     roleIds: ["5d5f5c6f-a9d6-4d49-9f4d-9462b873a902"]
   }
+  const rolesQuery: QueryState<Array<Role>> = {
+    data: roles,
+    isPending: false,
+    isSuccess: true
+  }
 
   return {
     createUser: vi.fn(),
     invalidateQueries: vi.fn(),
     navigate: vi.fn(),
     roles,
-    rolesQuery: {
-      data: roles,
-      isPending: false,
-      isSuccess: true
-    } as QueryState<Array<Role>>,
+    rolesQuery,
     submitValues,
     toastActionError: vi.fn(),
     toastSuccess: vi.fn(),

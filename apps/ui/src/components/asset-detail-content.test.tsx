@@ -36,7 +36,7 @@ class ResizeObserverMock {
   disconnect() {}
 }
 
-globalThis.ResizeObserver = ResizeObserverMock as typeof ResizeObserver
+globalThis.ResizeObserver = ResizeObserverMock
 Element.prototype.scrollIntoView = () => undefined
 
 const {

@@ -160,7 +160,7 @@ function createQueryClient() {
   queryClient.invalidateQueries = ((...args) => {
     mocks.invalidateQueries(...args)
     return invalidateQueries(...args)
-  }) as typeof queryClient.invalidateQueries
+  })
 
   return queryClient
 }

@@ -56,7 +56,7 @@ const mocks = vi.hoisted(() => {
       filter: "admin",
       severity: ["high"],
       status: ["active"]
-    } as Record<string, string | Array<string> | null>,
+    },
     setAssigneeFilter: vi.fn(),
     setFilter: vi.fn(),
     setSeverityFilter: vi.fn(),

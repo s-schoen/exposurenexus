@@ -87,40 +87,44 @@ const mocks = vi.hoisted(() => {
       roleIds: []
     }
   ]
+  const assetQuery: QueryState<Asset> = {
+    data: asset,
+    isLoading: false,
+    isPending: false,
+    isSuccess: true
+  }
+  const findingQuery: QueryState<Finding> = {
+    data: finding,
+    isLoading: false,
+    isPending: false,
+    isSuccess: true
+  }
+  const usersQuery: QueryState<Array<UserProfile>> = {
+    data: users,
+    isLoading: false,
+    isPending: false,
+    isSuccess: true
+  }
+  const userLabels: Record<string, string> = {
+    "1f9c36d2-1355-49d1-8464-b01ce955d88f": "Alice Example",
+    "4e33f42e-764b-4812-88fb-11a183d43434": "Bob Example",
+    "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12": "Casey Handler",
+    "7b2b7d98-6242-4efe-b630-5908727103fb": "Alex Assignee",
+    "8f5f4c3b-c369-481d-98f7-cf7148d80d21": "Robin Owner"
+  }
 
   return {
     asset,
-    assetQuery: {
-      data: asset,
-      isLoading: false,
-      isPending: false,
-      isSuccess: true
-    } as QueryState<Asset>,
+    assetQuery,
     finding,
-    findingQuery: {
-      data: finding,
-      isLoading: false,
-      isPending: false,
-      isSuccess: true
-    } as QueryState<Finding>,
+    findingQuery,
     selectOnValueChange: undefined as undefined | ((value: string) => void),
     toastError: vi.fn(),
     toastSuccess: vi.fn(),
     updateFindingField: vi.fn(),
     users,
-    usersQuery: {
-      data: users,
-      isLoading: false,
-      isPending: false,
-      isSuccess: true
-    } as QueryState<Array<UserProfile>>,
-    userLabels: {
-      "1f9c36d2-1355-49d1-8464-b01ce955d88f": "Alice Example",
-      "4e33f42e-764b-4812-88fb-11a183d43434": "Bob Example",
-      "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12": "Casey Handler",
-      "7b2b7d98-6242-4efe-b630-5908727103fb": "Alex Assignee",
-      "8f5f4c3b-c369-481d-98f7-cf7148d80d21": "Robin Owner"
-    } as Record<string, string>
+    usersQuery,
+    userLabels
   }
 })
 
@@ -192,7 +196,7 @@ vi.mock("@/components/ui/popover.tsx", () => ({
   PopoverContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
-  PopoverTrigger: ({ render }: { render: ReactNode }) => <>{render}</>
+  PopoverTrigger: ({ render: trigger }: { render: ReactNode }) => <>{trigger}</>
 }))
 
 vi.mock("@/components/ui/command.tsx", () => ({

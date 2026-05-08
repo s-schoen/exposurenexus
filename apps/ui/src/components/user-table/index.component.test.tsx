@@ -11,6 +11,11 @@ import type { ReactNode } from "react"
 import type { UserProfile } from "@exposurenexus/types/model/user"
 import type { Role } from "@exposurenexus/types/model/rbac"
 
+interface UserTableQueryStates {
+  enabled: Array<string>
+  filter: string | null
+}
+
 const mocks = vi.hoisted(() => {
   const user: UserProfile = {
     id: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
@@ -38,14 +43,15 @@ const mocks = vi.hoisted(() => {
       permissions: []
     }
   ]
+  const queryStates: UserTableQueryStates = {
+    enabled: ["true"],
+    filter: "alice"
+  }
 
   return {
     dataTableProps: undefined as undefined | Record<string, unknown>,
     navigate: vi.fn(),
-    queryStates: {
-      enabled: ["true"],
-      filter: "alice"
-    } as Record<string, string | Array<string> | null>,
+    queryStates,
     roles,
     rolesQuery: {
       data: roles,
@@ -164,7 +170,7 @@ function renderCell(cell: unknown, user: UserProfile) {
     throw new Error("Expected a cell renderer")
   }
 
-  return render(<>{cell({ row: { original: user } } as never)}</>)
+  return render(<>{cell({ row: { original: user } })}</>)
 }
 
 describe("UserTable workflow wiring", () => {

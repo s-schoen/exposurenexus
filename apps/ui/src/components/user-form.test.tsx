@@ -28,7 +28,7 @@ class ResizeObserverMock {
   disconnect() {}
 }
 
-globalThis.ResizeObserver = ResizeObserverMock as typeof ResizeObserver
+globalThis.ResizeObserver = ResizeObserverMock
 HTMLElement.prototype.scrollIntoView = vi.fn()
 
 afterEach(() => {

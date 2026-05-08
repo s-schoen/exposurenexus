@@ -39,7 +39,7 @@ const mocks = vi.hoisted(() => {
     dataTableProps: undefined as undefined | Record<string, unknown>,
     deleteAsset: vi.fn(),
     invalidateQueries: vi.fn(),
-    locationSearch: {} as Record<string, unknown>,
+    locationSearch: {},
     navigate: vi.fn(),
     toastActionError: vi.fn(),
     toastSuccess: vi.fn(),
