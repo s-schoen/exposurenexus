@@ -4,7 +4,7 @@ This document covers local development setup for ExposureNexus. The root README 
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 24 LTS (`>=24.15.0 <25`)
 - `pnpm` 10
 - PostgreSQL 17, or Docker/Podman for the provided compose file
 

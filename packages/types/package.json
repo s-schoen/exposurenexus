@@ -34,13 +34,16 @@
     "check": "eslint src/** && prettier --check src/**",
     "check:fix": "eslint --fix src/** && prettier --write src/**"
   },
+  "engines": {
+    "node": ">=24.15.0 <25"
+  },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "packageManager": "pnpm@10.26.1",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^24.12.2",
+    "@types/node": "^24.12.3",
     "eslint": "^10.2.0",
     "globals": "^17.5.0",
     "prettier": "^3.8.2",
