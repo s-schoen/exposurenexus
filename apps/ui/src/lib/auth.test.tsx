@@ -89,7 +89,7 @@ describe("custom auth client", () => {
     const headers = init.headers as Headers
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/auth",
+      "/api/auth",
       expect.objectContaining({
         method: "POST",
         credentials: "include",
@@ -109,7 +109,7 @@ describe("custom auth client", () => {
     await expect(getSession()).resolves.toEqual({ data: authSession })
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/auth/session",
+      "/api/auth/session",
       expect.objectContaining({
         method: "GET",
         credentials: "include"
@@ -147,7 +147,7 @@ describe("custom auth client", () => {
     const headers = init.headers as Headers
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/auth",
+      "/api/auth",
       expect.objectContaining({
         method: "DELETE",
         credentials: "include"

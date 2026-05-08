@@ -128,7 +128,7 @@ describe("asset custom field value api", () => {
     expect(queryOptions.queryKey).toEqual(["assets"])
     expect(assets).toEqual([asset])
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/assets",
+      "/api/assets",
       expect.objectContaining({
         credentials: "include",
         method: "GET"
@@ -150,7 +150,7 @@ describe("asset custom field value api", () => {
     expect(queryOptions.queryKey).toEqual(["asset", assetId])
     expect(result).toEqual(asset)
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/assets/${assetId}`,
+      `/api/assets/${assetId}`,
       expect.objectContaining({
         credentials: "include",
         method: "GET"
@@ -171,7 +171,7 @@ describe("asset custom field value api", () => {
 
     const headers = requestInit().headers as Headers
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/assets",
+      "/api/assets",
       expect.objectContaining({
         credentials: "include",
         method: "POST"
@@ -224,7 +224,7 @@ describe("asset custom field value api", () => {
     )
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/assets/${asset.id}/owner`,
+      `/api/assets/${asset.id}/owner`,
       expect.objectContaining({
         credentials: "include",
         method: "PUT"
@@ -251,7 +251,7 @@ describe("asset custom field value api", () => {
     await expect(deleteAsset(assetId)).resolves.toEqual(asset)
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/assets/${assetId}`,
+      `/api/assets/${assetId}`,
       expect.objectContaining({
         credentials: "include",
         method: "DELETE"
@@ -273,7 +273,7 @@ describe("asset custom field value api", () => {
     )
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/assets?includeCustomFields=true",
+      "/api/assets?includeCustomFields=true",
       expect.objectContaining({
         method: "GET",
         credentials: "include"
@@ -293,7 +293,7 @@ describe("asset custom field value api", () => {
     await expect(listAssetCustomFieldValues(assetId)).resolves.toEqual(values)
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/assets/${assetId}/custom-fields`,
+      `/api/assets/${assetId}/custom-fields`,
       expect.objectContaining({
         method: "GET",
         credentials: "include"
@@ -315,7 +315,7 @@ describe("asset custom field value api", () => {
     ).resolves.toEqual([definition])
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/assets/${assetId}/custom-fields/available`,
+      `/api/assets/${assetId}/custom-fields/available`,
       expect.objectContaining({
         method: "GET",
         credentials: "include"
@@ -339,7 +339,7 @@ describe("asset custom field value api", () => {
     const headers = requestInit().headers as Headers
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/assets/${assetId}/custom-fields`,
+      `/api/assets/${assetId}/custom-fields`,
       expect.objectContaining({
         method: "PUT"
       })
@@ -366,7 +366,7 @@ describe("asset custom field value api", () => {
     const headers = requestInit().headers as Headers
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/assets/${assetId}/custom-fields/associations`,
+      `/api/assets/${assetId}/custom-fields/associations`,
       expect.objectContaining({
         method: "PUT"
       })
@@ -393,7 +393,7 @@ describe("asset custom field value api", () => {
     )
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/assets/${assetId}/custom-fields/${fieldId}`,
+      `/api/assets/${assetId}/custom-fields/${fieldId}`,
       expect.objectContaining({
         method: "DELETE"
       })
@@ -414,7 +414,7 @@ describe("asset custom field value api", () => {
     })
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/assets/${assetId}/custom-fields/associations/${fieldId}`,
+      `/api/assets/${assetId}/custom-fields/associations/${fieldId}`,
       expect.objectContaining({
         method: "DELETE"
       })

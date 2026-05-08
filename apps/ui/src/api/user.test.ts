@@ -74,7 +74,7 @@ describe("user api", () => {
     expect(queryOptions.queryKey).toEqual(["users"])
     expect(users).toEqual([user])
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/users",
+      "/api/users",
       expect.objectContaining({
         credentials: "include",
         method: "GET"
@@ -95,7 +95,7 @@ describe("user api", () => {
     expect(queryOptions.queryKey).toEqual(["users", userId])
     expect(result).toEqual(user)
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/users/${userId}`,
+      `/api/users/${userId}`,
       expect.objectContaining({
         credentials: "include",
         method: "GET"
@@ -122,7 +122,7 @@ describe("user api", () => {
 
     const headers = requestInit().headers as Headers
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/users",
+      "/api/users",
       expect.objectContaining({
         credentials: "include",
         method: "POST"
@@ -154,7 +154,7 @@ describe("user api", () => {
 
     const headers = requestInit().headers as Headers
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/users/${userId}`,
+      `/api/users/${userId}`,
       expect.objectContaining({
         credentials: "include",
         method: "PUT"

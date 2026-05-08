@@ -153,7 +153,7 @@ describe("finding api", () => {
     expect(findings).toHaveLength(1)
     expectFindingDates(findings[0])
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/findings",
+      "/api/findings",
       expect.objectContaining({
         credentials: "include",
         method: "GET"
@@ -175,7 +175,7 @@ describe("finding api", () => {
     expect(queryOptions.queryKey).toEqual(["findings", findingId])
     expectFindingDates(finding)
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/findings/${findingId}`,
+      `/api/findings/${findingId}`,
       expect.objectContaining({
         credentials: "include",
         method: "GET"
@@ -195,7 +195,7 @@ describe("finding api", () => {
     expectFindingDates(finding)
     const headers = requestInit().headers as Headers
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/findings",
+      "/api/findings",
       expect.objectContaining({
         credentials: "include",
         method: "POST"
@@ -240,7 +240,7 @@ describe("finding api", () => {
     )
     const headers = requestInit().headers as Headers
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/findings/${findingId}`,
+      `/api/findings/${findingId}`,
       expect.objectContaining({
         credentials: "include",
         method: "PUT"
@@ -267,7 +267,7 @@ describe("finding api", () => {
 
     expectFindingDates(deletedFinding)
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/findings/${findingId}`,
+      `/api/findings/${findingId}`,
       expect.objectContaining({
         credentials: "include",
         method: "DELETE"
@@ -288,7 +288,7 @@ describe("finding api", () => {
     expect(queryOptions.queryKey).toEqual(["findings", "stats"])
     expect(result).toEqual(findingStats)
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/findings/stats",
+      "/api/findings/stats",
       expect.objectContaining({
         credentials: "include",
         method: "GET"
@@ -306,7 +306,7 @@ describe("finding api", () => {
 
     const body = requestInit().body
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/findings/import",
+      "/api/findings/import",
       expect.objectContaining({
         credentials: "include",
         method: "POST"

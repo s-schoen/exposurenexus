@@ -74,7 +74,7 @@ describe("role api", () => {
     expect(queryOptions.queryKey).toEqual(["roles"])
     expect(roles).toEqual([role])
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3001/api/roles",
+      "/api/roles",
       expect.objectContaining({
         credentials: "include",
         method: "GET"
@@ -95,7 +95,7 @@ describe("role api", () => {
     expect(queryOptions.queryKey).toEqual(["roles", roleId])
     expect(result).toEqual(role)
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/roles/${roleId}`,
+      `/api/roles/${roleId}`,
       expect.objectContaining({
         credentials: "include",
         method: "GET"
@@ -124,7 +124,7 @@ describe("role api", () => {
 
     const headers = requestInit().headers as Headers
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/roles/${roleId}`,
+      `/api/roles/${roleId}`,
       expect.objectContaining({
         credentials: "include",
         method: "PUT"
@@ -144,7 +144,7 @@ describe("role api", () => {
     await expect(deleteRole(roleId)).resolves.toEqual(role)
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:3001/api/roles/${roleId}`,
+      `/api/roles/${roleId}`,
       expect.objectContaining({
         credentials: "include",
         method: "DELETE"
