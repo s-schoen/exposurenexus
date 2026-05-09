@@ -2,9 +2,7 @@ name: exposurenexus
 
 services:
   app:
-    image: exposurenexus:local
-    build:
-      context: .
+    image: ghcr.io/s-schoen/exposurenexus:edge
     environment:
       APP_ORIGIN: http://localhost:3001
       API_TIMEOUT_MS: "5000"

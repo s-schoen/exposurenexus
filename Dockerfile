@@ -33,6 +33,9 @@ FROM gcr.io/distroless/nodejs24-debian13:nonroot AS production
 ENV NODE_ENV=production
 ENV PORT=3001
 ENV STATIC_DIR=/app/public
+LABEL org.opencontainers.image.source="https://github.com/s-schoen/exposurenexus" \
+  org.opencontainers.image.description="Open-source CTEM application for managing imported security findings." \
+  org.opencontainers.image.licenses="MIT"
 WORKDIR /app/apps/api
 
 COPY --from=prod-deps --chown=65532:65532 /workspace/node_modules /app/node_modules
