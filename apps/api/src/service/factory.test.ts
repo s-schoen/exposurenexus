@@ -37,6 +37,7 @@ vi.mock("../repository/vulnerability.js", () => ({
   list: vi.fn(),
   getByID: vi.fn(),
   create: vi.fn(),
+  updateByID: vi.fn(),
   deleteByID: vi.fn(),
   listMappings: vi.fn(),
   getMappingBy: vi.fn(),
@@ -183,6 +184,7 @@ describe("service factories", () => {
         id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
         ...input
       })),
+      updateByID: vi.fn(),
       deleteByID: vi.fn(),
       listMappings: vi.fn(),
       getMappingBy: vi.fn(),

@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
+  createVulnerabilitySchema,
+  updateVulnerabilitySchema,
   VulnerabilitySeverity,
   type Vulnerability
 } from "@exposurenexus/types/model/vulnerability"
+import { HTTPException } from "hono/http-exception"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -21,7 +24,9 @@ describe("vulnerability routes", () => {
   const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
   const vulnerabilityService = {
     listAll: vi.fn(),
-    getByID: vi.fn()
+    getByID: vi.fn(),
+    create: vi.fn(),
+    updateByID: vi.fn()
   }
   const vulnerabilityRecord = {
     id: vulnerabilityId,
@@ -132,6 +137,162 @@ describe("vulnerability routes", () => {
     expect(vulnerabilityService.listAll).not.toHaveBeenCalled()
   })
 
+  it("returns 201 when creating a vulnerability", async () => {
+    const requestId = "vulnerabilities-create-request"
+    const payload = {
+      title: "Exposed Admin Endpoint",
+      severity: VulnerabilitySeverity.High,
+      description: "Administrative interface is reachable externally",
+      cwe: 284,
+      cve: null
+    } satisfies typeof createVulnerabilitySchema._output
+
+    vulnerabilityService.create.mockResolvedValue(vulnerabilityRecord)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request("/api/vulnerabilities", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(201)
+    expect(vulnerabilityService.create).toHaveBeenCalledWith({
+      vulnerability: payload,
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: {
+        ...vulnerabilityRecord,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z"
+      }
+    })
+  })
+
+  it("returns 403 when creating a vulnerability without write permission", async () => {
+    userHasPermission.mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request("/api/vulnerabilities", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "vulnerabilities-create-forbidden-request"
+      },
+      body: JSON.stringify({
+        title: "Exposed Admin Endpoint",
+        severity: VulnerabilitySeverity.High,
+        description: null,
+        cwe: null,
+        cve: null
+      })
+    })
+
+    expect(response.status).toBe(403)
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      vulnerability: ["write"]
+    })
+    expect(vulnerabilityService.create).not.toHaveBeenCalled()
+  })
+
+  it("rejects invalid vulnerability create payloads", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request("/api/vulnerabilities", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "vulnerabilities-invalid-create-request"
+      },
+      body: JSON.stringify({
+        title: "",
+        severity: VulnerabilitySeverity.High,
+        description: null,
+        cwe: null,
+        cve: null
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(vulnerabilityService.create).not.toHaveBeenCalled()
+  })
+
+  it("maps create failures from the service", async () => {
+    const requestId = "vulnerabilities-create-failure-request"
+    const payload = {
+      title: "Exposed Admin Endpoint",
+      severity: VulnerabilitySeverity.High,
+      description: null,
+      cwe: null,
+      cve: null
+    } satisfies typeof createVulnerabilitySchema._output
+
+    vulnerabilityService.create.mockRejectedValueOnce(
+      new HTTPException(500, {
+        message: "failed to create vulnerability"
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request("/api/vulnerabilities", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 500,
+      error: "failed to create vulnerability"
+    })
+  })
+
   it("returns a vulnerability by id", async () => {
     const requestId = "vulnerabilities-get-by-id-request"
 
@@ -155,7 +316,6 @@ describe("vulnerability routes", () => {
       }
     )
     const body = await response.json()
-
     expect(response.status).toBe(200)
     expect(vulnerabilityService.getByID).toHaveBeenCalledWith(vulnerabilityId)
     expect(body).toEqual({
@@ -214,6 +374,185 @@ describe("vulnerability routes", () => {
 
     expect(response.status).toBe(404)
     expect(vulnerabilityService.getByID).toHaveBeenCalledWith(vulnerabilityId)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: `vulnerability with id ${vulnerabilityId} does not exist`
+    })
+  })
+
+  it("returns 200 when updating a vulnerability", async () => {
+    const requestId = "vulnerabilities-update-request"
+    const payload = {
+      title: "Exposed Management Endpoint",
+      severity: VulnerabilitySeverity.Critical,
+      description: "Management interface is reachable externally",
+      cwe: 284,
+      cve: "CVE-2026-0001"
+    } satisfies typeof updateVulnerabilitySchema._output
+    const updatedVulnerability = {
+      ...vulnerabilityRecord,
+      ...payload,
+      updatedAt: new Date("2026-01-02T00:00:00.000Z")
+    }
+
+    vulnerabilityService.updateByID.mockResolvedValue(updatedVulnerability)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/${vulnerabilityId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": requestId
+        },
+        body: JSON.stringify(payload)
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(vulnerabilityService.updateByID).toHaveBeenCalledWith({
+      id: vulnerabilityId,
+      vulnerability: payload,
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: {
+        ...updatedVulnerability,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-02T00:00:00.000Z"
+      }
+    })
+  })
+
+  it("returns 403 when updating a vulnerability without write permission", async () => {
+    userHasPermission.mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/${vulnerabilityId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": "vulnerabilities-update-forbidden-request"
+        },
+        body: JSON.stringify({
+          title: "Exposed Management Endpoint",
+          severity: VulnerabilitySeverity.Critical,
+          description: null,
+          cwe: null,
+          cve: null
+        })
+      }
+    )
+
+    expect(response.status).toBe(403)
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      vulnerability: ["write"]
+    })
+    expect(vulnerabilityService.updateByID).not.toHaveBeenCalled()
+  })
+
+  it("rejects invalid vulnerability update payloads", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/${vulnerabilityId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": "vulnerabilities-invalid-update-request"
+        },
+        body: JSON.stringify({
+          title: "",
+          severity: VulnerabilitySeverity.High,
+          description: null,
+          cwe: null,
+          cve: null
+        })
+      }
+    )
+
+    expect(response.status).toBe(400)
+    expect(vulnerabilityService.updateByID).not.toHaveBeenCalled()
+  })
+
+  it("returns 404 when updating a missing vulnerability", async () => {
+    const requestId = "vulnerabilities-update-missing-request"
+    const payload = {
+      title: "Exposed Management Endpoint",
+      severity: VulnerabilitySeverity.Critical,
+      description: null,
+      cwe: null,
+      cve: null
+    } satisfies typeof updateVulnerabilitySchema._output
+
+    vulnerabilityService.updateByID.mockResolvedValue(null)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/${vulnerabilityId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": requestId
+        },
+        body: JSON.stringify(payload)
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(vulnerabilityService.updateByID).toHaveBeenCalledWith({
+      id: vulnerabilityId,
+      vulnerability: payload,
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,
