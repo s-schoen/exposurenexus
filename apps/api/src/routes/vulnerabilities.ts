@@ -30,6 +30,10 @@ interface VulnerabilityRouteService {
     user: UserProfile
     eventContext?: DomainEventContext
   }): Promise<Vulnerability | null>
+  deleteByID(options: {
+    id: string
+    eventContext?: DomainEventContext
+  }): Promise<Vulnerability | null>
 }
 
 interface VulnerabilityRouteDependencies {
@@ -116,6 +120,25 @@ export function createVulnerabilityRoute(
       }
 
       return replyObject(c, updatedVulnerability!)
+    }
+  )
+
+  vulnerability.delete(
+    "/:id",
+    requireDomainPermission("vulnerability", "delete"),
+    idParamValidator,
+    async (c) => {
+      const params = c.req.valid("param")
+
+      const deletedVulnerability = await vulnerabilityService.deleteByID({
+        id: params.id,
+        eventContext: requestEventContext(c)
+      })
+      if (!deletedVulnerability) {
+        notFound("vulnerability", params.id)
+      }
+
+      return replyObject(c, deletedVulnerability!)
     }
   )
 
