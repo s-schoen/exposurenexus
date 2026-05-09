@@ -208,11 +208,27 @@ finding based on its fingerprint.
 ### Vulnerability Source Mapping
 
 A **vulnerability source mapping** links an external source-specific match query
-to an ExposureNexus vulnerability. Nuclei mappings currently use the template
-ID as the match query.
+to an ExposureNexus vulnerability. The match query is stored as raw JSON and is
+validated only as JSON, not against a source-specific schema. A Nuclei mapping
+may use a template ID in that JSON, but the mapping model is not tied to one
+Nuclei-specific shape.
 
 Use this term when discussing how imported scanner output maps onto the
-vulnerability catalog.
+vulnerability catalog. Source mappings affect classification of future imports;
+they do not automatically rewrite existing findings.
+
+### Finding Reclassification
+
+**Finding reclassification** moves existing findings from one vulnerability to
+another for a selected finding source. It is the explicit workflow for changing
+historical findings after a source mapping or catalog decision changes.
+
+Reclassification matches findings by source and current vulnerability. It does
+not create, update, or delete vulnerability source mappings. When findings are
+reclassified, their linked vulnerability changes to the target vulnerability and
+their finding severity is aligned to the target vulnerability severity for that
+operation. Reclassifying findings is a finding-level write operation and
+requires `finding:write`, not `vulnerability:write`.
 
 ## Identity And Access
 
