@@ -2,9 +2,9 @@ import { afterEach, describe, expect, it } from "vitest"
 import { PGlite } from "@electric-sql/pglite"
 import { Kysely, sql } from "kysely"
 import { PGliteDialect } from "kysely-pglite-dialect"
-import * as initBetterAuth from "./20251219-init-better-auth.js"
-import * as betterAuthAdmin from "./20260414-better-auth-admin.js"
-import * as roleDefault from "./20260418-rbac-role-default.js"
+import * as initBetterAuth from "../migrations/20251219-init-better-auth.js"
+import * as betterAuthAdmin from "../migrations/20260414-better-auth-admin.js"
+import * as roleDefault from "../migrations/20260418-rbac-role-default.js"
 
 interface LegacyAuthMigrationDatabase {
   user: {
