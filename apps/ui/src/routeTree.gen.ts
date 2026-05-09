@@ -18,6 +18,7 @@ import { Route as AuthenticatedRolesIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedFindingsIndexRouteImport } from './routes/_authenticated/findings/index'
 import { Route as AuthenticatedCustomFieldsIndexRouteImport } from './routes/_authenticated/custom-fields/index'
 import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets/index'
+import { Route as AuthenticatedVulnerabilitiesNewRouteImport } from './routes/_authenticated/vulnerabilities/new'
 import { Route as AuthenticatedVulnerabilitiesIdRouteImport } from './routes/_authenticated/vulnerabilities/$id'
 import { Route as AuthenticatedUsersNewRouteImport } from './routes/_authenticated/users/new'
 import { Route as AuthenticatedUsersIdRouteImport } from './routes/_authenticated/users/$id'
@@ -30,6 +31,7 @@ import { Route as AuthenticatedFindingsIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedCustomFieldsNewRouteImport } from './routes/_authenticated/custom-fields/new'
 import { Route as AuthenticatedCustomFieldsIdRouteImport } from './routes/_authenticated/custom-fields/$id'
 import { Route as AuthenticatedAssetsIdRouteImport } from './routes/_authenticated/assets/$id'
+import { Route as AuthenticatedVulnerabilitiesIdEditRouteImport } from './routes/_authenticated/vulnerabilities/$id.edit'
 import { Route as AuthenticatedUsersIdEditRouteImport } from './routes/_authenticated/users/$id.edit'
 import { Route as AuthenticatedRolesIdEditRouteImport } from './routes/_authenticated/roles/$id.edit'
 
@@ -79,6 +81,12 @@ const AuthenticatedAssetsIndexRoute =
   AuthenticatedAssetsIndexRouteImport.update({
     id: '/assets/',
     path: '/assets/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedVulnerabilitiesNewRoute =
+  AuthenticatedVulnerabilitiesNewRouteImport.update({
+    id: '/vulnerabilities/new',
+    path: '/vulnerabilities/new',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedVulnerabilitiesIdRoute =
@@ -147,6 +155,12 @@ const AuthenticatedAssetsIdRoute = AuthenticatedAssetsIdRouteImport.update({
   path: '/assets/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedVulnerabilitiesIdEditRoute =
+  AuthenticatedVulnerabilitiesIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedVulnerabilitiesIdRoute,
+  } as any)
 const AuthenticatedUsersIdEditRoute =
   AuthenticatedUsersIdEditRouteImport.update({
     id: '/edit',
@@ -174,7 +188,8 @@ export interface FileRoutesByFullPath {
   '/roles/new': typeof AuthenticatedRolesNewRoute
   '/users/$id': typeof AuthenticatedUsersIdRouteWithChildren
   '/users/new': typeof AuthenticatedUsersNewRoute
-  '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
+  '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRouteWithChildren
+  '/vulnerabilities/new': typeof AuthenticatedVulnerabilitiesNewRoute
   '/assets/': typeof AuthenticatedAssetsIndexRoute
   '/custom-fields/': typeof AuthenticatedCustomFieldsIndexRoute
   '/findings/': typeof AuthenticatedFindingsIndexRoute
@@ -183,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/vulnerabilities/': typeof AuthenticatedVulnerabilitiesIndexRoute
   '/roles/$id/edit': typeof AuthenticatedRolesIdEditRoute
   '/users/$id/edit': typeof AuthenticatedUsersIdEditRoute
+  '/vulnerabilities/$id/edit': typeof AuthenticatedVulnerabilitiesIdEditRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -198,7 +214,8 @@ export interface FileRoutesByTo {
   '/roles/new': typeof AuthenticatedRolesNewRoute
   '/users/$id': typeof AuthenticatedUsersIdRouteWithChildren
   '/users/new': typeof AuthenticatedUsersNewRoute
-  '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
+  '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRouteWithChildren
+  '/vulnerabilities/new': typeof AuthenticatedVulnerabilitiesNewRoute
   '/assets': typeof AuthenticatedAssetsIndexRoute
   '/custom-fields': typeof AuthenticatedCustomFieldsIndexRoute
   '/findings': typeof AuthenticatedFindingsIndexRoute
@@ -207,6 +224,7 @@ export interface FileRoutesByTo {
   '/vulnerabilities': typeof AuthenticatedVulnerabilitiesIndexRoute
   '/roles/$id/edit': typeof AuthenticatedRolesIdEditRoute
   '/users/$id/edit': typeof AuthenticatedUsersIdEditRoute
+  '/vulnerabilities/$id/edit': typeof AuthenticatedVulnerabilitiesIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -224,7 +242,8 @@ export interface FileRoutesById {
   '/_authenticated/roles/new': typeof AuthenticatedRolesNewRoute
   '/_authenticated/users/$id': typeof AuthenticatedUsersIdRouteWithChildren
   '/_authenticated/users/new': typeof AuthenticatedUsersNewRoute
-  '/_authenticated/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
+  '/_authenticated/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRouteWithChildren
+  '/_authenticated/vulnerabilities/new': typeof AuthenticatedVulnerabilitiesNewRoute
   '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
   '/_authenticated/custom-fields/': typeof AuthenticatedCustomFieldsIndexRoute
   '/_authenticated/findings/': typeof AuthenticatedFindingsIndexRoute
@@ -233,6 +252,7 @@ export interface FileRoutesById {
   '/_authenticated/vulnerabilities/': typeof AuthenticatedVulnerabilitiesIndexRoute
   '/_authenticated/roles/$id/edit': typeof AuthenticatedRolesIdEditRoute
   '/_authenticated/users/$id/edit': typeof AuthenticatedUsersIdEditRoute
+  '/_authenticated/vulnerabilities/$id/edit': typeof AuthenticatedVulnerabilitiesIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -251,6 +271,7 @@ export interface FileRouteTypes {
     | '/users/$id'
     | '/users/new'
     | '/vulnerabilities/$id'
+    | '/vulnerabilities/new'
     | '/assets/'
     | '/custom-fields/'
     | '/findings/'
@@ -259,6 +280,7 @@ export interface FileRouteTypes {
     | '/vulnerabilities/'
     | '/roles/$id/edit'
     | '/users/$id/edit'
+    | '/vulnerabilities/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -275,6 +297,7 @@ export interface FileRouteTypes {
     | '/users/$id'
     | '/users/new'
     | '/vulnerabilities/$id'
+    | '/vulnerabilities/new'
     | '/assets'
     | '/custom-fields'
     | '/findings'
@@ -283,6 +306,7 @@ export interface FileRouteTypes {
     | '/vulnerabilities'
     | '/roles/$id/edit'
     | '/users/$id/edit'
+    | '/vulnerabilities/$id/edit'
   id:
     | '__root__'
     | '/_authenticated'
@@ -300,6 +324,7 @@ export interface FileRouteTypes {
     | '/_authenticated/users/$id'
     | '/_authenticated/users/new'
     | '/_authenticated/vulnerabilities/$id'
+    | '/_authenticated/vulnerabilities/new'
     | '/_authenticated/assets/'
     | '/_authenticated/custom-fields/'
     | '/_authenticated/findings/'
@@ -308,6 +333,7 @@ export interface FileRouteTypes {
     | '/_authenticated/vulnerabilities/'
     | '/_authenticated/roles/$id/edit'
     | '/_authenticated/users/$id/edit'
+    | '/_authenticated/vulnerabilities/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -378,6 +404,13 @@ declare module '@tanstack/react-router' {
       path: '/assets'
       fullPath: '/assets/'
       preLoaderRoute: typeof AuthenticatedAssetsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/vulnerabilities/new': {
+      id: '/_authenticated/vulnerabilities/new'
+      path: '/vulnerabilities/new'
+      fullPath: '/vulnerabilities/new'
+      preLoaderRoute: typeof AuthenticatedVulnerabilitiesNewRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/vulnerabilities/$id': {
@@ -464,6 +497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAssetsIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/vulnerabilities/$id/edit': {
+      id: '/_authenticated/vulnerabilities/$id/edit'
+      path: '/edit'
+      fullPath: '/vulnerabilities/$id/edit'
+      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIdEditRouteImport
+      parentRoute: typeof AuthenticatedVulnerabilitiesIdRoute
+    }
     '/_authenticated/users/$id/edit': {
       id: '/_authenticated/users/$id/edit'
       path: '/edit'
@@ -503,6 +543,21 @@ const AuthenticatedUsersIdRouteChildren: AuthenticatedUsersIdRouteChildren = {
 const AuthenticatedUsersIdRouteWithChildren =
   AuthenticatedUsersIdRoute._addFileChildren(AuthenticatedUsersIdRouteChildren)
 
+interface AuthenticatedVulnerabilitiesIdRouteChildren {
+  AuthenticatedVulnerabilitiesIdEditRoute: typeof AuthenticatedVulnerabilitiesIdEditRoute
+}
+
+const AuthenticatedVulnerabilitiesIdRouteChildren: AuthenticatedVulnerabilitiesIdRouteChildren =
+  {
+    AuthenticatedVulnerabilitiesIdEditRoute:
+      AuthenticatedVulnerabilitiesIdEditRoute,
+  }
+
+const AuthenticatedVulnerabilitiesIdRouteWithChildren =
+  AuthenticatedVulnerabilitiesIdRoute._addFileChildren(
+    AuthenticatedVulnerabilitiesIdRouteChildren,
+  )
+
 interface AuthenticatedRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAssetsIdRoute: typeof AuthenticatedAssetsIdRoute
@@ -516,7 +571,8 @@ interface AuthenticatedRouteChildren {
   AuthenticatedRolesNewRoute: typeof AuthenticatedRolesNewRoute
   AuthenticatedUsersIdRoute: typeof AuthenticatedUsersIdRouteWithChildren
   AuthenticatedUsersNewRoute: typeof AuthenticatedUsersNewRoute
-  AuthenticatedVulnerabilitiesIdRoute: typeof AuthenticatedVulnerabilitiesIdRoute
+  AuthenticatedVulnerabilitiesIdRoute: typeof AuthenticatedVulnerabilitiesIdRouteWithChildren
+  AuthenticatedVulnerabilitiesNewRoute: typeof AuthenticatedVulnerabilitiesNewRoute
   AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute
   AuthenticatedCustomFieldsIndexRoute: typeof AuthenticatedCustomFieldsIndexRoute
   AuthenticatedFindingsIndexRoute: typeof AuthenticatedFindingsIndexRoute
@@ -538,7 +594,9 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedRolesNewRoute: AuthenticatedRolesNewRoute,
   AuthenticatedUsersIdRoute: AuthenticatedUsersIdRouteWithChildren,
   AuthenticatedUsersNewRoute: AuthenticatedUsersNewRoute,
-  AuthenticatedVulnerabilitiesIdRoute: AuthenticatedVulnerabilitiesIdRoute,
+  AuthenticatedVulnerabilitiesIdRoute:
+    AuthenticatedVulnerabilitiesIdRouteWithChildren,
+  AuthenticatedVulnerabilitiesNewRoute: AuthenticatedVulnerabilitiesNewRoute,
   AuthenticatedAssetsIndexRoute: AuthenticatedAssetsIndexRoute,
   AuthenticatedCustomFieldsIndexRoute: AuthenticatedCustomFieldsIndexRoute,
   AuthenticatedFindingsIndexRoute: AuthenticatedFindingsIndexRoute,
