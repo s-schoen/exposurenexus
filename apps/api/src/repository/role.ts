@@ -1,6 +1,10 @@
 import type { Kysely, Transaction } from "kysely"
 import type { Database } from "../db/index.js"
-import type { Role, UpdateRole } from "@exposurenexus/types/model/rbac"
+import type {
+  CreateRole,
+  Role,
+  UpdateRole
+} from "@exposurenexus/types/model/rbac"
 
 type DatabaseExecutor = Kysely<Database> | Transaction<Database>
 
@@ -158,6 +162,37 @@ export function createRoleRepository(database: Kysely<Database>) {
         .execute()
 
       return toRoles(rows)
+    },
+
+    async create(role: CreateRole): Promise<Role> {
+      return database.transaction().execute(async (trx) => {
+        const insertedRole = await trx
+          .insertInto("role")
+          .values({ name: role.name })
+          .returning(["id"])
+          .executeTakeFirstOrThrow()
+        const permissions = dedupePermissions(role.permissions)
+
+        if (permissions.length > 0) {
+          await trx
+            .insertInto("role_permission_assignment")
+            .values(
+              permissions.map((permission) => ({
+                role_id: insertedRole.id,
+                resource: permission.resource,
+                verb: permission.verb
+              }))
+            )
+            .execute()
+        }
+
+        const rows = await createRoleBaseQuery(trx)
+          .where("role.id", "=", insertedRole.id)
+          .execute()
+
+        const [createdRole] = toRoles(rows)
+        return createdRole!
+      })
     },
 
     async updateByID(

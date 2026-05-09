@@ -111,6 +111,7 @@ describe("service factories", () => {
       getByID: vi.fn(),
       getByIDs: vi.fn(),
       getByNames: vi.fn(),
+      create: vi.fn(),
       updateByID: vi.fn(),
       deleteByID: vi.fn(),
       hasUsersWithRoleID: vi.fn()

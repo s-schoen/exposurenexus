@@ -13,7 +13,10 @@ import {
   requireAuthenticatedUser
 } from "../test/app.js"
 import { createRequireDomainPermission } from "../middleware/auth.js"
-import { updateRoleSchema } from "@exposurenexus/types/model/rbac"
+import {
+  createRoleSchema,
+  updateRoleSchema
+} from "@exposurenexus/types/model/rbac"
 import { createRoleRoute } from "./roles.js"
 
 describe("role routes", () => {
@@ -33,6 +36,7 @@ describe("role routes", () => {
   const roleService = {
     listAll: vi.fn(),
     getByID: vi.fn(),
+    create: vi.fn(),
     updateByID: vi.fn(),
     deleteByID: vi.fn()
   }
@@ -124,6 +128,150 @@ describe("role routes", () => {
         currentItemCount: 1
       }
     })
+  })
+
+  it("returns 201 when creating a role", async () => {
+    const requestId = "roles-create-request"
+    const payload = {
+      name: "security-viewer",
+      permissions: [
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Read }
+      ]
+    } satisfies typeof createRoleSchema._output
+    const createdRole = {
+      id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830",
+      ...payload
+    }
+
+    roleService.create.mockResolvedValue(createdRole)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request("/api/roles", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(201)
+    expect(roleService.create).toHaveBeenCalledWith({
+      role: payload,
+      eventContext: {
+        actor: authenticatedUser.id,
+        correlationId: requestId
+      }
+    })
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: createdRole
+    })
+  })
+
+  it("returns 403 when creating a role without permission", async () => {
+    const requestId = "roles-create-forbidden-request"
+
+    userHasPermission.mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request("/api/roles", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify({ name: "security-viewer", permissions: [] })
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(403)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 403,
+      error: "Forbidden"
+    })
+    expect(userHasPermission).toHaveBeenCalledWith(authenticatedUser.id, {
+      [PermissionResource.User]: [PermissionVerb.Write]
+    })
+    expect(roleService.create).not.toHaveBeenCalled()
+  })
+
+  it("returns 409 when creating a role with a duplicate name", async () => {
+    const requestId = "roles-create-conflict-request"
+    const payload = {
+      name: BuiltInRoleName.Viewer,
+      permissions: [
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Read }
+      ]
+    } satisfies typeof createRoleSchema._output
+
+    roleService.create.mockRejectedValueOnce(
+      new HTTPException(409, {
+        message: "role already exists"
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request("/api/roles", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(409)
+    expect(roleService.create).toHaveBeenCalledWith({
+      role: payload,
+      eventContext: {
+        actor: authenticatedUser.id,
+        correlationId: requestId
+      }
+    })
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 409,
+      error: "role already exists"
+    })
+  })
+
+  it("rejects invalid role create payloads", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      roleRoute: createRoleRoute(roleService, routeDependencies)
+    })
+
+    const response = await app.request("/api/roles", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "roles-invalid-create-request"
+      },
+      body: JSON.stringify({ name: "security viewer", permissions: [] })
+    })
+
+    expect(response.status).toBe(400)
+    expect(roleService.create).not.toHaveBeenCalled()
   })
 
   it("rejects invalid role ids before calling the service", async () => {

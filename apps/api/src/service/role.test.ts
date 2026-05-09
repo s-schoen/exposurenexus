@@ -18,6 +18,7 @@ describe("role service", () => {
     getByID: vi.fn(),
     getByIDs: vi.fn(),
     getByNames: vi.fn(),
+    create: vi.fn(),
     updateByID: vi.fn(),
     deleteByID: vi.fn(),
     hasUsersWithRoleID: vi.fn()
@@ -122,6 +123,78 @@ describe("role service", () => {
     await expect(service.getByID(viewerRole.id)).rejects.toMatchObject({
       status: 500,
       message: "failed to get role"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("creates a custom role and emits a domain event", async () => {
+    const service = createService()
+    const createRole = {
+      name: "security-analyst",
+      permissions: [
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Read }
+      ]
+    }
+    const createdRole = {
+      ...analystRole,
+      ...createRole
+    }
+
+    roleRepository.create.mockResolvedValue(createdRole)
+
+    await expect(
+      service.create({
+        role: createRole,
+        eventContext
+      })
+    ).resolves.toEqual(createdRole)
+    expect(roleRepository.create).toHaveBeenCalledWith(createRole)
+    expect(domainEvents.subjects()).toEqual(["role.created"])
+    expect(domainEvents.eventsFor("role.created")[0]).toMatchObject({
+      subject: "role.created",
+      source: "role",
+      actor: eventContext.actor,
+      correlationId: eventContext.correlationId,
+      data: {
+        role: createdRole
+      }
+    })
+  })
+
+  it("maps duplicate role name creates to an HTTP 409", async () => {
+    const service = createService()
+
+    roleRepository.create.mockRejectedValueOnce(
+      Object.assign(new Error("duplicate key value"), { code: "23505" })
+    )
+
+    await expect(
+      service.create({
+        role: {
+          name: BuiltInRoleName.Viewer,
+          permissions: []
+        }
+      })
+    ).rejects.toMatchObject({
+      status: 409,
+      message: "role already exists"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("maps role create failures to an HTTP 500", async () => {
+    const service = createService()
+
+    roleRepository.create.mockRejectedValue(new Error("db offline"))
+
+    await expect(
+      service.create({
+        role: {
+          name: "security-analyst",
+          permissions: []
+        }
+      })
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to create role"
     } satisfies Partial<HTTPException>)
   })
 
