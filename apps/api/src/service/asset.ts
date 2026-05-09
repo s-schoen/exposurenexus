@@ -16,7 +16,12 @@ import {
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
 import type { UserProfile } from "@exposurenexus/types/model/user"
-import { badRequest, conflict, isConflictError } from "./errors.js"
+import {
+  badRequest,
+  conflict,
+  isConflictError,
+  isForeignKeyError
+} from "./errors.js"
 import {
   createDomainEventEmitter,
   type AssetEventPayloads,
@@ -89,6 +94,7 @@ interface AssetRepository {
   create(asset: Asset): Promise<Asset>
   updateOwnerByID(id: string, ownerId: Asset["ownerId"]): Promise<Asset | null>
   deleteByID(id: string): Promise<Asset | null>
+  countFindingsByAssetID(id: string): Promise<number>
   listCustomFieldDefinitions(): Promise<AssetCustomFieldDefinition[]>
   listAvailableCustomFieldDefinitions(
     assetId: string
@@ -348,6 +354,12 @@ export function createAssetService({
           return null
         }
 
+        const linkedFindingCount =
+          await assetRepository.countFindingsByAssetID(id)
+        if (linkedFindingCount > 0) {
+          throw conflict(`asset ${id} is still referenced by findings`)
+        }
+
         const asset = await assetRepository.deleteByID(id)
         if (!asset) {
           logger.debug(`cannot delete asset ${id}: not found`)
@@ -360,9 +372,18 @@ export function createAssetService({
         )
         return asset
       } catch (error) {
-        logger.error(error, `failed to get asset with id ${id}`)
+        if (error instanceof HTTPException) {
+          throw error
+        }
+
+        if (isForeignKeyError(error)) {
+          logger.debug(error, "asset delete foreign key conflict")
+          throw conflict(`asset ${id} is still referenced by findings`)
+        }
+
+        logger.error(error, `failed to delete asset with id ${id}`)
         throw new HTTPException(500, {
-          message: "failed to get asset"
+          message: "failed to delete asset"
         })
       }
     },

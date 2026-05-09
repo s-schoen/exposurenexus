@@ -87,6 +87,7 @@ describe("service factories", () => {
       create: vi.fn(),
       updateOwnerByID: vi.fn(),
       deleteByID: vi.fn(),
+      countFindingsByAssetID: vi.fn(),
       listCustomFieldDefinitions: vi.fn(),
       listAvailableCustomFieldDefinitions: vi.fn(),
       getCustomFieldDefinitionByID: vi.fn(),

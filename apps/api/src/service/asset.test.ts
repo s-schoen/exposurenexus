@@ -22,6 +22,7 @@ describe("asset service", () => {
     create: vi.fn(),
     updateOwnerByID: vi.fn(),
     deleteByID: vi.fn(),
+    countFindingsByAssetID: vi.fn(),
     listCustomFieldDefinitions: vi.fn(),
     getCustomFieldDefinitionByID: vi.fn(),
     createCustomFieldDefinition: vi.fn(),
@@ -55,6 +56,7 @@ describe("asset service", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     domainEvents.clear()
+    assetRepository.countFindingsByAssetID.mockResolvedValue(0)
     assetRepository.getByIDWithCustomFields.mockImplementation(async (id) => {
       const asset = await assetRepository.getByID(id)
       if (!asset) {
@@ -570,6 +572,12 @@ describe("asset service", () => {
     await expect(
       assetService.deleteByID({ id: asset.id, eventContext })
     ).resolves.toEqual(asset)
+    expect(assetRepository.countFindingsByAssetID).toHaveBeenCalledWith(
+      asset.id
+    )
+    expect(
+      assetRepository.countFindingsByAssetID.mock.invocationCallOrder[0]
+    ).toBeLessThan(assetRepository.deleteByID.mock.invocationCallOrder[0])
     expect(assetRepository.deleteByID).toHaveBeenCalledWith(asset.id)
     expect(domainEvents.subjects()).toEqual(["asset.deleted"])
     expect(domainEvents.eventsFor("asset.deleted")[0]).toMatchObject({
@@ -594,7 +602,68 @@ describe("asset service", () => {
     assetRepository.getByIDWithCustomFields.mockResolvedValue(null)
 
     await expect(assetService.deleteByID({ id: assetId })).resolves.toBeNull()
+    expect(assetRepository.countFindingsByAssetID).not.toHaveBeenCalled()
     expect(assetRepository.deleteByID).not.toHaveBeenCalled()
+  })
+
+  it("rejects deleting an asset linked to findings", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host,
+      ownerId: null,
+      customFields: []
+    }
+    const assetService = createTestAssetService()
+
+    assetRepository.getByIDWithCustomFields.mockResolvedValue(asset)
+    assetRepository.countFindingsByAssetID.mockResolvedValue(2)
+
+    await expect(
+      assetService.deleteByID({
+        id: asset.id
+      })
+    ).rejects.toMatchObject({
+      status: 409,
+      message: `asset ${asset.id} is still referenced by findings`
+    } satisfies Partial<HTTPException>)
+    expect(assetRepository.countFindingsByAssetID).toHaveBeenCalledWith(
+      asset.id
+    )
+    expect(assetRepository.deleteByID).not.toHaveBeenCalled()
+    expect(domainEvents.subjects()).toEqual([])
+  })
+
+  it("maps database reference conflicts during asset deletion to 409", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host,
+      ownerId: null,
+      customFields: []
+    }
+    const assetService = createTestAssetService()
+    const foreignKeyError = Object.assign(
+      new Error("violates foreign key constraint"),
+      { code: "23503" }
+    )
+
+    assetRepository.getByIDWithCustomFields.mockResolvedValue(asset)
+    assetRepository.deleteByID.mockRejectedValue(foreignKeyError)
+
+    await expect(
+      assetService.deleteByID({
+        id: asset.id
+      })
+    ).rejects.toMatchObject({
+      status: 409,
+      message: `asset ${asset.id} is still referenced by findings`
+    } satisfies Partial<HTTPException>)
+    expect(assetRepository.countFindingsByAssetID).toHaveBeenCalledWith(
+      asset.id
+    )
+    expect(assetRepository.deleteByID).toHaveBeenCalledWith(asset.id)
+    expect(domainEvents.subjects()).toEqual([])
   })
 
   it("maps repository delete failures to an HTTP 500", async () => {
@@ -615,7 +684,7 @@ describe("asset service", () => {
       })
     ).rejects.toMatchObject({
       status: 500,
-      message: "failed to get asset"
+      message: "failed to delete asset"
     } satisfies Partial<HTTPException>)
   })
 

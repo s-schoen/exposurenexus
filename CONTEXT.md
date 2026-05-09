@@ -57,6 +57,13 @@ one asset to one vulnerability and carries the operational lifecycle data:
 severity, status, source, evidence, mitigation, assignee, due date, first seen
 time, last seen time, and fingerprint.
 
+Findings are first-class workflow and evidence records. Deleting an asset or
+vulnerability must be blocked while any finding still references it, regardless
+of finding status. Findings are removed only by explicit finding deletion, or by
+a future explicit finding-level cleanup workflow. Subordinate implementation
+rows, such as asset custom field assignments, asset custom field values, and
+vulnerability source mappings, may cascade with their owning parent.
+
 Use **finding** for anything being triaged, deduplicated, imported, mitigated,
 or displayed in the finding table. Do not call this an issue unless referring to
 the project issue tracker.
