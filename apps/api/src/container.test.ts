@@ -23,7 +23,9 @@ const {
   createRoleServiceMock,
   createUserProfileServiceMock,
   createFindingServiceMock,
-  createVulnerabilityServiceMock
+  createVulnerabilityServiceMock,
+  roleRepositoryMock,
+  userRoleRepositoryMock
 } = vi.hoisted(() => ({
   createAppMock: vi.fn(() => ({ fetch: vi.fn() })),
   createAuthRouteMock: vi.fn(() => ({ route: "auth" })),
@@ -58,7 +60,20 @@ const {
   createFindingServiceMock: vi.fn(() => ({ kind: "finding-service" })),
   createVulnerabilityServiceMock: vi.fn(() => ({
     kind: "vulnerability-service"
-  }))
+  })),
+  roleRepositoryMock: {
+    list: vi.fn(),
+    getByID: vi.fn(),
+    getByIDs: vi.fn(),
+    getByNames: vi.fn(),
+    create: vi.fn(),
+    updateByID: vi.fn(),
+    deleteByID: vi.fn(),
+    hasUsersWithRoleID: vi.fn()
+  },
+  userRoleRepositoryMock: {
+    listPermissionsByUserID: vi.fn()
+  }
 }))
 
 vi.mock("./app.js", () => ({
@@ -123,8 +138,8 @@ vi.mock("./routes/import.js", () => ({
 vi.mock("./repository/index.js", () => ({
   createAssetRepository: vi.fn(() => ({ kind: "asset-repo" })),
   createFindingRepository: vi.fn(() => ({ kind: "finding-repo" })),
-  createRoleRepository: vi.fn(() => ({ kind: "role-repo" })),
-  createUserRoleRepository: vi.fn(() => ({ kind: "user-role-repo" })),
+  createRoleRepository: vi.fn(() => roleRepositoryMock),
+  createUserRoleRepository: vi.fn(() => userRoleRepositoryMock),
   createUserProfileRepository: vi.fn(() => ({ kind: "user-profile-repo" })),
   createUserSessionRepository: vi.fn(() => ({ kind: "user-session-repo" })),
   createVulnerabilityRepository: vi.fn(() => ({ kind: "vulnerability-repo" }))
@@ -193,6 +208,7 @@ describe("app container", () => {
     })
     expect(createAuthServiceMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        userRoleRepository: userRoleRepositoryMock,
         domainEventEmitter: expect.objectContaining({
           emit: expect.any(Function)
         })
@@ -236,6 +252,7 @@ describe("app container", () => {
     )
     expect(createRoleServiceMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        roleRepository: roleRepositoryMock,
         domainEventEmitter: expect.objectContaining({
           emit: expect.any(Function)
         })
