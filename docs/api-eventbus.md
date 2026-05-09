@@ -220,7 +220,8 @@ The API currently emits these event families:
 - Assets: created, updated, and deleted, using `AssetWithCustomFields` so asset
   custom field assignments and values are included in asset lifecycle events.
 - Findings: created, updated, deleted, and reclassified.
-- Vulnerabilities: created, deleted, and source mapping creation.
+- Vulnerabilities: created, updated, deleted, and source mapping created,
+  updated, and deleted.
 - Roles: updated and deleted.
 
 Update events use `{ previous, current }` where practical. This gives audit
