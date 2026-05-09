@@ -3,6 +3,10 @@ import {
   FindingSource,
   FindingStatus
 } from "@exposurenexus/types/model/finding"
+import {
+  PermissionResource,
+  PermissionVerb
+} from "@exposurenexus/types/model/rbac"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import { createTestUser } from "../test/app.js"
 import { pino } from "pino"
@@ -53,6 +57,7 @@ vi.mock("./vulnerability.js", async () => {
 })
 
 import { createAssetService } from "./asset.js"
+import { createAuthService } from "./auth.js"
 import { createFindingService } from "./finding.js"
 import { createRoleService } from "./role.js"
 import { createStatsService } from "./stats.js"
@@ -103,6 +108,46 @@ describe("service factories", () => {
     await service.listAll()
 
     expect(repository.list).toHaveBeenCalledOnce()
+  })
+
+  it("creates an auth service bound to the injected permission lookup repository", async () => {
+    const userRoleRepository = {
+      listPermissionsByUserID: vi.fn().mockResolvedValue([
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Read
+        }
+      ])
+    }
+    const service = createAuthService({
+      userProfileRepository: {
+        getByID: vi.fn(),
+        getByUsername: vi.fn()
+      },
+      userSessionRepository: {
+        getBySessionID: vi.fn(),
+        create: vi.fn(),
+        deleteBySessionID: vi.fn()
+      },
+      userRoleRepository,
+      domainEventEmitter: {
+        emit: vi.fn()
+      },
+      sessionLifetimeHours: 12,
+      sessionHmacSecret:
+        "012345678901234567890123456789012345678901234567890123456789",
+      logger
+    })
+
+    await expect(
+      service.userHasPermission(user.id, {
+        [PermissionResource.Asset]: [PermissionVerb.Read]
+      })
+    ).resolves.toBe(true)
+
+    expect(userRoleRepository.listPermissionsByUserID).toHaveBeenCalledWith(
+      user.id
+    )
   })
 
   it("creates a role service bound to the injected repository", async () => {
