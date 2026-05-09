@@ -78,6 +78,19 @@ describe("role service", () => {
     ])
   })
 
+  it("maps get-by-name failures to an HTTP 500", async () => {
+    const service = createService()
+
+    roleRepository.getByNames.mockRejectedValueOnce(new Error("db offline"))
+
+    await expect(
+      service.getByNames([BuiltInRoleName.Viewer])
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to get roles"
+    } satisfies Partial<HTTPException>)
+  })
+
   it("lists all roles", async () => {
     const service = createService()
 
@@ -252,13 +265,26 @@ describe("role service", () => {
   it("maps role resolution failures to an HTTP 500", async () => {
     const service = createService()
 
-    roleRepository.getByNames.mockRejectedValue(new Error("db offline"))
+    roleRepository.getByNames.mockRejectedValueOnce(new Error("db offline"))
 
     await expect(
       service.resolveRoleIdsFromNames([BuiltInRoleName.Viewer])
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to resolve role ids"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("maps role-name resolution failures to an HTTP 500", async () => {
+    const service = createService()
+
+    roleRepository.getByIDs.mockRejectedValueOnce(new Error("db offline"))
+
+    await expect(
+      service.requireRoleNamesFromIds([builtInRoleIds.viewer])
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to resolve role names"
     } satisfies Partial<HTTPException>)
   })
 
@@ -333,6 +359,42 @@ describe("role service", () => {
     expect(domainEvents.subjects()).toEqual([])
   })
 
+  it("returns null when updating a role that does not exist", async () => {
+    const service = createService()
+
+    roleRepository.getByID.mockResolvedValueOnce(null)
+
+    await expect(
+      service.updateByID({
+        id: analystRole.id,
+        role: {
+          name: "security-analyst",
+          permissions: analystRole.permissions
+        }
+      })
+    ).resolves.toBeNull()
+    expect(roleRepository.updateByID).not.toHaveBeenCalled()
+    expect(domainEvents.subjects()).toEqual([])
+  })
+
+  it("returns null when a role update loses a race with deletion", async () => {
+    const service = createService()
+
+    roleRepository.getByID.mockResolvedValueOnce(analystRole)
+    roleRepository.updateByID.mockResolvedValueOnce(null)
+
+    await expect(
+      service.updateByID({
+        id: analystRole.id,
+        role: {
+          name: "security-analyst",
+          permissions: analystRole.permissions
+        }
+      })
+    ).resolves.toBeNull()
+    expect(domainEvents.subjects()).toEqual([])
+  })
+
   it("maps duplicate role name updates to an HTTP 409", async () => {
     const service = createService()
 
@@ -352,6 +414,26 @@ describe("role service", () => {
     ).rejects.toMatchObject({
       status: 409,
       message: "role already exists"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("maps role update failures to an HTTP 500", async () => {
+    const service = createService()
+
+    roleRepository.getByID.mockResolvedValueOnce(analystRole)
+    roleRepository.updateByID.mockRejectedValueOnce(new Error("db offline"))
+
+    await expect(
+      service.updateByID({
+        id: analystRole.id,
+        role: {
+          name: "security-analyst",
+          permissions: analystRole.permissions
+        }
+      })
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to update role"
     } satisfies Partial<HTTPException>)
   })
 
@@ -398,6 +480,30 @@ describe("role service", () => {
     })
   })
 
+  it("returns null when deleting a role that does not exist", async () => {
+    const service = createService()
+
+    roleRepository.getByID.mockResolvedValueOnce(null)
+
+    await expect(service.deleteByID({ id: analystRole.id })).resolves.toBeNull()
+    expect(roleRepository.hasUsersWithRoleID).not.toHaveBeenCalled()
+    expect(roleRepository.deleteByID).not.toHaveBeenCalled()
+    expect(domainEvents.subjects()).toEqual([])
+  })
+
+  it("returns null when a role delete loses a race with deletion", async () => {
+    const service = createService()
+
+    roleRepository.getByID.mockResolvedValueOnce(analystRole)
+    roleRepository.deleteByID.mockResolvedValueOnce(null)
+
+    await expect(service.deleteByID({ id: analystRole.id })).resolves.toBeNull()
+    expect(roleRepository.hasUsersWithRoleID).toHaveBeenCalledWith(
+      analystRole.id
+    )
+    expect(domainEvents.subjects()).toEqual([])
+  })
+
   it("rejects trying to delete a built-in role", async () => {
     const service = createService()
 
@@ -425,5 +531,19 @@ describe("role service", () => {
     } satisfies Partial<HTTPException>)
 
     expect(roleRepository.deleteByID).not.toHaveBeenCalled()
+  })
+
+  it("maps role delete failures to an HTTP 500", async () => {
+    const service = createService()
+
+    roleRepository.getByID.mockResolvedValueOnce(analystRole)
+    roleRepository.deleteByID.mockRejectedValueOnce(new Error("db offline"))
+
+    await expect(
+      service.deleteByID({ id: analystRole.id })
+    ).rejects.toMatchObject({
+      status: 500,
+      message: "failed to delete role"
+    } satisfies Partial<HTTPException>)
   })
 })
