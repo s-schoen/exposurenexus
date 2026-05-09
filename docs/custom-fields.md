@@ -27,7 +27,7 @@ service, and route layers.
 
 - `packages/types/src/model/asset.ts` defines the supported field types,
   definition shapes, value shapes, and request validation schemas.
-- `apps/api/src/db/migrations/20260427-asset-custom-fields.ts` creates the
+- `apps/api/src/db/migrations/20260429-asset-custom-fields.ts` creates the
   custom field tables and the database enum for field types.
 - `apps/api/src/db/migrations/20260430-03-asset-custom-field-assignments.ts`
   creates the asset-to-field assignment table and backfills existing assets

@@ -13,7 +13,10 @@ export default defineConfig({
         "src/**/*.test.ts",
         "src/test/**",
         "src/index.ts",
-        "src/env.ts"
+        "src/env.ts",
+        // Migrations are covered by provider/full-chain tests and focused tests
+        // for risky data changes, not by requiring isolated coverage per file.
+        "src/db/migrations/**"
       ]
     }
   }
