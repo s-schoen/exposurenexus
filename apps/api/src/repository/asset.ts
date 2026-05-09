@@ -417,6 +417,16 @@ export function createAssetRepository(database: Kysely<Database>) {
       return deletedAsset
     },
 
+    async countFindingsByAssetID(id: string): Promise<number> {
+      const result = await database
+        .selectFrom("finding")
+        .select(database.fn.countAll().as("count"))
+        .where("assetId", "=", id)
+        .executeTakeFirst()
+
+      return Number(result?.count ?? 0)
+    },
+
     async listCustomFieldDefinitions(): Promise<AssetCustomFieldDefinition[]> {
       return await listCustomFieldDefinitions(database)
     },

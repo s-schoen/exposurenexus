@@ -13,6 +13,11 @@ import {
   AssetCustomFieldValueSource,
   AssetType
 } from "@exposurenexus/types/model/asset"
+import {
+  FindingSource,
+  FindingStatus
+} from "@exposurenexus/types/model/finding"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import { createAssetRepository } from "./asset.js"
 import { createTestDatabase, resetTestDatabase } from "../test/db.js"
 
@@ -34,6 +39,7 @@ function expectSelectDefinition(
 
 describe("asset repository", () => {
   const testDb = createTestDatabase()
+  const createdBy = "85196743-cfba-4afb-b286-d36be32a64a4"
 
   beforeAll(async () => {
     await testDb.start()
@@ -45,6 +51,17 @@ describe("asset repository", () => {
 
   beforeEach(async () => {
     await resetTestDatabase(testDb.db)
+    await testDb.db
+      .insertInto("user_profile")
+      .values({
+        id: createdBy,
+        username: "tester",
+        displayName: "Test User",
+        email: "tester@example.com",
+        enabled: true,
+        passwordHash: "password-hash"
+      })
+      .execute()
   })
 
   it("persists and retrieves assets against a real database", async () => {
@@ -148,6 +165,68 @@ describe("asset repository", () => {
     await expect(
       repository.updateOwnerByID("76b1885f-2d28-4b7d-93da-2751ff385aa3", null)
     ).resolves.toBeNull()
+  })
+
+  it("does not delete assets linked to findings", async () => {
+    const repository = createAssetRepository(testDb.db)
+    const asset = await repository.create({
+      id: "",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host
+    })
+    const vulnerability = await testDb.db
+      .insertInto("vulnerability")
+      .values({
+        title: "Exposed Admin Endpoint",
+        description: "Administrative interface is reachable externally",
+        severity: VulnerabilitySeverity.High,
+        cve: null,
+        cwe: 284,
+        createdAt: new Date("2026-01-02T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+        createdBy,
+        updatedBy: createdBy
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow()
+    const finding = await testDb.db
+      .insertInto("finding")
+      .values({
+        assetId: asset.id,
+        vulnerabilityId: vulnerability.id,
+        severity: VulnerabilitySeverity.High,
+        status: FindingStatus.Active,
+        evidence: "Observed exposed admin endpoint",
+        source: FindingSource.Manual,
+        mitigation: "Restrict access to internal networks",
+        assigneeId: null,
+        dueDate: null,
+        firstSeen: new Date("2026-01-03T00:00:00.000Z"),
+        lastSeen: new Date("2026-01-03T00:00:00.000Z"),
+        fingerprint: "asset-delete-blocked-finding",
+        createdAt: new Date("2026-01-03T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-03T00:00:00.000Z"),
+        createdBy,
+        updatedBy: createdBy
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow()
+
+    await expect(repository.countFindingsByAssetID(asset.id)).resolves.toBe(1)
+    await expect(repository.deleteByID(asset.id)).rejects.toThrow(
+      /foreign key|violates/i
+    )
+    await expect(repository.getByID(asset.id)).resolves.toEqual(asset)
+    await expect(
+      testDb.db
+        .selectFrom("finding")
+        .selectAll()
+        .where("id", "=", finding.id)
+        .executeTakeFirst()
+    ).resolves.toMatchObject({
+      id: finding.id,
+      assetId: asset.id
+    })
   })
 
   it("persists and retrieves custom field definitions with options", async () => {

@@ -536,4 +536,39 @@ describe("db migration columns", () => {
       })
     ])
   })
+
+  it("blocks asset deletion while findings reference it", async () => {
+    const findingAssetForeignKeys = await sql<{
+      constraint_name: string
+      source_table: string
+      target_table: string
+      delete_rule: string
+    }>`
+      select
+        rc.constraint_name,
+        kcu.table_name as source_table,
+        ccu.table_name as target_table,
+        rc.delete_rule
+      from information_schema.referential_constraints rc
+      join information_schema.key_column_usage kcu
+        on kcu.constraint_catalog = rc.constraint_catalog
+        and kcu.constraint_schema = rc.constraint_schema
+        and kcu.constraint_name = rc.constraint_name
+      join information_schema.constraint_column_usage ccu
+        on ccu.constraint_catalog = rc.unique_constraint_catalog
+        and ccu.constraint_schema = rc.unique_constraint_schema
+        and ccu.constraint_name = rc.unique_constraint_name
+      where kcu.table_name = 'finding'
+        and kcu.column_name = 'assetId'
+    `.execute(testDb.db)
+
+    expect(findingAssetForeignKeys.rows).toEqual([
+      expect.objectContaining({
+        constraint_name: "finding_assetId_fkey",
+        source_table: "finding",
+        target_table: "asset",
+        delete_rule: "RESTRICT"
+      })
+    ])
+  })
 })

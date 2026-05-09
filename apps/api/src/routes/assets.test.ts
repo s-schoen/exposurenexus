@@ -1749,4 +1749,36 @@ describe("asset routes", () => {
       error: `asset with id ${assetId} does not exist`
     })
   })
+
+  it("returns 409 when deleting an asset that has linked findings", async () => {
+    const requestId = "assets-delete-conflict-request"
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+
+    assetService.deleteByID.mockRejectedValueOnce(
+      new HTTPException(409, {
+        message: `asset ${assetId} is still referenced by findings`
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/assets/${assetId}`, {
+      method: "DELETE",
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(409)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 409,
+      error: `asset ${assetId} is still referenced by findings`
+    })
+  })
 })
