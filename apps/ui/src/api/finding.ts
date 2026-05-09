@@ -1,9 +1,14 @@
 import { keepPreviousData } from "@tanstack/react-query"
-import { findingSchema } from "@exposurenexus/types/model/finding"
+import {
+  findingSchema,
+  reclassifyFindingsResultSchema
+} from "@exposurenexus/types/model/finding"
 import type {
   CreateFinding,
   Finding,
   FindingStatistics,
+  ReclassifyFindings,
+  ReclassifyFindingsResult,
   UpdateFinding
 } from "@exposurenexus/types/model/finding"
 import {
@@ -133,6 +138,26 @@ export async function uploadFindingFile(type: string, file: File) {
     console.error(error)
     throw error
   }
+}
+
+export async function reclassifyFindings(
+  reclassification: ReclassifyFindings
+): Promise<ReclassifyFindingsResult> {
+  const response = await apiRequest("/api/findings/reclassify", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(reclassification)
+  })
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response)
+    console.error(error)
+    throw error
+  }
+
+  return parseObjectReply(response, reclassifyFindingsResultSchema)
 }
 
 export function createListFindingsQueryOptions() {
