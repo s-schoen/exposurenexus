@@ -1,6 +1,7 @@
-import { Link } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { ArrowLeft } from "lucide-react"
+import { useMemo } from "react"
+import { ArrowLeft, Pencil } from "lucide-react"
 import { createVulnerabilityByIDQueryOptions } from "@/api/vulnerability.ts"
 import { VulnerabilityDetailContent } from "@/components/vulnerability-detail-content.tsx"
 import { buttonVariants } from "@/components/ui/button.tsx"
@@ -14,14 +15,34 @@ interface VulnerabilityDetailRouteComponentProps {
 export function VulnerabilityDetailRouteComponent({
   vulnerabilityId
 }: VulnerabilityDetailRouteComponentProps) {
+  const navigate = useNavigate()
   const vulnerability = useQuery(
     createVulnerabilityByIDQueryOptions(vulnerabilityId)
   )
+  const actions = useMemo(() => {
+    if (!vulnerability.data) {
+      return []
+    }
+
+    return [
+      {
+        label: "Edit vulnerability",
+        icon: Pencil,
+        onClick: () => {
+          void navigate({
+            to: "/vulnerabilities/$id/edit",
+            params: { id: vulnerabilityId }
+          })
+        }
+      }
+    ]
+  }, [navigate, vulnerability.data, vulnerabilityId])
 
   usePageMeta({
     title: vulnerability.data?.title ?? "Vulnerability",
     description:
-      "Review vulnerability metadata, classification references, and the full technical description."
+      "Review vulnerability metadata, classification references, and the full technical description.",
+    actions
   })
 
   return (

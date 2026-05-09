@@ -23,6 +23,11 @@ export function VulnerabilitiesRouteComponent({
     <>
       <VulnerabilityTable
         selectedVulnerabilityId={selected}
+        onCreateVulnerability={() =>
+          navigate({
+            to: "/vulnerabilities/new"
+          })
+        }
         onSelectVulnerability={(vulnerability) =>
           navigate({
             to: "/vulnerabilities",

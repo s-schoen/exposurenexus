@@ -38,9 +38,11 @@ vi.mock("@/context/page.tsx", () => ({
 
 vi.mock("@/components/vulnerability-table", () => ({
   VulnerabilityTable: ({
+    onCreateVulnerability,
     onSelectVulnerability,
     selectedVulnerabilityId
   }: {
+    onCreateVulnerability?: () => void
     onSelectVulnerability?: (vulnerability: Vulnerability) => void
     selectedVulnerabilityId?: string
   }) => (
@@ -51,6 +53,9 @@ vi.mock("@/components/vulnerability-table", () => ({
         onClick={() => onSelectVulnerability?.(mocks.vulnerability)}
       >
         select vulnerability
+      </button>
+      <button type="button" onClick={onCreateVulnerability}>
+        create vulnerability
       </button>
     </div>
   )
@@ -161,6 +166,21 @@ describe("VulnerabilitiesRouteComponent", () => {
 
     expect(closeSearch({ selected: mocks.vulnerability.id })).toEqual({
       selected: undefined
+    })
+  })
+
+  it("navigates to the create vulnerability route", async () => {
+    const { VulnerabilitiesRouteComponent } =
+      await import("@/routes/_authenticated/vulnerabilities/-index-route-component.tsx")
+
+    render(<VulnerabilitiesRouteComponent />)
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /create vulnerability/i })
+    )
+
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/vulnerabilities/new"
     })
   })
 })

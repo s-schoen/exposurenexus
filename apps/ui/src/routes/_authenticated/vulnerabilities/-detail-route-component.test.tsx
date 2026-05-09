@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => {
   }
 
   return {
+    navigate: vi.fn(),
     usePageMeta: vi.fn(),
     vulnerability,
     vulnerabilityQuery
@@ -49,7 +50,8 @@ vi.mock("@tanstack/react-router", () => ({
     <a className={className} href="/vulnerabilities">
       {children}
     </a>
-  )
+  ),
+  useNavigate: () => mocks.navigate
 }))
 
 vi.mock("@tanstack/react-query", () => ({
@@ -83,6 +85,7 @@ vi.mock("@/components/vulnerability-detail-content.tsx", () => ({
 
 describe("VulnerabilityDetailRouteComponent", () => {
   beforeEach(() => {
+    mocks.navigate.mockReset()
     mocks.usePageMeta.mockReset()
     mocks.vulnerabilityQuery = {
       data: mocks.vulnerability,
@@ -108,7 +111,12 @@ describe("VulnerabilityDetailRouteComponent", () => {
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Exposed Admin Endpoint",
       description:
-        "Review vulnerability metadata, classification references, and the full technical description."
+        "Review vulnerability metadata, classification references, and the full technical description.",
+      actions: [
+        expect.objectContaining({
+          label: "Edit vulnerability"
+        })
+      ]
     })
     expect(
       screen.getByRole("link", { name: /back to vulnerabilities/i })
@@ -135,7 +143,27 @@ describe("VulnerabilityDetailRouteComponent", () => {
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Vulnerability",
       description:
-        "Review vulnerability metadata, classification references, and the full technical description."
+        "Review vulnerability metadata, classification references, and the full technical description.",
+      actions: []
+    })
+  })
+
+  it("navigates to edit from the page action", async () => {
+    const { VulnerabilityDetailRouteComponent } =
+      await import("@/routes/_authenticated/vulnerabilities/-detail-route-component.tsx")
+
+    render(
+      <VulnerabilityDetailRouteComponent
+        vulnerabilityId={mocks.vulnerability.id}
+      />
+    )
+
+    const meta = mocks.usePageMeta.mock.calls[0][0]
+    meta.actions[0].onClick()
+
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/vulnerabilities/$id/edit",
+      params: { id: mocks.vulnerability.id }
     })
   })
 })
