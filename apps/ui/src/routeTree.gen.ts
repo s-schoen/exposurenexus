@@ -21,6 +21,7 @@ import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedVulnerabilitiesIdRouteImport } from './routes/_authenticated/vulnerabilities/$id'
 import { Route as AuthenticatedUsersNewRouteImport } from './routes/_authenticated/users/new'
 import { Route as AuthenticatedUsersIdRouteImport } from './routes/_authenticated/users/$id'
+import { Route as AuthenticatedRolesNewRouteImport } from './routes/_authenticated/roles/new'
 import { Route as AuthenticatedRolesIdRouteImport } from './routes/_authenticated/roles/$id'
 import { Route as AuthenticatedFindingsTriageRouteImport } from './routes/_authenticated/findings/triage'
 import { Route as AuthenticatedFindingsNewRouteImport } from './routes/_authenticated/findings/new'
@@ -30,6 +31,7 @@ import { Route as AuthenticatedCustomFieldsNewRouteImport } from './routes/_auth
 import { Route as AuthenticatedCustomFieldsIdRouteImport } from './routes/_authenticated/custom-fields/$id'
 import { Route as AuthenticatedAssetsIdRouteImport } from './routes/_authenticated/assets/$id'
 import { Route as AuthenticatedUsersIdEditRouteImport } from './routes/_authenticated/users/$id.edit'
+import { Route as AuthenticatedRolesIdEditRouteImport } from './routes/_authenticated/roles/$id.edit'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -95,6 +97,11 @@ const AuthenticatedUsersIdRoute = AuthenticatedUsersIdRouteImport.update({
   path: '/users/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedRolesNewRoute = AuthenticatedRolesNewRouteImport.update({
+  id: '/roles/new',
+  path: '/roles/new',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedRolesIdRoute = AuthenticatedRolesIdRouteImport.update({
   id: '/roles/$id',
   path: '/roles/$id',
@@ -146,6 +153,12 @@ const AuthenticatedUsersIdEditRoute =
     path: '/edit',
     getParentRoute: () => AuthenticatedUsersIdRoute,
   } as any)
+const AuthenticatedRolesIdEditRoute =
+  AuthenticatedRolesIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedRolesIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -157,7 +170,8 @@ export interface FileRoutesByFullPath {
   '/findings/import': typeof AuthenticatedFindingsImportRoute
   '/findings/new': typeof AuthenticatedFindingsNewRoute
   '/findings/triage': typeof AuthenticatedFindingsTriageRoute
-  '/roles/$id': typeof AuthenticatedRolesIdRoute
+  '/roles/$id': typeof AuthenticatedRolesIdRouteWithChildren
+  '/roles/new': typeof AuthenticatedRolesNewRoute
   '/users/$id': typeof AuthenticatedUsersIdRouteWithChildren
   '/users/new': typeof AuthenticatedUsersNewRoute
   '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
@@ -167,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/roles/': typeof AuthenticatedRolesIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
   '/vulnerabilities/': typeof AuthenticatedVulnerabilitiesIndexRoute
+  '/roles/$id/edit': typeof AuthenticatedRolesIdEditRoute
   '/users/$id/edit': typeof AuthenticatedUsersIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -179,7 +194,8 @@ export interface FileRoutesByTo {
   '/findings/import': typeof AuthenticatedFindingsImportRoute
   '/findings/new': typeof AuthenticatedFindingsNewRoute
   '/findings/triage': typeof AuthenticatedFindingsTriageRoute
-  '/roles/$id': typeof AuthenticatedRolesIdRoute
+  '/roles/$id': typeof AuthenticatedRolesIdRouteWithChildren
+  '/roles/new': typeof AuthenticatedRolesNewRoute
   '/users/$id': typeof AuthenticatedUsersIdRouteWithChildren
   '/users/new': typeof AuthenticatedUsersNewRoute
   '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
@@ -189,6 +205,7 @@ export interface FileRoutesByTo {
   '/roles': typeof AuthenticatedRolesIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
   '/vulnerabilities': typeof AuthenticatedVulnerabilitiesIndexRoute
+  '/roles/$id/edit': typeof AuthenticatedRolesIdEditRoute
   '/users/$id/edit': typeof AuthenticatedUsersIdEditRoute
 }
 export interface FileRoutesById {
@@ -203,7 +220,8 @@ export interface FileRoutesById {
   '/_authenticated/findings/import': typeof AuthenticatedFindingsImportRoute
   '/_authenticated/findings/new': typeof AuthenticatedFindingsNewRoute
   '/_authenticated/findings/triage': typeof AuthenticatedFindingsTriageRoute
-  '/_authenticated/roles/$id': typeof AuthenticatedRolesIdRoute
+  '/_authenticated/roles/$id': typeof AuthenticatedRolesIdRouteWithChildren
+  '/_authenticated/roles/new': typeof AuthenticatedRolesNewRoute
   '/_authenticated/users/$id': typeof AuthenticatedUsersIdRouteWithChildren
   '/_authenticated/users/new': typeof AuthenticatedUsersNewRoute
   '/_authenticated/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRoute
@@ -213,6 +231,7 @@ export interface FileRoutesById {
   '/_authenticated/roles/': typeof AuthenticatedRolesIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
   '/_authenticated/vulnerabilities/': typeof AuthenticatedVulnerabilitiesIndexRoute
+  '/_authenticated/roles/$id/edit': typeof AuthenticatedRolesIdEditRoute
   '/_authenticated/users/$id/edit': typeof AuthenticatedUsersIdEditRoute
 }
 export interface FileRouteTypes {
@@ -228,6 +247,7 @@ export interface FileRouteTypes {
     | '/findings/new'
     | '/findings/triage'
     | '/roles/$id'
+    | '/roles/new'
     | '/users/$id'
     | '/users/new'
     | '/vulnerabilities/$id'
@@ -237,6 +257,7 @@ export interface FileRouteTypes {
     | '/roles/'
     | '/users/'
     | '/vulnerabilities/'
+    | '/roles/$id/edit'
     | '/users/$id/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -250,6 +271,7 @@ export interface FileRouteTypes {
     | '/findings/new'
     | '/findings/triage'
     | '/roles/$id'
+    | '/roles/new'
     | '/users/$id'
     | '/users/new'
     | '/vulnerabilities/$id'
@@ -259,6 +281,7 @@ export interface FileRouteTypes {
     | '/roles'
     | '/users'
     | '/vulnerabilities'
+    | '/roles/$id/edit'
     | '/users/$id/edit'
   id:
     | '__root__'
@@ -273,6 +296,7 @@ export interface FileRouteTypes {
     | '/_authenticated/findings/new'
     | '/_authenticated/findings/triage'
     | '/_authenticated/roles/$id'
+    | '/_authenticated/roles/new'
     | '/_authenticated/users/$id'
     | '/_authenticated/users/new'
     | '/_authenticated/vulnerabilities/$id'
@@ -282,6 +306,7 @@ export interface FileRouteTypes {
     | '/_authenticated/roles/'
     | '/_authenticated/users/'
     | '/_authenticated/vulnerabilities/'
+    | '/_authenticated/roles/$id/edit'
     | '/_authenticated/users/$id/edit'
   fileRoutesById: FileRoutesById
 }
@@ -376,6 +401,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsersIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/roles/new': {
+      id: '/_authenticated/roles/new'
+      path: '/roles/new'
+      fullPath: '/roles/new'
+      preLoaderRoute: typeof AuthenticatedRolesNewRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/roles/$id': {
       id: '/_authenticated/roles/$id'
       path: '/roles/$id'
@@ -439,8 +471,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsersIdEditRouteImport
       parentRoute: typeof AuthenticatedUsersIdRoute
     }
+    '/_authenticated/roles/$id/edit': {
+      id: '/_authenticated/roles/$id/edit'
+      path: '/edit'
+      fullPath: '/roles/$id/edit'
+      preLoaderRoute: typeof AuthenticatedRolesIdEditRouteImport
+      parentRoute: typeof AuthenticatedRolesIdRoute
+    }
   }
 }
+
+interface AuthenticatedRolesIdRouteChildren {
+  AuthenticatedRolesIdEditRoute: typeof AuthenticatedRolesIdEditRoute
+}
+
+const AuthenticatedRolesIdRouteChildren: AuthenticatedRolesIdRouteChildren = {
+  AuthenticatedRolesIdEditRoute: AuthenticatedRolesIdEditRoute,
+}
+
+const AuthenticatedRolesIdRouteWithChildren =
+  AuthenticatedRolesIdRoute._addFileChildren(AuthenticatedRolesIdRouteChildren)
 
 interface AuthenticatedUsersIdRouteChildren {
   AuthenticatedUsersIdEditRoute: typeof AuthenticatedUsersIdEditRoute
@@ -462,7 +512,8 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFindingsImportRoute: typeof AuthenticatedFindingsImportRoute
   AuthenticatedFindingsNewRoute: typeof AuthenticatedFindingsNewRoute
   AuthenticatedFindingsTriageRoute: typeof AuthenticatedFindingsTriageRoute
-  AuthenticatedRolesIdRoute: typeof AuthenticatedRolesIdRoute
+  AuthenticatedRolesIdRoute: typeof AuthenticatedRolesIdRouteWithChildren
+  AuthenticatedRolesNewRoute: typeof AuthenticatedRolesNewRoute
   AuthenticatedUsersIdRoute: typeof AuthenticatedUsersIdRouteWithChildren
   AuthenticatedUsersNewRoute: typeof AuthenticatedUsersNewRoute
   AuthenticatedVulnerabilitiesIdRoute: typeof AuthenticatedVulnerabilitiesIdRoute
@@ -483,7 +534,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFindingsImportRoute: AuthenticatedFindingsImportRoute,
   AuthenticatedFindingsNewRoute: AuthenticatedFindingsNewRoute,
   AuthenticatedFindingsTriageRoute: AuthenticatedFindingsTriageRoute,
-  AuthenticatedRolesIdRoute: AuthenticatedRolesIdRoute,
+  AuthenticatedRolesIdRoute: AuthenticatedRolesIdRouteWithChildren,
+  AuthenticatedRolesNewRoute: AuthenticatedRolesNewRoute,
   AuthenticatedUsersIdRoute: AuthenticatedUsersIdRouteWithChildren,
   AuthenticatedUsersNewRoute: AuthenticatedUsersNewRoute,
   AuthenticatedVulnerabilitiesIdRoute: AuthenticatedVulnerabilitiesIdRoute,
