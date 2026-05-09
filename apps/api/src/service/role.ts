@@ -2,6 +2,7 @@ import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
 import {
   builtInRoleIds,
+  type CreateRole,
   type Role,
   type UpdateRole
 } from "@exposurenexus/types/model/rbac"
@@ -32,6 +33,7 @@ interface RoleRepository {
   getByID(id: string): Promise<Role | null>
   getByIDs(ids: readonly string[]): Promise<Role[]>
   getByNames(names: readonly string[]): Promise<Role[]>
+  create(role: CreateRole): Promise<Role>
   updateByID(
     id: string,
     roleUpdate: UpdateRole
@@ -54,6 +56,11 @@ interface RoleServiceDependencies {
 export interface UpdateRoleOptions {
   id: string
   role: UpdateRole
+  eventContext?: DomainEventContext
+}
+
+export interface CreateRoleOptions {
+  role: CreateRole
   eventContext?: DomainEventContext
 }
 
@@ -151,6 +158,25 @@ export function createRoleService({
         logger.error(error, "failed to resolve role names")
         throw new HTTPException(500, {
           message: "failed to resolve role names"
+        })
+      }
+    },
+
+    async create(opts: CreateRoleOptions): Promise<Role> {
+      try {
+        const role = await roleRepository.create(opts.role)
+
+        emitRoleEvent("role.created", { role }, opts.eventContext)
+        return role
+      } catch (error) {
+        if (isConflictError(error)) {
+          logger.debug(error, "role create conflict")
+          throw conflict("role already exists")
+        }
+
+        logger.error(error, "failed to create role")
+        throw new HTTPException(500, {
+          message: "failed to create role"
         })
       }
     },

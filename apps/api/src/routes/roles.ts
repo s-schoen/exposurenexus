@@ -2,8 +2,10 @@ import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
 import {
+  createRoleSchema,
   updateRoleSchema,
   type Role,
+  type CreateRole,
   type UpdateRole
 } from "@exposurenexus/types/model/rbac"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
@@ -15,6 +17,10 @@ import type { RequireDomainPermission } from "../middleware/auth.js"
 interface RoleRouteService {
   listAll(): Promise<Role[]>
   getByID(id: string): Promise<Role | null>
+  create(options: {
+    role: CreateRole
+    eventContext?: DomainEventContext
+  }): Promise<Role>
   updateByID(options: {
     id: string
     role: UpdateRole
@@ -42,6 +48,22 @@ export function createRoleRoute(
     const roles = await roleService.listAll()
     return replyArray(c, roles)
   })
+
+  role.post(
+    "/",
+    requireDomainPermission("user", "write"),
+    zValidator("json", createRoleSchema),
+    async (c) => {
+      const body = c.req.valid("json")
+
+      const createdRole = await roleService.create({
+        role: body,
+        eventContext: requestEventContext(c)
+      })
+
+      return replyObject(c, createdRole, true)
+    }
+  )
 
   role.get(
     "/:id",

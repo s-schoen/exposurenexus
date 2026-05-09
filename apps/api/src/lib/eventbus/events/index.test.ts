@@ -83,7 +83,7 @@ describe("createDomainEventPayload", () => {
 
       createEventPayload({
         // @ts-expect-error only known event subjects can be created
-        subject: "role.created",
+        subject: "role.archived",
         source: "asset-service",
         data: { user }
       })
@@ -239,9 +239,22 @@ describe("createDomainEventPayload", () => {
       id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830",
       name: "analyst",
       permissions: [{ resource: "asset", verb: "read" }]
-    } as RoleEventPayloads["role.deleted"]["role"]
+    } as RoleEventPayloads["role.created"]["role"]
 
-    const event = createEventPayload({
+    const createdEvent = createEventPayload({
+      subject: "role.created",
+      source: "role",
+      data: {
+        role
+      }
+    })
+
+    expectTypeOf(createdEvent).toEqualTypeOf<
+      DomainEventPayloadBase<"role.created", RoleEventPayloads["role.created"]>
+    >()
+    expectTypeOf(createdEvent).toMatchTypeOf<DomainEvent>()
+
+    const updatedEvent = createEventPayload({
       subject: "role.updated",
       source: "role",
       data: {
@@ -253,10 +266,10 @@ describe("createDomainEventPayload", () => {
       }
     })
 
-    expectTypeOf(event).toEqualTypeOf<
+    expectTypeOf(updatedEvent).toEqualTypeOf<
       DomainEventPayloadBase<"role.updated", RoleEventPayloads["role.updated"]>
     >()
-    expectTypeOf(event).toMatchTypeOf<DomainEvent>()
+    expectTypeOf(updatedEvent).toMatchTypeOf<DomainEvent>()
   })
 
   it("creates source-bound emitters with subject-specific payload types", () => {

@@ -192,6 +192,116 @@ describe("role repository", () => {
     )
   })
 
+  it("creates a role with permissions", async () => {
+    const repository = createRoleRepository(testDb.db)
+
+    const createdRole = await repository.create({
+      name: "security-analyst",
+      permissions: [
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Read
+        },
+        {
+          resource: PermissionResource.Finding,
+          verb: PermissionVerb.Write
+        }
+      ]
+    })
+
+    expect(createdRole.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u
+    )
+    expect(createdRole).toEqual({
+      id: createdRole.id,
+      name: "security-analyst",
+      permissions: expect.arrayContaining([
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Read
+        },
+        {
+          resource: PermissionResource.Finding,
+          verb: PermissionVerb.Write
+        }
+      ])
+    })
+    expect(createdRole.permissions).toHaveLength(2)
+    await expect(repository.getByID(createdRole.id)).resolves.toEqual(
+      createdRole
+    )
+  })
+
+  it("creates a role without permissions", async () => {
+    const repository = createRoleRepository(testDb.db)
+
+    const createdRole = await repository.create({
+      name: "no-access",
+      permissions: []
+    })
+
+    expect(createdRole).toEqual({
+      id: createdRole.id,
+      name: "no-access",
+      permissions: []
+    })
+    await expect(repository.getByID(createdRole.id)).resolves.toEqual(
+      createdRole
+    )
+  })
+
+  it("deduplicates duplicate permission pairs when creating a role", async () => {
+    const repository = createRoleRepository(testDb.db)
+
+    const createdRole = await repository.create({
+      name: "deduped-role",
+      permissions: [
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Read
+        },
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Read
+        },
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Write
+        }
+      ]
+    })
+
+    expect(createdRole.permissions).toEqual([
+      {
+        resource: PermissionResource.Asset,
+        verb: PermissionVerb.Read
+      },
+      {
+        resource: PermissionResource.Asset,
+        verb: PermissionVerb.Write
+      }
+    ])
+
+    const assignments = await testDb.db
+      .selectFrom("role_permission_assignment")
+      .select(["resource", "verb"])
+      .where("role_id", "=", createdRole.id)
+      .execute()
+
+    expect(assignments).toEqual(createdRole.permissions)
+  })
+
+  it("fails when creating a role with a duplicate name", async () => {
+    const repository = createRoleRepository(testDb.db)
+
+    await expect(
+      repository.create({
+        name: BuiltInRoleName.Viewer,
+        permissions: []
+      })
+    ).rejects.toThrow()
+  })
+
   it("updates a role and replaces its permissions", async () => {
     const repository = createRoleRepository(testDb.db)
     const roleId = "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830"
