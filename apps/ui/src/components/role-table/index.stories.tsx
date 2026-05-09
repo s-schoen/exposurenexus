@@ -11,6 +11,8 @@ type RoleTableStoryArgs = {
   selectedRoleId?: string
   onSelectRole?: (role: Role) => void
   onOpenRole?: (role: Role) => void
+  onCreateRole?: () => void
+  onDeleteRoles?: (roles: Array<Role>) => Promise<void>
   roles: Array<Role>
   pending?: boolean
 }
@@ -61,7 +63,9 @@ function RoleTableStoryShell({
   pending = false,
   selectedRoleId,
   onSelectRole,
-  onOpenRole
+  onOpenRole,
+  onCreateRole,
+  onDeleteRoles
 }: RoleTableStoryArgs) {
   const [filterState, setFilterState] = useState<DataTableFilterState>({
     globalFilter: "",
@@ -82,6 +86,8 @@ function RoleTableStoryShell({
         selectedRoleId={selectedRoleId}
         onSelectRole={onSelectRole}
         onOpenRole={onOpenRole}
+        onCreateRole={onCreateRole}
+        onDeleteRoles={onDeleteRoles}
         filterState={filterState}
         onFilterStateChange={setFilterState}
       />
@@ -123,6 +129,22 @@ export const Empty: Story = {
 export const ActiveRow: Story = {
   args: {
     selectedRoleId: "0e7b7e25-47f2-4baf-a2c1-6ec48b0d8b03"
+  }
+}
+
+export const Creatable: Story = {
+  args: {
+    onCreateRole: fn()
+  },
+  play: async ({ canvas, args }) => {
+    await userEvent.click(await canvas.findByRole("button", { name: /new role/i }))
+    await expect(args.onCreateRole).toHaveBeenCalled()
+  }
+}
+
+export const Deletable: Story = {
+  args: {
+    onDeleteRoles: fn(() => Promise.resolve())
   }
 }
 

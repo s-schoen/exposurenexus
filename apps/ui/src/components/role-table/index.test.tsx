@@ -11,7 +11,8 @@ import { composeStories } from "@storybook/react-vite"
 
 import * as stories from "@/components/role-table/index.stories"
 
-const { ActiveRow, Default, Empty, Loading } = composeStories(stories)
+const { ActiveRow, Creatable, Default, Empty, Loading } =
+  composeStories(stories)
 
 class ResizeObserverMock {
   observe() {}
@@ -66,6 +67,16 @@ describe("RoleTable stories", () => {
       expect(
         within(activeRow as HTMLTableRowElement).getByText("admin")
       ).toBeTruthy()
+    })
+  })
+
+  it("calls the create handler from the toolbar action", async () => {
+    render(<Creatable />)
+
+    fireEvent.click(await screen.findByRole("button", { name: /new role/i }))
+
+    await waitFor(() => {
+      expect(Creatable.args.onCreateRole).toHaveBeenCalled()
     })
   })
 
