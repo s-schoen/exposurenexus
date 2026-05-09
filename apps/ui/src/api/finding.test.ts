@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding"
+import {
+  FindingSource,
+  FindingStatus
+} from "@exposurenexus/types/model/finding"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import {
   createFinding,
@@ -7,6 +10,7 @@ import {
   createFindingStatsQueryOptions,
   createListFindingsQueryOptions,
   deleteFinding,
+  reclassifyFindings,
   updateFinding,
   uploadFindingFile
 } from "./finding.ts"
@@ -315,6 +319,38 @@ describe("finding api", () => {
     expect(body).toBeInstanceOf(FormData)
     expect((body as FormData).get("type")).toBe("nuclei")
     expect((body as FormData).get("file")).toBe(file)
+  })
+
+  it("reclassifies findings with a JSON request body", async () => {
+    const targetVulnerabilityId = "4fb566c6-e642-48d8-b70d-418efb074f8d"
+    const payload = {
+      source: FindingSource.Nuclei,
+      oldVulnerabilityId: vulnerabilityId,
+      targetVulnerabilityId
+    }
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          updatedCount: 2
+        }
+      })
+    )
+
+    await expect(reclassifyFindings(payload)).resolves.toEqual({
+      updatedCount: 2
+    })
+
+    const headers = requestInit().headers as Headers
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/findings/reclassify",
+      expect.objectContaining({
+        credentials: "include",
+        method: "POST"
+      })
+    )
+    expect(headers.get("Content-Type")).toBe("application/json")
+    expect(requestJsonBody()).toEqual(payload)
   })
 
   it("throws API errors from finding requests", async () => {
