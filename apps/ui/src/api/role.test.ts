@@ -6,11 +6,16 @@ import {
 } from "@exposurenexus/types/model/rbac"
 import {
   createListRolesQueryOptions,
+  createRole,
   createRoleByIDQueryOptions,
   deleteRole,
   updateRole
 } from "./role.ts"
-import type { Role, UpdateRole } from "@exposurenexus/types/model/rbac"
+import type {
+  CreateRole,
+  Role,
+  UpdateRole
+} from "@exposurenexus/types/model/rbac"
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -103,6 +108,37 @@ describe("role api", () => {
     )
   })
 
+  it("creates roles with a JSON request body", async () => {
+    const payload: CreateRole = {
+      name: "security-analyst",
+      permissions: [
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Read }
+      ]
+    }
+    const createdRole = {
+      id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830",
+      ...payload
+    }
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: createdRole
+      })
+    )
+
+    await expect(createRole(payload)).resolves.toEqual(createdRole)
+
+    const headers = requestInit().headers as Headers
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/roles",
+      expect.objectContaining({
+        credentials: "include",
+        method: "POST"
+      })
+    )
+    expect(headers.get("Content-Type")).toBe("application/json")
+    expect(requestJsonBody()).toEqual(payload)
+  })
+
   it("updates roles with a JSON request body", async () => {
     const payload: UpdateRole = {
       name: "security-editor",
@@ -150,6 +186,24 @@ describe("role api", () => {
         method: "DELETE"
       })
     )
+  })
+
+  it("throws API errors from create role requests", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: "role already exists"
+        },
+        { status: 409 }
+      )
+    )
+
+    await expect(
+      createRole({
+        name: "editor",
+        permissions: []
+      })
+    ).rejects.toThrow("role already exists")
   })
 
   it("throws API errors from role requests", async () => {
