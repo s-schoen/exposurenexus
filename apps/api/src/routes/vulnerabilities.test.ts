@@ -26,7 +26,8 @@ describe("vulnerability routes", () => {
     listAll: vi.fn(),
     getByID: vi.fn(),
     create: vi.fn(),
-    updateByID: vi.fn()
+    updateByID: vi.fn(),
+    deleteByID: vi.fn()
   }
   const vulnerabilityRecord = {
     id: vulnerabilityId,
@@ -557,6 +558,155 @@ describe("vulnerability routes", () => {
       correlationId: requestId,
       status: 404,
       error: `vulnerability with id ${vulnerabilityId} does not exist`
+    })
+  })
+
+  it("returns 200 when deleting a vulnerability", async () => {
+    const requestId = "vulnerabilities-delete-request"
+
+    vulnerabilityService.deleteByID.mockResolvedValue(vulnerabilityRecord)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/${vulnerabilityId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "X-Request-Id": requestId
+        }
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(vulnerabilityService.deleteByID).toHaveBeenCalledWith({
+      id: vulnerabilityId,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: {
+        ...vulnerabilityRecord,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z"
+      }
+    })
+  })
+
+  it("returns 403 when deleting a vulnerability without delete permission", async () => {
+    userHasPermission.mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/${vulnerabilityId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "X-Request-Id": "vulnerabilities-delete-forbidden-request"
+        }
+      }
+    )
+
+    expect(response.status).toBe(403)
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      vulnerability: ["delete"]
+    })
+    expect(vulnerabilityService.deleteByID).not.toHaveBeenCalled()
+  })
+
+  it("returns 404 when deleting a missing vulnerability", async () => {
+    const requestId = "vulnerabilities-delete-missing-request"
+
+    vulnerabilityService.deleteByID.mockResolvedValue(null)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/${vulnerabilityId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "X-Request-Id": requestId
+        }
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(vulnerabilityService.deleteByID).toHaveBeenCalledWith({
+      id: vulnerabilityId,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: `vulnerability with id ${vulnerabilityId} does not exist`
+    })
+  })
+
+  it("returns 409 when deleting a vulnerability that has linked findings", async () => {
+    const requestId = "vulnerabilities-delete-conflict-request"
+
+    vulnerabilityService.deleteByID.mockRejectedValueOnce(
+      new HTTPException(409, {
+        message: `vulnerability ${vulnerabilityId} is still referenced by findings`
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/${vulnerabilityId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "X-Request-Id": requestId
+        }
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(409)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 409,
+      error: `vulnerability ${vulnerabilityId} is still referenced by findings`
     })
   })
 })
