@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   createVulnerabilitySourceMappingSchema,
   createVulnerabilitySchema,
+  updateVulnerabilitySourceMappingSchema,
   updateVulnerabilitySchema,
   VulnerabilitySeverity,
   type Vulnerability,
@@ -32,7 +33,9 @@ describe("vulnerability routes", () => {
     deleteByID: vi.fn(),
     listMappings: vi.fn(),
     listMappingsByVulnerabilityID: vi.fn(),
-    createMapping: vi.fn()
+    createMapping: vi.fn(),
+    updateMappingByID: vi.fn(),
+    deleteMappingByID: vi.fn()
   }
   const vulnerabilityRecord = {
     id: vulnerabilityId,
@@ -831,6 +834,279 @@ describe("vulnerability routes", () => {
       correlationId: requestId,
       status: 409,
       error: "vulnerability source mapping already exists"
+    })
+  })
+
+  it("updates a vulnerability source mapping", async () => {
+    const requestId = "vulnerability-mappings-update-request"
+    const payload = {
+      vulnerabilityId,
+      source: "nuclei",
+      matchQuery: '{ "templateID" : "management-panel" }'
+    } satisfies typeof updateVulnerabilitySourceMappingSchema._output
+    const updatedMapping = {
+      ...mappingRecord,
+      matchQuery: '{"templateID":"management-panel"}'
+    }
+
+    vulnerabilityService.updateMappingByID.mockResolvedValue(updatedMapping)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/mappings/${mappingRecord.id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": requestId
+        },
+        body: JSON.stringify(payload)
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(vulnerabilityService.updateMappingByID).toHaveBeenCalledWith({
+      id: mappingRecord.id,
+      mapping: payload,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: updatedMapping
+    })
+  })
+
+  it("returns 403 when updating mappings without write permission", async () => {
+    userHasPermission.mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/mappings/${mappingRecord.id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": "vulnerability-mappings-update-forbidden-request"
+        },
+        body: JSON.stringify({
+          vulnerabilityId,
+          source: "nuclei",
+          matchQuery: '{"templateID":"admin-panel"}'
+        })
+      }
+    )
+
+    expect(response.status).toBe(403)
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      vulnerability: ["write"]
+    })
+    expect(vulnerabilityService.updateMappingByID).not.toHaveBeenCalled()
+  })
+
+  it("rejects invalid mapping update payloads", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/mappings/${mappingRecord.id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": "vulnerability-mappings-invalid-update-request"
+        },
+        body: JSON.stringify({
+          vulnerabilityId,
+          source: "",
+          matchQuery: ""
+        })
+      }
+    )
+
+    expect(response.status).toBe(400)
+    expect(vulnerabilityService.updateMappingByID).not.toHaveBeenCalled()
+  })
+
+  it("returns 404 when updating a missing mapping", async () => {
+    const requestId = "vulnerability-mappings-update-missing-request"
+
+    vulnerabilityService.updateMappingByID.mockResolvedValue(null)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/mappings/${mappingRecord.id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": requestId
+        },
+        body: JSON.stringify({
+          vulnerabilityId,
+          source: "nuclei",
+          matchQuery: '{"templateID":"admin-panel"}'
+        })
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: `vulnerability source mapping with id ${mappingRecord.id} does not exist`
+    })
+  })
+
+  it("returns 409 when updating to a duplicate vulnerability source mapping", async () => {
+    const requestId = "vulnerability-mappings-update-conflict-request"
+
+    vulnerabilityService.updateMappingByID.mockRejectedValueOnce(
+      new HTTPException(409, {
+        message: "vulnerability source mapping already exists"
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/mappings/${mappingRecord.id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": requestId
+        },
+        body: JSON.stringify({
+          vulnerabilityId,
+          source: "nuclei",
+          matchQuery: '{"templateID":"admin-panel"}'
+        })
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(409)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 409,
+      error: "vulnerability source mapping already exists"
+    })
+  })
+
+  it("deletes a vulnerability source mapping", async () => {
+    const requestId = "vulnerability-mappings-delete-request"
+
+    vulnerabilityService.deleteMappingByID.mockResolvedValue(mappingRecord)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/mappings/${mappingRecord.id}`,
+      {
+        method: "DELETE",
+        headers: {
+          "X-Request-Id": requestId
+        }
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      vulnerability: ["write"]
+    })
+    expect(vulnerabilityService.deleteMappingByID).toHaveBeenCalledWith({
+      id: mappingRecord.id,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: mappingRecord
+    })
+  })
+
+  it("returns 404 when deleting a missing mapping", async () => {
+    const requestId = "vulnerability-mappings-delete-missing-request"
+
+    vulnerabilityService.deleteMappingByID.mockResolvedValue(null)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/mappings/${mappingRecord.id}`,
+      {
+        method: "DELETE",
+        headers: {
+          "X-Request-Id": requestId
+        }
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: `vulnerability source mapping with id ${mappingRecord.id} does not exist`
     })
   })
 

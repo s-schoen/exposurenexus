@@ -44,6 +44,7 @@ vi.mock("../repository/vulnerability.js", () => ({
   listMappingsByVulnerabilityID: vi.fn(),
   getMappingBy: vi.fn(),
   createMapping: vi.fn(),
+  updateMappingByID: vi.fn(),
   deleteMappingByID: vi.fn()
 }))
 
@@ -193,6 +194,7 @@ describe("service factories", () => {
       listMappingsByVulnerabilityID: vi.fn(),
       getMappingBy: vi.fn(),
       createMapping: vi.fn(),
+      updateMappingByID: vi.fn(),
       deleteMappingByID: vi.fn()
     }
     vi.useFakeTimers()

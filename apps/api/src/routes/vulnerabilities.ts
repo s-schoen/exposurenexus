@@ -5,9 +5,11 @@ import { z } from "zod/v4"
 import {
   createVulnerabilitySourceMappingSchema,
   createVulnerabilitySchema,
+  updateVulnerabilitySourceMappingSchema,
   updateVulnerabilitySchema,
   type CreateVulnerability,
   type UpdateVulnerability,
+  type UpdateVulnerabilitySourceMapping,
   type Vulnerability,
   type VulnerabilitySourceMapping
 } from "@exposurenexus/types/model/vulnerability"
@@ -46,6 +48,15 @@ interface VulnerabilityRouteService {
     matchQuery: string
     eventContext?: DomainEventContext
   }): Promise<VulnerabilitySourceMapping | null>
+  updateMappingByID(options: {
+    id: string
+    mapping: UpdateVulnerabilitySourceMapping
+    eventContext?: DomainEventContext
+  }): Promise<VulnerabilitySourceMapping | null>
+  deleteMappingByID(options: {
+    id: string
+    eventContext?: DomainEventContext
+  }): Promise<VulnerabilitySourceMapping | null>
 }
 
 interface VulnerabilityRouteDependencies {
@@ -53,6 +64,10 @@ interface VulnerabilityRouteDependencies {
 }
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
+const mappingIdParamValidator = zValidator(
+  "param",
+  z.object({ mappingId: z.uuidv4() })
+)
 const mappingQueryValidator = zValidator(
   "query",
   z.object({ source: z.string().trim().min(1).optional() })
@@ -104,6 +119,45 @@ export function createVulnerabilityRoute(
       const mappings = await vulnerabilityService.listMappings(query.source)
 
       return replyArray(c, mappings)
+    }
+  )
+
+  vulnerability.put(
+    "/mappings/:mappingId",
+    requireDomainPermission("vulnerability", "write"),
+    mappingIdParamValidator,
+    zValidator("json", updateVulnerabilitySourceMappingSchema),
+    async (c) => {
+      const params = c.req.valid("param")
+      const body = c.req.valid("json")
+      const mapping = await vulnerabilityService.updateMappingByID({
+        id: params.mappingId,
+        mapping: body,
+        eventContext: requestEventContext(c)
+      })
+      if (!mapping) {
+        notFound("vulnerability source mapping", params.mappingId)
+      }
+
+      return replyObject(c, mapping!)
+    }
+  )
+
+  vulnerability.delete(
+    "/mappings/:mappingId",
+    requireDomainPermission("vulnerability", "write"),
+    mappingIdParamValidator,
+    async (c) => {
+      const params = c.req.valid("param")
+      const mapping = await vulnerabilityService.deleteMappingByID({
+        id: params.mappingId,
+        eventContext: requestEventContext(c)
+      })
+      if (!mapping) {
+        notFound("vulnerability source mapping", params.mappingId)
+      }
+
+      return replyObject(c, mapping!)
     }
   )
 
