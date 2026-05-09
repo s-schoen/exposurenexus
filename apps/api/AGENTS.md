@@ -31,3 +31,14 @@ Hono.js API Server
 - Start feature work by adding a unit test that fails for the intended behavior
 - Only implement the feature after the new unit test is in place and failing
 - Do not finish feature work until the new unit test and the existing unit test suite both pass
+
+## Migration testing
+
+- Keep `src/db/migrations/` limited to runtime migration files; do not place
+  `*.test.ts` files there because migrations are loaded dynamically.
+- Test the migration provider and full migration chain when changing migration
+  infrastructure, discovery, naming, ordering, or schema-history behavior.
+- Add focused migration tests for data migrations, backfills, destructive
+  changes, complex constraints, and rollback-sensitive behavior.
+- Do not add isolated tests for every simple schema-only migration by default;
+  rely on full-chain schema tests unless the migration carries specific risk.
