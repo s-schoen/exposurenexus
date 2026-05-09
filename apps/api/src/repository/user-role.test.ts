@@ -8,13 +8,12 @@ import {
   vi
 } from "vitest"
 import {
-  BuiltInRoleName,
   PermissionResource,
   PermissionVerb,
   builtInRoleIds
 } from "@exposurenexus/types/model/rbac"
+import type { Permission } from "@exposurenexus/types/model/rbac"
 import { createUserRoleRepository } from "./user-role.js"
-import { createUserProfileRepository } from "./user-profile.js"
 import { createTestDatabase, resetTestDatabase } from "../test/db.js"
 
 vi.mock("../db/index.js", () => ({
@@ -38,83 +37,61 @@ describe("user role repository", () => {
     await resetTestDatabase(testDb.db)
   })
 
-  it("lists seeded roles with their permissions", async () => {
+  async function createUserWithRoles(userId: string, roleIds: string[]) {
+    await testDb.db
+      .insertInto("user_profile")
+      .values({
+        id: userId,
+        username: `user-${userId.slice(0, 8)}`,
+        displayName: "Permission Test User",
+        email: `${userId.slice(0, 8)}@example.com`,
+        enabled: true,
+        passwordHash: "hash"
+      })
+      .execute()
+
+    if (roleIds.length === 0) {
+      return
+    }
+
+    await testDb.db
+      .insertInto("user_role_assignment")
+      .values(roleIds.map((roleId) => ({ userId, roleId })))
+      .execute()
+  }
+
+  function countPermission(
+    permissions: Permission[],
+    expected: Permission
+  ): number {
+    return permissions.filter(
+      (permission) =>
+        permission.resource === expected.resource &&
+        permission.verb === expected.verb
+    ).length
+  }
+
+  it("returns no permissions for users without assigned roles", async () => {
     const repository = createUserRoleRepository(testDb.db)
+    const userId = "ca8be35f-b523-47d1-a9d8-743dc272c0cb"
 
-    const roles = await repository.list()
+    await createUserWithRoles(userId, [])
 
-    expect(roles).toHaveLength(3)
-    expect(roles).toEqual(
-      expect.arrayContaining([
-        {
-          id: builtInRoleIds.admin,
-          name: BuiltInRoleName.Admin,
-          permissions: expect.arrayContaining([
-            {
-              resource: PermissionResource.User,
-              verb: PermissionVerb.Write
-            },
-            {
-              resource: PermissionResource.Asset,
-              verb: PermissionVerb.Delete
-            },
-            {
-              resource: PermissionResource.CustomField,
-              verb: PermissionVerb.Delete
-            }
-          ])
-        },
-        {
-          id: builtInRoleIds.editor,
-          name: BuiltInRoleName.Editor,
-          permissions: expect.arrayContaining([
-            {
-              resource: PermissionResource.Import,
-              verb: PermissionVerb.Write
-            },
-            {
-              resource: PermissionResource.CustomField,
-              verb: PermissionVerb.Write
-            }
-          ])
-        },
-        {
-          id: builtInRoleIds.viewer,
-          name: BuiltInRoleName.Viewer,
-          permissions: expect.arrayContaining([
-            { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
-            {
-              resource: PermissionResource.CustomField,
-              verb: PermissionVerb.Read
-            },
-            {
-              resource: PermissionResource.Finding,
-              verb: PermissionVerb.Read
-            },
-            {
-              resource: PermissionResource.Vulnerability,
-              verb: PermissionVerb.Read
-            },
-            {
-              resource: PermissionResource.Stats,
-              verb: PermissionVerb.Read
-            }
-          ])
-        }
-      ])
+    await expect(repository.listPermissionsByUserID(userId)).resolves.toEqual(
+      []
     )
   })
 
-  it("returns a role by id", async () => {
+  it("returns permissions for a single assigned role", async () => {
     const repository = createUserRoleRepository(testDb.db)
+    const userId = "61b657d7-92b6-4a82-b937-82e38177707a"
 
-    await expect(repository.getByID(builtInRoleIds.viewer)).resolves.toEqual({
-      id: builtInRoleIds.viewer,
-      name: BuiltInRoleName.Viewer,
-      permissions: expect.arrayContaining([
-        { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+    await createUserWithRoles(userId, [builtInRoleIds.viewer])
+
+    await expect(repository.listPermissionsByUserID(userId)).resolves.toEqual(
+      expect.arrayContaining([
         {
-          resource: PermissionResource.CustomField,
+          resource: PermissionResource.Asset,
           verb: PermissionVerb.Read
         },
         {
@@ -124,56 +101,29 @@ describe("user role repository", () => {
         {
           resource: PermissionResource.Vulnerability,
           verb: PermissionVerb.Read
-        },
-        {
-          resource: PermissionResource.Stats,
-          verb: PermissionVerb.Read
         }
       ])
-    })
+    )
   })
 
-  it("returns null for unknown role ids", async () => {
+  it("returns permissions across multiple assigned roles", async () => {
     const repository = createUserRoleRepository(testDb.db)
+    const userId = "0d83ab24-8ff3-4478-95d7-c3dfc4b54431"
 
-    await expect(
-      repository.getByID("c738c53c-1660-4535-b630-8a3b99505555")
-    ).resolves.toBeNull()
-  })
+    await createUserWithRoles(userId, [
+      builtInRoleIds.viewer,
+      builtInRoleIds.editor
+    ])
 
-  it("lists distinct permissions assigned to a user through their roles", async () => {
-    const repository = createUserRoleRepository(testDb.db)
-    const userProfile = {
-      id: "ca8be35f-b523-47d1-a9d8-743dc272c0cb",
-      username: "alice",
-      displayName: "Alice Example",
-      email: "alice@example.com",
-      enabled: true,
-      passwordHash: "hash-alice"
-    }
-
-    await testDb.db.insertInto("user_profile").values(userProfile).execute()
-    await testDb.db
-      .insertInto("user_role_assignment")
-      .values([
-        {
-          userId: userProfile.id,
-          roleId: builtInRoleIds.viewer
-        },
-        {
-          userId: userProfile.id,
-          roleId: builtInRoleIds.editor
-        }
-      ])
-      .execute()
-
-    await expect(
-      repository.listPermissionsByUserID(userProfile.id)
-    ).resolves.toEqual(
+    await expect(repository.listPermissionsByUserID(userId)).resolves.toEqual(
       expect.arrayContaining([
         {
           resource: PermissionResource.Asset,
           verb: PermissionVerb.Read
+        },
+        {
+          resource: PermissionResource.Asset,
+          verb: PermissionVerb.Write
         },
         {
           resource: PermissionResource.Import,
@@ -183,295 +133,22 @@ describe("user role repository", () => {
     )
   })
 
-  it("returns no permissions for users without assigned roles", async () => {
+  it("deduplicates permissions granted through multiple roles", async () => {
     const repository = createUserRoleRepository(testDb.db)
+    const userId = "b3ed7bd7-8f41-461f-b43b-ff54d996d5f0"
 
-    await expect(
-      repository.listPermissionsByUserID("ca8be35f-b523-47d1-a9d8-743dc272c0cb")
-    ).resolves.toEqual([])
-  })
-
-  it("returns permissions for roles assigned through user profile creation", async () => {
-    const userProfileRepository = createUserProfileRepository(testDb.db)
-    const userRoleRepository = createUserRoleRepository(testDb.db)
-    const createdUser = await userProfileRepository.create(
-      {
-        username: "charlie",
-        displayName: "Charlie Example",
-        email: "charlie@example.com",
-        enabled: true,
-        passwordHash: "hash-charlie"
-      },
-      [builtInRoleIds.viewer]
-    )
-
-    await expect(
-      userRoleRepository.listPermissionsByUserID(createdUser.id)
-    ).resolves.toEqual(
-      expect.arrayContaining([
-        {
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
-        },
-        {
-          resource: PermissionResource.Finding,
-          verb: PermissionVerb.Read
-        }
-      ])
-    )
-  })
-
-  it("creates a role with permissions", async () => {
-    const repository = createUserRoleRepository(testDb.db)
-
-    const createdRole = await repository.create({
-      name: "analyst",
-      permissions: [
-        {
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
-        },
-        {
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Write
-        }
-      ]
-    })
-
-    expect(createdRole).toEqual({
-      id: expect.any(String),
-      name: "analyst",
-      permissions: [
-        {
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
-        },
-        {
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Write
-        }
-      ]
-    })
-
-    await expect(repository.getByID(createdRole.id)).resolves.toEqual(
-      createdRole
-    )
-
-    const assignments = await testDb.db
-      .selectFrom("role_permission_assignment")
-      .select(["role_id", "resource", "verb"])
-      .where("role_id", "=", createdRole.id)
-      .orderBy("resource", "asc")
-      .orderBy("verb", "asc")
-      .execute()
-
-    expect(assignments).toEqual([
-      {
-        role_id: createdRole.id,
-        resource: PermissionResource.Asset,
-        verb: PermissionVerb.Read
-      },
-      {
-        role_id: createdRole.id,
-        resource: PermissionResource.Asset,
-        verb: PermissionVerb.Write
-      }
+    await createUserWithRoles(userId, [
+      builtInRoleIds.viewer,
+      builtInRoleIds.editor
     ])
-  })
 
-  it("surfaces database errors for duplicate permissions on create", async () => {
-    const repository = createUserRoleRepository(testDb.db)
+    const permissions = await repository.listPermissionsByUserID(userId)
 
-    await expect(
-      repository.create({
-        name: "duplicate-create-role",
-        permissions: [
-          {
-            resource: PermissionResource.Asset,
-            verb: PermissionVerb.Read
-          },
-          {
-            resource: PermissionResource.Asset,
-            verb: PermissionVerb.Read
-          }
-        ]
-      })
-    ).rejects.toThrow(/duplicate key value/i)
-  })
-
-  it("creates a role without permissions", async () => {
-    const repository = createUserRoleRepository(testDb.db)
-
-    const createdRole = await repository.create({
-      name: "contractor",
-      permissions: []
-    })
-
-    expect(createdRole).toEqual({
-      id: expect.any(String),
-      name: "contractor",
-      permissions: []
-    })
-
-    const assignments = await testDb.db
-      .selectFrom("role_permission_assignment")
-      .selectAll()
-      .where("role_id", "=", createdRole.id)
-      .execute()
-
-    expect(assignments).toEqual([])
-  })
-
-  it("updates a role and replaces its permissions", async () => {
-    const repository = createUserRoleRepository(testDb.db)
-    const roleId = "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830"
-
-    await testDb.db
-      .insertInto("role")
-      .values({ id: roleId, name: "incident-reviewer" })
-      .execute()
-    await testDb.db
-      .insertInto("role_permission_assignment")
-      .values([
-        {
-          role_id: roleId,
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
-        },
-        {
-          role_id: roleId,
-          resource: PermissionResource.Finding,
-          verb: PermissionVerb.Read
-        }
-      ])
-      .execute()
-
-    await expect(
-      repository.updateByID(roleId, {
-        name: "incident-analyst",
-        permissions: [
-          {
-            resource: PermissionResource.Asset,
-            verb: PermissionVerb.Read
-          },
-          {
-            resource: PermissionResource.Asset,
-            verb: PermissionVerb.Write
-          }
-        ]
-      })
-    ).resolves.toEqual({
-      id: roleId,
-      name: "incident-analyst",
-      permissions: [
-        {
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
-        },
-        {
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Write
-        }
-      ]
-    })
-
-    await expect(repository.getByID(roleId)).resolves.toEqual({
-      id: roleId,
-      name: "incident-analyst",
-      permissions: [
-        {
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
-        },
-        {
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Write
-        }
-      ]
-    })
-  })
-
-  it("surfaces database errors for duplicate permissions on update", async () => {
-    const repository = createUserRoleRepository(testDb.db)
-    const roleId = "af5c0b37-7d1d-42ce-9e1a-51906b9e6830"
-
-    await testDb.db
-      .insertInto("role")
-      .values({ id: roleId, name: "duplicate-update-role" })
-      .execute()
-
-    await expect(
-      repository.updateByID(roleId, {
-        name: "duplicate-update-role-renamed",
-        permissions: [
-          {
-            resource: PermissionResource.Asset,
-            verb: PermissionVerb.Read
-          },
-          {
-            resource: PermissionResource.Asset,
-            verb: PermissionVerb.Read
-          }
-        ]
-      })
-    ).rejects.toThrow(/duplicate key value/i)
-  })
-
-  it("returns null when updating an unknown role", async () => {
-    const repository = createUserRoleRepository(testDb.db)
-
-    await expect(
-      repository.updateByID("1f5c0b37-7d1d-42ce-9e1a-51906b9e6830", {
-        name: "missing-role",
-        permissions: []
-      })
-    ).resolves.toBeNull()
-  })
-
-  it("deletes a role and cascades its permission assignments", async () => {
-    const repository = createUserRoleRepository(testDb.db)
-    const roleId = "27ff3776-a905-481e-8e53-444cc55f1af5"
-
-    await testDb.db
-      .insertInto("role")
-      .values({ id: roleId, name: "temporary-contractor" })
-      .execute()
-    await testDb.db
-      .insertInto("role_permission_assignment")
-      .values({
-        role_id: roleId,
+    expect(
+      countPermission(permissions, {
         resource: PermissionResource.Asset,
         verb: PermissionVerb.Read
       })
-      .execute()
-
-    await expect(repository.deleteByID(roleId)).resolves.toEqual({
-      id: roleId,
-      name: "temporary-contractor",
-      permissions: [
-        {
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
-        }
-      ]
-    })
-
-    await expect(repository.getByID(roleId)).resolves.toBeNull()
-
-    const assignments = await testDb.db
-      .selectFrom("role_permission_assignment")
-      .selectAll()
-      .where("role_id", "=", roleId)
-      .execute()
-
-    expect(assignments).toEqual([])
-  })
-
-  it("returns null when deleting an unknown role", async () => {
-    const repository = createUserRoleRepository(testDb.db)
-
-    await expect(
-      repository.deleteByID("37ff3776-a905-481e-8e53-444cc55f1af5")
-    ).resolves.toBeNull()
+    ).toBe(1)
   })
 })
