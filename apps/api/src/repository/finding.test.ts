@@ -148,6 +148,117 @@ describe("finding repository", () => {
     await expect(repository.getByID(created.id)).resolves.toBeNull()
   })
 
+  it("reclassifies findings matching source and vulnerability only", async () => {
+    const assetRepository = createAssetRepository(testDb.db)
+    const vulnerabilityRepository = createVulnerabilityRepository(testDb.db)
+    const repository = createFindingRepository(testDb.db)
+
+    const asset = await assetRepository.create({
+      id: "",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host
+    })
+    const oldVulnerability = await vulnerabilityRepository.create({
+      title: "Exposed Admin Endpoint",
+      description: "Administrative interface is reachable externally",
+      severity: VulnerabilitySeverity.High,
+      cve: null,
+      cwe: 284,
+      createdBy,
+      updatedBy: createdBy,
+      createdAt: new Date("2026-01-02T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z")
+    })
+    const targetVulnerability = await vulnerabilityRepository.create({
+      title: "Account Takeover",
+      description: "Finding should be classified as account takeover",
+      severity: VulnerabilitySeverity.Critical,
+      cve: null,
+      cwe: 287,
+      createdBy,
+      updatedBy: createdBy,
+      createdAt: new Date("2026-01-02T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z")
+    })
+    const unrelatedVulnerability = await vulnerabilityRepository.create({
+      title: "Missing Security Header",
+      description: "Header is not present",
+      severity: VulnerabilitySeverity.Low,
+      cve: null,
+      cwe: 693,
+      createdBy,
+      updatedBy: createdBy,
+      createdAt: new Date("2026-01-02T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z")
+    })
+    const baseFindingInput: Omit<FindingInternal, "id"> = {
+      assetId: asset.id,
+      vulnerabilityId: oldVulnerability.id,
+      severity: VulnerabilitySeverity.High,
+      status: FindingStatus.Active,
+      evidence: "Observed exposed admin endpoint",
+      source: FindingSource.Nuclei,
+      mitigation: "Restrict access to internal networks",
+      assigneeId: null,
+      dueDate: null,
+      firstSeen: new Date("2026-01-03T00:00:00.000Z"),
+      lastSeen: new Date("2026-01-03T00:00:00.000Z"),
+      fingerprint: "reclassify-matching-finding",
+      createdAt: new Date("2026-01-03T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-03T00:00:00.000Z"),
+      createdBy,
+      updatedBy: createdBy
+    }
+    const matchingFinding = await repository.create(baseFindingInput)
+    const manualFinding = await repository.create({
+      ...baseFindingInput,
+      source: FindingSource.Manual,
+      fingerprint: "reclassify-manual-finding"
+    })
+    const unrelatedFinding = await repository.create({
+      ...baseFindingInput,
+      vulnerabilityId: unrelatedVulnerability.id,
+      severity: VulnerabilitySeverity.Low,
+      fingerprint: "reclassify-unrelated-finding"
+    })
+    const updatedAt = new Date("2026-01-04T00:00:00.000Z")
+
+    const reclassified = await repository.reclassifyBySourceAndVulnerability({
+      source: FindingSource.Nuclei,
+      oldVulnerabilityId: oldVulnerability.id,
+      targetVulnerabilityId: targetVulnerability.id,
+      severity: VulnerabilitySeverity.Critical,
+      updatedAt,
+      updatedBy: assigneeId
+    })
+
+    expect(reclassified).toHaveLength(1)
+    expect(reclassified[0]).toMatchObject({
+      id: matchingFinding.id,
+      source: FindingSource.Nuclei,
+      vulnerabilityId: targetVulnerability.id,
+      severity: VulnerabilitySeverity.Critical,
+      updatedBy: assigneeId
+    })
+    expect(reclassified[0].updatedAt).toEqual(updatedAt)
+    await expect(repository.getByID(matchingFinding.id)).resolves.toMatchObject(
+      {
+        vulnerabilityId: targetVulnerability.id,
+        severity: VulnerabilitySeverity.Critical
+      }
+    )
+    await expect(repository.getByID(manualFinding.id)).resolves.toMatchObject({
+      vulnerabilityId: oldVulnerability.id,
+      severity: VulnerabilitySeverity.High
+    })
+    await expect(
+      repository.getByID(unrelatedFinding.id)
+    ).resolves.toMatchObject({
+      vulnerabilityId: unrelatedVulnerability.id,
+      severity: VulnerabilitySeverity.Low
+    })
+  })
+
   it("clears assignee identity when the assigned user profile is deleted", async () => {
     const assetRepository = createAssetRepository(testDb.db)
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db)

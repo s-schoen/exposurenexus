@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { HTTPException } from "hono/http-exception"
 import {
   FindingSource,
   FindingStatus,
@@ -29,6 +30,7 @@ describe("finding routes", () => {
     getByID: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    reclassify: vi.fn(),
     deleteByID: vi.fn()
   }
   const vulnerability = {
@@ -100,7 +102,6 @@ describe("finding routes", () => {
       }
     })
     const body = await response.json()
-
     expect(response.status).toBe(200)
     expect(findingService.listAll).toHaveBeenCalledOnce()
     expect(body).toEqual({
@@ -152,7 +153,6 @@ describe("finding routes", () => {
       }
     })
     const body = await response.json()
-
     expect(response.status).toBe(200)
     expect(findingService.getByID).toHaveBeenCalledWith(findingId)
     expect(body).toEqual({
@@ -473,6 +473,146 @@ describe("finding routes", () => {
 
     expect(response.status).toBe(400)
     expect(findingService.create).not.toHaveBeenCalled()
+  })
+
+  it("reclassifies findings with finding write permission", async () => {
+    const requestId = "findings-reclassify-request"
+    const targetVulnerabilityId = "4fb566c6-e642-48d8-b70d-418efb074f8d"
+    const reclassifyPayload = {
+      source: FindingSource.Nuclei,
+      oldVulnerabilityId: vulnerabilityId,
+      targetVulnerabilityId
+    }
+
+    findingService.reclassify.mockResolvedValue({
+      updatedCount: 2
+    })
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request("/api/findings/reclassify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(reclassifyPayload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      finding: ["write"]
+    })
+    expect(findingService.reclassify).toHaveBeenCalledWith({
+      reclassification: reclassifyPayload,
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
+    expect(body).toEqual({
+      correlationId: requestId,
+      data: {
+        updatedCount: 2
+      }
+    })
+  })
+
+  it("returns 403 when reclassifying findings without finding write permission", async () => {
+    userHasPermission.mockResolvedValue(false)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request("/api/findings/reclassify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "findings-reclassify-forbidden-request"
+      },
+      body: JSON.stringify({
+        source: FindingSource.Nuclei,
+        oldVulnerabilityId: vulnerabilityId,
+        targetVulnerabilityId: "4fb566c6-e642-48d8-b70d-418efb074f8d"
+      })
+    })
+
+    expect(response.status).toBe(403)
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, {
+      finding: ["write"]
+    })
+    expect(findingService.reclassify).not.toHaveBeenCalled()
+  })
+
+  it("rejects invalid reclassification bodies before calling the service", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request("/api/findings/reclassify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "findings-invalid-reclassification-request"
+      },
+      body: JSON.stringify({
+        source: "",
+        oldVulnerabilityId: vulnerabilityId,
+        targetVulnerabilityId: "not-a-uuid"
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(findingService.reclassify).not.toHaveBeenCalled()
+  })
+
+  it("returns service errors from finding reclassification", async () => {
+    const requestId = "findings-reclassify-not-found-request"
+    const targetVulnerabilityId = "4fb566c6-e642-48d8-b70d-418efb074f8d"
+
+    findingService.reclassify.mockRejectedValue(
+      new HTTPException(404, {
+        message: `target vulnerability with id ${targetVulnerabilityId} does not exist`
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request("/api/findings/reclassify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify({
+        source: FindingSource.Nuclei,
+        oldVulnerabilityId: vulnerabilityId,
+        targetVulnerabilityId
+      })
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: `target vulnerability with id ${targetVulnerabilityId} does not exist`
+    })
   })
 
   it("updates a finding with the authenticated user", async () => {

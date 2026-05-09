@@ -30,6 +30,7 @@ vi.mock("../repository/finding.js", () => ({
   create: vi.fn(),
   update: vi.fn(),
   deleteByID: vi.fn(),
+  reclassifyBySourceAndVulnerability: vi.fn(),
   countBy: vi.fn()
 }))
 
@@ -258,6 +259,7 @@ describe("service factories", () => {
       })),
       update: vi.fn(),
       deleteByID: vi.fn(),
+      reclassifyBySourceAndVulnerability: vi.fn(),
       countBy: vi.fn()
     }
     const vulnerabilityService = {
