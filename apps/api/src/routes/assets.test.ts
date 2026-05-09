@@ -477,6 +477,46 @@ describe("asset routes", () => {
     })
   })
 
+  it("passes non-rule custom field create errors to the error handler", async () => {
+    const requestId = "assets-custom-fields-create-non-rule-failure-request"
+    const payload = {
+      key: "category",
+      name: "Category",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: null
+    }
+
+    assetService.createCustomFieldDefinition.mockRejectedValueOnce(
+      new HTTPException(400, {
+        message: "invalid custom field definition"
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request("/api/assets/custom-fields", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 400,
+      error: "invalid custom field definition"
+    })
+  })
+
   it("updates an asset custom field definition", async () => {
     const requestId = "assets-custom-fields-update-request"
     const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
@@ -518,6 +558,47 @@ describe("asset routes", () => {
     expect(body).toEqual({
       correlationId: requestId,
       data: updated
+    })
+  })
+
+  it("returns 404 when updating a missing asset custom field definition", async () => {
+    const requestId = "assets-custom-fields-update-not-found-request"
+    const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+    const payload = {
+      key: "category",
+      name: "Category",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: "platform"
+    }
+
+    assetService.updateCustomFieldDefinitionByID.mockResolvedValueOnce(null)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/assets/custom-fields/${fieldId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(assetService.updateCustomFieldDefinitionByID).toHaveBeenCalledWith(
+      fieldId,
+      payload
+    )
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: `asset custom field with id ${fieldId} does not exist`
     })
   })
 
@@ -573,6 +654,48 @@ describe("asset routes", () => {
     })
   })
 
+  it("passes non-rule custom field update errors to the error handler", async () => {
+    const requestId = "assets-custom-fields-update-non-rule-failure-request"
+    const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+    const payload = {
+      key: "category",
+      name: "Category",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: "platform"
+    }
+
+    assetService.updateCustomFieldDefinitionByID.mockRejectedValueOnce(
+      new HTTPException(400, {
+        message: "invalid custom field definition",
+        cause: { reason: "unknown-rule" }
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/assets/custom-fields/${fieldId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 400,
+      error: "invalid custom field definition"
+    })
+  })
+
   it("deletes an asset custom field definition", async () => {
     const requestId = "assets-custom-fields-delete-request"
     const definition = {
@@ -610,6 +733,37 @@ describe("asset routes", () => {
     expect(body).toEqual({
       correlationId: requestId,
       data: definition
+    })
+  })
+
+  it("returns 404 when deleting a missing asset custom field definition", async () => {
+    const requestId = "assets-custom-fields-delete-not-found-request"
+    const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+
+    assetService.deleteCustomFieldDefinitionByID.mockResolvedValueOnce(null)
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/assets/custom-fields/${fieldId}`, {
+      method: "DELETE",
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(assetService.deleteCustomFieldDefinitionByID).toHaveBeenCalledWith(
+      fieldId
+    )
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: `asset custom field with id ${fieldId} does not exist`
     })
   })
 
