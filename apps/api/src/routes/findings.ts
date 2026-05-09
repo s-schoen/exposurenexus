@@ -5,6 +5,8 @@ import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
 import {
   createFindingSchema,
+  reclassifyFindingsResultSchema,
+  reclassifyFindingsSchema,
   updateFindingSchema,
   type Finding
 } from "@exposurenexus/types/model/finding"
@@ -28,6 +30,11 @@ interface FindingRouteService {
     user: UserProfile
     eventContext?: DomainEventContext
   }): Promise<Finding | null>
+  reclassify(options: {
+    reclassification: typeof reclassifyFindingsSchema._output
+    user: UserProfile
+    eventContext?: DomainEventContext
+  }): Promise<typeof reclassifyFindingsResultSchema._output>
   deleteByID(options: {
     id: string
     eventContext?: DomainEventContext
@@ -50,6 +57,28 @@ export function createFindingRoute(
     const findings = await findingService.listAll()
     return replyArray(c, findings)
   })
+
+  finding.post(
+    "/reclassify",
+    requireDomainPermission("finding", "write"),
+    zValidator("json", reclassifyFindingsSchema),
+    async (c) => {
+      const body = c.req.valid("json")
+      const user = c.get("user")
+
+      if (!user) {
+        throw new HTTPException(401, { message: "Unauthorized" })
+      }
+
+      const result = await findingService.reclassify({
+        reclassification: body,
+        user,
+        eventContext: requestEventContext(c)
+      })
+
+      return replyObject(c, result)
+    }
+  )
 
   finding.get(
     "/:id",

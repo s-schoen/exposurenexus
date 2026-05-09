@@ -3,6 +3,8 @@ import {
   type CreateFinding,
   type Finding,
   type FindingInternal,
+  type ReclassifyFindings,
+  type ReclassifyFindingsResult,
   type UpdateFinding
 } from "@exposurenexus/types/model/finding"
 import { HTTPException } from "hono/http-exception"
@@ -28,6 +30,14 @@ interface FindingRepository {
     updatedFinding: Omit<FindingInternal, "id">
   ): Promise<FindingInternal>
   deleteByID(id: string): Promise<FindingInternal | null>
+  reclassifyBySourceAndVulnerability(options: {
+    source: string
+    oldVulnerabilityId: string
+    targetVulnerabilityId: string
+    severity: FindingInternal["severity"]
+    updatedAt: Date
+    updatedBy: string
+  }): Promise<FindingInternal[]>
 }
 
 interface VulnerabilityLookupService {
@@ -91,6 +101,12 @@ export interface UpdateFindingOptions {
 
 export interface DeleteFindingOptions {
   id: string
+  eventContext?: DomainEventContext
+}
+
+export interface ReclassifyFindingsOptions {
+  reclassification: ReclassifyFindings
+  user: UserProfile
   eventContext?: DomainEventContext
 }
 
@@ -360,6 +376,69 @@ export function createFindingService({
         logger.error(error, `failed to get finding with id ${opts.id}`)
         throw new HTTPException(500, {
           message: "failed to get finding"
+        })
+      }
+    },
+
+    async reclassify(
+      opts: ReclassifyFindingsOptions
+    ): Promise<ReclassifyFindingsResult> {
+      const { reclassification } = opts
+
+      try {
+        const [oldVulnerability, targetVulnerability] = await Promise.all([
+          vulnerabilityService.getByID(reclassification.oldVulnerabilityId),
+          vulnerabilityService.getByID(reclassification.targetVulnerabilityId)
+        ])
+
+        if (!oldVulnerability) {
+          throw new HTTPException(404, {
+            message: `old vulnerability with id ${reclassification.oldVulnerabilityId} does not exist`
+          })
+        }
+
+        if (!targetVulnerability) {
+          throw new HTTPException(404, {
+            message: `target vulnerability with id ${reclassification.targetVulnerabilityId} does not exist`
+          })
+        }
+
+        const updatedFindings =
+          await findingRepository.reclassifyBySourceAndVulnerability({
+            source: reclassification.source,
+            oldVulnerabilityId: reclassification.oldVulnerabilityId,
+            targetVulnerabilityId: reclassification.targetVulnerabilityId,
+            severity: targetVulnerability.severity,
+            updatedAt: new Date(),
+            updatedBy: opts.user.id
+          })
+        const result = {
+          updatedCount: updatedFindings.length
+        }
+
+        emitFindingEvent(
+          "finding.reclassified",
+          {
+            source: reclassification.source,
+            oldVulnerabilityId: oldVulnerability.id,
+            targetVulnerabilityId: targetVulnerability.id,
+            updatedCount: result.updatedCount
+          },
+          opts.eventContext
+        )
+
+        return result
+      } catch (error) {
+        if (error instanceof HTTPException) {
+          throw error
+        }
+
+        logger.error(
+          error,
+          `failed to reclassify findings from ${reclassification.oldVulnerabilityId} to ${reclassification.targetVulnerabilityId}`
+        )
+        throw new HTTPException(500, {
+          message: "failed to reclassify findings"
         })
       }
     }

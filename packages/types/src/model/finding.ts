@@ -64,6 +64,16 @@ export const createFindingSchema = findingInternalSchema
 
 export const updateFindingSchema = createFindingSchema
 
+export const reclassifyFindingsSchema = z.strictObject({
+  source: z.string().trim().min(1),
+  oldVulnerabilityId: z.uuidv4(),
+  targetVulnerabilityId: z.uuidv4()
+})
+
+export const reclassifyFindingsResultSchema = z.strictObject({
+  updatedCount: z.int().min(0)
+})
+
 export const FindingStatistics = z.strictObject({
   total: z.int(),
   status: z.strictObject({
@@ -91,4 +101,8 @@ export type FindingInternal = z.infer<typeof findingInternalSchema>
 export type Finding = z.infer<typeof findingSchema>
 export type CreateFinding = z.infer<typeof createFindingSchema>
 export type UpdateFinding = z.infer<typeof updateFindingSchema>
+export type ReclassifyFindings = z.infer<typeof reclassifyFindingsSchema>
+export type ReclassifyFindingsResult = z.infer<
+  typeof reclassifyFindingsResultSchema
+>
 export type FindingStatistics = z.infer<typeof FindingStatistics>

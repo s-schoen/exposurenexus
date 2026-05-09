@@ -11,4 +11,10 @@ export type FindingEventPayloads = {
   "finding.deleted": {
     finding: Finding
   }
+  "finding.reclassified": {
+    source: string
+    oldVulnerabilityId: string
+    targetVulnerabilityId: string
+    updatedCount: number
+  }
 }
