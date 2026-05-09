@@ -17,6 +17,7 @@ import * as m15 from "./migrations/20260503-asset-owner.js"
 import * as m16 from "./migrations/20260506-finding-assignee.js"
 import * as m17 from "./migrations/20260506-finding-due-date.js"
 import * as m18 from "./migrations/20260509-vulnerability-source-mapping-unique.js"
+import * as m19 from "./migrations/20260509-02-finding-vulnerability-delete-restrict.js"
 import { db, logger } from "./index.js"
 import type { Database } from "./index.js"
 import type { Kysely } from "kysely"
@@ -72,6 +73,10 @@ class ManualMigrationProvider implements MigrationProvider {
       "20260509-vulnerability-source-mapping-unique": {
         up: m18.up,
         down: m18.down
+      },
+      "20260509-02-finding-vulnerability-delete-restrict": {
+        up: m19.up,
+        down: m19.down
       }
     }
 
