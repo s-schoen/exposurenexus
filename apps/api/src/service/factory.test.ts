@@ -41,6 +41,7 @@ vi.mock("../repository/vulnerability.js", () => ({
   deleteByID: vi.fn(),
   countFindingsByVulnerabilityID: vi.fn(),
   listMappings: vi.fn(),
+  listMappingsByVulnerabilityID: vi.fn(),
   getMappingBy: vi.fn(),
   createMapping: vi.fn(),
   deleteMappingByID: vi.fn()
@@ -189,6 +190,7 @@ describe("service factories", () => {
       deleteByID: vi.fn(),
       countFindingsByVulnerabilityID: vi.fn(),
       listMappings: vi.fn(),
+      listMappingsByVulnerabilityID: vi.fn(),
       getMappingBy: vi.fn(),
       createMapping: vi.fn(),
       deleteMappingByID: vi.fn()
