@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor
+} from "@testing-library/react"
 import type { ReactNode } from "react"
 import type {
   Vulnerability,
@@ -21,8 +27,12 @@ const mocks = vi.hoisted(() => {
   }
 
   return {
+    confirmDelete: vi.fn(),
+    deleteVulnerability: vi.fn(),
     dialogProps: undefined as undefined | Record<string, unknown>,
+    invalidateQueries: vi.fn(),
     navigate: vi.fn(),
+    toastSuccess: vi.fn(),
     usePageMeta: vi.fn(),
     vulnerability
   }
@@ -32,6 +42,34 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate
 }))
 
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({
+    invalidateQueries: mocks.invalidateQueries
+  })
+}))
+
+vi.mock("sonner", () => ({
+  toast: {
+    success: mocks.toastSuccess
+  }
+}))
+
+vi.mock("@/api/vulnerability.ts", () => ({
+  createListVulnerabilitiesQueryOptions: () => ({
+    queryKey: ["vulnerabilities"]
+  }),
+  createVulnerabilityByIDQueryOptions: (id: string) => ({
+    queryKey: ["vulnerabilities", id]
+  }),
+  deleteVulnerability: mocks.deleteVulnerability
+}))
+
+vi.mock("@/components/confirm-dialog.tsx", () => ({
+  ConfirmDialog: {
+    call: mocks.confirmDelete
+  }
+}))
+
 vi.mock("@/context/page.tsx", () => ({
   usePageMeta: mocks.usePageMeta
 }))
@@ -39,10 +77,14 @@ vi.mock("@/context/page.tsx", () => ({
 vi.mock("@/components/vulnerability-table", () => ({
   VulnerabilityTable: ({
     onCreateVulnerability,
+    onDeleteVulnerabilities,
     onSelectVulnerability,
     selectedVulnerabilityId
   }: {
     onCreateVulnerability?: () => void
+    onDeleteVulnerabilities?: (
+      vulnerabilities: Array<Vulnerability>
+    ) => Promise<void>
     onSelectVulnerability?: (vulnerability: Vulnerability) => void
     selectedVulnerabilityId?: string
   }) => (
@@ -56,6 +98,14 @@ vi.mock("@/components/vulnerability-table", () => ({
       </button>
       <button type="button" onClick={onCreateVulnerability}>
         create vulnerability
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          void onDeleteVulnerabilities?.([mocks.vulnerability])
+        }}
+      >
+        delete vulnerability
       </button>
     </div>
   )
@@ -96,8 +146,15 @@ vi.mock("@/components/vulnerability-detail-content.tsx", () => ({
 
 describe("VulnerabilitiesRouteComponent", () => {
   beforeEach(() => {
+    mocks.confirmDelete.mockReset()
+    mocks.confirmDelete.mockResolvedValue(true)
+    mocks.deleteVulnerability.mockReset()
+    mocks.deleteVulnerability.mockResolvedValue(mocks.vulnerability)
     mocks.dialogProps = undefined
+    mocks.invalidateQueries.mockReset()
+    mocks.invalidateQueries.mockResolvedValue(undefined)
     mocks.navigate.mockReset()
+    mocks.toastSuccess.mockReset()
     mocks.usePageMeta.mockReset()
   })
 
@@ -182,5 +239,42 @@ describe("VulnerabilitiesRouteComponent", () => {
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/vulnerabilities/new"
     })
+  })
+
+  it("confirms selected vulnerability deletion, invalidates queries, and clears deleted selection", async () => {
+    const { VulnerabilitiesRouteComponent } =
+      await import("@/routes/_authenticated/vulnerabilities/-index-route-component.tsx")
+
+    render(<VulnerabilitiesRouteComponent selected={mocks.vulnerability.id} />)
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /delete vulnerability/i })
+    )
+
+    await waitFor(() => {
+      expect(mocks.confirmDelete).toHaveBeenCalledWith({
+        title: "Delete Vulnerabilities",
+        description: "This action cannot be undone",
+        message: "Are you sure you want to delete 1 vulnerability record(s)?",
+        confirmVariant: "destructive"
+      })
+      expect(mocks.deleteVulnerability).toHaveBeenCalledWith(
+        mocks.vulnerability.id
+      )
+    })
+
+    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["vulnerabilities"]
+    })
+    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["vulnerabilities", mocks.vulnerability.id]
+    })
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/vulnerabilities",
+      search: expect.any(Function)
+    })
+    expect(mocks.toastSuccess).toHaveBeenCalledWith(
+      "Deleted 1 vulnerability record(s)!"
+    )
   })
 })
