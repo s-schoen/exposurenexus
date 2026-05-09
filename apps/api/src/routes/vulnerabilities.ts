@@ -3,11 +3,13 @@ import { zValidator } from "@hono/zod-validator"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
 import {
+  createVulnerabilitySourceMappingSchema,
   createVulnerabilitySchema,
   updateVulnerabilitySchema,
   type CreateVulnerability,
   type UpdateVulnerability,
-  type Vulnerability
+  type Vulnerability,
+  type VulnerabilitySourceMapping
 } from "@exposurenexus/types/model/vulnerability"
 import type { UserProfile } from "@exposurenexus/types/model/user"
 import type { ContextVariables } from "../lib/hono-schema.js"
@@ -34,6 +36,16 @@ interface VulnerabilityRouteService {
     id: string
     eventContext?: DomainEventContext
   }): Promise<Vulnerability | null>
+  listMappings(source?: string): Promise<VulnerabilitySourceMapping[]>
+  listMappingsByVulnerabilityID(
+    vulnerabilityId: string
+  ): Promise<VulnerabilitySourceMapping[] | null>
+  createMapping(options: {
+    vulnerabilityId: string
+    source: string
+    matchQuery: string
+    eventContext?: DomainEventContext
+  }): Promise<VulnerabilitySourceMapping | null>
 }
 
 interface VulnerabilityRouteDependencies {
@@ -41,6 +53,10 @@ interface VulnerabilityRouteDependencies {
 }
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
+const mappingQueryValidator = zValidator(
+  "query",
+  z.object({ source: z.string().trim().min(1).optional() })
+)
 
 export function createVulnerabilityRoute(
   vulnerabilityService: VulnerabilityRouteService,
@@ -80,6 +96,18 @@ export function createVulnerabilityRoute(
   )
 
   vulnerability.get(
+    "/mappings",
+    requireDomainPermission("vulnerability", "read"),
+    mappingQueryValidator,
+    async (c) => {
+      const query = c.req.valid("query")
+      const mappings = await vulnerabilityService.listMappings(query.source)
+
+      return replyArray(c, mappings)
+    }
+  )
+
+  vulnerability.get(
     "/:id",
     requireDomainPermission("vulnerability", "read"),
     idParamValidator,
@@ -92,6 +120,45 @@ export function createVulnerabilityRoute(
       }
 
       return replyObject(c, vulnResult!)
+    }
+  )
+
+  vulnerability.get(
+    "/:id/mappings",
+    requireDomainPermission("vulnerability", "read"),
+    idParamValidator,
+    async (c) => {
+      const params = c.req.valid("param")
+      const mappings = await vulnerabilityService.listMappingsByVulnerabilityID(
+        params.id
+      )
+      if (!mappings) {
+        notFound("vulnerability", params.id)
+      }
+
+      return replyArray(c, mappings!)
+    }
+  )
+
+  vulnerability.post(
+    "/:id/mappings",
+    requireDomainPermission("vulnerability", "write"),
+    idParamValidator,
+    zValidator("json", createVulnerabilitySourceMappingSchema),
+    async (c) => {
+      const params = c.req.valid("param")
+      const body = c.req.valid("json")
+      const mapping = await vulnerabilityService.createMapping({
+        vulnerabilityId: params.id,
+        source: body.source,
+        matchQuery: body.matchQuery,
+        eventContext: requestEventContext(c)
+      })
+      if (!mapping) {
+        notFound("vulnerability", params.id)
+      }
+
+      return replyObject(c, mapping!, true)
     }
   )
 

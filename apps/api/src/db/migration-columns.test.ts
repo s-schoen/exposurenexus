@@ -482,4 +482,23 @@ describe("db migration columns", () => {
       ])
     )
   })
+
+  it("adds a unique vulnerability source mapping identity index", async () => {
+    const indexes = await sql<{
+      indexname: string
+      indexdef: string
+    }>`
+      select indexname, indexdef
+      from pg_indexes
+      where tablename = 'vulnerability_source_mapping'
+        and indexname = 'vulnerability_source_mapping_source_matchQuery_unique'
+    `.execute(testDb.db)
+
+    expect(indexes.rows).toEqual([
+      expect.objectContaining({
+        indexname: "vulnerability_source_mapping_source_matchQuery_unique",
+        indexdef: expect.stringContaining("UNIQUE")
+      })
+    ])
+  })
 })
