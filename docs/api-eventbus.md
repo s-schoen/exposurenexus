@@ -30,7 +30,8 @@ service emitters, route context helpers, and event handlers.
 - `apps/api/src/lib/eventbus/events/index.ts` defines the common domain event
   shape and combines all event payload maps.
 - `apps/api/src/lib/eventbus/events/*.ts` defines per-domain event payloads,
-  for example auth, user, asset, finding, role, and vulnerability events.
+  for example auth, user, asset, custom field, finding, role, and
+  vulnerability events.
 - `apps/api/src/lib/request-event-context.ts` extracts request-scoped event
   context from Hono.
 - Domain services receive only the central `DomainEventEmitter` interface, then
@@ -99,11 +100,7 @@ This gives each event name a different `data` type while still allowing one
 shared bus:
 
 ```ts
-emitAssetEvent(
-  "asset.updated",
-  { previous, current },
-  eventContext
-)
+emitAssetEvent("asset.updated", { previous, current }, eventContext);
 ```
 
 The payload above is valid only for `asset.updated`. A payload for another
@@ -118,10 +115,10 @@ service's supported subject namespace:
 ```ts
 const emitAssetEvent = createDomainEventEmitter<AssetEventSubject>(
   domainEventEmitter,
-  "asset"
-)
+  "asset",
+);
 
-emitAssetEvent("asset.created", { asset }, eventContext)
+emitAssetEvent("asset.created", { asset }, eventContext);
 ```
 
 `createDomainEventEmitter` handles the common event envelope:
@@ -141,7 +138,7 @@ HTTP routes convert Hono context into `DomainEventContext` with
 `requestEventContext`:
 
 ```ts
-const eventContext = requestEventContext(c)
+const eventContext = requestEventContext(c);
 ```
 
 The helper currently maps:
@@ -219,6 +216,9 @@ The API currently emits these event families:
 - User profiles: created, updated, and deleted.
 - Assets: created, updated, and deleted, using `AssetWithCustomFields` so asset
   custom field assignments and values are included in asset lifecycle events.
+- Custom fields: registry-level asset custom field definitions created,
+  updated, and deleted. These events use the `custom-field.*` subjects and the
+  `asset-custom-field` source.
 - Findings: created, updated, deleted, and reclassified.
 - Vulnerabilities: created, updated, deleted, and source mapping created,
   updated, and deleted.

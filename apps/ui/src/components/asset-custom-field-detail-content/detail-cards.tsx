@@ -1,9 +1,9 @@
 import { CircleAlert, ListChecks, Plus, Trash2 } from "lucide-react"
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldOption
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 import type { ReactNode } from "react"
 import type { CustomFieldSummary } from "@/components/asset-custom-field-detail-content/helpers.ts"
 import type { CustomFieldUpdateResultHandler } from "@/components/asset-custom-field-detail-content/types.ts"

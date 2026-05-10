@@ -12,6 +12,7 @@ import {
 } from "./middleware/auth.js"
 import { createCsrfProtection } from "./middleware/csrf.js"
 import {
+  createAssetCustomFieldRepository,
   createAssetRepository,
   createFindingRepository,
   createRoleRepository,
@@ -21,6 +22,7 @@ import {
   createVulnerabilityRepository
 } from "./repository/index.js"
 import {
+  createAssetCustomFieldService,
   createAuthService,
   createAssetService,
   createFindingService,
@@ -73,6 +75,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   registerEventHandlers({ eventBus, loggerFactory })
 
   const repositories = {
+    assetCustomFieldRepository: createAssetCustomFieldRepository(options.db),
     assetRepository: createAssetRepository(options.db),
     findingRepository: createFindingRepository(options.db),
     roleRepository: createRoleRepository(options.db),
@@ -109,6 +112,11 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     userProfileService,
     domainEventEmitter: eventBus,
     logger: loggerFactory("service/asset")
+  })
+  const assetCustomFieldService = createAssetCustomFieldService({
+    assetCustomFieldRepository: repositories.assetCustomFieldRepository,
+    domainEventEmitter: eventBus,
+    logger: loggerFactory("service/asset-custom-field")
   })
   const vulnerabilityService = createVulnerabilityService({
     vulnerabilityRepository: repositories.vulnerabilityRepository,
@@ -158,7 +166,9 @@ export function createAppContainer(options: CreateAppContainerOptions) {
       cookiePolicy: authCookiePolicy,
       trustedProxies: options.authTrustedProxies
     }),
-    assetRoute: createAssetRoute(assetService, { requireDomainPermission }),
+    assetRoute: createAssetRoute(assetService, assetCustomFieldService, {
+      requireDomainPermission
+    }),
     roleRoute: createRoleRoute(roleService, { requireDomainPermission }),
     userRoute: createUserRoute(userProfileService, { requireDomainPermission }),
     vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService, {
@@ -200,6 +210,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     services: {
       authService,
       assetService,
+      assetCustomFieldService,
       roleService,
       userProfileService,
       vulnerabilityService,

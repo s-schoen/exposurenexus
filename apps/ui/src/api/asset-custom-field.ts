@@ -3,7 +3,7 @@ import type {
   AssetCustomFieldDefinition,
   CreateAssetCustomFieldDefinition,
   UpdateAssetCustomFieldDefinition
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 import {
   DEFAULT_QUERY_STALE_TIME,
   apiRequest,

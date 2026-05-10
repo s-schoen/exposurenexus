@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import {
   AssetCustomFieldType,
-  AssetCustomFieldValueSource,
-  AssetType
-} from "@exposurenexus/types/model/asset"
-import type {
-  AssetCustomFieldDefinition,
-  AssetWithCustomFields
-} from "@exposurenexus/types/model/asset"
+  AssetCustomFieldValueSource
+} from "@exposurenexus/types/model/asset-custom-field"
+import type { AssetWithCustomFields } from "@exposurenexus/types/model/asset"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import type { AccessorFnColumnDef } from "@tanstack/react-table"
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
 import {

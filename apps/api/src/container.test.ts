@@ -19,6 +19,7 @@ const {
   createImportRouteMock,
   registerEventHandlersMock,
   createAuthServiceMock,
+  createAssetCustomFieldServiceMock,
   createAssetServiceMock,
   createRoleServiceMock,
   createUserProfileServiceMock,
@@ -53,6 +54,9 @@ const {
     validateSession: vi.fn(),
     createSessionForCredentials: vi.fn(),
     revokeSession: vi.fn()
+  })),
+  createAssetCustomFieldServiceMock: vi.fn(() => ({
+    kind: "asset-custom-field-service"
   })),
   createAssetServiceMock: vi.fn(() => ({ kind: "asset-service" })),
   createRoleServiceMock: vi.fn(() => ({ kind: "role-service" })),
@@ -136,6 +140,9 @@ vi.mock("./routes/import.js", () => ({
 }))
 
 vi.mock("./repository/index.js", () => ({
+  createAssetCustomFieldRepository: vi.fn(() => ({
+    kind: "asset-custom-field-repo"
+  })),
   createAssetRepository: vi.fn(() => ({ kind: "asset-repo" })),
   createFindingRepository: vi.fn(() => ({ kind: "finding-repo" })),
   createRoleRepository: vi.fn(() => roleRepositoryMock),
@@ -146,6 +153,7 @@ vi.mock("./repository/index.js", () => ({
 }))
 
 vi.mock("./service/index.js", () => ({
+  createAssetCustomFieldService: createAssetCustomFieldServiceMock,
   createAuthService: createAuthServiceMock,
   createAssetService: createAssetServiceMock,
   createFindingService: createFindingServiceMock,
@@ -249,6 +257,18 @@ describe("app container", () => {
           emit: expect.any(Function)
         })
       })
+    )
+    expect(createAssetCustomFieldServiceMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        domainEventEmitter: expect.objectContaining({
+          emit: expect.any(Function)
+        })
+      })
+    )
+    expect(createAssetRouteMock).toHaveBeenCalledWith(
+      createAssetServiceMock.mock.results[0]?.value,
+      createAssetCustomFieldServiceMock.mock.results[0]?.value,
+      { requireDomainPermission: expect.any(Function) }
     )
     expect(createRoleServiceMock).toHaveBeenCalledWith(
       expect.objectContaining({

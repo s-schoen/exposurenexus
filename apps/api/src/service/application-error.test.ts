@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from "vitest"
-import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/types/model/asset"
+import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/types/model/asset-custom-field"
 import {
   ApplicationError,
   type ApplicationErrorInput
@@ -42,9 +42,9 @@ function assertApplicationErrorInputTypes() {
   void unexpectedDetails
 
   const assetRuleViolationInput = {
-    code: "asset.custom_field_definition.rule_violation",
+    code: "asset_custom_field.definition.rule_violation",
     kind: "validation",
-    message: "required custom fields must define a default value",
+    message: "required asset custom fields must define a default value",
     details: {
       reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
       path: ["defaultValue"]

@@ -2,13 +2,13 @@ import { Pool } from "pg"
 import { env } from "../env.js"
 import { Kysely } from "kysely"
 import type { UserProfileTable, UserSessionTable } from "./schema/auth.js"
+import type { AssetTable } from "./schema/asset.js"
 import type {
   AssetCustomFieldAssignmentTable,
   AssetCustomFieldOptionTable,
   AssetCustomFieldTable,
-  AssetCustomFieldValueTable,
-  AssetTable
-} from "./schema/asset.js"
+  AssetCustomFieldValueTable
+} from "./schema/asset-custom-field.js"
 import type { FindingTable } from "./schema/finding.js"
 import type {
   RolePermissionAssignmentTable,

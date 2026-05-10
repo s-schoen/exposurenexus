@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { HTTPException } from "hono/http-exception"
-import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/types/model/asset"
+import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/types/model/asset-custom-field"
 import {
   badRequest,
   conflict,
@@ -217,9 +217,9 @@ describe("api errors", () => {
 
   it("exposes allowlisted asset custom field rule reasons", () => {
     const error = new ApplicationError({
-      code: "asset.custom_field_definition.rule_violation",
+      code: "asset_custom_field.definition.rule_violation",
       kind: "validation",
-      message: "required custom fields must define a default value",
+      message: "required asset custom fields must define a default value",
       details: {
         reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
         path: ["defaultValue"]

@@ -1,17 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useLayoutEffect, useMemo, useRef, useState } from "react"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import {
   AssetCustomFieldType,
-  AssetCustomFieldValueSource,
-  AssetType
-} from "@exposurenexus/types/model/asset"
+  AssetCustomFieldValueSource
+} from "@exposurenexus/types/model/asset-custom-field"
+import type { Asset } from "@exposurenexus/types/model/asset"
 import type {
-  Asset,
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
   UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 import type { UserProfile } from "@exposurenexus/types/model/user"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { AssetDetailContent } from "@/components/asset-detail-content.tsx"

@@ -1,14 +1,16 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import type {
   Asset,
-  AssetCustomFieldDefinition,
-  AssetCustomFieldValue,
   AssetType,
   AssetWithCustomFields,
-  UpdateAssetCustomFieldAssociations,
-  UpdateAssetCustomFieldValues,
   UpdateAssetOwner
 } from "@exposurenexus/types/model/asset"
+import type {
+  AssetCustomFieldDefinition,
+  AssetCustomFieldValue,
+  UpdateAssetCustomFieldAssociations,
+  UpdateAssetCustomFieldValues
+} from "@exposurenexus/types/model/asset-custom-field"
 import {
   DEFAULT_QUERY_STALE_TIME,
   apiRequest,

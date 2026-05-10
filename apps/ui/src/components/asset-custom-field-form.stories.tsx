@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { expect, fn, userEvent, within } from "storybook/test"
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { ComponentProps } from "react"
 import { AssetCustomFieldForm } from "@/components/asset-custom-field-form.tsx"

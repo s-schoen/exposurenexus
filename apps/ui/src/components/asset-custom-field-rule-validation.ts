@@ -2,11 +2,11 @@ import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   validateAssetCustomFieldDefinitionRules
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 import type {
   CreateAssetCustomFieldDefinition,
   UpdateAssetCustomFieldDefinition
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 
 interface AssetCustomFieldFormRuleOptionValue {
   value: string

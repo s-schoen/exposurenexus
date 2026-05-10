@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
-  AssetCustomFieldValueSource,
-  AssetType
-} from "@exposurenexus/types/model/asset"
+  AssetCustomFieldValueSource
+} from "@exposurenexus/types/model/asset-custom-field"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -29,15 +29,17 @@ describe("asset routes", () => {
     create: vi.fn(),
     updateOwnerByID: vi.fn(),
     deleteByID: vi.fn(),
-    listCustomFieldDefinitions: vi.fn(),
-    getCustomFieldDefinitionByID: vi.fn(),
-    createCustomFieldDefinition: vi.fn(),
-    updateCustomFieldDefinitionByID: vi.fn(),
-    deleteCustomFieldDefinitionByID: vi.fn(),
     listCustomFieldValues: vi.fn(),
     listAvailableCustomFieldDefinitions: vi.fn(),
     replaceCustomFieldValues: vi.fn(),
     replaceCustomFieldAssociations: vi.fn()
+  }
+  const assetCustomFieldService = {
+    listDefinitions: vi.fn(),
+    getDefinitionByID: vi.fn(),
+    createDefinition: vi.fn(),
+    updateDefinitionByID: vi.fn(),
+    deleteDefinitionByID: vi.fn()
   }
 
   beforeEach(() => {
@@ -48,7 +50,11 @@ describe("asset routes", () => {
   it("returns 401 for unauthenticated requests", async () => {
     const requestId = "assets-unauthorized-request"
     const app = createTestApp({
-      assetRoute: createAssetRoute(assetService, routeDependencies),
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      ),
       requireAuth: requireAuthenticatedUser
     })
 
@@ -84,7 +90,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets", {
@@ -122,7 +132,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets", {
@@ -169,7 +183,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets?includeCustomFields=true", {
@@ -209,7 +227,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(
@@ -240,7 +262,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets/not-a-uuid", {
@@ -266,12 +292,16 @@ describe("asset routes", () => {
       }
     ]
 
-    assetService.listCustomFieldDefinitions.mockResolvedValue(definitions)
+    assetCustomFieldService.listDefinitions.mockResolvedValue(definitions)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets/custom-fields", {
@@ -282,7 +312,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.listCustomFieldDefinitions).toHaveBeenCalledOnce()
+    expect(assetCustomFieldService.listDefinitions).toHaveBeenCalledOnce()
     expect(assetService.getByID).not.toHaveBeenCalled()
     expect(body).toEqual({
       correlationId: requestId,
@@ -306,12 +336,16 @@ describe("asset routes", () => {
       defaultValue: null
     }
 
-    assetService.getCustomFieldDefinitionByID.mockResolvedValue(definition)
+    assetCustomFieldService.getDefinitionByID.mockResolvedValue(definition)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(
@@ -325,7 +359,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.getCustomFieldDefinitionByID).toHaveBeenCalledWith(
+    expect(assetCustomFieldService.getDefinitionByID).toHaveBeenCalledWith(
       definition.id
     )
     expect(body).toEqual({
@@ -338,7 +372,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets/custom-fields/not-a-uuid", {
@@ -348,19 +386,23 @@ describe("asset routes", () => {
     })
 
     expect(response.status).toBe(400)
-    expect(assetService.getCustomFieldDefinitionByID).not.toHaveBeenCalled()
+    expect(assetCustomFieldService.getDefinitionByID).not.toHaveBeenCalled()
   })
 
   it("returns 404 when the asset custom field definition does not exist", async () => {
     const requestId = "assets-custom-fields-not-found-request"
     const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
 
-    assetService.getCustomFieldDefinitionByID.mockResolvedValue(null)
+    assetCustomFieldService.getDefinitionByID.mockResolvedValue(null)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/custom-fields/${fieldId}`, {
@@ -371,7 +413,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.getCustomFieldDefinitionByID).toHaveBeenCalledWith(
+    expect(assetCustomFieldService.getDefinitionByID).toHaveBeenCalledWith(
       fieldId
     )
     expect(body).toEqual({
@@ -407,12 +449,16 @@ describe("asset routes", () => {
       }))
     }
 
-    assetService.createCustomFieldDefinition.mockResolvedValue(created)
+    assetCustomFieldService.createDefinition.mockResolvedValue(created)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets/custom-fields", {
@@ -426,7 +472,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(201)
-    expect(assetService.createCustomFieldDefinition).toHaveBeenCalledWith(
+    expect(assetCustomFieldService.createDefinition).toHaveBeenCalledWith(
       payload,
       {
         actor: user.id,
@@ -443,7 +489,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets/custom-fields", {
@@ -463,7 +513,7 @@ describe("asset routes", () => {
     })
 
     expect(response.status).toBe(400)
-    expect(assetService.createCustomFieldDefinition).not.toHaveBeenCalled()
+    expect(assetCustomFieldService.createDefinition).not.toHaveBeenCalled()
   })
 
   it("returns custom field rule reasons for create validation failures", async () => {
@@ -480,11 +530,11 @@ describe("asset routes", () => {
       path: ["defaultValue"]
     }
 
-    assetService.createCustomFieldDefinition.mockRejectedValue(
+    assetCustomFieldService.createDefinition.mockRejectedValue(
       new ApplicationError({
-        code: "asset.custom_field_definition.rule_violation",
+        code: "asset_custom_field.definition.rule_violation",
         kind: "validation",
-        message: "required custom fields must define a default value",
+        message: "required asset custom fields must define a default value",
         details: violation
       })
     )
@@ -492,7 +542,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets/custom-fields", {
@@ -506,7 +560,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(400)
-    expect(assetService.createCustomFieldDefinition).toHaveBeenCalledWith(
+    expect(assetCustomFieldService.createDefinition).toHaveBeenCalledWith(
       payload,
       {
         actor: user.id,
@@ -532,9 +586,9 @@ describe("asset routes", () => {
       defaultValue: null
     }
 
-    assetService.createCustomFieldDefinition.mockRejectedValueOnce(
+    assetCustomFieldService.createDefinition.mockRejectedValueOnce(
       new ApplicationError({
-        code: "asset.custom_field_definition.create_conflict",
+        code: "asset_custom_field.definition.create_conflict",
         kind: "conflict",
         message: "asset custom field definition already exists",
         details: { fieldKey: payload.key }
@@ -544,7 +598,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets/custom-fields", {
@@ -582,12 +640,16 @@ describe("asset routes", () => {
       ...payload
     }
 
-    assetService.updateCustomFieldDefinitionByID.mockResolvedValue(updated)
+    assetCustomFieldService.updateDefinitionByID.mockResolvedValue(updated)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/custom-fields/${fieldId}`, {
@@ -601,7 +663,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.updateCustomFieldDefinitionByID).toHaveBeenCalledWith({
+    expect(assetCustomFieldService.updateDefinitionByID).toHaveBeenCalledWith({
       id: fieldId,
       definition: payload,
       eventContext: {
@@ -626,12 +688,16 @@ describe("asset routes", () => {
       defaultValue: "platform"
     }
 
-    assetService.updateCustomFieldDefinitionByID.mockResolvedValueOnce(null)
+    assetCustomFieldService.updateDefinitionByID.mockResolvedValueOnce(null)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/custom-fields/${fieldId}`, {
@@ -645,7 +711,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.updateCustomFieldDefinitionByID).toHaveBeenCalledWith({
+    expect(assetCustomFieldService.updateDefinitionByID).toHaveBeenCalledWith({
       id: fieldId,
       definition: payload,
       eventContext: {
@@ -676,11 +742,11 @@ describe("asset routes", () => {
       path: ["defaultValue"]
     }
 
-    assetService.updateCustomFieldDefinitionByID.mockRejectedValue(
+    assetCustomFieldService.updateDefinitionByID.mockRejectedValue(
       new ApplicationError({
-        code: "asset.custom_field_definition.rule_violation",
+        code: "asset_custom_field.definition.rule_violation",
         kind: "validation",
-        message: "select custom field default must match an option value",
+        message: "select asset custom field default must match an option value",
         details: violation
       })
     )
@@ -688,7 +754,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/custom-fields/${fieldId}`, {
@@ -702,7 +772,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(400)
-    expect(assetService.updateCustomFieldDefinitionByID).toHaveBeenCalledWith({
+    expect(assetCustomFieldService.updateDefinitionByID).toHaveBeenCalledWith({
       id: fieldId,
       definition: payload,
       eventContext: {
@@ -724,7 +794,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/custom-fields/${fieldId}`, {
@@ -742,7 +816,7 @@ describe("asset routes", () => {
     })
 
     expect(response.status).toBe(400)
-    expect(assetService.updateCustomFieldDefinitionByID).not.toHaveBeenCalled()
+    expect(assetCustomFieldService.updateDefinitionByID).not.toHaveBeenCalled()
   })
 
   it("passes non-rule custom field update errors to the error handler", async () => {
@@ -756,9 +830,9 @@ describe("asset routes", () => {
       defaultValue: "platform"
     }
 
-    assetService.updateCustomFieldDefinitionByID.mockRejectedValueOnce(
+    assetCustomFieldService.updateDefinitionByID.mockRejectedValueOnce(
       new ApplicationError({
-        code: "asset.custom_field_definition.update_conflict",
+        code: "asset_custom_field.definition.update_conflict",
         kind: "conflict",
         message: "asset custom field definition already exists",
         details: { fieldId, fieldKey: payload.key }
@@ -768,7 +842,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/custom-fields/${fieldId}`, {
@@ -802,12 +880,16 @@ describe("asset routes", () => {
       defaultValue: null
     }
 
-    assetService.deleteCustomFieldDefinitionByID.mockResolvedValue(definition)
+    assetCustomFieldService.deleteDefinitionByID.mockResolvedValue(definition)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(
@@ -822,7 +904,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.deleteCustomFieldDefinitionByID).toHaveBeenCalledWith(
+    expect(assetCustomFieldService.deleteDefinitionByID).toHaveBeenCalledWith(
       definition.id,
       {
         actor: user.id,
@@ -839,12 +921,16 @@ describe("asset routes", () => {
     const requestId = "assets-custom-fields-delete-not-found-request"
     const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
 
-    assetService.deleteCustomFieldDefinitionByID.mockResolvedValueOnce(null)
+    assetCustomFieldService.deleteDefinitionByID.mockResolvedValueOnce(null)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/custom-fields/${fieldId}`, {
@@ -856,7 +942,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.deleteCustomFieldDefinitionByID).toHaveBeenCalledWith(
+    expect(assetCustomFieldService.deleteDefinitionByID).toHaveBeenCalledWith(
       fieldId,
       {
         actor: user.id,
@@ -876,7 +962,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets/custom-fields", {
@@ -898,7 +988,7 @@ describe("asset routes", () => {
     expect(userHasPermission).toHaveBeenCalledWith(user.id, {
       "custom-field": ["write"]
     })
-    expect(assetService.createCustomFieldDefinition).not.toHaveBeenCalled()
+    expect(assetCustomFieldService.createDefinition).not.toHaveBeenCalled()
   })
 
   it("returns 404 when the asset does not exist", async () => {
@@ -910,7 +1000,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {
@@ -944,7 +1038,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {
@@ -981,7 +1079,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}/custom-fields`, {
@@ -1026,7 +1128,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(
@@ -1063,7 +1169,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}/custom-fields`, {
@@ -1086,7 +1196,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets/not-a-uuid/custom-fields", {
@@ -1126,7 +1240,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}/custom-fields`, {
@@ -1181,7 +1299,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(
@@ -1222,7 +1344,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(
@@ -1247,7 +1373,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}/custom-fields`, {
@@ -1287,7 +1417,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}/custom-fields`, {
@@ -1324,7 +1458,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}/custom-fields`, {
@@ -1367,7 +1505,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets", {
@@ -1408,7 +1550,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets", {
@@ -1436,7 +1582,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request("/api/assets", {
@@ -1471,7 +1621,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}/owner`, {
@@ -1516,7 +1670,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}/owner`, {
@@ -1547,7 +1705,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}/owner`, {
@@ -1571,7 +1733,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}/owner`, {
@@ -1596,7 +1762,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}/owner`, {
@@ -1640,7 +1810,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {
@@ -1670,7 +1844,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {
@@ -1696,7 +1874,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {
@@ -1735,7 +1917,11 @@ describe("asset routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
     })
 
     const response = await app.request(`/api/assets/${assetId}`, {

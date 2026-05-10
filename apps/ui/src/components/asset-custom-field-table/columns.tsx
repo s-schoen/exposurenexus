@@ -1,6 +1,6 @@
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
 import type { ColumnDef } from "@tanstack/react-table"
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
 import { Badge } from "@/components/ui/badge.tsx"
 

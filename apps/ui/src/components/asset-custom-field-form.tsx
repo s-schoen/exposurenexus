@@ -4,7 +4,7 @@ import { z } from "zod/v4"
 import {
   AssetCustomFieldType,
   assetCustomFieldKeySchema
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 import {
   createAssetCustomFieldDefinitionPayloadFromFormValues,
   validateAssetCustomFieldFormRuleValues
@@ -12,7 +12,7 @@ import {
 import type {
   AssetCustomFieldDefinition,
   CreateAssetCustomFieldDefinition
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 import { Button } from "@/components/ui/button.tsx"
 import { Checkbox } from "@/components/ui/checkbox.tsx"
 import {

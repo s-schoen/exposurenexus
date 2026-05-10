@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useLayoutEffect, useMemo, useState } from "react"
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
 import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content"
 

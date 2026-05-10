@@ -28,7 +28,7 @@ type ApplicationErrorResponsePolicies = {
 // values here when clients are expected to branch on them.
 const applicationErrorResponsePolicies: ApplicationErrorResponsePolicies = {
   "role.unknown_ids": { reason: "role.unknown_ids" },
-  "asset.custom_field_definition.rule_violation": {
+  "asset_custom_field.definition.rule_violation": {
     reason: (error) => error.details.reason
   }
 }

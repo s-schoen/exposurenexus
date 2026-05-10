@@ -247,7 +247,7 @@ describe("createDomainEventPayload", () => {
 
     const createdEvent = createEventPayload({
       subject: "custom-field.created",
-      source: "asset",
+      source: "asset-custom-field",
       data: { customFieldDefinition }
     })
 
@@ -261,7 +261,7 @@ describe("createDomainEventPayload", () => {
 
     const updatedEvent = createEventPayload({
       subject: "custom-field.updated",
-      source: "asset",
+      source: "asset-custom-field",
       data: {
         previous: customFieldDefinition,
         current: {
@@ -281,7 +281,7 @@ describe("createDomainEventPayload", () => {
 
     const deletedEvent = createEventPayload({
       subject: "custom-field.deleted",
-      source: "asset",
+      source: "asset-custom-field",
       data: { customFieldDefinition }
     })
 

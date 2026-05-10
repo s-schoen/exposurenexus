@@ -92,9 +92,6 @@ describe("service factories", () => {
       listCustomFieldDefinitions: vi.fn(),
       listAvailableCustomFieldDefinitions: vi.fn(),
       getCustomFieldDefinitionByID: vi.fn(),
-      createCustomFieldDefinition: vi.fn(),
-      updateCustomFieldDefinitionByID: vi.fn(),
-      deleteCustomFieldDefinitionByID: vi.fn(),
       listCustomFieldValues: vi.fn(),
       replaceCustomFieldValues: vi.fn(),
       replaceCustomFieldAssociations: vi.fn()

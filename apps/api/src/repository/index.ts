@@ -1,4 +1,5 @@
 export { createAssetRepository } from "./asset.js"
+export { createAssetCustomFieldRepository } from "./asset-custom-field.js"
 export { createFindingRepository } from "./finding.js"
 export { createRoleRepository } from "./role.js"
 export { createUserRoleRepository } from "./user-role.js"
