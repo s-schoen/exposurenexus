@@ -12,8 +12,8 @@ export interface FindingTable {
   mitigation: string | null
   assigneeId: string | null
   dueDate: Date | null
-  firstSeen: Date | null
-  lastSeen: Date | null
+  firstSeen: Date
+  lastSeen: Date
   fingerprint: string
   createdAt: Date
   updatedAt: Date

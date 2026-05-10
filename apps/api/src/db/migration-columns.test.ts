@@ -65,11 +65,13 @@ describe("db migration columns", () => {
       constraint_name: string
       source_table: string
       target_table: string
+      delete_rule: string
     }>`
       select
         rc.constraint_name,
         kcu.table_name as source_table,
-        ccu.table_name as target_table
+        ccu.table_name as target_table,
+        rc.delete_rule
       from information_schema.referential_constraints rc
       join information_schema.key_column_usage kcu
         on kcu.constraint_catalog = rc.constraint_catalog
@@ -125,20 +127,101 @@ describe("db migration columns", () => {
       expect.arrayContaining([
         expect.objectContaining({
           constraint_name: "finding_createdBy_fkey",
-          target_table: "user_profile"
+          target_table: "user_profile",
+          delete_rule: "RESTRICT"
         }),
         expect.objectContaining({
           constraint_name: "finding_updatedBy_fkey",
-          target_table: "user_profile"
+          target_table: "user_profile",
+          delete_rule: "RESTRICT"
         }),
         expect.objectContaining({
           constraint_name: "vulnerability_createdBy_fkey",
-          target_table: "user_profile"
+          target_table: "user_profile",
+          delete_rule: "RESTRICT"
         }),
         expect.objectContaining({
           constraint_name: "vulnerability_updatedBy_fkey",
-          target_table: "user_profile"
+          target_table: "user_profile",
+          delete_rule: "RESTRICT"
         })
+      ])
+    )
+  })
+
+  it("enforces non-null columns exposed as required API fields", async () => {
+    const requiredColumns = await sql<{
+      table_name: string
+      column_name: string
+      data_type: string
+      is_nullable: string
+    }>`
+      select table_name, column_name, data_type, is_nullable
+      from information_schema.columns
+      where (
+          table_name = 'finding'
+          and column_name in (
+            'createdBy',
+            'updatedBy',
+            'firstSeen',
+            'lastSeen'
+          )
+        )
+        or (
+          table_name = 'vulnerability'
+          and column_name in ('createdBy', 'updatedBy')
+        )
+        or (
+          table_name = 'user_profile'
+          and column_name = 'enabled'
+        )
+      order by table_name asc, column_name asc
+    `.execute(testDb.db)
+
+    expect(requiredColumns.rows).toEqual(
+      expect.arrayContaining([
+        {
+          table_name: "finding",
+          column_name: "createdBy",
+          data_type: "uuid",
+          is_nullable: "NO"
+        },
+        {
+          table_name: "finding",
+          column_name: "firstSeen",
+          data_type: "timestamp with time zone",
+          is_nullable: "NO"
+        },
+        {
+          table_name: "finding",
+          column_name: "lastSeen",
+          data_type: "timestamp with time zone",
+          is_nullable: "NO"
+        },
+        {
+          table_name: "finding",
+          column_name: "updatedBy",
+          data_type: "uuid",
+          is_nullable: "NO"
+        },
+        {
+          table_name: "user_profile",
+          column_name: "enabled",
+          data_type: "boolean",
+          is_nullable: "NO"
+        },
+        {
+          table_name: "vulnerability",
+          column_name: "createdBy",
+          data_type: "uuid",
+          is_nullable: "NO"
+        },
+        {
+          table_name: "vulnerability",
+          column_name: "updatedBy",
+          data_type: "uuid",
+          is_nullable: "NO"
+        }
       ])
     )
   })

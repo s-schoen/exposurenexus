@@ -21,7 +21,8 @@ const expectedMigrationNames = [
   "20260506-finding-due-date",
   "20260509-02-finding-vulnerability-delete-restrict",
   "20260509-03-finding-asset-delete-restrict",
-  "20260509-vulnerability-source-mapping-unique"
+  "20260509-vulnerability-source-mapping-unique",
+  "20260510-audit-nullability-contract"
 ]
 
 describe("database migration provider", () => {

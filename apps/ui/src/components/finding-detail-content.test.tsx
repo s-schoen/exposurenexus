@@ -596,15 +596,13 @@ describe("FindingDetailContent", () => {
     })
   })
 
-  it("renders fallbacks for empty evidence, unknown assets, and missing dates", async () => {
+  it("renders fallbacks for empty evidence and unknown assets", async () => {
     const { FindingDetailContent } =
       await import("@/components/finding-detail-content.tsx")
     mocks.findingQuery = {
       data: {
         ...mocks.finding,
-        evidence: "   ",
-        firstSeen: null,
-        lastSeen: null
+        evidence: "   "
       },
       isLoading: false,
       isPending: false,
@@ -628,9 +626,6 @@ describe("FindingDetailContent", () => {
     expect(screen.getAllByText("Unknown Asset").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Unclassified").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Unknown").length).toBeGreaterThan(0)
-    expect(screen.getAllByText("Not available").length).toBeGreaterThanOrEqual(
-      2
-    )
     expect(
       screen.getByRole<HTMLButtonElement>("button", { name: "Copy evidence" })
         .disabled
