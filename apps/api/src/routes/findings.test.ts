@@ -66,6 +66,13 @@ describe("finding routes", () => {
     mitigation: "Restrict access to internal networks",
     assetId
   }
+  const updatePayloadBase = {
+    severity: createPayload.severity,
+    status: createPayload.status,
+    source: createPayload.source,
+    evidence: createPayload.evidence,
+    mitigation: createPayload.mitigation
+  }
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -618,12 +625,13 @@ describe("finding routes", () => {
   it("updates a finding with the authenticated user", async () => {
     const requestId = "findings-update-request"
     const updatePayload = {
-      ...createPayload,
+      ...updatePayloadBase,
       status: FindingStatus.Mitigated,
       mitigation: "Administrative interface restricted to VPN"
     }
     const updatedFinding = {
       id: findingId,
+      ...createPayload,
       ...updatePayload,
       assigneeId: null,
       dueDate: null,
@@ -685,11 +693,12 @@ describe("finding routes", () => {
   it("accepts assignee identity when updating a finding", async () => {
     const requestId = "findings-update-assignee-request"
     const updatePayload = {
-      ...createPayload,
+      ...updatePayloadBase,
       assigneeId
     }
     const updatedFinding = {
       id: findingId,
+      ...createPayload,
       ...updatePayload,
       fingerprint: "abc123",
       firstSeen: new Date("2026-01-02T00:00:00.000Z"),
@@ -732,11 +741,12 @@ describe("finding routes", () => {
 
   it("accepts null assignee identity when updating a finding", async () => {
     const updatePayload = {
-      ...createPayload,
+      ...updatePayloadBase,
       assigneeId: null
     }
     const updatedFinding = {
       id: findingId,
+      ...createPayload,
       ...updatePayload,
       fingerprint: "abc123",
       firstSeen: new Date("2026-01-02T00:00:00.000Z"),
@@ -779,7 +789,7 @@ describe("finding routes", () => {
 
   it("accepts and normalizes due dates when updating a finding", async () => {
     const updatePayload = {
-      ...createPayload,
+      ...updatePayloadBase,
       dueDate: "2026-05-06T18:30:00.000Z"
     }
     const normalizedDueDate = new Date("2026-05-06T00:00:00.000Z")
@@ -819,7 +829,7 @@ describe("finding routes", () => {
     expect(findingService.update).toHaveBeenCalledWith({
       id: findingId,
       finding: {
-        ...createPayload,
+        ...updatePayloadBase,
         dueDate: normalizedDueDate
       },
       user,
@@ -832,11 +842,12 @@ describe("finding routes", () => {
 
   it("accepts null due dates when updating a finding", async () => {
     const updatePayload = {
-      ...createPayload,
+      ...updatePayloadBase,
       dueDate: null
     }
     const updatedFinding = {
       id: findingId,
+      ...createPayload,
       ...updatePayload,
       assigneeId: null,
       fingerprint: "abc123",
@@ -892,8 +903,32 @@ describe("finding routes", () => {
         "X-Request-Id": "findings-invalid-update-body-request"
       },
       body: JSON.stringify({
-        ...createPayload,
-        vulnerabilityId: "not-a-uuid"
+        ...updatePayloadBase,
+        status: "not-a-status"
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(findingService.update).not.toHaveBeenCalled()
+  })
+
+  it("rejects finding relationship changes before calling the update service", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/findings/${findingId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "findings-update-relationship-request"
+      },
+      body: JSON.stringify({
+        ...updatePayloadBase,
+        assetId,
+        vulnerabilityId
       })
     })
 
@@ -915,7 +950,7 @@ describe("finding routes", () => {
         "X-Request-Id": "findings-invalid-assignee-update-body-request"
       },
       body: JSON.stringify({
-        ...createPayload,
+        ...updatePayloadBase,
         assigneeId: "not-a-user-id"
       })
     })
@@ -937,7 +972,7 @@ describe("finding routes", () => {
         "Content-Type": "application/json",
         "X-Request-Id": "findings-invalid-id-request"
       },
-      body: JSON.stringify(createPayload)
+      body: JSON.stringify(updatePayloadBase)
     })
 
     expect(response.status).toBe(400)
@@ -961,14 +996,14 @@ describe("finding routes", () => {
         "Content-Type": "application/json",
         "X-Request-Id": requestId
       },
-      body: JSON.stringify(createPayload)
+      body: JSON.stringify(updatePayloadBase)
     })
     const body = await response.json()
 
     expect(response.status).toBe(404)
     expect(findingService.update).toHaveBeenCalledWith({
       id: findingId,
-      finding: createPayload,
+      finding: updatePayloadBase,
       user,
       eventContext: {
         actor: user.id,

@@ -252,12 +252,17 @@ describe("finding api", () => {
     )
     expect(headers.get("Content-Type")).toBe("application/json")
     expect(requestJsonBody()).toEqual({
-      ...createFindingPayload,
+      severity: createFindingPayload.severity,
+      source: createFindingPayload.source,
+      evidence: createFindingPayload.evidence,
+      mitigation: createFindingPayload.mitigation,
       status: FindingStatus.Confirmed,
       assigneeId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
       dueDate: "2026-05-06T00:00:00.000Z"
     })
     expect(requestJsonBody()).not.toHaveProperty("ownerId")
+    expect(requestJsonBody()).not.toHaveProperty("assetId")
+    expect(requestJsonBody()).not.toHaveProperty("vulnerabilityId")
   })
 
   it("deletes findings", async () => {

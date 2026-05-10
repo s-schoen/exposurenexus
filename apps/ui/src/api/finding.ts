@@ -95,15 +95,13 @@ export async function createFinding(f: CreateFinding): Promise<Finding> {
 
 export async function updateFinding(f: Finding): Promise<Finding> {
   const payload: UpdateFinding = {
-    vulnerabilityId: f.vulnerabilityId,
     severity: f.severity,
     status: f.status,
     source: f.source,
     evidence: f.evidence,
     mitigation: f.mitigation,
     assigneeId: f.assigneeId,
-    dueDate: f.dueDate,
-    assetId: f.assetId
+    dueDate: f.dueDate
   }
 
   const response = await apiRequest(`/api/findings/${f.id}`, {
