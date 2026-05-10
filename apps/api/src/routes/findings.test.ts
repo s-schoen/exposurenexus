@@ -72,7 +72,9 @@ describe("finding routes", () => {
     status: createPayload.status,
     source: createPayload.source,
     evidence: createPayload.evidence,
-    mitigation: createPayload.mitigation
+    mitigation: createPayload.mitigation,
+    assigneeId: null,
+    dueDate: null
   }
 
   beforeEach(() => {
@@ -985,6 +987,34 @@ describe("finding routes", () => {
         ...updatePayloadBase,
         status: "not-a-status"
       })
+    })
+
+    expect(response.status).toBe(400)
+    expect(findingService.updateByID).not.toHaveBeenCalled()
+  })
+
+  it("rejects finding updates without assignee and due date fields", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const payload = {
+      severity: updatePayloadBase.severity,
+      status: updatePayloadBase.status,
+      source: updatePayloadBase.source,
+      evidence: updatePayloadBase.evidence,
+      mitigation: updatePayloadBase.mitigation
+    }
+
+    const response = await app.request(`/api/findings/${findingId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "findings-incomplete-update-body-request"
+      },
+      body: JSON.stringify(payload)
     })
 
     expect(response.status).toBe(400)

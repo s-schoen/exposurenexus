@@ -12,14 +12,12 @@ import type {
 } from "@exposurenexus/types/model/asset"
 import type { ReactNode } from "react"
 import {
-  assignAssetCustomFields,
-  clearAssetCustomFieldValue,
   createAssetByIDQueryOptions,
   createAssetCustomFieldValuesQueryOptions,
   createAvailableAssetCustomFieldDefinitionsQueryOptions,
   createListAssetsQueryOptions,
   createListAssetsWithCustomFieldsQueryOptions,
-  detachAssetCustomField,
+  replaceAssetCustomFieldAssociations,
   updateAssetCustomFieldValues,
   updateAssetOwner
 } from "@/api/asset.ts"
@@ -86,6 +84,22 @@ export function createAssetCustomFieldValuePayload(
   }
 
   return value
+}
+
+function createAssetCustomFieldValueReplacement(
+  fields: Array<AssetCustomFieldValue>,
+  changedFieldId: string,
+  value: AssetCustomFieldValueLiteral
+) {
+  return fields.map((field) => ({
+    fieldId: field.fieldId,
+    value:
+      field.fieldId === changedFieldId
+        ? value
+        : field.source === AssetCustomFieldValueSource.Asset
+          ? field.value
+          : null
+  }))
 }
 
 export function AssetDetailContent({
@@ -250,12 +264,14 @@ export function AssetDetailContent({
     const payload = createAssetCustomFieldValuePayload(field, value)
 
     try {
-      const updated = await updateAssetCustomFieldValues(assetId, [
-        {
-          fieldId: field.fieldId,
-          value: payload
-        }
-      ])
+      const updated = await updateAssetCustomFieldValues(
+        assetId,
+        createAssetCustomFieldValueReplacement(
+          customFields.data ?? [],
+          field.fieldId,
+          payload
+        )
+      )
 
       queryClient.setQueryData(customFieldValuesQueryOptions.queryKey, updated)
       await queryClient.invalidateQueries({
@@ -269,7 +285,16 @@ export function AssetDetailContent({
 
   async function handleResetCustomFieldValue(field: AssetCustomFieldValue) {
     try {
-      await clearAssetCustomFieldValue(assetId, field.fieldId)
+      const updated = await updateAssetCustomFieldValues(
+        assetId,
+        createAssetCustomFieldValueReplacement(
+          customFields.data ?? [],
+          field.fieldId,
+          null
+        )
+      )
+
+      queryClient.setQueryData(customFieldValuesQueryOptions.queryKey, updated)
       await queryClient.invalidateQueries({
         queryKey: customFieldValuesQueryOptions.queryKey
       })
@@ -280,7 +305,14 @@ export function AssetDetailContent({
 
   async function handleAssignCustomField(field: AssetCustomFieldDefinition) {
     try {
-      const updated = await assignAssetCustomFields(assetId, [field.id])
+      const fieldIds = [
+        ...(customFields.data ?? []).map((customField) => customField.fieldId),
+        field.id
+      ]
+      const updated = await replaceAssetCustomFieldAssociations(
+        assetId,
+        fieldIds
+      )
 
       queryClient.setQueryData(customFieldValuesQueryOptions.queryKey, updated)
       await Promise.all([
@@ -298,7 +330,14 @@ export function AssetDetailContent({
 
   async function handleDetachCustomField(field: AssetCustomFieldValue) {
     try {
-      await detachAssetCustomField(assetId, field.fieldId)
+      const updated = await replaceAssetCustomFieldAssociations(
+        assetId,
+        (customFields.data ?? [])
+          .map((customField) => customField.fieldId)
+          .filter((fieldId) => fieldId !== field.fieldId)
+      )
+
+      queryClient.setQueryData(customFieldValuesQueryOptions.queryKey, updated)
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: customFieldValuesQueryOptions.queryKey

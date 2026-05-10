@@ -317,16 +317,10 @@ export function createFindingService({
           return null
         }
 
-        const assigneeId =
-          typeof opts.finding.assigneeId === "undefined"
-            ? finding.assigneeId
-            : opts.finding.assigneeId
-        const dueDate =
-          typeof opts.finding.dueDate === "undefined"
-            ? finding.dueDate
-            : normalizeOptionalDueDate(opts.finding.dueDate)
+        const assigneeId = opts.finding.assigneeId
+        const dueDate = normalizeOptionalDueDate(opts.finding.dueDate)
 
-        if (typeof opts.finding.assigneeId !== "undefined" && assigneeId) {
+        if (assigneeId) {
           const assignee = await userProfileService.getByID(assigneeId)
 
           if (!assignee) {

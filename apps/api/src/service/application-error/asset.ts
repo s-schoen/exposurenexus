@@ -80,20 +80,24 @@ export type AssetApplicationErrorCatalog = {
     kind: "validation"
     details: { assetId: string; fieldId: string; fieldKey: string }
   }
-  "asset.custom_field_value.upsert_failed": {
+  "asset.custom_field_value.duplicate": {
+    kind: "validation"
+    details: { assetId: string; fieldId: string }
+  }
+  "asset.custom_field_value.missing": {
+    kind: "validation"
+    details: { assetId: string; fieldId: string }
+  }
+  "asset.custom_field_value.replace_failed": {
     kind: "unexpected"
     details: { assetId: string }
   }
-  "asset.custom_field_value.clear_failed": {
-    kind: "unexpected"
+  "asset.custom_field_assignment.duplicate": {
+    kind: "validation"
     details: { assetId: string; fieldId: string }
   }
-  "asset.custom_field_assignment.assign_failed": {
+  "asset.custom_field_assignment.replace_failed": {
     kind: "unexpected"
     details: { assetId: string }
-  }
-  "asset.custom_field_assignment.detach_failed": {
-    kind: "unexpected"
-    details: { assetId: string; fieldId: string }
   }
 }

@@ -5,8 +5,6 @@ import {
   AssetType
 } from "@exposurenexus/types/model/asset"
 import {
-  assignAssetCustomFields,
-  clearAssetCustomFieldValue,
   createAsset,
   createAssetByIDQueryOptions,
   createAssetCustomFieldValuesQueryOptions,
@@ -14,10 +12,10 @@ import {
   createListAssetsQueryOptions,
   createListAssetsWithCustomFieldsQueryOptions,
   deleteAsset,
-  detachAssetCustomField,
   listAssetCustomFieldValues,
   listAssetsWithCustomFields,
   listAvailableAssetCustomFieldDefinitions,
+  replaceAssetCustomFieldAssociations,
   updateAssetCustomFieldValues,
   updateAssetOwner
 } from "./asset.ts"
@@ -350,7 +348,7 @@ describe("asset custom field value api", () => {
     })
   })
 
-  it("assigns custom fields to an asset", async () => {
+  it("replaces custom field associations for an asset", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         data: {
@@ -360,7 +358,7 @@ describe("asset custom field value api", () => {
     )
 
     await expect(
-      assignAssetCustomFields(assetId, associationUpdates)
+      replaceAssetCustomFieldAssociations(assetId, associationUpdates)
     ).resolves.toEqual(values)
 
     const headers = requestInit().headers as Headers
@@ -375,50 +373,6 @@ describe("asset custom field value api", () => {
     expect(requestJsonBody()).toEqual({
       fieldIds: associationUpdates
     })
-  })
-
-  it("clears a custom field value for an asset", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        data: {
-          cleared: true
-        }
-      })
-    )
-
-    await expect(clearAssetCustomFieldValue(assetId, fieldId)).resolves.toEqual(
-      {
-        cleared: true
-      }
-    )
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      `/api/assets/${assetId}/custom-fields/${fieldId}`,
-      expect.objectContaining({
-        method: "DELETE"
-      })
-    )
-  })
-
-  it("detaches a custom field from an asset", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        data: {
-          detached: true
-        }
-      })
-    )
-
-    await expect(detachAssetCustomField(assetId, fieldId)).resolves.toEqual({
-      detached: true
-    })
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      `/api/assets/${assetId}/custom-fields/associations/${fieldId}`,
-      expect.objectContaining({
-        method: "DELETE"
-      })
-    )
   })
 
   it("throws api errors for failed value updates", async () => {

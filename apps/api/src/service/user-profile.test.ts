@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { pino } from "pino"
 import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
+import type { UpdateUserProfile } from "@exposurenexus/types/model/user"
 
 const { hashPlaintextPasswordMock } = vi.hoisted(() => ({
   hashPlaintextPasswordMock: vi.fn()
@@ -56,6 +57,18 @@ describe("user profile service", () => {
       domainEventEmitter: domainEvents.emitter,
       logger
     })
+  }
+
+  function updatePayload(
+    overrides: Partial<UpdateUserProfile> = {}
+  ): UpdateUserProfile {
+    return {
+      displayName: firstProfile.displayName,
+      email: firstProfile.email,
+      enabled: firstProfile.enabled,
+      roleIds: firstProfile.roleIds,
+      ...overrides
+    }
   }
 
   it("lists all user profiles without exposing password hashes", async () => {
@@ -311,7 +324,7 @@ describe("user profile service", () => {
     } satisfies Partial<ApplicationError>)
   })
 
-  it("updates a user profile by merging partial fields", async () => {
+  it("replaces a user profile while preserving service-owned fields", async () => {
     const service = createService()
     const updatedProfile = {
       ...firstProfile,
@@ -345,11 +358,11 @@ describe("user profile service", () => {
     await expect(
       service.updateByID({
         id: firstProfile.id,
-        userProfile: {
+        userProfile: updatePayload({
           displayName: "Alice Updated",
           enabled: false,
           roleIds: [builtInRoleIds.admin]
-        },
+        }),
         eventContext: {
           actor: "admin-user",
           correlationId: "users-update-request"
@@ -401,10 +414,10 @@ describe("user profile service", () => {
     await expect(
       service.updateByID({
         id: firstProfile.id,
-        userProfile: {
+        userProfile: updatePayload({
           password: "new-correct-horse-battery-staple",
           roleIds: []
-        }
+        })
       })
     ).resolves.toEqual({
       id: firstProfile.id,
@@ -447,10 +460,10 @@ describe("user profile service", () => {
     await expect(
       service.updateByID({
         id: firstProfile.id,
-        userProfile: {
+        userProfile: updatePayload({
           enabled: false,
           roleIds: firstProfile.roleIds
-        }
+        })
       })
     ).resolves.toEqual({
       id: firstProfile.id,
@@ -490,10 +503,10 @@ describe("user profile service", () => {
     await expect(
       service.updateByID({
         id: firstProfile.id,
-        userProfile: {
+        userProfile: updatePayload({
           displayName: "Alice Updated",
           roleIds: [...firstProfile.roleIds].reverse()
-        }
+        })
       })
     ).resolves.toEqual({
       id: firstProfile.id,
@@ -526,10 +539,10 @@ describe("user profile service", () => {
     await expect(
       service.updateByID({
         id: userProfileId,
-        userProfile: {
+        userProfile: updatePayload({
           displayName: "Missing User",
           roleIds: []
-        }
+        })
       })
     ).resolves.toBeNull()
     expect(userProfileRepository.updateByID).not.toHaveBeenCalled()
@@ -545,10 +558,10 @@ describe("user profile service", () => {
     await expect(
       service.updateByID({
         id: firstProfile.id,
-        userProfile: {
+        userProfile: updatePayload({
           displayName: "Alice Updated",
           roleIds: firstProfile.roleIds
-        }
+        })
       })
     ).resolves.toBeNull()
     expect(domainEvents.subjects()).toEqual([])
@@ -565,10 +578,10 @@ describe("user profile service", () => {
     await expect(
       service.updateByID({
         id: firstProfile.id,
-        userProfile: {
+        userProfile: updatePayload({
           email: secondProfile.email,
           roleIds: secondProfile.roleIds
-        }
+        })
       })
     ).rejects.toMatchObject({
       code: "user_profile.update_conflict",
@@ -590,9 +603,9 @@ describe("user profile service", () => {
     await expect(
       service.updateByID({
         id: firstProfile.id,
-        userProfile: {
+        userProfile: updatePayload({
           roleIds: ["9d9e119a-9c9a-41b0-b2fe-c40a05c45be7"]
-        }
+        })
       })
     ).rejects.toMatchObject({
       code: "user_profile.role_assignment_invalid",
@@ -613,10 +626,10 @@ describe("user profile service", () => {
     await expect(
       service.updateByID({
         id: firstProfile.id,
-        userProfile: {
+        userProfile: updatePayload({
           displayName: "Alice Updated",
           roleIds: firstProfile.roleIds
-        }
+        })
       })
     ).rejects.toMatchObject({
       code: "user_profile.update_failed",

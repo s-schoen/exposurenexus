@@ -62,10 +62,17 @@ export const createFindingSchema = findingInternalSchema
     dueDate: findingInternalSchema.shape.dueDate.optional()
   })
 
-export const updateFindingSchema = createFindingSchema.omit({
-  vulnerabilityId: true,
-  assetId: true
-})
+export const updateFindingSchema = createFindingSchema
+  .omit({
+    vulnerabilityId: true,
+    assetId: true,
+    assigneeId: true,
+    dueDate: true
+  })
+  .extend({
+    assigneeId: findingInternalSchema.shape.assigneeId,
+    dueDate: findingInternalSchema.shape.dueDate
+  })
 
 export const reclassifyFindingsSchema = z.strictObject({
   source: z.string().trim().min(1),

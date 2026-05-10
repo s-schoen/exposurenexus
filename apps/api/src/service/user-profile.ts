@@ -225,9 +225,9 @@ export function createUserProfileService({
           id,
           userProfile: {
             username: existingProfile.username,
-            displayName: profile.displayName ?? existingProfile.displayName,
-            email: profile.email ?? existingProfile.email,
-            enabled: profile.enabled ?? existingProfile.enabled,
+            displayName: profile.displayName,
+            email: profile.email,
+            enabled: profile.enabled,
             passwordHash:
               password === undefined
                 ? existingProfile.passwordHash

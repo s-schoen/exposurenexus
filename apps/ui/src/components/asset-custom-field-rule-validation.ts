@@ -3,7 +3,10 @@ import {
   AssetCustomFieldType,
   validateAssetCustomFieldDefinitionRules
 } from "@exposurenexus/types/model/asset"
-import type { CreateAssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
+import type {
+  CreateAssetCustomFieldDefinition,
+  UpdateAssetCustomFieldDefinition
+} from "@exposurenexus/types/model/asset"
 
 interface AssetCustomFieldFormRuleOptionValue {
   value: string
@@ -86,7 +89,9 @@ export function createAssetCustomFieldDefinitionPayloadFromFormValues(
 }
 
 export function validateAssetCustomFieldRulePayload(
-  definition: CreateAssetCustomFieldDefinition,
+  definition:
+    | CreateAssetCustomFieldDefinition
+    | UpdateAssetCustomFieldDefinition,
   surface: AssetCustomFieldRuleValidationSurface
 ): Array<AssetCustomFieldRuleValidationIssue> {
   return validateAssetCustomFieldDefinitionRules(definition).map(

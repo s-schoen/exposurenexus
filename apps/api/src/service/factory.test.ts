@@ -96,10 +96,8 @@ describe("service factories", () => {
       updateCustomFieldDefinitionByID: vi.fn(),
       deleteCustomFieldDefinitionByID: vi.fn(),
       listCustomFieldValues: vi.fn(),
-      upsertCustomFieldValues: vi.fn(),
-      clearCustomFieldValue: vi.fn(),
-      assignCustomFields: vi.fn(),
-      detachCustomField: vi.fn()
+      replaceCustomFieldValues: vi.fn(),
+      replaceCustomFieldAssociations: vi.fn()
     }
     const service = createAssetService({
       assetRepository: repository,

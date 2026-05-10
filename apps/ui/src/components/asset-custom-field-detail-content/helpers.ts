@@ -1,12 +1,12 @@
 import {
   AssetCustomFieldType,
   assetCustomFieldKeySchema,
-  createAssetCustomFieldDefinitionSchema
+  updateAssetCustomFieldDefinitionSchema
 } from "@exposurenexus/types/model/asset"
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldOption,
-  CreateAssetCustomFieldDefinition
+  UpdateAssetCustomFieldDefinition
 } from "@exposurenexus/types/model/asset"
 import { validateAssetCustomFieldRulePayload } from "@/components/asset-custom-field-rule-validation.ts"
 
@@ -88,7 +88,7 @@ export function parseNumberDefault(
 /** Converts a loaded field definition into the PUT payload shape expected by the API. */
 export function createAssetCustomFieldUpdatePayload(
   field: AssetCustomFieldDefinition
-): CreateAssetCustomFieldDefinition {
+): UpdateAssetCustomFieldDefinition {
   const base = {
     key: field.key,
     name: field.name,
@@ -129,15 +129,16 @@ export function validateAssetCustomFieldDefinition(
   field: AssetCustomFieldDefinition
 ): string | null {
   const payload = createAssetCustomFieldUpdatePayload(field)
-  const parseResult = createAssetCustomFieldDefinitionSchema.safeParse(payload)
+  const parseResult = updateAssetCustomFieldDefinitionSchema.safeParse(payload)
 
   if (!parseResult.success) {
     return parseResult.error.issues[0]?.message ?? "Invalid custom field"
   }
 
-  return validateAssetCustomFieldRulePayload(parseResult.data, "detail")[0]
-    ?.message
-    ?? null
+  return (
+    validateAssetCustomFieldRulePayload(parseResult.data, "detail")[0]
+      ?.message ?? null
+  )
 }
 
 /**

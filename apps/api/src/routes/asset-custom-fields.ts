@@ -1,7 +1,10 @@
 import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
-import { createAssetCustomFieldDefinitionSchema } from "@exposurenexus/types/model/asset"
+import {
+  createAssetCustomFieldDefinitionSchema,
+  updateAssetCustomFieldDefinitionSchema
+} from "@exposurenexus/types/model/asset"
 import { notFound } from "../lib/api-error.js"
 import { replyArray, replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
@@ -69,7 +72,7 @@ export function createAssetCustomFieldRoute(
     "/:fieldId",
     requireDomainPermission("custom-field", "write"),
     fieldIdParamValidator,
-    zValidator("json", createAssetCustomFieldDefinitionSchema),
+    zValidator("json", updateAssetCustomFieldDefinitionSchema),
     async (c) => {
       const params = c.req.valid("param")
       const body = c.req.valid("json")

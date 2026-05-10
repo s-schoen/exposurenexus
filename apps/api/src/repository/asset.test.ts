@@ -382,10 +382,10 @@ describe("asset repository", () => {
       options: [{ value: "prod", label: "Production" }]
     })
 
-    await repository.upsertCustomFieldValues(asset.id, [
+    await repository.replaceCustomFieldValues(asset.id, [
       { fieldId: environment.id, value: "prod" }
     ])
-    await repository.assignCustomFields(asset.id, [environment.id])
+    await repository.replaceCustomFieldAssociations(asset.id, [environment.id])
 
     await expect(
       repository.deleteCustomFieldDefinitionByID(environment.id)
@@ -410,7 +410,7 @@ describe("asset repository", () => {
     expect(assignmentRows).toEqual([])
   })
 
-  it("lists, upserts, and clears effective custom field values", async () => {
+  it("lists and replaces effective custom field values", async () => {
     const repository = createAssetRepository(testDb.db)
     const asset = await repository.create({
       id: "",
@@ -449,7 +449,7 @@ describe("asset repository", () => {
     ).resolves.toEqual([environment, exposure, priority])
 
     await expect(
-      repository.assignCustomFields(asset.id, [
+      repository.replaceCustomFieldAssociations(asset.id, [
         environment.id,
         priority.id,
         exposure.id
@@ -514,7 +514,7 @@ describe("asset repository", () => {
     ])
 
     await expect(
-      repository.upsertCustomFieldValues(asset.id, [
+      repository.replaceCustomFieldValues(asset.id, [
         { fieldId: environment.id, value: "stage" },
         { fieldId: priority.id, value: 5 },
         { fieldId: exposure.id, value: "external" }
@@ -548,8 +548,10 @@ describe("asset repository", () => {
     ])
 
     await expect(
-      repository.upsertCustomFieldValues(asset.id, [
-        { fieldId: environment.id, value: null }
+      repository.replaceCustomFieldValues(asset.id, [
+        { fieldId: environment.id, value: null },
+        { fieldId: priority.id, value: 5 },
+        { fieldId: exposure.id, value: "external" }
       ])
     ).resolves.toEqual([
       {
@@ -579,7 +581,11 @@ describe("asset repository", () => {
       }
     ])
 
-    await repository.clearCustomFieldValue(asset.id, priority.id)
+    await repository.replaceCustomFieldValues(asset.id, [
+      { fieldId: environment.id, value: null },
+      { fieldId: priority.id, value: null },
+      { fieldId: exposure.id, value: "external" }
+    ])
 
     await expect(repository.listCustomFieldValues(asset.id)).resolves.toEqual([
       {
@@ -609,7 +615,10 @@ describe("asset repository", () => {
       }
     ])
 
-    await repository.detachCustomField(asset.id, exposure.id)
+    await repository.replaceCustomFieldAssociations(asset.id, [
+      environment.id,
+      priority.id
+    ])
 
     await expect(repository.listCustomFieldValues(asset.id)).resolves.toEqual([
       {
@@ -667,9 +676,15 @@ describe("asset repository", () => {
       defaultValue: null
     })
 
-    await repository.assignCustomFields(apiAsset.id, [category.id, priority.id])
-    await repository.assignCustomFields(workerAsset.id, [category.id])
-    await repository.upsertCustomFieldValues(apiAsset.id, [
+    await repository.replaceCustomFieldAssociations(apiAsset.id, [
+      category.id,
+      priority.id
+    ])
+    await repository.replaceCustomFieldAssociations(workerAsset.id, [
+      category.id
+    ])
+    await repository.replaceCustomFieldValues(apiAsset.id, [
+      { fieldId: category.id, value: null },
       { fieldId: priority.id, value: 4 }
     ])
 
@@ -726,7 +741,7 @@ describe("asset repository", () => {
       defaultValue: "platform"
     })
 
-    await repository.assignCustomFields(apiAsset.id, [category.id])
+    await repository.replaceCustomFieldAssociations(apiAsset.id, [category.id])
 
     await expect(
       repository.getByIDWithCustomFields(apiAsset.id)
