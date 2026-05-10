@@ -7,12 +7,16 @@ import {
   type UpdateAssetCustomFieldDefinition,
   validateAssetCustomFieldDefinitionRules
 } from "@exposurenexus/types/model/asset-custom-field"
-import type { Asset } from "@exposurenexus/types/model/asset"
+import type {
+  Asset,
+  AssetWithCustomFields
+} from "@exposurenexus/types/model/asset"
 import type { Logger } from "pino"
-import { ApplicationError } from "./application-error.js"
+import { ApplicationError, isApplicationError } from "./application-error.js"
 import { isConflictError } from "./errors.js"
 import {
   createDomainEventEmitter,
+  type AssetEventPayloads,
   type CustomFieldEventPayloads,
   type DomainEventContext,
   type DomainEventEmitter
@@ -67,6 +71,26 @@ function customFieldDefinitionsEqual(
   return JSON.stringify(previous) === JSON.stringify(current)
 }
 
+function assetSnapshotsEqual(
+  previous: AssetWithCustomFields,
+  current: AssetWithCustomFields
+): boolean {
+  return JSON.stringify(previous) === JSON.stringify(current)
+}
+
+function findDuplicate(values: readonly string[]): string | null {
+  const seen = new Set<string>()
+
+  for (const value of values) {
+    if (seen.has(value)) {
+      return value
+    }
+    seen.add(value)
+  }
+
+  return null
+}
+
 interface AssetCustomFieldServiceDependencies {
   assetCustomFieldRepository: AssetCustomFieldRepository
   assetRepository: AssetLookupRepository
@@ -77,6 +101,12 @@ interface AssetCustomFieldServiceDependencies {
 export interface UpdateAssetCustomFieldDefinitionOptions {
   id: string
   definition: UpdateAssetCustomFieldDefinition
+  eventContext?: DomainEventContext
+}
+
+export interface ReplaceAssetCustomFieldAssignmentsOptions {
+  assetId: string
+  fieldIds: string[]
   eventContext?: DomainEventContext
 }
 
@@ -103,6 +133,9 @@ export interface AssetCustomFieldService {
   listAvailableDefinitionsForAsset(
     assetId: string
   ): Promise<AssetCustomFieldDefinition[] | null>
+  replaceAssignmentsForAsset(
+    opts: ReplaceAssetCustomFieldAssignmentsOptions
+  ): Promise<AssetCustomFieldValue[] | null>
 }
 
 export function createAssetCustomFieldService({
@@ -117,6 +150,38 @@ export function createAssetCustomFieldService({
       domainEventEmitter,
       "asset-custom-field"
     )
+  type AssetEventSubject = keyof AssetEventPayloads & string
+  const emitAssetEvent = createDomainEventEmitter<AssetEventSubject>(
+    domainEventEmitter,
+    "asset"
+  )
+
+  async function getAssetSnapshot(
+    assetId: string
+  ): Promise<AssetWithCustomFields | null> {
+    const asset = await assetRepository.getByID(assetId)
+    if (!asset) {
+      return null
+    }
+
+    return {
+      ...asset,
+      customFields:
+        await assetCustomFieldRepository.listEffectiveValuesForAsset(assetId)
+    }
+  }
+
+  function emitUpdatedAssetEvent(
+    previous: AssetWithCustomFields,
+    current: AssetWithCustomFields,
+    eventContext?: DomainEventContext
+  ): void {
+    if (assetSnapshotsEqual(previous, current)) {
+      return
+    }
+
+    emitAssetEvent("asset.updated", { previous, current }, eventContext)
+  }
 
   return {
     async listDefinitions(): Promise<AssetCustomFieldDefinition[]> {
@@ -356,6 +421,73 @@ export function createAssetCustomFieldService({
           code: "asset_custom_field.definition.list_available_failed",
           kind: "unexpected",
           message: "failed to list available asset custom fields",
+          cause: error,
+          details: { assetId }
+        })
+      }
+    },
+
+    async replaceAssignmentsForAsset(
+      opts: ReplaceAssetCustomFieldAssignmentsOptions
+    ): Promise<AssetCustomFieldValue[] | null> {
+      const { assetId, fieldIds, eventContext } = opts
+
+      try {
+        const previous = await getAssetSnapshot(assetId)
+        if (!previous) {
+          logger.debug(`asset with id ${assetId} not found`)
+          return null
+        }
+
+        const duplicateFieldId = findDuplicate(fieldIds)
+        if (duplicateFieldId) {
+          throw new ApplicationError({
+            code: "asset_custom_field.assignment.duplicate",
+            kind: "validation",
+            message: "asset custom field assignments contain duplicate fields",
+            details: { assetId, fieldId: duplicateFieldId }
+          })
+        }
+
+        const definitions = await assetCustomFieldRepository.listDefinitions()
+        const definitionIds = new Set(
+          definitions.map((definition) => definition.id)
+        )
+
+        for (const fieldId of fieldIds) {
+          if (!definitionIds.has(fieldId)) {
+            throw new ApplicationError({
+              code: "asset_custom_field.definition.unknown",
+              kind: "validation",
+              message: "unknown asset custom field",
+              details: { fieldId }
+            })
+          }
+        }
+
+        const values =
+          await assetCustomFieldRepository.replaceAssignmentsForAsset(
+            assetId,
+            fieldIds
+          )
+        const current = await getAssetSnapshot(assetId)
+        if (current) {
+          emitUpdatedAssetEvent(previous, current, eventContext)
+        }
+        return values
+      } catch (error) {
+        if (isApplicationError(error)) {
+          throw error
+        }
+
+        logger.error(
+          error,
+          `failed to replace asset custom field assignments for asset ${assetId}`
+        )
+        throw new ApplicationError({
+          code: "asset_custom_field.assignment.replace_failed",
+          kind: "unexpected",
+          message: "failed to replace asset custom field assignments",
           cause: error,
           details: { assetId }
         })

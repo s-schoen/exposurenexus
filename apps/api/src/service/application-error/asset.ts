@@ -28,10 +28,6 @@ export type AssetApplicationErrorCatalog = {
     kind: "unexpected"
     details: { assetId: string }
   }
-  "asset.custom_field.unknown": {
-    kind: "validation"
-    details: { fieldId: string }
-  }
   "asset.custom_field.not_assigned": {
     kind: "validation"
     details: { assetId: string; fieldId: string }
@@ -49,14 +45,6 @@ export type AssetApplicationErrorCatalog = {
     details: { assetId: string; fieldId: string }
   }
   "asset.custom_field_value.replace_failed": {
-    kind: "unexpected"
-    details: { assetId: string }
-  }
-  "asset.custom_field_assignment.duplicate": {
-    kind: "validation"
-    details: { assetId: string; fieldId: string }
-  }
-  "asset.custom_field_assignment.replace_failed": {
     kind: "unexpected"
     details: { assetId: string }
   }

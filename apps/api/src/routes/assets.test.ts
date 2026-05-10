@@ -29,8 +29,7 @@ describe("asset routes", () => {
     create: vi.fn(),
     updateOwnerByID: vi.fn(),
     deleteByID: vi.fn(),
-    replaceCustomFieldValues: vi.fn(),
-    replaceCustomFieldAssociations: vi.fn()
+    replaceCustomFieldValues: vi.fn()
   }
   const assetCustomFieldService = {
     listDefinitions: vi.fn(),
@@ -40,7 +39,8 @@ describe("asset routes", () => {
     deleteDefinitionByID: vi.fn(),
     listEffectiveValuesForAsset: vi.fn(),
     listEffectiveValuesForAssets: vi.fn(),
-    listAvailableDefinitionsForAsset: vi.fn()
+    listAvailableDefinitionsForAsset: vi.fn(),
+    replaceAssignmentsForAsset: vi.fn()
   }
 
   beforeEach(() => {
@@ -1343,7 +1343,7 @@ describe("asset routes", () => {
       }
     ]
 
-    assetService.replaceCustomFieldAssociations.mockResolvedValue(values)
+    assetCustomFieldService.replaceAssignmentsForAsset.mockResolvedValue(values)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -1369,7 +1369,9 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.replaceCustomFieldAssociations).toHaveBeenCalledWith({
+    expect(
+      assetCustomFieldService.replaceAssignmentsForAsset
+    ).toHaveBeenCalledWith({
       assetId,
       fieldIds: payload.fieldIds,
       eventContext: {
@@ -1385,6 +1387,44 @@ describe("asset routes", () => {
         startIndex: 0,
         currentItemCount: 1
       }
+    })
+  })
+
+  it("returns 404 when assigning custom fields to a missing asset", async () => {
+    const requestId = "assets-custom-field-associations-missing-asset-request"
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
+    })
+
+    assetCustomFieldService.replaceAssignmentsForAsset.mockResolvedValue(null)
+
+    const response = await app.request(
+      `/api/assets/${assetId}/custom-fields/associations`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": requestId
+        },
+        body: JSON.stringify({
+          fieldIds: ["5bde818a-bb4f-4a0f-a5eb-a190d5142a25"]
+        })
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: "asset with id 76b1885f-2d28-4b7d-93da-2751ff385aa3 does not exist"
     })
   })
 
@@ -1414,7 +1454,9 @@ describe("asset routes", () => {
     )
 
     expect(response.status).toBe(400)
-    expect(assetService.replaceCustomFieldAssociations).not.toHaveBeenCalled()
+    expect(
+      assetCustomFieldService.replaceAssignmentsForAsset
+    ).not.toHaveBeenCalled()
   })
 
   it("rejects invalid custom field value bodies before calling the service", async () => {

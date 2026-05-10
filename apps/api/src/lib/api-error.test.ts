@@ -237,11 +237,11 @@ describe("api errors", () => {
     expect(reply).not.toHaveProperty("details")
   })
 
-  it("does not expose asset application error details by default", () => {
+  it("does not expose asset custom field application error details by default", () => {
     const error = new ApplicationError({
-      code: "asset.custom_field.unknown",
+      code: "asset_custom_field.definition.unknown",
       kind: "validation",
-      message: "unknown asset custom field id",
+      message: "unknown asset custom field",
       details: { fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25" }
     })
 

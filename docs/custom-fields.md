@@ -37,21 +37,21 @@ services, and route layers.
 - `apps/api/src/db/schema/asset-custom-field.ts` owns the custom field table
   types used by the API database interface.
 - `apps/api/src/repository/asset-custom-field.ts` persists registry-level field
-  definitions and select options, and composes effective field values from
-  assignments, defaults, and asset-specific overrides.
-- `apps/api/src/service/asset-custom-field.ts` validates definition rules,
-  serves registry and asset-specific read projections, and emits custom field
-  definition events.
-- `apps/api/src/repository/asset.ts` persists asset assignments and per-asset
+  definitions, select options, asset assignments, and composes effective field
+  values from assignments, defaults, and asset-specific overrides.
+- `apps/api/src/service/asset-custom-field.ts` validates definition rules and
+  asset-specific assignment commands, serves registry and asset-specific read
+  projections, emits custom field definition events, and emits `asset.updated`
+  for assignment changes with the preserved asset event payload shape.
+- `apps/api/src/repository/asset.ts` persists core asset rows and per-asset
   value overrides.
-- `apps/api/src/service/asset.ts` validates asset-specific assignments and
-  values before data is written. Its `AssetWithCustomFields` reads are a
-  compatibility projection that delegates custom field hydration to the asset
-  custom field service.
+- `apps/api/src/service/asset.ts` validates asset-specific values before data
+  is written. Its `AssetWithCustomFields` reads are a compatibility projection
+  that delegates custom field hydration to the asset custom field service.
 - `apps/api/src/routes/asset-custom-fields.ts` exposes registry-level custom
   field definition operations through `AssetCustomFieldService`.
-- `apps/api/src/routes/assets.ts` exposes asset-specific custom field value
-  operations.
+- `apps/api/src/routes/assets.ts` exposes asset-specific custom field read,
+  assignment, and value operations.
 
 Shared custom field shapes live in `packages/types`, so the API, UI, and tests
 use the same domain model.
@@ -158,7 +158,7 @@ Assigning fields to an asset:
 
 1. The target asset must exist.
 2. Every requested field ID must reference an existing definition.
-3. The repository inserts missing `(assetId, fieldId)` assignments.
+3. `AssetCustomFieldRepository` replaces the asset assignment set.
 4. The API returns the effective values for the assigned fields.
 
 Assignment is idempotent. Sending an already assigned field ID does not create a
@@ -220,6 +220,7 @@ JSON value.
 Assignment validation includes:
 
 - The target asset must exist.
+- Assigned field IDs must not contain duplicates.
 - Each assigned or detached field ID must reference an existing custom field
   definition.
 
@@ -256,10 +257,12 @@ errors.
 - Missing field definitions return not-found responses for definition routes
   and bad-request responses when referenced by asset value or assignment
   updates.
+- Duplicate assignment IDs and assignment replacement failures use
+  `asset_custom_field.*` application error codes.
 - Writing or clearing values for fields that are not assigned to the asset
   returns a bad-request response.
 - Unexpected repository or database failures return internal server errors.
-  Registry and asset-specific custom field read failures use
+  Registry and asset-specific custom field read failures also use
   `asset_custom_field.*` application error codes.
 
 Route handlers keep response envelopes consistent by using the shared reply

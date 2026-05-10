@@ -87,9 +87,7 @@ describe("service factories", () => {
       updateOwnerByID: vi.fn(),
       deleteByID: vi.fn(),
       countFindingsByAssetID: vi.fn(),
-      listCustomFieldDefinitions: vi.fn(),
-      replaceCustomFieldValues: vi.fn(),
-      replaceCustomFieldAssociations: vi.fn()
+      replaceCustomFieldValues: vi.fn()
     }
     const service = createAssetService({
       assetRepository: repository,

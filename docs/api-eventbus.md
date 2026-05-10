@@ -216,8 +216,10 @@ The API currently emits these event families:
 - User profiles: created, updated, and deleted.
 - Assets: created, updated, and deleted, using `AssetWithCustomFields` so asset
   custom field assignments and values are included in asset lifecycle events.
-  The core asset service emits these events, while effective custom field value
-  hydration is delegated to the asset custom field service.
+  The core asset service emits core asset lifecycle events. Asset custom field
+  assignment changes are emitted by the asset custom field service with the
+  `asset` source, while effective custom field value hydration is delegated to
+  the asset custom field service.
 - Custom fields: registry-level asset custom field definitions created,
   updated, and deleted. These events use the `custom-field.*` subjects and the
   `asset-custom-field` source.
