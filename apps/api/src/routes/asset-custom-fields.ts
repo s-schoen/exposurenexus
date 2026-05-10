@@ -3,7 +3,6 @@ import { HTTPException } from "hono/http-exception"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
 import {
-  type AssetCustomFieldDefinition,
   type AssetCustomFieldRuleViolation,
   AssetCustomFieldRuleViolationReason,
   createAssetCustomFieldDefinitionSchema
@@ -11,28 +10,8 @@ import {
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
-import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 import { requestEventContext } from "../lib/request-event-context.js"
-
-export interface AssetCustomFieldRouteService {
-  listCustomFieldDefinitions(): Promise<AssetCustomFieldDefinition[]>
-  getCustomFieldDefinitionByID(
-    id: string
-  ): Promise<AssetCustomFieldDefinition | null>
-  createCustomFieldDefinition(options: {
-    definition: typeof createAssetCustomFieldDefinitionSchema._output
-    eventContext?: DomainEventContext
-  }): Promise<AssetCustomFieldDefinition>
-  updateCustomFieldDefinitionByID(options: {
-    id: string
-    definition: typeof createAssetCustomFieldDefinitionSchema._output
-    eventContext?: DomainEventContext
-  }): Promise<AssetCustomFieldDefinition | null>
-  deleteCustomFieldDefinitionByID(options: {
-    id: string
-    eventContext?: DomainEventContext
-  }): Promise<AssetCustomFieldDefinition | null>
-}
+import type { AssetService } from "../service/asset.js"
 
 interface AssetCustomFieldRouteDependencies {
   requireDomainPermission: RequireDomainPermission
@@ -86,7 +65,7 @@ function replyCustomFieldRuleValidationError(
 }
 
 export function createAssetCustomFieldRoute(
-  assetService: AssetCustomFieldRouteService,
+  assetService: AssetService,
   { requireDomainPermission }: AssetCustomFieldRouteDependencies
 ) {
   const customField = new Hono<{ Variables: ContextVariables }>()
@@ -125,10 +104,10 @@ export function createAssetCustomFieldRoute(
     async (c) => {
       const body = c.req.valid("json")
       try {
-        const definition = await assetService.createCustomFieldDefinition({
-          definition: body,
-          eventContext: requestEventContext(c)
-        })
+        const definition = await assetService.createCustomFieldDefinition(
+          body,
+          requestEventContext(c)
+        )
         return replyObject(c, definition, true)
       } catch (error) {
         if (isAssetCustomFieldRuleValidationError(error)) {
@@ -177,10 +156,10 @@ export function createAssetCustomFieldRoute(
     async (c) => {
       const params = c.req.valid("param")
 
-      const definition = await assetService.deleteCustomFieldDefinitionByID({
-        id: params.fieldId,
-        eventContext: requestEventContext(c)
-      })
+      const definition = await assetService.deleteCustomFieldDefinitionByID(
+        params.fieldId,
+        requestEventContext(c)
+      )
       if (!definition) {
         notFound("asset custom field", params.fieldId)
       }

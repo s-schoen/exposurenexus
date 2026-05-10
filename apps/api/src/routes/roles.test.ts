@@ -36,6 +36,9 @@ describe("role routes", () => {
   const roleService = {
     listAll: vi.fn(),
     getByID: vi.fn(),
+    getByNames: vi.fn(),
+    resolveRoleIdsFromNames: vi.fn(),
+    requireRoleNamesFromIds: vi.fn(),
     create: vi.fn(),
     updateByID: vi.fn(),
     deleteByID: vi.fn()
@@ -162,12 +165,9 @@ describe("role routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(201)
-    expect(roleService.create).toHaveBeenCalledWith({
-      role: payload,
-      eventContext: {
-        actor: authenticatedUser.id,
-        correlationId: requestId
-      }
+    expect(roleService.create).toHaveBeenCalledWith(payload, {
+      actor: authenticatedUser.id,
+      correlationId: requestId
     })
     expect(body).toEqual({
       correlationId: requestId,
@@ -240,12 +240,9 @@ describe("role routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(409)
-    expect(roleService.create).toHaveBeenCalledWith({
-      role: payload,
-      eventContext: {
-        actor: authenticatedUser.id,
-        correlationId: requestId
-      }
+    expect(roleService.create).toHaveBeenCalledWith(payload, {
+      actor: authenticatedUser.id,
+      correlationId: requestId
     })
     expect(body).toEqual({
       correlationId: requestId,
@@ -579,12 +576,9 @@ describe("role routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(roleService.deleteByID).toHaveBeenCalledWith({
-      id: listedRole.id,
-      eventContext: {
-        actor: authenticatedUser.id,
-        correlationId: requestId
-      }
+    expect(roleService.deleteByID).toHaveBeenCalledWith(listedRole.id, {
+      actor: authenticatedUser.id,
+      correlationId: requestId
     })
     expect(body).toEqual({
       correlationId: requestId,
@@ -640,12 +634,9 @@ describe("role routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(roleService.deleteByID).toHaveBeenCalledWith({
-      id: listedRole.id,
-      eventContext: {
-        actor: authenticatedUser.id,
-        correlationId: requestId
-      }
+    expect(roleService.deleteByID).toHaveBeenCalledWith(listedRole.id, {
+      actor: authenticatedUser.id,
+      correlationId: requestId
     })
     expect(body).toEqual({
       correlationId: requestId,

@@ -76,6 +76,7 @@ export interface CreateFindingOptions {
   finding: CreateFinding
   user: UserProfile
   firstSeen?: Date
+  fingerprintOptions?: Record<string, string>
   eventContext?: DomainEventContext
 }
 
@@ -83,11 +84,6 @@ export interface UpdateFindingOptions {
   id: string
   finding: UpdateFinding
   user: UserProfile
-  eventContext?: DomainEventContext
-}
-
-export interface DeleteFindingOptions {
-  id: string
   eventContext?: DomainEventContext
 }
 
@@ -102,6 +98,21 @@ export interface CreateOrUpdateFindingResult {
   created: boolean
 }
 
+export interface FindingService {
+  listAll(): Promise<Finding[]>
+  getByID(id: string): Promise<Finding | null>
+  create(opts: CreateFindingOptions): Promise<Finding>
+  updateByID(opts: UpdateFindingOptions): Promise<Finding | null>
+  createOrUpdate(
+    opts: CreateFindingOptions
+  ): Promise<CreateOrUpdateFindingResult>
+  deleteByID(
+    id: string,
+    eventContext?: DomainEventContext
+  ): Promise<Finding | null>
+  reclassify(opts: ReclassifyFindingsOptions): Promise<ReclassifyFindingsResult>
+}
+
 export function createFindingService({
   findingRepository,
   assetService,
@@ -109,7 +120,7 @@ export function createFindingService({
   vulnerabilityService,
   domainEventEmitter,
   logger
-}: FindingServiceDependencies) {
+}: FindingServiceDependencies): FindingService {
   type FindingEventSubject = keyof FindingEventPayloads & string
   const emitFindingEvent = createDomainEventEmitter<FindingEventSubject>(
     domainEventEmitter,
@@ -165,10 +176,7 @@ export function createFindingService({
     return vulnerability
   }
 
-  async function createFinding(
-    opts: CreateFindingOptions,
-    fingerprintOpt?: Record<string, string>
-  ): Promise<Finding> {
+  async function createFinding(opts: CreateFindingOptions): Promise<Finding> {
     try {
       const now = new Date()
       const assigneeId = opts.finding.assigneeId ?? null
@@ -188,7 +196,7 @@ export function createFindingService({
         fingerprint: calculateFingerprint(
           opts.finding.assetId,
           opts.finding.vulnerabilityId,
-          fingerprintOpt
+          opts.fingerprintOptions
         )
       })
 
@@ -257,14 +265,11 @@ export function createFindingService({
       }
     },
 
-    async create(
-      opts: CreateFindingOptions,
-      fingerprintOpt?: Record<string, string>
-    ): Promise<Finding> {
-      return await createFinding(opts, fingerprintOpt)
+    async create(opts: CreateFindingOptions): Promise<Finding> {
+      return await createFinding(opts)
     },
 
-    async update(opts: UpdateFindingOptions): Promise<Finding | null> {
+    async updateByID(opts: UpdateFindingOptions): Promise<Finding | null> {
       try {
         const finding = await findingRepository.getByID(opts.id)
 
@@ -335,13 +340,12 @@ export function createFindingService({
     },
 
     async createOrUpdate(
-      opts: CreateFindingOptions,
-      fingerprintOpt?: Record<string, string>
+      opts: CreateFindingOptions
     ): Promise<CreateOrUpdateFindingResult> {
       const fingerprint = calculateFingerprint(
         opts.finding.assetId,
         opts.finding.vulnerabilityId,
-        fingerprintOpt
+        opts.fingerprintOptions
       )
 
       const finding = await findingRepository.getByFingerprint(fingerprint)
@@ -375,17 +379,20 @@ export function createFindingService({
       }
 
       return {
-        finding: await createFinding(opts, fingerprintOpt),
+        finding: await createFinding(opts),
         created: true
       }
     },
 
-    async deleteByID(opts: DeleteFindingOptions): Promise<Finding | null> {
+    async deleteByID(
+      id: string,
+      eventContext: DomainEventContext = {}
+    ): Promise<Finding | null> {
       try {
-        const finding = await findingRepository.deleteByID(opts.id)
+        const finding = await findingRepository.deleteByID(id)
 
         if (!finding) {
-          logger.debug(`cannot delete finding ${opts.id}: not found`)
+          logger.debug(`cannot delete finding ${id}: not found`)
           return null
         }
 
@@ -393,11 +400,11 @@ export function createFindingService({
         emitFindingEvent(
           "finding.deleted",
           { finding: deletedFinding },
-          opts.eventContext
+          eventContext
         )
         return deletedFinding
       } catch (error) {
-        logger.error(error, `failed to get finding with id ${opts.id}`)
+        logger.error(error, `failed to get finding with id ${id}`)
         throw new HTTPException(500, {
           message: "failed to get finding"
         })

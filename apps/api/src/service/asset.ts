@@ -105,35 +105,15 @@ interface AssetServiceDependencies {
   logger: Logger
 }
 
-export interface CreateAssetOptions {
-  asset: CreateAsset
-  eventContext?: DomainEventContext
-}
-
 export interface UpdateAssetOwnerOptions {
   id: string
   ownerId: Asset["ownerId"]
   eventContext?: DomainEventContext
 }
 
-export interface DeleteAssetOptions {
-  id: string
-  eventContext?: DomainEventContext
-}
-
-export interface CreateAssetCustomFieldDefinitionOptions {
-  definition: CreateAssetCustomFieldDefinition
-  eventContext?: DomainEventContext
-}
-
 export interface UpdateAssetCustomFieldDefinitionOptions {
   id: string
   definition: CreateAssetCustomFieldDefinition
-  eventContext?: DomainEventContext
-}
-
-export interface DeleteAssetCustomFieldDefinitionOptions {
-  id: string
   eventContext?: DomainEventContext
 }
 
@@ -161,12 +141,58 @@ export interface DetachAssetCustomFieldOptions {
   eventContext?: DomainEventContext
 }
 
+export interface AssetService {
+  listAll(): Promise<Asset[]>
+  listAllWithCustomFields(): Promise<AssetWithCustomFields[]>
+  getByID(id: string): Promise<Asset | null>
+  getByName(name: string, type?: AssetType): Promise<Asset | null>
+  create(asset: CreateAsset, eventContext?: DomainEventContext): Promise<Asset>
+  updateOwnerByID(opts: UpdateAssetOwnerOptions): Promise<Asset | null>
+  deleteByID(
+    id: string,
+    eventContext?: DomainEventContext
+  ): Promise<Asset | null>
+  listCustomFieldDefinitions(): Promise<AssetCustomFieldDefinition[]>
+  getCustomFieldDefinitionByID(
+    id: string
+  ): Promise<AssetCustomFieldDefinition | null>
+  createCustomFieldDefinition(
+    definition: CreateAssetCustomFieldDefinition,
+    eventContext?: DomainEventContext
+  ): Promise<AssetCustomFieldDefinition>
+  updateCustomFieldDefinitionByID(
+    opts: UpdateAssetCustomFieldDefinitionOptions
+  ): Promise<AssetCustomFieldDefinition | null>
+  deleteCustomFieldDefinitionByID(
+    id: string,
+    eventContext?: DomainEventContext
+  ): Promise<AssetCustomFieldDefinition | null>
+  listCustomFieldValues(
+    assetId: string
+  ): Promise<AssetCustomFieldValue[] | null>
+  listAvailableCustomFieldDefinitions(
+    assetId: string
+  ): Promise<AssetCustomFieldDefinition[] | null>
+  upsertCustomFieldValues(
+    opts: UpsertAssetCustomFieldValuesOptions
+  ): Promise<AssetCustomFieldValue[] | null>
+  clearCustomFieldValue(
+    opts: ClearAssetCustomFieldValueOptions
+  ): Promise<boolean | null>
+  assignCustomFields(
+    opts: AssignAssetCustomFieldsOptions
+  ): Promise<AssetCustomFieldValue[] | null>
+  detachCustomField(
+    opts: DetachAssetCustomFieldOptions
+  ): Promise<boolean | null>
+}
+
 export function createAssetService({
   assetRepository,
   userProfileService,
   domainEventEmitter,
   logger
-}: AssetServiceDependencies) {
+}: AssetServiceDependencies): AssetService {
   type AssetEventSubject = keyof AssetEventPayloads & string
   type CustomFieldEventSubject = keyof CustomFieldEventPayloads & string
   const emitAssetEvent = createDomainEventEmitter<AssetEventSubject>(
@@ -253,9 +279,10 @@ export function createAssetService({
       }
     },
 
-    async create(opts: CreateAssetOptions): Promise<Asset> {
-      const { asset, eventContext } = opts
-
+    async create(
+      asset: CreateAsset,
+      eventContext?: DomainEventContext
+    ): Promise<Asset> {
       try {
         if (asset.ownerId) {
           const owner = await userProfileService.getByID(asset.ownerId)
@@ -335,9 +362,10 @@ export function createAssetService({
       }
     },
 
-    async deleteByID(opts: DeleteAssetOptions): Promise<Asset | null> {
-      const { id, eventContext } = opts
-
+    async deleteByID(
+      id: string,
+      eventContext?: DomainEventContext
+    ): Promise<Asset | null> {
       try {
         const deletedSnapshot = await getAssetSnapshot(id)
         if (!deletedSnapshot) {
@@ -412,9 +440,9 @@ export function createAssetService({
     },
 
     async createCustomFieldDefinition(
-      opts: CreateAssetCustomFieldDefinitionOptions
+      definition: CreateAssetCustomFieldDefinition,
+      eventContext?: DomainEventContext
     ): Promise<AssetCustomFieldDefinition> {
-      const { definition, eventContext } = opts
       validateCustomFieldDefinition(definition)
 
       try {
@@ -489,9 +517,9 @@ export function createAssetService({
     },
 
     async deleteCustomFieldDefinitionByID(
-      opts: DeleteAssetCustomFieldDefinitionOptions
+      id: string,
+      eventContext?: DomainEventContext
     ): Promise<AssetCustomFieldDefinition | null> {
-      const { id, eventContext } = opts
       try {
         const deleted =
           await assetRepository.deleteCustomFieldDefinitionByID(id)

@@ -17,10 +17,18 @@ interface FindingImporterDependencies {
   logger: Logger
 }
 
+export interface FindingImporter {
+  parseFindingsFromFile(
+    ctx: ImportContext,
+    type: string,
+    file: Buffer
+  ): Promise<Array<Finding>>
+}
+
 export function createFindingImporter({
   nucleiParser,
   logger
-}: FindingImporterDependencies) {
+}: FindingImporterDependencies): FindingImporter {
   return {
     async parseFindingsFromFile(
       ctx: ImportContext,

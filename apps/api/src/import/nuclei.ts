@@ -1,5 +1,4 @@
 import {
-  type CreateFinding,
   type Finding,
   FindingSource,
   FindingStatus
@@ -12,11 +11,8 @@ import {
   type Vulnerability,
   VulnerabilitySeverity
 } from "@exposurenexus/types/model/vulnerability"
-import type { CreateOrUpdateFindingResult } from "../service/finding.js"
-import type {
-  CreateVulnerabilityMappingOptions,
-  CreateVulnerabilityOptions
-} from "../service/vulnerability.js"
+import type { FindingService } from "../service/finding.js"
+import type { VulnerabilityService } from "../service/vulnerability.js"
 import type { Logger } from "pino"
 
 const nucleiFindingSchema = z
@@ -68,29 +64,12 @@ const nucleiFindingSchema = z
 
 type NucleiFinding = z.infer<typeof nucleiFindingSchema>
 
-interface NucleiVulnerabilityService {
-  listMappings(source?: string): Promise<
-    Array<{
-      vulnerabilityId: string
-      matchQuery: string
-    }>
-  >
-  getByID(id: string): Promise<Vulnerability | null>
-  create(options: CreateVulnerabilityOptions): Promise<Vulnerability>
-  createMapping(options: CreateVulnerabilityMappingOptions): Promise<unknown>
-}
+type NucleiVulnerabilityService = Pick<
+  VulnerabilityService,
+  "listMappings" | "getByID" | "create" | "createMapping"
+>
 
-interface NucleiFindingService {
-  createOrUpdate(
-    options: {
-      user: ImportContext["user"]
-      finding: CreateFinding
-      firstSeen: Date
-      eventContext?: ImportContext["eventContext"]
-    },
-    fingerprintOpt?: Record<string, string>
-  ): Promise<CreateOrUpdateFindingResult>
-}
+type NucleiFindingService = Pick<FindingService, "createOrUpdate">
 
 interface NucleiFindingParserDependencies {
   vulnerabilityService: NucleiVulnerabilityService
@@ -207,25 +186,23 @@ export function createNucleiFindingParser({
             path: nucleiFinding.path || ""
           }
 
-          const { finding, created } = await findingService.createOrUpdate(
-            {
-              user: ctx.user,
-              finding: {
-                source: FindingSource.Nuclei,
-                status: FindingStatus.Active,
-                vulnerabilityId: vulnerability.id,
-                assetId: asset.id,
-                severity: vulnerability.severity,
-                evidence: parseEvidence(nucleiFinding),
-                mitigation: nucleiFinding.info.remediation || "",
-                assigneeId: null,
-                dueDate: null
-              },
-              firstSeen: new Date(),
-              eventContext: ctx.eventContext
+          const { finding, created } = await findingService.createOrUpdate({
+            user: ctx.user,
+            finding: {
+              source: FindingSource.Nuclei,
+              status: FindingStatus.Active,
+              vulnerabilityId: vulnerability.id,
+              assetId: asset.id,
+              severity: vulnerability.severity,
+              evidence: parseEvidence(nucleiFinding),
+              mitigation: nucleiFinding.info.remediation || "",
+              assigneeId: null,
+              dueDate: null
             },
-            fingerprintInfo
-          )
+            firstSeen: new Date(),
+            fingerprintOptions: fingerprintInfo,
+            eventContext: ctx.eventContext
+          })
           createdFindings.push(finding)
           logger.info(
             `${created ? "created" : "updated"} finding ${finding.id} for ${host}`

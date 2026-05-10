@@ -2,31 +2,14 @@ import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import {
   createUserProfileSchema,
-  updateUserProfileSchema,
-  type CreateUserProfile,
-  type UpdateUserProfile,
-  type UserProfile
+  updateUserProfileSchema
 } from "@exposurenexus/types/model/user"
 import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
 import type { ContextVariables } from "../lib/hono-schema.js"
-import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 import { requestEventContext } from "../lib/request-event-context.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
-
-interface UserRouteService {
-  listAll(): Promise<UserProfile[]>
-  getByID(id: string): Promise<UserProfile | null>
-  create(
-    user: CreateUserProfile,
-    eventContext?: DomainEventContext
-  ): Promise<UserProfile>
-  updateByID(
-    id: string,
-    user: UpdateUserProfile,
-    eventContext?: DomainEventContext
-  ): Promise<UserProfile | null>
-}
+import type { UserProfileService } from "../service/user-profile.js"
 
 interface UserRouteDependencies {
   requireDomainPermission: RequireDomainPermission
@@ -35,7 +18,7 @@ interface UserRouteDependencies {
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
 
 export function createUserRoute(
-  userService: UserRouteService,
+  userService: UserProfileService,
   { requireDomainPermission }: UserRouteDependencies
 ) {
   const user = new Hono<{ Variables: ContextVariables }>()
@@ -81,11 +64,11 @@ export function createUserRoute(
       const params = c.req.valid("param")
       const body = c.req.valid("json")
 
-      const updatedUser = await userService.updateByID(
-        params.id,
-        body,
-        requestEventContext(c)
-      )
+      const updatedUser = await userService.updateByID({
+        id: params.id,
+        userProfile: body,
+        eventContext: requestEventContext(c)
+      })
       if (!updatedUser) {
         notFound("user", params.id)
       }

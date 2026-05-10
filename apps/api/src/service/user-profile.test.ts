@@ -332,18 +332,18 @@ describe("user profile service", () => {
     })
 
     await expect(
-      service.updateByID(
-        firstProfile.id,
-        {
+      service.updateByID({
+        id: firstProfile.id,
+        userProfile: {
           displayName: "Alice Updated",
           enabled: false,
           roleIds: [builtInRoleIds.admin]
         },
-        {
+        eventContext: {
           actor: "admin-user",
           correlationId: "users-update-request"
         }
-      )
+      })
     ).resolves.toEqual(expectedUpdatedUserProfile)
     expect(hashPlaintextPasswordMock).not.toHaveBeenCalled()
     expect(userProfileRepository.updateByID).toHaveBeenCalledWith({
@@ -388,9 +388,12 @@ describe("user profile service", () => {
     })
 
     await expect(
-      service.updateByID(firstProfile.id, {
-        password: "new-correct-horse-battery-staple",
-        roleIds: []
+      service.updateByID({
+        id: firstProfile.id,
+        userProfile: {
+          password: "new-correct-horse-battery-staple",
+          roleIds: []
+        }
       })
     ).resolves.toEqual({
       id: firstProfile.id,
@@ -431,9 +434,12 @@ describe("user profile service", () => {
     })
 
     await expect(
-      service.updateByID(firstProfile.id, {
-        enabled: false,
-        roleIds: firstProfile.roleIds
+      service.updateByID({
+        id: firstProfile.id,
+        userProfile: {
+          enabled: false,
+          roleIds: firstProfile.roleIds
+        }
       })
     ).resolves.toEqual({
       id: firstProfile.id,
@@ -471,9 +477,12 @@ describe("user profile service", () => {
     })
 
     await expect(
-      service.updateByID(firstProfile.id, {
-        displayName: "Alice Updated",
-        roleIds: [...firstProfile.roleIds].reverse()
+      service.updateByID({
+        id: firstProfile.id,
+        userProfile: {
+          displayName: "Alice Updated",
+          roleIds: [...firstProfile.roleIds].reverse()
+        }
       })
     ).resolves.toEqual({
       id: firstProfile.id,
@@ -504,9 +513,12 @@ describe("user profile service", () => {
     userProfileRepository.getByID.mockResolvedValue(null)
 
     await expect(
-      service.updateByID(userProfileId, {
-        displayName: "Missing User",
-        roleIds: []
+      service.updateByID({
+        id: userProfileId,
+        userProfile: {
+          displayName: "Missing User",
+          roleIds: []
+        }
       })
     ).resolves.toBeNull()
     expect(userProfileRepository.updateByID).not.toHaveBeenCalled()
@@ -520,9 +532,12 @@ describe("user profile service", () => {
     userProfileRepository.updateByID.mockResolvedValue(null)
 
     await expect(
-      service.updateByID(firstProfile.id, {
-        displayName: "Alice Updated",
-        roleIds: firstProfile.roleIds
+      service.updateByID({
+        id: firstProfile.id,
+        userProfile: {
+          displayName: "Alice Updated",
+          roleIds: firstProfile.roleIds
+        }
       })
     ).resolves.toBeNull()
     expect(domainEvents.subjects()).toEqual([])
@@ -537,9 +552,12 @@ describe("user profile service", () => {
     )
 
     await expect(
-      service.updateByID(firstProfile.id, {
-        email: secondProfile.email,
-        roleIds: secondProfile.roleIds
+      service.updateByID({
+        id: firstProfile.id,
+        userProfile: {
+          email: secondProfile.email,
+          roleIds: secondProfile.roleIds
+        }
       })
     ).rejects.toMatchObject({
       status: 409,
@@ -558,8 +576,11 @@ describe("user profile service", () => {
     )
 
     await expect(
-      service.updateByID(firstProfile.id, {
-        roleIds: ["9d9e119a-9c9a-41b0-b2fe-c40a05c45be7"]
+      service.updateByID({
+        id: firstProfile.id,
+        userProfile: {
+          roleIds: ["9d9e119a-9c9a-41b0-b2fe-c40a05c45be7"]
+        }
       })
     ).rejects.toMatchObject({
       status: 400,
@@ -574,9 +595,12 @@ describe("user profile service", () => {
     userProfileRepository.updateByID.mockRejectedValue(new Error("db offline"))
 
     await expect(
-      service.updateByID(firstProfile.id, {
-        displayName: "Alice Updated",
-        roleIds: firstProfile.roleIds
+      service.updateByID({
+        id: firstProfile.id,
+        userProfile: {
+          displayName: "Alice Updated",
+          roleIds: firstProfile.roleIds
+        }
       })
     ).rejects.toMatchObject({
       status: 500,

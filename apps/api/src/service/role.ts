@@ -41,21 +41,25 @@ export interface UpdateRoleOptions {
   eventContext?: DomainEventContext
 }
 
-export interface CreateRoleOptions {
-  role: CreateRole
-  eventContext?: DomainEventContext
-}
-
-export interface DeleteRoleOptions {
-  id: string
-  eventContext?: DomainEventContext
+export interface RoleService {
+  listAll(): Promise<Role[]>
+  getByID(id: string): Promise<Role | null>
+  getByNames(names: readonly string[]): Promise<Role[]>
+  resolveRoleIdsFromNames(names: readonly string[]): Promise<string[]>
+  requireRoleNamesFromIds(ids: readonly string[]): Promise<string[]>
+  create(role: CreateRole, eventContext?: DomainEventContext): Promise<Role>
+  updateByID(opts: UpdateRoleOptions): Promise<Role | null>
+  deleteByID(
+    id: string,
+    eventContext?: DomainEventContext
+  ): Promise<Role | null>
 }
 
 export function createRoleService({
   roleRepository,
   domainEventEmitter,
   logger
-}: RoleServiceDependencies) {
+}: RoleServiceDependencies): RoleService {
   type RoleEventSubject = keyof RoleEventPayloads & string
   const emitRoleEvent = createDomainEventEmitter<RoleEventSubject>(
     domainEventEmitter,
@@ -144,11 +148,14 @@ export function createRoleService({
       }
     },
 
-    async create(opts: CreateRoleOptions): Promise<Role> {
+    async create(
+      roleInput: CreateRole,
+      eventContext?: DomainEventContext
+    ): Promise<Role> {
       try {
-        const role = await roleRepository.create(opts.role)
+        const role = await roleRepository.create(roleInput)
 
-        emitRoleEvent("role.created", { role }, opts.eventContext)
+        emitRoleEvent("role.created", { role }, eventContext)
         return role
       } catch (error) {
         if (isConflictError(error)) {
@@ -225,9 +232,10 @@ export function createRoleService({
       }
     },
 
-    async deleteByID(opts: DeleteRoleOptions): Promise<Role | null> {
-      const { id, eventContext } = opts
-
+    async deleteByID(
+      id: string,
+      eventContext?: DomainEventContext
+    ): Promise<Role | null> {
       if (isProtectedRoleId(id)) {
         throw new HTTPException(403, {
           message: "built-in roles cannot be modified"

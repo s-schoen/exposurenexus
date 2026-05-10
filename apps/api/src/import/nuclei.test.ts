@@ -134,28 +134,26 @@ describe("nuclei importer", () => {
       "api.exposurenexus.local",
       ctx.eventContext
     )
-    expect(findingService.createOrUpdate).toHaveBeenCalledWith(
-      {
-        user,
-        finding: {
-          source: FindingSource.Nuclei,
-          status: FindingStatus.Active,
-          vulnerabilityId: vulnerability.id,
-          assetId: asset.id,
-          severity: vulnerability.severity,
-          evidence: expect.stringContaining("GET /admin HTTP/1.1"),
-          mitigation: "Restrict access to internal networks",
-          assigneeId: null,
-          dueDate: null
-        },
-        firstSeen: expect.any(Date),
-        eventContext: ctx.eventContext
+    expect(findingService.createOrUpdate).toHaveBeenCalledWith({
+      user,
+      finding: {
+        source: FindingSource.Nuclei,
+        status: FindingStatus.Active,
+        vulnerabilityId: vulnerability.id,
+        assetId: asset.id,
+        severity: vulnerability.severity,
+        evidence: expect.stringContaining("GET /admin HTTP/1.1"),
+        mitigation: "Restrict access to internal networks",
+        assigneeId: null,
+        dueDate: null
       },
-      {
+      firstSeen: expect.any(Date),
+      eventContext: ctx.eventContext,
+      fingerprintOptions: {
         port: "443",
         path: "/admin"
       }
-    )
+    })
   })
 
   it("creates vulnerabilities and mappings when no mapping exists", async () => {
@@ -318,12 +316,12 @@ describe("nuclei importer", () => {
           evidence: "",
           assigneeId: null,
           dueDate: null
-        })
-      }),
-      {
-        port: "443",
-        path: "/admin"
-      }
+        }),
+        fingerprintOptions: {
+          port: "443",
+          path: "/admin"
+        }
+      })
     )
   })
 })

@@ -5,41 +5,13 @@ import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
 import {
   createFindingSchema,
-  reclassifyFindingsResultSchema,
   reclassifyFindingsSchema,
-  updateFindingSchema,
-  type Finding
+  updateFindingSchema
 } from "@exposurenexus/types/model/finding"
-import type { UserProfile } from "@exposurenexus/types/model/user"
 import type { ContextVariables } from "../lib/hono-schema.js"
-import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 import { requestEventContext } from "../lib/request-event-context.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
-
-interface FindingRouteService {
-  listAll(): Promise<Finding[]>
-  getByID(id: string): Promise<Finding | null>
-  create(options: {
-    finding: typeof createFindingSchema._output
-    user: UserProfile
-    eventContext?: DomainEventContext
-  }): Promise<Finding>
-  update(options: {
-    id: string
-    finding: typeof updateFindingSchema._output
-    user: UserProfile
-    eventContext?: DomainEventContext
-  }): Promise<Finding | null>
-  reclassify(options: {
-    reclassification: typeof reclassifyFindingsSchema._output
-    user: UserProfile
-    eventContext?: DomainEventContext
-  }): Promise<typeof reclassifyFindingsResultSchema._output>
-  deleteByID(options: {
-    id: string
-    eventContext?: DomainEventContext
-  }): Promise<Finding | null>
-}
+import type { FindingService } from "../service/finding.js"
 
 interface FindingRouteDependencies {
   requireDomainPermission: RequireDomainPermission
@@ -48,7 +20,7 @@ interface FindingRouteDependencies {
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
 
 export function createFindingRoute(
-  findingService: FindingRouteService,
+  findingService: FindingService,
   { requireDomainPermission }: FindingRouteDependencies
 ) {
   const finding = new Hono<{ Variables: ContextVariables }>()
@@ -132,7 +104,7 @@ export function createFindingRoute(
         throw new HTTPException(401, { message: "Unauthorized" })
       }
 
-      const updatedFinding = await findingService.update({
+      const updatedFinding = await findingService.updateByID({
         id: params.id,
         finding: body,
         user,
@@ -159,10 +131,10 @@ export function createFindingRoute(
         throw new HTTPException(401, { message: "Unauthorized" })
       }
 
-      const deleted = await findingService.deleteByID({
-        id: params.id,
-        eventContext: requestEventContext(c)
-      })
+      const deleted = await findingService.deleteByID(
+        params.id,
+        requestEventContext(c)
+      )
       if (!deleted) {
         notFound("finding", params.id)
       }

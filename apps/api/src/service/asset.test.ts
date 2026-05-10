@@ -237,9 +237,9 @@ describe("asset service", () => {
       customFields: []
     })
 
-    await expect(
-      assetService.create({ asset: payload, eventContext })
-    ).resolves.toEqual(createdAsset)
+    await expect(assetService.create(payload, eventContext)).resolves.toEqual(
+      createdAsset
+    )
     expect(userProfileService.getByID).not.toHaveBeenCalled()
     expect(assetRepository.create).toHaveBeenCalledWith({
       id: "",
@@ -288,9 +288,7 @@ describe("asset service", () => {
       customFields: []
     })
 
-    await expect(assetService.create({ asset: payload })).resolves.toEqual(
-      createdAsset
-    )
+    await expect(assetService.create(payload)).resolves.toEqual(createdAsset)
     expect(userProfileService.getByID).toHaveBeenCalledWith(ownerId)
     expect(assetRepository.create).toHaveBeenCalledWith({
       id: "",
@@ -325,9 +323,7 @@ describe("asset service", () => {
       customFields: []
     })
 
-    await expect(assetService.create({ asset: payload })).resolves.toEqual(
-      createdAsset
-    )
+    await expect(assetService.create(payload)).resolves.toEqual(createdAsset)
     expect(userProfileService.getByID).toHaveBeenCalledWith(ownerId)
     expect(assetRepository.create).toHaveBeenCalledWith({
       id: "",
@@ -343,11 +339,9 @@ describe("asset service", () => {
 
     await expect(
       assetService.create({
-        asset: {
-          name: "worker.exposurenexus.local",
-          type: AssetType.Host,
-          ownerId
-        }
+        name: "worker.exposurenexus.local",
+        type: AssetType.Host,
+        ownerId
       })
     ).rejects.toMatchObject({
       status: 400,
@@ -363,10 +357,8 @@ describe("asset service", () => {
 
     await expect(
       assetService.create({
-        asset: {
-          name: "worker.exposurenexus.local",
-          type: AssetType.Host
-        }
+        name: "worker.exposurenexus.local",
+        type: AssetType.Host
       })
     ).rejects.toMatchObject({
       status: 500,
@@ -570,7 +562,7 @@ describe("asset service", () => {
     assetRepository.deleteByID.mockResolvedValue(asset)
 
     await expect(
-      assetService.deleteByID({ id: asset.id, eventContext })
+      assetService.deleteByID(asset.id, eventContext)
     ).resolves.toEqual(asset)
     expect(assetRepository.countFindingsByAssetID).toHaveBeenCalledWith(
       asset.id
@@ -601,7 +593,7 @@ describe("asset service", () => {
 
     assetRepository.getByIDWithCustomFields.mockResolvedValue(null)
 
-    await expect(assetService.deleteByID({ id: assetId })).resolves.toBeNull()
+    await expect(assetService.deleteByID(assetId)).resolves.toBeNull()
     expect(assetRepository.countFindingsByAssetID).not.toHaveBeenCalled()
     expect(assetRepository.deleteByID).not.toHaveBeenCalled()
   })
@@ -619,11 +611,7 @@ describe("asset service", () => {
     assetRepository.getByIDWithCustomFields.mockResolvedValue(asset)
     assetRepository.countFindingsByAssetID.mockResolvedValue(2)
 
-    await expect(
-      assetService.deleteByID({
-        id: asset.id
-      })
-    ).rejects.toMatchObject({
+    await expect(assetService.deleteByID(asset.id)).rejects.toMatchObject({
       status: 409,
       message: `asset ${asset.id} is still referenced by findings`
     } satisfies Partial<HTTPException>)
@@ -651,11 +639,7 @@ describe("asset service", () => {
     assetRepository.getByIDWithCustomFields.mockResolvedValue(asset)
     assetRepository.deleteByID.mockRejectedValue(foreignKeyError)
 
-    await expect(
-      assetService.deleteByID({
-        id: asset.id
-      })
-    ).rejects.toMatchObject({
+    await expect(assetService.deleteByID(asset.id)).rejects.toMatchObject({
       status: 409,
       message: `asset ${asset.id} is still referenced by findings`
     } satisfies Partial<HTTPException>)
@@ -679,9 +663,7 @@ describe("asset service", () => {
     assetRepository.deleteByID.mockRejectedValue(new Error("delete failed"))
 
     await expect(
-      assetService.deleteByID({
-        id: "76b1885f-2d28-4b7d-93da-2751ff385aa3"
-      })
+      assetService.deleteByID("76b1885f-2d28-4b7d-93da-2751ff385aa3")
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to delete asset"
@@ -800,10 +782,7 @@ describe("asset service", () => {
     assetRepository.createCustomFieldDefinition.mockResolvedValue(created)
 
     await expect(
-      assetService.createCustomFieldDefinition({
-        definition: payload,
-        eventContext
-      })
+      assetService.createCustomFieldDefinition(payload, eventContext)
     ).resolves.toEqual(created)
     expect(assetRepository.createCustomFieldDefinition).toHaveBeenCalledWith(
       payload
@@ -823,13 +802,11 @@ describe("asset service", () => {
 
     await expect(
       assetService.createCustomFieldDefinition({
-        definition: {
-          key: "category",
-          name: "Category",
-          required: true,
-          type: AssetCustomFieldType.Text,
-          defaultValue: null
-        }
+        key: "category",
+        name: "Category",
+        required: true,
+        type: AssetCustomFieldType.Text,
+        defaultValue: null
       })
     ).rejects.toMatchObject({
       status: 400,
@@ -847,13 +824,11 @@ describe("asset service", () => {
 
     await expect(
       assetService.createCustomFieldDefinition({
-        definition: {
-          key: "priority",
-          name: "Priority",
-          required: false,
-          type: AssetCustomFieldType.Number,
-          defaultValue: "high" as never
-        }
+        key: "priority",
+        name: "Priority",
+        required: false,
+        type: AssetCustomFieldType.Number,
+        defaultValue: "high" as never
       })
     ).rejects.toMatchObject({
       status: 400,
@@ -866,13 +841,11 @@ describe("asset service", () => {
 
     await expect(
       assetService.createCustomFieldDefinition({
-        definition: {
-          key: "category",
-          name: "Category",
-          required: false,
-          type: AssetCustomFieldType.Text,
-          defaultValue: 5 as never
-        }
+        key: "category",
+        name: "Category",
+        required: false,
+        type: AssetCustomFieldType.Text,
+        defaultValue: 5 as never
       })
     ).rejects.toMatchObject({
       status: 400,
@@ -885,14 +858,12 @@ describe("asset service", () => {
 
     await expect(
       assetService.createCustomFieldDefinition({
-        definition: {
-          key: "environment",
-          name: "Environment",
-          required: false,
-          type: AssetCustomFieldType.Select,
-          defaultValue: 5 as never,
-          options: [{ value: "prod", label: "Production" }]
-        }
+        key: "environment",
+        name: "Environment",
+        required: false,
+        type: AssetCustomFieldType.Select,
+        defaultValue: 5 as never,
+        options: [{ value: "prod", label: "Production" }]
       })
     ).rejects.toMatchObject({
       status: 400,
@@ -905,14 +876,12 @@ describe("asset service", () => {
 
     await expect(
       assetService.createCustomFieldDefinition({
-        definition: {
-          key: "environment",
-          name: "Environment",
-          required: false,
-          type: AssetCustomFieldType.Select,
-          defaultValue: "dev",
-          options: [{ value: "prod", label: "Production" }]
-        }
+        key: "environment",
+        name: "Environment",
+        required: false,
+        type: AssetCustomFieldType.Select,
+        defaultValue: "dev",
+        options: [{ value: "prod", label: "Production" }]
       })
     ).rejects.toMatchObject({
       status: 400,
@@ -925,17 +894,15 @@ describe("asset service", () => {
 
     await expect(
       assetService.createCustomFieldDefinition({
-        definition: {
-          key: "environment",
-          name: "Environment",
-          required: false,
-          type: AssetCustomFieldType.Select,
-          defaultValue: null,
-          options: [
-            { value: "prod", label: "Production" },
-            { value: "prod", label: "Prod" }
-          ]
-        }
+        key: "environment",
+        name: "Environment",
+        required: false,
+        type: AssetCustomFieldType.Select,
+        defaultValue: null,
+        options: [
+          { value: "prod", label: "Production" },
+          { value: "prod", label: "Prod" }
+        ]
       })
     ).rejects.toMatchObject({
       status: 400,
@@ -957,13 +924,11 @@ describe("asset service", () => {
 
     await expect(
       assetService.createCustomFieldDefinition({
-        definition: {
-          key: "category",
-          name: "Category",
-          required: false,
-          type: AssetCustomFieldType.Text,
-          defaultValue: null
-        }
+        key: "category",
+        name: "Category",
+        required: false,
+        type: AssetCustomFieldType.Text,
+        defaultValue: null
       })
     ).rejects.toMatchObject({
       status: 409,
@@ -980,13 +945,11 @@ describe("asset service", () => {
 
     await expect(
       assetService.createCustomFieldDefinition({
-        definition: {
-          key: "category",
-          name: "Category",
-          required: false,
-          type: AssetCustomFieldType.Text,
-          defaultValue: null
-        }
+        key: "category",
+        name: "Category",
+        required: false,
+        type: AssetCustomFieldType.Text,
+        defaultValue: null
       })
     ).rejects.toMatchObject({
       status: 500,
@@ -1177,10 +1140,7 @@ describe("asset service", () => {
     )
 
     await expect(
-      assetService.deleteCustomFieldDefinitionByID({
-        id: definition.id,
-        eventContext
-      })
+      assetService.deleteCustomFieldDefinitionByID(definition.id, eventContext)
     ).resolves.toEqual(definition)
     expect(domainEvents.eventsFor("custom-field.deleted")).toMatchObject([
       {
@@ -1198,9 +1158,9 @@ describe("asset service", () => {
     assetRepository.deleteCustomFieldDefinitionByID.mockResolvedValue(null)
 
     await expect(
-      assetService.deleteCustomFieldDefinitionByID({
-        id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-      })
+      assetService.deleteCustomFieldDefinitionByID(
+        "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+      )
     ).resolves.toBeNull()
   })
 
@@ -1212,9 +1172,9 @@ describe("asset service", () => {
     )
 
     await expect(
-      assetService.deleteCustomFieldDefinitionByID({
-        id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-      })
+      assetService.deleteCustomFieldDefinitionByID(
+        "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+      )
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to delete asset custom field definition"

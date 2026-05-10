@@ -6,58 +6,13 @@ import {
   createVulnerabilitySourceMappingSchema,
   createVulnerabilitySchema,
   updateVulnerabilitySourceMappingSchema,
-  updateVulnerabilitySchema,
-  type CreateVulnerability,
-  type UpdateVulnerability,
-  type UpdateVulnerabilitySourceMapping,
-  type Vulnerability,
-  type VulnerabilitySourceMapping
+  updateVulnerabilitySchema
 } from "@exposurenexus/types/model/vulnerability"
-import type { UserProfile } from "@exposurenexus/types/model/user"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
-import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 import { requestEventContext } from "../lib/request-event-context.js"
 import { HTTPException } from "hono/http-exception"
-
-interface VulnerabilityRouteService {
-  listAll(): Promise<Vulnerability[]>
-  getByID(id: string): Promise<Vulnerability | null>
-  create(options: {
-    vulnerability: CreateVulnerability
-    user: UserProfile
-    eventContext?: DomainEventContext
-  }): Promise<Vulnerability>
-  updateByID(options: {
-    id: string
-    vulnerability: UpdateVulnerability
-    user: UserProfile
-    eventContext?: DomainEventContext
-  }): Promise<Vulnerability | null>
-  deleteByID(options: {
-    id: string
-    eventContext?: DomainEventContext
-  }): Promise<Vulnerability | null>
-  listMappings(source?: string): Promise<VulnerabilitySourceMapping[]>
-  listMappingsByVulnerabilityID(
-    vulnerabilityId: string
-  ): Promise<VulnerabilitySourceMapping[] | null>
-  createMapping(options: {
-    vulnerabilityId: string
-    source: string
-    matchQuery: string
-    eventContext?: DomainEventContext
-  }): Promise<VulnerabilitySourceMapping | null>
-  updateMappingByID(options: {
-    id: string
-    mapping: UpdateVulnerabilitySourceMapping
-    eventContext?: DomainEventContext
-  }): Promise<VulnerabilitySourceMapping | null>
-  deleteMappingByID(options: {
-    id: string
-    eventContext?: DomainEventContext
-  }): Promise<VulnerabilitySourceMapping | null>
-}
+import type { VulnerabilityService } from "../service/vulnerability.js"
 
 interface VulnerabilityRouteDependencies {
   requireDomainPermission: RequireDomainPermission
@@ -74,7 +29,7 @@ const mappingQueryValidator = zValidator(
 )
 
 export function createVulnerabilityRoute(
-  vulnerabilityService: VulnerabilityRouteService,
+  vulnerabilityService: VulnerabilityService,
   { requireDomainPermission }: VulnerabilityRouteDependencies
 ) {
   const vulnerability = new Hono<{ Variables: ContextVariables }>()
@@ -149,10 +104,10 @@ export function createVulnerabilityRoute(
     mappingIdParamValidator,
     async (c) => {
       const params = c.req.valid("param")
-      const mapping = await vulnerabilityService.deleteMappingByID({
-        id: params.mappingId,
-        eventContext: requestEventContext(c)
-      })
+      const mapping = await vulnerabilityService.deleteMappingByID(
+        params.mappingId,
+        requestEventContext(c)
+      )
       if (!mapping) {
         notFound("vulnerability source mapping", params.mappingId)
       }
@@ -251,10 +206,10 @@ export function createVulnerabilityRoute(
     async (c) => {
       const params = c.req.valid("param")
 
-      const deletedVulnerability = await vulnerabilityService.deleteByID({
-        id: params.id,
-        eventContext: requestEventContext(c)
-      })
+      const deletedVulnerability = await vulnerabilityService.deleteByID(
+        params.id,
+        requestEventContext(c)
+      )
       if (!deletedVulnerability) {
         notFound("vulnerability", params.id)
       }
