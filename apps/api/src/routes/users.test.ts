@@ -12,6 +12,7 @@ import {
 } from "../test/app.js"
 import { createRequireDomainPermission } from "../middleware/auth.js"
 import { createUserRoute } from "./users.js"
+import { ApplicationError } from "../service/application-error.js"
 
 describe("user routes", () => {
   const authenticatedUser = createTestUser()
@@ -278,6 +279,51 @@ describe("user routes", () => {
 
     expect(response.status).toBe(400)
     expect(userService.create).not.toHaveBeenCalled()
+  })
+
+  it("returns validation errors from user profile service without public reasons", async () => {
+    const requestId = "users-create-invalid-role-assignment-request"
+    const payload = {
+      username: "alice",
+      displayName: "Alice Example",
+      email: "alice@example.com",
+      enabled: true,
+      roleIds: ["9d9e119a-9c9a-41b0-b2fe-c40a05c45be7"],
+      password: "correct-horse-battery-staple"
+    }
+
+    userService.create.mockRejectedValue(
+      new ApplicationError({
+        code: "user_profile.role_assignment_invalid",
+        kind: "validation",
+        message: "invalid user role assignment",
+        details: { roleIds: payload.roleIds }
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(authenticatedUser),
+      requireAuth: requireAuthenticatedUser,
+      userRoute: createUserRoute(userService, routeDependencies)
+    })
+
+    const response = await app.request("/api/users", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(payload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body).toMatchObject({
+      correlationId: requestId,
+      status: 400,
+      error: expect.any(String)
+    })
+    expect(body).not.toHaveProperty("reason")
   })
 
   it("updates a user by id", async () => {

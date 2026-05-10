@@ -12,12 +12,7 @@ import {
   type DomainEventEmitter,
   type UserEventPayloads
 } from "../lib/eventbus/events/index.js"
-import {
-  badRequest,
-  conflict,
-  internalServerError,
-  type ApiError
-} from "../lib/api-error.js"
+import { ApplicationError } from "./application-error.js"
 import { isConflictError, isForeignKeyError } from "./errors.js"
 import type { UserProfileRepository } from "../repository/user-profile.js"
 
@@ -57,14 +52,6 @@ function toUserProfile(userProfile: UserProfileInternalWithRoles): UserProfile {
   }
 }
 
-function userProfileConflict(): ApiError {
-  return conflict("user profile already exists")
-}
-
-function invalidUserRoleAssignment(): ApiError {
-  return badRequest("invalid user role assignment")
-}
-
 function sameStringSet(
   left: readonly string[],
   right: readonly string[]
@@ -95,7 +82,12 @@ export function createUserProfileService({
         return (await userProfileRepository.list()).map(toUserProfile)
       } catch (error) {
         logger.error(error, "failed to list user profiles")
-        throw internalServerError("failed to list user profiles")
+        throw new ApplicationError({
+          code: "user_profile.list_failed",
+          kind: "unexpected",
+          message: "failed to list user profiles",
+          cause: error
+        })
       }
     },
 
@@ -110,7 +102,13 @@ export function createUserProfileService({
         return toUserProfile(userProfile)
       } catch (error) {
         logger.error(error, `failed to get user profile with id ${id}`)
-        throw internalServerError("failed to get user profile")
+        throw new ApplicationError({
+          code: "user_profile.get_failed",
+          kind: "unexpected",
+          message: "failed to get user profile",
+          cause: error,
+          details: { userProfileId: id }
+        })
       }
     },
 
@@ -128,7 +126,13 @@ export function createUserProfileService({
           error,
           `failed to get user profile with username ${username}`
         )
-        throw internalServerError("failed to get user profile")
+        throw new ApplicationError({
+          code: "user_profile.get_by_username_failed",
+          kind: "unexpected",
+          message: "failed to get user profile",
+          cause: error,
+          details: { username }
+        })
       }
     },
 
@@ -156,18 +160,42 @@ export function createUserProfileService({
       } catch (error) {
         if (isConflictError(error)) {
           logger.debug(error, "user profile create conflict")
-          throw userProfileConflict()
+          throw new ApplicationError({
+            code: "user_profile.create_conflict",
+            kind: "conflict",
+            message: "user profile already exists",
+            cause: error,
+            details: {
+              username: userProfile.username,
+              email: userProfile.email
+            }
+          })
         }
         if (isForeignKeyError(error)) {
           logger.debug(error, "user profile create role assignment invalid")
-          throw invalidUserRoleAssignment()
+          throw new ApplicationError({
+            code: "user_profile.role_assignment_invalid",
+            kind: "validation",
+            message: "invalid user role assignment",
+            cause: error,
+            details: { roleIds: userProfile.roleIds }
+          })
         }
 
         logger.error(
           error,
           `failed to create user profile ${userProfile.email}`
         )
-        throw internalServerError("failed to create user profile")
+        throw new ApplicationError({
+          code: "user_profile.create_failed",
+          kind: "unexpected",
+          message: "failed to create user profile",
+          cause: error,
+          details: {
+            username: userProfile.username,
+            email: userProfile.email
+          }
+        })
       }
     },
 
@@ -242,15 +270,36 @@ export function createUserProfileService({
       } catch (error) {
         if (isConflictError(error)) {
           logger.debug(error, "user profile update conflict")
-          throw userProfileConflict()
+          throw new ApplicationError({
+            code: "user_profile.update_conflict",
+            kind: "conflict",
+            message: "user profile already exists",
+            cause: error,
+            details: { userProfileId: id }
+          })
         }
         if (isForeignKeyError(error)) {
           logger.debug(error, "user profile update role assignment invalid")
-          throw invalidUserRoleAssignment()
+          throw new ApplicationError({
+            code: "user_profile.role_assignment_invalid",
+            kind: "validation",
+            message: "invalid user role assignment",
+            cause: error,
+            details: {
+              userProfileId: id,
+              roleIds: userProfile.roleIds
+            }
+          })
         }
 
         logger.error(error, `failed to update user profile with id ${id}`)
-        throw internalServerError("failed to update user profile")
+        throw new ApplicationError({
+          code: "user_profile.update_failed",
+          kind: "unexpected",
+          message: "failed to update user profile",
+          cause: error,
+          details: { userProfileId: id }
+        })
       }
     }
   }
