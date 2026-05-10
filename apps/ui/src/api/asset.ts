@@ -17,14 +17,6 @@ import {
   parseObjectReply
 } from "@/api/common.ts"
 
-interface ClearAssetCustomFieldValueResult {
-  cleared: boolean
-}
-
-interface DetachAssetCustomFieldResult {
-  detached: boolean
-}
-
 async function listAssets(): Promise<Array<Asset>> {
   const response = await apiRequest("/api/assets", {
     method: "GET"
@@ -139,7 +131,7 @@ export async function updateAssetCustomFieldValues(
   return parseArrayReply<AssetCustomFieldValue>(response)
 }
 
-export async function assignAssetCustomFields(
+export async function replaceAssetCustomFieldAssociations(
   assetId: string,
   fieldIds: UpdateAssetCustomFieldAssociations["fieldIds"]
 ): Promise<Array<AssetCustomFieldValue>> {
@@ -161,46 +153,6 @@ export async function assignAssetCustomFields(
   }
 
   return parseArrayReply<AssetCustomFieldValue>(response)
-}
-
-export async function clearAssetCustomFieldValue(
-  assetId: string,
-  fieldId: string
-): Promise<ClearAssetCustomFieldValueResult> {
-  const response = await apiRequest(
-    `/api/assets/${assetId}/custom-fields/${fieldId}`,
-    {
-      method: "DELETE"
-    }
-  )
-
-  if (!response.ok) {
-    const error = await parseErrorReply(response)
-    console.error(error)
-    throw error
-  }
-
-  return parseObjectReply<ClearAssetCustomFieldValueResult>(response)
-}
-
-export async function detachAssetCustomField(
-  assetId: string,
-  fieldId: string
-): Promise<DetachAssetCustomFieldResult> {
-  const response = await apiRequest(
-    `/api/assets/${assetId}/custom-fields/associations/${fieldId}`,
-    {
-      method: "DELETE"
-    }
-  )
-
-  if (!response.ok) {
-    const error = await parseErrorReply(response)
-    console.error(error)
-    throw error
-  }
-
-  return parseObjectReply<DetachAssetCustomFieldResult>(response)
 }
 
 export async function createAsset(

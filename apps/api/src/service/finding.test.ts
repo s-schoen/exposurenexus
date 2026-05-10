@@ -63,7 +63,9 @@ describe("finding service", () => {
     status: createPayload.status,
     source: createPayload.source,
     evidence: createPayload.evidence,
-    mitigation: createPayload.mitigation
+    mitigation: createPayload.mitigation,
+    assigneeId: null,
+    dueDate: null
   }
   const asset = {
     id: createPayload.assetId,
@@ -597,7 +599,7 @@ describe("finding service", () => {
     )
   })
 
-  it("preserves finding due dates when update payloads omit them", async () => {
+  it("clears finding due dates when update payloads send null", async () => {
     const service = createService()
     const datedFinding = {
       ...baseFinding,
@@ -605,6 +607,7 @@ describe("finding service", () => {
     }
     const updatedFinding = {
       ...datedFinding,
+      dueDate: null,
       status: FindingStatus.Mitigated
     }
 
@@ -624,7 +627,7 @@ describe("finding service", () => {
     expect(findingRepository.updateByID).toHaveBeenCalledWith(
       baseFinding.id,
       expect.objectContaining({
-        dueDate: datedFinding.dueDate,
+        dueDate: null,
         status: FindingStatus.Mitigated
       })
     )
@@ -784,41 +787,6 @@ describe("finding service", () => {
       baseFinding.id,
       expect.objectContaining({
         assigneeId: null
-      })
-    )
-  })
-
-  it("preserves existing assignee when updating finding status", async () => {
-    const service = createService()
-    const assignedFinding = {
-      ...baseFinding,
-      assigneeId
-    }
-    const updatePayload = {
-      ...updatePayloadBase,
-      status: FindingStatus.Confirmed
-    }
-    const updatedFinding = {
-      ...assignedFinding,
-      status: FindingStatus.Confirmed
-    }
-
-    findingRepository.getByID.mockResolvedValue(assignedFinding)
-    findingRepository.updateByID.mockResolvedValue(updatedFinding)
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
-
-    await service.updateByID({
-      id: baseFinding.id,
-      finding: updatePayload,
-      user
-    })
-
-    expect(userProfileService.getByID).not.toHaveBeenCalled()
-    expect(findingRepository.updateByID).toHaveBeenCalledWith(
-      baseFinding.id,
-      expect.objectContaining({
-        status: FindingStatus.Confirmed,
-        assigneeId
       })
     )
   })

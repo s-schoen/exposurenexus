@@ -12,7 +12,7 @@ import {
 } from "./asset-custom-field.ts"
 import type {
   AssetCustomFieldDefinition,
-  CreateAssetCustomFieldDefinition
+  UpdateAssetCustomFieldDefinition
 } from "@exposurenexus/types/model/asset"
 
 const fetchMock = vi.fn<typeof fetch>()
@@ -57,7 +57,7 @@ const definition: AssetCustomFieldDefinition = {
   ]
 }
 
-const payload: CreateAssetCustomFieldDefinition = {
+const payload: UpdateAssetCustomFieldDefinition = {
   key: "environment",
   name: "Environment",
   required: false,

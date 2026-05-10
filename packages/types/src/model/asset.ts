@@ -119,6 +119,31 @@ export const createAssetCustomFieldDefinitionSchema = z.discriminatedUnion(
   ]
 )
 
+export const updateTextAssetCustomFieldDefinitionSchema =
+  textAssetCustomFieldDefinitionSchema.omit({ id: true })
+
+export const updateNumberAssetCustomFieldDefinitionSchema =
+  numberAssetCustomFieldDefinitionSchema.omit({ id: true })
+
+export const updateSelectAssetCustomFieldDefinitionSchema =
+  selectAssetCustomFieldDefinitionSchema
+    .omit({
+      id: true,
+      options: true
+    })
+    .extend({
+      options: z.array(createAssetCustomFieldOptionSchema).min(1)
+    })
+
+export const updateAssetCustomFieldDefinitionSchema = z.discriminatedUnion(
+  "type",
+  [
+    updateTextAssetCustomFieldDefinitionSchema,
+    updateNumberAssetCustomFieldDefinitionSchema,
+    updateSelectAssetCustomFieldDefinitionSchema
+  ]
+)
+
 export const assetCustomFieldValueLiteralSchema = z.union([
   z.string(),
   z.number(),
@@ -190,6 +215,9 @@ export type AssetCustomFieldDefinition = z.infer<
 export type CreateAssetCustomFieldDefinition = z.infer<
   typeof createAssetCustomFieldDefinitionSchema
 >
+export type UpdateAssetCustomFieldDefinition = z.infer<
+  typeof updateAssetCustomFieldDefinitionSchema
+>
 export type AssetCustomFieldValueLiteral = z.infer<
   typeof assetCustomFieldValueLiteralSchema
 >
@@ -225,13 +253,17 @@ function hasDuplicateAssetCustomFieldValues(
 }
 
 function getAssetCustomFieldDefaultValue(
-  definition: CreateAssetCustomFieldDefinition
+  definition:
+    | CreateAssetCustomFieldDefinition
+    | UpdateAssetCustomFieldDefinition
 ): unknown {
   return definition.defaultValue ?? null
 }
 
 export function validateAssetCustomFieldDefinitionRules(
-  definition: CreateAssetCustomFieldDefinition
+  definition:
+    | CreateAssetCustomFieldDefinition
+    | UpdateAssetCustomFieldDefinition
 ): AssetCustomFieldRuleViolation[] {
   const defaultValue = getAssetCustomFieldDefaultValue(definition)
 

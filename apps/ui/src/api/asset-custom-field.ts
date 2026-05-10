@@ -1,7 +1,8 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import type {
   AssetCustomFieldDefinition,
-  CreateAssetCustomFieldDefinition
+  CreateAssetCustomFieldDefinition,
+  UpdateAssetCustomFieldDefinition
 } from "@exposurenexus/types/model/asset"
 import {
   DEFAULT_QUERY_STALE_TIME,
@@ -65,7 +66,7 @@ export async function createAssetCustomFieldDefinition(
 
 export async function updateAssetCustomFieldDefinition(
   id: string,
-  definition: CreateAssetCustomFieldDefinition
+  definition: UpdateAssetCustomFieldDefinition
 ): Promise<AssetCustomFieldDefinition> {
   const response = await apiRequest(`/api/assets/custom-fields/${id}`, {
     method: "PUT",

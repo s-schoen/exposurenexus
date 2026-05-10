@@ -77,10 +77,10 @@ const createUserFormSchema = z.strictObject({
 })
 
 const editUserFormSchema = z.strictObject({
-  displayName: updateUserProfileSchema.shape.displayName.unwrap(),
+  displayName: updateUserProfileSchema.shape.displayName,
   username: z.string(),
-  email: updateUserProfileSchema.shape.email.unwrap(),
-  enabled: updateUserProfileSchema.shape.enabled.unwrap(),
+  email: updateUserProfileSchema.shape.email,
+  enabled: updateUserProfileSchema.shape.enabled,
   password: z.union([
     z.literal(""),
     updateUserProfileSchema.shape.password.unwrap()

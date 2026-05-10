@@ -252,44 +252,32 @@ function AssetDetailContentStoryShell({
           const body = JSON.parse(
             String(init?.body ?? '{"fieldIds":[]}')
           ) as UpdateAssetCustomFieldAssociations
-          const fieldsToAssign = availableCustomFieldsRef.current.filter(
-            (field) => body.fieldIds.includes(field.id)
+          const currentById = new Map(
+            customFieldsRef.current.map((field) => [field.fieldId, field])
+          )
+          const definitionsById = new Map(
+            [
+              ...customFieldsRef.current.map(assetCustomFieldValueToDefinition),
+              ...availableCustomFieldsRef.current
+            ].map((field) => [field.id, field])
           )
 
-          customFieldsRef.current = [
-            ...customFieldsRef.current,
-            ...fieldsToAssign.map(assetCustomFieldDefinitionToValue)
-          ]
-          availableCustomFieldsRef.current =
-            availableCustomFieldsRef.current.filter(
-              (field) => !body.fieldIds.includes(field.id)
-            )
+          customFieldsRef.current = body.fieldIds.flatMap((fieldId) => {
+            const current = currentById.get(fieldId)
+            if (current) {
+              return [current]
+            }
+
+            const definition = definitionsById.get(fieldId)
+            return definition
+              ? [assetCustomFieldDefinitionToValue(definition)]
+              : []
+          })
+          availableCustomFieldsRef.current = [
+            ...definitionsById.values()
+          ].filter((field) => !body.fieldIds.includes(field.id))
 
           return createAssetCustomFieldValuesResponse(customFieldsRef.current)
-        }
-
-        if (method === "DELETE") {
-          const fieldId = requestUrl.slice(requestUrl.lastIndexOf("/") + 1)
-          const removedField = customFieldsRef.current.find(
-            (field) => field.fieldId === fieldId
-          )
-
-          customFieldsRef.current = customFieldsRef.current.filter(
-            (field) => field.fieldId !== fieldId
-          )
-
-          if (removedField) {
-            availableCustomFieldsRef.current = [
-              ...availableCustomFieldsRef.current,
-              assetCustomFieldValueToDefinition(removedField)
-            ]
-          }
-
-          return new Response(JSON.stringify({ data: { detached: true } }), {
-            headers: {
-              "Content-Type": "application/json"
-            }
-          })
         }
       }
 
@@ -303,20 +291,6 @@ function AssetDetailContentStoryShell({
         )
 
         return createAssetCustomFieldValuesResponse(customFieldsRef.current)
-      }
-
-      if (method === "DELETE") {
-        const fieldId = requestUrl.slice(requestUrl.lastIndexOf("/") + 1)
-        customFieldsRef.current = clearAssetCustomFieldValue(
-          customFieldsRef.current,
-          fieldId
-        )
-
-        return new Response(JSON.stringify({ data: { cleared: true } }), {
-          headers: {
-            "Content-Type": "application/json"
-          }
-        })
       }
 
       return createAssetCustomFieldValuesResponse(customFieldsRef.current)
@@ -476,23 +450,6 @@ function applyCustomFieldValueUpdates(
           : AssetCustomFieldValueSource.Asset,
       value: update.value
     } as AssetCustomFieldValue
-  })
-}
-
-function clearAssetCustomFieldValue(
-  customFields: Array<AssetCustomFieldValue>,
-  fieldId: string
-): Array<AssetCustomFieldValue> {
-  return customFields.map((field) => {
-    if (field.fieldId !== fieldId) {
-      return field
-    }
-
-    return {
-      ...field,
-      source: AssetCustomFieldValueSource.Empty,
-      value: null
-    }
   })
 }
 

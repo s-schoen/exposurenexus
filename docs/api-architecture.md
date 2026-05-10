@@ -67,6 +67,21 @@ Use explicit names for behavior that is not a plain create, read, update, or
 delete operation. For example, finding imports use `createOrUpdate` because the
 method performs upsert-like behavior based on a fingerprint.
 
+## HTTP Update Semantics
+
+API routes use `PUT` for full replacement of the addressed resource or
+subresource. A `PUT` payload contains the complete client-editable state for
+that target:
+
+- omitted mutable fields are invalid;
+- nullable mutable fields must be sent as either a value or `null`;
+- server-owned and immutable fields are not accepted in the payload;
+- collection subresources are replaced by the submitted collection, not patched
+  or appended to.
+
+Partial updates require a future `PATCH` endpoint with a separate schema and
+explicit merge rules.
+
 ## Call Shapes
 
 Use plain positional parameters for one or two arguments:

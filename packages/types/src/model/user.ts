@@ -26,11 +26,9 @@ export const createUserProfileSchema = userProfileSchema
   })
 
 export const updateUserProfileSchema = userProfileSchema
-  .omit({ id: true, username: true, roleIds: true })
-  .partial()
+  .omit({ id: true, username: true })
   .extend({
-    password: z.string().nonempty().optional(),
-    roleIds: z.array(z.uuidv4())
+    password: z.string().nonempty().optional()
   })
 
 export const userSessionSchema = z.strictObject({

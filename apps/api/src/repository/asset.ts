@@ -9,6 +9,7 @@ import {
   type CreateAssetCustomFieldDefinition,
   AssetCustomFieldType,
   AssetType,
+  type UpdateAssetCustomFieldDefinition,
   type UpdateAssetCustomFieldValue
 } from "@exposurenexus/types/model/asset"
 import { type Database } from "../db/index.js"
@@ -52,22 +53,20 @@ export interface AssetRepository {
   ): Promise<AssetCustomFieldDefinition>
   updateCustomFieldDefinitionByID(
     id: string,
-    definition: CreateAssetCustomFieldDefinition
+    definition: UpdateAssetCustomFieldDefinition
   ): Promise<AssetCustomFieldDefinition | null>
   deleteCustomFieldDefinitionByID(
     id: string
   ): Promise<AssetCustomFieldDefinition | null>
   listCustomFieldValues(assetId: string): Promise<AssetCustomFieldValue[]>
-  upsertCustomFieldValues(
+  replaceCustomFieldValues(
     assetId: string,
     values: UpdateAssetCustomFieldValue[]
   ): Promise<AssetCustomFieldValue[]>
-  clearCustomFieldValue(assetId: string, fieldId: string): Promise<void>
-  assignCustomFields(
+  replaceCustomFieldAssociations(
     assetId: string,
     fieldIds: string[]
   ): Promise<AssetCustomFieldValue[]>
-  detachCustomField(assetId: string, fieldId: string): Promise<void>
 }
 
 function toJsonbValue(
@@ -304,7 +303,9 @@ async function getCustomFieldDefinitionByID(
 async function insertCustomFieldOptions(
   database: DatabaseExecutor,
   fieldId: string,
-  definition: CreateAssetCustomFieldDefinition
+  definition:
+    | CreateAssetCustomFieldDefinition
+    | UpdateAssetCustomFieldDefinition
 ): Promise<void> {
   if (definition.type !== AssetCustomFieldType.Select) {
     return
@@ -503,7 +504,7 @@ export function createAssetRepository(
 
     async updateCustomFieldDefinitionByID(
       id: string,
-      definition: CreateAssetCustomFieldDefinition
+      definition: UpdateAssetCustomFieldDefinition
     ): Promise<AssetCustomFieldDefinition | null> {
       return await database.transaction().execute(async (trx) => {
         const updatedField = await trx
@@ -573,18 +574,18 @@ export function createAssetRepository(
       )
     },
 
-    async upsertCustomFieldValues(
+    async replaceCustomFieldValues(
       assetId: string,
       values: UpdateAssetCustomFieldValue[]
     ): Promise<AssetCustomFieldValue[]> {
       return await database.transaction().execute(async (trx) => {
+        await trx
+          .deleteFrom("asset_custom_field_value")
+          .where("assetId", "=", assetId)
+          .execute()
+
         for (const value of values) {
           if (value.value === null) {
-            await trx
-              .deleteFrom("asset_custom_field_value")
-              .where("assetId", "=", assetId)
-              .where("fieldId", "=", value.fieldId)
-              .execute()
             continue
           }
 
@@ -622,17 +623,6 @@ export function createAssetRepository(
       })
     },
 
-    async clearCustomFieldValue(
-      assetId: string,
-      fieldId: string
-    ): Promise<void> {
-      await database
-        .deleteFrom("asset_custom_field_value")
-        .where("assetId", "=", assetId)
-        .where("fieldId", "=", fieldId)
-        .execute()
-    },
-
     async listAvailableCustomFieldDefinitions(
       assetId: string
     ): Promise<AssetCustomFieldDefinition[]> {
@@ -668,16 +658,30 @@ export function createAssetRepository(
       )
     },
 
-    async assignCustomFields(
+    async replaceCustomFieldAssociations(
       assetId: string,
       fieldIds: string[]
     ): Promise<AssetCustomFieldValue[]> {
       return await database.transaction().execute(async (trx) => {
+        const valueDelete = trx
+          .deleteFrom("asset_custom_field_value")
+          .where("assetId", "=", assetId)
+
+        if (fieldIds.length === 0) {
+          await valueDelete.execute()
+        } else {
+          await valueDelete.where("fieldId", "not in", fieldIds).execute()
+        }
+
+        await trx
+          .deleteFrom("asset_custom_field_assignment")
+          .where("assetId", "=", assetId)
+          .execute()
+
         if (fieldIds.length > 0) {
           await trx
             .insertInto("asset_custom_field_assignment")
             .values(fieldIds.map((fieldId) => ({ assetId, fieldId })))
-            .onConflict((oc) => oc.columns(["assetId", "fieldId"]).doNothing())
             .execute()
         }
 
@@ -697,22 +701,6 @@ export function createAssetRepository(
         return definitions.map((definition) =>
           toCustomFieldValue(definition, overridesByFieldId.get(definition.id))
         )
-      })
-    },
-
-    async detachCustomField(assetId: string, fieldId: string): Promise<void> {
-      await database.transaction().execute(async (trx) => {
-        await trx
-          .deleteFrom("asset_custom_field_value")
-          .where("assetId", "=", assetId)
-          .where("fieldId", "=", fieldId)
-          .execute()
-
-        await trx
-          .deleteFrom("asset_custom_field_assignment")
-          .where("assetId", "=", assetId)
-          .where("fieldId", "=", fieldId)
-          .execute()
       })
     }
   }

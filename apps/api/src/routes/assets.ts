@@ -31,14 +31,6 @@ const listAssetQueryValidator = zValidator(
       .optional()
   })
 )
-const assetAndFieldIdParamValidator = zValidator(
-  "param",
-  z.object({
-    id: z.uuidv4(),
-    fieldId: z.uuidv4()
-  })
-)
-
 export function createAssetRoute(
   assetService: AssetService,
   { requireDomainPermission }: AssetRouteDependencies
@@ -106,7 +98,7 @@ export function createAssetRoute(
       const params = c.req.valid("param")
       const body = c.req.valid("json")
 
-      const values = await assetService.assignCustomFields({
+      const values = await assetService.replaceCustomFieldAssociations({
         assetId: params.id,
         fieldIds: body.fieldIds,
         eventContext: requestEventContext(c)
@@ -119,26 +111,6 @@ export function createAssetRoute(
     }
   )
 
-  asset.delete(
-    "/:id/custom-fields/associations/:fieldId",
-    requireDomainPermission("asset", "write"),
-    assetAndFieldIdParamValidator,
-    async (c) => {
-      const params = c.req.valid("param")
-
-      const detached = await assetService.detachCustomField({
-        assetId: params.id,
-        fieldId: params.fieldId,
-        eventContext: requestEventContext(c)
-      })
-      if (!detached) {
-        throw notFound("asset", params.id)
-      }
-
-      return replyObject(c, { detached })
-    }
-  )
-
   asset.put(
     "/:id/custom-fields",
     requireDomainPermission("asset", "write"),
@@ -148,7 +120,7 @@ export function createAssetRoute(
       const params = c.req.valid("param")
       const body = c.req.valid("json")
 
-      const values = await assetService.upsertCustomFieldValues({
+      const values = await assetService.replaceCustomFieldValues({
         assetId: params.id,
         values: body.values,
         eventContext: requestEventContext(c)
@@ -158,26 +130,6 @@ export function createAssetRoute(
       }
 
       return replyArray(c, values)
-    }
-  )
-
-  asset.delete(
-    "/:id/custom-fields/:fieldId",
-    requireDomainPermission("asset", "write"),
-    assetAndFieldIdParamValidator,
-    async (c) => {
-      const params = c.req.valid("param")
-
-      const cleared = await assetService.clearCustomFieldValue({
-        assetId: params.id,
-        fieldId: params.fieldId,
-        eventContext: requestEventContext(c)
-      })
-      if (!cleared) {
-        throw notFound("asset", params.id)
-      }
-
-      return replyObject(c, { cleared })
     }
   )
 

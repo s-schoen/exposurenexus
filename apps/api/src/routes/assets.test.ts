@@ -36,10 +36,8 @@ describe("asset routes", () => {
     deleteCustomFieldDefinitionByID: vi.fn(),
     listCustomFieldValues: vi.fn(),
     listAvailableCustomFieldDefinitions: vi.fn(),
-    upsertCustomFieldValues: vi.fn(),
-    clearCustomFieldValue: vi.fn(),
-    assignCustomFields: vi.fn(),
-    detachCustomField: vi.fn()
+    replaceCustomFieldValues: vi.fn(),
+    replaceCustomFieldAssociations: vi.fn()
   }
 
   beforeEach(() => {
@@ -721,6 +719,32 @@ describe("asset routes", () => {
     expect(body).not.toHaveProperty("details")
   })
 
+  it("rejects asset custom field definition updates without default values", async () => {
+    const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request(`/api/assets/custom-fields/${fieldId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "assets-custom-fields-incomplete-update-request"
+      },
+      body: JSON.stringify({
+        key: "category",
+        name: "Category",
+        required: false,
+        type: AssetCustomFieldType.Text
+      })
+    })
+
+    expect(response.status).toBe(400)
+    expect(assetService.updateCustomFieldDefinitionByID).not.toHaveBeenCalled()
+  })
+
   it("passes non-rule custom field update errors to the error handler", async () => {
     const requestId = "assets-custom-fields-update-non-rule-failure-request"
     const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
@@ -1075,8 +1099,8 @@ describe("asset routes", () => {
     expect(assetService.listCustomFieldValues).not.toHaveBeenCalled()
   })
 
-  it("upserts asset custom field values", async () => {
-    const requestId = "assets-custom-field-values-upsert-request"
+  it("replaces asset custom field values", async () => {
+    const requestId = "assets-custom-field-values-replace-request"
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
     const payload = {
       values: [
@@ -1097,7 +1121,7 @@ describe("asset routes", () => {
       }
     ]
 
-    assetService.upsertCustomFieldValues.mockResolvedValue(values)
+    assetService.replaceCustomFieldValues.mockResolvedValue(values)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -1116,7 +1140,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.upsertCustomFieldValues).toHaveBeenCalledWith({
+    expect(assetService.replaceCustomFieldValues).toHaveBeenCalledWith({
       assetId,
       values: payload.values,
       eventContext: {
@@ -1152,7 +1176,7 @@ describe("asset routes", () => {
       }
     ]
 
-    assetService.assignCustomFields.mockResolvedValue(values)
+    assetService.replaceCustomFieldAssociations.mockResolvedValue(values)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -1174,7 +1198,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.assignCustomFields).toHaveBeenCalledWith({
+    expect(assetService.replaceCustomFieldAssociations).toHaveBeenCalledWith({
       assetId,
       fieldIds: payload.fieldIds,
       eventContext: {
@@ -1215,7 +1239,7 @@ describe("asset routes", () => {
     )
 
     expect(response.status).toBe(400)
-    expect(assetService.assignCustomFields).not.toHaveBeenCalled()
+    expect(assetService.replaceCustomFieldAssociations).not.toHaveBeenCalled()
   })
 
   it("rejects invalid custom field value bodies before calling the service", async () => {
@@ -1243,11 +1267,11 @@ describe("asset routes", () => {
     })
 
     expect(response.status).toBe(400)
-    expect(assetService.upsertCustomFieldValues).not.toHaveBeenCalled()
+    expect(assetService.replaceCustomFieldValues).not.toHaveBeenCalled()
   })
 
-  it("returns 404 when upserting custom field values for a missing asset", async () => {
-    const requestId = "assets-custom-field-values-upsert-missing-asset-request"
+  it("returns 404 when replacing custom field values for a missing asset", async () => {
+    const requestId = "assets-custom-field-values-replace-missing-asset-request"
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
     const payload = {
       values: [
@@ -1258,7 +1282,7 @@ describe("asset routes", () => {
       ]
     }
 
-    assetService.upsertCustomFieldValues.mockResolvedValue(null)
+    assetService.replaceCustomFieldValues.mockResolvedValue(null)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -1277,7 +1301,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.upsertCustomFieldValues).toHaveBeenCalledWith({
+    expect(assetService.replaceCustomFieldValues).toHaveBeenCalledWith({
       assetId,
       values: payload.values,
       eventContext: {
@@ -1292,129 +1316,7 @@ describe("asset routes", () => {
     })
   })
 
-  it("clears an asset custom field value", async () => {
-    const requestId = "assets-custom-field-values-clear-request"
-    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
-    const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-
-    assetService.clearCustomFieldValue.mockResolvedValue(true)
-
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
-    })
-
-    const response = await app.request(
-      `/api/assets/${assetId}/custom-fields/${fieldId}`,
-      {
-        method: "DELETE",
-        headers: {
-          "X-Request-Id": requestId
-        }
-      }
-    )
-    const body = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(assetService.clearCustomFieldValue).toHaveBeenCalledWith({
-      assetId,
-      fieldId,
-      eventContext: {
-        actor: user.id,
-        correlationId: requestId
-      }
-    })
-    expect(body).toEqual({
-      correlationId: requestId,
-      data: {
-        cleared: true
-      }
-    })
-  })
-
-  it("detaches a custom field from an asset", async () => {
-    const requestId = "assets-custom-field-associations-detach-request"
-    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
-    const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-
-    assetService.detachCustomField.mockResolvedValue(true)
-
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
-    })
-
-    const response = await app.request(
-      `/api/assets/${assetId}/custom-fields/associations/${fieldId}`,
-      {
-        method: "DELETE",
-        headers: {
-          "X-Request-Id": requestId
-        }
-      }
-    )
-    const body = await response.json()
-
-    expect(response.status).toBe(200)
-    expect(assetService.detachCustomField).toHaveBeenCalledWith({
-      assetId,
-      fieldId,
-      eventContext: {
-        actor: user.id,
-        correlationId: requestId
-      }
-    })
-    expect(body).toEqual({
-      correlationId: requestId,
-      data: {
-        detached: true
-      }
-    })
-  })
-
-  it("returns 404 when clearing a custom field value for a missing asset", async () => {
-    const requestId = "assets-custom-field-values-clear-missing-asset-request"
-    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
-    const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-
-    assetService.clearCustomFieldValue.mockResolvedValue(null)
-
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, routeDependencies)
-    })
-
-    const response = await app.request(
-      `/api/assets/${assetId}/custom-fields/${fieldId}`,
-      {
-        method: "DELETE",
-        headers: {
-          "X-Request-Id": requestId
-        }
-      }
-    )
-    const body = await response.json()
-
-    expect(response.status).toBe(404)
-    expect(assetService.clearCustomFieldValue).toHaveBeenCalledWith({
-      assetId,
-      fieldId,
-      eventContext: {
-        actor: user.id,
-        correlationId: requestId
-      }
-    })
-    expect(body).toEqual({
-      correlationId: requestId,
-      status: 404,
-      error: `asset with id ${assetId} does not exist`
-    })
-  })
-
-  it("returns 403 when upserting custom field values without write permission", async () => {
+  it("returns 403 when replacing custom field values without write permission", async () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
 
     userHasPermission.mockResolvedValue(false)
@@ -1429,7 +1331,7 @@ describe("asset routes", () => {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "X-Request-Id": "assets-custom-field-values-upsert-forbidden-request"
+        "X-Request-Id": "assets-custom-field-values-replace-forbidden-request"
       },
       body: JSON.stringify({
         values: [
@@ -1445,7 +1347,7 @@ describe("asset routes", () => {
     expect(userHasPermission).toHaveBeenCalledWith(user.id, {
       asset: ["write"]
     })
-    expect(assetService.upsertCustomFieldValues).not.toHaveBeenCalled()
+    expect(assetService.replaceCustomFieldValues).not.toHaveBeenCalled()
   })
 
   it("returns 201 when creating an asset", async () => {
