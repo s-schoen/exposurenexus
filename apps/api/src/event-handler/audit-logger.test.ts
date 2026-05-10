@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import type { Logger } from "pino"
 import {
+  type AssetCustomFieldDefinition,
   AssetCustomFieldType,
   AssetType
 } from "@exposurenexus/types/model/asset"
@@ -81,7 +82,7 @@ describe("registerAuditLogger", () => {
     ownerId: null,
     customFields: []
   }
-  const customFieldDefinition = {
+  const customFieldDefinition: AssetCustomFieldDefinition = {
     id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
     key: "category",
     name: "Category",
