@@ -12,12 +12,7 @@ import type { UserProfile } from "@exposurenexus/types/model/user"
 import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date"
 import { createHash } from "node:crypto"
 import type { Logger } from "pino"
-import {
-  badRequest,
-  internalServerError,
-  isApiError,
-  notFound
-} from "../lib/api-error.js"
+import { ApplicationError, isApplicationError } from "./application-error.js"
 import {
   createDomainEventEmitter,
   type DomainEventContext,
@@ -162,11 +157,21 @@ export function createFindingService({
     ])
 
     if (!asset) {
-      throw badRequest("finding asset does not exist")
+      throw new ApplicationError({
+        code: "finding.asset_unknown",
+        kind: "validation",
+        message: "finding asset does not exist",
+        details: { assetId: finding.assetId }
+      })
     }
 
     if (!vulnerability) {
-      throw badRequest("finding vulnerability does not exist")
+      throw new ApplicationError({
+        code: "finding.vulnerability_unknown",
+        kind: "validation",
+        message: "finding vulnerability does not exist",
+        details: { vulnerabilityId: finding.vulnerabilityId }
+      })
     }
 
     const assigneeId = finding.assigneeId ?? null
@@ -174,7 +179,12 @@ export function createFindingService({
       const assignee = await userProfileService.getByID(assigneeId)
 
       if (!assignee) {
-        throw badRequest("finding assignee does not exist")
+        throw new ApplicationError({
+          code: "finding.assignee_unknown",
+          kind: "validation",
+          message: "finding assignee does not exist",
+          details: { assigneeId }
+        })
       }
     }
 
@@ -216,20 +226,39 @@ export function createFindingService({
       )
       return createdFinding
     } catch (error) {
-      if (isApiError(error)) {
+      if (isApplicationError(error)) {
         throw error
       }
 
       if (isForeignKeyError(error)) {
         logger.debug(error, "finding create foreign key invalid relation")
-        throw badRequest("finding references an unknown related resource")
+        throw new ApplicationError({
+          code: "finding.related_resource_unknown",
+          kind: "validation",
+          message: "finding references an unknown related resource",
+          cause: error,
+          details: {
+            assetId: opts.finding.assetId,
+            vulnerabilityId: opts.finding.vulnerabilityId,
+            assigneeId: opts.finding.assigneeId ?? null
+          }
+        })
       }
 
       logger.error(
         error,
         `failed to create new finding for ${opts.finding.vulnerabilityId}`
       )
-      throw internalServerError("failed to create finding")
+      throw new ApplicationError({
+        code: "finding.create_failed",
+        kind: "unexpected",
+        message: "failed to create finding",
+        cause: error,
+        details: {
+          assetId: opts.finding.assetId,
+          vulnerabilityId: opts.finding.vulnerabilityId
+        }
+      })
     }
   }
 
@@ -245,7 +274,12 @@ export function createFindingService({
         return findings
       } catch (error) {
         logger.error(error, "failed to list findings")
-        throw internalServerError("failed to list findings")
+        throw new ApplicationError({
+          code: "finding.list_failed",
+          kind: "unexpected",
+          message: "failed to list findings",
+          cause: error
+        })
       }
     },
 
@@ -260,7 +294,13 @@ export function createFindingService({
         return await extendWithVulnerability(finding)
       } catch (error) {
         logger.error(error, `failed to get finding with id ${id}`)
-        throw internalServerError("failed to get finding")
+        throw new ApplicationError({
+          code: "finding.get_failed",
+          kind: "unexpected",
+          message: "failed to get finding",
+          cause: error,
+          details: { findingId: id }
+        })
       }
     },
 
@@ -290,7 +330,12 @@ export function createFindingService({
           const assignee = await userProfileService.getByID(assigneeId)
 
           if (!assignee) {
-            throw badRequest("finding assignee does not exist")
+            throw new ApplicationError({
+              code: "finding.assignee_unknown",
+              kind: "validation",
+              message: "finding assignee does not exist",
+              details: { assigneeId, findingId: opts.id }
+            })
           }
         }
 
@@ -327,12 +372,29 @@ export function createFindingService({
 
         return currentFinding
       } catch (error) {
-        if (isApiError(error)) {
+        if (isApplicationError(error)) {
           throw error
         }
 
+        if (isForeignKeyError(error) && opts.finding.assigneeId) {
+          logger.debug(error, "finding update foreign key invalid assignee")
+          throw new ApplicationError({
+            code: "finding.assignee_unknown",
+            kind: "validation",
+            message: "finding assignee does not exist",
+            cause: error,
+            details: { assigneeId: opts.finding.assigneeId, findingId: opts.id }
+          })
+        }
+
         logger.error(error, `failed to get finding with id ${opts.id}`)
-        throw internalServerError("failed to update finding")
+        throw new ApplicationError({
+          code: "finding.update_failed",
+          kind: "unexpected",
+          message: "failed to update finding",
+          cause: error,
+          details: { findingId: opts.id }
+        })
       }
     },
 
@@ -345,39 +407,60 @@ export function createFindingService({
         opts.fingerprintOptions
       )
 
-      const finding = await findingRepository.getByFingerprint(fingerprint)
-      if (finding) {
-        const updatedObservation = {
-          ...finding,
-          status: resolveImportedFindingStatus(
-            finding.status,
-            opts.finding.status
-          ),
-          lastSeen: new Date()
+      try {
+        const finding = await findingRepository.getByFingerprint(fingerprint)
+        if (finding) {
+          const updatedObservation = {
+            ...finding,
+            status: resolveImportedFindingStatus(
+              finding.status,
+              opts.finding.status
+            ),
+            lastSeen: new Date()
+          }
+          const updatedFinding = await findingRepository.updateByID(
+            finding.id,
+            updatedObservation
+          )
+          const previousFinding = await extendWithVulnerability(finding)
+          const currentFinding = await extendWithVulnerability(updatedFinding)
+          emitFindingEvent(
+            "finding.updated",
+            {
+              previous: previousFinding,
+              current: currentFinding
+            },
+            opts.eventContext
+          )
+          return {
+            finding: currentFinding,
+            created: false
+          }
         }
-        const updatedFinding = await findingRepository.updateByID(
-          finding.id,
-          updatedObservation
-        )
-        const previousFinding = await extendWithVulnerability(finding)
-        const currentFinding = await extendWithVulnerability(updatedFinding)
-        emitFindingEvent(
-          "finding.updated",
-          {
-            previous: previousFinding,
-            current: currentFinding
-          },
-          opts.eventContext
-        )
-        return {
-          finding: currentFinding,
-          created: false
-        }
-      }
 
-      return {
-        finding: await createFinding(opts),
-        created: true
+        return {
+          finding: await createFinding(opts),
+          created: true
+        }
+      } catch (error) {
+        if (isApplicationError(error)) {
+          throw error
+        }
+
+        logger.error(
+          error,
+          `failed to create or update finding for ${opts.finding.vulnerabilityId}`
+        )
+        throw new ApplicationError({
+          code: "finding.create_or_update_failed",
+          kind: "unexpected",
+          message: "failed to create or update finding",
+          cause: error,
+          details: {
+            assetId: opts.finding.assetId,
+            vulnerabilityId: opts.finding.vulnerabilityId
+          }
+        })
       }
     },
 
@@ -402,7 +485,13 @@ export function createFindingService({
         return deletedFinding
       } catch (error) {
         logger.error(error, `failed to get finding with id ${id}`)
-        throw internalServerError("failed to get finding")
+        throw new ApplicationError({
+          code: "finding.delete_failed",
+          kind: "unexpected",
+          message: "failed to get finding",
+          cause: error,
+          details: { findingId: id }
+        })
       }
     },
 
@@ -418,17 +507,23 @@ export function createFindingService({
         ])
 
         if (!oldVulnerability) {
-          throw notFound(
-            "old vulnerability",
-            reclassification.oldVulnerabilityId
-          )
+          throw new ApplicationError({
+            code: "finding.reclassification_old_vulnerability_missing",
+            kind: "missing",
+            message: `old vulnerability with id ${reclassification.oldVulnerabilityId} does not exist`,
+            details: { vulnerabilityId: reclassification.oldVulnerabilityId }
+          })
         }
 
         if (!targetVulnerability) {
-          throw notFound(
-            "target vulnerability",
-            reclassification.targetVulnerabilityId
-          )
+          throw new ApplicationError({
+            code: "finding.reclassification_target_vulnerability_missing",
+            kind: "missing",
+            message: `target vulnerability with id ${reclassification.targetVulnerabilityId} does not exist`,
+            details: {
+              vulnerabilityId: reclassification.targetVulnerabilityId
+            }
+          })
         }
 
         const updatedFindings =
@@ -457,7 +552,7 @@ export function createFindingService({
 
         return result
       } catch (error) {
-        if (isApiError(error)) {
+        if (isApplicationError(error)) {
           throw error
         }
 
@@ -465,7 +560,17 @@ export function createFindingService({
           error,
           `failed to reclassify findings from ${reclassification.oldVulnerabilityId} to ${reclassification.targetVulnerabilityId}`
         )
-        throw internalServerError("failed to reclassify findings")
+        throw new ApplicationError({
+          code: "finding.reclassification_failed",
+          kind: "unexpected",
+          message: "failed to reclassify findings",
+          cause: error,
+          details: {
+            source: reclassification.source,
+            oldVulnerabilityId: reclassification.oldVulnerabilityId,
+            targetVulnerabilityId: reclassification.targetVulnerabilityId
+          }
+        })
       }
     }
   }

@@ -5,7 +5,6 @@ import {
   type Finding
 } from "@exposurenexus/types/model/finding"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
-import { notFound } from "../lib/api-error.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -13,6 +12,7 @@ import {
   requireAuthenticatedUser
 } from "../test/app.js"
 import { createRequireDomainPermission } from "../middleware/auth.js"
+import { ApplicationError } from "../service/application-error.js"
 import { createFindingRoute } from "./findings.js"
 
 describe("finding routes", () => {
@@ -133,6 +133,41 @@ describe("finding routes", () => {
     })
   })
 
+  it("maps unexpected finding service failures to a generic 500 reply", async () => {
+    const requestId = "findings-list-unexpected-failure-request"
+
+    findingService.listAll.mockRejectedValueOnce(
+      new ApplicationError({
+        code: "finding.list_failed",
+        kind: "unexpected",
+        message: "failed to list findings"
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request("/api/findings", {
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(body).toMatchObject({
+      correlationId: requestId,
+      status: 500,
+      error: expect.any(String)
+    })
+    expect(body.error).not.toContain("finding")
+    expect(body).not.toHaveProperty("reason")
+    expect(body).not.toHaveProperty("details")
+  })
+
   it("returns a finding by id", async () => {
     const requestId = "findings-get-by-id-request"
     const findingRecord = {
@@ -230,6 +265,44 @@ describe("finding routes", () => {
         }
       }
     })
+  })
+
+  it("maps finding creation validation failures through the error handler", async () => {
+    const requestId = "findings-create-validation-failure-request"
+
+    findingService.create.mockRejectedValueOnce(
+      new ApplicationError({
+        code: "finding.asset_unknown",
+        kind: "validation",
+        message: "finding asset does not exist",
+        details: { assetId }
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies)
+    })
+
+    const response = await app.request("/api/findings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId
+      },
+      body: JSON.stringify(createPayload)
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body).toMatchObject({
+      correlationId: requestId,
+      status: 400,
+      error: expect.any(String)
+    })
+    expect(body).not.toHaveProperty("reason")
+    expect(body).not.toHaveProperty("details")
   })
 
   it("accepts nullable assignee identity during finding creation", async () => {
@@ -590,7 +663,12 @@ describe("finding routes", () => {
     const targetVulnerabilityId = "4fb566c6-e642-48d8-b70d-418efb074f8d"
 
     findingService.reclassify.mockRejectedValue(
-      notFound("target vulnerability", targetVulnerabilityId)
+      new ApplicationError({
+        code: "finding.reclassification_target_vulnerability_missing",
+        kind: "missing",
+        message: `target vulnerability with id ${targetVulnerabilityId} does not exist`,
+        details: { vulnerabilityId: targetVulnerabilityId }
+      })
     )
 
     const app = createTestApp({
@@ -614,11 +692,13 @@ describe("finding routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(body).toEqual({
+    expect(body).toMatchObject({
       correlationId: requestId,
       status: 404,
-      error: `target vulnerability with id ${targetVulnerabilityId} does not exist`
+      error: expect.any(String)
     })
+    expect(body).not.toHaveProperty("reason")
+    expect(body).not.toHaveProperty("details")
   })
 
   it("updates a finding with the authenticated user", async () => {

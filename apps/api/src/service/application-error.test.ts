@@ -55,6 +55,15 @@ function assertApplicationErrorInputTypes() {
     assetRuleViolationInput.details.reason
   ).toEqualTypeOf<AssetCustomFieldRuleViolationReason.RequiredDefaultMissing>()
 
+  const findingNotFoundInput = {
+    code: "finding.reclassification_target_vulnerability_missing",
+    kind: "missing",
+    message: "target vulnerability does not exist",
+    details: { vulnerabilityId: "missing-vulnerability-id" }
+  } satisfies ApplicationErrorInput
+
+  expectTypeOf(findingNotFoundInput.kind).toEqualTypeOf<"missing">()
+
   const wrongConstructorKind = new ApplicationError<"role.unknown_ids">({
     code: "role.unknown_ids",
     // @ts-expect-error constructor input kind is pinned by code.

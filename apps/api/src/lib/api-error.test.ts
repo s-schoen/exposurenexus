@@ -111,6 +111,22 @@ describe("api errors", () => {
       createApiErrorReply(
         "api-error-test",
         new ApplicationError({
+          code: "finding.reclassification_target_vulnerability_missing",
+          kind: "missing",
+          message: "target vulnerability does not exist",
+          details: { vulnerabilityId: "missing-vulnerability-id" }
+        })
+      )
+    ).toMatchObject({
+      correlationId: "api-error-test",
+      status: 404,
+      error: expect.any(String)
+    })
+
+    expect(
+      createApiErrorReply(
+        "api-error-test",
+        new ApplicationError({
           code: "role.list_failed",
           kind: "unexpected",
           message: "failed to list roles"
