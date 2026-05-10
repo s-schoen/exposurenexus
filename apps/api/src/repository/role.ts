@@ -67,7 +67,7 @@ function createRoleBaseQuery(database: DatabaseExecutor) {
     .selectFrom("role")
     .leftJoin(
       "role_permission_assignment",
-      "role_permission_assignment.role_id",
+      "role_permission_assignment.roleId",
       "role.id"
     )
     .select([
@@ -201,7 +201,7 @@ export function createRoleRepository(
             .insertInto("role_permission_assignment")
             .values(
               permissions.map((permission) => ({
-                role_id: insertedRole.id,
+                roleId: insertedRole.id,
                 resource: permission.resource,
                 verb: permission.verb
               }))
@@ -236,7 +236,7 @@ export function createRoleRepository(
         const existingPermissions = await trx
           .selectFrom("role_permission_assignment")
           .select(["resource", "verb"])
-          .where("role_id", "=", id)
+          .where("roleId", "=", id)
           .execute()
         const permissions = dedupePermissions(roleUpdate.permissions)
         const permissionsChanged = !samePermissionSet(
@@ -260,7 +260,7 @@ export function createRoleRepository(
 
         await trx
           .deleteFrom("role_permission_assignment")
-          .where("role_id", "=", id)
+          .where("roleId", "=", id)
           .execute()
 
         if (permissions.length > 0) {
@@ -268,7 +268,7 @@ export function createRoleRepository(
             .insertInto("role_permission_assignment")
             .values(
               permissions.map((permission) => ({
-                role_id: id,
+                roleId: id,
                 resource: permission.resource,
                 verb: permission.verb
               }))

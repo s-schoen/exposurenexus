@@ -382,7 +382,7 @@ describe("db migration columns", () => {
     }>`
       select resource, verb
       from role_permission_assignment
-      where role_id = ${builtInRoleIds.admin}
+      where "roleId" = ${builtInRoleIds.admin}
     `.execute(testDb.db)
 
     expect(roleColumns.rows).toEqual(
@@ -401,7 +401,7 @@ describe("db migration columns", () => {
     expect(permissionAssignmentColumns.rows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          column_name: "role_id",
+          column_name: "roleId",
           data_type: "uuid"
         }),
         expect.objectContaining({
@@ -416,6 +416,9 @@ describe("db migration columns", () => {
         })
       ])
     )
+    expect(
+      permissionAssignmentColumns.rows.map((row) => row.column_name)
+    ).not.toContain("role_id")
 
     const roleIdColumn = roleColumns.rows.find(
       (row) => row.column_name === "id"

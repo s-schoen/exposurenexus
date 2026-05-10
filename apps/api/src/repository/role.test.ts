@@ -285,7 +285,7 @@ describe("role repository", () => {
     const assignments = await testDb.db
       .selectFrom("role_permission_assignment")
       .select(["resource", "verb"])
-      .where("role_id", "=", createdRole.id)
+      .where("roleId", "=", createdRole.id)
       .execute()
 
     expect(assignments).toEqual(createdRole.permissions)
@@ -314,12 +314,12 @@ describe("role repository", () => {
       .insertInto("role_permission_assignment")
       .values([
         {
-          role_id: roleId,
+          roleId,
           resource: PermissionResource.Asset,
           verb: PermissionVerb.Read
         },
         {
-          role_id: roleId,
+          roleId,
           resource: PermissionResource.Finding,
           verb: PermissionVerb.Read
         }
@@ -393,7 +393,7 @@ describe("role repository", () => {
     await testDb.db
       .insertInto("role_permission_assignment")
       .values({
-        role_id: roleId,
+        roleId,
         resource: PermissionResource.Asset,
         verb: PermissionVerb.Read
       })
@@ -507,7 +507,7 @@ describe("role repository", () => {
     await testDb.db
       .insertInto("role_permission_assignment")
       .values({
-        role_id: roleId,
+        roleId,
         resource: PermissionResource.Asset,
         verb: PermissionVerb.Read
       })
@@ -584,7 +584,7 @@ describe("role repository", () => {
     await testDb.db
       .insertInto("role_permission_assignment")
       .values({
-        role_id: roleId,
+        roleId,
         resource: PermissionResource.Asset,
         verb: PermissionVerb.Read
       })
@@ -606,7 +606,7 @@ describe("role repository", () => {
     const assignments = await testDb.db
       .selectFrom("role_permission_assignment")
       .selectAll()
-      .where("role_id", "=", roleId)
+      .where("roleId", "=", roleId)
       .execute()
 
     expect(assignments).toEqual([])
