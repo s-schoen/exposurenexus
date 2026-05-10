@@ -130,7 +130,7 @@ export function createAssetRoute(
       const params = c.req.valid("param")
       const body = c.req.valid("json")
 
-      const values = await assetService.replaceCustomFieldValues({
+      const values = await assetCustomFieldService.replaceValuesForAsset({
         assetId: params.id,
         values: body.values,
         eventContext: requestEventContext(c)

@@ -28,8 +28,7 @@ describe("asset routes", () => {
     getByName: vi.fn(),
     create: vi.fn(),
     updateOwnerByID: vi.fn(),
-    deleteByID: vi.fn(),
-    replaceCustomFieldValues: vi.fn()
+    deleteByID: vi.fn()
   }
   const assetCustomFieldService = {
     listDefinitions: vi.fn(),
@@ -40,7 +39,8 @@ describe("asset routes", () => {
     listEffectiveValuesForAsset: vi.fn(),
     listEffectiveValuesForAssets: vi.fn(),
     listAvailableDefinitionsForAsset: vi.fn(),
-    replaceAssignmentsForAsset: vi.fn()
+    replaceAssignmentsForAsset: vi.fn(),
+    replaceValuesForAsset: vi.fn()
   }
 
   beforeEach(() => {
@@ -1284,7 +1284,7 @@ describe("asset routes", () => {
       }
     ]
 
-    assetService.replaceCustomFieldValues.mockResolvedValue(values)
+    assetCustomFieldService.replaceValuesForAsset.mockResolvedValue(values)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -1307,7 +1307,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.replaceCustomFieldValues).toHaveBeenCalledWith({
+    expect(assetCustomFieldService.replaceValuesForAsset).toHaveBeenCalledWith({
       assetId,
       values: payload.values,
       eventContext: {
@@ -1488,7 +1488,7 @@ describe("asset routes", () => {
     })
 
     expect(response.status).toBe(400)
-    expect(assetService.replaceCustomFieldValues).not.toHaveBeenCalled()
+    expect(assetCustomFieldService.replaceValuesForAsset).not.toHaveBeenCalled()
   })
 
   it("returns 404 when replacing custom field values for a missing asset", async () => {
@@ -1503,7 +1503,7 @@ describe("asset routes", () => {
       ]
     }
 
-    assetService.replaceCustomFieldValues.mockResolvedValue(null)
+    assetCustomFieldService.replaceValuesForAsset.mockResolvedValue(null)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -1526,7 +1526,7 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.replaceCustomFieldValues).toHaveBeenCalledWith({
+    expect(assetCustomFieldService.replaceValuesForAsset).toHaveBeenCalledWith({
       assetId,
       values: payload.values,
       eventContext: {
@@ -1576,7 +1576,7 @@ describe("asset routes", () => {
     expect(userHasPermission).toHaveBeenCalledWith(user.id, {
       asset: ["write"]
     })
-    expect(assetService.replaceCustomFieldValues).not.toHaveBeenCalled()
+    expect(assetCustomFieldService.replaceValuesForAsset).not.toHaveBeenCalled()
   })
 
   it("returns 201 when creating an asset", async () => {

@@ -233,7 +233,7 @@ describe("asset custom field repository", () => {
       environment.id,
       priority.id
     ])
-    await assetRepository.replaceCustomFieldValues(apiAsset.id, [
+    await repository.replaceValuesForAsset(apiAsset.id, [
       { fieldId: environment.id, value: "prod" }
     ])
     await repository.replaceAssignmentsForAsset(workerAsset.id, [category.id])
@@ -262,6 +262,28 @@ describe("asset custom field repository", () => {
       }
     ])
 
+    await expect(
+      repository.replaceValuesForAsset(apiAsset.id, [
+        { fieldId: environment.id, value: null }
+      ])
+    ).resolves.toMatchObject([
+      {
+        fieldId: category.id,
+        source: AssetCustomFieldValueSource.Default,
+        value: "platform"
+      },
+      {
+        fieldId: environment.id,
+        source: AssetCustomFieldValueSource.Default,
+        value: "stage"
+      },
+      {
+        fieldId: priority.id,
+        source: AssetCustomFieldValueSource.Empty,
+        value: null
+      }
+    ])
+
     const valuesByAssetId = await repository.listEffectiveValuesForAssets([
       apiAsset.id,
       workerAsset.id
@@ -277,6 +299,9 @@ describe("asset custom field repository", () => {
       repository.listAvailableDefinitionsForAsset(apiAsset.id)
     ).resolves.toEqual([team])
 
+    await repository.replaceValuesForAsset(apiAsset.id, [
+      { fieldId: environment.id, value: "prod" }
+    ])
     await repository.replaceAssignmentsForAsset(apiAsset.id, [
       category.id,
       priority.id
@@ -323,10 +348,10 @@ describe("asset custom field repository", () => {
       options: [{ value: "prod", label: "Production" }]
     })
 
-    await assetRepository.replaceCustomFieldValues(asset.id, [
+    await repository.replaceAssignmentsForAsset(asset.id, [environment.id])
+    await repository.replaceValuesForAsset(asset.id, [
       { fieldId: environment.id, value: "prod" }
     ])
-    await repository.replaceAssignmentsForAsset(asset.id, [environment.id])
 
     await expect(
       repository.deleteDefinitionByID(environment.id)

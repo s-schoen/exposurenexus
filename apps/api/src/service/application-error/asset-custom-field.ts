@@ -38,6 +38,26 @@ export type AssetCustomFieldApplicationErrorCatalog = {
     kind: "unexpected"
     details: { assetIds: string[] }
   }
+  "asset_custom_field.value.invalid": {
+    kind: "validation"
+    details: { assetId: string; fieldId: string; fieldKey: string }
+  }
+  "asset_custom_field.value.duplicate": {
+    kind: "validation"
+    details: { assetId: string; fieldId: string }
+  }
+  "asset_custom_field.value.missing": {
+    kind: "validation"
+    details: { assetId: string; fieldId: string }
+  }
+  "asset_custom_field.value.not_assigned": {
+    kind: "validation"
+    details: { assetId: string; fieldId: string }
+  }
+  "asset_custom_field.value.replace_failed": {
+    kind: "unexpected"
+    details: { assetId: string }
+  }
   "asset_custom_field.definition.list_available_failed": {
     kind: "unexpected"
     details: { assetId: string }

@@ -37,17 +37,18 @@ services, and route layers.
 - `apps/api/src/db/schema/asset-custom-field.ts` owns the custom field table
   types used by the API database interface.
 - `apps/api/src/repository/asset-custom-field.ts` persists registry-level field
-  definitions, select options, asset assignments, and composes effective field
-  values from assignments, defaults, and asset-specific overrides.
-- `apps/api/src/service/asset-custom-field.ts` validates definition rules and
-  asset-specific assignment commands, serves registry and asset-specific read
-  projections, emits custom field definition events, and emits `asset.updated`
-  for assignment changes with the preserved asset event payload shape.
-- `apps/api/src/repository/asset.ts` persists core asset rows and per-asset
-  value overrides.
-- `apps/api/src/service/asset.ts` validates asset-specific values before data
-  is written. Its `AssetWithCustomFields` reads are a compatibility projection
-  that delegates custom field hydration to the asset custom field service.
+  definitions, select options, asset assignments, per-asset value overrides,
+  and composes effective field values from assignments, defaults, and
+  asset-specific overrides.
+- `apps/api/src/service/asset-custom-field.ts` validates definition rules,
+  asset-specific assignment commands, and asset-specific value commands; serves
+  registry and asset-specific read projections; emits custom field definition
+  events; and emits `asset.updated` for assignment and value changes with the
+  preserved asset event payload shape.
+- `apps/api/src/repository/asset.ts` persists only core asset rows.
+- `apps/api/src/service/asset.ts` owns core asset behavior. Its
+  `AssetWithCustomFields` reads are a compatibility projection that delegates
+  custom field hydration to the asset custom field service.
 - `apps/api/src/routes/asset-custom-fields.ts` exposes registry-level custom
   field definition operations through `AssetCustomFieldService`.
 - `apps/api/src/routes/assets.ts` exposes asset-specific custom field read,
@@ -179,17 +180,19 @@ returns one effective value object per assigned field:
 - `source = "empty"` when neither an override nor a default value exists.
 
 Writing custom field values only stores per-asset overrides in
-`asset_custom_field_value`. The field must already be assigned to the asset.
-Sending `null` for a field removes the stored override, so the effective value
-falls back to the field default or becomes empty.
+`asset_custom_field_value` through `AssetCustomFieldService` and
+`AssetCustomFieldRepository`. The field must already be assigned to the asset.
+Sending `null` for a field removes the stored override, so the returned
+effective value falls back to the field default or becomes empty.
 
 Clearing a value also removes the stored override and returns a standard object
 reply indicating that the clear operation was applied.
 
-Combined asset reads, including `GET /api/assets?includeCustomFields=true` and
-asset lifecycle event snapshots, keep returning `AssetWithCustomFields`. The
-core asset service reads the core asset rows, then delegates effective custom
-field value hydration to the asset custom field service.
+Combined asset reads, including `GET /api/assets?includeCustomFields=true`,
+keep returning `AssetWithCustomFields`. The core asset service reads the core
+asset rows, then delegates effective custom field value hydration to the asset
+custom field service. Asset lifecycle event snapshots use the same effective
+value semantics.
 
 ## Validation
 
@@ -258,6 +261,9 @@ errors.
   and bad-request responses when referenced by asset value or assignment
   updates.
 - Duplicate assignment IDs and assignment replacement failures use
+  `asset_custom_field.*` application error codes.
+- Duplicate value IDs, incomplete value replacement payloads, invalid values,
+  unassigned fields, and value replacement failures use
   `asset_custom_field.*` application error codes.
 - Writing or clearing values for fields that are not assigned to the asset
   returns a bad-request response.

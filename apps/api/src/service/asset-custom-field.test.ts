@@ -22,7 +22,8 @@ describe("asset custom field service", () => {
     listEffectiveValuesForAsset: vi.fn(),
     listEffectiveValuesForAssets: vi.fn(),
     listAvailableDefinitionsForAsset: vi.fn(),
-    replaceAssignmentsForAsset: vi.fn()
+    replaceAssignmentsForAsset: vi.fn(),
+    replaceValuesForAsset: vi.fn()
   }
   const assetRepository = {
     getByID: vi.fn()
@@ -512,6 +513,490 @@ describe("asset custom field service", () => {
       })
     ).rejects.toMatchObject({
       code: "asset_custom_field.assignment.replace_failed",
+      kind: "unexpected",
+      details: { assetId: asset.id }
+    } satisfies Partial<ApplicationError>)
+  })
+
+  it("returns null when replacing custom field values for a missing asset", async () => {
+    const service = createTestAssetCustomFieldService()
+
+    assetRepository.getByID.mockResolvedValue(null)
+
+    await expect(
+      service.replaceValuesForAsset({
+        assetId: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+        values: [
+          {
+            fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+            value: "platform"
+          }
+        ]
+      })
+    ).resolves.toBeNull()
+    expect(
+      assetCustomFieldRepository.replaceValuesForAsset
+    ).not.toHaveBeenCalled()
+  })
+
+  it("rejects value replacements for unassigned custom field ids", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host,
+      ownerId: null
+    }
+    const service = createTestAssetCustomFieldService()
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetCustomFieldRepository.listEffectiveValuesForAsset.mockResolvedValue([])
+
+    await expect(
+      service.replaceValuesForAsset({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+            value: "platform"
+          }
+        ]
+      })
+    ).rejects.toMatchObject({
+      code: "asset_custom_field.value.not_assigned",
+      kind: "validation",
+      details: {
+        assetId: asset.id,
+        fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
+      }
+    } satisfies Partial<ApplicationError>)
+  })
+
+  it("rejects invalid custom field value types", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host,
+      ownerId: null
+    }
+    const definition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "priority",
+      name: "Priority",
+      required: false,
+      type: AssetCustomFieldType.Number,
+      defaultValue: null
+    }
+    const service = createTestAssetCustomFieldService()
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetCustomFieldRepository.listEffectiveValuesForAsset.mockResolvedValue([
+      {
+        fieldId: definition.id,
+        key: definition.key,
+        name: definition.name,
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Number,
+        value: null
+      }
+    ])
+
+    await expect(
+      service.replaceValuesForAsset({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: definition.id,
+            value: "high"
+          }
+        ]
+      })
+    ).rejects.toMatchObject({
+      code: "asset_custom_field.value.invalid",
+      kind: "validation",
+      details: {
+        assetId: asset.id,
+        fieldId: definition.id,
+        fieldKey: definition.key
+      }
+    } satisfies Partial<ApplicationError>)
+  })
+
+  it("rejects value replacements that omit assigned custom fields", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host,
+      ownerId: null
+    }
+    const definition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "priority",
+      name: "Priority",
+      required: false,
+      type: AssetCustomFieldType.Number,
+      defaultValue: null
+    }
+    const service = createTestAssetCustomFieldService()
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetCustomFieldRepository.listEffectiveValuesForAsset.mockResolvedValue([
+      {
+        fieldId: definition.id,
+        key: definition.key,
+        name: definition.name,
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Number,
+        value: null
+      }
+    ])
+
+    await expect(
+      service.replaceValuesForAsset({
+        assetId: asset.id,
+        values: []
+      })
+    ).rejects.toMatchObject({
+      code: "asset_custom_field.value.missing",
+      kind: "validation",
+      details: { assetId: asset.id, fieldId: definition.id }
+    } satisfies Partial<ApplicationError>)
+    expect(
+      assetCustomFieldRepository.replaceValuesForAsset
+    ).not.toHaveBeenCalled()
+  })
+
+  it("rejects value replacements with duplicate custom field ids", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host,
+      ownerId: null
+    }
+    const definition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "priority",
+      name: "Priority",
+      required: false,
+      type: AssetCustomFieldType.Number,
+      defaultValue: null
+    }
+    const service = createTestAssetCustomFieldService()
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetCustomFieldRepository.listEffectiveValuesForAsset.mockResolvedValue([
+      {
+        fieldId: definition.id,
+        key: definition.key,
+        name: definition.name,
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Number,
+        value: null
+      }
+    ])
+
+    await expect(
+      service.replaceValuesForAsset({
+        assetId: asset.id,
+        values: [
+          { fieldId: definition.id, value: 1 },
+          { fieldId: definition.id, value: 2 }
+        ]
+      })
+    ).rejects.toMatchObject({
+      code: "asset_custom_field.value.duplicate",
+      kind: "validation",
+      details: { assetId: asset.id, fieldId: definition.id }
+    } satisfies Partial<ApplicationError>)
+    expect(
+      assetCustomFieldRepository.replaceValuesForAsset
+    ).not.toHaveBeenCalled()
+  })
+
+  it("rejects select custom field values outside the option set", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host,
+      ownerId: null
+    }
+    const definition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "environment",
+      name: "Environment",
+      required: false,
+      type: AssetCustomFieldType.Select,
+      defaultValue: null,
+      options: [
+        {
+          id: "2db67190-9d84-482f-9936-cfbf4244752b",
+          fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+          value: "prod",
+          label: "Production"
+        }
+      ]
+    }
+    const service = createTestAssetCustomFieldService()
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetCustomFieldRepository.listEffectiveValuesForAsset.mockResolvedValue([
+      {
+        fieldId: definition.id,
+        key: definition.key,
+        name: definition.name,
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Select,
+        value: null,
+        options: definition.options
+      }
+    ])
+
+    await expect(
+      service.replaceValuesForAsset({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: definition.id,
+            value: "stage"
+          }
+        ]
+      })
+    ).rejects.toMatchObject({
+      code: "asset_custom_field.value.invalid",
+      kind: "validation",
+      details: {
+        assetId: asset.id,
+        fieldId: definition.id,
+        fieldKey: definition.key
+      }
+    } satisfies Partial<ApplicationError>)
+  })
+
+  it("replaces custom field values and emits changed asset snapshots", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host,
+      ownerId: null
+    }
+    const definition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "priority",
+      name: "Priority",
+      required: false,
+      type: AssetCustomFieldType.Number,
+      defaultValue: null
+    }
+    const values = [
+      {
+        fieldId: definition.id,
+        key: "priority",
+        name: "Priority",
+        source: AssetCustomFieldValueSource.Asset,
+        type: AssetCustomFieldType.Number,
+        value: 5
+      }
+    ]
+    const previousValues = [
+      {
+        fieldId: definition.id,
+        key: definition.key,
+        name: definition.name,
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Number,
+        value: null
+      }
+    ]
+    const service = createTestAssetCustomFieldService()
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetCustomFieldRepository.listEffectiveValuesForAsset
+      .mockResolvedValueOnce(previousValues)
+      .mockResolvedValueOnce(values)
+    assetCustomFieldRepository.replaceValuesForAsset.mockResolvedValue(values)
+
+    await expect(
+      service.replaceValuesForAsset({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: definition.id,
+            value: 5
+          }
+        ],
+        eventContext
+      })
+    ).resolves.toEqual(values)
+    expect(
+      assetCustomFieldRepository.replaceValuesForAsset
+    ).toHaveBeenCalledWith(asset.id, [{ fieldId: definition.id, value: 5 }])
+    expect(domainEvents.eventsFor("asset.updated")).toMatchObject([
+      {
+        subject: "asset.updated",
+        source: "asset",
+        actor: eventContext.actor,
+        correlationId: eventContext.correlationId,
+        data: {
+          previous: {
+            ...asset,
+            customFields: previousValues
+          },
+          current: {
+            ...asset,
+            customFields: values
+          }
+        }
+      }
+    ])
+  })
+
+  it("does not emit asset update events for unchanged custom field values", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host,
+      ownerId: null
+    }
+    const definition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "priority",
+      name: "Priority",
+      required: false,
+      type: AssetCustomFieldType.Number,
+      defaultValue: null
+    }
+    const values = [
+      {
+        fieldId: definition.id,
+        key: "priority",
+        name: "Priority",
+        source: AssetCustomFieldValueSource.Asset,
+        type: AssetCustomFieldType.Number,
+        value: 5
+      }
+    ]
+    const service = createTestAssetCustomFieldService()
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetCustomFieldRepository.listEffectiveValuesForAsset.mockResolvedValue(
+      values
+    )
+    assetCustomFieldRepository.replaceValuesForAsset.mockResolvedValue(values)
+
+    await expect(
+      service.replaceValuesForAsset({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: definition.id,
+            value: 5
+          }
+        ],
+        eventContext
+      })
+    ).resolves.toEqual(values)
+    expect(domainEvents.eventsFor("asset.updated")).toEqual([])
+  })
+
+  it("replaces text custom field values", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host,
+      ownerId: null
+    }
+    const definition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "category",
+      name: "Category",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: null
+    }
+    const previousValues = [
+      {
+        fieldId: definition.id,
+        key: definition.key,
+        name: definition.name,
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Text,
+        value: null
+      }
+    ]
+    const values = [
+      {
+        fieldId: definition.id,
+        key: "category",
+        name: "Category",
+        source: AssetCustomFieldValueSource.Asset,
+        type: AssetCustomFieldType.Text,
+        value: "platform"
+      }
+    ]
+    const service = createTestAssetCustomFieldService()
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetCustomFieldRepository.listEffectiveValuesForAsset
+      .mockResolvedValueOnce(previousValues)
+      .mockResolvedValueOnce(values)
+    assetCustomFieldRepository.replaceValuesForAsset.mockResolvedValue(values)
+
+    await expect(
+      service.replaceValuesForAsset({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: definition.id,
+            value: "platform"
+          }
+        ]
+      })
+    ).resolves.toEqual(values)
+  })
+
+  it("maps custom field value replacement failures to an application error", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host,
+      ownerId: null
+    }
+    const definition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "category",
+      name: "Category",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: null
+    }
+    const service = createTestAssetCustomFieldService()
+
+    assetRepository.getByID.mockResolvedValue(asset)
+    assetCustomFieldRepository.listEffectiveValuesForAsset.mockResolvedValue([
+      {
+        fieldId: definition.id,
+        key: definition.key,
+        name: definition.name,
+        source: AssetCustomFieldValueSource.Empty,
+        type: AssetCustomFieldType.Text,
+        value: null
+      }
+    ])
+    assetCustomFieldRepository.replaceValuesForAsset.mockRejectedValue(
+      new Error("replace failed")
+    )
+
+    await expect(
+      service.replaceValuesForAsset({
+        assetId: asset.id,
+        values: [
+          {
+            fieldId: definition.id,
+            value: "platform"
+          }
+        ]
+      })
+    ).rejects.toMatchObject({
+      code: "asset_custom_field.value.replace_failed",
       kind: "unexpected",
       details: { assetId: asset.id }
     } satisfies Partial<ApplicationError>)

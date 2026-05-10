@@ -5,7 +5,8 @@ import {
   AssetCustomFieldValueSource,
   type CreateAssetCustomFieldDefinition,
   AssetCustomFieldType,
-  type UpdateAssetCustomFieldDefinition
+  type UpdateAssetCustomFieldDefinition,
+  type UpdateAssetCustomFieldValue
 } from "@exposurenexus/types/model/asset-custom-field"
 import { type Database } from "../db/index.js"
 import {
@@ -45,6 +46,16 @@ export interface AssetCustomFieldRepository {
     assetId: string,
     fieldIds: readonly string[]
   ): Promise<AssetCustomFieldValue[]>
+  replaceValuesForAsset(
+    assetId: string,
+    values: readonly UpdateAssetCustomFieldValue[]
+  ): Promise<AssetCustomFieldValue[]>
+}
+
+function toJsonbValue(
+  value: AssetCustomFieldStoredValue
+): RawBuilder<AssetCustomFieldStoredValue> {
+  return sql`${JSON.stringify(value)}::jsonb`
 }
 
 function toNullableJsonbValue(
@@ -401,6 +412,41 @@ async function replaceAssignmentsForAsset(
   })
 }
 
+async function replaceValuesForAsset(
+  database: Kysely<Database>,
+  assetId: string,
+  values: readonly UpdateAssetCustomFieldValue[]
+): Promise<AssetCustomFieldValue[]> {
+  return await database.transaction().execute(async (trx) => {
+    await trx
+      .deleteFrom("asset_custom_field_value")
+      .where("assetId", "=", assetId)
+      .execute()
+
+    for (const value of values) {
+      if (value.value === null) {
+        continue
+      }
+
+      await trx
+        .insertInto("asset_custom_field_value")
+        .values({
+          assetId,
+          fieldId: value.fieldId,
+          value: toJsonbValue(value.value)
+        })
+        .onConflict((oc) =>
+          oc.columns(["assetId", "fieldId"]).doUpdateSet({
+            value: toJsonbValue(value.value!)
+          })
+        )
+        .execute()
+    }
+
+    return await listEffectiveValuesForAsset(trx, assetId)
+  })
+}
+
 async function insertCustomFieldOptions(
   database: DatabaseExecutor,
   fieldId: string,
@@ -534,6 +580,13 @@ export function createAssetCustomFieldRepository(
       fieldIds: readonly string[]
     ): Promise<AssetCustomFieldValue[]> {
       return await replaceAssignmentsForAsset(database, assetId, fieldIds)
+    },
+
+    async replaceValuesForAsset(
+      assetId: string,
+      values: readonly UpdateAssetCustomFieldValue[]
+    ): Promise<AssetCustomFieldValue[]> {
+      return await replaceValuesForAsset(database, assetId, values)
     }
   }
 }
