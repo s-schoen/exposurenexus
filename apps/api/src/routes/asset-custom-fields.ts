@@ -1,13 +1,9 @@
-import { Hono, type Context } from "hono"
-import { HTTPException } from "hono/http-exception"
+import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
-import {
-  type AssetCustomFieldRuleViolation,
-  AssetCustomFieldRuleViolationReason,
-  createAssetCustomFieldDefinitionSchema
-} from "@exposurenexus/types/model/asset"
-import { notFound, replyArray, replyObject } from "../lib/reply.js"
+import { createAssetCustomFieldDefinitionSchema } from "@exposurenexus/types/model/asset"
+import { notFound } from "../lib/api-error.js"
+import { replyArray, replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 import { requestEventContext } from "../lib/request-event-context.js"
@@ -21,48 +17,6 @@ const fieldIdParamValidator = zValidator(
   "param",
   z.object({ fieldId: z.uuidv4() })
 )
-
-const assetCustomFieldRuleViolationReasons = new Set<string>(
-  Object.values(AssetCustomFieldRuleViolationReason)
-)
-
-function isAssetCustomFieldRuleViolation(
-  cause: unknown
-): cause is AssetCustomFieldRuleViolation {
-  if (!cause || typeof cause !== "object") {
-    return false
-  }
-
-  const reason = (cause as { reason?: unknown }).reason
-  return (
-    typeof reason === "string" &&
-    assetCustomFieldRuleViolationReasons.has(reason)
-  )
-}
-
-function isAssetCustomFieldRuleValidationError(
-  error: unknown
-): error is HTTPException & { cause: AssetCustomFieldRuleViolation } {
-  return (
-    error instanceof HTTPException &&
-    error.status === 400 &&
-    isAssetCustomFieldRuleViolation(error.cause)
-  )
-}
-
-function replyCustomFieldRuleValidationError(
-  c: Context<{ Variables: ContextVariables }>,
-  error: HTTPException & { cause: AssetCustomFieldRuleViolation }
-) {
-  const correlationId = c.get("requestId")
-  c.status(error.status)
-  return c.json({
-    correlationId,
-    status: error.status,
-    error: error.message,
-    reason: error.cause.reason
-  })
-}
 
 export function createAssetCustomFieldRoute(
   assetService: AssetService,
@@ -90,10 +44,10 @@ export function createAssetCustomFieldRoute(
         params.fieldId
       )
       if (!definition) {
-        notFound("asset custom field", params.fieldId)
+        throw notFound("asset custom field", params.fieldId)
       }
 
-      return replyObject(c, definition!)
+      return replyObject(c, definition)
     }
   )
 
@@ -103,19 +57,11 @@ export function createAssetCustomFieldRoute(
     zValidator("json", createAssetCustomFieldDefinitionSchema),
     async (c) => {
       const body = c.req.valid("json")
-      try {
-        const definition = await assetService.createCustomFieldDefinition(
-          body,
-          requestEventContext(c)
-        )
-        return replyObject(c, definition, true)
-      } catch (error) {
-        if (isAssetCustomFieldRuleValidationError(error)) {
-          return replyCustomFieldRuleValidationError(c, error)
-        }
-
-        throw error
-      }
+      const definition = await assetService.createCustomFieldDefinition(
+        body,
+        requestEventContext(c)
+      )
+      return replyObject(c, definition, true)
     }
   )
 
@@ -128,24 +74,16 @@ export function createAssetCustomFieldRoute(
       const params = c.req.valid("param")
       const body = c.req.valid("json")
 
-      try {
-        const definition = await assetService.updateCustomFieldDefinitionByID({
-          id: params.fieldId,
-          definition: body,
-          eventContext: requestEventContext(c)
-        })
-        if (!definition) {
-          notFound("asset custom field", params.fieldId)
-        }
-
-        return replyObject(c, definition!)
-      } catch (error) {
-        if (isAssetCustomFieldRuleValidationError(error)) {
-          return replyCustomFieldRuleValidationError(c, error)
-        }
-
-        throw error
+      const definition = await assetService.updateCustomFieldDefinitionByID({
+        id: params.fieldId,
+        definition: body,
+        eventContext: requestEventContext(c)
+      })
+      if (!definition) {
+        throw notFound("asset custom field", params.fieldId)
       }
+
+      return replyObject(c, definition)
     }
   )
 
@@ -161,10 +99,10 @@ export function createAssetCustomFieldRoute(
         requestEventContext(c)
       )
       if (!definition) {
-        notFound("asset custom field", params.fieldId)
+        throw notFound("asset custom field", params.fieldId)
       }
 
-      return replyObject(c, definition!)
+      return replyObject(c, definition)
     }
   )
 

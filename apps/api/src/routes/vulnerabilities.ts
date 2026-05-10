@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
-import { notFound, replyArray, replyObject } from "../lib/reply.js"
+import { notFound, unauthorized } from "../lib/api-error.js"
+import { replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
 import {
   createVulnerabilitySourceMappingSchema,
@@ -11,7 +12,6 @@ import {
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 import { requestEventContext } from "../lib/request-event-context.js"
-import { HTTPException } from "hono/http-exception"
 import type { VulnerabilityService } from "../service/vulnerability.js"
 
 interface VulnerabilityRouteDependencies {
@@ -52,7 +52,7 @@ export function createVulnerabilityRoute(
       const user = c.get("user")
 
       if (!user) {
-        throw new HTTPException(401, { message: "Unauthorized" })
+        throw unauthorized()
       }
 
       const createdVulnerability = await vulnerabilityService.create({
@@ -91,10 +91,10 @@ export function createVulnerabilityRoute(
         eventContext: requestEventContext(c)
       })
       if (!mapping) {
-        notFound("vulnerability source mapping", params.mappingId)
+        throw notFound("vulnerability source mapping", params.mappingId)
       }
 
-      return replyObject(c, mapping!)
+      return replyObject(c, mapping)
     }
   )
 
@@ -109,10 +109,10 @@ export function createVulnerabilityRoute(
         requestEventContext(c)
       )
       if (!mapping) {
-        notFound("vulnerability source mapping", params.mappingId)
+        throw notFound("vulnerability source mapping", params.mappingId)
       }
 
-      return replyObject(c, mapping!)
+      return replyObject(c, mapping)
     }
   )
 
@@ -125,10 +125,10 @@ export function createVulnerabilityRoute(
 
       const vulnResult = await vulnerabilityService.getByID(params.id)
       if (!vulnResult) {
-        notFound("vulnerability", params.id)
+        throw notFound("vulnerability", params.id)
       }
 
-      return replyObject(c, vulnResult!)
+      return replyObject(c, vulnResult)
     }
   )
 
@@ -142,10 +142,10 @@ export function createVulnerabilityRoute(
         params.id
       )
       if (!mappings) {
-        notFound("vulnerability", params.id)
+        throw notFound("vulnerability", params.id)
       }
 
-      return replyArray(c, mappings!)
+      return replyArray(c, mappings)
     }
   )
 
@@ -164,10 +164,10 @@ export function createVulnerabilityRoute(
         eventContext: requestEventContext(c)
       })
       if (!mapping) {
-        notFound("vulnerability", params.id)
+        throw notFound("vulnerability", params.id)
       }
 
-      return replyObject(c, mapping!, true)
+      return replyObject(c, mapping, true)
     }
   )
 
@@ -182,7 +182,7 @@ export function createVulnerabilityRoute(
       const user = c.get("user")
 
       if (!user) {
-        throw new HTTPException(401, { message: "Unauthorized" })
+        throw unauthorized()
       }
 
       const updatedVulnerability = await vulnerabilityService.updateByID({
@@ -192,10 +192,10 @@ export function createVulnerabilityRoute(
         eventContext: requestEventContext(c)
       })
       if (!updatedVulnerability) {
-        notFound("vulnerability", params.id)
+        throw notFound("vulnerability", params.id)
       }
 
-      return replyObject(c, updatedVulnerability!)
+      return replyObject(c, updatedVulnerability)
     }
   )
 
@@ -211,10 +211,10 @@ export function createVulnerabilityRoute(
         requestEventContext(c)
       )
       if (!deletedVulnerability) {
-        notFound("vulnerability", params.id)
+        throw notFound("vulnerability", params.id)
       }
 
-      return replyObject(c, deletedVulnerability!)
+      return replyObject(c, deletedVulnerability)
     }
   )
 

@@ -5,7 +5,7 @@ import {
 } from "@exposurenexus/types/model/finding"
 import { AssetType, type Asset } from "@exposurenexus/types/model/asset"
 import { z } from "zod/v4"
-import { HTTPException } from "hono/http-exception"
+import { badRequest } from "../lib/api-error.js"
 import type { ImportContext } from "./importer.js"
 import {
   type Vulnerability,
@@ -211,9 +211,7 @@ export function createNucleiFindingParser({
           currentLine++
         } catch (error) {
           logger.error(error, `failed to parse line ${currentLine}`)
-          throw new HTTPException(400, {
-            message: `failed to parse line ${currentLine}`
-          })
+          throw badRequest(`failed to parse line ${currentLine}`)
         }
       }
 

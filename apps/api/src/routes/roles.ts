@@ -5,7 +5,8 @@ import {
   createRoleSchema,
   updateRoleSchema
 } from "@exposurenexus/types/model/rbac"
-import { notFound, replyArray, replyObject } from "../lib/reply.js"
+import { notFound } from "../lib/api-error.js"
+import { replyArray, replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import { requestEventContext } from "../lib/request-event-context.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
@@ -50,10 +51,10 @@ export function createRoleRoute(
 
       const roleResult = await roleService.getByID(params.id)
       if (!roleResult) {
-        notFound("role", params.id)
+        throw notFound("role", params.id)
       }
 
-      return replyObject(c, roleResult!)
+      return replyObject(c, roleResult)
     }
   )
 
@@ -72,10 +73,10 @@ export function createRoleRoute(
         eventContext: requestEventContext(c)
       })
       if (!updatedRole) {
-        notFound("role", params.id)
+        throw notFound("role", params.id)
       }
 
-      return replyObject(c, updatedRole!)
+      return replyObject(c, updatedRole)
     }
   )
 
@@ -91,10 +92,10 @@ export function createRoleRoute(
         requestEventContext(c)
       )
       if (!deletedRole) {
-        notFound("role", params.id)
+        throw notFound("role", params.id)
       }
 
-      return replyObject(c, deletedRole!)
+      return replyObject(c, deletedRole)
     }
   )
 

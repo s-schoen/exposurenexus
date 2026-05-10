@@ -51,11 +51,3 @@ export function createArrayReply<T extends object>(
     }
   }
 }
-
-export function createErrorReply(
-  correlationId: string,
-  httpStatus: number,
-  error: Error
-): APIErrorReply {
-  return { correlationId, error: error.message, status: httpStatus }
-}

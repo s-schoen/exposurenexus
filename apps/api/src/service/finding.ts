@@ -13,13 +13,14 @@ import type { UserProfile } from "@exposurenexus/types/model/user"
 import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date"
 import { createHash } from "node:crypto"
 import type { Logger } from "pino"
+import { badRequest, isApiError } from "../lib/api-error.js"
 import {
   createDomainEventEmitter,
   type DomainEventContext,
   type DomainEventEmitter,
   type FindingEventPayloads
 } from "../lib/eventbus/events/index.js"
-import { badRequest, isForeignKeyError } from "./errors.js"
+import { isForeignKeyError } from "./errors.js"
 import type { FindingRepository } from "../repository/finding.js"
 
 interface VulnerabilityLookupService {
@@ -211,7 +212,7 @@ export function createFindingService({
       )
       return createdFinding
     } catch (error) {
-      if (error instanceof HTTPException) {
+      if (isApiError(error) || error instanceof HTTPException) {
         throw error
       }
 
@@ -328,7 +329,7 @@ export function createFindingService({
 
         return currentFinding
       } catch (error) {
-        if (error instanceof HTTPException) {
+        if (isApiError(error) || error instanceof HTTPException) {
           throw error
         }
 
@@ -460,7 +461,7 @@ export function createFindingService({
 
         return result
       } catch (error) {
-        if (error instanceof HTTPException) {
+        if (isApiError(error) || error instanceof HTTPException) {
           throw error
         }
 

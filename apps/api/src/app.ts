@@ -1,4 +1,3 @@
-import { createErrorReply } from "@exposurenexus/types/api"
 import { serveStatic } from "@hono/node-server/serve-static"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
@@ -10,6 +9,7 @@ import type { Logger } from "pino"
 import { registerErrorHandler } from "./lib/handler.js"
 import { accessLogger } from "./middleware/logger.js"
 import type { ContextVariables } from "./lib/hono-schema.js"
+import { replyError, routeNotFound } from "./lib/api-error.js"
 
 export interface CreateAppOptions {
   logger: Logger
@@ -54,10 +54,7 @@ function registerStaticRoutes(
 }
 
 function apiNotFound(c: Context<{ Variables: ContextVariables }>) {
-  return c.json(
-    createErrorReply(c.get("requestId"), 404, new Error("Not Found")),
-    404
-  )
+  return replyError(c, routeNotFound())
 }
 
 function createApiApp(options: CreateAppOptions) {

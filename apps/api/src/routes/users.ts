@@ -4,7 +4,8 @@ import {
   createUserProfileSchema,
   updateUserProfileSchema
 } from "@exposurenexus/types/model/user"
-import { notFound, replyArray, replyObject } from "../lib/reply.js"
+import { notFound } from "../lib/api-error.js"
+import { replyArray, replyObject } from "../lib/reply.js"
 import { z } from "zod/v4"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import { requestEventContext } from "../lib/request-event-context.js"
@@ -37,10 +38,10 @@ export function createUserRoute(
 
       const userResult = await userService.getByID(params.id)
       if (!userResult) {
-        notFound("user", params.id)
+        throw notFound("user", params.id)
       }
 
-      return replyObject(c, userResult!)
+      return replyObject(c, userResult)
     }
   )
 
@@ -70,10 +71,10 @@ export function createUserRoute(
         eventContext: requestEventContext(c)
       })
       if (!updatedUser) {
-        notFound("user", params.id)
+        throw notFound("user", params.id)
       }
 
-      return replyObject(c, updatedUser!)
+      return replyObject(c, updatedUser)
     }
   )
 

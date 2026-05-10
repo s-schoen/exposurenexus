@@ -7,7 +7,7 @@ import type {
   PermissionVerb
 } from "@exposurenexus/types/model/rbac"
 import type { UserProfile } from "@exposurenexus/types/model/user"
-import { HTTPException } from "hono/http-exception"
+import { forbidden, unauthorized } from "../lib/api-error.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import {
   domainPermission,
@@ -121,7 +121,7 @@ export const authNRequire = (): AuthMiddleware => {
   return async function authNRequire(c, next) {
     const user = c.get("user")
     if (!user) {
-      throw new HTTPException(401, { message: "Unauthorized" })
+      throw unauthorized()
     }
     await next()
   }
@@ -135,7 +135,7 @@ export function createRequirePermission(
     const user = c.get("user")
 
     if (!user) {
-      throw new HTTPException(401, { message: "Unauthorized" })
+      throw unauthorized()
     }
 
     const result = await permissionChecker(
@@ -144,7 +144,7 @@ export function createRequirePermission(
     )
 
     if (!result) {
-      throw new HTTPException(403, { message: "Forbidden" })
+      throw forbidden()
     }
 
     await next()

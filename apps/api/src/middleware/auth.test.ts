@@ -268,15 +268,16 @@ describe("auth middleware", () => {
       (c) => c.json({ ok: true })
     )
 
-    const app = new Hono<{ Variables: ContextVariables }>()
-    app.use("*", async (c, next) => {
-      c.set("user", viewer)
-      c.set("session", session)
-      await next()
+    const app = createTestApp({
+      annotateAuth: async (c, next) => {
+        c.set("user", viewer)
+        c.set("session", session)
+        await next()
+      },
+      assetRoute: protectedRoute
     })
-    app.route("/assets", protectedRoute)
 
-    const response = await app.request("/assets")
+    const response = await app.request("/api/assets")
 
     expect(response.status).toBe(403)
   })

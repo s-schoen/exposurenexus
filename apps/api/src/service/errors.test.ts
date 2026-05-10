@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest"
-import {
-  badRequest,
-  conflict,
-  forbidden,
-  isConflictError,
-  isForeignKeyError
-} from "./errors.js"
+import { isConflictError, isForeignKeyError } from "./errors.js"
 
 describe("service errors", () => {
   it("detects conflict-shaped errors", () => {
@@ -45,20 +39,5 @@ describe("service errors", () => {
   it("rejects non-foreign-key errors", () => {
     expect(isForeignKeyError("foreign key" as never)).toBe(false)
     expect(isForeignKeyError(new Error("db offline"))).toBe(false)
-  })
-
-  it("creates typed HTTP exceptions", () => {
-    expect(badRequest("invalid input")).toMatchObject({
-      status: 400,
-      message: "invalid input"
-    })
-    expect(conflict("already exists")).toMatchObject({
-      status: 409,
-      message: "already exists"
-    })
-    expect(forbidden("not allowed")).toMatchObject({
-      status: 403,
-      message: "not allowed"
-    })
   })
 })

@@ -1,5 +1,3 @@
-import { HTTPException } from "hono/http-exception"
-
 interface ErrorWithDatabaseCode extends Error {
   code?: string
   status?: number
@@ -38,16 +36,4 @@ export function isForeignKeyError(error: unknown): boolean {
     message.includes("foreign key") ||
     message.includes("violates foreign key constraint")
   )
-}
-
-export function badRequest(message: string): HTTPException {
-  return new HTTPException(400, { message })
-}
-
-export function conflict(message: string): HTTPException {
-  return new HTTPException(409, { message })
-}
-
-export function forbidden(message: string): HTTPException {
-  return new HTTPException(403, { message })
 }

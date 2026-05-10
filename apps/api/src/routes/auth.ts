@@ -1,6 +1,5 @@
 import { Hono, type Context } from "hono"
 import { deleteCookie, getCookie, setCookie } from "hono/cookie"
-import { HTTPException } from "hono/http-exception"
 import { zValidator } from "@hono/zod-validator"
 import { getConnInfo } from "@hono/node-server/conninfo"
 import { z } from "zod/v4"
@@ -9,6 +8,7 @@ import type {
   AuthSessionReply
 } from "@exposurenexus/types/api"
 import type { UserSession } from "@exposurenexus/types/model/user"
+import { unauthorized } from "../lib/api-error.js"
 import { replyObject } from "../lib/reply.js"
 import { resolveRequestSourceIp } from "../lib/source-ip.js"
 import {
@@ -92,7 +92,7 @@ export function createAuthRoute(
     })
 
     if (!createdSession) {
-      throw new HTTPException(401, { message: "Unauthorized" })
+      throw unauthorized()
     }
 
     setCookie(c, AUTH_SESSION_COOKIE, createdSession.sessionId, {
@@ -116,7 +116,7 @@ export function createAuthRoute(
   auth.get("/session", async (c) => {
     const sessionId = getCookie(c, AUTH_SESSION_COOKIE)
     if (!sessionId) {
-      throw new HTTPException(401, { message: "Unauthorized" })
+      throw unauthorized()
     }
 
     const validatedSession = await authService.validateSession({
@@ -126,7 +126,7 @@ export function createAuthRoute(
     if (!validatedSession) {
       deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(cookiePolicy))
       options.csrf?.clearToken(c)
-      throw new HTTPException(401, { message: "Unauthorized" })
+      throw unauthorized()
     }
 
     const reply: AuthSessionDataReply = {

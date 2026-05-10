@@ -1,6 +1,6 @@
 import { Hono } from "hono"
-import { HTTPException } from "hono/http-exception"
-import { badRequest, replyObject } from "../lib/reply.js"
+import { badRequest, unauthorized } from "../lib/api-error.js"
+import { replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import { requestEventContext } from "../lib/request-event-context.js"
 import type { Logger } from "pino"
@@ -27,12 +27,12 @@ export function createImportRoute({
       const body = await c.req.parseBody()
 
       if (typeof body["type"] !== "string") {
-        badRequest("expected type in form data")
+        throw badRequest("expected type in form data")
       }
       const type = body["type"] as string
 
       if (!body["file"] || typeof body["file"] === "string") {
-        badRequest("expected file in form data")
+        throw badRequest("expected file in form data")
       }
       const file = body["file"] as File
 
@@ -44,7 +44,7 @@ export function createImportRoute({
       const user = c.get("user")
 
       if (!user) {
-        throw new HTTPException(401, { message: "Unauthorized" })
+        throw unauthorized()
       }
 
       const findings = await importer.parseFindingsFromFile(
