@@ -125,7 +125,7 @@ function expectFindingDates(finding: Finding) {
   expect(finding.vulnerability.createdAt).toBeInstanceOf(Date)
   expect(finding.vulnerability.updatedAt).toBeInstanceOf(Date)
   expect(finding.dueDate?.toISOString()).toBe("2026-05-06T00:00:00.000Z")
-  expect(finding.lastSeen?.toISOString()).toBe("2026-01-03T00:00:00.000Z")
+  expect(finding.lastSeen.toISOString()).toBe("2026-01-03T00:00:00.000Z")
 }
 
 beforeEach(() => {

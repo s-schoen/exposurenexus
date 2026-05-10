@@ -224,16 +224,14 @@ describe("createFindingColumns", () => {
     cleanup()
 
     renderCell(findColumn(columns, "firstSeen"))
-    expect(screen.getByText(finding.firstSeen!.toLocaleString())).toBeTruthy()
+    expect(screen.getByText(finding.firstSeen.toLocaleString())).toBeTruthy()
   })
 
-  it("renders fallback labels for unresolved assets, empty source, and missing dates", async () => {
+  it("renders fallback labels for unresolved assets, empty source, and missing due date", async () => {
     const columns = await createColumns(new Map(), new Map(), new Map())
     const fallbackFinding = {
       ...finding,
       dueDate: null,
-      firstSeen: null,
-      lastSeen: null,
       source: ""
     }
 
@@ -251,10 +249,6 @@ describe("createFindingColumns", () => {
 
     renderCell(findColumn(columns, "dueDate"), fallbackFinding)
     expect(screen.getByText("No due date")).toBeTruthy()
-    cleanup()
-
-    renderCell(findColumn(columns, "lastSeen"), fallbackFinding)
-    expect(screen.getByText("Not available")).toBeTruthy()
   })
 
   it("formats due dates without shifting the UTC date key", async () => {
@@ -497,10 +491,6 @@ describe("createFindingColumns", () => {
       ...finding,
       firstSeen: new Date("2026-01-05T00:00:00.000Z")
     }
-    const missingDateFinding = {
-      ...finding,
-      firstSeen: null
-    }
     const earlierDueDateFinding = {
       ...finding,
       dueDate: new Date("2026-05-06T00:00:00.000Z")
@@ -523,7 +513,7 @@ describe("createFindingColumns", () => {
     ).toBeLessThan(0)
     expect(
       firstSeenColumn.sortingFn?.(
-        createRow(missingDateFinding),
+        createRow(finding),
         createRow(laterFinding),
         "firstSeen"
       )
