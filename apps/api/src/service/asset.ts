@@ -15,12 +15,7 @@ import {
 } from "@exposurenexus/types/model/asset"
 import type { Logger } from "pino"
 import type { UserProfile } from "@exposurenexus/types/model/user"
-import {
-  badRequest,
-  conflict,
-  internalServerError,
-  isApiError
-} from "../lib/api-error.js"
+import { ApplicationError, isApplicationError } from "./application-error.js"
 import { isConflictError, isForeignKeyError } from "./errors.js"
 import {
   createDomainEventEmitter,
@@ -73,9 +68,12 @@ function validateCustomFieldDefinition(
   const [violation] = validateAssetCustomFieldDefinitionRules(definition)
 
   if (violation) {
-    throw badRequest(customFieldRuleViolationMessage(violation), {
+    throw new ApplicationError({
+      code: "asset.custom_field_definition.rule_violation",
+      kind: "validation",
+      message: customFieldRuleViolationMessage(violation),
       cause: violation,
-      reason: violation.reason
+      details: violation
     })
   }
 }
@@ -229,7 +227,12 @@ export function createAssetService({
         return await assetRepository.list()
       } catch (error) {
         logger.error(error, "failed to list assets")
-        throw internalServerError("failed to list assets")
+        throw new ApplicationError({
+          code: "asset.list_failed",
+          kind: "unexpected",
+          message: "failed to list assets",
+          cause: error
+        })
       }
     },
 
@@ -238,7 +241,12 @@ export function createAssetService({
         return await assetRepository.listWithCustomFields()
       } catch (error) {
         logger.error(error, "failed to list assets with custom fields")
-        throw internalServerError("failed to list assets")
+        throw new ApplicationError({
+          code: "asset.list_with_custom_fields_failed",
+          kind: "unexpected",
+          message: "failed to list assets",
+          cause: error
+        })
       }
     },
 
@@ -251,7 +259,13 @@ export function createAssetService({
         return asset
       } catch (error) {
         logger.error(error, `failed to get asset with id ${id}`)
-        throw internalServerError("failed to get asset")
+        throw new ApplicationError({
+          code: "asset.get_failed",
+          kind: "unexpected",
+          message: "failed to get asset",
+          cause: error,
+          details: { assetId: id }
+        })
       }
     },
 
@@ -267,7 +281,13 @@ export function createAssetService({
           error,
           `failed to get asset with name='${name}' and type=${type}`
         )
-        throw internalServerError("failed to get asset")
+        throw new ApplicationError({
+          code: "asset.get_by_name_failed",
+          kind: "unexpected",
+          message: "failed to get asset",
+          cause: error,
+          details: { assetName: name, assetType: type }
+        })
       }
     },
 
@@ -280,7 +300,12 @@ export function createAssetService({
           const owner = await userProfileService.getByID(asset.ownerId)
 
           if (!owner) {
-            throw badRequest("asset owner does not exist")
+            throw new ApplicationError({
+              code: "asset.owner_unknown",
+              kind: "validation",
+              message: "asset owner does not exist",
+              details: { ownerId: asset.ownerId }
+            })
           }
         }
 
@@ -300,12 +325,18 @@ export function createAssetService({
         }
         return created
       } catch (error) {
-        if (isApiError(error)) {
+        if (isApplicationError(error)) {
           throw error
         }
 
         logger.error(error, `failed to create new asset ${asset.name}`)
-        throw internalServerError("failed to create asset")
+        throw new ApplicationError({
+          code: "asset.create_failed",
+          kind: "unexpected",
+          message: "failed to create asset",
+          cause: error,
+          details: { assetName: asset.name, assetType: asset.type }
+        })
       }
     },
 
@@ -319,7 +350,12 @@ export function createAssetService({
           const owner = await userProfileService.getByID(ownerId)
 
           if (!owner) {
-            throw badRequest("asset owner does not exist")
+            throw new ApplicationError({
+              code: "asset.owner_unknown",
+              kind: "validation",
+              message: "asset owner does not exist",
+              details: { ownerId }
+            })
           }
         }
 
@@ -341,12 +377,18 @@ export function createAssetService({
         }
         return updated
       } catch (error) {
-        if (isApiError(error)) {
+        if (isApplicationError(error)) {
           throw error
         }
 
         logger.error(error, `failed to update asset ${id} owner`)
-        throw internalServerError("failed to update asset owner")
+        throw new ApplicationError({
+          code: "asset.owner_update_failed",
+          kind: "unexpected",
+          message: "failed to update asset owner",
+          cause: error,
+          details: { assetId: id }
+        })
       }
     },
 
@@ -364,7 +406,12 @@ export function createAssetService({
         const linkedFindingCount =
           await assetRepository.countFindingsByAssetID(id)
         if (linkedFindingCount > 0) {
-          throw conflict(`asset ${id} is still referenced by findings`)
+          throw new ApplicationError({
+            code: "asset.delete_referenced_by_findings",
+            kind: "conflict",
+            message: `asset ${id} is still referenced by findings`,
+            details: { assetId: id }
+          })
         }
 
         const asset = await assetRepository.deleteByID(id)
@@ -379,17 +426,29 @@ export function createAssetService({
         )
         return asset
       } catch (error) {
-        if (isApiError(error)) {
+        if (isApplicationError(error)) {
           throw error
         }
 
         if (isForeignKeyError(error)) {
           logger.debug(error, "asset delete foreign key conflict")
-          throw conflict(`asset ${id} is still referenced by findings`)
+          throw new ApplicationError({
+            code: "asset.delete_referenced_by_findings",
+            kind: "conflict",
+            message: `asset ${id} is still referenced by findings`,
+            cause: error,
+            details: { assetId: id }
+          })
         }
 
         logger.error(error, `failed to delete asset with id ${id}`)
-        throw internalServerError("failed to delete asset")
+        throw new ApplicationError({
+          code: "asset.delete_failed",
+          kind: "unexpected",
+          message: "failed to delete asset",
+          cause: error,
+          details: { assetId: id }
+        })
       }
     },
 
@@ -398,9 +457,12 @@ export function createAssetService({
         return await assetRepository.listCustomFieldDefinitions()
       } catch (error) {
         logger.error(error, "failed to list asset custom field definitions")
-        throw internalServerError(
-          "failed to list asset custom field definitions"
-        )
+        throw new ApplicationError({
+          code: "asset.custom_field_definition.list_failed",
+          kind: "unexpected",
+          message: "failed to list asset custom field definitions",
+          cause: error
+        })
       }
     },
 
@@ -419,7 +481,13 @@ export function createAssetService({
           error,
           `failed to get asset custom field definition with id ${id}`
         )
-        throw internalServerError("failed to get asset custom field definition")
+        throw new ApplicationError({
+          code: "asset.custom_field_definition.get_failed",
+          kind: "unexpected",
+          message: "failed to get asset custom field definition",
+          cause: error,
+          details: { fieldId: id }
+        })
       }
     },
 
@@ -441,16 +509,26 @@ export function createAssetService({
       } catch (error) {
         if (isConflictError(error)) {
           logger.debug(error, "asset custom field definition create conflict")
-          throw conflict("asset custom field definition already exists")
+          throw new ApplicationError({
+            code: "asset.custom_field_definition.create_conflict",
+            kind: "conflict",
+            message: "asset custom field definition already exists",
+            cause: error,
+            details: { fieldKey: definition.key }
+          })
         }
 
         logger.error(
           error,
           `failed to create asset custom field definition ${definition.key}`
         )
-        throw internalServerError(
-          "failed to create asset custom field definition"
-        )
+        throw new ApplicationError({
+          code: "asset.custom_field_definition.create_failed",
+          kind: "unexpected",
+          message: "failed to create asset custom field definition",
+          cause: error,
+          details: { fieldKey: definition.key }
+        })
       }
     },
 
@@ -487,16 +565,26 @@ export function createAssetService({
       } catch (error) {
         if (isConflictError(error)) {
           logger.debug(error, "asset custom field definition update conflict")
-          throw conflict("asset custom field definition already exists")
+          throw new ApplicationError({
+            code: "asset.custom_field_definition.update_conflict",
+            kind: "conflict",
+            message: "asset custom field definition already exists",
+            cause: error,
+            details: { fieldId: id, fieldKey: definition.key }
+          })
         }
 
         logger.error(
           error,
           `failed to update asset custom field definition with id ${id}`
         )
-        throw internalServerError(
-          "failed to update asset custom field definition"
-        )
+        throw new ApplicationError({
+          code: "asset.custom_field_definition.update_failed",
+          kind: "unexpected",
+          message: "failed to update asset custom field definition",
+          cause: error,
+          details: { fieldId: id }
+        })
       }
     },
 
@@ -522,9 +610,13 @@ export function createAssetService({
           error,
           `failed to delete asset custom field definition with id ${id}`
         )
-        throw internalServerError(
-          "failed to delete asset custom field definition"
-        )
+        throw new ApplicationError({
+          code: "asset.custom_field_definition.delete_failed",
+          kind: "unexpected",
+          message: "failed to delete asset custom field definition",
+          cause: error,
+          details: { fieldId: id }
+        })
       }
     },
 
@@ -544,7 +636,13 @@ export function createAssetService({
           error,
           `failed to list asset custom field values for asset ${assetId}`
         )
-        throw internalServerError("failed to list asset custom field values")
+        throw new ApplicationError({
+          code: "asset.custom_field_value.list_failed",
+          kind: "unexpected",
+          message: "failed to list asset custom field values",
+          cause: error,
+          details: { assetId }
+        })
       }
     },
 
@@ -566,9 +664,13 @@ export function createAssetService({
           error,
           `failed to list available asset custom fields for asset ${assetId}`
         )
-        throw internalServerError(
-          "failed to list available asset custom fields"
-        )
+        throw new ApplicationError({
+          code: "asset.custom_field_definition.list_available_failed",
+          kind: "unexpected",
+          message: "failed to list available asset custom fields",
+          cause: error,
+          details: { assetId }
+        })
       }
     },
 
@@ -595,22 +697,37 @@ export function createAssetService({
         for (const valueUpdate of values) {
           const definition = definitionsById.get(valueUpdate.fieldId)
           if (!definition) {
-            throw badRequest(
-              `unknown asset custom field id ${valueUpdate.fieldId}`
-            )
+            throw new ApplicationError({
+              code: "asset.custom_field.unknown",
+              kind: "validation",
+              message: `unknown asset custom field id ${valueUpdate.fieldId}`,
+              details: { fieldId: valueUpdate.fieldId }
+            })
           }
 
           if (!assignedFieldIds.has(valueUpdate.fieldId)) {
-            throw badRequest("asset custom field is not assigned to asset")
+            throw new ApplicationError({
+              code: "asset.custom_field.not_assigned",
+              kind: "validation",
+              message: "asset custom field is not assigned to asset",
+              details: { assetId, fieldId: valueUpdate.fieldId }
+            })
           }
 
           if (
             valueUpdate.value !== null &&
             !isValidValueForDefinition(definition, valueUpdate.value)
           ) {
-            throw badRequest(
-              `invalid value for asset custom field ${definition.key}`
-            )
+            throw new ApplicationError({
+              code: "asset.custom_field_value.invalid",
+              kind: "validation",
+              message: `invalid value for asset custom field ${definition.key}`,
+              details: {
+                assetId,
+                fieldId: valueUpdate.fieldId,
+                fieldKey: definition.key
+              }
+            })
           }
         }
 
@@ -624,7 +741,7 @@ export function createAssetService({
         }
         return updatedValues
       } catch (error) {
-        if (isApiError(error)) {
+        if (isApplicationError(error)) {
           throw error
         }
 
@@ -632,7 +749,13 @@ export function createAssetService({
           error,
           `failed to upsert asset custom field values for asset ${assetId}`
         )
-        throw internalServerError("failed to update asset custom field values")
+        throw new ApplicationError({
+          code: "asset.custom_field_value.upsert_failed",
+          kind: "unexpected",
+          message: "failed to update asset custom field values",
+          cause: error,
+          details: { assetId }
+        })
       }
     },
 
@@ -651,11 +774,21 @@ export function createAssetService({
         const definition =
           await assetRepository.getCustomFieldDefinitionByID(fieldId)
         if (!definition) {
-          throw badRequest(`unknown asset custom field id ${fieldId}`)
+          throw new ApplicationError({
+            code: "asset.custom_field.unknown",
+            kind: "validation",
+            message: `unknown asset custom field id ${fieldId}`,
+            details: { fieldId }
+          })
         }
 
         if (!previous.customFields.some((value) => value.fieldId === fieldId)) {
-          throw badRequest("asset custom field is not assigned to asset")
+          throw new ApplicationError({
+            code: "asset.custom_field.not_assigned",
+            kind: "validation",
+            message: "asset custom field is not assigned to asset",
+            details: { assetId, fieldId }
+          })
         }
 
         await assetRepository.clearCustomFieldValue(assetId, fieldId)
@@ -665,7 +798,7 @@ export function createAssetService({
         }
         return true
       } catch (error) {
-        if (isApiError(error)) {
+        if (isApplicationError(error)) {
           throw error
         }
 
@@ -673,7 +806,13 @@ export function createAssetService({
           error,
           `failed to clear asset custom field ${fieldId} for asset ${assetId}`
         )
-        throw internalServerError("failed to clear asset custom field value")
+        throw new ApplicationError({
+          code: "asset.custom_field_value.clear_failed",
+          kind: "unexpected",
+          message: "failed to clear asset custom field value",
+          cause: error,
+          details: { assetId, fieldId }
+        })
       }
     },
 
@@ -696,7 +835,12 @@ export function createAssetService({
 
         for (const fieldId of fieldIds) {
           if (!definitionIds.has(fieldId)) {
-            throw badRequest(`unknown asset custom field id ${fieldId}`)
+            throw new ApplicationError({
+              code: "asset.custom_field.unknown",
+              kind: "validation",
+              message: `unknown asset custom field id ${fieldId}`,
+              details: { fieldId }
+            })
           }
         }
 
@@ -710,7 +854,7 @@ export function createAssetService({
         }
         return values
       } catch (error) {
-        if (isApiError(error)) {
+        if (isApplicationError(error)) {
           throw error
         }
 
@@ -718,7 +862,13 @@ export function createAssetService({
           error,
           `failed to assign asset custom fields for asset ${assetId}`
         )
-        throw internalServerError("failed to assign asset custom fields")
+        throw new ApplicationError({
+          code: "asset.custom_field_assignment.assign_failed",
+          kind: "unexpected",
+          message: "failed to assign asset custom fields",
+          cause: error,
+          details: { assetId }
+        })
       }
     },
 
@@ -737,7 +887,12 @@ export function createAssetService({
         const definition =
           await assetRepository.getCustomFieldDefinitionByID(fieldId)
         if (!definition) {
-          throw badRequest(`unknown asset custom field id ${fieldId}`)
+          throw new ApplicationError({
+            code: "asset.custom_field.unknown",
+            kind: "validation",
+            message: `unknown asset custom field id ${fieldId}`,
+            details: { fieldId }
+          })
         }
 
         await assetRepository.detachCustomField(assetId, fieldId)
@@ -747,7 +902,7 @@ export function createAssetService({
         }
         return true
       } catch (error) {
-        if (isApiError(error)) {
+        if (isApplicationError(error)) {
           throw error
         }
 
@@ -755,7 +910,13 @@ export function createAssetService({
           error,
           `failed to detach asset custom field ${fieldId} for asset ${assetId}`
         )
-        throw internalServerError("failed to detach asset custom field")
+        throw new ApplicationError({
+          code: "asset.custom_field_assignment.detach_failed",
+          kind: "unexpected",
+          message: "failed to detach asset custom field",
+          cause: error,
+          details: { assetId, fieldId }
+        })
       }
     }
   }

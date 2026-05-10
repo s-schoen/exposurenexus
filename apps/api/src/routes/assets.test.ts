@@ -11,8 +11,8 @@ import {
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
-import { badRequest, conflict } from "../lib/api-error.js"
 import { createRequireDomainPermission } from "../middleware/auth.js"
+import { ApplicationError } from "../service/application-error.js"
 import { createAssetRoute } from "./assets.js"
 
 describe("asset routes", () => {
@@ -108,6 +108,41 @@ describe("asset routes", () => {
         currentItemCount: 1
       }
     })
+  })
+
+  it("maps unexpected asset service failures to a generic 500 reply", async () => {
+    const requestId = "assets-list-unexpected-failure-request"
+
+    assetService.listAll.mockRejectedValueOnce(
+      new ApplicationError({
+        code: "asset.list_failed",
+        kind: "unexpected",
+        message: "failed to list assets"
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, routeDependencies)
+    })
+
+    const response = await app.request("/api/assets", {
+      headers: {
+        "X-Request-Id": requestId
+      }
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(body).toMatchObject({
+      correlationId: requestId,
+      status: 500,
+      error: expect.any(String)
+    })
+    expect(body.error).not.toContain("failed")
+    expect(body).not.toHaveProperty("reason")
+    expect(body).not.toHaveProperty("details")
   })
 
   it("returns assets with custom field values when requested", async () => {
@@ -448,9 +483,11 @@ describe("asset routes", () => {
     }
 
     assetService.createCustomFieldDefinition.mockRejectedValue(
-      badRequest("required custom fields must define a default value", {
-        cause: violation,
-        reason: violation.reason
+      new ApplicationError({
+        code: "asset.custom_field_definition.rule_violation",
+        kind: "validation",
+        message: "required custom fields must define a default value",
+        details: violation
       })
     )
 
@@ -478,12 +515,13 @@ describe("asset routes", () => {
         correlationId: requestId
       }
     )
-    expect(body).toEqual({
+    expect(body).toMatchObject({
       correlationId: requestId,
       status: 400,
-      error: "required custom fields must define a default value",
+      error: expect.any(String),
       reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing
     })
+    expect(body).not.toHaveProperty("details")
   })
 
   it("passes non-rule custom field create errors to the error handler", async () => {
@@ -497,7 +535,12 @@ describe("asset routes", () => {
     }
 
     assetService.createCustomFieldDefinition.mockRejectedValueOnce(
-      badRequest("invalid custom field definition")
+      new ApplicationError({
+        code: "asset.custom_field_definition.create_conflict",
+        kind: "conflict",
+        message: "asset custom field definition already exists",
+        details: { fieldKey: payload.key }
+      })
     )
 
     const app = createTestApp({
@@ -516,12 +559,14 @@ describe("asset routes", () => {
     })
     const body = await response.json()
 
-    expect(response.status).toBe(400)
-    expect(body).toEqual({
+    expect(response.status).toBe(409)
+    expect(body).toMatchObject({
       correlationId: requestId,
-      status: 400,
-      error: "invalid custom field definition"
+      status: 409,
+      error: expect.any(String)
     })
+    expect(body).not.toHaveProperty("reason")
+    expect(body).not.toHaveProperty("details")
   })
 
   it("updates an asset custom field definition", async () => {
@@ -634,9 +679,11 @@ describe("asset routes", () => {
     }
 
     assetService.updateCustomFieldDefinitionByID.mockRejectedValue(
-      badRequest("select custom field default must match an option value", {
-        cause: violation,
-        reason: violation.reason
+      new ApplicationError({
+        code: "asset.custom_field_definition.rule_violation",
+        kind: "validation",
+        message: "select custom field default must match an option value",
+        details: violation
       })
     )
 
@@ -665,12 +712,13 @@ describe("asset routes", () => {
         correlationId: requestId
       }
     })
-    expect(body).toEqual({
+    expect(body).toMatchObject({
       correlationId: requestId,
       status: 400,
-      error: "select custom field default must match an option value",
+      error: expect.any(String),
       reason: AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption
     })
+    expect(body).not.toHaveProperty("details")
   })
 
   it("passes non-rule custom field update errors to the error handler", async () => {
@@ -685,8 +733,11 @@ describe("asset routes", () => {
     }
 
     assetService.updateCustomFieldDefinitionByID.mockRejectedValueOnce(
-      badRequest("invalid custom field definition", {
-        cause: { reason: "unknown-rule" }
+      new ApplicationError({
+        code: "asset.custom_field_definition.update_conflict",
+        kind: "conflict",
+        message: "asset custom field definition already exists",
+        details: { fieldId, fieldKey: payload.key }
       })
     )
 
@@ -706,12 +757,14 @@ describe("asset routes", () => {
     })
     const body = await response.json()
 
-    expect(response.status).toBe(400)
-    expect(body).toEqual({
+    expect(response.status).toBe(409)
+    expect(body).toMatchObject({
       correlationId: requestId,
-      status: 400,
-      error: "invalid custom field definition"
+      status: 409,
+      error: expect.any(String)
     })
+    expect(body).not.toHaveProperty("reason")
+    expect(body).not.toHaveProperty("details")
   })
 
   it("deletes an asset custom field definition", async () => {
@@ -1769,7 +1822,12 @@ describe("asset routes", () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
 
     assetService.deleteByID.mockRejectedValueOnce(
-      conflict(`asset ${assetId} is still referenced by findings`)
+      new ApplicationError({
+        code: "asset.delete_referenced_by_findings",
+        kind: "conflict",
+        message: `asset ${assetId} is still referenced by findings`,
+        details: { assetId }
+      })
     )
 
     const app = createTestApp({
@@ -1787,10 +1845,12 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(409)
-    expect(body).toEqual({
+    expect(body).toMatchObject({
       correlationId: requestId,
       status: 409,
-      error: `asset ${assetId} is still referenced by findings`
+      error: expect.any(String)
     })
+    expect(body).not.toHaveProperty("reason")
+    expect(body).not.toHaveProperty("details")
   })
 })

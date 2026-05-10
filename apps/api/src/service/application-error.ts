@@ -1,12 +1,15 @@
+import type { AssetApplicationErrorCatalog } from "./application-error/asset.js"
 import type { AuthApplicationErrorCatalog } from "./application-error/auth.js"
 import type { RoleApplicationErrorCatalog } from "./application-error/role.js"
 import type { UserProfileApplicationErrorCatalog } from "./application-error/user-profile.js"
 
+export type { AssetApplicationErrorCatalog } from "./application-error/asset.js"
 export type { AuthApplicationErrorCatalog } from "./application-error/auth.js"
 export type { RoleApplicationErrorCatalog } from "./application-error/role.js"
 export type { UserProfileApplicationErrorCatalog } from "./application-error/user-profile.js"
 
-export type ApplicationErrorCatalog = AuthApplicationErrorCatalog &
+export type ApplicationErrorCatalog = AssetApplicationErrorCatalog &
+  AuthApplicationErrorCatalog &
   RoleApplicationErrorCatalog &
   UserProfileApplicationErrorCatalog
 

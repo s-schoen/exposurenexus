@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { ApiError } from "../lib/api-error.js"
 import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
@@ -9,6 +8,7 @@ import {
 import type { CreateAssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
 import { pino } from "pino"
 import { createAssetService } from "./asset.js"
+import type { ApplicationError } from "./application-error.js"
 import { createDomainEventCollector } from "../test/eventbus.js"
 
 describe("asset service", () => {
@@ -95,9 +95,9 @@ describe("asset service", () => {
     assetRepository.list.mockRejectedValue(new Error("db offline"))
 
     await expect(assetService.listAll()).rejects.toMatchObject({
-      status: 500,
-      message: "failed to list assets"
-    } satisfies Partial<ApiError>)
+      code: "asset.list_failed",
+      kind: "unexpected"
+    } satisfies Partial<ApplicationError>)
   })
 
   it("lists all assets with custom fields from the repository", async () => {
@@ -136,9 +136,9 @@ describe("asset service", () => {
     )
 
     await expect(assetService.listAllWithCustomFields()).rejects.toMatchObject({
-      status: 500,
-      message: "failed to list assets"
-    } satisfies Partial<ApiError>)
+      code: "asset.list_with_custom_fields_failed",
+      kind: "unexpected"
+    } satisfies Partial<ApplicationError>)
   })
 
   it("returns an asset by id", async () => {
@@ -172,9 +172,10 @@ describe("asset service", () => {
     await expect(
       assetService.getByID("76b1885f-2d28-4b7d-93da-2751ff385aa3")
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to get asset"
-    } satisfies Partial<ApiError>)
+      code: "asset.get_failed",
+      kind: "unexpected",
+      details: { assetId: "76b1885f-2d28-4b7d-93da-2751ff385aa3" }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("passes the lookup name and type to the repository", async () => {
@@ -214,9 +215,13 @@ describe("asset service", () => {
     await expect(
       assetService.getByName("api.exposurenexus.local", AssetType.Host)
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to get asset"
-    } satisfies Partial<ApiError>)
+      code: "asset.get_by_name_failed",
+      kind: "unexpected",
+      details: {
+        assetName: "api.exposurenexus.local",
+        assetType: AssetType.Host
+      }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("creates assets with a generated repository id", async () => {
@@ -344,9 +349,10 @@ describe("asset service", () => {
         ownerId
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "asset owner does not exist"
-    } satisfies Partial<ApiError>)
+      code: "asset.owner_unknown",
+      kind: "validation",
+      details: { ownerId }
+    } satisfies Partial<ApplicationError>)
     expect(assetRepository.create).not.toHaveBeenCalled()
   })
 
@@ -361,9 +367,13 @@ describe("asset service", () => {
         type: AssetType.Host
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to create asset"
-    } satisfies Partial<ApiError>)
+      code: "asset.create_failed",
+      kind: "unexpected",
+      details: {
+        assetName: "worker.exposurenexus.local",
+        assetType: AssetType.Host
+      }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("clears asset owners", async () => {
@@ -503,9 +513,10 @@ describe("asset service", () => {
     await expect(
       assetService.updateOwnerByID({ id: assetId, ownerId })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "asset owner does not exist"
-    } satisfies Partial<ApiError>)
+      code: "asset.owner_unknown",
+      kind: "validation",
+      details: { ownerId }
+    } satisfies Partial<ApplicationError>)
     expect(assetRepository.updateOwnerByID).not.toHaveBeenCalled()
   })
 
@@ -541,9 +552,10 @@ describe("asset service", () => {
         ownerId: null
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to update asset owner"
-    } satisfies Partial<ApiError>)
+      code: "asset.owner_update_failed",
+      kind: "unexpected",
+      details: { assetId: "76b1885f-2d28-4b7d-93da-2751ff385aa3" }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("deletes an asset by id", async () => {
@@ -612,9 +624,10 @@ describe("asset service", () => {
     assetRepository.countFindingsByAssetID.mockResolvedValue(2)
 
     await expect(assetService.deleteByID(asset.id)).rejects.toMatchObject({
-      status: 409,
-      message: `asset ${asset.id} is still referenced by findings`
-    } satisfies Partial<ApiError>)
+      code: "asset.delete_referenced_by_findings",
+      kind: "conflict",
+      details: { assetId: asset.id }
+    } satisfies Partial<ApplicationError>)
     expect(assetRepository.countFindingsByAssetID).toHaveBeenCalledWith(
       asset.id
     )
@@ -640,9 +653,10 @@ describe("asset service", () => {
     assetRepository.deleteByID.mockRejectedValue(foreignKeyError)
 
     await expect(assetService.deleteByID(asset.id)).rejects.toMatchObject({
-      status: 409,
-      message: `asset ${asset.id} is still referenced by findings`
-    } satisfies Partial<ApiError>)
+      code: "asset.delete_referenced_by_findings",
+      kind: "conflict",
+      details: { assetId: asset.id }
+    } satisfies Partial<ApplicationError>)
     expect(assetRepository.countFindingsByAssetID).toHaveBeenCalledWith(
       asset.id
     )
@@ -665,9 +679,10 @@ describe("asset service", () => {
     await expect(
       assetService.deleteByID("76b1885f-2d28-4b7d-93da-2751ff385aa3")
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to delete asset"
-    } satisfies Partial<ApiError>)
+      code: "asset.delete_failed",
+      kind: "unexpected",
+      details: { assetId: "76b1885f-2d28-4b7d-93da-2751ff385aa3" }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("lists custom field definitions from the repository", async () => {
@@ -701,9 +716,9 @@ describe("asset service", () => {
     await expect(
       assetService.listCustomFieldDefinitions()
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to list asset custom field definitions"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_definition.list_failed",
+      kind: "unexpected"
+    } satisfies Partial<ApplicationError>)
   })
 
   it("returns a custom field definition by id", async () => {
@@ -751,9 +766,10 @@ describe("asset service", () => {
         "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
       )
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to get asset custom field definition"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_definition.get_failed",
+      kind: "unexpected",
+      details: { fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25" }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("creates a valid custom field definition", async () => {
@@ -809,13 +825,13 @@ describe("asset service", () => {
         defaultValue: null
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "required custom fields must define a default value",
-      cause: {
+      code: "asset.custom_field_definition.rule_violation",
+      kind: "validation",
+      details: {
         reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
         path: ["defaultValue"]
       }
-    } satisfies Partial<ApiError>)
+    } satisfies Partial<ApplicationError>)
     expect(assetRepository.createCustomFieldDefinition).not.toHaveBeenCalled()
   })
 
@@ -831,9 +847,13 @@ describe("asset service", () => {
         defaultValue: "high" as never
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "number custom field default must be a number"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_definition.rule_violation",
+      kind: "validation",
+      details: {
+        reason: AssetCustomFieldRuleViolationReason.NumberDefaultMustBeNumber,
+        path: ["defaultValue"]
+      }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("rejects text custom field defaults that are not strings", async () => {
@@ -848,9 +868,13 @@ describe("asset service", () => {
         defaultValue: 5 as never
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "text custom field default must be a string"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_definition.rule_violation",
+      kind: "validation",
+      details: {
+        reason: AssetCustomFieldRuleViolationReason.TextDefaultMustBeString,
+        path: ["defaultValue"]
+      }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("rejects select custom field defaults that are not strings", async () => {
@@ -866,9 +890,13 @@ describe("asset service", () => {
         options: [{ value: "prod", label: "Production" }]
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "select custom field default must be a string"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_definition.rule_violation",
+      kind: "validation",
+      details: {
+        reason: AssetCustomFieldRuleViolationReason.SelectDefaultMustBeString,
+        path: ["defaultValue"]
+      }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("rejects select defaults that do not match an option", async () => {
@@ -884,9 +912,14 @@ describe("asset service", () => {
         options: [{ value: "prod", label: "Production" }]
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "select custom field default must match an option value"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_definition.rule_violation",
+      kind: "validation",
+      details: {
+        reason:
+          AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption,
+        path: ["defaultValue"]
+      }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("rejects duplicate select option values", async () => {
@@ -905,9 +938,14 @@ describe("asset service", () => {
         ]
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "select custom field options must be unique"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_definition.rule_violation",
+      kind: "validation",
+      details: {
+        reason:
+          AssetCustomFieldRuleViolationReason.SelectOptionValuesMustBeUnique,
+        path: ["options"]
+      }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("maps custom field definition create conflicts to an HTTP 409", async () => {
@@ -931,9 +969,10 @@ describe("asset service", () => {
         defaultValue: null
       })
     ).rejects.toMatchObject({
-      status: 409,
-      message: "asset custom field definition already exists"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_definition.create_conflict",
+      kind: "conflict",
+      details: { fieldKey: "category" }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("maps custom field definition create failures to an HTTP 500", async () => {
@@ -952,9 +991,10 @@ describe("asset service", () => {
         defaultValue: null
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to create asset custom field definition"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_definition.create_failed",
+      kind: "unexpected",
+      details: { fieldKey: "category" }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("updates valid custom field definitions", async () => {
@@ -1086,9 +1126,10 @@ describe("asset service", () => {
         }
       })
     ).rejects.toMatchObject({
-      status: 409,
-      message: "asset custom field definition already exists"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_definition.update_conflict",
+      kind: "conflict",
+      details: { fieldId: previous.id, fieldKey: "category" }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("maps custom field definition update failures to an HTTP 500", async () => {
@@ -1119,9 +1160,10 @@ describe("asset service", () => {
         }
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to update asset custom field definition"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_definition.update_failed",
+      kind: "unexpected",
+      details: { fieldId: previous.id }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("deletes custom field definitions", async () => {
@@ -1176,9 +1218,10 @@ describe("asset service", () => {
         "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
       )
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to delete asset custom field definition"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_definition.delete_failed",
+      kind: "unexpected",
+      details: { fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25" }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("returns null when listing custom field values for a missing asset", async () => {
@@ -1235,9 +1278,10 @@ describe("asset service", () => {
     await expect(
       assetService.listCustomFieldValues(asset.id)
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to list asset custom field values"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_value.list_failed",
+      kind: "unexpected",
+      details: { assetId: asset.id }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("lists custom field definitions available for an existing asset", async () => {
@@ -1302,9 +1346,10 @@ describe("asset service", () => {
     await expect(
       assetService.listAvailableCustomFieldDefinitions(asset.id)
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to list available asset custom fields"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_definition.list_available_failed",
+      kind: "unexpected",
+      details: { assetId: asset.id }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("returns null when upserting custom field values for a missing asset", async () => {
@@ -1349,10 +1394,10 @@ describe("asset service", () => {
         ]
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message:
-        "unknown asset custom field id 5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field.unknown",
+      kind: "validation",
+      details: { fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25" }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("rejects invalid custom field value types", async () => {
@@ -1395,9 +1440,14 @@ describe("asset service", () => {
         ]
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "invalid value for asset custom field priority"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_value.invalid",
+      kind: "validation",
+      details: {
+        assetId: asset.id,
+        fieldId: definition.id,
+        fieldKey: definition.key
+      }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("rejects upserts for unassigned custom fields", async () => {
@@ -1431,9 +1481,10 @@ describe("asset service", () => {
         ]
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "asset custom field is not assigned to asset"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field.not_assigned",
+      kind: "validation",
+      details: { assetId: asset.id, fieldId: definition.id }
+    } satisfies Partial<ApplicationError>)
     expect(assetRepository.upsertCustomFieldValues).not.toHaveBeenCalled()
   })
 
@@ -1486,9 +1537,14 @@ describe("asset service", () => {
         ]
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "invalid value for asset custom field environment"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_value.invalid",
+      kind: "validation",
+      details: {
+        assetId: asset.id,
+        fieldId: definition.id,
+        fieldKey: definition.key
+      }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("forwards valid custom field value upserts", async () => {
@@ -1726,9 +1782,10 @@ describe("asset service", () => {
         ]
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to update asset custom field values"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_value.upsert_failed",
+      kind: "unexpected",
+      details: { assetId: asset.id }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("returns null when clearing a custom field value for a missing asset", async () => {
@@ -1762,10 +1819,10 @@ describe("asset service", () => {
         fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message:
-        "unknown asset custom field id 5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field.unknown",
+      kind: "validation",
+      details: { fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25" }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("rejects clearing unassigned custom field ids", async () => {
@@ -1794,9 +1851,10 @@ describe("asset service", () => {
         fieldId: definition.id
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "asset custom field is not assigned to asset"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field.not_assigned",
+      kind: "validation",
+      details: { assetId: asset.id, fieldId: definition.id }
+    } satisfies Partial<ApplicationError>)
     expect(assetRepository.clearCustomFieldValue).not.toHaveBeenCalled()
   })
 
@@ -1881,9 +1939,10 @@ describe("asset service", () => {
         fieldId: definition.id
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to clear asset custom field value"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_value.clear_failed",
+      kind: "unexpected",
+      details: { assetId: asset.id, fieldId: definition.id }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("assigns custom fields to an existing asset", async () => {
@@ -1971,10 +2030,10 @@ describe("asset service", () => {
         fieldIds: ["5bde818a-bb4f-4a0f-a5eb-a190d5142a25"]
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message:
-        "unknown asset custom field id 5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field.unknown",
+      kind: "validation",
+      details: { fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25" }
+    } satisfies Partial<ApplicationError>)
     expect(assetRepository.assignCustomFields).not.toHaveBeenCalled()
   })
 
@@ -2006,9 +2065,10 @@ describe("asset service", () => {
         fieldIds: [definition.id]
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to assign asset custom fields"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_assignment.assign_failed",
+      kind: "unexpected",
+      details: { assetId: asset.id }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("detaches custom fields from existing assets", async () => {
@@ -2076,10 +2136,10 @@ describe("asset service", () => {
         fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message:
-        "unknown asset custom field id 5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field.unknown",
+      kind: "validation",
+      details: { fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25" }
+    } satisfies Partial<ApplicationError>)
     expect(assetRepository.detachCustomField).not.toHaveBeenCalled()
   })
 
@@ -2111,8 +2171,9 @@ describe("asset service", () => {
         fieldId: definition.id
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to detach asset custom field"
-    } satisfies Partial<ApiError>)
+      code: "asset.custom_field_assignment.detach_failed",
+      kind: "unexpected",
+      details: { assetId: asset.id, fieldId: definition.id }
+    } satisfies Partial<ApplicationError>)
   })
 })

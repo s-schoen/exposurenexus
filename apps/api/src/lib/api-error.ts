@@ -6,17 +6,10 @@ import type { ContextVariables } from "./hono-schema.js"
 import {
   isApplicationError,
   type ApplicationError,
-  type ApplicationErrorCode,
   type ApplicationErrorKind
 } from "../service/application-error.js"
 
 const INTERNAL_SERVER_ERROR_MESSAGE = "internal server error"
-
-const applicationErrorPublicReasons: Partial<
-  Record<ApplicationErrorCode, string>
-> = {
-  "role.unknown_ids": "unknown-role-ids"
-}
 
 interface ApiErrorOptions {
   reason?: string
@@ -128,6 +121,21 @@ function getErrorStatus(
   return error.status
 }
 
+function getApplicationErrorPublicReason(
+  error: ApplicationError
+): string | undefined {
+  switch (error.code) {
+    case "role.unknown_ids":
+      return "unknown-role-ids"
+    case "asset.custom_field_definition.rule_violation":
+      return (
+        error as ApplicationError<"asset.custom_field_definition.rule_violation">
+      ).details.reason
+    default:
+      return undefined
+  }
+}
+
 export function createApiErrorReply(
   correlationId: string,
   error: ApiError | HTTPException | ApplicationError
@@ -146,7 +154,7 @@ export function createApiErrorReply(
   }
 
   if (isApplicationError(error)) {
-    const reason = applicationErrorPublicReasons[error.code]
+    const reason = getApplicationErrorPublicReason(error)
     if (reason) {
       reply.reason = reason
     }

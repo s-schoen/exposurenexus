@@ -1,4 +1,5 @@
 import { describe, expect, expectTypeOf, it } from "vitest"
+import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/types/model/asset"
 import {
   ApplicationError,
   type ApplicationErrorInput
@@ -39,6 +40,20 @@ function assertApplicationErrorInputTypes() {
     details: {}
   }
   void unexpectedDetails
+
+  const assetRuleViolationInput = {
+    code: "asset.custom_field_definition.rule_violation",
+    kind: "validation",
+    message: "required custom fields must define a default value",
+    details: {
+      reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
+      path: ["defaultValue"]
+    }
+  } satisfies ApplicationErrorInput
+
+  expectTypeOf(
+    assetRuleViolationInput.details.reason
+  ).toEqualTypeOf<AssetCustomFieldRuleViolationReason.RequiredDefaultMissing>()
 
   const wrongConstructorKind = new ApplicationError<"role.unknown_ids">({
     code: "role.unknown_ids",
