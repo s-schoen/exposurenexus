@@ -117,6 +117,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   })
   const findingService = createFindingService({
     findingRepository: repositories.findingRepository,
+    assetService,
     userProfileService,
     vulnerabilityService,
     domainEventEmitter: eventBus,

@@ -7,6 +7,7 @@ import {
   FindingStatus,
   type FindingInternal
 } from "@exposurenexus/types/model/finding"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import { createDomainEventCollector } from "../test/eventbus.js"
 import { createTestUser } from "../test/app.js"
@@ -26,6 +27,9 @@ describe("finding service", () => {
     reclassifyBySourceAndVulnerability: vi.fn()
   }
   const vulnerabilityService = {
+    getByID: vi.fn()
+  }
+  const assetService = {
     getByID: vi.fn()
   }
   const userProfileService = {
@@ -53,6 +57,19 @@ describe("finding service", () => {
     mitigation: "Restrict access to internal networks",
     assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c"
   }
+  const updatePayloadBase = {
+    severity: createPayload.severity,
+    status: createPayload.status,
+    source: createPayload.source,
+    evidence: createPayload.evidence,
+    mitigation: createPayload.mitigation
+  }
+  const asset = {
+    id: createPayload.assetId,
+    name: "api.exposurenexus.local",
+    type: AssetType.Host,
+    ownerId: null
+  }
   const baseFinding: FindingInternal = {
     id: "2713d833-eb13-4517-ac7c-7761545ed42a",
     ...createPayload,
@@ -70,12 +87,15 @@ describe("finding service", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useRealTimers()
+    assetService.getByID.mockResolvedValue(asset)
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability)
     domainEvents.clear()
   })
 
   function createService() {
     return createFindingService({
       findingRepository,
+      assetService,
       userProfileService,
       vulnerabilityService,
       domainEventEmitter: domainEvents.emitter,
@@ -100,13 +120,28 @@ describe("finding service", () => {
     )
   })
 
-  it("returns a finding without enrichment when the vulnerability cannot be found", async () => {
+  it("rejects lists containing findings with missing vulnerabilities", async () => {
+    const service = createService()
+
+    findingRepository.list.mockResolvedValue([baseFinding])
+    vulnerabilityService.getByID.mockResolvedValue(null)
+
+    await expect(service.listAll()).rejects.toMatchObject({
+      status: 500,
+      message: "failed to list findings"
+    } satisfies Partial<HTTPException>)
+  })
+
+  it("rejects findings that cannot be enriched with their vulnerability", async () => {
     const service = createService()
 
     findingRepository.getByID.mockResolvedValue(baseFinding)
     vulnerabilityService.getByID.mockResolvedValue(null)
 
-    await expect(service.getByID(baseFinding.id)).resolves.toEqual(baseFinding)
+    await expect(service.getByID(baseFinding.id)).rejects.toMatchObject({
+      status: 500,
+      message: "failed to get finding"
+    } satisfies Partial<HTTPException>)
   })
 
   it("returns null when a finding does not exist", async () => {
@@ -342,6 +377,65 @@ describe("finding service", () => {
     expect(findingRepository.create).not.toHaveBeenCalled()
   })
 
+  it("rejects unknown finding assets before creating findings", async () => {
+    const service = createService()
+
+    assetService.getByID.mockResolvedValue(null)
+
+    await expect(
+      service.create({
+        finding: createPayload,
+        user
+      })
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "finding asset does not exist"
+    } satisfies Partial<HTTPException>)
+    expect(assetService.getByID).toHaveBeenCalledWith(createPayload.assetId)
+    expect(findingRepository.create).not.toHaveBeenCalled()
+  })
+
+  it("rejects unknown finding vulnerabilities before creating findings", async () => {
+    const service = createService()
+
+    vulnerabilityService.getByID.mockResolvedValue(null)
+
+    await expect(
+      service.create({
+        finding: createPayload,
+        user
+      })
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "finding vulnerability does not exist"
+    } satisfies Partial<HTTPException>)
+    expect(vulnerabilityService.getByID).toHaveBeenCalledWith(
+      createPayload.vulnerabilityId
+    )
+    expect(findingRepository.create).not.toHaveBeenCalled()
+  })
+
+  it("maps create foreign key failures to an HTTP 400", async () => {
+    const service = createService()
+
+    findingRepository.create.mockRejectedValue(
+      Object.assign(new Error("violates foreign key constraint"), {
+        code: "23503"
+      })
+    )
+
+    await expect(
+      service.create({
+        finding: createPayload,
+        user
+      })
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "finding references an unknown related resource"
+    } satisfies Partial<HTTPException>)
+    expect(domainEvents.subjects()).toEqual([])
+  })
+
   it("uses a provided firstSeen value during creation", async () => {
     const service = createService()
     const now = new Date("2026-02-03T04:05:06.000Z")
@@ -376,7 +470,7 @@ describe("finding service", () => {
     const service = createService()
     const now = new Date("2026-03-04T05:06:07.000Z")
     const updatePayload = {
-      ...createPayload,
+      ...updatePayloadBase,
       status: FindingStatus.Mitigated,
       mitigation: "Administrative interface restricted to VPN"
     }
@@ -420,6 +514,8 @@ describe("finding service", () => {
       dueDate: null,
       firstSeen: baseFinding.firstSeen,
       lastSeen: baseFinding.lastSeen,
+      assetId: baseFinding.assetId,
+      vulnerabilityId: baseFinding.vulnerabilityId,
       createdAt: baseFinding.createdAt,
       createdBy: baseFinding.createdBy,
       fingerprint: baseFinding.fingerprint,
@@ -445,7 +541,7 @@ describe("finding service", () => {
     const dueDate = new Date("2026-05-06T18:30:00.000Z")
     const normalizedDueDate = new Date("2026-05-06T00:00:00.000Z")
     const updatePayload = {
-      ...createPayload,
+      ...updatePayloadBase,
       dueDate
     }
     const updatedFinding = {
@@ -489,7 +585,7 @@ describe("finding service", () => {
     await service.update({
       id: baseFinding.id,
       finding: {
-        ...createPayload,
+        ...updatePayloadBase,
         status: FindingStatus.Mitigated
       },
       user
@@ -507,7 +603,7 @@ describe("finding service", () => {
   it("updates findings to an existing enabled assignee", async () => {
     const service = createService()
     const updatePayload = {
-      ...createPayload,
+      ...updatePayloadBase,
       assigneeId
     }
     const updatedFinding = {
@@ -550,7 +646,7 @@ describe("finding service", () => {
   it("updates findings to an existing disabled assignee", async () => {
     const service = createService()
     const updatePayload = {
-      ...createPayload,
+      ...updatePayloadBase,
       assigneeId
     }
     const updatedFinding = {
@@ -593,7 +689,7 @@ describe("finding service", () => {
       assigneeId
     }
     const updatePayload = {
-      ...createPayload,
+      ...updatePayloadBase,
       assigneeId: nextAssigneeId
     }
     const updatedFinding = {
@@ -635,7 +731,7 @@ describe("finding service", () => {
       assigneeId
     }
     const updatePayload = {
-      ...createPayload,
+      ...updatePayloadBase,
       assigneeId: null
     }
     const updatedFinding = {
@@ -669,7 +765,7 @@ describe("finding service", () => {
       assigneeId
     }
     const updatePayload = {
-      ...createPayload,
+      ...updatePayloadBase,
       status: FindingStatus.Confirmed
     }
     const updatedFinding = {
@@ -700,7 +796,7 @@ describe("finding service", () => {
   it("rejects unknown finding assignees before updating findings", async () => {
     const service = createService()
     const updatePayload = {
-      ...createPayload,
+      ...updatePayloadBase,
       assigneeId
     }
 
@@ -729,7 +825,7 @@ describe("finding service", () => {
     await expect(
       service.update({
         id: baseFinding.id,
-        finding: createPayload,
+        finding: updatePayloadBase,
         user
       })
     ).resolves.toBeNull()

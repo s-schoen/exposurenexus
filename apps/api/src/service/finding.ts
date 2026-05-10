@@ -7,6 +7,7 @@ import {
   type ReclassifyFindingsResult,
   type UpdateFinding
 } from "@exposurenexus/types/model/finding"
+import type { Asset } from "@exposurenexus/types/model/asset"
 import { HTTPException } from "hono/http-exception"
 import type { UserProfile } from "@exposurenexus/types/model/user"
 import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date"
@@ -18,7 +19,7 @@ import {
   type DomainEventEmitter,
   type FindingEventPayloads
 } from "../lib/eventbus/events/index.js"
-import { badRequest } from "./errors.js"
+import { badRequest, isForeignKeyError } from "./errors.js"
 
 interface FindingRepository {
   list(): Promise<FindingInternal[]>
@@ -44,12 +45,17 @@ interface VulnerabilityLookupService {
   getByID(id: string): Promise<Finding["vulnerability"] | null>
 }
 
+interface AssetLookupService {
+  getByID(id: string): Promise<Asset | null>
+}
+
 interface UserProfileLookupService {
   getByID(id: string): Promise<UserProfile | null>
 }
 
 interface FindingServiceDependencies {
   findingRepository: FindingRepository
+  assetService: AssetLookupService
   userProfileService: UserProfileLookupService
   vulnerabilityService: VulnerabilityLookupService
   domainEventEmitter: DomainEventEmitter
@@ -117,6 +123,7 @@ export interface CreateOrUpdateFindingResult {
 
 export function createFindingService({
   findingRepository,
+  assetService,
   userProfileService,
   vulnerabilityService,
   domainEventEmitter,
@@ -129,19 +136,52 @@ export function createFindingService({
   )
 
   async function extendWithVulnerability(
-    intFinding: FindingInternal
+    intFinding: FindingInternal,
+    knownVulnerability?: Finding["vulnerability"]
   ): Promise<Finding> {
-    const vuln = await vulnerabilityService.getByID(intFinding.vulnerabilityId)
+    const vuln =
+      knownVulnerability ??
+      (await vulnerabilityService.getByID(intFinding.vulnerabilityId))
     if (!vuln) {
       logger.error(
         `finding ${intFinding.id} references unknown vulnerability ${intFinding.vulnerabilityId}`
       )
-      return intFinding as Finding
+      throw new Error(
+        `finding ${intFinding.id} references unknown vulnerability ${intFinding.vulnerabilityId}`
+      )
     }
     return {
       ...intFinding,
       vulnerability: vuln
     }
+  }
+
+  async function validateCreateFindingRelations(
+    finding: CreateFinding
+  ): Promise<Finding["vulnerability"]> {
+    const [asset, vulnerability] = await Promise.all([
+      assetService.getByID(finding.assetId),
+      vulnerabilityService.getByID(finding.vulnerabilityId)
+    ])
+
+    if (!asset) {
+      throw badRequest("finding asset does not exist")
+    }
+
+    if (!vulnerability) {
+      throw badRequest("finding vulnerability does not exist")
+    }
+
+    const assigneeId = finding.assigneeId ?? null
+    if (assigneeId) {
+      const assignee = await userProfileService.getByID(assigneeId)
+
+      if (!assignee) {
+        throw badRequest("finding assignee does not exist")
+      }
+    }
+
+    return vulnerability
   }
 
   async function createFinding(
@@ -152,14 +192,7 @@ export function createFindingService({
       const now = new Date()
       const assigneeId = opts.finding.assigneeId ?? null
       const dueDate = normalizeOptionalDueDate(opts.finding.dueDate)
-
-      if (assigneeId) {
-        const assignee = await userProfileService.getByID(assigneeId)
-
-        if (!assignee) {
-          throw badRequest("finding assignee does not exist")
-        }
-      }
+      const vulnerability = await validateCreateFindingRelations(opts.finding)
 
       const created = await findingRepository.create({
         ...opts.finding,
@@ -178,7 +211,10 @@ export function createFindingService({
         )
       })
 
-      const createdFinding = await extendWithVulnerability(created)
+      const createdFinding = await extendWithVulnerability(
+        created,
+        vulnerability
+      )
       emitFindingEvent(
         "finding.created",
         { finding: createdFinding },
@@ -188,6 +224,11 @@ export function createFindingService({
     } catch (error) {
       if (error instanceof HTTPException) {
         throw error
+      }
+
+      if (isForeignKeyError(error)) {
+        logger.debug(error, "finding create foreign key invalid relation")
+        throw badRequest("finding references an unknown related resource")
       }
 
       logger.error(
@@ -269,15 +310,17 @@ export function createFindingService({
         }
 
         const findingUpdate: Omit<FindingInternal, "id"> = {
+          ...opts.finding,
           firstSeen: finding.firstSeen,
           lastSeen: finding.lastSeen,
+          assetId: finding.assetId,
+          vulnerabilityId: finding.vulnerabilityId,
           createdAt: finding.createdAt,
           createdBy: finding.createdBy,
           assigneeId,
           fingerprint: finding.fingerprint,
           updatedAt: new Date(),
           updatedBy: opts.user.id,
-          ...opts.finding,
           dueDate
         }
 

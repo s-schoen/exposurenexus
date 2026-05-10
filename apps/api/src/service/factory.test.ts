@@ -3,6 +3,7 @@ import {
   FindingSource,
   FindingStatus
 } from "@exposurenexus/types/model/finding"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import {
   PermissionResource,
   PermissionVerb
@@ -277,11 +278,20 @@ describe("service factories", () => {
         updatedAt: new Date("2026-01-01T00:00:00.000Z")
       })
     }
+    const assetService = {
+      getByID: vi.fn().mockResolvedValue({
+        id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
+        name: "api.exposurenexus.local",
+        type: AssetType.Host,
+        ownerId: null
+      })
+    }
     vi.useFakeTimers()
     vi.setSystemTime(now)
 
     const service = createFindingService({
       findingRepository,
+      assetService,
       userProfileService: {
         getByID: vi.fn()
       },
