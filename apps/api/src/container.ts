@@ -107,16 +107,18 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     domainEventEmitter: eventBus,
     logger: loggerFactory("service/user-profile")
   })
+  const assetCustomFieldService = createAssetCustomFieldService({
+    assetCustomFieldRepository: repositories.assetCustomFieldRepository,
+    assetRepository: repositories.assetRepository,
+    domainEventEmitter: eventBus,
+    logger: loggerFactory("service/asset-custom-field")
+  })
   const assetService = createAssetService({
     assetRepository: repositories.assetRepository,
+    assetCustomFieldReader: assetCustomFieldService,
     userProfileService,
     domainEventEmitter: eventBus,
     logger: loggerFactory("service/asset")
-  })
-  const assetCustomFieldService = createAssetCustomFieldService({
-    assetCustomFieldRepository: repositories.assetCustomFieldRepository,
-    domainEventEmitter: eventBus,
-    logger: loggerFactory("service/asset-custom-field")
   })
   const vulnerabilityService = createVulnerabilityService({
     vulnerabilityRepository: repositories.vulnerabilityRepository,

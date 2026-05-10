@@ -266,7 +266,7 @@ describe("asset repository", () => {
     expectSelectDefinition(exposure)
 
     await expect(
-      repository.listAvailableCustomFieldDefinitions(asset.id)
+      customFieldRepository.listAvailableDefinitionsForAsset(asset.id)
     ).resolves.toEqual([environment, exposure, priority])
 
     await expect(
@@ -303,10 +303,12 @@ describe("asset repository", () => {
       }
     ])
     await expect(
-      repository.listAvailableCustomFieldDefinitions(asset.id)
+      customFieldRepository.listAvailableDefinitionsForAsset(asset.id)
     ).resolves.toEqual([])
 
-    await expect(repository.listCustomFieldValues(asset.id)).resolves.toEqual([
+    await expect(
+      customFieldRepository.listEffectiveValuesForAsset(asset.id)
+    ).resolves.toEqual([
       {
         fieldId: environment.id,
         key: "environment",
@@ -408,7 +410,9 @@ describe("asset repository", () => {
       { fieldId: exposure.id, value: "external" }
     ])
 
-    await expect(repository.listCustomFieldValues(asset.id)).resolves.toEqual([
+    await expect(
+      customFieldRepository.listEffectiveValuesForAsset(asset.id)
+    ).resolves.toEqual([
       {
         fieldId: environment.id,
         key: "environment",
@@ -441,7 +445,9 @@ describe("asset repository", () => {
       priority.id
     ])
 
-    await expect(repository.listCustomFieldValues(asset.id)).resolves.toEqual([
+    await expect(
+      customFieldRepository.listEffectiveValuesForAsset(asset.id)
+    ).resolves.toEqual([
       {
         fieldId: environment.id,
         key: "environment",
@@ -468,121 +474,5 @@ describe("asset repository", () => {
       .execute()
 
     expect(detachedValueRows).toEqual([])
-  })
-
-  it("lists assets with assigned effective custom field values", async () => {
-    const repository = createAssetRepository(testDb.db)
-    const customFieldRepository = createAssetCustomFieldRepository(testDb.db)
-    const apiAsset = await repository.create({
-      id: "",
-      name: "api.exposurenexus.local",
-      type: AssetType.Host
-    })
-    const workerAsset = await repository.create({
-      id: "",
-      name: "worker.exposurenexus.local",
-      type: AssetType.Host
-    })
-    const category = await customFieldRepository.createDefinition({
-      key: "category",
-      name: "Category",
-      required: false,
-      type: AssetCustomFieldType.Text,
-      defaultValue: "platform"
-    })
-    const priority = await customFieldRepository.createDefinition({
-      key: "priority",
-      name: "Priority",
-      required: false,
-      type: AssetCustomFieldType.Number,
-      defaultValue: null
-    })
-
-    await repository.replaceCustomFieldAssociations(apiAsset.id, [
-      category.id,
-      priority.id
-    ])
-    await repository.replaceCustomFieldAssociations(workerAsset.id, [
-      category.id
-    ])
-    await repository.replaceCustomFieldValues(apiAsset.id, [
-      { fieldId: category.id, value: null },
-      { fieldId: priority.id, value: 4 }
-    ])
-
-    await expect(repository.listWithCustomFields()).resolves.toEqual([
-      {
-        ...apiAsset,
-        customFields: [
-          {
-            fieldId: category.id,
-            key: "category",
-            name: "Category",
-            source: AssetCustomFieldValueSource.Default,
-            type: AssetCustomFieldType.Text,
-            value: "platform"
-          },
-          {
-            fieldId: priority.id,
-            key: "priority",
-            name: "Priority",
-            source: AssetCustomFieldValueSource.Asset,
-            type: AssetCustomFieldType.Number,
-            value: 4
-          }
-        ]
-      },
-      {
-        ...workerAsset,
-        customFields: [
-          {
-            fieldId: category.id,
-            key: "category",
-            name: "Category",
-            source: AssetCustomFieldValueSource.Default,
-            type: AssetCustomFieldType.Text,
-            value: "platform"
-          }
-        ]
-      }
-    ])
-  })
-
-  it("gets one asset with assigned effective custom field values", async () => {
-    const repository = createAssetRepository(testDb.db)
-    const customFieldRepository = createAssetCustomFieldRepository(testDb.db)
-    const apiAsset = await repository.create({
-      id: "",
-      name: "api.exposurenexus.local",
-      type: AssetType.Host
-    })
-    const category = await customFieldRepository.createDefinition({
-      key: "category",
-      name: "Category",
-      required: false,
-      type: AssetCustomFieldType.Text,
-      defaultValue: "platform"
-    })
-
-    await repository.replaceCustomFieldAssociations(apiAsset.id, [category.id])
-
-    await expect(
-      repository.getByIDWithCustomFields(apiAsset.id)
-    ).resolves.toEqual({
-      ...apiAsset,
-      customFields: [
-        {
-          fieldId: category.id,
-          key: "category",
-          name: "Category",
-          source: AssetCustomFieldValueSource.Default,
-          type: AssetCustomFieldType.Text,
-          value: "platform"
-        }
-      ]
-    })
-    await expect(
-      repository.getByIDWithCustomFields("76b1885f-2d28-4b7d-93da-2751ff385aa3")
-    ).resolves.toBeNull()
   })
 })

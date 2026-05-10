@@ -23,6 +23,12 @@ import {
 } from "../lib/eventbus/events/index.js"
 import type { AssetRepository } from "../repository/asset.js"
 
+interface AssetCustomFieldProjectionReader {
+  listEffectiveValuesForAssets(
+    assetIds: readonly string[]
+  ): Promise<Map<string, AssetCustomFieldValue[]>>
+}
+
 function isValidValueForDefinition(
   definition: AssetCustomFieldDefinition | AssetCustomFieldValue,
   value: Exclude<AssetCustomFieldValueLiteral, null>
@@ -66,6 +72,7 @@ interface UserProfileLookupService {
 
 interface AssetServiceDependencies {
   assetRepository: AssetRepository
+  assetCustomFieldReader: AssetCustomFieldProjectionReader
   userProfileService: UserProfileLookupService
   domainEventEmitter: DomainEventEmitter
   logger: Logger
@@ -100,12 +107,6 @@ export interface AssetService {
     id: string,
     eventContext?: DomainEventContext
   ): Promise<Asset | null>
-  listCustomFieldValues(
-    assetId: string
-  ): Promise<AssetCustomFieldValue[] | null>
-  listAvailableCustomFieldDefinitions(
-    assetId: string
-  ): Promise<AssetCustomFieldDefinition[] | null>
   replaceCustomFieldValues(
     opts: ReplaceAssetCustomFieldValuesOptions
   ): Promise<AssetCustomFieldValue[] | null>
@@ -116,6 +117,7 @@ export interface AssetService {
 
 export function createAssetService({
   assetRepository,
+  assetCustomFieldReader,
   userProfileService,
   domainEventEmitter,
   logger
@@ -129,7 +131,35 @@ export function createAssetService({
   async function getAssetSnapshot(
     id: string
   ): Promise<AssetWithCustomFields | null> {
-    return await assetRepository.getByIDWithCustomFields(id)
+    const asset = await assetRepository.getByID(id)
+    if (!asset) {
+      return null
+    }
+
+    return await hydrateAsset(asset)
+  }
+
+  async function hydrateAsset(asset: Asset): Promise<AssetWithCustomFields> {
+    const valuesByAssetId =
+      await assetCustomFieldReader.listEffectiveValuesForAssets([asset.id])
+    return {
+      ...asset,
+      customFields: valuesByAssetId.get(asset.id) ?? []
+    }
+  }
+
+  async function hydrateAssets(
+    assets: Asset[]
+  ): Promise<AssetWithCustomFields[]> {
+    const valuesByAssetId =
+      await assetCustomFieldReader.listEffectiveValuesForAssets(
+        assets.map((asset) => asset.id)
+      )
+
+    return assets.map((asset) => ({
+      ...asset,
+      customFields: valuesByAssetId.get(asset.id) ?? []
+    }))
   }
 
   function emitUpdatedAssetEvent(
@@ -161,8 +191,13 @@ export function createAssetService({
 
     async listAllWithCustomFields(): Promise<AssetWithCustomFields[]> {
       try {
-        return await assetRepository.listWithCustomFields()
+        const assets = await assetRepository.list()
+        return await hydrateAssets(assets)
       } catch (error) {
+        if (isApplicationError(error)) {
+          throw error
+        }
+
         logger.error(error, "failed to list assets with custom fields")
         throw new ApplicationError({
           code: "asset.list_with_custom_fields_failed",
@@ -238,14 +273,12 @@ export function createAssetService({
           ...asset
         })
 
-        const createdSnapshot = await getAssetSnapshot(created.id)
-        if (createdSnapshot) {
-          emitAssetEvent(
-            "asset.created",
-            { asset: createdSnapshot },
-            eventContext
-          )
-        }
+        const createdSnapshot = await hydrateAsset(created)
+        emitAssetEvent(
+          "asset.created",
+          { asset: createdSnapshot },
+          eventContext
+        )
         return created
       } catch (error) {
         if (isApplicationError(error)) {
@@ -371,60 +404,6 @@ export function createAssetService({
           message: "failed to delete asset",
           cause: error,
           details: { assetId: id }
-        })
-      }
-    },
-
-    async listCustomFieldValues(
-      assetId: string
-    ): Promise<AssetCustomFieldValue[] | null> {
-      try {
-        const asset = await assetRepository.getByID(assetId)
-        if (!asset) {
-          logger.debug(`asset with id ${assetId} not found`)
-          return null
-        }
-
-        return await assetRepository.listCustomFieldValues(assetId)
-      } catch (error) {
-        logger.error(
-          error,
-          `failed to list asset custom field values for asset ${assetId}`
-        )
-        throw new ApplicationError({
-          code: "asset.custom_field_value.list_failed",
-          kind: "unexpected",
-          message: "failed to list asset custom field values",
-          cause: error,
-          details: { assetId }
-        })
-      }
-    },
-
-    async listAvailableCustomFieldDefinitions(
-      assetId: string
-    ): Promise<AssetCustomFieldDefinition[] | null> {
-      try {
-        const asset = await assetRepository.getByID(assetId)
-        if (!asset) {
-          logger.debug(`asset with id ${assetId} not found`)
-          return null
-        }
-
-        return await assetRepository.listAvailableCustomFieldDefinitions(
-          assetId
-        )
-      } catch (error) {
-        logger.error(
-          error,
-          `failed to list available asset custom fields for asset ${assetId}`
-        )
-        throw new ApplicationError({
-          code: "asset.custom_field_definition.list_available_failed",
-          kind: "unexpected",
-          message: "failed to list available asset custom fields",
-          cause: error,
-          details: { assetId }
         })
       }
     },

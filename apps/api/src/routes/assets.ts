@@ -70,7 +70,9 @@ export function createAssetRoute(
       const params = c.req.valid("param")
 
       const definitions =
-        await assetService.listAvailableCustomFieldDefinitions(params.id)
+        await assetCustomFieldService.listAvailableDefinitionsForAsset(
+          params.id
+        )
       if (!definitions) {
         throw notFound("asset", params.id)
       }
@@ -86,7 +88,9 @@ export function createAssetRoute(
     async (c) => {
       const params = c.req.valid("param")
 
-      const values = await assetService.listCustomFieldValues(params.id)
+      const values = await assetCustomFieldService.listEffectiveValuesForAsset(
+        params.id
+      )
       if (!values) {
         throw notFound("asset", params.id)
       }

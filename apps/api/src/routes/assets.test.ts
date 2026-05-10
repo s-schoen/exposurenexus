@@ -29,8 +29,6 @@ describe("asset routes", () => {
     create: vi.fn(),
     updateOwnerByID: vi.fn(),
     deleteByID: vi.fn(),
-    listCustomFieldValues: vi.fn(),
-    listAvailableCustomFieldDefinitions: vi.fn(),
     replaceCustomFieldValues: vi.fn(),
     replaceCustomFieldAssociations: vi.fn()
   }
@@ -39,7 +37,10 @@ describe("asset routes", () => {
     getDefinitionByID: vi.fn(),
     createDefinition: vi.fn(),
     updateDefinitionByID: vi.fn(),
-    deleteDefinitionByID: vi.fn()
+    deleteDefinitionByID: vi.fn(),
+    listEffectiveValuesForAsset: vi.fn(),
+    listEffectiveValuesForAssets: vi.fn(),
+    listAvailableDefinitionsForAsset: vi.fn()
   }
 
   beforeEach(() => {
@@ -1074,7 +1075,9 @@ describe("asset routes", () => {
       }
     ]
 
-    assetService.listCustomFieldValues.mockResolvedValue(values)
+    assetCustomFieldService.listEffectiveValuesForAsset.mockResolvedValue(
+      values
+    )
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -1094,7 +1097,9 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.listCustomFieldValues).toHaveBeenCalledWith(assetId)
+    expect(
+      assetCustomFieldService.listEffectiveValuesForAsset
+    ).toHaveBeenCalledWith(assetId)
     expect(assetService.getByID).not.toHaveBeenCalled()
     expect(body).toEqual({
       correlationId: requestId,
@@ -1121,7 +1126,7 @@ describe("asset routes", () => {
       }
     ]
 
-    assetService.listAvailableCustomFieldDefinitions.mockResolvedValue(
+    assetCustomFieldService.listAvailableDefinitionsForAsset.mockResolvedValue(
       definitions
     )
 
@@ -1147,7 +1152,7 @@ describe("asset routes", () => {
 
     expect(response.status).toBe(200)
     expect(
-      assetService.listAvailableCustomFieldDefinitions
+      assetCustomFieldService.listAvailableDefinitionsForAsset
     ).toHaveBeenCalledWith(assetId)
     expect(body).toEqual({
       correlationId: requestId,
@@ -1164,7 +1169,7 @@ describe("asset routes", () => {
     const requestId = "assets-custom-field-values-list-missing-asset-request"
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
 
-    assetService.listCustomFieldValues.mockResolvedValue(null)
+    assetCustomFieldService.listEffectiveValuesForAsset.mockResolvedValue(null)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -1184,7 +1189,49 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.listCustomFieldValues).toHaveBeenCalledWith(assetId)
+    expect(
+      assetCustomFieldService.listEffectiveValuesForAsset
+    ).toHaveBeenCalledWith(assetId)
+    expect(body).toEqual({
+      correlationId: requestId,
+      status: 404,
+      error: `asset with id ${assetId} does not exist`
+    })
+  })
+
+  it("returns 404 when listing available custom fields for a missing asset", async () => {
+    const requestId =
+      "assets-custom-field-values-available-missing-asset-request"
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
+
+    assetCustomFieldService.listAvailableDefinitionsForAsset.mockResolvedValue(
+      null
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(
+        assetService,
+        assetCustomFieldService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/assets/${assetId}/custom-fields/available`,
+      {
+        headers: {
+          "X-Request-Id": requestId
+        }
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(
+      assetCustomFieldService.listAvailableDefinitionsForAsset
+    ).toHaveBeenCalledWith(assetId)
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,
@@ -1210,7 +1257,9 @@ describe("asset routes", () => {
     })
 
     expect(response.status).toBe(400)
-    expect(assetService.listCustomFieldValues).not.toHaveBeenCalled()
+    expect(
+      assetCustomFieldService.listEffectiveValuesForAsset
+    ).not.toHaveBeenCalled()
   })
 
   it("replaces asset custom field values", async () => {

@@ -9,7 +9,8 @@ import {
 } from "vitest"
 import {
   type AssetCustomFieldDefinition,
-  AssetCustomFieldType
+  AssetCustomFieldType,
+  AssetCustomFieldValueSource
 } from "@exposurenexus/types/model/asset-custom-field"
 import { AssetType } from "@exposurenexus/types/model/asset"
 import { createAssetRepository } from "./asset.js"
@@ -179,6 +180,104 @@ describe("asset custom field repository", () => {
       "prod",
       "stage"
     ])
+  })
+
+  it("composes effective values and available definitions for assets", async () => {
+    const assetRepository = createAssetRepository(testDb.db)
+    const repository = createAssetCustomFieldRepository(testDb.db)
+    const apiAsset = await assetRepository.create({
+      id: "",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host
+    })
+    const workerAsset = await assetRepository.create({
+      id: "",
+      name: "worker.exposurenexus.local",
+      type: AssetType.Host
+    })
+    const category = await repository.createDefinition({
+      key: "category",
+      name: "Category",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: "platform"
+    })
+    const environment = await repository.createDefinition({
+      key: "environment",
+      name: "Environment",
+      required: false,
+      type: AssetCustomFieldType.Select,
+      defaultValue: "stage",
+      options: [
+        { value: "prod", label: "Production" },
+        { value: "stage", label: "Staging" }
+      ]
+    })
+    const priority = await repository.createDefinition({
+      key: "priority",
+      name: "Priority",
+      required: false,
+      type: AssetCustomFieldType.Number,
+      defaultValue: null
+    })
+    const team = await repository.createDefinition({
+      key: "team",
+      name: "Team",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: null
+    })
+
+    await assetRepository.replaceCustomFieldAssociations(apiAsset.id, [
+      category.id,
+      environment.id,
+      priority.id
+    ])
+    await assetRepository.replaceCustomFieldValues(apiAsset.id, [
+      { fieldId: environment.id, value: "prod" }
+    ])
+    await assetRepository.replaceCustomFieldAssociations(workerAsset.id, [
+      category.id
+    ])
+
+    await expect(
+      repository.listEffectiveValuesForAsset(apiAsset.id)
+    ).resolves.toMatchObject([
+      {
+        fieldId: category.id,
+        source: AssetCustomFieldValueSource.Default,
+        value: "platform"
+      },
+      {
+        fieldId: environment.id,
+        source: AssetCustomFieldValueSource.Asset,
+        value: "prod",
+        options: [
+          expect.objectContaining({ value: "prod", label: "Production" }),
+          expect.objectContaining({ value: "stage", label: "Staging" })
+        ]
+      },
+      {
+        fieldId: priority.id,
+        source: AssetCustomFieldValueSource.Empty,
+        value: null
+      }
+    ])
+
+    const valuesByAssetId = await repository.listEffectiveValuesForAssets([
+      apiAsset.id,
+      workerAsset.id
+    ])
+    expect(valuesByAssetId.get(workerAsset.id)).toMatchObject([
+      {
+        fieldId: category.id,
+        source: AssetCustomFieldValueSource.Default,
+        value: "platform"
+      }
+    ])
+    await expect(
+      repository.listAvailableDefinitionsForAsset(apiAsset.id)
+    ).resolves.toEqual([team])
   })
 
   it("deletes custom field definitions and cascades options and values", async () => {
