@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import {
   AssetCustomFieldType,
-  AssetCustomFieldValueSource,
-  AssetType
-} from "@exposurenexus/types/model/asset"
+  AssetCustomFieldValueSource
+} from "@exposurenexus/types/model/asset-custom-field"
 import {
   createAsset,
   createAssetByIDQueryOptions,
@@ -21,12 +21,14 @@ import {
 } from "./asset.ts"
 import type {
   Asset,
+  AssetWithCustomFields
+} from "@exposurenexus/types/model/asset"
+import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
-  AssetWithCustomFields,
   UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 
 const fetchMock = vi.fn<typeof fetch>()
 

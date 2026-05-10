@@ -4,12 +4,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
   AssetCustomFieldValueLiteral
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 import type { ReactNode } from "react"
 import {
   createAssetByIDQueryOptions,

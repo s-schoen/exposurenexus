@@ -7,12 +7,12 @@ import {
   waitFor
 } from "@testing-library/react"
 import { composeStories } from "@storybook/react-vite"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import {
   AssetCustomFieldType,
-  AssetCustomFieldValueSource,
-  AssetType
-} from "@exposurenexus/types/model/asset"
-import type { AssetCustomFieldValue } from "@exposurenexus/types/model/asset"
+  AssetCustomFieldValueSource
+} from "@exposurenexus/types/model/asset-custom-field"
+import type { AssetCustomFieldValue } from "@exposurenexus/types/model/asset-custom-field"
 import * as stories from "@/components/asset-detail-content.stories"
 import {
   createAssetCustomFieldValuePayload,

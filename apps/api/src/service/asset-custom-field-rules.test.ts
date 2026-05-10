@@ -4,7 +4,7 @@ import {
   AssetCustomFieldType,
   type CreateAssetCustomFieldDefinition,
   validateAssetCustomFieldDefinitionRules
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 
 function violationReasons(
   definition: CreateAssetCustomFieldDefinition

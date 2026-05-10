@@ -5,15 +5,18 @@ import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
 import {
   createAssetSchema,
-  updateAssetOwnerSchema,
+  updateAssetOwnerSchema
+} from "@exposurenexus/types/model/asset"
+import {
   updateAssetCustomFieldAssociationsSchema,
   updateAssetCustomFieldValuesSchema
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import { requestEventContext } from "../lib/request-event-context.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 import { createAssetCustomFieldRoute } from "./asset-custom-fields.js"
 import type { AssetService } from "../service/asset.js"
+import type { AssetCustomFieldService } from "../service/asset-custom-field.js"
 
 interface AssetRouteDependencies {
   requireDomainPermission: RequireDomainPermission
@@ -33,6 +36,7 @@ const listAssetQueryValidator = zValidator(
 )
 export function createAssetRoute(
   assetService: AssetService,
+  assetCustomFieldService: AssetCustomFieldService,
   { requireDomainPermission }: AssetRouteDependencies
 ) {
   const asset = new Hono<{ Variables: ContextVariables }>()
@@ -53,7 +57,9 @@ export function createAssetRoute(
 
   asset.route(
     "/custom-fields",
-    createAssetCustomFieldRoute(assetService, { requireDomainPermission })
+    createAssetCustomFieldRoute(assetCustomFieldService, {
+      requireDomainPermission
+    })
   )
 
   asset.get(

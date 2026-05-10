@@ -2,12 +2,12 @@ import {
   AssetCustomFieldType,
   assetCustomFieldKeySchema,
   updateAssetCustomFieldDefinitionSchema
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldOption,
   UpdateAssetCustomFieldDefinition
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 import { validateAssetCustomFieldRulePayload } from "@/components/asset-custom-field-rule-validation.ts"
 
 export interface CustomFieldUpdateResult {

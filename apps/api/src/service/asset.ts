@@ -1,27 +1,23 @@
 import {
   type Asset,
+  type AssetWithCustomFields,
+  AssetType,
+  type CreateAsset
+} from "@exposurenexus/types/model/asset"
+import {
   type AssetCustomFieldDefinition,
-  type AssetCustomFieldRuleViolation,
   type AssetCustomFieldValue,
   type AssetCustomFieldValueLiteral,
-  type CreateAssetCustomFieldDefinition,
-  type AssetWithCustomFields,
-  AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
-  AssetType,
-  type CreateAsset,
-  type UpdateAssetCustomFieldDefinition,
-  type UpdateAssetCustomFieldValue,
-  validateAssetCustomFieldDefinitionRules
-} from "@exposurenexus/types/model/asset"
+  type UpdateAssetCustomFieldValue
+} from "@exposurenexus/types/model/asset-custom-field"
 import type { Logger } from "pino"
 import type { UserProfile } from "@exposurenexus/types/model/user"
 import { ApplicationError, isApplicationError } from "./application-error.js"
-import { isConflictError, isForeignKeyError } from "./errors.js"
+import { isForeignKeyError } from "./errors.js"
 import {
   createDomainEventEmitter,
   type AssetEventPayloads,
-  type CustomFieldEventPayloads,
   type DomainEventContext,
   type DomainEventEmitter
 } from "../lib/eventbus/events/index.js"
@@ -44,53 +40,9 @@ function isValidValueForDefinition(
   }
 }
 
-function customFieldRuleViolationMessage(
-  violation: AssetCustomFieldRuleViolation
-): string {
-  switch (violation.reason) {
-    case AssetCustomFieldRuleViolationReason.RequiredDefaultMissing:
-      return "required custom fields must define a default value"
-    case AssetCustomFieldRuleViolationReason.TextDefaultMustBeString:
-      return "text custom field default must be a string"
-    case AssetCustomFieldRuleViolationReason.NumberDefaultMustBeNumber:
-      return "number custom field default must be a number"
-    case AssetCustomFieldRuleViolationReason.SelectDefaultMustBeString:
-      return "select custom field default must be a string"
-    case AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption:
-      return "select custom field default must match an option value"
-    case AssetCustomFieldRuleViolationReason.SelectOptionValuesMustBeUnique:
-      return "select custom field options must be unique"
-  }
-}
-
-function validateCustomFieldDefinition(
-  definition:
-    | CreateAssetCustomFieldDefinition
-    | UpdateAssetCustomFieldDefinition
-): void {
-  const [violation] = validateAssetCustomFieldDefinitionRules(definition)
-
-  if (violation) {
-    throw new ApplicationError({
-      code: "asset.custom_field_definition.rule_violation",
-      kind: "validation",
-      message: customFieldRuleViolationMessage(violation),
-      cause: violation,
-      details: violation
-    })
-  }
-}
-
 function assetSnapshotsEqual(
   previous: AssetWithCustomFields,
   current: AssetWithCustomFields
-): boolean {
-  return JSON.stringify(previous) === JSON.stringify(current)
-}
-
-function customFieldDefinitionsEqual(
-  previous: AssetCustomFieldDefinition,
-  current: AssetCustomFieldDefinition
 ): boolean {
   return JSON.stringify(previous) === JSON.stringify(current)
 }
@@ -125,12 +77,6 @@ export interface UpdateAssetOwnerOptions {
   eventContext?: DomainEventContext
 }
 
-export interface UpdateAssetCustomFieldDefinitionOptions {
-  id: string
-  definition: UpdateAssetCustomFieldDefinition
-  eventContext?: DomainEventContext
-}
-
 export interface ReplaceAssetCustomFieldValuesOptions {
   assetId: string
   values: UpdateAssetCustomFieldValue[]
@@ -154,21 +100,6 @@ export interface AssetService {
     id: string,
     eventContext?: DomainEventContext
   ): Promise<Asset | null>
-  listCustomFieldDefinitions(): Promise<AssetCustomFieldDefinition[]>
-  getCustomFieldDefinitionByID(
-    id: string
-  ): Promise<AssetCustomFieldDefinition | null>
-  createCustomFieldDefinition(
-    definition: CreateAssetCustomFieldDefinition,
-    eventContext?: DomainEventContext
-  ): Promise<AssetCustomFieldDefinition>
-  updateCustomFieldDefinitionByID(
-    opts: UpdateAssetCustomFieldDefinitionOptions
-  ): Promise<AssetCustomFieldDefinition | null>
-  deleteCustomFieldDefinitionByID(
-    id: string,
-    eventContext?: DomainEventContext
-  ): Promise<AssetCustomFieldDefinition | null>
   listCustomFieldValues(
     assetId: string
   ): Promise<AssetCustomFieldValue[] | null>
@@ -190,16 +121,10 @@ export function createAssetService({
   logger
 }: AssetServiceDependencies): AssetService {
   type AssetEventSubject = keyof AssetEventPayloads & string
-  type CustomFieldEventSubject = keyof CustomFieldEventPayloads & string
   const emitAssetEvent = createDomainEventEmitter<AssetEventSubject>(
     domainEventEmitter,
     "asset"
   )
-  const emitCustomFieldEvent =
-    createDomainEventEmitter<CustomFieldEventSubject>(
-      domainEventEmitter,
-      "asset"
-    )
 
   async function getAssetSnapshot(
     id: string
@@ -446,174 +371,6 @@ export function createAssetService({
           message: "failed to delete asset",
           cause: error,
           details: { assetId: id }
-        })
-      }
-    },
-
-    async listCustomFieldDefinitions(): Promise<AssetCustomFieldDefinition[]> {
-      try {
-        return await assetRepository.listCustomFieldDefinitions()
-      } catch (error) {
-        logger.error(error, "failed to list asset custom field definitions")
-        throw new ApplicationError({
-          code: "asset.custom_field_definition.list_failed",
-          kind: "unexpected",
-          message: "failed to list asset custom field definitions",
-          cause: error
-        })
-      }
-    },
-
-    async getCustomFieldDefinitionByID(
-      id: string
-    ): Promise<AssetCustomFieldDefinition | null> {
-      try {
-        const definition =
-          await assetRepository.getCustomFieldDefinitionByID(id)
-        if (!definition) {
-          logger.debug(`asset custom field definition with id ${id} not found`)
-        }
-        return definition
-      } catch (error) {
-        logger.error(
-          error,
-          `failed to get asset custom field definition with id ${id}`
-        )
-        throw new ApplicationError({
-          code: "asset.custom_field_definition.get_failed",
-          kind: "unexpected",
-          message: "failed to get asset custom field definition",
-          cause: error,
-          details: { fieldId: id }
-        })
-      }
-    },
-
-    async createCustomFieldDefinition(
-      definition: CreateAssetCustomFieldDefinition,
-      eventContext?: DomainEventContext
-    ): Promise<AssetCustomFieldDefinition> {
-      validateCustomFieldDefinition(definition)
-
-      try {
-        const created =
-          await assetRepository.createCustomFieldDefinition(definition)
-        emitCustomFieldEvent(
-          "custom-field.created",
-          { customFieldDefinition: created },
-          eventContext
-        )
-        return created
-      } catch (error) {
-        if (isConflictError(error)) {
-          logger.debug(error, "asset custom field definition create conflict")
-          throw new ApplicationError({
-            code: "asset.custom_field_definition.create_conflict",
-            kind: "conflict",
-            message: "asset custom field definition already exists",
-            cause: error,
-            details: { fieldKey: definition.key }
-          })
-        }
-
-        logger.error(
-          error,
-          `failed to create asset custom field definition ${definition.key}`
-        )
-        throw new ApplicationError({
-          code: "asset.custom_field_definition.create_failed",
-          kind: "unexpected",
-          message: "failed to create asset custom field definition",
-          cause: error,
-          details: { fieldKey: definition.key }
-        })
-      }
-    },
-
-    async updateCustomFieldDefinitionByID(
-      opts: UpdateAssetCustomFieldDefinitionOptions
-    ): Promise<AssetCustomFieldDefinition | null> {
-      const { id, definition, eventContext } = opts
-      validateCustomFieldDefinition(definition)
-
-      try {
-        const previous = await assetRepository.getCustomFieldDefinitionByID(id)
-        if (!previous) {
-          logger.debug(`asset custom field definition with id ${id} not found`)
-          return null
-        }
-
-        const updated = await assetRepository.updateCustomFieldDefinitionByID(
-          id,
-          definition
-        )
-        if (!updated) {
-          logger.debug(`asset custom field definition with id ${id} not found`)
-          return null
-        }
-
-        if (!customFieldDefinitionsEqual(previous, updated)) {
-          emitCustomFieldEvent(
-            "custom-field.updated",
-            { previous, current: updated },
-            eventContext
-          )
-        }
-        return updated
-      } catch (error) {
-        if (isConflictError(error)) {
-          logger.debug(error, "asset custom field definition update conflict")
-          throw new ApplicationError({
-            code: "asset.custom_field_definition.update_conflict",
-            kind: "conflict",
-            message: "asset custom field definition already exists",
-            cause: error,
-            details: { fieldId: id, fieldKey: definition.key }
-          })
-        }
-
-        logger.error(
-          error,
-          `failed to update asset custom field definition with id ${id}`
-        )
-        throw new ApplicationError({
-          code: "asset.custom_field_definition.update_failed",
-          kind: "unexpected",
-          message: "failed to update asset custom field definition",
-          cause: error,
-          details: { fieldId: id }
-        })
-      }
-    },
-
-    async deleteCustomFieldDefinitionByID(
-      id: string,
-      eventContext?: DomainEventContext
-    ): Promise<AssetCustomFieldDefinition | null> {
-      try {
-        const deleted =
-          await assetRepository.deleteCustomFieldDefinitionByID(id)
-        if (!deleted) {
-          logger.debug(`asset custom field definition with id ${id} not found`)
-          return null
-        }
-        emitCustomFieldEvent(
-          "custom-field.deleted",
-          { customFieldDefinition: deleted },
-          eventContext
-        )
-        return deleted
-      } catch (error) {
-        logger.error(
-          error,
-          `failed to delete asset custom field definition with id ${id}`
-        )
-        throw new ApplicationError({
-          code: "asset.custom_field_definition.delete_failed",
-          kind: "unexpected",
-          message: "failed to delete asset custom field definition",
-          cause: error,
-          details: { fieldId: id }
         })
       }
     },

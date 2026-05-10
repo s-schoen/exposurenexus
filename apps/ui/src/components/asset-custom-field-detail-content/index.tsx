@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import type { ReactNode } from "react"
 import type { CustomFieldUpdateResult } from "@/components/asset-custom-field-detail-content/helpers.ts"
 import {

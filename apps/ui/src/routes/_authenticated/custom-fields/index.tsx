@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import { toast } from "sonner"
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import type { DataTableFilterState } from "@/components/data-table/types.ts"
 import {
   createListAssetCustomFieldDefinitionsQueryOptions,

@@ -1,7 +1,4 @@
-import type {
-  AssetCustomFieldRuleViolation,
-  AssetType
-} from "@exposurenexus/types/model/asset"
+import type { AssetType } from "@exposurenexus/types/model/asset"
 
 export type AssetApplicationErrorCatalog = {
   "asset.list_failed": { kind: "unexpected" }
@@ -30,35 +27,6 @@ export type AssetApplicationErrorCatalog = {
   "asset.delete_failed": {
     kind: "unexpected"
     details: { assetId: string }
-  }
-  "asset.custom_field_definition.list_failed": { kind: "unexpected" }
-  "asset.custom_field_definition.get_failed": {
-    kind: "unexpected"
-    details: { fieldId: string }
-  }
-  "asset.custom_field_definition.rule_violation": {
-    kind: "validation"
-    details: AssetCustomFieldRuleViolation
-  }
-  "asset.custom_field_definition.create_conflict": {
-    kind: "conflict"
-    details: { fieldKey: string }
-  }
-  "asset.custom_field_definition.create_failed": {
-    kind: "unexpected"
-    details: { fieldKey: string }
-  }
-  "asset.custom_field_definition.update_conflict": {
-    kind: "conflict"
-    details: { fieldId: string; fieldKey: string }
-  }
-  "asset.custom_field_definition.update_failed": {
-    kind: "unexpected"
-    details: { fieldId: string }
-  }
-  "asset.custom_field_definition.delete_failed": {
-    kind: "unexpected"
-    details: { fieldId: string }
   }
   "asset.custom_field_value.list_failed": {
     kind: "unexpected"

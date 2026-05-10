@@ -12,6 +12,10 @@
       "types": "./dist/model/asset.d.ts",
       "import": "./dist/model/asset.js"
     },
+    "./model/asset-custom-field": {
+      "types": "./dist/model/asset-custom-field.d.ts",
+      "import": "./dist/model/asset-custom-field.js"
+    },
     "./model/finding": {
       "types": "./dist/model/finding.d.ts",
       "import": "./dist/model/finding.js"

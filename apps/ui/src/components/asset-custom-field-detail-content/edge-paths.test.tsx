@@ -8,12 +8,12 @@ import {
   waitFor,
   within
 } from "@testing-library/react"
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
 import type { ReactNode } from "react"
 import type {
   AssetCustomFieldDefinition,
   CreateAssetCustomFieldDefinition
-} from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
 import type * as AssetCustomFieldApi from "@/api/asset-custom-field.ts"
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
 import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts"
@@ -49,9 +49,9 @@ vi.mock("sonner", () => ({
 
 vi.mock("@/components/ui/select.tsx", async () => {
   const React = await import("react")
-  const SelectContext = React.createContext<undefined | ((value: string) => void)>(
-    undefined
-  )
+  const SelectContext = React.createContext<
+    undefined | ((value: string) => void)
+  >(undefined)
 
   return {
     Select: ({
@@ -157,10 +157,10 @@ function createQueryClient() {
     }
   })
   const invalidateQueries = queryClient.invalidateQueries.bind(queryClient)
-  queryClient.invalidateQueries = ((...args) => {
+  queryClient.invalidateQueries = (...args) => {
     mocks.invalidateQueries(...args)
     return invalidateQueries(...args)
-  })
+  }
 
   return queryClient
 }
@@ -172,9 +172,8 @@ async function renderDetail(field: AssetCustomFieldDefinition) {
     field
   )
 
-  const { AssetCustomFieldDetailContent } = await import(
-    "@/components/asset-custom-field-detail-content"
-  )
+  const { AssetCustomFieldDetailContent } =
+    await import("@/components/asset-custom-field-detail-content")
   const view = render(
     <QueryClientProvider client={queryClient}>
       <AssetCustomFieldDetailContent customFieldId={field.id} />

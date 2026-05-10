@@ -4,8 +4,8 @@ import { composeStories } from "@storybook/react-vite"
 import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType
-} from "@exposurenexus/types/model/asset"
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
+} from "@exposurenexus/types/model/asset-custom-field"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import * as stories from "@/components/asset-custom-field-detail-content/index.stories"
 import {
   addAssetCustomFieldOption,
@@ -144,7 +144,8 @@ describe("asset custom field detail helpers", () => {
     )
     expect(validateAssetCustomFieldRulePayload(payload, "detail")).toEqual([
       {
-        reason: AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption,
+        reason:
+          AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption,
         path: ["defaultValue"],
         message: "Default value must match an available option"
       }

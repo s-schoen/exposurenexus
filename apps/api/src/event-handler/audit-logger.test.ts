@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest"
 import type { Logger } from "pino"
+import { AssetType } from "@exposurenexus/types/model/asset"
 import {
   type AssetCustomFieldDefinition,
-  AssetCustomFieldType,
-  AssetType
-} from "@exposurenexus/types/model/asset"
+  AssetCustomFieldType
+} from "@exposurenexus/types/model/asset-custom-field"
 import {
   FindingSource,
   FindingStatus
@@ -360,7 +360,7 @@ describe("registerAuditLogger", () => {
         id: "event-8",
         time: eventTime,
         subject: "custom-field.created",
-        source: "asset",
+        source: "asset-custom-field",
         actor: user.id,
         correlationId: "request-8",
         data: { customFieldDefinition }
@@ -371,7 +371,7 @@ describe("registerAuditLogger", () => {
       {
         eventId: "event-8",
         eventSubject: "custom-field.created",
-        eventSource: "asset",
+        eventSource: "asset-custom-field",
         eventTime,
         actor: user.id,
         correlationId: "request-8",

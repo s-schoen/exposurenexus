@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react"
 import type { UseQueryResult } from "@tanstack/react-query"
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import type {
   DataTableFilterState,
   GroupingOption

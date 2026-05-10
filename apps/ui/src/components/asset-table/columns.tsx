@@ -1,8 +1,6 @@
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
-import type {
-  AssetCustomFieldDefinition,
-  AssetWithCustomFields
-} from "@exposurenexus/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
+import type { AssetWithCustomFields } from "@exposurenexus/types/model/asset"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import type { UserProfile } from "@exposurenexus/types/model/user"
 import type { ColumnDef } from "@tanstack/react-table"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"

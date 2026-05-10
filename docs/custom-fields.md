@@ -22,22 +22,30 @@ authorization model. It is not an endpoint reference.
 
 ## Main Components
 
-Asset custom fields are split across shared types, migrations, repository,
-service, and route layers.
+Asset custom fields are split across shared types, migrations, repositories,
+services, and route layers.
 
-- `packages/types/src/model/asset.ts` defines the supported field types,
-  definition shapes, value shapes, and request validation schemas.
+- `packages/types/src/model/asset-custom-field.ts` defines the supported field
+  types, definition shapes, value shapes, and request validation schemas.
+- `packages/types/src/model/asset.ts` keeps the core asset shapes and the
+  `AssetWithCustomFields` projection.
 - `apps/api/src/db/migrations/20260429-asset-custom-fields.ts` creates the
   custom field tables and the database enum for field types.
 - `apps/api/src/db/migrations/20260430-03-asset-custom-field-assignments.ts`
   creates the asset-to-field assignment table and backfills existing assets
   with existing definitions.
-- `apps/api/src/repository/asset.ts` persists field definitions, select
-  options, asset assignments, and per-asset value overrides.
-- `apps/api/src/service/asset.ts` validates definitions and values before data
-  is written.
+- `apps/api/src/db/schema/asset-custom-field.ts` owns the custom field table
+  types used by the API database interface.
+- `apps/api/src/repository/asset-custom-field.ts` persists registry-level field
+  definitions and select options.
+- `apps/api/src/service/asset-custom-field.ts` validates definition rules and
+  emits custom field definition events.
+- `apps/api/src/repository/asset.ts` persists asset assignments and per-asset
+  value overrides.
+- `apps/api/src/service/asset.ts` validates asset-specific assignments and
+  values before data is written.
 - `apps/api/src/routes/asset-custom-fields.ts` exposes registry-level custom
-  field definition operations.
+  field definition operations through `AssetCustomFieldService`.
 - `apps/api/src/routes/assets.ts` exposes asset-specific custom field value
   operations.
 
@@ -121,8 +129,8 @@ Custom field definitions are global to the asset registry.
 
 1. A client sends a custom field definition.
 2. The route validates the request shape with the shared schema.
-3. The service validates type-specific rules.
-4. The repository stores the definition in `asset_custom_field`.
+3. `AssetCustomFieldService` validates type-specific rules.
+4. `AssetCustomFieldRepository` stores the definition in `asset_custom_field`.
 5. For select fields, the repository stores options in
    `asset_custom_field_option`.
 6. The API returns the saved definition, including generated IDs.

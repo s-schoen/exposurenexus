@@ -1,6 +1,6 @@
 import { ListChecks } from "lucide-react"
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset"
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import type { EditElement } from "@/components/inplace.tsx"
 import type { CustomFieldSummary } from "@/components/asset-custom-field-detail-content/helpers.ts"
 import type {
