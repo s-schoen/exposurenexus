@@ -196,6 +196,25 @@ describe("api errors", () => {
     expect(reply).not.toHaveProperty("reason")
   })
 
+  it("does not expose vulnerability application error details by default", () => {
+    const error = new ApplicationError({
+      code: "vulnerability.mapping.source_required",
+      kind: "validation",
+      message: "source is required",
+      details: { source: "   " }
+    })
+
+    const reply = createApiErrorReply("api-error-test", error)
+
+    expect(reply).toMatchObject({
+      correlationId: "api-error-test",
+      status: 400,
+      error: expect.any(String)
+    })
+    expect(reply).not.toHaveProperty("reason")
+    expect(reply).not.toHaveProperty("details")
+  })
+
   it("exposes allowlisted asset custom field rule reasons", () => {
     const error = new ApplicationError({
       code: "asset.custom_field_definition.rule_violation",

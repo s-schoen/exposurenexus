@@ -64,6 +64,32 @@ function assertApplicationErrorInputTypes() {
 
   expectTypeOf(findingNotFoundInput.kind).toEqualTypeOf<"missing">()
 
+  const vulnerabilityMappingConflictInput = {
+    code: "vulnerability.mapping.create_conflict",
+    kind: "conflict",
+    message: "vulnerability source mapping already exists",
+    details: {
+      vulnerabilityId: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+      source: "nuclei",
+      matchQuery: '{"templateID":"admin-panel"}'
+    }
+  } satisfies ApplicationErrorInput
+
+  expectTypeOf(
+    vulnerabilityMappingConflictInput.kind
+  ).toEqualTypeOf<"conflict">()
+
+  const vulnerabilityMappingTargetMissingInput = {
+    code: "vulnerability.mapping_target_missing",
+    kind: "missing",
+    message: "target vulnerability does not exist",
+    details: { vulnerabilityId: "missing-vulnerability-id" }
+  } satisfies ApplicationErrorInput
+
+  expectTypeOf(
+    vulnerabilityMappingTargetMissingInput.kind
+  ).toEqualTypeOf<"missing">()
+
   const wrongConstructorKind = new ApplicationError<"role.unknown_ids">({
     code: "role.unknown_ids",
     // @ts-expect-error constructor input kind is pinned by code.
