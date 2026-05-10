@@ -2,9 +2,12 @@ import {
   type AssetCustomFieldDefinition,
   type AssetCustomFieldRuleViolation,
   type AssetCustomFieldValue,
+  type AssetCustomFieldValueLiteral,
   AssetCustomFieldRuleViolationReason,
+  AssetCustomFieldType,
   type CreateAssetCustomFieldDefinition,
   type UpdateAssetCustomFieldDefinition,
+  type UpdateAssetCustomFieldValue,
   validateAssetCustomFieldDefinitionRules
 } from "@exposurenexus/types/model/asset-custom-field"
 import type {
@@ -71,6 +74,23 @@ function customFieldDefinitionsEqual(
   return JSON.stringify(previous) === JSON.stringify(current)
 }
 
+function isValidValueForDefinition(
+  definition: AssetCustomFieldValue,
+  value: Exclude<AssetCustomFieldValueLiteral, null>
+): boolean {
+  switch (definition.type) {
+    case AssetCustomFieldType.Text:
+      return typeof value === "string"
+    case AssetCustomFieldType.Number:
+      return typeof value === "number"
+    case AssetCustomFieldType.Select:
+      return (
+        typeof value === "string" &&
+        definition.options.some((option) => option.value === value)
+      )
+  }
+}
+
 function assetSnapshotsEqual(
   previous: AssetWithCustomFields,
   current: AssetWithCustomFields
@@ -110,6 +130,12 @@ export interface ReplaceAssetCustomFieldAssignmentsOptions {
   eventContext?: DomainEventContext
 }
 
+export interface ReplaceAssetCustomFieldValuesOptions {
+  assetId: string
+  values: UpdateAssetCustomFieldValue[]
+  eventContext?: DomainEventContext
+}
+
 export interface AssetCustomFieldService {
   listDefinitions(): Promise<AssetCustomFieldDefinition[]>
   getDefinitionByID(id: string): Promise<AssetCustomFieldDefinition | null>
@@ -135,6 +161,9 @@ export interface AssetCustomFieldService {
   ): Promise<AssetCustomFieldDefinition[] | null>
   replaceAssignmentsForAsset(
     opts: ReplaceAssetCustomFieldAssignmentsOptions
+  ): Promise<AssetCustomFieldValue[] | null>
+  replaceValuesForAsset(
+    opts: ReplaceAssetCustomFieldValuesOptions
   ): Promise<AssetCustomFieldValue[] | null>
 }
 
@@ -488,6 +517,104 @@ export function createAssetCustomFieldService({
           code: "asset_custom_field.assignment.replace_failed",
           kind: "unexpected",
           message: "failed to replace asset custom field assignments",
+          cause: error,
+          details: { assetId }
+        })
+      }
+    },
+
+    async replaceValuesForAsset(
+      opts: ReplaceAssetCustomFieldValuesOptions
+    ): Promise<AssetCustomFieldValue[] | null> {
+      const { assetId, values, eventContext } = opts
+
+      try {
+        const previous = await getAssetSnapshot(assetId)
+        if (!previous) {
+          logger.debug(`asset with id ${assetId} not found`)
+          return null
+        }
+
+        const duplicateFieldId = findDuplicate(
+          values.map((value) => value.fieldId)
+        )
+        if (duplicateFieldId) {
+          throw new ApplicationError({
+            code: "asset_custom_field.value.duplicate",
+            kind: "validation",
+            message: "asset custom field values contain duplicate fields",
+            details: { assetId, fieldId: duplicateFieldId }
+          })
+        }
+
+        const fieldsById = new Map(
+          previous.customFields.map((field) => [field.fieldId, field])
+        )
+        const submittedFieldIds = new Set(values.map((value) => value.fieldId))
+
+        for (const assignedFieldId of fieldsById.keys()) {
+          if (!submittedFieldIds.has(assignedFieldId)) {
+            throw new ApplicationError({
+              code: "asset_custom_field.value.missing",
+              kind: "validation",
+              message: "asset custom field value replacement is incomplete",
+              details: { assetId, fieldId: assignedFieldId }
+            })
+          }
+        }
+
+        for (const valueUpdate of values) {
+          const field = fieldsById.get(valueUpdate.fieldId)
+
+          if (!field) {
+            throw new ApplicationError({
+              code: "asset_custom_field.value.not_assigned",
+              kind: "validation",
+              message: "asset custom field is not assigned to asset",
+              details: { assetId, fieldId: valueUpdate.fieldId }
+            })
+          }
+
+          if (
+            valueUpdate.value !== null &&
+            !isValidValueForDefinition(field, valueUpdate.value)
+          ) {
+            throw new ApplicationError({
+              code: "asset_custom_field.value.invalid",
+              kind: "validation",
+              message: "invalid asset custom field value",
+              details: {
+                assetId,
+                fieldId: valueUpdate.fieldId,
+                fieldKey: field.key
+              }
+            })
+          }
+        }
+
+        const updatedValues =
+          await assetCustomFieldRepository.replaceValuesForAsset(
+            assetId,
+            values
+          )
+        const current = await getAssetSnapshot(assetId)
+        if (current) {
+          emitUpdatedAssetEvent(previous, current, eventContext)
+        }
+        return updatedValues
+      } catch (error) {
+        if (isApplicationError(error)) {
+          throw error
+        }
+
+        logger.error(
+          error,
+          `failed to replace asset custom field values for asset ${assetId}`
+        )
+        throw new ApplicationError({
+          code: "asset_custom_field.value.replace_failed",
+          kind: "unexpected",
+          message: "failed to replace asset custom field values",
           cause: error,
           details: { assetId }
         })
