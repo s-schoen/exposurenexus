@@ -22,8 +22,20 @@ const expectedMigrationNames = [
   "20260509-02-finding-vulnerability-delete-restrict",
   "20260509-03-finding-asset-delete-restrict",
   "20260509-vulnerability-source-mapping-unique",
-  "20260510-audit-nullability-contract"
+  "20260510-audit-nullability-contract",
+  "20260510-rbac-role-permission-role-id-camel-case"
 ]
+
+// Forward-only migration history prevents renaming this already-applied file set.
+const legacyMixedMigrationDateExceptions = new Set(["20260509"])
+
+function migrationDate(migrationName: string): string {
+  return migrationName.slice(0, 8)
+}
+
+function migrationNameStyle(migrationName: string): "numbered" | "unnumbered" {
+  return /^\d{8}-\d{2}-/u.test(migrationName) ? "numbered" : "unnumbered"
+}
 
 describe("database migration provider", () => {
   it("loads runtime migrations from the migration directory by filename", async () => {
@@ -33,5 +45,25 @@ describe("database migration provider", () => {
     for (const name of expectedMigrationNames) {
       expect(migrations[name]?.up).toEqual(expect.any(Function))
     }
+  })
+
+  it("does not mix numbered and unnumbered migrations on the same date", async () => {
+    const migrations = await createMigrationProvider().getMigrations()
+    const migrationStylesByDate = new Map<string, Set<string>>()
+
+    for (const migrationName of Object.keys(migrations)) {
+      const date = migrationDate(migrationName)
+      const styles = migrationStylesByDate.get(date) ?? new Set<string>()
+
+      styles.add(migrationNameStyle(migrationName))
+      migrationStylesByDate.set(date, styles)
+    }
+
+    const mixedDates = [...migrationStylesByDate.entries()]
+      .filter(([date]) => !legacyMixedMigrationDateExceptions.has(date))
+      .filter(([, styles]) => styles.size > 1)
+      .map(([date]) => date)
+
+    expect(mixedDates).toEqual([])
   })
 })

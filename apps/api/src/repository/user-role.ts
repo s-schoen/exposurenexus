@@ -15,7 +15,7 @@ export function createUserRoleRepository(
         .selectFrom("user_role_assignment")
         .innerJoin(
           "role_permission_assignment",
-          "role_permission_assignment.role_id",
+          "role_permission_assignment.roleId",
           "user_role_assignment.roleId"
         )
         .select([

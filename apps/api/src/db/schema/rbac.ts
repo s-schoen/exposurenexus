@@ -10,7 +10,7 @@ export interface RoleTable {
 }
 
 export interface RolePermissionAssignmentTable {
-  role_id: string
+  roleId: string
   resource: PermissionResource
   verb: PermissionVerb
 }
