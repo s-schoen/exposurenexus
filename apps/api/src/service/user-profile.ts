@@ -29,6 +29,23 @@ interface UserProfileServiceDependencies {
 
 type UserEventSubject = keyof UserEventPayloads & string
 
+export interface UpdateUserProfileByIDOptions {
+  id: string
+  userProfile: UpdateUserProfile
+  eventContext?: DomainEventContext
+}
+
+export interface UserProfileService {
+  listAll(): Promise<UserProfile[]>
+  getByID(id: string): Promise<UserProfile | null>
+  getByUsername(username: string): Promise<UserProfile | null>
+  create(
+    userProfile: CreateUserProfile,
+    eventContext?: DomainEventContext
+  ): Promise<UserProfile>
+  updateByID(options: UpdateUserProfileByIDOptions): Promise<UserProfile | null>
+}
+
 function toUserProfile(userProfile: UserProfileInternalWithRoles): UserProfile {
   return {
     id: userProfile.id,
@@ -66,7 +83,7 @@ export function createUserProfileService({
   userProfileRepository,
   domainEventEmitter,
   logger
-}: UserProfileServiceDependencies) {
+}: UserProfileServiceDependencies): UserProfileService {
   const emitUserProfileEvent = createDomainEventEmitter<UserEventSubject>(
     domainEventEmitter,
     "user-profile"
@@ -162,11 +179,11 @@ export function createUserProfileService({
       }
     },
 
-    async updateByID(
-      id: string,
-      userProfile: UpdateUserProfile,
-      eventContext: DomainEventContext = {}
-    ): Promise<UserProfile | null> {
+    async updateByID({
+      id,
+      userProfile,
+      eventContext = {}
+    }: UpdateUserProfileByIDOptions): Promise<UserProfile | null> {
       try {
         const existingProfile = await userProfileRepository.getByID(id)
         if (!existingProfile) {

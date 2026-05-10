@@ -30,6 +30,7 @@ describe("user routes", () => {
   const userService = {
     listAll: vi.fn(),
     getByID: vi.fn(),
+    getByUsername: vi.fn(),
     create: vi.fn(),
     updateByID: vi.fn()
   }
@@ -319,9 +320,13 @@ describe("user routes", () => {
     expect(userHasPermission).toHaveBeenCalledWith(authenticatedUser.id, {
       [PermissionResource.User]: [PermissionVerb.Write]
     })
-    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload, {
-      actor: authenticatedUser.id,
-      correlationId: requestId
+    expect(userService.updateByID).toHaveBeenCalledWith({
+      id: userId,
+      userProfile: payload,
+      eventContext: {
+        actor: authenticatedUser.id,
+        correlationId: requestId
+      }
     })
     expect(body).toEqual({
       correlationId: requestId,
@@ -362,9 +367,13 @@ describe("user routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload, {
-      actor: authenticatedUser.id,
-      correlationId: requestId
+    expect(userService.updateByID).toHaveBeenCalledWith({
+      id: userId,
+      userProfile: payload,
+      eventContext: {
+        actor: authenticatedUser.id,
+        correlationId: requestId
+      }
     })
     expect(body).toEqual({
       correlationId: requestId,
@@ -487,9 +496,13 @@ describe("user routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(userService.updateByID).toHaveBeenCalledWith(userId, payload, {
-      actor: authenticatedUser.id,
-      correlationId: requestId
+    expect(userService.updateByID).toHaveBeenCalledWith({
+      id: userId,
+      userProfile: payload,
+      eventContext: {
+        actor: authenticatedUser.id,
+        correlationId: requestId
+      }
     })
     expect(body).toEqual({
       correlationId: requestId,

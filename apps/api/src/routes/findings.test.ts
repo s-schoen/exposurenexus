@@ -29,7 +29,8 @@ describe("finding routes", () => {
     listAll: vi.fn(),
     getByID: vi.fn(),
     create: vi.fn(),
-    update: vi.fn(),
+    updateByID: vi.fn(),
+    createOrUpdate: vi.fn(),
     reclassify: vi.fn(),
     deleteByID: vi.fn()
   }
@@ -645,7 +646,7 @@ describe("finding routes", () => {
       vulnerability
     }
 
-    findingService.update.mockResolvedValue(updatedFinding as Finding)
+    findingService.updateByID.mockResolvedValue(updatedFinding as Finding)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -664,7 +665,7 @@ describe("finding routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(findingService.update).toHaveBeenCalledWith({
+    expect(findingService.updateByID).toHaveBeenCalledWith({
       id: findingId,
       finding: updatePayload,
       user,
@@ -710,7 +711,7 @@ describe("finding routes", () => {
       vulnerability
     }
 
-    findingService.update.mockResolvedValue(updatedFinding as Finding)
+    findingService.updateByID.mockResolvedValue(updatedFinding as Finding)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -728,7 +729,7 @@ describe("finding routes", () => {
     })
 
     expect(response.status).toBe(200)
-    expect(findingService.update).toHaveBeenCalledWith({
+    expect(findingService.updateByID).toHaveBeenCalledWith({
       id: findingId,
       finding: updatePayload,
       user,
@@ -758,7 +759,7 @@ describe("finding routes", () => {
       vulnerability
     }
 
-    findingService.update.mockResolvedValue(updatedFinding as Finding)
+    findingService.updateByID.mockResolvedValue(updatedFinding as Finding)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -776,7 +777,7 @@ describe("finding routes", () => {
     })
 
     expect(response.status).toBe(200)
-    expect(findingService.update).toHaveBeenCalledWith({
+    expect(findingService.updateByID).toHaveBeenCalledWith({
       id: findingId,
       finding: updatePayload,
       user,
@@ -808,7 +809,7 @@ describe("finding routes", () => {
       vulnerability
     }
 
-    findingService.update.mockResolvedValue(updatedFinding as Finding)
+    findingService.updateByID.mockResolvedValue(updatedFinding as Finding)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -826,7 +827,7 @@ describe("finding routes", () => {
     })
 
     expect(response.status).toBe(200)
-    expect(findingService.update).toHaveBeenCalledWith({
+    expect(findingService.updateByID).toHaveBeenCalledWith({
       id: findingId,
       finding: {
         ...updatePayloadBase,
@@ -860,7 +861,7 @@ describe("finding routes", () => {
       vulnerability
     }
 
-    findingService.update.mockResolvedValue(updatedFinding as Finding)
+    findingService.updateByID.mockResolvedValue(updatedFinding as Finding)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -878,7 +879,7 @@ describe("finding routes", () => {
     })
 
     expect(response.status).toBe(200)
-    expect(findingService.update).toHaveBeenCalledWith({
+    expect(findingService.updateByID).toHaveBeenCalledWith({
       id: findingId,
       finding: updatePayload,
       user,
@@ -909,7 +910,7 @@ describe("finding routes", () => {
     })
 
     expect(response.status).toBe(400)
-    expect(findingService.update).not.toHaveBeenCalled()
+    expect(findingService.updateByID).not.toHaveBeenCalled()
   })
 
   it("rejects finding relationship changes before calling the update service", async () => {
@@ -933,7 +934,7 @@ describe("finding routes", () => {
     })
 
     expect(response.status).toBe(400)
-    expect(findingService.update).not.toHaveBeenCalled()
+    expect(findingService.updateByID).not.toHaveBeenCalled()
   })
 
   it("rejects invalid finding assignee ids before calling the update service", async () => {
@@ -956,7 +957,7 @@ describe("finding routes", () => {
     })
 
     expect(response.status).toBe(400)
-    expect(findingService.update).not.toHaveBeenCalled()
+    expect(findingService.updateByID).not.toHaveBeenCalled()
   })
 
   it("rejects invalid finding ids before calling the update service", async () => {
@@ -976,13 +977,13 @@ describe("finding routes", () => {
     })
 
     expect(response.status).toBe(400)
-    expect(findingService.update).not.toHaveBeenCalled()
+    expect(findingService.updateByID).not.toHaveBeenCalled()
   })
 
   it("returns 404 when updating a missing finding", async () => {
     const requestId = "findings-update-not-found-request"
 
-    findingService.update.mockResolvedValue(null)
+    findingService.updateByID.mockResolvedValue(null)
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -1001,7 +1002,7 @@ describe("finding routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(findingService.update).toHaveBeenCalledWith({
+    expect(findingService.updateByID).toHaveBeenCalledWith({
       id: findingId,
       finding: updatePayloadBase,
       user,
@@ -1048,12 +1049,9 @@ describe("finding routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(findingService.deleteByID).toHaveBeenCalledWith({
-      id: findingId,
-      eventContext: {
-        actor: user.id,
-        correlationId: requestId
-      }
+    expect(findingService.deleteByID).toHaveBeenCalledWith(findingId, {
+      actor: user.id,
+      correlationId: requestId
     })
     expect(body).toEqual({
       correlationId: requestId,
@@ -1089,12 +1087,9 @@ describe("finding routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(findingService.deleteByID).toHaveBeenCalledWith({
-      id: findingId,
-      eventContext: {
-        actor: user.id,
-        correlationId: requestId
-      }
+    expect(findingService.deleteByID).toHaveBeenCalledWith(findingId, {
+      actor: user.id,
+      correlationId: requestId
     })
     expect(body).toEqual({
       correlationId: requestId,

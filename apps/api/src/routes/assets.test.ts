@@ -25,6 +25,7 @@ describe("asset routes", () => {
     listAll: vi.fn(),
     listAllWithCustomFields: vi.fn(),
     getByID: vi.fn(),
+    getByName: vi.fn(),
     create: vi.fn(),
     updateOwnerByID: vi.fn(),
     deleteByID: vi.fn(),
@@ -392,13 +393,13 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(201)
-    expect(assetService.createCustomFieldDefinition).toHaveBeenCalledWith({
-      definition: payload,
-      eventContext: {
+    expect(assetService.createCustomFieldDefinition).toHaveBeenCalledWith(
+      payload,
+      {
         actor: user.id,
         correlationId: requestId
       }
-    })
+    )
     expect(body).toEqual({
       correlationId: requestId,
       data: created
@@ -470,13 +471,13 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(400)
-    expect(assetService.createCustomFieldDefinition).toHaveBeenCalledWith({
-      definition: payload,
-      eventContext: {
+    expect(assetService.createCustomFieldDefinition).toHaveBeenCalledWith(
+      payload,
+      {
         actor: user.id,
         correlationId: requestId
       }
-    })
+    )
     expect(body).toEqual({
       correlationId: requestId,
       status: 400,
@@ -747,13 +748,13 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.deleteCustomFieldDefinitionByID).toHaveBeenCalledWith({
-      id: definition.id,
-      eventContext: {
+    expect(assetService.deleteCustomFieldDefinitionByID).toHaveBeenCalledWith(
+      definition.id,
+      {
         actor: user.id,
         correlationId: requestId
       }
-    })
+    )
     expect(body).toEqual({
       correlationId: requestId,
       data: definition
@@ -781,13 +782,13 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.deleteCustomFieldDefinitionByID).toHaveBeenCalledWith({
-      id: fieldId,
-      eventContext: {
+    expect(assetService.deleteCustomFieldDefinitionByID).toHaveBeenCalledWith(
+      fieldId,
+      {
         actor: user.id,
         correlationId: requestId
       }
-    })
+    )
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,
@@ -1428,12 +1429,9 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(201)
-    expect(assetService.create).toHaveBeenCalledWith({
-      asset: payload,
-      eventContext: {
-        actor: user.id,
-        correlationId: requestId
-      }
+    expect(assetService.create).toHaveBeenCalledWith(payload, {
+      actor: user.id,
+      correlationId: requestId
     })
     expect(body).toEqual({
       correlationId: requestId,
@@ -1472,12 +1470,9 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(201)
-    expect(assetService.create).toHaveBeenCalledWith({
-      asset: payload,
-      eventContext: {
-        actor: user.id,
-        correlationId: requestId
-      }
+    expect(assetService.create).toHaveBeenCalledWith(payload, {
+      actor: user.id,
+      correlationId: requestId
     })
     expect(body).toEqual({
       correlationId: requestId,
@@ -1705,12 +1700,9 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.deleteByID).toHaveBeenCalledWith({
-      id: assetId,
-      eventContext: {
-        actor: user.id,
-        correlationId: requestId
-      }
+    expect(assetService.deleteByID).toHaveBeenCalledWith(assetId, {
+      actor: user.id,
+      correlationId: requestId
     })
     expect(body).toEqual({
       correlationId: requestId,
@@ -1764,12 +1756,9 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.deleteByID).toHaveBeenCalledWith({
-      id: assetId,
-      eventContext: {
-        actor: user.id,
-        correlationId: requestId
-      }
+    expect(assetService.deleteByID).toHaveBeenCalledWith(assetId, {
+      actor: user.id,
+      correlationId: requestId
     })
     expect(body).toEqual({
       correlationId: requestId,

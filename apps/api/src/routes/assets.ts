@@ -3,68 +3,16 @@ import { notFound, replyArray, replyObject } from "../lib/reply.js"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
 import {
-  type Asset,
-  type AssetCustomFieldDefinition,
-  type AssetCustomFieldValue,
-  type AssetWithCustomFields,
   createAssetSchema,
   updateAssetOwnerSchema,
   updateAssetCustomFieldAssociationsSchema,
   updateAssetCustomFieldValuesSchema
 } from "@exposurenexus/types/model/asset"
 import type { ContextVariables } from "../lib/hono-schema.js"
-import type { DomainEventContext } from "../lib/eventbus/events/index.js"
 import { requestEventContext } from "../lib/request-event-context.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
-import {
-  createAssetCustomFieldRoute,
-  type AssetCustomFieldRouteService
-} from "./asset-custom-fields.js"
-
-interface AssetRouteService extends AssetCustomFieldRouteService {
-  listAll(): Promise<Asset[]>
-  listAllWithCustomFields(): Promise<AssetWithCustomFields[]>
-  getByID(id: string): Promise<Asset | null>
-  create(options: {
-    asset: typeof createAssetSchema._output
-    eventContext?: DomainEventContext
-  }): Promise<Asset>
-  updateOwnerByID(options: {
-    id: string
-    ownerId: typeof updateAssetOwnerSchema._output.ownerId
-    eventContext?: DomainEventContext
-  }): Promise<Asset | null>
-  deleteByID(options: {
-    id: string
-    eventContext?: DomainEventContext
-  }): Promise<Asset | null>
-  listCustomFieldValues(
-    assetId: string
-  ): Promise<AssetCustomFieldValue[] | null>
-  listAvailableCustomFieldDefinitions(
-    assetId: string
-  ): Promise<AssetCustomFieldDefinition[] | null>
-  upsertCustomFieldValues(options: {
-    assetId: string
-    values: typeof updateAssetCustomFieldValuesSchema._output.values
-    eventContext?: DomainEventContext
-  }): Promise<AssetCustomFieldValue[] | null>
-  clearCustomFieldValue(options: {
-    assetId: string
-    fieldId: string
-    eventContext?: DomainEventContext
-  }): Promise<boolean | null>
-  assignCustomFields(options: {
-    assetId: string
-    fieldIds: typeof updateAssetCustomFieldAssociationsSchema._output.fieldIds
-    eventContext?: DomainEventContext
-  }): Promise<AssetCustomFieldValue[] | null>
-  detachCustomField(options: {
-    assetId: string
-    fieldId: string
-    eventContext?: DomainEventContext
-  }): Promise<boolean | null>
-}
+import { createAssetCustomFieldRoute } from "./asset-custom-fields.js"
+import type { AssetService } from "../service/asset.js"
 
 interface AssetRouteDependencies {
   requireDomainPermission: RequireDomainPermission
@@ -91,7 +39,7 @@ const assetAndFieldIdParamValidator = zValidator(
 )
 
 export function createAssetRoute(
-  assetService: AssetRouteService,
+  assetService: AssetService,
   { requireDomainPermission }: AssetRouteDependencies
 ) {
   const asset = new Hono<{ Variables: ContextVariables }>()
@@ -254,10 +202,10 @@ export function createAssetRoute(
     zValidator("json", createAssetSchema),
     async (c) => {
       const body = c.req.valid("json")
-      const createdAsset = await assetService.create({
-        asset: body,
-        eventContext: requestEventContext(c)
-      })
+      const createdAsset = await assetService.create(
+        body,
+        requestEventContext(c)
+      )
       return replyObject(c, createdAsset, true)
     }
   )
@@ -291,10 +239,10 @@ export function createAssetRoute(
     async (c) => {
       const params = c.req.valid("param")
 
-      const deleted = await assetService.deleteByID({
-        id: params.id,
-        eventContext: requestEventContext(c)
-      })
+      const deleted = await assetService.deleteByID(
+        params.id,
+        requestEventContext(c)
+      )
       if (!deleted) {
         notFound("asset", params.id)
       }

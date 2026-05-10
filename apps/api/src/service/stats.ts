@@ -14,6 +14,10 @@ interface StatsServiceDependencies {
   logger: Logger
 }
 
+export interface StatsService {
+  getFindingStats(): Promise<FindingStatistics>
+}
+
 function normalizeEnumCounts<E extends string>(
   enumObject: Record<string, E>,
   counts: Record<string, number>
@@ -30,7 +34,7 @@ function normalizeEnumCounts<E extends string>(
 export function createStatsService({
   findingRepository,
   logger
-}: StatsServiceDependencies) {
+}: StatsServiceDependencies): StatsService {
   return {
     async getFindingStats(): Promise<FindingStatistics> {
       try {

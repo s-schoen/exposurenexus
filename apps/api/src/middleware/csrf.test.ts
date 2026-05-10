@@ -27,8 +27,10 @@ describe("csrf protection", () => {
   }
   const authService = {
     createSessionForCredentials: vi.fn(),
+    createSession: vi.fn(),
     validateSession: vi.fn(),
-    revokeSession: vi.fn()
+    revokeSession: vi.fn(),
+    userHasPermission: vi.fn()
   }
 
   beforeEach(() => {

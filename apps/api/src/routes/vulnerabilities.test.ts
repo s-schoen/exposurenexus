@@ -1064,13 +1064,13 @@ describe("vulnerability routes", () => {
     expect(userHasPermission).toHaveBeenCalledWith(user.id, {
       vulnerability: ["write"]
     })
-    expect(vulnerabilityService.deleteMappingByID).toHaveBeenCalledWith({
-      id: mappingRecord.id,
-      eventContext: {
+    expect(vulnerabilityService.deleteMappingByID).toHaveBeenCalledWith(
+      mappingRecord.id,
+      {
         actor: user.id,
         correlationId: requestId
       }
-    })
+    )
     expect(body).toEqual({
       correlationId: requestId,
       data: mappingRecord
@@ -1136,13 +1136,13 @@ describe("vulnerability routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(vulnerabilityService.deleteByID).toHaveBeenCalledWith({
-      id: vulnerabilityId,
-      eventContext: {
+    expect(vulnerabilityService.deleteByID).toHaveBeenCalledWith(
+      vulnerabilityId,
+      {
         actor: user.id,
         correlationId: requestId
       }
-    })
+    )
     expect(body).toEqual({
       correlationId: requestId,
       data: {
@@ -1208,13 +1208,13 @@ describe("vulnerability routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(vulnerabilityService.deleteByID).toHaveBeenCalledWith({
-      id: vulnerabilityId,
-      eventContext: {
+    expect(vulnerabilityService.deleteByID).toHaveBeenCalledWith(
+      vulnerabilityId,
+      {
         actor: user.id,
         correlationId: requestId
       }
-    })
+    )
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,

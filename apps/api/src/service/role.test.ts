@@ -154,12 +154,9 @@ describe("role service", () => {
 
     roleRepository.create.mockResolvedValue(createdRole)
 
-    await expect(
-      service.create({
-        role: createRole,
-        eventContext
-      })
-    ).resolves.toEqual(createdRole)
+    await expect(service.create(createRole, eventContext)).resolves.toEqual(
+      createdRole
+    )
     expect(roleRepository.create).toHaveBeenCalledWith(createRole)
     expect(domainEvents.subjects()).toEqual(["role.created"])
     expect(domainEvents.eventsFor("role.created")[0]).toMatchObject({
@@ -182,10 +179,8 @@ describe("role service", () => {
 
     await expect(
       service.create({
-        role: {
-          name: BuiltInRoleName.Viewer,
-          permissions: []
-        }
+        name: BuiltInRoleName.Viewer,
+        permissions: []
       })
     ).rejects.toMatchObject({
       status: 409,
@@ -200,10 +195,8 @@ describe("role service", () => {
 
     await expect(
       service.create({
-        role: {
-          name: "security-analyst",
-          permissions: []
-        }
+        name: "security-analyst",
+        permissions: []
       })
     ).rejects.toMatchObject({
       status: 500,
@@ -463,7 +456,7 @@ describe("role service", () => {
     roleRepository.deleteByID.mockResolvedValue(analystRole)
 
     await expect(
-      service.deleteByID({ id: analystRole.id, eventContext })
+      service.deleteByID(analystRole.id, eventContext)
     ).resolves.toEqual(analystRole)
     expect(roleRepository.hasUsersWithRoleID).toHaveBeenCalledWith(
       analystRole.id
@@ -485,7 +478,7 @@ describe("role service", () => {
 
     roleRepository.getByID.mockResolvedValueOnce(null)
 
-    await expect(service.deleteByID({ id: analystRole.id })).resolves.toBeNull()
+    await expect(service.deleteByID(analystRole.id)).resolves.toBeNull()
     expect(roleRepository.hasUsersWithRoleID).not.toHaveBeenCalled()
     expect(roleRepository.deleteByID).not.toHaveBeenCalled()
     expect(domainEvents.subjects()).toEqual([])
@@ -497,7 +490,7 @@ describe("role service", () => {
     roleRepository.getByID.mockResolvedValueOnce(analystRole)
     roleRepository.deleteByID.mockResolvedValueOnce(null)
 
-    await expect(service.deleteByID({ id: analystRole.id })).resolves.toBeNull()
+    await expect(service.deleteByID(analystRole.id)).resolves.toBeNull()
     expect(roleRepository.hasUsersWithRoleID).toHaveBeenCalledWith(
       analystRole.id
     )
@@ -508,7 +501,7 @@ describe("role service", () => {
     const service = createService()
 
     await expect(
-      service.deleteByID({ id: builtInRoleIds.admin })
+      service.deleteByID(builtInRoleIds.admin)
     ).rejects.toMatchObject({
       status: 403,
       message: "built-in roles cannot be modified"
@@ -523,9 +516,7 @@ describe("role service", () => {
     roleRepository.getByID.mockResolvedValue(analystRole)
     roleRepository.hasUsersWithRoleID.mockResolvedValue(true)
 
-    await expect(
-      service.deleteByID({ id: analystRole.id })
-    ).rejects.toMatchObject({
+    await expect(service.deleteByID(analystRole.id)).rejects.toMatchObject({
       status: 409,
       message: `role ${analystRole.name} is still assigned to users`
     } satisfies Partial<HTTPException>)
@@ -539,9 +530,7 @@ describe("role service", () => {
     roleRepository.getByID.mockResolvedValueOnce(analystRole)
     roleRepository.deleteByID.mockRejectedValueOnce(new Error("db offline"))
 
-    await expect(
-      service.deleteByID({ id: analystRole.id })
-    ).rejects.toMatchObject({
+    await expect(service.deleteByID(analystRole.id)).rejects.toMatchObject({
       status: 500,
       message: "failed to delete role"
     } satisfies Partial<HTTPException>)

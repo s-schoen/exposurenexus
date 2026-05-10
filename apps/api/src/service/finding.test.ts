@@ -198,17 +198,15 @@ describe("finding service", () => {
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await expect(
-      service.create(
-        {
-          finding: createPayload,
-          user,
-          eventContext: {
-            actor: user.id,
-            correlationId: "findings-create-request"
-          }
-        },
-        { port: "443", path: "/admin" }
-      )
+      service.create({
+        finding: createPayload,
+        user,
+        fingerprintOptions: { port: "443", path: "/admin" },
+        eventContext: {
+          actor: user.id,
+          correlationId: "findings-create-request"
+        }
+      })
     ).resolves.toEqual(createdFinding)
 
     expect(findingRepository.create).toHaveBeenCalledWith({
@@ -498,7 +496,7 @@ describe("finding service", () => {
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await expect(
-      service.update({
+      service.updateByID({
         id: baseFinding.id,
         finding: updatePayload,
         user,
@@ -554,7 +552,7 @@ describe("finding service", () => {
     findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
-    await service.update({
+    await service.updateByID({
       id: baseFinding.id,
       finding: updatePayload,
       user
@@ -583,7 +581,7 @@ describe("finding service", () => {
     findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
-    await service.update({
+    await service.updateByID({
       id: baseFinding.id,
       finding: {
         ...updatePayloadBase,
@@ -625,7 +623,7 @@ describe("finding service", () => {
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await expect(
-      service.update({
+      service.updateByID({
         id: baseFinding.id,
         finding: updatePayload,
         user
@@ -667,7 +665,7 @@ describe("finding service", () => {
     findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
-    await service.update({
+    await service.updateByID({
       id: baseFinding.id,
       finding: updatePayload,
       user
@@ -710,7 +708,7 @@ describe("finding service", () => {
     findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
-    await service.update({
+    await service.updateByID({
       id: baseFinding.id,
       finding: updatePayload,
       user
@@ -744,7 +742,7 @@ describe("finding service", () => {
     findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
-    await service.update({
+    await service.updateByID({
       id: baseFinding.id,
       finding: updatePayload,
       user
@@ -778,7 +776,7 @@ describe("finding service", () => {
     findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
-    await service.update({
+    await service.updateByID({
       id: baseFinding.id,
       finding: updatePayload,
       user
@@ -805,7 +803,7 @@ describe("finding service", () => {
     findingRepository.getByID.mockResolvedValue(baseFinding)
 
     await expect(
-      service.update({
+      service.updateByID({
         id: baseFinding.id,
         finding: updatePayload,
         user
@@ -824,7 +822,7 @@ describe("finding service", () => {
     findingRepository.getByID.mockResolvedValue(null)
 
     await expect(
-      service.update({
+      service.updateByID({
         id: baseFinding.id,
         finding: updatePayloadBase,
         user
@@ -867,17 +865,15 @@ describe("finding service", () => {
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await expect(
-      service.createOrUpdate(
-        {
-          finding: createPayload,
-          user,
-          eventContext: {
-            actor: user.id,
-            correlationId: "findings-import-request"
-          }
-        },
-        { port: "443" }
-      )
+      service.createOrUpdate({
+        finding: createPayload,
+        user,
+        fingerprintOptions: { port: "443" },
+        eventContext: {
+          actor: user.id,
+          correlationId: "findings-import-request"
+        }
+      })
     ).resolves.toEqual({
       finding: currentEventFinding,
       created: false
@@ -1240,12 +1236,9 @@ describe("finding service", () => {
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await expect(
-      service.deleteByID({
-        id: baseFinding.id,
-        eventContext: {
-          actor: user.id,
-          correlationId: "findings-delete-request"
-        }
+      service.deleteByID(baseFinding.id, {
+        actor: user.id,
+        correlationId: "findings-delete-request"
       })
     ).resolves.toEqual({
       ...baseFinding,
@@ -1271,7 +1264,7 @@ describe("finding service", () => {
 
     findingRepository.deleteByID.mockResolvedValue(null)
 
-    await expect(service.deleteByID({ id: baseFinding.id })).resolves.toBeNull()
+    await expect(service.deleteByID(baseFinding.id)).resolves.toBeNull()
     expect(domainEvents.subjects()).toEqual([])
   })
 })

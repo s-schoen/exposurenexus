@@ -54,12 +54,12 @@ describe("import util", () => {
     await expect(
       getOrCreateAsset(AssetType.Host, createdAsset.name, eventContext)
     ).resolves.toEqual(createdAsset)
-    expect(assetService.create).toHaveBeenCalledWith({
-      asset: {
+    expect(assetService.create).toHaveBeenCalledWith(
+      {
         name: createdAsset.name,
         type: AssetType.Host
       },
       eventContext
-    })
+    )
   })
 })

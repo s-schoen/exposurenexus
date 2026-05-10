@@ -8,7 +8,7 @@ import type {
   AuthSessionDataReply,
   AuthSessionReply
 } from "@exposurenexus/types/api"
-import type { UserProfile, UserSession } from "@exposurenexus/types/model/user"
+import type { UserSession } from "@exposurenexus/types/model/user"
 import { replyObject } from "../lib/reply.js"
 import { resolveRequestSourceIp } from "../lib/source-ip.js"
 import {
@@ -19,41 +19,13 @@ import {
 } from "../middleware/auth.js"
 import type { CsrfProtection } from "../middleware/csrf.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
+import type { AuthService } from "../service/auth.js"
 
 const loginSchema = z.strictObject({
   username: z.string().trim().min(1),
   password: z.string().min(1)
 })
 type LoginBody = z.infer<typeof loginSchema>
-
-interface CreatedSession {
-  sessionId: string
-  session: UserSession
-  user: UserProfile
-}
-
-interface ValidatedSession {
-  session: UserSession
-  user: UserProfile
-}
-
-interface AuthRouteService {
-  createSessionForCredentials(input: {
-    username: string
-    password: string
-    sourceIp: string
-    userAgent?: string
-    correlationId?: string
-  }): Promise<CreatedSession | null>
-  validateSession(input: {
-    sessionId: string
-    correlationId?: string
-  }): Promise<ValidatedSession | null>
-  revokeSession(input: {
-    sessionId: string
-    correlationId?: string
-  }): Promise<boolean>
-}
 
 interface AuthRouteOptions {
   csrf?: Pick<CsrfProtection, "issueToken" | "clearToken">
@@ -100,7 +72,7 @@ function requestCorrelation(c: Context<{ Variables: ContextVariables }>): {
 }
 
 export function createAuthRoute(
-  authService: AuthRouteService,
+  authService: AuthService,
   options: AuthRouteOptions = {}
 ) {
   const auth = new Hono<{ Variables: ContextVariables }>()

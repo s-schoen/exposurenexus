@@ -5,14 +5,9 @@ import type {
 } from "@exposurenexus/types/model/asset"
 import type { Logger } from "pino"
 import type { DomainEventContext } from "../lib/eventbus/events/index.js"
+import type { AssetService } from "../service/asset.js"
 
-interface AssetLookupService {
-  getByName(name: string, type?: AssetType): Promise<Asset | null>
-  create(options: {
-    asset: CreateAsset
-    eventContext?: DomainEventContext
-  }): Promise<Asset>
-}
+type AssetLookupService = Pick<AssetService, "getByName" | "create">
 
 interface AssetImportDependencies {
   assetService: AssetLookupService
@@ -34,9 +29,9 @@ export function createGetOrCreateAsset({
     }
 
     logger.info(`creating new asset ${name} based on finding import`)
-    return assetService.create({
-      asset: { name, type },
+    return assetService.create(
+      { name, type } satisfies CreateAsset,
       eventContext
-    })
+    )
   }
 }

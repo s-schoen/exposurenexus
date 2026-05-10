@@ -2,17 +2,14 @@ import { Hono } from "hono"
 import { replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
-
-interface StatsRouteService {
-  getFindingStats(): Promise<object>
-}
+import type { StatsService } from "../service/stats.js"
 
 interface StatsRouteDependencies {
   requireDomainPermission: RequireDomainPermission
 }
 
 export function createFindingStatsRoute(
-  statsService: StatsRouteService,
+  statsService: StatsService,
   { requireDomainPermission }: StatsRouteDependencies
 ) {
   const findingStats = new Hono<{ Variables: ContextVariables }>()

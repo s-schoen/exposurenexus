@@ -4,19 +4,11 @@ import { badRequest, replyObject } from "../lib/reply.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import { requestEventContext } from "../lib/request-event-context.js"
 import type { Logger } from "pino"
-import type { ImportContext } from "../import/importer.js"
+import type { FindingImporter } from "../import/importer.js"
 import type { RequireDomainPermission } from "../middleware/auth.js"
 
-interface FindingImportService {
-  parseFindingsFromFile(
-    ctx: ImportContext,
-    type: string,
-    file: Buffer
-  ): Promise<Array<unknown>>
-}
-
 interface ImportRouteDependencies {
-  importer: FindingImportService
+  importer: FindingImporter
   logger: Logger
   requireDomainPermission: RequireDomainPermission
 }
