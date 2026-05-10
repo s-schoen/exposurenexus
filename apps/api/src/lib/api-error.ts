@@ -6,10 +6,32 @@ import type { ContextVariables } from "./hono-schema.js"
 import {
   isApplicationError,
   type ApplicationError,
+  type ApplicationErrorCode,
   type ApplicationErrorKind
 } from "../service/application-error.js"
 
 const INTERNAL_SERVER_ERROR_MESSAGE = "internal server error"
+
+type ApplicationErrorReasonPolicy<Code extends ApplicationErrorCode> =
+  | string
+  | ((error: ApplicationError<Code>) => string | undefined)
+
+type ApplicationErrorResponsePolicy<Code extends ApplicationErrorCode> = {
+  reason?: ApplicationErrorReasonPolicy<Code>
+}
+
+type ApplicationErrorResponsePolicies = {
+  [Code in ApplicationErrorCode]?: ApplicationErrorResponsePolicy<Code>
+}
+
+// Public reasons are an API contract. Only expose codes or detail-derived
+// values here when clients are expected to branch on them.
+const applicationErrorResponsePolicies: ApplicationErrorResponsePolicies = {
+  "role.unknown_ids": { reason: "role.unknown_ids" },
+  "asset.custom_field_definition.rule_violation": {
+    reason: (error) => error.details.reason
+  }
+}
 
 interface ApiErrorOptions {
   reason?: string
@@ -123,19 +145,15 @@ function getErrorStatus(
   return error.status
 }
 
-function getApplicationErrorPublicReason(
-  error: ApplicationError
+function getApplicationErrorPublicReason<Code extends ApplicationErrorCode>(
+  error: ApplicationError<Code>
 ): string | undefined {
-  switch (error.code) {
-    case "role.unknown_ids":
-      return "unknown-role-ids"
-    case "asset.custom_field_definition.rule_violation":
-      return (
-        error as ApplicationError<"asset.custom_field_definition.rule_violation">
-      ).details.reason
-    default:
-      return undefined
+  const reason = applicationErrorResponsePolicies[error.code]?.reason
+  if (typeof reason === "function") {
+    return reason(error)
   }
+
+  return reason
 }
 
 export function createApiErrorReply(
