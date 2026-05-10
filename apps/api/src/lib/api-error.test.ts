@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { HTTPException } from "hono/http-exception"
+import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/types/model/asset"
 import {
   badRequest,
   conflict,
@@ -177,6 +178,47 @@ describe("api errors", () => {
       error: expect.any(String)
     })
     expect(reply).not.toHaveProperty("reason")
+  })
+
+  it("exposes allowlisted asset custom field rule reasons", () => {
+    const error = new ApplicationError({
+      code: "asset.custom_field_definition.rule_violation",
+      kind: "validation",
+      message: "required custom fields must define a default value",
+      details: {
+        reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
+        path: ["defaultValue"]
+      }
+    })
+
+    const reply = createApiErrorReply("api-error-test", error)
+
+    expect(reply).toMatchObject({
+      correlationId: "api-error-test",
+      status: 400,
+      error: expect.any(String),
+      reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing
+    })
+    expect(reply).not.toHaveProperty("details")
+  })
+
+  it("does not expose asset application error details by default", () => {
+    const error = new ApplicationError({
+      code: "asset.custom_field.unknown",
+      kind: "validation",
+      message: "unknown asset custom field id",
+      details: { fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25" }
+    })
+
+    const reply = createApiErrorReply("api-error-test", error)
+
+    expect(reply).toMatchObject({
+      correlationId: "api-error-test",
+      status: 400,
+      error: expect.any(String)
+    })
+    expect(reply).not.toHaveProperty("reason")
+    expect(reply).not.toHaveProperty("details")
   })
 
   it("serializes server errors with a generic public message", () => {
