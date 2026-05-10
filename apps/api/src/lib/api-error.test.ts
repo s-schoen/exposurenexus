@@ -72,7 +72,7 @@ describe("api errors", () => {
       correlationId: "api-error-test",
       status: 400,
       error: expect.any(String),
-      reason: "unknown-role-ids"
+      reason: "role.unknown_ids"
     })
 
     expect(
