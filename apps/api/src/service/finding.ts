@@ -20,26 +20,7 @@ import {
   type FindingEventPayloads
 } from "../lib/eventbus/events/index.js"
 import { badRequest, isForeignKeyError } from "./errors.js"
-
-interface FindingRepository {
-  list(): Promise<FindingInternal[]>
-  getByID(id: string): Promise<FindingInternal | null>
-  getByFingerprint(hash: string): Promise<FindingInternal | null>
-  create(finding: Omit<FindingInternal, "id">): Promise<FindingInternal>
-  update(
-    id: string,
-    updatedFinding: Omit<FindingInternal, "id">
-  ): Promise<FindingInternal>
-  deleteByID(id: string): Promise<FindingInternal | null>
-  reclassifyBySourceAndVulnerability(options: {
-    source: string
-    oldVulnerabilityId: string
-    targetVulnerabilityId: string
-    severity: FindingInternal["severity"]
-    updatedAt: Date
-    updatedBy: string
-  }): Promise<FindingInternal[]>
-}
+import type { FindingRepository } from "../repository/finding.js"
 
 interface VulnerabilityLookupService {
   getByID(id: string): Promise<Finding["vulnerability"] | null>
@@ -324,7 +305,7 @@ export function createFindingService({
           dueDate
         }
 
-        const updatedFinding = await findingRepository.update(
+        const updatedFinding = await findingRepository.updateByID(
           opts.id,
           findingUpdate
         )
@@ -373,7 +354,7 @@ export function createFindingService({
           ),
           lastSeen: new Date()
         }
-        const updatedFinding = await findingRepository.update(
+        const updatedFinding = await findingRepository.updateByID(
           finding.id,
           updatedObservation
         )

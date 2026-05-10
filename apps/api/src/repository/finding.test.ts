@@ -128,7 +128,7 @@ describe("finding repository", () => {
       updatedAt: new Date("2026-01-04T00:00:00.000Z")
     }
 
-    const updated = await repository.update(created.id, updatedInput)
+    const updated = await repository.updateByID(created.id, updatedInput)
 
     await expect(repository.getByID(created.id)).resolves.toEqual(updated)
     expect(updated.dueDate).toBeNull()

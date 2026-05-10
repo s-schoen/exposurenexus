@@ -15,6 +15,27 @@ type RoleRow = {
   verb: Database["role_permission_assignment"]["verb"] | null
 }
 
+export interface RoleUpdateResult {
+  role: Role
+  permissionsChanged: boolean
+  affectedUserCount: number
+  revokedSessionCount: number
+}
+
+export interface RoleRepository {
+  list(): Promise<Role[]>
+  getByID(id: string): Promise<Role | null>
+  getByIDs(ids: readonly string[]): Promise<Role[]>
+  getByNames(names: readonly string[]): Promise<Role[]>
+  create(role: CreateRole): Promise<Role>
+  updateByID(
+    id: string,
+    roleUpdate: UpdateRole
+  ): Promise<RoleUpdateResult | null>
+  deleteByID(id: string): Promise<Role | null>
+  hasUsersWithRoleID(roleId: string): Promise<boolean>
+}
+
 function toRoles(rows: RoleRow[]): Role[] {
   const rolesById = new Map<string, Role>()
 
@@ -124,7 +145,9 @@ async function deleteSessionsByUserIDs(
   return deletedSessions.length
 }
 
-export function createRoleRepository(database: Kysely<Database>) {
+export function createRoleRepository(
+  database: Kysely<Database>
+): RoleRepository {
   return {
     async list(): Promise<Role[]> {
       const rows = await createRoleBaseQuery(database).execute()
@@ -198,12 +221,7 @@ export function createRoleRepository(database: Kysely<Database>) {
     async updateByID(
       id: string,
       roleUpdate: UpdateRole
-    ): Promise<{
-      role: Role
-      permissionsChanged: boolean
-      affectedUserCount: number
-      revokedSessionCount: number
-    } | null> {
+    ): Promise<RoleUpdateResult | null> {
       return database.transaction().execute(async (trx) => {
         const existingRole = await trx
           .selectFrom("role")

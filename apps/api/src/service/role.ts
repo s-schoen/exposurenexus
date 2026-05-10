@@ -13,6 +13,7 @@ import {
   type DomainEventEmitter,
   type RoleEventPayloads
 } from "../lib/eventbus/events/index.js"
+import type { RoleRepository } from "../repository/role.js"
 
 const protectedRoleIds = new Set<string>(Object.values(builtInRoleIds))
 
@@ -26,25 +27,6 @@ function isProtectedRoleId(id: string): boolean {
 
 function roleSnapshotsEqual(previous: Role, current: Role): boolean {
   return JSON.stringify(previous) === JSON.stringify(current)
-}
-
-interface RoleRepository {
-  list(): Promise<Role[]>
-  getByID(id: string): Promise<Role | null>
-  getByIDs(ids: readonly string[]): Promise<Role[]>
-  getByNames(names: readonly string[]): Promise<Role[]>
-  create(role: CreateRole): Promise<Role>
-  updateByID(
-    id: string,
-    roleUpdate: UpdateRole
-  ): Promise<{
-    role: Role
-    permissionsChanged: boolean
-    affectedUserCount: number
-    revokedSessionCount: number
-  } | null>
-  deleteByID(id: string): Promise<Role | null>
-  hasUsersWithRoleID(roleId: string): Promise<boolean>
 }
 
 interface RoleServiceDependencies {

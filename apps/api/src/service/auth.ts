@@ -17,28 +17,25 @@ import {
   type AuthEventPayloads,
   type DomainEventEmitter
 } from "../lib/eventbus/events/index.js"
+import type { UserProfileRepository } from "../repository/user-profile.js"
+import type { UserRoleRepository } from "../repository/user-role.js"
+import type { UserSessionRepository } from "../repository/user-session.js"
 
 const DUMMY_PASSWORD_HASH =
   "$argon2id$v=19$m=65536,t=3,p=4$Wa8M0nF1X8xS27SqOFnmsw$98GFJBEC07TapmYXC8zGbR7ARdLfDSr2t1sWeARp0Ag"
 
-interface UserProfileRepository {
-  getByID(id: string): Promise<UserProfileInternalWithRoles | null>
-  getByUsername(username: string): Promise<UserProfileInternalWithRoles | null>
-}
-
-interface UserSessionRepository {
-  getBySessionID(sessionId: string): Promise<UserSession | null>
-  create(session: Omit<UserSession, "id">): Promise<UserSession>
-  deleteBySessionID(sessionId: string): Promise<UserSession | null>
-}
-
-interface UserRoleRepository {
-  listPermissionsByUserID(userId: string): Promise<Permission[]>
-}
+type AuthUserProfileRepository = Pick<
+  UserProfileRepository,
+  "getByID" | "getByUsername"
+>
+type AuthUserSessionRepository = Pick<
+  UserSessionRepository,
+  "getBySessionID" | "create" | "deleteBySessionID"
+>
 
 interface AuthServiceDependencies {
-  userProfileRepository: UserProfileRepository
-  userSessionRepository: UserSessionRepository
+  userProfileRepository: AuthUserProfileRepository
+  userSessionRepository: AuthUserSessionRepository
   userRoleRepository: UserRoleRepository
   domainEventEmitter: DomainEventEmitter
   sessionLifetimeHours: number

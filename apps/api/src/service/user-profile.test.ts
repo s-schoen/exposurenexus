@@ -20,7 +20,8 @@ describe("user profile service", () => {
     getByID: vi.fn(),
     getByUsername: vi.fn(),
     create: vi.fn(),
-    update: vi.fn()
+    updateByID: vi.fn(),
+    deleteByID: vi.fn()
   }
   const domainEvents = createDomainEventCollector()
   const logger = pino({ enabled: false })
@@ -325,7 +326,7 @@ describe("user profile service", () => {
     }
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
-    userProfileRepository.update.mockResolvedValue({
+    userProfileRepository.updateByID.mockResolvedValue({
       userProfile: updatedProfile,
       revokedSessionCount: 2
     })
@@ -345,18 +346,18 @@ describe("user profile service", () => {
       )
     ).resolves.toEqual(expectedUpdatedUserProfile)
     expect(hashPlaintextPasswordMock).not.toHaveBeenCalled()
-    expect(userProfileRepository.update).toHaveBeenCalledWith(
-      firstProfile.id,
-      {
+    expect(userProfileRepository.updateByID).toHaveBeenCalledWith({
+      id: firstProfile.id,
+      userProfile: {
         username: firstProfile.username,
         displayName: "Alice Updated",
         email: firstProfile.email,
         enabled: false,
         passwordHash: firstProfile.passwordHash
       },
-      [builtInRoleIds.admin],
-      { revokeSessions: true }
-    )
+      roleIds: [builtInRoleIds.admin],
+      revokeSessions: true
+    })
     expect(domainEvents.subjects()).toEqual(["user.updated"])
     expect(domainEvents.events[0]).toMatchObject({
       subject: "user.updated",
@@ -381,7 +382,7 @@ describe("user profile service", () => {
     }
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
-    userProfileRepository.update.mockResolvedValue({
+    userProfileRepository.updateByID.mockResolvedValue({
       userProfile: updatedProfile,
       revokedSessionCount: 1
     })
@@ -402,18 +403,18 @@ describe("user profile service", () => {
     expect(hashPlaintextPasswordMock).toHaveBeenCalledWith(
       "new-correct-horse-battery-staple"
     )
-    expect(userProfileRepository.update).toHaveBeenCalledWith(
-      firstProfile.id,
-      {
+    expect(userProfileRepository.updateByID).toHaveBeenCalledWith({
+      id: firstProfile.id,
+      userProfile: {
         username: firstProfile.username,
         displayName: firstProfile.displayName,
         email: firstProfile.email,
         enabled: firstProfile.enabled,
         passwordHash: "argon2-password-hash"
       },
-      [],
-      { revokeSessions: true }
-    )
+      roleIds: [],
+      revokeSessions: true
+    })
   })
 
   it("revokes sessions when disabling a user profile", async () => {
@@ -424,7 +425,7 @@ describe("user profile service", () => {
     }
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
-    userProfileRepository.update.mockResolvedValue({
+    userProfileRepository.updateByID.mockResolvedValue({
       userProfile: updatedProfile,
       revokedSessionCount: 1
     })
@@ -442,18 +443,18 @@ describe("user profile service", () => {
       enabled: false,
       roleIds: firstProfile.roleIds
     })
-    expect(userProfileRepository.update).toHaveBeenCalledWith(
-      firstProfile.id,
-      {
+    expect(userProfileRepository.updateByID).toHaveBeenCalledWith({
+      id: firstProfile.id,
+      userProfile: {
         username: firstProfile.username,
         displayName: firstProfile.displayName,
         email: firstProfile.email,
         enabled: false,
         passwordHash: firstProfile.passwordHash
       },
-      firstProfile.roleIds,
-      { revokeSessions: true }
-    )
+      roleIds: firstProfile.roleIds,
+      revokeSessions: true
+    })
   })
 
   it("does not revoke sessions for non-sensitive user profile updates", async () => {
@@ -464,7 +465,7 @@ describe("user profile service", () => {
     }
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
-    userProfileRepository.update.mockResolvedValue({
+    userProfileRepository.updateByID.mockResolvedValue({
       userProfile: updatedProfile,
       revokedSessionCount: 0
     })
@@ -482,18 +483,18 @@ describe("user profile service", () => {
       enabled: firstProfile.enabled,
       roleIds: firstProfile.roleIds
     })
-    expect(userProfileRepository.update).toHaveBeenCalledWith(
-      firstProfile.id,
-      {
+    expect(userProfileRepository.updateByID).toHaveBeenCalledWith({
+      id: firstProfile.id,
+      userProfile: {
         username: firstProfile.username,
         displayName: "Alice Updated",
         email: firstProfile.email,
         enabled: firstProfile.enabled,
         passwordHash: firstProfile.passwordHash
       },
-      firstProfile.roleIds,
-      { revokeSessions: false }
-    )
+      roleIds: firstProfile.roleIds,
+      revokeSessions: false
+    })
   })
 
   it("returns null when updating a user profile that does not exist", async () => {
@@ -508,7 +509,7 @@ describe("user profile service", () => {
         roleIds: []
       })
     ).resolves.toBeNull()
-    expect(userProfileRepository.update).not.toHaveBeenCalled()
+    expect(userProfileRepository.updateByID).not.toHaveBeenCalled()
     expect(domainEvents.subjects()).toEqual([])
   })
 
@@ -516,7 +517,7 @@ describe("user profile service", () => {
     const service = createService()
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
-    userProfileRepository.update.mockResolvedValue(null)
+    userProfileRepository.updateByID.mockResolvedValue(null)
 
     await expect(
       service.updateByID(firstProfile.id, {
@@ -531,7 +532,7 @@ describe("user profile service", () => {
     const service = createService()
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
-    userProfileRepository.update.mockRejectedValue(
+    userProfileRepository.updateByID.mockRejectedValue(
       Object.assign(new Error("duplicate key value"), { code: "23505" })
     )
 
@@ -550,7 +551,7 @@ describe("user profile service", () => {
     const service = createService()
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
-    userProfileRepository.update.mockRejectedValue(
+    userProfileRepository.updateByID.mockRejectedValue(
       Object.assign(new Error("violates foreign key constraint"), {
         code: "23503"
       })
@@ -570,7 +571,7 @@ describe("user profile service", () => {
     const service = createService()
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
-    userProfileRepository.update.mockRejectedValue(new Error("db offline"))
+    userProfileRepository.updateByID.mockRejectedValue(new Error("db offline"))
 
     await expect(
       service.updateByID(firstProfile.id, {

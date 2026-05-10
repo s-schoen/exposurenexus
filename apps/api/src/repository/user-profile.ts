@@ -7,6 +7,32 @@ import type {
 
 type DatabaseExecutor = Kysely<Database> | Transaction<Database>
 
+export interface UpdateUserProfileByIDOptions {
+  id: string
+  userProfile: Omit<UserProfileInternal, "id">
+  roleIds: readonly string[]
+  revokeSessions?: boolean
+}
+
+export interface UpdateUserProfileByIDResult {
+  userProfile: UserProfileInternalWithRoles
+  revokedSessionCount: number
+}
+
+export interface UserProfileRepository {
+  list(): Promise<UserProfileInternalWithRoles[]>
+  getByID(id: string): Promise<UserProfileInternalWithRoles | null>
+  getByUsername(username: string): Promise<UserProfileInternalWithRoles | null>
+  create(
+    userProfile: Omit<UserProfileInternal, "id">,
+    roleIds: readonly string[]
+  ): Promise<UserProfileInternalWithRoles>
+  updateByID(
+    options: UpdateUserProfileByIDOptions
+  ): Promise<UpdateUserProfileByIDResult | null>
+  deleteByID(id: string): Promise<UserProfileInternal | null>
+}
+
 function uniqueRoleIds(roleIds: readonly string[]): string[] {
   return [...new Set(roleIds)]
 }
@@ -91,7 +117,9 @@ async function deleteSessionsByUserID(
   return deletedSessions.length
 }
 
-export function createUserProfileRepository(database: Kysely<Database>) {
+export function createUserProfileRepository(
+  database: Kysely<Database>
+): UserProfileRepository {
   return {
     async list(): Promise<UserProfileInternalWithRoles[]> {
       const profiles = await database
@@ -158,20 +186,17 @@ export function createUserProfileRepository(database: Kysely<Database>) {
       })
     },
 
-    async update(
-      id: string,
-      updatedProfile: Omit<UserProfileInternal, "id">,
-      roleIds: readonly string[],
-      options: { revokeSessions?: boolean } = {}
-    ): Promise<{
-      userProfile: UserProfileInternalWithRoles
-      revokedSessionCount: number
-    } | null> {
+    async updateByID({
+      id,
+      userProfile,
+      roleIds,
+      revokeSessions = false
+    }: UpdateUserProfileByIDOptions): Promise<UpdateUserProfileByIDResult | null> {
       return await database.transaction().execute(async (trx) => {
         const updated = await trx
           .updateTable("user_profile")
           .set({
-            ...updatedProfile
+            ...userProfile
           })
           .where("id", "=", id)
           .returningAll()
@@ -182,7 +207,7 @@ export function createUserProfileRepository(database: Kysely<Database>) {
         }
 
         const assignedRoleIds = await replaceRoleAssignments(trx, id, roleIds)
-        const revokedSessionCount = options.revokeSessions
+        const revokedSessionCount = revokeSessions
           ? await deleteSessionsByUserID(trx, id)
           : 0
 

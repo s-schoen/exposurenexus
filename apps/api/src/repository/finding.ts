@@ -2,9 +2,9 @@ import { type FindingInternal } from "@exposurenexus/types/model/finding"
 import type { Database } from "../db/index.js"
 import type { Kysely } from "kysely"
 
-type FindingCountByField = "severity" | "status" | "assetId" | "source"
+export type FindingCountByField = "severity" | "status" | "assetId" | "source"
 
-interface ReclassifyFindingsQuery {
+export interface ReclassifyFindingsQuery {
   source: string
   oldVulnerabilityId: string
   targetVulnerabilityId: string
@@ -13,7 +13,25 @@ interface ReclassifyFindingsQuery {
   updatedBy: string
 }
 
-export function createFindingRepository(database: Kysely<Database>) {
+export interface FindingRepository {
+  list(): Promise<FindingInternal[]>
+  getByID(id: string): Promise<FindingInternal | null>
+  getByFingerprint(hash: string): Promise<FindingInternal | null>
+  create(finding: Omit<FindingInternal, "id">): Promise<FindingInternal>
+  updateByID(
+    id: string,
+    updatedFinding: Omit<FindingInternal, "id">
+  ): Promise<FindingInternal>
+  deleteByID(id: string): Promise<FindingInternal | null>
+  reclassifyBySourceAndVulnerability(
+    query: ReclassifyFindingsQuery
+  ): Promise<FindingInternal[]>
+  countBy(field: FindingCountByField): Promise<Record<string, number>>
+}
+
+export function createFindingRepository(
+  database: Kysely<Database>
+): FindingRepository {
   return {
     async list(): Promise<FindingInternal[]> {
       return await database.selectFrom("finding").selectAll().execute()
@@ -53,7 +71,7 @@ export function createFindingRepository(database: Kysely<Database>) {
       return createdFinding!
     },
 
-    async update(
+    async updateByID(
       id: string,
       updatedFinding: Omit<FindingInternal, "id">
     ): Promise<FindingInternal> {

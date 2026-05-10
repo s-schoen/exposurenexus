@@ -22,9 +22,10 @@ describe("finding service", () => {
     getByID: vi.fn(),
     getByFingerprint: vi.fn(),
     create: vi.fn(),
-    update: vi.fn(),
+    updateByID: vi.fn(),
     deleteByID: vi.fn(),
-    reclassifyBySourceAndVulnerability: vi.fn()
+    reclassifyBySourceAndVulnerability: vi.fn(),
+    countBy: vi.fn()
   }
   const vulnerabilityService = {
     getByID: vi.fn()
@@ -493,7 +494,7 @@ describe("finding service", () => {
     vi.setSystemTime(now)
 
     findingRepository.getByID.mockResolvedValue(baseFinding)
-    findingRepository.update.mockResolvedValue(updatedFinding)
+    findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await expect(
@@ -508,7 +509,7 @@ describe("finding service", () => {
       })
     ).resolves.toEqual(currentEventFinding)
 
-    expect(findingRepository.update).toHaveBeenCalledWith(baseFinding.id, {
+    expect(findingRepository.updateByID).toHaveBeenCalledWith(baseFinding.id, {
       ...updatePayload,
       assigneeId: baseFinding.assigneeId,
       dueDate: null,
@@ -550,7 +551,7 @@ describe("finding service", () => {
     }
 
     findingRepository.getByID.mockResolvedValue(baseFinding)
-    findingRepository.update.mockResolvedValue(updatedFinding)
+    findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await service.update({
@@ -559,7 +560,7 @@ describe("finding service", () => {
       user
     })
 
-    expect(findingRepository.update).toHaveBeenCalledWith(
+    expect(findingRepository.updateByID).toHaveBeenCalledWith(
       baseFinding.id,
       expect.objectContaining({
         dueDate: normalizedDueDate
@@ -579,7 +580,7 @@ describe("finding service", () => {
     }
 
     findingRepository.getByID.mockResolvedValue(datedFinding)
-    findingRepository.update.mockResolvedValue(updatedFinding)
+    findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await service.update({
@@ -591,7 +592,7 @@ describe("finding service", () => {
       user
     })
 
-    expect(findingRepository.update).toHaveBeenCalledWith(
+    expect(findingRepository.updateByID).toHaveBeenCalledWith(
       baseFinding.id,
       expect.objectContaining({
         dueDate: datedFinding.dueDate,
@@ -620,7 +621,7 @@ describe("finding service", () => {
       roleIds: []
     })
     findingRepository.getByID.mockResolvedValue(baseFinding)
-    findingRepository.update.mockResolvedValue(updatedFinding)
+    findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await expect(
@@ -635,7 +636,7 @@ describe("finding service", () => {
     })
 
     expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId)
-    expect(findingRepository.update).toHaveBeenCalledWith(
+    expect(findingRepository.updateByID).toHaveBeenCalledWith(
       baseFinding.id,
       expect.objectContaining({
         assigneeId
@@ -663,7 +664,7 @@ describe("finding service", () => {
       roleIds: []
     })
     findingRepository.getByID.mockResolvedValue(baseFinding)
-    findingRepository.update.mockResolvedValue(updatedFinding)
+    findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await service.update({
@@ -673,7 +674,7 @@ describe("finding service", () => {
     })
 
     expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId)
-    expect(findingRepository.update).toHaveBeenCalledWith(
+    expect(findingRepository.updateByID).toHaveBeenCalledWith(
       baseFinding.id,
       expect.objectContaining({
         assigneeId
@@ -706,7 +707,7 @@ describe("finding service", () => {
       roleIds: []
     })
     findingRepository.getByID.mockResolvedValue(assignedFinding)
-    findingRepository.update.mockResolvedValue(updatedFinding)
+    findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await service.update({
@@ -716,7 +717,7 @@ describe("finding service", () => {
     })
 
     expect(userProfileService.getByID).toHaveBeenCalledWith(nextAssigneeId)
-    expect(findingRepository.update).toHaveBeenCalledWith(
+    expect(findingRepository.updateByID).toHaveBeenCalledWith(
       baseFinding.id,
       expect.objectContaining({
         assigneeId: nextAssigneeId
@@ -740,7 +741,7 @@ describe("finding service", () => {
     }
 
     findingRepository.getByID.mockResolvedValue(assignedFinding)
-    findingRepository.update.mockResolvedValue(updatedFinding)
+    findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await service.update({
@@ -750,7 +751,7 @@ describe("finding service", () => {
     })
 
     expect(userProfileService.getByID).not.toHaveBeenCalled()
-    expect(findingRepository.update).toHaveBeenCalledWith(
+    expect(findingRepository.updateByID).toHaveBeenCalledWith(
       baseFinding.id,
       expect.objectContaining({
         assigneeId: null
@@ -774,7 +775,7 @@ describe("finding service", () => {
     }
 
     findingRepository.getByID.mockResolvedValue(assignedFinding)
-    findingRepository.update.mockResolvedValue(updatedFinding)
+    findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await service.update({
@@ -784,7 +785,7 @@ describe("finding service", () => {
     })
 
     expect(userProfileService.getByID).not.toHaveBeenCalled()
-    expect(findingRepository.update).toHaveBeenCalledWith(
+    expect(findingRepository.updateByID).toHaveBeenCalledWith(
       baseFinding.id,
       expect.objectContaining({
         status: FindingStatus.Confirmed,
@@ -814,7 +815,7 @@ describe("finding service", () => {
       message: "finding assignee does not exist"
     } satisfies Partial<HTTPException>)
     expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId)
-    expect(findingRepository.update).not.toHaveBeenCalled()
+    expect(findingRepository.updateByID).not.toHaveBeenCalled()
   })
 
   it("returns null when updating a missing finding", async () => {
@@ -829,7 +830,7 @@ describe("finding service", () => {
         user
       })
     ).resolves.toBeNull()
-    expect(findingRepository.update).not.toHaveBeenCalled()
+    expect(findingRepository.updateByID).not.toHaveBeenCalled()
     expect(domainEvents.subjects()).toEqual([])
   })
 
@@ -862,7 +863,7 @@ describe("finding service", () => {
     vi.setSystemTime(now)
 
     findingRepository.getByFingerprint.mockResolvedValue(existingFinding)
-    findingRepository.update.mockResolvedValue(updatedFinding)
+    findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await expect(
@@ -883,10 +884,13 @@ describe("finding service", () => {
     })
 
     expect(findingRepository.getByFingerprint).toHaveBeenCalledWith(fingerprint)
-    expect(findingRepository.update).toHaveBeenCalledWith(existingFinding.id, {
-      ...existingFinding,
-      lastSeen: now
-    })
+    expect(findingRepository.updateByID).toHaveBeenCalledWith(
+      existingFinding.id,
+      {
+        ...existingFinding,
+        lastSeen: now
+      }
+    )
     expect(findingRepository.create).not.toHaveBeenCalled()
     expect(domainEvents.subjects()).toEqual(["finding.updated"])
     expect(domainEvents.events[0]).toMatchObject({
@@ -921,7 +925,7 @@ describe("finding service", () => {
     vi.setSystemTime(now)
 
     findingRepository.getByFingerprint.mockResolvedValue(existingFinding)
-    findingRepository.update.mockResolvedValue(updatedFinding)
+    findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await expect(
@@ -942,11 +946,14 @@ describe("finding service", () => {
       created: false
     })
 
-    expect(findingRepository.update).toHaveBeenCalledWith(existingFinding.id, {
-      ...existingFinding,
-      lastSeen: now
-    })
-    expect(findingRepository.update.mock.calls[0]?.[1]).toMatchObject({
+    expect(findingRepository.updateByID).toHaveBeenCalledWith(
+      existingFinding.id,
+      {
+        ...existingFinding,
+        lastSeen: now
+      }
+    )
+    expect(findingRepository.updateByID.mock.calls[0]?.[1]).toMatchObject({
       assigneeId,
       dueDate,
       source: FindingSource.Nuclei,
@@ -977,7 +984,7 @@ describe("finding service", () => {
     vi.setSystemTime(now)
 
     findingRepository.getByFingerprint.mockResolvedValue(existingFinding)
-    findingRepository.update.mockResolvedValue(updatedFinding)
+    findingRepository.updateByID.mockResolvedValue(updatedFinding)
     vulnerabilityService.getByID.mockResolvedValue(vulnerability)
 
     await expect(
@@ -999,12 +1006,15 @@ describe("finding service", () => {
       created: false
     })
 
-    expect(findingRepository.update).toHaveBeenCalledWith(existingFinding.id, {
-      ...existingFinding,
-      status: FindingStatus.Active,
-      lastSeen: now
-    })
-    expect(findingRepository.update.mock.calls[0]?.[1]).toMatchObject({
+    expect(findingRepository.updateByID).toHaveBeenCalledWith(
+      existingFinding.id,
+      {
+        ...existingFinding,
+        status: FindingStatus.Active,
+        lastSeen: now
+      }
+    )
+    expect(findingRepository.updateByID.mock.calls[0]?.[1]).toMatchObject({
       dueDate,
       status: FindingStatus.Active,
       lastSeen: now

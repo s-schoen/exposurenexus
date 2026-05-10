@@ -94,17 +94,17 @@ describe("user profile repository", () => {
     }
 
     await expect(
-      repository.update(
-        firstProfile.id,
-        {
+      repository.updateByID({
+        id: firstProfile.id,
+        userProfile: {
           username: updatedFirstProfile.username,
           displayName: updatedFirstProfile.displayName,
           email: updatedFirstProfile.email,
           enabled: updatedFirstProfile.enabled,
           passwordHash: updatedFirstProfile.passwordHash
         },
-        [builtInRoleIds.admin]
-      )
+        roleIds: [builtInRoleIds.admin]
+      })
     ).resolves.toEqual({
       userProfile: updatedFirstProfileWithRoles,
       revokedSessionCount: 0
@@ -141,17 +141,17 @@ describe("user profile repository", () => {
     const repository = createUserProfileRepository(testDb.db)
 
     await expect(
-      repository.update(
-        "ef2fb643-53e3-4b0c-9b68-253d0dd43f8f",
-        {
+      repository.updateByID({
+        id: "ef2fb643-53e3-4b0c-9b68-253d0dd43f8f",
+        userProfile: {
           username: "missing-user",
           displayName: "Missing User",
           email: "missing@example.com",
           enabled: true,
           passwordHash: "hash-missing"
         },
-        []
-      )
+        roleIds: []
+      })
     ).resolves.toBeNull()
   })
 
@@ -183,18 +183,18 @@ describe("user profile repository", () => {
       .execute()
 
     await expect(
-      repository.update(
-        firstProfile.id,
-        {
+      repository.updateByID({
+        id: firstProfile.id,
+        userProfile: {
           username: firstProfile.username,
           displayName: "Alice Updated",
           email: firstProfile.email,
           enabled: firstProfile.enabled,
           passwordHash: firstProfile.passwordHash
         },
-        [builtInRoleIds.viewer],
-        { revokeSessions: true }
-      )
+        roleIds: [builtInRoleIds.viewer],
+        revokeSessions: true
+      })
     ).resolves.toEqual({
       userProfile: {
         ...firstProfileWithRoles,

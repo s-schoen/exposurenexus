@@ -26,8 +26,48 @@ type AssetCustomFieldRow = Selectable<Database["asset_custom_field"]>
 type AssetCustomFieldAssignmentDefinitionRow = AssetCustomFieldRow & {
   assetId: string
 }
-type CreateAssetRecord = Omit<Asset, "ownerId"> & {
+export type CreateAssetRecord = Omit<Asset, "ownerId"> & {
   ownerId?: Asset["ownerId"]
+}
+
+export interface AssetRepository {
+  list(): Promise<Asset[]>
+  listWithCustomFields(): Promise<AssetWithCustomFields[]>
+  getByID(id: string): Promise<Asset | null>
+  getByIDWithCustomFields(id: string): Promise<AssetWithCustomFields | null>
+  getByName(name: string, type?: AssetType): Promise<Asset | null>
+  create(asset: CreateAssetRecord): Promise<Asset>
+  updateOwnerByID(id: string, ownerId: Asset["ownerId"]): Promise<Asset | null>
+  deleteByID(id: string): Promise<Asset | null>
+  countFindingsByAssetID(id: string): Promise<number>
+  listCustomFieldDefinitions(): Promise<AssetCustomFieldDefinition[]>
+  listAvailableCustomFieldDefinitions(
+    assetId: string
+  ): Promise<AssetCustomFieldDefinition[]>
+  getCustomFieldDefinitionByID(
+    id: string
+  ): Promise<AssetCustomFieldDefinition | null>
+  createCustomFieldDefinition(
+    definition: CreateAssetCustomFieldDefinition
+  ): Promise<AssetCustomFieldDefinition>
+  updateCustomFieldDefinitionByID(
+    id: string,
+    definition: CreateAssetCustomFieldDefinition
+  ): Promise<AssetCustomFieldDefinition | null>
+  deleteCustomFieldDefinitionByID(
+    id: string
+  ): Promise<AssetCustomFieldDefinition | null>
+  listCustomFieldValues(assetId: string): Promise<AssetCustomFieldValue[]>
+  upsertCustomFieldValues(
+    assetId: string,
+    values: UpdateAssetCustomFieldValue[]
+  ): Promise<AssetCustomFieldValue[]>
+  clearCustomFieldValue(assetId: string, fieldId: string): Promise<void>
+  assignCustomFields(
+    assetId: string,
+    fieldIds: string[]
+  ): Promise<AssetCustomFieldValue[]>
+  detachCustomField(assetId: string, fieldId: string): Promise<void>
 }
 
 function toJsonbValue(
@@ -317,7 +357,9 @@ async function withCustomFieldValues(
   }))
 }
 
-export function createAssetRepository(database: Kysely<Database>) {
+export function createAssetRepository(
+  database: Kysely<Database>
+): AssetRepository {
   return {
     async list(): Promise<Asset[]> {
       const data = await database.selectFrom("asset").selectAll().execute()
