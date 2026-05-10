@@ -93,7 +93,6 @@ Thumbs.db
 # dev tools
 .dev/
 docs/specs
-docs/adr
 docs/agents
 **/.codex
 .scratch/
