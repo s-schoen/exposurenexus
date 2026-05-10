@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { ApiError } from "../lib/api-error.js"
 import { pino } from "pino"
 import {
   FindingSource,
@@ -11,6 +10,7 @@ import { AssetType } from "@exposurenexus/types/model/asset"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import { createDomainEventCollector } from "../test/eventbus.js"
 import { createTestUser } from "../test/app.js"
+import type { ApplicationError } from "./application-error.js"
 import { createFindingService } from "./finding.js"
 
 describe("finding service", () => {
@@ -128,9 +128,9 @@ describe("finding service", () => {
     vulnerabilityService.getByID.mockResolvedValue(null)
 
     await expect(service.listAll()).rejects.toMatchObject({
-      status: 500,
-      message: "failed to list findings"
-    } satisfies Partial<ApiError>)
+      code: "finding.list_failed",
+      kind: "unexpected"
+    } satisfies Partial<ApplicationError>)
   })
 
   it("rejects findings that cannot be enriched with their vulnerability", async () => {
@@ -140,9 +140,10 @@ describe("finding service", () => {
     vulnerabilityService.getByID.mockResolvedValue(null)
 
     await expect(service.getByID(baseFinding.id)).rejects.toMatchObject({
-      status: 500,
-      message: "failed to get finding"
-    } satisfies Partial<ApiError>)
+      code: "finding.get_failed",
+      kind: "unexpected",
+      details: { findingId: baseFinding.id }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("returns null when a finding does not exist", async () => {
@@ -154,15 +155,16 @@ describe("finding service", () => {
     expect(vulnerabilityService.getByID).not.toHaveBeenCalled()
   })
 
-  it("maps repository get failures to an HTTP 500", async () => {
+  it("maps repository get failures to an application error", async () => {
     const service = createService()
 
     findingRepository.getByID.mockRejectedValue(new Error("db offline"))
 
     await expect(service.getByID(baseFinding.id)).rejects.toMatchObject({
-      status: 500,
-      message: "failed to get finding"
-    } satisfies Partial<ApiError>)
+      code: "finding.get_failed",
+      kind: "unexpected",
+      details: { findingId: baseFinding.id }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("creates findings with audit fields, timestamps, and a fingerprint", async () => {
@@ -369,9 +371,10 @@ describe("finding service", () => {
         user
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "finding assignee does not exist"
-    } satisfies Partial<ApiError>)
+      code: "finding.assignee_unknown",
+      kind: "validation",
+      details: { assigneeId }
+    } satisfies Partial<ApplicationError>)
     expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId)
     expect(findingRepository.create).not.toHaveBeenCalled()
   })
@@ -387,9 +390,10 @@ describe("finding service", () => {
         user
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "finding asset does not exist"
-    } satisfies Partial<ApiError>)
+      code: "finding.asset_unknown",
+      kind: "validation",
+      details: { assetId: createPayload.assetId }
+    } satisfies Partial<ApplicationError>)
     expect(assetService.getByID).toHaveBeenCalledWith(createPayload.assetId)
     expect(findingRepository.create).not.toHaveBeenCalled()
   })
@@ -405,16 +409,17 @@ describe("finding service", () => {
         user
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "finding vulnerability does not exist"
-    } satisfies Partial<ApiError>)
+      code: "finding.vulnerability_unknown",
+      kind: "validation",
+      details: { vulnerabilityId: createPayload.vulnerabilityId }
+    } satisfies Partial<ApplicationError>)
     expect(vulnerabilityService.getByID).toHaveBeenCalledWith(
       createPayload.vulnerabilityId
     )
     expect(findingRepository.create).not.toHaveBeenCalled()
   })
 
-  it("maps create foreign key failures to an HTTP 400", async () => {
+  it("maps create foreign key failures to an application error", async () => {
     const service = createService()
 
     findingRepository.create.mockRejectedValue(
@@ -429,9 +434,35 @@ describe("finding service", () => {
         user
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "finding references an unknown related resource"
-    } satisfies Partial<ApiError>)
+      code: "finding.related_resource_unknown",
+      kind: "validation",
+      details: {
+        assetId: createPayload.assetId,
+        vulnerabilityId: createPayload.vulnerabilityId,
+        assigneeId: null
+      }
+    } satisfies Partial<ApplicationError>)
+    expect(domainEvents.subjects()).toEqual([])
+  })
+
+  it("maps repository create failures to an application error", async () => {
+    const service = createService()
+
+    findingRepository.create.mockRejectedValue(new Error("db offline"))
+
+    await expect(
+      service.create({
+        finding: createPayload,
+        user
+      })
+    ).rejects.toMatchObject({
+      code: "finding.create_failed",
+      kind: "unexpected",
+      details: {
+        assetId: createPayload.assetId,
+        vulnerabilityId: createPayload.vulnerabilityId
+      }
+    } satisfies Partial<ApplicationError>)
     expect(domainEvents.subjects()).toEqual([])
   })
 
@@ -809,11 +840,31 @@ describe("finding service", () => {
         user
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "finding assignee does not exist"
-    } satisfies Partial<ApiError>)
+      code: "finding.assignee_unknown",
+      kind: "validation",
+      details: { assigneeId, findingId: baseFinding.id }
+    } satisfies Partial<ApplicationError>)
     expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId)
     expect(findingRepository.updateByID).not.toHaveBeenCalled()
+  })
+
+  it("maps repository update failures to an application error", async () => {
+    const service = createService()
+
+    findingRepository.getByID.mockResolvedValue(baseFinding)
+    findingRepository.updateByID.mockRejectedValue(new Error("db offline"))
+
+    await expect(
+      service.updateByID({
+        id: baseFinding.id,
+        finding: updatePayloadBase,
+        user
+      })
+    ).rejects.toMatchObject({
+      code: "finding.update_failed",
+      kind: "unexpected",
+      details: { findingId: baseFinding.id }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("returns null when updating a missing finding", async () => {
@@ -1071,6 +1122,28 @@ describe("finding service", () => {
     })
   })
 
+  it("maps import dedupe lookup failures to an application error", async () => {
+    const service = createService()
+
+    findingRepository.getByFingerprint.mockRejectedValue(
+      new Error("db offline")
+    )
+
+    await expect(
+      service.createOrUpdate({
+        finding: createPayload,
+        user
+      })
+    ).rejects.toMatchObject({
+      code: "finding.create_or_update_failed",
+      kind: "unexpected",
+      details: {
+        assetId: createPayload.assetId,
+        vulnerabilityId: createPayload.vulnerabilityId
+      }
+    } satisfies Partial<ApplicationError>)
+  })
+
   it("reclassifies findings from one vulnerability to another by source", async () => {
     const service = createService()
     const now = new Date("2026-05-01T02:03:04.000Z")
@@ -1164,9 +1237,10 @@ describe("finding service", () => {
         user
       })
     ).rejects.toMatchObject({
-      status: 404,
-      message: `old vulnerability with id ${vulnerability.id} does not exist`
-    } satisfies Partial<ApiError>)
+      code: "finding.reclassification_old_vulnerability_missing",
+      kind: "missing",
+      details: { vulnerabilityId: vulnerability.id }
+    } satisfies Partial<ApplicationError>)
     expect(
       findingRepository.reclassifyBySourceAndVulnerability
     ).not.toHaveBeenCalled()
@@ -1190,15 +1264,16 @@ describe("finding service", () => {
         user
       })
     ).rejects.toMatchObject({
-      status: 404,
-      message: `target vulnerability with id ${targetVulnerabilityId} does not exist`
-    } satisfies Partial<ApiError>)
+      code: "finding.reclassification_target_vulnerability_missing",
+      kind: "missing",
+      details: { vulnerabilityId: targetVulnerabilityId }
+    } satisfies Partial<ApplicationError>)
     expect(
       findingRepository.reclassifyBySourceAndVulnerability
     ).not.toHaveBeenCalled()
   })
 
-  it("maps reclassification repository failures to an HTTP 500", async () => {
+  it("maps reclassification repository failures to an application error", async () => {
     const service = createService()
     const targetVulnerability = {
       ...vulnerability,
@@ -1224,9 +1299,14 @@ describe("finding service", () => {
         user
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to reclassify findings"
-    } satisfies Partial<ApiError>)
+      code: "finding.reclassification_failed",
+      kind: "unexpected",
+      details: {
+        source: FindingSource.Nuclei,
+        oldVulnerabilityId: vulnerability.id,
+        targetVulnerabilityId: targetVulnerability.id
+      }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("deletes a finding and returns it enriched with its vulnerability", async () => {
@@ -1266,5 +1346,17 @@ describe("finding service", () => {
 
     await expect(service.deleteByID(baseFinding.id)).resolves.toBeNull()
     expect(domainEvents.subjects()).toEqual([])
+  })
+
+  it("maps repository delete failures to an application error", async () => {
+    const service = createService()
+
+    findingRepository.deleteByID.mockRejectedValue(new Error("db offline"))
+
+    await expect(service.deleteByID(baseFinding.id)).rejects.toMatchObject({
+      code: "finding.delete_failed",
+      kind: "unexpected",
+      details: { findingId: baseFinding.id }
+    } satisfies Partial<ApplicationError>)
   })
 })

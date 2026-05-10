@@ -102,6 +102,8 @@ function getApplicationErrorStatus(
   switch (kind) {
     case "validation":
       return 400
+    case "missing":
+      return 404
     case "denied":
       return 403
     case "conflict":
