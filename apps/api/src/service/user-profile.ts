@@ -19,25 +19,7 @@ import {
   isConflictError,
   isForeignKeyError
 } from "./errors.js"
-
-interface UserProfileRepository {
-  list(): Promise<UserProfileInternalWithRoles[]>
-  getByID(id: string): Promise<UserProfileInternalWithRoles | null>
-  getByUsername(username: string): Promise<UserProfileInternalWithRoles | null>
-  create(
-    userProfile: Omit<UserProfileInternalWithRoles, "id" | "roleIds">,
-    roleIds: readonly string[]
-  ): Promise<UserProfileInternalWithRoles>
-  update(
-    id: string,
-    userProfile: Omit<UserProfileInternalWithRoles, "id" | "roleIds">,
-    roleIds: readonly string[],
-    options?: { revokeSessions?: boolean }
-  ): Promise<{
-    userProfile: UserProfileInternalWithRoles
-    revokedSessionCount: number
-  } | null>
-}
+import type { UserProfileRepository } from "../repository/user-profile.js"
 
 interface UserProfileServiceDependencies {
   userProfileRepository: UserProfileRepository
@@ -202,9 +184,9 @@ export function createUserProfileService({
             ? []
             : ["role_assignments_changed"])
         ]
-        const updateResult = await userProfileRepository.update(
+        const updateResult = await userProfileRepository.updateByID({
           id,
-          {
+          userProfile: {
             username: existingProfile.username,
             displayName: profile.displayName ?? existingProfile.displayName,
             email: profile.email ?? existingProfile.email,
@@ -215,8 +197,8 @@ export function createUserProfileService({
                 : await hashPlaintextPassword(password)
           },
           roleIds,
-          { revokeSessions: sessionRevocationReasons.length > 0 }
-        )
+          revokeSessions: sessionRevocationReasons.length > 0
+        })
 
         if (!updateResult) {
           logger.debug(`cannot update user profile ${id}: not found`)

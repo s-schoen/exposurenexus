@@ -29,7 +29,7 @@ vi.mock("../repository/finding.js", () => ({
   getByID: vi.fn(),
   getByFingerprint: vi.fn(),
   create: vi.fn(),
-  update: vi.fn(),
+  updateByID: vi.fn(),
   deleteByID: vi.fn(),
   reclassifyBySourceAndVulnerability: vi.fn(),
   countBy: vi.fn()
@@ -259,7 +259,7 @@ describe("service factories", () => {
         id: "2713d833-eb13-4517-ac7c-7761545ed42a",
         ...input
       })),
-      update: vi.fn(),
+      updateByID: vi.fn(),
       deleteByID: vi.fn(),
       reclassifyBySourceAndVulnerability: vi.fn(),
       countBy: vi.fn()

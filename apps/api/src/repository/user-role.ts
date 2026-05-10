@@ -2,7 +2,13 @@ import type { Kysely } from "kysely"
 import type { Permission } from "@exposurenexus/types/model/rbac"
 import type { Database } from "../db/index.js"
 
-export function createUserRoleRepository(database: Kysely<Database>) {
+export interface UserRoleRepository {
+  listPermissionsByUserID(userId: string): Promise<Permission[]>
+}
+
+export function createUserRoleRepository(
+  database: Kysely<Database>
+): UserRoleRepository {
   return {
     async listPermissionsByUserID(userId: string): Promise<Permission[]> {
       return await database

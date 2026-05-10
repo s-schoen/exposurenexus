@@ -5,15 +5,12 @@ import {
 import { HTTPException } from "hono/http-exception"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { Logger } from "pino"
+import type { FindingRepository } from "../repository/finding.js"
 
-interface FindingRepository {
-  countBy(
-    field: "severity" | "status" | "assetId" | "source"
-  ): Promise<Record<string, number>>
-}
+type FindingStatsRepository = Pick<FindingRepository, "countBy">
 
 interface StatsServiceDependencies {
-  findingRepository: FindingRepository
+  findingRepository: FindingStatsRepository
   logger: Logger
 }
 

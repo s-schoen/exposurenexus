@@ -2,7 +2,17 @@ import type { Database } from "../db/index.js"
 import type { Kysely } from "kysely"
 import type { UserSession } from "@exposurenexus/types/model/user"
 
-export function createUserSessionRepository(database: Kysely<Database>) {
+export interface UserSessionRepository {
+  list(): Promise<UserSession[]>
+  getBySessionID(sessionId: string): Promise<UserSession | null>
+  create(session: Omit<UserSession, "id">): Promise<UserSession>
+  deleteBySessionID(sessionId: string): Promise<UserSession | null>
+  expireSessions(thresholdDate: Date): Promise<UserSession[]>
+}
+
+export function createUserSessionRepository(
+  database: Kysely<Database>
+): UserSessionRepository {
   return {
     async list(): Promise<UserSession[]> {
       return await database.selectFrom("user_session").selectAll().execute()

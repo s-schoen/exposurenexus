@@ -29,6 +29,7 @@ import {
   type DomainEventContext,
   type DomainEventEmitter
 } from "../lib/eventbus/events/index.js"
+import type { AssetRepository } from "../repository/asset.js"
 
 function isValidValueForDefinition(
   definition: AssetCustomFieldDefinition,
@@ -91,46 +92,6 @@ function customFieldDefinitionsEqual(
   current: AssetCustomFieldDefinition
 ): boolean {
   return JSON.stringify(previous) === JSON.stringify(current)
-}
-
-interface AssetRepository {
-  list(): Promise<Asset[]>
-  listWithCustomFields(): Promise<AssetWithCustomFields[]>
-  getByID(id: string): Promise<Asset | null>
-  getByIDWithCustomFields(id: string): Promise<AssetWithCustomFields | null>
-  getByName(name: string, type?: AssetType): Promise<Asset | null>
-  create(asset: Asset): Promise<Asset>
-  updateOwnerByID(id: string, ownerId: Asset["ownerId"]): Promise<Asset | null>
-  deleteByID(id: string): Promise<Asset | null>
-  countFindingsByAssetID(id: string): Promise<number>
-  listCustomFieldDefinitions(): Promise<AssetCustomFieldDefinition[]>
-  listAvailableCustomFieldDefinitions(
-    assetId: string
-  ): Promise<AssetCustomFieldDefinition[]>
-  getCustomFieldDefinitionByID(
-    id: string
-  ): Promise<AssetCustomFieldDefinition | null>
-  createCustomFieldDefinition(
-    definition: CreateAssetCustomFieldDefinition
-  ): Promise<AssetCustomFieldDefinition>
-  updateCustomFieldDefinitionByID(
-    id: string,
-    definition: CreateAssetCustomFieldDefinition
-  ): Promise<AssetCustomFieldDefinition | null>
-  deleteCustomFieldDefinitionByID(
-    id: string
-  ): Promise<AssetCustomFieldDefinition | null>
-  listCustomFieldValues(assetId: string): Promise<AssetCustomFieldValue[]>
-  upsertCustomFieldValues(
-    assetId: string,
-    values: UpdateAssetCustomFieldValue[]
-  ): Promise<AssetCustomFieldValue[]>
-  clearCustomFieldValue(assetId: string, fieldId: string): Promise<void>
-  assignCustomFields(
-    assetId: string,
-    fieldIds: string[]
-  ): Promise<AssetCustomFieldValue[]>
-  detachCustomField(assetId: string, fieldId: string): Promise<void>
 }
 
 interface UserProfileLookupService {
