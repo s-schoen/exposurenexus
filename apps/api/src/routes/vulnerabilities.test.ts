@@ -15,8 +15,8 @@ import {
   requireAuthenticatedUser
 } from "../test/app.js"
 import { createRequireDomainPermission } from "../middleware/auth.js"
+import { ApplicationError } from "../service/application-error.js"
 import { createVulnerabilityRoute } from "./vulnerabilities.js"
-import { conflict, internalServerError } from "../lib/api-error.js"
 
 describe("vulnerability routes", () => {
   const user = createTestUser()
@@ -276,7 +276,15 @@ describe("vulnerability routes", () => {
     } satisfies typeof createVulnerabilitySchema._output
 
     vulnerabilityService.create.mockRejectedValueOnce(
-      internalServerError("failed to create vulnerability")
+      new ApplicationError({
+        code: "vulnerability.create_failed",
+        kind: "unexpected",
+        message: "failed to create vulnerability",
+        details: {
+          title: payload.title,
+          severity: payload.severity
+        }
+      })
     )
 
     const app = createTestApp({
@@ -299,11 +307,14 @@ describe("vulnerability routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(500)
-    expect(body).toEqual({
+    expect(body).toMatchObject({
       correlationId: requestId,
       status: 500,
-      error: "internal server error"
+      error: expect.any(String)
     })
+    expect(body.error).not.toContain("vulnerability")
+    expect(body).not.toHaveProperty("reason")
+    expect(body).not.toHaveProperty("details")
   })
 
   it("returns a vulnerability by id", async () => {
@@ -793,11 +804,67 @@ describe("vulnerability routes", () => {
     expect(vulnerabilityService.createMapping).not.toHaveBeenCalled()
   })
 
+  it("returns service validation errors from vulnerability source mapping creation", async () => {
+    const requestId = "vulnerability-mappings-create-validation-request"
+
+    vulnerabilityService.createMapping.mockRejectedValueOnce(
+      new ApplicationError({
+        code: "vulnerability.mapping.match_query_invalid",
+        kind: "validation",
+        message: "matchQuery must be valid JSON",
+        details: { matchQuery: "{" }
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/${vulnerabilityId}/mappings`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": requestId
+        },
+        body: JSON.stringify({
+          source: "nuclei",
+          matchQuery: "{"
+        })
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body).toMatchObject({
+      correlationId: requestId,
+      status: 400,
+      error: expect.any(String)
+    })
+    expect(body).not.toHaveProperty("reason")
+    expect(body).not.toHaveProperty("details")
+  })
+
   it("returns 409 when creating a duplicate vulnerability source mapping", async () => {
     const requestId = "vulnerability-mappings-create-conflict-request"
 
     vulnerabilityService.createMapping.mockRejectedValueOnce(
-      conflict("vulnerability source mapping already exists")
+      new ApplicationError({
+        code: "vulnerability.mapping.create_conflict",
+        kind: "conflict",
+        message: "vulnerability source mapping already exists",
+        details: {
+          vulnerabilityId,
+          source: "nuclei",
+          matchQuery: '{"templateID":"admin-panel"}'
+        }
+      })
     )
 
     const app = createTestApp({
@@ -826,11 +893,13 @@ describe("vulnerability routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(409)
-    expect(body).toEqual({
+    expect(body).toMatchObject({
       correlationId: requestId,
       status: 409,
-      error: "vulnerability source mapping already exists"
+      error: expect.any(String)
     })
+    expect(body).not.toHaveProperty("reason")
+    expect(body).not.toHaveProperty("details")
   })
 
   it("updates a vulnerability source mapping", async () => {
@@ -988,11 +1057,69 @@ describe("vulnerability routes", () => {
     })
   })
 
+  it("returns 404 when updating a mapping to a missing vulnerability", async () => {
+    const requestId =
+      "vulnerability-mappings-update-missing-vulnerability-request"
+
+    vulnerabilityService.updateMappingByID.mockRejectedValueOnce(
+      new ApplicationError({
+        code: "vulnerability.mapping_target_missing",
+        kind: "missing",
+        message: `vulnerability with id ${vulnerabilityId} does not exist`,
+        details: { vulnerabilityId }
+      })
+    )
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(
+        vulnerabilityService,
+        routeDependencies
+      )
+    })
+
+    const response = await app.request(
+      `/api/vulnerabilities/mappings/${mappingRecord.id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": requestId
+        },
+        body: JSON.stringify({
+          vulnerabilityId,
+          source: "nuclei",
+          matchQuery: '{"templateID":"admin-panel"}'
+        })
+      }
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(404)
+    expect(body).toMatchObject({
+      correlationId: requestId,
+      status: 404,
+      error: expect.any(String)
+    })
+    expect(body).not.toHaveProperty("reason")
+    expect(body).not.toHaveProperty("details")
+  })
+
   it("returns 409 when updating to a duplicate vulnerability source mapping", async () => {
     const requestId = "vulnerability-mappings-update-conflict-request"
 
     vulnerabilityService.updateMappingByID.mockRejectedValueOnce(
-      conflict("vulnerability source mapping already exists")
+      new ApplicationError({
+        code: "vulnerability.mapping.update_conflict",
+        kind: "conflict",
+        message: "vulnerability source mapping already exists",
+        details: {
+          mappingId: mappingRecord.id,
+          source: "nuclei",
+          matchQuery: '{"templateID":"admin-panel"}'
+        }
+      })
     )
 
     const app = createTestApp({
@@ -1022,11 +1149,13 @@ describe("vulnerability routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(409)
-    expect(body).toEqual({
+    expect(body).toMatchObject({
       correlationId: requestId,
       status: 409,
-      error: "vulnerability source mapping already exists"
+      error: expect.any(String)
     })
+    expect(body).not.toHaveProperty("reason")
+    expect(body).not.toHaveProperty("details")
   })
 
   it("deletes a vulnerability source mapping", async () => {
@@ -1220,9 +1349,12 @@ describe("vulnerability routes", () => {
     const requestId = "vulnerabilities-delete-conflict-request"
 
     vulnerabilityService.deleteByID.mockRejectedValueOnce(
-      conflict(
-        `vulnerability ${vulnerabilityId} is still referenced by findings`
-      )
+      new ApplicationError({
+        code: "vulnerability.referenced_by_findings",
+        kind: "conflict",
+        message: `vulnerability ${vulnerabilityId} is still referenced by findings`,
+        details: { vulnerabilityId }
+      })
     )
 
     const app = createTestApp({
@@ -1246,10 +1378,12 @@ describe("vulnerability routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(409)
-    expect(body).toEqual({
+    expect(body).toMatchObject({
       correlationId: requestId,
       status: 409,
-      error: `vulnerability ${vulnerabilityId} is still referenced by findings`
+      error: expect.any(String)
     })
+    expect(body).not.toHaveProperty("reason")
+    expect(body).not.toHaveProperty("details")
   })
 })
