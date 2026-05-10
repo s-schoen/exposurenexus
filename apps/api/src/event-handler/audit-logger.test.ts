@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest"
 import type { Logger } from "pino"
-import { AssetType } from "@exposurenexus/types/model/asset"
+import {
+  AssetCustomFieldType,
+  AssetType
+} from "@exposurenexus/types/model/asset"
 import {
   FindingSource,
   FindingStatus
@@ -77,6 +80,14 @@ describe("registerAuditLogger", () => {
     type: AssetType.Host,
     ownerId: null,
     customFields: []
+  }
+  const customFieldDefinition = {
+    id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+    key: "category",
+    name: "Category",
+    required: false,
+    type: AssetCustomFieldType.Text,
+    defaultValue: null
   }
   const role = {
     id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830",
@@ -336,6 +347,40 @@ describe("registerAuditLogger", () => {
     expect(logger.warn).not.toHaveBeenCalled()
   })
 
+  it("logs custom field events at info with serialized fields", async () => {
+    const eventBus = new EventBus<DomainEvent>()
+    const logger = createLogger()
+    const eventTime = new Date("2026-05-07T10:27:00.000Z")
+
+    registerAuditLogger({ eventBus, logger })
+
+    await eventBus.emit(
+      createEventPayload({
+        id: "event-8",
+        time: eventTime,
+        subject: "custom-field.created",
+        source: "asset",
+        actor: user.id,
+        correlationId: "request-8",
+        data: { customFieldDefinition }
+      })
+    )
+
+    expect(logger.info).toHaveBeenCalledWith(
+      {
+        eventId: "event-8",
+        eventSubject: "custom-field.created",
+        eventSource: "asset",
+        eventTime,
+        actor: user.id,
+        correlationId: "request-8",
+        data: { customFieldDefinition }
+      },
+      "custom-field.created"
+    )
+    expect(logger.warn).not.toHaveBeenCalled()
+  })
+
   it("logs role events at info with serialized fields", async () => {
     const eventBus = new EventBus<DomainEvent>()
     const logger = createLogger()
@@ -345,12 +390,12 @@ describe("registerAuditLogger", () => {
 
     await eventBus.emit(
       createEventPayload({
-        id: "event-8",
+        id: "event-9",
         time: eventTime,
         subject: "role.updated",
         source: "role",
         actor: user.id,
-        correlationId: "request-8",
+        correlationId: "request-9",
         data: {
           previous: role,
           current: {
@@ -363,12 +408,12 @@ describe("registerAuditLogger", () => {
 
     expect(logger.info).toHaveBeenCalledWith(
       {
-        eventId: "event-8",
+        eventId: "event-9",
         eventSubject: "role.updated",
         eventSource: "role",
         eventTime,
         actor: user.id,
-        correlationId: "request-8",
+        correlationId: "request-9",
         data: {
           previous: role,
           current: {
@@ -382,10 +427,11 @@ describe("registerAuditLogger", () => {
     expect(logger.warn).not.toHaveBeenCalled()
   })
 
-  it("audits asset, auth, role, user, finding, and vulnerability events by default", () => {
+  it("audits asset, auth, custom field, role, user, finding, and vulnerability events by default", () => {
     expect(DEFAULT_AUDIT_EVENT_PATTERNS).toEqual([
       "asset.*",
       "auth.*",
+      "custom-field.*",
       "role.*",
       "user.*",
       "finding.*",

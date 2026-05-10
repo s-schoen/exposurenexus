@@ -392,9 +392,13 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(201)
-    expect(assetService.createCustomFieldDefinition).toHaveBeenCalledWith(
-      payload
-    )
+    expect(assetService.createCustomFieldDefinition).toHaveBeenCalledWith({
+      definition: payload,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: created
@@ -466,9 +470,13 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(400)
-    expect(assetService.createCustomFieldDefinition).toHaveBeenCalledWith(
-      payload
-    )
+    expect(assetService.createCustomFieldDefinition).toHaveBeenCalledWith({
+      definition: payload,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 400,
@@ -551,10 +559,14 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.updateCustomFieldDefinitionByID).toHaveBeenCalledWith(
-      fieldId,
-      payload
-    )
+    expect(assetService.updateCustomFieldDefinitionByID).toHaveBeenCalledWith({
+      id: fieldId,
+      definition: payload,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: updated
@@ -591,10 +603,14 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.updateCustomFieldDefinitionByID).toHaveBeenCalledWith(
-      fieldId,
-      payload
-    )
+    expect(assetService.updateCustomFieldDefinitionByID).toHaveBeenCalledWith({
+      id: fieldId,
+      definition: payload,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,
@@ -642,10 +658,14 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(400)
-    expect(assetService.updateCustomFieldDefinitionByID).toHaveBeenCalledWith(
-      fieldId,
-      payload
-    )
+    expect(assetService.updateCustomFieldDefinitionByID).toHaveBeenCalledWith({
+      id: fieldId,
+      definition: payload,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 400,
@@ -727,9 +747,13 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(200)
-    expect(assetService.deleteCustomFieldDefinitionByID).toHaveBeenCalledWith(
-      definition.id
-    )
+    expect(assetService.deleteCustomFieldDefinitionByID).toHaveBeenCalledWith({
+      id: definition.id,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       data: definition
@@ -757,9 +781,13 @@ describe("asset routes", () => {
     const body = await response.json()
 
     expect(response.status).toBe(404)
-    expect(assetService.deleteCustomFieldDefinitionByID).toHaveBeenCalledWith(
-      fieldId
-    )
+    expect(assetService.deleteCustomFieldDefinitionByID).toHaveBeenCalledWith({
+      id: fieldId,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId
+      }
+    })
     expect(body).toEqual({
       correlationId: requestId,
       status: 404,

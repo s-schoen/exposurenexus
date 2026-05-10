@@ -4,16 +4,19 @@ import type { AuthEventPayloads } from "./auth.js"
 import type { FindingEventPayloads } from "./finding.js"
 import type { VulnerabilityEventPayloads } from "./vulnerability.js"
 import type { AssetEventPayloads } from "./asset.js"
+import type { CustomFieldEventPayloads } from "./custom-field.js"
 import type { RoleEventPayloads } from "./role.js"
 
 export type { AssetEventPayloads } from "./asset.js"
 export type { AuthEventPayloads } from "./auth.js"
+export type { CustomFieldEventPayloads } from "./custom-field.js"
 export type { FindingEventPayloads } from "./finding.js"
 export type { RoleEventPayloads } from "./role.js"
 export type { UserEventPayloads } from "./user.js"
 export type { VulnerabilityEventPayloads } from "./vulnerability.js"
 
 export type EventPayloads = AssetEventPayloads &
+  CustomFieldEventPayloads &
   UserEventPayloads &
   AuthEventPayloads &
   RoleEventPayloads &

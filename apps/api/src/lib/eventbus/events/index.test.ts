@@ -8,6 +8,7 @@ import {
 } from "./index.js"
 import type { AssetEventPayloads } from "./asset.js"
 import type { AuthEventPayloads } from "./auth.js"
+import type { CustomFieldEventPayloads } from "./custom-field.js"
 import type { FindingEventPayloads } from "./finding.js"
 import type { RoleEventPayloads } from "./role.js"
 import type { UserEventPayloads } from "./user.js"
@@ -232,6 +233,65 @@ describe("createDomainEventPayload", () => {
       >
     >()
     expectTypeOf(event).toMatchTypeOf<DomainEvent>()
+  })
+
+  it("includes custom field events in the aggregate event catalog", () => {
+    const customFieldDefinition = {
+      id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "category",
+      name: "Category",
+      required: false,
+      type: "text",
+      defaultValue: null
+    } as CustomFieldEventPayloads["custom-field.created"]["customFieldDefinition"]
+
+    const createdEvent = createEventPayload({
+      subject: "custom-field.created",
+      source: "asset",
+      data: { customFieldDefinition }
+    })
+
+    expectTypeOf(createdEvent).toEqualTypeOf<
+      DomainEventPayloadBase<
+        "custom-field.created",
+        CustomFieldEventPayloads["custom-field.created"]
+      >
+    >()
+    expectTypeOf(createdEvent).toMatchTypeOf<DomainEvent>()
+
+    const updatedEvent = createEventPayload({
+      subject: "custom-field.updated",
+      source: "asset",
+      data: {
+        previous: customFieldDefinition,
+        current: {
+          ...customFieldDefinition,
+          name: "Asset Category"
+        }
+      }
+    })
+
+    expectTypeOf(updatedEvent).toEqualTypeOf<
+      DomainEventPayloadBase<
+        "custom-field.updated",
+        CustomFieldEventPayloads["custom-field.updated"]
+      >
+    >()
+    expectTypeOf(updatedEvent).toMatchTypeOf<DomainEvent>()
+
+    const deletedEvent = createEventPayload({
+      subject: "custom-field.deleted",
+      source: "asset",
+      data: { customFieldDefinition }
+    })
+
+    expectTypeOf(deletedEvent).toEqualTypeOf<
+      DomainEventPayloadBase<
+        "custom-field.deleted",
+        CustomFieldEventPayloads["custom-field.deleted"]
+      >
+    >()
+    expectTypeOf(deletedEvent).toMatchTypeOf<DomainEvent>()
   })
 
   it("includes role events in the aggregate event catalog", () => {

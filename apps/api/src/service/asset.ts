@@ -25,6 +25,7 @@ import {
 import {
   createDomainEventEmitter,
   type AssetEventPayloads,
+  type CustomFieldEventPayloads,
   type DomainEventContext,
   type DomainEventEmitter
 } from "../lib/eventbus/events/index.js"
@@ -81,6 +82,13 @@ function validateCustomFieldDefinition(
 function assetSnapshotsEqual(
   previous: AssetWithCustomFields,
   current: AssetWithCustomFields
+): boolean {
+  return JSON.stringify(previous) === JSON.stringify(current)
+}
+
+function customFieldDefinitionsEqual(
+  previous: AssetCustomFieldDefinition,
+  current: AssetCustomFieldDefinition
 ): boolean {
   return JSON.stringify(previous) === JSON.stringify(current)
 }
@@ -152,6 +160,22 @@ export interface DeleteAssetOptions {
   eventContext?: DomainEventContext
 }
 
+export interface CreateAssetCustomFieldDefinitionOptions {
+  definition: CreateAssetCustomFieldDefinition
+  eventContext?: DomainEventContext
+}
+
+export interface UpdateAssetCustomFieldDefinitionOptions {
+  id: string
+  definition: CreateAssetCustomFieldDefinition
+  eventContext?: DomainEventContext
+}
+
+export interface DeleteAssetCustomFieldDefinitionOptions {
+  id: string
+  eventContext?: DomainEventContext
+}
+
 export interface UpsertAssetCustomFieldValuesOptions {
   assetId: string
   values: UpdateAssetCustomFieldValue[]
@@ -183,10 +207,16 @@ export function createAssetService({
   logger
 }: AssetServiceDependencies) {
   type AssetEventSubject = keyof AssetEventPayloads & string
+  type CustomFieldEventSubject = keyof CustomFieldEventPayloads & string
   const emitAssetEvent = createDomainEventEmitter<AssetEventSubject>(
     domainEventEmitter,
     "asset"
   )
+  const emitCustomFieldEvent =
+    createDomainEventEmitter<CustomFieldEventSubject>(
+      domainEventEmitter,
+      "asset"
+    )
 
   async function getAssetSnapshot(
     id: string
@@ -421,12 +451,20 @@ export function createAssetService({
     },
 
     async createCustomFieldDefinition(
-      definition: CreateAssetCustomFieldDefinition
+      opts: CreateAssetCustomFieldDefinitionOptions
     ): Promise<AssetCustomFieldDefinition> {
+      const { definition, eventContext } = opts
       validateCustomFieldDefinition(definition)
 
       try {
-        return await assetRepository.createCustomFieldDefinition(definition)
+        const created =
+          await assetRepository.createCustomFieldDefinition(definition)
+        emitCustomFieldEvent(
+          "custom-field.created",
+          { customFieldDefinition: created },
+          eventContext
+        )
+        return created
       } catch (error) {
         if (isConflictError(error)) {
           logger.debug(error, "asset custom field definition create conflict")
@@ -444,18 +482,33 @@ export function createAssetService({
     },
 
     async updateCustomFieldDefinitionByID(
-      id: string,
-      definition: CreateAssetCustomFieldDefinition
+      opts: UpdateAssetCustomFieldDefinitionOptions
     ): Promise<AssetCustomFieldDefinition | null> {
+      const { id, definition, eventContext } = opts
       validateCustomFieldDefinition(definition)
 
       try {
+        const previous = await assetRepository.getCustomFieldDefinitionByID(id)
+        if (!previous) {
+          logger.debug(`asset custom field definition with id ${id} not found`)
+          return null
+        }
+
         const updated = await assetRepository.updateCustomFieldDefinitionByID(
           id,
           definition
         )
         if (!updated) {
           logger.debug(`asset custom field definition with id ${id} not found`)
+          return null
+        }
+
+        if (!customFieldDefinitionsEqual(previous, updated)) {
+          emitCustomFieldEvent(
+            "custom-field.updated",
+            { previous, current: updated },
+            eventContext
+          )
         }
         return updated
       } catch (error) {
@@ -475,14 +528,21 @@ export function createAssetService({
     },
 
     async deleteCustomFieldDefinitionByID(
-      id: string
+      opts: DeleteAssetCustomFieldDefinitionOptions
     ): Promise<AssetCustomFieldDefinition | null> {
+      const { id, eventContext } = opts
       try {
         const deleted =
           await assetRepository.deleteCustomFieldDefinitionByID(id)
         if (!deleted) {
           logger.debug(`asset custom field definition with id ${id} not found`)
+          return null
         }
+        emitCustomFieldEvent(
+          "custom-field.deleted",
+          { customFieldDefinition: deleted },
+          eventContext
+        )
         return deleted
       } catch (error) {
         logger.error(
