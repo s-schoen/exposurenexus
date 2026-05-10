@@ -30,7 +30,6 @@ export interface UserProfileRepository {
   updateByID(
     options: UpdateUserProfileByIDOptions
   ): Promise<UpdateUserProfileByIDResult | null>
-  deleteByID(id: string): Promise<UserProfileInternal | null>
 }
 
 function uniqueRoleIds(roleIds: readonly string[]): string[] {
@@ -219,16 +218,6 @@ export function createUserProfileRepository(
           revokedSessionCount
         }
       })
-    },
-
-    async deleteByID(id: string): Promise<UserProfileInternal | null> {
-      const deletedProfile = await database
-        .deleteFrom("user_profile")
-        .where("id", "=", id)
-        .returningAll()
-        .executeTakeFirst()
-
-      return deletedProfile || null
     }
   }
 }

@@ -8,7 +8,4 @@ export type UserEventPayloads = {
     previous: UserProfile
     current: UserProfile
   }
-  "user.deleted": {
-    user: UserProfile
-  }
 }

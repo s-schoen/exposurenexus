@@ -51,7 +51,7 @@ describe("createDomainEventPayload", () => {
     const event = createEventPayload({
       id: "event-1",
       time,
-      subject: "user.deleted",
+      subject: "user.created",
       source: "user-service",
       data: { user }
     })

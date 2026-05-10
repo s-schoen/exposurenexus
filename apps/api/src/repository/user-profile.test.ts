@@ -56,7 +56,7 @@ describe("user profile repository", () => {
     await resetTestDatabase(testDb.db)
   })
 
-  it("creates, lists, loads, updates, and deletes user profiles", async () => {
+  it("creates, lists, loads, and updates user profiles", async () => {
     const repository = createUserProfileRepository(testDb.db)
 
     await expect(
@@ -120,13 +120,18 @@ describe("user profile repository", () => {
       repository.getByUsername(updatedFirstProfile.username)
     ).resolves.toEqual(updatedFirstProfileWithRoles)
 
-    await expect(repository.deleteByID(secondProfile.id)).resolves.toEqual(
-      secondProfile
+    await expect(repository.getByID(secondProfile.id)).resolves.toEqual(
+      secondProfileWithRoles
     )
-    await expect(repository.getByID(secondProfile.id)).resolves.toBeNull()
-    await expect(repository.list()).resolves.toEqual([
-      updatedFirstProfileWithRoles
-    ])
+    const profilesAfterUpdate = await repository.list()
+
+    expect(profilesAfterUpdate).toHaveLength(2)
+    expect(profilesAfterUpdate).toEqual(
+      expect.arrayContaining([
+        updatedFirstProfileWithRoles,
+        secondProfileWithRoles
+      ])
+    )
   })
 
   it("returns null when a user profile does not exist", async () => {
@@ -214,14 +219,6 @@ describe("user profile repository", () => {
         userId: secondProfile.id
       }
     ])
-  })
-
-  it("returns null when deleting a user profile that does not exist", async () => {
-    const repository = createUserProfileRepository(testDb.db)
-
-    await expect(
-      repository.deleteByID("ef2fb643-53e3-4b0c-9b68-253d0dd43f8f")
-    ).resolves.toBeNull()
   })
 
   it("rejects duplicate usernames", async () => {
