@@ -304,7 +304,7 @@ describe("vulnerability routes", () => {
     expect(body).toEqual({
       correlationId: requestId,
       status: 500,
-      error: "failed to create vulnerability"
+      error: "internal server error"
     })
   })
 

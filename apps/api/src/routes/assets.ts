@@ -1,5 +1,6 @@
 import { Hono } from "hono"
-import { notFound, replyArray, replyObject } from "../lib/reply.js"
+import { notFound } from "../lib/api-error.js"
+import { replyArray, replyObject } from "../lib/reply.js"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
 import {
@@ -73,10 +74,10 @@ export function createAssetRoute(
       const definitions =
         await assetService.listAvailableCustomFieldDefinitions(params.id)
       if (!definitions) {
-        notFound("asset", params.id)
+        throw notFound("asset", params.id)
       }
 
-      return replyArray(c, definitions!)
+      return replyArray(c, definitions)
     }
   )
 
@@ -89,10 +90,10 @@ export function createAssetRoute(
 
       const values = await assetService.listCustomFieldValues(params.id)
       if (!values) {
-        notFound("asset", params.id)
+        throw notFound("asset", params.id)
       }
 
-      return replyArray(c, values!)
+      return replyArray(c, values)
     }
   )
 
@@ -111,10 +112,10 @@ export function createAssetRoute(
         eventContext: requestEventContext(c)
       })
       if (!values) {
-        notFound("asset", params.id)
+        throw notFound("asset", params.id)
       }
 
-      return replyArray(c, values!)
+      return replyArray(c, values)
     }
   )
 
@@ -131,7 +132,7 @@ export function createAssetRoute(
         eventContext: requestEventContext(c)
       })
       if (!detached) {
-        notFound("asset", params.id)
+        throw notFound("asset", params.id)
       }
 
       return replyObject(c, { detached })
@@ -153,10 +154,10 @@ export function createAssetRoute(
         eventContext: requestEventContext(c)
       })
       if (!values) {
-        notFound("asset", params.id)
+        throw notFound("asset", params.id)
       }
 
-      return replyArray(c, values!)
+      return replyArray(c, values)
     }
   )
 
@@ -173,7 +174,7 @@ export function createAssetRoute(
         eventContext: requestEventContext(c)
       })
       if (!cleared) {
-        notFound("asset", params.id)
+        throw notFound("asset", params.id)
       }
 
       return replyObject(c, { cleared })
@@ -189,10 +190,10 @@ export function createAssetRoute(
 
       const assetResult = await assetService.getByID(params.id)
       if (!assetResult) {
-        notFound("asset", params.id)
+        throw notFound("asset", params.id)
       }
 
-      return replyObject(c, assetResult!)
+      return replyObject(c, assetResult)
     }
   )
 
@@ -225,10 +226,10 @@ export function createAssetRoute(
         eventContext: requestEventContext(c)
       })
       if (!updatedAsset) {
-        notFound("asset", params.id)
+        throw notFound("asset", params.id)
       }
 
-      return replyObject(c, updatedAsset!)
+      return replyObject(c, updatedAsset)
     }
   )
 
@@ -244,10 +245,10 @@ export function createAssetRoute(
         requestEventContext(c)
       )
       if (!deleted) {
-        notFound("asset", params.id)
+        throw notFound("asset", params.id)
       }
 
-      return replyObject(c, deleted!)
+      return replyObject(c, deleted)
     }
   )
 

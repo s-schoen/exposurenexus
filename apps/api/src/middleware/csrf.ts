@@ -2,8 +2,8 @@ import { createHmac, randomBytes, timingSafeEqual } from "node:crypto"
 import type { Context, MiddlewareHandler } from "hono"
 import { deleteCookie, getCookie, setCookie } from "hono/cookie"
 import type { CookieOptions } from "hono/utils/cookie"
-import { HTTPException } from "hono/http-exception"
 import type { UserSession } from "@exposurenexus/types/model/user"
+import { forbidden, isApiError } from "../lib/api-error.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import {
   DEFAULT_AUTH_COOKIE_POLICY,
@@ -110,7 +110,7 @@ function verifyFetchMetadata(c: CsrfContext): void {
   }
 
   if (fetchSite === "cross-site") {
-    throw new HTTPException(403, { message: "Forbidden" })
+    throw forbidden()
   }
 }
 
@@ -118,18 +118,18 @@ function verifyOrigin(c: CsrfContext, allowedOrigins: ReadonlySet<string>) {
   const origin = c.req.header("origin")
 
   if (!origin) {
-    throw new HTTPException(403, { message: "Forbidden" })
+    throw forbidden()
   }
 
   try {
     if (!allowedOrigins.has(normalizeOrigin(origin))) {
-      throw new HTTPException(403, { message: "Forbidden" })
+      throw forbidden()
     }
   } catch (error) {
-    if (error instanceof HTTPException) {
+    if (isApiError(error)) {
       throw error
     }
-    throw new HTTPException(403, { message: "Forbidden" })
+    throw forbidden()
   }
 }
 
@@ -148,7 +148,7 @@ function verifyCsrfToken(c: CsrfContext, tokenSecret: string): void {
     !safeEqual(csrfHeader, csrfCookie) ||
     !verifyToken(csrfCookie, session, tokenSecret)
   ) {
-    throw new HTTPException(403, { message: "Forbidden" })
+    throw forbidden()
   }
 }
 

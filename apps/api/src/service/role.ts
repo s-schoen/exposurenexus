@@ -6,7 +6,8 @@ import {
   type Role,
   type UpdateRole
 } from "@exposurenexus/types/model/rbac"
-import { conflict, isConflictError } from "./errors.js"
+import { conflict, isApiError } from "../lib/api-error.js"
+import { isConflictError } from "./errors.js"
 import {
   createDomainEventEmitter,
   type DomainEventContext,
@@ -137,7 +138,7 @@ export function createRoleService({
 
         return uniqueIds.map((id) => roleNameById.get(id)!)
       } catch (error) {
-        if (error instanceof HTTPException) {
+        if (isApiError(error) || error instanceof HTTPException) {
           throw error
         }
 
@@ -216,7 +217,7 @@ export function createRoleService({
 
         return updateResult.role
       } catch (error) {
-        if (error instanceof HTTPException) {
+        if (isApiError(error) || error instanceof HTTPException) {
           throw error
         }
 
@@ -264,7 +265,7 @@ export function createRoleService({
         emitRoleEvent("role.deleted", { role: deletedRole }, eventContext)
         return deletedRole
       } catch (error) {
-        if (error instanceof HTTPException) {
+        if (isApiError(error) || error instanceof HTTPException) {
           throw error
         }
 

@@ -1,16 +1,5 @@
-import { HTTPException } from "hono/http-exception"
 import type { Context } from "hono"
 import { createArrayReply, createObjectReply } from "@exposurenexus/types/api"
-
-export function notFound(type: string, id: string) {
-  throw new HTTPException(404, {
-    message: `${type} with id ${id} does not exist`
-  })
-}
-
-export function badRequest(message: string) {
-  throw new HTTPException(400, { message })
-}
 
 export function replyObject(
   c: Context,

@@ -16,12 +16,8 @@ import {
 import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
 import type { UserProfile } from "@exposurenexus/types/model/user"
-import {
-  badRequest,
-  conflict,
-  isConflictError,
-  isForeignKeyError
-} from "./errors.js"
+import { badRequest, conflict, isApiError } from "../lib/api-error.js"
+import { isConflictError, isForeignKeyError } from "./errors.js"
 import {
   createDomainEventEmitter,
   type AssetEventPayloads,
@@ -73,9 +69,9 @@ function validateCustomFieldDefinition(
   const [violation] = validateAssetCustomFieldDefinitionRules(definition)
 
   if (violation) {
-    throw new HTTPException(400, {
-      message: customFieldRuleViolationMessage(violation),
-      cause: violation
+    throw badRequest(customFieldRuleViolationMessage(violation), {
+      cause: violation,
+      reason: violation.reason
     })
   }
 }
@@ -308,7 +304,7 @@ export function createAssetService({
         }
         return created
       } catch (error) {
-        if (error instanceof HTTPException) {
+        if (isApiError(error) || error instanceof HTTPException) {
           throw error
         }
 
@@ -351,7 +347,7 @@ export function createAssetService({
         }
         return updated
       } catch (error) {
-        if (error instanceof HTTPException) {
+        if (isApiError(error) || error instanceof HTTPException) {
           throw error
         }
 
@@ -391,7 +387,7 @@ export function createAssetService({
         )
         return asset
       } catch (error) {
-        if (error instanceof HTTPException) {
+        if (isApiError(error) || error instanceof HTTPException) {
           throw error
         }
 
@@ -642,7 +638,7 @@ export function createAssetService({
         }
         return updatedValues
       } catch (error) {
-        if (error instanceof HTTPException) {
+        if (isApiError(error) || error instanceof HTTPException) {
           throw error
         }
 
@@ -685,7 +681,7 @@ export function createAssetService({
         }
         return true
       } catch (error) {
-        if (error instanceof HTTPException) {
+        if (isApiError(error) || error instanceof HTTPException) {
           throw error
         }
 
@@ -732,7 +728,7 @@ export function createAssetService({
         }
         return values
       } catch (error) {
-        if (error instanceof HTTPException) {
+        if (isApiError(error) || error instanceof HTTPException) {
           throw error
         }
 
@@ -771,7 +767,7 @@ export function createAssetService({
         }
         return true
       } catch (error) {
-        if (error instanceof HTTPException) {
+        if (isApiError(error) || error instanceof HTTPException) {
           throw error
         }
 

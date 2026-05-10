@@ -1,9 +1,9 @@
 import { Hono } from "hono"
 import type { MiddlewareHandler } from "hono"
-import { HTTPException } from "hono/http-exception"
 import { pino } from "pino"
 import type { UserProfile } from "@exposurenexus/types/model/user"
 import { createApp } from "../app.js"
+import { unauthorized } from "../lib/api-error.js"
 import type { ContextVariables } from "../lib/hono-schema.js"
 import health from "../routes/health.js"
 
@@ -66,7 +66,7 @@ export const requireAuthenticatedUser: MiddlewareHandler<{
   Variables: ContextVariables
 }> = async (c, next) => {
   if (!c.get("user")) {
-    throw new HTTPException(401, { message: "Unauthorized" })
+    throw unauthorized()
   }
 
   await next()

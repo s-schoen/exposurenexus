@@ -1,6 +1,6 @@
 import { Hono } from "hono"
-import { HTTPException } from "hono/http-exception"
-import { notFound, replyArray, replyObject } from "../lib/reply.js"
+import { notFound, unauthorized } from "../lib/api-error.js"
+import { replyArray, replyObject } from "../lib/reply.js"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod/v4"
 import {
@@ -39,7 +39,7 @@ export function createFindingRoute(
       const user = c.get("user")
 
       if (!user) {
-        throw new HTTPException(401, { message: "Unauthorized" })
+        throw unauthorized()
       }
 
       const result = await findingService.reclassify({
@@ -61,10 +61,10 @@ export function createFindingRoute(
 
       const findingResult = await findingService.getByID(params.id)
       if (!findingResult) {
-        notFound("finding", params.id)
+        throw notFound("finding", params.id)
       }
 
-      return replyObject(c, findingResult!)
+      return replyObject(c, findingResult)
     }
   )
 
@@ -77,7 +77,7 @@ export function createFindingRoute(
       const user = c.get("user")
 
       if (!user) {
-        throw new HTTPException(401, { message: "Unauthorized" })
+        throw unauthorized()
       }
 
       const createdFinding = await findingService.create({
@@ -101,7 +101,7 @@ export function createFindingRoute(
       const user = c.get("user")
 
       if (!user) {
-        throw new HTTPException(401, { message: "Unauthorized" })
+        throw unauthorized()
       }
 
       const updatedFinding = await findingService.updateByID({
@@ -112,10 +112,10 @@ export function createFindingRoute(
       })
 
       if (!updatedFinding) {
-        notFound("finding", params.id)
+        throw notFound("finding", params.id)
       }
 
-      return replyObject(c, updatedFinding!)
+      return replyObject(c, updatedFinding)
     }
   )
 
@@ -128,7 +128,7 @@ export function createFindingRoute(
       const user = c.get("user")
 
       if (!user) {
-        throw new HTTPException(401, { message: "Unauthorized" })
+        throw unauthorized()
       }
 
       const deleted = await findingService.deleteByID(
@@ -136,10 +136,10 @@ export function createFindingRoute(
         requestEventContext(c)
       )
       if (!deleted) {
-        notFound("finding", params.id)
+        throw notFound("finding", params.id)
       }
 
-      return replyObject(c, deleted!)
+      return replyObject(c, deleted)
     }
   )
 

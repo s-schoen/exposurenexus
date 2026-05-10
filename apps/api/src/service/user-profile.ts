@@ -13,12 +13,8 @@ import {
   type DomainEventEmitter,
   type UserEventPayloads
 } from "../lib/eventbus/events/index.js"
-import {
-  badRequest,
-  conflict,
-  isConflictError,
-  isForeignKeyError
-} from "./errors.js"
+import { badRequest, conflict, type ApiError } from "../lib/api-error.js"
+import { isConflictError, isForeignKeyError } from "./errors.js"
 import type { UserProfileRepository } from "../repository/user-profile.js"
 
 interface UserProfileServiceDependencies {
@@ -57,11 +53,11 @@ function toUserProfile(userProfile: UserProfileInternalWithRoles): UserProfile {
   }
 }
 
-function userProfileConflict(): HTTPException {
+function userProfileConflict(): ApiError {
   return conflict("user profile already exists")
 }
 
-function invalidUserRoleAssignment(): HTTPException {
+function invalidUserRoleAssignment(): ApiError {
   return badRequest("invalid user role assignment")
 }
 

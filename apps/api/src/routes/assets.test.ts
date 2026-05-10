@@ -12,6 +12,7 @@ import {
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
+import { badRequest } from "../lib/api-error.js"
 import { createRequireDomainPermission } from "../middleware/auth.js"
 import { createAssetRoute } from "./assets.js"
 
@@ -448,9 +449,9 @@ describe("asset routes", () => {
     }
 
     assetService.createCustomFieldDefinition.mockRejectedValue(
-      new HTTPException(400, {
-        message: "required custom fields must define a default value",
-        cause: violation
+      badRequest("required custom fields must define a default value", {
+        cause: violation,
+        reason: violation.reason
       })
     )
 
@@ -636,9 +637,9 @@ describe("asset routes", () => {
     }
 
     assetService.updateCustomFieldDefinitionByID.mockRejectedValue(
-      new HTTPException(400, {
-        message: "select custom field default must match an option value",
-        cause: violation
+      badRequest("select custom field default must match an option value", {
+        cause: violation,
+        reason: violation.reason
       })
     )
 
