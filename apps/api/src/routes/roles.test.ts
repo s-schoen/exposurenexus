@@ -17,7 +17,7 @@ import {
   updateRoleSchema
 } from "@exposurenexus/types/model/rbac"
 import { createRoleRoute } from "./roles.js"
-import { conflict, forbidden } from "../lib/api-error.js"
+import { ApplicationError } from "../service/application-error.js"
 
 describe("role routes", () => {
   const authenticatedUser = createTestUser()
@@ -217,7 +217,14 @@ describe("role routes", () => {
       ]
     } satisfies typeof createRoleSchema._output
 
-    roleService.create.mockRejectedValueOnce(conflict("role already exists"))
+    roleService.create.mockRejectedValueOnce(
+      new ApplicationError({
+        code: "role.create_conflict",
+        kind: "conflict",
+        message: "role already exists",
+        details: { roleName: payload.name }
+      })
+    )
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
@@ -395,7 +402,12 @@ describe("role routes", () => {
     } satisfies typeof updateRoleSchema._output
 
     roleService.updateByID.mockRejectedValueOnce(
-      conflict("role already exists")
+      new ApplicationError({
+        code: "role.update_conflict",
+        kind: "conflict",
+        message: "role already exists",
+        details: { roleId: listedRole.id, roleName: payload.name }
+      })
     )
 
     const app = createTestApp({
@@ -521,7 +533,12 @@ describe("role routes", () => {
     const requestId = "roles-update-protected-request"
 
     roleService.updateByID.mockRejectedValue(
-      forbidden("built-in roles cannot be modified")
+      new ApplicationError({
+        code: "role.protected_role",
+        kind: "denied",
+        message: "built-in roles cannot be modified",
+        details: { roleId: builtInRoleIds.viewer }
+      })
     )
 
     const app = createTestApp({
@@ -641,7 +658,12 @@ describe("role routes", () => {
     const requestId = "roles-delete-protected-request"
 
     roleService.deleteByID.mockRejectedValue(
-      forbidden("built-in roles cannot be modified")
+      new ApplicationError({
+        code: "role.protected_role",
+        kind: "denied",
+        message: "built-in roles cannot be modified",
+        details: { roleId: builtInRoleIds.viewer }
+      })
     )
 
     const app = createTestApp({
@@ -670,7 +692,12 @@ describe("role routes", () => {
     const requestId = "roles-delete-assigned-request"
 
     roleService.deleteByID.mockRejectedValue(
-      conflict(`role ${listedRole.name} is still assigned to users`)
+      new ApplicationError({
+        code: "role.assigned_to_users",
+        kind: "conflict",
+        message: `role ${listedRole.name} is still assigned to users`,
+        details: { roleId: listedRole.id, roleName: listedRole.name }
+      })
     )
 
     const app = createTestApp({

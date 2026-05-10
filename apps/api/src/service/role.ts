@@ -5,13 +5,7 @@ import {
   type Role,
   type UpdateRole
 } from "@exposurenexus/types/model/rbac"
-import {
-  badRequest,
-  conflict,
-  forbidden,
-  internalServerError,
-  isApiError
-} from "../lib/api-error.js"
+import { ApplicationError, isApplicationError } from "./application-error.js"
 import { isConflictError } from "./errors.js"
 import {
   createDomainEventEmitter,
@@ -78,7 +72,12 @@ export function createRoleService({
         return await roleRepository.list()
       } catch (error) {
         logger.error(error, "failed to list roles")
-        throw internalServerError("failed to list roles")
+        throw new ApplicationError({
+          code: "role.list_failed",
+          kind: "unexpected",
+          message: "failed to list roles",
+          cause: error
+        })
       }
     },
 
@@ -91,7 +90,13 @@ export function createRoleService({
         return role
       } catch (error) {
         logger.error(error, `failed to get role with id ${id}`)
-        throw internalServerError("failed to get role")
+        throw new ApplicationError({
+          code: "role.get_failed",
+          kind: "unexpected",
+          message: "failed to get role",
+          cause: error,
+          details: { roleId: id }
+        })
       }
     },
 
@@ -100,7 +105,13 @@ export function createRoleService({
         return await roleRepository.getByNames(uniqueValues(names))
       } catch (error) {
         logger.error(error, "failed to get roles by name")
-        throw internalServerError("failed to get roles")
+        throw new ApplicationError({
+          code: "role.get_by_names_failed",
+          kind: "unexpected",
+          message: "failed to get roles",
+          cause: error,
+          details: { roleNames: uniqueValues(names) }
+        })
       }
     },
 
@@ -116,7 +127,13 @@ export function createRoleService({
         })
       } catch (error) {
         logger.error(error, "failed to resolve role ids")
-        throw internalServerError("failed to resolve role ids")
+        throw new ApplicationError({
+          code: "role.resolve_ids_failed",
+          kind: "unexpected",
+          message: "failed to resolve role ids",
+          cause: error,
+          details: { roleNames: names }
+        })
       }
     },
 
@@ -128,17 +145,28 @@ export function createRoleService({
         const missingRoleIds = uniqueIds.filter((id) => !roleNameById.has(id))
 
         if (missingRoleIds.length > 0) {
-          throw badRequest(`unknown role ids: ${missingRoleIds.join(", ")}`)
+          throw new ApplicationError({
+            code: "role.unknown_ids",
+            kind: "validation",
+            message: `unknown role ids: ${missingRoleIds.join(", ")}`,
+            details: { roleIds: missingRoleIds }
+          })
         }
 
         return uniqueIds.map((id) => roleNameById.get(id)!)
       } catch (error) {
-        if (isApiError(error)) {
+        if (isApplicationError(error)) {
           throw error
         }
 
         logger.error(error, "failed to resolve role names")
-        throw internalServerError("failed to resolve role names")
+        throw new ApplicationError({
+          code: "role.resolve_names_failed",
+          kind: "unexpected",
+          message: "failed to resolve role names",
+          cause: error,
+          details: { roleIds: ids }
+        })
       }
     },
 
@@ -154,11 +182,23 @@ export function createRoleService({
       } catch (error) {
         if (isConflictError(error)) {
           logger.debug(error, "role create conflict")
-          throw conflict("role already exists")
+          throw new ApplicationError({
+            code: "role.create_conflict",
+            kind: "conflict",
+            message: "role already exists",
+            cause: error,
+            details: { roleName: roleInput.name }
+          })
         }
 
         logger.error(error, "failed to create role")
-        throw internalServerError("failed to create role")
+        throw new ApplicationError({
+          code: "role.create_failed",
+          kind: "unexpected",
+          message: "failed to create role",
+          cause: error,
+          details: { roleName: roleInput.name }
+        })
       }
     },
 
@@ -166,7 +206,12 @@ export function createRoleService({
       const { id, role: roleUpdate, eventContext } = opts
 
       if (isProtectedRoleId(id)) {
-        throw forbidden("built-in roles cannot be modified")
+        throw new ApplicationError({
+          code: "role.protected_role",
+          kind: "denied",
+          message: "built-in roles cannot be modified",
+          details: { roleId: id }
+        })
       }
 
       try {
@@ -206,17 +251,29 @@ export function createRoleService({
 
         return updateResult.role
       } catch (error) {
-        if (isApiError(error)) {
+        if (isApplicationError(error)) {
           throw error
         }
 
         if (isConflictError(error)) {
           logger.debug(error, "role update conflict")
-          throw conflict("role already exists")
+          throw new ApplicationError({
+            code: "role.update_conflict",
+            kind: "conflict",
+            message: "role already exists",
+            cause: error,
+            details: { roleId: id, roleName: roleUpdate.name }
+          })
         }
 
         logger.error(error, `failed to update role with id ${id}`)
-        throw internalServerError("failed to update role")
+        throw new ApplicationError({
+          code: "role.update_failed",
+          kind: "unexpected",
+          message: "failed to update role",
+          cause: error,
+          details: { roleId: id }
+        })
       }
     },
 
@@ -225,7 +282,12 @@ export function createRoleService({
       eventContext?: DomainEventContext
     ): Promise<Role | null> {
       if (isProtectedRoleId(id)) {
-        throw forbidden("built-in roles cannot be modified")
+        throw new ApplicationError({
+          code: "role.protected_role",
+          kind: "denied",
+          message: "built-in roles cannot be modified",
+          details: { roleId: id }
+        })
       }
 
       try {
@@ -236,7 +298,12 @@ export function createRoleService({
         }
 
         if (await roleRepository.hasUsersWithRoleID(existingRole.id)) {
-          throw conflict(`role ${existingRole.name} is still assigned to users`)
+          throw new ApplicationError({
+            code: "role.assigned_to_users",
+            kind: "conflict",
+            message: `role ${existingRole.name} is still assigned to users`,
+            details: { roleId: existingRole.id, roleName: existingRole.name }
+          })
         }
 
         const deletedRole = await roleRepository.deleteByID(id)
@@ -248,12 +315,18 @@ export function createRoleService({
         emitRoleEvent("role.deleted", { role: deletedRole }, eventContext)
         return deletedRole
       } catch (error) {
-        if (isApiError(error)) {
+        if (isApplicationError(error)) {
           throw error
         }
 
         logger.error(error, `failed to delete role with id ${id}`)
-        throw internalServerError("failed to delete role")
+        throw new ApplicationError({
+          code: "role.delete_failed",
+          kind: "unexpected",
+          message: "failed to delete role",
+          cause: error,
+          details: { roleId: id }
+        })
       }
     }
   }
