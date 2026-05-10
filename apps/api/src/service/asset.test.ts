@@ -89,7 +89,7 @@ describe("asset service", () => {
     expect(assetRepository.list).toHaveBeenCalledOnce()
   })
 
-  it("maps repository list failures to an HTTP 500", async () => {
+  it("maps repository list failures to an application error", async () => {
     const assetService = createTestAssetService()
 
     assetRepository.list.mockRejectedValue(new Error("db offline"))
@@ -128,7 +128,7 @@ describe("asset service", () => {
     expect(assetRepository.listWithCustomFields).toHaveBeenCalledOnce()
   })
 
-  it("maps repository list with custom fields failures to an HTTP 500", async () => {
+  it("maps repository list with custom fields failures to an application error", async () => {
     const assetService = createTestAssetService()
 
     assetRepository.listWithCustomFields.mockRejectedValue(
@@ -164,7 +164,7 @@ describe("asset service", () => {
     await expect(assetService.getByID(assetId)).resolves.toBeNull()
   })
 
-  it("maps repository get by id failures to an HTTP 500", async () => {
+  it("maps repository get by id failures to an application error", async () => {
     const assetService = createTestAssetService()
 
     assetRepository.getByID.mockRejectedValue(new Error("select failed"))
@@ -207,7 +207,7 @@ describe("asset service", () => {
     ).resolves.toBeNull()
   })
 
-  it("maps repository get by name failures to an HTTP 500", async () => {
+  it("maps repository get by name failures to an application error", async () => {
     const assetService = createTestAssetService()
 
     assetRepository.getByName.mockRejectedValue(new Error("select failed"))
@@ -356,7 +356,7 @@ describe("asset service", () => {
     expect(assetRepository.create).not.toHaveBeenCalled()
   })
 
-  it("maps repository create failures to an HTTP 500", async () => {
+  it("maps repository create failures to an application error", async () => {
     const assetService = createTestAssetService()
 
     assetRepository.create.mockRejectedValue(new Error("insert failed"))
@@ -532,7 +532,7 @@ describe("asset service", () => {
     expect(assetRepository.updateOwnerByID).not.toHaveBeenCalled()
   })
 
-  it("maps repository owner update failures to an HTTP 500", async () => {
+  it("maps repository owner update failures to an application error", async () => {
     const assetService = createTestAssetService()
 
     assetRepository.getByIDWithCustomFields.mockResolvedValue({
@@ -664,7 +664,7 @@ describe("asset service", () => {
     expect(domainEvents.subjects()).toEqual([])
   })
 
-  it("maps repository delete failures to an HTTP 500", async () => {
+  it("maps repository delete failures to an application error", async () => {
     const assetService = createTestAssetService()
 
     assetRepository.getByIDWithCustomFields.mockResolvedValue({
@@ -706,7 +706,7 @@ describe("asset service", () => {
     expect(assetRepository.listCustomFieldDefinitions).toHaveBeenCalledOnce()
   })
 
-  it("maps custom field definition list failures to an HTTP 500", async () => {
+  it("maps custom field definition list failures to an application error", async () => {
     const assetService = createTestAssetService()
 
     assetRepository.listCustomFieldDefinitions.mockRejectedValue(
@@ -754,7 +754,7 @@ describe("asset service", () => {
     ).resolves.toBeNull()
   })
 
-  it("maps custom field definition get failures to an HTTP 500", async () => {
+  it("maps custom field definition get failures to an application error", async () => {
     const assetService = createTestAssetService()
 
     assetRepository.getCustomFieldDefinitionByID.mockRejectedValue(
@@ -948,7 +948,7 @@ describe("asset service", () => {
     } satisfies Partial<ApplicationError>)
   })
 
-  it("maps custom field definition create conflicts to an HTTP 409", async () => {
+  it("maps custom field definition create conflicts to a conflict application error", async () => {
     const assetService = createTestAssetService()
 
     assetRepository.createCustomFieldDefinition.mockRejectedValue(
@@ -975,7 +975,7 @@ describe("asset service", () => {
     } satisfies Partial<ApplicationError>)
   })
 
-  it("maps custom field definition create failures to an HTTP 500", async () => {
+  it("maps custom field definition create failures to an application error", async () => {
     const assetService = createTestAssetService()
 
     assetRepository.createCustomFieldDefinition.mockRejectedValue(
@@ -1093,7 +1093,7 @@ describe("asset service", () => {
     ).not.toHaveBeenCalled()
   })
 
-  it("maps custom field definition update conflicts to an HTTP 409", async () => {
+  it("maps custom field definition update conflicts to a conflict application error", async () => {
     const previous = {
       id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
       key: "priority",
@@ -1132,7 +1132,7 @@ describe("asset service", () => {
     } satisfies Partial<ApplicationError>)
   })
 
-  it("maps custom field definition update failures to an HTTP 500", async () => {
+  it("maps custom field definition update failures to an application error", async () => {
     const previous = {
       id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
       key: "category",
@@ -1206,7 +1206,7 @@ describe("asset service", () => {
     ).resolves.toBeNull()
   })
 
-  it("maps custom field definition delete failures to an HTTP 500", async () => {
+  it("maps custom field definition delete failures to an application error", async () => {
     const assetService = createTestAssetService()
 
     assetRepository.deleteCustomFieldDefinitionByID.mockRejectedValue(
@@ -1262,7 +1262,7 @@ describe("asset service", () => {
     expect(assetRepository.listCustomFieldValues).toHaveBeenCalledWith(asset.id)
   })
 
-  it("maps custom field value list failures to an HTTP 500", async () => {
+  it("maps custom field value list failures to an application error", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
       name: "api.exposurenexus.local",
@@ -1330,7 +1330,7 @@ describe("asset service", () => {
     ).not.toHaveBeenCalled()
   })
 
-  it("maps available custom field list failures to an HTTP 500", async () => {
+  it("maps available custom field list failures to an application error", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
       name: "api.exposurenexus.local",
@@ -1739,7 +1739,7 @@ describe("asset service", () => {
     ).resolves.toEqual(values)
   })
 
-  it("maps custom field value upsert failures to an HTTP 500", async () => {
+  it("maps custom field value upsert failures to an application error", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
       name: "api.exposurenexus.local",
@@ -1901,7 +1901,7 @@ describe("asset service", () => {
     )
   })
 
-  it("maps custom field value clear failures to an HTTP 500", async () => {
+  it("maps custom field value clear failures to an application error", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
       name: "api.exposurenexus.local",
@@ -2037,7 +2037,7 @@ describe("asset service", () => {
     expect(assetRepository.assignCustomFields).not.toHaveBeenCalled()
   })
 
-  it("maps custom field assignment failures to an HTTP 500", async () => {
+  it("maps custom field assignment failures to an application error", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
       name: "api.exposurenexus.local",
@@ -2143,7 +2143,7 @@ describe("asset service", () => {
     expect(assetRepository.detachCustomField).not.toHaveBeenCalled()
   })
 
-  it("maps custom field detach failures to an HTTP 500", async () => {
+  it("maps custom field detach failures to an application error", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
       name: "api.exposurenexus.local",

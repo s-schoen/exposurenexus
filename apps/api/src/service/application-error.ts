@@ -2,6 +2,7 @@ import type { AssetApplicationErrorCatalog } from "./application-error/asset.js"
 import type { AuthApplicationErrorCatalog } from "./application-error/auth.js"
 import type { FindingApplicationErrorCatalog } from "./application-error/finding.js"
 import type { RoleApplicationErrorCatalog } from "./application-error/role.js"
+import type { StatsApplicationErrorCatalog } from "./application-error/stats.js"
 import type { UserProfileApplicationErrorCatalog } from "./application-error/user-profile.js"
 import type { VulnerabilityApplicationErrorCatalog } from "./application-error/vulnerability.js"
 
@@ -9,6 +10,7 @@ export type { AssetApplicationErrorCatalog } from "./application-error/asset.js"
 export type { AuthApplicationErrorCatalog } from "./application-error/auth.js"
 export type { FindingApplicationErrorCatalog } from "./application-error/finding.js"
 export type { RoleApplicationErrorCatalog } from "./application-error/role.js"
+export type { StatsApplicationErrorCatalog } from "./application-error/stats.js"
 export type { UserProfileApplicationErrorCatalog } from "./application-error/user-profile.js"
 export type { VulnerabilityApplicationErrorCatalog } from "./application-error/vulnerability.js"
 
@@ -16,6 +18,7 @@ export type ApplicationErrorCatalog = AssetApplicationErrorCatalog &
   AuthApplicationErrorCatalog &
   FindingApplicationErrorCatalog &
   RoleApplicationErrorCatalog &
+  StatsApplicationErrorCatalog &
   UserProfileApplicationErrorCatalog &
   VulnerabilityApplicationErrorCatalog
 

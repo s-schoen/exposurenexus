@@ -90,6 +90,14 @@ function assertApplicationErrorInputTypes() {
     vulnerabilityMappingTargetMissingInput.kind
   ).toEqualTypeOf<"missing">()
 
+  const statsInput = {
+    code: "stats.get_finding_stats_failed",
+    kind: "unexpected",
+    message: "failed to retrieve statistics"
+  } satisfies ApplicationErrorInput
+
+  expectTypeOf(statsInput.kind).toEqualTypeOf<"unexpected">()
+
   const wrongConstructorKind = new ApplicationError<"role.unknown_ids">({
     code: "role.unknown_ids",
     // @ts-expect-error constructor input kind is pinned by code.

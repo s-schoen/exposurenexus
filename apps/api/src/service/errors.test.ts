@@ -8,16 +8,6 @@ describe("service errors", () => {
     expect(
       isConflictError(Object.assign(new Error("db error"), { code: "23505" }))
     ).toBe(true)
-    expect(
-      isConflictError(
-        Object.assign(new Error("request failed"), { status: 409 })
-      )
-    ).toBe(true)
-    expect(
-      isConflictError(
-        Object.assign(new Error("request failed"), { statusCode: 409 })
-      )
-    ).toBe(true)
   })
 
   it("rejects non-conflict errors", () => {

@@ -1,7 +1,5 @@
 interface ErrorWithDatabaseCode extends Error {
   code?: string
-  status?: number
-  statusCode?: number
 }
 
 function isErrorWithMetadata(error: unknown): error is ErrorWithDatabaseCode {
@@ -16,8 +14,6 @@ export function isConflictError(error: unknown): boolean {
   const message = error.message.toLowerCase()
 
   return (
-    error.status === 409 ||
-    error.statusCode === 409 ||
     error.code === "23505" ||
     message.includes("already exists") ||
     message.includes("duplicate")
