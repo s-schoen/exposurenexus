@@ -3,8 +3,20 @@ import type { Context } from "hono"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 import type { APIErrorReply } from "@exposurenexus/types/api"
 import type { ContextVariables } from "./hono-schema.js"
+import {
+  isApplicationError,
+  type ApplicationError,
+  type ApplicationErrorCode,
+  type ApplicationErrorKind
+} from "../service/application-error.js"
 
 const INTERNAL_SERVER_ERROR_MESSAGE = "internal server error"
+
+const applicationErrorPublicReasons: Partial<
+  Record<ApplicationErrorCode, string>
+> = {
+  "role.unknown_ids": "unknown-role-ids"
+}
 
 interface ApiErrorOptions {
   reason?: string
@@ -77,7 +89,13 @@ export function internalServerError(
   return new ApiError(500, message, options)
 }
 
-function shouldExposeMessage(error: ApiError | HTTPException): boolean {
+function shouldExposeMessage(
+  error: ApiError | HTTPException | ApplicationError
+): boolean {
+  if (isApplicationError(error)) {
+    return getApplicationErrorStatus(error.kind) < 500
+  }
+
   if (error.status < 500) {
     return true
   }
@@ -85,13 +103,39 @@ function shouldExposeMessage(error: ApiError | HTTPException): boolean {
   return isApiError(error) && error.exposeMessage
 }
 
+function getApplicationErrorStatus(
+  kind: ApplicationErrorKind
+): ContentfulStatusCode {
+  switch (kind) {
+    case "validation":
+      return 400
+    case "denied":
+      return 403
+    case "conflict":
+      return 409
+    case "unexpected":
+      return 500
+  }
+}
+
+function getErrorStatus(
+  error: ApiError | HTTPException | ApplicationError
+): ContentfulStatusCode {
+  if (isApplicationError(error)) {
+    return getApplicationErrorStatus(error.kind)
+  }
+
+  return error.status
+}
+
 export function createApiErrorReply(
   correlationId: string,
-  error: ApiError | HTTPException
+  error: ApiError | HTTPException | ApplicationError
 ): APIErrorReply {
+  const status = getErrorStatus(error)
   const reply: APIErrorReply = {
     correlationId,
-    status: error.status,
+    status,
     error: shouldExposeMessage(error)
       ? error.message
       : INTERNAL_SERVER_ERROR_MESSAGE
@@ -101,12 +145,22 @@ export function createApiErrorReply(
     reply.reason = error.reason
   }
 
+  if (isApplicationError(error)) {
+    const reason = applicationErrorPublicReasons[error.code]
+    if (reason) {
+      reply.reason = reason
+    }
+  }
+
   return reply
 }
 
 export function replyError(
   c: Context<{ Variables: ContextVariables }>,
-  error: ApiError | HTTPException
+  error: ApiError | HTTPException | ApplicationError
 ) {
-  return c.json(createApiErrorReply(c.get("requestId"), error), error.status)
+  return c.json(
+    createApiErrorReply(c.get("requestId"), error),
+    getErrorStatus(error)
+  )
 }

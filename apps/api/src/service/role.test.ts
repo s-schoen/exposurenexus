@@ -1,5 +1,4 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
-import type { ApiError } from "../lib/api-error.js"
 import { pino } from "pino"
 import {
   BuiltInRoleName,
@@ -10,6 +9,7 @@ import {
 } from "@exposurenexus/types/model/rbac"
 import { createRoleService } from "./role.js"
 import { createDomainEventCollector } from "../test/eventbus.js"
+import type { ApplicationError } from "./application-error.js"
 
 describe("role service", () => {
   const domainEvents = createDomainEventCollector()
@@ -78,7 +78,7 @@ describe("role service", () => {
     ])
   })
 
-  it("maps get-by-name failures to an HTTP 500", async () => {
+  it("maps get-by-name failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     roleRepository.getByNames.mockRejectedValueOnce(new Error("db offline"))
@@ -86,9 +86,10 @@ describe("role service", () => {
     await expect(
       service.getByNames([BuiltInRoleName.Viewer])
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to get roles"
-    } satisfies Partial<ApiError>)
+      code: "role.get_by_names_failed",
+      kind: "unexpected",
+      details: { roleNames: [BuiltInRoleName.Viewer] }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("lists all roles", async () => {
@@ -100,15 +101,15 @@ describe("role service", () => {
     expect(roleRepository.list).toHaveBeenCalledOnce()
   })
 
-  it("maps list failures to an HTTP 500", async () => {
+  it("maps list failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     roleRepository.list.mockRejectedValue(new Error("db offline"))
 
     await expect(service.listAll()).rejects.toMatchObject({
-      status: 500,
-      message: "failed to list roles"
-    } satisfies Partial<ApiError>)
+      code: "role.list_failed",
+      kind: "unexpected"
+    } satisfies Partial<ApplicationError>)
   })
 
   it("returns a role by id", async () => {
@@ -128,15 +129,16 @@ describe("role service", () => {
     await expect(service.getByID(viewerRole.id)).resolves.toBeNull()
   })
 
-  it("maps get-by-id failures to an HTTP 500", async () => {
+  it("maps get-by-id failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     roleRepository.getByID.mockRejectedValue(new Error("db offline"))
 
     await expect(service.getByID(viewerRole.id)).rejects.toMatchObject({
-      status: 500,
-      message: "failed to get role"
-    } satisfies Partial<ApiError>)
+      code: "role.get_failed",
+      kind: "unexpected",
+      details: { roleId: viewerRole.id }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("creates a custom role and emits a domain event", async () => {
@@ -170,7 +172,7 @@ describe("role service", () => {
     })
   })
 
-  it("maps duplicate role name creates to an HTTP 409", async () => {
+  it("maps duplicate role name creates to a conflict ApplicationError", async () => {
     const service = createService()
 
     roleRepository.create.mockRejectedValueOnce(
@@ -183,12 +185,13 @@ describe("role service", () => {
         permissions: []
       })
     ).rejects.toMatchObject({
-      status: 409,
-      message: "role already exists"
-    } satisfies Partial<ApiError>)
+      code: "role.create_conflict",
+      kind: "conflict",
+      details: { roleName: BuiltInRoleName.Viewer }
+    } satisfies Partial<ApplicationError>)
   })
 
-  it("maps role create failures to an HTTP 500", async () => {
+  it("maps role create failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     roleRepository.create.mockRejectedValue(new Error("db offline"))
@@ -199,9 +202,10 @@ describe("role service", () => {
         permissions: []
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to create role"
-    } satisfies Partial<ApiError>)
+      code: "role.create_failed",
+      kind: "unexpected",
+      details: { roleName: "security-analyst" }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("resolves role ids from persisted role names", async () => {
@@ -239,7 +243,7 @@ describe("role service", () => {
     ])
   })
 
-  it("rejects unknown role ids with an HTTP 400", async () => {
+  it("rejects unknown role ids with a validation ApplicationError", async () => {
     const service = createService()
 
     roleRepository.getByIDs.mockResolvedValue([viewerRole])
@@ -250,12 +254,13 @@ describe("role service", () => {
         "0671d03d-57f1-49c8-8f62-5de6ed0924db"
       ])
     ).rejects.toMatchObject({
-      status: 400,
-      message: "unknown role ids: 0671d03d-57f1-49c8-8f62-5de6ed0924db"
-    } satisfies Partial<ApiError>)
+      code: "role.unknown_ids",
+      kind: "validation",
+      details: { roleIds: ["0671d03d-57f1-49c8-8f62-5de6ed0924db"] }
+    } satisfies Partial<ApplicationError>)
   })
 
-  it("maps role resolution failures to an HTTP 500", async () => {
+  it("maps role resolution failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     roleRepository.getByNames.mockRejectedValueOnce(new Error("db offline"))
@@ -263,12 +268,13 @@ describe("role service", () => {
     await expect(
       service.resolveRoleIdsFromNames([BuiltInRoleName.Viewer])
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to resolve role ids"
-    } satisfies Partial<ApiError>)
+      code: "role.resolve_ids_failed",
+      kind: "unexpected",
+      details: { roleNames: [BuiltInRoleName.Viewer] }
+    } satisfies Partial<ApplicationError>)
   })
 
-  it("maps role-name resolution failures to an HTTP 500", async () => {
+  it("maps role-name resolution failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     roleRepository.getByIDs.mockRejectedValueOnce(new Error("db offline"))
@@ -276,9 +282,10 @@ describe("role service", () => {
     await expect(
       service.requireRoleNamesFromIds([builtInRoleIds.viewer])
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to resolve role names"
-    } satisfies Partial<ApiError>)
+      code: "role.resolve_names_failed",
+      kind: "unexpected",
+      details: { roleIds: [builtInRoleIds.viewer] }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("updates a custom role", async () => {
@@ -388,7 +395,7 @@ describe("role service", () => {
     expect(domainEvents.subjects()).toEqual([])
   })
 
-  it("maps duplicate role name updates to an HTTP 409", async () => {
+  it("maps duplicate role name updates to a conflict ApplicationError", async () => {
     const service = createService()
 
     roleRepository.getByID.mockResolvedValue(analystRole)
@@ -405,12 +412,13 @@ describe("role service", () => {
         }
       })
     ).rejects.toMatchObject({
-      status: 409,
-      message: "role already exists"
-    } satisfies Partial<ApiError>)
+      code: "role.update_conflict",
+      kind: "conflict",
+      details: { roleId: analystRole.id, roleName: BuiltInRoleName.Viewer }
+    } satisfies Partial<ApplicationError>)
   })
 
-  it("maps role update failures to an HTTP 500", async () => {
+  it("maps role update failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     roleRepository.getByID.mockResolvedValueOnce(analystRole)
@@ -425,9 +433,10 @@ describe("role service", () => {
         }
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to update role"
-    } satisfies Partial<ApiError>)
+      code: "role.update_failed",
+      kind: "unexpected",
+      details: { roleId: analystRole.id }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("rejects attempts to modify built-in roles", async () => {
@@ -442,9 +451,10 @@ describe("role service", () => {
         }
       })
     ).rejects.toMatchObject({
-      status: 403,
-      message: "built-in roles cannot be modified"
-    } satisfies Partial<ApiError>)
+      code: "role.protected_role",
+      kind: "denied",
+      details: { roleId: builtInRoleIds.viewer }
+    } satisfies Partial<ApplicationError>)
 
     expect(roleRepository.updateByID).not.toHaveBeenCalled()
   })
@@ -503,9 +513,10 @@ describe("role service", () => {
     await expect(
       service.deleteByID(builtInRoleIds.admin)
     ).rejects.toMatchObject({
-      status: 403,
-      message: "built-in roles cannot be modified"
-    } satisfies Partial<ApiError>)
+      code: "role.protected_role",
+      kind: "denied",
+      details: { roleId: builtInRoleIds.admin }
+    } satisfies Partial<ApplicationError>)
 
     expect(roleRepository.deleteByID).not.toHaveBeenCalled()
   })
@@ -517,22 +528,24 @@ describe("role service", () => {
     roleRepository.hasUsersWithRoleID.mockResolvedValue(true)
 
     await expect(service.deleteByID(analystRole.id)).rejects.toMatchObject({
-      status: 409,
-      message: `role ${analystRole.name} is still assigned to users`
-    } satisfies Partial<ApiError>)
+      code: "role.assigned_to_users",
+      kind: "conflict",
+      details: { roleId: analystRole.id, roleName: analystRole.name }
+    } satisfies Partial<ApplicationError>)
 
     expect(roleRepository.deleteByID).not.toHaveBeenCalled()
   })
 
-  it("maps role delete failures to an HTTP 500", async () => {
+  it("maps role delete failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     roleRepository.getByID.mockResolvedValueOnce(analystRole)
     roleRepository.deleteByID.mockRejectedValueOnce(new Error("db offline"))
 
     await expect(service.deleteByID(analystRole.id)).rejects.toMatchObject({
-      status: 500,
-      message: "failed to delete role"
-    } satisfies Partial<ApiError>)
+      code: "role.delete_failed",
+      kind: "unexpected",
+      details: { roleId: analystRole.id }
+    } satisfies Partial<ApplicationError>)
   })
 })

@@ -9,6 +9,7 @@ import {
   isApiError,
   unauthorized
 } from "./api-error.js"
+import { ApplicationError } from "../service/application-error.js"
 
 describe("api errors", () => {
   it("creates typed API errors", () => {
@@ -52,6 +53,87 @@ describe("api errors", () => {
       correlationId: "api-error-test",
       status: 400,
       error: "invalid custom field"
+    })
+  })
+
+  it("maps application error kinds to HTTP statuses", () => {
+    expect(
+      createApiErrorReply(
+        "api-error-test",
+        new ApplicationError({
+          code: "role.unknown_ids",
+          kind: "validation",
+          message: "unknown role ids: missing-role",
+          details: { roleIds: ["missing-role"] }
+        })
+      )
+    ).toEqual({
+      correlationId: "api-error-test",
+      status: 400,
+      error: "unknown role ids: missing-role",
+      reason: "unknown-role-ids"
+    })
+
+    expect(
+      createApiErrorReply(
+        "api-error-test",
+        new ApplicationError({
+          code: "role.protected_role",
+          kind: "denied",
+          message: "built-in roles cannot be modified",
+          details: { roleId: "viewer-role-id" }
+        })
+      )
+    ).toEqual({
+      correlationId: "api-error-test",
+      status: 403,
+      error: "built-in roles cannot be modified"
+    })
+
+    expect(
+      createApiErrorReply(
+        "api-error-test",
+        new ApplicationError({
+          code: "role.create_conflict",
+          kind: "conflict",
+          message: "role already exists",
+          details: { roleName: "viewer" }
+        })
+      )
+    ).toEqual({
+      correlationId: "api-error-test",
+      status: 409,
+      error: "role already exists"
+    })
+
+    expect(
+      createApiErrorReply(
+        "api-error-test",
+        new ApplicationError({
+          code: "role.list_failed",
+          kind: "unexpected",
+          message: "failed to list roles"
+        })
+      )
+    ).toEqual({
+      correlationId: "api-error-test",
+      status: 500,
+      error: "internal server error"
+    })
+  })
+
+  it("does not expose application error codes as public reasons by default", () => {
+    const error = new ApplicationError({
+      code: "role.protected_role",
+      kind: "denied",
+      message: "built-in roles cannot be modified",
+      details: { roleId: "viewer-role-id" }
+    })
+
+    expect(createApiErrorReply("api-error-test", error)).toEqual({
+      correlationId: "api-error-test",
+      status: 403,
+      error: "built-in roles cannot be modified"
     })
   })
 
