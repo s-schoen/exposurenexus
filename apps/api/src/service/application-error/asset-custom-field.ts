@@ -42,4 +42,16 @@ export type AssetCustomFieldApplicationErrorCatalog = {
     kind: "unexpected"
     details: { assetId: string }
   }
+  "asset_custom_field.definition.unknown": {
+    kind: "validation"
+    details: { fieldId: string }
+  }
+  "asset_custom_field.assignment.duplicate": {
+    kind: "validation"
+    details: { assetId: string; fieldId: string }
+  }
+  "asset_custom_field.assignment.replace_failed": {
+    kind: "unexpected"
+    details: { assetId: string }
+  }
 }

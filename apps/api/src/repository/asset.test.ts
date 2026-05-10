@@ -270,7 +270,7 @@ describe("asset repository", () => {
     ).resolves.toEqual([environment, exposure, priority])
 
     await expect(
-      repository.replaceCustomFieldAssociations(asset.id, [
+      customFieldRepository.replaceAssignmentsForAsset(asset.id, [
         environment.id,
         priority.id,
         exposure.id
@@ -440,7 +440,7 @@ describe("asset repository", () => {
       }
     ])
 
-    await repository.replaceCustomFieldAssociations(asset.id, [
+    await customFieldRepository.replaceAssignmentsForAsset(asset.id, [
       environment.id,
       priority.id
     ])

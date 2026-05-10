@@ -41,6 +41,10 @@ export interface AssetCustomFieldRepository {
   listAvailableDefinitionsForAsset(
     assetId: string
   ): Promise<AssetCustomFieldDefinition[]>
+  replaceAssignmentsForAsset(
+    assetId: string,
+    fieldIds: readonly string[]
+  ): Promise<AssetCustomFieldValue[]>
 }
 
 function toNullableJsonbValue(
@@ -365,6 +369,38 @@ async function listAvailableDefinitionsForAsset(
   )
 }
 
+async function replaceAssignmentsForAsset(
+  database: Kysely<Database>,
+  assetId: string,
+  fieldIds: readonly string[]
+): Promise<AssetCustomFieldValue[]> {
+  return await database.transaction().execute(async (trx) => {
+    const valueDelete = trx
+      .deleteFrom("asset_custom_field_value")
+      .where("assetId", "=", assetId)
+
+    if (fieldIds.length === 0) {
+      await valueDelete.execute()
+    } else {
+      await valueDelete.where("fieldId", "not in", [...fieldIds]).execute()
+    }
+
+    await trx
+      .deleteFrom("asset_custom_field_assignment")
+      .where("assetId", "=", assetId)
+      .execute()
+
+    if (fieldIds.length > 0) {
+      await trx
+        .insertInto("asset_custom_field_assignment")
+        .values(fieldIds.map((fieldId) => ({ assetId, fieldId })))
+        .execute()
+    }
+
+    return await listEffectiveValuesForAsset(trx, assetId)
+  })
+}
+
 async function insertCustomFieldOptions(
   database: DatabaseExecutor,
   fieldId: string,
@@ -491,6 +527,13 @@ export function createAssetCustomFieldRepository(
       assetId: string
     ): Promise<AssetCustomFieldDefinition[]> {
       return await listAvailableDefinitionsForAsset(database, assetId)
+    },
+
+    async replaceAssignmentsForAsset(
+      assetId: string,
+      fieldIds: readonly string[]
+    ): Promise<AssetCustomFieldValue[]> {
+      return await replaceAssignmentsForAsset(database, assetId, fieldIds)
     }
   }
 }

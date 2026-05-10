@@ -31,14 +31,9 @@ export interface AssetRepository {
   updateOwnerByID(id: string, ownerId: Asset["ownerId"]): Promise<Asset | null>
   deleteByID(id: string): Promise<Asset | null>
   countFindingsByAssetID(id: string): Promise<number>
-  listCustomFieldDefinitions(): Promise<AssetCustomFieldDefinition[]>
   replaceCustomFieldValues(
     assetId: string,
     values: UpdateAssetCustomFieldValue[]
-  ): Promise<AssetCustomFieldValue[]>
-  replaceCustomFieldAssociations(
-    assetId: string,
-    fieldIds: string[]
   ): Promise<AssetCustomFieldValue[]>
 }
 
@@ -158,26 +153,6 @@ async function listCustomFieldOptions(
     .execute()
 }
 
-async function listCustomFieldDefinitions(
-  database: DatabaseExecutor
-): Promise<AssetCustomFieldDefinition[]> {
-  const fields = await database
-    .selectFrom("asset_custom_field")
-    .selectAll()
-    .orderBy("key", "asc")
-    .execute()
-  const optionsByFieldId = toOptionsByFieldId(
-    await listCustomFieldOptions(
-      database,
-      fields.map((field) => field.id)
-    )
-  )
-
-  return fields.map((field) =>
-    toCustomFieldDefinition(field, optionsByFieldId.get(field.id) ?? [])
-  )
-}
-
 async function listAssignedCustomFieldDefinitions(
   database: DatabaseExecutor,
   assetId: string
@@ -293,10 +268,6 @@ export function createAssetRepository(
       return Number(result?.count ?? 0)
     },
 
-    async listCustomFieldDefinitions(): Promise<AssetCustomFieldDefinition[]> {
-      return await listCustomFieldDefinitions(database)
-    },
-
     async replaceCustomFieldValues(
       assetId: string,
       values: UpdateAssetCustomFieldValue[]
@@ -324,52 +295,6 @@ export function createAssetRepository(
                 value: toJsonbValue(value.value!)
               })
             )
-            .execute()
-        }
-
-        const definitions = await listAssignedCustomFieldDefinitions(
-          trx,
-          assetId
-        )
-        const overrides = await trx
-          .selectFrom("asset_custom_field_value")
-          .select(["fieldId", "value"])
-          .where("assetId", "=", assetId)
-          .execute()
-        const overridesByFieldId = new Map(
-          overrides.map((override) => [override.fieldId, override.value])
-        )
-
-        return definitions.map((definition) =>
-          toCustomFieldValue(definition, overridesByFieldId.get(definition.id))
-        )
-      })
-    },
-
-    async replaceCustomFieldAssociations(
-      assetId: string,
-      fieldIds: string[]
-    ): Promise<AssetCustomFieldValue[]> {
-      return await database.transaction().execute(async (trx) => {
-        const valueDelete = trx
-          .deleteFrom("asset_custom_field_value")
-          .where("assetId", "=", assetId)
-
-        if (fieldIds.length === 0) {
-          await valueDelete.execute()
-        } else {
-          await valueDelete.where("fieldId", "not in", fieldIds).execute()
-        }
-
-        await trx
-          .deleteFrom("asset_custom_field_assignment")
-          .where("assetId", "=", assetId)
-          .execute()
-
-        if (fieldIds.length > 0) {
-          await trx
-            .insertInto("asset_custom_field_assignment")
-            .values(fieldIds.map((fieldId) => ({ assetId, fieldId })))
             .execute()
         }
 

@@ -90,12 +90,6 @@ export interface ReplaceAssetCustomFieldValuesOptions {
   eventContext?: DomainEventContext
 }
 
-export interface ReplaceAssetCustomFieldAssociationsOptions {
-  assetId: string
-  fieldIds: string[]
-  eventContext?: DomainEventContext
-}
-
 export interface AssetService {
   listAll(): Promise<Asset[]>
   listAllWithCustomFields(): Promise<AssetWithCustomFields[]>
@@ -109,9 +103,6 @@ export interface AssetService {
   ): Promise<Asset | null>
   replaceCustomFieldValues(
     opts: ReplaceAssetCustomFieldValuesOptions
-  ): Promise<AssetCustomFieldValue[] | null>
-  replaceCustomFieldAssociations(
-    opts: ReplaceAssetCustomFieldAssociationsOptions
   ): Promise<AssetCustomFieldValue[] | null>
 }
 
@@ -499,72 +490,6 @@ export function createAssetService({
           code: "asset.custom_field_value.replace_failed",
           kind: "unexpected",
           message: "failed to update asset custom field values",
-          cause: error,
-          details: { assetId }
-        })
-      }
-    },
-
-    async replaceCustomFieldAssociations(
-      opts: ReplaceAssetCustomFieldAssociationsOptions
-    ): Promise<AssetCustomFieldValue[] | null> {
-      const { assetId, fieldIds, eventContext } = opts
-
-      try {
-        const previous = await getAssetSnapshot(assetId)
-        if (!previous) {
-          logger.debug(`asset with id ${assetId} not found`)
-          return null
-        }
-
-        const duplicateFieldId = findDuplicate(fieldIds)
-        if (duplicateFieldId) {
-          throw new ApplicationError({
-            code: "asset.custom_field_assignment.duplicate",
-            kind: "validation",
-            message: "asset custom field associations contain duplicate fields",
-            details: { assetId, fieldId: duplicateFieldId }
-          })
-        }
-
-        const definitions = await assetRepository.listCustomFieldDefinitions()
-        const definitionIds = new Set(
-          definitions.map((definition) => definition.id)
-        )
-
-        for (const fieldId of fieldIds) {
-          if (!definitionIds.has(fieldId)) {
-            throw new ApplicationError({
-              code: "asset.custom_field.unknown",
-              kind: "validation",
-              message: `unknown asset custom field id ${fieldId}`,
-              details: { fieldId }
-            })
-          }
-        }
-
-        const values = await assetRepository.replaceCustomFieldAssociations(
-          assetId,
-          fieldIds
-        )
-        const current = await getAssetSnapshot(assetId)
-        if (current) {
-          emitUpdatedAssetEvent(previous, current, eventContext)
-        }
-        return values
-      } catch (error) {
-        if (isApplicationError(error)) {
-          throw error
-        }
-
-        logger.error(
-          error,
-          `failed to replace asset custom field associations for asset ${assetId}`
-        )
-        throw new ApplicationError({
-          code: "asset.custom_field_assignment.replace_failed",
-          kind: "unexpected",
-          message: "failed to replace asset custom field associations",
           cause: error,
           details: { assetId }
         })

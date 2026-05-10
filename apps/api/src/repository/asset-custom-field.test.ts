@@ -228,7 +228,7 @@ describe("asset custom field repository", () => {
       defaultValue: null
     })
 
-    await assetRepository.replaceCustomFieldAssociations(apiAsset.id, [
+    await repository.replaceAssignmentsForAsset(apiAsset.id, [
       category.id,
       environment.id,
       priority.id
@@ -236,9 +236,7 @@ describe("asset custom field repository", () => {
     await assetRepository.replaceCustomFieldValues(apiAsset.id, [
       { fieldId: environment.id, value: "prod" }
     ])
-    await assetRepository.replaceCustomFieldAssociations(workerAsset.id, [
-      category.id
-    ])
+    await repository.replaceAssignmentsForAsset(workerAsset.id, [category.id])
 
     await expect(
       repository.listEffectiveValuesForAsset(apiAsset.id)
@@ -278,6 +276,34 @@ describe("asset custom field repository", () => {
     await expect(
       repository.listAvailableDefinitionsForAsset(apiAsset.id)
     ).resolves.toEqual([team])
+
+    await repository.replaceAssignmentsForAsset(apiAsset.id, [
+      category.id,
+      priority.id
+    ])
+
+    await expect(
+      repository.listEffectiveValuesForAsset(apiAsset.id)
+    ).resolves.toMatchObject([
+      {
+        fieldId: category.id,
+        source: AssetCustomFieldValueSource.Default,
+        value: "platform"
+      },
+      {
+        fieldId: priority.id,
+        source: AssetCustomFieldValueSource.Empty,
+        value: null
+      }
+    ])
+
+    const detachedValueRows = await testDb.db
+      .selectFrom("asset_custom_field_value")
+      .selectAll()
+      .where("assetId", "=", apiAsset.id)
+      .where("fieldId", "=", environment.id)
+      .execute()
+    expect(detachedValueRows).toEqual([])
   })
 
   it("deletes custom field definitions and cascades options and values", async () => {
@@ -300,9 +326,7 @@ describe("asset custom field repository", () => {
     await assetRepository.replaceCustomFieldValues(asset.id, [
       { fieldId: environment.id, value: "prod" }
     ])
-    await assetRepository.replaceCustomFieldAssociations(asset.id, [
-      environment.id
-    ])
+    await repository.replaceAssignmentsForAsset(asset.id, [environment.id])
 
     await expect(
       repository.deleteDefinitionByID(environment.id)
