@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { AssetType } from "@exposurenexus/types/model/asset"
+import {
+  type Asset,
+  type AssetWithCustomFields,
+  AssetType
+} from "@exposurenexus/types/model/asset"
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource
 } from "@exposurenexus/types/model/asset-custom-field"
 import { pino } from "pino"
 import { createAssetService } from "./asset.js"
-import type { ApplicationError } from "./application-error.js"
+import { ApplicationError } from "./application-error.js"
 import { createDomainEventCollector } from "../test/eventbus.js"
 
 describe("asset service", () => {
@@ -22,11 +26,12 @@ describe("asset service", () => {
     deleteByID: vi.fn(),
     countFindingsByAssetID: vi.fn(),
     listCustomFieldDefinitions: vi.fn(),
-    getCustomFieldDefinitionByID: vi.fn(),
     listCustomFieldValues: vi.fn(),
-    listAvailableCustomFieldDefinitions: vi.fn(),
     replaceCustomFieldValues: vi.fn(),
     replaceCustomFieldAssociations: vi.fn()
+  }
+  const assetCustomFieldReader = {
+    listEffectiveValuesForAssets: vi.fn()
   }
   const userProfileService = {
     getByID: vi.fn()
@@ -40,29 +45,77 @@ describe("asset service", () => {
   function createTestAssetService() {
     return createAssetService({
       assetRepository,
+      assetCustomFieldReader,
       userProfileService,
       domainEventEmitter: domainEvents.emitter,
       logger
     })
   }
 
+  function assetFromSnapshot(snapshot: AssetWithCustomFields): Asset {
+    return {
+      id: snapshot.id,
+      name: snapshot.name,
+      type: snapshot.type,
+      ownerId: snapshot.ownerId
+    }
+  }
+
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
     domainEvents.clear()
     assetRepository.countFindingsByAssetID.mockResolvedValue(0)
-    assetRepository.getByIDWithCustomFields.mockImplementation(async (id) => {
-      const asset = await assetRepository.getByID(id)
-      if (!asset) {
+    const snapshotByAssetId = new Map<string, AssetWithCustomFields>()
+    assetRepository.getByID.mockImplementation(async (id) => {
+      const snapshot = await assetRepository.getByIDWithCustomFields(id)
+      if (!snapshot) {
         return null
       }
 
-      const customFields =
-        (await assetRepository.listCustomFieldValues(id)) ?? []
-      return {
-        ...asset,
-        ownerId: asset.ownerId ?? null,
-        customFields
+      snapshotByAssetId.set(id, snapshot)
+      return assetFromSnapshot(snapshot)
+    })
+    assetRepository.list.mockImplementation(async () => {
+      const snapshots = ((await assetRepository.listWithCustomFields()) ??
+        []) as AssetWithCustomFields[]
+      return snapshots.map(assetFromSnapshot)
+    })
+    assetCustomFieldReader.listEffectiveValuesForAssets.mockImplementation(
+      async (assetIds: readonly string[]) => {
+        const valuesByAssetId = new Map<
+          string,
+          AssetWithCustomFields["customFields"]
+        >()
+        const listSnapshots = ((await assetRepository.listWithCustomFields()) ??
+          []) as AssetWithCustomFields[]
+
+        for (const assetId of assetIds) {
+          const snapshotFromLookup = snapshotByAssetId.get(assetId)
+          if (snapshotFromLookup) {
+            snapshotByAssetId.delete(assetId)
+            valuesByAssetId.set(assetId, snapshotFromLookup.customFields ?? [])
+            continue
+          }
+
+          const values = await assetRepository.listCustomFieldValues(assetId)
+          if (values) {
+            valuesByAssetId.set(assetId, values)
+            continue
+          }
+
+          const snapshot =
+            (await assetRepository.getByIDWithCustomFields(assetId)) ??
+            listSnapshots.find((asset) => asset.id === assetId)
+          valuesByAssetId.set(assetId, snapshot?.customFields ?? [])
+        }
+
+        return valuesByAssetId
       }
+    )
+    assetRepository.getByIDWithCustomFields.mockImplementation(async (id) => {
+      const snapshots = ((await assetRepository.listWithCustomFields()) ??
+        []) as AssetWithCustomFields[]
+      return snapshots.find((asset) => asset.id === id) ?? null
     })
   })
 
@@ -93,45 +146,74 @@ describe("asset service", () => {
     } satisfies Partial<ApplicationError>)
   })
 
-  it("lists all assets with custom fields from the repository", async () => {
+  it("lists all assets with custom fields through the custom field projection", async () => {
     const assets = [
       {
         id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
         name: "api.exposurenexus.local",
         type: AssetType.Host,
-        customFields: [
-          {
-            fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
-            key: "category",
-            name: "Category",
-            source: AssetCustomFieldValueSource.Default,
-            type: AssetCustomFieldType.Text,
-            value: "platform"
-          }
-        ]
+        ownerId: null
+      }
+    ]
+    const customFields = [
+      {
+        fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+        key: "category",
+        name: "Category",
+        source: AssetCustomFieldValueSource.Default,
+        type: AssetCustomFieldType.Text,
+        value: "platform"
       }
     ]
     const assetService = createTestAssetService()
 
-    assetRepository.listWithCustomFields.mockResolvedValue(assets)
-
-    await expect(assetService.listAllWithCustomFields()).resolves.toEqual(
-      assets
+    assetRepository.list.mockResolvedValue(assets)
+    assetCustomFieldReader.listEffectiveValuesForAssets.mockResolvedValue(
+      new Map([[assets[0].id, customFields]])
     )
-    expect(assetRepository.listWithCustomFields).toHaveBeenCalledOnce()
+
+    await expect(assetService.listAllWithCustomFields()).resolves.toEqual([
+      {
+        ...assets[0],
+        customFields
+      }
+    ])
+    expect(assetRepository.list).toHaveBeenCalledOnce()
+    expect(
+      assetCustomFieldReader.listEffectiveValuesForAssets
+    ).toHaveBeenCalledWith([assets[0].id])
   })
 
-  it("maps repository list with custom fields failures to an application error", async () => {
+  it("maps repository list failures for asset custom field projections to an application error", async () => {
     const assetService = createTestAssetService()
 
-    assetRepository.listWithCustomFields.mockRejectedValue(
-      new Error("db offline")
-    )
+    assetRepository.list.mockRejectedValue(new Error("db offline"))
 
     await expect(assetService.listAllWithCustomFields()).rejects.toMatchObject({
       code: "asset.list_with_custom_fields_failed",
       kind: "unexpected"
     } satisfies Partial<ApplicationError>)
+  })
+
+  it("preserves custom field projection failures while listing assets with custom fields", async () => {
+    const asset = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      name: "api.exposurenexus.local",
+      type: AssetType.Host,
+      ownerId: null
+    }
+    const error = new ApplicationError({
+      code: "asset_custom_field.value.list_for_assets_failed",
+      kind: "unexpected",
+      message: "failed to hydrate asset custom field values",
+      details: { assetIds: [asset.id] }
+    })
+    const assetService = createTestAssetService()
+
+    assetRepository.list.mockResolvedValue([asset])
+    assetCustomFieldReader.listEffectiveValuesForAssets.mockRejectedValue(error)
+
+    await expect(assetService.listAllWithCustomFields()).rejects.toBe(error)
   })
 
   it("returns an asset by id", async () => {
@@ -675,134 +757,6 @@ describe("asset service", () => {
       code: "asset.delete_failed",
       kind: "unexpected",
       details: { assetId: "76b1885f-2d28-4b7d-93da-2751ff385aa3" }
-    } satisfies Partial<ApplicationError>)
-  })
-
-  it("returns null when listing custom field values for a missing asset", async () => {
-    const assetService = createTestAssetService()
-
-    assetRepository.getByID.mockResolvedValue(null)
-
-    await expect(
-      assetService.listCustomFieldValues("76b1885f-2d28-4b7d-93da-2751ff385aa3")
-    ).resolves.toBeNull()
-    expect(assetRepository.listCustomFieldValues).not.toHaveBeenCalled()
-  })
-
-  it("lists custom field values for an existing asset", async () => {
-    const asset = {
-      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
-      type: AssetType.Host
-    }
-    const values = [
-      {
-        fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
-        key: "category",
-        name: "Category",
-        source: AssetCustomFieldValueSource.Default,
-        type: AssetCustomFieldType.Text,
-        value: "platform"
-      }
-    ]
-    const assetService = createTestAssetService()
-
-    assetRepository.getByID.mockResolvedValue(asset)
-    assetRepository.listCustomFieldValues.mockResolvedValue(values)
-
-    await expect(assetService.listCustomFieldValues(asset.id)).resolves.toEqual(
-      values
-    )
-    expect(assetRepository.listCustomFieldValues).toHaveBeenCalledWith(asset.id)
-  })
-
-  it("maps custom field value list failures to an application error", async () => {
-    const asset = {
-      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
-      type: AssetType.Host
-    }
-    const assetService = createTestAssetService()
-
-    assetRepository.getByID.mockResolvedValue(asset)
-    assetRepository.listCustomFieldValues.mockRejectedValue(
-      new Error("select failed")
-    )
-
-    await expect(
-      assetService.listCustomFieldValues(asset.id)
-    ).rejects.toMatchObject({
-      code: "asset.custom_field_value.list_failed",
-      kind: "unexpected",
-      details: { assetId: asset.id }
-    } satisfies Partial<ApplicationError>)
-  })
-
-  it("lists custom field definitions available for an existing asset", async () => {
-    const asset = {
-      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
-      type: AssetType.Host
-    }
-    const definitions = [
-      {
-        id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
-        key: "category",
-        name: "Category",
-        required: false,
-        type: AssetCustomFieldType.Text,
-        defaultValue: null
-      }
-    ]
-    const assetService = createTestAssetService()
-
-    assetRepository.getByID.mockResolvedValue(asset)
-    assetRepository.listAvailableCustomFieldDefinitions.mockResolvedValue(
-      definitions
-    )
-
-    await expect(
-      assetService.listAvailableCustomFieldDefinitions(asset.id)
-    ).resolves.toEqual(definitions)
-    expect(
-      assetRepository.listAvailableCustomFieldDefinitions
-    ).toHaveBeenCalledWith(asset.id)
-  })
-
-  it("returns null when listing available custom fields for a missing asset", async () => {
-    const assetService = createTestAssetService()
-
-    assetRepository.getByID.mockResolvedValue(null)
-
-    await expect(
-      assetService.listAvailableCustomFieldDefinitions(
-        "76b1885f-2d28-4b7d-93da-2751ff385aa3"
-      )
-    ).resolves.toBeNull()
-    expect(
-      assetRepository.listAvailableCustomFieldDefinitions
-    ).not.toHaveBeenCalled()
-  })
-
-  it("maps available custom field list failures to an application error", async () => {
-    const asset = {
-      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
-      type: AssetType.Host
-    }
-    const assetService = createTestAssetService()
-
-    assetRepository.getByID.mockResolvedValue(asset)
-    assetRepository.listAvailableCustomFieldDefinitions.mockRejectedValue(
-      new Error("select failed")
-    )
-
-    await expect(
-      assetService.listAvailableCustomFieldDefinitions(asset.id)
-    ).rejects.toMatchObject({
-      code: "asset.custom_field_definition.list_available_failed",
-      kind: "unexpected",
-      details: { assetId: asset.id }
     } satisfies Partial<ApplicationError>)
   })
 

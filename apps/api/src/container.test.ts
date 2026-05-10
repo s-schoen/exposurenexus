@@ -253,6 +253,8 @@ describe("app container", () => {
     )
     expect(createAssetServiceMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        assetCustomFieldReader:
+          createAssetCustomFieldServiceMock.mock.results[0]?.value,
         domainEventEmitter: expect.objectContaining({
           emit: expect.any(Function)
         })
@@ -260,6 +262,7 @@ describe("app container", () => {
     )
     expect(createAssetCustomFieldServiceMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        assetRepository: { kind: "asset-repo" },
         domainEventEmitter: expect.objectContaining({
           emit: expect.any(Function)
         })

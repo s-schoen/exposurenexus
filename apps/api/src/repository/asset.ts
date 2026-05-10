@@ -6,11 +6,7 @@ import {
   AssetCustomFieldType,
   type UpdateAssetCustomFieldValue
 } from "@exposurenexus/types/model/asset-custom-field"
-import {
-  type Asset,
-  AssetType,
-  type AssetWithCustomFields
-} from "@exposurenexus/types/model/asset"
+import { type Asset, AssetType } from "@exposurenexus/types/model/asset"
 import { type Database } from "../db/index.js"
 import {
   sql,
@@ -23,31 +19,19 @@ import type { AssetCustomFieldStoredValue } from "../db/schema/asset-custom-fiel
 
 type DatabaseExecutor = Kysely<Database> | Transaction<Database>
 type AssetCustomFieldRow = Selectable<Database["asset_custom_field"]>
-type AssetCustomFieldAssignmentDefinitionRow = AssetCustomFieldRow & {
-  assetId: string
-}
 export type CreateAssetRecord = Omit<Asset, "ownerId"> & {
   ownerId?: Asset["ownerId"]
 }
 
 export interface AssetRepository {
   list(): Promise<Asset[]>
-  listWithCustomFields(): Promise<AssetWithCustomFields[]>
   getByID(id: string): Promise<Asset | null>
-  getByIDWithCustomFields(id: string): Promise<AssetWithCustomFields | null>
   getByName(name: string, type?: AssetType): Promise<Asset | null>
   create(asset: CreateAssetRecord): Promise<Asset>
   updateOwnerByID(id: string, ownerId: Asset["ownerId"]): Promise<Asset | null>
   deleteByID(id: string): Promise<Asset | null>
   countFindingsByAssetID(id: string): Promise<number>
   listCustomFieldDefinitions(): Promise<AssetCustomFieldDefinition[]>
-  listAvailableCustomFieldDefinitions(
-    assetId: string
-  ): Promise<AssetCustomFieldDefinition[]>
-  getCustomFieldDefinitionByID(
-    id: string
-  ): Promise<AssetCustomFieldDefinition | null>
-  listCustomFieldValues(assetId: string): Promise<AssetCustomFieldValue[]>
   replaceCustomFieldValues(
     assetId: string,
     values: UpdateAssetCustomFieldValue[]
@@ -221,99 +205,6 @@ async function listAssignedCustomFieldDefinitions(
   )
 }
 
-async function listAssignedCustomFieldDefinitionsByAssetId(
-  database: DatabaseExecutor,
-  assetIds: readonly string[]
-): Promise<Map<string, AssetCustomFieldDefinition[]>> {
-  const definitionsByAssetId = new Map<string, AssetCustomFieldDefinition[]>()
-
-  if (assetIds.length === 0) {
-    return definitionsByAssetId
-  }
-
-  const fields = await database
-    .selectFrom("asset_custom_field_assignment")
-    .innerJoin(
-      "asset_custom_field",
-      "asset_custom_field.id",
-      "asset_custom_field_assignment.fieldId"
-    )
-    .selectAll("asset_custom_field")
-    .select("asset_custom_field_assignment.assetId")
-    .where("asset_custom_field_assignment.assetId", "in", [...assetIds])
-    .orderBy("asset_custom_field.key", "asc")
-    .execute()
-  const optionsByFieldId = toOptionsByFieldId(
-    await listCustomFieldOptions(
-      database,
-      fields.map((field) => field.id)
-    )
-  )
-
-  for (const field of fields as AssetCustomFieldAssignmentDefinitionRow[]) {
-    const definitions = definitionsByAssetId.get(field.assetId) ?? []
-    definitions.push(
-      toCustomFieldDefinition(field, optionsByFieldId.get(field.id) ?? [])
-    )
-    definitionsByAssetId.set(field.assetId, definitions)
-  }
-
-  return definitionsByAssetId
-}
-
-async function getCustomFieldDefinitionByID(
-  database: DatabaseExecutor,
-  id: string
-): Promise<AssetCustomFieldDefinition | null> {
-  const field = await database
-    .selectFrom("asset_custom_field")
-    .selectAll()
-    .where("id", "=", id)
-    .executeTakeFirst()
-
-  if (!field) {
-    return null
-  }
-
-  const options = await listCustomFieldOptions(database, [id])
-  return toCustomFieldDefinition(field, options)
-}
-
-async function withCustomFieldValues(
-  database: DatabaseExecutor,
-  assets: Asset[]
-): Promise<AssetWithCustomFields[]> {
-  const assetIds = assets.map((asset) => asset.id)
-
-  if (assetIds.length === 0) {
-    return []
-  }
-
-  const definitionsByAssetId =
-    await listAssignedCustomFieldDefinitionsByAssetId(database, assetIds)
-  const overrides = await database
-    .selectFrom("asset_custom_field_value")
-    .select(["assetId", "fieldId", "value"])
-    .where("assetId", "in", assetIds)
-    .execute()
-  const overridesByAssetAndFieldId = new Map(
-    overrides.map((override) => [
-      `${override.assetId}:${override.fieldId}`,
-      override.value
-    ])
-  )
-
-  return assets.map((asset) => ({
-    ...asset,
-    customFields: (definitionsByAssetId.get(asset.id) ?? []).map((definition) =>
-      toCustomFieldValue(
-        definition,
-        overridesByAssetAndFieldId.get(`${asset.id}:${definition.id}`)
-      )
-    )
-  }))
-}
-
 export function createAssetRepository(
   database: Kysely<Database>
 ): AssetRepository {
@@ -321,11 +212,6 @@ export function createAssetRepository(
     async list(): Promise<Asset[]> {
       const data = await database.selectFrom("asset").selectAll().execute()
       return Promise.resolve(data)
-    },
-
-    async listWithCustomFields(): Promise<AssetWithCustomFields[]> {
-      const assets = await database.selectFrom("asset").selectAll().execute()
-      return await withCustomFieldValues(database, assets)
     },
 
     async getByID(id: string): Promise<Asset | null> {
@@ -339,25 +225,6 @@ export function createAssetRepository(
         return null
       }
       return assets[0]
-    },
-
-    async getByIDWithCustomFields(
-      id: string
-    ): Promise<AssetWithCustomFields | null> {
-      const asset = await database
-        .selectFrom("asset")
-        .selectAll()
-        .where("id", "=", id)
-        .executeTakeFirst()
-
-      if (!asset) {
-        return null
-      }
-
-      const [assetWithCustomFields] = await withCustomFieldValues(database, [
-        asset
-      ])
-      return assetWithCustomFields
     },
 
     async getByName(name: string, type?: AssetType): Promise<Asset | null> {
@@ -430,33 +297,6 @@ export function createAssetRepository(
       return await listCustomFieldDefinitions(database)
     },
 
-    async getCustomFieldDefinitionByID(
-      id: string
-    ): Promise<AssetCustomFieldDefinition | null> {
-      return await getCustomFieldDefinitionByID(database, id)
-    },
-
-    async listCustomFieldValues(
-      assetId: string
-    ): Promise<AssetCustomFieldValue[]> {
-      const definitions = await listAssignedCustomFieldDefinitions(
-        database,
-        assetId
-      )
-      const overrides = await database
-        .selectFrom("asset_custom_field_value")
-        .select(["fieldId", "value"])
-        .where("assetId", "=", assetId)
-        .execute()
-      const overridesByFieldId = new Map(
-        overrides.map((override) => [override.fieldId, override.value])
-      )
-
-      return definitions.map((definition) =>
-        toCustomFieldValue(definition, overridesByFieldId.get(definition.id))
-      )
-    },
-
     async replaceCustomFieldValues(
       assetId: string,
       values: UpdateAssetCustomFieldValue[]
@@ -504,41 +344,6 @@ export function createAssetRepository(
           toCustomFieldValue(definition, overridesByFieldId.get(definition.id))
         )
       })
-    },
-
-    async listAvailableCustomFieldDefinitions(
-      assetId: string
-    ): Promise<AssetCustomFieldDefinition[]> {
-      const fields = await database
-        .selectFrom("asset_custom_field")
-        .selectAll("asset_custom_field")
-        .where((eb) =>
-          eb.not(
-            eb.exists(
-              eb
-                .selectFrom("asset_custom_field_assignment")
-                .select("asset_custom_field_assignment.fieldId")
-                .whereRef(
-                  "asset_custom_field_assignment.fieldId",
-                  "=",
-                  "asset_custom_field.id"
-                )
-                .where("asset_custom_field_assignment.assetId", "=", assetId)
-            )
-          )
-        )
-        .orderBy("asset_custom_field.key", "asc")
-        .execute()
-      const optionsByFieldId = toOptionsByFieldId(
-        await listCustomFieldOptions(
-          database,
-          fields.map((field) => field.id)
-        )
-      )
-
-      return fields.map((field) =>
-        toCustomFieldDefinition(field, optionsByFieldId.get(field.id) ?? [])
-      )
     },
 
     async replaceCustomFieldAssociations(

@@ -81,23 +81,21 @@ describe("service factories", () => {
   it("creates an asset service bound to the injected repository", async () => {
     const repository = {
       list: vi.fn().mockResolvedValue([]),
-      listWithCustomFields: vi.fn(),
       getByID: vi.fn(),
-      getByIDWithCustomFields: vi.fn(),
       getByName: vi.fn(),
       create: vi.fn(),
       updateOwnerByID: vi.fn(),
       deleteByID: vi.fn(),
       countFindingsByAssetID: vi.fn(),
       listCustomFieldDefinitions: vi.fn(),
-      listAvailableCustomFieldDefinitions: vi.fn(),
-      getCustomFieldDefinitionByID: vi.fn(),
-      listCustomFieldValues: vi.fn(),
       replaceCustomFieldValues: vi.fn(),
       replaceCustomFieldAssociations: vi.fn()
     }
     const service = createAssetService({
       assetRepository: repository,
+      assetCustomFieldReader: {
+        listEffectiveValuesForAssets: vi.fn()
+      },
       userProfileService: {
         getByID: vi.fn()
       },

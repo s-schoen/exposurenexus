@@ -1,11 +1,13 @@
 import {
   type AssetCustomFieldDefinition,
   type AssetCustomFieldRuleViolation,
+  type AssetCustomFieldValue,
   AssetCustomFieldRuleViolationReason,
   type CreateAssetCustomFieldDefinition,
   type UpdateAssetCustomFieldDefinition,
   validateAssetCustomFieldDefinitionRules
 } from "@exposurenexus/types/model/asset-custom-field"
+import type { Asset } from "@exposurenexus/types/model/asset"
 import type { Logger } from "pino"
 import { ApplicationError } from "./application-error.js"
 import { isConflictError } from "./errors.js"
@@ -16,6 +18,10 @@ import {
   type DomainEventEmitter
 } from "../lib/eventbus/events/index.js"
 import type { AssetCustomFieldRepository } from "../repository/asset-custom-field.js"
+
+interface AssetLookupRepository {
+  getByID(id: string): Promise<Asset | null>
+}
 
 function customFieldRuleViolationMessage(
   violation: AssetCustomFieldRuleViolation
@@ -63,6 +69,7 @@ function customFieldDefinitionsEqual(
 
 interface AssetCustomFieldServiceDependencies {
   assetCustomFieldRepository: AssetCustomFieldRepository
+  assetRepository: AssetLookupRepository
   domainEventEmitter: DomainEventEmitter
   logger: Logger
 }
@@ -87,10 +94,20 @@ export interface AssetCustomFieldService {
     id: string,
     eventContext?: DomainEventContext
   ): Promise<AssetCustomFieldDefinition | null>
+  listEffectiveValuesForAsset(
+    assetId: string
+  ): Promise<AssetCustomFieldValue[] | null>
+  listEffectiveValuesForAssets(
+    assetIds: readonly string[]
+  ): Promise<Map<string, AssetCustomFieldValue[]>>
+  listAvailableDefinitionsForAsset(
+    assetId: string
+  ): Promise<AssetCustomFieldDefinition[] | null>
 }
 
 export function createAssetCustomFieldService({
   assetCustomFieldRepository,
+  assetRepository,
   domainEventEmitter,
   logger
 }: AssetCustomFieldServiceDependencies): AssetCustomFieldService {
@@ -266,6 +283,81 @@ export function createAssetCustomFieldService({
           message: "failed to delete asset custom field definition",
           cause: error,
           details: { fieldId: id }
+        })
+      }
+    },
+
+    async listEffectiveValuesForAsset(
+      assetId: string
+    ): Promise<AssetCustomFieldValue[] | null> {
+      try {
+        const asset = await assetRepository.getByID(assetId)
+        if (!asset) {
+          logger.debug(`asset with id ${assetId} not found`)
+          return null
+        }
+
+        return await assetCustomFieldRepository.listEffectiveValuesForAsset(
+          assetId
+        )
+      } catch (error) {
+        logger.error(
+          error,
+          `failed to list asset custom field values for asset ${assetId}`
+        )
+        throw new ApplicationError({
+          code: "asset_custom_field.value.list_failed",
+          kind: "unexpected",
+          message: "failed to list asset custom field values",
+          cause: error,
+          details: { assetId }
+        })
+      }
+    },
+
+    async listEffectiveValuesForAssets(
+      assetIds: readonly string[]
+    ): Promise<Map<string, AssetCustomFieldValue[]>> {
+      try {
+        return await assetCustomFieldRepository.listEffectiveValuesForAssets(
+          assetIds
+        )
+      } catch (error) {
+        logger.error(error, "failed to hydrate asset custom field values")
+        throw new ApplicationError({
+          code: "asset_custom_field.value.list_for_assets_failed",
+          kind: "unexpected",
+          message: "failed to hydrate asset custom field values",
+          cause: error,
+          details: { assetIds: [...assetIds] }
+        })
+      }
+    },
+
+    async listAvailableDefinitionsForAsset(
+      assetId: string
+    ): Promise<AssetCustomFieldDefinition[] | null> {
+      try {
+        const asset = await assetRepository.getByID(assetId)
+        if (!asset) {
+          logger.debug(`asset with id ${assetId} not found`)
+          return null
+        }
+
+        return await assetCustomFieldRepository.listAvailableDefinitionsForAsset(
+          assetId
+        )
+      } catch (error) {
+        logger.error(
+          error,
+          `failed to list available asset custom fields for asset ${assetId}`
+        )
+        throw new ApplicationError({
+          code: "asset_custom_field.definition.list_available_failed",
+          kind: "unexpected",
+          message: "failed to list available asset custom fields",
+          cause: error,
+          details: { assetId }
         })
       }
     }

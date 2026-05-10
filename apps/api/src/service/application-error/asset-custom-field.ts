@@ -30,4 +30,16 @@ export type AssetCustomFieldApplicationErrorCatalog = {
     kind: "unexpected"
     details: { fieldId: string }
   }
+  "asset_custom_field.value.list_failed": {
+    kind: "unexpected"
+    details: { assetId: string }
+  }
+  "asset_custom_field.value.list_for_assets_failed": {
+    kind: "unexpected"
+    details: { assetIds: string[] }
+  }
+  "asset_custom_field.definition.list_available_failed": {
+    kind: "unexpected"
+    details: { assetId: string }
+  }
 }

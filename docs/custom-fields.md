@@ -37,13 +37,17 @@ services, and route layers.
 - `apps/api/src/db/schema/asset-custom-field.ts` owns the custom field table
   types used by the API database interface.
 - `apps/api/src/repository/asset-custom-field.ts` persists registry-level field
-  definitions and select options.
-- `apps/api/src/service/asset-custom-field.ts` validates definition rules and
-  emits custom field definition events.
+  definitions and select options, and composes effective field values from
+  assignments, defaults, and asset-specific overrides.
+- `apps/api/src/service/asset-custom-field.ts` validates definition rules,
+  serves registry and asset-specific read projections, and emits custom field
+  definition events.
 - `apps/api/src/repository/asset.ts` persists asset assignments and per-asset
   value overrides.
 - `apps/api/src/service/asset.ts` validates asset-specific assignments and
-  values before data is written.
+  values before data is written. Its `AssetWithCustomFields` reads are a
+  compatibility projection that delegates custom field hydration to the asset
+  custom field service.
 - `apps/api/src/routes/asset-custom-fields.ts` exposes registry-level custom
   field definition operations through `AssetCustomFieldService`.
 - `apps/api/src/routes/assets.ts` exposes asset-specific custom field value
@@ -145,8 +149,10 @@ per-asset values.
 Custom field definitions are global, but assets explicitly choose which fields
 are associated with them.
 
-When a client lists available fields for an asset, the API returns the field
-definitions that exist globally but are not currently assigned to that asset.
+When a client lists available fields for an asset, `AssetCustomFieldService`
+returns the field definitions that exist globally but are not currently
+assigned to that asset. The route remains under `/api/assets/:id` for
+compatibility and still uses `asset:read`.
 
 Assigning fields to an asset:
 
@@ -164,8 +170,8 @@ definition, and it does not affect other assets.
 
 ## Value Flow
 
-When custom field values are listed for an asset, the API returns one effective
-value object per assigned field:
+When custom field values are listed for an asset, `AssetCustomFieldService`
+returns one effective value object per assigned field:
 
 - `source = "asset"` when the asset has a stored override.
 - `source = "default"` when no override exists and the definition has a
@@ -179,6 +185,11 @@ falls back to the field default or becomes empty.
 
 Clearing a value also removes the stored override and returns a standard object
 reply indicating that the clear operation was applied.
+
+Combined asset reads, including `GET /api/assets?includeCustomFields=true` and
+asset lifecycle event snapshots, keep returning `AssetWithCustomFields`. The
+core asset service reads the core asset rows, then delegates effective custom
+field value hydration to the asset custom field service.
 
 ## Validation
 
@@ -248,6 +259,8 @@ errors.
 - Writing or clearing values for fields that are not assigned to the asset
   returns a bad-request response.
 - Unexpected repository or database failures return internal server errors.
+  Registry and asset-specific custom field read failures use
+  `asset_custom_field.*` application error codes.
 
 Route handlers keep response envelopes consistent by using the shared reply
 helpers for arrays and objects.
