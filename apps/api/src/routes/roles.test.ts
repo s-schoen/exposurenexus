@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { HTTPException } from "hono/http-exception"
 import {
   BuiltInRoleName,
   PermissionResource,
@@ -18,6 +17,7 @@ import {
   updateRoleSchema
 } from "@exposurenexus/types/model/rbac"
 import { createRoleRoute } from "./roles.js"
+import { conflict, forbidden } from "../lib/api-error.js"
 
 describe("role routes", () => {
   const authenticatedUser = createTestUser()
@@ -217,11 +217,7 @@ describe("role routes", () => {
       ]
     } satisfies typeof createRoleSchema._output
 
-    roleService.create.mockRejectedValueOnce(
-      new HTTPException(409, {
-        message: "role already exists"
-      })
-    )
+    roleService.create.mockRejectedValueOnce(conflict("role already exists"))
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(authenticatedUser),
@@ -399,9 +395,7 @@ describe("role routes", () => {
     } satisfies typeof updateRoleSchema._output
 
     roleService.updateByID.mockRejectedValueOnce(
-      new HTTPException(409, {
-        message: "role already exists"
-      })
+      conflict("role already exists")
     )
 
     const app = createTestApp({
@@ -527,9 +521,7 @@ describe("role routes", () => {
     const requestId = "roles-update-protected-request"
 
     roleService.updateByID.mockRejectedValue(
-      new HTTPException(403, {
-        message: "built-in roles cannot be modified"
-      })
+      forbidden("built-in roles cannot be modified")
     )
 
     const app = createTestApp({
@@ -649,9 +641,7 @@ describe("role routes", () => {
     const requestId = "roles-delete-protected-request"
 
     roleService.deleteByID.mockRejectedValue(
-      new HTTPException(403, {
-        message: "built-in roles cannot be modified"
-      })
+      forbidden("built-in roles cannot be modified")
     )
 
     const app = createTestApp({
@@ -680,9 +670,7 @@ describe("role routes", () => {
     const requestId = "roles-delete-assigned-request"
 
     roleService.deleteByID.mockRejectedValue(
-      new HTTPException(409, {
-        message: `role ${listedRole.name} is still assigned to users`
-      })
+      conflict(`role ${listedRole.name} is still assigned to users`)
     )
 
     const app = createTestApp({

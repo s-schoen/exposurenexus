@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { HTTPException } from "hono/http-exception"
+import type { ApiError } from "../lib/api-error.js"
 import type { Logger } from "pino"
 import {
   PermissionResource,
@@ -343,7 +343,7 @@ describe("auth service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to create session for credentials"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(logger.error).toHaveBeenCalledWith(
       error,
       "failed to create session for credentials"
@@ -364,7 +364,7 @@ describe("auth service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to create user session"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("validates active sessions and returns the public user profile", async () => {
@@ -407,7 +407,7 @@ describe("auth service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to validate user session"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("maps user lookup failures during validation to an HTTP 500", async () => {
@@ -423,7 +423,7 @@ describe("auth service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to validate user session"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("returns null when validating a missing session", async () => {
@@ -571,7 +571,7 @@ describe("auth service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to revoke user session"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("returns true when the user has all requested permissions", async () => {
@@ -646,6 +646,6 @@ describe("auth service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to check user permissions"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 })

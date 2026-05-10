@@ -13,10 +13,14 @@ import {
   type UpdateAssetCustomFieldValue,
   validateAssetCustomFieldDefinitionRules
 } from "@exposurenexus/types/model/asset"
-import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
 import type { UserProfile } from "@exposurenexus/types/model/user"
-import { badRequest, conflict, isApiError } from "../lib/api-error.js"
+import {
+  badRequest,
+  conflict,
+  internalServerError,
+  isApiError
+} from "../lib/api-error.js"
 import { isConflictError, isForeignKeyError } from "./errors.js"
 import {
   createDomainEventEmitter,
@@ -225,9 +229,7 @@ export function createAssetService({
         return await assetRepository.list()
       } catch (error) {
         logger.error(error, "failed to list assets")
-        throw new HTTPException(500, {
-          message: "failed to list assets"
-        })
+        throw internalServerError("failed to list assets")
       }
     },
 
@@ -236,9 +238,7 @@ export function createAssetService({
         return await assetRepository.listWithCustomFields()
       } catch (error) {
         logger.error(error, "failed to list assets with custom fields")
-        throw new HTTPException(500, {
-          message: "failed to list assets"
-        })
+        throw internalServerError("failed to list assets")
       }
     },
 
@@ -251,9 +251,7 @@ export function createAssetService({
         return asset
       } catch (error) {
         logger.error(error, `failed to get asset with id ${id}`)
-        throw new HTTPException(500, {
-          message: "failed to get asset"
-        })
+        throw internalServerError("failed to get asset")
       }
     },
 
@@ -269,9 +267,7 @@ export function createAssetService({
           error,
           `failed to get asset with name='${name}' and type=${type}`
         )
-        throw new HTTPException(500, {
-          message: "failed to get asset"
-        })
+        throw internalServerError("failed to get asset")
       }
     },
 
@@ -304,14 +300,12 @@ export function createAssetService({
         }
         return created
       } catch (error) {
-        if (isApiError(error) || error instanceof HTTPException) {
+        if (isApiError(error)) {
           throw error
         }
 
         logger.error(error, `failed to create new asset ${asset.name}`)
-        throw new HTTPException(500, {
-          message: "failed to create asset"
-        })
+        throw internalServerError("failed to create asset")
       }
     },
 
@@ -347,14 +341,12 @@ export function createAssetService({
         }
         return updated
       } catch (error) {
-        if (isApiError(error) || error instanceof HTTPException) {
+        if (isApiError(error)) {
           throw error
         }
 
         logger.error(error, `failed to update asset ${id} owner`)
-        throw new HTTPException(500, {
-          message: "failed to update asset owner"
-        })
+        throw internalServerError("failed to update asset owner")
       }
     },
 
@@ -387,7 +379,7 @@ export function createAssetService({
         )
         return asset
       } catch (error) {
-        if (isApiError(error) || error instanceof HTTPException) {
+        if (isApiError(error)) {
           throw error
         }
 
@@ -397,9 +389,7 @@ export function createAssetService({
         }
 
         logger.error(error, `failed to delete asset with id ${id}`)
-        throw new HTTPException(500, {
-          message: "failed to delete asset"
-        })
+        throw internalServerError("failed to delete asset")
       }
     },
 
@@ -408,9 +398,9 @@ export function createAssetService({
         return await assetRepository.listCustomFieldDefinitions()
       } catch (error) {
         logger.error(error, "failed to list asset custom field definitions")
-        throw new HTTPException(500, {
-          message: "failed to list asset custom field definitions"
-        })
+        throw internalServerError(
+          "failed to list asset custom field definitions"
+        )
       }
     },
 
@@ -429,9 +419,7 @@ export function createAssetService({
           error,
           `failed to get asset custom field definition with id ${id}`
         )
-        throw new HTTPException(500, {
-          message: "failed to get asset custom field definition"
-        })
+        throw internalServerError("failed to get asset custom field definition")
       }
     },
 
@@ -460,9 +448,9 @@ export function createAssetService({
           error,
           `failed to create asset custom field definition ${definition.key}`
         )
-        throw new HTTPException(500, {
-          message: "failed to create asset custom field definition"
-        })
+        throw internalServerError(
+          "failed to create asset custom field definition"
+        )
       }
     },
 
@@ -506,9 +494,9 @@ export function createAssetService({
           error,
           `failed to update asset custom field definition with id ${id}`
         )
-        throw new HTTPException(500, {
-          message: "failed to update asset custom field definition"
-        })
+        throw internalServerError(
+          "failed to update asset custom field definition"
+        )
       }
     },
 
@@ -534,9 +522,9 @@ export function createAssetService({
           error,
           `failed to delete asset custom field definition with id ${id}`
         )
-        throw new HTTPException(500, {
-          message: "failed to delete asset custom field definition"
-        })
+        throw internalServerError(
+          "failed to delete asset custom field definition"
+        )
       }
     },
 
@@ -556,9 +544,7 @@ export function createAssetService({
           error,
           `failed to list asset custom field values for asset ${assetId}`
         )
-        throw new HTTPException(500, {
-          message: "failed to list asset custom field values"
-        })
+        throw internalServerError("failed to list asset custom field values")
       }
     },
 
@@ -580,9 +566,9 @@ export function createAssetService({
           error,
           `failed to list available asset custom fields for asset ${assetId}`
         )
-        throw new HTTPException(500, {
-          message: "failed to list available asset custom fields"
-        })
+        throw internalServerError(
+          "failed to list available asset custom fields"
+        )
       }
     },
 
@@ -638,7 +624,7 @@ export function createAssetService({
         }
         return updatedValues
       } catch (error) {
-        if (isApiError(error) || error instanceof HTTPException) {
+        if (isApiError(error)) {
           throw error
         }
 
@@ -646,9 +632,7 @@ export function createAssetService({
           error,
           `failed to upsert asset custom field values for asset ${assetId}`
         )
-        throw new HTTPException(500, {
-          message: "failed to update asset custom field values"
-        })
+        throw internalServerError("failed to update asset custom field values")
       }
     },
 
@@ -681,7 +665,7 @@ export function createAssetService({
         }
         return true
       } catch (error) {
-        if (isApiError(error) || error instanceof HTTPException) {
+        if (isApiError(error)) {
           throw error
         }
 
@@ -689,9 +673,7 @@ export function createAssetService({
           error,
           `failed to clear asset custom field ${fieldId} for asset ${assetId}`
         )
-        throw new HTTPException(500, {
-          message: "failed to clear asset custom field value"
-        })
+        throw internalServerError("failed to clear asset custom field value")
       }
     },
 
@@ -728,7 +710,7 @@ export function createAssetService({
         }
         return values
       } catch (error) {
-        if (isApiError(error) || error instanceof HTTPException) {
+        if (isApiError(error)) {
           throw error
         }
 
@@ -736,9 +718,7 @@ export function createAssetService({
           error,
           `failed to assign asset custom fields for asset ${assetId}`
         )
-        throw new HTTPException(500, {
-          message: "failed to assign asset custom fields"
-        })
+        throw internalServerError("failed to assign asset custom fields")
       }
     },
 
@@ -767,7 +747,7 @@ export function createAssetService({
         }
         return true
       } catch (error) {
-        if (isApiError(error) || error instanceof HTTPException) {
+        if (isApiError(error)) {
           throw error
         }
 
@@ -775,9 +755,7 @@ export function createAssetService({
           error,
           `failed to detach asset custom field ${fieldId} for asset ${assetId}`
         )
-        throw new HTTPException(500, {
-          message: "failed to detach asset custom field"
-        })
+        throw internalServerError("failed to detach asset custom field")
       }
     }
   }

@@ -2,9 +2,9 @@ import {
   type FindingStatistics,
   FindingStatus
 } from "@exposurenexus/types/model/finding"
-import { HTTPException } from "hono/http-exception"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { Logger } from "pino"
+import { internalServerError } from "../lib/api-error.js"
 import type { FindingRepository } from "../repository/finding.js"
 
 type FindingStatsRepository = Pick<FindingRepository, "countBy">
@@ -57,9 +57,7 @@ export function createStatsService({
         }
       } catch (error) {
         logger.error(error, `failed to get finding statistics`)
-        throw new HTTPException(500, {
-          message: "failed to retrieve statistics"
-        })
+        throw internalServerError("failed to retrieve statistics")
       }
     }
   }

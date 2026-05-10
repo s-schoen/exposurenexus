@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { HTTPException } from "hono/http-exception"
+import type { ApiError } from "../lib/api-error.js"
 import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
@@ -97,7 +97,7 @@ describe("asset service", () => {
     await expect(assetService.listAll()).rejects.toMatchObject({
       status: 500,
       message: "failed to list assets"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("lists all assets with custom fields from the repository", async () => {
@@ -138,7 +138,7 @@ describe("asset service", () => {
     await expect(assetService.listAllWithCustomFields()).rejects.toMatchObject({
       status: 500,
       message: "failed to list assets"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("returns an asset by id", async () => {
@@ -174,7 +174,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to get asset"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("passes the lookup name and type to the repository", async () => {
@@ -216,7 +216,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to get asset"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("creates assets with a generated repository id", async () => {
@@ -346,7 +346,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "asset owner does not exist"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(assetRepository.create).not.toHaveBeenCalled()
   })
 
@@ -363,7 +363,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to create asset"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("clears asset owners", async () => {
@@ -505,7 +505,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "asset owner does not exist"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(assetRepository.updateOwnerByID).not.toHaveBeenCalled()
   })
 
@@ -543,7 +543,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to update asset owner"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("deletes an asset by id", async () => {
@@ -614,7 +614,7 @@ describe("asset service", () => {
     await expect(assetService.deleteByID(asset.id)).rejects.toMatchObject({
       status: 409,
       message: `asset ${asset.id} is still referenced by findings`
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(assetRepository.countFindingsByAssetID).toHaveBeenCalledWith(
       asset.id
     )
@@ -642,7 +642,7 @@ describe("asset service", () => {
     await expect(assetService.deleteByID(asset.id)).rejects.toMatchObject({
       status: 409,
       message: `asset ${asset.id} is still referenced by findings`
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(assetRepository.countFindingsByAssetID).toHaveBeenCalledWith(
       asset.id
     )
@@ -667,7 +667,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to delete asset"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("lists custom field definitions from the repository", async () => {
@@ -703,7 +703,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to list asset custom field definitions"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("returns a custom field definition by id", async () => {
@@ -753,7 +753,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to get asset custom field definition"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("creates a valid custom field definition", async () => {
@@ -815,7 +815,7 @@ describe("asset service", () => {
         reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
         path: ["defaultValue"]
       }
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(assetRepository.createCustomFieldDefinition).not.toHaveBeenCalled()
   })
 
@@ -833,7 +833,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "number custom field default must be a number"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("rejects text custom field defaults that are not strings", async () => {
@@ -850,7 +850,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "text custom field default must be a string"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("rejects select custom field defaults that are not strings", async () => {
@@ -868,7 +868,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "select custom field default must be a string"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("rejects select defaults that do not match an option", async () => {
@@ -886,7 +886,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "select custom field default must match an option value"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("rejects duplicate select option values", async () => {
@@ -907,7 +907,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "select custom field options must be unique"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("maps custom field definition create conflicts to an HTTP 409", async () => {
@@ -933,7 +933,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 409,
       message: "asset custom field definition already exists"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("maps custom field definition create failures to an HTTP 500", async () => {
@@ -954,7 +954,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to create asset custom field definition"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("updates valid custom field definitions", async () => {
@@ -1088,7 +1088,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 409,
       message: "asset custom field definition already exists"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("maps custom field definition update failures to an HTTP 500", async () => {
@@ -1121,7 +1121,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to update asset custom field definition"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("deletes custom field definitions", async () => {
@@ -1178,7 +1178,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to delete asset custom field definition"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("returns null when listing custom field values for a missing asset", async () => {
@@ -1237,7 +1237,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to list asset custom field values"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("lists custom field definitions available for an existing asset", async () => {
@@ -1304,7 +1304,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to list available asset custom fields"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("returns null when upserting custom field values for a missing asset", async () => {
@@ -1352,7 +1352,7 @@ describe("asset service", () => {
       status: 400,
       message:
         "unknown asset custom field id 5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("rejects invalid custom field value types", async () => {
@@ -1397,7 +1397,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "invalid value for asset custom field priority"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("rejects upserts for unassigned custom fields", async () => {
@@ -1433,7 +1433,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "asset custom field is not assigned to asset"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(assetRepository.upsertCustomFieldValues).not.toHaveBeenCalled()
   })
 
@@ -1488,7 +1488,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "invalid value for asset custom field environment"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("forwards valid custom field value upserts", async () => {
@@ -1728,7 +1728,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to update asset custom field values"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("returns null when clearing a custom field value for a missing asset", async () => {
@@ -1765,7 +1765,7 @@ describe("asset service", () => {
       status: 400,
       message:
         "unknown asset custom field id 5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("rejects clearing unassigned custom field ids", async () => {
@@ -1796,7 +1796,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "asset custom field is not assigned to asset"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(assetRepository.clearCustomFieldValue).not.toHaveBeenCalled()
   })
 
@@ -1883,7 +1883,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to clear asset custom field value"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("assigns custom fields to an existing asset", async () => {
@@ -1974,7 +1974,7 @@ describe("asset service", () => {
       status: 400,
       message:
         "unknown asset custom field id 5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(assetRepository.assignCustomFields).not.toHaveBeenCalled()
   })
 
@@ -2008,7 +2008,7 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to assign asset custom fields"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("detaches custom fields from existing assets", async () => {
@@ -2079,7 +2079,7 @@ describe("asset service", () => {
       status: 400,
       message:
         "unknown asset custom field id 5bde818a-bb4f-4a0f-a5eb-a190d5142a25"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(assetRepository.detachCustomField).not.toHaveBeenCalled()
   })
 
@@ -2113,6 +2113,6 @@ describe("asset service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to detach asset custom field"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 })

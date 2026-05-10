@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
-import { HTTPException } from "hono/http-exception"
+import type { ApiError } from "../lib/api-error.js"
 import { pino } from "pino"
 import {
   BuiltInRoleName,
@@ -88,7 +88,7 @@ describe("role service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to get roles"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("lists all roles", async () => {
@@ -108,7 +108,7 @@ describe("role service", () => {
     await expect(service.listAll()).rejects.toMatchObject({
       status: 500,
       message: "failed to list roles"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("returns a role by id", async () => {
@@ -136,7 +136,7 @@ describe("role service", () => {
     await expect(service.getByID(viewerRole.id)).rejects.toMatchObject({
       status: 500,
       message: "failed to get role"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("creates a custom role and emits a domain event", async () => {
@@ -185,7 +185,7 @@ describe("role service", () => {
     ).rejects.toMatchObject({
       status: 409,
       message: "role already exists"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("maps role create failures to an HTTP 500", async () => {
@@ -201,7 +201,7 @@ describe("role service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to create role"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("resolves role ids from persisted role names", async () => {
@@ -252,7 +252,7 @@ describe("role service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "unknown role ids: 0671d03d-57f1-49c8-8f62-5de6ed0924db"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("maps role resolution failures to an HTTP 500", async () => {
@@ -265,7 +265,7 @@ describe("role service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to resolve role ids"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("maps role-name resolution failures to an HTTP 500", async () => {
@@ -278,7 +278,7 @@ describe("role service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to resolve role names"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("updates a custom role", async () => {
@@ -407,7 +407,7 @@ describe("role service", () => {
     ).rejects.toMatchObject({
       status: 409,
       message: "role already exists"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("maps role update failures to an HTTP 500", async () => {
@@ -427,7 +427,7 @@ describe("role service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to update role"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("rejects attempts to modify built-in roles", async () => {
@@ -444,7 +444,7 @@ describe("role service", () => {
     ).rejects.toMatchObject({
       status: 403,
       message: "built-in roles cannot be modified"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
 
     expect(roleRepository.updateByID).not.toHaveBeenCalled()
   })
@@ -505,7 +505,7 @@ describe("role service", () => {
     ).rejects.toMatchObject({
       status: 403,
       message: "built-in roles cannot be modified"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
 
     expect(roleRepository.deleteByID).not.toHaveBeenCalled()
   })
@@ -519,7 +519,7 @@ describe("role service", () => {
     await expect(service.deleteByID(analystRole.id)).rejects.toMatchObject({
       status: 409,
       message: `role ${analystRole.name} is still assigned to users`
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
 
     expect(roleRepository.deleteByID).not.toHaveBeenCalled()
   })
@@ -533,6 +533,6 @@ describe("role service", () => {
     await expect(service.deleteByID(analystRole.id)).rejects.toMatchObject({
       status: 500,
       message: "failed to delete role"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 })

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { HTTPException } from "hono/http-exception"
 import {
   FindingSource,
   FindingStatus,
   type Finding
 } from "@exposurenexus/types/model/finding"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
+import { notFound } from "../lib/api-error.js"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -590,9 +590,7 @@ describe("finding routes", () => {
     const targetVulnerabilityId = "4fb566c6-e642-48d8-b70d-418efb074f8d"
 
     findingService.reclassify.mockRejectedValue(
-      new HTTPException(404, {
-        message: `target vulnerability with id ${targetVulnerabilityId} does not exist`
-      })
+      notFound("target vulnerability", targetVulnerabilityId)
     )
 
     const app = createTestApp({

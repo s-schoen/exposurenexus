@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { HTTPException } from "hono/http-exception"
+import type { ApiError } from "../lib/api-error.js"
 import { pino } from "pino"
 import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 
@@ -92,7 +92,7 @@ describe("user profile service", () => {
     await expect(service.listAll()).rejects.toMatchObject({
       status: 500,
       message: "failed to list user profiles"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("returns a user profile by id without exposing the password hash", async () => {
@@ -129,7 +129,7 @@ describe("user profile service", () => {
     await expect(service.getByID(userProfileId)).rejects.toMatchObject({
       status: 500,
       message: "failed to get user profile"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("returns a user profile by username without exposing the password hash", async () => {
@@ -170,7 +170,7 @@ describe("user profile service", () => {
     await expect(service.getByUsername("alice")).rejects.toMatchObject({
       status: 500,
       message: "failed to get user profile"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("creates a user profile with a hashed password", async () => {
@@ -253,7 +253,7 @@ describe("user profile service", () => {
     ).rejects.toMatchObject({
       status: 409,
       message: "user profile already exists"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("maps invalid create role assignments to an HTTP 400", async () => {
@@ -277,7 +277,7 @@ describe("user profile service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "invalid user role assignment"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("maps create failures to an HTTP 500", async () => {
@@ -297,7 +297,7 @@ describe("user profile service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to create user profile"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("updates a user profile by merging partial fields", async () => {
@@ -562,7 +562,7 @@ describe("user profile service", () => {
     ).rejects.toMatchObject({
       status: 409,
       message: "user profile already exists"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("maps invalid update role assignments to an HTTP 400", async () => {
@@ -585,7 +585,7 @@ describe("user profile service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "invalid user role assignment"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("maps update failures to an HTTP 500", async () => {
@@ -605,6 +605,6 @@ describe("user profile service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to update user profile"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 })
