@@ -8,7 +8,6 @@ import {
   type Vulnerability,
   type VulnerabilitySourceMapping
 } from "@exposurenexus/types/model/vulnerability"
-import { HTTPException } from "hono/http-exception"
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -17,6 +16,7 @@ import {
 } from "../test/app.js"
 import { createRequireDomainPermission } from "../middleware/auth.js"
 import { createVulnerabilityRoute } from "./vulnerabilities.js"
+import { conflict, internalServerError } from "../lib/api-error.js"
 
 describe("vulnerability routes", () => {
   const user = createTestUser()
@@ -276,9 +276,7 @@ describe("vulnerability routes", () => {
     } satisfies typeof createVulnerabilitySchema._output
 
     vulnerabilityService.create.mockRejectedValueOnce(
-      new HTTPException(500, {
-        message: "failed to create vulnerability"
-      })
+      internalServerError("failed to create vulnerability")
     )
 
     const app = createTestApp({
@@ -799,9 +797,7 @@ describe("vulnerability routes", () => {
     const requestId = "vulnerability-mappings-create-conflict-request"
 
     vulnerabilityService.createMapping.mockRejectedValueOnce(
-      new HTTPException(409, {
-        message: "vulnerability source mapping already exists"
-      })
+      conflict("vulnerability source mapping already exists")
     )
 
     const app = createTestApp({
@@ -996,9 +992,7 @@ describe("vulnerability routes", () => {
     const requestId = "vulnerability-mappings-update-conflict-request"
 
     vulnerabilityService.updateMappingByID.mockRejectedValueOnce(
-      new HTTPException(409, {
-        message: "vulnerability source mapping already exists"
-      })
+      conflict("vulnerability source mapping already exists")
     )
 
     const app = createTestApp({
@@ -1226,9 +1220,9 @@ describe("vulnerability routes", () => {
     const requestId = "vulnerabilities-delete-conflict-request"
 
     vulnerabilityService.deleteByID.mockRejectedValueOnce(
-      new HTTPException(409, {
-        message: `vulnerability ${vulnerabilityId} is still referenced by findings`
-      })
+      conflict(
+        `vulnerability ${vulnerabilityId} is still referenced by findings`
+      )
     )
 
     const app = createTestApp({

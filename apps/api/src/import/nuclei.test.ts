@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { HTTPException } from "hono/http-exception"
+import type { ApiError } from "../lib/api-error.js"
 import { AssetType } from "@exposurenexus/types/model/asset"
 import { pino } from "pino"
 import {
@@ -270,7 +270,7 @@ describe("nuclei importer", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "failed to parse line 1"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("returns empty evidence when the request body is missing", async () => {

@@ -1,4 +1,3 @@
-import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
 import type {
   CreateUserProfile,
@@ -13,7 +12,12 @@ import {
   type DomainEventEmitter,
   type UserEventPayloads
 } from "../lib/eventbus/events/index.js"
-import { badRequest, conflict, type ApiError } from "../lib/api-error.js"
+import {
+  badRequest,
+  conflict,
+  internalServerError,
+  type ApiError
+} from "../lib/api-error.js"
 import { isConflictError, isForeignKeyError } from "./errors.js"
 import type { UserProfileRepository } from "../repository/user-profile.js"
 
@@ -91,9 +95,7 @@ export function createUserProfileService({
         return (await userProfileRepository.list()).map(toUserProfile)
       } catch (error) {
         logger.error(error, "failed to list user profiles")
-        throw new HTTPException(500, {
-          message: "failed to list user profiles"
-        })
+        throw internalServerError("failed to list user profiles")
       }
     },
 
@@ -108,9 +110,7 @@ export function createUserProfileService({
         return toUserProfile(userProfile)
       } catch (error) {
         logger.error(error, `failed to get user profile with id ${id}`)
-        throw new HTTPException(500, {
-          message: "failed to get user profile"
-        })
+        throw internalServerError("failed to get user profile")
       }
     },
 
@@ -128,9 +128,7 @@ export function createUserProfileService({
           error,
           `failed to get user profile with username ${username}`
         )
-        throw new HTTPException(500, {
-          message: "failed to get user profile"
-        })
+        throw internalServerError("failed to get user profile")
       }
     },
 
@@ -169,9 +167,7 @@ export function createUserProfileService({
           error,
           `failed to create user profile ${userProfile.email}`
         )
-        throw new HTTPException(500, {
-          message: "failed to create user profile"
-        })
+        throw internalServerError("failed to create user profile")
       }
     },
 
@@ -254,9 +250,7 @@ export function createUserProfileService({
         }
 
         logger.error(error, `failed to update user profile with id ${id}`)
-        throw new HTTPException(500, {
-          message: "failed to update user profile"
-        })
+        throw internalServerError("failed to update user profile")
       }
     }
   }

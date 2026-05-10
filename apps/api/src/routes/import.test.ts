@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { HTTPException } from "hono/http-exception"
 import { pino } from "pino"
 import {
   annotateAuthenticatedUser,
@@ -9,6 +8,7 @@ import {
 } from "../test/app.js"
 import { createRequireDomainPermission } from "../middleware/auth.js"
 import { createImportRoute } from "./import.js"
+import { badRequest } from "../lib/api-error.js"
 
 describe("finding import routes", () => {
   const user = createTestUser()
@@ -241,7 +241,7 @@ describe("finding import routes", () => {
     )
 
     importer.parseFindingsFromFile.mockRejectedValue(
-      new HTTPException(400, { message: "failed to parse line 1" })
+      badRequest("failed to parse line 1")
     )
 
     const app = createTestApp({

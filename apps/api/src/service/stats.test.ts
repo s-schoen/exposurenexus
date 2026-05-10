@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { HTTPException } from "hono/http-exception"
+import type { ApiError } from "../lib/api-error.js"
 import { pino } from "pino"
 import { FindingStatus } from "@exposurenexus/types/model/finding"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
@@ -81,6 +81,6 @@ describe("stats service", () => {
     await expect(service.getFindingStats()).rejects.toMatchObject({
       status: 500,
       message: "failed to retrieve statistics"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 })

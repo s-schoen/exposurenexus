@@ -1,5 +1,4 @@
 import { createHmac, randomBytes } from "node:crypto"
-import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
 import type {
   Permission,
@@ -12,6 +11,7 @@ import type {
   UserSession
 } from "@exposurenexus/types/model/user"
 import { verifyPasswordHash } from "../lib/argon2.js"
+import { internalServerError } from "../lib/api-error.js"
 import {
   createDomainEventEmitter,
   type AuthEventPayloads,
@@ -259,9 +259,7 @@ export function createAuthService(
         )
       } catch (error) {
         logger.error(error, "failed to create session for credentials")
-        throw new HTTPException(500, {
-          message: "failed to create session for credentials"
-        })
+        throw internalServerError("failed to create session for credentials")
       }
     },
 
@@ -270,9 +268,7 @@ export function createAuthService(
         return await createUserSession(input)
       } catch (error) {
         logger.error(error, "failed to create user session")
-        throw new HTTPException(500, {
-          message: "failed to create user session"
-        })
+        throw internalServerError("failed to create user session")
       }
     },
 
@@ -342,9 +338,7 @@ export function createAuthService(
         }
       } catch (error) {
         logger.error(error, "failed to validate user session")
-        throw new HTTPException(500, {
-          message: "failed to validate user session"
-        })
+        throw internalServerError("failed to validate user session")
       }
     },
 
@@ -370,9 +364,7 @@ export function createAuthService(
         return Boolean(revokedSession)
       } catch (error) {
         logger.error(error, "failed to revoke user session")
-        throw new HTTPException(500, {
-          message: "failed to revoke user session"
-        })
+        throw internalServerError("failed to revoke user session")
       }
     },
 
@@ -387,9 +379,7 @@ export function createAuthService(
         return hasRequiredPermissions(assignedPermissions, permissions)
       } catch (error) {
         logger.error(error, "failed to check user permissions")
-        throw new HTTPException(500, {
-          message: "failed to check user permissions"
-        })
+        throw internalServerError("failed to check user permissions")
       }
     }
   }

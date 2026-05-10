@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { HTTPException } from "hono/http-exception"
+import type { ApiError } from "../lib/api-error.js"
 import { pino } from "pino"
 import {
   FindingSource,
@@ -130,7 +130,7 @@ describe("finding service", () => {
     await expect(service.listAll()).rejects.toMatchObject({
       status: 500,
       message: "failed to list findings"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("rejects findings that cannot be enriched with their vulnerability", async () => {
@@ -142,7 +142,7 @@ describe("finding service", () => {
     await expect(service.getByID(baseFinding.id)).rejects.toMatchObject({
       status: 500,
       message: "failed to get finding"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("returns null when a finding does not exist", async () => {
@@ -162,7 +162,7 @@ describe("finding service", () => {
     await expect(service.getByID(baseFinding.id)).rejects.toMatchObject({
       status: 500,
       message: "failed to get finding"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("creates findings with audit fields, timestamps, and a fingerprint", async () => {
@@ -371,7 +371,7 @@ describe("finding service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "finding assignee does not exist"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId)
     expect(findingRepository.create).not.toHaveBeenCalled()
   })
@@ -389,7 +389,7 @@ describe("finding service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "finding asset does not exist"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(assetService.getByID).toHaveBeenCalledWith(createPayload.assetId)
     expect(findingRepository.create).not.toHaveBeenCalled()
   })
@@ -407,7 +407,7 @@ describe("finding service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "finding vulnerability does not exist"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(vulnerabilityService.getByID).toHaveBeenCalledWith(
       createPayload.vulnerabilityId
     )
@@ -431,7 +431,7 @@ describe("finding service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "finding references an unknown related resource"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(domainEvents.subjects()).toEqual([])
   })
 
@@ -811,7 +811,7 @@ describe("finding service", () => {
     ).rejects.toMatchObject({
       status: 400,
       message: "finding assignee does not exist"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId)
     expect(findingRepository.updateByID).not.toHaveBeenCalled()
   })
@@ -1166,7 +1166,7 @@ describe("finding service", () => {
     ).rejects.toMatchObject({
       status: 404,
       message: `old vulnerability with id ${vulnerability.id} does not exist`
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(
       findingRepository.reclassifyBySourceAndVulnerability
     ).not.toHaveBeenCalled()
@@ -1192,7 +1192,7 @@ describe("finding service", () => {
     ).rejects.toMatchObject({
       status: 404,
       message: `target vulnerability with id ${targetVulnerabilityId} does not exist`
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
     expect(
       findingRepository.reclassifyBySourceAndVulnerability
     ).not.toHaveBeenCalled()
@@ -1226,7 +1226,7 @@ describe("finding service", () => {
     ).rejects.toMatchObject({
       status: 500,
       message: "failed to reclassify findings"
-    } satisfies Partial<HTTPException>)
+    } satisfies Partial<ApiError>)
   })
 
   it("deletes a finding and returns it enriched with its vulnerability", async () => {

@@ -8,12 +8,16 @@ import {
   type UpdateFinding
 } from "@exposurenexus/types/model/finding"
 import type { Asset } from "@exposurenexus/types/model/asset"
-import { HTTPException } from "hono/http-exception"
 import type { UserProfile } from "@exposurenexus/types/model/user"
 import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date"
 import { createHash } from "node:crypto"
 import type { Logger } from "pino"
-import { badRequest, isApiError } from "../lib/api-error.js"
+import {
+  badRequest,
+  internalServerError,
+  isApiError,
+  notFound
+} from "../lib/api-error.js"
 import {
   createDomainEventEmitter,
   type DomainEventContext,
@@ -212,7 +216,7 @@ export function createFindingService({
       )
       return createdFinding
     } catch (error) {
-      if (isApiError(error) || error instanceof HTTPException) {
+      if (isApiError(error)) {
         throw error
       }
 
@@ -225,9 +229,7 @@ export function createFindingService({
         error,
         `failed to create new finding for ${opts.finding.vulnerabilityId}`
       )
-      throw new HTTPException(500, {
-        message: "failed to create finding"
-      })
+      throw internalServerError("failed to create finding")
     }
   }
 
@@ -243,9 +245,7 @@ export function createFindingService({
         return findings
       } catch (error) {
         logger.error(error, "failed to list findings")
-        throw new HTTPException(500, {
-          message: "failed to list findings"
-        })
+        throw internalServerError("failed to list findings")
       }
     },
 
@@ -260,9 +260,7 @@ export function createFindingService({
         return await extendWithVulnerability(finding)
       } catch (error) {
         logger.error(error, `failed to get finding with id ${id}`)
-        throw new HTTPException(500, {
-          message: "failed to get finding"
-        })
+        throw internalServerError("failed to get finding")
       }
     },
 
@@ -329,14 +327,12 @@ export function createFindingService({
 
         return currentFinding
       } catch (error) {
-        if (isApiError(error) || error instanceof HTTPException) {
+        if (isApiError(error)) {
           throw error
         }
 
         logger.error(error, `failed to get finding with id ${opts.id}`)
-        throw new HTTPException(500, {
-          message: "failed to update finding"
-        })
+        throw internalServerError("failed to update finding")
       }
     },
 
@@ -406,9 +402,7 @@ export function createFindingService({
         return deletedFinding
       } catch (error) {
         logger.error(error, `failed to get finding with id ${id}`)
-        throw new HTTPException(500, {
-          message: "failed to get finding"
-        })
+        throw internalServerError("failed to get finding")
       }
     },
 
@@ -424,15 +418,17 @@ export function createFindingService({
         ])
 
         if (!oldVulnerability) {
-          throw new HTTPException(404, {
-            message: `old vulnerability with id ${reclassification.oldVulnerabilityId} does not exist`
-          })
+          throw notFound(
+            "old vulnerability",
+            reclassification.oldVulnerabilityId
+          )
         }
 
         if (!targetVulnerability) {
-          throw new HTTPException(404, {
-            message: `target vulnerability with id ${reclassification.targetVulnerabilityId} does not exist`
-          })
+          throw notFound(
+            "target vulnerability",
+            reclassification.targetVulnerabilityId
+          )
         }
 
         const updatedFindings =
@@ -461,7 +457,7 @@ export function createFindingService({
 
         return result
       } catch (error) {
-        if (isApiError(error) || error instanceof HTTPException) {
+        if (isApiError(error)) {
           throw error
         }
 
@@ -469,9 +465,7 @@ export function createFindingService({
           error,
           `failed to reclassify findings from ${reclassification.oldVulnerabilityId} to ${reclassification.targetVulnerabilityId}`
         )
-        throw new HTTPException(500, {
-          message: "failed to reclassify findings"
-        })
+        throw internalServerError("failed to reclassify findings")
       }
     }
   }

@@ -1,4 +1,3 @@
-import { HTTPException } from "hono/http-exception"
 import type { Logger } from "pino"
 import {
   builtInRoleIds,
@@ -6,7 +5,13 @@ import {
   type Role,
   type UpdateRole
 } from "@exposurenexus/types/model/rbac"
-import { conflict, isApiError } from "../lib/api-error.js"
+import {
+  badRequest,
+  conflict,
+  forbidden,
+  internalServerError,
+  isApiError
+} from "../lib/api-error.js"
 import { isConflictError } from "./errors.js"
 import {
   createDomainEventEmitter,
@@ -73,9 +78,7 @@ export function createRoleService({
         return await roleRepository.list()
       } catch (error) {
         logger.error(error, "failed to list roles")
-        throw new HTTPException(500, {
-          message: "failed to list roles"
-        })
+        throw internalServerError("failed to list roles")
       }
     },
 
@@ -88,9 +91,7 @@ export function createRoleService({
         return role
       } catch (error) {
         logger.error(error, `failed to get role with id ${id}`)
-        throw new HTTPException(500, {
-          message: "failed to get role"
-        })
+        throw internalServerError("failed to get role")
       }
     },
 
@@ -99,9 +100,7 @@ export function createRoleService({
         return await roleRepository.getByNames(uniqueValues(names))
       } catch (error) {
         logger.error(error, "failed to get roles by name")
-        throw new HTTPException(500, {
-          message: "failed to get roles"
-        })
+        throw internalServerError("failed to get roles")
       }
     },
 
@@ -117,9 +116,7 @@ export function createRoleService({
         })
       } catch (error) {
         logger.error(error, "failed to resolve role ids")
-        throw new HTTPException(500, {
-          message: "failed to resolve role ids"
-        })
+        throw internalServerError("failed to resolve role ids")
       }
     },
 
@@ -131,21 +128,17 @@ export function createRoleService({
         const missingRoleIds = uniqueIds.filter((id) => !roleNameById.has(id))
 
         if (missingRoleIds.length > 0) {
-          throw new HTTPException(400, {
-            message: `unknown role ids: ${missingRoleIds.join(", ")}`
-          })
+          throw badRequest(`unknown role ids: ${missingRoleIds.join(", ")}`)
         }
 
         return uniqueIds.map((id) => roleNameById.get(id)!)
       } catch (error) {
-        if (isApiError(error) || error instanceof HTTPException) {
+        if (isApiError(error)) {
           throw error
         }
 
         logger.error(error, "failed to resolve role names")
-        throw new HTTPException(500, {
-          message: "failed to resolve role names"
-        })
+        throw internalServerError("failed to resolve role names")
       }
     },
 
@@ -165,9 +158,7 @@ export function createRoleService({
         }
 
         logger.error(error, "failed to create role")
-        throw new HTTPException(500, {
-          message: "failed to create role"
-        })
+        throw internalServerError("failed to create role")
       }
     },
 
@@ -175,9 +166,7 @@ export function createRoleService({
       const { id, role: roleUpdate, eventContext } = opts
 
       if (isProtectedRoleId(id)) {
-        throw new HTTPException(403, {
-          message: "built-in roles cannot be modified"
-        })
+        throw forbidden("built-in roles cannot be modified")
       }
 
       try {
@@ -217,7 +206,7 @@ export function createRoleService({
 
         return updateResult.role
       } catch (error) {
-        if (isApiError(error) || error instanceof HTTPException) {
+        if (isApiError(error)) {
           throw error
         }
 
@@ -227,9 +216,7 @@ export function createRoleService({
         }
 
         logger.error(error, `failed to update role with id ${id}`)
-        throw new HTTPException(500, {
-          message: "failed to update role"
-        })
+        throw internalServerError("failed to update role")
       }
     },
 
@@ -238,9 +225,7 @@ export function createRoleService({
       eventContext?: DomainEventContext
     ): Promise<Role | null> {
       if (isProtectedRoleId(id)) {
-        throw new HTTPException(403, {
-          message: "built-in roles cannot be modified"
-        })
+        throw forbidden("built-in roles cannot be modified")
       }
 
       try {
@@ -251,9 +236,7 @@ export function createRoleService({
         }
 
         if (await roleRepository.hasUsersWithRoleID(existingRole.id)) {
-          throw new HTTPException(409, {
-            message: `role ${existingRole.name} is still assigned to users`
-          })
+          throw conflict(`role ${existingRole.name} is still assigned to users`)
         }
 
         const deletedRole = await roleRepository.deleteByID(id)
@@ -265,14 +248,12 @@ export function createRoleService({
         emitRoleEvent("role.deleted", { role: deletedRole }, eventContext)
         return deletedRole
       } catch (error) {
-        if (isApiError(error) || error instanceof HTTPException) {
+        if (isApiError(error)) {
           throw error
         }
 
         logger.error(error, `failed to delete role with id ${id}`)
-        throw new HTTPException(500, {
-          message: "failed to delete role"
-        })
+        throw internalServerError("failed to delete role")
       }
     }
   }

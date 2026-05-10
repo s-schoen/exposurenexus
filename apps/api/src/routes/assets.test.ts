@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { HTTPException } from "hono/http-exception"
 import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
@@ -12,7 +11,7 @@ import {
   createTestUser,
   requireAuthenticatedUser
 } from "../test/app.js"
-import { badRequest } from "../lib/api-error.js"
+import { badRequest, conflict } from "../lib/api-error.js"
 import { createRequireDomainPermission } from "../middleware/auth.js"
 import { createAssetRoute } from "./assets.js"
 
@@ -498,9 +497,7 @@ describe("asset routes", () => {
     }
 
     assetService.createCustomFieldDefinition.mockRejectedValueOnce(
-      new HTTPException(400, {
-        message: "invalid custom field definition"
-      })
+      badRequest("invalid custom field definition")
     )
 
     const app = createTestApp({
@@ -688,8 +685,7 @@ describe("asset routes", () => {
     }
 
     assetService.updateCustomFieldDefinitionByID.mockRejectedValueOnce(
-      new HTTPException(400, {
-        message: "invalid custom field definition",
+      badRequest("invalid custom field definition", {
         cause: { reason: "unknown-rule" }
       })
     )
@@ -1773,9 +1769,7 @@ describe("asset routes", () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3"
 
     assetService.deleteByID.mockRejectedValueOnce(
-      new HTTPException(409, {
-        message: `asset ${assetId} is still referenced by findings`
-      })
+      conflict(`asset ${assetId} is still referenced by findings`)
     )
 
     const app = createTestApp({
