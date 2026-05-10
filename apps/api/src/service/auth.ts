@@ -11,7 +11,7 @@ import type {
   UserSession
 } from "@exposurenexus/types/model/user"
 import { verifyPasswordHash } from "../lib/argon2.js"
-import { internalServerError } from "../lib/api-error.js"
+import { ApplicationError } from "./application-error.js"
 import {
   createDomainEventEmitter,
   type AuthEventPayloads,
@@ -259,7 +259,13 @@ export function createAuthService(
         )
       } catch (error) {
         logger.error(error, "failed to create session for credentials")
-        throw internalServerError("failed to create session for credentials")
+        throw new ApplicationError({
+          code: "auth.credentials_session_create_failed",
+          kind: "unexpected",
+          message: "failed to create session for credentials",
+          cause: error,
+          details: { username: input.username }
+        })
       }
     },
 
@@ -268,7 +274,13 @@ export function createAuthService(
         return await createUserSession(input)
       } catch (error) {
         logger.error(error, "failed to create user session")
-        throw internalServerError("failed to create user session")
+        throw new ApplicationError({
+          code: "auth.session_create_failed",
+          kind: "unexpected",
+          message: "failed to create user session",
+          cause: error,
+          details: { userId: input.userId }
+        })
       }
     },
 
@@ -338,7 +350,12 @@ export function createAuthService(
         }
       } catch (error) {
         logger.error(error, "failed to validate user session")
-        throw internalServerError("failed to validate user session")
+        throw new ApplicationError({
+          code: "auth.session_validate_failed",
+          kind: "unexpected",
+          message: "failed to validate user session",
+          cause: error
+        })
       }
     },
 
@@ -364,7 +381,12 @@ export function createAuthService(
         return Boolean(revokedSession)
       } catch (error) {
         logger.error(error, "failed to revoke user session")
-        throw internalServerError("failed to revoke user session")
+        throw new ApplicationError({
+          code: "auth.session_revoke_failed",
+          kind: "unexpected",
+          message: "failed to revoke user session",
+          cause: error
+        })
       }
     },
 
@@ -379,7 +401,13 @@ export function createAuthService(
         return hasRequiredPermissions(assignedPermissions, permissions)
       } catch (error) {
         logger.error(error, "failed to check user permissions")
-        throw internalServerError("failed to check user permissions")
+        throw new ApplicationError({
+          code: "auth.permission_check_failed",
+          kind: "unexpected",
+          message: "failed to check user permissions",
+          cause: error,
+          details: { userId }
+        })
       }
     }
   }

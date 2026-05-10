@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createTestApp, createTestUser } from "../test/app.js"
 import { AUTH_SESSION_COOKIE } from "../middleware/auth.js"
 import { createAuthRoute } from "./auth.js"
+import { ApplicationError } from "../service/application-error.js"
 
 describe("auth routes", () => {
   const sessionCookie = (sessionId: string) =>
@@ -120,6 +121,45 @@ describe("auth routes", () => {
       status: 401,
       error: "Unauthorized"
     })
+  })
+
+  it("does not expose auth service diagnostics for unexpected login failures", async () => {
+    authService.createSessionForCredentials.mockRejectedValue(
+      new ApplicationError({
+        code: "auth.credentials_session_create_failed",
+        kind: "unexpected",
+        message: "failed to create session for credentials",
+        details: { username: "alice" }
+      })
+    )
+
+    const app = createTestApp({
+      authRoute: createAuthRoute(authService)
+    })
+
+    const response = await app.request("/api/auth", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "auth-unexpected-login-request"
+      },
+      body: JSON.stringify({
+        username: "alice",
+        password: "correct-horse-battery-staple"
+      })
+    })
+    const body = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(response.headers.get("set-cookie")).toBeNull()
+    expect(body).toMatchObject({
+      correlationId: "auth-unexpected-login-request",
+      status: 500,
+      error: expect.any(String)
+    })
+    expect(body.error).not.toContain("credentials")
+    expect(body.error).not.toContain("alice")
+    expect(body).not.toHaveProperty("reason")
   })
 
   it("returns the active session from the opaque session cookie", async () => {

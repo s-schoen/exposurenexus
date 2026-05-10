@@ -1,6 +1,5 @@
 import { createHmac } from "node:crypto"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { ApiError } from "../lib/api-error.js"
 import type { Logger } from "pino"
 import {
   PermissionResource,
@@ -18,6 +17,7 @@ vi.mock("../lib/argon2.js", () => ({
 import { createDomainEventCollector } from "../test/eventbus.js"
 import { serializeDomainEventForLog } from "../event-handler/log-event.js"
 import { createAuthService } from "./auth.js"
+import type { ApplicationError } from "./application-error.js"
 
 describe("auth service", () => {
   const userProfileRepository = {
@@ -329,7 +329,7 @@ describe("auth service", () => {
     })
   })
 
-  it("maps credential lookup failures to an HTTP 500", async () => {
+  it("maps credential lookup failures to an unexpected ApplicationError", async () => {
     const service = createService()
     const error = new Error("db offline")
 
@@ -341,9 +341,10 @@ describe("auth service", () => {
         password: "correct-horse-battery-staple"
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to create session for credentials"
-    } satisfies Partial<ApiError>)
+      code: "auth.credentials_session_create_failed",
+      kind: "unexpected",
+      details: { username: enabledProfile.username }
+    } satisfies Partial<ApplicationError>)
     expect(logger.error).toHaveBeenCalledWith(
       error,
       "failed to create session for credentials"
@@ -351,7 +352,7 @@ describe("auth service", () => {
     expect(verifyPasswordHashMock).not.toHaveBeenCalled()
   })
 
-  it("maps session creation failures to an HTTP 500", async () => {
+  it("maps session creation failures to an unexpected ApplicationError", async () => {
     const service = createService()
     const error = new Error("db offline")
 
@@ -362,9 +363,10 @@ describe("auth service", () => {
         userId: enabledProfile.id
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to create user session"
-    } satisfies Partial<ApiError>)
+      code: "auth.session_create_failed",
+      kind: "unexpected",
+      details: { userId: enabledProfile.id }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("validates active sessions and returns the public user profile", async () => {
@@ -395,7 +397,7 @@ describe("auth service", () => {
     )
   })
 
-  it("maps session lookup failures during validation to an HTTP 500", async () => {
+  it("maps session lookup failures during validation to an unexpected ApplicationError", async () => {
     const service = createService()
 
     userSessionRepository.getBySessionID.mockRejectedValue(
@@ -405,12 +407,12 @@ describe("auth service", () => {
     await expect(
       service.validateSession({ sessionId: "public-session-token" })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to validate user session"
-    } satisfies Partial<ApiError>)
+      code: "auth.session_validate_failed",
+      kind: "unexpected"
+    } satisfies Partial<ApplicationError>)
   })
 
-  it("maps user lookup failures during validation to an HTTP 500", async () => {
+  it("maps user lookup failures during validation to an unexpected ApplicationError", async () => {
     const service = createService()
 
     vi.useFakeTimers()
@@ -421,9 +423,9 @@ describe("auth service", () => {
     await expect(
       service.validateSession({ sessionId: "public-session-token" })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to validate user session"
-    } satisfies Partial<ApiError>)
+      code: "auth.session_validate_failed",
+      kind: "unexpected"
+    } satisfies Partial<ApplicationError>)
   })
 
   it("returns null when validating a missing session", async () => {
@@ -559,7 +561,7 @@ describe("auth service", () => {
     ).resolves.toBe(false)
   })
 
-  it("maps session revocation failures to an HTTP 500", async () => {
+  it("maps session revocation failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     userSessionRepository.deleteBySessionID.mockRejectedValue(
@@ -569,9 +571,9 @@ describe("auth service", () => {
     await expect(
       service.revokeSession({ sessionId: "public-session-token" })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to revoke user session"
-    } satisfies Partial<ApiError>)
+      code: "auth.session_revoke_failed",
+      kind: "unexpected"
+    } satisfies Partial<ApplicationError>)
   })
 
   it("returns true when the user has all requested permissions", async () => {
@@ -632,7 +634,7 @@ describe("auth service", () => {
     ).resolves.toBe(false)
   })
 
-  it("maps permission lookup failures to an HTTP 500", async () => {
+  it("maps permission lookup failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     userRoleRepository.listPermissionsByUserID.mockRejectedValue(
@@ -644,8 +646,9 @@ describe("auth service", () => {
         [PermissionResource.Asset]: [PermissionVerb.Read]
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to check user permissions"
-    } satisfies Partial<ApiError>)
+      code: "auth.permission_check_failed",
+      kind: "unexpected",
+      details: { userId: enabledProfile.id }
+    } satisfies Partial<ApplicationError>)
   })
 })

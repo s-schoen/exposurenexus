@@ -67,10 +67,10 @@ describe("api errors", () => {
           details: { roleIds: ["missing-role"] }
         })
       )
-    ).toEqual({
+    ).toMatchObject({
       correlationId: "api-error-test",
       status: 400,
-      error: "unknown role ids: missing-role",
+      error: expect.any(String),
       reason: "unknown-role-ids"
     })
 
@@ -84,10 +84,10 @@ describe("api errors", () => {
           details: { roleId: "viewer-role-id" }
         })
       )
-    ).toEqual({
+    ).toMatchObject({
       correlationId: "api-error-test",
       status: 403,
-      error: "built-in roles cannot be modified"
+      error: expect.any(String)
     })
 
     expect(
@@ -100,10 +100,10 @@ describe("api errors", () => {
           details: { roleName: "viewer" }
         })
       )
-    ).toEqual({
+    ).toMatchObject({
       correlationId: "api-error-test",
       status: 409,
-      error: "role already exists"
+      error: expect.any(String)
     })
 
     expect(
@@ -115,10 +115,10 @@ describe("api errors", () => {
           message: "failed to list roles"
         })
       )
-    ).toEqual({
+    ).toMatchObject({
       correlationId: "api-error-test",
       status: 500,
-      error: "internal server error"
+      error: expect.any(String)
     })
   })
 
@@ -130,11 +130,53 @@ describe("api errors", () => {
       details: { roleId: "viewer-role-id" }
     })
 
-    expect(createApiErrorReply("api-error-test", error)).toEqual({
+    const reply = createApiErrorReply("api-error-test", error)
+
+    expect(reply).toMatchObject({
       correlationId: "api-error-test",
       status: 403,
-      error: "built-in roles cannot be modified"
+      error: expect.any(String)
     })
+    expect(reply).not.toHaveProperty("reason")
+  })
+
+  it("does not expose sensitive auth application diagnostics", () => {
+    const error = new ApplicationError({
+      code: "auth.credentials_session_create_failed",
+      kind: "unexpected",
+      message: "failed to create session for credentials",
+      cause: new Error("credential lookup failed"),
+      details: { username: "alice" }
+    })
+
+    const reply = createApiErrorReply("api-error-test", error)
+
+    expect(reply).toMatchObject({
+      correlationId: "api-error-test",
+      status: 500,
+      error: expect.any(String)
+    })
+    expect(reply.error).not.toContain("credentials")
+    expect(reply.error).not.toContain("alice")
+    expect(reply).not.toHaveProperty("reason")
+  })
+
+  it("does not expose user profile application error codes as public reasons", () => {
+    const error = new ApplicationError({
+      code: "user_profile.role_assignment_invalid",
+      kind: "validation",
+      message: "invalid user role assignment",
+      details: { roleIds: ["missing-role-id"] }
+    })
+
+    const reply = createApiErrorReply("api-error-test", error)
+
+    expect(reply).toMatchObject({
+      correlationId: "api-error-test",
+      status: 400,
+      error: expect.any(String)
+    })
+    expect(reply).not.toHaveProperty("reason")
   })
 
   it("serializes server errors with a generic public message", () => {

@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { ApiError } from "../lib/api-error.js"
 import { pino } from "pino"
 import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 
@@ -13,6 +12,7 @@ vi.mock("../lib/argon2.js", () => ({
 
 import { createDomainEventCollector } from "../test/eventbus.js"
 import { createUserProfileService } from "./user-profile.js"
+import type { ApplicationError } from "./application-error.js"
 
 describe("user profile service", () => {
   const userProfileRepository = {
@@ -84,15 +84,15 @@ describe("user profile service", () => {
     expect(userProfileRepository.list).toHaveBeenCalledOnce()
   })
 
-  it("maps list failures to an HTTP 500", async () => {
+  it("maps list failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     userProfileRepository.list.mockRejectedValue(new Error("db offline"))
 
     await expect(service.listAll()).rejects.toMatchObject({
-      status: 500,
-      message: "failed to list user profiles"
-    } satisfies Partial<ApiError>)
+      code: "user_profile.list_failed",
+      kind: "unexpected"
+    } satisfies Partial<ApplicationError>)
   })
 
   it("returns a user profile by id without exposing the password hash", async () => {
@@ -120,16 +120,17 @@ describe("user profile service", () => {
     await expect(service.getByID(userProfileId)).resolves.toBeNull()
   })
 
-  it("maps get-by-id failures to an HTTP 500", async () => {
+  it("maps get-by-id failures to an unexpected ApplicationError", async () => {
     const service = createService()
     const userProfileId = "ef2fb643-53e3-4b0c-9b68-253d0dd43f8f"
 
     userProfileRepository.getByID.mockRejectedValue(new Error("db offline"))
 
     await expect(service.getByID(userProfileId)).rejects.toMatchObject({
-      status: 500,
-      message: "failed to get user profile"
-    } satisfies Partial<ApiError>)
+      code: "user_profile.get_failed",
+      kind: "unexpected",
+      details: { userProfileId }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("returns a user profile by username without exposing the password hash", async () => {
@@ -160,7 +161,7 @@ describe("user profile service", () => {
     await expect(service.getByUsername("missing-user")).resolves.toBeNull()
   })
 
-  it("maps get-by-username failures to an HTTP 500", async () => {
+  it("maps get-by-username failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     userProfileRepository.getByUsername.mockRejectedValue(
@@ -168,9 +169,10 @@ describe("user profile service", () => {
     )
 
     await expect(service.getByUsername("alice")).rejects.toMatchObject({
-      status: 500,
-      message: "failed to get user profile"
-    } satisfies Partial<ApiError>)
+      code: "user_profile.get_by_username_failed",
+      kind: "unexpected",
+      details: { username: "alice" }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("creates a user profile with a hashed password", async () => {
@@ -234,7 +236,7 @@ describe("user profile service", () => {
     expect(createdEvent.data.user).not.toHaveProperty("passwordHash")
   })
 
-  it("maps create conflicts to an HTTP 409", async () => {
+  it("maps create conflicts to a conflict ApplicationError", async () => {
     const service = createService()
 
     userProfileRepository.create.mockRejectedValue(
@@ -251,12 +253,16 @@ describe("user profile service", () => {
         password: "correct-horse-battery-staple"
       })
     ).rejects.toMatchObject({
-      status: 409,
-      message: "user profile already exists"
-    } satisfies Partial<ApiError>)
+      code: "user_profile.create_conflict",
+      kind: "conflict",
+      details: {
+        username: firstProfile.username,
+        email: firstProfile.email
+      }
+    } satisfies Partial<ApplicationError>)
   })
 
-  it("maps invalid create role assignments to an HTTP 400", async () => {
+  it("maps invalid create role assignments to a validation ApplicationError", async () => {
     const service = createService()
 
     userProfileRepository.create.mockRejectedValue(
@@ -275,12 +281,13 @@ describe("user profile service", () => {
         password: "correct-horse-battery-staple"
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "invalid user role assignment"
-    } satisfies Partial<ApiError>)
+      code: "user_profile.role_assignment_invalid",
+      kind: "validation",
+      details: { roleIds: ["9d9e119a-9c9a-41b0-b2fe-c40a05c45be7"] }
+    } satisfies Partial<ApplicationError>)
   })
 
-  it("maps create failures to an HTTP 500", async () => {
+  it("maps create failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     hashPlaintextPasswordMock.mockRejectedValue(new Error("crypto unavailable"))
@@ -295,9 +302,13 @@ describe("user profile service", () => {
         password: "correct-horse-battery-staple"
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to create user profile"
-    } satisfies Partial<ApiError>)
+      code: "user_profile.create_failed",
+      kind: "unexpected",
+      details: {
+        username: firstProfile.username,
+        email: firstProfile.email
+      }
+    } satisfies Partial<ApplicationError>)
   })
 
   it("updates a user profile by merging partial fields", async () => {
@@ -543,7 +554,7 @@ describe("user profile service", () => {
     expect(domainEvents.subjects()).toEqual([])
   })
 
-  it("maps update conflicts to an HTTP 409", async () => {
+  it("maps update conflicts to a conflict ApplicationError", async () => {
     const service = createService()
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
@@ -560,12 +571,13 @@ describe("user profile service", () => {
         }
       })
     ).rejects.toMatchObject({
-      status: 409,
-      message: "user profile already exists"
-    } satisfies Partial<ApiError>)
+      code: "user_profile.update_conflict",
+      kind: "conflict",
+      details: { userProfileId: firstProfile.id }
+    } satisfies Partial<ApplicationError>)
   })
 
-  it("maps invalid update role assignments to an HTTP 400", async () => {
+  it("maps invalid update role assignments to a validation ApplicationError", async () => {
     const service = createService()
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
@@ -583,12 +595,16 @@ describe("user profile service", () => {
         }
       })
     ).rejects.toMatchObject({
-      status: 400,
-      message: "invalid user role assignment"
-    } satisfies Partial<ApiError>)
+      code: "user_profile.role_assignment_invalid",
+      kind: "validation",
+      details: {
+        userProfileId: firstProfile.id,
+        roleIds: ["9d9e119a-9c9a-41b0-b2fe-c40a05c45be7"]
+      }
+    } satisfies Partial<ApplicationError>)
   })
 
-  it("maps update failures to an HTTP 500", async () => {
+  it("maps update failures to an unexpected ApplicationError", async () => {
     const service = createService()
 
     userProfileRepository.getByID.mockResolvedValue(firstProfile)
@@ -603,8 +619,9 @@ describe("user profile service", () => {
         }
       })
     ).rejects.toMatchObject({
-      status: 500,
-      message: "failed to update user profile"
-    } satisfies Partial<ApiError>)
+      code: "user_profile.update_failed",
+      kind: "unexpected",
+      details: { userProfileId: firstProfile.id }
+    } satisfies Partial<ApplicationError>)
   })
 })
