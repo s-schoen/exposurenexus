@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { ApiError } from "../lib/api-error.js"
 import { pino } from "pino"
 import { FindingStatus } from "@exposurenexus/types/model/finding"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
+import type { ApplicationError } from "./application-error.js"
 import { createStatsService } from "./stats.js"
 
 describe("stats service", () => {
@@ -73,14 +73,14 @@ describe("stats service", () => {
     expect(findingRepository.countBy).toHaveBeenNthCalledWith(4, "source")
   })
 
-  it("maps repository failures to an HTTP 500", async () => {
+  it("maps repository failures to an application error", async () => {
     const service = createStatsService({ findingRepository, logger })
 
     findingRepository.countBy.mockRejectedValue(new Error("db offline"))
 
     await expect(service.getFindingStats()).rejects.toMatchObject({
-      status: 500,
-      message: "failed to retrieve statistics"
-    } satisfies Partial<ApiError>)
+      code: "stats.get_finding_stats_failed",
+      kind: "unexpected"
+    } satisfies Partial<ApplicationError>)
   })
 })
