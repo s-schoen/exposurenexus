@@ -125,3 +125,6 @@ ExposureNexus is implemented as a `pnpm` monorepo with three main workspaces:
 - `packages/types` contains shared domain schemas and API contracts for assets, vulnerabilities, findings, users, roles, and permissions.
 
 The current stack uses Hono for the API, PostgreSQL for storage, opaque server-side session authentication, and a React/Vite frontend with TanStack Router and TanStack Query.
+
+API route, service, and repository boundary conventions are documented in
+[API Architecture](api-architecture.md).

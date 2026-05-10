@@ -23,6 +23,8 @@ Hono.js API Server
 
 - Use the repository pattern as appropriate
 - Do not implement business logic in the API routes, but abstract into services
+- Use positional parameters for one or two method arguments; use an options
+  object when a method needs more than two inputs or multiple optional inputs
 - Always use structured logging, use audit logging for sensitive operations
 - Use `vitest` for unit tests
 - Place actual `*.test.ts` files directly adjacent to the source files they cover
