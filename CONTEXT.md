@@ -287,6 +287,8 @@ or high exposure, affected assets, and mitigation rate.
 
 - The API owns persistence, authentication, imports, domain services, and route
   authorization.
+- Inside the API, routes adapt HTTP and authorization concerns, services own
+  application behavior, and repositories adapt persistence.
 - The UI owns the authenticated React workflows for dashboard, assets,
   findings, vulnerabilities, users, roles, custom fields, and imports.
 - `packages/types` owns shared Zod schemas, enum values, and TypeScript types
