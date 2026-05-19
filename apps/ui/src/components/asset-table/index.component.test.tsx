@@ -56,6 +56,7 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("@tanstack/react-query", () => ({
   keepPreviousData: Symbol("keepPreviousData"),
+  queryOptions: (options: unknown) => options,
   useQuery: (options: { queryKey: Array<string> }) => {
     if (options.queryKey.join("/") === "asset-custom-fields") {
       return {
