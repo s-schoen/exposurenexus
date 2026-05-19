@@ -183,14 +183,16 @@ export function DataTable<TData, TValue>({
   const [grouping, setGrouping] = useState<GroupingState>(initialGrouping)
   const [expanded, setExpanded] = useState<ExpandedState>(true)
   const [sorting, setSorting] = useState<SortingState>(initialSorting)
-  const [columnVisibility, setColumnVisibility] =
-    useState<VisibilityState>(initialColumnVisibility)
-  const [localFilterState, setLocalFilterState] = useState<DataTableFilterState>({
-    globalFilter: "",
-    selectFilters: {},
-    textFilters: {},
-    numberFilters: {}
-  })
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+    initialColumnVisibility
+  )
+  const [localFilterState, setLocalFilterState] =
+    useState<DataTableFilterState>({
+      globalFilter: "",
+      selectFilters: {},
+      textFilters: {},
+      numberFilters: {}
+    })
   const resolvedFilterState = filterState ?? localFilterState
   const filterVariantByColumnId = useMemo(
     () =>
@@ -521,9 +523,11 @@ export function DataTable<TData, TValue>({
         groupingOptions={groupingOptions}
         additionalElements={resolvedToolbarControls}
         onRequestRefresh={handleOnRefresh}
-        onRequestDelete={handleOnRowsDelete}
+        onRequestDelete={onRowDelete ? handleOnRowsDelete : undefined}
         globalFilterValue={resolvedFilterState.globalFilter}
-        onGlobalFilterChange={(value) => table.setGlobalFilter(value || undefined)}
+        onGlobalFilterChange={(value) =>
+          table.setGlobalFilter(value || undefined)
+        }
         onClearAllFilters={handleClearAllFilters}
       />
       <div className="overflow-hidden rounded-[1.5rem] border border-shell-border-strong/70 bg-shell-panel shadow-sm">
