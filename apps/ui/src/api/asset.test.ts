@@ -167,7 +167,7 @@ describe("asset custom field value api", () => {
     const queryFn = queryOptions.queryFn as () => Promise<Asset>
     const result = await queryFn()
 
-    expect(queryOptions.queryKey).toEqual(["asset", assetId])
+    expect(queryOptions.queryKey).toEqual(["assets", assetId])
     expect(result).toEqual(asset)
     expect(fetchMock).toHaveBeenCalledWith(
       `/api/assets/${assetId}`,

@@ -5,7 +5,10 @@ import {
   createRouter
 } from "@tanstack/react-router"
 import { useLayoutEffect, useMemo, useRef, useState } from "react"
-import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding"
+import {
+  FindingSource,
+  FindingStatus
+} from "@exposurenexus/types/model/finding"
 import { AssetType } from "@exposurenexus/types/model/asset"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { Meta, StoryObj } from "@storybook/react-vite"
@@ -122,7 +125,7 @@ function FindingDetailContentStoryShell({
 
     if (scenario !== "loading") {
       client.setQueryData(["findings", effectiveFinding.id], effectiveFinding)
-      client.setQueryData(["asset", asset.id], asset)
+      client.setQueryData(["assets", asset.id], asset)
       client.setQueryData(["users"], users)
     }
 

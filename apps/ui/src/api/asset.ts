@@ -234,7 +234,7 @@ export function createListAssetsWithCustomFieldsQueryOptions() {
 
 export function createAssetByIDQueryOptions(id: string) {
   return queryOptions({
-    queryKey: ["asset", id],
+    queryKey: ["assets", id],
     queryFn: () => getAssetByID(id)
   })
 }

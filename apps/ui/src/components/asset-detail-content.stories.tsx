@@ -141,7 +141,7 @@ function AssetDetailContentStoryShell({
       }
     })
 
-    client.setQueryData(["asset", asset.id], asset)
+    client.setQueryData(["assets", asset.id], asset)
     client.setQueryData(["users"], USERS)
 
     if (
@@ -215,7 +215,7 @@ function AssetDetailContentStoryShell({
           ...assetRef.current,
           ownerId: body.ownerId
         }
-        queryClient.setQueryData(["asset", asset.id], assetRef.current)
+        queryClient.setQueryData(["assets", asset.id], assetRef.current)
 
         return createAssetResponse(assetRef.current)
       }

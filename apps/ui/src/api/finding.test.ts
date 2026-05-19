@@ -45,6 +45,12 @@ function requestJsonBody(): unknown {
   return JSON.parse(requestInit().body as string)
 }
 
+function runQuery<T>(queryOptions: { queryFn?: unknown }): Promise<T> {
+  const queryFn = queryOptions.queryFn as () => Promise<T>
+
+  return queryFn()
+}
+
 const userId = "1f9c36d2-1355-49d1-8464-b01ce955d88f"
 const findingId = "2713d833-eb13-4517-ac7c-7761545ed42a"
 const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
@@ -151,7 +157,7 @@ describe("finding api", () => {
     )
 
     const queryOptions = createListFindingsQueryOptions()
-    const findings = await queryOptions.queryFn()
+    const findings = await runQuery<Array<Finding>>(queryOptions)
 
     expect(queryOptions.queryKey).toEqual(["findings"])
     expect(findings).toHaveLength(1)
@@ -174,7 +180,7 @@ describe("finding api", () => {
     )
 
     const queryOptions = createFindingByIDQueryOptions(findingId)
-    const finding = await queryOptions.queryFn()
+    const finding = await runQuery<Finding>(queryOptions)
 
     expect(queryOptions.queryKey).toEqual(["findings", findingId])
     expectFindingDates(finding)
@@ -219,7 +225,9 @@ describe("finding api", () => {
         }
       })
     )
-    const finding = await createFindingByIDQueryOptions(findingId).queryFn()
+    const finding = await runQuery<Finding>(
+      createFindingByIDQueryOptions(findingId)
+    )
     fetchMock.mockClear()
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
@@ -292,7 +300,7 @@ describe("finding api", () => {
     )
 
     const queryOptions = createFindingStatsQueryOptions()
-    const result = await queryOptions.queryFn()
+    const result = await runQuery<FindingStatistics>(queryOptions)
 
     expect(queryOptions.queryKey).toEqual(["findings", "stats"])
     expect(result).toEqual(findingStats)
@@ -315,7 +323,9 @@ describe("finding api", () => {
       })
     )
 
-    await expect(createFindingStatsQueryOptions().queryFn()).rejects.toThrow()
+    await expect(
+      runQuery<FindingStatistics>(createFindingStatsQueryOptions())
+    ).rejects.toThrow()
   })
 
   it("uploads finding import files as form data", async () => {

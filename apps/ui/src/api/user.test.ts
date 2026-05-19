@@ -37,6 +37,12 @@ function requestJsonBody(): unknown {
   return JSON.parse(requestInit().body as string)
 }
 
+function runQuery<T>(queryOptions: { queryFn?: unknown }): Promise<T> {
+  const queryFn = queryOptions.queryFn as () => Promise<T>
+
+  return queryFn()
+}
+
 const userId = "1f9c36d2-1355-49d1-8464-b01ce955d88f"
 const user: UserProfile = {
   id: userId,
@@ -69,7 +75,7 @@ describe("user api", () => {
     )
 
     const queryOptions = createListUsersQueryOptions()
-    const users = await queryOptions.queryFn()
+    const users = await runQuery<Array<UserProfile>>(queryOptions)
 
     expect(queryOptions.queryKey).toEqual(["users"])
     expect(users).toEqual([user])
@@ -96,7 +102,9 @@ describe("user api", () => {
       })
     )
 
-    await expect(createListUsersQueryOptions().queryFn()).rejects.toThrow()
+    await expect(
+      runQuery<Array<UserProfile>>(createListUsersQueryOptions())
+    ).rejects.toThrow()
   })
 
   it("creates detail query options and parses user detail replies", async () => {
@@ -107,7 +115,7 @@ describe("user api", () => {
     )
 
     const queryOptions = createUserByIDQueryOptions(userId)
-    const result = await queryOptions.queryFn()
+    const result = await runQuery<UserProfile>(queryOptions)
 
     expect(queryOptions.queryKey).toEqual(["users", userId])
     expect(result).toEqual(user)
@@ -192,8 +200,8 @@ describe("user api", () => {
       )
     )
 
-    await expect(createListUsersQueryOptions().queryFn()).rejects.toThrow(
-      "User request failed"
-    )
+    await expect(
+      runQuery<Array<UserProfile>>(createListUsersQueryOptions())
+    ).rejects.toThrow("User request failed")
   })
 })
