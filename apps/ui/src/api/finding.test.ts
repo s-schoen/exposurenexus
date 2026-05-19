@@ -305,6 +305,19 @@ describe("finding api", () => {
     )
   })
 
+  it("rejects malformed finding stats replies", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          ...findingStats,
+          total: "2"
+        }
+      })
+    )
+
+    await expect(createFindingStatsQueryOptions().queryFn()).rejects.toThrow()
+  })
+
   it("uploads finding import files as form data", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: {} }))
     const file = new File(["{}"], "nuclei.json", {

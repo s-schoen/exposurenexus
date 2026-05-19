@@ -1,4 +1,5 @@
 import { keepPreviousData } from "@tanstack/react-query"
+import { roleSchema } from "@exposurenexus/types/model/rbac"
 import type {
   CreateRole,
   Role,
@@ -23,7 +24,7 @@ async function listRoles(): Promise<Array<Role>> {
     throw error
   }
 
-  return parseArrayReply<Role>(response)
+  return parseArrayReply(response, roleSchema)
 }
 
 async function getRoleByID(id: string): Promise<Role> {
@@ -37,7 +38,7 @@ async function getRoleByID(id: string): Promise<Role> {
     throw error
   }
 
-  return parseObjectReply<Role>(response)
+  return parseObjectReply(response, roleSchema)
 }
 
 export async function createRole(role: CreateRole): Promise<Role> {
@@ -55,7 +56,7 @@ export async function createRole(role: CreateRole): Promise<Role> {
     throw error
   }
 
-  return parseObjectReply<Role>(response)
+  return parseObjectReply(response, roleSchema)
 }
 
 export async function updateRole(id: string, role: UpdateRole): Promise<Role> {
@@ -73,7 +74,7 @@ export async function updateRole(id: string, role: UpdateRole): Promise<Role> {
     throw error
   }
 
-  return parseObjectReply<Role>(response)
+  return parseObjectReply(response, roleSchema)
 }
 
 export async function deleteRole(id: string): Promise<Role> {
@@ -87,7 +88,7 @@ export async function deleteRole(id: string): Promise<Role> {
     throw error
   }
 
-  return parseObjectReply<Role>(response)
+  return parseObjectReply(response, roleSchema)
 }
 
 export function createListRolesQueryOptions() {

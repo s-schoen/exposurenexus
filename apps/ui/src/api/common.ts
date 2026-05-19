@@ -108,24 +108,18 @@ export async function parseErrorReply(r: Response): Promise<Error> {
 
 export async function parseArrayReply<T extends object>(
   r: Response,
-  schema?: z.ZodType<T>
+  schema: z.ZodType<T>
 ): Promise<Array<T>> {
   const parsed = (await r.json()) as APIArrayDataReply<T>
-  if (!schema) {
-    return parsed.data.items
-  }
 
   return parsed.data.items.map((item) => schema.parse(item))
 }
 
 export async function parseObjectReply<T extends object>(
   r: Response,
-  schema?: z.ZodType<T>
+  schema: z.ZodType<T>
 ): Promise<T> {
   const parsed = (await r.json()) as APISingleDataReply<T>
-  if (!schema) {
-    return parsed.data
-  }
 
   return schema.parse(parsed.data)
 }

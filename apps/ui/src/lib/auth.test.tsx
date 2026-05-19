@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 import { authClient, getSession, signIn, signOut } from "./auth.ts"
 import type { ReactNode } from "react"
 import type { AuthSessionDataReply } from "@exposurenexus/types/api"
@@ -14,15 +15,15 @@ const authSession = {
     displayName: "Alice Example",
     email: "alice@example.com",
     enabled: true,
-    roleIds: ["viewer-role-id"]
+    roleIds: [builtInRoleIds.viewer]
   },
   session: {
     id: "b2d7a873-bc09-4f5a-96f9-a6f2942b6934",
     userId: "7b413aba-5164-456b-8ffd-88fb6b99bbed",
     sourceIp: "203.0.113.10",
     userAgent: "Mozilla/5.0",
-    createdAt: "2026-04-26T08:00:00.000Z",
-    expiresAt: "2026-04-26T20:00:00.000Z"
+    createdAt: new Date("2026-04-26T08:00:00.000Z"),
+    expiresAt: new Date("2026-04-26T20:00:00.000Z")
   }
 } as unknown as AuthSessionDataReply
 

@@ -82,6 +82,23 @@ describe("user api", () => {
     )
   })
 
+  it("rejects malformed user profile replies", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          items: [
+            {
+              ...user,
+              email: "not-an-email"
+            }
+          ]
+        }
+      })
+    )
+
+    await expect(createListUsersQueryOptions().queryFn()).rejects.toThrow()
+  })
+
   it("creates detail query options and parses user detail replies", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
