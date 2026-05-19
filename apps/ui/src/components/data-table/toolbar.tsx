@@ -24,7 +24,7 @@ interface DataTableToolbarProps<TData> {
   groupingOptions?: Array<GroupingOption>
   additionalElements?: ReactNode
   onRequestRefresh: () => void
-  onRequestDelete: () => void
+  onRequestDelete?: () => void
   globalFilterValue: string
   onGlobalFilterChange: (value: string) => void
   onClearAllFilters: () => void
@@ -152,7 +152,8 @@ export function DataTableToolbar<TData>({
       (column) =>
         column.getCanFilter() &&
         column.columnDef.meta?.filterVariant === "select" &&
-        ((column.getFilterValue() as Array<string> | undefined)?.length ?? 0) > 0
+        ((column.getFilterValue() as Array<string> | undefined)?.length ?? 0) >
+          0
     )
   const activeScalarFilters = table
     .getAllColumns()
@@ -172,7 +173,9 @@ export function DataTableToolbar<TData>({
   function getFilterField(column: Column<TData>) {
     switch (column.columnDef.meta?.filterVariant) {
       case "number":
-        return <InputFilterField key={column.id} column={column} type="number" />
+        return (
+          <InputFilterField key={column.id} column={column} type="number" />
+        )
       case "select":
         return <SelectFilterField key={column.id} column={column} />
       case "text":
@@ -196,16 +199,18 @@ export function DataTableToolbar<TData>({
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             {additionalElements}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9"
-              disabled={isFetching || deleteDisabled}
-              onClick={onRequestDelete}
-            >
-              <Trash />
-              Delete
-            </Button>
+            {onRequestDelete && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                disabled={isFetching || deleteDisabled}
+                onClick={onRequestDelete}
+              >
+                <Trash />
+                Delete
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"

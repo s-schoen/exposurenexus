@@ -209,6 +209,7 @@ describe("UserTable workflow wiring", () => {
         enabled: ["true"]
       }
     })
+    expect(mocks.dataTableProps?.onRowDelete).toBeUndefined()
 
     fireEvent.click(screen.getByRole("button", { name: /select user/i }))
     expect(onSelectUser).toHaveBeenCalledWith(mocks.user)
