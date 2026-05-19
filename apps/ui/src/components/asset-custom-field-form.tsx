@@ -5,14 +5,14 @@ import {
   AssetCustomFieldType,
   assetCustomFieldKeySchema
 } from "@exposurenexus/types/model/asset-custom-field"
-import {
-  createAssetCustomFieldDefinitionPayloadFromFormValues,
-  validateAssetCustomFieldFormRuleValues
-} from "./asset-custom-field-rule-validation.ts"
 import type {
   AssetCustomFieldDefinition,
   CreateAssetCustomFieldDefinition
 } from "@exposurenexus/types/model/asset-custom-field"
+import {
+  createAssetCustomFieldDefinitionPayloadFromFormValues,
+  validateAssetCustomFieldFormRuleValues
+} from "@/components/asset-custom-field-rule-validation.ts"
 import { Button } from "@/components/ui/button.tsx"
 import { Checkbox } from "@/components/ui/checkbox.tsx"
 import {

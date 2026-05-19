@@ -7,7 +7,7 @@ import {
   parseArrayReply,
   parseErrorReply,
   parseObjectReply
-} from "./common.ts"
+} from "@/api/common.ts"
 
 const fetchMock = vi.fn<typeof fetch>()
 

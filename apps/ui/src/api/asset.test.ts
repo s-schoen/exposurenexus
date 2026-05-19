@@ -4,6 +4,16 @@ import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource
 } from "@exposurenexus/types/model/asset-custom-field"
+import type {
+  Asset,
+  AssetWithCustomFields
+} from "@exposurenexus/types/model/asset"
+import type {
+  AssetCustomFieldDefinition,
+  AssetCustomFieldValue,
+  UpdateAssetCustomFieldAssociations,
+  UpdateAssetCustomFieldValues
+} from "@exposurenexus/types/model/asset-custom-field"
 import {
   createAsset,
   createAssetByIDQueryOptions,
@@ -18,17 +28,7 @@ import {
   replaceAssetCustomFieldAssociations,
   updateAssetCustomFieldValues,
   updateAssetOwner
-} from "./asset.ts"
-import type {
-  Asset,
-  AssetWithCustomFields
-} from "@exposurenexus/types/model/asset"
-import type {
-  AssetCustomFieldDefinition,
-  AssetCustomFieldValue,
-  UpdateAssetCustomFieldAssociations,
-  UpdateAssetCustomFieldValues
-} from "@exposurenexus/types/model/asset-custom-field"
+} from "@/api/asset.ts"
 
 const fetchMock = vi.fn<typeof fetch>()
 

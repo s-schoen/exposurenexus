@@ -4,6 +4,11 @@ import {
   FindingStatus
 } from "@exposurenexus/types/model/finding"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
+import type {
+  CreateFinding,
+  Finding,
+  FindingStatistics
+} from "@exposurenexus/types/model/finding"
 import {
   createFinding,
   createFindingByIDQueryOptions,
@@ -13,12 +18,7 @@ import {
   reclassifyFindings,
   updateFinding,
   uploadFindingFile
-} from "./finding.ts"
-import type {
-  CreateFinding,
-  Finding,
-  FindingStatistics
-} from "@exposurenexus/types/model/finding"
+} from "@/api/finding.ts"
 
 const fetchMock = vi.fn<typeof fetch>()
 

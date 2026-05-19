@@ -2,12 +2,12 @@ import { StrictMode } from "react"
 import ReactDOM from "react-dom/client"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
 
-import * as TanStackQueryProvider from "./integrations/tanstack-query/root-provider.tsx"
+import * as TanStackQueryProvider from "@/integrations/tanstack-query/root-provider.tsx"
 
 // Import the generated route tree
-import { routeTree } from "./routeTree.gen"
+import { routeTree } from "@/routeTree.gen.ts"
 
-import "./styles.css"
+import "@/styles.css"
 import { AuthProvider, useAuth } from "@/context/auth.tsx"
 import { PageProvider, usePage } from "@/context/page.tsx"
 
