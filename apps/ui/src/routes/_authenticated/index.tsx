@@ -281,13 +281,13 @@ function App() {
         <FindingSeverityChart
           data={findingStats.data?.severity || {}}
           loading={chartsLoading}
-          height={96}
+          height="24rem"
           className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
         />
         <FindingStatusChart
           data={findingStats.data?.status || {}}
           loading={chartsLoading}
-          height={96}
+          height="24rem"
           className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
         />
       </div>
@@ -369,7 +369,7 @@ function OverviewChartCard({
           <SimpleBarChart
             chartData={chartData}
             chartConfig={chartConfig}
-            height={96}
+            height="24rem"
           />
         )}
       </CardContent>

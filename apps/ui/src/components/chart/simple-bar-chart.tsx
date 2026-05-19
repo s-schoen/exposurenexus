@@ -1,4 +1,5 @@
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
+import type { CSSProperties } from "react"
 import type { ChartConfig } from "@/components/ui/chart.tsx"
 import {
   ChartContainer,
@@ -6,7 +7,6 @@ import {
   ChartTooltipContent
 } from "@/components/ui/chart.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
-import { cn } from "@/lib/utils.ts"
 
 interface ChartData {
   label: string
@@ -18,7 +18,7 @@ interface SimpleBarChartProps {
   chartData: Array<ChartData>
   chartConfig: ChartConfig
   loading?: boolean
-  height?: number
+  height?: CSSProperties["height"]
 }
 
 export function SimpleBarChart({
@@ -35,7 +35,8 @@ export function SimpleBarChart({
     return (
       <ChartContainer
         config={chartConfig}
-        className={cn(height ? `h-${height}` : undefined, "w-full")}
+        className="w-full"
+        style={height === undefined ? undefined : { height }}
       >
         <BarChart accessibilityLayer data={chartData}>
           <CartesianGrid vertical={false} />

@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
+import type { CSSProperties } from "react"
 import type { ChartConfig } from "@/components/ui/chart.tsx"
 import { severityChartColor } from "@/lib/colors.ts"
 import { formatSeverity } from "@/lib/format.ts"
@@ -16,7 +17,7 @@ interface FindingSeverityChartProps {
   data: Record<VulnerabilitySeverity, number> | {}
   loading?: boolean
   className?: string
-  height?: number
+  height?: CSSProperties["height"]
 }
 
 export function FindingSeverityChart({

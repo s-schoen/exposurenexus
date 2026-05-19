@@ -1,5 +1,6 @@
 import { FindingStatus } from "@exposurenexus/types/model/finding"
 import { useMemo } from "react"
+import type { CSSProperties } from "react"
 import type { ChartConfig } from "@/components/ui/chart.tsx"
 import { findingStatusChartColor } from "@/lib/colors.ts"
 import { formatFindingStatus } from "@/lib/format.ts"
@@ -16,7 +17,7 @@ interface FindingStatusChartProps {
   data: Record<FindingStatus, number> | {}
   loading?: boolean
   className?: string
-  height?: number
+  height?: CSSProperties["height"]
 }
 
 export function FindingStatusChart({
