@@ -125,6 +125,25 @@ describe("AssetDialog", () => {
     })
   })
 
+  it("submits once when the create button is clicked", async () => {
+    const { call } = renderAssetDialog()
+
+    fireEvent.change(screen.getByLabelText(/^name$/i), {
+      target: { value: "api-01" }
+    })
+    fireEvent.click(screen.getByRole("button", { name: /^create$/i }))
+
+    await waitFor(() => {
+      expect(call.end).toHaveBeenCalledWith({
+        id: "",
+        name: "api-01",
+        type: AssetType.Host,
+        ownerId: null
+      })
+      expect(call.end).toHaveBeenCalledTimes(1)
+    })
+  })
+
   it("submits the selected asset type", async () => {
     const { call, container } = renderAssetDialog()
 

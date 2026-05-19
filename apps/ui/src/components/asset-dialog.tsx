@@ -111,9 +111,10 @@ export const AssetDialog = ({
                       name={field.name}
                       onValueChange={(e) => {
                         field.handleChange(e as AssetType)
+                        field.handleBlur()
                       }}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id={field.name}>
                         <SelectValue placeholder="Select asset type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -143,9 +144,10 @@ export const AssetDialog = ({
                         field.handleChange(
                           value === noOwnerValue ? null : value
                         )
+                        field.handleBlur()
                       }}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id={field.name}>
                         <SelectValue placeholder="Select asset owner" />
                       </SelectTrigger>
                       <SelectContent>
@@ -165,14 +167,14 @@ export const AssetDialog = ({
             />
           </FieldGroup>
           <DialogFooter>
-            <Button variant="outline" onClick={() => call.end(null)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => call.end(null)}
+            >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              form="asset-form"
-              onClick={() => form.handleSubmit()}
-            >
+            <Button type="submit" form="asset-form">
               Create
             </Button>
           </DialogFooter>

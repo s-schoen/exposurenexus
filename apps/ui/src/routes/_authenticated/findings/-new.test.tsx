@@ -86,17 +86,20 @@ vi.mock("@/components/ui/select.tsx", async () => {
   const React = await import("react")
   const SelectContext = React.createContext<{
     onValueChange?: (value: string) => void
+    value?: string
   }>({})
 
   return {
     Select: ({
       children,
-      onValueChange
+      onValueChange,
+      value
     }: {
       children: ReactNode
       onValueChange?: (value: string) => void
+      value?: string
     }) => (
-      <SelectContext.Provider value={{ onValueChange }}>
+      <SelectContext.Provider value={{ onValueChange, value }}>
         <div>{children}</div>
       </SelectContext.Provider>
     ),
@@ -121,14 +124,24 @@ vi.mock("@/components/ui/select.tsx", async () => {
         </button>
       )
     },
-    SelectTrigger: ({ children }: { children: ReactNode }) => (
-      <button type="button" role="combobox">
+    SelectTrigger: ({ children, id }: { children: ReactNode; id?: string }) => (
+      <button type="button" role="combobox" id={id}>
         {children}
       </button>
     ),
-    SelectValue: ({ placeholder }: { placeholder?: string }) => (
-      <span>{placeholder}</span>
-    )
+    SelectValue: ({
+      children,
+      placeholder
+    }: {
+      children?: ReactNode | ((value: string | undefined) => ReactNode)
+      placeholder?: string
+    }) => {
+      const { value } = React.useContext(SelectContext)
+      const content =
+        typeof children === "function" ? children(value) : (value ?? children)
+
+      return <span>{content ?? placeholder}</span>
+    }
   }
 })
 
@@ -176,6 +189,13 @@ describe("create finding route", () => {
     expect(mocks.historyBack).toHaveBeenCalledTimes(1)
   })
 
+  it("shows the default severity and status selections", async () => {
+    await renderCreateFindingRoute()
+
+    expect(screen.getByLabelText(/severity/i).textContent).toMatch(/medium/i)
+    expect(screen.getByLabelText(/status/i).textContent).toMatch(/active/i)
+  })
+
   it("submits a valid finding and navigates back on success", async () => {
     await renderCreateFindingRoute()
     mocks.createFinding.mockResolvedValueOnce({
@@ -207,8 +227,41 @@ describe("create finding route", () => {
         status: FindingStatus.Active,
         vulnerabilityId: "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
       })
+      expect(mocks.createFinding).toHaveBeenCalledTimes(1)
     })
     expect(mocks.historyBack).toHaveBeenCalledTimes(1)
+  })
+
+  it("submits a valid finding with selected severity and status", async () => {
+    await renderCreateFindingRoute()
+    mocks.createFinding.mockResolvedValueOnce({
+      id: "2713d833-eb13-4517-ac7c-7761545ed42a"
+    })
+
+    fireEvent.change(screen.getByLabelText(/vulnerability id/i), {
+      target: {
+        value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe"
+      }
+    })
+    fireEvent.click(screen.getByRole("button", { name: /select asset/i }))
+    fireEvent.click(screen.getByRole("button", { name: /critical/i }))
+    fireEvent.click(screen.getByRole("button", { name: /confirmed/i }))
+    fireEvent.change(screen.getByLabelText(/source/i), {
+      target: {
+        value: "manual"
+      }
+    })
+    fireEvent.click(screen.getByRole("button", { name: /^create$/i }))
+
+    await waitFor(() => {
+      expect(mocks.createFinding).toHaveBeenCalledWith(
+        expect.objectContaining({
+          severity: VulnerabilitySeverity.Critical,
+          status: FindingStatus.Confirmed
+        })
+      )
+      expect(mocks.createFinding).toHaveBeenCalledTimes(1)
+    })
   })
 
   it("submits a valid finding with a selected due date", async () => {
