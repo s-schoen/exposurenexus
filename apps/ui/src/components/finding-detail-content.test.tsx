@@ -18,6 +18,7 @@ import type { UserProfile } from "@exposurenexus/types/model/user"
 
 interface QueryState<TData> {
   data?: TData
+  error?: Error | null
   isLoading?: boolean
   isPending: boolean
   isSuccess: boolean
@@ -341,6 +342,22 @@ describe("FindingDetailContent", () => {
 
     expect(screen.getByText("Finding details")).toBeTruthy()
     expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
+  })
+
+  it("renders an error state when the primary finding query fails", async () => {
+    const { FindingDetailContent } =
+      await import("@/components/finding-detail-content.tsx")
+    mocks.findingQuery = {
+      error: new Error("Finding request failed"),
+      isLoading: false,
+      isPending: false,
+      isSuccess: false
+    }
+
+    render(<FindingDetailContent findingId={mocks.finding.id} />)
+
+    expect(screen.getByText("Unable to load finding")).toBeTruthy()
+    expect(screen.getByText("Finding request failed")).toBeTruthy()
   })
 
   it("renders finding, asset, vulnerability, evidence, and user context", async () => {

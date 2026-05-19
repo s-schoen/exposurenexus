@@ -5,6 +5,7 @@ import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource
 } from "@exposurenexus/types/model/asset-custom-field"
+import type { Asset } from "@exposurenexus/types/model/asset"
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
@@ -24,11 +25,11 @@ import {
 import { createListUsersQueryOptions } from "@/api/user.ts"
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle
 } from "@/components/ui/card.tsx"
+import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { capitalizeFirstLetter } from "@/lib/format.ts"
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
@@ -123,15 +124,21 @@ export function AssetDetailContent({
     [users.data]
   )
 
-  function AssetOwnerText({ className }: { className?: string }) {
+  function AssetOwnerText({
+    assetData,
+    className
+  }: {
+    assetData: Asset
+    className?: string
+  }) {
     return (
       <UserLabel
-        userId={asset.data!.ownerId}
+        userId={assetData.ownerId}
         user={
-          asset.data!.ownerId && users.isPending
+          assetData.ownerId && users.isPending
             ? undefined
-            : asset.data!.ownerId
-              ? (userProfileById.get(asset.data!.ownerId) ?? null)
+            : assetData.ownerId
+              ? (userProfileById.get(assetData.ownerId) ?? null)
               : null
         }
         emptyLabel="No Owner"
@@ -141,8 +148,8 @@ export function AssetDetailContent({
     )
   }
 
-  function getAssetOwnerEditValue() {
-    return asset.data!.ownerId ?? noOwnerValue
+  function getAssetOwnerEditValue(assetData: Asset) {
+    return assetData.ownerId ?? noOwnerValue
   }
 
   function AssetOwnerPicker({
@@ -230,10 +237,10 @@ export function AssetDetailContent({
     )
   }
 
-  async function handleSaveAssetOwner(value: string) {
+  async function handleSaveAssetOwner(assetData: Asset, value: string) {
     const ownerId = value === noOwnerValue ? null : value
 
-    if (asset.data!.ownerId === ownerId) {
+    if (assetData.ownerId === ownerId) {
       return
     }
 
@@ -351,22 +358,7 @@ export function AssetDetailContent({
     }
   }
 
-  function CardPlaceholder() {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Asset details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Skeleton className="h-10 w-2/3" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
-    )
-  }
-
-  function AssetOverviewCard() {
+  function AssetOverviewCard({ assetData }: { assetData: Asset }) {
     return (
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader className="gap-4">
@@ -374,13 +366,13 @@ export function AssetDetailContent({
             <div className="min-w-0 flex-1">{titleAction}</div>
             <Badge variant="outline" className="rounded-md">
               <Server className="size-3" />
-              {capitalizeFirstLetter(asset.data!.type)}
+              {capitalizeFirstLetter(assetData.type)}
             </Badge>
           </div>
           <div className="space-y-3">
             <div className="space-y-2">
               <CardTitle className="text-2xl font-semibold tracking-tight">
-                {asset.data!.name}
+                {assetData.name}
               </CardTitle>
               <CardDescription className="max-w-3xl text-sm leading-6">
                 Inventory record representing a tracked platform asset that can
@@ -390,17 +382,17 @@ export function AssetDetailContent({
             <div className="grid gap-3 xl:grid-cols-3">
               <DetailHighlightCard
                 label="Asset name"
-                value={asset.data!.name}
+                value={assetData.name}
                 description="Primary identifier used across the platform"
               />
               <DetailHighlightCard
                 label="Asset type"
-                value={capitalizeFirstLetter(asset.data!.type)}
+                value={capitalizeFirstLetter(assetData.type)}
                 description="Inventory classification for this asset"
               />
               <DetailHighlightCard
                 label="Asset owner"
-                value={<AssetOwnerText />}
+                value={<AssetOwnerText assetData={assetData} />}
                 description="User profile responsible for findings on this asset"
               />
             </div>
@@ -410,21 +402,21 @@ export function AssetDetailContent({
     )
   }
 
-  function AssetSidebar() {
+  function AssetSidebar({ assetData }: { assetData: Asset }) {
     return (
       <MetadataSidebar title="Asset details" icon={Server}>
         <div className="space-y-3">
-          <MetadataDetailRow label="Name" value={asset.data!.name} />
+          <MetadataDetailRow label="Name" value={assetData.name} />
           <MetadataDetailRow
             label="Type"
-            value={capitalizeFirstLetter(asset.data!.type)}
+            value={capitalizeFirstLetter(assetData.type)}
           />
           <MetadataDetailRow
             label="Owner"
             editable={{
-              value: getAssetOwnerEditValue(),
-              onSave: handleSaveAssetOwner,
-              displayElement: () => <AssetOwnerText />,
+              value: getAssetOwnerEditValue(assetData),
+              onSave: (value) => handleSaveAssetOwner(assetData, value),
+              displayElement: () => <AssetOwnerText assetData={assetData} />,
               editElement: {
                 type: "custom",
                 hideActions: true,
@@ -457,15 +449,23 @@ export function AssetDetailContent({
     )
   }
 
-  return asset.isPending ? (
-    <CardPlaceholder />
-  ) : (
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="flex min-w-0 flex-col gap-4">
-        <AssetOverviewCard />
-      </div>
-      <AssetSidebar />
-    </div>
+  return (
+    <DetailQueryBoundary
+      query={asset}
+      title="Asset details"
+      errorTitle="Unable to load asset"
+      errorDescription="The selected asset could not be loaded."
+      missingMessage="The API did not return an asset record."
+    >
+      {(assetData) => (
+        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="flex min-w-0 flex-col gap-4">
+            <AssetOverviewCard assetData={assetData} />
+          </div>
+          <AssetSidebar assetData={assetData} />
+        </div>
+      )}
+    </DetailQueryBoundary>
   )
 }
 

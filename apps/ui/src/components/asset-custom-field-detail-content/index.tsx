@@ -15,13 +15,12 @@ import {
   validateAssetCustomFieldDefinition
 } from "@/components/asset-custom-field-detail-content/helpers.ts"
 import {
-  AssetCustomFieldDetailError,
-  AssetCustomFieldDetailPlaceholder,
   CustomFieldDefinitionCard,
   CustomFieldOverviewCard,
   SelectOptionsCard
 } from "@/components/asset-custom-field-detail-content/detail-cards.tsx"
 import { CustomFieldSidebar } from "@/components/asset-custom-field-detail-content/sidebar.tsx"
+import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx"
 import { toastActionError } from "@/lib/action-error-toast.ts"
 
 export {
@@ -89,17 +88,6 @@ export function AssetCustomFieldDetailContent({
     [customField.data, customFieldId, queryClient, queryOptions.queryKey]
   )
 
-  if (customField.isPending) {
-    return <AssetCustomFieldDetailPlaceholder />
-  }
-
-  if (!customField.data) {
-    return <AssetCustomFieldDetailError message={customField.error.message} />
-  }
-
-  const field = customField.data
-  const summary = summarizeCustomField(field)
-
   const handleUpdateResult = (result: CustomFieldUpdateResult) => {
     if (result.error) {
       toast.error(result.error)
@@ -112,22 +100,39 @@ export function AssetCustomFieldDetailContent({
   }
 
   return (
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="flex min-w-0 flex-col gap-4">
-        <CustomFieldOverviewCard
-          field={field}
-          summary={summary}
-          titleAction={titleAction}
-        />
-        <CustomFieldDefinitionCard field={field} summary={summary} />
-        <SelectOptionsCard field={field} onUpdateResult={handleUpdateResult} />
-      </div>
-      <CustomFieldSidebar
-        field={field}
-        summary={summary}
-        onUpdateField={handleUpdateField}
-        onUpdateResult={handleUpdateResult}
-      />
-    </div>
+    <DetailQueryBoundary
+      query={customField}
+      title="Custom field details"
+      errorTitle="Unable to load custom field"
+      errorDescription="The selected custom field could not be loaded."
+      missingMessage="The API did not return a custom field record."
+    >
+      {(field) => {
+        const summary = summarizeCustomField(field)
+
+        return (
+          <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+            <div className="flex min-w-0 flex-col gap-4">
+              <CustomFieldOverviewCard
+                field={field}
+                summary={summary}
+                titleAction={titleAction}
+              />
+              <CustomFieldDefinitionCard field={field} summary={summary} />
+              <SelectOptionsCard
+                field={field}
+                onUpdateResult={handleUpdateResult}
+              />
+            </div>
+            <CustomFieldSidebar
+              field={field}
+              summary={summary}
+              onUpdateField={handleUpdateField}
+              onUpdateResult={handleUpdateResult}
+            />
+          </div>
+        )
+      }}
+    </DetailQueryBoundary>
   )
 }

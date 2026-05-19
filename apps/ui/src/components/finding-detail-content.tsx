@@ -30,6 +30,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card.tsx"
+import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area.tsx"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
@@ -98,10 +99,9 @@ export function FindingDetailContent({
   const finding = useQuery(createFindingByIDQueryOptions(findingId))
   const users = useQuery(createListUsersQueryOptions())
   const { updateFindingField } = useFindingLifecycle()
-  const displayData = finding.data
   const asset = useQuery({
-    ...createAssetByIDQueryOptions(displayData?.assetId ?? ""),
-    enabled: Boolean(displayData?.assetId)
+    ...createAssetByIDQueryOptions(finding.data?.assetId ?? ""),
+    enabled: Boolean(finding.data?.assetId)
   })
   const userProfileById = useMemo(
     () => createUserProfileById(users.data),
@@ -110,27 +110,25 @@ export function FindingDetailContent({
 
   const handleUpdate = useCallback(
     async <TKey extends FindingEditableField>(
+      findingData: Finding,
       key: TKey,
       value: Finding[TKey]
     ) => {
-      if (!finding.data) return
-
-      await updateFindingField(finding.data, key, value)
+      await updateFindingField(findingData, key, value)
     },
-    [finding.data, updateFindingField]
+    [updateFindingField]
   )
 
-  const handleCopyEvidence = useCallback(async () => {
-    if (!finding.data?.evidence) return
-
+  const handleCopyEvidence = useCallback(async (evidence: string) => {
+    if (!evidence) return
     try {
-      await navigator.clipboard.writeText(finding.data.evidence)
+      await navigator.clipboard.writeText(evidence)
       toast.success("Evidence copied")
     } catch (error) {
       console.error("Error copying evidence:", error)
       toast.error("Failed to copy evidence")
     }
-  }, [finding.data?.evidence])
+  }, [])
 
   function formatDateTime(value: Date | null | undefined) {
     if (!value) return "Not available"
@@ -164,15 +162,21 @@ export function FindingDetailContent({
     )
   }
 
-  function AssigneeLabel({ className }: { className?: string }) {
+  function AssigneeLabel({
+    findingData,
+    className
+  }: {
+    findingData: Finding
+    className?: string
+  }) {
     return (
       <UserLabel
-        userId={displayData!.assigneeId}
+        userId={findingData.assigneeId}
         user={
-          displayData!.assigneeId && users.isPending
+          findingData.assigneeId && users.isPending
             ? undefined
-            : displayData!.assigneeId
-              ? (userProfileById.get(displayData!.assigneeId) ?? null)
+            : findingData.assigneeId
+              ? (userProfileById.get(findingData.assigneeId) ?? null)
               : null
         }
         emptyLabel="Unassigned"
@@ -182,8 +186,8 @@ export function FindingDetailContent({
     )
   }
 
-  function getAssigneeEditValue() {
-    return displayData!.assigneeId ?? unassignedAssigneeValue
+  function getAssigneeEditValue(findingData: Finding) {
+    return findingData.assigneeId ?? unassignedAssigneeValue
   }
 
   function AssigneePicker({
@@ -271,32 +275,17 @@ export function FindingDetailContent({
     )
   }
 
-  async function handleSaveAssignee(value: string) {
+  async function handleSaveAssignee(findingData: Finding, value: string) {
     const assigneeId = value === unassignedAssigneeValue ? null : value
 
-    await handleUpdate("assigneeId", assigneeId)
+    await handleUpdate(findingData, "assigneeId", assigneeId)
   }
 
-  async function handleSaveDueDate(value: string) {
-    await handleUpdate("dueDate", parseDateInputValue(value))
+  async function handleSaveDueDate(findingData: Finding, value: string) {
+    await handleUpdate(findingData, "dueDate", parseDateInputValue(value))
   }
 
-  function CardPlaceholder() {
-    return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Finding details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Skeleton className="h-10 w-2/3" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
-    )
-  }
-
-  function FindingOverviewCard() {
+  function FindingOverviewCard({ findingData }: { findingData: Finding }) {
     return (
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader className="gap-4">
@@ -304,11 +293,11 @@ export function FindingDetailContent({
             <div className="min-w-0 flex-1">{titleAction}</div>
             <div className="flex items-center gap-2">
               <SeverityBadge
-                severity={displayData!.severity}
+                severity={findingData.severity}
                 className="h-6 px-2.5 text-xs"
               />
               <FindingStatusBadge
-                status={displayData!.status}
+                status={findingData.status}
                 className="h-6 px-2.5 text-xs"
               />
             </div>
@@ -316,7 +305,7 @@ export function FindingDetailContent({
           <div className="space-y-3">
             <div className="space-y-2">
               <CardTitle className="text-2xl font-semibold tracking-tight">
-                {displayData!.vulnerability.title}
+                {findingData.vulnerability.title}
               </CardTitle>
               <CardDescription className="max-w-3xl text-sm leading-6">
                 Review the affected asset, validate the evidence, and update the
@@ -338,17 +327,17 @@ export function FindingDetailContent({
               />
               <DetailHighlightCard
                 label="Source"
-                value={displayData!.source}
+                value={findingData.source}
                 description="Imported or created finding origin"
               />
               <DetailHighlightCard
                 label="First seen"
-                value={formatDateTime(displayData!.firstSeen)}
+                value={formatDateTime(findingData.firstSeen)}
                 description="Earliest observed occurrence"
               />
               <DetailHighlightCard
                 label="Last seen"
-                value={formatDateTime(displayData!.lastSeen)}
+                value={formatDateTime(findingData.lastSeen)}
                 description="Most recent observed occurrence"
               />
             </div>
@@ -358,14 +347,14 @@ export function FindingDetailContent({
     )
   }
 
-  function FindingSidebar() {
+  function FindingSidebar({ findingData }: { findingData: Finding }) {
     return (
       <MetadataSidebar title="Assessment" icon={ShieldAlert}>
         <div className="space-y-4">
           <MetadataDetailRow
             label="Severity"
             editable={{
-              value: displayData!.severity,
+              value: findingData.severity,
               displayElement: (severityValue) => (
                 <SeverityBadge
                   severity={severityValue}
@@ -381,13 +370,13 @@ export function FindingDetailContent({
               },
               editOnClick: true,
               showEditIcon: false,
-              onSave: (value) => handleUpdate("severity", value)
+              onSave: (value) => handleUpdate(findingData, "severity", value)
             }}
           />
           <MetadataDetailRow
             label="Status"
             editable={{
-              value: displayData!.status,
+              value: findingData.status,
               displayElement: (statusValue) => (
                 <FindingStatusBadge
                   status={statusValue}
@@ -403,36 +392,36 @@ export function FindingDetailContent({
               },
               editOnClick: true,
               showEditIcon: false,
-              onSave: (value) => handleUpdate("status", value)
+              onSave: (value) => handleUpdate(findingData, "status", value)
             }}
           />
           <MetadataDetailRow
             label="Source"
             editable={{
-              value: displayData!.source,
+              value: findingData.source,
               editElement: { type: "input" },
               editOnClick: true,
               showEditIcon: false,
-              onSave: (value) => handleUpdate("source", value)
+              onSave: (value) => handleUpdate(findingData, "source", value)
             }}
           />
           <MetadataDetailRow
             label="Due Date"
             editable={{
-              value: formatDateOnly(displayData!.dueDate),
+              value: formatDateOnly(findingData.dueDate),
               displayElement: () => (
                 <span
                   className={
-                    displayData!.dueDate ? undefined : "text-muted-foreground"
+                    findingData.dueDate ? undefined : "text-muted-foreground"
                   }
                 >
-                  {formatDateOnly(displayData!.dueDate)}
+                  {formatDateOnly(findingData.dueDate)}
                 </span>
               ),
               editElement: { type: "input", inputType: "date" },
               editOnClick: true,
               showEditIcon: false,
-              onSave: handleSaveDueDate
+              onSave: (value) => handleSaveDueDate(findingData, value)
             }}
           />
         </div>
@@ -440,11 +429,11 @@ export function FindingDetailContent({
         <div className="space-y-3">
           <MetadataDetailRow
             label="Created by"
-            value={<UserLabel userId={displayData!.createdBy} />}
+            value={<UserLabel userId={findingData.createdBy} />}
           />
           <MetadataDetailRow
             label="Updated by"
-            value={<UserLabel userId={displayData!.updatedBy} />}
+            value={<UserLabel userId={findingData.updatedBy} />}
           />
           <MetadataDetailRow
             label="Asset"
@@ -457,9 +446,9 @@ export function FindingDetailContent({
           <MetadataDetailRow
             label="Assignee"
             editable={{
-              value: getAssigneeEditValue(),
-              onSave: handleSaveAssignee,
-              displayElement: () => <AssigneeLabel />,
+              value: getAssigneeEditValue(findingData),
+              onSave: (value) => handleSaveAssignee(findingData, value),
+              displayElement: () => <AssigneeLabel findingData={findingData} />,
               editElement: {
                 type: "custom",
                 hideActions: true,
@@ -481,18 +470,18 @@ export function FindingDetailContent({
           />
           <MetadataDetailRow
             label="Created"
-            value={formatDateTime(displayData!.createdAt)}
+            value={formatDateTime(findingData.createdAt)}
           />
           <MetadataDetailRow
             label="Updated"
-            value={formatDateTime(displayData!.updatedAt)}
+            value={formatDateTime(findingData.updatedAt)}
           />
         </div>
       </MetadataSidebar>
     )
   }
 
-  function VulnerabilityCard() {
+  function VulnerabilityCard({ findingData }: { findingData: Finding }) {
     return (
       <Card className="w-full border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader className="gap-3">
@@ -502,13 +491,13 @@ export function FindingDetailContent({
                 Vulnerability reference
               </Badge>
               <CardTitle className="text-xl font-semibold">
-                {finding.data?.vulnerability.title}
+                {findingData.vulnerability.title}
               </CardTitle>
             </div>
             <CardAction>
               <Link
                 to="/vulnerabilities/$id"
-                params={{ id: finding.data?.vulnerability.id ?? "" }}
+                params={{ id: findingData.vulnerability.id }}
                 disabled={finding.isLoading}
               >
                 <Button variant="ghost" size="icon-sm" className="rounded-xl">
@@ -518,12 +507,7 @@ export function FindingDetailContent({
             </CardAction>
           </div>
           <CardDescription>
-            <SeverityBadge
-              severity={
-                finding.data?.vulnerability.severity ??
-                VulnerabilitySeverity.Info
-              }
-            />
+            <SeverityBadge severity={findingData.vulnerability.severity} />
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -532,10 +516,7 @@ export function FindingDetailContent({
               label="Vulnerability severity"
               value={
                 <SeverityBadge
-                  severity={
-                    finding.data?.vulnerability.severity ??
-                    VulnerabilitySeverity.Info
-                  }
+                  severity={findingData.vulnerability.severity}
                   className="h-7 px-3 text-sm"
                 />
               }
@@ -548,15 +529,15 @@ export function FindingDetailContent({
             />
           </div>
           <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5">
-            <Markdown>{finding.data?.vulnerability.description ?? ""}</Markdown>
+            <Markdown>{findingData.vulnerability.description ?? ""}</Markdown>
           </div>
         </CardContent>
       </Card>
     )
   }
 
-  function EvidenceCard() {
-    const evidence = finding.data?.evidence?.trim() ?? ""
+  function EvidenceCard({ findingData }: { findingData: Finding }) {
+    const evidence = findingData.evidence?.trim() ?? ""
     const hasEvidence = evidence.length > 0
 
     return (
@@ -575,7 +556,7 @@ export function FindingDetailContent({
               size="sm"
               className="rounded-xl"
               disabled={!hasEvidence}
-              onClick={handleCopyEvidence}
+              onClick={() => handleCopyEvidence(evidence)}
             >
               <Copy />
               Copy evidence
@@ -651,17 +632,25 @@ export function FindingDetailContent({
     )
   }
 
-  return finding.isPending ? (
-    <CardPlaceholder />
-  ) : (
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="flex min-w-0 flex-col gap-4">
-        <FindingOverviewCard />
-        <AssetInfoItem assetId={displayData?.assetId ?? ""} />
-        <VulnerabilityCard />
-        <EvidenceCard />
-      </div>
-      <FindingSidebar />
-    </div>
+  return (
+    <DetailQueryBoundary
+      query={finding}
+      title="Finding details"
+      errorTitle="Unable to load finding"
+      errorDescription="The selected finding could not be loaded."
+      missingMessage="The API did not return a finding record."
+    >
+      {(findingData) => (
+        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="flex min-w-0 flex-col gap-4">
+            <FindingOverviewCard findingData={findingData} />
+            <AssetInfoItem assetId={findingData.assetId} />
+            <VulnerabilityCard findingData={findingData} />
+            <EvidenceCard findingData={findingData} />
+          </div>
+          <FindingSidebar findingData={findingData} />
+        </div>
+      )}
+    </DetailQueryBoundary>
   )
 }

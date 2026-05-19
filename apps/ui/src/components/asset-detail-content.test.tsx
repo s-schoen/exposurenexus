@@ -42,6 +42,7 @@ Element.prototype.scrollIntoView = () => undefined
 const {
   CustomFieldsError,
   EmptyCustomFields,
+  ErrorState,
   LoadingCustomFields,
   OwnerUpdateError,
   WithCustomFields
@@ -334,6 +335,15 @@ describe("AssetDetailContent stories", () => {
     await waitFor(() => {
       expect(screen.getAllByText("web-01").length).toBeGreaterThan(0)
       expect(screen.getByText("Unable to load custom fields")).toBeTruthy()
+    })
+  })
+
+  it("renders an error state when the primary asset query fails", async () => {
+    render(<ErrorState />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Unable to load asset")).toBeTruthy()
+      expect(screen.getByText("Asset failed")).toBeTruthy()
     })
   })
 })
