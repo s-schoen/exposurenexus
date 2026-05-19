@@ -126,7 +126,7 @@ function UserDetailContentStoryShell({
 }
 
 const meta = {
-  title: "Components/UserDetailContent",
+  title: "Resources/Users/Detail",
   component: UserDetailContentStoryShell,
   parameters: {
     layout: "padded"

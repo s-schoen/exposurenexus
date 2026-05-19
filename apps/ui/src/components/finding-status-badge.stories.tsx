@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite"
 import { FindingStatusBadge } from "@/components/finding-status-badge.tsx"
 
 const meta = {
-  title: "Components/FindingStatusBadge",
+  title: "Resources/Findings/StatusBadge",
   component: FindingStatusBadge,
   parameters: {
     layout: "centered"

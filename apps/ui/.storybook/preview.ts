@@ -4,6 +4,31 @@ import "../src/styles.css"
 
 const preview: Preview = {
   parameters: {
+    options: {
+      storySort: {
+        order: [
+          "App",
+          ["Shell", ["Header", "Sidebar", "AccountMenu"]],
+          "Resources",
+          [
+            "Assets",
+            ["Table", "Detail", "CreateDialog", "Combobox", "InfoItem"],
+            "Findings",
+            ["Table", "Detail", "StatusBadge", "SeverityChart"],
+            "Vulnerabilities",
+            ["Table", "Detail", "Form"],
+            "Users",
+            ["Table", "Detail", "Form"],
+            "Roles",
+            ["Table", "Detail", "Form"],
+            "Custom Fields",
+            ["Table", "Detail", "Form"]
+          ],
+          "Components"
+        ]
+      }
+    },
+
     controls: {
       matchers: {
         color: /(background|color)$/i,

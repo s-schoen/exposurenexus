@@ -177,7 +177,7 @@ function AssetTableStoryShell({
 }
 
 const meta = {
-  title: "Components/AssetTable",
+  title: "Resources/Assets/Table",
   component: AssetTableStoryShell,
   tags: ["!test"],
   parameters: {

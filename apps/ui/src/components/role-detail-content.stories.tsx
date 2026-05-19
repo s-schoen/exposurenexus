@@ -35,7 +35,9 @@ function RoleDetailContentStoryShell({
 
     return client
   }, [role, roleId, scenario])
-  const [ready, setReady] = useState(scenario !== "loading" && scenario !== "error")
+  const [ready, setReady] = useState(
+    scenario !== "loading" && scenario !== "error"
+  )
 
   useLayoutEffect(() => {
     if (scenario === "success") {
@@ -85,7 +87,7 @@ function RoleDetailContentStoryShell({
 }
 
 const meta = {
-  title: "Components/RoleDetailContent",
+  title: "Resources/Roles/Detail",
   component: RoleDetailContentStoryShell,
   parameters: {
     layout: "padded"

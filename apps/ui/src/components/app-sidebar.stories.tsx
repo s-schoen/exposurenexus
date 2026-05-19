@@ -76,7 +76,7 @@ function AppSidebarStoryShell({
 }
 
 const meta = {
-  title: "Components/AppSidebar",
+  title: "App/Shell/Sidebar",
   component: AppSidebarStoryShell,
   parameters: {
     layout: "fullscreen"

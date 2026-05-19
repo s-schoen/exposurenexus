@@ -67,7 +67,7 @@ function AssetInfoItemStoryShell({
 }
 
 const meta = {
-  title: "Components/AssetInfoItem",
+  title: "Resources/Assets/InfoItem",
   component: AssetInfoItemStoryShell,
   parameters: {
     layout: "centered"

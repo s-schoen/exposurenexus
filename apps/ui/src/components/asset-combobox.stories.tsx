@@ -69,7 +69,7 @@ function AssetComboboxStoryShell({
 }
 
 const meta = {
-  title: "Components/AssetCombobox",
+  title: "Resources/Assets/Combobox",
   component: AssetComboboxStoryShell,
   parameters: {
     layout: "centered"

@@ -75,14 +75,12 @@ function RoleTableStoryShell({
   return (
     <div className="w-full max-w-6xl">
       <RoleTable
-        query={
-          createQueryResult({
-            data: pending ? undefined : roles,
-            isFetching: false,
-            isPending: pending,
-            refetch: () => Promise.resolve({ data: roles })
-          })
-        }
+        query={createQueryResult({
+          data: pending ? undefined : roles,
+          isFetching: false,
+          isPending: pending,
+          refetch: () => Promise.resolve({ data: roles })
+        })}
         selectedRoleId={selectedRoleId}
         onSelectRole={onSelectRole}
         onOpenRole={onOpenRole}
@@ -96,7 +94,7 @@ function RoleTableStoryShell({
 }
 
 const meta = {
-  title: "Components/RoleTable",
+  title: "Resources/Roles/Table",
   component: RoleTableStoryShell,
   tags: ["!test"],
   parameters: {
@@ -137,7 +135,9 @@ export const Creatable: Story = {
     onCreateRole: fn()
   },
   play: async ({ canvas, args }) => {
-    await userEvent.click(await canvas.findByRole("button", { name: /new role/i }))
+    await userEvent.click(
+      await canvas.findByRole("button", { name: /new role/i })
+    )
     await expect(args.onCreateRole).toHaveBeenCalled()
   }
 }

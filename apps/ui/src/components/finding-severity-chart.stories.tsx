@@ -20,7 +20,7 @@ const highRiskData: Record<VulnerabilitySeverity, number> = {
 }
 
 const meta = {
-  title: "Components/FindingSeverityChart",
+  title: "Resources/Findings/SeverityChart",
   component: FindingSeverityChart,
   parameters: {
     layout: "padded"
