@@ -1,4 +1,5 @@
 import { keepPreviousData } from "@tanstack/react-query"
+import { userProfileSchema } from "@exposurenexus/types/model/user"
 import type {
   CreateUserProfile,
   UpdateUserProfile,
@@ -23,7 +24,7 @@ async function listUsers(): Promise<Array<UserProfile>> {
     throw error
   }
 
-  return parseArrayReply<UserProfile>(response)
+  return parseArrayReply(response, userProfileSchema)
 }
 
 async function getUserByID(id: string): Promise<UserProfile> {
@@ -37,7 +38,7 @@ async function getUserByID(id: string): Promise<UserProfile> {
     throw error
   }
 
-  return parseObjectReply<UserProfile>(response)
+  return parseObjectReply(response, userProfileSchema)
 }
 
 export async function createUser(
@@ -57,7 +58,7 @@ export async function createUser(
     throw error
   }
 
-  return parseObjectReply<UserProfile>(response)
+  return parseObjectReply(response, userProfileSchema)
 }
 
 export async function updateUser(
@@ -78,7 +79,7 @@ export async function updateUser(
     throw error
   }
 
-  return parseObjectReply<UserProfile>(response)
+  return parseObjectReply(response, userProfileSchema)
 }
 
 export function createListUsersQueryOptions() {

@@ -169,17 +169,6 @@ describe("api common helpers", () => {
     })
   })
 
-  it("parses object replies", async () => {
-    await expect(
-      parseObjectReply<{ ok: boolean }>(
-        jsonResponse({
-          correlationId: "api-test-request",
-          data: { ok: true }
-        })
-      )
-    ).resolves.toEqual({ ok: true })
-  })
-
   it("parses object replies with a schema", async () => {
     await expect(
       parseObjectReply(
@@ -204,5 +193,31 @@ describe("api common helpers", () => {
         z.strictObject({ ok: z.boolean() })
       )
     ).resolves.toEqual([{ ok: true }])
+  })
+
+  it("rejects malformed object replies with a schema", async () => {
+    await expect(
+      parseObjectReply(
+        jsonResponse({
+          correlationId: "api-test-request",
+          data: { ok: "yes" }
+        }),
+        z.strictObject({ ok: z.boolean() })
+      )
+    ).rejects.toThrow()
+  })
+
+  it("rejects malformed array replies with a schema", async () => {
+    await expect(
+      parseArrayReply(
+        jsonResponse({
+          correlationId: "api-test-request",
+          data: {
+            items: [{ ok: "yes" }]
+          }
+        }),
+        z.strictObject({ ok: z.boolean() })
+      )
+    ).rejects.toThrow()
   })
 })

@@ -1,4 +1,12 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
+import {
+  assetSchema,
+  assetWithCustomFieldsSchema
+} from "@exposurenexus/types/model/asset"
+import {
+  assetCustomFieldDefinitionSchema,
+  assetCustomFieldValueSchema
+} from "@exposurenexus/types/model/asset-custom-field"
 import type {
   Asset,
   AssetType,
@@ -30,7 +38,7 @@ async function listAssets(): Promise<Array<Asset>> {
     throw error
   }
 
-  return parseArrayReply<Asset>(response)
+  return parseArrayReply(response, assetSchema)
 }
 
 export async function listAssetsWithCustomFields(): Promise<
@@ -46,7 +54,7 @@ export async function listAssetsWithCustomFields(): Promise<
     throw error
   }
 
-  return parseArrayReply<AssetWithCustomFields>(response)
+  return parseArrayReply(response, assetWithCustomFieldsSchema)
 }
 
 export async function deleteAsset(id: string): Promise<Asset> {
@@ -60,7 +68,7 @@ export async function deleteAsset(id: string): Promise<Asset> {
     throw error
   }
 
-  return parseObjectReply<Asset>(response)
+  return parseObjectReply(response, assetSchema)
 }
 
 async function getAssetByID(id: string): Promise<Asset> {
@@ -74,7 +82,7 @@ async function getAssetByID(id: string): Promise<Asset> {
     throw error
   }
 
-  return parseObjectReply<Asset>(response)
+  return parseObjectReply(response, assetSchema)
 }
 
 export async function listAssetCustomFieldValues(
@@ -90,7 +98,7 @@ export async function listAssetCustomFieldValues(
     throw error
   }
 
-  return parseArrayReply<AssetCustomFieldValue>(response)
+  return parseArrayReply(response, assetCustomFieldValueSchema)
 }
 
 export async function listAvailableAssetCustomFieldDefinitions(
@@ -109,7 +117,7 @@ export async function listAvailableAssetCustomFieldDefinitions(
     throw error
   }
 
-  return parseArrayReply<AssetCustomFieldDefinition>(response)
+  return parseArrayReply(response, assetCustomFieldDefinitionSchema)
 }
 
 export async function updateAssetCustomFieldValues(
@@ -130,7 +138,7 @@ export async function updateAssetCustomFieldValues(
     throw error
   }
 
-  return parseArrayReply<AssetCustomFieldValue>(response)
+  return parseArrayReply(response, assetCustomFieldValueSchema)
 }
 
 export async function replaceAssetCustomFieldAssociations(
@@ -154,7 +162,7 @@ export async function replaceAssetCustomFieldAssociations(
     throw error
   }
 
-  return parseArrayReply<AssetCustomFieldValue>(response)
+  return parseArrayReply(response, assetCustomFieldValueSchema)
 }
 
 export async function createAsset(
@@ -180,7 +188,7 @@ export async function createAsset(
     throw error
   }
 
-  return parseObjectReply<Asset>(response)
+  return parseObjectReply(response, assetSchema)
 }
 
 export async function updateAssetOwner(
@@ -203,7 +211,7 @@ export async function updateAssetOwner(
     throw error
   }
 
-  return parseObjectReply<Asset>(response)
+  return parseObjectReply(response, assetSchema)
 }
 
 export function createListAssetsQueryOptions() {

@@ -1,4 +1,5 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
+import { assetCustomFieldDefinitionSchema } from "@exposurenexus/types/model/asset-custom-field"
 import type {
   AssetCustomFieldDefinition,
   CreateAssetCustomFieldDefinition,
@@ -25,7 +26,7 @@ export async function listAssetCustomFieldDefinitions(): Promise<
     throw error
   }
 
-  return parseArrayReply<AssetCustomFieldDefinition>(response)
+  return parseArrayReply(response, assetCustomFieldDefinitionSchema)
 }
 
 export async function getAssetCustomFieldDefinitionByID(
@@ -41,7 +42,7 @@ export async function getAssetCustomFieldDefinitionByID(
     throw error
   }
 
-  return parseObjectReply<AssetCustomFieldDefinition>(response)
+  return parseObjectReply(response, assetCustomFieldDefinitionSchema)
 }
 
 export async function createAssetCustomFieldDefinition(
@@ -61,7 +62,7 @@ export async function createAssetCustomFieldDefinition(
     throw error
   }
 
-  return parseObjectReply<AssetCustomFieldDefinition>(response)
+  return parseObjectReply(response, assetCustomFieldDefinitionSchema)
 }
 
 export async function updateAssetCustomFieldDefinition(
@@ -82,7 +83,7 @@ export async function updateAssetCustomFieldDefinition(
     throw error
   }
 
-  return parseObjectReply<AssetCustomFieldDefinition>(response)
+  return parseObjectReply(response, assetCustomFieldDefinitionSchema)
 }
 
 export async function deleteAssetCustomFieldDefinition(
@@ -98,7 +99,7 @@ export async function deleteAssetCustomFieldDefinition(
     throw error
   }
 
-  return parseObjectReply<AssetCustomFieldDefinition>(response)
+  return parseObjectReply(response, assetCustomFieldDefinitionSchema)
 }
 
 export function createListAssetCustomFieldDefinitionsQueryOptions() {

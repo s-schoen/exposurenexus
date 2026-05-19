@@ -1,6 +1,7 @@
 import { keepPreviousData } from "@tanstack/react-query"
 import {
   findingSchema,
+  FindingStatistics as findingStatisticsSchema,
   reclassifyFindingsResultSchema
 } from "@exposurenexus/types/model/finding"
 import type {
@@ -72,7 +73,7 @@ async function getFindingStats(): Promise<FindingStatistics> {
     throw error
   }
 
-  return parseObjectReply<FindingStatistics>(response)
+  return parseObjectReply(response, findingStatisticsSchema)
 }
 
 export async function createFinding(f: CreateFinding): Promise<Finding> {

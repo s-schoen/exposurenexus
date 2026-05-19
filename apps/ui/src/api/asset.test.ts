@@ -136,6 +136,26 @@ describe("asset custom field value api", () => {
     )
   })
 
+  it("rejects malformed asset replies", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          items: [
+            {
+              ...asset,
+              type: "database"
+            }
+          ]
+        }
+      })
+    )
+
+    const queryOptions = createListAssetsQueryOptions()
+    const queryFn = queryOptions.queryFn as () => Promise<Array<Asset>>
+
+    await expect(queryFn()).rejects.toThrow()
+  })
+
   it("creates detail query options and gets assets by id", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
@@ -279,6 +299,23 @@ describe("asset custom field value api", () => {
         credentials: "include"
       })
     )
+  })
+
+  it("rejects malformed asset custom field value replies", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          items: [
+            {
+              ...values[0],
+              fieldId: "not-a-uuid"
+            }
+          ]
+        }
+      })
+    )
+
+    await expect(listAssetCustomFieldValues(assetId)).rejects.toThrow()
   })
 
   it("lists custom field values for an asset", async () => {

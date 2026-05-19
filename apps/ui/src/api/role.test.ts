@@ -87,6 +87,28 @@ describe("role api", () => {
     )
   })
 
+  it("rejects malformed role replies", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          items: [
+            {
+              ...role,
+              permissions: [
+                {
+                  resource: "billing",
+                  verb: PermissionVerb.Read
+                }
+              ]
+            }
+          ]
+        }
+      })
+    )
+
+    await expect(createListRolesQueryOptions().queryFn()).rejects.toThrow()
+  })
+
   it("creates detail query options and parses role detail replies", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({

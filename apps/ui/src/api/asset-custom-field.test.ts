@@ -105,6 +105,23 @@ describe("asset custom field api", () => {
     )
   })
 
+  it("rejects malformed custom field definition replies", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          items: [
+            {
+              ...definition,
+              options: []
+            }
+          ]
+        }
+      })
+    )
+
+    await expect(listAssetCustomFieldDefinitions()).rejects.toThrow()
+  })
+
   it("gets a custom field definition by id", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({

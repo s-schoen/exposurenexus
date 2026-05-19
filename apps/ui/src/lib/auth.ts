@@ -1,4 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
+import { z } from "zod/v4"
+import { dateSchema } from "@exposurenexus/types/model/date"
+import { userProfileSchema } from "@exposurenexus/types/model/user"
 import type { AuthSessionDataReply } from "@exposurenexus/types/api"
 import type { UserProfile } from "@exposurenexus/types/model/user"
 import {
@@ -9,6 +12,20 @@ import {
 } from "@/api/common.ts"
 
 const AUTH_SESSION_QUERY_KEY = ["auth", "session"] as const
+const authSessionReplySchema = z.strictObject({
+  user: userProfileSchema,
+  session: z.strictObject({
+    id: z.uuidv4(),
+    userId: z.uuidv4(),
+    sourceIp: z.string().nullable(),
+    userAgent: z.string().nullable(),
+    createdAt: dateSchema,
+    expiresAt: dateSchema
+  })
+})
+const signOutReplySchema = z.strictObject({
+  revoked: z.boolean()
+})
 
 export type Session = AuthSessionDataReply
 export type User = UserProfile
@@ -35,7 +52,7 @@ async function parseAuthSessionReply(
     throw await parseErrorReply(response)
   }
 
-  return parseObjectReply<AuthSessionDataReply>(response)
+  return parseObjectReply(response, authSessionReplySchema)
 }
 
 export async function getSession(): Promise<
@@ -84,7 +101,7 @@ export async function signOut(
     throw await parseErrorReply(response)
   }
 
-  const data = await parseObjectReply<{ revoked: boolean }>(response)
+  const data = await parseObjectReply(response, signOutReplySchema)
   options.fetchOptions?.onSuccess?.()
 
   return { data }
