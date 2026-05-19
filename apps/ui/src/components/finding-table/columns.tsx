@@ -7,14 +7,13 @@ import type { UserProfile } from "@exposurenexus/types/model/user"
 import type { ColumnDef } from "@tanstack/react-table"
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
 import { SEVERITY_ORDER } from "@/components/finding-table/constants.ts"
+import { FindingStatusBadge } from "@/components/finding-status-badge.tsx"
 import { SeverityBadge } from "@/components/severity-badge.tsx"
-import { Badge } from "@/components/ui/badge.tsx"
 import {
   UserLabel,
   formatUserProfileReference,
   getUserProfileDisplayName
 } from "@/components/user-label.tsx"
-import { formatFindingStatus } from "@/lib/format.ts"
 
 export const FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE =
   "__unassigned_assignee__"
@@ -27,14 +26,6 @@ const overdueStatuses = new Set<FindingStatus>([
   FindingStatus.Active,
   FindingStatus.Confirmed
 ])
-
-function FindingStatusBadge({ status }: { status: FindingStatus }) {
-  return (
-    <Badge variant="outline" className="rounded-full bg-background px-2.5">
-      {formatFindingStatus(status)}
-    </Badge>
-  )
-}
 
 function getDateTimestamp(value: Date | null | undefined) {
   if (!value) {

@@ -1,6 +1,7 @@
 import { FindingStatus } from "@exposurenexus/types/model/finding"
 import { useMemo } from "react"
 import type { ChartConfig } from "@/components/ui/chart.tsx"
+import { findingStatusChartColor } from "@/lib/colors.ts"
 import { formatFindingStatus } from "@/lib/format.ts"
 import {
   Card,
@@ -42,35 +43,35 @@ export function FindingStatusChart({
     },
     [FindingStatus.Active]: {
       label: formatFindingStatus(FindingStatus.Active),
-      color: `var(--chart-1)`
+      color: findingStatusChartColor(FindingStatus.Active)
     },
     [FindingStatus.Confirmed]: {
       label: formatFindingStatus(FindingStatus.Confirmed),
-      color: `var(--chart-1)`
+      color: findingStatusChartColor(FindingStatus.Confirmed)
     },
     [FindingStatus.Mitigated]: {
       label: formatFindingStatus(FindingStatus.Mitigated),
-      color: `var(--chart-1)`
+      color: findingStatusChartColor(FindingStatus.Mitigated)
     },
     [FindingStatus.Duplicate]: {
       label: formatFindingStatus(FindingStatus.Duplicate),
-      color: `var(--chart-1)`
+      color: findingStatusChartColor(FindingStatus.Duplicate)
     },
     [FindingStatus.OutOfScope]: {
       label: formatFindingStatus(FindingStatus.OutOfScope),
-      color: `var(--chart-1)`
+      color: findingStatusChartColor(FindingStatus.OutOfScope)
     },
     [FindingStatus.RiskAccepted]: {
       label: formatFindingStatus(FindingStatus.RiskAccepted),
-      color: `var(--chart-1)`
+      color: findingStatusChartColor(FindingStatus.RiskAccepted)
     },
     [FindingStatus.FalsePositive]: {
       label: formatFindingStatus(FindingStatus.FalsePositive),
-      color: `var(--chart-1)`
+      color: findingStatusChartColor(FindingStatus.FalsePositive)
     },
     [FindingStatus.Inactive]: {
       label: formatFindingStatus(FindingStatus.Inactive),
-      color: `var(--chart-1)`
+      color: findingStatusChartColor(FindingStatus.Inactive)
     }
   } satisfies ChartConfig
 
