@@ -25,6 +25,7 @@ type AssetDetailStoryArgs = {
     | "empty"
     | "loading-custom-fields"
     | "error-custom-fields"
+    | "error-asset"
     | "error-owner-update"
 }
 
@@ -141,7 +142,9 @@ function AssetDetailContentStoryShell({
       }
     })
 
-    client.setQueryData(["assets", asset.id], asset)
+    if (scenario !== "error-asset") {
+      client.setQueryData(["assets", asset.id], asset)
+    }
     client.setQueryData(["users"], USERS)
 
     if (
@@ -222,6 +225,15 @@ function AssetDetailContentStoryShell({
 
       if (!requestUrl.includes(customFieldPath)) {
         if (requestUrl.includes(assetPath)) {
+          if (scenario === "error-asset") {
+            return new Response(JSON.stringify({ error: "Asset failed" }), {
+              status: 500,
+              headers: {
+                "Content-Type": "application/json"
+              }
+            })
+          }
+
           return createAssetResponse(assetRef.current)
         }
 
@@ -489,6 +501,12 @@ export const LoadingCustomFields: Story = {
 export const CustomFieldsError: Story = {
   args: {
     scenario: "error-custom-fields"
+  }
+}
+
+export const ErrorState: Story = {
+  args: {
+    scenario: "error-asset"
   }
 }
 

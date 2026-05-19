@@ -1,4 +1,4 @@
-import { CircleAlert, ListChecks, Plus, Trash2 } from "lucide-react"
+import { ListChecks, Plus, Trash2 } from "lucide-react"
 import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
 import type {
   AssetCustomFieldDefinition,
@@ -14,7 +14,6 @@ import {
 } from "@/components/asset-custom-field-detail-content/helpers.ts"
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
 import { Inplace } from "@/components/inplace.tsx"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
 import { Badge } from "@/components/ui/badge.tsx"
 import { Button } from "@/components/ui/button.tsx"
 import {
@@ -24,7 +23,6 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card.tsx"
-import { Skeleton } from "@/components/ui/skeleton.tsx"
 
 const DETAIL_CARD_CLASS =
   "border-border/60 bg-shell-panel shadow-(--shell-shadow)"
@@ -43,43 +41,6 @@ export function CustomFieldRequiredBadge({ required }: { required: boolean }) {
     >
       {required ? "Required" : "Optional"}
     </Badge>
-  )
-}
-
-export function AssetCustomFieldDetailPlaceholder() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Custom field details</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <Skeleton className="h-10 w-2/3" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </CardContent>
-    </Card>
-  )
-}
-
-export function AssetCustomFieldDetailError({ message }: { message?: string }) {
-  return (
-    <Card className={DETAIL_CARD_CLASS}>
-      <CardHeader>
-        <CardTitle>Custom field details</CardTitle>
-        <CardDescription>
-          The selected custom field could not be loaded.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Alert variant="destructive">
-          <CircleAlert />
-          <AlertTitle>Unable to load custom field</AlertTitle>
-          <AlertDescription>
-            {message ?? "The API did not return a custom field record."}
-          </AlertDescription>
-        </Alert>
-      </CardContent>
-    </Card>
   )
 }
 
