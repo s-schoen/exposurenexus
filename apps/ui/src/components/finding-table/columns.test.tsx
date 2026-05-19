@@ -198,6 +198,7 @@ describe("createFindingColumns", () => {
 
     renderCell(findColumn(columns, "status"))
     expect(screen.getByText("Active")).toBeTruthy()
+    expect(screen.getByText("Active").className).toContain("text-red-700")
     cleanup()
 
     renderCell(findColumn(columns, "assetId"))
@@ -255,9 +256,9 @@ describe("createFindingColumns", () => {
     const { formatFindingDueDate } =
       await import("@/components/finding-table/columns.tsx")
 
-    expect(
-      formatFindingDueDate(new Date("2026-05-06T23:30:00.000Z"))
-    ).toBe("2026-05-06")
+    expect(formatFindingDueDate(new Date("2026-05-06T23:30:00.000Z"))).toBe(
+      "2026-05-06"
+    )
     expect(formatFindingDueDate(null)).toBe("No due date")
   })
 
@@ -573,9 +574,7 @@ describe("createFindingColumns", () => {
     })
 
     expect(assigneeColumn.filterFn?.(row, "assignee", [])).toBe(true)
-    expect(assigneeColumn.filterFn?.(row, "assignee", [assignee.id])).toBe(
-      true
-    )
+    expect(assigneeColumn.filterFn?.(row, "assignee", [assignee.id])).toBe(true)
     expect(
       assigneeColumn.filterFn?.(row, "assignee", [
         "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12"

@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { ChartConfig } from "@/components/ui/chart.tsx"
-import { severityColor } from "@/lib/colors.ts"
+import { severityChartColor } from "@/lib/colors.ts"
 import { formatSeverity } from "@/lib/format.ts"
 import {
   Card,
@@ -43,23 +43,23 @@ export function FindingSeverityChart({
     },
     [VulnerabilitySeverity.Info]: {
       label: formatSeverity(VulnerabilitySeverity.Info),
-      color: `var(--color-${severityColor(VulnerabilitySeverity.Info, false)})`
+      color: severityChartColor(VulnerabilitySeverity.Info)
     },
     [VulnerabilitySeverity.Low]: {
       label: formatSeverity(VulnerabilitySeverity.Low),
-      color: `var(--color-${severityColor(VulnerabilitySeverity.Low, false)})`
+      color: severityChartColor(VulnerabilitySeverity.Low)
     },
     [VulnerabilitySeverity.Medium]: {
       label: formatSeverity(VulnerabilitySeverity.Medium),
-      color: `var(--color-${severityColor(VulnerabilitySeverity.Medium, false)})`
+      color: severityChartColor(VulnerabilitySeverity.Medium)
     },
     [VulnerabilitySeverity.High]: {
       label: formatSeverity(VulnerabilitySeverity.High),
-      color: `var(--color-${severityColor(VulnerabilitySeverity.High, false)})`
+      color: severityChartColor(VulnerabilitySeverity.High)
     },
     [VulnerabilitySeverity.Critical]: {
       label: formatSeverity(VulnerabilitySeverity.Critical),
-      color: `var(--color-${severityColor(VulnerabilitySeverity.Critical, false)})`
+      color: severityChartColor(VulnerabilitySeverity.Critical)
     }
   } satisfies ChartConfig
 
