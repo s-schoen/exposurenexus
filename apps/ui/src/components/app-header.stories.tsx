@@ -57,7 +57,7 @@ function AppHeaderStoryShell() {
 }
 
 const meta = {
-  title: "Components/AppHeader",
+  title: "App/Shell/Header",
   component: AppHeaderStoryShell,
   parameters: {
     layout: "fullscreen"

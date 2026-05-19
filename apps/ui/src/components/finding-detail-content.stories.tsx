@@ -240,7 +240,7 @@ function createArrayResponse(data: Array<unknown>): Response {
 }
 
 const meta = {
-  title: "Components/FindingDetailContent",
+  title: "Resources/Findings/Detail",
   component: FindingDetailContentStoryShell,
   parameters: {
     layout: "padded"

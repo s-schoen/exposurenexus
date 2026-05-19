@@ -454,7 +454,7 @@ function applyCustomFieldValueUpdates(
 }
 
 const meta = {
-  title: "Components/AssetDetailContent",
+  title: "Resources/Assets/Detail",
   component: AssetDetailContentStoryShell,
   parameters: {
     layout: "padded"

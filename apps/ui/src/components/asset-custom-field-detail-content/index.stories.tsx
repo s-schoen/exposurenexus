@@ -104,7 +104,7 @@ function AssetCustomFieldDetailContentStoryShell({
 }
 
 const meta = {
-  title: "Components/AssetCustomFieldDetailContent",
+  title: "Resources/Custom Fields/Detail",
   component: AssetCustomFieldDetailContentStoryShell,
   parameters: {
     layout: "padded"

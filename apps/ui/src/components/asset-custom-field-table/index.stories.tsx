@@ -96,7 +96,7 @@ function AssetCustomFieldTableStoryShell({
 }
 
 const meta = {
-  title: "Components/AssetCustomFieldTable",
+  title: "Resources/Custom Fields/Table",
   component: AssetCustomFieldTableStoryShell,
   tags: ["!test"],
   parameters: {

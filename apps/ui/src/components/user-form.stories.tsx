@@ -67,7 +67,7 @@ function UserFormStoryShell(args: UserFormStoryArgs) {
 }
 
 const meta = {
-  title: "Components/UserForm",
+  title: "Resources/Users/Form",
   component: UserForm,
   parameters: {
     layout: "padded"

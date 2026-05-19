@@ -38,7 +38,7 @@ function AssetDialogStoryShell({
 }
 
 const meta = {
-  title: "Components/AssetDialog",
+  title: "Resources/Assets/CreateDialog",
   component: AssetDialogStoryShell,
   parameters: {
     layout: "centered"

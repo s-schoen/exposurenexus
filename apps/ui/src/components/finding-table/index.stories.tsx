@@ -6,7 +6,10 @@ import {
 } from "@tanstack/react-router"
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router"
 import { useLayoutEffect, useMemo, useRef, useState } from "react"
-import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding"
+import {
+  FindingSource,
+  FindingStatus
+} from "@exposurenexus/types/model/finding"
 import { AssetType } from "@exposurenexus/types/model/asset"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { Meta, StoryObj } from "@storybook/react-vite"
@@ -259,8 +262,7 @@ function FindingTableStoryShell({
     globalThis.fetch = async (input, init) => {
       const requestUrl = input instanceof Request ? input.url : String(input)
       const method = (
-        init?.method ??
-        (input instanceof Request ? input.method : "GET")
+        init?.method ?? (input instanceof Request ? input.method : "GET")
       ).toUpperCase()
 
       if (scenario === "loading" && requestUrl.endsWith("/api/findings")) {
@@ -292,7 +294,9 @@ function FindingTableStoryShell({
       const findingId = requestUrl.match(/\/api\/findings\/([^/?]+)$/)?.[1]
 
       if (findingId) {
-        const finding = findingsRef.current.find((item) => item.id === findingId)
+        const finding = findingsRef.current.find(
+          (item) => item.id === findingId
+        )
 
         if (!finding) {
           return new Response(JSON.stringify({ error: "Finding not found" }), {
@@ -381,7 +385,7 @@ function createArrayResponse(data: Array<unknown>): Response {
 }
 
 const meta = {
-  title: "Components/FindingTable",
+  title: "Resources/Findings/Table",
   component: FindingTableStoryShell,
   tags: ["!test"],
   parameters: {

@@ -6,7 +6,10 @@ import {
   RoleForm,
   getAvailableRolePermissions
 } from "@/components/role-form.tsx"
-import { CUSTOM_AUDITOR_ROLE, ROLE_FIXTURES } from "@/components/role-fixtures.ts"
+import {
+  CUSTOM_AUDITOR_ROLE,
+  ROLE_FIXTURES
+} from "@/components/role-fixtures.ts"
 
 type RoleFormStoryArgs = ComponentProps<typeof RoleForm>
 
@@ -37,7 +40,7 @@ function RoleFormStoryShell(args: RoleFormStoryArgs) {
 }
 
 const meta = {
-  title: "Components/RoleForm",
+  title: "Resources/Roles/Form",
   component: RoleForm,
   parameters: {
     layout: "padded"

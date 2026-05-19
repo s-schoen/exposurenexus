@@ -83,7 +83,7 @@ function AccountMenuStoryShell({ scenario }: AccountMenuStoryArgs) {
 }
 
 const meta = {
-  title: "Components/AccountMenu",
+  title: "App/Shell/AccountMenu",
   component: AccountMenuStoryShell,
   parameters: {
     layout: "centered"

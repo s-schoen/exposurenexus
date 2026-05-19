@@ -98,7 +98,7 @@ function UserTableStoryShell({
 }
 
 const meta = {
-  title: "Components/UserTable",
+  title: "Resources/Users/Table",
   component: UserTableStoryShell,
   tags: ["!test"],
   parameters: {

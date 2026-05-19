@@ -34,7 +34,7 @@ function AssetCustomFieldFormStoryShell(args: AssetCustomFieldFormStoryArgs) {
 }
 
 const meta = {
-  title: "Components/AssetCustomFieldForm",
+  title: "Resources/Custom Fields/Form",
   component: AssetCustomFieldForm,
   parameters: {
     layout: "padded"
