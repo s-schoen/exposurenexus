@@ -39,6 +39,8 @@ export const Route = createFileRoute("/_authenticated/findings/new")({
 })
 
 const unassignedAssigneeValue = "__unassigned__"
+const findingStatuses = Object.values(FindingStatus)
+const vulnerabilitySeverities = Object.values(VulnerabilitySeverity)
 
 const defaultFindingValues: CreateFinding = {
   vulnerabilityId: "",
@@ -62,6 +64,16 @@ function parseDateInputValue(value: string) {
   if (!value) return null
 
   return normalizeDateToUtcStart(new Date(`${value}T00:00:00.000Z`))
+}
+
+function isFindingStatus(value: unknown): value is FindingStatus {
+  return findingStatuses.includes(value as FindingStatus)
+}
+
+function isVulnerabilitySeverity(
+  value: unknown
+): value is VulnerabilitySeverity {
+  return vulnerabilitySeverities.includes(value as VulnerabilitySeverity)
 }
 
 export function RouteComponent() {
@@ -98,7 +110,7 @@ export function RouteComponent() {
         id="create-finding-form"
         onSubmit={(e) => {
           e.preventDefault()
-          form.handleSubmit(e)
+          form.handleSubmit()
         }}
         className="flex flex-col gap-4"
       >
@@ -163,17 +175,30 @@ export function RouteComponent() {
                     <Field data-invalid={isInvalid}>
                       <FieldLabel htmlFor={field.name}>Severity</FieldLabel>
                       <Select
-                        onValueChange={(value) =>
+                        value={field.state.value}
+                        name={field.name}
+                        onValueChange={(value) => {
                           field.handleChange(value as VulnerabilitySeverity)
-                        }
+                          field.handleBlur()
+                        }}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select severity" />
+                        <SelectTrigger
+                          id={field.name}
+                          aria-invalid={isInvalid}
+                          className="w-full"
+                        >
+                          <SelectValue>
+                            {(value) =>
+                              isVulnerabilitySeverity(value) ? (
+                                <SeverityBadge severity={value} />
+                              ) : null
+                            }
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.values(VulnerabilitySeverity).map((sev) => (
-                            <SelectItem key={sev} value={sev}>
-                              <SeverityBadge severity={sev} />
+                          {vulnerabilitySeverities.map((severity) => (
+                            <SelectItem key={severity} value={severity}>
+                              <SeverityBadge severity={severity} />
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -190,14 +215,31 @@ export function RouteComponent() {
                   return (
                     <Field data-invalid={isInvalid}>
                       <FieldLabel htmlFor={field.name}>Status</FieldLabel>
-                      <Select>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
+                      <Select
+                        value={field.state.value}
+                        name={field.name}
+                        onValueChange={(value) => {
+                          field.handleChange(value as FindingStatus)
+                          field.handleBlur()
+                        }}
+                      >
+                        <SelectTrigger
+                          id={field.name}
+                          aria-invalid={isInvalid}
+                          className="w-full"
+                        >
+                          <SelectValue>
+                            {(value) =>
+                              isFindingStatus(value)
+                                ? formatFindingStatus(value)
+                                : null
+                            }
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.values(FindingStatus).map((sev) => (
-                            <SelectItem key={sev} value={sev}>
-                              {formatFindingStatus(sev)}
+                          {findingStatuses.map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {formatFindingStatus(status)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -238,13 +280,14 @@ export function RouteComponent() {
                       <Select
                         value={field.state.value ?? unassignedAssigneeValue}
                         name={field.name}
-                        onValueChange={(value) =>
+                        onValueChange={(value) => {
                           field.handleChange(
                             value === unassignedAssigneeValue ? null : value
                           )
-                        }
+                          field.handleBlur()
+                        }}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger id={field.name}>
                           <SelectValue placeholder="Select assignee" />
                         </SelectTrigger>
                         <SelectContent>
@@ -354,13 +397,7 @@ export function RouteComponent() {
           <Button variant="outline" type="button" onClick={handleCancel}>
             Cancel
           </Button>
-          <Button
-            type="submit"
-            form="create-finding-form"
-            onClick={() => form.handleSubmit()}
-          >
-            Create
-          </Button>
+          <Button type="submit">Create</Button>
         </div>
       </form>
     </div>
