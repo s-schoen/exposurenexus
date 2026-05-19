@@ -31,11 +31,15 @@ describe("ConfirmDialog", () => {
 
     expect(screen.getByRole("heading", { name: "Confirm" })).toBeTruthy()
     expect(screen.getByText("Delete this record?")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveProperty(
+      "type",
+      "button"
+    )
 
     fireEvent.click(screen.getByRole("button", { name: "Confirm" }))
 
     expect(call.end).toHaveBeenCalledWith(true)
+    expect(call.end).toHaveBeenCalledTimes(1)
   })
 
   it("renders custom copy and resolves false when cancelled", () => {
@@ -54,6 +58,7 @@ describe("ConfirmDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Keep" }))
 
     expect(call.end).toHaveBeenCalledWith(false)
+    expect(call.end).toHaveBeenCalledTimes(1)
   })
 
   it("applies destructive intent to the confirm action", () => {
@@ -62,8 +67,9 @@ describe("ConfirmDialog", () => {
       confirmVariant: "destructive"
     })
 
-    expect(screen.getByRole("button", { name: "Delete" }).className).toContain(
-      "text-destructive"
-    )
+    const confirmButton = screen.getByRole("button", { name: "Delete" })
+
+    expect(confirmButton).toHaveProperty("type", "button")
+    expect(confirmButton.className).toContain("text-destructive")
   })
 })

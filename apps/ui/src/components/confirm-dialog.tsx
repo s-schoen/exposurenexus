@@ -30,36 +30,32 @@ export const ConfirmDialog = ({
 }: ReactCall.Props<ConfirmDialogProps, boolean, {}>) => {
   return (
     <Dialog open={!call.ended}>
-      <form>
-        <DialogContent className="sm:max-w-106.25">
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-            {description && (
-              <DialogDescription>{description}</DialogDescription>
-            )}
-          </DialogHeader>
+      <DialogContent className="sm:max-w-106.25">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          {description && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
 
-          <div>
-            <span>{message}</span>
-          </div>
-          <DialogFooter>
-            <Button
-              type="submit"
-              variant="outline"
-              onClick={() => call.end(false)}
-            >
-              {cancelText}
-            </Button>
-            <Button
-              type="submit"
-              variant={confirmVariant}
-              onClick={() => call.end(true)}
-            >
-              {confirmText}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </form>
+        <div>
+          <span>{message}</span>
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => call.end(false)}
+          >
+            {cancelText}
+          </Button>
+          <Button
+            type="button"
+            variant={confirmVariant}
+            onClick={() => call.end(true)}
+          >
+            {confirmText}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   )
 }
