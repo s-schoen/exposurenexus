@@ -1,4 +1,4 @@
-import { keepPreviousData } from "@tanstack/react-query"
+import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import {
   findingSchema,
   FindingStatistics as findingStatisticsSchema,
@@ -160,26 +160,26 @@ export async function reclassifyFindings(
 }
 
 export function createListFindingsQueryOptions() {
-  return {
+  return queryOptions({
     queryKey: ["findings"],
     queryFn: () => listFindings(),
     placeholderData: keepPreviousData,
     staleTime: DEFAULT_QUERY_STALE_TIME
-  }
+  })
 }
 
 export function createFindingByIDQueryOptions(id: string) {
-  return {
+  return queryOptions({
     queryKey: ["findings", id],
     queryFn: () => getFindingByID(id)
-  }
+  })
 }
 
 export function createFindingStatsQueryOptions() {
-  return {
+  return queryOptions({
     queryKey: ["findings", "stats"],
     queryFn: () => getFindingStats(),
     placeholderData: keepPreviousData,
     staleTime: DEFAULT_QUERY_STALE_TIME
-  }
+  })
 }

@@ -1,4 +1,4 @@
-import { keepPreviousData } from "@tanstack/react-query"
+import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import { userProfileSchema } from "@exposurenexus/types/model/user"
 import type {
   CreateUserProfile,
@@ -83,17 +83,17 @@ export async function updateUser(
 }
 
 export function createListUsersQueryOptions() {
-  return {
+  return queryOptions({
     queryKey: ["users"],
     queryFn: () => listUsers(),
     placeholderData: keepPreviousData,
     staleTime: DEFAULT_QUERY_STALE_TIME
-  }
+  })
 }
 
 export function createUserByIDQueryOptions(id: string) {
-  return {
+  return queryOptions({
     queryKey: ["users", id],
     queryFn: () => getUserByID(id)
-  }
+  })
 }

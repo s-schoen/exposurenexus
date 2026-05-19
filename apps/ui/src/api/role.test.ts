@@ -42,6 +42,12 @@ function requestJsonBody(): unknown {
   return JSON.parse(requestInit().body as string)
 }
 
+function runQuery<T>(queryOptions: { queryFn?: unknown }): Promise<T> {
+  const queryFn = queryOptions.queryFn as () => Promise<T>
+
+  return queryFn()
+}
+
 const roleId = builtInRoleIds.editor
 const role: Role = {
   id: roleId,
@@ -74,7 +80,7 @@ describe("role api", () => {
     )
 
     const queryOptions = createListRolesQueryOptions()
-    const roles = await queryOptions.queryFn()
+    const roles = await runQuery<Array<Role>>(queryOptions)
 
     expect(queryOptions.queryKey).toEqual(["roles"])
     expect(roles).toEqual([role])
@@ -106,7 +112,9 @@ describe("role api", () => {
       })
     )
 
-    await expect(createListRolesQueryOptions().queryFn()).rejects.toThrow()
+    await expect(
+      runQuery<Array<Role>>(createListRolesQueryOptions())
+    ).rejects.toThrow()
   })
 
   it("creates detail query options and parses role detail replies", async () => {
@@ -117,7 +125,7 @@ describe("role api", () => {
     )
 
     const queryOptions = createRoleByIDQueryOptions(roleId)
-    const result = await queryOptions.queryFn()
+    const result = await runQuery<Role>(queryOptions)
 
     expect(queryOptions.queryKey).toEqual(["roles", roleId])
     expect(result).toEqual(role)

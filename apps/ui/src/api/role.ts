@@ -1,4 +1,4 @@
-import { keepPreviousData } from "@tanstack/react-query"
+import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import { roleSchema } from "@exposurenexus/types/model/rbac"
 import type {
   CreateRole,
@@ -92,17 +92,17 @@ export async function deleteRole(id: string): Promise<Role> {
 }
 
 export function createListRolesQueryOptions() {
-  return {
+  return queryOptions({
     queryKey: ["roles"],
     queryFn: () => listRoles(),
     placeholderData: keepPreviousData,
     staleTime: DEFAULT_QUERY_STALE_TIME
-  }
+  })
 }
 
 export function createRoleByIDQueryOptions(id: string) {
-  return {
+  return queryOptions({
     queryKey: ["roles", id],
     queryFn: () => getRoleByID(id)
-  }
+  })
 }
