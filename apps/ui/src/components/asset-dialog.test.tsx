@@ -26,6 +26,7 @@ const queryMocks = vi.hoisted(() => ({
 
 vi.mock("@tanstack/react-query", () => ({
   keepPreviousData: Symbol("keepPreviousData"),
+  queryOptions: (options: unknown) => options,
   useQuery: () => ({
     data: queryMocks.users,
     isLoading: false,
