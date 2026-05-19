@@ -21,6 +21,7 @@ Do NOT commit any changes to git unless you are explicitly asked.
 - **Styling**: ShadCN components with Tailwind CSS. Use `cn()` helper from `@/lib/utils` to merge classes.
 - **UI Components**: shadcn UI primitives located in `src/components/ui`.
 - **Imports**: ALWAYS use absolute imports with `@/` alias (e.g., `import { Button } from "@/components/ui/button"`).
+  Generated files such as `src/routeTree.gen.ts` are exempt and may keep generator-produced relative imports.
 - **Naming**: kebab-case for components (`my-button.tsx`), camelCase for helpers (`utils.ts`).
 - **Storybook**: Always create or update a Storybook story for new app-owned components. Prefer colocated
   `*.stories.tsx` files that cover the component's primary visual states. Do not add stories for shadcn internal

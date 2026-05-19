@@ -2,9 +2,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { renderHook, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
-import { authClient, getSession, signIn, signOut } from "./auth.ts"
 import type { ReactNode } from "react"
 import type { AuthSessionDataReply } from "@exposurenexus/types/api"
+import { authClient, getSession, signIn, signOut } from "@/lib/auth.ts"
 
 const fetchMock = vi.fn<typeof fetch>()
 

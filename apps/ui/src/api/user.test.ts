@@ -1,16 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
-import {
-  createListUsersQueryOptions,
-  createUser,
-  createUserByIDQueryOptions,
-  updateUser
-} from "./user.ts"
 import type {
   CreateUserProfile,
   UpdateUserProfile,
   UserProfile
 } from "@exposurenexus/types/model/user"
+import {
+  createListUsersQueryOptions,
+  createUser,
+  createUserByIDQueryOptions,
+  updateUser
+} from "@/api/user.ts"
 
 const fetchMock = vi.fn<typeof fetch>()
 

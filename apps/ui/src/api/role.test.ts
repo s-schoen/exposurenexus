@@ -4,18 +4,18 @@ import {
   PermissionVerb,
   builtInRoleIds
 } from "@exposurenexus/types/model/rbac"
+import type {
+  CreateRole,
+  Role,
+  UpdateRole
+} from "@exposurenexus/types/model/rbac"
 import {
   createListRolesQueryOptions,
   createRole,
   createRoleByIDQueryOptions,
   deleteRole,
   updateRole
-} from "./role.ts"
-import type {
-  CreateRole,
-  Role,
-  UpdateRole
-} from "@exposurenexus/types/model/rbac"
+} from "@/api/role.ts"
 
 const fetchMock = vi.fn<typeof fetch>()
 
