@@ -27,7 +27,7 @@ const meta = {
   },
   args: {
     data: baselineData,
-    height: 96
+    height: "24rem"
   }
 } satisfies Meta<typeof FindingSeverityChart>
 
@@ -58,8 +58,9 @@ export const EmptyState: Story = {
 export const CompactCard: Story = {
   args: {
     data: baselineData,
-    height: 72,
-    className: "max-w-xl border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
+    height: "18rem",
+    className:
+      "max-w-xl border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
   }
 }
 
@@ -68,7 +69,7 @@ export const DarkSurface: Story = {
     <div className="dark rounded-2xl bg-background p-6">
       <FindingSeverityChart
         data={highRiskData}
-        height={96}
+        height="24rem"
         className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
       />
     </div>
