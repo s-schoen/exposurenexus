@@ -118,7 +118,7 @@ function FindingDueDateCell({ finding }: { finding: Finding }) {
   )
 }
 
-export function formatFindingResponsibleOwner(
+export function formatFindingAssetOwner(
   assetId: string,
   assetsById: ReadonlyMap<string, Asset>,
   userProfileById: Map<string, UserProfile>
@@ -237,13 +237,9 @@ export function createFindingColumns(
     {
       id: "responsibleOwner",
       accessorFn: (finding) =>
-        formatFindingResponsibleOwner(
-          finding.assetId,
-          assetsById,
-          userProfileById
-        ),
+        formatFindingAssetOwner(finding.assetId, assetsById, userProfileById),
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Responsible Owner" />
+        <DataTableColumnHeader column={column} title="Asset Owner" />
       ),
       cell: ({ row }) => {
         const asset = assetsById.get(row.original.assetId)

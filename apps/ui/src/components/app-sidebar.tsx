@@ -83,7 +83,7 @@ export function AppSidebar() {
           title: "Findings",
           url: "/findings",
           icon: ShieldAlert,
-          description: "Issues with your assets",
+          description: "Findings on your assets",
           badge: mitigationCount,
           activeMatch: /^\/findings(?:\/(?!import$|triage$).+)?$/
         },

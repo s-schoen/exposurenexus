@@ -122,7 +122,7 @@ export function FindingTable({
       },
       {
         id: "responsibleOwner",
-        label: "Responsible Owner",
+        label: "Asset Owner",
         formatValue: (value) => String(value)
       },
       {

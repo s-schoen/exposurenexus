@@ -87,6 +87,8 @@ Changing or clearing assignment is treated as editing the finding itself.
 Finding responses expose assignment as an assignee user profile ID; clients
 resolve user profile display data separately when needed.
 Use **assignee** for finding-level work; avoid calling the assignee an owner.
+In UI copy, use assignment or assignee for finding-level responsibility;
+reserve owner and ownership for asset ownership.
 Use **assigneeId** for the stored and API field that references the assigned
 user profile. `assigneeId` is nullable; `null` means the finding is
 unassigned. Manual creation may omit `assigneeId`, which also creates an
@@ -97,8 +99,8 @@ unassigned finding.
 A **finding due date** is the date by which a finding is expected to reach an
 explicit handling outcome.
 
-The due date is about handling the finding, not necessarily technical
-remediation. A finding satisfies its due date when it reaches `inactive`,
+The due date is about handling the finding, not necessarily a technical fix. A
+finding satisfies its due date when it reaches `inactive`,
 `mitigated`, `risk_accepted`, `false_positive`, `duplicate`, or `out_of_scope`.
 A finding remains open against its due date while it is `active` or
 `confirmed`. A finding may have no due date; existing findings, imported
@@ -143,7 +145,7 @@ Current statuses are:
 
 - `active`: reported, but not yet classified as confirmed, false positive,
   duplicate, out of scope, risk accepted, or another terminal state.
-- `confirmed`: validated as a real finding and awaiting remediation or another
+- `confirmed`: validated as a real finding and awaiting mitigation or another
   explicit handling decision.
 - `inactive`: no longer discovered by scans and closed for human follow-up
   unless it is reopened.
@@ -151,7 +153,7 @@ Current statuses are:
 - `risk_accepted`: real finding whose risk has been explicitly accepted.
 - `duplicate`
 - `out_of_scope`
-- `mitigated`: fixed or otherwise remediated.
+- `mitigated`: fixed or otherwise addressed.
 
 Status labels shown to users are capitalized display labels such as "False
 Positive" and "Risk Accepted", but code and API payloads use the enum values.
@@ -276,6 +278,8 @@ defaults to findings with status `active` and groups them by asset.
 **Mitigation tracking** is the workflow of recording how a finding should be or
 was addressed. Findings have a `mitigation` field and can move into statuses
 such as `confirmed`, `risk_accepted`, and `mitigated`.
+Finding workflow and dashboard copy should prefer mitigation; use remediation
+only for technical vulnerability guidance or write-ups.
 
 ### Dashboard
 

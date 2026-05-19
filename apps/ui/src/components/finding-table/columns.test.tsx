@@ -346,7 +346,7 @@ describe("createFindingColumns", () => {
     }
   })
 
-  it("renders responsible owner fallbacks for ownerless assets and unknown users", async () => {
+  it("renders asset owner fallbacks for ownerless assets and unknown users", async () => {
     const ownerlessColumns = await createColumns(
       new Map([[finding.assetId, "api-01"]]),
       new Map([[asset.id, { ...asset, ownerId: null }]]),

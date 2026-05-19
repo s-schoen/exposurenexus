@@ -64,7 +64,7 @@ export const OverviewGrid: Story = {
       <MetricCard
         title="Total findings"
         value={148}
-        description="Current issue volume across all sources"
+        description="Current finding volume across all sources"
         icon={Activity}
       />
       <MetricCard

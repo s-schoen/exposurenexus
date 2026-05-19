@@ -6,7 +6,10 @@ import {
   screen,
   waitFor
 } from "@testing-library/react"
-import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding"
+import {
+  FindingSource,
+  FindingStatus
+} from "@exposurenexus/types/model/finding"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { ReactNode } from "react"
 import type { Finding } from "@exposurenexus/types/model/finding"
@@ -204,7 +207,9 @@ vi.mock("@/components/ui/command.tsx", () => ({
   CommandEmpty: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
-  CommandGroup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  CommandGroup: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
   CommandInput: ({ placeholder }: { placeholder?: string }) => (
     <input aria-label={placeholder} />
   ),
@@ -632,7 +637,7 @@ describe("FindingDetailContent", () => {
     ).toBe(true)
   })
 
-  it("renders responsible owner fallbacks for ownerless assets and unknown users", async () => {
+  it("renders asset owner fallbacks for ownerless assets and unknown users", async () => {
     const { FindingDetailContent } =
       await import("@/components/finding-detail-content.tsx")
 

@@ -123,7 +123,7 @@ function createFinding({
     status,
     source,
     evidence: "Observed during storybook fixture validation.",
-    mitigation: "Apply the recommended remediation and re-run validation.",
+    mitigation: "Apply the recommended mitigation and re-run validation.",
     assigneeId,
     dueDate,
     firstSeen: utcDateOffset(firstSeenOffset),

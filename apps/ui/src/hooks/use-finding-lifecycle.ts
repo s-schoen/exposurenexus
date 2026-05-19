@@ -1,9 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import type {
-  CreateFinding,
-  Finding
-} from "@exposurenexus/types/model/finding"
+import type { CreateFinding, Finding } from "@exposurenexus/types/model/finding"
 import {
   createFindingByIDQueryOptions,
   createFinding as createFindingRequest,
@@ -13,6 +10,7 @@ import {
   updateFinding as updateFindingRequest
 } from "@/api/finding.ts"
 import { toastActionError } from "@/lib/action-error-toast.ts"
+import { formatFindingCount } from "@/lib/format.ts"
 
 export type FindingEditableField =
   | "severity"
@@ -145,17 +143,17 @@ function toastBatchSummary(
   const total = result.successful.length + result.failed.length
 
   if (result.failed.length === 0) {
-    toast.success(`${action} ${result.successful.length} finding(s)`)
+    toast.success(`${action} ${formatFindingCount(result.successful.length)}`)
     return
   }
 
   if (result.successful.length === 0) {
-    toast.error(`Failed to ${failureVerb} ${total} finding(s)`)
+    toast.error(`Failed to ${failureVerb} ${formatFindingCount(total)}`)
     return
   }
 
   toast.error(
-    `${action} ${result.successful.length} finding(s); failed ${result.failed.length}`
+    `${action} ${formatFindingCount(result.successful.length)}; failed ${formatFindingCount(result.failed.length)}`
   )
 }
 

@@ -332,7 +332,7 @@ export function FindingDetailContent({
                 )}
               />
               <DetailHighlightCard
-                label="Responsible owner"
+                label="Asset owner"
                 value={<ResponsibleOwnerLabel />}
                 description="Derived from the affected asset"
               />
@@ -451,7 +451,7 @@ export function FindingDetailContent({
             value={asset.data?.name ?? "Unknown asset"}
           />
           <MetadataDetailRow
-            label="Responsible owner"
+            label="Asset owner"
             value={<ResponsibleOwnerLabel />}
           />
           <MetadataDetailRow
