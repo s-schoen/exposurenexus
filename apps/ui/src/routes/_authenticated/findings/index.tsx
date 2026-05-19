@@ -19,7 +19,7 @@ function RouteComponent() {
   usePageMeta({
     title: "Findings",
     description:
-      "Track active issues, ownership, severity, and remediation status across assets."
+      "Track active findings, assignment, severity, and mitigation status across assets."
   })
 
   return (

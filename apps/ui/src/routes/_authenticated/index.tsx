@@ -117,7 +117,7 @@ function App() {
       },
       {
         label: "Needs mitigation",
-        description: "Confirmed findings awaiting remediation",
+        description: "Confirmed findings awaiting mitigation",
         value: confirmedFindings,
         tone: "text-foreground",
         href: buildFilterHref("/findings", {
@@ -203,7 +203,7 @@ function App() {
         <MetricCard
           title="Total findings"
           value={overview.totalFindings}
-          description="Current issue volume across all sources"
+          description="Current finding volume across all sources"
           icon={Bug}
           loading={cardsLoading}
         />
@@ -243,7 +243,7 @@ function App() {
           <CardHeader>
             <CardTitle>Coverage</CardTitle>
             <CardDescription>
-              A compact view of asset impact and remediation progress.
+              A compact view of asset impact and mitigation progress.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-3">

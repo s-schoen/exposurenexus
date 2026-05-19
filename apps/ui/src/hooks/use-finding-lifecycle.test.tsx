@@ -1,7 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding"
+import {
+  FindingSource,
+  FindingStatus
+} from "@exposurenexus/types/model/finding"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { ReactNode } from "react"
 import type { CreateFinding, Finding } from "@exposurenexus/types/model/finding"
@@ -464,7 +467,7 @@ describe("useFindingLifecycle", () => {
       )
     ).toEqual(second)
     expect(toastErrorMock).toHaveBeenCalledWith(
-      "Updated 1 finding(s); failed 1"
+      "Updated 1 finding; failed 1 finding"
     )
   })
 
@@ -504,7 +507,7 @@ describe("useFindingLifecycle", () => {
         createListFindingsQueryOptions().queryKey
       )
     ).toEqual([updatedFinding])
-    expect(toastSuccessMock).toHaveBeenCalledWith("Updated 1 finding(s)")
+    expect(toastSuccessMock).toHaveBeenCalledWith("Updated 1 finding")
   })
 
   it("reports partial delete failures and invalidates affected reads", async () => {
@@ -550,7 +553,7 @@ describe("useFindingLifecycle", () => {
       exact: true
     })
     expect(toastErrorMock).toHaveBeenCalledWith(
-      "Deleted 1 finding(s); failed 1"
+      "Deleted 1 finding; failed 1 finding"
     )
   })
 })

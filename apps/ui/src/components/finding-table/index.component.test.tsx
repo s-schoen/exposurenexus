@@ -173,9 +173,7 @@ vi.mock("@/components/user-label.tsx", () => ({
       unknownLabel?: string
     } = {}
   ) =>
-    !userId
-      ? emptyLabel
-      : (usersById.get(userId)?.displayName ?? unknownLabel),
+    !userId ? emptyLabel : (usersById.get(userId)?.displayName ?? unknownLabel),
   getUserProfileDisplayName: (user: { displayName: string }) =>
     user.displayName,
   UserLabel: ({ user }: { user?: { displayName: string } | null }) => (
@@ -377,7 +375,7 @@ describe("FindingTable workflow wiring", () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: "responsibleOwner",
-          label: "Responsible Owner"
+          label: "Asset Owner"
         }),
         expect.objectContaining({
           id: "assignee",
@@ -391,9 +389,9 @@ describe("FindingTable workflow wiring", () => {
         formatValue?: (value: unknown) => string
       }>
     ).find((option) => option.id === "assignee")
-    expect(assigneeGroupingOption?.formatValue?.("__unassigned_assignee__")).toBe(
-      "Unassigned"
-    )
+    expect(
+      assigneeGroupingOption?.formatValue?.("__unassigned_assignee__")
+    ).toBe("Unassigned")
     expect(
       assigneeGroupingOption?.formatValue?.(
         "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206"

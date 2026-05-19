@@ -79,7 +79,7 @@ function isVulnerabilitySeverity(
 export function RouteComponent() {
   usePageMeta({
     title: "Create Finding",
-    description: "Create and new finding manually."
+    description: "Create a new finding manually."
   })
 
   const router = useRouter()

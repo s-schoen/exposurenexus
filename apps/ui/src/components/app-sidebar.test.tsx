@@ -38,7 +38,9 @@ vi.mock("@/components/ui/sidebar", () => ({
   SidebarContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
-  SidebarGroup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  SidebarGroup: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
   SidebarGroupContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
@@ -121,7 +123,7 @@ describe("AppSidebar", () => {
 
     expect(screen.getByText("Overview and triage")).toBeTruthy()
     expect(screen.getByText("Active findings to review")).toBeTruthy()
-    expect(screen.getByText("Issues with your assets")).toBeTruthy()
+    expect(screen.getByText("Findings on your assets")).toBeTruthy()
     expect(screen.getByText("7")).toBeTruthy()
     expect(screen.getByText("3")).toBeTruthy()
     expect(screen.getByRole("link", { name: /triage queue/i })).toHaveProperty(
@@ -140,7 +142,10 @@ describe("AppSidebar", () => {
     ["/findings/triage", "Triage queue"],
     ["/findings", "Findings"],
     ["/findings/2713d833-eb13-4517-ac7c-7761545ed42a", "Findings"],
-    ["/vulnerabilities/9d7acdd0-fad1-46c9-8218-1793f421f0fe", "Vulnerabilities"],
+    [
+      "/vulnerabilities/9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+      "Vulnerabilities"
+    ],
     ["/users/7b413aba-5164-456b-8ffd-88fb6b99bbed", "Users"],
     ["/roles/admin", "Roles"],
     ["/custom-fields/environment", "Custom Fields"],
