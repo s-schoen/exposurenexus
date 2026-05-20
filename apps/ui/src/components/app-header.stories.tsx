@@ -7,6 +7,7 @@ import {
   createObjectResponse,
   createStoryQueryClient
 } from "@/components/storybook-utils.tsx"
+import { AuthProvider } from "@/context/auth.tsx"
 
 function AppHeaderStoryShell() {
   const queryClient = useMemo(() => {
@@ -51,7 +52,9 @@ function AppHeaderStoryShell() {
 
   return (
     <RouterStoryProvider queryClient={queryClient} initialPath="/">
-      <AppHeader />
+      <AuthProvider>
+        <AppHeader />
+      </AuthProvider>
     </RouterStoryProvider>
   )
 }
