@@ -43,6 +43,17 @@ export function isUnauthorizedAPIError(error: unknown): boolean {
   return error instanceof APIError && error.statusCode === 401
 }
 
+export function shouldRetryAuthAwareQuery(
+  failureCount: number,
+  error: unknown
+): boolean {
+  if (isUnauthorizedAPIError(error)) {
+    return false
+  }
+
+  return failureCount < 3
+}
+
 function notifyUserSessionExpired(event: UserSessionExpiredEvent) {
   for (const handler of userSessionExpiredHandlers) {
     handler(event)
@@ -110,6 +121,11 @@ export function createUserSessionExpiredRedirectHandler({
 
 export function createAppQueryClient() {
   return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: shouldRetryAuthAwareQuery
+      }
+    },
     queryCache: new QueryCache({
       onError: handleQueryError
     }),

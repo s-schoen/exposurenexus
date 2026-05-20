@@ -10,7 +10,10 @@ import {
   parseErrorReply,
   parseObjectReply
 } from "@/api/common.ts"
-import { SKIP_AUTH_SESSION_EXPIRY_META } from "@/lib/auth-session-expiry.ts"
+import {
+  SKIP_AUTH_SESSION_EXPIRY_META,
+  shouldRetryAuthAwareQuery
+} from "@/lib/auth-session-expiry.ts"
 
 export const AUTH_SESSION_QUERY_KEY = ["auth", "session"] as const
 const authSessionReplySchema = z.strictObject({
@@ -126,13 +129,7 @@ export function createAuthSessionQueryOptions() {
     queryKey: AUTH_SESSION_QUERY_KEY,
     queryFn: loadAuthSession,
     meta: SKIP_AUTH_SESSION_EXPIRY_META,
-    retry: (failureCount, error) => {
-      if (error instanceof APIError && error.statusCode === 401) {
-        return false
-      }
-
-      return failureCount < 3
-    }
+    retry: shouldRetryAuthAwareQuery
   })
 }
 
