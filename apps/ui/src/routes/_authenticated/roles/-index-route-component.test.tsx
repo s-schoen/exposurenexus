@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor
+} from "@testing-library/react"
 import type { ReactNode } from "react"
 import type { Role } from "@exposurenexus/types/model/rbac"
 
@@ -70,7 +76,10 @@ vi.mock("@/api/role.ts", () => ({
   createListRolesQueryOptions: () => ({
     queryKey: ["roles"]
   }),
-  deleteRole: mocks.deleteRole
+  deleteRole: mocks.deleteRole,
+  useDeleteRoleMutation: () => ({
+    mutateAsync: mocks.deleteRole
+  })
 }))
 
 vi.mock("@/components/confirm-dialog.tsx", () => ({
@@ -193,9 +202,8 @@ describe("RoleIndexRouteComponent", () => {
   })
 
   it("navigates to the create route from the table toolbar", async () => {
-    const { RoleIndexRouteComponent } = await import(
-      "@/routes/_authenticated/roles/-index-route-component.tsx"
-    )
+    const { RoleIndexRouteComponent } =
+      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
 
     render(<RoleIndexRouteComponent />)
 
@@ -205,9 +213,8 @@ describe("RoleIndexRouteComponent", () => {
   })
 
   it("skips built-in-only delete selections without calling the API", async () => {
-    const { RoleIndexRouteComponent } = await import(
-      "@/routes/_authenticated/roles/-index-route-component.tsx"
-    )
+    const { RoleIndexRouteComponent } =
+      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
 
     render(<RoleIndexRouteComponent />)
 
@@ -223,9 +230,8 @@ describe("RoleIndexRouteComponent", () => {
   })
 
   it("confirms mixed selections and deletes only custom roles", async () => {
-    const { RoleIndexRouteComponent } = await import(
-      "@/routes/_authenticated/roles/-index-route-component.tsx"
-    )
+    const { RoleIndexRouteComponent } =
+      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
 
     render(<RoleIndexRouteComponent />)
 
@@ -244,9 +250,8 @@ describe("RoleIndexRouteComponent", () => {
   it("uses the action-error toast and leaves the preview open on delete failure", async () => {
     const failure = new Error("request failed")
     mocks.deleteRole.mockRejectedValueOnce(failure)
-    const { RoleIndexRouteComponent } = await import(
-      "@/routes/_authenticated/roles/-index-route-component.tsx"
-    )
+    const { RoleIndexRouteComponent } =
+      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
 
     render(<RoleIndexRouteComponent selected={mocks.failingRole.id} />)
 
@@ -266,9 +271,8 @@ describe("RoleIndexRouteComponent", () => {
   })
 
   it("closes the selected role preview after deleting that role", async () => {
-    const { RoleIndexRouteComponent } = await import(
-      "@/routes/_authenticated/roles/-index-route-component.tsx"
-    )
+    const { RoleIndexRouteComponent } =
+      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
 
     render(<RoleIndexRouteComponent selected={mocks.customRole.id} />)
 
@@ -286,7 +290,9 @@ describe("RoleIndexRouteComponent", () => {
       previous: Record<string, unknown>
     ) => Record<string, unknown>
 
-    expect(clearSearch({ filter: "security", selected: mocks.customRole.id })).toEqual({
+    expect(
+      clearSearch({ filter: "security", selected: mocks.customRole.id })
+    ).toEqual({
       filter: "security",
       selected: undefined
     })

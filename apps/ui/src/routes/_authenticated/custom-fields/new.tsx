@@ -2,8 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import {
-  createAssetCustomFieldDefinition,
-  createListAssetCustomFieldDefinitionsQueryOptions
+  createListAssetCustomFieldDefinitionsQueryOptions,
+  useCreateAssetCustomFieldDefinitionMutation
 } from "@/api/asset-custom-field.ts"
 import {
   AssetCustomFieldForm,
@@ -19,6 +19,7 @@ export const Route = createFileRoute("/_authenticated/custom-fields/new")({
 function RouteComponent() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const fieldCreate = useCreateAssetCustomFieldDefinitionMutation()
 
   usePageMeta({
     title: "Create Custom Field",
@@ -38,7 +39,7 @@ function RouteComponent() {
     const payload = mapAssetCustomFieldFormValues(values)
 
     try {
-      const customField = await createAssetCustomFieldDefinition(payload)
+      const customField = await fieldCreate.mutateAsync(payload)
       await queryClient.invalidateQueries({
         queryKey: createListAssetCustomFieldDefinitionsQueryOptions().queryKey
       })

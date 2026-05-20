@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import {
   createListVulnerabilitiesQueryOptions,
   createVulnerabilityByIDQueryOptions,
-  deleteVulnerability
+  useDeleteVulnerabilityMutation
 } from "@/api/vulnerability.ts"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { VulnerabilityDetailContent } from "@/components/vulnerability-detail-content.tsx"
@@ -24,6 +24,7 @@ export function VulnerabilityDetailRouteComponent({
 }: VulnerabilityDetailRouteComponentProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const vulnerabilityDelete = useDeleteVulnerabilityMutation()
   const vulnerability = useQuery(
     createVulnerabilityByIDQueryOptions(vulnerabilityId)
   )
@@ -44,7 +45,7 @@ export function VulnerabilityDetailRouteComponent({
     }
 
     try {
-      await deleteVulnerability(vulnerability.data.id)
+      await vulnerabilityDelete.mutateAsync(vulnerability.data.id)
       await queryClient.invalidateQueries({
         queryKey: createListVulnerabilitiesQueryOptions().queryKey
       })
@@ -64,7 +65,7 @@ export function VulnerabilityDetailRouteComponent({
       )
       console.error(error)
     }
-  }, [navigate, queryClient, vulnerability.data])
+  }, [navigate, queryClient, vulnerability.data, vulnerabilityDelete])
   const actions = useMemo(() => {
     if (!vulnerability.data) {
       return []

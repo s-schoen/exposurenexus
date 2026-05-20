@@ -79,7 +79,10 @@ vi.mock("@/api/user.ts", () => ({
   createListUsersQueryOptions: () => ({
     queryKey: ["users"]
   }),
-  createUser: mocks.createUser
+  createUser: mocks.createUser,
+  useCreateUserMutation: () => ({
+    mutateAsync: mocks.createUser
+  })
 }))
 
 vi.mock("@/components/user-form.tsx", async (importOriginal) => {

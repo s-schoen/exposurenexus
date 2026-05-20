@@ -3,11 +3,11 @@ import { toast } from "sonner"
 import type { CreateFinding, Finding } from "@exposurenexus/types/model/finding"
 import {
   createFindingByIDQueryOptions,
-  createFinding as createFindingRequest,
   createFindingStatsQueryOptions,
   createListFindingsQueryOptions,
-  deleteFinding as deleteFindingRequest,
-  updateFinding as updateFindingRequest
+  useCreateFindingMutation,
+  useDeleteFindingMutation,
+  useUpdateFindingMutation
 } from "@/api/finding.ts"
 import { toastActionError } from "@/lib/action-error-toast.ts"
 import { formatFindingCount } from "@/lib/format.ts"
@@ -159,6 +159,9 @@ function toastBatchSummary(
 
 export function useFindingLifecycle(): FindingLifecycleActions {
   const queryClient = useQueryClient()
+  const findingCreate = useCreateFindingMutation()
+  const findingUpdate = useUpdateFindingMutation()
+  const findingDelete = useDeleteFindingMutation()
 
   function snapshotFindings(findingIds: Array<string>): FindingCacheSnapshot {
     return {
@@ -233,7 +236,7 @@ export function useFindingLifecycle(): FindingLifecycleActions {
   return {
     async createFinding(value) {
       try {
-        const createdFinding = await createFindingRequest(value)
+        const createdFinding = await findingCreate.mutateAsync(value)
 
         toast.success("Finding created")
         await Promise.all([
@@ -268,7 +271,7 @@ export function useFindingLifecycle(): FindingLifecycleActions {
         // server response refreshes authoritative audit fields before refetch.
         writeFindingToCaches(nextFinding)
 
-        const updatedFinding = await updateFindingRequest(nextFinding)
+        const updatedFinding = await findingUpdate.mutateAsync(nextFinding)
 
         writeFindingToCaches(updatedFinding)
         await invalidateFindingReads([finding.id])
@@ -305,7 +308,11 @@ export function useFindingLifecycle(): FindingLifecycleActions {
 
       const result = createBatchResult(
         findings,
-        await Promise.allSettled(nextFindings.map(updateFindingRequest))
+        await Promise.allSettled(
+          nextFindings.map((nextFinding) =>
+            findingUpdate.mutateAsync(nextFinding)
+          )
+        )
       )
 
       for (const successfulFinding of result.successful) {
@@ -334,7 +341,7 @@ export function useFindingLifecycle(): FindingLifecycleActions {
       const result = createBatchResult(
         findings,
         await Promise.allSettled(
-          findings.map((finding) => deleteFindingRequest(finding.id))
+          findings.map((finding) => findingDelete.mutateAsync(finding.id))
         )
       )
 

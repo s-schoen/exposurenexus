@@ -32,7 +32,16 @@ vi.mock("@/api/asset-custom-field.ts", async (importOriginal) => {
 
   return {
     ...actual,
-    updateAssetCustomFieldDefinition: mocks.updateAssetCustomFieldDefinition
+    updateAssetCustomFieldDefinition: mocks.updateAssetCustomFieldDefinition,
+    useUpdateAssetCustomFieldDefinitionMutation: () => ({
+      mutateAsync: ({
+        id,
+        definition
+      }: {
+        id: string
+        definition: CreateAssetCustomFieldDefinition
+      }) => mocks.updateAssetCustomFieldDefinition(id, definition)
+    })
   }
 })
 

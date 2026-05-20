@@ -109,7 +109,11 @@ vi.mock("@/api/role.ts", () => ({
   createRoleByIDQueryOptions: (id: string) => ({
     queryKey: ["roles", id]
   }),
-  updateRole: mocks.updateRole
+  updateRole: mocks.updateRole,
+  useUpdateRoleMutation: () => ({
+    mutateAsync: ({ id, role }: { id: string; role: unknown }) =>
+      mocks.updateRole(id, role)
+  })
 }))
 
 vi.mock("@/components/role-form.tsx", async (importOriginal) => {

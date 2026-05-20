@@ -5,7 +5,10 @@ import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import { toast } from "sonner"
 import type { Role } from "@exposurenexus/types/model/rbac"
 import type { DataTableFilterState } from "@/components/data-table/types.ts"
-import { createListRolesQueryOptions, deleteRole } from "@/api/role.ts"
+import {
+  createListRolesQueryOptions,
+  useDeleteRoleMutation
+} from "@/api/role.ts"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx"
 import { RoleDetailContent } from "@/components/role-detail-content.tsx"
@@ -23,6 +26,7 @@ export function RoleIndexRouteComponent({
 }: RoleIndexRouteComponentProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const roleDelete = useDeleteRoleMutation()
   const rolesQuery = useQuery(createListRolesQueryOptions())
   const [filter, setFilter] = useQueryState("filter")
   const [kindFilter, setKindFilter] = useQueryState(
@@ -104,7 +108,7 @@ export function RoleIndexRouteComponent({
     const deletedRoleIds = new Set<string>()
     for (const role of customRoles) {
       try {
-        await deleteRole(role.id)
+        await roleDelete.mutateAsync(role.id)
         deletedRoleIds.add(role.id)
       } catch (error) {
         success = false

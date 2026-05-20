@@ -77,7 +77,16 @@ vi.mock("@/api/vulnerability.ts", () => ({
   createVulnerabilityByIDQueryOptions: (id: string) => ({
     queryKey: ["vulnerabilities", id]
   }),
-  updateVulnerability: mocks.updateVulnerability
+  updateVulnerability: mocks.updateVulnerability,
+  useUpdateVulnerabilityMutation: () => ({
+    mutateAsync: ({
+      id,
+      vulnerability
+    }: {
+      id: string
+      vulnerability: unknown
+    }) => mocks.updateVulnerability(id, vulnerability)
+  })
 }))
 
 vi.mock("@/components/vulnerability-form.tsx", async (importOriginal) => {
@@ -150,7 +159,9 @@ describe("EditVulnerabilityRouteComponent", () => {
       isSuccess: false
     }
 
-    render(<EditVulnerabilityRouteComponent vulnerabilityId={vulnerabilityId} />)
+    render(
+      <EditVulnerabilityRouteComponent vulnerabilityId={vulnerabilityId} />
+    )
 
     expect(
       screen.getAllByText("Loading vulnerability details.").length
@@ -164,14 +175,18 @@ describe("EditVulnerabilityRouteComponent", () => {
       isSuccess: false
     }
 
-    render(<EditVulnerabilityRouteComponent vulnerabilityId={vulnerabilityId} />)
+    render(
+      <EditVulnerabilityRouteComponent vulnerabilityId={vulnerabilityId} />
+    )
 
     expect(screen.getByText("Unable to load edit form")).toBeTruthy()
     expect(screen.getByText("Vulnerability request failed")).toBeTruthy()
   })
 
   it("passes default form values from the loaded vulnerability", () => {
-    render(<EditVulnerabilityRouteComponent vulnerabilityId={vulnerabilityId} />)
+    render(
+      <EditVulnerabilityRouteComponent vulnerabilityId={vulnerabilityId} />
+    )
 
     expect(screen.getByTestId("mode").textContent).toBe("edit")
     expect(
@@ -195,7 +210,9 @@ describe("EditVulnerabilityRouteComponent", () => {
       title: "Exposed Management Endpoint"
     })
 
-    render(<EditVulnerabilityRouteComponent vulnerabilityId={vulnerabilityId} />)
+    render(
+      <EditVulnerabilityRouteComponent vulnerabilityId={vulnerabilityId} />
+    )
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
@@ -226,7 +243,9 @@ describe("EditVulnerabilityRouteComponent", () => {
     const error = new Error("Update failed")
     mocks.updateVulnerability.mockRejectedValueOnce(error)
 
-    render(<EditVulnerabilityRouteComponent vulnerabilityId={vulnerabilityId} />)
+    render(
+      <EditVulnerabilityRouteComponent vulnerabilityId={vulnerabilityId} />
+    )
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
@@ -239,7 +258,9 @@ describe("EditVulnerabilityRouteComponent", () => {
   })
 
   it("cancels back to vulnerability detail", async () => {
-    render(<EditVulnerabilityRouteComponent vulnerabilityId={vulnerabilityId} />)
+    render(
+      <EditVulnerabilityRouteComponent vulnerabilityId={vulnerabilityId} />
+    )
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }))
 
     await waitFor(() => {

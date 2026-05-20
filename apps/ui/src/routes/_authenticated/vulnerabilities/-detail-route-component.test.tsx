@@ -72,7 +72,10 @@ vi.mock("@/api/vulnerability.ts", () => ({
   createVulnerabilityByIDQueryOptions: (id: string) => ({
     queryKey: ["vulnerabilities", id]
   }),
-  deleteVulnerability: mocks.deleteVulnerability
+  deleteVulnerability: mocks.deleteVulnerability,
+  useDeleteVulnerabilityMutation: () => ({
+    mutateAsync: mocks.deleteVulnerability
+  })
 }))
 
 vi.mock("@/components/confirm-dialog.tsx", () => ({

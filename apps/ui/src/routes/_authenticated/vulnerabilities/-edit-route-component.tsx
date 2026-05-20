@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import {
   createListVulnerabilitiesQueryOptions,
   createVulnerabilityByIDQueryOptions,
-  updateVulnerability
+  useUpdateVulnerabilityMutation
 } from "@/api/vulnerability.ts"
 import {
   VulnerabilityForm,
@@ -33,6 +33,7 @@ export function EditVulnerabilityRouteComponent({
 }: EditVulnerabilityRouteComponentProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const vulnerabilityUpdate = useUpdateVulnerabilityMutation()
   const vulnerability = useQuery(
     createVulnerabilityByIDQueryOptions(vulnerabilityId)
   )
@@ -57,14 +58,17 @@ export function EditVulnerabilityRouteComponent({
     const payload = mapUpdateVulnerabilityFormValues(values)
 
     try {
-      await updateVulnerability(vulnerabilityId, payload)
+      await vulnerabilityUpdate.mutateAsync({
+        id: vulnerabilityId,
+        vulnerability: payload
+      })
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: createListVulnerabilitiesQueryOptions().queryKey
         }),
         queryClient.invalidateQueries({
-          queryKey: createVulnerabilityByIDQueryOptions(vulnerabilityId)
-            .queryKey
+          queryKey:
+            createVulnerabilityByIDQueryOptions(vulnerabilityId).queryKey
         })
       ])
       toast.success(`Updated vulnerability ${payload.title}`)
@@ -107,9 +111,7 @@ export function EditVulnerabilityRouteComponent({
           <Alert variant="destructive">
             <CircleAlert />
             <AlertTitle>Unable to load edit form</AlertTitle>
-            <AlertDescription>
-              {vulnerability.error.message}
-            </AlertDescription>
+            <AlertDescription>{vulnerability.error.message}</AlertDescription>
           </Alert>
         </CardContent>
       </Card>

@@ -1,4 +1,8 @@
-import { keepPreviousData, queryOptions } from "@tanstack/react-query"
+import {
+  keepPreviousData,
+  queryOptions,
+  useMutation
+} from "@tanstack/react-query"
 import { roleSchema } from "@exposurenexus/types/model/rbac"
 import type {
   CreateRole,
@@ -104,5 +108,24 @@ export function createRoleByIDQueryOptions(id: string) {
   return queryOptions({
     queryKey: ["roles", id],
     queryFn: () => getRoleByID(id)
+  })
+}
+
+export function useCreateRoleMutation() {
+  return useMutation({
+    mutationFn: (role: CreateRole) => createRole(role)
+  })
+}
+
+export function useUpdateRoleMutation() {
+  return useMutation({
+    mutationFn: ({ id, role }: { id: string; role: UpdateRole }) =>
+      updateRole(id, role)
+  })
+}
+
+export function useDeleteRoleMutation() {
+  return useMutation({
+    mutationFn: (id: string) => deleteRole(id)
   })
 }

@@ -83,7 +83,7 @@ export function RouteComponent() {
   })
 
   const router = useRouter()
-  const { createFinding } = useFindingLifecycle()
+  const findingLifecycle = useFindingLifecycle()
   const users = useQuery(createListUsersQueryOptions())
 
   const form = useForm({
@@ -92,7 +92,7 @@ export function RouteComponent() {
       onSubmit: createFindingSchema
     },
     onSubmit: async ({ value }) => {
-      const createdFinding = await createFinding(value)
+      const createdFinding = await findingLifecycle.createFinding(value)
 
       if (createdFinding) {
         router.history.back()

@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import {
   createListUsersQueryOptions,
   createUserByIDQueryOptions,
-  updateUser
+  useUpdateUserMutation
 } from "@/api/user.ts"
 import { createListRolesQueryOptions } from "@/api/role.ts"
 import { UserForm, mapUpdateUserFormValues } from "@/components/user-form.tsx"
@@ -30,6 +30,7 @@ export function EditUserRouteComponent({
 }: EditUserRouteComponentProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const userUpdate = useUpdateUserMutation()
   const user = useQuery(createUserByIDQueryOptions(userId))
   const roles = useQuery(createListRolesQueryOptions())
 
@@ -53,7 +54,10 @@ export function EditUserRouteComponent({
     }
 
     try {
-      await updateUser(userId, mapUpdateUserFormValues(values))
+      await userUpdate.mutateAsync({
+        id: userId,
+        user: mapUpdateUserFormValues(values)
+      })
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: createListUsersQueryOptions().queryKey

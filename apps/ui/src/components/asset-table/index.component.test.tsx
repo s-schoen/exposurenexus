@@ -93,7 +93,21 @@ vi.mock("@/api/asset.ts", () => ({
   createListAssetsWithCustomFieldsQueryOptions: () => ({
     queryKey: ["assets", "with-custom-fields"]
   }),
-  deleteAsset: mocks.deleteAsset
+  deleteAsset: mocks.deleteAsset,
+  useCreateAssetMutation: () => ({
+    mutateAsync: ({
+      name,
+      type,
+      ownerId
+    }: {
+      name: string
+      type: unknown
+      ownerId?: string | null
+    }) => mocks.createAsset(name, type, ownerId ?? null)
+  }),
+  useDeleteAssetMutation: () => ({
+    mutateAsync: mocks.deleteAsset
+  })
 }))
 
 vi.mock("@/api/asset-custom-field.ts", () => ({

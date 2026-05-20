@@ -106,7 +106,11 @@ vi.mock("@/api/user.ts", () => ({
   createUserByIDQueryOptions: (id: string) => ({
     queryKey: ["users", id]
   }),
-  updateUser: mocks.updateUser
+  updateUser: mocks.updateUser,
+  useUpdateUserMutation: () => ({
+    mutateAsync: ({ id, user }: { id: string; user: unknown }) =>
+      mocks.updateUser(id, user)
+  })
 }))
 
 vi.mock("@/components/user-form.tsx", async (importOriginal) => {

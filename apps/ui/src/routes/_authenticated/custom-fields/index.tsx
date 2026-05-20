@@ -7,7 +7,7 @@ import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asse
 import type { DataTableFilterState } from "@/components/data-table/types.ts"
 import {
   createListAssetCustomFieldDefinitionsQueryOptions,
-  deleteAssetCustomFieldDefinition
+  useDeleteAssetCustomFieldDefinitionMutation
 } from "@/api/asset-custom-field.ts"
 import { AssetCustomFieldTable } from "@/components/asset-custom-field-table"
 import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content"
@@ -27,6 +27,7 @@ export const Route = createFileRoute("/_authenticated/custom-fields/")({
 function RouteComponent() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const fieldDelete = useDeleteAssetCustomFieldDefinitionMutation()
   const { selected } = Route.useSearch()
   const customFieldsQuery = useQuery(
     createListAssetCustomFieldDefinitionsQueryOptions()
@@ -115,7 +116,7 @@ function RouteComponent() {
     let success = true
     for (const field of fields) {
       try {
-        await deleteAssetCustomFieldDefinition(field.id)
+        await fieldDelete.mutateAsync(field.id)
       } catch (error) {
         success = false
         toastActionError(

@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 import {
   createListVulnerabilitiesQueryOptions,
-  createVulnerability
+  useCreateVulnerabilityMutation
 } from "@/api/vulnerability.ts"
 import {
   VulnerabilityForm,
@@ -15,6 +15,7 @@ import { toastActionError } from "@/lib/action-error-toast.ts"
 export function CreateVulnerabilityRouteComponent() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const vulnerabilityCreate = useCreateVulnerabilityMutation()
 
   usePageMeta({
     title: "Create Vulnerability",
@@ -34,7 +35,7 @@ export function CreateVulnerabilityRouteComponent() {
     const payload = mapCreateVulnerabilityFormValues(values)
 
     try {
-      const vulnerability = await createVulnerability(payload)
+      const vulnerability = await vulnerabilityCreate.mutateAsync(payload)
       await queryClient.invalidateQueries({
         queryKey: createListVulnerabilitiesQueryOptions().queryKey
       })

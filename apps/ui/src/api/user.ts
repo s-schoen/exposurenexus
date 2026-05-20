@@ -1,4 +1,8 @@
-import { keepPreviousData, queryOptions } from "@tanstack/react-query"
+import {
+  keepPreviousData,
+  queryOptions,
+  useMutation
+} from "@tanstack/react-query"
 import { userProfileSchema } from "@exposurenexus/types/model/user"
 import type {
   CreateUserProfile,
@@ -95,5 +99,18 @@ export function createUserByIDQueryOptions(id: string) {
   return queryOptions({
     queryKey: ["users", id],
     queryFn: () => getUserByID(id)
+  })
+}
+
+export function useCreateUserMutation() {
+  return useMutation({
+    mutationFn: (user: CreateUserProfile) => createUser(user)
+  })
+}
+
+export function useUpdateUserMutation() {
+  return useMutation({
+    mutationFn: ({ id, user }: { id: string; user: UpdateUserProfile }) =>
+      updateUser(id, user)
   })
 }

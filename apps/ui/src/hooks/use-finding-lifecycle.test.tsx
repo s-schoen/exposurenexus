@@ -45,7 +45,16 @@ vi.mock("@/api/finding.ts", async (importOriginal) => {
     ...actual,
     createFinding: createFindingRequestMock,
     deleteFinding: deleteFindingRequestMock,
-    updateFinding: updateFindingRequestMock
+    updateFinding: updateFindingRequestMock,
+    useCreateFindingMutation: () => ({
+      mutateAsync: createFindingRequestMock
+    }),
+    useDeleteFindingMutation: () => ({
+      mutateAsync: deleteFindingRequestMock
+    }),
+    useUpdateFindingMutation: () => ({
+      mutateAsync: updateFindingRequestMock
+    })
   }
 })
 
