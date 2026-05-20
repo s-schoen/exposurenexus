@@ -53,8 +53,8 @@ function sessionReply(user: User) {
   }
 }
 
-function createWrapper(Provider: typeof AuthProvider) {
-  const queryClient = new QueryClient({
+function createQueryClient() {
+  return new QueryClient({
     defaultOptions: {
       mutations: {
         retry: false
@@ -64,7 +64,12 @@ function createWrapper(Provider: typeof AuthProvider) {
       }
     }
   })
+}
 
+function createWrapper(
+  Provider: typeof AuthProvider,
+  queryClient = createQueryClient()
+) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
@@ -72,6 +77,20 @@ function createWrapper(Provider: typeof AuthProvider) {
       </QueryClientProvider>
     )
   }
+}
+
+function seedProtectedQueryData(queryClient: QueryClient) {
+  queryClient.setQueryData(["assets"], [{ id: "asset-1" }])
+  queryClient.setQueryData(["findings"], [{ id: "finding-1" }])
+  queryClient.setQueryData(["users"], [{ id: "user-1" }])
+  queryClient.setQueryData(["roles"], [{ id: "role-1" }])
+}
+
+function expectProtectedQueryDataCleared(queryClient: QueryClient) {
+  expect(queryClient.getQueryData(["assets"])).toBeUndefined()
+  expect(queryClient.getQueryData(["findings"])).toBeUndefined()
+  expect(queryClient.getQueryData(["users"])).toBeUndefined()
+  expect(queryClient.getQueryData(["roles"])).toBeUndefined()
 }
 
 describe("AuthProvider", () => {
@@ -147,12 +166,13 @@ describe("AuthProvider", () => {
 
   it("updates auth state after login and logout", async () => {
     const { AuthProvider, useAuth } = await import("@/context/auth.tsx")
+    const queryClient = createQueryClient()
     mocks.getSession.mockRejectedValueOnce(new Error("Unauthorized"))
     mocks.signInUsername.mockResolvedValueOnce(sessionReply(mocks.alice))
     mocks.signOut.mockResolvedValueOnce({ data: { revoked: true } })
 
     const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(AuthProvider)
+      wrapper: createWrapper(AuthProvider, queryClient)
     })
 
     await waitFor(() => {
@@ -173,11 +193,15 @@ describe("AuthProvider", () => {
     expect(result.current.isAuthenticated).toBe(true)
     expect(result.current.user).toEqual(mocks.alice)
 
+    seedProtectedQueryData(queryClient)
+
     await act(async () => {
       await result.current.logout()
     })
 
     expect(mocks.signOut).toHaveBeenCalledTimes(1)
+    expectProtectedQueryDataCleared(queryClient)
+    expect(queryClient.getQueryData(["auth", "session"])).toBeNull()
     await waitFor(() => {
       expect(result.current.status).toBe("unauthenticated")
     })
@@ -187,21 +211,26 @@ describe("AuthProvider", () => {
 
   it("clears auth state without calling sign out", async () => {
     const { AuthProvider, useAuth } = await import("@/context/auth.tsx")
+    const queryClient = createQueryClient()
     mocks.getSession.mockResolvedValueOnce(sessionReply(mocks.alice))
 
     const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(AuthProvider)
+      wrapper: createWrapper(AuthProvider, queryClient)
     })
 
     await waitFor(() => {
       expect(result.current.status).toBe("authenticated")
     })
 
+    seedProtectedQueryData(queryClient)
+
     act(() => {
       result.current.clearSession()
     })
 
     expect(mocks.signOut).not.toHaveBeenCalled()
+    expectProtectedQueryDataCleared(queryClient)
+    expect(queryClient.getQueryData(["auth", "session"])).toBeNull()
     await waitFor(() => {
       expect(result.current.status).toBe("unauthenticated")
     })
