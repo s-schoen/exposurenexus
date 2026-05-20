@@ -20,6 +20,7 @@ import { routeTree } from "@/routeTree.gen.ts"
 import { FindingTable } from "@/components/finding-table/index.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { Toaster } from "@/components/ui/sonner.tsx"
+import { createLoginRedirects } from "@/lib/login-redirect.ts"
 
 type FindingTableScenario = "default" | "loading" | "empty" | "grouped"
 
@@ -31,6 +32,11 @@ type FindingTableStoryArgs = {
 }
 
 const dayInMs = 24 * 60 * 60 * 1000
+
+const storyRedirects = createLoginRedirects({
+  origin: "http://localhost",
+  isKnownRoutePath: () => true
+})
 
 function utcDateOffset(days: number) {
   const now = new Date()
@@ -248,6 +254,7 @@ function FindingTableStoryShell({
         context: {
           auth: undefined!,
           page: undefined!,
+          redirects: storyRedirects,
           queryClient
         }
       }),

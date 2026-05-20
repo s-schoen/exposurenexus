@@ -10,6 +10,7 @@ import { routeTree } from "@/routeTree.gen.ts"
 import "@/styles.css"
 import { AuthProvider, useAuth } from "@/context/auth.tsx"
 import { PageProvider, usePage } from "@/context/page.tsx"
+import { createRouterLoginRedirects } from "@/lib/login-redirect.ts"
 
 // Create a new router instance
 
@@ -20,13 +21,15 @@ const router = createRouter({
     ...TanStackQueryProviderContext,
     // auth will be passed down from App component
     auth: undefined!,
-    page: undefined!
+    page: undefined!,
+    redirects: undefined!
   },
   defaultPreload: "intent",
   scrollRestoration: true,
   defaultStructuralSharing: true,
   defaultPreloadStaleTime: 0
 })
+const redirects = createRouterLoginRedirects(router)
 
 // Register the router instance for type safety
 declare module "@tanstack/react-router" {
@@ -51,7 +54,7 @@ if (rootElement && !rootElement.innerHTML) {
 function InnerApp() {
   const auth = useAuth()
   const page = usePage()
-  return <RouterProvider router={router} context={{ auth, page }} />
+  return <RouterProvider router={router} context={{ auth, page, redirects }} />
 }
 
 function App() {

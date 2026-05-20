@@ -17,6 +17,7 @@ import type { Finding, UpdateFinding } from "@exposurenexus/types/model/finding"
 import type { UserProfile } from "@exposurenexus/types/model/user"
 import { routeTree } from "@/routeTree.gen.ts"
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx"
+import { createLoginRedirects } from "@/lib/login-redirect.ts"
 
 type FindingDetailStoryArgs = {
   finding: Finding
@@ -51,6 +52,11 @@ const USERS: Array<UserProfile> = [
     roleIds: []
   }
 ]
+
+const storyRedirects = createLoginRedirects({
+  origin: "http://localhost",
+  isKnownRoutePath: () => true
+})
 
 const ASSET: Asset = {
   id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
@@ -141,6 +147,7 @@ function FindingDetailContentStoryShell({
         context: {
           auth: undefined!,
           page: undefined!,
+          redirects: storyRedirects,
           queryClient
         }
       }),
