@@ -3,30 +3,26 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import type { ReactNode } from "react"
 
 interface SessionQuery {
-  data?: {
-    user: {
-      displayName?: string | null
-      email?: string | null
-    }
-  }
-  isPending: boolean
+  user: {
+    displayName?: string | null
+    email?: string | null
+  } | null
+  status: "loading" | "authenticated" | "unauthenticated"
 }
 
 const mocks = vi.hoisted(() => {
   const sessionQuery: SessionQuery = {
-    data: {
-      user: {
-        displayName: "Alice Example",
-        email: "alice@example.com"
-      }
+    user: {
+      displayName: "Alice Example",
+      email: "alice@example.com"
     },
-    isPending: false
+    status: "authenticated"
   }
 
   return {
     navigate: vi.fn(),
     sessionQuery,
-    signOut: vi.fn()
+    logout: vi.fn()
   }
 })
 
@@ -34,11 +30,12 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate
 }))
 
-vi.mock("@/lib/auth", () => ({
-  authClient: {
-    signOut: mocks.signOut,
-    useSession: () => mocks.sessionQuery
-  }
+vi.mock("@/context/auth", () => ({
+  useAuth: () => ({
+    logout: mocks.logout,
+    status: mocks.sessionQuery.status,
+    user: mocks.sessionQuery.user
+  })
 }))
 
 vi.mock("@/components/ui/avatar", () => ({
@@ -82,15 +79,13 @@ vi.mock("@/components/ui/spinner", () => ({
 describe("AccountMenu", () => {
   beforeEach(() => {
     mocks.navigate.mockReset()
-    mocks.signOut.mockReset()
+    mocks.logout.mockReset()
     mocks.sessionQuery = {
-      data: {
-        user: {
-          displayName: "Alice Example",
-          email: "alice@example.com"
-        }
+      user: {
+        displayName: "Alice Example",
+        email: "alice@example.com"
       },
-      isPending: false
+      status: "authenticated"
     }
   })
 
@@ -98,14 +93,9 @@ describe("AccountMenu", () => {
     cleanup()
   })
 
-  it("renders the current user and signs out through the auth client", async () => {
+  it("renders the current user and signs out through auth context", async () => {
     const { AccountMenu } = await import("@/components/account-menu.tsx")
-    mocks.signOut.mockImplementationOnce(
-      (options: { fetchOptions?: { onSuccess?: () => void } }) => {
-        options.fetchOptions?.onSuccess?.()
-        return Promise.resolve({ data: { revoked: true } })
-      }
-    )
+    mocks.logout.mockResolvedValueOnce(undefined)
 
     render(<AccountMenu />)
 
@@ -116,7 +106,7 @@ describe("AccountMenu", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sign Out" }))
 
     await waitFor(() => {
-      expect(mocks.signOut).toHaveBeenCalledTimes(1)
+      expect(mocks.logout).toHaveBeenCalledTimes(1)
       expect(mocks.navigate).toHaveBeenCalledWith({
         search: { redirect: "/" },
         to: "/login"
@@ -127,13 +117,11 @@ describe("AccountMenu", () => {
   it("falls back to email and shows a spinner while the session is pending", async () => {
     const { AccountMenu } = await import("@/components/account-menu.tsx")
     mocks.sessionQuery = {
-      data: {
-        user: {
-          displayName: null,
-          email: "alice@example.com"
-        }
+      user: {
+        displayName: null,
+        email: "alice@example.com"
       },
-      isPending: false
+      status: "authenticated"
     }
 
     const { rerender } = render(<AccountMenu />)
@@ -142,8 +130,8 @@ describe("AccountMenu", () => {
     expect(screen.getByText("A")).toBeTruthy()
 
     mocks.sessionQuery = {
-      data: undefined,
-      isPending: true
+      user: null,
+      status: "loading"
     }
     rerender(<AccountMenu />)
 

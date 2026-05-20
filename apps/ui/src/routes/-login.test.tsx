@@ -9,7 +9,7 @@ import {
 
 const mocks = vi.hoisted(() => ({
   auth: {
-    isAuthenticated: false,
+    ensureSession: vi.fn(),
     login: vi.fn()
   },
   navigate: vi.fn(),
@@ -46,7 +46,8 @@ async function renderLogin() {
 
 describe("login route", () => {
   beforeEach(() => {
-    mocks.auth.isAuthenticated = false
+    mocks.auth.ensureSession.mockReset()
+    mocks.auth.ensureSession.mockResolvedValue(false)
     mocks.auth.login.mockReset()
     mocks.navigate.mockReset()
     mocks.redirect = "/findings"
@@ -72,23 +73,28 @@ describe("login route", () => {
       })({ redirect: "/assets" })
     ).toEqual({ redirect: "/assets" })
 
-    expect(() =>
+    mocks.auth.ensureSession.mockResolvedValueOnce(true)
+    await expect(
       (
         Route.options.beforeLoad as (args: {
-          context: { auth: { isAuthenticated: boolean } }
+          context: { auth: { ensureSession: () => Promise<boolean> } }
           search: { redirect: string }
-        }) => void
+        }) => Promise<void>
       )({
         context: {
           auth: {
-            isAuthenticated: true
+            ensureSession: mocks.auth.ensureSession
           }
         },
         search: {
           redirect: "/assets"
         }
       })
-    ).toThrow()
+    ).rejects.toEqual({
+      options: { to: "/assets" },
+      redirect: true
+    })
+    expect(mocks.auth.ensureSession).toHaveBeenCalledTimes(1)
     expect(mocks.redirectResult).toHaveBeenCalledWith({ to: "/assets" })
   })
 

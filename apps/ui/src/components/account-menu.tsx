@@ -2,7 +2,7 @@
 
 import { useNavigate } from "@tanstack/react-router"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { authClient } from "@/lib/auth"
+import { useAuth } from "@/context/auth"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,21 +14,15 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 
 export function AccountMenu() {
-  const { data: session, isPending } = authClient.useSession()
+  const { logout, status, user } = useAuth()
   const navigate = useNavigate()
 
   const onSignOut = async () => {
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          navigate({ to: "/login", search: { redirect: "/" } })
-        }
-      }
-    })
+    await logout()
+    navigate({ to: "/login", search: { redirect: "/" } })
   }
 
-  const displayName =
-    session?.user.displayName ?? session?.user.email ?? "Account"
+  const displayName = user?.displayName ?? user?.email ?? "Account"
   const initial = displayName.at(0)?.toUpperCase() ?? "?"
 
   return (
@@ -36,7 +30,7 @@ export function AccountMenu() {
       <DropdownMenuTrigger
         nativeButton={false}
         render={
-          isPending ? (
+          status === "loading" ? (
             <Spinner />
           ) : (
             <div className="flex cursor-pointer items-center gap-3 rounded-2xl border border-border/70 bg-background/75 px-4 py-2 shadow-sm transition-colors hover:bg-muted/70">
