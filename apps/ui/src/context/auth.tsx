@@ -23,11 +23,22 @@ export interface AuthState {
 
 const AuthContext = createContext<AuthState | undefined>(undefined)
 
+function isAuthSessionQueryKey(queryKey: ReadonlyArray<unknown>) {
+  return (
+    queryKey.length === AUTH_SESSION_QUERY_KEY.length &&
+    queryKey.every((part, index) => part === AUTH_SESSION_QUERY_KEY[index])
+  )
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient()
   const sessionQuery = useQuery(createAuthSessionQueryOptions())
 
   const clearSession = useCallback(() => {
+    queryClient.removeQueries({
+      predicate: (query) => !isAuthSessionQueryKey(query.queryKey)
+    })
+    queryClient.getMutationCache().clear()
     queryClient.setQueryData<AuthSessionQueryData>(AUTH_SESSION_QUERY_KEY, null)
   }, [queryClient])
 
