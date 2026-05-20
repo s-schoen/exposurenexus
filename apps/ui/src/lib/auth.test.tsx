@@ -1,10 +1,14 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { renderHook, waitFor } from "@testing-library/react"
+import { QueryClient } from "@tanstack/react-query"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
-import type { ReactNode } from "react"
 import type { AuthSessionDataReply } from "@exposurenexus/types/api"
-import { authClient, getSession, signIn, signOut } from "@/lib/auth.ts"
+import {
+  AUTH_SESSION_QUERY_KEY,
+  createAuthSessionQueryOptions,
+  getSession,
+  signIn,
+  signOut
+} from "@/lib/auth.ts"
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -158,7 +162,7 @@ describe("custom auth client", () => {
     expect(onSuccess).toHaveBeenCalledOnce()
   })
 
-  it("exposes a useSession hook backed by the current session request", async () => {
+  it("creates auth session query options backed by the current session request", async () => {
     fetchMock.mockResolvedValueOnce(authSessionResponse())
     const queryClient = new QueryClient({
       defaultOptions: {
@@ -167,15 +171,27 @@ describe("custom auth client", () => {
         }
       }
     })
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    const queryConfig = createAuthSessionQueryOptions()
+
+    await expect(queryClient.fetchQuery(queryConfig)).resolves.toEqual(
+      authSession
     )
 
-    const { result } = renderHook(() => authClient.useSession(), { wrapper })
+    expect(queryConfig.queryKey).toEqual(AUTH_SESSION_QUERY_KEY)
+  })
 
-    await waitFor(() => {
-      expect(result.current.isSuccess).toBe(true)
+  it("maps unauthenticated auth session query reads to null", async () => {
+    fetchMock.mockResolvedValueOnce(errorResponse(401, "Unauthorized"))
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false
+        }
+      }
     })
-    expect(result.current.data).toEqual(authSession)
+
+    await expect(
+      queryClient.fetchQuery(createAuthSessionQueryOptions())
+    ).resolves.toBeNull()
   })
 })

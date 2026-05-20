@@ -1,64 +1,107 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState
-} from "react"
-import type { User } from "@/lib/auth.ts"
-import { getSession, signIn, signOut } from "@/lib/auth.ts"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import React, { createContext, useCallback, useContext } from "react"
+import type { AuthSessionQueryData, User } from "@/lib/auth.ts"
+import {
+  AUTH_SESSION_QUERY_KEY,
+  createAuthSessionQueryOptions,
+  signIn,
+  signOut
+} from "@/lib/auth.ts"
+
+export type AuthStatus = "loading" | "authenticated" | "unauthenticated"
 
 export interface AuthState {
+  status: AuthStatus
   isAuthenticated: boolean
   user: User | null
   login: (username: string, password: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   ensureSession: () => Promise<boolean>
+  clearSession: () => void
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [, setIsLoading] = useState(false)
+  const queryClient = useQueryClient()
+  const sessionQuery = useQuery(createAuthSessionQueryOptions())
 
-  const ensureSession = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const session = await getSession()
-      setIsAuthenticated(true)
-      setUser(session.data.user)
-      return true
-    } catch {
-      setIsAuthenticated(false)
-      setUser(null)
-      return false
-    } finally {
-      setIsLoading(false)
+  const clearSession = useCallback(() => {
+    queryClient.setQueryData<AuthSessionQueryData>(
+      AUTH_SESSION_QUERY_KEY,
+      null
+    )
+  }, [queryClient])
+
+  const loginMutation = useMutation({
+    mutationFn: async ({
+      username,
+      password
+    }: {
+      username: string
+      password: string
+    }) => (await signIn.username({ username, password })).data,
+    onSuccess: (session) => {
+      queryClient.setQueryData<AuthSessionQueryData>(
+        AUTH_SESSION_QUERY_KEY,
+        session
+      )
     }
-  }, [])
+  })
 
-  useEffect(() => {
-    setIsLoading(true)
-    void ensureSession()
-  }, [ensureSession])
-
-  const logout = useCallback(async () => {
-    await signOut()
-    setUser(null)
-    setIsAuthenticated(false)
-  }, [])
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await signOut()
+    },
+    onSuccess: clearSession
+  })
 
   const login = useCallback(async (username: string, password: string) => {
-    const data = await signIn.username({ username, password })
-    setUser(data.data.user)
-    setIsAuthenticated(true)
-  }, [])
+    await loginMutation.mutateAsync({ username, password })
+  }, [loginMutation])
+
+  const logout = useCallback(async () => {
+    await logoutMutation.mutateAsync()
+  }, [logoutMutation])
+
+  const ensureSession = useCallback(async () => {
+    try {
+      const session = await queryClient.fetchQuery(
+        createAuthSessionQueryOptions()
+      )
+
+      if (!session) {
+        clearSession()
+        return false
+      }
+
+      return true
+    } catch {
+      clearSession()
+      return false
+    }
+  }, [clearSession, queryClient])
+
+  const session = sessionQuery.data ?? null
+  const status: AuthStatus = session
+    ? "authenticated"
+    : sessionQuery.isPending
+      ? "loading"
+      : "unauthenticated"
+  const isAuthenticated = status === "authenticated"
+  const user = session?.user ?? null
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, user, login, logout, ensureSession }}
+      value={{
+        status,
+        isAuthenticated,
+        user,
+        login,
+        logout,
+        ensureSession,
+        clearSession
+      }}
     >
       {children}
     </AuthContext.Provider>

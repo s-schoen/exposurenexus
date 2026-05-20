@@ -10,6 +10,7 @@ import {
   createObjectResponse,
   createStoryQueryClient
 } from "@/components/storybook-utils.tsx"
+import { AuthProvider } from "@/context/auth.tsx"
 
 type AccountMenuStoryArgs = {
   scenario: "authenticated" | "email-fallback" | "pending"
@@ -77,7 +78,9 @@ function AccountMenuStoryShell({ scenario }: AccountMenuStoryArgs) {
 
   return (
     <RouterStoryProvider queryClient={queryClient} initialPath="/">
-      <AccountMenu />
+      <AuthProvider>
+        <AccountMenu />
+      </AuthProvider>
     </RouterStoryProvider>
   )
 }

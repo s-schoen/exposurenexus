@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
+import { queryOptions } from "@tanstack/react-query"
 import { z } from "zod/v4"
 import { dateSchema } from "@exposurenexus/types/model/date"
 import { userProfileSchema } from "@exposurenexus/types/model/user"
@@ -11,7 +11,7 @@ import {
   parseObjectReply
 } from "@/api/common.ts"
 
-const AUTH_SESSION_QUERY_KEY = ["auth", "session"] as const
+export const AUTH_SESSION_QUERY_KEY = ["auth", "session"] as const
 const authSessionReplySchema = z.strictObject({
   user: userProfileSchema,
   session: z.strictObject({
@@ -28,6 +28,7 @@ const signOutReplySchema = z.strictObject({
 })
 
 export type Session = AuthSessionDataReply
+export type AuthSessionQueryData = AuthSessionDataReply | null
 export type User = UserProfile
 
 interface AuthClientResult<T> {
@@ -107,10 +108,22 @@ export async function signOut(
   return { data }
 }
 
-function useSession() {
-  return useQuery({
+async function loadAuthSession(): Promise<AuthSessionQueryData> {
+  try {
+    return (await getSession()).data
+  } catch (error) {
+    if (error instanceof APIError && error.statusCode === 401) {
+      return null
+    }
+
+    throw error
+  }
+}
+
+export function createAuthSessionQueryOptions() {
+  return queryOptions({
     queryKey: AUTH_SESSION_QUERY_KEY,
-    queryFn: async () => (await getSession()).data,
+    queryFn: loadAuthSession,
     retry: (failureCount, error) => {
       if (error instanceof APIError && error.statusCode === 401) {
         return false
@@ -122,7 +135,6 @@ function useSession() {
 }
 
 export const authClient = {
-  useSession,
   signIn,
   signOut,
   getSession
