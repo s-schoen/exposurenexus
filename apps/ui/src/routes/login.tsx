@@ -1,6 +1,7 @@
 import {
   createFileRoute,
-  redirect as throwRedirect
+  redirect as throwRedirect,
+  useNavigate
 } from "@tanstack/react-router"
 import { useForm } from "@tanstack/react-form"
 import { z } from "zod/v4"
@@ -24,22 +25,24 @@ const formSchema = z.object({
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search) => ({
-    redirect: (search.redirect as string) || "/"
+    redirect: typeof search.redirect === "string" ? search.redirect : "/"
   }),
   beforeLoad: async ({ context, search }) => {
     const hasSession = await context.auth.ensureSession()
 
     if (hasSession) {
-      throw throwRedirect({ to: search.redirect })
+      throw throwRedirect({
+        href: context.redirects.safeLoginRedirect(search.redirect)
+      })
     }
   },
   component: Login
 })
 
 export function Login() {
-  const { auth } = Route.useRouteContext()
+  const { auth, redirects } = Route.useRouteContext()
   const { redirect } = Route.useSearch()
-  const navigate = Route.useNavigate()
+  const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
   const [loginFailed, setLoginFailed] = useState(false)
 
@@ -55,8 +58,9 @@ export function Login() {
 
       try {
         await auth.login(value.username, value.password)
-        // @ts-ignore assume redirect is a valid route; nothing bad will happen if it's not
-        navigate({ to: redirect })
+        await navigate({
+          href: redirects.safeLoginRedirect(redirect)
+        })
       } catch (error) {
         console.error("Login failed:", error)
         setLoginFailed(true)

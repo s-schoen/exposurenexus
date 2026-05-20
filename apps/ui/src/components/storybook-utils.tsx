@@ -8,6 +8,12 @@ import { NuqsAdapter } from "nuqs/adapters/tanstack-router"
 import { useMemo } from "react"
 import type { ReactNode } from "react"
 import { routeTree } from "@/routeTree.gen.ts"
+import { createLoginRedirects } from "@/lib/login-redirect.ts"
+
+const storyRedirects = createLoginRedirects({
+  origin: "http://localhost",
+  isKnownRoutePath: () => true
+})
 
 export function createStoryQueryClient() {
   return new QueryClient({
@@ -63,6 +69,7 @@ export function RouterStoryProvider({
         context: {
           auth: undefined!,
           page: undefined!,
+          redirects: storyRedirects,
           queryClient
         }
       }),
