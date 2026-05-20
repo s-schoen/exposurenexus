@@ -13,20 +13,38 @@ describe("auth session expiry handling", () => {
     const queryClient = createAppQueryClient()
     const handler = vi.fn()
     const unsubscribe = subscribeUserSessionExpired(handler)
+    const queryFn = vi.fn(() => {
+      throw new APIError(401, "Unauthorized")
+    })
 
     await expect(
       queryClient.fetchQuery({
         queryKey: ["protected"],
-        queryFn: () => {
-          throw new APIError(401, "Unauthorized")
-        },
-        retry: false
+        queryFn
       })
     ).rejects.toThrow("Unauthorized")
 
+    expect(queryFn).toHaveBeenCalledTimes(1)
     expect(handler).toHaveBeenCalledTimes(1)
     expect(handler).toHaveBeenCalledWith({ source: "query" })
     unsubscribe()
+  })
+
+  it("keeps retrying non-401 query errors", async () => {
+    const queryClient = createAppQueryClient()
+    const queryFn = vi.fn(() => {
+      throw new APIError(500, "Internal Server Error")
+    })
+
+    await expect(
+      queryClient.fetchQuery({
+        queryKey: ["protected"],
+        queryFn,
+        retryDelay: 0
+      })
+    ).rejects.toThrow("Internal Server Error")
+
+    expect(queryFn).toHaveBeenCalledTimes(4)
   })
 
   it("emits a session-expired event for protected mutation 401s", async () => {
