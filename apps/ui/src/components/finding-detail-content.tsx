@@ -1,8 +1,5 @@
 import { Link } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import Markdown from "react-markdown"
-import remarkGfm from "remark-gfm"
-import rehypeRaw from "rehype-raw"
 import { useCallback, useMemo, useState } from "react"
 import { FindingStatus } from "@exposurenexus/types/model/finding"
 import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date"
@@ -72,6 +69,7 @@ import {
   TabsTrigger
 } from "@/components/ui/tabs.tsx"
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts"
+import { SafeMarkdown } from "@/components/safe-markdown.tsx"
 
 interface FindingDetailContentProps {
   findingId: string
@@ -528,9 +526,9 @@ export function FindingDetailContent({
               description="Canonical vulnerability record linked to this finding."
             />
           </div>
-          <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5">
-            <Markdown>{findingData.vulnerability.description ?? ""}</Markdown>
-          </div>
+          <SafeMarkdown>
+            {findingData.vulnerability.description ?? ""}
+          </SafeMarkdown>
         </CardContent>
       </Card>
     )
@@ -582,14 +580,9 @@ export function FindingDetailContent({
                 </TabsList>
                 <ScrollArea className="w-full rounded-2xl border border-border/70 bg-muted/20">
                   <div className="min-w-full p-5">
-                    <div className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-p:max-w-3xl prose-p:text-muted-foreground prose-li:text-muted-foreground prose-a:text-primary prose-blockquote:border-l-border prose-blockquote:text-muted-foreground prose-pre:overflow-x-auto prose-pre:rounded-xl prose-pre:border prose-pre:border-border prose-pre:bg-card prose-pre:px-4 prose-pre:py-4 prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-table:w-full prose-table:border-collapse prose-th:border-b prose-th:border-border prose-th:px-3 prose-th:py-2 prose-th:text-left prose-td:border-b prose-td:border-border/60 prose-td:px-3 prose-td:py-2 prose-td:align-top">
-                      <Markdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
-                      >
-                        {evidence}
-                      </Markdown>
-                    </div>
+                    <SafeMarkdown className="prose-p:max-w-3xl">
+                      {evidence}
+                    </SafeMarkdown>
                   </div>
                   <ScrollBar orientation="horizontal" />
                 </ScrollArea>
