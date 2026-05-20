@@ -7,6 +7,7 @@ import {
   signIn,
   signOut
 } from "@/lib/auth.ts"
+import { SKIP_AUTH_SESSION_EXPIRY_META } from "@/lib/auth-session-expiry.ts"
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated"
 
@@ -27,13 +28,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const sessionQuery = useQuery(createAuthSessionQueryOptions())
 
   const clearSession = useCallback(() => {
-    queryClient.setQueryData<AuthSessionQueryData>(
-      AUTH_SESSION_QUERY_KEY,
-      null
-    )
+    queryClient.setQueryData<AuthSessionQueryData>(AUTH_SESSION_QUERY_KEY, null)
   }, [queryClient])
 
   const loginMutation = useMutation({
+    meta: SKIP_AUTH_SESSION_EXPIRY_META,
     mutationFn: async ({
       username,
       password
@@ -50,15 +49,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   })
 
   const logoutMutation = useMutation({
+    meta: SKIP_AUTH_SESSION_EXPIRY_META,
     mutationFn: async () => {
       await signOut()
     },
     onSuccess: clearSession
   })
 
-  const login = useCallback(async (username: string, password: string) => {
-    await loginMutation.mutateAsync({ username, password })
-  }, [loginMutation])
+  const login = useCallback(
+    async (username: string, password: string) => {
+      await loginMutation.mutateAsync({ username, password })
+    },
+    [loginMutation]
+  )
 
   const logout = useCallback(async () => {
     await logoutMutation.mutateAsync()

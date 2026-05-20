@@ -138,7 +138,9 @@ describe("AuthProvider", () => {
     })
 
     expect(hasSession).toBe(true)
-    expect(result.current.status).toBe("authenticated")
+    await waitFor(() => {
+      expect(result.current.status).toBe("authenticated")
+    })
     expect(result.current.isAuthenticated).toBe(true)
     expect(result.current.user).toEqual(mocks.bob)
   })

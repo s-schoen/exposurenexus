@@ -3,7 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 import { toast } from "sonner"
-import { createListUsersQueryOptions, createUser } from "@/api/user.ts"
+import {
+  createListUsersQueryOptions,
+  useCreateUserMutation
+} from "@/api/user.ts"
 import { createListRolesQueryOptions } from "@/api/role.ts"
 import { UserForm, mapCreateUserFormValues } from "@/components/user-form.tsx"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
@@ -21,6 +24,7 @@ import { toastActionError } from "@/lib/action-error-toast.ts"
 export function CreateUserRouteComponent() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const userCreate = useCreateUserMutation()
   const roles = useQuery(createListRolesQueryOptions())
 
   usePageMeta({
@@ -41,7 +45,7 @@ export function CreateUserRouteComponent() {
     const payload = mapCreateUserFormValues(values)
 
     try {
-      await createUser(payload)
+      await userCreate.mutateAsync(payload)
       await queryClient.invalidateQueries({
         queryKey: createListUsersQueryOptions().queryKey
       })

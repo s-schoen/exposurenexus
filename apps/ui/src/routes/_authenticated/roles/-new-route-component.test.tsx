@@ -83,7 +83,10 @@ vi.mock("@/api/role.ts", () => ({
   createListRolesQueryOptions: () => ({
     queryKey: ["roles"]
   }),
-  createRole: mocks.createRole
+  createRole: mocks.createRole,
+  useCreateRoleMutation: () => ({
+    mutateAsync: mocks.createRole
+  })
 }))
 
 vi.mock("@/components/role-form.tsx", async (importOriginal) => {

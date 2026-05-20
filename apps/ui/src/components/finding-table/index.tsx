@@ -47,7 +47,7 @@ export function FindingTable({
   onSelectFinding
 }: FindingTableProps) {
   const navigate = useNavigate()
-  const { bulkUpdateFindingField, deleteFindings } = useFindingLifecycle()
+  const findingLifecycle = useFindingLifecycle()
   const findingsQuery = useQuery(createListFindingsQueryOptions())
   const assetsQuery = useQuery(createListAssetsQueryOptions())
   const usersQuery = useQuery(createListUsersQueryOptions())
@@ -160,7 +160,7 @@ export function FindingTable({
     })
 
     if (confirmed) {
-      await deleteFindings(findings)
+      await findingLifecycle.deleteFindings(findings)
     }
   }
 
@@ -175,7 +175,7 @@ export function FindingTable({
     key: TKey,
     value: Finding[TKey]
   ) => {
-    await bulkUpdateFindingField(findings, key, value)
+    await findingLifecycle.bulkUpdateFindingField(findings, key, value)
   }
 
   function ToolbarElements(selectedRows: Array<Finding>) {

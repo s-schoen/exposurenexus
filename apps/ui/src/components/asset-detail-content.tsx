@@ -18,9 +18,9 @@ import {
   createAvailableAssetCustomFieldDefinitionsQueryOptions,
   createListAssetsQueryOptions,
   createListAssetsWithCustomFieldsQueryOptions,
-  replaceAssetCustomFieldAssociations,
-  updateAssetCustomFieldValues,
-  updateAssetOwner
+  useReplaceAssetCustomFieldAssociationsMutation,
+  useUpdateAssetCustomFieldValuesMutation,
+  useUpdateAssetOwnerMutation
 } from "@/api/asset.ts"
 import { createListUsersQueryOptions } from "@/api/user.ts"
 import {
@@ -108,6 +108,10 @@ export function AssetDetailContent({
   titleAction
 }: AssetDetailContentProps) {
   const queryClient = useQueryClient()
+  const ownerMutation = useUpdateAssetOwnerMutation()
+  const fieldValuesMutation = useUpdateAssetCustomFieldValuesMutation()
+  const fieldAssociationsMutation =
+    useReplaceAssetCustomFieldAssociationsMutation()
   const assetQueryOptions = createAssetByIDQueryOptions(assetId)
   const asset = useQuery(assetQueryOptions)
   const users = useQuery(createListUsersQueryOptions())
@@ -245,7 +249,7 @@ export function AssetDetailContent({
     }
 
     try {
-      const updated = await updateAssetOwner(assetId, ownerId)
+      const updated = await ownerMutation.mutateAsync({ assetId, ownerId })
 
       queryClient.setQueryData(assetQueryOptions.queryKey, updated)
       await Promise.all([
@@ -271,14 +275,14 @@ export function AssetDetailContent({
     const payload = createAssetCustomFieldValuePayload(field, value)
 
     try {
-      const updated = await updateAssetCustomFieldValues(
+      const updated = await fieldValuesMutation.mutateAsync({
         assetId,
-        createAssetCustomFieldValueReplacement(
+        values: createAssetCustomFieldValueReplacement(
           customFields.data ?? [],
           field.fieldId,
           payload
         )
-      )
+      })
 
       queryClient.setQueryData(customFieldValuesQueryOptions.queryKey, updated)
       await queryClient.invalidateQueries({
@@ -292,14 +296,14 @@ export function AssetDetailContent({
 
   async function handleResetCustomFieldValue(field: AssetCustomFieldValue) {
     try {
-      const updated = await updateAssetCustomFieldValues(
+      const updated = await fieldValuesMutation.mutateAsync({
         assetId,
-        createAssetCustomFieldValueReplacement(
+        values: createAssetCustomFieldValueReplacement(
           customFields.data ?? [],
           field.fieldId,
           null
         )
-      )
+      })
 
       queryClient.setQueryData(customFieldValuesQueryOptions.queryKey, updated)
       await queryClient.invalidateQueries({
@@ -316,10 +320,10 @@ export function AssetDetailContent({
         ...(customFields.data ?? []).map((customField) => customField.fieldId),
         field.id
       ]
-      const updated = await replaceAssetCustomFieldAssociations(
+      const updated = await fieldAssociationsMutation.mutateAsync({
         assetId,
         fieldIds
-      )
+      })
 
       queryClient.setQueryData(customFieldValuesQueryOptions.queryKey, updated)
       await Promise.all([
@@ -337,12 +341,12 @@ export function AssetDetailContent({
 
   async function handleDetachCustomField(field: AssetCustomFieldValue) {
     try {
-      const updated = await replaceAssetCustomFieldAssociations(
+      const updated = await fieldAssociationsMutation.mutateAsync({
         assetId,
-        (customFields.data ?? [])
+        fieldIds: (customFields.data ?? [])
           .map((customField) => customField.fieldId)
           .filter((fieldId) => fieldId !== field.fieldId)
-      )
+      })
 
       queryClient.setQueryData(customFieldValuesQueryOptions.queryKey, updated)
       await Promise.all([

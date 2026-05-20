@@ -22,10 +22,10 @@ import {
 import { Button } from "@/components/ui/button.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import {
-  createAsset,
   createListAssetsQueryOptions,
   createListAssetsWithCustomFieldsQueryOptions,
-  deleteAsset
+  useCreateAssetMutation,
+  useDeleteAssetMutation
 } from "@/api/asset.ts"
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/api/asset-custom-field.ts"
 import { createListUsersQueryOptions } from "@/api/user.ts"
@@ -278,6 +278,8 @@ export function AssetTable({
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
+  const assetCreate = useCreateAssetMutation()
+  const assetDelete = useDeleteAssetMutation()
   const assetsQuery = useQuery(createListAssetsWithCustomFieldsQueryOptions())
   const usersQuery = useQuery(createListUsersQueryOptions())
   const customFieldDefinitionsQuery = useQuery(
@@ -361,7 +363,7 @@ export function AssetTable({
       let success = true
       for (const asset of assets) {
         try {
-          await deleteAsset(asset.id)
+          await assetDelete.mutateAsync(asset.id)
         } catch (error) {
           success = false
           toastActionError(
@@ -388,11 +390,7 @@ export function AssetTable({
 
     if (assetToCreate) {
       try {
-        await createAsset(
-          assetToCreate.name,
-          assetToCreate.type,
-          assetToCreate.ownerId
-        )
+        await assetCreate.mutateAsync(assetToCreate)
         toast.success(`Created new asset ${assetToCreate.name}`)
         queryClient.invalidateQueries({
           queryKey: createListAssetsQueryOptions().queryKey

@@ -1,4 +1,4 @@
-import { StrictMode } from "react"
+import { StrictMode, useEffect } from "react"
 import ReactDOM from "react-dom/client"
 import { RouterProvider, createRouter } from "@tanstack/react-router"
 
@@ -11,6 +11,10 @@ import "@/styles.css"
 import { AuthProvider, useAuth } from "@/context/auth.tsx"
 import { PageProvider, usePage } from "@/context/page.tsx"
 import { createRouterLoginRedirects } from "@/lib/login-redirect.ts"
+import {
+  createUserSessionExpiredRedirectHandler,
+  subscribeUserSessionExpired
+} from "@/lib/auth-session-expiry.ts"
 
 // Create a new router instance
 
@@ -54,6 +58,27 @@ if (rootElement && !rootElement.innerHTML) {
 function InnerApp() {
   const auth = useAuth()
   const page = usePage()
+
+  useEffect(
+    () =>
+      subscribeUserSessionExpired(
+        createUserSessionExpiredRedirectHandler({
+          clearSession: auth.clearSession,
+          getLocation: () => router.state.location,
+          navigateToLogin: (redirect) =>
+            router.navigate({
+              to: "/login",
+              replace: true,
+              search: {
+                redirect
+              }
+            }),
+          safeLoginRedirect: redirects.safeLoginRedirect
+        })
+      ),
+    [auth]
+  )
+
   return <RouterProvider router={router} context={{ auth, page, redirects }} />
 }
 

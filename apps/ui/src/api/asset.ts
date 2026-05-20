@@ -1,4 +1,8 @@
-import { keepPreviousData, queryOptions } from "@tanstack/react-query"
+import {
+  keepPreviousData,
+  queryOptions,
+  useMutation
+} from "@tanstack/react-query"
 import {
   assetSchema,
   assetWithCustomFieldsSchema
@@ -256,5 +260,61 @@ export function createAvailableAssetCustomFieldDefinitionsQueryOptions(
     queryFn: () => listAvailableAssetCustomFieldDefinitions(assetId),
     placeholderData: keepPreviousData,
     staleTime: DEFAULT_QUERY_STALE_TIME
+  })
+}
+
+export function useCreateAssetMutation() {
+  return useMutation({
+    mutationFn: ({
+      name,
+      type,
+      ownerId = null
+    }: {
+      name: string
+      type: AssetType
+      ownerId?: string | null
+    }) => createAsset(name, type, ownerId)
+  })
+}
+
+export function useDeleteAssetMutation() {
+  return useMutation({
+    mutationFn: (id: string) => deleteAsset(id)
+  })
+}
+
+export function useUpdateAssetOwnerMutation() {
+  return useMutation({
+    mutationFn: ({
+      assetId,
+      ownerId
+    }: {
+      assetId: string
+      ownerId: UpdateAssetOwner["ownerId"]
+    }) => updateAssetOwner(assetId, ownerId)
+  })
+}
+
+export function useUpdateAssetCustomFieldValuesMutation() {
+  return useMutation({
+    mutationFn: ({
+      assetId,
+      values
+    }: {
+      assetId: string
+      values: UpdateAssetCustomFieldValues["values"]
+    }) => updateAssetCustomFieldValues(assetId, values)
+  })
+}
+
+export function useReplaceAssetCustomFieldAssociationsMutation() {
+  return useMutation({
+    mutationFn: ({
+      assetId,
+      fieldIds
+    }: {
+      assetId: string
+      fieldIds: UpdateAssetCustomFieldAssociations["fieldIds"]
+    }) => replaceAssetCustomFieldAssociations(assetId, fieldIds)
   })
 }

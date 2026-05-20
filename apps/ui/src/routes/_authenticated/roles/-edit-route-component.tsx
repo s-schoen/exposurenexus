@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import {
   createListRolesQueryOptions,
   createRoleByIDQueryOptions,
-  updateRole
+  useUpdateRoleMutation
 } from "@/api/role.ts"
 import {
   RoleForm,
@@ -34,6 +34,7 @@ export function EditRoleRouteComponent({
 }: EditRoleRouteComponentProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const roleUpdate = useUpdateRoleMutation()
   const role = useQuery(createRoleByIDQueryOptions(roleId))
   const roles = useQuery(createListRolesQueryOptions())
 
@@ -55,7 +56,7 @@ export function EditRoleRouteComponent({
     const payload = mapUpdateRoleFormValues(values)
 
     try {
-      await updateRole(roleId, payload)
+      await roleUpdate.mutateAsync({ id: roleId, role: payload })
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: createListRolesQueryOptions().queryKey

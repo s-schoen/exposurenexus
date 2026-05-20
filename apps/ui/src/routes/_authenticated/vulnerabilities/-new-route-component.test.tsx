@@ -58,7 +58,10 @@ vi.mock("@/api/vulnerability.ts", () => ({
   createListVulnerabilitiesQueryOptions: () => ({
     queryKey: ["vulnerabilities"]
   }),
-  createVulnerability: mocks.createVulnerability
+  createVulnerability: mocks.createVulnerability,
+  useCreateVulnerabilityMutation: () => ({
+    mutateAsync: mocks.createVulnerability
+  })
 }))
 
 vi.mock("@/components/vulnerability-form.tsx", async (importOriginal) => {

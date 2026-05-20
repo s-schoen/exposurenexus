@@ -1,4 +1,8 @@
-import { keepPreviousData, queryOptions } from "@tanstack/react-query"
+import {
+  keepPreviousData,
+  queryOptions,
+  useMutation
+} from "@tanstack/react-query"
 import { assetCustomFieldDefinitionSchema } from "@exposurenexus/types/model/asset-custom-field"
 import type {
   AssetCustomFieldDefinition,
@@ -115,5 +119,30 @@ export function createAssetCustomFieldDefinitionByIDQueryOptions(id: string) {
   return queryOptions({
     queryKey: ["asset-custom-fields", id],
     queryFn: () => getAssetCustomFieldDefinitionByID(id)
+  })
+}
+
+export function useCreateAssetCustomFieldDefinitionMutation() {
+  return useMutation({
+    mutationFn: (definition: CreateAssetCustomFieldDefinition) =>
+      createAssetCustomFieldDefinition(definition)
+  })
+}
+
+export function useUpdateAssetCustomFieldDefinitionMutation() {
+  return useMutation({
+    mutationFn: ({
+      id,
+      definition
+    }: {
+      id: string
+      definition: UpdateAssetCustomFieldDefinition
+    }) => updateAssetCustomFieldDefinition(id, definition)
+  })
+}
+
+export function useDeleteAssetCustomFieldDefinitionMutation() {
+  return useMutation({
+    mutationFn: (id: string) => deleteAssetCustomFieldDefinition(id)
   })
 }

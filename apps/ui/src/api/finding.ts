@@ -1,4 +1,8 @@
-import { keepPreviousData, queryOptions } from "@tanstack/react-query"
+import {
+  keepPreviousData,
+  queryOptions,
+  useMutation
+} from "@tanstack/react-query"
 import {
   findingSchema,
   FindingStatistics as findingStatisticsSchema,
@@ -181,5 +185,37 @@ export function createFindingStatsQueryOptions() {
     queryFn: () => getFindingStats(),
     placeholderData: keepPreviousData,
     staleTime: DEFAULT_QUERY_STALE_TIME
+  })
+}
+
+export function useCreateFindingMutation() {
+  return useMutation({
+    mutationFn: (finding: CreateFinding) => createFinding(finding)
+  })
+}
+
+export function useUpdateFindingMutation() {
+  return useMutation({
+    mutationFn: (finding: Finding) => updateFinding(finding)
+  })
+}
+
+export function useDeleteFindingMutation() {
+  return useMutation({
+    mutationFn: (id: string) => deleteFinding(id)
+  })
+}
+
+export function useUploadFindingFileMutation() {
+  return useMutation({
+    mutationFn: ({ type, file }: { type: string; file: File }) =>
+      uploadFindingFile(type, file)
+  })
+}
+
+export function useReclassifyFindingsMutation() {
+  return useMutation({
+    mutationFn: (reclassification: ReclassifyFindings) =>
+      reclassifyFindings(reclassification)
   })
 }

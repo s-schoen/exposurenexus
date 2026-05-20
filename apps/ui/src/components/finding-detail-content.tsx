@@ -96,7 +96,7 @@ export function FindingDetailContent({
 }: FindingDetailContentProps) {
   const finding = useQuery(createFindingByIDQueryOptions(findingId))
   const users = useQuery(createListUsersQueryOptions())
-  const { updateFindingField } = useFindingLifecycle()
+  const findingLifecycle = useFindingLifecycle()
   const asset = useQuery({
     ...createAssetByIDQueryOptions(finding.data?.assetId ?? ""),
     enabled: Boolean(finding.data?.assetId)
@@ -112,9 +112,9 @@ export function FindingDetailContent({
       key: TKey,
       value: Finding[TKey]
     ) => {
-      await updateFindingField(findingData, key, value)
+      await findingLifecycle.updateFindingField(findingData, key, value)
     },
-    [updateFindingField]
+    [findingLifecycle]
   )
 
   const handleCopyEvidence = useCallback(async (evidence: string) => {

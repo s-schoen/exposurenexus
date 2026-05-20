@@ -25,7 +25,11 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 })
 
 vi.mock("@/api/finding.ts", () => ({
-  uploadFindingFile: mocks.uploadFindingFile
+  uploadFindingFile: mocks.uploadFindingFile,
+  useUploadFindingFileMutation: () => ({
+    mutateAsync: ({ type, file }: { type: string; file: File }) =>
+      mocks.uploadFindingFile(type, file)
+  })
 }))
 
 vi.mock("@/context/page.tsx", () => ({

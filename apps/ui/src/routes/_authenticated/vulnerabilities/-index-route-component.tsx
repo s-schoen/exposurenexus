@@ -5,7 +5,7 @@ import type { Vulnerability } from "@exposurenexus/types/model/vulnerability"
 import {
   createListVulnerabilitiesQueryOptions,
   createVulnerabilityByIDQueryOptions,
-  deleteVulnerability
+  useDeleteVulnerabilityMutation
 } from "@/api/vulnerability.ts"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx"
@@ -23,6 +23,7 @@ export function VulnerabilitiesRouteComponent({
 }: VulnerabilitiesRouteComponentProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const vulnerabilityDelete = useDeleteVulnerabilityMutation()
 
   usePageMeta({
     title: "Vulnerabilities",
@@ -48,7 +49,7 @@ export function VulnerabilitiesRouteComponent({
     const deletedVulnerabilityIds = new Set<string>()
     for (const vulnerability of vulnerabilities) {
       try {
-        await deleteVulnerability(vulnerability.id)
+        await vulnerabilityDelete.mutateAsync(vulnerability.id)
         deletedVulnerabilityIds.add(vulnerability.id)
       } catch (error) {
         success = false
@@ -80,7 +81,9 @@ export function VulnerabilitiesRouteComponent({
     }
 
     if (success) {
-      toast.success(`Deleted ${vulnerabilities.length} vulnerability record(s)!`)
+      toast.success(
+        `Deleted ${vulnerabilities.length} vulnerability record(s)!`
+      )
     }
   }
 

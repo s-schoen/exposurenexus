@@ -7,7 +7,7 @@ import type { CustomFieldUpdateResult } from "@/components/asset-custom-field-de
 import {
   createAssetCustomFieldDefinitionByIDQueryOptions,
   createListAssetCustomFieldDefinitionsQueryOptions,
-  updateAssetCustomFieldDefinition
+  useUpdateAssetCustomFieldDefinitionMutation
 } from "@/api/asset-custom-field.ts"
 import {
   createAssetCustomFieldUpdatePayload,
@@ -42,6 +42,7 @@ export function AssetCustomFieldDetailContent({
   titleAction
 }: AssetCustomFieldDetailContentProps) {
   const queryClient = useQueryClient()
+  const fieldMutation = useUpdateAssetCustomFieldDefinitionMutation()
   const queryOptions = useMemo(
     () => createAssetCustomFieldDefinitionByIDQueryOptions(customFieldId),
     [customFieldId]
@@ -65,10 +66,10 @@ export function AssetCustomFieldDetailContent({
 
       try {
         queryClient.setQueryData(queryOptions.queryKey, nextField)
-        const updatedField = await updateAssetCustomFieldDefinition(
-          customFieldId,
-          payload
-        )
+        const updatedField = await fieldMutation.mutateAsync({
+          id: customFieldId,
+          definition: payload
+        })
         queryClient.setQueryData(queryOptions.queryKey, updatedField)
         await Promise.all([
           queryClient.invalidateQueries({
@@ -85,7 +86,13 @@ export function AssetCustomFieldDetailContent({
         console.error(error)
       }
     },
-    [customField.data, customFieldId, queryClient, queryOptions.queryKey]
+    [
+      customField.data,
+      customFieldId,
+      fieldMutation,
+      queryClient,
+      queryOptions.queryKey
+    ]
   )
 
   const handleUpdateResult = (result: CustomFieldUpdateResult) => {

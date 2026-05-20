@@ -3,7 +3,7 @@ import { useId, useState } from "react"
 import { CircleAlert, FileJson2, UploadCloud, X } from "lucide-react"
 import { toast } from "sonner"
 import type { ChangeEvent } from "react"
-import { uploadFindingFile } from "@/api/finding.ts"
+import { useUploadFindingFileMutation } from "@/api/finding.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
 import { Button, buttonVariants } from "@/components/ui/button.tsx"
 import {
@@ -38,6 +38,7 @@ function formatFileSize(size: number) {
 }
 
 export function RouteComponent() {
+  const fileUpload = useUploadFindingFileMutation()
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -71,7 +72,7 @@ export function RouteComponent() {
     setErrorMessage(null)
 
     try {
-      await uploadFindingFile("nuclei", file)
+      await fileUpload.mutateAsync({ type: "nuclei", file })
       toast.success(`Imported ${file.name}`)
       handleClearFile()
     } catch (error) {

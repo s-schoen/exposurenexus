@@ -4,7 +4,7 @@ import { CircleAlert } from "lucide-react"
 import { toast } from "sonner"
 import {
   createListRolesQueryOptions,
-  createRole
+  useCreateRoleMutation
 } from "@/api/role.ts"
 import {
   RoleForm,
@@ -26,6 +26,7 @@ import { toastActionError } from "@/lib/action-error-toast.ts"
 export function CreateRoleRouteComponent() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const roleCreate = useCreateRoleMutation()
   const roles = useQuery(createListRolesQueryOptions())
 
   usePageMeta({
@@ -46,7 +47,7 @@ export function CreateRoleRouteComponent() {
     const payload = mapCreateRoleFormValues(values)
 
     try {
-      const role = await createRole(payload)
+      const role = await roleCreate.mutateAsync(payload)
       await queryClient.invalidateQueries({
         queryKey: createListRolesQueryOptions().queryKey
       })
