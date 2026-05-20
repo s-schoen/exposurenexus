@@ -117,6 +117,16 @@ status and due date, not stored as separate finding data.
 Users with permission to edit findings may set, change, or clear a due date
 regardless of the finding's current status.
 
+### Finding Mitigation
+
+A **finding mitigation** is the recommended or chosen handling guidance for a
+specific finding.
+
+Mitigation describes how the finding should be addressed or controlled; it is
+distinct from finding status, which records lifecycle state. Scanner output may
+call this remediation, but in ExposureNexus use mitigation for finding-level
+guidance.
+
 ### Finding Source
 
 A **finding source** identifies where a finding came from. Current sources are:
