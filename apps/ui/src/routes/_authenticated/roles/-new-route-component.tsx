@@ -1,11 +1,7 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { CircleAlert } from "lucide-react"
-import { toast } from "sonner"
-import {
-  createListRolesQueryOptions,
-  useCreateRoleMutation
-} from "@/api/role.ts"
+import { createListRolesQueryOptions } from "@/api/role.ts"
 import {
   RoleForm,
   getAvailableRolePermissions,
@@ -21,12 +17,11 @@ import {
 } from "@/components/ui/card.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts"
 
 export function CreateRoleRouteComponent() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const roleCreate = useCreateRoleMutation()
+  const roleLifecycle = useRoleLifecycle()
   const roles = useQuery(createListRolesQueryOptions())
 
   usePageMeta({
@@ -45,20 +40,13 @@ export function CreateRoleRouteComponent() {
     values: Parameters<typeof mapCreateRoleFormValues>[0]
   ) => {
     const payload = mapCreateRoleFormValues(values)
+    const role = await roleLifecycle.createRole(payload)
 
-    try {
-      const role = await roleCreate.mutateAsync(payload)
-      await queryClient.invalidateQueries({
-        queryKey: createListRolesQueryOptions().queryKey
-      })
-      toast.success(`Created role ${payload.name}`)
+    if (role) {
       await navigate({
         to: "/roles/$id",
         params: { id: role.id }
       })
-    } catch (error) {
-      toastActionError(error, `Failed to create role: ${error}`)
-      console.error(error)
     }
   }
 

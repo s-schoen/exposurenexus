@@ -30,26 +30,20 @@ const mocks = vi.hoisted(() => {
     builtInRole,
     confirmDialogCall: vi.fn(),
     customRole,
-    deleteRole: vi.fn(),
+    deleteRoles: vi.fn(),
     dialogProps: undefined as undefined | Record<string, unknown>,
     failingRole,
-    invalidateQueries: vi.fn(),
     navigate: vi.fn(),
     setFilter: vi.fn(),
     setKindFilter: vi.fn(),
-    toastActionError: vi.fn(),
     toastError: vi.fn(),
-    toastSuccess: vi.fn(),
     usePageMeta: vi.fn(),
     useQuery: vi.fn()
   }
 })
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: mocks.useQuery,
-  useQueryClient: () => ({
-    invalidateQueries: mocks.invalidateQueries
-  })
+  useQuery: mocks.useQuery
 }))
 
 vi.mock("@tanstack/react-router", () => ({
@@ -67,18 +61,19 @@ vi.mock("nuqs", () => ({
 
 vi.mock("sonner", () => ({
   toast: {
-    error: mocks.toastError,
-    success: mocks.toastSuccess
+    error: mocks.toastError
   }
 }))
 
 vi.mock("@/api/role.ts", () => ({
   createListRolesQueryOptions: () => ({
     queryKey: ["roles"]
-  }),
-  deleteRole: mocks.deleteRole,
-  useDeleteRoleMutation: () => ({
-    mutateAsync: mocks.deleteRole
+  })
+}))
+
+vi.mock("@/hooks/use-role-lifecycle.ts", () => ({
+  useRoleLifecycle: () => ({
+    deleteRoles: mocks.deleteRoles
   })
 }))
 
@@ -167,24 +162,20 @@ vi.mock("@/context/page.tsx", () => ({
   usePageMeta: mocks.usePageMeta
 }))
 
-vi.mock("@/lib/action-error-toast.ts", () => ({
-  toastActionError: mocks.toastActionError
-}))
-
 describe("RoleIndexRouteComponent", () => {
   beforeEach(() => {
     mocks.confirmDialogCall.mockReset()
     mocks.confirmDialogCall.mockResolvedValue(true)
-    mocks.deleteRole.mockReset()
-    mocks.deleteRole.mockResolvedValue(mocks.customRole)
+    mocks.deleteRoles.mockReset()
+    mocks.deleteRoles.mockResolvedValue({
+      successful: [mocks.customRole],
+      failed: []
+    })
     mocks.dialogProps = undefined
-    mocks.invalidateQueries.mockReset()
     mocks.navigate.mockReset()
     mocks.setFilter.mockReset()
     mocks.setKindFilter.mockReset()
-    mocks.toastActionError.mockReset()
     mocks.toastError.mockReset()
-    mocks.toastSuccess.mockReset()
     mocks.usePageMeta.mockReset()
     mocks.useQuery.mockReset()
     mocks.useQuery.mockReturnValue({
@@ -226,7 +217,7 @@ describe("RoleIndexRouteComponent", () => {
       )
     })
     expect(mocks.confirmDialogCall).not.toHaveBeenCalled()
-    expect(mocks.deleteRole).not.toHaveBeenCalled()
+    expect(mocks.deleteRoles).not.toHaveBeenCalled()
   })
 
   it("confirms mixed selections and deletes only custom roles", async () => {
@@ -238,18 +229,22 @@ describe("RoleIndexRouteComponent", () => {
     fireEvent.click(screen.getByRole("button", { name: /delete mixed/i }))
 
     await waitFor(() => {
-      expect(mocks.deleteRole).toHaveBeenCalledWith(mocks.customRole.id)
+      expect(mocks.deleteRoles).toHaveBeenCalledWith([mocks.customRole])
     })
-    expect(mocks.deleteRole).not.toHaveBeenCalledWith(mocks.builtInRole.id)
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["roles"]
-    })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith("Deleted 1 role(s)!")
+    expect(mocks.deleteRoles).not.toHaveBeenCalledWith([mocks.builtInRole])
   })
 
-  it("uses the action-error toast and leaves the preview open on delete failure", async () => {
+  it("leaves the preview open when the lifecycle reports a delete failure", async () => {
     const failure = new Error("request failed")
-    mocks.deleteRole.mockRejectedValueOnce(failure)
+    mocks.deleteRoles.mockResolvedValueOnce({
+      successful: [],
+      failed: [
+        {
+          role: mocks.failingRole,
+          error: failure
+        }
+      ]
+    })
     const { RoleIndexRouteComponent } =
       await import("@/routes/_authenticated/roles/-index-route-component.tsx")
 
@@ -258,15 +253,8 @@ describe("RoleIndexRouteComponent", () => {
     fireEvent.click(screen.getByRole("button", { name: /delete failing/i }))
 
     await waitFor(() => {
-      expect(mocks.toastActionError).toHaveBeenCalledWith(
-        failure,
-        `Failed to delete role ${mocks.failingRole.name}: ${failure}`
-      )
+      expect(mocks.deleteRoles).toHaveBeenCalledWith([mocks.failingRole])
     })
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["roles"]
-    })
-    expect(mocks.toastSuccess).not.toHaveBeenCalled()
     expect(mocks.navigate).not.toHaveBeenCalled()
   })
 
