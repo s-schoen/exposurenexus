@@ -1,11 +1,9 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { CircleAlert } from "lucide-react"
-import { toast } from "sonner"
 import {
   createListRolesQueryOptions,
-  createRoleByIDQueryOptions,
-  useUpdateRoleMutation
+  createRoleByIDQueryOptions
 } from "@/api/role.ts"
 import {
   RoleForm,
@@ -23,7 +21,7 @@ import {
 } from "@/components/ui/card.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts"
 
 interface EditRoleRouteComponentProps {
   roleId: string
@@ -33,8 +31,7 @@ export function EditRoleRouteComponent({
   roleId
 }: EditRoleRouteComponentProps) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const roleUpdate = useUpdateRoleMutation()
+  const roleLifecycle = useRoleLifecycle()
   const role = useQuery(createRoleByIDQueryOptions(roleId))
   const roles = useQuery(createListRolesQueryOptions())
 
@@ -54,25 +51,13 @@ export function EditRoleRouteComponent({
     values: Parameters<typeof mapUpdateRoleFormValues>[0]
   ) => {
     const payload = mapUpdateRoleFormValues(values)
+    const updatedRole = await roleLifecycle.updateRole(roleId, payload)
 
-    try {
-      await roleUpdate.mutateAsync({ id: roleId, role: payload })
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: createListRolesQueryOptions().queryKey
-        }),
-        queryClient.invalidateQueries({
-          queryKey: createRoleByIDQueryOptions(roleId).queryKey
-        })
-      ])
-      toast.success(`Updated role ${payload.name}`)
+    if (updatedRole) {
       await navigate({
         to: "/roles/$id",
         params: { id: roleId }
       })
-    } catch (error) {
-      toastActionError(error, `Failed to update role: ${error}`)
-      console.error(error)
     }
   }
 

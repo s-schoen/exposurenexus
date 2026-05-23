@@ -12,7 +12,6 @@ import {
 } from "@exposurenexus/types/model/rbac"
 import type { Role } from "@exposurenexus/types/model/rbac"
 import type { RoleFormValues } from "@/components/role-form.tsx"
-import { APIError } from "@/api/common.ts"
 import { EditRoleRouteComponent } from "@/routes/_authenticated/roles/-edit-route-component.tsx"
 
 interface QueryState<TData> {
@@ -71,15 +70,12 @@ const mocks = vi.hoisted(() => {
   }
 
   return {
-    invalidateQueries: vi.fn(),
     navigate: vi.fn(),
     role,
     roleQuery,
     roles,
     rolesQuery,
     submitValues,
-    toastActionError: vi.fn(),
-    toastSuccess: vi.fn(),
     updateRole: vi.fn(),
     usePageMeta: vi.fn()
   }
@@ -96,10 +92,7 @@ vi.mock("@tanstack/react-query", () => ({
     }
 
     return mocks.roleQuery
-  },
-  useQueryClient: () => ({
-    invalidateQueries: mocks.invalidateQueries
-  })
+  }
 }))
 
 vi.mock("@/api/role.ts", () => ({
@@ -108,11 +101,12 @@ vi.mock("@/api/role.ts", () => ({
   }),
   createRoleByIDQueryOptions: (id: string) => ({
     queryKey: ["roles", id]
-  }),
-  updateRole: mocks.updateRole,
-  useUpdateRoleMutation: () => ({
-    mutateAsync: ({ id, role }: { id: string; role: unknown }) =>
-      mocks.updateRole(id, role)
+  })
+}))
+
+vi.mock("@/hooks/use-role-lifecycle.ts", () => ({
+  useRoleLifecycle: () => ({
+    updateRole: mocks.updateRole
   })
 }))
 
@@ -152,16 +146,6 @@ vi.mock("@/context/page.tsx", () => ({
   usePageMeta: mocks.usePageMeta
 }))
 
-vi.mock("@/lib/action-error-toast.ts", () => ({
-  toastActionError: mocks.toastActionError
-}))
-
-vi.mock("sonner", () => ({
-  toast: {
-    success: mocks.toastSuccess
-  }
-}))
-
 function resetQueries() {
   mocks.roleQuery = {
     data: mocks.role,
@@ -177,14 +161,10 @@ function resetQueries() {
 
 describe("EditRoleRouteComponent", () => {
   beforeEach(() => {
-    mocks.invalidateQueries.mockReset()
     mocks.navigate.mockReset()
     resetQueries()
-    mocks.toastActionError.mockReset()
-    mocks.toastSuccess.mockReset()
     mocks.updateRole.mockReset()
     mocks.usePageMeta.mockReset()
-    vi.spyOn(console, "error").mockImplementation(() => undefined)
   })
 
   afterEach(() => {
@@ -262,7 +242,7 @@ describe("EditRoleRouteComponent", () => {
     })
   })
 
-  it("updates a role, invalidates role queries, and navigates back to detail", async () => {
+  it("updates a role through the lifecycle hook and navigates back to detail", async () => {
     mocks.updateRole.mockResolvedValueOnce({
       ...mocks.role,
       name: "security-analyst-plus"
@@ -280,15 +260,6 @@ describe("EditRoleRouteComponent", () => {
         ]
       })
     })
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["roles"]
-    })
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["roles", roleId]
-    })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith(
-      "Updated role security-analyst-plus"
-    )
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/roles/$id",
       params: {
@@ -297,18 +268,14 @@ describe("EditRoleRouteComponent", () => {
     })
   })
 
-  it("reports update failures including backend 403 without navigating", async () => {
-    const error = new APIError(403, "built-in roles cannot be modified")
-    mocks.updateRole.mockRejectedValueOnce(error)
+  it("does not navigate when the lifecycle handles update failures", async () => {
+    mocks.updateRole.mockResolvedValueOnce(null)
 
     render(<EditRoleRouteComponent roleId={roleId} />)
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
-      expect(mocks.toastActionError).toHaveBeenCalledWith(
-        error,
-        `Failed to update role: ${error}`
-      )
+      expect(mocks.updateRole).toHaveBeenCalled()
     })
     expect(mocks.navigate).not.toHaveBeenCalled()
   })

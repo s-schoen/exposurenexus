@@ -57,13 +57,10 @@ const mocks = vi.hoisted(() => {
 
   return {
     createRole: vi.fn(),
-    invalidateQueries: vi.fn(),
     navigate: vi.fn(),
     roles,
     rolesQuery,
     submitValues,
-    toastActionError: vi.fn(),
-    toastSuccess: vi.fn(),
     usePageMeta: vi.fn()
   }
 })
@@ -73,19 +70,18 @@ vi.mock("@tanstack/react-router", () => ({
 }))
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.rolesQuery,
-  useQueryClient: () => ({
-    invalidateQueries: mocks.invalidateQueries
-  })
+  useQuery: () => mocks.rolesQuery
 }))
 
 vi.mock("@/api/role.ts", () => ({
   createListRolesQueryOptions: () => ({
     queryKey: ["roles"]
-  }),
-  createRole: mocks.createRole,
-  useCreateRoleMutation: () => ({
-    mutateAsync: mocks.createRole
+  })
+}))
+
+vi.mock("@/hooks/use-role-lifecycle.ts", () => ({
+  useRoleLifecycle: () => ({
+    createRole: mocks.createRole
   })
 }))
 
@@ -122,30 +118,16 @@ vi.mock("@/context/page.tsx", () => ({
   usePageMeta: mocks.usePageMeta
 }))
 
-vi.mock("@/lib/action-error-toast.ts", () => ({
-  toastActionError: mocks.toastActionError
-}))
-
-vi.mock("sonner", () => ({
-  toast: {
-    success: mocks.toastSuccess
-  }
-}))
-
 describe("CreateRoleRouteComponent", () => {
   beforeEach(() => {
     mocks.createRole.mockReset()
-    mocks.invalidateQueries.mockReset()
     mocks.navigate.mockReset()
     mocks.rolesQuery = {
       data: mocks.roles,
       isPending: false,
       isSuccess: true
     }
-    mocks.toastActionError.mockReset()
-    mocks.toastSuccess.mockReset()
     mocks.usePageMeta.mockReset()
-    vi.spyOn(console, "error").mockImplementation(() => undefined)
   })
 
   afterEach(() => {
@@ -186,7 +168,7 @@ describe("CreateRoleRouteComponent", () => {
     expect(Number(screen.getByTestId("permission-count").textContent)).toBe(3)
   })
 
-  it("creates a role, invalidates roles, and navigates to the created role", async () => {
+  it("creates a role through the lifecycle hook and navigates to the created role", async () => {
     mocks.createRole.mockResolvedValueOnce({
       id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830",
       name: "security-analyst",
@@ -207,30 +189,20 @@ describe("CreateRoleRouteComponent", () => {
         ]
       })
     })
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["roles"]
-    })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith(
-      "Created role security-analyst"
-    )
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/roles/$id",
       params: { id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830" }
     })
   })
 
-  it("reports create failures without navigating", async () => {
-    const error = new Error("Create failed")
-    mocks.createRole.mockRejectedValueOnce(error)
+  it("does not navigate when the lifecycle handles create failures", async () => {
+    mocks.createRole.mockResolvedValueOnce(null)
 
     render(<CreateRoleRouteComponent />)
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
-      expect(mocks.toastActionError).toHaveBeenCalledWith(
-        error,
-        `Failed to create role: ${error}`
-      )
+      expect(mocks.createRole).toHaveBeenCalled()
     })
     expect(mocks.navigate).not.toHaveBeenCalled()
   })

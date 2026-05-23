@@ -1,20 +1,17 @@
 import { useMemo } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import { toast } from "sonner"
 import type { Role } from "@exposurenexus/types/model/rbac"
 import type { DataTableFilterState } from "@/components/data-table/types.ts"
-import {
-  createListRolesQueryOptions,
-  useDeleteRoleMutation
-} from "@/api/role.ts"
+import { createListRolesQueryOptions } from "@/api/role.ts"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx"
 import { RoleDetailContent } from "@/components/role-detail-content.tsx"
 import { RoleTable } from "@/components/role-table"
 import { usePageMeta } from "@/context/page.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts"
 import { isBuiltInRoleId } from "@/lib/role.ts"
 
 interface RoleIndexRouteComponentProps {
@@ -25,8 +22,7 @@ export function RoleIndexRouteComponent({
   selected
 }: RoleIndexRouteComponentProps) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const roleDelete = useDeleteRoleMutation()
+  const roleLifecycle = useRoleLifecycle()
   const rolesQuery = useQuery(createListRolesQueryOptions())
   const [filter, setFilter] = useQueryState("filter")
   const [kindFilter, setKindFilter] = useQueryState(
@@ -104,29 +100,13 @@ export function RoleIndexRouteComponent({
       return
     }
 
-    let success = true
-    const deletedRoleIds = new Set<string>()
-    for (const role of customRoles) {
-      try {
-        await roleDelete.mutateAsync(role.id)
-        deletedRoleIds.add(role.id)
-      } catch (error) {
-        success = false
-        toastActionError(error, `Failed to delete role ${role.name}: ${error}`)
-        console.error(error)
-      }
-    }
-
-    await queryClient.invalidateQueries({
-      queryKey: createListRolesQueryOptions().queryKey
-    })
+    const result = await roleLifecycle.deleteRoles(customRoles)
+    const deletedRoleIds = new Set(
+      result.successful.map((role) => role.id)
+    )
 
     if (selected && deletedRoleIds.has(selected)) {
       await handleClearSelectedRole()
-    }
-
-    if (success) {
-      toast.success(`Deleted ${customRoles.length} role(s)!`)
     }
   }
 
