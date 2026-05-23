@@ -1,7 +1,6 @@
 import { Plus } from "lucide-react"
 import { useLocation, useNavigate } from "@tanstack/react-router"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { useQuery } from "@tanstack/react-query"
 import { useMemo, useState } from "react"
 import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
 import type {
@@ -21,12 +20,7 @@ import {
 } from "@/components/asset-table/columns.tsx"
 import { Button } from "@/components/ui/button.tsx"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
-import {
-  createListAssetsQueryOptions,
-  createListAssetsWithCustomFieldsQueryOptions,
-  useCreateAssetMutation,
-  useDeleteAssetMutation
-} from "@/api/asset.ts"
+import { createListAssetsWithCustomFieldsQueryOptions } from "@/api/asset.ts"
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/api/asset-custom-field.ts"
 import { createListUsersQueryOptions } from "@/api/user.ts"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
@@ -35,7 +29,7 @@ import {
   formatUserProfileReference
 } from "@/components/user-label.tsx"
 import { capitalizeFirstLetter } from "@/lib/format.ts"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useAssetLifecycle } from "@/hooks/use-asset-lifecycle.ts"
 
 interface AssetCustomFieldFilterSearchState {
   select: Record<string, Array<string>>
@@ -277,9 +271,7 @@ export function AssetTable({
 }: AssetTableProps = {}) {
   const navigate = useNavigate()
   const location = useLocation()
-  const queryClient = useQueryClient()
-  const assetCreate = useCreateAssetMutation()
-  const assetDelete = useDeleteAssetMutation()
+  const assetLifecycle = useAssetLifecycle()
   const assetsQuery = useQuery(createListAssetsWithCustomFieldsQueryOptions())
   const usersQuery = useQuery(createListUsersQueryOptions())
   const customFieldDefinitionsQuery = useQuery(
@@ -359,49 +351,18 @@ export function AssetTable({
       confirmVariant: "destructive"
     })
 
-    if (confirmed) {
-      let success = true
-      for (const asset of assets) {
-        try {
-          await assetDelete.mutateAsync(asset.id)
-        } catch (error) {
-          success = false
-          toastActionError(
-            error,
-            `Failed to delete asset ${asset.id}: ${error}`
-          )
-          console.error(error)
-        }
-      }
-      if (success) {
-        toast.success(`Deleted ${assets.length} asset(s)!`)
-      }
-      queryClient.invalidateQueries({
-        queryKey: createListAssetsQueryOptions().queryKey
-      })
-      queryClient.invalidateQueries({
-        queryKey: createListAssetsWithCustomFieldsQueryOptions().queryKey
-      })
+    if (!confirmed) {
+      return
     }
+
+    await assetLifecycle.deleteAssets(assets)
   }
 
   const handleCreateAsset = async () => {
     const assetToCreate = await AssetDialog.call({})
 
     if (assetToCreate) {
-      try {
-        await assetCreate.mutateAsync(assetToCreate)
-        toast.success(`Created new asset ${assetToCreate.name}`)
-        queryClient.invalidateQueries({
-          queryKey: createListAssetsQueryOptions().queryKey
-        })
-        queryClient.invalidateQueries({
-          queryKey: createListAssetsWithCustomFieldsQueryOptions().queryKey
-        })
-      } catch (error) {
-        toastActionError(error, `Failed to create asset: ${error}`)
-        console.error(error)
-      }
+      await assetLifecycle.createAsset(assetToCreate)
     }
   }
 

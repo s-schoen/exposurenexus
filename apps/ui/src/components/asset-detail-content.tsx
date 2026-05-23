@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { AlertCircle, Plus, RotateCcw, Server, X } from "lucide-react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource
@@ -15,12 +15,7 @@ import type { ReactNode } from "react"
 import {
   createAssetByIDQueryOptions,
   createAssetCustomFieldValuesQueryOptions,
-  createAvailableAssetCustomFieldDefinitionsQueryOptions,
-  createListAssetsQueryOptions,
-  createListAssetsWithCustomFieldsQueryOptions,
-  useReplaceAssetCustomFieldAssociationsMutation,
-  useUpdateAssetCustomFieldValuesMutation,
-  useUpdateAssetOwnerMutation
+  createAvailableAssetCustomFieldDefinitionsQueryOptions
 } from "@/api/asset.ts"
 import { createListUsersQueryOptions } from "@/api/user.ts"
 import {
@@ -42,7 +37,7 @@ import { Inplace } from "@/components/inplace.tsx"
 import { Button } from "@/components/ui/button.tsx"
 import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts"
 import { cn } from "@/lib/utils.ts"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useAssetLifecycle } from "@/hooks/use-asset-lifecycle.ts"
 import {
   UserLabel,
   createUserProfileById,
@@ -107,11 +102,7 @@ export function AssetDetailContent({
   assetId,
   titleAction
 }: AssetDetailContentProps) {
-  const queryClient = useQueryClient()
-  const ownerMutation = useUpdateAssetOwnerMutation()
-  const fieldValuesMutation = useUpdateAssetCustomFieldValuesMutation()
-  const fieldAssociationsMutation =
-    useReplaceAssetCustomFieldAssociationsMutation()
+  const assetLifecycle = useAssetLifecycle()
   const assetQueryOptions = createAssetByIDQueryOptions(assetId)
   const asset = useQuery(assetQueryOptions)
   const users = useQuery(createListUsersQueryOptions())
@@ -248,24 +239,7 @@ export function AssetDetailContent({
       return
     }
 
-    try {
-      const updated = await ownerMutation.mutateAsync({ assetId, ownerId })
-
-      queryClient.setQueryData(assetQueryOptions.queryKey, updated)
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: assetQueryOptions.queryKey
-        }),
-        queryClient.invalidateQueries({
-          queryKey: createListAssetsQueryOptions().queryKey
-        }),
-        queryClient.invalidateQueries({
-          queryKey: createListAssetsWithCustomFieldsQueryOptions().queryKey
-        })
-      ])
-    } catch (error) {
-      toastActionError(error, "Failed to update asset owner")
-    }
+    await assetLifecycle.updateAssetOwner(assetId, ownerId)
   }
 
   async function handleSaveCustomFieldValue(
@@ -274,92 +248,41 @@ export function AssetDetailContent({
   ) {
     const payload = createAssetCustomFieldValuePayload(field, value)
 
-    try {
-      const updated = await fieldValuesMutation.mutateAsync({
-        assetId,
-        values: createAssetCustomFieldValueReplacement(
-          customFields.data ?? [],
-          field.fieldId,
-          payload
-        )
-      })
-
-      queryClient.setQueryData(customFieldValuesQueryOptions.queryKey, updated)
-      await queryClient.invalidateQueries({
-        queryKey: customFieldValuesQueryOptions.queryKey
-      })
-    } catch (error) {
-      toastActionError(error, "Failed to update asset custom field")
-      throw error
-    }
+    await assetLifecycle.updateAssetCustomFieldValues(
+      assetId,
+      createAssetCustomFieldValueReplacement(
+        customFields.data ?? [],
+        field.fieldId,
+        payload
+      )
+    )
   }
 
   async function handleResetCustomFieldValue(field: AssetCustomFieldValue) {
-    try {
-      const updated = await fieldValuesMutation.mutateAsync({
-        assetId,
-        values: createAssetCustomFieldValueReplacement(
-          customFields.data ?? [],
-          field.fieldId,
-          null
-        )
-      })
-
-      queryClient.setQueryData(customFieldValuesQueryOptions.queryKey, updated)
-      await queryClient.invalidateQueries({
-        queryKey: customFieldValuesQueryOptions.queryKey
-      })
-    } catch (error) {
-      toastActionError(error, "Failed to reset asset custom field")
-    }
+    await assetLifecycle.resetAssetCustomFieldValues(
+      assetId,
+      createAssetCustomFieldValueReplacement(
+        customFields.data ?? [],
+        field.fieldId,
+        null
+      )
+    )
   }
 
   async function handleAssignCustomField(field: AssetCustomFieldDefinition) {
-    try {
-      const fieldIds = [
-        ...(customFields.data ?? []).map((customField) => customField.fieldId),
-        field.id
-      ]
-      const updated = await fieldAssociationsMutation.mutateAsync({
-        assetId,
-        fieldIds
-      })
-
-      queryClient.setQueryData(customFieldValuesQueryOptions.queryKey, updated)
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: customFieldValuesQueryOptions.queryKey
-        }),
-        queryClient.invalidateQueries({
-          queryKey: availableCustomFieldDefinitionsQueryOptions.queryKey
-        })
-      ])
-    } catch (error) {
-      toastActionError(error, "Failed to assign asset custom field")
-    }
+    await assetLifecycle.assignAssetCustomField(assetId, [
+      ...(customFields.data ?? []).map((customField) => customField.fieldId),
+      field.id
+    ])
   }
 
   async function handleDetachCustomField(field: AssetCustomFieldValue) {
-    try {
-      const updated = await fieldAssociationsMutation.mutateAsync({
-        assetId,
-        fieldIds: (customFields.data ?? [])
-          .map((customField) => customField.fieldId)
-          .filter((fieldId) => fieldId !== field.fieldId)
-      })
-
-      queryClient.setQueryData(customFieldValuesQueryOptions.queryKey, updated)
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: customFieldValuesQueryOptions.queryKey
-        }),
-        queryClient.invalidateQueries({
-          queryKey: availableCustomFieldDefinitionsQueryOptions.queryKey
-        })
-      ])
-    } catch (error) {
-      toastActionError(error, "Failed to detach asset custom field")
-    }
+    await assetLifecycle.detachAssetCustomField(
+      assetId,
+      (customFields.data ?? [])
+        .map((customField) => customField.fieldId)
+        .filter((fieldId) => fieldId !== field.fieldId)
+    )
   }
 
   function AssetOverviewCard({ assetData }: { assetData: Asset }) {
