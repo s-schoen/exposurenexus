@@ -1,16 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
-import {
-  createListAssetCustomFieldDefinitionsQueryOptions,
-  useCreateAssetCustomFieldDefinitionMutation
-} from "@/api/asset-custom-field.ts"
 import {
   AssetCustomFieldForm,
   mapAssetCustomFieldFormValues
 } from "@/components/asset-custom-field-form.tsx"
 import { usePageMeta } from "@/context/page.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts"
 
 export const Route = createFileRoute("/_authenticated/custom-fields/new")({
   component: RouteComponent
@@ -18,8 +12,7 @@ export const Route = createFileRoute("/_authenticated/custom-fields/new")({
 
 function RouteComponent() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const fieldCreate = useCreateAssetCustomFieldDefinitionMutation()
+  const fieldLifecycle = useAssetCustomFieldDefinitionLifecycle()
 
   usePageMeta({
     title: "Create Custom Field",
@@ -37,20 +30,13 @@ function RouteComponent() {
     values: Parameters<typeof mapAssetCustomFieldFormValues>[0]
   ) => {
     const payload = mapAssetCustomFieldFormValues(values)
+    const customField = await fieldLifecycle.createDefinition(payload)
 
-    try {
-      const customField = await fieldCreate.mutateAsync(payload)
-      await queryClient.invalidateQueries({
-        queryKey: createListAssetCustomFieldDefinitionsQueryOptions().queryKey
-      })
-      toast.success(`Created custom field ${payload.name}`)
+    if (customField) {
       await navigate({
         to: "/custom-fields/$id",
         params: { id: customField.id }
       })
-    } catch (error) {
-      toastActionError(error, `Failed to create custom field: ${error}`)
-      console.error(error)
     }
   }
 
