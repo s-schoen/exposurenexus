@@ -37,12 +37,9 @@ const mocks = vi.hoisted(() => {
     confirmDialogCall: vi.fn(),
     createAsset: vi.fn(),
     dataTableProps: undefined as undefined | Record<string, unknown>,
-    deleteAsset: vi.fn(),
-    invalidateQueries: vi.fn(),
+    deleteAssets: vi.fn(),
     locationSearch: {},
     navigate: vi.fn(),
-    toastActionError: vi.fn(),
-    toastSuccess: vi.fn(),
     users
   }
 })
@@ -79,34 +76,23 @@ vi.mock("@tanstack/react-query", () => ({
       isPending: false,
       isSuccess: true
     }
-  },
-  useQueryClient: () => ({
-    invalidateQueries: mocks.invalidateQueries
-  })
+  }
 }))
 
 vi.mock("@/api/asset.ts", () => ({
-  createAsset: mocks.createAsset,
-  createListAssetsQueryOptions: () => ({
-    queryKey: ["assets"]
-  }),
   createListAssetsWithCustomFieldsQueryOptions: () => ({
     queryKey: ["assets", "with-custom-fields"]
-  }),
-  deleteAsset: mocks.deleteAsset,
-  useCreateAssetMutation: () => ({
-    mutateAsync: ({
-      name,
-      type,
-      ownerId
-    }: {
+  })
+}))
+
+vi.mock("@/hooks/use-asset-lifecycle.ts", () => ({
+  useAssetLifecycle: () => ({
+    createAsset: (asset: {
       name: string
       type: unknown
       ownerId?: string | null
-    }) => mocks.createAsset(name, type, ownerId ?? null)
-  }),
-  useDeleteAssetMutation: () => ({
-    mutateAsync: mocks.deleteAsset
+    }) => mocks.createAsset(asset.name, asset.type, asset.ownerId ?? null),
+    deleteAssets: mocks.deleteAssets
   })
 }))
 
@@ -125,16 +111,6 @@ vi.mock("@/components/asset-dialog.tsx", () => ({
 vi.mock("@/components/confirm-dialog.tsx", () => ({
   ConfirmDialog: {
     call: mocks.confirmDialogCall
-  }
-}))
-
-vi.mock("@/lib/action-error-toast.ts", () => ({
-  toastActionError: mocks.toastActionError
-}))
-
-vi.mock("sonner", () => ({
-  toast: {
-    success: mocks.toastSuccess
   }
 }))
 
@@ -212,13 +188,9 @@ describe("AssetTable workflow wiring", () => {
     mocks.confirmDialogCall.mockReset()
     mocks.createAsset.mockReset()
     mocks.dataTableProps = undefined
-    mocks.deleteAsset.mockReset()
-    mocks.invalidateQueries.mockReset()
+    mocks.deleteAssets.mockReset()
     mocks.locationSearch = {}
     mocks.navigate.mockReset()
-    mocks.toastActionError.mockReset()
-    mocks.toastSuccess.mockReset()
-    vi.spyOn(console, "error").mockImplementation(() => undefined)
   })
 
   afterEach(() => {
@@ -332,51 +304,39 @@ describe("AssetTable workflow wiring", () => {
     fireEvent.click(screen.getByRole("button", { name: /delete rows/i }))
     await flushPromises()
 
-    expect(mocks.deleteAsset).not.toHaveBeenCalled()
-    expect(mocks.invalidateQueries).not.toHaveBeenCalled()
+    expect(mocks.deleteAssets).not.toHaveBeenCalled()
   })
 
-  it("deletes confirmed assets and invalidates asset queries", async () => {
+  it("deletes confirmed assets through the lifecycle hook", async () => {
     const { AssetTable } = await import("@/components/asset-table/index.tsx")
     mocks.confirmDialogCall.mockResolvedValueOnce(true)
-    mocks.deleteAsset.mockResolvedValueOnce(mocks.asset)
+    mocks.deleteAssets.mockResolvedValueOnce({
+      successful: [mocks.asset],
+      failed: []
+    })
 
     render(<AssetTable />)
     fireEvent.click(screen.getByRole("button", { name: /delete rows/i }))
 
     await waitFor(() => {
-      expect(mocks.deleteAsset).toHaveBeenCalledWith(mocks.asset.id)
-    })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith("Deleted 1 asset(s)!")
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["assets"]
-    })
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["assets", "with-custom-fields"]
+      expect(mocks.deleteAssets).toHaveBeenCalledWith([mocks.asset])
     })
   })
 
-  it("reports asset deletion failures and still refreshes asset queries", async () => {
+  it("delegates asset deletion failures to the lifecycle hook", async () => {
     const { AssetTable } = await import("@/components/asset-table/index.tsx")
     const error = new Error("Delete failed")
     mocks.confirmDialogCall.mockResolvedValueOnce(true)
-    mocks.deleteAsset.mockRejectedValueOnce(error)
+    mocks.deleteAssets.mockResolvedValueOnce({
+      successful: [],
+      failed: [{ asset: mocks.asset, error }]
+    })
 
     render(<AssetTable />)
     fireEvent.click(screen.getByRole("button", { name: /delete rows/i }))
 
     await waitFor(() => {
-      expect(mocks.toastActionError).toHaveBeenCalledWith(
-        error,
-        `Failed to delete asset ${mocks.asset.id}: ${error}`
-      )
-    })
-    expect(mocks.toastSuccess).not.toHaveBeenCalled()
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["assets"]
-    })
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["assets", "with-custom-fields"]
+      expect(mocks.deleteAssets).toHaveBeenCalledWith([mocks.asset])
     })
   })
 
@@ -391,7 +351,7 @@ describe("AssetTable workflow wiring", () => {
     expect(mocks.createAsset).not.toHaveBeenCalled()
   })
 
-  it("creates assets from the asset dialog and invalidates asset queries", async () => {
+  it("creates assets from the asset dialog through the lifecycle hook", async () => {
     const { AssetTable } = await import("@/components/asset-table/index.tsx")
     mocks.assetDialogCall.mockResolvedValueOnce({
       id: "",
@@ -416,38 +376,28 @@ describe("AssetTable workflow wiring", () => {
         null
       )
     })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith(
-      "Created new asset worker-01"
-    )
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["assets"]
-    })
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["assets", "with-custom-fields"]
-    })
   })
 
-  it("reports asset creation failures", async () => {
+  it("delegates asset creation failures to the lifecycle hook", async () => {
     const { AssetTable } = await import("@/components/asset-table/index.tsx")
-    const error = new Error("Create failed")
     mocks.assetDialogCall.mockResolvedValueOnce({
       id: "",
       name: "worker-01",
       type: AssetType.Container,
       ownerId: null
     })
-    mocks.createAsset.mockRejectedValueOnce(error)
+    mocks.createAsset.mockResolvedValueOnce(null)
 
     render(<AssetTable />)
     fireEvent.click(screen.getByRole("button", { name: /new asset/i }))
 
     await waitFor(() => {
-      expect(mocks.toastActionError).toHaveBeenCalledWith(
-        error,
-        `Failed to create asset: ${error}`
+      expect(mocks.createAsset).toHaveBeenCalledWith(
+        "worker-01",
+        AssetType.Container,
+        null
       )
     })
-    expect(mocks.toastSuccess).not.toHaveBeenCalled()
   })
 
   it("passes selected owner ids when creating assets", async () => {
