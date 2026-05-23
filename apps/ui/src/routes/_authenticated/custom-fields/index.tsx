@@ -1,20 +1,16 @@
 import { useMemo } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
-import { toast } from "sonner"
 import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import type { DataTableFilterState } from "@/components/data-table/types.ts"
-import {
-  createListAssetCustomFieldDefinitionsQueryOptions,
-  useDeleteAssetCustomFieldDefinitionMutation
-} from "@/api/asset-custom-field.ts"
+import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/api/asset-custom-field.ts"
 import { AssetCustomFieldTable } from "@/components/asset-custom-field-table"
 import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx"
 import { usePageMeta } from "@/context/page.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts"
 
 export const Route = createFileRoute("/_authenticated/custom-fields/")({
   validateSearch: (search) => ({
@@ -26,8 +22,7 @@ export const Route = createFileRoute("/_authenticated/custom-fields/")({
 
 function RouteComponent() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const fieldDelete = useDeleteAssetCustomFieldDefinitionMutation()
+  const fieldLifecycle = useAssetCustomFieldDefinitionLifecycle()
   const { selected } = Route.useSearch()
   const customFieldsQuery = useQuery(
     createListAssetCustomFieldDefinitionsQueryOptions()
@@ -113,30 +108,11 @@ function RouteComponent() {
       return
     }
 
-    let success = true
-    for (const field of fields) {
-      try {
-        await fieldDelete.mutateAsync(field.id)
-      } catch (error) {
-        success = false
-        toastActionError(
-          error,
-          `Failed to delete custom field ${field.name}: ${error}`
-        )
-        console.error(error)
-      }
-    }
+    const result = await fieldLifecycle.deleteDefinitions(fields)
+    const deletedFieldIds = new Set(result.successful.map((field) => field.id))
 
-    await queryClient.invalidateQueries({
-      queryKey: createListAssetCustomFieldDefinitionsQueryOptions().queryKey
-    })
-
-    if (selected && fields.some((field) => field.id === selected)) {
+    if (selected && deletedFieldIds.has(selected)) {
       await handleClearSelectedCustomField()
-    }
-
-    if (success) {
-      toast.success(`Deleted ${fields.length} custom field(s)!`)
     }
   }
 

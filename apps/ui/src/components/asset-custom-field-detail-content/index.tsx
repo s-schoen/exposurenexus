@@ -1,14 +1,10 @@
 import { useCallback, useMemo } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import type { ReactNode } from "react"
 import type { CustomFieldUpdateResult } from "@/components/asset-custom-field-detail-content/helpers.ts"
-import {
-  createAssetCustomFieldDefinitionByIDQueryOptions,
-  createListAssetCustomFieldDefinitionsQueryOptions,
-  useUpdateAssetCustomFieldDefinitionMutation
-} from "@/api/asset-custom-field.ts"
+import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts"
 import {
   createAssetCustomFieldUpdatePayload,
   summarizeCustomField,
@@ -21,7 +17,7 @@ import {
 } from "@/components/asset-custom-field-detail-content/detail-cards.tsx"
 import { CustomFieldSidebar } from "@/components/asset-custom-field-detail-content/sidebar.tsx"
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts"
 
 export {
   addAssetCustomFieldOption,
@@ -41,8 +37,7 @@ export function AssetCustomFieldDetailContent({
   customFieldId,
   titleAction
 }: AssetCustomFieldDetailContentProps) {
-  const queryClient = useQueryClient()
-  const fieldMutation = useUpdateAssetCustomFieldDefinitionMutation()
+  const fieldLifecycle = useAssetCustomFieldDefinitionLifecycle()
   const queryOptions = useMemo(
     () => createAssetCustomFieldDefinitionByIDQueryOptions(customFieldId),
     [customFieldId]
@@ -64,34 +59,11 @@ export function AssetCustomFieldDetailContent({
 
       const payload = createAssetCustomFieldUpdatePayload(nextField)
 
-      try {
-        queryClient.setQueryData(queryOptions.queryKey, nextField)
-        const updatedField = await fieldMutation.mutateAsync({
-          id: customFieldId,
-          definition: payload
-        })
-        queryClient.setQueryData(queryOptions.queryKey, updatedField)
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: queryOptions.queryKey
-          }),
-          queryClient.invalidateQueries({
-            queryKey:
-              createListAssetCustomFieldDefinitionsQueryOptions().queryKey
-          })
-        ])
-      } catch (error) {
-        queryClient.setQueryData(queryOptions.queryKey, customField.data)
-        toastActionError(error, "Failed to update custom field")
-        console.error(error)
-      }
+      await fieldLifecycle.updateDefinition(nextField, payload)
     },
     [
       customField.data,
-      customFieldId,
-      fieldMutation,
-      queryClient,
-      queryOptions.queryKey
+      fieldLifecycle
     ]
   )
 
