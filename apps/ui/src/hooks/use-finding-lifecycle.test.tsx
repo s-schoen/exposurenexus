@@ -22,12 +22,14 @@ const {
   deleteFindingRequestMock,
   toastErrorMock,
   toastSuccessMock,
+  uploadFindingFileRequestMock,
   updateFindingRequestMock
 } = vi.hoisted(() => ({
   createFindingRequestMock: vi.fn(),
   deleteFindingRequestMock: vi.fn(),
   toastErrorMock: vi.fn(),
   toastSuccessMock: vi.fn(),
+  uploadFindingFileRequestMock: vi.fn(),
   updateFindingRequestMock: vi.fn()
 }))
 
@@ -45,12 +47,16 @@ vi.mock("@/api/finding.ts", async (importOriginal) => {
     ...actual,
     createFinding: createFindingRequestMock,
     deleteFinding: deleteFindingRequestMock,
+    uploadFindingFile: uploadFindingFileRequestMock,
     updateFinding: updateFindingRequestMock,
     useCreateFindingMutation: () => ({
       mutateAsync: createFindingRequestMock
     }),
     useDeleteFindingMutation: () => ({
       mutateAsync: deleteFindingRequestMock
+    }),
+    useUploadFindingFileMutation: () => ({
+      mutateAsync: uploadFindingFileRequestMock
     }),
     useUpdateFindingMutation: () => ({
       mutateAsync: updateFindingRequestMock
@@ -141,6 +147,7 @@ beforeEach(() => {
   deleteFindingRequestMock.mockReset()
   toastErrorMock.mockReset()
   toastSuccessMock.mockReset()
+  uploadFindingFileRequestMock.mockReset()
   updateFindingRequestMock.mockReset()
 })
 
@@ -564,5 +571,66 @@ describe("useFindingLifecycle", () => {
     expect(toastErrorMock).toHaveBeenCalledWith(
       "Deleted 1 finding; failed 1 finding"
     )
+  })
+
+  it("imports finding files and invalidates finding list plus stats", async () => {
+    const file = new File(["{}"], "nuclei.json", {
+      type: "application/json"
+    })
+    uploadFindingFileRequestMock.mockResolvedValueOnce(undefined)
+    const { queryClient, result } = renderLifecycleHook()
+    const invalidateSpy = vi
+      .spyOn(queryClient, "invalidateQueries")
+      .mockResolvedValue(undefined)
+
+    let importResult: Awaited<
+      ReturnType<typeof result.current.importFindingFile>
+    > | null = null
+    await act(async () => {
+      importResult = await result.current.importFindingFile("nuclei", file)
+    })
+
+    expect(importResult).toEqual({ success: true })
+    expect(uploadFindingFileRequestMock).toHaveBeenCalledWith({
+      type: "nuclei",
+      file
+    })
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: createListFindingsQueryOptions().queryKey,
+      exact: true
+    })
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: createFindingStatsQueryOptions().queryKey,
+      exact: true
+    })
+    expect(toastSuccessMock).toHaveBeenCalledWith("Imported nuclei.json")
+  })
+
+  it("reports finding import failures", async () => {
+    const file = new File(["{}"], "nuclei.json", {
+      type: "application/json"
+    })
+    const error = new Error("Import failed")
+    uploadFindingFileRequestMock.mockRejectedValueOnce(error)
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined)
+    const { result } = renderLifecycleHook()
+
+    let importResult: Awaited<
+      ReturnType<typeof result.current.importFindingFile>
+    > | null = null
+    await act(async () => {
+      importResult = await result.current.importFindingFile("nuclei", file)
+    })
+
+    expect(importResult).toEqual({
+      success: false,
+      errorMessage: `Failed to upload findings for import: ${error}`
+    })
+    expect(toastErrorMock).toHaveBeenCalledWith(
+      `Failed to upload findings for import: ${error}`
+    )
+    expect(consoleError).toHaveBeenCalledWith(error)
   })
 })

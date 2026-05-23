@@ -47,13 +47,10 @@ const mocks = vi.hoisted(() => {
 
   return {
     createUser: vi.fn(),
-    invalidateQueries: vi.fn(),
     navigate: vi.fn(),
     roles,
     rolesQuery,
     submitValues,
-    toastActionError: vi.fn(),
-    toastSuccess: vi.fn(),
     usePageMeta: vi.fn()
   }
 })
@@ -63,10 +60,7 @@ vi.mock("@tanstack/react-router", () => ({
 }))
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.rolesQuery,
-  useQueryClient: () => ({
-    invalidateQueries: mocks.invalidateQueries
-  })
+  useQuery: () => mocks.rolesQuery
 }))
 
 vi.mock("@/api/role.ts", () => ({
@@ -75,13 +69,9 @@ vi.mock("@/api/role.ts", () => ({
   })
 }))
 
-vi.mock("@/api/user.ts", () => ({
-  createListUsersQueryOptions: () => ({
-    queryKey: ["users"]
-  }),
-  createUser: mocks.createUser,
-  useCreateUserMutation: () => ({
-    mutateAsync: mocks.createUser
+vi.mock("@/hooks/use-user-lifecycle.ts", () => ({
+  useUserLifecycle: () => ({
+    createUser: mocks.createUser
   })
 }))
 
@@ -123,30 +113,16 @@ vi.mock("@/context/page.tsx", () => ({
   usePageMeta: mocks.usePageMeta
 }))
 
-vi.mock("@/lib/action-error-toast.ts", () => ({
-  toastActionError: mocks.toastActionError
-}))
-
-vi.mock("sonner", () => ({
-  toast: {
-    success: mocks.toastSuccess
-  }
-}))
-
 describe("CreateUserRouteComponent", () => {
   beforeEach(() => {
     mocks.createUser.mockReset()
-    mocks.invalidateQueries.mockReset()
     mocks.navigate.mockReset()
     mocks.rolesQuery = {
       data: mocks.roles,
       isPending: false,
       isSuccess: true
     }
-    mocks.toastActionError.mockReset()
-    mocks.toastSuccess.mockReset()
     mocks.usePageMeta.mockReset()
-    vi.spyOn(console, "error").mockImplementation(() => undefined)
   })
 
   afterEach(() => {
@@ -190,7 +166,7 @@ describe("CreateUserRouteComponent", () => {
     )
   })
 
-  it("creates a user, invalidates users, and navigates back to the user list", async () => {
+  it("creates a user through the lifecycle hook and navigates back to the user list", async () => {
     mocks.createUser.mockResolvedValueOnce({
       id: "1f9c36d2-1355-49d1-8464-b01ce955d88f"
     })
@@ -208,30 +184,20 @@ describe("CreateUserRouteComponent", () => {
         username: "alice"
       })
     })
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["users"]
-    })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith(
-      "Created user Alice Example"
-    )
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/users",
       search: { selected: undefined }
     })
   })
 
-  it("reports create failures without navigating", async () => {
-    const error = new Error("Create failed")
-    mocks.createUser.mockRejectedValueOnce(error)
+  it("does not navigate when the lifecycle hook handles create failures", async () => {
+    mocks.createUser.mockResolvedValueOnce(null)
 
     render(<CreateUserRouteComponent />)
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
-      expect(mocks.toastActionError).toHaveBeenCalledWith(
-        error,
-        `Failed to create user: ${error}`
-      )
+      expect(mocks.createUser).toHaveBeenCalled()
     })
     expect(mocks.navigate).not.toHaveBeenCalled()
   })

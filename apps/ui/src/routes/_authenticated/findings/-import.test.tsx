@@ -8,9 +8,7 @@ import {
 } from "@testing-library/react"
 
 const mocks = vi.hoisted(() => ({
-  toastActionError: vi.fn(),
-  toastSuccess: vi.fn(),
-  uploadFindingFile: vi.fn(),
+  importFindingFile: vi.fn(),
   usePageMeta: vi.fn()
 }))
 
@@ -24,27 +22,14 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   })
 })
 
-vi.mock("@/api/finding.ts", () => ({
-  uploadFindingFile: mocks.uploadFindingFile,
-  useUploadFindingFileMutation: () => ({
-    mutateAsync: ({ type, file }: { type: string; file: File }) =>
-      mocks.uploadFindingFile(type, file)
+vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
+  useFindingLifecycle: () => ({
+    importFindingFile: mocks.importFindingFile
   })
 }))
 
 vi.mock("@/context/page.tsx", () => ({
   usePageMeta: mocks.usePageMeta
-}))
-
-vi.mock("@/lib/action-error-toast.ts", () => ({
-  actionErrorMessage: (_error: unknown, fallback: string) => fallback,
-  toastActionError: mocks.toastActionError
-}))
-
-vi.mock("sonner", () => ({
-  toast: {
-    success: mocks.toastSuccess
-  }
 }))
 
 function createDeferred<T>() {
@@ -71,9 +56,7 @@ async function renderImportRoute() {
 
 describe("findings import route", () => {
   beforeEach(() => {
-    mocks.toastActionError.mockReset()
-    mocks.toastSuccess.mockReset()
-    mocks.uploadFindingFile.mockReset()
+    mocks.importFindingFile.mockReset()
     mocks.usePageMeta.mockReset()
   })
 
@@ -91,7 +74,7 @@ describe("findings import route", () => {
         "Select a nuclei export file before starting the import."
       )
     ).toBeTruthy()
-    expect(mocks.uploadFindingFile).not.toHaveBeenCalled()
+    expect(mocks.importFindingFile).not.toHaveBeenCalled()
   })
 
   it("shows selected file metadata and clears the file", async () => {
@@ -122,7 +105,7 @@ describe("findings import route", () => {
     const file = new File(["{}"], "nuclei.json", {
       type: "application/json"
     })
-    mocks.uploadFindingFile.mockResolvedValueOnce(undefined)
+    mocks.importFindingFile.mockResolvedValueOnce({ success: true })
 
     fireEvent.change(screen.getByLabelText(/select findings import file/i), {
       target: {
@@ -132,19 +115,18 @@ describe("findings import route", () => {
     fireEvent.click(screen.getByRole("button", { name: /import findings/i }))
 
     await waitFor(() => {
-      expect(mocks.uploadFindingFile).toHaveBeenCalledWith("nuclei", file)
+      expect(mocks.importFindingFile).toHaveBeenCalledWith("nuclei", file)
     })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith("Imported nuclei.json")
     expect(screen.queryByText("nuclei.json")).toBeNull()
   })
 
   it("disables upload controls while import is pending", async () => {
     await renderImportRoute()
-    const deferred = createDeferred<void>()
+    const deferred = createDeferred<{ success: true }>()
     const file = new File(["{}"], "nuclei.json", {
       type: "application/json"
     })
-    mocks.uploadFindingFile.mockReturnValueOnce(deferred.promise)
+    mocks.importFindingFile.mockReturnValueOnce(deferred.promise)
 
     fireEvent.change(screen.getByLabelText(/select findings import file/i), {
       target: {
@@ -162,16 +144,19 @@ describe("findings import route", () => {
       screen.getByRole("button", { name: /clear/i }).hasAttribute("disabled")
     ).toBe(true)
 
-    deferred.resolve()
+    deferred.resolve({ success: true })
   })
 
   it("shows upload failures and keeps the selected file", async () => {
     await renderImportRoute()
-    const error = new Error("Upload failed")
+    const errorMessage = "Failed to upload findings for import: Error: Upload failed"
     const file = new File(["{}"], "nuclei.json", {
       type: "application/json"
     })
-    mocks.uploadFindingFile.mockRejectedValueOnce(error)
+    mocks.importFindingFile.mockResolvedValueOnce({
+      success: false,
+      errorMessage
+    })
 
     fireEvent.change(screen.getByLabelText(/select findings import file/i), {
       target: {
@@ -181,14 +166,9 @@ describe("findings import route", () => {
     fireEvent.click(screen.getByRole("button", { name: /import findings/i }))
 
     await waitFor(() => {
-      expect(mocks.toastActionError).toHaveBeenCalledWith(
-        error,
-        `Failed to upload findings for import: ${error}`
-      )
+      expect(mocks.importFindingFile).toHaveBeenCalledWith("nuclei", file)
     })
-    expect(
-      screen.getByText(`Failed to upload findings for import: ${error}`)
-    ).toBeTruthy()
+    expect(screen.getByText(errorMessage)).toBeTruthy()
     expect(screen.getByText("nuclei.json")).toBeTruthy()
   })
 })

@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { useId, useState } from "react"
 import { CircleAlert, FileJson2, UploadCloud, X } from "lucide-react"
-import { toast } from "sonner"
 import type { ChangeEvent } from "react"
-import { useUploadFindingFileMutation } from "@/api/finding.ts"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
 import { Button, buttonVariants } from "@/components/ui/button.tsx"
 import {
@@ -15,10 +13,7 @@ import {
 } from "@/components/ui/card.tsx"
 import { Input } from "@/components/ui/input.tsx"
 import { usePageMeta } from "@/context/page.tsx"
-import {
-  actionErrorMessage,
-  toastActionError
-} from "@/lib/action-error-toast.ts"
+import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts"
 import { cn } from "@/lib/utils.ts"
 
 export const Route = createFileRoute("/_authenticated/findings/import")({
@@ -38,7 +33,7 @@ function formatFileSize(size: number) {
 }
 
 export function RouteComponent() {
-  const fileUpload = useUploadFindingFileMutation()
+  const findingLifecycle = useFindingLifecycle()
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -72,16 +67,14 @@ export function RouteComponent() {
     setErrorMessage(null)
 
     try {
-      await fileUpload.mutateAsync({ type: "nuclei", file })
-      toast.success(`Imported ${file.name}`)
+      const result = await findingLifecycle.importFindingFile("nuclei", file)
+
+      if (!result.success) {
+        setErrorMessage(result.errorMessage)
+        return
+      }
+
       handleClearFile()
-    } catch (error) {
-      const message = actionErrorMessage(
-        error,
-        `Failed to upload findings for import: ${error}`
-      )
-      setErrorMessage(message)
-      toastActionError(error, message)
     } finally {
       setIsUploading(false)
     }

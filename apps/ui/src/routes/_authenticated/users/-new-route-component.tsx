@@ -1,12 +1,7 @@
 import { useNavigate } from "@tanstack/react-router"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
 import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
-import { toast } from "sonner"
-import {
-  createListUsersQueryOptions,
-  useCreateUserMutation
-} from "@/api/user.ts"
 import { createListRolesQueryOptions } from "@/api/role.ts"
 import { UserForm, mapCreateUserFormValues } from "@/components/user-form.tsx"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
@@ -19,12 +14,11 @@ import {
 } from "@/components/ui/card.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useUserLifecycle } from "@/hooks/use-user-lifecycle.ts"
 
 export function CreateUserRouteComponent() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const userCreate = useCreateUserMutation()
+  const userLifecycle = useUserLifecycle()
   const roles = useQuery(createListRolesQueryOptions())
 
   usePageMeta({
@@ -43,20 +37,13 @@ export function CreateUserRouteComponent() {
     values: Parameters<typeof mapCreateUserFormValues>[0]
   ) => {
     const payload = mapCreateUserFormValues(values)
+    const createdUser = await userLifecycle.createUser(payload)
 
-    try {
-      await userCreate.mutateAsync(payload)
-      await queryClient.invalidateQueries({
-        queryKey: createListUsersQueryOptions().queryKey
-      })
-      toast.success(`Created user ${payload.displayName}`)
+    if (createdUser) {
       await navigate({
         to: "/users",
         search: { selected: undefined }
       })
-    } catch (error) {
-      toastActionError(error, `Failed to create user: ${error}`)
-      console.error(error)
     }
   }
 

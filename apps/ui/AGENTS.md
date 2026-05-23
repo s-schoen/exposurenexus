@@ -54,7 +54,8 @@ Do NOT commit any changes to git unless you are explicitly asked.
   vulnerabilities and vulnerability source mappings, users, roles, imports, and reclassification flows when they affect
   resource reads.
 - Exceptions include auth/session cache clearing, pure local UI state, form validation and draft state, clipboard actions,
-  dialogs, filters, search params, tests, and stories.
+  dialogs, filters, search params, tests, and stories. Test and Storybook harnesses may seed or update query caches to
+  simulate API-backed state without going through lifecycle hooks.
 
 ## Component Tests
 
