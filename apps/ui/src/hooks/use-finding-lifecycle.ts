@@ -7,9 +7,13 @@ import {
   createListFindingsQueryOptions,
   useCreateFindingMutation,
   useDeleteFindingMutation,
-  useUpdateFindingMutation
+  useUpdateFindingMutation,
+  useUploadFindingFileMutation
 } from "@/api/finding.ts"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import {
+  actionErrorMessage,
+  toastActionError
+} from "@/lib/action-error-toast.ts"
 import { formatFindingCount } from "@/lib/format.ts"
 
 export type FindingEditableField =
@@ -32,6 +36,15 @@ export interface FindingLifecycleBatchResult {
   successful: Array<Finding>
   failed: Array<FindingLifecycleFailure>
 }
+
+export type FindingImportResult =
+  | {
+      success: true
+    }
+  | {
+      success: false
+      errorMessage: string
+    }
 
 export interface FindingLifecycleActions {
   /**
@@ -77,6 +90,12 @@ export interface FindingLifecycleActions {
   deleteFindings: (
     findings: Array<Finding>
   ) => Promise<FindingLifecycleBatchResult>
+
+  /**
+   * Imports external finding data, shows default success/failure toasts, and
+   * invalidates finding list and stats reads.
+   */
+  importFindingFile: (type: string, file: File) => Promise<FindingImportResult>
 }
 
 interface FindingCacheSnapshot {
@@ -162,6 +181,7 @@ export function useFindingLifecycle(): FindingLifecycleActions {
   const findingCreate = useCreateFindingMutation()
   const findingUpdate = useUpdateFindingMutation()
   const findingDelete = useDeleteFindingMutation()
+  const findingFileUpload = useUploadFindingFileMutation()
 
   function snapshotFindings(findingIds: Array<string>): FindingCacheSnapshot {
     return {
@@ -353,6 +373,38 @@ export function useFindingLifecycle(): FindingLifecycleActions {
       toastBatchSummary(result, "Deleted", "delete")
 
       return result
+    },
+
+    async importFindingFile(type, file) {
+      try {
+        await findingFileUpload.mutateAsync({ type, file })
+        toast.success(`Imported ${file.name}`)
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: listQueryKey,
+            exact: true
+          }),
+          queryClient.invalidateQueries({
+            queryKey: statsQueryKey,
+            exact: true
+          })
+        ])
+
+        return { success: true }
+      } catch (error) {
+        const errorMessage = actionErrorMessage(
+          error,
+          `Failed to upload findings for import: ${error}`
+        )
+
+        toastActionError(error, errorMessage)
+        console.error(error)
+
+        return {
+          success: false,
+          errorMessage
+        }
+      }
     }
   }
 }

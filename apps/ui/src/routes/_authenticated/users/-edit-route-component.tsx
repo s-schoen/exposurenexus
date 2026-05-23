@@ -1,12 +1,7 @@
 import { useNavigate } from "@tanstack/react-router"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { CircleAlert } from "lucide-react"
-import { toast } from "sonner"
-import {
-  createListUsersQueryOptions,
-  createUserByIDQueryOptions,
-  useUpdateUserMutation
-} from "@/api/user.ts"
+import { createUserByIDQueryOptions } from "@/api/user.ts"
 import { createListRolesQueryOptions } from "@/api/role.ts"
 import { UserForm, mapUpdateUserFormValues } from "@/components/user-form.tsx"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
@@ -19,7 +14,7 @@ import {
 } from "@/components/ui/card.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useUserLifecycle } from "@/hooks/use-user-lifecycle.ts"
 
 interface EditUserRouteComponentProps {
   userId: string
@@ -29,8 +24,7 @@ export function EditUserRouteComponent({
   userId
 }: EditUserRouteComponentProps) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const userUpdate = useUpdateUserMutation()
+  const userLifecycle = useUserLifecycle()
   const user = useQuery(createUserByIDQueryOptions(userId))
   const roles = useQuery(createListRolesQueryOptions())
 
@@ -53,27 +47,16 @@ export function EditUserRouteComponent({
       return
     }
 
-    try {
-      await userUpdate.mutateAsync({
-        id: userId,
-        user: mapUpdateUserFormValues(values)
-      })
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: createListUsersQueryOptions().queryKey
-        }),
-        queryClient.invalidateQueries({
-          queryKey: createUserByIDQueryOptions(userId).queryKey
-        })
-      ])
-      toast.success(`Updated user ${values.displayName.trim()}`)
+    const updatedUser = await userLifecycle.updateUser(
+      userId,
+      mapUpdateUserFormValues(values)
+    )
+
+    if (updatedUser) {
       await navigate({
         to: "/users/$id",
         params: { id: userId }
       })
-    } catch (error) {
-      toastActionError(error, `Failed to update user: ${error}`)
-      console.error(error)
     }
   }
 

@@ -62,13 +62,10 @@ const mocks = vi.hoisted(() => {
   }
 
   return {
-    invalidateQueries: vi.fn(),
     navigate: vi.fn(),
     roles,
     rolesQuery,
     submitValues,
-    toastActionError: vi.fn(),
-    toastSuccess: vi.fn(),
     updateUser: vi.fn(),
     usePageMeta: vi.fn(),
     user,
@@ -87,10 +84,7 @@ vi.mock("@tanstack/react-query", () => ({
     }
 
     return mocks.userQuery
-  },
-  useQueryClient: () => ({
-    invalidateQueries: mocks.invalidateQueries
-  })
+  }
 }))
 
 vi.mock("@/api/role.ts", () => ({
@@ -100,16 +94,14 @@ vi.mock("@/api/role.ts", () => ({
 }))
 
 vi.mock("@/api/user.ts", () => ({
-  createListUsersQueryOptions: () => ({
-    queryKey: ["users"]
-  }),
   createUserByIDQueryOptions: (id: string) => ({
     queryKey: ["users", id]
-  }),
-  updateUser: mocks.updateUser,
-  useUpdateUserMutation: () => ({
-    mutateAsync: ({ id, user }: { id: string; user: unknown }) =>
-      mocks.updateUser(id, user)
+  })
+}))
+
+vi.mock("@/hooks/use-user-lifecycle.ts", () => ({
+  useUserLifecycle: () => ({
+    updateUser: mocks.updateUser
   })
 }))
 
@@ -151,16 +143,6 @@ vi.mock("@/context/page.tsx", () => ({
   usePageMeta: mocks.usePageMeta
 }))
 
-vi.mock("@/lib/action-error-toast.ts", () => ({
-  toastActionError: mocks.toastActionError
-}))
-
-vi.mock("sonner", () => ({
-  toast: {
-    success: mocks.toastSuccess
-  }
-}))
-
 function resetQueries() {
   mocks.userQuery = {
     data: mocks.user,
@@ -176,14 +158,10 @@ function resetQueries() {
 
 describe("EditUserRouteComponent", () => {
   beforeEach(() => {
-    mocks.invalidateQueries.mockReset()
     mocks.navigate.mockReset()
     resetQueries()
-    mocks.toastActionError.mockReset()
-    mocks.toastSuccess.mockReset()
     mocks.updateUser.mockReset()
     mocks.usePageMeta.mockReset()
-    vi.spyOn(console, "error").mockImplementation(() => undefined)
   })
 
   afterEach(() => {
@@ -260,7 +238,7 @@ describe("EditUserRouteComponent", () => {
     })
   })
 
-  it("updates a user, invalidates user queries, and navigates back to detail", async () => {
+  it("updates a user through the lifecycle hook and navigates back to detail", async () => {
     mocks.updateUser.mockResolvedValueOnce({
       ...mocks.user,
       displayName: "Alice Changed"
@@ -277,15 +255,6 @@ describe("EditUserRouteComponent", () => {
         roleIds: [builtInRoleIds.editor]
       })
     })
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["users"]
-    })
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["users", userId]
-    })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith(
-      "Updated user Alice Changed"
-    )
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/users/$id",
       params: {
@@ -294,18 +263,14 @@ describe("EditUserRouteComponent", () => {
     })
   })
 
-  it("reports update failures without navigating", async () => {
-    const error = new Error("Update failed")
-    mocks.updateUser.mockRejectedValueOnce(error)
+  it("does not navigate when the lifecycle hook handles update failures", async () => {
+    mocks.updateUser.mockResolvedValueOnce(null)
 
     render(<EditUserRouteComponent userId={userId} />)
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
-      expect(mocks.toastActionError).toHaveBeenCalledWith(
-        error,
-        `Failed to update user: ${error}`
-      )
+      expect(mocks.updateUser).toHaveBeenCalled()
     })
     expect(mocks.navigate).not.toHaveBeenCalled()
   })
