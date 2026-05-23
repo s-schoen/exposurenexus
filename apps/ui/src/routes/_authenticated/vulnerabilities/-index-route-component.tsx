@@ -1,18 +1,11 @@
 import { useNavigate } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
 import type { Vulnerability } from "@exposurenexus/types/model/vulnerability"
-import {
-  createListVulnerabilitiesQueryOptions,
-  createVulnerabilityByIDQueryOptions,
-  useDeleteVulnerabilityMutation
-} from "@/api/vulnerability.ts"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx"
 import { VulnerabilityDetailContent } from "@/components/vulnerability-detail-content.tsx"
 import { VulnerabilityTable } from "@/components/vulnerability-table"
 import { usePageMeta } from "@/context/page.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useVulnerabilityLifecycle } from "@/hooks/use-vulnerability-lifecycle.ts"
 
 interface VulnerabilitiesRouteComponentProps {
   selected?: string
@@ -22,8 +15,7 @@ export function VulnerabilitiesRouteComponent({
   selected
 }: VulnerabilitiesRouteComponentProps) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const vulnerabilityDelete = useDeleteVulnerabilityMutation()
+  const vulnerabilityLifecycle = useVulnerabilityLifecycle()
 
   usePageMeta({
     title: "Vulnerabilities",
@@ -45,30 +37,11 @@ export function VulnerabilitiesRouteComponent({
       return
     }
 
-    let success = true
-    const deletedVulnerabilityIds = new Set<string>()
-    for (const vulnerability of vulnerabilities) {
-      try {
-        await vulnerabilityDelete.mutateAsync(vulnerability.id)
-        deletedVulnerabilityIds.add(vulnerability.id)
-      } catch (error) {
-        success = false
-        toastActionError(
-          error,
-          `Failed to delete vulnerability ${vulnerability.title}: ${error}`
-        )
-        console.error(error)
-      }
-    }
-
-    await queryClient.invalidateQueries({
-      queryKey: createListVulnerabilitiesQueryOptions().queryKey
-    })
-    for (const vulnerabilityId of deletedVulnerabilityIds) {
-      await queryClient.invalidateQueries({
-        queryKey: createVulnerabilityByIDQueryOptions(vulnerabilityId).queryKey
-      })
-    }
+    const result =
+      await vulnerabilityLifecycle.deleteVulnerabilities(vulnerabilities)
+    const deletedVulnerabilityIds = new Set(
+      result.successful.map((vulnerability) => vulnerability.id)
+    )
 
     if (selected && deletedVulnerabilityIds.has(selected)) {
       await navigate({
@@ -78,12 +51,6 @@ export function VulnerabilitiesRouteComponent({
           selected: undefined
         })
       })
-    }
-
-    if (success) {
-      toast.success(
-        `Deleted ${vulnerabilities.length} vulnerability record(s)!`
-      )
     }
   }
 

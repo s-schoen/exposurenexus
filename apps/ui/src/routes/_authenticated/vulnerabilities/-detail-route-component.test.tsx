@@ -34,9 +34,7 @@ const mocks = vi.hoisted(() => {
   return {
     confirmDelete: vi.fn(),
     deleteVulnerability: vi.fn(),
-    invalidateQueries: vi.fn(),
     navigate: vi.fn(),
-    toastSuccess: vi.fn(),
     usePageMeta: vi.fn(),
     vulnerability,
     vulnerabilityQuery
@@ -59,34 +57,24 @@ vi.mock("@tanstack/react-router", () => ({
 }))
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.vulnerabilityQuery,
-  useQueryClient: () => ({
-    invalidateQueries: mocks.invalidateQueries
-  })
+  useQuery: () => mocks.vulnerabilityQuery
 }))
 
 vi.mock("@/api/vulnerability.ts", () => ({
-  createListVulnerabilitiesQueryOptions: () => ({
-    queryKey: ["vulnerabilities"]
-  }),
   createVulnerabilityByIDQueryOptions: (id: string) => ({
     queryKey: ["vulnerabilities", id]
-  }),
-  deleteVulnerability: mocks.deleteVulnerability,
-  useDeleteVulnerabilityMutation: () => ({
-    mutateAsync: mocks.deleteVulnerability
+  })
+}))
+
+vi.mock("@/hooks/use-vulnerability-lifecycle.ts", () => ({
+  useVulnerabilityLifecycle: () => ({
+    deleteVulnerability: mocks.deleteVulnerability
   })
 }))
 
 vi.mock("@/components/confirm-dialog.tsx", () => ({
   ConfirmDialog: {
     call: mocks.confirmDelete
-  }
-}))
-
-vi.mock("sonner", () => ({
-  toast: {
-    success: mocks.toastSuccess
   }
 }))
 
@@ -115,10 +103,7 @@ describe("VulnerabilityDetailRouteComponent", () => {
     mocks.confirmDelete.mockResolvedValue(true)
     mocks.deleteVulnerability.mockReset()
     mocks.deleteVulnerability.mockResolvedValue(mocks.vulnerability)
-    mocks.invalidateQueries.mockReset()
-    mocks.invalidateQueries.mockResolvedValue(undefined)
     mocks.navigate.mockReset()
-    mocks.toastSuccess.mockReset()
     mocks.usePageMeta.mockReset()
     mocks.vulnerabilityQuery = {
       data: mocks.vulnerability,
@@ -204,7 +189,7 @@ describe("VulnerabilityDetailRouteComponent", () => {
     })
   })
 
-  it("confirms deletion, invalidates queries, and navigates back to the list", async () => {
+  it("confirms deletion through the lifecycle hook and navigates back to the list", async () => {
     const { VulnerabilityDetailRouteComponent } =
       await import("@/routes/_authenticated/vulnerabilities/-detail-route-component.tsx")
 
@@ -225,20 +210,36 @@ describe("VulnerabilityDetailRouteComponent", () => {
         confirmVariant: "destructive"
       })
       expect(mocks.deleteVulnerability).toHaveBeenCalledWith(
-        mocks.vulnerability.id
+        mocks.vulnerability
       )
     })
 
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["vulnerabilities"]
-    })
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["vulnerabilities", mocks.vulnerability.id]
-    })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith(
-      "Deleted vulnerability Exposed Admin Endpoint"
-    )
     expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/vulnerabilities",
+      search: { selected: undefined }
+    })
+  })
+
+  it("does not navigate when the lifecycle handles delete failures", async () => {
+    const { VulnerabilityDetailRouteComponent } =
+      await import("@/routes/_authenticated/vulnerabilities/-detail-route-component.tsx")
+    mocks.deleteVulnerability.mockResolvedValueOnce(null)
+
+    render(
+      <VulnerabilityDetailRouteComponent
+        vulnerabilityId={mocks.vulnerability.id}
+      />
+    )
+
+    const meta = mocks.usePageMeta.mock.calls[0][0]
+    meta.actions[1].onClick()
+
+    await waitFor(() => {
+      expect(mocks.deleteVulnerability).toHaveBeenCalledWith(
+        mocks.vulnerability
+      )
+    })
+    expect(mocks.navigate).not.toHaveBeenCalledWith({
       to: "/vulnerabilities",
       search: { selected: undefined }
     })

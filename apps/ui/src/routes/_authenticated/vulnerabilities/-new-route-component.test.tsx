@@ -34,11 +34,8 @@ const mocks = vi.hoisted(() => {
 
   return {
     createVulnerability: vi.fn(),
-    invalidateQueries: vi.fn(),
     navigate: vi.fn(),
     submitValues,
-    toastActionError: vi.fn(),
-    toastSuccess: vi.fn(),
     usePageMeta: vi.fn(),
     vulnerability
   }
@@ -48,19 +45,9 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate
 }))
 
-vi.mock("@tanstack/react-query", () => ({
-  useQueryClient: () => ({
-    invalidateQueries: mocks.invalidateQueries
-  })
-}))
-
-vi.mock("@/api/vulnerability.ts", () => ({
-  createListVulnerabilitiesQueryOptions: () => ({
-    queryKey: ["vulnerabilities"]
-  }),
-  createVulnerability: mocks.createVulnerability,
-  useCreateVulnerabilityMutation: () => ({
-    mutateAsync: mocks.createVulnerability
+vi.mock("@/hooks/use-vulnerability-lifecycle.ts", () => ({
+  useVulnerabilityLifecycle: () => ({
+    createVulnerability: mocks.createVulnerability
   })
 }))
 
@@ -94,25 +81,11 @@ vi.mock("@/context/page.tsx", () => ({
   usePageMeta: mocks.usePageMeta
 }))
 
-vi.mock("@/lib/action-error-toast.ts", () => ({
-  toastActionError: mocks.toastActionError
-}))
-
-vi.mock("sonner", () => ({
-  toast: {
-    success: mocks.toastSuccess
-  }
-}))
-
 describe("CreateVulnerabilityRouteComponent", () => {
   beforeEach(() => {
     mocks.createVulnerability.mockReset()
-    mocks.invalidateQueries.mockReset()
     mocks.navigate.mockReset()
-    mocks.toastActionError.mockReset()
-    mocks.toastSuccess.mockReset()
     mocks.usePageMeta.mockReset()
-    vi.spyOn(console, "error").mockImplementation(() => undefined)
   })
 
   afterEach(() => {
@@ -130,7 +103,7 @@ describe("CreateVulnerabilityRouteComponent", () => {
     })
   })
 
-  it("creates a vulnerability, invalidates the list, and navigates to detail", async () => {
+  it("creates a vulnerability through the lifecycle hook and navigates to detail", async () => {
     mocks.createVulnerability.mockResolvedValueOnce(mocks.vulnerability)
 
     render(<CreateVulnerabilityRouteComponent />)
@@ -145,30 +118,20 @@ describe("CreateVulnerabilityRouteComponent", () => {
         cwe: 284
       })
     })
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["vulnerabilities"]
-    })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith(
-      "Created vulnerability Exposed Admin Endpoint"
-    )
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/vulnerabilities/$id",
       params: { id: mocks.vulnerability.id }
     })
   })
 
-  it("reports create failures without navigating", async () => {
-    const error = new Error("Create failed")
-    mocks.createVulnerability.mockRejectedValueOnce(error)
+  it("does not navigate when the lifecycle handles create failures", async () => {
+    mocks.createVulnerability.mockResolvedValueOnce(null)
 
     render(<CreateVulnerabilityRouteComponent />)
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
-      expect(mocks.toastActionError).toHaveBeenCalledWith(
-        error,
-        `Failed to create vulnerability: ${error}`
-      )
+      expect(mocks.createVulnerability).toHaveBeenCalled()
     })
     expect(mocks.navigate).not.toHaveBeenCalled()
   })

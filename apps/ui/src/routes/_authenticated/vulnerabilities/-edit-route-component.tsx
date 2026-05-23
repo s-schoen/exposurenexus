@@ -1,12 +1,7 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { CircleAlert } from "lucide-react"
-import { toast } from "sonner"
-import {
-  createListVulnerabilitiesQueryOptions,
-  createVulnerabilityByIDQueryOptions,
-  useUpdateVulnerabilityMutation
-} from "@/api/vulnerability.ts"
+import { createVulnerabilityByIDQueryOptions } from "@/api/vulnerability.ts"
 import {
   VulnerabilityForm,
   mapUpdateVulnerabilityFormValues,
@@ -22,7 +17,7 @@ import {
 } from "@/components/ui/card.tsx"
 import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useVulnerabilityLifecycle } from "@/hooks/use-vulnerability-lifecycle.ts"
 
 interface EditVulnerabilityRouteComponentProps {
   vulnerabilityId: string
@@ -32,8 +27,7 @@ export function EditVulnerabilityRouteComponent({
   vulnerabilityId
 }: EditVulnerabilityRouteComponentProps) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const vulnerabilityUpdate = useUpdateVulnerabilityMutation()
+  const vulnerabilityLifecycle = useVulnerabilityLifecycle()
   const vulnerability = useQuery(
     createVulnerabilityByIDQueryOptions(vulnerabilityId)
   )
@@ -56,29 +50,16 @@ export function EditVulnerabilityRouteComponent({
     values: Parameters<typeof mapUpdateVulnerabilityFormValues>[0]
   ) => {
     const payload = mapUpdateVulnerabilityFormValues(values)
+    const updatedVulnerability = await vulnerabilityLifecycle.updateVulnerability(
+      vulnerabilityId,
+      payload
+    )
 
-    try {
-      await vulnerabilityUpdate.mutateAsync({
-        id: vulnerabilityId,
-        vulnerability: payload
-      })
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: createListVulnerabilitiesQueryOptions().queryKey
-        }),
-        queryClient.invalidateQueries({
-          queryKey:
-            createVulnerabilityByIDQueryOptions(vulnerabilityId).queryKey
-        })
-      ])
-      toast.success(`Updated vulnerability ${payload.title}`)
+    if (updatedVulnerability) {
       await navigate({
         to: "/vulnerabilities/$id",
         params: { id: vulnerabilityId }
       })
-    } catch (error) {
-      toastActionError(error, `Failed to update vulnerability: ${error}`)
-      console.error(error)
     }
   }
 
