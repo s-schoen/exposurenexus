@@ -27,6 +27,35 @@ Do NOT commit any changes to git unless you are explicitly asked.
   `*.stories.tsx` files that cover the component's primary visual states. Do not add stories for shadcn internal
   primitives in `src/components/ui` unless explicitly requested.
 
+## Resource Mutation Policy
+
+- API-backed domain resource mutations must go through resource lifecycle hooks unless the code is explicitly non-resource
+  infrastructure or the exception is documented near the call site.
+- Put lifecycle hooks in `src/hooks/` and name them `use<Resource>Lifecycle`, with files named like
+  `use-finding-lifecycle.ts`.
+- Keep `src/api/*` mutation hooks as low-level transport wrappers. Production route and component code should not call
+  `useCreateXMutation`, `useUpdateXMutation`, or `useDeleteXMutation` directly for resource mutations.
+- Lifecycle hooks own mutation calls, optimistic cache writes, rollback, query invalidation, default success/error toasts,
+  error logging, and structured success/failure results.
+- Routes own confirmation dialogs and post-success navigation. Components own local draft state, validation, and rendering.
+- Lifecycle hook actions should accept API/domain payloads or domain records, not screen-specific form values.
+- Single-resource lifecycle actions should return the affected resource on success and `null` for handled API failures.
+  Batch actions should return `{ successful, failed }` and show one summary toast.
+- Optimistic cache writes are opt-in per operation. Use them for inline edits where pending stale UI is jarring, and always
+  snapshot and roll back every cache entry touched by the optimistic write.
+- Invalidate known query keys with `exact: true` by default. Use broad/prefix invalidation only when intentionally
+  invalidating a resource subtree, preferably behind a clearly named helper.
+- Keep resource-specific cache helpers private inside the lifecycle hook until multiple lifecycle hooks genuinely need a
+  shared abstraction.
+- Cross-resource invalidation belongs in the lifecycle hook for the mutation being performed. Hooks may import other
+  resources' query option factories to invalidate affected reads, but should not call other lifecycle hooks just to reuse
+  invalidation.
+- Resource mutations include findings, assets and asset ownership, asset custom field definitions/assignments/values,
+  vulnerabilities and vulnerability source mappings, users, roles, imports, and reclassification flows when they affect
+  resource reads.
+- Exceptions include auth/session cache clearing, pure local UI state, form validation and draft state, clipboard actions,
+  dialogs, filters, search params, tests, and stories.
+
 ## Component Tests
 
 - Every new app-owned component should include a colocated Storybook story and a colocated unit test from now on.
