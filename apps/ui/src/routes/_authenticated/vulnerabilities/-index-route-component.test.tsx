@@ -28,11 +28,9 @@ const mocks = vi.hoisted(() => {
 
   return {
     confirmDelete: vi.fn(),
-    deleteVulnerability: vi.fn(),
+    deleteVulnerabilities: vi.fn(),
     dialogProps: undefined as undefined | Record<string, unknown>,
-    invalidateQueries: vi.fn(),
     navigate: vi.fn(),
-    toastSuccess: vi.fn(),
     usePageMeta: vi.fn(),
     vulnerability
   }
@@ -42,28 +40,9 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate
 }))
 
-vi.mock("@tanstack/react-query", () => ({
-  useQueryClient: () => ({
-    invalidateQueries: mocks.invalidateQueries
-  })
-}))
-
-vi.mock("sonner", () => ({
-  toast: {
-    success: mocks.toastSuccess
-  }
-}))
-
-vi.mock("@/api/vulnerability.ts", () => ({
-  createListVulnerabilitiesQueryOptions: () => ({
-    queryKey: ["vulnerabilities"]
-  }),
-  createVulnerabilityByIDQueryOptions: (id: string) => ({
-    queryKey: ["vulnerabilities", id]
-  }),
-  deleteVulnerability: mocks.deleteVulnerability,
-  useDeleteVulnerabilityMutation: () => ({
-    mutateAsync: mocks.deleteVulnerability
+vi.mock("@/hooks/use-vulnerability-lifecycle.ts", () => ({
+  useVulnerabilityLifecycle: () => ({
+    deleteVulnerabilities: mocks.deleteVulnerabilities
   })
 }))
 
@@ -151,13 +130,13 @@ describe("VulnerabilitiesRouteComponent", () => {
   beforeEach(() => {
     mocks.confirmDelete.mockReset()
     mocks.confirmDelete.mockResolvedValue(true)
-    mocks.deleteVulnerability.mockReset()
-    mocks.deleteVulnerability.mockResolvedValue(mocks.vulnerability)
+    mocks.deleteVulnerabilities.mockReset()
+    mocks.deleteVulnerabilities.mockResolvedValue({
+      successful: [mocks.vulnerability],
+      failed: []
+    })
     mocks.dialogProps = undefined
-    mocks.invalidateQueries.mockReset()
-    mocks.invalidateQueries.mockResolvedValue(undefined)
     mocks.navigate.mockReset()
-    mocks.toastSuccess.mockReset()
     mocks.usePageMeta.mockReset()
   })
 
@@ -244,7 +223,7 @@ describe("VulnerabilitiesRouteComponent", () => {
     })
   })
 
-  it("confirms selected vulnerability deletion, invalidates queries, and clears deleted selection", async () => {
+  it("confirms selected vulnerability deletion and clears deleted selection", async () => {
     const { VulnerabilitiesRouteComponent } =
       await import("@/routes/_authenticated/vulnerabilities/-index-route-component.tsx")
 
@@ -261,23 +240,44 @@ describe("VulnerabilitiesRouteComponent", () => {
         message: "Are you sure you want to delete 1 vulnerability record(s)?",
         confirmVariant: "destructive"
       })
-      expect(mocks.deleteVulnerability).toHaveBeenCalledWith(
-        mocks.vulnerability.id
-      )
+      expect(mocks.deleteVulnerabilities).toHaveBeenCalledWith([
+        mocks.vulnerability
+      ])
     })
 
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["vulnerabilities"]
-    })
-    expect(mocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: ["vulnerabilities", mocks.vulnerability.id]
-    })
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/vulnerabilities",
       search: expect.any(Function)
     })
-    expect(mocks.toastSuccess).toHaveBeenCalledWith(
-      "Deleted 1 vulnerability record(s)!"
+  })
+
+  it("leaves the selected preview open when lifecycle reports delete failure", async () => {
+    mocks.deleteVulnerabilities.mockResolvedValueOnce({
+      successful: [],
+      failed: [
+        {
+          vulnerability: mocks.vulnerability,
+          error: new Error("Delete failed")
+        }
+      ]
+    })
+    const { VulnerabilitiesRouteComponent } =
+      await import("@/routes/_authenticated/vulnerabilities/-index-route-component.tsx")
+
+    render(<VulnerabilitiesRouteComponent selected={mocks.vulnerability.id} />)
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /delete vulnerability/i })
     )
+
+    await waitFor(() => {
+      expect(mocks.deleteVulnerabilities).toHaveBeenCalledWith([
+        mocks.vulnerability
+      ])
+    })
+    expect(mocks.navigate).not.toHaveBeenCalledWith({
+      to: "/vulnerabilities",
+      search: expect.any(Function)
+    })
   })
 })

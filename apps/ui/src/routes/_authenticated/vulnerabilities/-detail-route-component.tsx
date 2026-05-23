@@ -1,18 +1,13 @@
 import { Link, useNavigate } from "@tanstack/react-router"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { useCallback, useMemo } from "react"
 import { ArrowLeft, Pencil, Trash } from "lucide-react"
-import { toast } from "sonner"
-import {
-  createListVulnerabilitiesQueryOptions,
-  createVulnerabilityByIDQueryOptions,
-  useDeleteVulnerabilityMutation
-} from "@/api/vulnerability.ts"
+import { createVulnerabilityByIDQueryOptions } from "@/api/vulnerability.ts"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { VulnerabilityDetailContent } from "@/components/vulnerability-detail-content.tsx"
 import { buttonVariants } from "@/components/ui/button.tsx"
 import { usePageMeta } from "@/context/page.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useVulnerabilityLifecycle } from "@/hooks/use-vulnerability-lifecycle.ts"
 import { cn } from "@/lib/utils.ts"
 
 interface VulnerabilityDetailRouteComponentProps {
@@ -23,8 +18,7 @@ export function VulnerabilityDetailRouteComponent({
   vulnerabilityId
 }: VulnerabilityDetailRouteComponentProps) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const vulnerabilityDelete = useDeleteVulnerabilityMutation()
+  const vulnerabilityLifecycle = useVulnerabilityLifecycle()
   const vulnerability = useQuery(
     createVulnerabilityByIDQueryOptions(vulnerabilityId)
   )
@@ -44,28 +38,16 @@ export function VulnerabilityDetailRouteComponent({
       return
     }
 
-    try {
-      await vulnerabilityDelete.mutateAsync(vulnerability.data.id)
-      await queryClient.invalidateQueries({
-        queryKey: createListVulnerabilitiesQueryOptions().queryKey
-      })
-      await queryClient.invalidateQueries({
-        queryKey: createVulnerabilityByIDQueryOptions(vulnerability.data.id)
-          .queryKey
-      })
-      toast.success(`Deleted vulnerability ${vulnerability.data.title}`)
+    const deletedVulnerability =
+      await vulnerabilityLifecycle.deleteVulnerability(vulnerability.data)
+
+    if (deletedVulnerability) {
       await navigate({
         to: "/vulnerabilities",
         search: { selected: undefined }
       })
-    } catch (error) {
-      toastActionError(
-        error,
-        `Failed to delete vulnerability ${vulnerability.data.title}: ${error}`
-      )
-      console.error(error)
     }
-  }, [navigate, queryClient, vulnerability.data, vulnerabilityDelete])
+  }, [navigate, vulnerability.data, vulnerabilityLifecycle])
   const actions = useMemo(() => {
     if (!vulnerability.data) {
       return []

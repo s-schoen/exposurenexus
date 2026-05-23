@@ -1,21 +1,14 @@
-import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { toast } from "sonner"
-import {
-  createListVulnerabilitiesQueryOptions,
-  useCreateVulnerabilityMutation
-} from "@/api/vulnerability.ts"
 import {
   VulnerabilityForm,
   mapCreateVulnerabilityFormValues
 } from "@/components/vulnerability-form.tsx"
 import { usePageMeta } from "@/context/page.tsx"
-import { toastActionError } from "@/lib/action-error-toast.ts"
+import { useVulnerabilityLifecycle } from "@/hooks/use-vulnerability-lifecycle.ts"
 
 export function CreateVulnerabilityRouteComponent() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const vulnerabilityCreate = useCreateVulnerabilityMutation()
+  const vulnerabilityLifecycle = useVulnerabilityLifecycle()
 
   usePageMeta({
     title: "Create Vulnerability",
@@ -33,20 +26,14 @@ export function CreateVulnerabilityRouteComponent() {
     values: Parameters<typeof mapCreateVulnerabilityFormValues>[0]
   ) => {
     const payload = mapCreateVulnerabilityFormValues(values)
+    const vulnerability =
+      await vulnerabilityLifecycle.createVulnerability(payload)
 
-    try {
-      const vulnerability = await vulnerabilityCreate.mutateAsync(payload)
-      await queryClient.invalidateQueries({
-        queryKey: createListVulnerabilitiesQueryOptions().queryKey
-      })
-      toast.success(`Created vulnerability ${payload.title}`)
+    if (vulnerability) {
       await navigate({
         to: "/vulnerabilities/$id",
         params: { id: vulnerability.id }
       })
-    } catch (error) {
-      toastActionError(error, `Failed to create vulnerability: ${error}`)
-      console.error(error)
     }
   }
 
