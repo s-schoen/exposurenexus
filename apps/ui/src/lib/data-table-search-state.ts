@@ -14,12 +14,20 @@ export function getSearchParamString(value: unknown): string | undefined {
   return undefined
 }
 
+function getSearchParamArrayValues(value: string): Array<string> {
+  return value.split(",").filter(Boolean)
+}
+
 export function getSearchParamArray(value: unknown): Array<string> {
   if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === "string")
+    return value.flatMap((item) =>
+      typeof item === "string" ? getSearchParamArrayValues(item) : []
+    )
   }
 
-  return typeof value === "string" && value.length > 0 ? [value] : []
+  return typeof value === "string" && value.length > 0
+    ? getSearchParamArrayValues(value)
+    : []
 }
 
 export function getSearchParamArrayOrUndefined(
@@ -36,8 +44,8 @@ export function createSearchParamString(value: string): string | undefined {
 
 export function createSearchParamArray(
   value: Array<string> | undefined
-): Array<string> | undefined {
-  return value && value.length > 0 ? value : undefined
+): string | undefined {
+  return value && value.length > 0 ? value.join(",") : undefined
 }
 
 export function getFilterValue(
