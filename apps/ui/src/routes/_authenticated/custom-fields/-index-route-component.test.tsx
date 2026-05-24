@@ -1,38 +1,76 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor
-} from "@testing-library/react"
-import type { ReactNode } from "react"
+import { cleanup, render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { useEffect, useState } from "react"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
 import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
+import type { ReactNode } from "react"
+import { CustomFieldsRouteComponent } from "@/routes/_authenticated/custom-fields/-index-route-component.tsx"
+
+type NavigateCall = {
+  params?: Record<string, unknown>
+  replace?: boolean
+  search?: unknown
+  to?: string
+}
+
+type SearchUpdater = (
+  previous: Record<string, unknown>
+) => Record<string, unknown>
+
+interface RouteState {
+  search: Record<string, unknown>
+  selected?: string
+}
 
 const mocks = vi.hoisted(() => {
-  const customField = {
-    id: "7f732d2b-8985-4551-b45d-0eaf527a1577",
-    key: "environment",
-    name: "Environment",
-    required: true,
-    type: "select",
-    defaultValue: "production",
-    options: [
-      {
-        id: "6b567696-6808-45be-ab67-a8683d98a138",
-        fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
-        value: "production",
-        label: "Production"
-      }
-    ]
-  } as AssetCustomFieldDefinition
+  const customFields: Array<AssetCustomFieldDefinition> = [
+    {
+      id: "0d277a57-52a8-42f3-8559-24ac18ff5d50",
+      key: "category",
+      name: "Category",
+      required: false,
+      type: "text",
+      defaultValue: null
+    } as AssetCustomFieldDefinition,
+    {
+      id: "2de88e3b-1176-4705-8d95-fd784b0a83e7",
+      key: "priority",
+      name: "Priority",
+      required: true,
+      type: "number",
+      defaultValue: 3
+    } as AssetCustomFieldDefinition,
+    {
+      id: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+      key: "environment",
+      name: "Environment",
+      required: true,
+      type: "select",
+      defaultValue: "production",
+      options: [
+        {
+          id: "6b567696-6808-45be-ab67-a8683d98a138",
+          fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+          value: "production",
+          label: "Production"
+        },
+        {
+          id: "fb663885-6b41-4ae0-8b46-c0f647088876",
+          fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+          value: "staging",
+          label: "Staging"
+        }
+      ]
+    } as AssetCustomFieldDefinition
+  ]
 
   return {
     confirmDelete: vi.fn(),
-    customField,
+    customFields,
     deleteDefinitions: vi.fn(),
-    dialogProps: undefined as undefined | Record<string, unknown>,
     navigate: vi.fn(),
+    refetchCustomFields: vi.fn(),
     usePageMeta: vi.fn(),
     useQuery: vi.fn()
   }
@@ -68,97 +106,32 @@ vi.mock("@/context/page.tsx", () => ({
   usePageMeta: mocks.usePageMeta
 }))
 
-vi.mock("@/components/asset-custom-field-table", () => ({
-  AssetCustomFieldTable: ({
-    filterState,
-    onCreateCustomField,
-    onDeleteCustomFields,
-    onFilterStateChange,
-    onOpenCustomField,
-    onSelectCustomField,
-    selectedCustomFieldId
-  }: {
-    filterState?: unknown
-    onCreateCustomField?: () => void
-    onDeleteCustomFields?: (
-      fields: Array<AssetCustomFieldDefinition>
-    ) => Promise<void>
-    onFilterStateChange?: (filterState: {
-      globalFilter: string
-      selectFilters: Record<string, Array<string>>
-    }) => void
-    onOpenCustomField?: (field: AssetCustomFieldDefinition) => void
-    onSelectCustomField?: (field: AssetCustomFieldDefinition) => void
-    selectedCustomFieldId?: string
-  }) => (
-    <div>
-      <div data-testid="table-selected-custom-field">{selectedCustomFieldId}</div>
-      <div data-testid="filter-state">{JSON.stringify(filterState)}</div>
-      <button
-        type="button"
-        onClick={() => onSelectCustomField?.(mocks.customField)}
-      >
-        select custom field
-      </button>
-      <button
-        type="button"
-        onClick={() => onOpenCustomField?.(mocks.customField)}
-      >
-        open custom field
-      </button>
-      <button type="button" onClick={onCreateCustomField}>
-        create custom field
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          void onDeleteCustomFields?.([mocks.customField])
-        }}
-      >
-        delete custom field
-      </button>
-      <button
-        type="button"
-        onClick={() =>
-          onFilterStateChange?.({
-            globalFilter: "environment",
-            selectFilters: {
-              required: ["true"],
-              type: ["select"]
-            }
-          })
-        }
-      >
-        change filters
-      </button>
-    </div>
-  )
-}))
-
 vi.mock("@/components/detail-preview-dialog.tsx", () => ({
-  DetailPreviewDialog: (props: {
-    children?: ReactNode
+  DetailPreviewDialog: ({
+    children,
+    description,
+    fullPageHref,
+    onClose,
+    selectedId,
+    title
+  }: {
+    children: ReactNode
     description: string
     fullPageHref?: string
     onClose: () => void
     selectedId?: string
     title: string
-  }) => {
-    mocks.dialogProps = props
-
-    return (
-      <section>
-        <h2>{props.title}</h2>
-        <p>{props.description}</p>
-        <div data-testid="selected-custom-field">{props.selectedId}</div>
-        <div data-testid="full-page-href">{props.fullPageHref}</div>
-        <button type="button" onClick={props.onClose}>
-          close dialog
+  }) =>
+    selectedId ? (
+      <section aria-label={title} role="dialog">
+        <p>{description}</p>
+        {fullPageHref && <a href={fullPageHref}>Open full page</a>}
+        <button type="button" onClick={onClose}>
+          Close
         </button>
-        {props.children}
+        {children}
       </section>
-    )
-  }
+    ) : null
 }))
 
 vi.mock("@/components/asset-custom-field-detail-content", () => ({
@@ -166,8 +139,91 @@ vi.mock("@/components/asset-custom-field-detail-content", () => ({
     customFieldId
   }: {
     customFieldId: string
-  }) => <div>Detail for custom field {customFieldId}</div>
+  }) => <section>Detail for custom field {customFieldId}</section>
 }))
+
+class ResizeObserverMock {
+  observe() {}
+
+  unobserve() {}
+
+  disconnect() {}
+}
+
+globalThis.ResizeObserver = ResizeObserverMock
+HTMLElement.prototype.scrollIntoView = vi.fn()
+
+function StatefulCustomFieldsRoute({
+  initialSearch = {},
+  initialSelected
+}: {
+  initialSearch?: Record<string, unknown>
+  initialSelected?: string
+}) {
+  const [routeState, setRouteState] = useState<RouteState>({
+    search: initialSearch,
+    selected: initialSelected
+  })
+
+  useEffect(() => {
+    mocks.navigate.mockImplementation((options: NavigateCall) => {
+      if (options.to !== "/custom-fields" || typeof options.search !== "function") {
+        return
+      }
+
+      const updateSearch = options.search as SearchUpdater
+
+      setRouteState((current) => {
+        const nextSearch = updateSearch({
+          ...current.search,
+          selected: current.selected
+        })
+
+        return {
+          search: nextSearch,
+          selected:
+            typeof nextSearch.selected === "string"
+              ? nextSearch.selected
+              : undefined
+        }
+      })
+    })
+  }, [])
+
+  return (
+    <CustomFieldsRouteComponent
+      search={routeState.search}
+      selected={routeState.selected}
+    />
+  )
+}
+
+function renderCustomFieldsRoute({
+  initialSearch,
+  initialSelected
+}: {
+  initialSearch?: Record<string, unknown>
+  initialSelected?: string
+} = {}) {
+  return render(
+    <StatefulCustomFieldsRoute
+      initialSearch={initialSearch}
+      initialSelected={initialSelected}
+    />
+  )
+}
+
+function getEnvironmentField() {
+  const field = mocks.customFields.find((customField) =>
+    customField.type === AssetCustomFieldType.Select
+  )
+
+  if (!field) {
+    throw new Error("Expected select custom field fixture")
+  }
+
+  return field
+}
 
 describe("CustomFieldsRouteComponent", () => {
   beforeEach(() => {
@@ -175,18 +231,18 @@ describe("CustomFieldsRouteComponent", () => {
     mocks.confirmDelete.mockResolvedValue(true)
     mocks.deleteDefinitions.mockReset()
     mocks.deleteDefinitions.mockResolvedValue({
-      successful: [mocks.customField],
+      successful: [getEnvironmentField()],
       failed: []
     })
-    mocks.dialogProps = undefined
     mocks.navigate.mockReset()
+    mocks.refetchCustomFields.mockReset()
     mocks.usePageMeta.mockReset()
     mocks.useQuery.mockReset()
     mocks.useQuery.mockReturnValue({
-      data: [mocks.customField],
+      data: mocks.customFields,
       isFetching: false,
       isPending: false,
-      refetch: vi.fn()
+      refetch: mocks.refetchCustomFields
     })
   })
 
@@ -194,154 +250,123 @@ describe("CustomFieldsRouteComponent", () => {
     cleanup()
   })
 
-  it("passes route-owned filters and selected preview metadata to the table", async () => {
-    const { CustomFieldsRouteComponent } = await import(
-      "@/routes/_authenticated/custom-fields/-index-route-component.tsx"
-    )
+  it("opens a selected custom field preview with a full-page detail link", async () => {
+    const user = userEvent.setup()
+    const environmentField = getEnvironmentField()
 
-    render(
-      <CustomFieldsRouteComponent
-        search={{
-          filter: "environment",
-          required: "true",
-          type: "text,select"
-        }}
-        selected={mocks.customField.id}
-      />
-    )
+    renderCustomFieldsRoute()
 
+    await waitFor(() => {
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-total-rows",
+        "3"
+      )
+    })
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Custom Fields",
       description: "Manage asset metadata fields."
     })
-    expect(JSON.parse(screen.getByTestId("filter-state").textContent)).toEqual({
-      globalFilter: "environment",
-      selectFilters: {
-        required: ["true"],
-        type: ["text", "select"]
-      }
-    })
-    expect(screen.getByTestId("table-selected-custom-field").textContent).toBe(
-      mocks.customField.id
-    )
-    expect(screen.getByTestId("selected-custom-field").textContent).toBe(
-      mocks.customField.id
-    )
-    expect(screen.getByTestId("full-page-href").textContent).toBe(
-      `/custom-fields/${mocks.customField.id}`
-    )
+
+    await user.click(screen.getByText("Environment"))
+
     expect(
-      screen.getByText(`Detail for custom field ${mocks.customField.id}`)
-    ).toBeTruthy()
+      await screen.findByText(`Detail for custom field ${environmentField.id}`)
+    ).toBeVisible()
+    expect(
+      screen.getByRole("link", { name: /open full page/i })
+    ).toHaveAttribute("href", `/custom-fields/${environmentField.id}`)
+    expect(screen.getByTestId("data-table-active-row")).toHaveTextContent(
+      "Environment"
+    )
   })
 
-  it("updates route-owned filters and preserves unrelated search params", async () => {
-    const { CustomFieldsRouteComponent } = await import(
-      "@/routes/_authenticated/custom-fields/-index-route-component.tsx"
-    )
+  it("clears the selected custom field when the preview closes", async () => {
+    const user = userEvent.setup()
+    const environmentField = getEnvironmentField()
 
-    render(<CustomFieldsRouteComponent />)
-    fireEvent.click(screen.getByRole("button", { name: /change filters/i }))
-
-    expect(mocks.navigate).toHaveBeenCalledWith({
-      to: "/custom-fields",
-      replace: true,
-      search: expect.any(Function)
+    renderCustomFieldsRoute({
+      initialSearch: { selected: environmentField.id },
+      initialSelected: environmentField.id
     })
 
-    const search = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>
-    ) => Record<string, unknown>
+    expect(
+      await screen.findByRole("link", { name: /open full page/i })
+    ).toHaveAttribute("href", `/custom-fields/${environmentField.id}`)
 
-    expect(search({ page: "2", selected: "field-1" })).toEqual({
-      filter: "environment",
-      page: "2",
-      required: "true",
-      selected: "field-1",
-      type: "select"
+    await user.click(screen.getByRole("button", { name: /close/i }))
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("link", { name: /open full page/i })
+      ).not.toBeInTheDocument()
+      expect(screen.queryByTestId("data-table-active-row")).not.toBeInTheDocument()
     })
   })
 
-  it("selects, opens, and creates custom fields from the table", async () => {
-    const { CustomFieldsRouteComponent } = await import(
-      "@/routes/_authenticated/custom-fields/-index-route-component.tsx"
+  it("updates visible table results from route-owned search state", async () => {
+    const user = userEvent.setup()
+
+    renderCustomFieldsRoute()
+
+    await user.type(
+      screen.getByRole("textbox", { name: /search across visible columns/i }),
+      "priority"
     )
 
-    render(<CustomFieldsRouteComponent />)
-    fireEvent.click(screen.getByRole("button", { name: /select custom field/i }))
-
-    expect(mocks.navigate).toHaveBeenCalledWith({
-      to: "/custom-fields",
-      replace: true,
-      search: expect.any(Function)
+    await waitFor(() => {
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "1"
+      )
+      expect(screen.getByText("Priority")).toBeVisible()
+      expect(screen.queryByText("Category")).not.toBeInTheDocument()
+      expect(screen.queryByText("Environment")).not.toBeInTheDocument()
     })
+  })
 
-    const selectSearch = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>
-    ) => Record<string, unknown>
+  it("navigates from the create action", async () => {
+    const user = userEvent.setup()
 
-    expect(
-      selectSearch({ filter: "environment", required: "true", type: "select" })
-    ).toEqual({
-      filter: "environment",
-      required: "true",
-      selected: mocks.customField.id,
-      type: "select"
-    })
+    renderCustomFieldsRoute()
 
-    fireEvent.click(screen.getByRole("button", { name: /open custom field/i }))
-    expect(mocks.navigate).toHaveBeenCalledWith({
-      to: "/custom-fields/$id",
-      params: {
-        id: mocks.customField.id
-      }
-    })
-
-    fireEvent.click(screen.getByRole("button", { name: /create custom field/i }))
+    await user.click(screen.getByRole("button", { name: /new custom field/i }))
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/custom-fields/new"
     })
   })
 
-  it("closes the selected custom field preview after deleting that field", async () => {
-    const { CustomFieldsRouteComponent } = await import(
-      "@/routes/_authenticated/custom-fields/-index-route-component.tsx"
-    )
+  it("deletes selected custom fields and clears the deleted preview", async () => {
+    const user = userEvent.setup()
+    const environmentField = getEnvironmentField()
 
-    render(<CustomFieldsRouteComponent selected={mocks.customField.id} />)
-    fireEvent.click(screen.getByRole("button", { name: /delete custom field/i }))
+    renderCustomFieldsRoute({
+      initialSearch: { selected: environmentField.id },
+      initialSelected: environmentField.id
+    })
+
+    await screen.findByTestId("data-table-active-row")
+    await user.click(screen.getByLabelText("Select all"))
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /^delete$/i })).toBeEnabled()
+    })
+    await user.click(screen.getByRole("button", { name: /^delete$/i }))
 
     await waitFor(() => {
       expect(mocks.confirmDelete).toHaveBeenCalledWith({
         title: "Delete Custom Fields",
         description: "This action cannot be undone",
-        message: "Are you sure you want to delete 1 custom field(s)?",
+        message: "Are you sure you want to delete 3 custom field(s)?",
         confirmVariant: "destructive"
       })
-      expect(mocks.deleteDefinitions).toHaveBeenCalledWith([mocks.customField])
-      expect(mocks.navigate).toHaveBeenCalledWith({
-        to: "/custom-fields",
-        replace: true,
-        search: expect.any(Function)
-      })
+      expect(mocks.deleteDefinitions).toHaveBeenCalledWith(mocks.customFields)
     })
 
-    const clearSearch = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>
-    ) => Record<string, unknown>
-
-    expect(
-      clearSearch({
-        filter: "environment",
-        required: "true",
-        selected: mocks.customField.id,
-        type: "select"
-      })
-    ).toEqual({
-      filter: "environment",
-      required: "true",
-      selected: undefined,
-      type: "select"
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("link", { name: /open full page/i })
+      ).not.toBeInTheDocument()
+      expect(screen.queryByTestId("data-table-active-row")).not.toBeInTheDocument()
     })
   })
 })
