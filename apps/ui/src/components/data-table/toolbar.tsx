@@ -255,7 +255,11 @@ export function DataTableToolbar<TData>({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-          <span>
+          <span
+            data-testid="data-table-result-summary"
+            data-filtered-rows={filteredRows}
+            data-total-rows={totalRows}
+          >
             <span className="font-medium text-foreground">{filteredRows}</span>{" "}
             of {totalRows} results
           </span>
@@ -268,12 +272,19 @@ export function DataTableToolbar<TData>({
             </span>
           )}
           {hasActiveFilters && (
-            <span className="rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-xs font-medium tracking-wide text-foreground uppercase">
+            <span
+              data-testid="data-table-active-filters-indicator"
+              className="rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-xs font-medium tracking-wide text-foreground uppercase"
+            >
               Filters active
             </span>
           )}
           {activeGroupingOption && (
-            <span className="rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-xs font-medium tracking-wide text-foreground uppercase">
+            <span
+              data-testid="data-table-active-grouping-indicator"
+              data-grouping-id={activeGrouping}
+              className="rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-xs font-medium tracking-wide text-foreground uppercase"
+            >
               Grouped by {activeGroupingOption.label}
             </span>
           )}

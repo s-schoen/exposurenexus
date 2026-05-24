@@ -384,7 +384,10 @@ export function DataTable<TData, TValue>({
     return (
       <TableRow>
         <TableCell colSpan={table.getAllColumns().length} className="h-56 p-0">
-          <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+          <div
+            data-testid="data-table-empty-state"
+            className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center"
+          >
             <div className="flex size-14 items-center justify-center rounded-2xl border border-border/70 bg-muted/60 text-muted-foreground">
               <DatabaseZap className="size-6" />
             </div>
@@ -465,9 +468,12 @@ export function DataTable<TData, TValue>({
             const rowEl = (
               <TableRow
                 key={row.id}
-                data-state={row.getIsSelected() && "selected"}
-                data-active={isRowActive?.(row.original) || undefined}
-                className="cursor-pointer select-none border-b border-border/60 transition-colors hover:bg-muted/40 data-[active=true]:bg-accent/60 data-[state=selected]:bg-primary/6"
+            data-state={row.getIsSelected() && "selected"}
+            data-active={isRowActive?.(row.original) || undefined}
+            data-testid={
+              isRowActive?.(row.original) ? "data-table-active-row" : undefined
+            }
+            className="cursor-pointer select-none border-b border-border/60 transition-colors hover:bg-muted/40 data-[active=true]:bg-accent/60 data-[state=selected]:bg-primary/6"
                 onClick={(event) => handleOnRowClick(event, row)}
                 onDoubleClick={() => handleOnRowDoubleClick(row)}
                 onContextMenu={

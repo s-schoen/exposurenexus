@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import {
   flexRender,
   getCoreRowModel,
@@ -68,9 +69,14 @@ function PaginationHarness({ rowCount = 25, filterTerm = "" }) {
       >
         Increase page size
       </button>
-      <div data-testid="visible-rows">
+      <div aria-label="Visible rows" role="list">
         {table.getRowModel().rows.map((row) => (
-          <div key={row.id}>{flexRender(row.getVisibleCells()[0].column.columnDef.cell, row.getVisibleCells()[0].getContext()) ?? row.original.name}</div>
+          <div key={row.id} role="listitem">
+            {flexRender(
+              row.getVisibleCells()[0].column.columnDef.cell,
+              row.getVisibleCells()[0].getContext()
+            ) ?? row.original.name}
+          </div>
         ))}
       </div>
       <DataTablePagination table={table} />
@@ -93,60 +99,78 @@ describe("DataTablePagination", () => {
     render(<PaginationHarness />)
 
     await waitFor(() => {
-      expect(within(screen.getByTestId("visible-rows")).getAllByText(/Row /).length).toBe(10)
-      expect(getPaginationButton(/go to first page/i).disabled).toBe(true)
-      expect(getPaginationButton(/go to previous page/i).disabled).toBe(true)
-      expect(getPaginationButton(/go to next page/i).disabled).toBe(false)
-      expect(getPaginationButton(/go to last page/i).disabled).toBe(false)
+      expect(
+        within(screen.getByRole("list", { name: /visible rows/i })).getAllByRole(
+          "listitem"
+        )
+      ).toHaveLength(10)
+      expect(getPaginationButton(/go to first page/i)).toBeDisabled()
+      expect(getPaginationButton(/go to previous page/i)).toBeDisabled()
+      expect(getPaginationButton(/go to next page/i)).toBeEnabled()
+      expect(getPaginationButton(/go to last page/i)).toBeEnabled()
     })
   })
 
   it("navigates to the next and last pages", async () => {
+    const user = userEvent.setup()
+
     render(<PaginationHarness />)
 
-    fireEvent.click(screen.getByRole("button", { name: /go to next page/i }))
+    await user.click(screen.getByRole("button", { name: /go to next page/i }))
 
     await waitFor(() => {
-      expect(screen.getByText("Row 11")).toBeTruthy()
-      expect(screen.queryByText("Row 1")).toBeNull()
-      expect(getPaginationButton(/go to previous page/i).disabled).toBe(false)
+      expect(screen.getByText("Row 11")).toBeInTheDocument()
+      expect(screen.queryByText("Row 1")).not.toBeInTheDocument()
+      expect(getPaginationButton(/go to previous page/i)).toBeEnabled()
     })
 
-    fireEvent.click(screen.getByRole("button", { name: /go to last page/i }))
+    await user.click(screen.getByRole("button", { name: /go to last page/i }))
 
     await waitFor(() => {
-      expect(within(screen.getByTestId("visible-rows")).getAllByText(/Row /).length).toBe(5)
-      expect(screen.getByText("Row 25")).toBeTruthy()
-      expect(getPaginationButton(/go to next page/i).disabled).toBe(true)
-      expect(getPaginationButton(/go to last page/i).disabled).toBe(true)
+      expect(
+        within(screen.getByRole("list", { name: /visible rows/i })).getAllByRole(
+          "listitem"
+        )
+      ).toHaveLength(5)
+      expect(screen.getByText("Row 25")).toBeInTheDocument()
+      expect(getPaginationButton(/go to next page/i)).toBeDisabled()
+      expect(getPaginationButton(/go to last page/i)).toBeDisabled()
     })
   })
 
   it("returns to the first page", async () => {
+    const user = userEvent.setup()
+
     render(<PaginationHarness />)
 
-    fireEvent.click(screen.getByRole("button", { name: /go to last page/i }))
+    await user.click(screen.getByRole("button", { name: /go to last page/i }))
 
     await waitFor(() => {
-      expect(screen.getByText("Row 25")).toBeTruthy()
+      expect(screen.getByText("Row 25")).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole("button", { name: /go to first page/i }))
+    await user.click(screen.getByRole("button", { name: /go to first page/i }))
 
     await waitFor(() => {
-      expect(screen.getByText("Row 1")).toBeTruthy()
-      expect(screen.queryByText("Row 25")).toBeNull()
-      expect(getPaginationButton(/go to first page/i).disabled).toBe(true)
+      expect(screen.getByText("Row 1")).toBeInTheDocument()
+      expect(screen.queryByText("Row 25")).not.toBeInTheDocument()
+      expect(getPaginationButton(/go to first page/i)).toBeDisabled()
     })
   })
 
   it("changes the page size", async () => {
+    const user = userEvent.setup()
+
     render(<PaginationHarness />)
 
-    fireEvent.click(screen.getByRole("button", { name: /increase page size/i }))
+    await user.click(screen.getByRole("button", { name: /increase page size/i }))
 
     await waitFor(() => {
-      expect(within(screen.getByTestId("visible-rows")).getAllByText(/Row /).length).toBe(20)
+      expect(
+        within(screen.getByRole("list", { name: /visible rows/i })).getAllByRole(
+          "listitem"
+        )
+      ).toHaveLength(20)
     })
   })
 
@@ -154,13 +178,15 @@ describe("DataTablePagination", () => {
     render(<PaginationHarness filterTerm="2" />)
 
     await waitFor(() => {
-      const visibleRows = within(screen.getByTestId("visible-rows")).getAllByText(/Row /)
+      const visibleRows = within(
+        screen.getByRole("list", { name: /visible rows/i })
+      ).getAllByRole("listitem")
 
-      expect(visibleRows.length).toBe(8)
-      expect(screen.getByText("Row 2")).toBeTruthy()
-      expect(screen.getByText("Row 25")).toBeTruthy()
-      expect(screen.queryByText("Row 1")).toBeNull()
-      expect(getPaginationButton(/go to next page/i).disabled).toBe(true)
+      expect(visibleRows).toHaveLength(8)
+      expect(screen.getByText("Row 2")).toBeInTheDocument()
+      expect(screen.getByText("Row 25")).toBeInTheDocument()
+      expect(screen.queryByText("Row 1")).not.toBeInTheDocument()
+      expect(getPaginationButton(/go to next page/i)).toBeDisabled()
     })
   })
 })
