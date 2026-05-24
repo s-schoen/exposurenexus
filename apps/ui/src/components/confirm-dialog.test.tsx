@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 
 afterEach(() => {
@@ -26,23 +27,25 @@ function renderConfirmDialog(
 }
 
 describe("ConfirmDialog", () => {
-  it("renders default copy and resolves true when confirmed", () => {
+  it("renders default copy and resolves true when confirmed", async () => {
+    const user = userEvent.setup()
     const call = renderConfirmDialog()
 
-    expect(screen.getByRole("heading", { name: "Confirm" })).toBeTruthy()
-    expect(screen.getByText("Delete this record?")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Cancel" })).toHaveProperty(
+    expect(screen.getByRole("heading", { name: "Confirm" })).toBeInTheDocument()
+    expect(screen.getByText("Delete this record?")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveAttribute(
       "type",
       "button"
     )
 
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }))
+    await user.click(screen.getByRole("button", { name: "Confirm" }))
 
     expect(call.end).toHaveBeenCalledWith(true)
     expect(call.end).toHaveBeenCalledTimes(1)
   })
 
-  it("renders custom copy and resolves false when cancelled", () => {
+  it("renders custom copy and resolves false when cancelled", async () => {
+    const user = userEvent.setup()
     const call = renderConfirmDialog({
       cancelText: "Keep",
       confirmText: "Delete",
@@ -51,11 +54,11 @@ describe("ConfirmDialog", () => {
       title: "Delete asset"
     })
 
-    expect(screen.getByText("Delete asset")).toBeTruthy()
-    expect(screen.getByText("This action cannot be undone.")).toBeTruthy()
-    expect(screen.getByText("Delete api-01?")).toBeTruthy()
+    expect(screen.getByText("Delete asset")).toBeInTheDocument()
+    expect(screen.getByText("This action cannot be undone.")).toBeInTheDocument()
+    expect(screen.getByText("Delete api-01?")).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole("button", { name: "Keep" }))
+    await user.click(screen.getByRole("button", { name: "Keep" }))
 
     expect(call.end).toHaveBeenCalledWith(false)
     expect(call.end).toHaveBeenCalledTimes(1)
@@ -69,7 +72,7 @@ describe("ConfirmDialog", () => {
 
     const confirmButton = screen.getByRole("button", { name: "Delete" })
 
-    expect(confirmButton).toHaveProperty("type", "button")
-    expect(confirmButton.className).toContain("text-destructive")
+    expect(confirmButton).toHaveAttribute("type", "button")
+    expect(confirmButton).toHaveClass("text-destructive")
   })
 })
