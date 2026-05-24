@@ -44,7 +44,11 @@ export function VulnerabilityDetailRouteComponent({
     if (deletedVulnerability) {
       await navigate({
         to: "/vulnerabilities",
-        search: { selected: undefined }
+        search: (previous) => ({
+          filter: previous.filter,
+          severity: previous.severity,
+          selected: undefined
+        })
       })
     }
   }, [navigate, vulnerability.data, vulnerabilityLifecycle])
@@ -88,7 +92,11 @@ export function VulnerabilityDetailRouteComponent({
       titleAction={
         <Link
           to="/vulnerabilities"
-          search={{ selected: undefined }}
+          search={(previous) => ({
+            filter: previous.filter,
+            severity: previous.severity,
+            selected: undefined
+          })}
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
             "-ml-2 rounded-xl"

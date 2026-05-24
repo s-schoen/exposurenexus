@@ -29,7 +29,11 @@ export function CreateUserRouteComponent() {
   const handleCancel = async () => {
     await navigate({
       to: "/users",
-      search: { selected: undefined }
+      search: (previous) => ({
+        enabled: previous.enabled,
+        filter: previous.filter,
+        selected: undefined
+      })
     })
   }
 
@@ -42,7 +46,11 @@ export function CreateUserRouteComponent() {
     if (createdUser) {
       await navigate({
         to: "/users",
-        search: { selected: undefined }
+        search: (previous) => ({
+          enabled: previous.enabled,
+          filter: previous.filter,
+          selected: undefined
+        })
       })
     }
   }

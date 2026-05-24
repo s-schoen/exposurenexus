@@ -143,8 +143,19 @@ describe("CreateVulnerabilityRouteComponent", () => {
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith({
         to: "/vulnerabilities",
-        search: { selected: undefined }
+        search: expect.any(Function)
       })
+    })
+    const search = mocks.navigate.mock.calls[0][0].search as (
+      previous: Record<string, unknown>
+    ) => Record<string, unknown>
+
+    expect(
+      search({ filter: "openssl", selected: "vulnerability-1", severity: "high" })
+    ).toEqual({
+      filter: "openssl",
+      selected: undefined,
+      severity: "high"
     })
   })
 })

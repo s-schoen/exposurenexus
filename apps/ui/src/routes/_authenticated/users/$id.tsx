@@ -65,7 +65,11 @@ function UserDetailPage({ id }: { id: string }) {
       titleAction={
         <Link
           to="/users"
-          search={{ selected: undefined }}
+          search={(previous) => ({
+            enabled: previous.enabled,
+            filter: previous.filter,
+            selected: undefined
+          })}
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
             "-ml-2 rounded-xl"

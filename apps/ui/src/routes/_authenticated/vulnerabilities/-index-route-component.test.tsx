@@ -58,20 +58,28 @@ vi.mock("@/context/page.tsx", () => ({
 
 vi.mock("@/components/vulnerability-table", () => ({
   VulnerabilityTable: ({
+    filterState,
     onCreateVulnerability,
     onDeleteVulnerabilities,
+    onFilterStateChange,
     onSelectVulnerability,
     selectedVulnerabilityId
   }: {
+    filterState?: unknown
     onCreateVulnerability?: () => void
     onDeleteVulnerabilities?: (
       vulnerabilities: Array<Vulnerability>
     ) => Promise<void>
+    onFilterStateChange?: (filterState: {
+      globalFilter: string
+      selectFilters: Record<string, Array<string>>
+    }) => void
     onSelectVulnerability?: (vulnerability: Vulnerability) => void
     selectedVulnerabilityId?: string
   }) => (
     <div>
       <div data-testid="selected-vulnerability">{selectedVulnerabilityId}</div>
+      <div data-testid="filter-state">{JSON.stringify(filterState)}</div>
       <button
         type="button"
         onClick={() => onSelectVulnerability?.(mocks.vulnerability)}
@@ -88,6 +96,19 @@ vi.mock("@/components/vulnerability-table", () => ({
         }}
       >
         delete vulnerability
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          onFilterStateChange?.({
+            globalFilter: "remote code",
+            selectFilters: {
+              severity: ["critical"]
+            }
+          })
+        }
+      >
+        change filters
       </button>
     </div>
   )
@@ -144,11 +165,15 @@ describe("VulnerabilitiesRouteComponent", () => {
     cleanup()
   })
 
-  it("renders table and preview dialog metadata without a selection", async () => {
+  it("passes route-owned filters and preview metadata to the table", async () => {
     const { VulnerabilitiesRouteComponent } =
       await import("@/routes/_authenticated/vulnerabilities/-index-route-component.tsx")
 
-    render(<VulnerabilitiesRouteComponent />)
+    render(
+      <VulnerabilitiesRouteComponent
+        search={{ filter: "openssl", severity: "critical,high" }}
+      />
+    )
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Vulnerabilities",
@@ -162,7 +187,40 @@ describe("VulnerabilitiesRouteComponent", () => {
       )
     ).toBeTruthy()
     expect(screen.getByTestId("selected-vulnerability").textContent).toBe("")
+    expect(JSON.parse(screen.getByTestId("filter-state").textContent)).toEqual(
+      {
+        globalFilter: "openssl",
+        selectFilters: {
+          severity: ["critical", "high"]
+        }
+      }
+    )
     expect(screen.getByTestId("full-page-href").textContent).toBe("")
+  })
+
+  it("updates route-owned filters and preserves unrelated search params", async () => {
+    const { VulnerabilitiesRouteComponent } =
+      await import("@/routes/_authenticated/vulnerabilities/-index-route-component.tsx")
+
+    render(<VulnerabilitiesRouteComponent />)
+    fireEvent.click(screen.getByRole("button", { name: /change filters/i }))
+
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/vulnerabilities",
+      replace: true,
+      search: expect.any(Function)
+    })
+
+    const search = mocks.navigate.mock.calls[0][0].search as (
+      previous: Record<string, unknown>
+    ) => Record<string, unknown>
+
+    expect(search({ page: "2", selected: "vulnerability-1" })).toEqual({
+      filter: "remote code",
+      page: "2",
+      selected: "vulnerability-1",
+      severity: "critical"
+    })
   })
 
   it("selects vulnerabilities and renders the selected preview content", async () => {
