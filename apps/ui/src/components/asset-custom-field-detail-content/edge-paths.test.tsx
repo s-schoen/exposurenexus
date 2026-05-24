@@ -14,6 +14,7 @@ import type {
 } from "@exposurenexus/types/model/asset-custom-field"
 import type * as AssetCustomFieldApi from "@/api/asset-custom-field.ts"
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
+import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content"
 import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts"
 import {
   createTestQueryClient,
@@ -170,11 +171,9 @@ function createQueryClient() {
   return queryClient
 }
 
-async function renderDetail(field: AssetCustomFieldDefinition) {
+function renderDetail(field: AssetCustomFieldDefinition) {
   const queryClient = createQueryClient()
 
-  const { AssetCustomFieldDetailContent } =
-    await import("@/components/asset-custom-field-detail-content")
   const view = renderWithQueryClient(
     <AssetCustomFieldDetailContent customFieldId={field.id} />,
     {
@@ -239,7 +238,7 @@ describe("AssetCustomFieldDetailContent edge paths", () => {
   it("adds a select option and saves the expanded option payload", async () => {
     const field = getFixture(AssetCustomFieldType.Select)
 
-    await renderDetail(field)
+    renderDetail(field)
     fireEvent.click(screen.getByRole("button", { name: /add option/i }))
 
     await waitFor(() => {
@@ -263,7 +262,7 @@ describe("AssetCustomFieldDetailContent edge paths", () => {
   it("edits and removes selectable options", async () => {
     const field = getFixture(AssetCustomFieldType.Select)
 
-    await renderDetail(field)
+    renderDetail(field)
 
     fireEvent.click(within(optionRow("Staging")).getByText("Staging"))
     fireEvent.change(screen.getByRole("textbox"), {
@@ -292,7 +291,7 @@ describe("AssetCustomFieldDetailContent edge paths", () => {
   it("saves number default edits with the numeric payload shape", async () => {
     const field = getFixture(AssetCustomFieldType.Number)
 
-    await renderDetail(field)
+    renderDetail(field)
 
     const editableDefault = screen.getAllByText("3").at(-1)
     expect(editableDefault).toBeTruthy()
@@ -317,7 +316,7 @@ describe("AssetCustomFieldDetailContent edge paths", () => {
   it("shows default fallback display and saves text default edits", async () => {
     const field = getFixture(AssetCustomFieldType.Text)
 
-    await renderDetail(field)
+    renderDetail(field)
 
     expect(screen.getAllByText("None").length).toBeGreaterThan(0)
 
@@ -341,10 +340,10 @@ describe("AssetCustomFieldDetailContent edge paths", () => {
     })
   })
 
-  it("rejects invalid edits without sending an API request", async () => {
+  it("rejects invalid edits without sending an API request", () => {
     const field = getFixture(AssetCustomFieldType.Select)
 
-    await renderDetail(field)
+    renderDetail(field)
     fireEvent.click(within(optionRow("Production")).getByText("production"))
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "staging" }
@@ -366,7 +365,7 @@ describe("AssetCustomFieldDetailContent edge paths", () => {
       new Error("Update failed")
     )
 
-    const { queryClient } = await renderDetail(field)
+    const { queryClient } = renderDetail(field)
     fireEvent.click(screen.getByRole("button", { name: /add option/i }))
 
     await waitFor(() => {
