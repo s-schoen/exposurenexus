@@ -23,10 +23,5 @@
   "keywords": [],
   "author": "",
   "license": "MIT",
-  "pnpm": {
-    "overrides": {
-      "lodash": "4.18.1"
-    }
-  },
-  "packageManager": "pnpm@10.26.1"
+  "packageManager": "pnpm@11.3.0"
 }
