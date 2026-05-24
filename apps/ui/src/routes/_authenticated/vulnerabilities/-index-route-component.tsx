@@ -6,6 +6,7 @@ import { VulnerabilityDetailContent } from "@/components/vulnerability-detail-co
 import { VulnerabilityTable } from "@/components/vulnerability-table"
 import { usePageMeta } from "@/context/page.tsx"
 import { useVulnerabilityLifecycle } from "@/hooks/use-vulnerability-lifecycle.ts"
+import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts"
 
 interface VulnerabilitiesRouteComponentProps {
   selected?: string
@@ -16,6 +17,11 @@ export function VulnerabilitiesRouteComponent({
 }: VulnerabilitiesRouteComponentProps) {
   const navigate = useNavigate()
   const vulnerabilityLifecycle = useVulnerabilityLifecycle()
+  const selectedSearch = useSelectedSearchParam<Vulnerability>({
+    selectedId: selected,
+    to: "/vulnerabilities",
+    getId: (vulnerability) => vulnerability.id
+  })
 
   usePageMeta({
     title: "Vulnerabilities",
@@ -44,47 +50,29 @@ export function VulnerabilitiesRouteComponent({
     )
 
     if (selected && deletedVulnerabilityIds.has(selected)) {
-      await navigate({
-        to: "/vulnerabilities",
-        search: (prev) => ({
-          ...prev,
-          selected: undefined
-        })
-      })
+      await selectedSearch.clearSelected()
     }
   }
 
   return (
     <>
       <VulnerabilityTable
-        selectedVulnerabilityId={selected}
+        selectedVulnerabilityId={selectedSearch.selectedId}
         onCreateVulnerability={() =>
           navigate({
             to: "/vulnerabilities/new"
           })
         }
-        onSelectVulnerability={(vulnerability) =>
-          navigate({
-            to: "/vulnerabilities",
-            search: (prev) => ({
-              ...prev,
-              selected: vulnerability.id
-            })
-          })
-        }
+        onSelectVulnerability={(vulnerability) => {
+          void selectedSearch.selectRow(vulnerability)
+        }}
         onDeleteVulnerabilities={handleDeleteVulnerabilities}
       />
       <DetailPreviewDialog
-        selectedId={selected}
-        onClose={() =>
-          navigate({
-            to: "/vulnerabilities",
-            search: (prev) => ({
-              ...prev,
-              selected: undefined
-            })
-          })
-        }
+        selectedId={selectedSearch.selectedId}
+        onClose={() => {
+          void selectedSearch.clearSelected()
+        }}
         title="Vulnerability details"
         description="Review the selected vulnerability without leaving the vulnerability table."
         fullPageHref={selected ? `/vulnerabilities/${selected}` : undefined}
