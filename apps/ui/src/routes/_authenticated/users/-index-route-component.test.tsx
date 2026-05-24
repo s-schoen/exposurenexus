@@ -1,23 +1,69 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { useState } from "react"
 import type { ReactNode } from "react"
+import type { Role } from "@exposurenexus/types/model/rbac"
 import type { UserProfile } from "@exposurenexus/types/model/user"
+import { UsersRouteComponent } from "@/routes/_authenticated/users/-index-route-component.tsx"
+
+type NavigateCall = {
+  params?: Record<string, unknown>
+  replace?: boolean
+  search?: unknown
+  to?: string
+}
+
+type SearchUpdater = (
+  previous: Record<string, unknown>
+) => Record<string, unknown>
+
+interface RouteState {
+  search: Record<string, unknown>
+  selected?: string
+}
+
+interface QueryOptionsLike {
+  queryKey: ReadonlyArray<unknown>
+}
 
 const mocks = vi.hoisted(() => {
-  const user: UserProfile = {
-    id: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
-    username: "alice",
-    displayName: "Alice Example",
-    email: "alice@example.com",
-    enabled: true,
-    roleIds: []
-  }
+  const roles: Array<Role> = [
+    {
+      id: "6d0d8a47-0f6d-47b6-9b9a-d8f0d3f4dd01",
+      name: "viewer",
+      permissions: []
+    },
+    {
+      id: "5d5f5c6f-a9d6-4d49-9f4d-9462b873a902",
+      name: "editor",
+      permissions: []
+    }
+  ]
+  const users: Array<UserProfile> = [
+    {
+      id: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
+      username: "alice",
+      displayName: "Alice Example",
+      email: "alice@example.com",
+      enabled: true,
+      roleIds: [roles[0].id]
+    },
+    {
+      id: "7b413aba-5164-456b-8ffd-88fb6b99bbed",
+      username: "casey",
+      displayName: "Casey Disabled",
+      email: "casey@example.com",
+      enabled: false,
+      roleIds: []
+    }
+  ]
 
   return {
-    dialogProps: undefined as undefined | Record<string, unknown>,
     navigate: vi.fn(),
-    usePageMeta: vi.fn(),
-    user
+    roles,
+    users,
+    usePageMeta: vi.fn()
   }
 })
 
@@ -25,87 +71,153 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate
 }))
 
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: (options: QueryOptionsLike) => {
+    const queryKey = options.queryKey.join("/")
+
+    if (queryKey === "users") {
+      return {
+        data: mocks.users,
+        isFetching: false,
+        isPending: false,
+        isSuccess: true,
+        refetch: vi.fn()
+      }
+    }
+
+    if (queryKey === "roles") {
+      return {
+        data: mocks.roles,
+        isFetching: false,
+        isPending: false,
+        isSuccess: true,
+        refetch: vi.fn()
+      }
+    }
+
+    throw new Error(`Unhandled query key ${queryKey}`)
+  }
+}))
+
+vi.mock("@/api/user.ts", () => ({
+  createListUsersQueryOptions: () => ({
+    queryKey: ["users"]
+  })
+}))
+
+vi.mock("@/api/role.ts", () => ({
+  createListRolesQueryOptions: () => ({
+    queryKey: ["roles"]
+  })
+}))
+
 vi.mock("@/context/page.tsx", () => ({
   usePageMeta: mocks.usePageMeta
 }))
 
-vi.mock("@/components/user-table", () => ({
-  UserTable: ({
-    filterState,
-    onCreateUser,
-    onFilterStateChange,
-    onSelectUser,
-    selectedUserId
-  }: {
-    filterState?: unknown
-    onCreateUser?: () => void
-    onFilterStateChange?: (filterState: {
-      globalFilter: string
-      selectFilters: Record<string, Array<string>>
-    }) => void
-    onSelectUser?: (user: UserProfile) => void
-    selectedUserId?: string
-  }) => (
-    <div>
-      <div data-testid="selected-user">{selectedUserId}</div>
-      <div data-testid="filter-state">{JSON.stringify(filterState)}</div>
-      <button type="button" onClick={() => onSelectUser?.(mocks.user)}>
-        select user
-      </button>
-      <button type="button" onClick={onCreateUser}>
-        create user
-      </button>
-      <button
-        type="button"
-        onClick={() =>
-          onFilterStateChange?.({
-            globalFilter: "bob",
-            selectFilters: {
-              enabled: ["false"]
-            }
-          })
-        }
-      >
-        change filters
-      </button>
-    </div>
-  )
-}))
-
 vi.mock("@/components/detail-preview-dialog.tsx", () => ({
-  DetailPreviewDialog: (props: {
-    children?: ReactNode
+  DetailPreviewDialog: ({
+    children,
+    description,
+    fullPageHref,
+    onClose,
+    selectedId,
+    title
+  }: {
+    children: ReactNode
     description: string
     fullPageHref?: string
     onClose: () => void
     selectedId?: string
     title: string
-  }) => {
-    mocks.dialogProps = props
-
-    return (
-      <section>
-        <h2>{props.title}</h2>
-        <p>{props.description}</p>
-        <div data-testid="full-page-href">{props.fullPageHref}</div>
-        <button type="button" onClick={props.onClose}>
-          close dialog
+  }) =>
+    selectedId ? (
+      <section aria-label={title} role="dialog">
+        <p>{description}</p>
+        {fullPageHref && <a href={fullPageHref}>Open full page</a>}
+        <button type="button" onClick={onClose}>
+          Close
         </button>
-        {props.children}
+        {children}
       </section>
-    )
-  }
+    ) : null
 }))
 
 vi.mock("@/components/user-detail-content.tsx", () => ({
   UserDetailContent: ({ userId }: { userId: string }) => (
-    <div>Detail for {userId}</div>
+    <div>User detail for {userId}</div>
   )
 }))
 
+class ResizeObserverMock {
+  observe() {}
+
+  unobserve() {}
+
+  disconnect() {}
+}
+
+globalThis.ResizeObserver = ResizeObserverMock
+HTMLElement.prototype.scrollIntoView = vi.fn()
+
+function StatefulUsersRoute({
+  initialSearch = {},
+  initialSelected
+}: {
+  initialSearch?: Record<string, unknown>
+  initialSelected?: string
+}) {
+  const [routeState, setRouteState] = useState<RouteState>({
+    search: initialSearch,
+    selected: initialSelected
+  })
+
+  mocks.navigate.mockImplementation((options: NavigateCall) => {
+    if (options.to !== "/users" || typeof options.search !== "function") {
+      return
+    }
+
+    const updateSearch = options.search as SearchUpdater
+
+    setRouteState((current) => {
+      const nextSearch = updateSearch({
+        ...current.search,
+        selected: current.selected
+      })
+
+      return {
+        search: nextSearch,
+        selected:
+          typeof nextSearch.selected === "string" ? nextSearch.selected : undefined
+      }
+    })
+  })
+
+  return (
+    <UsersRouteComponent
+      search={routeState.search}
+      selected={routeState.selected}
+    />
+  )
+}
+
+function renderUsersRoute({
+  initialSearch,
+  initialSelected
+}: {
+  initialSearch?: Record<string, unknown>
+  initialSelected?: string
+} = {}) {
+  return render(
+    <StatefulUsersRoute
+      initialSearch={initialSearch}
+      initialSelected={initialSelected}
+    />
+  )
+}
+
 describe("UsersRouteComponent", () => {
   beforeEach(() => {
-    mocks.dialogProps = undefined
     mocks.navigate.mockReset()
     mocks.usePageMeta.mockReset()
   })
@@ -114,95 +226,63 @@ describe("UsersRouteComponent", () => {
     cleanup()
   })
 
-  it("passes route-owned filters and preview metadata to the table", async () => {
-    const { UsersRouteComponent } = await import(
-      "@/routes/_authenticated/users/-index-route-component.tsx"
-    )
+  it("opens and closes the selected user preview", async () => {
+    const user = userEvent.setup()
 
-    render(
-      <UsersRouteComponent
-        search={{ enabled: "true,false", filter: "alice" }}
-      />
-    )
+    renderUsersRoute()
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Users",
       description: "Browse users with access to the platform."
     })
-    expect(JSON.parse(screen.getByTestId("filter-state").textContent)).toEqual(
-      {
-        globalFilter: "alice",
-        selectFilters: {
-          enabled: ["true", "false"]
-        }
-      }
-    )
-    expect(screen.getByTestId("selected-user").textContent).toBe("")
-    expect(screen.getByTestId("full-page-href").textContent).toBe("")
-  })
 
-  it("selects users and renders selected preview content", async () => {
-    const { UsersRouteComponent } = await import(
-      "@/routes/_authenticated/users/-index-route-component.tsx"
-    )
+    const userRow = screen.getByText("Alice Example").closest("tr")
 
-    render(<UsersRouteComponent selected={mocks.user.id} />)
+    if (!userRow) {
+      throw new Error("Expected user row")
+    }
 
-    expect(screen.getByTestId("selected-user").textContent).toBe(mocks.user.id)
-    expect(screen.getByTestId("full-page-href").textContent).toBe(
-      `/users/${mocks.user.id}`
-    )
-    expect(screen.getByText(`Detail for ${mocks.user.id}`)).toBeTruthy()
+    fireEvent.click(userRow)
 
-    fireEvent.click(screen.getByRole("button", { name: /select user/i }))
-    expect(mocks.navigate).toHaveBeenCalledWith({
-      to: "/users",
-      search: expect.any(Function)
-    })
+    expect(
+      await screen.findByText(`User detail for ${mocks.users[0].id}`)
+    ).toBeVisible()
+    expect(
+      screen.getByRole("link", { name: /open full page/i })
+    ).toHaveAttribute("href", `/users/${mocks.users[0].id}`)
 
-    const selectSearch = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>
-    ) => Record<string, unknown>
+    await user.click(screen.getByRole("button", { name: /close/i }))
 
-    expect(selectSearch({ filter: "alice" })).toEqual({
-      filter: "alice",
-      selected: mocks.user.id
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+      expect(screen.queryByTestId("data-table-active-row")).not.toBeInTheDocument()
     })
   })
 
-  it("updates route-owned filters and preserves unrelated search params", async () => {
-    const { UsersRouteComponent } = await import(
-      "@/routes/_authenticated/users/-index-route-component.tsx"
+  it("updates visible user results from route-owned search state", async () => {
+    const user = userEvent.setup()
+
+    renderUsersRoute()
+    await user.type(
+      screen.getByRole("textbox", { name: /search across visible columns/i }),
+      "casey"
     )
 
-    render(<UsersRouteComponent />)
-    fireEvent.click(screen.getByRole("button", { name: /change filters/i }))
-
-    expect(mocks.navigate).toHaveBeenCalledWith({
-      to: "/users",
-      replace: true,
-      search: expect.any(Function)
-    })
-
-    const search = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>
-    ) => Record<string, unknown>
-
-    expect(search({ page: "2", selected: "user-1" })).toEqual({
-      enabled: "false",
-      filter: "bob",
-      page: "2",
-      selected: "user-1"
+    await waitFor(() => {
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "1"
+      )
+      expect(screen.getByText("Casey Disabled")).toBeVisible()
+      expect(screen.queryByText("Alice Example")).not.toBeInTheDocument()
     })
   })
 
-  it("navigates to the create user route", async () => {
-    const { UsersRouteComponent } = await import(
-      "@/routes/_authenticated/users/-index-route-component.tsx"
-    )
+  it("navigates from the new user action", async () => {
+    const user = userEvent.setup()
 
-    render(<UsersRouteComponent />)
-    fireEvent.click(screen.getByRole("button", { name: /create user/i }))
+    renderUsersRoute()
+    await user.click(screen.getByRole("button", { name: /new user/i }))
 
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/users/new"
