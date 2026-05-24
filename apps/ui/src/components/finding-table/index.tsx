@@ -1,7 +1,6 @@
 import { Check, Layers3, Plus } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import { useMemo } from "react"
 import type { Finding } from "@exposurenexus/types/model/finding"
 import type {
@@ -37,12 +36,16 @@ import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts"
 
 interface FindingTableProps {
   initialGrouping?: Array<string>
+  filterState?: DataTableFilterState
+  onFilterStateChange?: (state: DataTableFilterState) => void
   selectedFindingId?: string
   onSelectFinding?: (finding: Finding) => void
 }
 
 export function FindingTable({
   initialGrouping = [],
+  filterState,
+  onFilterStateChange,
   selectedFindingId,
   onSelectFinding
 }: FindingTableProps) {
@@ -51,31 +54,6 @@ export function FindingTable({
   const findingsQuery = useQuery(createListFindingsQueryOptions())
   const assetsQuery = useQuery(createListAssetsQueryOptions())
   const usersQuery = useQuery(createListUsersQueryOptions())
-  const [filter, setFilter] = useQueryState("filter")
-  const [severityFilter, setSeverityFilter] = useQueryState(
-    "severity",
-    parseAsArrayOf(parseAsString).withDefault([])
-  )
-  const [statusFilter, setStatusFilter] = useQueryState(
-    "status",
-    parseAsArrayOf(parseAsString).withDefault([])
-  )
-  const [assigneeFilter, setAssigneeFilter] = useQueryState(
-    "assignee",
-    parseAsArrayOf(parseAsString).withDefault([])
-  )
-
-  const filterState = useMemo<DataTableFilterState>(
-    () => ({
-      globalFilter: filter ?? "",
-      selectFilters: {
-        ...(severityFilter.length > 0 ? { severity: severityFilter } : {}),
-        ...(statusFilter.length > 0 ? { status: statusFilter } : {}),
-        ...(assigneeFilter.length > 0 ? { assignee: assigneeFilter } : {})
-      }
-    }),
-    [assigneeFilter, filter, severityFilter, statusFilter]
-  )
 
   const assetsById = useMemo(
     () => new Map((assetsQuery.data ?? []).map((asset) => [asset.id, asset])),
@@ -260,21 +238,6 @@ export function FindingTable({
     )
   }
 
-  const handleFilterStateChange = (nextState: DataTableFilterState) => {
-    void setFilter(nextState.globalFilter ? nextState.globalFilter : null)
-    const nextSeverityFilter = nextState.selectFilters.severity ?? []
-    const nextStatusFilter = nextState.selectFilters.status ?? []
-    const nextAssigneeFilter = nextState.selectFilters.assignee ?? []
-
-    void setSeverityFilter(
-      nextSeverityFilter.length ? nextSeverityFilter : null
-    )
-    void setStatusFilter(nextStatusFilter.length ? nextStatusFilter : null)
-    void setAssigneeFilter(
-      nextAssigneeFilter.length ? nextAssigneeFilter : null
-    )
-  }
-
   return (
     <DataTable
       columns={columns}
@@ -282,7 +245,7 @@ export function FindingTable({
       groupingOptions={groupingOptions}
       initialGrouping={initialGrouping}
       filterState={filterState}
-      onFilterStateChange={handleFilterStateChange}
+      onFilterStateChange={onFilterStateChange}
       initialSorting={[
         { id: "severity", desc: true },
         { id: "lastSeen", desc: true }

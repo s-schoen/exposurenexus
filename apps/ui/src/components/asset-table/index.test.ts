@@ -12,13 +12,12 @@ import {
   createAssetTableColumns,
   getAssetCustomFieldColumnId
 } from "@/components/asset-table/columns.tsx"
+import { createAssetTableGroupingOptions } from "@/components/asset-table/index.tsx"
 import {
   createAssetCustomFieldSearchParams,
-  createAssetTableGroupingOptions,
   createClearedAssetCustomFieldSearchParams,
-  createReservedAssetCustomFieldFilterState,
   parseAssetCustomFieldFiltersFromSearch
-} from "@/components/asset-table/index.tsx"
+} from "@/hooks/use-asset-table-search-state.ts"
 
 function getColumnFilterFn(column: { filterFn?: unknown } | undefined) {
   if (!column || typeof column.filterFn !== "function") {
@@ -111,39 +110,8 @@ describe("asset table custom field grouping", () => {
       createClearedAssetCustomFieldSearchParams(ASSET_CUSTOM_FIELD_FIXTURES)
     ).toEqual({
       category: undefined,
-      customFields: undefined,
       environment: undefined,
       priority: undefined
-    })
-  })
-
-  it("keeps reserved custom field keys out of direct route search params", () => {
-    const reservedDefinition: AssetCustomFieldDefinition = {
-      id: "49ad6db8-42dc-4d19-8666-82ec3f9cef83",
-      key: "filter",
-      name: "Filter",
-      required: false,
-      type: AssetCustomFieldType.Text,
-      defaultValue: null
-    }
-    const columnId = getAssetCustomFieldColumnId(reservedDefinition.id)
-    const filterState = {
-      globalFilter: "",
-      selectFilters: {},
-      textFilters: {
-        [columnId]: "internal"
-      }
-    }
-
-    expect(
-      createAssetCustomFieldSearchParams(filterState, [reservedDefinition])
-    ).toEqual({})
-    expect(
-      createReservedAssetCustomFieldFilterState(filterState, [
-        reservedDefinition
-      ]).text
-    ).toEqual({
-      [columnId]: "internal"
     })
   })
 

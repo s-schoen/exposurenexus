@@ -38,16 +38,12 @@ const mocks = vi.hoisted(() => {
     createAsset: vi.fn(),
     dataTableProps: undefined as undefined | Record<string, unknown>,
     deleteAssets: vi.fn(),
-    locationSearch: {},
     navigate: vi.fn(),
     users
   }
 })
 
 vi.mock("@tanstack/react-router", () => ({
-  useLocation: () => ({
-    search: mocks.locationSearch
-  }),
   useNavigate: () => mocks.navigate
 }))
 
@@ -189,7 +185,6 @@ describe("AssetTable workflow wiring", () => {
     mocks.createAsset.mockReset()
     mocks.dataTableProps = undefined
     mocks.deleteAssets.mockReset()
-    mocks.locationSearch = {}
     mocks.navigate.mockReset()
   })
 
@@ -201,22 +196,7 @@ describe("AssetTable workflow wiring", () => {
   it("passes route filter state, active row state, and row handlers to DataTable", async () => {
     const { AssetTable } = await import("@/components/asset-table/index.tsx")
     const onSelectAsset = vi.fn()
-    mocks.locationSearch = {
-      category: "internet",
-      environment: "production,staging",
-      filter: "api",
-      priority: "3"
-    }
-
-    render(
-      <AssetTable
-        selectedAssetId={mocks.asset.id}
-        onSelectAsset={onSelectAsset}
-      />
-    )
-
-    expect(screen.getByTestId("active-row").textContent).toBe("true")
-    expect(mocks.dataTableProps?.filterState).toEqual({
+    const filterState = {
       globalFilter: "api",
       selectFilters: {
         [getAssetCustomFieldColumnId("7f732d2b-8985-4551-b45d-0eaf527a1577")]: [
@@ -232,7 +212,18 @@ describe("AssetTable workflow wiring", () => {
         [getAssetCustomFieldColumnId("2808e68c-9a48-4b50-9a2d-d1df4c83ff06")]:
           "3"
       }
-    })
+    }
+
+    render(
+      <AssetTable
+        filterState={filterState}
+        selectedAssetId={mocks.asset.id}
+        onSelectAsset={onSelectAsset}
+      />
+    )
+
+    expect(screen.getByTestId("active-row").textContent).toBe("true")
+    expect(mocks.dataTableProps?.filterState).toBe(filterState)
     expect(mocks.dataTableProps?.initialColumnVisibility).toEqual({
       [getAssetCustomFieldColumnId("8f0365b2-1bbb-46e2-b1f4-06300ade23f3")]:
         false,
@@ -263,37 +254,33 @@ describe("AssetTable workflow wiring", () => {
     })
   })
 
-  it("serializes filter changes back to route search params", async () => {
+  it("delegates filter changes to the route owner", async () => {
     const { AssetTable } = await import("@/components/asset-table/index.tsx")
+    const onFilterStateChange = vi.fn()
 
-    render(<AssetTable />)
+    render(<AssetTable onFilterStateChange={onFilterStateChange} />)
     fireEvent.click(screen.getByRole("button", { name: /change filters/i }))
 
-    expect(mocks.navigate).toHaveBeenCalledWith({
-      to: "/assets",
-      replace: true,
-      search: expect.any(Function)
+    expect(onFilterStateChange).toHaveBeenCalledWith({
+      globalFilter: "edge",
+      selectFilters: {
+        [getAssetCustomFieldColumnId("7f732d2b-8985-4551-b45d-0eaf527a1577")]: [
+          "production",
+          "staging"
+        ]
+      },
+      textFilters: {
+        [getAssetCustomFieldColumnId("8f0365b2-1bbb-46e2-b1f4-06300ade23f3")]:
+          "internet"
+      },
+      numberFilters: {
+        [getAssetCustomFieldColumnId("2808e68c-9a48-4b50-9a2d-d1df4c83ff06")]:
+          "3"
+      }
     })
-
-    const search = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>
-    ) => Record<string, unknown>
-
-    expect(
-      search({
-        category: "old",
-        customFields: "visible",
-        filter: "old",
-        selected: mocks.asset.id
-      })
-    ).toEqual({
-      category: "internet",
-      customFields: undefined,
-      environment: "production,staging",
-      filter: "edge",
-      priority: "3",
-      selected: mocks.asset.id
-    })
+    expect(mocks.navigate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ to: "/assets" })
+    )
   })
 
   it("does not delete assets when the confirmation is cancelled", async () => {

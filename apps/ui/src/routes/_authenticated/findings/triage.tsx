@@ -1,40 +1,34 @@
-import { useEffect } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import { FindingStatus } from "@exposurenexus/types/model/finding"
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx"
 import { FindingTable } from "@/components/finding-table"
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx"
 import { usePageMeta } from "@/context/page.tsx"
+import {
+  useFindingTableSearchState,
+  validateFindingTableSearch
+} from "@/hooks/use-finding-table-search-state.ts"
+
+const defaultTriageStatusFilter = [FindingStatus.Active]
 
 export const Route = createFileRoute("/_authenticated/findings/triage")({
-  validateSearch: (search) => ({
+  validateSearch: (search: Record<string, unknown>) => ({
     ...search,
     selected: typeof search.selected === "string" ? search.selected : undefined,
-    status: Array.isArray(search.status)
-      ? search.status.filter(
-          (value): value is string => typeof value === "string"
-        )
-      : typeof search.status === "string"
-        ? [search.status]
-        : undefined
+    ...validateFindingTableSearch(search)
   }),
   component: RouteComponent
 })
 
 function RouteComponent() {
   const navigate = useNavigate()
-  const [status, setStatus] = useQueryState(
-    "status",
-    parseAsArrayOf(parseAsString).withDefault([])
-  )
-  const { selected } = Route.useSearch()
-
-  useEffect(() => {
-    if (status.length === 0) {
-      setStatus([FindingStatus.Active])
-    }
-  }, [setStatus, status])
+  const search = Route.useSearch()
+  const { selected } = search
+  const { filterState, onFilterStateChange } = useFindingTableSearchState({
+    search,
+    to: "/findings/triage",
+    defaultStatusFilter: defaultTriageStatusFilter
+  })
 
   usePageMeta({
     title: "Triage Queue",
@@ -47,6 +41,8 @@ function RouteComponent() {
       <div className="flex flex-col gap-4">
         <FindingTable
           initialGrouping={["assetId"]}
+          filterState={filterState}
+          onFilterStateChange={onFilterStateChange}
           selectedFindingId={selected}
           onSelectFinding={(finding) =>
             navigate({
@@ -54,7 +50,10 @@ function RouteComponent() {
               replace: true,
               search: (prev) => ({
                 ...prev,
+                filter: prev.filter,
+                severity: prev.severity,
                 status: prev.status,
+                assignee: prev.assignee,
                 selected: finding.id
               })
             })
@@ -69,7 +68,10 @@ function RouteComponent() {
             replace: true,
             search: (prev) => ({
               ...prev,
+              filter: prev.filter,
+              severity: prev.severity,
               status: prev.status,
+              assignee: prev.assignee,
               selected: undefined
             })
           })

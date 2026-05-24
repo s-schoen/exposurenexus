@@ -1,21 +1,35 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useQuery } from "@tanstack/react-query"
 import { AssetDetailContent } from "@/components/asset-detail-content.tsx"
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx"
 import { usePageMeta } from "@/context/page.tsx"
 import { AssetTable } from "@/components/asset-table"
+import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/api/asset-custom-field.ts"
+import {
+  useAssetTableSearchState,
+  validateAssetTableSearch
+} from "@/hooks/use-asset-table-search-state.ts"
 
 export const Route = createFileRoute("/_authenticated/assets/")({
   validateSearch: (search: Record<string, unknown>) => ({
     ...search,
     selected: typeof search.selected === "string" ? search.selected : undefined,
-    filter: typeof search.filter === "string" ? search.filter : undefined
+    ...validateAssetTableSearch(search)
   }),
   component: RouteComponent
 })
 
 function RouteComponent() {
   const navigate = useNavigate()
-  const { selected } = Route.useSearch()
+  const search = Route.useSearch()
+  const { selected } = search
+  const customFieldDefinitionsQuery = useQuery(
+    createListAssetCustomFieldDefinitionsQueryOptions()
+  )
+  const { filterState, onFilterStateChange } = useAssetTableSearchState({
+    search,
+    customFieldDefinitions: customFieldDefinitionsQuery.data ?? []
+  })
 
   usePageMeta({
     title: "Assets",
@@ -25,6 +39,8 @@ function RouteComponent() {
   return (
     <>
       <AssetTable
+        filterState={filterState}
+        onFilterStateChange={onFilterStateChange}
         selectedAssetId={selected}
         onSelectAsset={(asset) =>
           navigate({
