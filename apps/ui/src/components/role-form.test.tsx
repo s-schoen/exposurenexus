@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   cleanup,
-  fireEvent,
   render,
   screen,
   waitFor,
   within
 } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { composeStories } from "@storybook/react-vite"
 import {
   PermissionResource,
@@ -40,32 +40,35 @@ function getInputByLabel(label: RegExp) {
   return element
 }
 
-function clickPermission(resource: RegExp, verb: RegExp) {
+async function clickPermission(
+  user: ReturnType<typeof userEvent.setup>,
+  resource: RegExp,
+  verb: RegExp
+) {
   const group = screen.getByRole("group", { name: resource })
-  fireEvent.click(within(group).getByRole("checkbox", { name: verb }))
+  await user.click(within(group).getByRole("checkbox", { name: verb }))
 }
 
 describe("RoleForm", () => {
   it("renders create-mode defaults and groups available permissions", () => {
     render(<Create />)
 
-    expect(getInputByLabel(/^name$/i).value).toBe("")
-    expect(screen.getByRole("group", { name: /asset/i })).toBeTruthy()
-    expect(screen.getByRole("group", { name: /finding/i })).toBeTruthy()
-    expect(screen.getByRole("button", { name: /create role/i })).toBeTruthy()
-    expect(screen.getByRole("button", { name: /^cancel$/i })).toBeTruthy()
+    expect(getInputByLabel(/^name$/i)).toHaveValue("")
+    expect(screen.getByRole("group", { name: /asset/i })).toBeInTheDocument()
+    expect(screen.getByRole("group", { name: /finding/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /create role/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^cancel$/i })).toBeInTheDocument()
   })
 
   it("renders edit-mode defaults", () => {
     render(<EditPrefilled />)
 
-    expect(getInputByLabel(/^name$/i).value).toBe(CUSTOM_AUDITOR_ROLE.name)
+    expect(getInputByLabel(/^name$/i)).toHaveValue(CUSTOM_AUDITOR_ROLE.name)
     expect(
       within(screen.getByRole("group", { name: /asset/i }))
         .getByRole("checkbox", { name: /read/i })
-        .hasAttribute("data-checked")
-    ).toBe(true)
-    expect(screen.getByRole("button", { name: /save changes/i })).toBeTruthy()
+    ).toHaveAttribute("data-checked")
+    expect(screen.getByRole("button", { name: /save changes/i })).toBeInTheDocument()
   })
 
   it("limits available permissions to the union of built-in role permissions", () => {
@@ -91,9 +94,11 @@ describe("RoleForm", () => {
   })
 
   it("shows validation errors after submitting an empty create form", async () => {
+    const user = userEvent.setup()
+
     render(<Create />)
 
-    fireEvent.click(screen.getByRole("button", { name: /create role/i }))
+    await user.click(screen.getByRole("button", { name: /create role/i }))
 
     await waitFor(() => {
       expect(screen.getAllByRole("alert").length).toBeGreaterThan(0)
@@ -101,6 +106,7 @@ describe("RoleForm", () => {
   })
 
   it("submits selected permissions grouped by resource", async () => {
+    const user = userEvent.setup()
     const onSubmit = vi.fn().mockResolvedValue(undefined)
 
     render(
@@ -112,13 +118,11 @@ describe("RoleForm", () => {
       />
     )
 
-    fireEvent.change(screen.getByLabelText(/^name$/i), {
-      target: { value: "security-analyst" }
-    })
-    clickPermission(/asset/i, /read/i)
-    clickPermission(/asset/i, /write/i)
-    clickPermission(/finding/i, /read/i)
-    fireEvent.click(screen.getByRole("button", { name: /create role/i }))
+    await user.type(screen.getByLabelText(/^name$/i), "security-analyst")
+    await clickPermission(user, /asset/i, /read/i)
+    await clickPermission(user, /asset/i, /write/i)
+    await clickPermission(user, /finding/i, /read/i)
+    await user.click(screen.getByRole("button", { name: /create role/i }))
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith({
@@ -142,6 +146,7 @@ describe("RoleForm", () => {
   })
 
   it("allows submitting zero permissions", async () => {
+    const user = userEvent.setup()
     const onSubmit = vi.fn().mockResolvedValue(undefined)
 
     render(
@@ -153,10 +158,8 @@ describe("RoleForm", () => {
       />
     )
 
-    fireEvent.change(screen.getByLabelText(/^name$/i), {
-      target: { value: "no-access" }
-    })
-    fireEvent.click(screen.getByRole("button", { name: /create role/i }))
+    await user.type(screen.getByLabelText(/^name$/i), "no-access")
+    await user.click(screen.getByRole("button", { name: /create role/i }))
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith({
@@ -167,6 +170,7 @@ describe("RoleForm", () => {
   })
 
   it("calls the cancel handler", async () => {
+    const user = userEvent.setup()
     const onCancel = vi.fn()
 
     render(
@@ -178,7 +182,7 @@ describe("RoleForm", () => {
       />
     )
 
-    fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }))
+    await user.click(screen.getByRole("button", { name: /^cancel$/i }))
 
     await waitFor(() => {
       expect(onCancel).toHaveBeenCalledTimes(1)
@@ -186,6 +190,7 @@ describe("RoleForm", () => {
   })
 
   it("disables actions while submitting", async () => {
+    const user = userEvent.setup()
     let resolveSubmit: () => void = () => undefined
     const onSubmit = vi.fn(
       () =>
@@ -204,21 +209,15 @@ describe("RoleForm", () => {
       />
     )
 
-    fireEvent.click(screen.getByRole("button", { name: /create role/i }))
+    await user.click(screen.getByRole("button", { name: /create role/i }))
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledTimes(1)
     })
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /create role/i })).toHaveProperty(
-        "disabled",
-        true
-      )
-      expect(screen.getByRole("button", { name: /^cancel$/i })).toHaveProperty(
-        "disabled",
-        true
-      )
+      expect(screen.getByRole("button", { name: /create role/i })).toBeDisabled()
+      expect(screen.getByRole("button", { name: /^cancel$/i })).toBeDisabled()
     })
 
     resolveSubmit()
