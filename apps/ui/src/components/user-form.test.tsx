@@ -1,11 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor
-} from "@testing-library/react"
+import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { composeStories } from "@storybook/react-vite"
 import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
@@ -36,19 +30,14 @@ afterEach(() => {
   cleanup()
 })
 
-function fillCreateFields(values: UserFormValues) {
-  fireEvent.change(screen.getByLabelText(/display name/i), {
-    target: { value: values.displayName }
-  })
-  fireEvent.change(screen.getByLabelText(/username/i), {
-    target: { value: values.username }
-  })
-  fireEvent.change(screen.getByLabelText(/email/i), {
-    target: { value: values.email }
-  })
-  fireEvent.change(screen.getByLabelText(/password/i), {
-    target: { value: values.password }
-  })
+async function fillCreateFields(
+  user: ReturnType<typeof userEvent.setup>,
+  values: UserFormValues
+) {
+  await user.type(screen.getByLabelText(/display name/i), values.displayName)
+  await user.type(screen.getByLabelText(/username/i), values.username)
+  await user.type(screen.getByLabelText(/email/i), values.email)
+  await user.type(screen.getByLabelText(/password/i), values.password)
 }
 
 function getInputByLabel(label: RegExp) {
@@ -65,14 +54,14 @@ describe("UserForm", () => {
   it("renders the create-mode inputs and actions", () => {
     render(<Create />)
 
-    expect(screen.getByLabelText(/display name/i)).toBeTruthy()
-    expect(screen.getByLabelText(/username/i)).toBeTruthy()
-    expect(screen.getByLabelText(/email/i)).toBeTruthy()
-    expect(screen.getByRole("combobox", { name: /roles/i })).toBeTruthy()
-    expect(screen.getByRole("checkbox", { name: /enabled/i })).toBeTruthy()
-    expect(screen.getByLabelText(/password/i)).toBeTruthy()
-    expect(screen.getByRole("button", { name: /create user/i })).toBeTruthy()
-    expect(screen.getByRole("button", { name: /^cancel$/i })).toBeTruthy()
+    expect(screen.getByLabelText(/display name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/username/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
+    expect(screen.getByRole("combobox", { name: /roles/i })).toBeInTheDocument()
+    expect(screen.getByRole("checkbox", { name: /enabled/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /create user/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^cancel$/i })).toBeInTheDocument()
   })
 
   it("renders the edit-mode inputs without username", () => {
@@ -82,27 +71,29 @@ describe("UserForm", () => {
     const emailInput = getInputByLabel(/email/i)
     const passwordInput = getInputByLabel(/password/i)
 
-    expect(displayNameInput.value).toBe("Alice Example")
-    expect(screen.queryByLabelText(/username/i)).toBeNull()
-    expect(emailInput.value).toBe("alice@example.com")
-    expect(
-      screen.getByRole("combobox", { name: /roles/i }).textContent
-    ).toContain("viewer, editor")
-    expect(passwordInput.value).toBe("")
-    expect(screen.getByRole("button", { name: /save changes/i })).toBeTruthy()
-    expect(screen.getByRole("button", { name: /^cancel$/i })).toBeTruthy()
+    expect(displayNameInput).toHaveValue("Alice Example")
+    expect(screen.queryByLabelText(/username/i)).not.toBeInTheDocument()
+    expect(emailInput).toHaveValue("alice@example.com")
+    expect(screen.getByRole("combobox", { name: /roles/i })).toHaveTextContent(
+      "viewer, editor"
+    )
+    expect(passwordInput).toHaveValue("")
+    expect(screen.getByRole("button", { name: /save changes/i })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /^cancel$/i })).toBeInTheDocument()
   })
 
   it("renders a submit button when a custom submit label is provided", () => {
     render(<CustomSubmitLabel />)
 
-    expect(screen.getByRole("button", { name: /update account/i })).toBeTruthy()
+    expect(screen.getByRole("button", { name: /update account/i })).toBeInTheDocument()
   })
 
   it("shows validation errors after submitting an empty create form", async () => {
+    const user = userEvent.setup()
+
     render(<Create />)
 
-    fireEvent.click(screen.getByRole("button", { name: /create user/i }))
+    await user.click(screen.getByRole("button", { name: /create user/i }))
 
     await waitFor(() => {
       expect(screen.getAllByRole("alert").length).toBeGreaterThan(0)
@@ -133,10 +124,10 @@ describe("UserForm", () => {
       roleIds: [builtInRoleIds.viewer, builtInRoleIds.admin]
     }
 
-    fillCreateFields(values)
+    await fillCreateFields(user, values)
     await user.click(screen.getByRole("combobox", { name: /roles/i }))
     await user.click(await screen.findByRole("option", { name: /admin/i }))
-    fireEvent.click(screen.getByRole("button", { name: /create user/i }))
+    await user.click(screen.getByRole("button", { name: /create user/i }))
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledTimes(1)
@@ -170,6 +161,7 @@ describe("UserForm", () => {
   })
 
   it("calls the cancel handler", async () => {
+    const user = userEvent.setup()
     const onSubmit = vi.fn().mockResolvedValue(undefined)
     const onCancel = vi.fn()
 
@@ -183,7 +175,7 @@ describe("UserForm", () => {
       />
     )
 
-    fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }))
+    await user.click(screen.getByRole("button", { name: /^cancel$/i }))
 
     await waitFor(() => {
       expect(onCancel).toHaveBeenCalledTimes(1)

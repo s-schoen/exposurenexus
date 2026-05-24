@@ -1,11 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor
-} from "@testing-library/react"
+import { cleanup, render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { AssetType } from "@exposurenexus/types/model/asset"
 import type { ReactNode } from "react"
 import { AssetDialog } from "@/components/asset-dialog.tsx"
@@ -89,32 +84,26 @@ describe("AssetDialog", () => {
     const nameInput = screen.getByLabelText(/^name$/i)
 
     expect(nameInput).toBeInstanceOf(HTMLInputElement)
-    expect((nameInput as HTMLInputElement).value).toBe("")
-    expect(screen.getByLabelText(/^type$/i)).toHaveProperty(
-      "value",
-      AssetType.Host
-    )
-    expect(screen.getByLabelText(/^owner$/i)).toHaveProperty(
-      "value",
-      "__no_owner__"
-    )
+    expect(nameInput).toHaveValue("")
+    expect(screen.getByLabelText(/^type$/i)).toHaveValue(AssetType.Host)
+    expect(screen.getByLabelText(/^owner$/i)).toHaveValue("__no_owner__")
   })
 
-  it("resolves null when cancelled", () => {
+  it("resolves null when cancelled", async () => {
+    const user = userEvent.setup()
     const { call } = renderAssetDialog()
 
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }))
+    await user.click(screen.getByRole("button", { name: /cancel/i }))
 
     expect(call.end).toHaveBeenCalledWith(null)
   })
 
   it("submits a valid host asset", async () => {
-    const { call, container } = renderAssetDialog()
+    const user = userEvent.setup()
+    const { call } = renderAssetDialog()
 
-    fireEvent.change(screen.getByLabelText(/^name$/i), {
-      target: { value: "api-01" }
-    })
-    fireEvent.submit(container.querySelector("#asset-form")!)
+    await user.type(screen.getByLabelText(/^name$/i), "api-01")
+    await user.click(screen.getByRole("button", { name: /^create$/i }))
 
     await waitFor(() => {
       expect(call.end).toHaveBeenCalledWith({
@@ -127,12 +116,11 @@ describe("AssetDialog", () => {
   })
 
   it("submits once when the create button is clicked", async () => {
+    const user = userEvent.setup()
     const { call } = renderAssetDialog()
 
-    fireEvent.change(screen.getByLabelText(/^name$/i), {
-      target: { value: "api-01" }
-    })
-    fireEvent.click(screen.getByRole("button", { name: /^create$/i }))
+    await user.type(screen.getByLabelText(/^name$/i), "api-01")
+    await user.click(screen.getByRole("button", { name: /^create$/i }))
 
     await waitFor(() => {
       expect(call.end).toHaveBeenCalledWith({
@@ -146,15 +134,12 @@ describe("AssetDialog", () => {
   })
 
   it("submits the selected asset type", async () => {
-    const { call, container } = renderAssetDialog()
+    const user = userEvent.setup()
+    const { call } = renderAssetDialog()
 
-    fireEvent.change(screen.getByLabelText(/^name$/i), {
-      target: { value: "container-01" }
-    })
-    fireEvent.change(screen.getByLabelText(/^type$/i), {
-      target: { value: AssetType.Container }
-    })
-    fireEvent.submit(container.querySelector("#asset-form")!)
+    await user.type(screen.getByLabelText(/^name$/i), "container-01")
+    await user.selectOptions(screen.getByLabelText(/^type$/i), AssetType.Container)
+    await user.click(screen.getByRole("button", { name: /^create$/i }))
 
     await waitFor(() => {
       expect(call.end).toHaveBeenCalledWith({
@@ -167,15 +152,12 @@ describe("AssetDialog", () => {
   })
 
   it("submits the selected owner", async () => {
-    const { call, container } = renderAssetDialog()
+    const user = userEvent.setup()
+    const { call } = renderAssetDialog()
 
-    fireEvent.change(screen.getByLabelText(/^name$/i), {
-      target: { value: "api-01" }
-    })
-    fireEvent.change(screen.getByLabelText(/^owner$/i), {
-      target: { value: queryMocks.ownerId }
-    })
-    fireEvent.submit(container.querySelector("#asset-form")!)
+    await user.type(screen.getByLabelText(/^name$/i), "api-01")
+    await user.selectOptions(screen.getByLabelText(/^owner$/i), queryMocks.ownerId)
+    await user.click(screen.getByRole("button", { name: /^create$/i }))
 
     await waitFor(() => {
       expect(call.end).toHaveBeenCalledWith({
@@ -188,9 +170,10 @@ describe("AssetDialog", () => {
   })
 
   it("does not resolve when submitted without a name", async () => {
-    const { call, container } = renderAssetDialog()
+    const user = userEvent.setup()
+    const { call } = renderAssetDialog()
 
-    fireEvent.submit(container.querySelector("#asset-form")!)
+    await user.click(screen.getByRole("button", { name: /^create$/i }))
     await waitFor(() => {
       expect(call.end).not.toHaveBeenCalled()
     })
