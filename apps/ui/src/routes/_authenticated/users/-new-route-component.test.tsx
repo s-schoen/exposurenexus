@@ -186,7 +186,16 @@ describe("CreateUserRouteComponent", () => {
     })
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/users",
-      search: { selected: undefined }
+      search: expect.any(Function)
+    })
+    const search = mocks.navigate.mock.calls[0][0].search as (
+      previous: Record<string, unknown>
+    ) => Record<string, unknown>
+
+    expect(search({ enabled: "true", filter: "alice", selected: "user-1" })).toEqual({
+      enabled: "true",
+      filter: "alice",
+      selected: undefined
     })
   })
 
@@ -209,8 +218,17 @@ describe("CreateUserRouteComponent", () => {
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith({
         to: "/users",
-        search: { selected: undefined }
+        search: expect.any(Function)
       })
+    })
+    const search = mocks.navigate.mock.calls[0][0].search as (
+      previous: Record<string, unknown>
+    ) => Record<string, unknown>
+
+    expect(search({ enabled: "false", filter: "bob", selected: "user-1" })).toEqual({
+      enabled: "false",
+      filter: "bob",
+      selected: undefined
     })
   })
 })

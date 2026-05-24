@@ -11,11 +11,6 @@ import type { ReactNode } from "react"
 import type { UserProfile } from "@exposurenexus/types/model/user"
 import type { Role } from "@exposurenexus/types/model/rbac"
 
-interface UserTableQueryStates {
-  enabled: Array<string>
-  filter: string | null
-}
-
 const mocks = vi.hoisted(() => {
   const user: UserProfile = {
     id: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
@@ -43,23 +38,15 @@ const mocks = vi.hoisted(() => {
       permissions: []
     }
   ]
-  const queryStates: UserTableQueryStates = {
-    enabled: ["true"],
-    filter: "alice"
-  }
-
   return {
     dataTableProps: undefined as undefined | Record<string, unknown>,
     navigate: vi.fn(),
-    queryStates,
     roles,
     rolesQuery: {
       data: roles,
       isPending: false,
       isSuccess: true
     },
-    setEnabledFilter: vi.fn(),
-    setFilter: vi.fn(),
     user
   }
 })
@@ -79,20 +66,6 @@ vi.mock("@tanstack/react-query", () => ({
       isPending: false,
       isSuccess: true
     }
-  }
-}))
-
-vi.mock("nuqs", () => ({
-  parseAsArrayOf: () => ({
-    withDefault: () => ({})
-  }),
-  parseAsString: {},
-  useQueryState: (key: string) => {
-    if (key === "enabled") {
-      return [mocks.queryStates.enabled, mocks.setEnabledFilter]
-    }
-
-    return [mocks.queryStates.filter, mocks.setFilter]
   }
 }))
 
@@ -177,38 +150,37 @@ describe("UserTable workflow wiring", () => {
   beforeEach(() => {
     mocks.dataTableProps = undefined
     mocks.navigate.mockReset()
-    mocks.queryStates = {
-      enabled: ["true"],
-      filter: "alice"
-    }
     mocks.rolesQuery = {
       data: mocks.roles,
       isPending: false,
       isSuccess: true
     }
-    mocks.setEnabledFilter.mockReset()
-    mocks.setFilter.mockReset()
   })
 
   afterEach(() => {
     cleanup()
   })
 
-  it("passes query-state filters, active row state, and row handlers to DataTable", async () => {
+  it("passes route-owned filters, active row state, and row handlers to DataTable", async () => {
     const { UserTable } = await import("@/components/user-table/index.tsx")
     const onSelectUser = vi.fn()
-
-    render(
-      <UserTable selectedUserId={mocks.user.id} onSelectUser={onSelectUser} />
-    )
-
-    expect(screen.getByTestId("active-row").textContent).toBe("true")
-    expect(mocks.dataTableProps?.filterState).toEqual({
+    const filterState = {
       globalFilter: "alice",
       selectFilters: {
         enabled: ["true"]
       }
-    })
+    }
+
+    render(
+      <UserTable
+        filterState={filterState}
+        selectedUserId={mocks.user.id}
+        onSelectUser={onSelectUser}
+      />
+    )
+
+    expect(screen.getByTestId("active-row").textContent).toBe("true")
+    expect(mocks.dataTableProps?.filterState).toEqual(filterState)
     expect(mocks.dataTableProps?.onRowDelete).toBeUndefined()
 
     fireEvent.click(screen.getByRole("button", { name: /select user/i }))
@@ -225,19 +197,26 @@ describe("UserTable workflow wiring", () => {
     })
   })
 
-  it("syncs table filter changes back to query state", async () => {
+  it("forwards table filter changes", async () => {
     const { UserTable } = await import("@/components/user-table/index.tsx")
+    const onFilterStateChange = vi.fn()
 
-    render(<UserTable />)
+    render(<UserTable onFilterStateChange={onFilterStateChange} />)
     fireEvent.click(screen.getByRole("button", { name: /change filters/i }))
 
-    expect(mocks.setFilter).toHaveBeenCalledWith("bob")
-    expect(mocks.setEnabledFilter).toHaveBeenCalledWith(["false"])
+    expect(onFilterStateChange).toHaveBeenCalledWith({
+      globalFilter: "bob",
+      selectFilters: {
+        enabled: ["false"]
+      }
+    })
 
     fireEvent.click(screen.getByRole("button", { name: /clear filters/i }))
 
-    expect(mocks.setFilter).toHaveBeenCalledWith(null)
-    expect(mocks.setEnabledFilter).toHaveBeenCalledWith(null)
+    expect(onFilterStateChange).toHaveBeenCalledWith({
+      globalFilter: "",
+      selectFilters: {}
+    })
   })
 
   it("renders the create-user toolbar action when provided", async () => {
@@ -250,19 +229,12 @@ describe("UserTable workflow wiring", () => {
     expect(onCreateUser).toHaveBeenCalledTimes(1)
   })
 
-  it("omits enabled filter state when no enabled filters are selected", async () => {
+  it("does not create filter state without route-owned filters", async () => {
     const { UserTable } = await import("@/components/user-table/index.tsx")
-    mocks.queryStates = {
-      enabled: [],
-      filter: null
-    }
 
     render(<UserTable />)
 
-    expect(mocks.dataTableProps?.filterState).toEqual({
-      globalFilter: "",
-      selectFilters: {}
-    })
+    expect(mocks.dataTableProps?.filterState).toBeUndefined()
   })
 })
 

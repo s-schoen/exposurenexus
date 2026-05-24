@@ -1,7 +1,6 @@
 import { Plus } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import { useMemo } from "react"
 import type { UserProfile } from "@exposurenexus/types/model/user"
 import type {
@@ -23,12 +22,16 @@ const groupingOptions: Array<GroupingOption> = [
 ]
 
 interface UserTableProps {
+  filterState?: DataTableFilterState
+  onFilterStateChange?: (state: DataTableFilterState) => void
   selectedUserId?: string
   onSelectUser?: (user: UserProfile) => void
   onCreateUser?: () => void
 }
 
 export function UserTable({
+  filterState,
+  onFilterStateChange,
   selectedUserId,
   onSelectUser,
   onCreateUser
@@ -36,19 +39,6 @@ export function UserTable({
   const navigate = useNavigate()
   const usersQuery = useQuery(createListUsersQueryOptions())
   const rolesQuery = useQuery(createListRolesQueryOptions())
-  const [filter, setFilter] = useQueryState("filter")
-  const [enabledFilter, setEnabledFilter] = useQueryState(
-    "enabled",
-    parseAsArrayOf(parseAsString).withDefault([])
-  )
-
-  const filterState = useMemo<DataTableFilterState>(
-    () => ({
-      globalFilter: filter ?? "",
-      selectFilters: enabledFilter.length > 0 ? { enabled: enabledFilter } : {}
-    }),
-    [filter, enabledFilter]
-  )
   const roleLabelById = useMemo(
     () => new Map((rolesQuery.data ?? []).map((role) => [role.id, role.name])),
     [rolesQuery.data]
@@ -65,13 +55,6 @@ export function UserTable({
         id: user.id
       }
     })
-  }
-
-  const handleFilterStateChange = (nextState: DataTableFilterState) => {
-    void setFilter(nextState.globalFilter ? nextState.globalFilter : null)
-    const nextEnabledFilter = nextState.selectFilters.enabled ?? []
-
-    void setEnabledFilter(nextEnabledFilter.length ? nextEnabledFilter : null)
   }
 
   function ToolbarElements() {
@@ -94,7 +77,7 @@ export function UserTable({
       query={usersQuery}
       groupingOptions={groupingOptions}
       filterState={filterState}
-      onFilterStateChange={handleFilterStateChange}
+      onFilterStateChange={onFilterStateChange}
       onRowClick={onSelectUser}
       onRowDoubleClick={handleOpenUser}
       isRowActive={(user) => user.id === selectedUserId}

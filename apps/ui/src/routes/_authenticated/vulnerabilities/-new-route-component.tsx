@@ -18,7 +18,11 @@ export function CreateVulnerabilityRouteComponent() {
   const handleCancel = async () => {
     await navigate({
       to: "/vulnerabilities",
-      search: { selected: undefined }
+      search: (previous) => ({
+        filter: previous.filter,
+        severity: previous.severity,
+        selected: undefined
+      })
     })
   }
 

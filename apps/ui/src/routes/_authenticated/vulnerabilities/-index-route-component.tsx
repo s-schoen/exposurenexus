@@ -7,16 +7,23 @@ import { VulnerabilityTable } from "@/components/vulnerability-table"
 import { usePageMeta } from "@/context/page.tsx"
 import { useVulnerabilityLifecycle } from "@/hooks/use-vulnerability-lifecycle.ts"
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts"
+import { useVulnerabilityTableSearchState } from "@/hooks/use-vulnerability-table-search-state.ts"
 
 interface VulnerabilitiesRouteComponentProps {
+  search?: Record<string, unknown>
   selected?: string
 }
 
 export function VulnerabilitiesRouteComponent({
+  search = {},
   selected
 }: VulnerabilitiesRouteComponentProps) {
   const navigate = useNavigate()
   const vulnerabilityLifecycle = useVulnerabilityLifecycle()
+  const { filterState, onFilterStateChange } =
+    useVulnerabilityTableSearchState({
+      search
+    })
   const selectedSearch = useSelectedSearchParam<Vulnerability>({
     selectedId: selected,
     to: "/vulnerabilities",
@@ -57,6 +64,8 @@ export function VulnerabilitiesRouteComponent({
   return (
     <>
       <VulnerabilityTable
+        filterState={filterState}
+        onFilterStateChange={onFilterStateChange}
         selectedVulnerabilityId={selectedSearch.selectedId}
         onCreateVulnerability={() =>
           navigate({
