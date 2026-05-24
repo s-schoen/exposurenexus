@@ -1,0 +1,145 @@
+import { act, cleanup, renderHook } from "@testing-library/react"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
+import { getAssetCustomFieldColumnId } from "@/components/asset-table/columns.tsx"
+import {
+  createAssetTableFilterState,
+  createAssetTableSearchParams,
+  useAssetTableSearchState,
+  validateAssetTableSearch
+} from "@/hooks/use-asset-table-search-state.ts"
+
+const mocks = vi.hoisted(() => ({
+  navigate: vi.fn()
+}))
+
+vi.mock("@tanstack/react-router", () => ({
+  useNavigate: () => mocks.navigate
+}))
+
+describe("useAssetTableSearchState", () => {
+  afterEach(() => {
+    cleanup()
+    mocks.navigate.mockReset()
+  })
+
+  it("validates the static asset table filter search param", () => {
+    expect(validateAssetTableSearch({ filter: "api", selected: 42 })).toEqual({
+      filter: "api"
+    })
+    expect(validateAssetTableSearch({ filter: 42 })).toEqual({
+      filter: undefined
+    })
+  })
+
+  it("parses dynamic top-level custom field params into table filters", () => {
+    expect(
+      createAssetTableFilterState(
+        {
+          category: "internet",
+          environment: "production,staging",
+          filter: "api",
+          priority: "3"
+        },
+        ASSET_CUSTOM_FIELD_FIXTURES
+      )
+    ).toEqual({
+      globalFilter: "api",
+      selectFilters: {
+        [getAssetCustomFieldColumnId("7f732d2b-8985-4551-b45d-0eaf527a1577")]: [
+          "production",
+          "staging"
+        ]
+      },
+      textFilters: {
+        [getAssetCustomFieldColumnId("8f0365b2-1bbb-46e2-b1f4-06300ade23f3")]:
+          "internet"
+      },
+      numberFilters: {
+        [getAssetCustomFieldColumnId("2808e68c-9a48-4b50-9a2d-d1df4c83ff06")]:
+          "3"
+      }
+    })
+  })
+
+  it("serializes dynamic custom field filter params and clears inactive ones", () => {
+    expect(
+      createAssetTableSearchParams(
+        {
+          globalFilter: "edge",
+          selectFilters: {
+            [getAssetCustomFieldColumnId(
+              "7f732d2b-8985-4551-b45d-0eaf527a1577"
+            )]: ["production", "staging"]
+          },
+          textFilters: {
+            [getAssetCustomFieldColumnId(
+              "8f0365b2-1bbb-46e2-b1f4-06300ade23f3"
+            )]: "internet"
+          },
+          numberFilters: {}
+        },
+        ASSET_CUSTOM_FIELD_FIXTURES
+      )
+    ).toEqual({
+      category: "internet",
+      environment: "production,staging",
+      filter: "edge",
+      priority: undefined
+    })
+  })
+
+  it("updates the asset route search state", () => {
+    const { result } = renderHook(() =>
+      useAssetTableSearchState({
+        search: {},
+        customFieldDefinitions: ASSET_CUSTOM_FIELD_FIXTURES
+      })
+    )
+
+    act(() => {
+      result.current.onFilterStateChange({
+        globalFilter: "edge",
+        selectFilters: {
+          [getAssetCustomFieldColumnId(
+            "7f732d2b-8985-4551-b45d-0eaf527a1577"
+          )]: ["production", "staging"]
+        },
+        textFilters: {
+          [getAssetCustomFieldColumnId(
+            "8f0365b2-1bbb-46e2-b1f4-06300ade23f3"
+          )]: "internet"
+        },
+        numberFilters: {
+          [getAssetCustomFieldColumnId(
+            "2808e68c-9a48-4b50-9a2d-d1df4c83ff06"
+          )]: "3"
+        }
+      })
+    })
+
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/assets",
+      replace: true,
+      search: expect.any(Function)
+    })
+
+    const search = mocks.navigate.mock.calls[0][0].search as (
+      previous: Record<string, unknown>
+    ) => Record<string, unknown>
+
+    expect(
+      search({
+        category: "old",
+        filter: "old",
+        selected: "asset-1"
+      })
+    ).toEqual({
+      category: "internet",
+      environment: "production,staging",
+      filter: "edge",
+      priority: "3",
+      selected: "asset-1"
+    })
+  })
+})

@@ -50,17 +50,7 @@ const mocks = vi.hoisted(() => {
     dataTableProps: undefined as undefined | Record<string, unknown>,
     deleteFindings: vi.fn(),
     finding,
-    navigate: vi.fn(),
-    queryStates: {
-      assignee: ["__unassigned_assignee__"],
-      filter: "admin",
-      severity: ["high"],
-      status: ["active"]
-    },
-    setAssigneeFilter: vi.fn(),
-    setFilter: vi.fn(),
-    setSeverityFilter: vi.fn(),
-    setStatusFilter: vi.fn()
+    navigate: vi.fn()
   }
 })
 
@@ -115,28 +105,6 @@ vi.mock("@tanstack/react-query", () => ({
       isPending: false,
       isSuccess: true
     }
-  }
-}))
-
-vi.mock("nuqs", () => ({
-  parseAsArrayOf: () => ({
-    withDefault: () => ({})
-  }),
-  parseAsString: {},
-  useQueryState: (key: string) => {
-    if (key === "filter") {
-      return [mocks.queryStates.filter, mocks.setFilter]
-    }
-
-    if (key === "severity") {
-      return [mocks.queryStates.severity, mocks.setSeverityFilter]
-    }
-
-    if (key === "status") {
-      return [mocks.queryStates.status, mocks.setStatusFilter]
-    }
-
-    return [mocks.queryStates.assignee, mocks.setAssigneeFilter]
   }
 }))
 
@@ -320,16 +288,6 @@ describe("FindingTable workflow wiring", () => {
     mocks.dataTableProps = undefined
     mocks.deleteFindings.mockReset()
     mocks.navigate.mockReset()
-    mocks.queryStates = {
-      assignee: ["__unassigned_assignee__"],
-      filter: "admin",
-      severity: ["high"],
-      status: ["active"]
-    }
-    mocks.setAssigneeFilter.mockReset()
-    mocks.setFilter.mockReset()
-    mocks.setSeverityFilter.mockReset()
-    mocks.setStatusFilter.mockReset()
   })
 
   afterEach(() => {
@@ -340,23 +298,25 @@ describe("FindingTable workflow wiring", () => {
     const { FindingTable } =
       await import("@/components/finding-table/index.tsx")
     const onSelectFinding = vi.fn()
-
-    render(
-      <FindingTable
-        selectedFindingId={mocks.finding.id}
-        onSelectFinding={onSelectFinding}
-      />
-    )
-
-    expect(screen.getByTestId("active-row").textContent).toBe("true")
-    expect(mocks.dataTableProps?.filterState).toEqual({
+    const filterState = {
       globalFilter: "admin",
       selectFilters: {
         assignee: ["__unassigned_assignee__"],
         severity: ["high"],
         status: ["active"]
       }
-    })
+    }
+
+    render(
+      <FindingTable
+        filterState={filterState}
+        selectedFindingId={mocks.finding.id}
+        onSelectFinding={onSelectFinding}
+      />
+    )
+
+    expect(screen.getByTestId("active-row").textContent).toBe("true")
+    expect(mocks.dataTableProps?.filterState).toBe(filterState)
     expect(mocks.dataTableProps?.initialSorting).toEqual([
       { id: "severity", desc: true },
       { id: "lastSeen", desc: true }
@@ -435,19 +395,22 @@ describe("FindingTable workflow wiring", () => {
     })
   })
 
-  it("syncs table filter changes back to query state", async () => {
+  it("delegates filter changes to the route owner", async () => {
     const { FindingTable } =
       await import("@/components/finding-table/index.tsx")
+    const onFilterStateChange = vi.fn()
 
-    render(<FindingTable />)
+    render(<FindingTable onFilterStateChange={onFilterStateChange} />)
     fireEvent.click(screen.getByRole("button", { name: /change filters/i }))
 
-    expect(mocks.setFilter).toHaveBeenCalledWith("edge")
-    expect(mocks.setSeverityFilter).toHaveBeenCalledWith(["critical"])
-    expect(mocks.setStatusFilter).toHaveBeenCalledWith(["confirmed"])
-    expect(mocks.setAssigneeFilter).toHaveBeenCalledWith([
-      "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206"
-    ])
+    expect(onFilterStateChange).toHaveBeenCalledWith({
+      globalFilter: "edge",
+      selectFilters: {
+        assignee: ["1fab3f6c-4b82-4a52-a5d0-59d9c33f8206"],
+        severity: ["critical"],
+        status: ["confirmed"]
+      }
+    })
   })
 
   it("navigates to create finding from the toolbar", async () => {

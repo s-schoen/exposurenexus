@@ -1,8 +1,7 @@
 import { Plus } from "lucide-react"
-import { useLocation, useNavigate } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
+import { useMemo } from "react"
 import type {
   Asset,
   AssetWithCustomFields
@@ -30,205 +29,6 @@ import {
 } from "@/components/user-label.tsx"
 import { capitalizeFirstLetter } from "@/lib/format.ts"
 import { useAssetLifecycle } from "@/hooks/use-asset-lifecycle.ts"
-
-interface AssetCustomFieldFilterSearchState {
-  select: Record<string, Array<string>>
-  text: Record<string, string>
-  number: Record<string, string>
-}
-
-const emptyCustomFieldFilterSearchState: AssetCustomFieldFilterSearchState = {
-  select: {},
-  text: {},
-  number: {}
-}
-
-const reservedAssetTableSearchParams = new Set([
-  "customFields",
-  "filter",
-  "selected"
-])
-
-function getSearchParamString(value: unknown): string | undefined {
-  if (typeof value === "string") {
-    return value
-  }
-
-  if (Array.isArray(value)) {
-    return value
-      .filter((item): item is string => typeof item === "string")
-      .join(",")
-  }
-
-  return undefined
-}
-
-function getFilterValue(
-  filters: Partial<Record<string, string>> | undefined,
-  columnId: string
-) {
-  const value = filters?.[columnId]
-
-  return typeof value === "string" && value.trim().length > 0
-    ? value
-    : undefined
-}
-
-export function isAssetTableReservedSearchParam(key: string) {
-  return reservedAssetTableSearchParams.has(key)
-}
-
-export function parseAssetCustomFieldFiltersFromSearch(
-  search: Record<string, unknown>,
-  customFieldDefinitions: Array<AssetCustomFieldDefinition>
-): AssetCustomFieldFilterSearchState {
-  return customFieldDefinitions.reduce<AssetCustomFieldFilterSearchState>(
-    (filters, definition) => {
-      if (isAssetTableReservedSearchParam(definition.key)) {
-        return filters
-      }
-
-      const value = getSearchParamString(search[definition.key])
-      const columnId = getAssetCustomFieldColumnId(definition.id)
-
-      if (!value || value.trim().length === 0) {
-        return filters
-      }
-
-      switch (definition.type) {
-        case AssetCustomFieldType.Number:
-          filters.number[columnId] = value
-          return filters
-        case AssetCustomFieldType.Select: {
-          const values = value.split(",").filter(Boolean)
-
-          if (values.length > 0) {
-            filters.select[columnId] = values
-          }
-
-          return filters
-        }
-        case AssetCustomFieldType.Text:
-          filters.text[columnId] = value
-          return filters
-      }
-    },
-    {
-      select: {},
-      text: {},
-      number: {}
-    }
-  )
-}
-
-export function createAssetCustomFieldSearchParams(
-  filterState: DataTableFilterState,
-  customFieldDefinitions: Array<AssetCustomFieldDefinition>
-): Record<string, string> {
-  return Object.fromEntries(
-    customFieldDefinitions.flatMap((definition) => {
-      if (isAssetTableReservedSearchParam(definition.key)) {
-        return []
-      }
-
-      const columnId = getAssetCustomFieldColumnId(definition.id)
-
-      switch (definition.type) {
-        case AssetCustomFieldType.Number: {
-          const value = getFilterValue(filterState.numberFilters, columnId)
-          return value ? [[definition.key, value]] : []
-        }
-        case AssetCustomFieldType.Select: {
-          const values = filterState.selectFilters[columnId] ?? []
-          return values.length > 0 ? [[definition.key, values.join(",")]] : []
-        }
-        case AssetCustomFieldType.Text: {
-          const value = getFilterValue(filterState.textFilters, columnId)
-          return value ? [[definition.key, value]] : []
-        }
-      }
-    })
-  )
-}
-
-export function createClearedAssetCustomFieldSearchParams(
-  customFieldDefinitions: Array<AssetCustomFieldDefinition>
-): Record<string, undefined> {
-  return {
-    customFields: undefined,
-    ...Object.fromEntries(
-      customFieldDefinitions
-        .filter(
-          (definition) => !isAssetTableReservedSearchParam(definition.key)
-        )
-        .map((definition) => [definition.key, undefined])
-    )
-  }
-}
-
-export function createReservedAssetCustomFieldFilterState(
-  filterState: DataTableFilterState,
-  customFieldDefinitions: Array<AssetCustomFieldDefinition>
-): AssetCustomFieldFilterSearchState {
-  return customFieldDefinitions.reduce<AssetCustomFieldFilterSearchState>(
-    (filters, definition) => {
-      if (!isAssetTableReservedSearchParam(definition.key)) {
-        return filters
-      }
-
-      const columnId = getAssetCustomFieldColumnId(definition.id)
-
-      switch (definition.type) {
-        case AssetCustomFieldType.Number: {
-          const value = getFilterValue(filterState.numberFilters, columnId)
-          if (value) {
-            filters.number[columnId] = value
-          }
-          return filters
-        }
-        case AssetCustomFieldType.Select: {
-          const values = filterState.selectFilters[columnId] ?? []
-          if (values.length > 0) {
-            filters.select[columnId] = values
-          }
-          return filters
-        }
-        case AssetCustomFieldType.Text: {
-          const value = getFilterValue(filterState.textFilters, columnId)
-          if (value) {
-            filters.text[columnId] = value
-          }
-          return filters
-        }
-      }
-    },
-    {
-      select: {},
-      text: {},
-      number: {}
-    }
-  )
-}
-
-function mergeAssetCustomFieldFilterSearchStates(
-  primary: AssetCustomFieldFilterSearchState,
-  secondary: AssetCustomFieldFilterSearchState
-): AssetCustomFieldFilterSearchState {
-  return {
-    select: {
-      ...primary.select,
-      ...secondary.select
-    },
-    text: {
-      ...primary.text,
-      ...secondary.text
-    },
-    number: {
-      ...primary.number,
-      ...secondary.number
-    }
-  }
-}
 
 export function createAssetTableGroupingOptions(
   customFieldDefinitions: Array<AssetCustomFieldDefinition>,
@@ -261,16 +61,19 @@ export function createAssetTableGroupingOptions(
 }
 
 interface AssetTableProps {
+  filterState?: DataTableFilterState
+  onFilterStateChange?: (state: DataTableFilterState) => void
   selectedAssetId?: string
   onSelectAsset?: (asset: Asset) => void
 }
 
 export function AssetTable({
+  filterState,
+  onFilterStateChange,
   selectedAssetId,
   onSelectAsset
 }: AssetTableProps = {}) {
   const navigate = useNavigate()
-  const location = useLocation()
   const assetLifecycle = useAssetLifecycle()
   const assetsQuery = useQuery(createListAssetsWithCustomFieldsQueryOptions())
   const usersQuery = useQuery(createListUsersQueryOptions())
@@ -282,10 +85,6 @@ export function AssetTable({
     () => createUserProfileById(usersQuery.data),
     [usersQuery.data]
   )
-  const [reservedCustomFieldFilters, setReservedCustomFieldFilters] =
-    useState<AssetCustomFieldFilterSearchState>(
-      emptyCustomFieldFilterSearchState
-    )
   const tableColumns = useMemo(
     () =>
       createAssetTableColumns(
@@ -310,30 +109,6 @@ export function AssetTable({
       ),
     [customFieldDefinitions]
   )
-  const customFieldFilters = useMemo(
-    () =>
-      mergeAssetCustomFieldFilterSearchStates(
-        parseAssetCustomFieldFiltersFromSearch(
-          location.search as Record<string, unknown>,
-          customFieldDefinitions
-        ),
-        reservedCustomFieldFilters
-      ),
-    [customFieldDefinitions, location.search, reservedCustomFieldFilters]
-  )
-  const filterState = useMemo<DataTableFilterState>(
-    () => ({
-      globalFilter:
-        typeof location.search.filter === "string"
-          ? location.search.filter
-          : "",
-      selectFilters: customFieldFilters.select,
-      textFilters: customFieldFilters.text,
-      numberFilters: customFieldFilters.number
-    }),
-    [customFieldFilters, location.search.filter]
-  )
-
   const handleOpenAsset = async (asset: AssetWithCustomFields) => {
     await navigate({
       to: "/assets/$id",
@@ -366,32 +141,6 @@ export function AssetTable({
     }
   }
 
-  const handleFilterStateChange = (nextState: DataTableFilterState) => {
-    const nextReservedCustomFieldFilters =
-      createReservedAssetCustomFieldFilterState(
-        nextState,
-        customFieldDefinitions
-      )
-    const nextCustomFieldSearchParams = createAssetCustomFieldSearchParams(
-      nextState,
-      customFieldDefinitions
-    )
-
-    setReservedCustomFieldFilters(nextReservedCustomFieldFilters)
-
-    void navigate({
-      to: "/assets",
-      replace: true,
-      search: (prev) => ({
-        ...prev,
-        selected: prev.selected,
-        filter: nextState.globalFilter ? nextState.globalFilter : undefined,
-        ...createClearedAssetCustomFieldSearchParams(customFieldDefinitions),
-        ...nextCustomFieldSearchParams
-      })
-    })
-  }
-
   function ToolbarElements() {
     return (
       <Button
@@ -418,7 +167,7 @@ export function AssetTable({
       toolbarControls={ToolbarElements()}
       initialColumnVisibility={initialColumnVisibility}
       filterState={filterState}
-      onFilterStateChange={handleFilterStateChange}
+      onFilterStateChange={onFilterStateChange}
     />
   )
 }

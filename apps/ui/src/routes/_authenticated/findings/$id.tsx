@@ -35,7 +35,13 @@ function RouteComponent() {
       titleAction={
         <Link
           to="/findings"
-          search={{ selected: undefined }}
+          search={{
+            filter: undefined,
+            severity: undefined,
+            status: undefined,
+            assignee: undefined,
+            selected: undefined
+          }}
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
             "-ml-2 rounded-xl"
