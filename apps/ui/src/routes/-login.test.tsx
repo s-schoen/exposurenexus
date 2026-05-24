@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   cleanup,
-  fireEvent,
   render,
   screen,
   waitFor
 } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 
 const mocks = vi.hoisted(() => ({
   auth: {
@@ -126,9 +126,10 @@ describe("login route", () => {
   })
 
   it("does not submit empty credentials", async () => {
+    const user = userEvent.setup()
     await renderLogin()
 
-    fireEvent.click(screen.getByRole("button", { name: /^login$/i }))
+    await user.click(screen.getByRole("button", { name: /^login$/i }))
 
     await waitFor(() => {
       expect(mocks.auth.login).not.toHaveBeenCalled()
@@ -136,39 +137,36 @@ describe("login route", () => {
   })
 
   it("shows failed login feedback", async () => {
+    const user = userEvent.setup()
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined)
     mocks.auth.login.mockRejectedValueOnce(new Error("Invalid credentials"))
     await renderLogin()
 
-    fireEvent.change(screen.getByLabelText(/username/i), {
-      target: { value: "alice" }
-    })
-    fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: "wrong-password" }
-    })
-    fireEvent.click(screen.getByRole("button", { name: /^login$/i }))
+    await user.type(screen.getByLabelText(/username/i), "alice")
+    await user.type(screen.getByLabelText(/password/i), "wrong-password")
+    await user.click(screen.getByRole("button", { name: /^login$/i }))
 
     expect(
       await screen.findByText("Invalid username or password.")
-    ).toBeTruthy()
+    ).toBeInTheDocument()
     expect(mocks.navigate).not.toHaveBeenCalled()
     expect(consoleError).toHaveBeenCalled()
   })
 
   it("logs in and navigates to the requested redirect", async () => {
+    const user = userEvent.setup()
     mocks.auth.login.mockResolvedValueOnce(undefined)
     mocks.redirect = "/findings/triage"
     await renderLogin()
 
-    fireEvent.change(screen.getByLabelText(/username/i), {
-      target: { value: "alice" }
-    })
-    fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: "correct-horse-battery-staple" }
-    })
-    fireEvent.click(screen.getByRole("button", { name: /^login$/i }))
+    await user.type(screen.getByLabelText(/username/i), "alice")
+    await user.type(
+      screen.getByLabelText(/password/i),
+      "correct-horse-battery-staple"
+    )
+    await user.click(screen.getByRole("button", { name: /^login$/i }))
 
     await waitFor(() => {
       expect(mocks.auth.login).toHaveBeenCalledWith(
@@ -185,18 +183,18 @@ describe("login route", () => {
   })
 
   it("falls back to a safe redirect after login", async () => {
+    const user = userEvent.setup()
     mocks.auth.login.mockResolvedValueOnce(undefined)
     mocks.redirect = "/future-route"
     mocks.redirects.safeLoginRedirect.mockReturnValueOnce("/")
     await renderLogin()
 
-    fireEvent.change(screen.getByLabelText(/username/i), {
-      target: { value: "alice" }
-    })
-    fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: "correct-horse-battery-staple" }
-    })
-    fireEvent.click(screen.getByRole("button", { name: /^login$/i }))
+    await user.type(screen.getByLabelText(/username/i), "alice")
+    await user.type(
+      screen.getByLabelText(/password/i),
+      "correct-horse-battery-staple"
+    )
+    await user.click(screen.getByRole("button", { name: /^login$/i }))
 
     await waitFor(() => {
       expect(mocks.auth.login).toHaveBeenCalledWith(
