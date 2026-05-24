@@ -6,6 +6,7 @@ import {
   screen,
   waitFor
 } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { composeStories } from "@storybook/react-vite"
 import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 import type { UserFormValues } from "@/components/user-form"
@@ -109,6 +110,7 @@ describe("UserForm", () => {
   })
 
   it("submits entered values including selected roles", async () => {
+    const user = userEvent.setup()
     const onSubmit = vi.fn().mockResolvedValue(undefined)
     const onCancel = vi.fn()
 
@@ -132,8 +134,8 @@ describe("UserForm", () => {
     }
 
     fillCreateFields(values)
-    fireEvent.click(screen.getByRole("combobox", { name: /roles/i }))
-    fireEvent.click(screen.getByText("admin"))
+    await user.click(screen.getByRole("combobox", { name: /roles/i }))
+    await user.click(await screen.findByRole("option", { name: /admin/i }))
     fireEvent.click(screen.getByRole("button", { name: /create user/i }))
 
     await waitFor(() => {
@@ -142,7 +144,9 @@ describe("UserForm", () => {
     })
   })
 
-  it("filters and clears role selections", () => {
+  it("filters and clears role selections", async () => {
+    const user = userEvent.setup()
+
     render(
       <UserForm
         mode="create"
@@ -152,21 +156,17 @@ describe("UserForm", () => {
       />
     )
 
-    fireEvent.click(screen.getByRole("combobox", { name: /roles/i }))
-    fireEvent.change(screen.getByPlaceholderText(/search roles/i), {
-      target: { value: "admin" }
-    })
-    fireEvent.click(screen.getByText("admin"))
+    const rolesCombobox = screen.getByRole("combobox", { name: /roles/i })
 
-    expect(
-      screen.getByRole("combobox", { name: /roles/i }).textContent
-    ).toContain("admin")
+    await user.click(rolesCombobox)
+    await user.type(screen.getByLabelText(/search roles/i), "admin")
+    await user.click(await screen.findByRole("option", { name: /admin/i }))
 
-    fireEvent.click(screen.getByRole("button", { name: /clear selection/i }))
+    expect(rolesCombobox).toHaveTextContent("admin")
 
-    expect(
-      screen.getByRole("combobox", { name: /roles/i }).textContent
-    ).toContain("Select roles...")
+    await user.click(screen.getByRole("button", { name: /clear selection/i }))
+
+    expect(rolesCombobox).toHaveTextContent("Select roles...")
   })
 
   it("calls the cancel handler", async () => {

@@ -157,6 +157,8 @@ export function RouteComponent() {
                         Affected Asset
                       </FieldLabel>
                       <AssetCombobox
+                        id={field.name}
+                        invalid={isInvalid}
                         onChange={(a) => field.handleChange(a.id)}
                       />
                       {isInvalid && (
