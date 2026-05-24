@@ -21,10 +21,18 @@ import { cn } from "@/lib/utils.ts"
 import { Spinner } from "@/components/ui/spinner.tsx"
 
 interface AssetComboboxProps {
+  id?: string
+  invalid?: boolean
+  label?: string
   onChange?: (value: Asset) => void
 }
 
-export function AssetCombobox({ onChange }: AssetComboboxProps) {
+export function AssetCombobox({
+  id,
+  invalid = false,
+  label = "Asset",
+  onChange
+}: AssetComboboxProps) {
   const assets = useQuery(createListAssetsQueryOptions())
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState<Asset | null>(null)
@@ -47,9 +55,12 @@ export function AssetCombobox({ onChange }: AssetComboboxProps) {
         nativeButton={false}
         render={
           <Button
+            id={id}
             variant="outline"
             role="combobox"
             aria-expanded={open}
+            aria-invalid={invalid}
+            aria-label={id ? undefined : label}
             className="justify-between"
             disabled={assets.isLoading}
           >
@@ -65,7 +76,7 @@ export function AssetCombobox({ onChange }: AssetComboboxProps) {
       ></PopoverTrigger>
       <PopoverContent className="p-0">
         <Command>
-          <CommandInput placeholder="Select asset..." />
+          <CommandInput aria-label="Search assets" placeholder="Select asset..." />
           <CommandList>
             <CommandEmpty>No assets available</CommandEmpty>
             <CommandGroup>

@@ -1,11 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor
-} from "@testing-library/react"
+import { cleanup, render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import type { Asset, AssetType } from "@exposurenexus/types/model/asset"
 
 class ResizeObserverMock {
@@ -78,10 +73,11 @@ describe("AssetCombobox", () => {
 
     render(<AssetCombobox />)
 
-    expect(screen.getByRole("combobox").hasAttribute("disabled")).toBe(true)
+    expect(screen.getByRole("combobox", { name: /asset/i })).toBeDisabled()
   })
 
   it("renders the empty state when no assets are available", async () => {
+    const user = userEvent.setup()
     const { AssetCombobox } = await import("@/components/asset-combobox.tsx")
     mocks.query = {
       data: [],
@@ -89,22 +85,40 @@ describe("AssetCombobox", () => {
     }
 
     render(<AssetCombobox />)
-    fireEvent.click(screen.getByRole("combobox"))
+    await user.click(screen.getByRole("combobox", { name: /asset/i }))
 
-    expect(await screen.findByText("No assets available")).toBeTruthy()
+    expect(await screen.findByText("No assets available")).toBeInTheDocument()
   })
 
   it("selects an asset, renders the selected label, and calls onChange", async () => {
+    const user = userEvent.setup()
     const { AssetCombobox } = await import("@/components/asset-combobox.tsx")
     const onChange = vi.fn()
 
     render(<AssetCombobox onChange={onChange} />)
-    fireEvent.click(screen.getByRole("combobox"))
-    fireEvent.click(await screen.findByText("api-01"))
+    const combobox = screen.getByRole("combobox", { name: /asset/i })
+
+    await user.click(combobox)
+    await user.click(await screen.findByRole("option", { name: /api-01/i }))
 
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith(mocks.assets[0])
     })
-    expect(screen.getByRole("combobox").textContent).toContain("api-01")
+    expect(combobox).toHaveTextContent("api-01")
+  })
+
+  it("uses a field label as the combobox accessible name", async () => {
+    const { AssetCombobox } = await import("@/components/asset-combobox.tsx")
+
+    render(
+      <div>
+        <label htmlFor="assetId">Affected Asset</label>
+        <AssetCombobox id="assetId" />
+      </div>
+    )
+
+    expect(
+      screen.getByRole("combobox", { name: /affected asset/i })
+    ).toBeInTheDocument()
   })
 })

@@ -192,7 +192,7 @@ function RoleMultiSelect({
         className="w-(--anchor-width) min-w-72 rounded-2xl p-0"
       >
         <Command className="bg-background p-2">
-          <CommandInput placeholder="Search roles..." />
+          <CommandInput aria-label="Search roles" placeholder="Search roles..." />
           <CommandList className="max-h-full">
             <CommandEmpty>No roles available</CommandEmpty>
             <CommandGroup className="max-h-75 space-y-1 overflow-y-auto overflow-x-hidden p-2">
