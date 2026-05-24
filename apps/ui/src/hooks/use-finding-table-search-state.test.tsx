@@ -25,16 +25,16 @@ describe("useFindingTableSearchState", () => {
   it("validates finding table filter search params", () => {
     expect(
       validateFindingTableSearch({
-        assignee: ["user-1", 42],
+        assignee: ["user-1,user-2", 42],
         filter: "admin",
-        severity: "high",
-        status: ["active"]
+        severity: "critical,high",
+        status: ["active", "fixed,false-positive"]
       })
     ).toEqual({
-      assignee: ["user-1"],
+      assignee: "user-1,user-2",
       filter: "admin",
-      severity: ["high"],
-      status: ["active"]
+      severity: "critical,high",
+      status: "active,fixed,false-positive"
     })
   })
 
@@ -43,14 +43,14 @@ describe("useFindingTableSearchState", () => {
       createFindingTableFilterState({
         assignee: ["user-1"],
         filter: "admin",
-        severity: "high",
+        severity: "critical,high",
         status: ["confirmed"]
       })
     ).toEqual({
       globalFilter: "admin",
       selectFilters: {
         assignee: ["user-1"],
-        severity: ["high"],
+        severity: ["critical", "high"],
         status: ["confirmed"]
       }
     })
@@ -78,10 +78,10 @@ describe("useFindingTableSearchState", () => {
         }
       })
     ).toEqual({
-      assignee: ["user-1"],
+      assignee: "user-1",
       filter: "edge",
-      severity: ["critical"],
-      status: ["confirmed"]
+      severity: "critical",
+      status: "confirmed"
     })
   })
 
@@ -115,11 +115,11 @@ describe("useFindingTableSearchState", () => {
     ) => Record<string, unknown>
 
     expect(search({ filter: "old", selected: "finding-1" })).toEqual({
-      assignee: ["user-1"],
+      assignee: "user-1",
       filter: "edge",
       selected: "finding-1",
-      severity: ["critical"],
-      status: ["confirmed"]
+      severity: "critical",
+      status: "confirmed"
     })
   })
 
@@ -149,7 +149,25 @@ describe("useFindingTableSearchState", () => {
       filter: undefined,
       selected: "finding-1",
       severity: undefined,
-      status: [FindingStatus.Active]
+      status: FindingStatus.Active
     })
+  })
+
+  it("uses an existing comma-delimited triage status instead of writing the default", () => {
+    const { result } = renderHook(() =>
+      useFindingTableSearchState({
+        search: { status: "fixed,false-positive" },
+        to: "/findings/triage",
+        defaultStatusFilter: [FindingStatus.Active]
+      })
+    )
+
+    expect(result.current.filterState).toEqual({
+      globalFilter: "",
+      selectFilters: {
+        status: ["fixed", "false-positive"]
+      }
+    })
+    expect(mocks.navigate).not.toHaveBeenCalled()
   })
 })

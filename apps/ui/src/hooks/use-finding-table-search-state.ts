@@ -6,7 +6,6 @@ import {
   createSearchParamArray,
   createSearchParamString,
   getSearchParamArray,
-  getSearchParamArrayOrUndefined,
   getSearchParamString
 } from "@/lib/data-table-search-state.ts"
 
@@ -16,9 +15,9 @@ const emptyStatusFilter: Array<string> = []
 export function validateFindingTableSearch(search: Record<string, unknown>) {
   return {
     filter: getSearchParamString(search.filter),
-    severity: getSearchParamArrayOrUndefined(search.severity),
-    status: getSearchParamArrayOrUndefined(search.status),
-    assignee: getSearchParamArrayOrUndefined(search.assignee)
+    severity: createSearchParamArray(getSearchParamArray(search.severity)),
+    status: createSearchParamArray(getSearchParamArray(search.status)),
+    assignee: createSearchParamArray(getSearchParamArray(search.assignee))
   }
 }
 
@@ -81,7 +80,7 @@ export function useFindingTableSearchState({
         ...prev,
         filter: prev.filter,
         severity: prev.severity,
-        status: defaultStatusFilter,
+        status: createSearchParamArray(defaultStatusFilter),
         assignee: prev.assignee,
         selected: prev.selected
       })
