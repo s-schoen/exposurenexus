@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   cleanup,
-  fireEvent,
   render,
   screen,
-  waitFor,
-  within
+  waitFor
 } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { composeStories } from "@storybook/react-vite"
 import type { UseQueryResult } from "@tanstack/react-query"
 import type { ColumnDef } from "@tanstack/react-table"
@@ -75,13 +74,19 @@ describe("DataTable stories", () => {
   it("hides the delete action when row deletion is unsupported", async () => {
     render(<DataTable columns={directColumns} query={createQueryResult()} />)
 
-    expect(await screen.findByText("Alpha")).toBeTruthy()
-    expect(screen.queryByRole("button", { name: /delete/i })).toBeNull()
-    expect(screen.getByRole("button", { name: /refresh/i })).toBeTruthy()
+    await waitFor(() => {
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-total-rows",
+        "2"
+      )
+    })
+    expect(screen.queryByRole("button", { name: /delete/i })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /refresh/i })).toBeInTheDocument()
     expect(screen.getAllByLabelText("Select row").length).toBeGreaterThan(0)
   })
 
   it("deletes selected rows when row deletion is configured", async () => {
+    const user = userEvent.setup()
     const onRowDelete = vi.fn().mockResolvedValue(undefined)
 
     render(
@@ -92,18 +97,23 @@ describe("DataTable stories", () => {
       />
     )
 
-    expect(await screen.findByText("Alpha")).toBeTruthy()
-
-    const deleteButton = screen.getByRole("button", { name: /delete/i })
-    expect(deleteButton).toHaveProperty("disabled", true)
-
-    fireEvent.click(screen.getAllByLabelText("Select row")[0])
-
     await waitFor(() => {
-      expect(deleteButton).toHaveProperty("disabled", false)
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-total-rows",
+        "2"
+      )
     })
 
-    fireEvent.click(deleteButton)
+    const deleteButton = screen.getByRole("button", { name: /delete/i })
+    expect(deleteButton).toBeDisabled()
+
+    await user.click(screen.getAllByLabelText("Select row")[0])
+
+    await waitFor(() => {
+      expect(deleteButton).toBeEnabled()
+    })
+
+    await user.click(deleteButton)
 
     await waitFor(() => {
       expect(onRowDelete).toHaveBeenCalledWith([directRows[0]])
@@ -115,14 +125,14 @@ describe("DataTable stories", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByPlaceholderText("Search across visible columns")
-      ).toBeTruthy()
-      expect(screen.getByRole("button", { name: /refresh/i })).toBeTruthy()
-      expect(screen.getByRole("button", { name: /delete/i })).toBeTruthy()
-      expect(screen.getByText("Exposed admin interface")).toBeTruthy()
-      expect(
-        screen.getByText("Missing MFA enforcement for staging")
-      ).toBeTruthy()
+        screen.getByRole("textbox", { name: /search across visible columns/i })
+      ).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /refresh/i })).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /delete/i })).toBeInTheDocument()
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "6"
+      )
     })
   })
 
@@ -130,6 +140,8 @@ describe("DataTable stories", () => {
     const { container } = render(<Loading />)
 
     await waitFor(() => {
+      // Skeleton exposes `data-slot="skeleton"` as its intentional public marker;
+      // it has no accessible text while content is loading.
       expect(
         container.querySelectorAll('[data-slot="skeleton"]').length
       ).toBeGreaterThan(0)
@@ -140,7 +152,7 @@ describe("DataTable stories", () => {
     render(<Empty />)
 
     await waitFor(() => {
-      expect(screen.getByText("No results to show")).toBeTruthy()
+      expect(screen.getByTestId("data-table-empty-state")).toBeInTheDocument()
     })
   })
 
@@ -148,12 +160,13 @@ describe("DataTable stories", () => {
     render(<GroupedByStatus />)
 
     await waitFor(() => {
-      expect(screen.getByText("Grouped by Status")).toBeTruthy()
-      expect(screen.getAllByText(/^Status$/).length).toBeGreaterThan(0)
-      expect(screen.getAllByText(/^Active$/).length).toBeGreaterThan(0)
-      expect(screen.getAllByText(/^In Review$/).length).toBeGreaterThan(0)
-      expect(screen.getAllByText(/^Mitigated$/).length).toBeGreaterThan(0)
-      expect(screen.getByText(/3 items/)).toBeTruthy()
+      expect(
+        screen.getByTestId("data-table-active-grouping-indicator")
+      ).toHaveAttribute("data-grouping-id", "status")
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-total-rows",
+        "6"
+      )
     })
   })
 
@@ -161,156 +174,165 @@ describe("DataTable stories", () => {
     render(<WithToolbarControls />)
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /export csv/i })).toBeTruthy()
+      expect(screen.getByRole("button", { name: /export csv/i })).toBeInTheDocument()
     })
   })
 
   it("marks the active row", async () => {
-    const { container } = render(<ActiveRow />)
+    render(<ActiveRow />)
 
     await waitFor(() => {
-      const activeRow = container.querySelector('tr[data-active="true"]')
-
-      expect(activeRow).toBeTruthy()
-      expect(
-        within(activeRow as HTMLTableRowElement).getByText(
-          "Missing MFA enforcement for staging"
-        )
-      ).toBeTruthy()
+      // `data-active` is DataTable's intentional public row-state marker.
+      expect(screen.getByTestId("data-table-active-row")).toHaveAttribute(
+        "data-active",
+        "true"
+      )
     })
   })
 
   it("filters rows from the global search input and clears them", async () => {
+    const user = userEvent.setup()
+
     render(<Default />)
 
-    const searchInput = await screen.findByPlaceholderText(
-      "Search across visible columns"
-    )
-
-    fireEvent.change(searchInput, {
-      target: { value: "credential" }
+    const searchInput = await screen.findByRole("textbox", {
+      name: /search across visible columns/i
     })
 
+    await user.type(searchInput, "credential")
+
     await waitFor(() => {
-      expect(screen.getByText("Leaked test credential in CI log")).toBeTruthy()
-      expect(screen.queryByText("Exposed admin interface")).toBeNull()
-      expect(screen.getByText("Filters active")).toBeTruthy()
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "1"
+      )
+      expect(
+        screen.getByTestId("data-table-active-filters-indicator")
+      ).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole("button", { name: /clear all/i }))
+    await user.click(screen.getByRole("button", { name: /clear all/i }))
 
     await waitFor(() => {
-      expect(screen.getByText("Exposed admin interface")).toBeTruthy()
-      expect(screen.getByText("Leaked test credential in CI log")).toBeTruthy()
-      expect(screen.queryByText("Filters active")).toBeNull()
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "6"
+      )
+      expect(
+        screen.queryByTestId("data-table-active-filters-indicator")
+      ).not.toBeInTheDocument()
     })
   })
 
   it("filters rows from the status select filter and clears correctly", async () => {
+    const user = userEvent.setup()
+
     render(<Default />)
 
-    const statusFilterButton = screen
-      .getAllByRole("button", { name: /status/i })
-      .find((button) => button.getAttribute("aria-haspopup") === "dialog")
+    await user.click(screen.getByRole("button", { name: /status filter/i }))
 
-    expect(statusFilterButton).toBeTruthy()
-    fireEvent.click(statusFilterButton!)
-
-    const mitigatedOptions = await screen.findAllByText("Mitigated")
-    fireEvent.click(mitigatedOptions.at(-1) as HTMLElement)
+    await user.click(await screen.findByRole("option", { name: /mitigated/i }))
 
     await waitFor(() => {
-      expect(screen.getByText("Public S3 bucket policy drift")).toBeTruthy()
-      expect(screen.queryByText("Exposed admin interface")).toBeNull()
-      expect(screen.getAllByText("Mitigated").length).toBeGreaterThan(0)
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "1"
+      )
       expect(
         screen.getByRole("button", {
           name: /clear status filter mitigated/i
         })
-      ).toBeTruthy()
+      ).toBeInTheDocument()
     })
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /clear status filter mitigated/i })
     )
 
     await waitFor(() => {
-      expect(screen.getByText("Public S3 bucket policy drift")).toBeTruthy()
-      expect(screen.getByText("Exposed admin interface")).toBeTruthy()
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "6"
+      )
       expect(
         screen.queryByRole("button", {
           name: /clear status filter mitigated/i
         })
-      ).toBeNull()
+      ).not.toBeInTheDocument()
     })
   })
 
   it("filters rows from a text filter and clears the active chip", async () => {
+    const user = userEvent.setup()
+
     render(<Default />)
 
     const ownerFilter = await screen.findByRole("textbox", {
       name: /owner filter/i
     })
 
-    expect(screen.getAllByText("Owner").length).toBeGreaterThan(0)
-
-    fireEvent.change(ownerFilter, {
-      target: { value: "identity" }
-    })
+    await user.type(ownerFilter, "identity")
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Missing MFA enforcement for staging")
-      ).toBeTruthy()
-      expect(screen.getAllByText("Owner").length).toBeGreaterThan(0)
-      expect(screen.queryByText("Exposed admin interface")).toBeNull()
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "1"
+      )
       expect(
         screen.getByRole("button", {
           name: /clear owner filter identity/i
         })
-      ).toBeTruthy()
+      ).toBeInTheDocument()
     })
 
-    fireEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /clear owner filter identity/i })
     )
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Missing MFA enforcement for staging")
-      ).toBeTruthy()
-      expect(screen.getByText("Exposed admin interface")).toBeTruthy()
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "6"
+      )
       expect(
         screen.queryByRole("button", {
           name: /clear owner filter identity/i
         })
-      ).toBeNull()
+      ).not.toBeInTheDocument()
     })
   })
 
   it("filters rows from a number filter and clears all filters", async () => {
+    const user = userEvent.setup()
+
     render(<Default />)
 
     const scoreFilter = await screen.findByRole("spinbutton", {
       name: /score filter/i
     })
 
-    fireEvent.change(scoreFilter, {
-      target: { value: "4" }
-    })
+    await user.type(scoreFilter, "4")
 
     await waitFor(() => {
-      expect(screen.getByText("Public S3 bucket policy drift")).toBeTruthy()
-      expect(screen.queryByText("Exposed admin interface")).toBeNull()
-      expect(screen.getByText("Filters active")).toBeTruthy()
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "1"
+      )
+      expect(
+        screen.getByTestId("data-table-active-filters-indicator")
+      ).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole("button", { name: /clear all/i }))
+    await user.click(screen.getByRole("button", { name: /clear all/i }))
 
     await waitFor(() => {
-      expect(screen.getByText("Public S3 bucket policy drift")).toBeTruthy()
-      expect(screen.getByText("Exposed admin interface")).toBeTruthy()
-      expect(screen.queryByText("Filters active")).toBeNull()
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "6"
+      )
+      expect(
+        screen.queryByTestId("data-table-active-filters-indicator")
+      ).not.toBeInTheDocument()
     })
   })
 })

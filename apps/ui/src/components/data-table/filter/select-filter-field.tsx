@@ -25,6 +25,7 @@ export interface FilterFieldProps<TData> {
 
 export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
   const [open, setOpen] = useState(false)
+  const label = column.columnDef.meta!.label || column.id
   const selectedValues =
     (column.getFilterValue() as Array<string> | undefined) ?? []
 
@@ -55,6 +56,7 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
               nativeButton={true}
               variant="outline"
               size="sm"
+              aria-label={`${label} filter`}
               className="h-9 rounded-xl border-dashed bg-background font-normal"
             >
               <span
@@ -63,7 +65,7 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
               >
                 {selectedOptions.length > 0 ? <XCircle /> : <PlusCircle />}
               </span>
-              {column.columnDef.meta!.label || column.id}
+              {label}
               {selectedOptions.length > 0 && (
                 <>
                   <Separator orientation="vertical" />
@@ -78,7 +80,8 @@ export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
         <PopoverContent className="w-64 rounded-2xl p-0">
           <Command className="bg-background p-2">
             <CommandInput
-              placeholder={column.columnDef.meta!.label || column.id}
+              aria-label={`Search ${label} filter options`}
+              placeholder={label}
             />
             <CommandList className="max-h-full">
               <CommandEmpty>No options available</CommandEmpty>
