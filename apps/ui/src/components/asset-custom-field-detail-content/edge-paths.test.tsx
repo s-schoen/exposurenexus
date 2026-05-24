@@ -1,9 +1,7 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   cleanup,
   fireEvent,
-  render,
   screen,
   waitFor,
   within
@@ -17,6 +15,10 @@ import type {
 import type * as AssetCustomFieldApi from "@/api/asset-custom-field.ts"
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
 import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts"
+import {
+  createTestQueryClient,
+  renderWithQueryClient
+} from "@/test/harness.tsx"
 
 const mocks = vi.hoisted(() => ({
   invalidateQueries: vi.fn(),
@@ -158,13 +160,7 @@ function createFieldFromPayload(
 }
 
 function createQueryClient() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false
-      }
-    }
-  })
+  const queryClient = createTestQueryClient()
   const invalidateQueries = queryClient.invalidateQueries.bind(queryClient)
   queryClient.invalidateQueries = (...args) => {
     mocks.invalidateQueries(...args)
@@ -176,23 +172,24 @@ function createQueryClient() {
 
 async function renderDetail(field: AssetCustomFieldDefinition) {
   const queryClient = createQueryClient()
-  queryClient.setQueryData(
-    createAssetCustomFieldDefinitionByIDQueryOptions(field.id).queryKey,
-    field
-  )
 
   const { AssetCustomFieldDetailContent } =
     await import("@/components/asset-custom-field-detail-content")
-  const view = render(
-    <QueryClientProvider client={queryClient}>
-      <AssetCustomFieldDetailContent customFieldId={field.id} />
-    </QueryClientProvider>
+  const view = renderWithQueryClient(
+    <AssetCustomFieldDetailContent customFieldId={field.id} />,
+    {
+      queryClient,
+      queryData: [
+        {
+          queryKey: createAssetCustomFieldDefinitionByIDQueryOptions(field.id)
+            .queryKey,
+          data: field
+        }
+      ]
+    }
   )
 
-  return {
-    queryClient,
-    ...view
-  }
+  return view
 }
 
 function optionRow(label: string) {
