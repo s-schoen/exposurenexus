@@ -22,7 +22,12 @@ function RouteComponent() {
   const handleCancel = async () => {
     await navigate({
       to: "/custom-fields",
-      search: { selected: undefined }
+      search: (previous) => ({
+        filter: previous.filter,
+        type: previous.type,
+        required: previous.required,
+        selected: undefined
+      })
     })
   }
 

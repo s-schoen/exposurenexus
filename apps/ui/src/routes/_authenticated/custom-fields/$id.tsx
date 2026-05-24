@@ -28,7 +28,12 @@ function RouteComponent() {
       titleAction={
         <Link
           to="/custom-fields"
-          search={{ selected: undefined }}
+          search={(previous) => ({
+            filter: previous.filter,
+            type: previous.type,
+            required: previous.required,
+            selected: undefined
+          })}
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
             "-ml-2 rounded-xl"

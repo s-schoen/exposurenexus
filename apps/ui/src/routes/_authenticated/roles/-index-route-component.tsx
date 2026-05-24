@@ -1,10 +1,7 @@
-import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
-import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs"
 import { toast } from "sonner"
 import type { Role } from "@exposurenexus/types/model/rbac"
-import type { DataTableFilterState } from "@/components/data-table/types.ts"
 import { createListRolesQueryOptions } from "@/api/role.ts"
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx"
@@ -14,16 +11,22 @@ import { usePageMeta } from "@/context/page.tsx"
 import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts"
 import { isBuiltInRoleId } from "@/lib/role.ts"
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts"
+import { useRoleTableSearchState } from "@/hooks/use-role-table-search-state.ts"
 
 interface RoleIndexRouteComponentProps {
+  search?: Record<string, unknown>
   selected?: string
 }
 
 export function RoleIndexRouteComponent({
+  search = {},
   selected
 }: RoleIndexRouteComponentProps) {
   const navigate = useNavigate()
   const roleLifecycle = useRoleLifecycle()
+  const { filterState, onFilterStateChange } = useRoleTableSearchState({
+    search
+  })
   const selectedSearch = useSelectedSearchParam<Role>({
     selectedId: selected,
     to: "/roles",
@@ -31,31 +34,11 @@ export function RoleIndexRouteComponent({
     getId: (role) => role.id
   })
   const rolesQuery = useQuery(createListRolesQueryOptions())
-  const [filter, setFilter] = useQueryState("filter")
-  const [kindFilter, setKindFilter] = useQueryState(
-    "kind",
-    parseAsArrayOf(parseAsString).withDefault([])
-  )
-
-  const filterState = useMemo<DataTableFilterState>(
-    () => ({
-      globalFilter: filter ?? "",
-      selectFilters: kindFilter.length > 0 ? { kind: kindFilter } : {}
-    }),
-    [filter, kindFilter]
-  )
 
   usePageMeta({
     title: "Roles",
     description: "Browse roles and permissions."
   })
-
-  const handleFilterStateChange = (nextState: DataTableFilterState) => {
-    void setFilter(nextState.globalFilter ? nextState.globalFilter : null)
-    const nextKindFilter = nextState.selectFilters.kind ?? []
-
-    void setKindFilter(nextKindFilter.length ? nextKindFilter : null)
-  }
 
   const handleOpenRole = async (role: Role) => {
     await navigate({
@@ -101,7 +84,7 @@ export function RoleIndexRouteComponent({
         query={rolesQuery}
         selectedRoleId={selectedSearch.selectedId}
         filterState={filterState}
-        onFilterStateChange={handleFilterStateChange}
+        onFilterStateChange={onFilterStateChange}
         onSelectRole={(role) => {
           void selectedSearch.selectRow(role)
         }}

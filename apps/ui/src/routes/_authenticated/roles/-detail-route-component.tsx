@@ -50,7 +50,11 @@ export function RoleDetailRouteComponent({
       titleAction={
         <Link
           to="/roles"
-          search={{ selected: undefined }}
+          search={(previous) => ({
+            filter: previous.filter,
+            kind: previous.kind,
+            selected: undefined
+          })}
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
             "-ml-2 rounded-xl"

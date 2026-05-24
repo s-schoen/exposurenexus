@@ -214,8 +214,17 @@ describe("CreateRoleRouteComponent", () => {
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith({
         to: "/roles",
-        search: { selected: undefined }
+        search: expect.any(Function)
       })
+    })
+    const search = mocks.navigate.mock.calls[0][0].search as (
+      previous: Record<string, unknown>
+    ) => Record<string, unknown>
+
+    expect(search({ filter: "security", kind: "custom", selected: "role-1" })).toEqual({
+      filter: "security",
+      kind: "custom",
+      selected: undefined
     })
   })
 })
