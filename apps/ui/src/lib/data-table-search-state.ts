@@ -113,3 +113,48 @@ export function createDataTableFilterState({
 
   return filterState
 }
+
+export function validateDataTableListFilterSearch(
+  search: Record<string, unknown>,
+  selectFilterIds: ReadonlyArray<string>
+): Record<string, string | undefined> {
+  return {
+    filter: getSearchParamString(search.filter),
+    ...Object.fromEntries(
+      selectFilterIds.map((filterId) => [
+        filterId,
+        createSearchParamArray(getSearchParamArray(search[filterId]))
+      ])
+    )
+  }
+}
+
+export function createDataTableListFilterState(
+  search: Record<string, unknown>,
+  selectFilterIds: ReadonlyArray<string>
+): DataTableFilterState {
+  return createDataTableFilterState({
+    globalFilter: getSearchParamString(search.filter) ?? "",
+    selectFilters: Object.fromEntries(
+      selectFilterIds.map((filterId) => [
+        filterId,
+        getSearchParamArray(search[filterId])
+      ])
+    )
+  })
+}
+
+export function createDataTableListFilterSearchParams(
+  filterState: DataTableFilterState,
+  selectFilterIds: ReadonlyArray<string>
+): Record<string, string | undefined> {
+  return {
+    filter: createSearchParamString(filterState.globalFilter),
+    ...Object.fromEntries(
+      selectFilterIds.map((filterId) => [
+        filterId,
+        createSearchParamArray(filterState.selectFilters[filterId])
+      ])
+    )
+  }
+}

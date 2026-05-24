@@ -34,8 +34,6 @@ const mocks = vi.hoisted(() => {
     dialogProps: undefined as undefined | Record<string, unknown>,
     failingRole,
     navigate: vi.fn(),
-    setFilter: vi.fn(),
-    setKindFilter: vi.fn(),
     toastError: vi.fn(),
     usePageMeta: vi.fn(),
     useQuery: vi.fn()
@@ -48,15 +46,6 @@ vi.mock("@tanstack/react-query", () => ({
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate
-}))
-
-vi.mock("nuqs", () => ({
-  parseAsArrayOf: () => ({
-    withDefault: () => ({})
-  }),
-  parseAsString: {},
-  useQueryState: (key: string) =>
-    key === "kind" ? [[], mocks.setKindFilter] : [null, mocks.setFilter]
 }))
 
 vi.mock("sonner", () => ({
@@ -117,16 +106,34 @@ vi.mock("@/components/role-detail-content.tsx", () => ({
 
 vi.mock("@/components/role-table", () => ({
   RoleTable: ({
+    filterState,
     onCreateRole,
     onDeleteRoles,
+    onFilterStateChange,
+    onOpenRole,
+    onSelectRole,
     selectedRoleId
   }: {
+    filterState?: unknown
     onCreateRole?: () => void
     onDeleteRoles?: (roles: Array<Role>) => Promise<void>
+    onFilterStateChange?: (filterState: {
+      globalFilter: string
+      selectFilters: Record<string, Array<string>>
+    }) => void
+    onOpenRole?: (role: Role) => void
+    onSelectRole?: (role: Role) => void
     selectedRoleId?: string
   }) => (
     <div>
       <div data-testid="table-selected-role">{selectedRoleId}</div>
+      <div data-testid="filter-state">{JSON.stringify(filterState)}</div>
+      <button type="button" onClick={() => onSelectRole?.(mocks.customRole)}>
+        select role
+      </button>
+      <button type="button" onClick={() => onOpenRole?.(mocks.customRole)}>
+        open role
+      </button>
       <button type="button" onClick={onCreateRole}>
         New role
       </button>
@@ -154,6 +161,19 @@ vi.mock("@/components/role-table", () => ({
       >
         delete failing
       </button>
+      <button
+        type="button"
+        onClick={() =>
+          onFilterStateChange?.({
+            globalFilter: "security",
+            selectFilters: {
+              kind: ["custom"]
+            }
+          })
+        }
+      >
+        change filters
+      </button>
     </div>
   )
 }))
@@ -173,8 +193,6 @@ describe("RoleIndexRouteComponent", () => {
     })
     mocks.dialogProps = undefined
     mocks.navigate.mockReset()
-    mocks.setFilter.mockReset()
-    mocks.setKindFilter.mockReset()
     mocks.toastError.mockReset()
     mocks.usePageMeta.mockReset()
     mocks.useQuery.mockReset()
@@ -201,6 +219,93 @@ describe("RoleIndexRouteComponent", () => {
     fireEvent.click(screen.getByRole("button", { name: /^new role$/i }))
 
     expect(mocks.navigate).toHaveBeenCalledWith({ to: "/roles/new" })
+  })
+
+  it("passes route-owned filters and selected preview metadata to the table", async () => {
+    const { RoleIndexRouteComponent } =
+      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
+
+    render(
+      <RoleIndexRouteComponent
+        search={{ filter: "security", kind: "built-in,custom" }}
+        selected={mocks.customRole.id}
+      />
+    )
+
+    expect(JSON.parse(screen.getByTestId("filter-state").textContent)).toEqual({
+      globalFilter: "security",
+      selectFilters: {
+        kind: ["built-in", "custom"]
+      }
+    })
+    expect(screen.getByTestId("table-selected-role").textContent).toBe(
+      mocks.customRole.id
+    )
+    expect(screen.getByTestId("selected-role").textContent).toBe(
+      mocks.customRole.id
+    )
+    expect(screen.getByTestId("full-page-href").textContent).toBe(
+      `/roles/${mocks.customRole.id}`
+    )
+    expect(screen.getByText(`Detail for role ${mocks.customRole.id}`)).toBeTruthy()
+  })
+
+  it("updates route-owned filters and preserves unrelated search params", async () => {
+    const { RoleIndexRouteComponent } =
+      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
+
+    render(<RoleIndexRouteComponent />)
+    fireEvent.click(screen.getByRole("button", { name: /change filters/i }))
+
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/roles",
+      replace: true,
+      search: expect.any(Function)
+    })
+
+    const search = mocks.navigate.mock.calls[0][0].search as (
+      previous: Record<string, unknown>
+    ) => Record<string, unknown>
+
+    expect(search({ page: "2", selected: "role-1" })).toEqual({
+      filter: "security",
+      kind: "custom",
+      page: "2",
+      selected: "role-1"
+    })
+  })
+
+  it("selects and opens roles from the table", async () => {
+    const { RoleIndexRouteComponent } =
+      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
+
+    render(<RoleIndexRouteComponent />)
+    fireEvent.click(screen.getByRole("button", { name: /select role/i }))
+
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/roles",
+      replace: true,
+      search: expect.any(Function)
+    })
+
+    const selectSearch = mocks.navigate.mock.calls[0][0].search as (
+      previous: Record<string, unknown>
+    ) => Record<string, unknown>
+
+    expect(selectSearch({ filter: "security", kind: "custom" })).toEqual({
+      filter: "security",
+      kind: "custom",
+      selected: mocks.customRole.id
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /open role/i }))
+
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/roles/$id",
+      params: {
+        id: mocks.customRole.id
+      }
+    })
   })
 
   it("skips built-in-only delete selections without calling the API", async () => {
@@ -279,9 +384,14 @@ describe("RoleIndexRouteComponent", () => {
     ) => Record<string, unknown>
 
     expect(
-      clearSearch({ filter: "security", selected: mocks.customRole.id })
+      clearSearch({
+        filter: "security",
+        kind: "custom",
+        selected: mocks.customRole.id
+      })
     ).toEqual({
       filter: "security",
+      kind: "custom",
       selected: undefined
     })
   })

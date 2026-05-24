@@ -32,7 +32,11 @@ export function CreateRoleRouteComponent() {
   const handleCancel = async () => {
     await navigate({
       to: "/roles",
-      search: { selected: undefined }
+      search: (previous) => ({
+        filter: previous.filter,
+        kind: previous.kind,
+        selected: undefined
+      })
     })
   }
 
