@@ -13,6 +13,7 @@ import { RoleTable } from "@/components/role-table"
 import { usePageMeta } from "@/context/page.tsx"
 import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts"
 import { isBuiltInRoleId } from "@/lib/role.ts"
+import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts"
 
 interface RoleIndexRouteComponentProps {
   selected?: string
@@ -23,6 +24,12 @@ export function RoleIndexRouteComponent({
 }: RoleIndexRouteComponentProps) {
   const navigate = useNavigate()
   const roleLifecycle = useRoleLifecycle()
+  const selectedSearch = useSelectedSearchParam<Role>({
+    selectedId: selected,
+    to: "/roles",
+    replace: true,
+    getId: (role) => role.id
+  })
   const rolesQuery = useQuery(createListRolesQueryOptions())
   const [filter, setFilter] = useQueryState("filter")
   const [kindFilter, setKindFilter] = useQueryState(
@@ -50,34 +57,12 @@ export function RoleIndexRouteComponent({
     void setKindFilter(nextKindFilter.length ? nextKindFilter : null)
   }
 
-  const handleSelectRole = async (role: Role) => {
-    await navigate({
-      to: "/roles",
-      replace: true,
-      search: (prev) => ({
-        ...prev,
-        selected: role.id
-      })
-    })
-  }
-
   const handleOpenRole = async (role: Role) => {
     await navigate({
       to: "/roles/$id",
       params: {
         id: role.id
       }
-    })
-  }
-
-  const handleClearSelectedRole = async () => {
-    await navigate({
-      to: "/roles",
-      replace: true,
-      search: (prev) => ({
-        ...prev,
-        selected: undefined
-      })
     })
   }
 
@@ -106,7 +91,7 @@ export function RoleIndexRouteComponent({
     )
 
     if (selected && deletedRoleIds.has(selected)) {
-      await handleClearSelectedRole()
+      await selectedSearch.clearSelected()
     }
   }
 
@@ -114,11 +99,11 @@ export function RoleIndexRouteComponent({
     <>
       <RoleTable
         query={rolesQuery}
-        selectedRoleId={selected}
+        selectedRoleId={selectedSearch.selectedId}
         filterState={filterState}
         onFilterStateChange={handleFilterStateChange}
         onSelectRole={(role) => {
-          void handleSelectRole(role)
+          void selectedSearch.selectRow(role)
         }}
         onOpenRole={(role) => {
           void handleOpenRole(role)
@@ -129,9 +114,9 @@ export function RoleIndexRouteComponent({
         onDeleteRoles={handleDeleteRoles}
       />
       <DetailPreviewDialog
-        selectedId={selected}
+        selectedId={selectedSearch.selectedId}
         onClose={() => {
-          void handleClearSelectedRole()
+          void selectedSearch.clearSelected()
         }}
         title="Role details"
         description="Review the selected role without leaving the roles table."

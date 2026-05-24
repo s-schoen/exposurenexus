@@ -1,5 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
+import type { Asset } from "@exposurenexus/types/model/asset"
 import { AssetDetailContent } from "@/components/asset-detail-content.tsx"
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx"
 import { usePageMeta } from "@/context/page.tsx"
@@ -9,18 +10,21 @@ import {
   useAssetTableSearchState,
   validateAssetTableSearch
 } from "@/hooks/use-asset-table-search-state.ts"
+import {
+  useSelectedSearchParam,
+  validateSelectedSearch
+} from "@/hooks/use-selected-search-param.ts"
 
 export const Route = createFileRoute("/_authenticated/assets/")({
   validateSearch: (search: Record<string, unknown>) => ({
     ...search,
-    selected: typeof search.selected === "string" ? search.selected : undefined,
+    ...validateSelectedSearch(search),
     ...validateAssetTableSearch(search)
   }),
   component: RouteComponent
 })
 
 function RouteComponent() {
-  const navigate = useNavigate()
   const search = Route.useSearch()
   const { selected } = search
   const customFieldDefinitionsQuery = useQuery(
@@ -29,6 +33,11 @@ function RouteComponent() {
   const { filterState, onFilterStateChange } = useAssetTableSearchState({
     search,
     customFieldDefinitions: customFieldDefinitionsQuery.data ?? []
+  })
+  const selectedSearch = useSelectedSearchParam<Asset>({
+    selectedId: selected,
+    to: "/assets",
+    getId: (asset) => asset.id
   })
 
   usePageMeta({
@@ -41,30 +50,16 @@ function RouteComponent() {
       <AssetTable
         filterState={filterState}
         onFilterStateChange={onFilterStateChange}
-        selectedAssetId={selected}
-        onSelectAsset={(asset) =>
-          navigate({
-            to: "/assets",
-            search: (prev) => ({
-              ...prev,
-              filter: prev.filter,
-              selected: asset.id
-            })
-          })
-        }
+        selectedAssetId={selectedSearch.selectedId}
+        onSelectAsset={(asset) => {
+          void selectedSearch.selectRow(asset)
+        }}
       />
       <DetailPreviewDialog
-        selectedId={selected}
-        onClose={() =>
-          navigate({
-            to: "/assets",
-            search: (prev) => ({
-              ...prev,
-              filter: prev.filter,
-              selected: undefined
-            })
-          })
-        }
+        selectedId={selectedSearch.selectedId}
+        onClose={() => {
+          void selectedSearch.clearSelected()
+        }}
         title="Asset details"
         description="Review the selected asset without leaving the asset table."
         fullPageHref={selected ? `/assets/${selected}` : undefined}

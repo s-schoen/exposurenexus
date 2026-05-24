@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { VulnerabilitiesRouteComponent } from "@/routes/_authenticated/vulnerabilities/-index-route-component.tsx"
+import { validateSelectedSearch } from "@/hooks/use-selected-search-param.ts"
 
 export const Route = createFileRoute("/_authenticated/vulnerabilities/")({
   validateSearch: (search) => ({
     ...search,
-    selected: typeof search.selected === "string" ? search.selected : undefined
+    ...validateSelectedSearch(search)
   }),
   component: RouteComponent
 })
