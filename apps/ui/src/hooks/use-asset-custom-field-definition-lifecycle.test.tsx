@@ -84,21 +84,6 @@ function createDefinitionPayload(
   } as CreateAssetCustomFieldDefinition
 }
 
-function createDeferred<T>() {
-  let resolve!: (value: T) => void
-  let reject!: (reason?: unknown) => void
-  const promise = new Promise<T>((promiseResolve, promiseReject) => {
-    resolve = promiseResolve
-    reject = promiseReject
-  })
-
-  return {
-    promise,
-    resolve,
-    reject
-  }
-}
-
 function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -164,11 +149,8 @@ describe("useAssetCustomFieldDefinitionLifecycle", () => {
     )
   })
 
-  it("optimistically updates definition detail cache while an update is pending", async () => {
+  it("updates definition detail cache after successful updates", async () => {
     const definition = createDefinitionFixture()
-    const nextDefinition = createDefinitionFixture({
-      name: "Environment label"
-    })
     const updatedDefinition = createDefinitionFixture({
       name: "Environment label",
       defaultValue: "production"
@@ -176,38 +158,27 @@ describe("useAssetCustomFieldDefinitionLifecycle", () => {
     const payload: UpdateAssetCustomFieldDefinition = createDefinitionPayload({
       name: "Environment label"
     }) as UpdateAssetCustomFieldDefinition
-    const update = createDeferred<AssetCustomFieldDefinition>()
-    updateDefinitionRequestMock.mockReturnValueOnce(update.promise)
+    updateDefinitionRequestMock.mockResolvedValueOnce(updatedDefinition)
     const { queryClient, result } = renderLifecycleHook()
     const queryKey = createAssetCustomFieldDefinitionByIDQueryOptions(
       definition.id
     ).queryKey
     queryClient.setQueryData(queryKey, definition)
 
-    let operation!: Promise<AssetCustomFieldDefinition | null>
-    act(() => {
-      operation = result.current.updateDefinition(nextDefinition, payload)
-    })
-
-    expect(
-      queryClient.getQueryData<AssetCustomFieldDefinition>(queryKey)
-    ).toEqual(nextDefinition)
-
     await act(async () => {
-      update.resolve(updatedDefinition)
-      await operation
+      await result.current.updateDefinition(definition.id, payload)
     })
 
     expect(
       queryClient.getQueryData<AssetCustomFieldDefinition>(queryKey)
     ).toEqual(updatedDefinition)
+    expect(toastSuccessMock).toHaveBeenCalledWith(
+      "Updated custom field Environment label"
+    )
   })
 
-  it("rolls optimistic definition detail cache changes back on update failure", async () => {
+  it("reports update failures without changing cached definition detail", async () => {
     const definition = createDefinitionFixture()
-    const nextDefinition = createDefinitionFixture({
-      name: "Environment label"
-    })
     const payload: UpdateAssetCustomFieldDefinition = createDefinitionPayload({
       name: "Environment label"
     }) as UpdateAssetCustomFieldDefinition
@@ -222,10 +193,10 @@ describe("useAssetCustomFieldDefinitionLifecycle", () => {
     ).queryKey
     queryClient.setQueryData(queryKey, definition)
 
-    let updatedDefinition: AssetCustomFieldDefinition | null = nextDefinition
+    let updatedDefinition: AssetCustomFieldDefinition | null = definition
     await act(async () => {
       updatedDefinition = await result.current.updateDefinition(
-        nextDefinition,
+        definition.id,
         payload
       )
     })
@@ -234,7 +205,9 @@ describe("useAssetCustomFieldDefinitionLifecycle", () => {
     expect(
       queryClient.getQueryData<AssetCustomFieldDefinition>(queryKey)
     ).toEqual(definition)
-    expect(toastErrorMock).toHaveBeenCalledWith("Failed to update custom field")
+    expect(toastErrorMock).toHaveBeenCalledWith(
+      "Failed to update custom field: Error: Update failed"
+    )
     expect(consoleError).toHaveBeenCalledWith(error)
   })
 
@@ -248,7 +221,7 @@ describe("useAssetCustomFieldDefinitionLifecycle", () => {
       .mockResolvedValue(undefined)
 
     await act(async () => {
-      await result.current.updateDefinition(definition, payload)
+      await result.current.updateDefinition(definition.id, payload)
     })
 
     expect(updateDefinitionRequestMock).toHaveBeenCalledWith({

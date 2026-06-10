@@ -29,7 +29,7 @@ export interface AssetCustomFieldDefinitionLifecycleActions {
     value: CreateAssetCustomFieldDefinition
   ) => Promise<AssetCustomFieldDefinition | null>
   updateDefinition: (
-    nextDefinition: AssetCustomFieldDefinition,
+    definitionId: string,
     value: UpdateAssetCustomFieldDefinition
   ) => Promise<AssetCustomFieldDefinition | null>
   deleteDefinitions: (
@@ -128,34 +128,20 @@ export function useAssetCustomFieldDefinitionLifecycle(): AssetCustomFieldDefini
       }
     },
 
-    async updateDefinition(nextDefinition, value) {
-      const queryKey = detailQueryKey(nextDefinition.id)
-      const previousDefinition =
-        queryClient.getQueryData<AssetCustomFieldDefinition>(queryKey)
-
+    async updateDefinition(definitionId, value) {
       try {
-        queryClient.setQueryData(queryKey, nextDefinition)
-
         const updatedDefinition = await definitionUpdate.mutateAsync({
-          id: nextDefinition.id,
+          id: definitionId,
           definition: value
         })
 
-        queryClient.setQueryData(queryKey, updatedDefinition)
-        await invalidateDefinitionReads([nextDefinition.id])
+        queryClient.setQueryData(detailQueryKey(definitionId), updatedDefinition)
+        toast.success(`Updated custom field ${updatedDefinition.name}`)
+        await invalidateDefinitionReads([definitionId])
 
         return updatedDefinition
       } catch (error) {
-        if (previousDefinition) {
-          queryClient.setQueryData(queryKey, previousDefinition)
-        } else {
-          queryClient.removeQueries({
-            queryKey,
-            exact: true
-          })
-        }
-
-        toastActionError(error, "Failed to update custom field")
+        toastActionError(error, `Failed to update custom field: ${error}`)
         console.error(error)
         return null
       }

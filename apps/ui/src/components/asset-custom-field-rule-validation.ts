@@ -52,9 +52,9 @@ export function assetCustomFieldRuleViolationMessage(
   }
 }
 
-export function createAssetCustomFieldDefinitionPayloadFromFormValues(
+function assetCustomFieldDefinitionPayloadFromFormValues(
   values: AssetCustomFieldFormRuleValues
-): CreateAssetCustomFieldDefinition {
+): UpdateAssetCustomFieldDefinition {
   const base = {
     name: values.name.trim(),
     key: values.key.trim(),
@@ -88,6 +88,18 @@ export function createAssetCustomFieldDefinitionPayloadFromFormValues(
   }
 }
 
+export function createAssetCustomFieldDefinitionPayloadFromFormValues(
+  values: AssetCustomFieldFormRuleValues
+): CreateAssetCustomFieldDefinition {
+  return assetCustomFieldDefinitionPayloadFromFormValues(values)
+}
+
+export function updateAssetCustomFieldDefinitionPayloadFromFormValues(
+  values: AssetCustomFieldFormRuleValues
+): UpdateAssetCustomFieldDefinition {
+  return assetCustomFieldDefinitionPayloadFromFormValues(values)
+}
+
 export function validateAssetCustomFieldRulePayload(
   definition:
     | CreateAssetCustomFieldDefinition
@@ -106,7 +118,7 @@ export function validateAssetCustomFieldFormRuleValues(
   values: AssetCustomFieldFormRuleValues
 ): Array<AssetCustomFieldRuleValidationIssue> {
   return validateAssetCustomFieldRulePayload(
-    createAssetCustomFieldDefinitionPayloadFromFormValues(values),
+    assetCustomFieldDefinitionPayloadFromFormValues(values),
     "form"
   )
 }
