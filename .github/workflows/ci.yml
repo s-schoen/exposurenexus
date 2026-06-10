@@ -129,6 +129,7 @@ jobs:
         run: pnpm coverage:ui
 
       - name: Upload API coverage
+        if: ${{ env.ACT != 'true' }}
         uses: codecov/codecov-action@v6
         with:
           use_oidc: true
@@ -138,6 +139,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload UI coverage
+        if: ${{ env.ACT != 'true' }}
         uses: codecov/codecov-action@v6
         with:
           use_oidc: true
