@@ -15,6 +15,7 @@ import type { ReactNode } from "react"
 import type { Finding } from "@exposurenexus/types/model/finding"
 import type { Asset, AssetType } from "@exposurenexus/types/model/asset"
 import type { UserProfile } from "@exposurenexus/types/model/user"
+import { FindingDetailContent } from "@/components/finding-detail-content.tsx"
 
 interface QueryState<TData> {
   data?: TData
@@ -329,9 +330,7 @@ describe("FindingDetailContent", () => {
     vi.restoreAllMocks()
   })
 
-  it("renders a placeholder while the finding is pending", async () => {
-    const { FindingDetailContent } =
-      await import("@/components/finding-detail-content.tsx")
+  it("renders a placeholder while the finding is pending", () => {
     mocks.findingQuery = {
       isLoading: true,
       isPending: true,
@@ -344,9 +343,7 @@ describe("FindingDetailContent", () => {
     expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy()
   })
 
-  it("renders an error state when the primary finding query fails", async () => {
-    const { FindingDetailContent } =
-      await import("@/components/finding-detail-content.tsx")
+  it("renders an error state when the primary finding query fails", () => {
     mocks.findingQuery = {
       error: new Error("Finding request failed"),
       isLoading: false,
@@ -360,10 +357,7 @@ describe("FindingDetailContent", () => {
     expect(screen.getByText("Finding request failed")).toBeTruthy()
   })
 
-  it("renders finding, asset, vulnerability, evidence, and user context", async () => {
-    const { FindingDetailContent } =
-      await import("@/components/finding-detail-content.tsx")
-
+  it("renders finding, asset, vulnerability, evidence, and user context", () => {
     render(
       <FindingDetailContent
         findingId={mocks.finding.id}
@@ -394,9 +388,6 @@ describe("FindingDetailContent", () => {
   })
 
   it("updates editable severity, status, and source metadata", async () => {
-    const { FindingDetailContent } =
-      await import("@/components/finding-detail-content.tsx")
-
     render(<FindingDetailContent findingId={mocks.finding.id} />)
 
     const editableSeverity = screen.getAllByText("High").at(-1)
@@ -437,9 +428,6 @@ describe("FindingDetailContent", () => {
   })
 
   it("assigns and reassigns an existing finding from the assignee metadata", async () => {
-    const { FindingDetailContent } =
-      await import("@/components/finding-detail-content.tsx")
-
     render(<FindingDetailContent findingId={mocks.finding.id} />)
 
     const editableAssignee = screen.getAllByText("Alex Assignee").at(-1)
@@ -457,9 +445,6 @@ describe("FindingDetailContent", () => {
   })
 
   it("assigns an unassigned finding and clears an existing assignee", async () => {
-    const { FindingDetailContent } =
-      await import("@/components/finding-detail-content.tsx")
-
     mocks.findingQuery = {
       data: {
         ...mocks.finding,
@@ -513,9 +498,6 @@ describe("FindingDetailContent", () => {
   })
 
   it("sets, changes, and clears due dates from metadata", async () => {
-    const { FindingDetailContent } =
-      await import("@/components/finding-detail-content.tsx")
-
     const undated = render(
       <FindingDetailContent findingId={mocks.finding.id} />
     )
@@ -588,8 +570,6 @@ describe("FindingDetailContent", () => {
   })
 
   it("copies evidence and reports success or failure", async () => {
-    const { FindingDetailContent } =
-      await import("@/components/finding-detail-content.tsx")
     const clipboardWrite = vi.fn().mockResolvedValue(undefined)
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
@@ -618,9 +598,7 @@ describe("FindingDetailContent", () => {
     })
   })
 
-  it("renders fallbacks for empty evidence and unknown assets", async () => {
-    const { FindingDetailContent } =
-      await import("@/components/finding-detail-content.tsx")
+  it("renders fallbacks for empty evidence and unknown assets", () => {
     mocks.findingQuery = {
       data: {
         ...mocks.finding,
@@ -654,10 +632,7 @@ describe("FindingDetailContent", () => {
     ).toBe(true)
   })
 
-  it("renders asset owner fallbacks for ownerless assets and unknown users", async () => {
-    const { FindingDetailContent } =
-      await import("@/components/finding-detail-content.tsx")
-
+  it("renders asset owner fallbacks for ownerless assets and unknown users", () => {
     mocks.assetQuery = {
       data: {
         ...mocks.asset,
@@ -696,10 +671,7 @@ describe("FindingDetailContent", () => {
     expect(screen.getAllByText("Unknown Owner").length).toBeGreaterThan(0)
   })
 
-  it("renders assignee fallbacks for unassigned and unknown users", async () => {
-    const { FindingDetailContent } =
-      await import("@/components/finding-detail-content.tsx")
-
+  it("renders assignee fallbacks for unassigned and unknown users", () => {
     mocks.findingQuery = {
       data: {
         ...mocks.finding,
@@ -738,9 +710,7 @@ describe("FindingDetailContent", () => {
     expect(screen.getAllByText("Unknown Assignee").length).toBeGreaterThan(0)
   })
 
-  it("renders assignee loading state while user profiles are loading", async () => {
-    const { FindingDetailContent } =
-      await import("@/components/finding-detail-content.tsx")
+  it("renders assignee loading state while user profiles are loading", () => {
     mocks.usersQuery = {
       isLoading: true,
       isPending: true,
@@ -752,9 +722,7 @@ describe("FindingDetailContent", () => {
     expect(screen.getAllByText("Loading Assignee").length).toBeGreaterThan(0)
   })
 
-  it("keeps asset sections stable while linked asset data is loading", async () => {
-    const { FindingDetailContent } =
-      await import("@/components/finding-detail-content.tsx")
+  it("keeps asset sections stable while linked asset data is loading", () => {
     mocks.assetQuery = {
       isLoading: true,
       isPending: true,
