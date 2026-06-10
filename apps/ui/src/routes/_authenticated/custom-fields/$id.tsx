@@ -1,4 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router"
+import {
+  Outlet,
+  createFileRoute,
+  useMatchRoute
+} from "@tanstack/react-router"
 import { CustomFieldDetailRouteComponent } from "@/routes/_authenticated/custom-fields/-detail-route-component.tsx"
 
 export const Route = createFileRoute("/_authenticated/custom-fields/$id")({
@@ -7,6 +11,14 @@ export const Route = createFileRoute("/_authenticated/custom-fields/$id")({
 
 function RouteComponent() {
   const { id } = Route.useParams()
+  const matchRoute = useMatchRoute()
+  const isEditRoute = Boolean(
+    matchRoute({ to: "/custom-fields/$id/edit", params: { id } })
+  )
+
+  if (isEditRoute) {
+    return <Outlet />
+  }
 
   return <CustomFieldDetailRouteComponent customFieldId={id} />
 }

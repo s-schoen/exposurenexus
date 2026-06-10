@@ -1,6 +1,7 @@
+import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
-import { ArrowLeft } from "lucide-react"
+import { Link, useNavigate } from "@tanstack/react-router"
+import { ArrowLeft, Pencil } from "lucide-react"
 import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts"
 import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content"
 import { buttonVariants } from "@/components/ui/button.tsx"
@@ -14,13 +15,33 @@ interface CustomFieldDetailRouteComponentProps {
 export function CustomFieldDetailRouteComponent({
   customFieldId
 }: CustomFieldDetailRouteComponentProps) {
+  const navigate = useNavigate()
   const customField = useQuery(
     createAssetCustomFieldDefinitionByIDQueryOptions(customFieldId)
   )
+  const actions = useMemo(() => {
+    if (!customField.data) {
+      return []
+    }
+
+    return [
+      {
+        label: "Edit custom field",
+        icon: Pencil,
+        onClick: () => {
+          void navigate({
+            to: "/custom-fields/$id/edit",
+            params: { id: customFieldId }
+          })
+        }
+      }
+    ]
+  }, [customField.data, customFieldId, navigate])
 
   usePageMeta({
     title: customField.data?.name ?? "Custom Field",
-    description: "Review asset custom field settings and allowed values."
+    description: "Review asset custom field settings and allowed values.",
+    actions
   })
 
   return (

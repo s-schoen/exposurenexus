@@ -42,6 +42,7 @@ const mocks = vi.hoisted(() => {
   return {
     customField,
     customFieldQuery,
+    navigate: vi.fn(),
     usePageMeta: vi.fn()
   }
 })
@@ -59,7 +60,8 @@ vi.mock("@tanstack/react-router", () => ({
     <a className={className} href={to}>
       {children}
     </a>
-  )
+  ),
+  useNavigate: () => mocks.navigate
 }))
 
 vi.mock("@tanstack/react-query", () => ({
@@ -98,6 +100,7 @@ describe("CustomFieldDetailRouteComponent", () => {
       isPending: false,
       isSuccess: true
     }
+    mocks.navigate.mockReset()
     mocks.usePageMeta.mockReset()
   })
 
@@ -114,7 +117,20 @@ describe("CustomFieldDetailRouteComponent", () => {
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Environment",
-      description: "Review asset custom field settings and allowed values."
+      description: "Review asset custom field settings and allowed values.",
+      actions: [
+        expect.objectContaining({
+          label: "Edit custom field",
+          onClick: expect.any(Function)
+        })
+      ]
+    })
+    const pageMeta = mocks.usePageMeta.mock.calls[0][0]
+    pageMeta.actions[0].onClick()
+
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/custom-fields/$id/edit",
+      params: { id: customFieldId }
     })
     expect(
       screen.getByRole("link", { name: /back to custom fields/i })
@@ -137,7 +153,8 @@ describe("CustomFieldDetailRouteComponent", () => {
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Custom Field",
-      description: "Review asset custom field settings and allowed values."
+      description: "Review asset custom field settings and allowed values.",
+      actions: []
     })
   })
 })

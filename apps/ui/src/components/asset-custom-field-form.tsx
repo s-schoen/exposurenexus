@@ -7,10 +7,12 @@ import {
 } from "@exposurenexus/types/model/asset-custom-field"
 import type {
   AssetCustomFieldDefinition,
-  CreateAssetCustomFieldDefinition
+  CreateAssetCustomFieldDefinition,
+  UpdateAssetCustomFieldDefinition
 } from "@exposurenexus/types/model/asset-custom-field"
 import {
   createAssetCustomFieldDefinitionPayloadFromFormValues,
+  updateAssetCustomFieldDefinitionPayloadFromFormValues,
   validateAssetCustomFieldFormRuleValues
 } from "@/components/asset-custom-field-rule-validation.ts"
 import { Button } from "@/components/ui/button.tsx"
@@ -181,6 +183,12 @@ export function mapAssetCustomFieldFormValues(
   values: AssetCustomFieldFormValues
 ): CreateAssetCustomFieldDefinition {
   return createAssetCustomFieldDefinitionPayloadFromFormValues(values)
+}
+
+export function mapUpdateAssetCustomFieldFormValues(
+  values: AssetCustomFieldFormValues
+): UpdateAssetCustomFieldDefinition {
+  return updateAssetCustomFieldDefinitionPayloadFromFormValues(values)
 }
 
 function getOptionErrorMessages(

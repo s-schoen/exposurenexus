@@ -17,7 +17,8 @@ import {
   AssetCustomFieldForm,
   assetCustomFieldFormSchema,
   mapAssetCustomFieldDefinitionToFormValues,
-  mapAssetCustomFieldFormValues
+  mapAssetCustomFieldFormValues,
+  mapUpdateAssetCustomFieldFormValues
 } from "@/components/asset-custom-field-form"
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
 import { validateAssetCustomFieldFormRuleValues } from "@/components/asset-custom-field-rule-validation.ts"
@@ -252,6 +253,32 @@ describe("AssetCustomFieldForm", () => {
     }
 
     expect(mapAssetCustomFieldDefinitionToFormValues(field)).toEqual({
+      name: "Environment",
+      key: "environment",
+      type: AssetCustomFieldType.Select,
+      required: true,
+      defaultValue: "production",
+      options: [
+        { value: "production", label: "Production" },
+        { value: "staging", label: "Staging" }
+      ]
+    })
+  })
+
+  it("maps edit form values to a full update payload", () => {
+    expect(
+      mapUpdateAssetCustomFieldFormValues({
+        name: "Environment",
+        key: "environment",
+        type: AssetCustomFieldType.Select,
+        required: true,
+        defaultValue: "production",
+        options: [
+          { value: " production ", label: " Production " },
+          { value: "staging", label: "Staging" }
+        ]
+      })
+    ).toEqual({
       name: "Environment",
       key: "environment",
       type: AssetCustomFieldType.Select,

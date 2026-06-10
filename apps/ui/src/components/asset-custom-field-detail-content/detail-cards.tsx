@@ -1,21 +1,10 @@
-import { ListChecks, Plus, Trash2 } from "lucide-react"
+import { ListChecks } from "lucide-react"
 import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
-import type {
-  AssetCustomFieldDefinition,
-  AssetCustomFieldOption
-} from "@exposurenexus/types/model/asset-custom-field"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import type { ReactNode } from "react"
 import type { CustomFieldSummary } from "@/components/asset-custom-field-detail-content/helpers.ts"
-import type { CustomFieldUpdateResultHandler } from "@/components/asset-custom-field-detail-content/types.ts"
-import {
-  addAssetCustomFieldOption,
-  removeAssetCustomFieldOption,
-  updateAssetCustomFieldOption
-} from "@/components/asset-custom-field-detail-content/helpers.ts"
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
-import { Inplace } from "@/components/inplace.tsx"
 import { Badge } from "@/components/ui/badge.tsx"
-import { Button } from "@/components/ui/button.tsx"
 import {
   Card,
   CardContent,
@@ -132,11 +121,9 @@ export function CustomFieldDefinitionCard({
 }
 
 export function SelectOptionsCard({
-  field,
-  onUpdateResult
+  field
 }: {
   field: AssetCustomFieldDefinition
-  onUpdateResult: CustomFieldUpdateResultHandler
 }) {
   if (field.type !== AssetCustomFieldType.Select) {
     return null
@@ -145,34 +132,22 @@ export function SelectOptionsCard({
   return (
     <Card className={DETAIL_CARD_CLASS}>
       <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-2">
-            <CardTitle className="text-xl font-semibold">
-              Select options
-            </CardTitle>
-            <CardDescription>
-              Values available when assigning this field to an asset.
-            </CardDescription>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => onUpdateResult(addAssetCustomFieldOption(field))}
-          >
-            <Plus />
-            Add option
-          </Button>
+        <div className="space-y-2">
+          <CardTitle className="text-xl font-semibold">Select options</CardTitle>
+          <CardDescription>
+            Values available when assigning this field to an asset.
+          </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {field.options.map((option) => (
-          <SelectOptionRow
+          <div
             key={option.id}
-            field={field}
-            option={option}
-            onUpdateResult={onUpdateResult}
-          />
+            className="grid gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3 md:grid-cols-2"
+          >
+            <DefinitionValue label="Value" value={option.value} mono />
+            <DefinitionValue label="Label" value={option.label} />
+          </div>
         ))}
       </CardContent>
     </Card>
@@ -195,79 +170,6 @@ function DefinitionValue({
         className={mono ? `${FIELD_VALUE_CLASS} font-mono` : FIELD_VALUE_CLASS}
       >
         {value}
-      </div>
-    </div>
-  )
-}
-
-function SelectOptionRow({
-  field,
-  option,
-  onUpdateResult
-}: {
-  field: AssetCustomFieldDefinition
-  option: AssetCustomFieldOption
-  onUpdateResult: CustomFieldUpdateResultHandler
-}) {
-  return (
-    <div className="grid gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-      <EditableOptionValue
-        label="Value"
-        value={option.value}
-        mono
-        onSave={(value) =>
-          onUpdateResult(
-            updateAssetCustomFieldOption(field, option.id, { value })
-          )
-        }
-      />
-      <EditableOptionValue
-        label="Label"
-        value={option.label}
-        onSave={(label) =>
-          onUpdateResult(
-            updateAssetCustomFieldOption(field, option.id, { label })
-          )
-        }
-      />
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        aria-label={`Remove ${option.label}`}
-        onClick={() =>
-          onUpdateResult(removeAssetCustomFieldOption(field, option.id))
-        }
-      >
-        <Trash2 />
-      </Button>
-    </div>
-  )
-}
-
-function EditableOptionValue({
-  label,
-  value,
-  mono = false,
-  onSave
-}: {
-  label: string
-  value: string
-  mono?: boolean
-  onSave: (value: string) => void
-}) {
-  return (
-    <div className="min-w-0 space-y-1">
-      <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {label}
-      </div>
-      <div className={mono ? "font-mono text-sm" : "text-sm"}>
-        <Inplace
-          value={value}
-          editOnClick
-          showEditIcon={false}
-          onSave={onSave}
-        />
       </div>
     </div>
   )
