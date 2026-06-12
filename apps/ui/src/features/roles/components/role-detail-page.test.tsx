@@ -83,7 +83,7 @@ vi.mock("@/components/role-detail-content.tsx", () => ({
   )
 }))
 
-describe("RoleDetailRouteComponent", () => {
+describe("RoleDetailPage", () => {
   beforeEach(() => {
     mocks.navigate.mockReset()
     mocks.usePageMeta.mockReset()
@@ -99,11 +99,11 @@ describe("RoleDetailRouteComponent", () => {
   })
 
   it("adds an edit action for custom roles", async () => {
-    const { RoleDetailRouteComponent } = await import(
-      "@/routes/_authenticated/roles/-detail-route-component.tsx"
+    const { RoleDetailPage } = await import(
+      "@/features/roles/components/role-detail-page.tsx"
     )
 
-    render(<RoleDetailRouteComponent roleId={roleId} />)
+    render(<RoleDetailPage roleId={roleId} />)
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "security-analyst",
@@ -128,8 +128,8 @@ describe("RoleDetailRouteComponent", () => {
   })
 
   it("does not add an edit action for built-in roles", async () => {
-    const { RoleDetailRouteComponent } = await import(
-      "@/routes/_authenticated/roles/-detail-route-component.tsx"
+    const { RoleDetailPage } = await import(
+      "@/features/roles/components/role-detail-page.tsx"
     )
     mocks.roleQuery = {
       data: {
@@ -143,7 +143,7 @@ describe("RoleDetailRouteComponent", () => {
       isSuccess: true
     }
 
-    render(<RoleDetailRouteComponent roleId={builtInRoleIds.viewer} />)
+    render(<RoleDetailPage roleId={builtInRoleIds.viewer} />)
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "viewer",
@@ -154,15 +154,15 @@ describe("RoleDetailRouteComponent", () => {
   })
 
   it("uses fallback metadata before role data is available", async () => {
-    const { RoleDetailRouteComponent } = await import(
-      "@/routes/_authenticated/roles/-detail-route-component.tsx"
+    const { RoleDetailPage } = await import(
+      "@/features/roles/components/role-detail-page.tsx"
     )
     mocks.roleQuery = {
       isPending: true,
       isSuccess: false
     }
 
-    render(<RoleDetailRouteComponent roleId={roleId} />)
+    render(<RoleDetailPage roleId={roleId} />)
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Role",

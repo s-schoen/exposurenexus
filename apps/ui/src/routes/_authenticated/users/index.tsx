@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { UsersRouteComponent } from "@/routes/_authenticated/users/-index-route-component.tsx"
+import { UsersPage } from "@/features/users/components/users-page.tsx"
 import {
   validateSelectedSearch
 } from "@/hooks/use-selected-search-param.ts"
@@ -17,5 +17,5 @@ export const Route = createFileRoute("/_authenticated/users/")({
 function RouteComponent() {
   const search = Route.useSearch()
 
-  return <UsersRouteComponent search={search} selected={search.selected} />
+  return <UsersPage search={search} selected={search.selected} />
 }

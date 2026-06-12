@@ -6,10 +6,13 @@ import {
   screen,
   waitFor
 } from "@testing-library/react"
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
+import {
+  PermissionResource,
+  PermissionVerb
+} from "@exposurenexus/types/model/rbac"
 import type { Role } from "@exposurenexus/types/model/rbac"
-import type { UserFormValues } from "@/components/user-form.tsx"
-import { CreateUserRouteComponent } from "@/routes/_authenticated/users/-new-route-component.tsx"
+import type { RoleFormValues } from "@/components/role-form.tsx"
+import { CreateRolePage } from "@/features/roles/components/create-role-page.tsx"
 
 interface QueryState<TData> {
   data?: TData
@@ -23,22 +26,29 @@ const mocks = vi.hoisted(() => {
     {
       id: "6d0d8a47-0f6d-47b6-9b9a-d8f0d3f4dd01",
       name: "viewer",
-      permissions: []
+      permissions: [
+        { resource: "asset", verb: "read" },
+        { resource: "finding", verb: "read" }
+      ]
     },
     {
       id: "5d5f5c6f-a9d6-4d49-9f4d-9462b873a902",
       name: "editor",
-      permissions: []
+      permissions: [
+        { resource: "asset", verb: "read" },
+        { resource: "asset", verb: "write" },
+        { resource: "finding", verb: "read" }
+      ]
     }
-  ]
-  const submitValues: UserFormValues = {
-    displayName: "  Alice Example  ",
-    username: "  alice  ",
-    email: "  alice@example.com  ",
-    enabled: true,
-    password: "correct horse battery staple",
-    roleIds: ["5d5f5c6f-a9d6-4d49-9f4d-9462b873a902"]
-  }
+  ] as Array<Role>
+  const submitValues: RoleFormValues = {
+    name: "  security-analyst  ",
+    permissions: [
+      { resource: "asset", verb: "read" },
+      { resource: "asset", verb: "read" },
+      { resource: "asset", verb: "write" }
+    ]
+  } as RoleFormValues
   const rolesQuery: QueryState<Array<Role>> = {
     data: roles,
     isPending: false,
@@ -46,7 +56,7 @@ const mocks = vi.hoisted(() => {
   }
 
   return {
-    createUser: vi.fn(),
+    createRole: vi.fn(),
     navigate: vi.fn(),
     roles,
     rolesQuery,
@@ -69,35 +79,30 @@ vi.mock("@/api/role.ts", () => ({
   })
 }))
 
-vi.mock("@/hooks/use-user-lifecycle.ts", () => ({
-  useUserLifecycle: () => ({
-    createUser: mocks.createUser
+vi.mock("@/hooks/use-role-lifecycle.ts", () => ({
+  useRoleLifecycle: () => ({
+    createRole: mocks.createRole
   })
 }))
 
-vi.mock("@/components/user-form.tsx", async (importOriginal) => {
+vi.mock("@/components/role-form.tsx", async (importOriginal) => {
   const actual = await importOriginal()
 
   return Object.assign({}, actual, {
-    UserForm: ({
-      defaultValues,
+    RoleForm: ({
+      availablePermissions,
       mode,
       onCancel,
-      onSubmit,
-      roles
+      onSubmit
     }: {
-      defaultValues?: Partial<UserFormValues>
+      availablePermissions: Array<RoleFormValues["permissions"][number]>
       mode: string
       onCancel: () => void
-      onSubmit: (values: UserFormValues) => Promise<void> | void
-      roles: Array<Role>
+      onSubmit: (values: RoleFormValues) => Promise<void> | void
     }) => (
       <div>
         <div data-testid="mode">{mode}</div>
-        <div data-testid="roles">
-          {roles.map((role) => role.name).join(",")}
-        </div>
-        <div data-testid="default-values">{JSON.stringify(defaultValues)}</div>
+        <div data-testid="permission-count">{availablePermissions.length}</div>
         <button type="button" onClick={onCancel}>
           cancel
         </button>
@@ -113,9 +118,9 @@ vi.mock("@/context/page.tsx", () => ({
   usePageMeta: mocks.usePageMeta
 }))
 
-describe("CreateUserRouteComponent", () => {
+describe("CreateRolePage", () => {
   beforeEach(() => {
-    mocks.createUser.mockReset()
+    mocks.createRole.mockReset()
     mocks.navigate.mockReset()
     mocks.rolesQuery = {
       data: mocks.roles,
@@ -136,10 +141,10 @@ describe("CreateUserRouteComponent", () => {
       isSuccess: false
     }
 
-    render(<CreateUserRouteComponent />)
+    render(<CreateRolePage />)
 
     expect(
-      screen.getAllByText("Loading available roles.").length
+      screen.getAllByText("Loading available permissions.").length
     ).toBeGreaterThan(0)
   })
 
@@ -150,74 +155,65 @@ describe("CreateUserRouteComponent", () => {
       isSuccess: false
     }
 
-    render(<CreateUserRouteComponent />)
+    render(<CreateRolePage />)
 
-    expect(screen.getByText("Unable to load roles")).toBeTruthy()
+    expect(screen.getByText("Unable to load permissions")).toBeTruthy()
     expect(screen.getByText("Roles request failed")).toBeTruthy()
   })
 
-  it("uses the viewer role as the create form default", () => {
-    render(<CreateUserRouteComponent />)
+  it("renders the role form in create mode", () => {
+    render(<CreateRolePage />)
 
     expect(screen.getByTestId("mode").textContent).toBe("create")
-    expect(screen.getByTestId("roles").textContent).toBe("viewer,editor")
-    expect(screen.getByTestId("default-values").textContent).toBe(
-      JSON.stringify({ roleIds: [builtInRoleIds.viewer] })
-    )
+    expect(Number(screen.getByTestId("permission-count").textContent)).toBe(3)
   })
 
-  it("creates a user through the lifecycle hook and navigates back to the user list", async () => {
-    mocks.createUser.mockResolvedValueOnce({
-      id: "1f9c36d2-1355-49d1-8464-b01ce955d88f"
+  it("creates a role through the lifecycle hook and navigates to the created role", async () => {
+    mocks.createRole.mockResolvedValueOnce({
+      id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830",
+      name: "security-analyst",
+      permissions: [
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Read }
+      ]
     })
 
-    render(<CreateUserRouteComponent />)
+    render(<CreateRolePage />)
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
-      expect(mocks.createUser).toHaveBeenCalledWith({
-        displayName: "Alice Example",
-        email: "alice@example.com",
-        enabled: true,
-        password: "correct horse battery staple",
-        roleIds: [builtInRoleIds.editor],
-        username: "alice"
+      expect(mocks.createRole).toHaveBeenCalledWith({
+        name: "security-analyst",
+        permissions: [
+          { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+          { resource: PermissionResource.Asset, verb: PermissionVerb.Write }
+        ]
       })
     })
     expect(mocks.navigate).toHaveBeenCalledWith({
-      to: "/users",
-      search: expect.any(Function)
-    })
-    const search = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>
-    ) => Record<string, unknown>
-
-    expect(search({ enabled: "true", filter: "alice", selected: "user-1" })).toEqual({
-      enabled: "true",
-      filter: "alice",
-      selected: undefined
+      to: "/roles/$id",
+      params: { id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830" }
     })
   })
 
-  it("does not navigate when the lifecycle hook handles create failures", async () => {
-    mocks.createUser.mockResolvedValueOnce(null)
+  it("does not navigate when the lifecycle handles create failures", async () => {
+    mocks.createRole.mockResolvedValueOnce(null)
 
-    render(<CreateUserRouteComponent />)
+    render(<CreateRolePage />)
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
-      expect(mocks.createUser).toHaveBeenCalled()
+      expect(mocks.createRole).toHaveBeenCalled()
     })
     expect(mocks.navigate).not.toHaveBeenCalled()
   })
 
-  it("cancels back to the user list", async () => {
-    render(<CreateUserRouteComponent />)
+  it("cancels back to the roles list", async () => {
+    render(<CreateRolePage />)
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }))
 
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith({
-        to: "/users",
+        to: "/roles",
         search: expect.any(Function)
       })
     })
@@ -225,9 +221,9 @@ describe("CreateUserRouteComponent", () => {
       previous: Record<string, unknown>
     ) => Record<string, unknown>
 
-    expect(search({ enabled: "false", filter: "bob", selected: "user-1" })).toEqual({
-      enabled: "false",
-      filter: "bob",
+    expect(search({ filter: "security", kind: "custom", selected: "role-1" })).toEqual({
+      filter: "security",
+      kind: "custom",
       selected: undefined
     })
   })

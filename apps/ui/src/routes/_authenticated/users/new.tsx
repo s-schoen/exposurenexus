@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { CreateUserRouteComponent } from "@/routes/_authenticated/users/-new-route-component.tsx"
+import { CreateUserPage } from "@/features/users/components/create-user-page.tsx"
 
 export const Route = createFileRoute("/_authenticated/users/new")({
-  component: CreateUserRouteComponent
+  component: RouteComponent
 })
+
+function RouteComponent() {
+  return <CreateUserPage />
+}

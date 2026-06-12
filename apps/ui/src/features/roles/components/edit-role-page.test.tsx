@@ -12,7 +12,7 @@ import {
 } from "@exposurenexus/types/model/rbac"
 import type { Role } from "@exposurenexus/types/model/rbac"
 import type { RoleFormValues } from "@/components/role-form.tsx"
-import { EditRoleRouteComponent } from "@/routes/_authenticated/roles/-edit-route-component.tsx"
+import { EditRolePage } from "@/features/roles/components/edit-role-page.tsx"
 
 interface QueryState<TData> {
   data?: TData
@@ -159,7 +159,7 @@ function resetQueries() {
   }
 }
 
-describe("EditRoleRouteComponent", () => {
+describe("EditRolePage", () => {
   beforeEach(() => {
     mocks.navigate.mockReset()
     resetQueries()
@@ -178,7 +178,7 @@ describe("EditRoleRouteComponent", () => {
       isSuccess: false
     }
 
-    render(<EditRoleRouteComponent roleId={roleId} />)
+    render(<EditRolePage roleId={roleId} />)
 
     expect(
       screen.getAllByText("Loading role details and available permissions.")
@@ -192,7 +192,7 @@ describe("EditRoleRouteComponent", () => {
       isSuccess: false
     }
 
-    render(<EditRoleRouteComponent roleId={roleId} />)
+    render(<EditRolePage roleId={roleId} />)
 
     expect(
       screen.getAllByText("Loading role details and available permissions.")
@@ -207,7 +207,7 @@ describe("EditRoleRouteComponent", () => {
       isSuccess: false
     }
 
-    render(<EditRoleRouteComponent roleId={roleId} />)
+    render(<EditRolePage roleId={roleId} />)
 
     expect(screen.getByText("Unable to load edit form")).toBeTruthy()
     expect(screen.getByText("Role request failed")).toBeTruthy()
@@ -220,14 +220,14 @@ describe("EditRoleRouteComponent", () => {
       isSuccess: false
     }
 
-    render(<EditRoleRouteComponent roleId={roleId} />)
+    render(<EditRolePage roleId={roleId} />)
 
     expect(screen.getByText("Unable to load edit form")).toBeTruthy()
     expect(screen.getByText("Roles request failed")).toBeTruthy()
   })
 
   it("passes default form values from the loaded role", () => {
-    render(<EditRoleRouteComponent roleId={roleId} />)
+    render(<EditRolePage roleId={roleId} />)
 
     expect(screen.getByTestId("mode").textContent).toBe("edit")
     expect(Number(screen.getByTestId("permission-count").textContent)).toBe(3)
@@ -248,7 +248,7 @@ describe("EditRoleRouteComponent", () => {
       name: "security-analyst-plus"
     })
 
-    render(<EditRoleRouteComponent roleId={roleId} />)
+    render(<EditRolePage roleId={roleId} />)
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
@@ -271,7 +271,7 @@ describe("EditRoleRouteComponent", () => {
   it("does not navigate when the lifecycle handles update failures", async () => {
     mocks.updateRole.mockResolvedValueOnce(null)
 
-    render(<EditRoleRouteComponent roleId={roleId} />)
+    render(<EditRolePage roleId={roleId} />)
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
@@ -281,7 +281,7 @@ describe("EditRoleRouteComponent", () => {
   })
 
   it("cancels back to the role detail page", async () => {
-    render(<EditRoleRouteComponent roleId={roleId} />)
+    render(<EditRolePage roleId={roleId} />)
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }))
 
     await waitFor(() => {

@@ -9,13 +9,11 @@ import { usePageMeta } from "@/context/page.tsx"
 import { isBuiltInRoleId } from "@/lib/role.ts"
 import { cn } from "@/lib/utils.ts"
 
-interface RoleDetailRouteComponentProps {
+interface RoleDetailPageProps {
   roleId: string
 }
 
-export function RoleDetailRouteComponent({
-  roleId
-}: RoleDetailRouteComponentProps) {
+export function RoleDetailPage({ roleId }: RoleDetailPageProps) {
   const navigate = useNavigate()
   const role = useQuery(createRoleByIDQueryOptions(roleId))
   const actions = useMemo(() => {

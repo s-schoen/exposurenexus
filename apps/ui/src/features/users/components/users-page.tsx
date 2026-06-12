@@ -7,15 +7,15 @@ import { usePageMeta } from "@/context/page.tsx"
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts"
 import { useUserTableSearchState } from "@/hooks/use-user-table-search-state.ts"
 
-interface UsersRouteComponentProps {
+interface UsersPageProps {
   search?: Record<string, unknown>
   selected?: string
 }
 
-export function UsersRouteComponent({
+export function UsersPage({
   search = {},
   selected
-}: UsersRouteComponentProps) {
+}: UsersPageProps) {
   const navigate = useNavigate()
   const { filterState, onFilterStateChange } = useUserTableSearchState({
     search

@@ -182,7 +182,7 @@ vi.mock("@/context/page.tsx", () => ({
   usePageMeta: mocks.usePageMeta
 }))
 
-describe("RoleIndexRouteComponent", () => {
+describe("RolesPage", () => {
   beforeEach(() => {
     mocks.confirmDialogCall.mockReset()
     mocks.confirmDialogCall.mockResolvedValue(true)
@@ -211,10 +211,10 @@ describe("RoleIndexRouteComponent", () => {
   })
 
   it("navigates to the create route from the table toolbar", async () => {
-    const { RoleIndexRouteComponent } =
-      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
+    const { RolesPage } =
+      await import("@/features/roles/components/roles-page.tsx")
 
-    render(<RoleIndexRouteComponent />)
+    render(<RolesPage />)
 
     fireEvent.click(screen.getByRole("button", { name: /^new role$/i }))
 
@@ -222,11 +222,11 @@ describe("RoleIndexRouteComponent", () => {
   })
 
   it("passes route-owned filters and selected preview metadata to the table", async () => {
-    const { RoleIndexRouteComponent } =
-      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
+    const { RolesPage } =
+      await import("@/features/roles/components/roles-page.tsx")
 
     render(
-      <RoleIndexRouteComponent
+      <RolesPage
         search={{ filter: "security", kind: "built-in,custom" }}
         selected={mocks.customRole.id}
       />
@@ -251,10 +251,10 @@ describe("RoleIndexRouteComponent", () => {
   })
 
   it("updates route-owned filters and preserves unrelated search params", async () => {
-    const { RoleIndexRouteComponent } =
-      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
+    const { RolesPage } =
+      await import("@/features/roles/components/roles-page.tsx")
 
-    render(<RoleIndexRouteComponent />)
+    render(<RolesPage />)
     fireEvent.click(screen.getByRole("button", { name: /change filters/i }))
 
     expect(mocks.navigate).toHaveBeenCalledWith({
@@ -276,10 +276,10 @@ describe("RoleIndexRouteComponent", () => {
   })
 
   it("selects and opens roles from the table", async () => {
-    const { RoleIndexRouteComponent } =
-      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
+    const { RolesPage } =
+      await import("@/features/roles/components/roles-page.tsx")
 
-    render(<RoleIndexRouteComponent />)
+    render(<RolesPage />)
     fireEvent.click(screen.getByRole("button", { name: /select role/i }))
 
     expect(mocks.navigate).toHaveBeenCalledWith({
@@ -309,10 +309,10 @@ describe("RoleIndexRouteComponent", () => {
   })
 
   it("skips built-in-only delete selections without calling the API", async () => {
-    const { RoleIndexRouteComponent } =
-      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
+    const { RolesPage } =
+      await import("@/features/roles/components/roles-page.tsx")
 
-    render(<RoleIndexRouteComponent />)
+    render(<RolesPage />)
 
     fireEvent.click(screen.getByRole("button", { name: /delete built-in/i }))
 
@@ -326,10 +326,10 @@ describe("RoleIndexRouteComponent", () => {
   })
 
   it("confirms mixed selections and deletes only custom roles", async () => {
-    const { RoleIndexRouteComponent } =
-      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
+    const { RolesPage } =
+      await import("@/features/roles/components/roles-page.tsx")
 
-    render(<RoleIndexRouteComponent />)
+    render(<RolesPage />)
 
     fireEvent.click(screen.getByRole("button", { name: /delete mixed/i }))
 
@@ -350,10 +350,10 @@ describe("RoleIndexRouteComponent", () => {
         }
       ]
     })
-    const { RoleIndexRouteComponent } =
-      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
+    const { RolesPage } =
+      await import("@/features/roles/components/roles-page.tsx")
 
-    render(<RoleIndexRouteComponent selected={mocks.failingRole.id} />)
+    render(<RolesPage selected={mocks.failingRole.id} />)
 
     fireEvent.click(screen.getByRole("button", { name: /delete failing/i }))
 
@@ -364,10 +364,10 @@ describe("RoleIndexRouteComponent", () => {
   })
 
   it("closes the selected role preview after deleting that role", async () => {
-    const { RoleIndexRouteComponent } =
-      await import("@/routes/_authenticated/roles/-index-route-component.tsx")
+    const { RolesPage } =
+      await import("@/features/roles/components/roles-page.tsx")
 
-    render(<RoleIndexRouteComponent selected={mocks.customRole.id} />)
+    render(<RolesPage selected={mocks.customRole.id} />)
 
     fireEvent.click(screen.getByRole("button", { name: /delete mixed/i }))
 

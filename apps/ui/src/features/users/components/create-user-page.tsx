@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
 import { useUserLifecycle } from "@/hooks/use-user-lifecycle.ts"
 
-export function CreateUserRouteComponent() {
+export function CreateUserPage() {
   const navigate = useNavigate()
   const userLifecycle = useUserLifecycle()
   const roles = useQuery(createListRolesQueryOptions())

@@ -3,7 +3,7 @@ import {
   createFileRoute,
   useMatchRoute
 } from "@tanstack/react-router"
-import { RoleDetailRouteComponent } from "@/routes/_authenticated/roles/-detail-route-component.tsx"
+import { RoleDetailPage } from "@/features/roles/components/role-detail-page.tsx"
 
 export const Route = createFileRoute("/_authenticated/roles/$id")({
   component: RouteComponent
@@ -20,5 +20,5 @@ function RouteComponent() {
     return <Outlet />
   }
 
-  return <RoleDetailRouteComponent roleId={id} />
+  return <RoleDetailPage roleId={id} />
 }
