@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { CreateVulnerabilityRouteComponent } from "@/routes/_authenticated/vulnerabilities/-new-route-component.tsx"
+import { CreateVulnerabilityPage } from "@/features/vulnerabilities/components/create-vulnerability-page.tsx"
 
 export const Route = createFileRoute("/_authenticated/vulnerabilities/new")({
-  component: CreateVulnerabilityRouteComponent
+  component: RouteComponent
 })
+
+function RouteComponent() {
+  return <CreateVulnerabilityPage />
+}

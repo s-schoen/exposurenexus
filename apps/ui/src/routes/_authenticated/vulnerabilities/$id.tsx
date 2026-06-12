@@ -1,5 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { VulnerabilityIdRouteComponent } from "@/routes/_authenticated/vulnerabilities/-id-route-component.tsx"
+import {
+  Outlet,
+  createFileRoute,
+  useMatchRoute
+} from "@tanstack/react-router"
+import { VulnerabilityDetailPage } from "@/features/vulnerabilities/components/vulnerability-detail-page.tsx"
 
 export const Route = createFileRoute("/_authenticated/vulnerabilities/$id")({
   component: RouteComponent
@@ -7,6 +11,17 @@ export const Route = createFileRoute("/_authenticated/vulnerabilities/$id")({
 
 function RouteComponent() {
   const { id } = Route.useParams()
+  const matchRoute = useMatchRoute()
+  const isEditRoute = Boolean(
+    matchRoute({
+      to: "/vulnerabilities/$id/edit",
+      params: { id }
+    })
+  )
 
-  return <VulnerabilityIdRouteComponent vulnerabilityId={id} />
+  if (isEditRoute) {
+    return <Outlet />
+  }
+
+  return <VulnerabilityDetailPage vulnerabilityId={id} />
 }

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { EditVulnerabilityRouteComponent } from "@/routes/_authenticated/vulnerabilities/-edit-route-component.tsx"
+import { EditVulnerabilityPage } from "@/features/vulnerabilities/components/edit-vulnerability-page.tsx"
 
 export const Route = createFileRoute("/_authenticated/vulnerabilities/$id/edit")({
   component: RouteComponent
@@ -8,5 +8,5 @@ export const Route = createFileRoute("/_authenticated/vulnerabilities/$id/edit")
 function RouteComponent() {
   const { id } = Route.useParams()
 
-  return <EditVulnerabilityRouteComponent vulnerabilityId={id} />
+  return <EditVulnerabilityPage vulnerabilityId={id} />
 }

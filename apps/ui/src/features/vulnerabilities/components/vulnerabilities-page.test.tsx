@@ -147,7 +147,7 @@ vi.mock("@/components/vulnerability-detail-content.tsx", () => ({
   }) => <div>Detail for {vulnerabilityId}</div>
 }))
 
-describe("VulnerabilitiesRouteComponent", () => {
+describe("VulnerabilitiesPage", () => {
   beforeEach(() => {
     mocks.confirmDelete.mockReset()
     mocks.confirmDelete.mockResolvedValue(true)
@@ -166,11 +166,12 @@ describe("VulnerabilitiesRouteComponent", () => {
   })
 
   it("passes route-owned filters and preview metadata to the table", async () => {
-    const { VulnerabilitiesRouteComponent } =
-      await import("@/routes/_authenticated/vulnerabilities/-index-route-component.tsx")
+    const { VulnerabilitiesPage } = await import(
+      "@/features/vulnerabilities/components/vulnerabilities-page.tsx"
+    )
 
     render(
-      <VulnerabilitiesRouteComponent
+      <VulnerabilitiesPage
         search={{ filter: "openssl", severity: "critical,high" }}
       />
     )
@@ -199,10 +200,11 @@ describe("VulnerabilitiesRouteComponent", () => {
   })
 
   it("updates route-owned filters and preserves unrelated search params", async () => {
-    const { VulnerabilitiesRouteComponent } =
-      await import("@/routes/_authenticated/vulnerabilities/-index-route-component.tsx")
+    const { VulnerabilitiesPage } = await import(
+      "@/features/vulnerabilities/components/vulnerabilities-page.tsx"
+    )
 
-    render(<VulnerabilitiesRouteComponent />)
+    render(<VulnerabilitiesPage />)
     fireEvent.click(screen.getByRole("button", { name: /change filters/i }))
 
     expect(mocks.navigate).toHaveBeenCalledWith({
@@ -224,10 +226,11 @@ describe("VulnerabilitiesRouteComponent", () => {
   })
 
   it("selects vulnerabilities and renders the selected preview content", async () => {
-    const { VulnerabilitiesRouteComponent } =
-      await import("@/routes/_authenticated/vulnerabilities/-index-route-component.tsx")
+    const { VulnerabilitiesPage } = await import(
+      "@/features/vulnerabilities/components/vulnerabilities-page.tsx"
+    )
 
-    render(<VulnerabilitiesRouteComponent selected={mocks.vulnerability.id} />)
+    render(<VulnerabilitiesPage selected={mocks.vulnerability.id} />)
 
     expect(screen.getByTestId("selected-vulnerability").textContent).toBe(
       mocks.vulnerability.id
@@ -267,10 +270,11 @@ describe("VulnerabilitiesRouteComponent", () => {
   })
 
   it("navigates to the create vulnerability route", async () => {
-    const { VulnerabilitiesRouteComponent } =
-      await import("@/routes/_authenticated/vulnerabilities/-index-route-component.tsx")
+    const { VulnerabilitiesPage } = await import(
+      "@/features/vulnerabilities/components/vulnerabilities-page.tsx"
+    )
 
-    render(<VulnerabilitiesRouteComponent />)
+    render(<VulnerabilitiesPage />)
 
     fireEvent.click(
       screen.getByRole("button", { name: /create vulnerability/i })
@@ -282,10 +286,11 @@ describe("VulnerabilitiesRouteComponent", () => {
   })
 
   it("confirms selected vulnerability deletion and clears deleted selection", async () => {
-    const { VulnerabilitiesRouteComponent } =
-      await import("@/routes/_authenticated/vulnerabilities/-index-route-component.tsx")
+    const { VulnerabilitiesPage } = await import(
+      "@/features/vulnerabilities/components/vulnerabilities-page.tsx"
+    )
 
-    render(<VulnerabilitiesRouteComponent selected={mocks.vulnerability.id} />)
+    render(<VulnerabilitiesPage selected={mocks.vulnerability.id} />)
 
     fireEvent.click(
       screen.getByRole("button", { name: /delete vulnerability/i })
@@ -319,10 +324,11 @@ describe("VulnerabilitiesRouteComponent", () => {
         }
       ]
     })
-    const { VulnerabilitiesRouteComponent } =
-      await import("@/routes/_authenticated/vulnerabilities/-index-route-component.tsx")
+    const { VulnerabilitiesPage } = await import(
+      "@/features/vulnerabilities/components/vulnerabilities-page.tsx"
+    )
 
-    render(<VulnerabilitiesRouteComponent selected={mocks.vulnerability.id} />)
+    render(<VulnerabilitiesPage selected={mocks.vulnerability.id} />)
 
     fireEvent.click(
       screen.getByRole("button", { name: /delete vulnerability/i })

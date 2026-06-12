@@ -9,15 +9,15 @@ import { useVulnerabilityLifecycle } from "@/hooks/use-vulnerability-lifecycle.t
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts"
 import { useVulnerabilityTableSearchState } from "@/hooks/use-vulnerability-table-search-state.ts"
 
-interface VulnerabilitiesRouteComponentProps {
+interface VulnerabilitiesPageProps {
   search?: Record<string, unknown>
   selected?: string
 }
 
-export function VulnerabilitiesRouteComponent({
+export function VulnerabilitiesPage({
   search = {},
   selected
-}: VulnerabilitiesRouteComponentProps) {
+}: VulnerabilitiesPageProps) {
   const navigate = useNavigate()
   const vulnerabilityLifecycle = useVulnerabilityLifecycle()
   const { filterState, onFilterStateChange } =
