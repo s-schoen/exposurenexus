@@ -6,7 +6,7 @@ import type { ReactNode } from "react"
 import type { Asset } from "@exposurenexus/types/model/asset"
 import type { Finding } from "@exposurenexus/types/model/finding"
 import type { UserProfile } from "@exposurenexus/types/model/user"
-import { FindingsRouteComponent } from "@/routes/_authenticated/findings/-index-route-component.tsx"
+import { FindingsPage } from "@/features/findings/components/findings-page.tsx"
 
 type NavigateCall = {
   params?: Record<string, unknown>
@@ -246,7 +246,7 @@ class ResizeObserverMock {
 globalThis.ResizeObserver = ResizeObserverMock
 HTMLElement.prototype.scrollIntoView = vi.fn()
 
-function StatefulFindingsRoute({
+function StatefulFindingsPage({
   initialSearch = {},
   initialSelected
 }: {
@@ -280,7 +280,7 @@ function StatefulFindingsRoute({
   })
 
   return (
-    <FindingsRouteComponent
+    <FindingsPage
       search={routeState.search}
       selected={routeState.selected}
     />
@@ -295,14 +295,14 @@ function renderFindingsRoute({
   initialSelected?: string
 } = {}) {
   return render(
-    <StatefulFindingsRoute
+    <StatefulFindingsPage
       initialSearch={initialSearch}
       initialSelected={initialSelected}
     />
   )
 }
 
-describe("FindingsRouteComponent", () => {
+describe("FindingsPage", () => {
   beforeEach(() => {
     mocks.bulkUpdateFindingField.mockReset()
     mocks.confirmDelete.mockReset()

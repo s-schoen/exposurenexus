@@ -9,13 +9,11 @@ import { usePageMeta } from "@/context/page.tsx"
 import { formatFindingStatus } from "@/lib/format.ts"
 import { cn } from "@/lib/utils.ts"
 
-interface FindingDetailRouteComponentProps {
+interface FindingDetailPageProps {
   findingId: string
 }
 
-export function FindingDetailRouteComponent({
-  findingId
-}: FindingDetailRouteComponentProps) {
+export function FindingDetailPage({ findingId }: FindingDetailPageProps) {
   const finding = useQuery(createFindingByIDQueryOptions(findingId))
   const asset = useQuery({
     ...createAssetByIDQueryOptions(finding.data?.assetId ?? ""),

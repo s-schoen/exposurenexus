@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { FindingDetailRouteComponent } from "@/routes/_authenticated/findings/-detail-route-component.tsx"
+import { FindingDetailPage } from "@/features/findings/components/finding-detail-page.tsx"
 
 export const Route = createFileRoute("/_authenticated/findings/$id")({
   component: RouteComponent
@@ -8,5 +8,5 @@ export const Route = createFileRoute("/_authenticated/findings/$id")({
 function RouteComponent() {
   const { id } = Route.useParams()
 
-  return <FindingDetailRouteComponent findingId={id} />
+  return <FindingDetailPage findingId={id} />
 }

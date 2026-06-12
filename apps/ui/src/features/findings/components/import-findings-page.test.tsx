@@ -6,21 +6,12 @@ import {
   screen,
   waitFor
 } from "@testing-library/react"
+import { ImportFindingsPage } from "@/features/findings/components/import-findings-page.tsx"
 
 const mocks = vi.hoisted(() => ({
   importFindingFile: vi.fn(),
   usePageMeta: vi.fn()
 }))
-
-vi.mock("@tanstack/react-router", async (importOriginal) => {
-  const actual = await importOriginal()
-
-  return Object.assign({}, actual, {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      options
-    })
-  })
-})
 
 vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
   useFindingLifecycle: () => ({
@@ -47,14 +38,11 @@ function createDeferred<T>() {
   }
 }
 
-async function renderImportRoute() {
-  const { RouteComponent } =
-    await import("@/routes/_authenticated/findings/import.tsx")
-
-  return render(<RouteComponent />)
+function renderImportFindingsPage() {
+  return render(<ImportFindingsPage />)
 }
 
-describe("findings import route", () => {
+describe("ImportFindingsPage", () => {
   beforeEach(() => {
     mocks.importFindingFile.mockReset()
     mocks.usePageMeta.mockReset()
@@ -65,7 +53,7 @@ describe("findings import route", () => {
   })
 
   it("shows a no-file error when importing without selecting a file", async () => {
-    await renderImportRoute()
+    renderImportFindingsPage()
 
     fireEvent.click(screen.getByRole("button", { name: /import findings/i }))
 
@@ -78,7 +66,7 @@ describe("findings import route", () => {
   })
 
   it("shows selected file metadata and clears the file", async () => {
-    await renderImportRoute()
+    renderImportFindingsPage()
     const file = new File(["{}"], "nuclei.json", {
       type: "application/json"
     })
@@ -101,7 +89,7 @@ describe("findings import route", () => {
   })
 
   it("uploads selected files and resets the selection on success", async () => {
-    await renderImportRoute()
+    renderImportFindingsPage()
     const file = new File(["{}"], "nuclei.json", {
       type: "application/json"
     })
@@ -121,7 +109,7 @@ describe("findings import route", () => {
   })
 
   it("disables upload controls while import is pending", async () => {
-    await renderImportRoute()
+    renderImportFindingsPage()
     const deferred = createDeferred<{ success: true }>()
     const file = new File(["{}"], "nuclei.json", {
       type: "application/json"
@@ -148,7 +136,7 @@ describe("findings import route", () => {
   })
 
   it("shows upload failures and keeps the selected file", async () => {
-    await renderImportRoute()
+    renderImportFindingsPage()
     const errorMessage = "Failed to upload findings for import: Error: Upload failed"
     const file = new File(["{}"], "nuclei.json", {
       type: "application/json"
