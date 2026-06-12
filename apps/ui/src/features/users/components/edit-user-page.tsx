@@ -16,13 +16,11 @@ import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
 import { useUserLifecycle } from "@/hooks/use-user-lifecycle.ts"
 
-interface EditUserRouteComponentProps {
+interface EditUserPageProps {
   userId: string
 }
 
-export function EditUserRouteComponent({
-  userId
-}: EditUserRouteComponentProps) {
+export function EditUserPage({ userId }: EditUserPageProps) {
   const navigate = useNavigate()
   const userLifecycle = useUserLifecycle()
   const user = useQuery(createUserByIDQueryOptions(userId))

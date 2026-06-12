@@ -10,7 +10,7 @@ import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
 import type { Role } from "@exposurenexus/types/model/rbac"
 import type { UserProfile } from "@exposurenexus/types/model/user"
 import type { UserFormValues } from "@/components/user-form.tsx"
-import { EditUserRouteComponent } from "@/routes/_authenticated/users/-edit-route-component.tsx"
+import { EditUserPage } from "@/features/users/components/edit-user-page.tsx"
 
 interface QueryState<TData> {
   data?: TData
@@ -156,7 +156,7 @@ function resetQueries() {
   }
 }
 
-describe("EditUserRouteComponent", () => {
+describe("EditUserPage", () => {
   beforeEach(() => {
     mocks.navigate.mockReset()
     resetQueries()
@@ -175,7 +175,7 @@ describe("EditUserRouteComponent", () => {
       isSuccess: false
     }
 
-    render(<EditUserRouteComponent userId={userId} />)
+    render(<EditUserPage userId={userId} />)
 
     expect(
       screen.getAllByText("Loading user details and roles.").length
@@ -188,7 +188,7 @@ describe("EditUserRouteComponent", () => {
       isSuccess: false
     }
 
-    render(<EditUserRouteComponent userId={userId} />)
+    render(<EditUserPage userId={userId} />)
 
     expect(
       screen.getAllByText("Loading user details and roles.").length
@@ -202,7 +202,7 @@ describe("EditUserRouteComponent", () => {
       isSuccess: false
     }
 
-    render(<EditUserRouteComponent userId={userId} />)
+    render(<EditUserPage userId={userId} />)
 
     expect(screen.getByText("Unable to load edit form")).toBeTruthy()
     expect(screen.getByText("User request failed")).toBeTruthy()
@@ -215,14 +215,14 @@ describe("EditUserRouteComponent", () => {
       isSuccess: false
     }
 
-    render(<EditUserRouteComponent userId={userId} />)
+    render(<EditUserPage userId={userId} />)
 
     expect(screen.getByText("Unable to load edit form")).toBeTruthy()
     expect(screen.getByText("Roles request failed")).toBeTruthy()
   })
 
   it("passes default form values from the loaded user", () => {
-    render(<EditUserRouteComponent userId={userId} />)
+    render(<EditUserPage userId={userId} />)
 
     expect(screen.getByTestId("mode").textContent).toBe("edit")
     expect(screen.getByTestId("roles").textContent).toBe("viewer,editor")
@@ -244,7 +244,7 @@ describe("EditUserRouteComponent", () => {
       displayName: "Alice Changed"
     })
 
-    render(<EditUserRouteComponent userId={userId} />)
+    render(<EditUserPage userId={userId} />)
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
@@ -266,7 +266,7 @@ describe("EditUserRouteComponent", () => {
   it("does not navigate when the lifecycle hook handles update failures", async () => {
     mocks.updateUser.mockResolvedValueOnce(null)
 
-    render(<EditUserRouteComponent userId={userId} />)
+    render(<EditUserPage userId={userId} />)
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
@@ -276,7 +276,7 @@ describe("EditUserRouteComponent", () => {
   })
 
   it("cancels back to the user detail page", async () => {
-    render(<EditUserRouteComponent userId={userId} />)
+    render(<EditUserPage userId={userId} />)
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }))
 
     await waitFor(() => {

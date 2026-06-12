@@ -13,15 +13,15 @@ import { isBuiltInRoleId } from "@/lib/role.ts"
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts"
 import { useRoleTableSearchState } from "@/hooks/use-role-table-search-state.ts"
 
-interface RoleIndexRouteComponentProps {
+interface RolesPageProps {
   search?: Record<string, unknown>
   selected?: string
 }
 
-export function RoleIndexRouteComponent({
+export function RolesPage({
   search = {},
   selected
-}: RoleIndexRouteComponentProps) {
+}: RolesPageProps) {
   const navigate = useNavigate()
   const roleLifecycle = useRoleLifecycle()
   const { filterState, onFilterStateChange } = useRoleTableSearchState({

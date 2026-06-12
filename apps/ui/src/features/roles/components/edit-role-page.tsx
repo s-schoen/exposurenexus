@@ -1,11 +1,15 @@
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { CircleAlert } from "lucide-react"
-import { createListRolesQueryOptions } from "@/api/role.ts"
+import {
+  createListRolesQueryOptions,
+  createRoleByIDQueryOptions
+} from "@/api/role.ts"
 import {
   RoleForm,
   getAvailableRolePermissions,
-  mapCreateRoleFormValues
+  mapRoleToFormValues,
+  mapUpdateRoleFormValues
 } from "@/components/role-form.tsx"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
 import {
@@ -19,47 +23,50 @@ import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
 import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts"
 
-export function CreateRoleRouteComponent() {
+interface EditRolePageProps {
+  roleId: string
+}
+
+export function EditRolePage({ roleId }: EditRolePageProps) {
   const navigate = useNavigate()
   const roleLifecycle = useRoleLifecycle()
+  const role = useQuery(createRoleByIDQueryOptions(roleId))
   const roles = useQuery(createListRolesQueryOptions())
 
   usePageMeta({
-    title: "Create Role",
-    description: "Add a custom role and choose its permission grants."
+    title: role.data?.name ? `Edit ${role.data.name}` : "Edit Role",
+    description: "Update the role name and permission grants."
   })
 
   const handleCancel = async () => {
     await navigate({
-      to: "/roles",
-      search: (previous) => ({
-        filter: previous.filter,
-        kind: previous.kind,
-        selected: undefined
-      })
+      to: "/roles/$id",
+      params: { id: roleId }
     })
   }
 
   const handleSubmit = async (
-    values: Parameters<typeof mapCreateRoleFormValues>[0]
+    values: Parameters<typeof mapUpdateRoleFormValues>[0]
   ) => {
-    const payload = mapCreateRoleFormValues(values)
-    const role = await roleLifecycle.createRole(payload)
+    const payload = mapUpdateRoleFormValues(values)
+    const updatedRole = await roleLifecycle.updateRole(roleId, payload)
 
-    if (role) {
+    if (updatedRole) {
       await navigate({
         to: "/roles/$id",
-        params: { id: role.id }
+        params: { id: roleId }
       })
     }
   }
 
-  if (roles.isPending) {
+  if (role.isPending || roles.isPending) {
     return (
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader>
-          <CardTitle>Create role</CardTitle>
-          <CardDescription>Loading available permissions.</CardDescription>
+          <CardTitle>Edit role</CardTitle>
+          <CardDescription>
+            Loading role details and available permissions.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Skeleton className="h-20 w-full" />
@@ -69,20 +76,24 @@ export function CreateRoleRouteComponent() {
     )
   }
 
-  if (!roles.data) {
+  if (!role.data || !roles.data) {
     return (
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader>
-          <CardTitle>Create role</CardTitle>
+          <CardTitle>Edit role</CardTitle>
           <CardDescription>
-            Available permissions could not be loaded.
+            The selected role could not be loaded for editing.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
             <CircleAlert />
-            <AlertTitle>Unable to load permissions</AlertTitle>
-            <AlertDescription>{roles.error.message}</AlertDescription>
+            <AlertTitle>Unable to load edit form</AlertTitle>
+            <AlertDescription>
+              {role.error?.message ??
+                roles.error?.message ??
+                "The API did not return the required role data."}
+            </AlertDescription>
           </Alert>
         </CardContent>
       </Card>
@@ -91,8 +102,9 @@ export function CreateRoleRouteComponent() {
 
   return (
     <RoleForm
-      mode="create"
+      mode="edit"
       availablePermissions={getAvailableRolePermissions(roles.data)}
+      defaultValues={mapRoleToFormValues(role.data)}
       onSubmit={handleSubmit}
       onCancel={handleCancel}
     />

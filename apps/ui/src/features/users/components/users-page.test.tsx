@@ -5,7 +5,7 @@ import { useState } from "react"
 import type { ReactNode } from "react"
 import type { Role } from "@exposurenexus/types/model/rbac"
 import type { UserProfile } from "@exposurenexus/types/model/user"
-import { UsersRouteComponent } from "@/routes/_authenticated/users/-index-route-component.tsx"
+import { UsersPage } from "@/features/users/components/users-page.tsx"
 
 type NavigateCall = {
   params?: Record<string, unknown>
@@ -194,7 +194,7 @@ function StatefulUsersRoute({
   })
 
   return (
-    <UsersRouteComponent
+    <UsersPage
       search={routeState.search}
       selected={routeState.selected}
     />
@@ -216,7 +216,7 @@ function renderUsersRoute({
   )
 }
 
-describe("UsersRouteComponent", () => {
+describe("UsersPage", () => {
   beforeEach(() => {
     mocks.navigate.mockReset()
     mocks.usePageMeta.mockReset()
