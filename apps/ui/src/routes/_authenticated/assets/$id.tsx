@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { AssetDetailRouteComponent } from "@/routes/_authenticated/assets/-detail-route-component.tsx"
+import { AssetDetailPage } from "@/features/assets/components/asset-detail-page.tsx"
 
 export const Route = createFileRoute("/_authenticated/assets/$id")({
   component: RouteComponent
@@ -8,5 +8,5 @@ export const Route = createFileRoute("/_authenticated/assets/$id")({
 function RouteComponent() {
   const { id } = Route.useParams()
 
-  return <AssetDetailRouteComponent assetId={id} />
+  return <AssetDetailPage assetId={id} />
 }

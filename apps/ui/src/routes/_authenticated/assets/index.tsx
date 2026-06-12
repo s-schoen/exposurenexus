@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { AssetsRouteComponent } from "@/routes/_authenticated/assets/-index-route-component.tsx"
+import { AssetsPage } from "@/features/assets/components/assets-page.tsx"
 import { validateAssetTableSearch } from "@/hooks/use-asset-table-search-state.ts"
 import {
   validateSelectedSearch
@@ -17,5 +17,5 @@ export const Route = createFileRoute("/_authenticated/assets/")({
 function RouteComponent() {
   const search = Route.useSearch()
 
-  return <AssetsRouteComponent search={search} selected={search.selected} />
+  return <AssetsPage search={search} selected={search.selected} />
 }

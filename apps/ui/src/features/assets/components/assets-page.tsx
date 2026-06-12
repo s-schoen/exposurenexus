@@ -8,15 +8,15 @@ import { usePageMeta } from "@/context/page.tsx"
 import { useAssetTableSearchState } from "@/hooks/use-asset-table-search-state.ts"
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts"
 
-interface AssetsRouteComponentProps {
+interface AssetsPageProps {
   search?: Record<string, unknown>
   selected?: string
 }
 
-export function AssetsRouteComponent({
+export function AssetsPage({
   search = {},
   selected
-}: AssetsRouteComponentProps) {
+}: AssetsPageProps) {
   const customFieldDefinitionsQuery = useQuery(
     createListAssetCustomFieldDefinitionsQueryOptions()
   )

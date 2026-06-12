@@ -76,7 +76,7 @@ vi.mock("@/components/asset-detail-content.tsx", () => ({
   )
 }))
 
-describe("AssetDetailRouteComponent", () => {
+describe("AssetDetailPage", () => {
   beforeEach(() => {
     mocks.assetQuery = {
       data: mocks.asset,
@@ -91,11 +91,11 @@ describe("AssetDetailRouteComponent", () => {
   })
 
   it("uses loaded asset data for page metadata and renders the back link", async () => {
-    const { AssetDetailRouteComponent } = await import(
-      "@/routes/_authenticated/assets/-detail-route-component.tsx"
+    const { AssetDetailPage } = await import(
+      "@/features/assets/components/asset-detail-page.tsx"
     )
 
-    render(<AssetDetailRouteComponent assetId={assetId} />)
+    render(<AssetDetailPage assetId={assetId} />)
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Payment API",
@@ -110,15 +110,15 @@ describe("AssetDetailRouteComponent", () => {
   })
 
   it("uses fallback page metadata before asset data is available", async () => {
-    const { AssetDetailRouteComponent } = await import(
-      "@/routes/_authenticated/assets/-detail-route-component.tsx"
+    const { AssetDetailPage } = await import(
+      "@/features/assets/components/asset-detail-page.tsx"
     )
     mocks.assetQuery = {
       isPending: true,
       isSuccess: false
     }
 
-    render(<AssetDetailRouteComponent assetId={assetId} />)
+    render(<AssetDetailPage assetId={assetId} />)
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Asset",
