@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
-import { CreateCustomFieldRouteComponent } from "@/routes/_authenticated/custom-fields/-new-route-component.tsx"
+import { CreateCustomFieldPage } from "@/features/custom-fields/components/create-custom-field-page.tsx"
 
 const mocks = vi.hoisted(() => ({
   createDefinition: vi.fn(),
@@ -53,7 +53,7 @@ async function fillValidTextFieldForm(user: ReturnType<typeof userEvent.setup>) 
   )
 }
 
-describe("CreateCustomFieldRouteComponent", () => {
+describe("CreateCustomFieldPage", () => {
   beforeEach(() => {
     mocks.createDefinition.mockReset()
     mocks.navigate.mockReset()
@@ -67,7 +67,7 @@ describe("CreateCustomFieldRouteComponent", () => {
   it("cancels back to the custom field definition list", async () => {
     const user = userEvent.setup()
 
-    render(<CreateCustomFieldRouteComponent />)
+    render(<CreateCustomFieldPage />)
     await user.click(screen.getByRole("button", { name: /cancel/i }))
 
     await waitFor(() => {
@@ -99,7 +99,7 @@ describe("CreateCustomFieldRouteComponent", () => {
     const user = userEvent.setup()
     mocks.createDefinition.mockResolvedValueOnce(mocks.createdField)
 
-    render(<CreateCustomFieldRouteComponent />)
+    render(<CreateCustomFieldPage />)
     await fillValidTextFieldForm(user)
     await user.click(
       screen.getByRole("button", { name: /create custom field/i })
@@ -124,7 +124,7 @@ describe("CreateCustomFieldRouteComponent", () => {
     const user = userEvent.setup()
     mocks.createDefinition.mockResolvedValueOnce(null)
 
-    render(<CreateCustomFieldRouteComponent />)
+    render(<CreateCustomFieldPage />)
     await fillValidTextFieldForm(user)
     await user.click(
       screen.getByRole("button", { name: /create custom field/i })
@@ -152,7 +152,7 @@ describe("CreateCustomFieldRouteComponent", () => {
   it("shows visible validation errors instead of submitting an empty form", async () => {
     const user = userEvent.setup()
 
-    render(<CreateCustomFieldRouteComponent />)
+    render(<CreateCustomFieldPage />)
     await user.click(
       screen.getByRole("button", { name: /create custom field/i })
     )

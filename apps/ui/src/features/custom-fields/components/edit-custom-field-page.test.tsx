@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
 import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
-import { EditCustomFieldRouteComponent } from "@/routes/_authenticated/custom-fields/-edit-route-component.tsx"
+import { EditCustomFieldPage } from "@/features/custom-fields/components/edit-custom-field-page.tsx"
 
 interface QueryState<TData> {
   data?: TData
@@ -78,7 +78,7 @@ class ResizeObserverMock {
 globalThis.ResizeObserver = ResizeObserverMock
 HTMLElement.prototype.scrollIntoView = vi.fn()
 
-describe("EditCustomFieldRouteComponent", () => {
+describe("EditCustomFieldPage", () => {
   beforeEach(() => {
     mocks.customFieldQuery = {
       data: mocks.customField,
@@ -98,7 +98,7 @@ describe("EditCustomFieldRouteComponent", () => {
   })
 
   it("loads existing values and sets edit page metadata", () => {
-    render(<EditCustomFieldRouteComponent customFieldId={customFieldId} />)
+    render(<EditCustomFieldPage customFieldId={customFieldId} />)
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Edit Category",
@@ -116,7 +116,7 @@ describe("EditCustomFieldRouteComponent", () => {
   it("cancels back to the custom field detail page", async () => {
     const user = userEvent.setup()
 
-    render(<EditCustomFieldRouteComponent customFieldId={customFieldId} />)
+    render(<EditCustomFieldPage customFieldId={customFieldId} />)
     await user.click(screen.getByRole("button", { name: /cancel/i }))
 
     expect(mocks.navigate).toHaveBeenCalledWith({
@@ -134,7 +134,7 @@ describe("EditCustomFieldRouteComponent", () => {
     }
     mocks.updateDefinition.mockResolvedValueOnce(updatedField)
 
-    render(<EditCustomFieldRouteComponent customFieldId={customFieldId} />)
+    render(<EditCustomFieldPage customFieldId={customFieldId} />)
     await user.clear(screen.getByRole("textbox", { name: /^name$/i }))
     await user.type(
       screen.getByRole("textbox", { name: /^name$/i }),
@@ -165,7 +165,7 @@ describe("EditCustomFieldRouteComponent", () => {
     const user = userEvent.setup()
     mocks.updateDefinition.mockResolvedValueOnce(null)
 
-    render(<EditCustomFieldRouteComponent customFieldId={customFieldId} />)
+    render(<EditCustomFieldPage customFieldId={customFieldId} />)
     await user.click(screen.getByRole("button", { name: /save changes/i }))
 
     await waitFor(() => {
@@ -181,7 +181,7 @@ describe("EditCustomFieldRouteComponent", () => {
       isPending: true
     })
     const { rerender } = render(
-      <EditCustomFieldRouteComponent customFieldId={customFieldId} />
+      <EditCustomFieldPage customFieldId={customFieldId} />
     )
 
     expect(screen.getByText("Loading custom field details.")).toBeVisible()
@@ -190,7 +190,7 @@ describe("EditCustomFieldRouteComponent", () => {
       error: new Error("Custom field request failed"),
       isPending: false
     })
-    rerender(<EditCustomFieldRouteComponent customFieldId={customFieldId} />)
+    rerender(<EditCustomFieldPage customFieldId={customFieldId} />)
 
     expect(screen.getByText("Unable to load edit form")).toBeVisible()
     expect(screen.getByText("Custom field request failed")).toBeVisible()

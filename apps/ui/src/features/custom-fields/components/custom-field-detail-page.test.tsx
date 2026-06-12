@@ -93,7 +93,7 @@ vi.mock("@/components/asset-custom-field-detail-content", () => ({
   )
 }))
 
-describe("CustomFieldDetailRouteComponent", () => {
+describe("CustomFieldDetailPage", () => {
   beforeEach(() => {
     mocks.customFieldQuery = {
       data: mocks.customField,
@@ -109,11 +109,11 @@ describe("CustomFieldDetailRouteComponent", () => {
   })
 
   it("uses loaded custom field data for page metadata and renders the back link", async () => {
-    const { CustomFieldDetailRouteComponent } = await import(
-      "@/routes/_authenticated/custom-fields/-detail-route-component.tsx"
+    const { CustomFieldDetailPage } = await import(
+      "@/features/custom-fields/components/custom-field-detail-page.tsx"
     )
 
-    render(<CustomFieldDetailRouteComponent customFieldId={customFieldId} />)
+    render(<CustomFieldDetailPage customFieldId={customFieldId} />)
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Environment",
@@ -141,15 +141,15 @@ describe("CustomFieldDetailRouteComponent", () => {
   })
 
   it("uses fallback page metadata before custom field data is available", async () => {
-    const { CustomFieldDetailRouteComponent } = await import(
-      "@/routes/_authenticated/custom-fields/-detail-route-component.tsx"
+    const { CustomFieldDetailPage } = await import(
+      "@/features/custom-fields/components/custom-field-detail-page.tsx"
     )
     mocks.customFieldQuery = {
       isPending: true,
       isSuccess: false
     }
 
-    render(<CustomFieldDetailRouteComponent customFieldId={customFieldId} />)
+    render(<CustomFieldDetailPage customFieldId={customFieldId} />)
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Custom Field",

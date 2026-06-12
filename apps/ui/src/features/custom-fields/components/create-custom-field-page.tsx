@@ -6,7 +6,7 @@ import {
 import { usePageMeta } from "@/context/page.tsx"
 import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts"
 
-export function CreateCustomFieldRouteComponent() {
+export function CreateCustomFieldPage() {
   const navigate = useNavigate()
   const fieldLifecycle = useAssetCustomFieldDefinitionLifecycle()
 

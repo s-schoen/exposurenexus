@@ -3,7 +3,7 @@ import {
   createFileRoute,
   useMatchRoute
 } from "@tanstack/react-router"
-import { CustomFieldDetailRouteComponent } from "@/routes/_authenticated/custom-fields/-detail-route-component.tsx"
+import { CustomFieldDetailPage } from "@/features/custom-fields/components/custom-field-detail-page.tsx"
 
 export const Route = createFileRoute("/_authenticated/custom-fields/$id")({
   component: RouteComponent
@@ -20,5 +20,5 @@ function RouteComponent() {
     return <Outlet />
   }
 
-  return <CustomFieldDetailRouteComponent customFieldId={id} />
+  return <CustomFieldDetailPage customFieldId={id} />
 }

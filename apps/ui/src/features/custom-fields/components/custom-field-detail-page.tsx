@@ -8,13 +8,13 @@ import { buttonVariants } from "@/components/ui/button.tsx"
 import { usePageMeta } from "@/context/page.tsx"
 import { cn } from "@/lib/utils.ts"
 
-interface CustomFieldDetailRouteComponentProps {
+interface CustomFieldDetailPageProps {
   customFieldId: string
 }
 
-export function CustomFieldDetailRouteComponent({
+export function CustomFieldDetailPage({
   customFieldId
-}: CustomFieldDetailRouteComponentProps) {
+}: CustomFieldDetailPageProps) {
   const navigate = useNavigate()
   const customField = useQuery(
     createAssetCustomFieldDefinitionByIDQueryOptions(customFieldId)
