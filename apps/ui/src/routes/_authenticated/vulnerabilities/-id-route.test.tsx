@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, render, screen } from "@testing-library/react"
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
+import { Suspense } from "react"
+import type { ComponentType } from "react"
 
 const mocks = vi.hoisted(() => ({
   matchRoute: vi.fn(),
@@ -10,15 +12,19 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   const actual = await importOriginal()
 
   return Object.assign({}, actual, {
+    createFileRoute: () => (options: Record<string, unknown>) => ({
+      options,
+      useParams: () => ({ id: mocks.vulnerabilityId })
+    }),
     Outlet: () => <div>Vulnerability edit child route</div>,
     useMatchRoute: () => mocks.matchRoute
   })
 })
 
 vi.mock(
-  "@/routes/_authenticated/vulnerabilities/-detail-route-component.tsx",
+  "@/features/vulnerabilities/components/vulnerability-detail-page.tsx",
   () => ({
-    VulnerabilityDetailRouteComponent: ({
+    VulnerabilityDetailPage: ({
       vulnerabilityId
     }: {
       vulnerabilityId: string
@@ -37,24 +43,29 @@ describe("vulnerability id route", () => {
   })
 
   async function renderRouteComponent() {
-    const { VulnerabilityIdRouteComponent } = await import(
-      "@/routes/_authenticated/vulnerabilities/-id-route-component.tsx"
-    )
+    const { Route } = await import("@/routes/_authenticated/vulnerabilities/$id.tsx")
+    const RouteComponent = Route.options.component as ComponentType
 
-    render(
-      <VulnerabilityIdRouteComponent vulnerabilityId={mocks.vulnerabilityId} />
-    )
+    await act(() => {
+      render(
+        <Suspense fallback={null}>
+          <RouteComponent />
+        </Suspense>
+      )
+    })
   }
 
   it("renders vulnerability detail for the detail route", async () => {
     await renderRouteComponent()
 
-    expect(mocks.matchRoute).toHaveBeenCalledWith({
-      to: "/vulnerabilities/$id/edit",
-      params: { id: mocks.vulnerabilityId }
+    await waitFor(() => {
+      expect(mocks.matchRoute).toHaveBeenCalledWith({
+        to: "/vulnerabilities/$id/edit",
+        params: { id: mocks.vulnerabilityId }
+      })
     })
     expect(
-      screen.getByText(`Vulnerability detail for ${mocks.vulnerabilityId}`)
+      await screen.findByText(`Vulnerability detail for ${mocks.vulnerabilityId}`)
     ).toBeTruthy()
   })
 
@@ -63,7 +74,7 @@ describe("vulnerability id route", () => {
 
     await renderRouteComponent()
 
-    expect(screen.getByText("Vulnerability edit child route")).toBeTruthy()
+    expect(await screen.findByText("Vulnerability edit child route")).toBeTruthy()
     expect(
       screen.queryByText(`Vulnerability detail for ${mocks.vulnerabilityId}`)
     ).toBeNull()
