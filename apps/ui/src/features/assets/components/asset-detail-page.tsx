@@ -7,13 +7,11 @@ import { buttonVariants } from "@/components/ui/button.tsx"
 import { usePageMeta } from "@/context/page.tsx"
 import { cn } from "@/lib/utils.ts"
 
-interface AssetDetailRouteComponentProps {
+interface AssetDetailPageProps {
   assetId: string
 }
 
-export function AssetDetailRouteComponent({
-  assetId
-}: AssetDetailRouteComponentProps) {
+export function AssetDetailPage({ assetId }: AssetDetailPageProps) {
   const asset = useQuery(createAssetByIDQueryOptions(assetId))
 
   usePageMeta({

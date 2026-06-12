@@ -9,7 +9,7 @@ import type {
 } from "@exposurenexus/types/model/asset"
 import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import type { UserProfile } from "@exposurenexus/types/model/user"
-import { AssetsRouteComponent } from "@/routes/_authenticated/assets/-index-route-component.tsx"
+import { AssetsPage } from "@/features/assets/components/assets-page.tsx"
 
 type NavigateCall = {
   params?: Record<string, unknown>
@@ -240,7 +240,7 @@ function StatefulAssetsRoute({
   })
 
   return (
-    <AssetsRouteComponent
+    <AssetsPage
       search={routeState.search}
       selected={routeState.selected}
     />
@@ -262,7 +262,7 @@ function renderAssetsRoute({
   )
 }
 
-describe("AssetsRouteComponent", () => {
+describe("AssetsPage", () => {
   beforeEach(() => {
     mocks.assetDialogCall.mockReset()
     mocks.assetDialogCall.mockResolvedValue(mocks.createdAsset)
