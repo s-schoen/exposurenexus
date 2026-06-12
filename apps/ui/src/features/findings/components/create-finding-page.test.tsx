@@ -9,6 +9,7 @@ import {
 import { FindingStatus } from "@exposurenexus/types/model/finding"
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 import type { ReactNode } from "react"
+import { CreateFindingPage } from "@/features/findings/components/create-finding-page.tsx"
 
 const mocks = vi.hoisted(() => ({
   createFinding: vi.fn(),
@@ -33,21 +34,6 @@ const mocks = vi.hoisted(() => ({
     }
   ]
 }))
-
-vi.mock("@tanstack/react-router", async (importOriginal) => {
-  const actual = await importOriginal()
-
-  return Object.assign({}, actual, {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      options
-    }),
-    useRouter: () => ({
-      history: {
-        back: mocks.historyBack
-      }
-    })
-  })
-})
 
 vi.mock("@/components/asset-combobox.tsx", () => ({
   AssetCombobox: ({
@@ -155,14 +141,11 @@ vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
   })
 }))
 
-async function renderCreateFindingRoute() {
-  const { RouteComponent } =
-    await import("@/routes/_authenticated/findings/new.tsx")
-
-  return render(<RouteComponent />)
+function renderCreateFindingPage() {
+  return render(<CreateFindingPage onClose={mocks.historyBack} />)
 }
 
-describe("create finding route", () => {
+describe("CreateFindingPage", () => {
   beforeEach(() => {
     mocks.createFinding.mockReset()
     mocks.historyBack.mockReset()
@@ -173,31 +156,31 @@ describe("create finding route", () => {
     cleanup()
   })
 
-  it("does not submit invalid required fields", async () => {
-    await renderCreateFindingRoute()
+  it("does not submit invalid required fields", () => {
+    renderCreateFindingPage()
 
     fireEvent.click(screen.getByRole("button", { name: /^create$/i }))
 
     expect(mocks.createFinding).not.toHaveBeenCalled()
   })
 
-  it("cancels back to the previous page", async () => {
-    await renderCreateFindingRoute()
+  it("cancels back to the previous page", () => {
+    renderCreateFindingPage()
 
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }))
 
     expect(mocks.historyBack).toHaveBeenCalledTimes(1)
   })
 
-  it("shows the default severity and status selections", async () => {
-    await renderCreateFindingRoute()
+  it("shows the default severity and status selections", () => {
+    renderCreateFindingPage()
 
     expect(screen.getByLabelText(/severity/i).textContent).toMatch(/medium/i)
     expect(screen.getByLabelText(/status/i).textContent).toMatch(/active/i)
   })
 
   it("submits a valid finding and navigates back on success", async () => {
-    await renderCreateFindingRoute()
+    renderCreateFindingPage()
     mocks.createFinding.mockResolvedValueOnce({
       id: "2713d833-eb13-4517-ac7c-7761545ed42a"
     })
@@ -233,7 +216,7 @@ describe("create finding route", () => {
   })
 
   it("submits a valid finding with selected severity and status", async () => {
-    await renderCreateFindingRoute()
+    renderCreateFindingPage()
     mocks.createFinding.mockResolvedValueOnce({
       id: "2713d833-eb13-4517-ac7c-7761545ed42a"
     })
@@ -265,7 +248,7 @@ describe("create finding route", () => {
   })
 
   it("submits a valid finding with a selected due date", async () => {
-    await renderCreateFindingRoute()
+    renderCreateFindingPage()
     mocks.createFinding.mockResolvedValueOnce({
       id: "2713d833-eb13-4517-ac7c-7761545ed42a"
     })
@@ -298,7 +281,7 @@ describe("create finding route", () => {
   })
 
   it("submits a valid finding with a selected assignee", async () => {
-    await renderCreateFindingRoute()
+    renderCreateFindingPage()
     mocks.createFinding.mockResolvedValueOnce({
       id: "2713d833-eb13-4517-ac7c-7761545ed42a"
     })
@@ -327,7 +310,7 @@ describe("create finding route", () => {
   })
 
   it("clears a selected assignee before creating", async () => {
-    await renderCreateFindingRoute()
+    renderCreateFindingPage()
     mocks.createFinding.mockResolvedValueOnce({
       id: "2713d833-eb13-4517-ac7c-7761545ed42a"
     })
@@ -357,7 +340,7 @@ describe("create finding route", () => {
   })
 
   it("stays on the form when create finding fails", async () => {
-    await renderCreateFindingRoute()
+    renderCreateFindingPage()
     mocks.createFinding.mockResolvedValueOnce(null)
 
     fireEvent.change(screen.getByLabelText(/vulnerability id/i), {

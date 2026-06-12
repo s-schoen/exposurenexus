@@ -135,7 +135,7 @@ vi.mock("@/components/finding-detail-content.tsx", () => ({
   )
 }))
 
-describe("FindingDetailRouteComponent", () => {
+describe("FindingDetailPage", () => {
   beforeEach(() => {
     mocks.assetQuery = {
       data: mocks.asset,
@@ -155,11 +155,11 @@ describe("FindingDetailRouteComponent", () => {
   })
 
   it("uses loaded finding and asset data for page metadata and renders the back link", async () => {
-    const { FindingDetailRouteComponent } = await import(
-      "@/routes/_authenticated/findings/-detail-route-component.tsx"
+    const { FindingDetailPage } = await import(
+      "@/features/findings/components/finding-detail-page.tsx"
     )
 
-    render(<FindingDetailRouteComponent findingId={findingId} />)
+    render(<FindingDetailPage findingId={findingId} />)
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Missing MFA enforcement",
@@ -172,8 +172,8 @@ describe("FindingDetailRouteComponent", () => {
   })
 
   it("uses fallback page metadata before finding data is available", async () => {
-    const { FindingDetailRouteComponent } = await import(
-      "@/routes/_authenticated/findings/-detail-route-component.tsx"
+    const { FindingDetailPage } = await import(
+      "@/features/findings/components/finding-detail-page.tsx"
     )
     mocks.findingQuery = {
       isPending: true,
@@ -184,7 +184,7 @@ describe("FindingDetailRouteComponent", () => {
       isSuccess: false
     }
 
-    render(<FindingDetailRouteComponent findingId={findingId} />)
+    render(<FindingDetailPage findingId={findingId} />)
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Finding",
@@ -193,15 +193,15 @@ describe("FindingDetailRouteComponent", () => {
   })
 
   it("uses fallback description while the finding asset is loading", async () => {
-    const { FindingDetailRouteComponent } = await import(
-      "@/routes/_authenticated/findings/-detail-route-component.tsx"
+    const { FindingDetailPage } = await import(
+      "@/features/findings/components/finding-detail-page.tsx"
     )
     mocks.assetQuery = {
       isPending: true,
       isSuccess: false
     }
 
-    render(<FindingDetailRouteComponent findingId={findingId} />)
+    render(<FindingDetailPage findingId={findingId} />)
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Missing MFA enforcement",

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { FindingsRouteComponent } from "@/routes/_authenticated/findings/-index-route-component.tsx"
+import { FindingsPage } from "@/features/findings/components/findings-page.tsx"
 import { validateFindingTableSearch } from "@/hooks/use-finding-table-search-state.ts"
 import {
   validateSelectedSearch
@@ -17,5 +17,5 @@ export const Route = createFileRoute("/_authenticated/findings/")({
 function RouteComponent() {
   const search = Route.useSearch()
 
-  return <FindingsRouteComponent search={search} selected={search.selected} />
+  return <FindingsPage search={search} selected={search.selected} />
 }
