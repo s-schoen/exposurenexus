@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { EditCustomFieldRouteComponent } from "@/routes/_authenticated/custom-fields/-edit-route-component.tsx"
+import { EditCustomFieldPage } from "@/features/custom-fields/components/edit-custom-field-page.tsx"
 
 export const Route = createFileRoute("/_authenticated/custom-fields/$id/edit")({
   component: RouteComponent
@@ -8,5 +8,5 @@ export const Route = createFileRoute("/_authenticated/custom-fields/$id/edit")({
 function RouteComponent() {
   const { id } = Route.useParams()
 
-  return <EditCustomFieldRouteComponent customFieldId={id} />
+  return <EditCustomFieldPage customFieldId={id} />
 }

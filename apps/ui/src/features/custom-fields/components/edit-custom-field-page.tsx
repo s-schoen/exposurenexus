@@ -19,13 +19,13 @@ import { Skeleton } from "@/components/ui/skeleton.tsx"
 import { usePageMeta } from "@/context/page.tsx"
 import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts"
 
-interface EditCustomFieldRouteComponentProps {
+interface EditCustomFieldPageProps {
   customFieldId: string
 }
 
-export function EditCustomFieldRouteComponent({
+export function EditCustomFieldPage({
   customFieldId
-}: EditCustomFieldRouteComponentProps) {
+}: EditCustomFieldPageProps) {
   const navigate = useNavigate()
   const fieldLifecycle = useAssetCustomFieldDefinitionLifecycle()
   const customField = useQuery(

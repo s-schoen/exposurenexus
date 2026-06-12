@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
 import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
 import type { ReactNode } from "react"
-import { CustomFieldsRouteComponent } from "@/routes/_authenticated/custom-fields/-index-route-component.tsx"
+import { CustomFieldsPage } from "@/features/custom-fields/components/custom-fields-page.tsx"
 
 type NavigateCall = {
   params?: Record<string, unknown>
@@ -191,7 +191,7 @@ function StatefulCustomFieldsRoute({
   }, [])
 
   return (
-    <CustomFieldsRouteComponent
+    <CustomFieldsPage
       search={routeState.search}
       selected={routeState.selected}
     />
@@ -225,7 +225,7 @@ function getEnvironmentField() {
   return field
 }
 
-describe("CustomFieldsRouteComponent", () => {
+describe("CustomFieldsPage", () => {
   beforeEach(() => {
     mocks.confirmDelete.mockReset()
     mocks.confirmDelete.mockResolvedValue(true)

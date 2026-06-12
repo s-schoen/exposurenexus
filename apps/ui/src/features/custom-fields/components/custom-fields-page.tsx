@@ -11,15 +11,15 @@ import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom
 import { useCustomFieldTableSearchState } from "@/hooks/use-custom-field-table-search-state.ts"
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts"
 
-interface CustomFieldsRouteComponentProps {
+interface CustomFieldsPageProps {
   search?: Record<string, unknown>
   selected?: string
 }
 
-export function CustomFieldsRouteComponent({
+export function CustomFieldsPage({
   search = {},
   selected
-}: CustomFieldsRouteComponentProps) {
+}: CustomFieldsPageProps) {
   const navigate = useNavigate()
   const fieldLifecycle = useAssetCustomFieldDefinitionLifecycle()
   const { filterState, onFilterStateChange } = useCustomFieldTableSearchState({

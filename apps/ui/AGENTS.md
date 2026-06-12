@@ -19,7 +19,7 @@ Do NOT commit any changes to git unless you are explicitly asked.
 - **Routing**: @tanstack/react-router (File-based routing in `src/routes`).
 - **Route architecture**: Keep `src/routes` files as thin router adapters. Route files should own route configuration,
   guards, search validation, params/search/context reads, and prop adaptation only. Put substantial screen/page UI in
-  feature components under `src/features/<domain>/components` and name full route screens `*-page.tsx`. Do not export a
+  feature components under `src/features/<feature>/components` and name full route screens `*-page.tsx`. Do not export a
   component from a route file when that component is assigned to `component:`, `errorComponent:`, `pendingComponent:`, or
   `notFoundComponent:` because exported route components are not automatically code-split. TanStack Router `-` ignored
   files are allowed for rare route-private helpers that must stay under `src/routes`, but prefer feature folders for

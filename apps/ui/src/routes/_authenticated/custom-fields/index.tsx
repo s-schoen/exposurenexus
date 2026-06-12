@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { CustomFieldsRouteComponent } from "@/routes/_authenticated/custom-fields/-index-route-component.tsx"
+import { CustomFieldsPage } from "@/features/custom-fields/components/custom-fields-page.tsx"
 import { validateCustomFieldTableSearch } from "@/hooks/use-custom-field-table-search-state.ts"
 import {
   validateSelectedSearch
@@ -17,7 +17,5 @@ export const Route = createFileRoute("/_authenticated/custom-fields/")({
 function RouteComponent() {
   const search = Route.useSearch()
 
-  return (
-    <CustomFieldsRouteComponent search={search} selected={search.selected} />
-  )
+  return <CustomFieldsPage search={search} selected={search.selected} />
 }
