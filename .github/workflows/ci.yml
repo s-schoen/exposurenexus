@@ -130,7 +130,7 @@ jobs:
 
       - name: Upload API coverage
         if: ${{ env.ACT != 'true' }}
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           use_oidc: true
           disable_search: true
@@ -140,7 +140,7 @@ jobs:
 
       - name: Upload UI coverage
         if: ${{ env.ACT != 'true' }}
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           use_oidc: true
           disable_search: true
