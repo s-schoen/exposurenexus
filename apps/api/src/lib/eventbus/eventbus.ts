@@ -16,11 +16,10 @@ export type EventListener<TEvent extends EventSubject> = (
 // Example: "user.profile.updated" becomes "user.*" | "user.profile.*".
 type NamespaceWildcard<TEventName extends string> =
   TEventName extends `${infer Namespace}.${infer Rest}`
-    ?
-        | `${Namespace}.*`
-        | (Rest extends `${string}.${string}`
-            ? `${Namespace}.${NamespaceWildcard<Rest>}`
-            : never)
+    ? | `${Namespace}.*`
+      | (Rest extends `${string}.${string}`
+          ? `${Namespace}.${NamespaceWildcard<Rest>}`
+          : never)
     : never
 
 // When callers provide a literal event-name union, listener names are restricted
@@ -30,10 +29,9 @@ type NamespaceWildcard<TEventName extends string> =
 export type EventListenerName<TEvent extends EventSubject = EventSubject> =
   string extends EventSubjectName<TEvent>
     ? string
-    :
-        | EventSubjectName<TEvent>
-        | "*"
-        | NamespaceWildcard<EventSubjectName<TEvent>>
+    : | EventSubjectName<TEvent>
+      | "*"
+      | NamespaceWildcard<EventSubjectName<TEvent>>
 
 // Narrows the event passed into a listener callback based on the listener
 // registration. A `user.*` listener only receives events whose subjects are

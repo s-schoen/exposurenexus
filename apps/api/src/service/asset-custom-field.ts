@@ -51,8 +51,7 @@ function customFieldRuleViolationMessage(
 
 function validateCustomFieldDefinition(
   definition:
-    | CreateAssetCustomFieldDefinition
-    | UpdateAssetCustomFieldDefinition
+    CreateAssetCustomFieldDefinition | UpdateAssetCustomFieldDefinition
 ): void {
   const [violation] = validateAssetCustomFieldDefinitionRules(definition)
 

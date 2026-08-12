@@ -1,9 +1,7 @@
 export const DEFAULT_LOGIN_REDIRECT = "/"
 
 interface RouteMatchLookup {
-  getMatchedRoutes: (pathname: string) => {
-    foundRoute: unknown | undefined
-  }
+  getMatchedRoutes: (pathname: string) => [unknown, unknown, unknown | undefined]
 }
 
 interface LoginRedirectOptions {
@@ -82,6 +80,6 @@ export function createRouterLoginRedirects(
   return createLoginRedirects({
     ...options,
     isKnownRoutePath: (pathname) =>
-      router.getMatchedRoutes(pathname).foundRoute !== undefined
+      router.getMatchedRoutes(pathname)[2] !== undefined
   })
 }

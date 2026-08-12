@@ -9,40 +9,40 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedVulnerabilitiesIndexRouteImport } from './routes/_authenticated/vulnerabilities/index'
-import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
-import { Route as AuthenticatedRolesIndexRouteImport } from './routes/_authenticated/roles/index'
-import { Route as AuthenticatedFindingsIndexRouteImport } from './routes/_authenticated/findings/index'
-import { Route as AuthenticatedCustomFieldsIndexRouteImport } from './routes/_authenticated/custom-fields/index'
 import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets/index'
-import { Route as AuthenticatedVulnerabilitiesNewRouteImport } from './routes/_authenticated/vulnerabilities/new'
-import { Route as AuthenticatedVulnerabilitiesIdRouteImport } from './routes/_authenticated/vulnerabilities/$id'
-import { Route as AuthenticatedUsersNewRouteImport } from './routes/_authenticated/users/new'
-import { Route as AuthenticatedUsersIdRouteImport } from './routes/_authenticated/users/$id'
-import { Route as AuthenticatedRolesNewRouteImport } from './routes/_authenticated/roles/new'
-import { Route as AuthenticatedRolesIdRouteImport } from './routes/_authenticated/roles/$id'
-import { Route as AuthenticatedFindingsTriageRouteImport } from './routes/_authenticated/findings/triage'
-import { Route as AuthenticatedFindingsNewRouteImport } from './routes/_authenticated/findings/new'
-import { Route as AuthenticatedFindingsImportRouteImport } from './routes/_authenticated/findings/import'
-import { Route as AuthenticatedFindingsIdRouteImport } from './routes/_authenticated/findings/$id'
-import { Route as AuthenticatedCustomFieldsNewRouteImport } from './routes/_authenticated/custom-fields/new'
-import { Route as AuthenticatedCustomFieldsIdRouteImport } from './routes/_authenticated/custom-fields/$id'
 import { Route as AuthenticatedAssetsIdRouteImport } from './routes/_authenticated/assets/$id'
-import { Route as AuthenticatedVulnerabilitiesIdEditRouteImport } from './routes/_authenticated/vulnerabilities/$id.edit'
-import { Route as AuthenticatedUsersIdEditRouteImport } from './routes/_authenticated/users/$id.edit'
-import { Route as AuthenticatedRolesIdEditRouteImport } from './routes/_authenticated/roles/$id.edit'
+import { Route as AuthenticatedCustomFieldsIndexRouteImport } from './routes/_authenticated/custom-fields/index'
+import { Route as AuthenticatedCustomFieldsIdRouteImport } from './routes/_authenticated/custom-fields/$id'
+import { Route as AuthenticatedCustomFieldsNewRouteImport } from './routes/_authenticated/custom-fields/new'
+import { Route as AuthenticatedFindingsIndexRouteImport } from './routes/_authenticated/findings/index'
+import { Route as AuthenticatedFindingsIdRouteImport } from './routes/_authenticated/findings/$id'
+import { Route as AuthenticatedFindingsImportRouteImport } from './routes/_authenticated/findings/import'
+import { Route as AuthenticatedFindingsNewRouteImport } from './routes/_authenticated/findings/new'
+import { Route as AuthenticatedFindingsTriageRouteImport } from './routes/_authenticated/findings/triage'
+import { Route as AuthenticatedRolesIndexRouteImport } from './routes/_authenticated/roles/index'
+import { Route as AuthenticatedRolesIdRouteImport } from './routes/_authenticated/roles/$id'
+import { Route as AuthenticatedRolesNewRouteImport } from './routes/_authenticated/roles/new'
+import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
+import { Route as AuthenticatedUsersIdRouteImport } from './routes/_authenticated/users/$id'
+import { Route as AuthenticatedUsersNewRouteImport } from './routes/_authenticated/users/new'
+import { Route as AuthenticatedVulnerabilitiesIndexRouteImport } from './routes/_authenticated/vulnerabilities/index'
+import { Route as AuthenticatedVulnerabilitiesIdRouteImport } from './routes/_authenticated/vulnerabilities/$id'
+import { Route as AuthenticatedVulnerabilitiesNewRouteImport } from './routes/_authenticated/vulnerabilities/new'
 import { Route as AuthenticatedCustomFieldsIdEditRouteImport } from './routes/_authenticated/custom-fields/$id.edit'
+import { Route as AuthenticatedRolesIdEditRouteImport } from './routes/_authenticated/roles/$id.edit'
+import { Route as AuthenticatedUsersIdEditRouteImport } from './routes/_authenticated/users/$id.edit'
+import { Route as AuthenticatedVulnerabilitiesIdEditRouteImport } from './routes/_authenticated/vulnerabilities/$id.edit'
 
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -50,99 +50,21 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedVulnerabilitiesIndexRoute =
-  AuthenticatedVulnerabilitiesIndexRouteImport.update({
-    id: '/vulnerabilities/',
-    path: '/vulnerabilities/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedUsersIndexRoute = AuthenticatedUsersIndexRouteImport.update({
-  id: '/users/',
-  path: '/users/',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedRolesIndexRoute = AuthenticatedRolesIndexRouteImport.update({
-  id: '/roles/',
-  path: '/roles/',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedFindingsIndexRoute =
-  AuthenticatedFindingsIndexRouteImport.update({
-    id: '/findings/',
-    path: '/findings/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedCustomFieldsIndexRoute =
-  AuthenticatedCustomFieldsIndexRouteImport.update({
-    id: '/custom-fields/',
-    path: '/custom-fields/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedAssetsIndexRoute =
   AuthenticatedAssetsIndexRouteImport.update({
     id: '/assets/',
     path: '/assets/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedVulnerabilitiesNewRoute =
-  AuthenticatedVulnerabilitiesNewRouteImport.update({
-    id: '/vulnerabilities/new',
-    path: '/vulnerabilities/new',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedVulnerabilitiesIdRoute =
-  AuthenticatedVulnerabilitiesIdRouteImport.update({
-    id: '/vulnerabilities/$id',
-    path: '/vulnerabilities/$id',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedUsersNewRoute = AuthenticatedUsersNewRouteImport.update({
-  id: '/users/new',
-  path: '/users/new',
+const AuthenticatedAssetsIdRoute = AuthenticatedAssetsIdRouteImport.update({
+  id: '/assets/$id',
+  path: '/assets/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedUsersIdRoute = AuthenticatedUsersIdRouteImport.update({
-  id: '/users/$id',
-  path: '/users/$id',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedRolesNewRoute = AuthenticatedRolesNewRouteImport.update({
-  id: '/roles/new',
-  path: '/roles/new',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedRolesIdRoute = AuthenticatedRolesIdRouteImport.update({
-  id: '/roles/$id',
-  path: '/roles/$id',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedFindingsTriageRoute =
-  AuthenticatedFindingsTriageRouteImport.update({
-    id: '/findings/triage',
-    path: '/findings/triage',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedFindingsNewRoute =
-  AuthenticatedFindingsNewRouteImport.update({
-    id: '/findings/new',
-    path: '/findings/new',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedFindingsImportRoute =
-  AuthenticatedFindingsImportRouteImport.update({
-    id: '/findings/import',
-    path: '/findings/import',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedFindingsIdRoute = AuthenticatedFindingsIdRouteImport.update({
-  id: '/findings/$id',
-  path: '/findings/$id',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedCustomFieldsNewRoute =
-  AuthenticatedCustomFieldsNewRouteImport.update({
-    id: '/custom-fields/new',
-    path: '/custom-fields/new',
+const AuthenticatedCustomFieldsIndexRoute =
+  AuthenticatedCustomFieldsIndexRouteImport.update({
+    id: '/custom-fields/',
+    path: '/custom-fields/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedCustomFieldsIdRoute =
@@ -151,22 +73,94 @@ const AuthenticatedCustomFieldsIdRoute =
     path: '/custom-fields/$id',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedAssetsIdRoute = AuthenticatedAssetsIdRouteImport.update({
-  id: '/assets/$id',
-  path: '/assets/$id',
+const AuthenticatedCustomFieldsNewRoute =
+  AuthenticatedCustomFieldsNewRouteImport.update({
+    id: '/custom-fields/new',
+    path: '/custom-fields/new',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFindingsIndexRoute =
+  AuthenticatedFindingsIndexRouteImport.update({
+    id: '/findings/',
+    path: '/findings/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFindingsIdRoute = AuthenticatedFindingsIdRouteImport.update({
+  id: '/findings/$id',
+  path: '/findings/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedVulnerabilitiesIdEditRoute =
-  AuthenticatedVulnerabilitiesIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthenticatedVulnerabilitiesIdRoute,
+const AuthenticatedFindingsImportRoute =
+  AuthenticatedFindingsImportRouteImport.update({
+    id: '/findings/import',
+    path: '/findings/import',
+    getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedUsersIdEditRoute =
-  AuthenticatedUsersIdEditRouteImport.update({
+const AuthenticatedFindingsNewRoute =
+  AuthenticatedFindingsNewRouteImport.update({
+    id: '/findings/new',
+    path: '/findings/new',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedFindingsTriageRoute =
+  AuthenticatedFindingsTriageRouteImport.update({
+    id: '/findings/triage',
+    path: '/findings/triage',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedRolesIndexRoute = AuthenticatedRolesIndexRouteImport.update({
+  id: '/roles/',
+  path: '/roles/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedRolesIdRoute = AuthenticatedRolesIdRouteImport.update({
+  id: '/roles/$id',
+  path: '/roles/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedRolesNewRoute = AuthenticatedRolesNewRouteImport.update({
+  id: '/roles/new',
+  path: '/roles/new',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedUsersIndexRoute = AuthenticatedUsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedUsersIdRoute = AuthenticatedUsersIdRouteImport.update({
+  id: '/users/$id',
+  path: '/users/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedUsersNewRoute = AuthenticatedUsersNewRouteImport.update({
+  id: '/users/new',
+  path: '/users/new',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedVulnerabilitiesIndexRoute =
+  AuthenticatedVulnerabilitiesIndexRouteImport.update({
+    id: '/vulnerabilities/',
+    path: '/vulnerabilities/',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedVulnerabilitiesIdRoute =
+  AuthenticatedVulnerabilitiesIdRouteImport.update({
+    id: '/vulnerabilities/$id',
+    path: '/vulnerabilities/$id',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedVulnerabilitiesNewRoute =
+  AuthenticatedVulnerabilitiesNewRouteImport.update({
+    id: '/vulnerabilities/new',
+    path: '/vulnerabilities/new',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCustomFieldsIdEditRoute =
+  AuthenticatedCustomFieldsIdEditRouteImport.update({
     id: '/edit',
     path: '/edit',
-    getParentRoute: () => AuthenticatedUsersIdRoute,
+    getParentRoute: () => AuthenticatedCustomFieldsIdRoute,
   } as any)
 const AuthenticatedRolesIdEditRoute =
   AuthenticatedRolesIdEditRouteImport.update({
@@ -174,11 +168,17 @@ const AuthenticatedRolesIdEditRoute =
     path: '/edit',
     getParentRoute: () => AuthenticatedRolesIdRoute,
   } as any)
-const AuthenticatedCustomFieldsIdEditRoute =
-  AuthenticatedCustomFieldsIdEditRouteImport.update({
+const AuthenticatedUsersIdEditRoute =
+  AuthenticatedUsersIdEditRouteImport.update({
     id: '/edit',
     path: '/edit',
-    getParentRoute: () => AuthenticatedCustomFieldsIdRoute,
+    getParentRoute: () => AuthenticatedUsersIdRoute,
+  } as any)
+const AuthenticatedVulnerabilitiesIdEditRoute =
+  AuthenticatedVulnerabilitiesIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedVulnerabilitiesIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -356,18 +356,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -377,130 +377,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/vulnerabilities/': {
-      id: '/_authenticated/vulnerabilities/'
-      path: '/vulnerabilities'
-      fullPath: '/vulnerabilities/'
-      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/users/': {
-      id: '/_authenticated/users/'
-      path: '/users'
-      fullPath: '/users/'
-      preLoaderRoute: typeof AuthenticatedUsersIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/roles/': {
-      id: '/_authenticated/roles/'
-      path: '/roles'
-      fullPath: '/roles/'
-      preLoaderRoute: typeof AuthenticatedRolesIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/findings/': {
-      id: '/_authenticated/findings/'
-      path: '/findings'
-      fullPath: '/findings/'
-      preLoaderRoute: typeof AuthenticatedFindingsIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/custom-fields/': {
-      id: '/_authenticated/custom-fields/'
-      path: '/custom-fields'
-      fullPath: '/custom-fields/'
-      preLoaderRoute: typeof AuthenticatedCustomFieldsIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/assets/': {
       id: '/_authenticated/assets/'
       path: '/assets'
       fullPath: '/assets/'
       preLoaderRoute: typeof AuthenticatedAssetsIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/vulnerabilities/new': {
-      id: '/_authenticated/vulnerabilities/new'
-      path: '/vulnerabilities/new'
-      fullPath: '/vulnerabilities/new'
-      preLoaderRoute: typeof AuthenticatedVulnerabilitiesNewRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/vulnerabilities/$id': {
-      id: '/_authenticated/vulnerabilities/$id'
-      path: '/vulnerabilities/$id'
-      fullPath: '/vulnerabilities/$id'
-      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/users/new': {
-      id: '/_authenticated/users/new'
-      path: '/users/new'
-      fullPath: '/users/new'
-      preLoaderRoute: typeof AuthenticatedUsersNewRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/users/$id': {
-      id: '/_authenticated/users/$id'
-      path: '/users/$id'
-      fullPath: '/users/$id'
-      preLoaderRoute: typeof AuthenticatedUsersIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/roles/new': {
-      id: '/_authenticated/roles/new'
-      path: '/roles/new'
-      fullPath: '/roles/new'
-      preLoaderRoute: typeof AuthenticatedRolesNewRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/roles/$id': {
-      id: '/_authenticated/roles/$id'
-      path: '/roles/$id'
-      fullPath: '/roles/$id'
-      preLoaderRoute: typeof AuthenticatedRolesIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/findings/triage': {
-      id: '/_authenticated/findings/triage'
-      path: '/findings/triage'
-      fullPath: '/findings/triage'
-      preLoaderRoute: typeof AuthenticatedFindingsTriageRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/findings/new': {
-      id: '/_authenticated/findings/new'
-      path: '/findings/new'
-      fullPath: '/findings/new'
-      preLoaderRoute: typeof AuthenticatedFindingsNewRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/findings/import': {
-      id: '/_authenticated/findings/import'
-      path: '/findings/import'
-      fullPath: '/findings/import'
-      preLoaderRoute: typeof AuthenticatedFindingsImportRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/findings/$id': {
-      id: '/_authenticated/findings/$id'
-      path: '/findings/$id'
-      fullPath: '/findings/$id'
-      preLoaderRoute: typeof AuthenticatedFindingsIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/custom-fields/new': {
-      id: '/_authenticated/custom-fields/new'
-      path: '/custom-fields/new'
-      fullPath: '/custom-fields/new'
-      preLoaderRoute: typeof AuthenticatedCustomFieldsNewRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/custom-fields/$id': {
-      id: '/_authenticated/custom-fields/$id'
-      path: '/custom-fields/$id'
-      fullPath: '/custom-fields/$id'
-      preLoaderRoute: typeof AuthenticatedCustomFieldsIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/assets/$id': {
@@ -510,19 +391,131 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAssetsIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/vulnerabilities/$id/edit': {
-      id: '/_authenticated/vulnerabilities/$id/edit'
-      path: '/edit'
-      fullPath: '/vulnerabilities/$id/edit'
-      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIdEditRouteImport
-      parentRoute: typeof AuthenticatedVulnerabilitiesIdRoute
+    '/_authenticated/custom-fields/': {
+      id: '/_authenticated/custom-fields/'
+      path: '/custom-fields'
+      fullPath: '/custom-fields/'
+      preLoaderRoute: typeof AuthenticatedCustomFieldsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/users/$id/edit': {
-      id: '/_authenticated/users/$id/edit'
+    '/_authenticated/custom-fields/$id': {
+      id: '/_authenticated/custom-fields/$id'
+      path: '/custom-fields/$id'
+      fullPath: '/custom-fields/$id'
+      preLoaderRoute: typeof AuthenticatedCustomFieldsIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/custom-fields/new': {
+      id: '/_authenticated/custom-fields/new'
+      path: '/custom-fields/new'
+      fullPath: '/custom-fields/new'
+      preLoaderRoute: typeof AuthenticatedCustomFieldsNewRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/findings/': {
+      id: '/_authenticated/findings/'
+      path: '/findings'
+      fullPath: '/findings/'
+      preLoaderRoute: typeof AuthenticatedFindingsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/findings/$id': {
+      id: '/_authenticated/findings/$id'
+      path: '/findings/$id'
+      fullPath: '/findings/$id'
+      preLoaderRoute: typeof AuthenticatedFindingsIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/findings/import': {
+      id: '/_authenticated/findings/import'
+      path: '/findings/import'
+      fullPath: '/findings/import'
+      preLoaderRoute: typeof AuthenticatedFindingsImportRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/findings/new': {
+      id: '/_authenticated/findings/new'
+      path: '/findings/new'
+      fullPath: '/findings/new'
+      preLoaderRoute: typeof AuthenticatedFindingsNewRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/findings/triage': {
+      id: '/_authenticated/findings/triage'
+      path: '/findings/triage'
+      fullPath: '/findings/triage'
+      preLoaderRoute: typeof AuthenticatedFindingsTriageRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/roles/': {
+      id: '/_authenticated/roles/'
+      path: '/roles'
+      fullPath: '/roles/'
+      preLoaderRoute: typeof AuthenticatedRolesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/roles/$id': {
+      id: '/_authenticated/roles/$id'
+      path: '/roles/$id'
+      fullPath: '/roles/$id'
+      preLoaderRoute: typeof AuthenticatedRolesIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/roles/new': {
+      id: '/_authenticated/roles/new'
+      path: '/roles/new'
+      fullPath: '/roles/new'
+      preLoaderRoute: typeof AuthenticatedRolesNewRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/users/': {
+      id: '/_authenticated/users/'
+      path: '/users'
+      fullPath: '/users/'
+      preLoaderRoute: typeof AuthenticatedUsersIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/users/$id': {
+      id: '/_authenticated/users/$id'
+      path: '/users/$id'
+      fullPath: '/users/$id'
+      preLoaderRoute: typeof AuthenticatedUsersIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/users/new': {
+      id: '/_authenticated/users/new'
+      path: '/users/new'
+      fullPath: '/users/new'
+      preLoaderRoute: typeof AuthenticatedUsersNewRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/vulnerabilities/': {
+      id: '/_authenticated/vulnerabilities/'
+      path: '/vulnerabilities'
+      fullPath: '/vulnerabilities/'
+      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/vulnerabilities/$id': {
+      id: '/_authenticated/vulnerabilities/$id'
+      path: '/vulnerabilities/$id'
+      fullPath: '/vulnerabilities/$id'
+      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/vulnerabilities/new': {
+      id: '/_authenticated/vulnerabilities/new'
+      path: '/vulnerabilities/new'
+      fullPath: '/vulnerabilities/new'
+      preLoaderRoute: typeof AuthenticatedVulnerabilitiesNewRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/custom-fields/$id/edit': {
+      id: '/_authenticated/custom-fields/$id/edit'
       path: '/edit'
-      fullPath: '/users/$id/edit'
-      preLoaderRoute: typeof AuthenticatedUsersIdEditRouteImport
-      parentRoute: typeof AuthenticatedUsersIdRoute
+      fullPath: '/custom-fields/$id/edit'
+      preLoaderRoute: typeof AuthenticatedCustomFieldsIdEditRouteImport
+      parentRoute: typeof AuthenticatedCustomFieldsIdRoute
     }
     '/_authenticated/roles/$id/edit': {
       id: '/_authenticated/roles/$id/edit'
@@ -531,12 +524,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRolesIdEditRouteImport
       parentRoute: typeof AuthenticatedRolesIdRoute
     }
-    '/_authenticated/custom-fields/$id/edit': {
-      id: '/_authenticated/custom-fields/$id/edit'
+    '/_authenticated/users/$id/edit': {
+      id: '/_authenticated/users/$id/edit'
       path: '/edit'
-      fullPath: '/custom-fields/$id/edit'
-      preLoaderRoute: typeof AuthenticatedCustomFieldsIdEditRouteImport
-      parentRoute: typeof AuthenticatedCustomFieldsIdRoute
+      fullPath: '/users/$id/edit'
+      preLoaderRoute: typeof AuthenticatedUsersIdEditRouteImport
+      parentRoute: typeof AuthenticatedUsersIdRoute
+    }
+    '/_authenticated/vulnerabilities/$id/edit': {
+      id: '/_authenticated/vulnerabilities/$id/edit'
+      path: '/edit'
+      fullPath: '/vulnerabilities/$id/edit'
+      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIdEditRouteImport
+      parentRoute: typeof AuthenticatedVulnerabilitiesIdRoute
     }
   }
 }
