@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs"
 import * as path from "node:path"
 import { fileURLToPath } from "node:url"
-import { FileMigrationProvider, Migrator } from "kysely"
+import { FileMigrationProvider, Migrator } from "kysely/migration"
 import type { Database } from "./index.js"
 import type { Kysely } from "kysely"
 import type { Logger } from "pino"

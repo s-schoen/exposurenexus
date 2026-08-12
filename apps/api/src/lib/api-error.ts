@@ -13,8 +13,7 @@ import {
 const INTERNAL_SERVER_ERROR_MESSAGE = "internal server error"
 
 type ApplicationErrorReasonPolicy<Code extends ApplicationErrorCode> =
-  | string
-  | ((error: ApplicationError<Code>) => string | undefined)
+  string | ((error: ApplicationError<Code>) => string | undefined)
 
 type ApplicationErrorResponsePolicy<Code extends ApplicationErrorCode> = {
   reason?: ApplicationErrorReasonPolicy<Code>

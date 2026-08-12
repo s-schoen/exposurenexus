@@ -451,8 +451,7 @@ async function insertCustomFieldOptions(
   database: DatabaseExecutor,
   fieldId: string,
   definition:
-    | CreateAssetCustomFieldDefinition
-    | UpdateAssetCustomFieldDefinition
+    CreateAssetCustomFieldDefinition | UpdateAssetCustomFieldDefinition
 ): Promise<void> {
   if (definition.type !== AssetCustomFieldType.Select) {
     return

@@ -221,16 +221,14 @@ function hasDuplicateAssetCustomFieldValues(
 
 function getAssetCustomFieldDefaultValue(
   definition:
-    | CreateAssetCustomFieldDefinition
-    | UpdateAssetCustomFieldDefinition
+    CreateAssetCustomFieldDefinition | UpdateAssetCustomFieldDefinition
 ): unknown {
   return definition.defaultValue ?? null
 }
 
 export function validateAssetCustomFieldDefinitionRules(
   definition:
-    | CreateAssetCustomFieldDefinition
-    | UpdateAssetCustomFieldDefinition
+    CreateAssetCustomFieldDefinition | UpdateAssetCustomFieldDefinition
 ): AssetCustomFieldRuleViolation[] {
   const defaultValue = getAssetCustomFieldDefaultValue(definition)
 
