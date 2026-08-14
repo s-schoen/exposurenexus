@@ -5,10 +5,10 @@ import { UserLabel, formatUserProfileReference } from "@/components/user-label.t
 import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
+import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { AssetWithCustomFields } from "@exposurenexus/types/model/asset";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
 import type { UserProfile } from "@exposurenexus/types/model/user";
-import type { ColumnDef } from "@tanstack/react-table";
 
 const emptyCustomFieldFilterValue = "__empty__";
 
@@ -19,7 +19,7 @@ export function getAssetCustomFieldColumnId(fieldId: string) {
 function createBaseColumns(
   userProfileById: Map<string, UserProfile>,
   usersLoading = false,
-): Array<ColumnDef<AssetWithCustomFields>> {
+): Array<DataTableColumnDef<AssetWithCustomFields>> {
   return [
     {
       accessorKey: "name",
@@ -69,7 +69,7 @@ function createBaseColumns(
 
 function createCustomFieldColumn(
   definition: AssetCustomFieldDefinition,
-): ColumnDef<AssetWithCustomFields> {
+): DataTableColumnDef<AssetWithCustomFields> {
   const columnId = getAssetCustomFieldColumnId(definition.id);
   const filterVariant = (() => {
     switch (definition.type) {
@@ -156,7 +156,7 @@ export function createAssetTableColumns(
   customFieldDefinitions: Array<AssetCustomFieldDefinition>,
   userProfileById: Map<string, UserProfile> = new Map(),
   usersLoading = false,
-): Array<ColumnDef<AssetWithCustomFields>> {
+): Array<DataTableColumnDef<AssetWithCustomFields>> {
   return [
     ...createBaseColumns(userProfileById, usersLoading),
     ...customFieldDefinitions.map((definition) => createCustomFieldColumn(definition)),

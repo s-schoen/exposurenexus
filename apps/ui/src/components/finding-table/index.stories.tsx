@@ -3,7 +3,6 @@ import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
-import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
@@ -342,16 +341,14 @@ function FindingTableStoryShell({ findings, assets, users, scenario }: FindingTa
   return (
     <RouterContextProvider router={router}>
       <QueryClientProvider client={queryClient}>
-        <NuqsAdapter>
-          <ConfirmDialog.Root />
-          <Toaster />
-          <div className="w-full">
-            <FindingTable
-              initialGrouping={scenario === "grouped" ? ["status"] : []}
-              selectedFindingId={effectiveFindings[0]?.id}
-            />
-          </div>
-        </NuqsAdapter>
+        <ConfirmDialog.Root />
+        <Toaster />
+        <div className="w-full">
+          <FindingTable
+            initialGrouping={scenario === "grouped" ? ["status"] : []}
+            selectedFindingId={effectiveFindings[0]?.id}
+          />
+        </div>
       </QueryClientProvider>
     </RouterContextProvider>
   );

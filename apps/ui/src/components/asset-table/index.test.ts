@@ -17,9 +17,9 @@ import {
   parseAssetCustomFieldFiltersFromSearch,
 } from "@/hooks/use-asset-table-search-state.ts";
 
+import type { DataTableAccessorFnColumnDef } from "@/components/data-table/types.ts";
 import type { AssetWithCustomFields } from "@exposurenexus/types/model/asset";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
-import type { AccessorFnColumnDef } from "@tanstack/react-table";
 
 function getColumnFilterFn(column: { filterFn?: unknown } | undefined) {
   if (!column || typeof column.filterFn !== "function") {
@@ -142,7 +142,7 @@ describe("asset table custom field grouping", () => {
     };
     const columns = createAssetTableColumns([], new Map([[ownerId, owner]]));
     const ownerColumn = columns.find((column) => column.id === "ownerId") as
-      | AccessorFnColumnDef<AssetWithCustomFields, string>
+      | DataTableAccessorFnColumnDef<AssetWithCustomFields, string>
       | undefined;
     const asset: AssetWithCustomFields = {
       id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
@@ -203,7 +203,7 @@ describe("asset table custom field grouping", () => {
     )!;
     const environmentColumn = createAssetTableColumns(ASSET_CUSTOM_FIELD_FIXTURES).find(
       (column) => column.id === getAssetCustomFieldColumnId(environmentDefinition.id),
-    ) as AccessorFnColumnDef<AssetWithCustomFields, string>;
+    ) as DataTableAccessorFnColumnDef<AssetWithCustomFields, string>;
     const asset: AssetWithCustomFields = {
       id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
       name: "api-01",

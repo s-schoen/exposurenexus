@@ -148,7 +148,7 @@ function AssetTableStoryShell({ scenario, selectedAssetId }: AssetTableStoryArgs
   }
 
   return (
-    <RouterStoryProvider queryClient={queryClient} initialPath="/assets" withNuqs>
+    <RouterStoryProvider queryClient={queryClient} initialPath="/assets">
       <ConfirmDialog.Root />
       <AssetDialog.Root />
       <Toaster />

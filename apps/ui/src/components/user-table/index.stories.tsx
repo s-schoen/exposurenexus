@@ -81,7 +81,7 @@ function UserTableStoryShell({
   }
 
   return (
-    <RouterStoryProvider queryClient={queryClient} initialPath="/users" withNuqs>
+    <RouterStoryProvider queryClient={queryClient} initialPath="/users">
       <div className="w-full max-w-6xl">
         <UserTable
           selectedUserId={selectedUserId}

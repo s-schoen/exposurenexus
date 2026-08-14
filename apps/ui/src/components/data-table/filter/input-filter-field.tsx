@@ -1,13 +1,17 @@
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group.tsx";
 
-import type { Column } from "@tanstack/react-table";
+import type { DataTableColumn } from "@/components/data-table/types.ts";
+import type { RowData } from "@tanstack/react-table";
 
-export interface InputFilterFieldProps<TData> {
-  column: Column<TData>;
+export interface InputFilterFieldProps<TData extends RowData> {
+  column: DataTableColumn<TData>;
   type: "number" | "text";
 }
 
-export function InputFilterField<TData>({ column, type }: InputFilterFieldProps<TData>) {
+export function InputFilterField<TData extends RowData>({
+  column,
+  type,
+}: InputFilterFieldProps<TData>) {
   const label = column.columnDef.meta?.label || column.id;
   const value = (column.getFilterValue() as string | undefined) ?? "";
 

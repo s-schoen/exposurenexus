@@ -10,14 +10,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-import type { Column } from "@tanstack/react-table";
+import type { DataTableColumn } from "@/components/data-table/types.ts";
+import type { CellData, RowData } from "@tanstack/react-table";
 
-interface DataTableColumnHeaderProps<TData, TValue> extends React.HTMLAttributes<HTMLDivElement> {
-  column: Column<TData, TValue>;
+interface DataTableColumnHeaderProps<
+  TData extends RowData,
+  TValue extends CellData,
+> extends React.HTMLAttributes<HTMLDivElement> {
+  column: DataTableColumn<TData, TValue>;
   title: string;
 }
 
-export function DataTableColumnHeader<TData, TValue>({
+export function DataTableColumnHeader<TData extends RowData, TValue extends CellData>({
   column,
   title,
   className,

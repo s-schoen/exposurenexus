@@ -23,12 +23,7 @@
     },
     "shadcn": {
       "type": "local",
-      "command": ["npx", "shadcn@latest", "mcp"],
-      "enabled": true
-    },
-    "webstorm": {
-      "type": "remote",
-      "url": "http://127.0.0.1:64342/stream",
+      "command": ["pnpm", "dlx", "shadcn@latest", "mcp"],
       "enabled": true
     },
     "storybook": {

@@ -10,12 +10,16 @@ import { Button } from "@/components/ui/button.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 
-import type { GroupingOption } from "@/components/data-table/types.ts";
-import type { Column, Table } from "@tanstack/react-table";
+import type {
+  DataTableColumn,
+  DataTableTable,
+  GroupingOption,
+} from "@/components/data-table/types.ts";
+import type { RowData } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 
-interface DataTableToolbarProps<TData> {
-  table: Table<TData>;
+interface DataTableToolbarProps<TData extends RowData> {
+  table: DataTableTable<TData>;
   isFetching: boolean;
   deleteDisabled: boolean;
   groupingOptions?: Array<GroupingOption>;
@@ -48,7 +52,7 @@ function GlobalFilterChip({ filter, onClear }: { filter: string; onClear: () => 
   );
 }
 
-function SelectFilterChips<TData>({ column }: { column: Column<TData> }) {
+function SelectFilterChips<TData extends RowData>({ column }: { column: DataTableColumn<TData> }) {
   const selectedValues = (column.getFilterValue() as Array<string> | undefined) ?? [];
 
   const options = column.columnDef.meta?.options ?? [];
@@ -82,7 +86,7 @@ function SelectFilterChips<TData>({ column }: { column: Column<TData> }) {
   ));
 }
 
-function ScalarFilterChip<TData>({ column }: { column: Column<TData> }) {
+function ScalarFilterChip<TData extends RowData>({ column }: { column: DataTableColumn<TData> }) {
   const value = column.getFilterValue() as string | undefined;
   const label = column.columnDef.meta?.label || column.id;
 
@@ -110,7 +114,7 @@ function ScalarFilterChip<TData>({ column }: { column: Column<TData> }) {
   );
 }
 
-export function DataTableToolbar<TData>({
+export function DataTableToolbar<TData extends RowData>({
   table,
   isFetching,
   deleteDisabled,
@@ -123,9 +127,9 @@ export function DataTableToolbar<TData>({
   onClearAllFilters,
 }: DataTableToolbarProps<TData>) {
   const selectedRows = table.getFilteredSelectedRowModel().rows.length;
-  const totalRows = table.getCoreRowModel().rows.length;
+  const totalRows = table.getPreFilteredRowModel().rows.length;
   const filteredRows = table.getFilteredRowModel().rows.length;
-  const activeGrouping = table.getState().grouping[0];
+  const activeGrouping = table.state.grouping[0];
   const activeGroupingOption = groupingOptions.find((option) => option.id === activeGrouping);
   const activeSelectFilters = table
     .getAllColumns()
@@ -147,7 +151,7 @@ export function DataTableToolbar<TData>({
   const hasActiveFilters =
     Boolean(globalFilterValue) || activeSelectFilters.length > 0 || activeScalarFilters.length > 0;
 
-  function getFilterField(column: Column<TData>) {
+  function getFilterField(column: DataTableColumn<TData>) {
     switch (column.columnDef.meta?.filterVariant) {
       case "number":
         return <InputFilterField key={column.id} column={column} type="number" />;

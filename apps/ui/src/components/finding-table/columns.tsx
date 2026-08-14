@@ -12,10 +12,10 @@ import {
   getUserProfileDisplayName,
 } from "@/components/user-label.tsx";
 
+import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { Asset } from "@exposurenexus/types/model/asset";
 import type { Finding } from "@exposurenexus/types/model/finding";
 import type { UserProfile } from "@exposurenexus/types/model/user";
-import type { ColumnDef } from "@tanstack/react-table";
 
 export const FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE = "__unassigned_assignee__";
 
@@ -137,7 +137,7 @@ export function createFindingColumns(
   assetsById: ReadonlyMap<string, Asset> = new Map(),
   userProfileById: Map<string, UserProfile> = new Map(),
   usersLoading = false,
-): Array<ColumnDef<Finding>> {
+): Array<DataTableColumnDef<Finding>> {
   return [
     {
       accessorKey: "vulnerability.title",
@@ -154,7 +154,7 @@ export function createFindingColumns(
     {
       accessorKey: "severity",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Severity" />,
-      sortingFn: (rowA, rowB) => {
+      sortFn: (rowA, rowB) => {
         const left = severityRank.get(rowA.original.severity) ?? -1;
         const right = severityRank.get(rowB.original.severity) ?? -1;
 
@@ -284,7 +284,7 @@ export function createFindingColumns(
     {
       accessorKey: "dueDate",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Due Date" />,
-      sortingFn: (rowA, rowB) => compareDueDateValues(rowA.original.dueDate, rowB.original.dueDate),
+      sortFn: (rowA, rowB) => compareDueDateValues(rowA.original.dueDate, rowB.original.dueDate),
       cell: ({ row }) => <FindingDueDateCell finding={row.original} />,
       enableColumnFilter: false,
     },
@@ -300,14 +300,13 @@ export function createFindingColumns(
     {
       accessorKey: "firstSeen",
       header: ({ column }) => <DataTableColumnHeader column={column} title="First Seen" />,
-      sortingFn: (rowA, rowB) =>
-        compareDateValues(rowA.original.firstSeen, rowB.original.firstSeen),
+      sortFn: (rowA, rowB) => compareDateValues(rowA.original.firstSeen, rowB.original.firstSeen),
       cell: ({ row }) => <FindingDateCell value={row.getValue("firstSeen")} />,
     },
     {
       accessorKey: "lastSeen",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Last Seen" />,
-      sortingFn: (rowA, rowB) => compareDateValues(rowA.original.lastSeen, rowB.original.lastSeen),
+      sortFn: (rowA, rowB) => compareDateValues(rowA.original.lastSeen, rowB.original.lastSeen),
       cell: ({ row }) => <FindingDateCell value={row.getValue("lastSeen")} />,
     },
   ];

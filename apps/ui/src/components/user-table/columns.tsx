@@ -1,8 +1,8 @@
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 
+import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { UserProfile } from "@exposurenexus/types/model/user";
-import type { ColumnDef } from "@tanstack/react-table";
 
 function resolveRoleLabels(
   roleIds: ReadonlyArray<string>,
@@ -17,7 +17,7 @@ function resolveRoleLabels(
 export function createColumns(
   roleLabelById: ReadonlyMap<string, string>,
   rolesResolved: boolean,
-): Array<ColumnDef<UserProfile>> {
+): Array<DataTableColumnDef<UserProfile>> {
   return [
     {
       id: "displayName",

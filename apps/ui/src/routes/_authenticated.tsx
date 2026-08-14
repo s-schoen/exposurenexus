@@ -1,5 +1,4 @@
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
-import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 
 import AppHeader from "@/components/app-header.tsx";
 import { AppSidebar } from "@/components/app-sidebar.tsx";
@@ -70,9 +69,7 @@ function Layout() {
                     </div>
                   </section>
                   <div className="mt-5">
-                    <NuqsAdapter>
-                      <Outlet />
-                    </NuqsAdapter>
+                    <Outlet />
                   </div>
                 </div>
               </main>

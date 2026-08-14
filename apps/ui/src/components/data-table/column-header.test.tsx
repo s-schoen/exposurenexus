@@ -1,17 +1,14 @@
-import {
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { flexRender, useTable } from "@tanstack/react-table";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useMemo, useState } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { DataTableColumnHeader } from "@/components/data-table/column-header";
+import { dataTableFeatures } from "@/components/data-table/types";
 
-import type { Column, SortingState, VisibilityState } from "@tanstack/react-table";
+import type { DataTableColumnDef } from "@/components/data-table/types";
+import type { ColumnVisibilityState, SortingState } from "@tanstack/react-table";
 
 interface SortableRow {
   id: string;
@@ -34,7 +31,7 @@ afterEach(() => {
 
 function SortableColumnHeaderHarness({ sortable = true }) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>({});
   const data = useMemo(
     () => [
       { id: "row-1", name: "Charlie" },
@@ -43,20 +40,19 @@ function SortableColumnHeaderHarness({ sortable = true }) {
     ],
     [],
   );
-  const columns = useMemo(
+  const columns = useMemo<Array<DataTableColumnDef<SortableRow>>>(
     () => [
       {
         accessorKey: "name",
-        header: ({ column }: { column: Column<SortableRow, unknown> }) => (
-          <DataTableColumnHeader column={column} title="Name" />
-        ),
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
         enableSorting: sortable,
       },
     ],
     [sortable],
   );
 
-  const table = useReactTable({
+  const table = useTable({
+    features: dataTableFeatures,
     data,
     columns,
     state: {
@@ -65,8 +61,6 @@ function SortableColumnHeaderHarness({ sortable = true }) {
     },
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
   });
 
   return (

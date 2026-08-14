@@ -62,10 +62,6 @@ vi.mock("@/components/ui/sidebar.tsx", () => ({
   SidebarProvider: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock("nuqs/adapters/tanstack-router", () => ({
-  NuqsAdapter: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-
 vi.mock("@/context/page.tsx", () => ({
   usePage: () => mocks.page,
 }));
