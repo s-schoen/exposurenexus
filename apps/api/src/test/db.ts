@@ -1,7 +1,6 @@
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
-import { Kysely, sql } from "kysely";
-import { PGliteDialect } from "kysely-pglite-dialect";
+import { Kysely, PGliteDialect, sql } from "kysely";
 
 import { migrateToLatest } from "../db/migration.js";
 
@@ -35,7 +34,7 @@ export function createTestDatabase(): TestDatabase {
       await pgLite.waitReady;
 
       db = new Kysely<Database>({
-        dialect: new PGliteDialect(pgLite),
+        dialect: new PGliteDialect({ pglite: pgLite }),
       });
 
       await db.executeQuery(sql`CREATE EXTENSION IF NOT EXISTS pgcrypto`.compile(db));

@@ -1,6 +1,5 @@
 import { PGlite } from "@electric-sql/pglite";
-import { Kysely, sql } from "kysely";
-import { PGliteDialect } from "kysely-pglite-dialect";
+import { Kysely, PGliteDialect, sql } from "kysely";
 import { afterEach, describe, expect, it } from "vitest";
 
 import * as initBetterAuth from "../migrations/20251219-init-better-auth.js";
@@ -43,7 +42,7 @@ describe("20260418 rbac role default migration", () => {
     await pgLite.waitReady;
 
     db = new Kysely({
-      dialect: new PGliteDialect(pgLite),
+      dialect: new PGliteDialect({ pglite: pgLite }),
     });
 
     await initBetterAuth.up(db);

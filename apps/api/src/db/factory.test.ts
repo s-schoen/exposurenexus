@@ -3,9 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Pool } from "pg";
 
 const { poolMock, postgresDialectMock, kyselyMock, createLoggerMock } = vi.hoisted(() => ({
-  poolMock: vi.fn(),
-  postgresDialectMock: vi.fn(),
-  kyselyMock: vi.fn(),
+  poolMock: vi.fn(
+    class PoolMock {
+      end = vi.fn();
+    },
+  ),
+  postgresDialectMock: vi.fn(class PostgresDialectMock {}),
+  kyselyMock: vi.fn(class KyselyMock {}),
   createLoggerMock: vi.fn(() => ({ info: vi.fn(), error: vi.fn() })),
 }));
 
@@ -35,11 +39,9 @@ describe("db factory", () => {
   });
 
   it("creates a pg pool from a connection string", () => {
-    const pool = { end: vi.fn() };
+    const pool = createPool("postgres://test-db");
 
-    poolMock.mockReturnValue(pool);
-
-    expect(createPool("postgres://test-db")).toBe(pool);
+    expect(pool).toBe(poolMock.mock.instances[0]);
     expect(poolMock).toHaveBeenCalledWith({
       connectionString: "postgres://test-db",
       max: 10,
@@ -48,28 +50,24 @@ describe("db factory", () => {
 
   it("creates a Kysely db around a postgres dialect", () => {
     const pool = { end: vi.fn() } as unknown as Pool;
-    const dialect = { dialect: true };
-    const db = { selectFrom: vi.fn() };
 
-    postgresDialectMock.mockReturnValue(dialect);
-    kyselyMock.mockReturnValue(db);
+    const db = createDb(pool);
+    const dialect = postgresDialectMock.mock.instances[0];
 
-    expect(createDb(pool)).toBe(db);
+    expect(db).toBe(kyselyMock.mock.instances[0]);
     expect(postgresDialectMock).toHaveBeenCalledWith({ pool });
     expect(kyselyMock).toHaveBeenCalledWith({ dialect });
   });
 
   it("creates the production database bundle", () => {
-    const pool = { end: vi.fn() } as unknown as Pool;
-    const db = { selectFrom: vi.fn() };
     const logger = { info: vi.fn(), error: vi.fn() };
 
-    poolMock.mockReturnValue(pool);
-    postgresDialectMock.mockReturnValue({ dialect: true });
-    kyselyMock.mockReturnValue(db);
     createLoggerMock.mockReturnValue(logger);
+    const database = createDatabase("postgres://test-db");
+    const pool = poolMock.mock.instances[0];
+    const db = kyselyMock.mock.instances[0];
 
-    expect(createDatabase("postgres://test-db")).toEqual({
+    expect(database).toEqual({
       pool,
       db,
       logger,
