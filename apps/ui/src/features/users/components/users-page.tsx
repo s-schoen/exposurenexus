@@ -1,35 +1,34 @@
-import { useNavigate } from "@tanstack/react-router"
-import type { UserProfile } from "@exposurenexus/types/model/user"
-import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx"
-import { UserDetailContent } from "@/components/user-detail-content.tsx"
-import { UserTable } from "@/components/user-table"
-import { usePageMeta } from "@/context/page.tsx"
-import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts"
-import { useUserTableSearchState } from "@/hooks/use-user-table-search-state.ts"
+import { useNavigate } from "@tanstack/react-router";
+
+import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
+import { UserDetailContent } from "@/components/user-detail-content.tsx";
+import { UserTable } from "@/components/user-table";
+import { usePageMeta } from "@/context/page.tsx";
+import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
+import { useUserTableSearchState } from "@/hooks/use-user-table-search-state.ts";
+
+import type { UserProfile } from "@exposurenexus/types/model/user";
 
 interface UsersPageProps {
-  search?: Record<string, unknown>
-  selected?: string
+  search?: Record<string, unknown>;
+  selected?: string;
 }
 
-export function UsersPage({
-  search = {},
-  selected
-}: UsersPageProps) {
-  const navigate = useNavigate()
+export function UsersPage({ search = {}, selected }: UsersPageProps) {
+  const navigate = useNavigate();
   const { filterState, onFilterStateChange } = useUserTableSearchState({
-    search
-  })
+    search,
+  });
   const selectedSearch = useSelectedSearchParam<UserProfile>({
     selectedId: selected,
     to: "/users",
-    getId: (user) => user.id
-  })
+    getId: (user) => user.id,
+  });
 
   usePageMeta({
     title: "Users",
-    description: "Browse users with access to the platform."
-  })
+    description: "Browse users with access to the platform.",
+  });
 
   return (
     <>
@@ -38,16 +37,16 @@ export function UsersPage({
         onFilterStateChange={onFilterStateChange}
         selectedUserId={selectedSearch.selectedId}
         onSelectUser={(user) => {
-          void selectedSearch.selectRow(user)
+          void selectedSearch.selectRow(user);
         }}
         onCreateUser={() => {
-          void navigate({ to: "/users/new" })
+          void navigate({ to: "/users/new" });
         }}
       />
       <DetailPreviewDialog
         selectedId={selectedSearch.selectedId}
         onClose={() => {
-          void selectedSearch.clearSelected()
+          void selectedSearch.clearSelected();
         }}
         title="User details"
         description="Review the selected user without leaving the user table."
@@ -56,5 +55,5 @@ export function UsersPage({
         {selected && <UserDetailContent userId={selected} />}
       </DetailPreviewDialog>
     </>
-  )
+  );
 }

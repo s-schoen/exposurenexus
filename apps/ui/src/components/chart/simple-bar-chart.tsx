@@ -1,34 +1,32 @@
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
-import type { CSSProperties } from "react"
-import type { ChartConfig } from "@/components/ui/chart.tsx"
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent
-} from "@/components/ui/chart.tsx"
-import { Skeleton } from "@/components/ui/skeleton.tsx"
+import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
+
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
+
+import type { ChartConfig } from "@/components/ui/chart.tsx";
+import type { CSSProperties } from "react";
 
 interface ChartData {
-  label: string
-  value: number
-  fill?: string
+  label: string;
+  value: number;
+  fill?: string;
 }
 
 interface SimpleBarChartProps {
-  chartData: Array<ChartData>
-  chartConfig: ChartConfig
-  loading?: boolean
-  height?: CSSProperties["height"]
+  chartData: Array<ChartData>;
+  chartConfig: ChartConfig;
+  loading?: boolean;
+  height?: CSSProperties["height"];
 }
 
 export function SimpleBarChart({
   chartConfig,
   chartData,
   loading = false,
-  height
+  height,
 }: SimpleBarChartProps) {
   function skeleton() {
-    return <Skeleton className="w-full h-32" />
+    return <Skeleton className="w-full h-32" />;
   }
 
   function chart() {
@@ -50,22 +48,14 @@ export function SimpleBarChart({
               chartConfig[value as keyof typeof chartConfig].label as string
             }
           />
-          <ChartTooltip
-            cursor={false}
-            content={<ChartTooltipContent hideLabel />}
-          />
+          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
           <Bar dataKey="value" radius={4}>
-            <LabelList
-              position="top"
-              offset={12}
-              className="fill-foreground"
-              fontSize={12}
-            />
+            <LabelList position="top" offset={12} className="fill-foreground" fontSize={12} />
           </Bar>
         </BarChart>
       </ChartContainer>
-    )
+    );
   }
 
-  return loading ? skeleton() : chart()
+  return loading ? skeleton() : chart();
 }

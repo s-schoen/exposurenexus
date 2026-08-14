@@ -1,146 +1,122 @@
-import { Link } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
-import { useCallback, useMemo, useState } from "react"
-import { FindingStatus } from "@exposurenexus/types/model/finding"
-import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date"
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
-import {
-  Copy,
-  ExternalLink,
-  FileCode2,
-  FileText,
-  ShieldAlert,
-  X
-} from "lucide-react"
-import { toast } from "sonner"
-import type { ReactNode } from "react"
-import type { Finding } from "@exposurenexus/types/model/finding"
-import type { FindingEditableField } from "@/hooks/use-finding-lifecycle.ts"
-import { createFindingByIDQueryOptions } from "@/api/finding.ts"
-import { createAssetByIDQueryOptions } from "@/api/asset.ts"
-import { createListUsersQueryOptions } from "@/api/user.ts"
+import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date";
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { Copy, ExternalLink, FileCode2, FileText, ShieldAlert, X } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
+
+import { createAssetByIDQueryOptions } from "@/api/asset.ts";
+import { createFindingByIDQueryOptions } from "@/api/finding.ts";
+import { createListUsersQueryOptions } from "@/api/user.ts";
+import { AssetInfoItem } from "@/components/asset-info-item.tsx";
+import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
+import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
+import { FindingStatusBadge } from "@/components/finding-status-badge.tsx";
+import { MetadataSidebar } from "@/components/metadata-sidebar";
+import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
+import { SafeMarkdown } from "@/components/safe-markdown.tsx";
+import { SeverityBadge } from "@/components/severity-badge.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import {
   Card,
   CardAction,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
-import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx"
-import { Skeleton } from "@/components/ui/skeleton.tsx"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area.tsx"
-import { SeverityBadge } from "@/components/severity-badge.tsx"
-import {
-  capitalizeFirstLetter,
-  formatFindingStatus,
-  formatSeverity
-} from "@/lib/format.ts"
-import { AssetInfoItem } from "@/components/asset-info-item.tsx"
-import { Button } from "@/components/ui/button.tsx"
-import { Separator } from "@/components/ui/separator.tsx"
-import { Badge } from "@/components/ui/badge.tsx"
-import { FindingStatusBadge } from "@/components/finding-status-badge.tsx"
-import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
-import { MetadataSidebar } from "@/components/metadata-sidebar"
-import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx"
-import {
-  UserLabel,
-  createUserProfileById,
-  formatUserProfileReference
-} from "@/components/user-label.tsx"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from "@/components/ui/popover.tsx"
+  CardTitle,
+} from "@/components/ui/card.tsx";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList
-} from "@/components/ui/command.tsx"
+  CommandList,
+} from "@/components/ui/command.tsx";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area.tsx";
+import { Separator } from "@/components/ui/separator.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger
-} from "@/components/ui/tabs.tsx"
-import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts"
-import { SafeMarkdown } from "@/components/safe-markdown.tsx"
+  UserLabel,
+  createUserProfileById,
+  formatUserProfileReference,
+} from "@/components/user-label.tsx";
+import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
+import { capitalizeFirstLetter, formatFindingStatus, formatSeverity } from "@/lib/format.ts";
+
+import type { FindingEditableField } from "@/hooks/use-finding-lifecycle.ts";
+import type { Finding } from "@exposurenexus/types/model/finding";
+import type { ReactNode } from "react";
 
 interface FindingDetailContentProps {
-  findingId: string
-  titleAction?: ReactNode
+  findingId: string;
+  titleAction?: ReactNode;
 }
 
-const unassignedAssigneeValue = "__unassigned_assignee__"
+const unassignedAssigneeValue = "__unassigned_assignee__";
 
 function formatDateOnly(value: Date | null | undefined) {
-  if (!value) return "No due date"
+  if (!value) return "No due date";
 
-  return normalizeDateToUtcStart(value).toISOString().slice(0, 10)
+  return normalizeDateToUtcStart(value).toISOString().slice(0, 10);
 }
 
 function parseDateInputValue(value: string) {
-  if (!value) return null
+  if (!value) return null;
 
-  return normalizeDateToUtcStart(new Date(`${value}T00:00:00.000Z`))
+  return normalizeDateToUtcStart(new Date(`${value}T00:00:00.000Z`));
 }
 
-export function FindingDetailContent({
-  findingId,
-  titleAction
-}: FindingDetailContentProps) {
-  const finding = useQuery(createFindingByIDQueryOptions(findingId))
-  const users = useQuery(createListUsersQueryOptions())
-  const findingLifecycle = useFindingLifecycle()
+export function FindingDetailContent({ findingId, titleAction }: FindingDetailContentProps) {
+  const finding = useQuery(createFindingByIDQueryOptions(findingId));
+  const users = useQuery(createListUsersQueryOptions());
+  const findingLifecycle = useFindingLifecycle();
   const asset = useQuery({
     ...createAssetByIDQueryOptions(finding.data?.assetId ?? ""),
-    enabled: Boolean(finding.data?.assetId)
-  })
-  const userProfileById = useMemo(
-    () => createUserProfileById(users.data),
-    [users.data]
-  )
+    enabled: Boolean(finding.data?.assetId),
+  });
+  const userProfileById = useMemo(() => createUserProfileById(users.data), [users.data]);
 
   const handleUpdate = useCallback(
     async <TKey extends FindingEditableField>(
       findingData: Finding,
       key: TKey,
-      value: Finding[TKey]
+      value: Finding[TKey],
     ) => {
-      await findingLifecycle.updateFindingField(findingData, key, value)
+      await findingLifecycle.updateFindingField(findingData, key, value);
     },
-    [findingLifecycle]
-  )
+    [findingLifecycle],
+  );
 
   const handleCopyEvidence = useCallback(async (evidence: string) => {
-    if (!evidence) return
+    if (!evidence) return;
     try {
-      await navigator.clipboard.writeText(evidence)
-      toast.success("Evidence copied")
+      await navigator.clipboard.writeText(evidence);
+      toast.success("Evidence copied");
     } catch (error) {
-      console.error("Error copying evidence:", error)
-      toast.error("Failed to copy evidence")
+      console.error("Error copying evidence:", error);
+      toast.error("Failed to copy evidence");
     }
-  }, [])
+  }, []);
 
   function formatDateTime(value: Date | null | undefined) {
-    if (!value) return "Not available"
+    if (!value) return "Not available";
 
-    return value.toLocaleString()
+    return value.toLocaleString();
   }
 
   function ResponsibleOwnerLabel({ className }: { className?: string }) {
     if (asset.isPending) {
-      return <Skeleton className="inline-flex h-4 w-24" />
+      return <Skeleton className="inline-flex h-4 w-24" />;
     }
 
     if (!asset.data) {
-      return <span className="text-muted-foreground">Unknown Asset</span>
+      return <span className="text-muted-foreground">Unknown Asset</span>;
     }
 
     return (
@@ -157,16 +133,10 @@ export function FindingDetailContent({
         unknownLabel="Unknown Owner"
         className={className}
       />
-    )
+    );
   }
 
-  function AssigneeLabel({
-    findingData,
-    className
-  }: {
-    findingData: Finding
-    className?: string
-  }) {
+  function AssigneeLabel({ findingData, className }: { findingData: Finding; className?: string }) {
     return (
       <UserLabel
         userId={findingData.assigneeId}
@@ -181,31 +151,31 @@ export function FindingDetailContent({
         unknownLabel="Unknown Assignee"
         className={className}
       />
-    )
+    );
   }
 
   function getAssigneeEditValue(findingData: Finding) {
-    return findingData.assigneeId ?? unassignedAssigneeValue
+    return findingData.assigneeId ?? unassignedAssigneeValue;
   }
 
   function AssigneePicker({
     value,
     onCancel,
-    onCommit
+    onCommit,
   }: {
-    value: string
-    onCancel: () => void
-    onCommit: (value: string) => void
+    value: string;
+    onCancel: () => void;
+    onCommit: (value: string) => void;
   }) {
-    const [open, setOpen] = useState(false)
-    const assigneeId = value === unassignedAssigneeValue ? null : value
+    const [open, setOpen] = useState(false);
+    const assigneeId = value === unassignedAssigneeValue ? null : value;
     const assigneeLabel =
       assigneeId && users.isPending
         ? "Loading assignee"
         : formatUserProfileReference(assigneeId, userProfileById, {
             emptyLabel: "Unassigned",
-            unknownLabel: "Unknown Assignee"
-          })
+            unknownLabel: "Unknown Assignee",
+          });
 
     return (
       <Popover open={open} onOpenChange={setOpen}>
@@ -232,8 +202,8 @@ export function FindingDetailContent({
                 <CommandItem
                   value={unassignedAssigneeValue}
                   onSelect={() => {
-                    setOpen(false)
-                    onCommit(unassignedAssigneeValue)
+                    setOpen(false);
+                    onCommit(unassignedAssigneeValue);
                   }}
                 >
                   Unassigned
@@ -243,8 +213,8 @@ export function FindingDetailContent({
                     key={user.id}
                     value={`${user.displayName} ${user.username}`}
                     onSelect={() => {
-                      setOpen(false)
-                      onCommit(user.id)
+                      setOpen(false);
+                      onCommit(user.id);
                     }}
                   >
                     <div className="min-w-0">
@@ -270,17 +240,17 @@ export function FindingDetailContent({
           <X />
         </Button>
       </Popover>
-    )
+    );
   }
 
   async function handleSaveAssignee(findingData: Finding, value: string) {
-    const assigneeId = value === unassignedAssigneeValue ? null : value
+    const assigneeId = value === unassignedAssigneeValue ? null : value;
 
-    await handleUpdate(findingData, "assigneeId", assigneeId)
+    await handleUpdate(findingData, "assigneeId", assigneeId);
   }
 
   async function handleSaveDueDate(findingData: Finding, value: string) {
-    await handleUpdate(findingData, "dueDate", parseDateInputValue(value))
+    await handleUpdate(findingData, "dueDate", parseDateInputValue(value));
   }
 
   function FindingOverviewCard({ findingData }: { findingData: Finding }) {
@@ -290,14 +260,8 @@ export function FindingDetailContent({
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">{titleAction}</div>
             <div className="flex items-center gap-2">
-              <SeverityBadge
-                severity={findingData.severity}
-                className="h-6 px-2.5 text-xs"
-              />
-              <FindingStatusBadge
-                status={findingData.status}
-                className="h-6 px-2.5 text-xs"
-              />
+              <SeverityBadge severity={findingData.severity} className="h-6 px-2.5 text-xs" />
+              <FindingStatusBadge status={findingData.status} className="h-6 px-2.5 text-xs" />
             </div>
           </div>
           <div className="space-y-3">
@@ -306,17 +270,15 @@ export function FindingDetailContent({
                 {findingData.vulnerability.title}
               </CardTitle>
               <CardDescription className="max-w-3xl text-sm leading-6">
-                Review the affected asset, validate the evidence, and update the
-                triage state from the action panel.
+                Review the affected asset, validate the evidence, and update the triage state from
+                the action panel.
               </CardDescription>
             </div>
             <div className="grid gap-3 xl:grid-cols-6">
               <DetailHighlightCard
                 label="Affected asset"
                 value={asset.data?.name ?? "Unknown asset"}
-                description={capitalizeFirstLetter(
-                  asset.data?.type ?? "Unclassified"
-                )}
+                description={capitalizeFirstLetter(asset.data?.type ?? "Unclassified")}
               />
               <DetailHighlightCard
                 label="Asset owner"
@@ -342,7 +304,7 @@ export function FindingDetailContent({
           </div>
         </CardHeader>
       </Card>
-    )
+    );
   }
 
   function FindingSidebar({ findingData }: { findingData: Finding }) {
@@ -354,21 +316,18 @@ export function FindingDetailContent({
             editable={{
               value: findingData.severity,
               displayElement: (severityValue) => (
-                <SeverityBadge
-                  severity={severityValue}
-                  className="h-7 px-3 text-sm"
-                />
+                <SeverityBadge severity={severityValue} className="h-7 px-3 text-sm" />
               ),
               editElement: {
                 type: "select",
                 options: Object.values(VulnerabilitySeverity).map((v) => ({
                   label: formatSeverity(v),
-                  value: v
-                }))
+                  value: v,
+                })),
               },
               editOnClick: true,
               showEditIcon: false,
-              onSave: (value) => handleUpdate(findingData, "severity", value)
+              onSave: (value) => handleUpdate(findingData, "severity", value),
             }}
           />
           <MetadataDetailRow
@@ -376,21 +335,18 @@ export function FindingDetailContent({
             editable={{
               value: findingData.status,
               displayElement: (statusValue) => (
-                <FindingStatusBadge
-                  status={statusValue}
-                  className="h-7 px-3 text-sm"
-                />
+                <FindingStatusBadge status={statusValue} className="h-7 px-3 text-sm" />
               ),
               editElement: {
                 type: "select",
                 options: Object.values(FindingStatus).map((v) => ({
                   label: formatFindingStatus(v),
-                  value: v
-                }))
+                  value: v,
+                })),
               },
               editOnClick: true,
               showEditIcon: false,
-              onSave: (value) => handleUpdate(findingData, "status", value)
+              onSave: (value) => handleUpdate(findingData, "status", value),
             }}
           />
           <MetadataDetailRow
@@ -400,7 +356,7 @@ export function FindingDetailContent({
               editElement: { type: "input" },
               editOnClick: true,
               showEditIcon: false,
-              onSave: (value) => handleUpdate(findingData, "source", value)
+              onSave: (value) => handleUpdate(findingData, "source", value),
             }}
           />
           <MetadataDetailRow
@@ -408,18 +364,14 @@ export function FindingDetailContent({
             editable={{
               value: formatDateOnly(findingData.dueDate),
               displayElement: () => (
-                <span
-                  className={
-                    findingData.dueDate ? undefined : "text-muted-foreground"
-                  }
-                >
+                <span className={findingData.dueDate ? undefined : "text-muted-foreground"}>
                   {formatDateOnly(findingData.dueDate)}
                 </span>
               ),
               editElement: { type: "input", inputType: "date" },
               editOnClick: true,
               showEditIcon: false,
-              onSave: (value) => handleSaveDueDate(findingData, value)
+              onSave: (value) => handleSaveDueDate(findingData, value),
             }}
           />
         </div>
@@ -433,14 +385,8 @@ export function FindingDetailContent({
             label="Updated by"
             value={<UserLabel userId={findingData.updatedBy} />}
           />
-          <MetadataDetailRow
-            label="Asset"
-            value={asset.data?.name ?? "Unknown asset"}
-          />
-          <MetadataDetailRow
-            label="Asset owner"
-            value={<ResponsibleOwnerLabel />}
-          />
+          <MetadataDetailRow label="Asset" value={asset.data?.name ?? "Unknown asset"} />
+          <MetadataDetailRow label="Asset owner" value={<ResponsibleOwnerLabel />} />
           <MetadataDetailRow
             label="Assignee"
             editable={{
@@ -451,32 +397,22 @@ export function FindingDetailContent({
                 type: "custom",
                 hideActions: true,
                 render: ({ value, onCancel, onCommit }) => (
-                  <AssigneePicker
-                    value={value}
-                    onCancel={onCancel}
-                    onCommit={onCommit}
-                  />
-                )
+                  <AssigneePicker value={value} onCancel={onCancel} onCommit={onCommit} />
+                ),
               },
               editOnClick: true,
-              showEditIcon: false
+              showEditIcon: false,
             }}
           />
           <MetadataDetailRow
             label="Asset type"
             value={capitalizeFirstLetter(asset.data?.type ?? "Unknown")}
           />
-          <MetadataDetailRow
-            label="Created"
-            value={formatDateTime(findingData.createdAt)}
-          />
-          <MetadataDetailRow
-            label="Updated"
-            value={formatDateTime(findingData.updatedAt)}
-          />
+          <MetadataDetailRow label="Created" value={formatDateTime(findingData.createdAt)} />
+          <MetadataDetailRow label="Updated" value={formatDateTime(findingData.updatedAt)} />
         </div>
       </MetadataSidebar>
-    )
+    );
   }
 
   function VulnerabilityCard({ findingData }: { findingData: Finding }) {
@@ -526,17 +462,15 @@ export function FindingDetailContent({
               description="Canonical vulnerability record linked to this finding."
             />
           </div>
-          <SafeMarkdown>
-            {findingData.vulnerability.description ?? ""}
-          </SafeMarkdown>
+          <SafeMarkdown>{findingData.vulnerability.description ?? ""}</SafeMarkdown>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   function EvidenceCard({ findingData }: { findingData: Finding }) {
-    const evidence = findingData.evidence?.trim() ?? ""
-    const hasEvidence = evidence.length > 0
+    const evidence = findingData.evidence?.trim() ?? "";
+    const hasEvidence = evidence.length > 0;
 
     return (
       <Card className="w-full border-border/60 bg-shell-panel shadow-(--shell-shadow)">
@@ -545,8 +479,7 @@ export function FindingDetailContent({
             <div className="space-y-2">
               <CardTitle className="text-xl font-semibold">Evidence</CardTitle>
               <CardDescription>
-                Scanner output, validation notes, and technical proof supporting
-                this finding.
+                Scanner output, validation notes, and technical proof supporting this finding.
               </CardDescription>
             </div>
             <Button
@@ -566,10 +499,7 @@ export function FindingDetailContent({
             <Tabs defaultValue="rendered" className="gap-4">
               <TabsContent value="rendered">
                 <TabsList variant="line" className="mb-3 rounded-none p-0">
-                  <TabsTrigger
-                    value="rendered"
-                    className="gap-2 rounded-xl px-3"
-                  >
+                  <TabsTrigger value="rendered" className="gap-2 rounded-xl px-3">
                     <FileText />
                     Rendered
                   </TabsTrigger>
@@ -580,19 +510,14 @@ export function FindingDetailContent({
                 </TabsList>
                 <ScrollArea className="w-full rounded-2xl border border-border/70 bg-muted/20">
                   <div className="min-w-full p-5">
-                    <SafeMarkdown className="prose-p:max-w-3xl">
-                      {evidence}
-                    </SafeMarkdown>
+                    <SafeMarkdown className="prose-p:max-w-3xl">{evidence}</SafeMarkdown>
                   </div>
                   <ScrollBar orientation="horizontal" />
                 </ScrollArea>
               </TabsContent>
               <TabsContent value="raw">
                 <TabsList variant="line" className="mb-3 rounded-none p-0">
-                  <TabsTrigger
-                    value="rendered"
-                    className="gap-2 rounded-xl px-3"
-                  >
+                  <TabsTrigger value="rendered" className="gap-2 rounded-xl px-3">
                     <FileText />
                     Rendered
                   </TabsTrigger>
@@ -611,18 +536,15 @@ export function FindingDetailContent({
             </Tabs>
           ) : (
             <div className="rounded-2xl border border-dashed border-border bg-background/60 p-8 text-center">
-              <div className="text-sm font-medium text-foreground">
-                No evidence available
-              </div>
+              <div className="text-sm font-medium text-foreground">No evidence available</div>
               <div className="mt-2 text-sm text-muted-foreground">
-                This finding does not include validation notes or scanner output
-                yet.
+                This finding does not include validation notes or scanner output yet.
               </div>
             </div>
           )}
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -645,5 +567,5 @@ export function FindingDetailContent({
         </div>
       )}
     </DetailQueryBoundary>
-  )
+  );
 }

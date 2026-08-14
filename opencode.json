@@ -4,9 +4,11 @@
     "bash": {
       "pnpm --filter @exposurenexus/ui build-storybook *": "allow",
       "pnpm --filter @exposurenexus/ui build *": "allow",
-      "pnpm --filter @exposurenexus/ui check *": "allow",
-      "pnpm --filter @exposurenexus/ui check:fix *": "allow",
-      "pnpm --filter @exposurenexus/ui format *": "allow",
+      "pnpm format *": "allow",
+      "pnpm format:check *": "allow",
+      "pnpm lint *": "allow",
+      "pnpm lint:agent *": "allow",
+      "pnpm lint:fix *": "allow",
       "pnpm --filter @exposurenexus/ui test *": "allow",
       "pnpm --filter @exposurenexus/ui test:unit *": "allow",
       "pnpm --filter @exposurenexus/ui test:coverage *": "allow"
@@ -15,21 +17,13 @@
   "mcp": {
     "chrome-devtools": {
       "type": "local",
-      "command": [
-        "pnpm",
-        "dlx",
-        "chrome-devtools-mcp@latest"
-      ],
+      "command": ["pnpm", "dlx", "chrome-devtools-mcp@latest"],
       "enabled": true,
       "timeout": 20000
     },
     "shadcn": {
       "type": "local",
-      "command": [
-        "npx",
-        "shadcn@latest",
-        "mcp"
-      ],
+      "command": ["npx", "shadcn@latest", "mcp"],
       "enabled": true
     },
     "webstorm": {

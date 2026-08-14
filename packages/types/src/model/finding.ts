@@ -1,12 +1,13 @@
-import { z } from "zod/v4"
-import { vulnerabilitySchema, VulnerabilitySeverity } from "./vulnerability.js"
-import { dateSchema, utcStartDateSchema } from "./date.js"
+import { z } from "zod/v4";
 
-const dueDateSchema = utcStartDateSchema as z.ZodType<Date, Date>
+import { dateSchema, utcStartDateSchema } from "./date.js";
+import { vulnerabilitySchema, VulnerabilitySeverity } from "./vulnerability.js";
+
+const dueDateSchema = utcStartDateSchema as z.ZodType<Date, Date>;
 
 export enum FindingSource {
   Manual = "manual",
-  Nuclei = "nuclei"
+  Nuclei = "nuclei",
 }
 
 export enum FindingStatus {
@@ -17,7 +18,7 @@ export enum FindingStatus {
   RiskAccepted = "risk_accepted",
   Duplicate = "duplicate",
   OutOfScope = "out_of_scope",
-  Mitigated = "mitigated"
+  Mitigated = "mitigated",
 }
 
 export const findingInternalSchema = z.strictObject({
@@ -37,12 +38,12 @@ export const findingInternalSchema = z.strictObject({
   createdBy: z.uuidv4(),
   updatedBy: z.uuidv4(),
   createdAt: dateSchema,
-  updatedAt: dateSchema
-})
+  updatedAt: dateSchema,
+});
 
 export const findingSchema = findingInternalSchema.extend({
-  vulnerability: vulnerabilitySchema
-})
+  vulnerability: vulnerabilitySchema,
+});
 
 export const createFindingSchema = findingInternalSchema
   .omit({
@@ -55,34 +56,34 @@ export const createFindingSchema = findingInternalSchema
     dueDate: true,
     fingerprint: true,
     firstSeen: true,
-    lastSeen: true
+    lastSeen: true,
   })
   .extend({
     assigneeId: findingInternalSchema.shape.assigneeId.optional(),
-    dueDate: findingInternalSchema.shape.dueDate.optional()
-  })
+    dueDate: findingInternalSchema.shape.dueDate.optional(),
+  });
 
 export const updateFindingSchema = createFindingSchema
   .omit({
     vulnerabilityId: true,
     assetId: true,
     assigneeId: true,
-    dueDate: true
+    dueDate: true,
   })
   .extend({
     assigneeId: findingInternalSchema.shape.assigneeId,
-    dueDate: findingInternalSchema.shape.dueDate
-  })
+    dueDate: findingInternalSchema.shape.dueDate,
+  });
 
 export const reclassifyFindingsSchema = z.strictObject({
   source: z.string().trim().min(1),
   oldVulnerabilityId: z.uuidv4(),
-  targetVulnerabilityId: z.uuidv4()
-})
+  targetVulnerabilityId: z.uuidv4(),
+});
 
 export const reclassifyFindingsResultSchema = z.strictObject({
-  updatedCount: z.int().min(0)
-})
+  updatedCount: z.int().min(0),
+});
 
 export const FindingStatistics = z.strictObject({
   total: z.int(),
@@ -94,25 +95,23 @@ export const FindingStatistics = z.strictObject({
     [FindingStatus.RiskAccepted]: z.int(),
     [FindingStatus.Duplicate]: z.int(),
     [FindingStatus.OutOfScope]: z.int(),
-    [FindingStatus.Mitigated]: z.int()
+    [FindingStatus.Mitigated]: z.int(),
   }),
   severity: z.strictObject({
     [VulnerabilitySeverity.Info]: z.int(),
     [VulnerabilitySeverity.Low]: z.int(),
     [VulnerabilitySeverity.Medium]: z.int(),
     [VulnerabilitySeverity.High]: z.int(),
-    [VulnerabilitySeverity.Critical]: z.int()
+    [VulnerabilitySeverity.Critical]: z.int(),
   }),
   source: z.record(z.string(), z.int()),
-  assets: z.record(z.uuidv4(), z.int())
-})
+  assets: z.record(z.uuidv4(), z.int()),
+});
 
-export type FindingInternal = z.infer<typeof findingInternalSchema>
-export type Finding = z.infer<typeof findingSchema>
-export type CreateFinding = z.infer<typeof createFindingSchema>
-export type UpdateFinding = z.infer<typeof updateFindingSchema>
-export type ReclassifyFindings = z.infer<typeof reclassifyFindingsSchema>
-export type ReclassifyFindingsResult = z.infer<
-  typeof reclassifyFindingsResultSchema
->
-export type FindingStatistics = z.infer<typeof FindingStatistics>
+export type FindingInternal = z.infer<typeof findingInternalSchema>;
+export type Finding = z.infer<typeof findingSchema>;
+export type CreateFinding = z.infer<typeof createFindingSchema>;
+export type UpdateFinding = z.infer<typeof updateFindingSchema>;
+export type ReclassifyFindings = z.infer<typeof reclassifyFindingsSchema>;
+export type ReclassifyFindingsResult = z.infer<typeof reclassifyFindingsResultSchema>;
+export type FindingStatistics = z.infer<typeof FindingStatistics>;

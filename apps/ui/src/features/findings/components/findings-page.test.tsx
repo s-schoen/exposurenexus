@@ -1,31 +1,31 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
-import { useState } from "react"
-import type { ReactNode } from "react"
-import type { Asset } from "@exposurenexus/types/model/asset"
-import type { Finding } from "@exposurenexus/types/model/finding"
-import type { UserProfile } from "@exposurenexus/types/model/user"
-import { FindingsPage } from "@/features/findings/components/findings-page.tsx"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useState } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { FindingsPage } from "@/features/findings/components/findings-page.tsx";
+
+import type { Asset } from "@exposurenexus/types/model/asset";
+import type { Finding } from "@exposurenexus/types/model/finding";
+import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { ReactNode } from "react";
 
 type NavigateCall = {
-  params?: Record<string, unknown>
-  replace?: boolean
-  search?: unknown
-  to?: string
-}
+  params?: Record<string, unknown>;
+  replace?: boolean;
+  search?: unknown;
+  to?: string;
+};
 
-type SearchUpdater = (
-  previous: Record<string, unknown>
-) => Record<string, unknown>
+type SearchUpdater = (previous: Record<string, unknown>) => Record<string, unknown>;
 
 interface RouteState {
-  search: Record<string, unknown>
-  selected?: string
+  search: Record<string, unknown>;
+  selected?: string;
 }
 
 interface QueryOptionsLike {
-  queryKey: ReadonlyArray<unknown>
+  queryKey: ReadonlyArray<unknown>;
 }
 
 const mocks = vi.hoisted(() => {
@@ -36,17 +36,17 @@ const mocks = vi.hoisted(() => {
       displayName: "Alex Assignee",
       email: "alex@example.com",
       enabled: true,
-      roleIds: []
-    }
-  ]
+      roleIds: [],
+    },
+  ];
   const assets: Array<Asset> = [
     {
       id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
       name: "api-01",
       type: "host" as Asset["type"],
-      ownerId: users[0].id
-    }
-  ]
+      ownerId: users[0].id,
+    },
+  ];
   const findings: Array<Finding> = [
     {
       id: "2713d833-eb13-4517-ac7c-7761545ed42a",
@@ -76,8 +76,8 @@ const mocks = vi.hoisted(() => {
         createdBy: users[0].id,
         updatedBy: users[0].id,
         createdAt: new Date("2026-01-01T00:00:00.000Z"),
-        updatedAt: new Date("2026-01-01T00:00:00.000Z")
-      }
+        updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      },
     },
     {
       id: "3703bd68-5d5e-4209-90dc-365bc7030f67",
@@ -107,10 +107,10 @@ const mocks = vi.hoisted(() => {
         createdBy: users[0].id,
         updatedBy: users[0].id,
         createdAt: new Date("2026-01-04T00:00:00.000Z"),
-        updatedAt: new Date("2026-01-05T00:00:00.000Z")
-      }
-    }
-  ]
+        updatedAt: new Date("2026-01-05T00:00:00.000Z"),
+      },
+    },
+  ];
 
   return {
     assets,
@@ -120,17 +120,17 @@ const mocks = vi.hoisted(() => {
     findings,
     navigate: vi.fn(),
     users,
-    usePageMeta: vi.fn()
-  }
-})
+    usePageMeta: vi.fn(),
+  };
+});
 
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mocks.navigate
-}))
+  useNavigate: () => mocks.navigate,
+}));
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: QueryOptionsLike) => {
-    const queryKey = options.queryKey.join("/")
+    const queryKey = options.queryKey.join("/");
 
     if (queryKey === "findings") {
       return {
@@ -138,8 +138,8 @@ vi.mock("@tanstack/react-query", () => ({
         isFetching: false,
         isPending: false,
         isSuccess: true,
-        refetch: vi.fn()
-      }
+        refetch: vi.fn(),
+      };
     }
 
     if (queryKey === "assets") {
@@ -148,8 +148,8 @@ vi.mock("@tanstack/react-query", () => ({
         isFetching: false,
         isPending: false,
         isSuccess: true,
-        refetch: vi.fn()
-      }
+        refetch: vi.fn(),
+      };
     }
 
     if (queryKey === "users") {
@@ -158,48 +158,48 @@ vi.mock("@tanstack/react-query", () => ({
         isFetching: false,
         isPending: false,
         isSuccess: true,
-        refetch: vi.fn()
-      }
+        refetch: vi.fn(),
+      };
     }
 
-    throw new Error(`Unhandled query key ${queryKey}`)
-  }
-}))
+    throw new Error(`Unhandled query key ${queryKey}`);
+  },
+}));
 
 vi.mock("@/api/asset.ts", () => ({
   createListAssetsQueryOptions: () => ({
-    queryKey: ["assets"]
-  })
-}))
+    queryKey: ["assets"],
+  }),
+}));
 
 vi.mock("@/api/finding.ts", () => ({
   createListFindingsQueryOptions: () => ({
-    queryKey: ["findings"]
-  })
-}))
+    queryKey: ["findings"],
+  }),
+}));
 
 vi.mock("@/api/user.ts", () => ({
   createListUsersQueryOptions: () => ({
-    queryKey: ["users"]
-  })
-}))
+    queryKey: ["users"],
+  }),
+}));
 
 vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
   useFindingLifecycle: () => ({
     bulkUpdateFindingField: mocks.bulkUpdateFindingField,
-    deleteFindings: mocks.deleteFindings
-  })
-}))
+    deleteFindings: mocks.deleteFindings,
+  }),
+}));
 
 vi.mock("@/components/confirm-dialog.tsx", () => ({
   ConfirmDialog: {
-    call: mocks.confirmDelete
-  }
-}))
+    call: mocks.confirmDelete,
+  },
+}));
 
 vi.mock("@/context/page.tsx", () => ({
-  usePageMeta: mocks.usePageMeta
-}))
+  usePageMeta: mocks.usePageMeta,
+}));
 
 vi.mock("@/components/detail-preview-dialog.tsx", () => ({
   DetailPreviewDialog: ({
@@ -208,14 +208,14 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
     fullPageHref,
     onClose,
     selectedId,
-    title
+    title,
   }: {
-    children: ReactNode
-    description: string
-    fullPageHref?: string
-    onClose: () => void
-    selectedId?: string
-    title: string
+    children: ReactNode;
+    description: string;
+    fullPageHref?: string;
+    onClose: () => void;
+    selectedId?: string;
+    title: string;
   }) =>
     selectedId ? (
       <section aria-label={title} role="dialog">
@@ -226,14 +226,14 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
         </button>
         {children}
       </section>
-    ) : null
-}))
+    ) : null,
+}));
 
 vi.mock("@/components/finding-detail-content.tsx", () => ({
   FindingDetailContent: ({ findingId }: { findingId: string }) => (
     <div>Finding detail for {findingId}</div>
-  )
-}))
+  ),
+}));
 
 class ResizeObserverMock {
   observe() {}
@@ -243,160 +243,150 @@ class ResizeObserverMock {
   disconnect() {}
 }
 
-globalThis.ResizeObserver = ResizeObserverMock
-HTMLElement.prototype.scrollIntoView = vi.fn()
+globalThis.ResizeObserver = ResizeObserverMock;
+HTMLElement.prototype.scrollIntoView = vi.fn();
 
 function StatefulFindingsPage({
   initialSearch = {},
-  initialSelected
+  initialSelected,
 }: {
-  initialSearch?: Record<string, unknown>
-  initialSelected?: string
+  initialSearch?: Record<string, unknown>;
+  initialSelected?: string;
 }) {
   const [routeState, setRouteState] = useState<RouteState>({
     search: initialSearch,
-    selected: initialSelected
-  })
+    selected: initialSelected,
+  });
 
   mocks.navigate.mockImplementation((options: NavigateCall) => {
     if (options.to !== "/findings" || typeof options.search !== "function") {
-      return
+      return;
     }
 
-    const updateSearch = options.search as SearchUpdater
+    const updateSearch = options.search as SearchUpdater;
 
     setRouteState((current) => {
       const nextSearch = updateSearch({
         ...current.search,
-        selected: current.selected
-      })
+        selected: current.selected,
+      });
 
       return {
         search: nextSearch,
-        selected:
-          typeof nextSearch.selected === "string" ? nextSearch.selected : undefined
-      }
-    })
-  })
+        selected: typeof nextSearch.selected === "string" ? nextSearch.selected : undefined,
+      };
+    });
+  });
 
-  return (
-    <FindingsPage
-      search={routeState.search}
-      selected={routeState.selected}
-    />
-  )
+  return <FindingsPage search={routeState.search} selected={routeState.selected} />;
 }
 
 function renderFindingsRoute({
   initialSearch,
-  initialSelected
+  initialSelected,
 }: {
-  initialSearch?: Record<string, unknown>
-  initialSelected?: string
+  initialSearch?: Record<string, unknown>;
+  initialSelected?: string;
 } = {}) {
   return render(
-    <StatefulFindingsPage
-      initialSearch={initialSearch}
-      initialSelected={initialSelected}
-    />
-  )
+    <StatefulFindingsPage initialSearch={initialSearch} initialSelected={initialSelected} />,
+  );
 }
 
 describe("FindingsPage", () => {
   beforeEach(() => {
-    mocks.bulkUpdateFindingField.mockReset()
-    mocks.confirmDelete.mockReset()
-    mocks.confirmDelete.mockResolvedValue(true)
-    mocks.deleteFindings.mockReset()
+    mocks.bulkUpdateFindingField.mockReset();
+    mocks.confirmDelete.mockReset();
+    mocks.confirmDelete.mockResolvedValue(true);
+    mocks.deleteFindings.mockReset();
     mocks.deleteFindings.mockResolvedValue({
       successful: mocks.findings,
-      failed: []
-    })
-    mocks.navigate.mockReset()
-    mocks.usePageMeta.mockReset()
-  })
+      failed: [],
+    });
+    mocks.navigate.mockReset();
+    mocks.usePageMeta.mockReset();
+  });
 
   afterEach(() => {
-    cleanup()
-  })
+    cleanup();
+  });
 
   it("opens and closes the selected finding preview", async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
-    renderFindingsRoute()
+    renderFindingsRoute();
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Findings",
       description:
-        "Track active findings, assignment, severity, and mitigation status across assets."
-    })
+        "Track active findings, assignment, severity, and mitigation status across assets.",
+    });
 
-    const findingRow = screen.getByText("Exposed Admin Endpoint").closest("tr")
+    const findingRow = screen.getByText("Exposed Admin Endpoint").closest("tr");
 
     if (!findingRow) {
-      throw new Error("Expected finding row")
+      throw new Error("Expected finding row");
     }
 
-    fireEvent.click(findingRow)
+    fireEvent.click(findingRow);
 
-    expect(
-      await screen.findByText(`Finding detail for ${mocks.findings[0].id}`)
-    ).toBeVisible()
-    expect(
-      screen.getByRole("link", { name: /open full page/i })
-    ).toHaveAttribute("href", `/findings/${mocks.findings[0].id}`)
+    expect(await screen.findByText(`Finding detail for ${mocks.findings[0].id}`)).toBeVisible();
+    expect(screen.getByRole("link", { name: /open full page/i })).toHaveAttribute(
+      "href",
+      `/findings/${mocks.findings[0].id}`,
+    );
 
-    await user.click(screen.getByRole("button", { name: /close/i }))
+    await user.click(screen.getByRole("button", { name: /close/i }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
-      expect(screen.queryByTestId("data-table-active-row")).not.toBeInTheDocument()
-    })
-  })
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("data-table-active-row")).not.toBeInTheDocument();
+    });
+  });
 
   it("updates visible finding results from route-owned search state", async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
-    renderFindingsRoute()
+    renderFindingsRoute();
     await user.type(
       screen.getByRole("textbox", { name: /search across visible columns/i }),
-      "dependency"
-    )
+      "dependency",
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
         "data-filtered-rows",
-        "1"
-      )
-      expect(screen.getByText("Outdated API Dependency")).toBeVisible()
-      expect(screen.queryByText("Exposed Admin Endpoint")).not.toBeInTheDocument()
-    })
-  })
+        "1",
+      );
+      expect(screen.getByText("Outdated API Dependency")).toBeVisible();
+      expect(screen.queryByText("Exposed Admin Endpoint")).not.toBeInTheDocument();
+    });
+  });
 
   it("navigates to new finding and deletes selected findings", async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
-    renderFindingsRoute()
+    renderFindingsRoute();
 
-    await user.click(screen.getByRole("button", { name: /new finding/i }))
+    await user.click(screen.getByRole("button", { name: /new finding/i }));
     expect(mocks.navigate).toHaveBeenCalledWith({
-      to: "/findings/new"
-    })
+      to: "/findings/new",
+    });
 
-    await user.click(screen.getByLabelText("Select all"))
+    await user.click(screen.getByLabelText("Select all"));
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /^delete$/i })).toBeEnabled()
-    })
-    await user.click(screen.getByRole("button", { name: /^delete$/i }))
+      expect(screen.getByRole("button", { name: /^delete$/i })).toBeEnabled();
+    });
+    await user.click(screen.getByRole("button", { name: /^delete$/i }));
 
     await waitFor(() => {
       expect(mocks.confirmDelete).toHaveBeenCalledWith({
         title: "Delete Findings",
         description: "This action cannot be undone",
         message: "Are you sure you want to delete 2 findings(s)?",
-        confirmVariant: "destructive"
-      })
-      expect(mocks.deleteFindings).toHaveBeenCalledWith(mocks.findings)
-    })
-  })
-})
+        confirmVariant: "destructive",
+      });
+      expect(mocks.deleteFindings).toHaveBeenCalledWith(mocks.findings);
+    });
+  });
+});

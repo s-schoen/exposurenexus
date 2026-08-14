@@ -1,62 +1,54 @@
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
-import type { ColumnDef } from "@tanstack/react-table"
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
-import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
-import { Badge } from "@/components/ui/badge.tsx"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+
+import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
+
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { ColumnDef } from "@tanstack/react-table";
 
 function formatTypeLabel(type: AssetCustomFieldType): string {
   switch (type) {
     case AssetCustomFieldType.Text:
-      return "Text"
+      return "Text";
     case AssetCustomFieldType.Number:
-      return "Number"
+      return "Number";
     case AssetCustomFieldType.Select:
-      return "Select"
+      return "Select";
   }
 }
 
 function getRequiredLabel(required: boolean): string {
-  return required ? "Required" : "Optional"
+  return required ? "Required" : "Optional";
 }
 
 function formatDefaultValue(field: AssetCustomFieldDefinition): string | null {
   if (field.defaultValue === null) {
-    return null
+    return null;
   }
 
   if (field.type === AssetCustomFieldType.Select) {
-    const matchingOption = field.options.find(
-      (option) => option.value === field.defaultValue
-    )
+    const matchingOption = field.options.find((option) => option.value === field.defaultValue);
 
-    return matchingOption?.label ?? field.defaultValue
+    return matchingOption?.label ?? field.defaultValue;
   }
 
-  return String(field.defaultValue)
+  return String(field.defaultValue);
 }
 
 export const columns: Array<ColumnDef<AssetCustomFieldDefinition>> = [
   {
     accessorKey: "name",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
     cell: ({ row }) => (
       <div className="min-w-0 py-0.5">
-        <div className="truncate font-medium text-foreground">
-          {row.original.name}
-        </div>
-        <div className="truncate font-mono text-xs text-muted-foreground">
-          {row.original.key}
-        </div>
+        <div className="truncate font-medium text-foreground">{row.original.name}</div>
+        <div className="truncate font-mono text-xs text-muted-foreground">{row.original.key}</div>
       </div>
-    )
+    ),
   },
   {
     accessorKey: "type",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Type" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
     cell: ({ row }) => (
       <Badge variant="secondary" className="rounded-full">
         {formatTypeLabel(row.original.type)}
@@ -64,10 +56,10 @@ export const columns: Array<ColumnDef<AssetCustomFieldDefinition>> = [
     ),
     filterFn: (row, _columnId, filterValue: Array<string>) => {
       if (filterValue.length === 0) {
-        return true
+        return true;
       }
 
-      return filterValue.includes(row.original.type)
+      return filterValue.includes(row.original.type);
     },
     meta: {
       label: "Type",
@@ -75,18 +67,16 @@ export const columns: Array<ColumnDef<AssetCustomFieldDefinition>> = [
       options: [
         { label: "Text", value: AssetCustomFieldType.Text },
         { label: "Number", value: AssetCustomFieldType.Number },
-        { label: "Select", value: AssetCustomFieldType.Select }
-      ]
-    }
+        { label: "Select", value: AssetCustomFieldType.Select },
+      ],
+    },
   },
   {
     id: "required",
     accessorFn: (field) => getRequiredLabel(field.required),
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Required" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Required" />,
     cell: ({ row }) => {
-      const required = row.original.required
+      const required = row.original.required;
 
       return (
         <Badge
@@ -99,50 +89,46 @@ export const columns: Array<ColumnDef<AssetCustomFieldDefinition>> = [
         >
           {getRequiredLabel(required)}
         </Badge>
-      )
+      );
     },
     filterFn: (row, _columnId, filterValue: Array<string>) => {
       if (filterValue.length === 0) {
-        return true
+        return true;
       }
 
-      return filterValue.includes(getRequiredLabel(row.original.required))
+      return filterValue.includes(getRequiredLabel(row.original.required));
     },
     meta: {
       label: "Required",
       filterVariant: "select",
       options: [
         { label: "Required", value: "Required" },
-        { label: "Optional", value: "Optional" }
-      ]
-    }
+        { label: "Optional", value: "Optional" },
+      ],
+    },
   },
   {
     id: "defaultValue",
     accessorFn: (field) => field.defaultValue,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Default" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Default" />,
     cell: ({ row }) => {
-      const defaultValue = formatDefaultValue(row.original)
+      const defaultValue = formatDefaultValue(row.original);
 
       if (defaultValue === null) {
-        return <span className="text-muted-foreground">None</span>
+        return <span className="text-muted-foreground">None</span>;
       }
 
-      return <span>{defaultValue}</span>
-    }
+      return <span>{defaultValue}</span>;
+    },
   },
   {
     id: "optionCount",
     accessorFn: (field) =>
       field.type === AssetCustomFieldType.Select ? field.options.length : null,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Options" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Options" />,
     cell: ({ row }) => {
       if (row.original.type !== AssetCustomFieldType.Select) {
-        return <span className="text-muted-foreground">-</span>
+        return <span className="text-muted-foreground">-</span>;
       }
 
       return (
@@ -150,8 +136,8 @@ export const columns: Array<ColumnDef<AssetCustomFieldDefinition>> = [
           {row.original.options.length} option
           {row.original.options.length === 1 ? "" : "s"}
         </Badge>
-      )
+      );
     },
-    enableColumnFilter: false
-  }
-]
+    enableColumnFilter: false,
+  },
+];

@@ -1,75 +1,72 @@
-import { Plus, Trash2 } from "lucide-react"
-import { useForm } from "@tanstack/react-form"
-import { z } from "zod/v4"
 import {
   AssetCustomFieldType,
-  assetCustomFieldKeySchema
-} from "@exposurenexus/types/model/asset-custom-field"
-import type {
-  AssetCustomFieldDefinition,
-  CreateAssetCustomFieldDefinition,
-  UpdateAssetCustomFieldDefinition
-} from "@exposurenexus/types/model/asset-custom-field"
+  assetCustomFieldKeySchema,
+} from "@exposurenexus/types/model/asset-custom-field";
+import { useForm } from "@tanstack/react-form";
+import { Plus, Trash2 } from "lucide-react";
+import { z } from "zod/v4";
+
 import {
   createAssetCustomFieldDefinitionPayloadFromFormValues,
   updateAssetCustomFieldDefinitionPayloadFromFormValues,
-  validateAssetCustomFieldFormRuleValues
-} from "@/components/asset-custom-field-rule-validation.ts"
-import { Button } from "@/components/ui/button.tsx"
-import { Checkbox } from "@/components/ui/checkbox.tsx"
+  validateAssetCustomFieldFormRuleValues,
+} from "@/components/asset-custom-field-rule-validation.ts";
+import { Button } from "@/components/ui/button.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { Checkbox } from "@/components/ui/checkbox.tsx";
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
-  FieldLabel
-} from "@/components/ui/field.tsx"
-import { Input } from "@/components/ui/input.tsx"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger
-} from "@/components/ui/select.tsx"
-import { Spinner } from "@/components/ui/spinner.tsx"
+  FieldLabel,
+} from "@/components/ui/field.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select.tsx";
+import { Spinner } from "@/components/ui/spinner.tsx";
 
-export type AssetCustomFieldFormMode = "create" | "edit"
+import type {
+  AssetCustomFieldDefinition,
+  CreateAssetCustomFieldDefinition,
+  UpdateAssetCustomFieldDefinition,
+} from "@exposurenexus/types/model/asset-custom-field";
+
+export type AssetCustomFieldFormMode = "create" | "edit";
 
 export interface AssetCustomFieldFormOptionValue {
-  value: string
-  label: string
+  value: string;
+  label: string;
 }
 
 export interface AssetCustomFieldFormValues {
-  name: string
-  key: string
-  type: AssetCustomFieldType
-  required: boolean
-  defaultValue: string
-  options: Array<AssetCustomFieldFormOptionValue>
+  name: string;
+  key: string;
+  type: AssetCustomFieldType;
+  required: boolean;
+  defaultValue: string;
+  options: Array<AssetCustomFieldFormOptionValue>;
 }
 
 interface AssetCustomFieldFormProps {
-  mode: AssetCustomFieldFormMode
-  defaultValues?: Partial<AssetCustomFieldFormValues>
-  onSubmit: (values: AssetCustomFieldFormValues) => Promise<void> | void
-  onCancel: () => void
-  submitLabel?: string
+  mode: AssetCustomFieldFormMode;
+  defaultValues?: Partial<AssetCustomFieldFormValues>;
+  onSubmit: (values: AssetCustomFieldFormValues) => Promise<void> | void;
+  onCancel: () => void;
+  submitLabel?: string;
 }
 
-const NO_DEFAULT_SELECT_VALUE = "__no_default__"
+const NO_DEFAULT_SELECT_VALUE = "__no_default__";
 
 const optionFormSchema = z.strictObject({
   value: z.string(),
-  label: z.string()
-})
+  label: z.string(),
+});
 
 export const assetCustomFieldFormSchema = z
   .strictObject({
@@ -78,10 +75,10 @@ export const assetCustomFieldFormSchema = z
     type: z.enum(AssetCustomFieldType),
     required: z.boolean(),
     defaultValue: z.string(),
-    options: z.array(optionFormSchema)
+    options: z.array(optionFormSchema),
   })
   .superRefine((values, ctx) => {
-    const defaultValue = values.defaultValue.trim()
+    const defaultValue = values.defaultValue.trim();
 
     if (
       values.type === AssetCustomFieldType.Number &&
@@ -91,25 +88,25 @@ export const assetCustomFieldFormSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["defaultValue"],
-        message: "Enter a valid number"
-      })
+        message: "Enter a valid number",
+      });
     }
 
     if (values.type === AssetCustomFieldType.Select) {
       const normalizedOptions = values.options.map((option) => ({
         value: option.value.trim(),
-        label: option.label.trim()
-      }))
+        label: option.label.trim(),
+      }));
       const nonEmptyOptions = normalizedOptions.filter(
-        (option) => option.value !== "" || option.label !== ""
-      )
+        (option) => option.value !== "" || option.label !== "",
+      );
 
       if (nonEmptyOptions.length === 0) {
         ctx.addIssue({
           code: "custom",
           path: ["options"],
-          message: "Add at least one option"
-        })
+          message: "Add at least one option",
+        });
       }
 
       for (const [index, option] of normalizedOptions.entries()) {
@@ -117,16 +114,16 @@ export const assetCustomFieldFormSchema = z
           ctx.addIssue({
             code: "custom",
             path: ["options", index, "value"],
-            message: "Enter an option value"
-          })
+            message: "Enter an option value",
+          });
         }
 
         if (option.label === "") {
           ctx.addIssue({
             code: "custom",
             path: ["options", index, "label"],
-            message: "Enter an option label"
-          })
+            message: "Enter an option label",
+          });
         }
       }
     }
@@ -135,10 +132,10 @@ export const assetCustomFieldFormSchema = z
       ctx.addIssue({
         code: "custom",
         path: [...issue.path],
-        message: issue.message
-      })
+        message: issue.message,
+      });
     }
-  })
+  });
 
 const DEFAULT_ASSET_CUSTOM_FIELD_FORM_VALUES: AssetCustomFieldFormValues = {
   name: "",
@@ -146,22 +143,22 @@ const DEFAULT_ASSET_CUSTOM_FIELD_FORM_VALUES: AssetCustomFieldFormValues = {
   type: AssetCustomFieldType.Text,
   required: false,
   defaultValue: "",
-  options: [{ value: "", label: "" }]
-}
+  options: [{ value: "", label: "" }],
+};
 
 function formatTypeLabel(type: AssetCustomFieldType): string {
   switch (type) {
     case AssetCustomFieldType.Text:
-      return "Text"
+      return "Text";
     case AssetCustomFieldType.Number:
-      return "Number"
+      return "Number";
     case AssetCustomFieldType.Select:
-      return "Select"
+      return "Select";
   }
 }
 
 export function mapAssetCustomFieldDefinitionToFormValues(
-  field: AssetCustomFieldDefinition
+  field: AssetCustomFieldDefinition,
 ): AssetCustomFieldFormValues {
   return {
     name: field.name,
@@ -173,33 +170,30 @@ export function mapAssetCustomFieldDefinitionToFormValues(
       field.type === AssetCustomFieldType.Select
         ? field.options.map((option) => ({
             value: option.value,
-            label: option.label
+            label: option.label,
           }))
-        : [{ value: "", label: "" }]
-  }
+        : [{ value: "", label: "" }],
+  };
 }
 
 export function mapAssetCustomFieldFormValues(
-  values: AssetCustomFieldFormValues
+  values: AssetCustomFieldFormValues,
 ): CreateAssetCustomFieldDefinition {
-  return createAssetCustomFieldDefinitionPayloadFromFormValues(values)
+  return createAssetCustomFieldDefinitionPayloadFromFormValues(values);
 }
 
 export function mapUpdateAssetCustomFieldFormValues(
-  values: AssetCustomFieldFormValues
+  values: AssetCustomFieldFormValues,
 ): UpdateAssetCustomFieldDefinition {
-  return updateAssetCustomFieldDefinitionPayloadFromFormValues(values)
+  return updateAssetCustomFieldDefinitionPayloadFromFormValues(values);
 }
 
 function getOptionErrorMessages(
-  errors: Array<{ message?: string; path?: ReadonlyArray<unknown> } | undefined>
+  errors: Array<{ message?: string; path?: ReadonlyArray<unknown> } | undefined>,
 ) {
   return errors
-    .filter(
-      (error) =>
-        error?.message && (!Array.isArray(error.path) || error.path.length <= 1)
-    )
-    .map((error) => ({ message: error?.message }))
+    .filter((error) => error?.message && (!Array.isArray(error.path) || error.path.length <= 1))
+    .map((error) => ({ message: error?.message }));
 }
 
 export function AssetCustomFieldForm({
@@ -207,32 +201,30 @@ export function AssetCustomFieldForm({
   defaultValues,
   onSubmit,
   onCancel,
-  submitLabel
+  submitLabel,
 }: AssetCustomFieldFormProps) {
-  const isCreateMode = mode === "create"
+  const isCreateMode = mode === "create";
   const form = useForm({
     defaultValues: {
       ...DEFAULT_ASSET_CUSTOM_FIELD_FORM_VALUES,
-      ...defaultValues
+      ...defaultValues,
     },
     validators: {
-      onSubmit: assetCustomFieldFormSchema
+      onSubmit: assetCustomFieldFormSchema,
     },
     onSubmit: async ({ value }) => {
-      await onSubmit(value)
-    }
-  })
+      await onSubmit(value);
+    },
+  });
 
-  const isSubmitting = form.state.isSubmitting
+  const isSubmitting = form.state.isSubmitting;
   const resolvedSubmitLabel =
-    submitLabel ?? (isCreateMode ? "Create custom field" : "Save changes")
+    submitLabel ?? (isCreateMode ? "Create custom field" : "Save changes");
 
   return (
     <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
       <CardHeader>
-        <CardTitle>
-          {isCreateMode ? "Create custom field" : "Edit custom field"}
-        </CardTitle>
+        <CardTitle>{isCreateMode ? "Create custom field" : "Edit custom field"}</CardTitle>
         <CardDescription>
           {isCreateMode
             ? "Define an asset metadata field that can be used across assets."
@@ -243,8 +235,8 @@ export function AssetCustomFieldForm({
         <form
           id={`asset-custom-field-form-${mode}`}
           onSubmit={(event) => {
-            event.preventDefault()
-            form.handleSubmit()
+            event.preventDefault();
+            form.handleSubmit();
           }}
           className="flex flex-col gap-6"
         >
@@ -252,8 +244,7 @@ export function AssetCustomFieldForm({
             <form.Field
               name="name"
               children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid}>
@@ -263,9 +254,7 @@ export function AssetCustomFieldForm({
                       name={field.name}
                       value={field.state.value}
                       onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(event.target.value)
-                      }
+                      onChange={(event) => field.handleChange(event.target.value)}
                       aria-invalid={isInvalid}
                       placeholder="Category"
                       disabled={isSubmitting}
@@ -273,18 +262,15 @@ export function AssetCustomFieldForm({
                     <FieldDescription>
                       This is the label shown when editing or reviewing assets.
                     </FieldDescription>
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
+                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
                   </Field>
-                )
+                );
               }}
             />
             <form.Field
               name="key"
               children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid}>
@@ -294,29 +280,24 @@ export function AssetCustomFieldForm({
                       name={field.name}
                       value={field.state.value}
                       onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(event.target.value)
-                      }
+                      onChange={(event) => field.handleChange(event.target.value)}
                       aria-invalid={isInvalid}
                       placeholder="category"
                       disabled={isSubmitting}
                     />
                     <FieldDescription>
-                      Use lowercase letters, numbers, and underscores. The key
-                      must start with a letter.
+                      Use lowercase letters, numbers, and underscores. The key must start with a
+                      letter.
                     </FieldDescription>
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
+                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
                   </Field>
-                )
+                );
               }}
             />
             <form.Field
               name="type"
               children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid}>
@@ -324,8 +305,8 @@ export function AssetCustomFieldForm({
                     <Select
                       value={field.state.value}
                       onValueChange={(value) => {
-                        field.handleChange(value as AssetCustomFieldType)
-                        field.handleBlur()
+                        field.handleChange(value as AssetCustomFieldType);
+                        field.handleBlur();
                       }}
                     >
                       <SelectTrigger
@@ -347,14 +328,11 @@ export function AssetCustomFieldForm({
                       </SelectContent>
                     </Select>
                     <FieldDescription>
-                      The type controls validation and how asset values are
-                      edited.
+                      The type controls validation and how asset values are edited.
                     </FieldDescription>
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
+                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
                   </Field>
-                )
+                );
               }}
             />
             <form.Field
@@ -371,8 +349,7 @@ export function AssetCustomFieldForm({
                   <div className="grid gap-1.5 leading-none">
                     <FieldLabel htmlFor={field.name}>Required</FieldLabel>
                     <FieldDescription>
-                      Required fields need a default value so every asset has a
-                      value.
+                      Required fields need a default value so every asset has a value.
                     </FieldDescription>
                   </div>
                 </Field>
@@ -385,47 +362,39 @@ export function AssetCustomFieldForm({
                   <form.Field
                     name="defaultValue"
                     children={(field) => {
-                      const isInvalid =
-                        field.state.meta.isTouched && !field.state.meta.isValid
+                      const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
                       if (type === AssetCustomFieldType.Select) {
                         return (
                           <Field data-invalid={isInvalid}>
-                            <FieldLabel htmlFor={field.name}>
-                              Default value
-                            </FieldLabel>
+                            <FieldLabel htmlFor={field.name}>Default value</FieldLabel>
                             <form.Subscribe
                               selector={(state) => state.values.options}
                               children={(options) => {
                                 const selectedValue =
                                   field.state.value.trim() === ""
                                     ? NO_DEFAULT_SELECT_VALUE
-                                    : field.state.value
+                                    : field.state.value;
                                 const selectedOption = options.find(
-                                  (option) =>
-                                    option.value.trim() ===
-                                    field.state.value.trim()
-                                )
+                                  (option) => option.value.trim() === field.state.value.trim(),
+                                );
                                 const selectedLabel =
                                   selectedValue === NO_DEFAULT_SELECT_VALUE
                                     ? "No default"
-                                    : selectedOption?.label.trim() ||
-                                      field.state.value
+                                    : selectedOption?.label.trim() || field.state.value;
 
                                 return (
                                   <Select
                                     value={selectedValue}
                                     onValueChange={(value) => {
                                       if (value === null) {
-                                        return
+                                        return;
                                       }
 
                                       field.handleChange(
-                                        value === NO_DEFAULT_SELECT_VALUE
-                                          ? ""
-                                          : value
-                                      )
-                                      field.handleBlur()
+                                        value === NO_DEFAULT_SELECT_VALUE ? "" : value,
+                                      );
+                                      field.handleBlur();
                                     }}
                                   >
                                     <SelectTrigger
@@ -439,81 +408,60 @@ export function AssetCustomFieldForm({
                                       </span>
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem
-                                        value={NO_DEFAULT_SELECT_VALUE}
-                                      >
+                                      <SelectItem value={NO_DEFAULT_SELECT_VALUE}>
                                         No default
                                       </SelectItem>
                                       {options
-                                        .filter(
-                                          (option) => option.value.trim() !== ""
-                                        )
+                                        .filter((option) => option.value.trim() !== "")
                                         .map((option) => (
                                           <SelectItem
                                             key={option.value}
                                             value={option.value.trim()}
                                           >
-                                            {option.label.trim() ||
-                                              option.value.trim()}
+                                            {option.label.trim() || option.value.trim()}
                                           </SelectItem>
                                         ))}
                                     </SelectContent>
                                   </Select>
-                                )
+                                );
                               }}
                             />
                             <FieldDescription>
                               Optional fields may leave this empty.
                             </FieldDescription>
-                            {isInvalid && (
-                              <FieldError errors={field.state.meta.errors} />
-                            )}
+                            {isInvalid && <FieldError errors={field.state.meta.errors} />}
                           </Field>
-                        )
+                        );
                       }
 
                       return (
                         <Field data-invalid={isInvalid}>
-                          <FieldLabel htmlFor={field.name}>
-                            Default value
-                          </FieldLabel>
+                          <FieldLabel htmlFor={field.name}>Default value</FieldLabel>
                           <Input
                             id={field.name}
                             name={field.name}
-                            type={
-                              type === AssetCustomFieldType.Number
-                                ? "number"
-                                : "text"
-                            }
+                            type={type === AssetCustomFieldType.Number ? "number" : "text"}
                             value={field.state.value}
                             onBlur={field.handleBlur}
-                            onChange={(event) =>
-                              field.handleChange(event.target.value)
-                            }
+                            onChange={(event) => field.handleChange(event.target.value)}
                             aria-invalid={isInvalid}
                             placeholder="No default"
                             disabled={isSubmitting}
                           />
-                          <FieldDescription>
-                            Optional fields may leave this empty.
-                          </FieldDescription>
-                          {isInvalid && (
-                            <FieldError errors={field.state.meta.errors} />
-                          )}
+                          <FieldDescription>Optional fields may leave this empty.</FieldDescription>
+                          {isInvalid && <FieldError errors={field.state.meta.errors} />}
                         </Field>
-                      )
+                      );
                     }}
                   />
                   {type === AssetCustomFieldType.Select && (
                     <form.Field
                       name="options"
                       children={(field) => {
-                        const optionErrors = getOptionErrorMessages(
-                          field.state.meta.errors
-                        )
+                        const optionErrors = getOptionErrorMessages(field.state.meta.errors);
                         const isInvalid =
                           field.state.meta.isTouched &&
-                          (!field.state.meta.isValid || optionErrors.length > 0)
+                          (!field.state.meta.isValid || optionErrors.length > 0);
 
                         return (
                           <Field data-invalid={isInvalid}>
@@ -521,8 +469,8 @@ export function AssetCustomFieldForm({
                               <div className="space-y-1">
                                 <FieldLabel>Select options</FieldLabel>
                                 <FieldDescription>
-                                  Option values are stored on assets, while
-                                  labels are shown in the UI.
+                                  Option values are stored on assets, while labels are shown in the
+                                  UI.
                                 </FieldDescription>
                               </div>
                               <Button
@@ -532,9 +480,9 @@ export function AssetCustomFieldForm({
                                 onClick={() => {
                                   field.handleChange([
                                     ...field.state.value,
-                                    { value: "", label: "" }
-                                  ])
-                                  field.handleBlur()
+                                    { value: "", label: "" },
+                                  ]);
+                                  field.handleBlur();
                                 }}
                                 disabled={isSubmitting}
                               >
@@ -552,12 +500,12 @@ export function AssetCustomFieldForm({
                                     aria-label={`Option ${index + 1} value`}
                                     value={option.value}
                                     onChange={(event) => {
-                                      const nextOptions = [...field.state.value]
+                                      const nextOptions = [...field.state.value];
                                       nextOptions[index] = {
                                         ...option,
-                                        value: event.target.value
-                                      }
-                                      field.handleChange(nextOptions)
+                                        value: event.target.value,
+                                      };
+                                      field.handleChange(nextOptions);
                                     }}
                                     onBlur={field.handleBlur}
                                     placeholder="production"
@@ -567,12 +515,12 @@ export function AssetCustomFieldForm({
                                     aria-label={`Option ${index + 1} label`}
                                     value={option.label}
                                     onChange={(event) => {
-                                      const nextOptions = [...field.state.value]
+                                      const nextOptions = [...field.state.value];
                                       nextOptions[index] = {
                                         ...option,
-                                        label: event.target.value
-                                      }
-                                      field.handleChange(nextOptions)
+                                        label: event.target.value,
+                                      };
+                                      field.handleChange(nextOptions);
                                     }}
                                     onBlur={field.handleBlur}
                                     placeholder="Production"
@@ -589,10 +537,10 @@ export function AssetCustomFieldForm({
                                           ? [{ value: "", label: "" }]
                                           : field.state.value.filter(
                                               (_currentOption, optionIndex) =>
-                                                optionIndex !== index
-                                            )
-                                      field.handleChange(nextOptions)
-                                      field.handleBlur()
+                                                optionIndex !== index,
+                                            );
+                                      field.handleChange(nextOptions);
+                                      field.handleBlur();
                                     }}
                                     disabled={isSubmitting}
                                   >
@@ -603,7 +551,7 @@ export function AssetCustomFieldForm({
                             </div>
                             {isInvalid && <FieldError errors={optionErrors} />}
                           </Field>
-                        )
+                        );
                       }}
                     />
                   )}
@@ -612,12 +560,7 @@ export function AssetCustomFieldForm({
             />
           </FieldGroup>
           <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              disabled={isSubmitting}
-            >
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
@@ -628,5 +571,5 @@ export function AssetCustomFieldForm({
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

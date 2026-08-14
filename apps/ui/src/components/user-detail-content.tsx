@@ -1,24 +1,26 @@
-import { Mail, User as UserIcon } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
-import type { ReactNode } from "react"
-import { createListRolesQueryOptions } from "@/api/role.ts"
-import { createUserByIDQueryOptions } from "@/api/user.ts"
-import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx"
-import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
-import { MetadataSidebar } from "@/components/metadata-sidebar"
-import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx"
-import { Badge } from "@/components/ui/badge.tsx"
+import { useQuery } from "@tanstack/react-query";
+import { Mail, User as UserIcon } from "lucide-react";
+
+import { createListRolesQueryOptions } from "@/api/role.ts";
+import { createUserByIDQueryOptions } from "@/api/user.ts";
+import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
+import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
+import { MetadataSidebar } from "@/components/metadata-sidebar";
+import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
+  CardTitle,
+} from "@/components/ui/card.tsx";
+
+import type { ReactNode } from "react";
 
 interface UserDetailContentProps {
-  userId: string
-  titleAction?: ReactNode
+  userId: string;
+  titleAction?: ReactNode;
 }
 
 function UserStatusBadge({ enabled }: { enabled: boolean }) {
@@ -33,37 +35,29 @@ function UserStatusBadge({ enabled }: { enabled: boolean }) {
     >
       {enabled ? "Enabled" : "Disabled"}
     </Badge>
-  )
+  );
 }
 
-export function UserDetailContent({
-  userId,
-  titleAction
-}: UserDetailContentProps) {
-  const user = useQuery(createUserByIDQueryOptions(userId))
-  const roles = useQuery(createListRolesQueryOptions())
+export function UserDetailContent({ userId, titleAction }: UserDetailContentProps) {
+  const user = useQuery(createUserByIDQueryOptions(userId));
+  const roles = useQuery(createListRolesQueryOptions());
 
   function renderUserDetail(userData: NonNullable<typeof user.data>) {
-    const displayName = userData.displayName
-    const roleLabelById = new Map(
-      (roles.data ?? []).map((role) => [role.id, role.name])
-    )
+    const displayName = userData.displayName;
+    const roleLabelById = new Map((roles.data ?? []).map((role) => [role.id, role.name]));
     const resolvedRoleLabels = userData.roleIds.flatMap((roleId) => {
-      const roleLabel = roleLabelById.get(roleId)
-      return roleLabel ? [roleLabel] : []
-    })
-    const unresolvedRoleCount = Math.max(
-      userData.roleIds.length - resolvedRoleLabels.length,
-      0
-    )
+      const roleLabel = roleLabelById.get(roleId);
+      return roleLabel ? [roleLabel] : [];
+    });
+    const unresolvedRoleCount = Math.max(userData.roleIds.length - resolvedRoleLabels.length, 0);
 
     function UserRoleBadges({ compact = false }: { compact?: boolean }) {
       if (userData.roleIds.length === 0) {
-        return <span className="text-muted-foreground">No roles</span>
+        return <span className="text-muted-foreground">No roles</span>;
       }
 
       if (roles.isPending) {
-        return <span className="text-muted-foreground">Loading roles...</span>
+        return <span className="text-muted-foreground">Loading roles...</span>;
       }
 
       if (!roles.data) {
@@ -72,15 +66,13 @@ export function UserDetailContent({
             {userData.roleIds.length} role
             {userData.roleIds.length === 1 ? "" : "s"} assigned
           </span>
-        )
+        );
       }
 
       return (
         <div
           className={
-            compact
-              ? "flex max-w-[16rem] flex-wrap justify-end gap-1"
-              : "flex flex-wrap gap-2"
+            compact ? "flex max-w-[16rem] flex-wrap justify-end gap-1" : "flex flex-wrap gap-2"
           }
         >
           {resolvedRoleLabels.map((roleLabel) => (
@@ -89,19 +81,16 @@ export function UserDetailContent({
             </Badge>
           ))}
           {unresolvedRoleCount > 0 && (
-            <Badge
-              variant="outline"
-              className="rounded-full text-muted-foreground"
-            >
+            <Badge variant="outline" className="rounded-full text-muted-foreground">
               +{unresolvedRoleCount} unknown
             </Badge>
           )}
         </div>
-      )
+      );
     }
 
     function UserOverviewCard() {
-      const username = userData.username
+      const username = userData.username;
 
       return (
         <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
@@ -116,8 +105,8 @@ export function UserDetailContent({
                   {displayName}
                 </CardTitle>
                 <CardDescription className="max-w-3xl text-sm leading-6">
-                  Platform user account with access credentials, profile
-                  identifiers, and role assignments.
+                  Platform user account with access credentials, profile identifiers, and role
+                  assignments.
                 </CardDescription>
               </div>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -145,11 +134,11 @@ export function UserDetailContent({
             </div>
           </CardHeader>
         </Card>
-      )
+      );
     }
 
     function UserProfileCard() {
-      const username = userData.username
+      const username = userData.username;
 
       return (
         <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
@@ -158,8 +147,7 @@ export function UserDetailContent({
               <div className="space-y-2">
                 <CardTitle className="text-xl font-semibold">Profile</CardTitle>
                 <CardDescription>
-                  Identity fields stored by the ExposureNexus user profile
-                  service.
+                  Identity fields stored by the ExposureNexus user profile service.
                 </CardDescription>
               </div>
               <Badge variant="outline" className="rounded-md">
@@ -170,9 +158,7 @@ export function UserDetailContent({
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <div className="text-sm font-medium text-foreground">
-                Display name
-              </div>
+              <div className="text-sm font-medium text-foreground">Display name</div>
               <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
                 {displayName}
               </div>
@@ -184,20 +170,18 @@ export function UserDetailContent({
               </div>
             </div>
             <div className="space-y-2">
-              <div className="text-sm font-medium text-foreground">
-                Username
-              </div>
+              <div className="text-sm font-medium text-foreground">Username</div>
               <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
                 {username}
               </div>
             </div>
           </CardContent>
         </Card>
-      )
+      );
     }
 
     function UserSidebar() {
-      const username = userData.username
+      const username = userData.username;
 
       return (
         <MetadataSidebar title="User details" icon={UserIcon}>
@@ -205,17 +189,11 @@ export function UserDetailContent({
             <MetadataDetailRow label="Display name" value={displayName} />
             <MetadataDetailRow label="Email" value={userData.email} />
             <MetadataDetailRow label="Username" value={username} />
-            <MetadataDetailRow
-              label="Status"
-              value={userData.enabled ? "Enabled" : "Disabled"}
-            />
-            <MetadataDetailRow
-              label="Roles"
-              value={<UserRoleBadges compact />}
-            />
+            <MetadataDetailRow label="Status" value={userData.enabled ? "Enabled" : "Disabled"} />
+            <MetadataDetailRow label="Roles" value={<UserRoleBadges compact />} />
           </div>
         </MetadataSidebar>
-      )
+      );
     }
 
     return (
@@ -226,7 +204,7 @@ export function UserDetailContent({
         </div>
         <UserSidebar />
       </div>
-    )
+    );
   }
 
   return (
@@ -239,5 +217,5 @@ export function UserDetailContent({
     >
       {renderUserDetail}
     </DetailQueryBoundary>
-  )
+  );
 }

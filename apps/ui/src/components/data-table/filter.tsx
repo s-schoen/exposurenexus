@@ -1,24 +1,26 @@
-import { Search, XIcon } from "lucide-react"
-import type { ChangeEvent } from "react"
-import { Button } from "@/components/ui/button.tsx"
-import { Input } from "@/components/ui/input.tsx"
+import { Search, XIcon } from "lucide-react";
+
+import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
+
+import type { ChangeEvent } from "react";
 
 interface DataTableFilterProps {
-  value: string
-  hasActiveFilters?: boolean
-  onFilterChange: (value: string) => void
-  onClearAll: () => void
+  value: string;
+  hasActiveFilters?: boolean;
+  onFilterChange: (value: string) => void;
+  onClearAll: () => void;
 }
 
 export function DataTableFilter({
   value,
   hasActiveFilters = false,
   onFilterChange,
-  onClearAll
+  onClearAll,
 }: DataTableFilterProps) {
   const onFilter = (e: ChangeEvent<HTMLInputElement>) => {
-    onFilterChange(e.target.value)
-  }
+    onFilterChange(e.target.value);
+  };
 
   return (
     <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
@@ -44,5 +46,5 @@ export function DataTableFilter({
         Clear all
       </Button>
     </div>
-  )
+  );
 }

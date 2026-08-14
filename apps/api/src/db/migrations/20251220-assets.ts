@@ -1,11 +1,8 @@
-import { Kysely, sql } from "kysely"
+import { Kysely, sql } from "kysely";
 
-// eslint-disable-next-line
+// oxlint-disable-next-line typescript/no-explicit-any
 export async function up(db: Kysely<any>): Promise<void> {
-  await db.schema
-    .createType("asset_type")
-    .asEnum(["host", "software", "container"])
-    .execute()
+  await db.schema.createType("asset_type").asEnum(["host", "software", "container"]).execute();
 
   await db.schema
     .createTable("asset")
@@ -13,15 +10,15 @@ export async function up(db: Kysely<any>): Promise<void> {
       col
         .primaryKey()
         .notNull()
-        .defaultTo(sql`gen_random_uuid()`)
+        .defaultTo(sql`gen_random_uuid()`),
     )
     .addColumn("name", "text", (col) => col.notNull())
     .addColumn("type", sql`asset_type`, (col) => col.notNull())
-    .execute()
+    .execute();
 }
 
-// eslint-disable-next-line
+// oxlint-disable-next-line typescript/no-explicit-any
 export async function down(db: Kysely<any>): Promise<void> {
-  await db.schema.dropTable("asset").execute()
-  await db.schema.dropType("asset_type").execute()
+  await db.schema.dropTable("asset").execute();
+  await db.schema.dropType("asset_type").execute();
 }

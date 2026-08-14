@@ -1,14 +1,12 @@
-import { type Kysely } from "kysely"
+import { type Kysely } from "kysely";
 
 export async function up(db: Kysely<object>): Promise<void> {
   await db.schema
     .alterTable("asset")
-    .addColumn("ownerId", "uuid", (col) =>
-      col.references("user_profile.id").onDelete("set null")
-    )
-    .execute()
+    .addColumn("ownerId", "uuid", (col) => col.references("user_profile.id").onDelete("set null"))
+    .execute();
 }
 
 export async function down(db: Kysely<object>): Promise<void> {
-  await db.schema.alterTable("asset").dropColumn("ownerId").execute()
+  await db.schema.alterTable("asset").dropColumn("ownerId").execute();
 }

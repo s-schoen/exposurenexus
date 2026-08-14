@@ -9,7 +9,6 @@ See [Development](../../docs/development.md) for local setup and workspace comma
 ```bash
 pnpm dev
 pnpm build
-pnpm check
 pnpm test
 pnpm test:coverage
 pnpm storybook

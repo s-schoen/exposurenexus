@@ -1,91 +1,87 @@
-import { useLayoutEffect, useMemo, useState } from "react"
-import { fn } from "storybook/test"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import type { UserProfile } from "@exposurenexus/types/model/user"
-import { UserTable } from "@/components/user-table"
-import { ROLE_FIXTURES } from "@/components/role-fixtures.ts"
-import { STORY_USERS } from "@/components/storybook-fixtures.ts"
+import { useLayoutEffect, useMemo, useState } from "react";
+import { fn } from "storybook/test";
+
+import { ROLE_FIXTURES } from "@/components/role-fixtures.ts";
+import { STORY_USERS } from "@/components/storybook-fixtures.ts";
 import {
   RouterStoryProvider,
   createArrayResponse,
-  createStoryQueryClient
-} from "@/components/storybook-utils.tsx"
+  createStoryQueryClient,
+} from "@/components/storybook-utils.tsx";
+import { UserTable } from "@/components/user-table";
+
+import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type UserTableStoryArgs = {
-  users: Array<UserProfile>
-  scenario: "default" | "empty" | "loading" | "roles-loading"
-  selectedUserId?: string
-  onSelectUser?: (user: UserProfile) => void
-  onCreateUser?: () => void
-}
+  users: Array<UserProfile>;
+  scenario: "default" | "empty" | "loading" | "roles-loading";
+  selectedUserId?: string;
+  onSelectUser?: (user: UserProfile) => void;
+  onCreateUser?: () => void;
+};
 
 function UserTableStoryShell({
   users,
   scenario,
   selectedUserId,
   onSelectUser,
-  onCreateUser
+  onCreateUser,
 }: UserTableStoryArgs) {
-  const effectiveUsers = scenario === "empty" ? [] : users
+  const effectiveUsers = scenario === "empty" ? [] : users;
   const queryClient = useMemo(() => {
-    const client = createStoryQueryClient()
+    const client = createStoryQueryClient();
 
     if (scenario !== "loading") {
-      client.setQueryData(["users"], effectiveUsers)
+      client.setQueryData(["users"], effectiveUsers);
     }
 
     if (scenario !== "loading" && scenario !== "roles-loading") {
-      client.setQueryData(["roles"], ROLE_FIXTURES)
+      client.setQueryData(["roles"], ROLE_FIXTURES);
     }
 
-    return client
-  }, [effectiveUsers, scenario])
-  const [ready, setReady] = useState(
-    scenario !== "loading" && scenario !== "roles-loading"
-  )
+    return client;
+  }, [effectiveUsers, scenario]);
+  const [ready, setReady] = useState(scenario !== "loading" && scenario !== "roles-loading");
 
   useLayoutEffect(() => {
-    const originalFetch = globalThis.fetch
+    const originalFetch = globalThis.fetch;
 
     globalThis.fetch = async (input, init) => {
-      const requestUrl = input instanceof Request ? input.url : String(input)
+      const requestUrl = input instanceof Request ? input.url : String(input);
 
       if (requestUrl.endsWith("/api/users")) {
         if (scenario === "loading") {
-          return await new Promise<Response>(() => {})
+          return await new Promise<Response>(() => {});
         }
 
-        return createArrayResponse(effectiveUsers)
+        return createArrayResponse(effectiveUsers);
       }
 
       if (requestUrl.endsWith("/api/roles")) {
         if (scenario === "loading" || scenario === "roles-loading") {
-          return await new Promise<Response>(() => {})
+          return await new Promise<Response>(() => {});
         }
 
-        return createArrayResponse(ROLE_FIXTURES)
+        return createArrayResponse(ROLE_FIXTURES);
       }
 
-      return originalFetch(input, init)
-    }
+      return originalFetch(input, init);
+    };
 
-    setReady(true)
+    setReady(true);
 
     return () => {
-      globalThis.fetch = originalFetch
-    }
-  }, [effectiveUsers, scenario])
+      globalThis.fetch = originalFetch;
+    };
+  }, [effectiveUsers, scenario]);
 
   if (!ready) {
-    return null
+    return null;
   }
 
   return (
-    <RouterStoryProvider
-      queryClient={queryClient}
-      initialPath="/users"
-      withNuqs
-    >
+    <RouterStoryProvider queryClient={queryClient} initialPath="/users" withNuqs>
       <div className="w-full max-w-6xl">
         <UserTable
           selectedUserId={selectedUserId}
@@ -94,7 +90,7 @@ function UserTableStoryShell({
         />
       </div>
     </RouterStoryProvider>
-  )
+  );
 }
 
 const meta = {
@@ -102,59 +98,59 @@ const meta = {
   component: UserTableStoryShell,
   tags: ["!test"],
   parameters: {
-    layout: "padded"
+    layout: "padded",
   },
   args: {
     users: STORY_USERS,
-    scenario: "default"
+    scenario: "default",
   },
   argTypes: {
     scenario: {
       control: "radio",
-      options: ["default", "empty", "loading", "roles-loading"]
-    }
+      options: ["default", "empty", "loading", "roles-loading"],
+    },
   },
-  render: (args) => <UserTableStoryShell {...args} />
-} satisfies Meta<typeof UserTableStoryShell>
+  render: (args) => <UserTableStoryShell {...args} />,
+} satisfies Meta<typeof UserTableStoryShell>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {}
+export const Default: Story = {};
 
 export const Empty: Story = {
   args: {
-    scenario: "empty"
-  }
-}
+    scenario: "empty",
+  },
+};
 
 export const Loading: Story = {
   args: {
-    scenario: "loading"
-  }
-}
+    scenario: "loading",
+  },
+};
 
 export const RolesLoading: Story = {
   args: {
-    scenario: "roles-loading"
-  }
-}
+    scenario: "roles-loading",
+  },
+};
 
 export const ActiveRow: Story = {
   args: {
-    selectedUserId: STORY_USERS[1].id
-  }
-}
+    selectedUserId: STORY_USERS[1].id,
+  },
+};
 
 export const Creatable: Story = {
   args: {
-    onCreateUser: fn()
-  }
-}
+    onCreateUser: fn(),
+  },
+};
 
 export const Selectable: Story = {
   args: {
-    onSelectUser: fn()
-  }
-}
+    onSelectUser: fn(),
+  },
+};

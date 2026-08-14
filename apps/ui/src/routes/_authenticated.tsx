@@ -1,17 +1,18 @@
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router"
-import { NuqsAdapter } from "nuqs/adapters/tanstack-router"
-import { AppSidebar } from "@/components/app-sidebar.tsx"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar.tsx"
-import { Toaster } from "@/components/ui/sonner.tsx"
-import AppHeader from "@/components/app-header.tsx"
-import { usePage } from "@/context/page.tsx"
-import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
-import { AssetDialog } from "@/components/asset-dialog.tsx"
-import { Button } from "@/components/ui/button.tsx"
-import { cn } from "@/lib/utils.ts"
+import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
+
+import AppHeader from "@/components/app-header.tsx";
+import { AppSidebar } from "@/components/app-sidebar.tsx";
+import { AssetDialog } from "@/components/asset-dialog.tsx";
+import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar.tsx";
+import { Toaster } from "@/components/ui/sonner.tsx";
+import { usePage } from "@/context/page.tsx";
+import { cn } from "@/lib/utils.ts";
 
 function Layout() {
-  const { title, description, actions } = usePage()
+  const { title, description, actions } = usePage();
 
   return (
     <>
@@ -55,7 +56,7 @@ function Layout() {
                               size="sm"
                               className={cn(
                                 "rounded-xl",
-                                index === 0 && "shadow-sm shadow-primary/20"
+                                index === 0 && "shadow-sm shadow-primary/20",
                               )}
                               disabled={action.disabled}
                               onClick={action.onClick}
@@ -80,19 +81,19 @@ function Layout() {
         </div>
       </SidebarProvider>
     </>
-  )
+  );
 }
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ context, location }) => {
-    const hasSession = await context.auth.ensureSession()
+    const hasSession = await context.auth.ensureSession();
 
     if (!hasSession) {
       throw redirect({
         to: "/login",
-        search: { redirect: location.href }
-      })
+        search: { redirect: location.href },
+      });
     }
   },
-  component: () => <Layout />
-})
+  component: () => <Layout />,
+});

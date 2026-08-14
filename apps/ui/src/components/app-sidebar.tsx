@@ -1,3 +1,6 @@
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { useQuery } from "@tanstack/react-query";
+import { Link, useLocation } from "@tanstack/react-router";
 import {
   Bug,
   ClipboardCheck,
@@ -7,11 +10,10 @@ import {
   ShieldAlert,
   Tags,
   UploadCloud,
-  Users
-} from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
-import { Link, useLocation } from "@tanstack/react-router"
-import { FindingStatus } from "@exposurenexus/types/model/finding"
+  Users,
+} from "lucide-react";
+
+import { createFindingStatsQueryOptions } from "@/api/finding.ts";
 import {
   Sidebar,
   SidebarContent,
@@ -21,37 +23,32 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator
-} from "@/components/ui/sidebar"
-import { createFindingStatsQueryOptions } from "@/api/finding.ts"
-import { cn } from "@/lib/utils"
+  SidebarSeparator,
+} from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 interface SidebarItem {
-  title: string
-  url: string
-  icon: React.ComponentType<{ className?: string }>
-  description: string
-  badge?: number
-  activeMatch?: RegExp
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  description: string;
+  badge?: number;
+  activeMatch?: RegExp;
 }
 
 export function AppSidebar() {
-  const location = useLocation()
-  const findingStats = useQuery(createFindingStatsQueryOptions())
-  const triageCount = findingStats.data?.status[FindingStatus.Active] ?? 0
-  const mitigationCount =
-    findingStats.data?.status[FindingStatus.Confirmed] ?? 0
+  const location = useLocation();
+  const findingStats = useQuery(createFindingStatsQueryOptions());
+  const triageCount = findingStats.data?.status[FindingStatus.Active] ?? 0;
+  const mitigationCount = findingStats.data?.status[FindingStatus.Confirmed] ?? 0;
 
   const isItemActive = (item: SidebarItem) => {
     if (item.activeMatch) {
-      return item.activeMatch.test(location.pathname)
+      return item.activeMatch.test(location.pathname);
     }
 
-    return (
-      location.pathname === item.url ||
-      location.pathname.startsWith(`${item.url}/`)
-    )
-  }
+    return location.pathname === item.url || location.pathname.startsWith(`${item.url}/`);
+  };
 
   const groups: Array<{ label: string; items: Array<SidebarItem> }> = [
     {
@@ -62,14 +59,14 @@ export function AppSidebar() {
           url: "/",
           icon: Home,
           description: "Overview and triage",
-          activeMatch: /^\/$/
+          activeMatch: /^\/$/,
         },
         {
           title: "Assets",
           url: "/assets",
           icon: Server,
           description: "Systems in scope",
-          activeMatch: /^\/assets(?:\/.+)?$/
+          activeMatch: /^\/assets(?:\/.+)?$/,
         },
         {
           title: "Triage queue",
@@ -77,7 +74,7 @@ export function AppSidebar() {
           icon: ClipboardCheck,
           description: "Active findings to review",
           badge: triageCount,
-          activeMatch: /^\/findings\/triage$/
+          activeMatch: /^\/findings\/triage$/,
         },
         {
           title: "Findings",
@@ -85,16 +82,16 @@ export function AppSidebar() {
           icon: ShieldAlert,
           description: "Findings on your assets",
           badge: mitigationCount,
-          activeMatch: /^\/findings(?:\/(?!import$|triage$).+)?$/
+          activeMatch: /^\/findings(?:\/(?!import$|triage$).+)?$/,
         },
         {
           title: "Vulnerabilities",
           url: "/vulnerabilities",
           icon: Bug,
           description: "Catalog of vulnerabilities",
-          activeMatch: /^\/vulnerabilities(?:\/.+)?$/
-        }
-      ]
+          activeMatch: /^\/vulnerabilities(?:\/.+)?$/,
+        },
+      ],
     },
     {
       label: "Manage",
@@ -104,38 +101,35 @@ export function AppSidebar() {
           url: "/users",
           icon: Users,
           description: "Platform access and accounts",
-          activeMatch: /^\/users(?:\/.+)?$/
+          activeMatch: /^\/users(?:\/.+)?$/,
         },
         {
           title: "Roles",
           url: "/roles",
           icon: KeyRound,
           description: "Manage permissions",
-          activeMatch: /^\/roles(?:\/.+)?$/
+          activeMatch: /^\/roles(?:\/.+)?$/,
         },
         {
           title: "Custom Fields",
           url: "/custom-fields",
           icon: Tags,
           description: "Asset metadata schema",
-          activeMatch: /^\/custom-fields(?:\/.+)?$/
+          activeMatch: /^\/custom-fields(?:\/.+)?$/,
         },
         {
           title: "Import",
           url: "/findings/import",
           icon: UploadCloud,
           description: "Ingest external findings",
-          activeMatch: /^\/findings\/import$/
-        }
-      ]
-    }
-  ]
+          activeMatch: /^\/findings\/import$/,
+        },
+      ],
+    },
+  ];
 
   return (
-    <Sidebar
-      variant="inset"
-      className="border-r-0 md:top-18.25 md:h-[calc(100svh-73px)]"
-    >
+    <Sidebar variant="inset" className="border-r-0 md:top-18.25 md:h-[calc(100svh-73px)]">
       <SidebarSeparator className="mx-3" />
       <SidebarContent>
         {groups.map((group) => (
@@ -152,19 +146,18 @@ export function AppSidebar() {
                       className={cn(
                         "h-auto min-h-14 rounded-2xl px-3 py-3",
                         "data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:shadow-sm",
-                        "hover:bg-sidebar-accent/80"
+                        "hover:bg-sidebar-accent/80",
                       )}
                       render={
                         <Link to={item.url}>
                           <div className="flex min-w-0 items-center gap-3">
                             <div className="relative flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/80 text-current ring-1 ring-sidebar-border/70">
                               <item.icon className="size-4.5" />
-                              {typeof item.badge === "number" &&
-                                item.badge > 0 && (
-                                  <span className="absolute -top-1 -right-1 flex min-w-5 items-center justify-center rounded-full bg-sidebar-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-sidebar-primary-foreground shadow-sm ring-2 ring-sidebar">
-                                    {item.badge}
-                                  </span>
-                                )}
+                              {typeof item.badge === "number" && item.badge > 0 && (
+                                <span className="absolute -top-1 -right-1 flex min-w-5 items-center justify-center rounded-full bg-sidebar-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-sidebar-primary-foreground shadow-sm ring-2 ring-sidebar">
+                                  {item.badge}
+                                </span>
+                              )}
                             </div>
                             <div className="min-w-0 flex-1">
                               <span className="block truncate text-sm font-medium select-none">
@@ -186,5 +179,5 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
     </Sidebar>
-  )
+  );
 }

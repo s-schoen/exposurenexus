@@ -1,45 +1,39 @@
-import { useQuery } from "@tanstack/react-query"
-import { useForm } from "@tanstack/react-form"
-import {
-  FindingStatus,
-  createFindingSchema
-} from "@exposurenexus/types/model/finding"
-import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date"
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
-import type { CreateFinding } from "@exposurenexus/types/model/finding"
-import { createListUsersQueryOptions } from "@/api/user.ts"
-import { AssetCombobox } from "@/components/asset-combobox.tsx"
-import { SeverityBadge } from "@/components/severity-badge.tsx"
-import { Button } from "@/components/ui/button.tsx"
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel
-} from "@/components/ui/field.tsx"
-import { Input } from "@/components/ui/input.tsx"
+import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date";
+import { FindingStatus, createFindingSchema } from "@exposurenexus/types/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { useForm } from "@tanstack/react-form";
+import { useQuery } from "@tanstack/react-query";
+
+import { createListUsersQueryOptions } from "@/api/user.ts";
+import { AssetCombobox } from "@/components/asset-combobox.tsx";
+import { SeverityBadge } from "@/components/severity-badge.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field.tsx";
+import { Input } from "@/components/ui/input.tsx";
 import {
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
   SelectTrigger,
-  SelectValue
-} from "@/components/ui/select.tsx"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea.tsx"
-import { getUserProfileDisplayName } from "@/components/user-label.tsx"
-import { usePageMeta } from "@/context/page.tsx"
-import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts"
-import { formatFindingStatus } from "@/lib/format.ts"
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea.tsx";
+import { getUserProfileDisplayName } from "@/components/user-label.tsx";
+import { usePageMeta } from "@/context/page.tsx";
+import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
+import { formatFindingStatus } from "@/lib/format.ts";
+
+import type { CreateFinding } from "@exposurenexus/types/model/finding";
 
 interface CreateFindingPageProps {
-  onClose: () => void
+  onClose: () => void;
 }
 
-const unassignedAssigneeValue = "__unassigned__"
-const findingStatuses = Object.values(FindingStatus)
-const vulnerabilitySeverities = Object.values(VulnerabilitySeverity)
+const unassignedAssigneeValue = "__unassigned__";
+const findingStatuses = Object.values(FindingStatus);
+const vulnerabilitySeverities = Object.values(VulnerabilitySeverity);
 
 const defaultFindingValues: CreateFinding = {
   vulnerabilityId: "",
@@ -50,61 +44,59 @@ const defaultFindingValues: CreateFinding = {
   evidence: null,
   mitigation: null,
   assigneeId: null,
-  dueDate: null
-}
+  dueDate: null,
+};
 
 function formatDateInputValue(value: Date | null | undefined) {
-  if (!value) return ""
+  if (!value) return "";
 
-  return normalizeDateToUtcStart(value).toISOString().slice(0, 10)
+  return normalizeDateToUtcStart(value).toISOString().slice(0, 10);
 }
 
 function parseDateInputValue(value: string) {
-  if (!value) return null
+  if (!value) return null;
 
-  return normalizeDateToUtcStart(new Date(`${value}T00:00:00.000Z`))
+  return normalizeDateToUtcStart(new Date(`${value}T00:00:00.000Z`));
 }
 
 function isFindingStatus(value: unknown): value is FindingStatus {
-  return findingStatuses.includes(value as FindingStatus)
+  return findingStatuses.includes(value as FindingStatus);
 }
 
-function isVulnerabilitySeverity(
-  value: unknown
-): value is VulnerabilitySeverity {
-  return vulnerabilitySeverities.includes(value as VulnerabilitySeverity)
+function isVulnerabilitySeverity(value: unknown): value is VulnerabilitySeverity {
+  return vulnerabilitySeverities.includes(value as VulnerabilitySeverity);
 }
 
 export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
   usePageMeta({
     title: "Create Finding",
-    description: "Create a new finding manually."
-  })
+    description: "Create a new finding manually.",
+  });
 
-  const findingLifecycle = useFindingLifecycle()
-  const users = useQuery(createListUsersQueryOptions())
+  const findingLifecycle = useFindingLifecycle();
+  const users = useQuery(createListUsersQueryOptions());
 
   const form = useForm({
     defaultValues: defaultFindingValues,
     validators: {
-      onSubmit: createFindingSchema
+      onSubmit: createFindingSchema,
     },
     onSubmit: async ({ value }) => {
-      const createdFinding = await findingLifecycle.createFinding(value)
+      const createdFinding = await findingLifecycle.createFinding(value);
 
       if (createdFinding) {
-        onClose()
+        onClose();
       }
-    }
-  })
+    },
+  });
 
   return (
     <div>
       <form
         id="create-finding-form"
         onSubmit={(e) => {
-          e.preventDefault()
-          void form.handleSubmit()
+          e.preventDefault();
+          void form.handleSubmit();
         }}
         className="flex flex-col gap-4"
       >
@@ -118,13 +110,10 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
               <form.Field
                 name="vulnerabilityId"
                 children={(field) => {
-                  const isInvalid =
-                    field.state.meta.isTouched && !field.state.meta.isValid
+                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
                   return (
                     <Field data-invalid={isInvalid}>
-                      <FieldLabel htmlFor={field.name}>
-                        Vulnerability ID
-                      </FieldLabel>
+                      <FieldLabel htmlFor={field.name}>Vulnerability ID</FieldLabel>
                       <Input
                         id={field.name}
                         name={field.name}
@@ -133,40 +122,32 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         onChange={(e) => field.handleChange(e.target.value)}
                         aria-invalid={isInvalid}
                       />
-                      {isInvalid && (
-                        <FieldError errors={field.state.meta.errors} />
-                      )}
+                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
                     </Field>
-                  )
+                  );
                 }}
               />
               <form.Field
                 name="assetId"
                 children={(field) => {
-                  const isInvalid =
-                    field.state.meta.isTouched && !field.state.meta.isValid
+                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
                   return (
                     <Field data-invalid={isInvalid}>
-                      <FieldLabel htmlFor={field.name}>
-                        Affected Asset
-                      </FieldLabel>
+                      <FieldLabel htmlFor={field.name}>Affected Asset</FieldLabel>
                       <AssetCombobox
                         id={field.name}
                         invalid={isInvalid}
                         onChange={(a) => field.handleChange(a.id)}
                       />
-                      {isInvalid && (
-                        <FieldError errors={field.state.meta.errors} />
-                      )}
+                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
                     </Field>
-                  )
+                  );
                 }}
               />
               <form.Field
                 name="severity"
                 children={(field) => {
-                  const isInvalid =
-                    field.state.meta.isTouched && !field.state.meta.isValid
+                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
                   return (
                     <Field data-invalid={isInvalid}>
                       <FieldLabel htmlFor={field.name}>Severity</FieldLabel>
@@ -174,15 +155,11 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         value={field.state.value}
                         name={field.name}
                         onValueChange={(value) => {
-                          field.handleChange(value as VulnerabilitySeverity)
-                          field.handleBlur()
+                          field.handleChange(value as VulnerabilitySeverity);
+                          field.handleBlur();
                         }}
                       >
-                        <SelectTrigger
-                          id={field.name}
-                          aria-invalid={isInvalid}
-                          className="w-full"
-                        >
+                        <SelectTrigger id={field.name} aria-invalid={isInvalid} className="w-full">
                           <SelectValue>
                             {(value) =>
                               isVulnerabilitySeverity(value) ? (
@@ -200,14 +177,13 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         </SelectContent>
                       </Select>
                     </Field>
-                  )
+                  );
                 }}
               />
               <form.Field
                 name="status"
                 children={(field) => {
-                  const isInvalid =
-                    field.state.meta.isTouched && !field.state.meta.isValid
+                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
                   return (
                     <Field data-invalid={isInvalid}>
                       <FieldLabel htmlFor={field.name}>Status</FieldLabel>
@@ -215,20 +191,14 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         value={field.state.value}
                         name={field.name}
                         onValueChange={(value) => {
-                          field.handleChange(value as FindingStatus)
-                          field.handleBlur()
+                          field.handleChange(value as FindingStatus);
+                          field.handleBlur();
                         }}
                       >
-                        <SelectTrigger
-                          id={field.name}
-                          aria-invalid={isInvalid}
-                          className="w-full"
-                        >
+                        <SelectTrigger id={field.name} aria-invalid={isInvalid} className="w-full">
                           <SelectValue>
                             {(value) =>
-                              isFindingStatus(value)
-                                ? formatFindingStatus(value)
-                                : null
+                              isFindingStatus(value) ? formatFindingStatus(value) : null
                             }
                           </SelectValue>
                         </SelectTrigger>
@@ -241,14 +211,13 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         </SelectContent>
                       </Select>
                     </Field>
-                  )
+                  );
                 }}
               />
               <form.Field
                 name="source"
                 children={(field) => {
-                  const isInvalid =
-                    field.state.meta.isTouched && !field.state.meta.isValid
+                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
                   return (
                     <Field data-invalid={isInvalid}>
                       <FieldLabel htmlFor={field.name}>Source</FieldLabel>
@@ -260,11 +229,9 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         onChange={(e) => field.handleChange(e.target.value)}
                         aria-invalid={isInvalid}
                       />
-                      {isInvalid && (
-                        <FieldError errors={field.state.meta.errors} />
-                      )}
+                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
                     </Field>
-                  )
+                  );
                 }}
               />
               <form.Field
@@ -277,10 +244,8 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         value={field.state.value ?? unassignedAssigneeValue}
                         name={field.name}
                         onValueChange={(value) => {
-                          field.handleChange(
-                            value === unassignedAssigneeValue ? null : value
-                          )
-                          field.handleBlur()
+                          field.handleChange(value === unassignedAssigneeValue ? null : value);
+                          field.handleBlur();
                         }}
                       >
                         <SelectTrigger id={field.name}>
@@ -288,9 +253,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
-                            <SelectItem value={unassignedAssigneeValue}>
-                              Unassigned
-                            </SelectItem>
+                            <SelectItem value={unassignedAssigneeValue}>Unassigned</SelectItem>
                             {users.data?.map((user) => (
                               <SelectItem key={user.id} value={user.id}>
                                 {getUserProfileDisplayName(user)}
@@ -300,14 +263,13 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         </SelectContent>
                       </Select>
                     </Field>
-                  )
+                  );
                 }}
               />
               <form.Field
                 name="dueDate"
                 children={(field) => {
-                  const isInvalid =
-                    field.state.meta.isTouched && !field.state.meta.isValid
+                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
                   return (
                     <Field data-invalid={isInvalid}>
@@ -318,18 +280,12 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         type="date"
                         value={formatDateInputValue(field.state.value)}
                         onBlur={field.handleBlur}
-                        onChange={(e) =>
-                          field.handleChange(
-                            parseDateInputValue(e.target.value)
-                          )
-                        }
+                        onChange={(e) => field.handleChange(parseDateInputValue(e.target.value))}
                         aria-invalid={isInvalid}
                       />
-                      {isInvalid && (
-                        <FieldError errors={field.state.meta.errors} />
-                      )}
+                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
                     </Field>
-                  )
+                  );
                 }}
               />
             </TabsContent>
@@ -337,8 +293,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
               <form.Field
                 name="evidence"
                 children={(field) => {
-                  const isInvalid =
-                    field.state.meta.isTouched && !field.state.meta.isValid
+                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
                   return (
                     <Field data-invalid={isInvalid} className="col-span-2">
                       <FieldLabel htmlFor={field.name}>Evidence</FieldLabel>
@@ -347,24 +302,19 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         name={field.name}
                         value={field.state.value ?? ""}
                         onBlur={field.handleBlur}
-                        onChange={(e) =>
-                          field.handleChange(e.target.value || null)
-                        }
+                        onChange={(e) => field.handleChange(e.target.value || null)}
                         aria-invalid={isInvalid}
                         className="h-32"
                       />
-                      {isInvalid && (
-                        <FieldError errors={field.state.meta.errors} />
-                      )}
+                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
                     </Field>
-                  )
+                  );
                 }}
               />
               <form.Field
                 name="mitigation"
                 children={(field) => {
-                  const isInvalid =
-                    field.state.meta.isTouched && !field.state.meta.isValid
+                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
                   return (
                     <Field data-invalid={isInvalid} className="col-span-2">
                       <FieldLabel htmlFor={field.name}>Mitigation</FieldLabel>
@@ -373,17 +323,13 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         name={field.name}
                         value={field.state.value ?? ""}
                         onBlur={field.handleBlur}
-                        onChange={(e) =>
-                          field.handleChange(e.target.value || null)
-                        }
+                        onChange={(e) => field.handleChange(e.target.value || null)}
                         aria-invalid={isInvalid}
                         className="h-32"
                       />
-                      {isInvalid && (
-                        <FieldError errors={field.state.meta.errors} />
-                      )}
+                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
                     </Field>
-                  )
+                  );
                 }}
               />
             </TabsContent>
@@ -397,5 +343,5 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
         </div>
       </form>
     </div>
-  )
+  );
 }

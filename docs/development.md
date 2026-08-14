@@ -5,7 +5,7 @@ This document covers local development setup for ExposureNexus. The root README 
 ## Prerequisites
 
 - Node.js 24 LTS (`>=24.15.0 <25`)
-- `pnpm` 10
+- `pnpm` 11.21.0
 - PostgreSQL 17, or Docker/Podman for the provided compose file
 
 Always use `pnpm` for workspace commands.
@@ -91,8 +91,12 @@ Run repository-level checks from the workspace root:
 
 ```bash
 pnpm lint
+pnpm format:check
 pnpm build
 ```
+
+`pnpm lint` runs the root Oxlint configuration with type-aware checks. `pnpm format:check`
+verifies the root Oxfmt configuration. Use `pnpm format` to apply formatting changes.
 
 `@exposurenexus/types` exports its built `dist` files. `pnpm build` uses pnpm's
 recursive workspace execution, which runs dependencies before dependents.

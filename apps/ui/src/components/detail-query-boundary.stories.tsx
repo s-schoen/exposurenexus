@@ -1,33 +1,34 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
-import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx"
+import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
+import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 interface StoryAsset {
-  name: string
-  type: string
+  name: string;
+  type: string;
 }
 
 const meta = {
   title: "Components/DetailQueryBoundary",
   component: DetailQueryBoundary<StoryAsset>,
   parameters: {
-    layout: "centered"
+    layout: "centered",
   },
   decorators: [
     (Story) => (
       <div className="w-[min(44rem,calc(100vw-2rem))]">
         <Story />
       </div>
-    )
+    ),
   ],
   args: {
     query: {
       data: {
         name: "web-01",
-        type: "Host"
+        type: "Host",
       },
       error: null,
-      isPending: false
+      isPending: false,
     },
     title: "Asset details",
     errorTitle: "Unable to load asset",
@@ -46,42 +47,42 @@ const meta = {
           description="Inventory classification for this asset"
         />
       </div>
-    )
-  }
-} satisfies Meta<typeof DetailQueryBoundary<StoryAsset>>
+    ),
+  },
+} satisfies Meta<typeof DetailQueryBoundary<StoryAsset>>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const Success: Story = {}
+export const Success: Story = {};
 
 export const Loading: Story = {
   args: {
     query: {
       data: undefined,
       error: null,
-      isPending: true
-    }
-  }
-}
+      isPending: true,
+    },
+  },
+};
 
 export const ErrorState: Story = {
   args: {
     query: {
       data: undefined,
       error: new Error("Asset request failed"),
-      isPending: false
-    }
-  }
-}
+      isPending: false,
+    },
+  },
+};
 
 export const MissingData: Story = {
   args: {
     query: {
       data: undefined,
       error: null,
-      isPending: false
-    }
-  }
-}
+      isPending: false,
+    },
+  },
+};

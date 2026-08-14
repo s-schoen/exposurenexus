@@ -1,24 +1,26 @@
-import { useEffect, useState } from "react"
-import { expect, fn, userEvent, within } from "storybook/test"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import { Inplace } from "@/components/inplace.tsx"
-import { Badge } from "@/components/ui/badge.tsx"
-import { Button } from "@/components/ui/button.tsx"
+import { useEffect, useState } from "react";
+import { expect, fn, userEvent, within } from "storybook/test";
+
+import { Inplace } from "@/components/inplace.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
+import { Button } from "@/components/ui/button.tsx";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type InplaceStoryArgs = {
-  value: string
-  mode: "input" | "select" | "custom"
-  editOnClick?: boolean
-  showEditIcon?: boolean
-  onSave: (value: string) => void | Promise<void>
-}
+  value: string;
+  mode: "input" | "select" | "custom";
+  editOnClick?: boolean;
+  showEditIcon?: boolean;
+  onSave: (value: string) => void | Promise<void>;
+};
 
 function InplaceStoryShell(args: InplaceStoryArgs) {
-  const [value, setValue] = useState(args.value)
+  const [value, setValue] = useState(args.value);
 
   useEffect(() => {
-    setValue(args.value)
-  }, [args.value])
+    setValue(args.value);
+  }, [args.value]);
 
   const editElement =
     args.mode === "select"
@@ -27,8 +29,8 @@ function InplaceStoryShell(args: InplaceStoryArgs) {
           options: [
             { label: "Active", value: "active" },
             { label: "Confirmed", value: "confirmed" },
-            { label: "Risk accepted", value: "risk-accepted" }
-          ]
+            { label: "Risk accepted", value: "risk-accepted" },
+          ],
         }
       : args.mode === "custom"
         ? {
@@ -38,12 +40,12 @@ function InplaceStoryShell(args: InplaceStoryArgs) {
               value: draft,
               onChange,
               onCommit,
-              onCancel
+              onCancel,
             }: {
-              value: string
-              onChange: (value: string) => void
-              onCommit: (value?: string) => void
-              onCancel: () => void
+              value: string;
+              onChange: (value: string) => void;
+              onCommit: (value?: string) => void;
+              onCancel: () => void;
             }) => (
               <div className="flex items-center gap-2">
                 <Button
@@ -65,18 +67,13 @@ function InplaceStoryShell(args: InplaceStoryArgs) {
                 <Button type="button" size="sm" onClick={() => onCommit(draft)}>
                   Save
                 </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={onCancel}
-                >
+                <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
                   Cancel
                 </Button>
               </div>
-            )
+            ),
           }
-        : { type: "input" as const }
+        : { type: "input" as const };
 
   return (
     <div className="w-96 rounded-xl border border-border/70 bg-card p-5">
@@ -95,68 +92,68 @@ function InplaceStoryShell(args: InplaceStoryArgs) {
           )
         }
         onSave={async (nextValue) => {
-          setValue(nextValue)
-          await args.onSave(nextValue)
+          setValue(nextValue);
+          await args.onSave(nextValue);
         }}
       />
     </div>
-  )
+  );
 }
 
 const meta = {
   title: "Components/Inplace",
   component: InplaceStoryShell,
   parameters: {
-    layout: "centered"
+    layout: "centered",
   },
   args: {
     value: "web-01",
     mode: "input",
     editOnClick: false,
     showEditIcon: true,
-    onSave: fn()
+    onSave: fn(),
   },
   argTypes: {
     mode: {
       control: "radio",
-      options: ["input", "select", "custom"]
-    }
+      options: ["input", "select", "custom"],
+    },
   },
-  render: (args) => <InplaceStoryShell {...args} />
-} satisfies Meta<typeof InplaceStoryShell>
+  render: (args) => <InplaceStoryShell {...args} />,
+} satisfies Meta<typeof InplaceStoryShell>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
 export const InputEdit: Story = {
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
-    await userEvent.click(await canvas.findByRole("button"))
-    await expect(await canvas.findByRole("textbox")).toHaveValue("web-01")
-  }
-}
+    await userEvent.click(await canvas.findByRole("button"));
+    await expect(await canvas.findByRole("textbox")).toHaveValue("web-01");
+  },
+};
 
 export const ClickToEdit: Story = {
   args: {
     editOnClick: true,
-    showEditIcon: false
-  }
-}
+    showEditIcon: false,
+  },
+};
 
 export const SelectEdit: Story = {
   args: {
     value: "active",
-    mode: "select"
-  }
-}
+    mode: "select",
+  },
+};
 
 export const CustomEdit: Story = {
   args: {
     value: "low",
     mode: "custom",
     editOnClick: true,
-    showEditIcon: false
-  }
-}
+    showEditIcon: false,
+  },
+};

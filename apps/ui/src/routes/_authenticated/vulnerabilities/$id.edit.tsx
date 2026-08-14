@@ -1,12 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { EditVulnerabilityPage } from "@/features/vulnerabilities/components/edit-vulnerability-page.tsx"
+import { createFileRoute } from "@tanstack/react-router";
+
+import { EditVulnerabilityPage } from "@/features/vulnerabilities/components/edit-vulnerability-page.tsx";
 
 export const Route = createFileRoute("/_authenticated/vulnerabilities/$id/edit")({
-  component: RouteComponent
-})
+  component: RouteComponent,
+});
 
 function RouteComponent() {
-  const { id } = Route.useParams()
+  const { id } = Route.useParams();
 
-  return <EditVulnerabilityPage vulnerabilityId={id} />
+  return <EditVulnerabilityPage vulnerabilityId={id} />;
 }

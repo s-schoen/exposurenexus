@@ -1,9 +1,10 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
-import type { ReactNode } from "react"
-import type { User } from "@/lib/auth.ts"
-import type { AuthProvider } from "@/context/auth.tsx"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { AuthProvider } from "@/context/auth.tsx";
+import type { User } from "@/lib/auth.ts";
+import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => {
   const alice: User = {
@@ -12,237 +13,234 @@ const mocks = vi.hoisted(() => {
     displayName: "Alice Example",
     email: "alice@example.com",
     enabled: true,
-    roleIds: ["viewer-role-id"]
-  }
+    roleIds: ["viewer-role-id"],
+  };
   const bob: User = {
     id: "47f1c881-03d6-4fdf-a837-33e5eb1678b1",
     username: "bob",
     displayName: "Bob Example",
     email: "bob@example.com",
     enabled: true,
-    roleIds: ["admin-role-id"]
-  }
+    roleIds: ["admin-role-id"],
+  };
 
   return {
     alice,
     bob,
     getSession: vi.fn(),
     signInUsername: vi.fn(),
-    signOut: vi.fn()
-  }
-})
+    signOut: vi.fn(),
+  };
+});
 
 vi.mock("@/lib/auth.ts", () => ({
   AUTH_SESSION_QUERY_KEY: ["auth", "session"] as const,
   createAuthSessionQueryOptions: () => ({
     queryKey: ["auth", "session"] as const,
-    queryFn: async () => (await mocks.getSession()).data
+    queryFn: async () => (await mocks.getSession()).data,
   }),
   getSession: mocks.getSession,
   signIn: {
-    username: mocks.signInUsername
+    username: mocks.signInUsername,
   },
-  signOut: mocks.signOut
-}))
+  signOut: mocks.signOut,
+}));
 
 function sessionReply(user: User) {
   return {
     data: {
-      user
-    }
-  }
+      user,
+    },
+  };
 }
 
 function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
       mutations: {
-        retry: false
+        retry: false,
       },
       queries: {
-        retry: false
-      }
-    }
-  })
+        retry: false,
+      },
+    },
+  });
 }
 
-function createWrapper(
-  Provider: typeof AuthProvider,
-  queryClient = createQueryClient()
-) {
+function createWrapper(Provider: typeof AuthProvider, queryClient = createQueryClient()) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={queryClient}>
         <Provider>{children}</Provider>
       </QueryClientProvider>
-    )
-  }
+    );
+  };
 }
 
 function seedProtectedQueryData(queryClient: QueryClient) {
-  queryClient.setQueryData(["assets"], [{ id: "asset-1" }])
-  queryClient.setQueryData(["findings"], [{ id: "finding-1" }])
-  queryClient.setQueryData(["users"], [{ id: "user-1" }])
-  queryClient.setQueryData(["roles"], [{ id: "role-1" }])
+  queryClient.setQueryData(["assets"], [{ id: "asset-1" }]);
+  queryClient.setQueryData(["findings"], [{ id: "finding-1" }]);
+  queryClient.setQueryData(["users"], [{ id: "user-1" }]);
+  queryClient.setQueryData(["roles"], [{ id: "role-1" }]);
 }
 
 function expectProtectedQueryDataCleared(queryClient: QueryClient) {
-  expect(queryClient.getQueryData(["assets"])).toBeUndefined()
-  expect(queryClient.getQueryData(["findings"])).toBeUndefined()
-  expect(queryClient.getQueryData(["users"])).toBeUndefined()
-  expect(queryClient.getQueryData(["roles"])).toBeUndefined()
+  expect(queryClient.getQueryData(["assets"])).toBeUndefined();
+  expect(queryClient.getQueryData(["findings"])).toBeUndefined();
+  expect(queryClient.getQueryData(["users"])).toBeUndefined();
+  expect(queryClient.getQueryData(["roles"])).toBeUndefined();
 }
 
 describe("AuthProvider", () => {
   beforeEach(() => {
-    mocks.getSession.mockReset()
-    mocks.signInUsername.mockReset()
-    mocks.signOut.mockReset()
-  })
+    mocks.getSession.mockReset();
+    mocks.signInUsername.mockReset();
+    mocks.signOut.mockReset();
+  });
 
   afterEach(() => {
-    cleanup()
-    vi.restoreAllMocks()
-  })
+    cleanup();
+    vi.restoreAllMocks();
+  });
 
   it("loads the current session on mount", async () => {
-    const { AuthProvider, useAuth } = await import("@/context/auth.tsx")
-    mocks.getSession.mockResolvedValueOnce(sessionReply(mocks.alice))
+    const { AuthProvider, useAuth } = await import("@/context/auth.tsx");
+    mocks.getSession.mockResolvedValueOnce(sessionReply(mocks.alice));
 
     const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(AuthProvider)
-    })
+      wrapper: createWrapper(AuthProvider),
+    });
 
     await waitFor(() => {
-      expect(result.current.isAuthenticated).toBe(true)
-    })
-    expect(result.current.status).toBe("authenticated")
-    expect(result.current.user).toEqual(mocks.alice)
-    expect(mocks.getSession).toHaveBeenCalledTimes(1)
-  })
+      expect(result.current.isAuthenticated).toBe(true);
+    });
+    expect(result.current.status).toBe("authenticated");
+    expect(result.current.user).toEqual(mocks.alice);
+    expect(mocks.getSession).toHaveBeenCalledTimes(1);
+  });
 
   it("exposes unauthenticated state when session loading fails", async () => {
-    const { AuthProvider, useAuth } = await import("@/context/auth.tsx")
-    mocks.getSession.mockRejectedValueOnce(new Error("Unauthorized"))
+    const { AuthProvider, useAuth } = await import("@/context/auth.tsx");
+    mocks.getSession.mockRejectedValueOnce(new Error("Unauthorized"));
 
     const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(AuthProvider)
-    })
+      wrapper: createWrapper(AuthProvider),
+    });
 
     await waitFor(() => {
-      expect(result.current.status).toBe("unauthenticated")
-    })
-    expect(result.current.isAuthenticated).toBe(false)
-    expect(result.current.user).toBeNull()
-    expect(mocks.getSession).toHaveBeenCalledTimes(1)
-  })
+      expect(result.current.status).toBe("unauthenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
+    expect(mocks.getSession).toHaveBeenCalledTimes(1);
+  });
 
   it("refreshes auth state through ensureSession", async () => {
-    const { AuthProvider, useAuth } = await import("@/context/auth.tsx")
+    const { AuthProvider, useAuth } = await import("@/context/auth.tsx");
     mocks.getSession
       .mockRejectedValueOnce(new Error("Unauthorized"))
-      .mockResolvedValueOnce(sessionReply(mocks.bob))
+      .mockResolvedValueOnce(sessionReply(mocks.bob));
 
     const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(AuthProvider)
-    })
+      wrapper: createWrapper(AuthProvider),
+    });
 
     await waitFor(() => {
-      expect(mocks.getSession).toHaveBeenCalledTimes(1)
-    })
+      expect(mocks.getSession).toHaveBeenCalledTimes(1);
+    });
 
-    let hasSession!: boolean
+    let hasSession!: boolean;
     await act(async () => {
-      hasSession = await result.current.ensureSession()
-    })
+      hasSession = await result.current.ensureSession();
+    });
 
-    expect(hasSession).toBe(true)
+    expect(hasSession).toBe(true);
     await waitFor(() => {
-      expect(result.current.status).toBe("authenticated")
-    })
-    expect(result.current.isAuthenticated).toBe(true)
-    expect(result.current.user).toEqual(mocks.bob)
-  })
+      expect(result.current.status).toBe("authenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(true);
+    expect(result.current.user).toEqual(mocks.bob);
+  });
 
   it("updates auth state after login and logout", async () => {
-    const { AuthProvider, useAuth } = await import("@/context/auth.tsx")
-    const queryClient = createQueryClient()
-    mocks.getSession.mockRejectedValueOnce(new Error("Unauthorized"))
-    mocks.signInUsername.mockResolvedValueOnce(sessionReply(mocks.alice))
-    mocks.signOut.mockResolvedValueOnce({ data: { revoked: true } })
+    const { AuthProvider, useAuth } = await import("@/context/auth.tsx");
+    const queryClient = createQueryClient();
+    mocks.getSession.mockRejectedValueOnce(new Error("Unauthorized"));
+    mocks.signInUsername.mockResolvedValueOnce(sessionReply(mocks.alice));
+    mocks.signOut.mockResolvedValueOnce({ data: { revoked: true } });
 
     const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(AuthProvider, queryClient)
-    })
+      wrapper: createWrapper(AuthProvider, queryClient),
+    });
 
     await waitFor(() => {
-      expect(mocks.getSession).toHaveBeenCalledTimes(1)
-    })
+      expect(mocks.getSession).toHaveBeenCalledTimes(1);
+    });
 
     await act(async () => {
-      await result.current.login("alice", "correct-horse-battery-staple")
-    })
+      await result.current.login("alice", "correct-horse-battery-staple");
+    });
 
     expect(mocks.signInUsername).toHaveBeenCalledWith({
       username: "alice",
-      password: "correct-horse-battery-staple"
-    })
+      password: "correct-horse-battery-staple",
+    });
     await waitFor(() => {
-      expect(result.current.status).toBe("authenticated")
-    })
-    expect(result.current.isAuthenticated).toBe(true)
-    expect(result.current.user).toEqual(mocks.alice)
+      expect(result.current.status).toBe("authenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(true);
+    expect(result.current.user).toEqual(mocks.alice);
 
-    seedProtectedQueryData(queryClient)
+    seedProtectedQueryData(queryClient);
 
     await act(async () => {
-      await result.current.logout()
-    })
+      await result.current.logout();
+    });
 
-    expect(mocks.signOut).toHaveBeenCalledTimes(1)
-    expectProtectedQueryDataCleared(queryClient)
-    expect(queryClient.getQueryData(["auth", "session"])).toBeNull()
+    expect(mocks.signOut).toHaveBeenCalledTimes(1);
+    expectProtectedQueryDataCleared(queryClient);
+    expect(queryClient.getQueryData(["auth", "session"])).toBeNull();
     await waitFor(() => {
-      expect(result.current.status).toBe("unauthenticated")
-    })
-    expect(result.current.isAuthenticated).toBe(false)
-    expect(result.current.user).toBeNull()
-  })
+      expect(result.current.status).toBe("unauthenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
+  });
 
   it("clears auth state without calling sign out", async () => {
-    const { AuthProvider, useAuth } = await import("@/context/auth.tsx")
-    const queryClient = createQueryClient()
-    mocks.getSession.mockResolvedValueOnce(sessionReply(mocks.alice))
+    const { AuthProvider, useAuth } = await import("@/context/auth.tsx");
+    const queryClient = createQueryClient();
+    mocks.getSession.mockResolvedValueOnce(sessionReply(mocks.alice));
 
     const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(AuthProvider, queryClient)
-    })
+      wrapper: createWrapper(AuthProvider, queryClient),
+    });
 
     await waitFor(() => {
-      expect(result.current.status).toBe("authenticated")
-    })
+      expect(result.current.status).toBe("authenticated");
+    });
 
-    seedProtectedQueryData(queryClient)
+    seedProtectedQueryData(queryClient);
 
     act(() => {
-      result.current.clearSession()
-    })
+      result.current.clearSession();
+    });
 
-    expect(mocks.signOut).not.toHaveBeenCalled()
-    expectProtectedQueryDataCleared(queryClient)
-    expect(queryClient.getQueryData(["auth", "session"])).toBeNull()
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    expectProtectedQueryDataCleared(queryClient);
+    expect(queryClient.getQueryData(["auth", "session"])).toBeNull();
     await waitFor(() => {
-      expect(result.current.status).toBe("unauthenticated")
-    })
-    expect(result.current.isAuthenticated).toBe(false)
-    expect(result.current.user).toBeNull()
-  })
+      expect(result.current.status).toBe("unauthenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
+  });
 
   it("throws when useAuth is used outside the provider", async () => {
-    const { useAuth } = await import("@/context/auth.tsx")
+    const { useAuth } = await import("@/context/auth.tsx");
 
     expect(() => renderHook(() => useAuth())).toThrow(
-      "useAuth must be used within an AuthProvider"
-    )
-  })
-})
+      "useAuth must be used within an AuthProvider",
+    );
+  });
+});

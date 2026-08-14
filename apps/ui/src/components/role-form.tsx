@@ -1,25 +1,20 @@
-import { useMemo } from "react"
-import { useForm } from "@tanstack/react-form"
 import {
   PermissionResource,
   PermissionVerb,
-  createRoleSchema
-} from "@exposurenexus/types/model/rbac"
-import type {
-  CreateRole,
-  Permission,
-  Role,
-  UpdateRole
-} from "@exposurenexus/types/model/rbac"
-import { Button } from "@/components/ui/button.tsx"
-import { Checkbox } from "@/components/ui/checkbox.tsx"
+  createRoleSchema,
+} from "@exposurenexus/types/model/rbac";
+import { useForm } from "@tanstack/react-form";
+import { useMemo } from "react";
+
+import { Button } from "@/components/ui/button.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { Checkbox } from "@/components/ui/checkbox.tsx";
 import {
   Field,
   FieldDescription,
@@ -27,157 +22,139 @@ import {
   FieldGroup,
   FieldLabel,
   FieldLegend,
-  FieldSet
-} from "@/components/ui/field.tsx"
-import { Input } from "@/components/ui/input.tsx"
-import { Spinner } from "@/components/ui/spinner.tsx"
-import {
-  formatPermissionLabel,
-  isBuiltInRoleId
-} from "@/lib/role.ts"
+  FieldSet,
+} from "@/components/ui/field.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Spinner } from "@/components/ui/spinner.tsx";
+import { formatPermissionLabel, isBuiltInRoleId } from "@/lib/role.ts";
 
-export type RoleFormMode = "create" | "edit"
+import type { CreateRole, Permission, Role, UpdateRole } from "@exposurenexus/types/model/rbac";
+
+export type RoleFormMode = "create" | "edit";
 
 export interface RoleFormValues {
-  name: string
-  permissions: Array<Permission>
+  name: string;
+  permissions: Array<Permission>;
 }
 
 interface RoleFormProps {
-  mode: RoleFormMode
-  availablePermissions: Array<Permission>
-  defaultValues?: Partial<RoleFormValues>
-  onSubmit: (values: RoleFormValues) => Promise<void> | void
-  onCancel: () => void
-  submitLabel?: string
+  mode: RoleFormMode;
+  availablePermissions: Array<Permission>;
+  defaultValues?: Partial<RoleFormValues>;
+  onSubmit: (values: RoleFormValues) => Promise<void> | void;
+  onCancel: () => void;
+  submitLabel?: string;
 }
 
 type PermissionGroup = {
-  resource: PermissionResource
-  permissions: Array<Permission>
-}
+  resource: PermissionResource;
+  permissions: Array<Permission>;
+};
 
 const DEFAULT_ROLE_FORM_VALUES: RoleFormValues = {
   name: "",
-  permissions: []
-}
+  permissions: [],
+};
 
-const permissionResourceOrder = Object.values(PermissionResource)
-const permissionVerbOrder = Object.values(PermissionVerb)
+const permissionResourceOrder = Object.values(PermissionResource);
+const permissionVerbOrder = Object.values(PermissionVerb);
 
-export function rolePermissionKey(
-  permission: Pick<Permission, "resource" | "verb">
-): string {
-  return `${permission.resource}:${permission.verb}`
+export function rolePermissionKey(permission: Pick<Permission, "resource" | "verb">): string {
+  return `${permission.resource}:${permission.verb}`;
 }
 
 function comparePermissions(left: Permission, right: Permission): number {
   const resourceOrder =
     permissionResourceOrder.indexOf(left.resource) -
-    permissionResourceOrder.indexOf(right.resource)
+    permissionResourceOrder.indexOf(right.resource);
 
   if (resourceOrder !== 0) {
-    return resourceOrder
+    return resourceOrder;
   }
 
-  return (
-    permissionVerbOrder.indexOf(left.verb) -
-    permissionVerbOrder.indexOf(right.verb)
-  )
+  return permissionVerbOrder.indexOf(left.verb) - permissionVerbOrder.indexOf(right.verb);
 }
 
 function dedupePermissions(permissions: ReadonlyArray<Permission>) {
-  const seenPermissions = new Set<string>()
-  const dedupedPermissions: Array<Permission> = []
+  const seenPermissions = new Set<string>();
+  const dedupedPermissions: Array<Permission> = [];
 
   for (const permission of permissions) {
-    const key = rolePermissionKey(permission)
+    const key = rolePermissionKey(permission);
     if (seenPermissions.has(key)) {
-      continue
+      continue;
     }
 
-    seenPermissions.add(key)
-    dedupedPermissions.push(permission)
+    seenPermissions.add(key);
+    dedupedPermissions.push(permission);
   }
 
-  return dedupedPermissions
+  return dedupedPermissions;
 }
 
-export function getAvailableRolePermissions(
-  roles: ReadonlyArray<Role>
-): Array<Permission> {
+export function getAvailableRolePermissions(roles: ReadonlyArray<Role>): Array<Permission> {
   return dedupePermissions(
-    roles
-      .filter((role) => isBuiltInRoleId(role.id))
-      .flatMap((role) => role.permissions)
-  ).sort(comparePermissions)
+    roles.filter((role) => isBuiltInRoleId(role.id)).flatMap((role) => role.permissions),
+  ).sort(comparePermissions);
 }
 
 export function groupAvailableRolePermissions(
-  permissions: ReadonlyArray<Permission>
+  permissions: ReadonlyArray<Permission>,
 ): Array<PermissionGroup> {
-  const groups = new Map<PermissionResource, Array<Permission>>()
+  const groups = new Map<PermissionResource, Array<Permission>>();
 
   for (const permission of dedupePermissions(permissions).sort(comparePermissions)) {
-    groups.set(permission.resource, [
-      ...(groups.get(permission.resource) ?? []),
-      permission
-    ])
+    groups.set(permission.resource, [...(groups.get(permission.resource) ?? []), permission]);
   }
 
   return [...groups.entries()].map(([resource, groupedPermissions]) => ({
     resource,
-    permissions: groupedPermissions
-  }))
+    permissions: groupedPermissions,
+  }));
 }
 
 export function mapRoleToFormValues(role: Role): RoleFormValues {
   return {
     name: role.name,
-    permissions: dedupePermissions(role.permissions).sort(comparePermissions)
-  }
+    permissions: dedupePermissions(role.permissions).sort(comparePermissions),
+  };
 }
 
 export function mapCreateRoleFormValues(values: RoleFormValues): CreateRole {
   return {
     name: values.name.trim(),
-    permissions: dedupePermissions(values.permissions).sort(comparePermissions)
-  }
+    permissions: dedupePermissions(values.permissions).sort(comparePermissions),
+  };
 }
 
 export function mapUpdateRoleFormValues(values: RoleFormValues): UpdateRole {
-  return mapCreateRoleFormValues(values)
+  return mapCreateRoleFormValues(values);
 }
 
 function permissionId(permission: Permission): string {
-  return `role-permission-${permission.resource}-${permission.verb}`
+  return `role-permission-${permission.resource}-${permission.verb}`;
 }
 
-function hasPermission(
-  permissions: ReadonlyArray<Permission>,
-  permission: Permission
-) {
-  const key = rolePermissionKey(permission)
+function hasPermission(permissions: ReadonlyArray<Permission>, permission: Permission) {
+  const key = rolePermissionKey(permission);
   return permissions.some((currentPermission) => {
-    return rolePermissionKey(currentPermission) === key
-  })
+    return rolePermissionKey(currentPermission) === key;
+  });
 }
 
 function togglePermission(
   permissions: ReadonlyArray<Permission>,
   permission: Permission,
-  checked: boolean
+  checked: boolean,
 ): Array<Permission> {
-  const key = rolePermissionKey(permission)
+  const key = rolePermissionKey(permission);
   const remainingPermissions = permissions.filter(
-    (currentPermission) => rolePermissionKey(currentPermission) !== key
-  )
+    (currentPermission) => rolePermissionKey(currentPermission) !== key,
+  );
 
   return checked
-    ? dedupePermissions([...remainingPermissions, permission]).sort(
-        comparePermissions
-      )
-    : remainingPermissions.sort(comparePermissions)
+    ? dedupePermissions([...remainingPermissions, permission]).sort(comparePermissions)
+    : remainingPermissions.sort(comparePermissions);
 }
 
 export function RoleForm({
@@ -186,32 +163,29 @@ export function RoleForm({
   defaultValues,
   onSubmit,
   onCancel,
-  submitLabel
+  submitLabel,
 }: RoleFormProps) {
-  const isCreateMode = mode === "create"
+  const isCreateMode = mode === "create";
   const permissionGroups = useMemo(
     () => groupAvailableRolePermissions(availablePermissions),
-    [availablePermissions]
-  )
+    [availablePermissions],
+  );
   const form = useForm({
     defaultValues: {
       ...DEFAULT_ROLE_FORM_VALUES,
       ...defaultValues,
-      permissions: dedupePermissions(defaultValues?.permissions ?? []).sort(
-        comparePermissions
-      )
+      permissions: dedupePermissions(defaultValues?.permissions ?? []).sort(comparePermissions),
     },
     validators: {
-      onSubmit: createRoleSchema
+      onSubmit: createRoleSchema,
     },
     onSubmit: async ({ value }) => {
-      await onSubmit(value)
-    }
-  })
+      await onSubmit(value);
+    },
+  });
 
-  const isSubmitting = form.state.isSubmitting
-  const resolvedSubmitLabel =
-    submitLabel ?? (isCreateMode ? "Create role" : "Save changes")
+  const isSubmitting = form.state.isSubmitting;
+  const resolvedSubmitLabel = submitLabel ?? (isCreateMode ? "Create role" : "Save changes");
 
   return (
     <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
@@ -227,8 +201,8 @@ export function RoleForm({
         <form
           id={`role-form-${mode}`}
           onSubmit={(event) => {
-            event.preventDefault()
-            form.handleSubmit()
+            event.preventDefault();
+            form.handleSubmit();
           }}
           className="flex flex-col gap-6"
         >
@@ -236,8 +210,7 @@ export function RoleForm({
             <form.Field
               name="name"
               children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid}>
@@ -247,9 +220,7 @@ export function RoleForm({
                       name={field.name}
                       value={field.state.value}
                       onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(event.target.value)
-                      }
+                      onChange={(event) => field.handleChange(event.target.value)}
                       aria-invalid={isInvalid}
                       placeholder="security-analyst"
                       disabled={isSubmitting}
@@ -257,18 +228,15 @@ export function RoleForm({
                     <FieldDescription>
                       Use letters, numbers, underscores, and hyphens.
                     </FieldDescription>
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
+                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
                   </Field>
-                )
+                );
               }}
             />
             <form.Field
               name="permissions"
               children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid}>
@@ -293,10 +261,7 @@ export function RoleForm({
                               </legend>
                               <div className="mt-2 grid gap-2">
                                 {group.permissions.map((permission) => {
-                                  const checked = hasPermission(
-                                    field.state.value,
-                                    permission
-                                  )
+                                  const checked = hasPermission(field.state.value, permission);
 
                                   return (
                                     <Field
@@ -311,20 +276,18 @@ export function RoleForm({
                                             togglePermission(
                                               field.state.value,
                                               permission,
-                                              !!value
-                                            )
-                                          )
-                                          field.handleBlur()
+                                              !!value,
+                                            ),
+                                          );
+                                          field.handleBlur();
                                         }}
                                         disabled={isSubmitting}
                                       />
-                                      <FieldLabel
-                                        htmlFor={permissionId(permission)}
-                                      >
+                                      <FieldLabel htmlFor={permissionId(permission)}>
                                         {formatPermissionLabel(permission.verb)}
                                       </FieldLabel>
                                     </Field>
-                                  )
+                                  );
                                 })}
                               </div>
                             </fieldset>
@@ -334,7 +297,7 @@ export function RoleForm({
                     </FieldSet>
                     {isInvalid && <FieldError errors={field.state.meta.errors} />}
                   </Field>
-                )
+                );
               }}
             />
           </FieldGroup>
@@ -342,12 +305,7 @@ export function RoleForm({
             selector={(state) => state.isSubmitting}
             children={(submitting) => (
               <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={onCancel}
-                  disabled={submitting}
-                >
+                <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={submitting}>
@@ -360,5 +318,5 @@ export function RoleForm({
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

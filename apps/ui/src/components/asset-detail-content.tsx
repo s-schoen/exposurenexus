@@ -1,91 +1,82 @@
-import { useMemo, useState } from "react"
-import { AlertCircle, Plus, RotateCcw, Server, X } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
 import {
   AssetCustomFieldType,
-  AssetCustomFieldValueSource
-} from "@exposurenexus/types/model/asset-custom-field"
-import type { Asset } from "@exposurenexus/types/model/asset"
-import type {
-  AssetCustomFieldDefinition,
-  AssetCustomFieldValue,
-  AssetCustomFieldValueLiteral
-} from "@exposurenexus/types/model/asset-custom-field"
-import type { ReactNode } from "react"
+  AssetCustomFieldValueSource,
+} from "@exposurenexus/types/model/asset-custom-field";
+import { useQuery } from "@tanstack/react-query";
+import { AlertCircle, Plus, RotateCcw, Server, X } from "lucide-react";
+import { useMemo, useState } from "react";
+
 import {
   createAssetByIDQueryOptions,
   createAssetCustomFieldValuesQueryOptions,
-  createAvailableAssetCustomFieldDefinitionsQueryOptions
-} from "@/api/asset.ts"
-import { createListUsersQueryOptions } from "@/api/user.ts"
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
-import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx"
-import { Skeleton } from "@/components/ui/skeleton.tsx"
-import { capitalizeFirstLetter } from "@/lib/format.ts"
-import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
-import { MetadataSidebar } from "@/components/metadata-sidebar/index.tsx"
-import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx"
-import { Badge } from "@/components/ui/badge.tsx"
-import { Separator } from "@/components/ui/separator.tsx"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
-import { Inplace } from "@/components/inplace.tsx"
-import { Button } from "@/components/ui/button.tsx"
-import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts"
-import { cn } from "@/lib/utils.ts"
-import { useAssetLifecycle } from "@/hooks/use-asset-lifecycle.ts"
-import {
-  UserLabel,
-  createUserProfileById,
-  formatUserProfileReference
-} from "@/components/user-label.tsx"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from "@/components/ui/popover.tsx"
+  createAvailableAssetCustomFieldDefinitionsQueryOptions,
+} from "@/api/asset.ts";
+import { createListUsersQueryOptions } from "@/api/user.ts";
+import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
+import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
+import { Inplace } from "@/components/inplace.tsx";
+import { MetadataSidebar } from "@/components/metadata-sidebar/index.tsx";
+import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList
-} from "@/components/ui/command.tsx"
+  CommandList,
+} from "@/components/ui/command.tsx";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
+import { Separator } from "@/components/ui/separator.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
+import {
+  UserLabel,
+  createUserProfileById,
+  formatUserProfileReference,
+} from "@/components/user-label.tsx";
+import { useAssetLifecycle } from "@/hooks/use-asset-lifecycle.ts";
+import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts";
+import { capitalizeFirstLetter } from "@/lib/format.ts";
+import { cn } from "@/lib/utils.ts";
+
+import type { Asset } from "@exposurenexus/types/model/asset";
+import type {
+  AssetCustomFieldDefinition,
+  AssetCustomFieldValue,
+  AssetCustomFieldValueLiteral,
+} from "@exposurenexus/types/model/asset-custom-field";
+import type { ReactNode } from "react";
 
 interface AssetDetailContentProps {
-  assetId: string
-  titleAction?: ReactNode
+  assetId: string;
+  titleAction?: ReactNode;
 }
 
-const noOwnerValue = "__no_owner__"
+const noOwnerValue = "__no_owner__";
 
-export function getAssetCustomFieldDraftValue(
-  field: AssetCustomFieldValue
-): string {
-  return field.value === null ? "" : String(field.value)
+export function getAssetCustomFieldDraftValue(field: AssetCustomFieldValue): string {
+  return field.value === null ? "" : String(field.value);
 }
 
 export function createAssetCustomFieldValuePayload(
   field: AssetCustomFieldValue,
-  value: string
+  value: string,
 ): AssetCustomFieldValueLiteral {
   if (field.type === AssetCustomFieldType.Number) {
-    const trimmed = value.trim()
-    return trimmed === "" ? null : Number(trimmed)
+    const trimmed = value.trim();
+    return trimmed === "" ? null : Number(trimmed);
   }
 
-  return value
+  return value;
 }
 
 function createAssetCustomFieldValueReplacement(
   fields: Array<AssetCustomFieldValue>,
   changedFieldId: string,
-  value: AssetCustomFieldValueLiteral
+  value: AssetCustomFieldValueLiteral,
 ) {
   return fields.map((field) => ({
     fieldId: field.fieldId,
@@ -94,38 +85,23 @@ function createAssetCustomFieldValueReplacement(
         ? value
         : field.source === AssetCustomFieldValueSource.Asset
           ? field.value
-          : null
-  }))
+          : null,
+  }));
 }
 
-export function AssetDetailContent({
-  assetId,
-  titleAction
-}: AssetDetailContentProps) {
-  const assetLifecycle = useAssetLifecycle()
-  const assetQueryOptions = createAssetByIDQueryOptions(assetId)
-  const asset = useQuery(assetQueryOptions)
-  const users = useQuery(createListUsersQueryOptions())
-  const customFieldValuesQueryOptions =
-    createAssetCustomFieldValuesQueryOptions(assetId)
+export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentProps) {
+  const assetLifecycle = useAssetLifecycle();
+  const assetQueryOptions = createAssetByIDQueryOptions(assetId);
+  const asset = useQuery(assetQueryOptions);
+  const users = useQuery(createListUsersQueryOptions());
+  const customFieldValuesQueryOptions = createAssetCustomFieldValuesQueryOptions(assetId);
   const availableCustomFieldDefinitionsQueryOptions =
-    createAvailableAssetCustomFieldDefinitionsQueryOptions(assetId)
-  const customFields = useQuery(customFieldValuesQueryOptions)
-  const availableCustomFields = useQuery(
-    availableCustomFieldDefinitionsQueryOptions
-  )
-  const userProfileById = useMemo(
-    () => createUserProfileById(users.data),
-    [users.data]
-  )
+    createAvailableAssetCustomFieldDefinitionsQueryOptions(assetId);
+  const customFields = useQuery(customFieldValuesQueryOptions);
+  const availableCustomFields = useQuery(availableCustomFieldDefinitionsQueryOptions);
+  const userProfileById = useMemo(() => createUserProfileById(users.data), [users.data]);
 
-  function AssetOwnerText({
-    assetData,
-    className
-  }: {
-    assetData: Asset
-    className?: string
-  }) {
+  function AssetOwnerText({ assetData, className }: { assetData: Asset; className?: string }) {
     return (
       <UserLabel
         userId={assetData.ownerId}
@@ -140,31 +116,31 @@ export function AssetDetailContent({
         unknownLabel="Unknown Owner"
         className={className}
       />
-    )
+    );
   }
 
   function getAssetOwnerEditValue(assetData: Asset) {
-    return assetData.ownerId ?? noOwnerValue
+    return assetData.ownerId ?? noOwnerValue;
   }
 
   function AssetOwnerPicker({
     value,
     onCancel,
-    onCommit
+    onCommit,
   }: {
-    value: string
-    onCancel: () => void
-    onCommit: (value: string) => void
+    value: string;
+    onCancel: () => void;
+    onCommit: (value: string) => void;
   }) {
-    const [open, setOpen] = useState(false)
-    const ownerId = value === noOwnerValue ? null : value
+    const [open, setOpen] = useState(false);
+    const ownerId = value === noOwnerValue ? null : value;
     const ownerLabel =
       ownerId && users.isPending
         ? "Loading owner"
         : formatUserProfileReference(ownerId, userProfileById, {
             emptyLabel: "No Owner",
-            unknownLabel: "Unknown Owner"
-          })
+            unknownLabel: "Unknown Owner",
+          });
 
     return (
       <Popover open={open} onOpenChange={setOpen}>
@@ -191,8 +167,8 @@ export function AssetDetailContent({
                 <CommandItem
                   value={noOwnerValue}
                   onSelect={() => {
-                    setOpen(false)
-                    onCommit(noOwnerValue)
+                    setOpen(false);
+                    onCommit(noOwnerValue);
                   }}
                 >
                   No Owner
@@ -202,8 +178,8 @@ export function AssetDetailContent({
                     key={user.id}
                     value={`${user.displayName} ${user.username}`}
                     onSelect={() => {
-                      setOpen(false)
-                      onCommit(user.id)
+                      setOpen(false);
+                      onCommit(user.id);
                     }}
                   >
                     <div className="min-w-0">
@@ -229,51 +205,40 @@ export function AssetDetailContent({
           <X />
         </Button>
       </Popover>
-    )
+    );
   }
 
   async function handleSaveAssetOwner(assetData: Asset, value: string) {
-    const ownerId = value === noOwnerValue ? null : value
+    const ownerId = value === noOwnerValue ? null : value;
 
     if (assetData.ownerId === ownerId) {
-      return
+      return;
     }
 
-    await assetLifecycle.updateAssetOwner(assetId, ownerId)
+    await assetLifecycle.updateAssetOwner(assetId, ownerId);
   }
 
-  async function handleSaveCustomFieldValue(
-    field: AssetCustomFieldValue,
-    value: string
-  ) {
-    const payload = createAssetCustomFieldValuePayload(field, value)
+  async function handleSaveCustomFieldValue(field: AssetCustomFieldValue, value: string) {
+    const payload = createAssetCustomFieldValuePayload(field, value);
 
     await assetLifecycle.updateAssetCustomFieldValues(
       assetId,
-      createAssetCustomFieldValueReplacement(
-        customFields.data ?? [],
-        field.fieldId,
-        payload
-      )
-    )
+      createAssetCustomFieldValueReplacement(customFields.data ?? [], field.fieldId, payload),
+    );
   }
 
   async function handleResetCustomFieldValue(field: AssetCustomFieldValue) {
     await assetLifecycle.resetAssetCustomFieldValues(
       assetId,
-      createAssetCustomFieldValueReplacement(
-        customFields.data ?? [],
-        field.fieldId,
-        null
-      )
-    )
+      createAssetCustomFieldValueReplacement(customFields.data ?? [], field.fieldId, null),
+    );
   }
 
   async function handleAssignCustomField(field: AssetCustomFieldDefinition) {
     await assetLifecycle.assignAssetCustomField(assetId, [
       ...(customFields.data ?? []).map((customField) => customField.fieldId),
-      field.id
-    ])
+      field.id,
+    ]);
   }
 
   async function handleDetachCustomField(field: AssetCustomFieldValue) {
@@ -281,8 +246,8 @@ export function AssetDetailContent({
       assetId,
       (customFields.data ?? [])
         .map((customField) => customField.fieldId)
-        .filter((fieldId) => fieldId !== field.fieldId)
-    )
+        .filter((fieldId) => fieldId !== field.fieldId),
+    );
   }
 
   function AssetOverviewCard({ assetData }: { assetData: Asset }) {
@@ -302,8 +267,8 @@ export function AssetDetailContent({
                 {assetData.name}
               </CardTitle>
               <CardDescription className="max-w-3xl text-sm leading-6">
-                Inventory record representing a tracked platform asset that can
-                be linked to findings and vulnerability exposure.
+                Inventory record representing a tracked platform asset that can be linked to
+                findings and vulnerability exposure.
               </CardDescription>
             </div>
             <div className="grid gap-3 xl:grid-cols-3">
@@ -326,7 +291,7 @@ export function AssetDetailContent({
           </div>
         </CardHeader>
       </Card>
-    )
+    );
   }
 
   function AssetSidebar({ assetData }: { assetData: Asset }) {
@@ -334,10 +299,7 @@ export function AssetDetailContent({
       <MetadataSidebar title="Asset details" icon={Server}>
         <div className="space-y-3">
           <MetadataDetailRow label="Name" value={assetData.name} />
-          <MetadataDetailRow
-            label="Type"
-            value={capitalizeFirstLetter(assetData.type)}
-          />
+          <MetadataDetailRow label="Type" value={capitalizeFirstLetter(assetData.type)} />
           <MetadataDetailRow
             label="Owner"
             editable={{
@@ -348,15 +310,11 @@ export function AssetDetailContent({
                 type: "custom",
                 hideActions: true,
                 render: ({ value, onCancel, onCommit }) => (
-                  <AssetOwnerPicker
-                    value={value}
-                    onCancel={onCancel}
-                    onCommit={onCommit}
-                  />
-                )
+                  <AssetOwnerPicker value={value} onCancel={onCancel} onCommit={onCommit} />
+                ),
               },
               editOnClick: true,
-              showEditIcon: false
+              showEditIcon: false,
             }}
           />
         </div>
@@ -373,7 +331,7 @@ export function AssetDetailContent({
           onSave={handleSaveCustomFieldValue}
         />
       </MetadataSidebar>
-    )
+    );
   }
 
   return (
@@ -393,19 +351,19 @@ export function AssetDetailContent({
         </div>
       )}
     </DetailQueryBoundary>
-  )
+  );
 }
 
 interface AssetCustomFieldsSidebarSectionProps {
-  availableCustomFields?: Array<AssetCustomFieldDefinition>
-  customFields?: Array<AssetCustomFieldValue>
-  isAvailablePending: boolean
-  isError: boolean
-  isPending: boolean
-  onAssign: (field: AssetCustomFieldDefinition) => void | Promise<void>
-  onDetach: (field: AssetCustomFieldValue) => void | Promise<void>
-  onReset: (field: AssetCustomFieldValue) => void | Promise<void>
-  onSave: (field: AssetCustomFieldValue, value: string) => void | Promise<void>
+  availableCustomFields?: Array<AssetCustomFieldDefinition>;
+  customFields?: Array<AssetCustomFieldValue>;
+  isAvailablePending: boolean;
+  isError: boolean;
+  isPending: boolean;
+  onAssign: (field: AssetCustomFieldDefinition) => void | Promise<void>;
+  onDetach: (field: AssetCustomFieldValue) => void | Promise<void>;
+  onReset: (field: AssetCustomFieldValue) => void | Promise<void>;
+  onSave: (field: AssetCustomFieldValue, value: string) => void | Promise<void>;
 }
 
 function AssetCustomFieldsSidebarSection({
@@ -417,7 +375,7 @@ function AssetCustomFieldsSidebarSection({
   onAssign,
   onDetach,
   onReset,
-  onSave
+  onSave,
 }: AssetCustomFieldsSidebarSectionProps) {
   if (isPending) {
     return (
@@ -431,7 +389,7 @@ function AssetCustomFieldsSidebarSection({
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-3/4" />
       </div>
-    )
+    );
   }
 
   if (isError) {
@@ -444,15 +402,13 @@ function AssetCustomFieldsSidebarSection({
         />
         <Alert variant="destructive" className="px-3 py-2">
           <AlertCircle className="size-4" />
-          <AlertTitle className="text-sm">
-            Unable to load custom fields
-          </AlertTitle>
+          <AlertTitle className="text-sm">Unable to load custom fields</AlertTitle>
           <AlertDescription className="text-xs">
             The asset details are still available.
           </AlertDescription>
         </Alert>
       </div>
-    )
+    );
   }
 
   if (!customFields || customFields.length === 0) {
@@ -465,7 +421,7 @@ function AssetCustomFieldsSidebarSection({
         />
         <p className="text-sm text-muted-foreground">No custom fields</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -485,19 +441,19 @@ function AssetCustomFieldsSidebarSection({
         />
       ))}
     </div>
-  )
+  );
 }
 
 interface CustomFieldsSectionTitleProps {
-  availableCustomFields?: Array<AssetCustomFieldDefinition>
-  isAvailablePending: boolean
-  onAssign: (field: AssetCustomFieldDefinition) => void | Promise<void>
+  availableCustomFields?: Array<AssetCustomFieldDefinition>;
+  isAvailablePending: boolean;
+  onAssign: (field: AssetCustomFieldDefinition) => void | Promise<void>;
 }
 
 function CustomFieldsSectionTitle({
   availableCustomFields,
   isAvailablePending,
-  onAssign
+  onAssign,
 }: CustomFieldsSectionTitleProps) {
   return (
     <div className="flex items-center justify-between gap-2">
@@ -510,22 +466,22 @@ function CustomFieldsSectionTitle({
         onAssign={onAssign}
       />
     </div>
-  )
+  );
 }
 
 interface AssetCustomFieldAssignmentPickerProps {
-  availableCustomFields?: Array<AssetCustomFieldDefinition>
-  isPending: boolean
-  onAssign: (field: AssetCustomFieldDefinition) => void | Promise<void>
+  availableCustomFields?: Array<AssetCustomFieldDefinition>;
+  isPending: boolean;
+  onAssign: (field: AssetCustomFieldDefinition) => void | Promise<void>;
 }
 
 function AssetCustomFieldAssignmentPicker({
   availableCustomFields = [],
   isPending,
-  onAssign
+  onAssign,
 }: AssetCustomFieldAssignmentPickerProps) {
-  const [open, setOpen] = useState(false)
-  const hasAvailableFields = availableCustomFields.length > 0
+  const [open, setOpen] = useState(false);
+  const hasAvailableFields = availableCustomFields.length > 0;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -554,8 +510,8 @@ function AssetCustomFieldAssignmentPicker({
                   key={field.id}
                   value={`${field.name} ${field.key}`}
                   onSelect={() => {
-                    setOpen(false)
-                    void onAssign(field)
+                    setOpen(false);
+                    void onAssign(field);
                   }}
                 >
                   <div className="min-w-0">
@@ -571,24 +527,24 @@ function AssetCustomFieldAssignmentPicker({
         </Command>
       </PopoverContent>
     </Popover>
-  )
+  );
 }
 
 interface AssetCustomFieldSidebarRowProps {
-  field: AssetCustomFieldValue
-  onDetach: (field: AssetCustomFieldValue) => void | Promise<void>
-  onReset: (field: AssetCustomFieldValue) => void | Promise<void>
-  onSave: (field: AssetCustomFieldValue, value: string) => void | Promise<void>
+  field: AssetCustomFieldValue;
+  onDetach: (field: AssetCustomFieldValue) => void | Promise<void>;
+  onReset: (field: AssetCustomFieldValue) => void | Promise<void>;
+  onSave: (field: AssetCustomFieldValue, value: string) => void | Promise<void>;
 }
 
 function AssetCustomFieldSidebarRow({
   field,
   onDetach,
   onReset,
-  onSave
+  onSave,
 }: AssetCustomFieldSidebarRowProps) {
-  const isAssetValue = field.source === AssetCustomFieldValueSource.Asset
-  const [isEditing, setIsEditing] = useState(false)
+  const isAssetValue = field.source === AssetCustomFieldValueSource.Asset;
+  const [isEditing, setIsEditing] = useState(false);
 
   return (
     <div className="space-y-2">
@@ -603,7 +559,7 @@ function AssetCustomFieldSidebarRow({
             displayElement={() => (
               <span
                 className={cn("block truncate", {
-                  "text-muted-foreground": field.value === null
+                  "text-muted-foreground": field.value === null,
                 })}
               >
                 {formatAssetCustomFieldValue(field)}
@@ -643,7 +599,7 @@ function AssetCustomFieldSidebarRow({
         ) : null}
       </div>
     </div>
-  )
+  );
 }
 
 function getCustomFieldEditElement(field: AssetCustomFieldValue) {
@@ -652,14 +608,13 @@ function getCustomFieldEditElement(field: AssetCustomFieldValue) {
       type: "select" as const,
       options: field.options.map((option) => ({
         label: option.label,
-        value: option.value
-      }))
-    }
+        value: option.value,
+      })),
+    };
   }
 
   return {
     type: "input" as const,
-    inputType:
-      field.type === AssetCustomFieldType.Number ? ("number" as const) : "text"
-  }
+    inputType: field.type === AssetCustomFieldType.Number ? ("number" as const) : "text",
+  };
 }

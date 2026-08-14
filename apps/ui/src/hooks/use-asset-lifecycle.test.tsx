@@ -1,27 +1,29 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { act, cleanup, renderHook } from "@testing-library/react"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { AssetType } from "@exposurenexus/types/model/asset"
+import { AssetType } from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
-  AssetCustomFieldValueSource
-} from "@exposurenexus/types/model/asset-custom-field"
-import type { ReactNode } from "react"
-import type { Asset, CreateAsset } from "@exposurenexus/types/model/asset"
-import type {
-  AssetCustomFieldValue,
-  UpdateAssetCustomFieldValue
-} from "@exposurenexus/types/model/asset-custom-field"
-import type * as AssetApi from "@/api/asset.ts"
-import type { AssetLifecycleBatchResult } from "@/hooks/use-asset-lifecycle.ts"
+  AssetCustomFieldValueSource,
+} from "@exposurenexus/types/model/asset-custom-field";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import {
   createAssetByIDQueryOptions,
   createAssetCustomFieldValuesQueryOptions,
   createAvailableAssetCustomFieldDefinitionsQueryOptions,
   createListAssetsQueryOptions,
-  createListAssetsWithCustomFieldsQueryOptions
-} from "@/api/asset.ts"
-import { useAssetLifecycle } from "@/hooks/use-asset-lifecycle.ts"
+  createListAssetsWithCustomFieldsQueryOptions,
+} from "@/api/asset.ts";
+import { useAssetLifecycle } from "@/hooks/use-asset-lifecycle.ts";
+
+import type * as AssetApi from "@/api/asset.ts";
+import type { AssetLifecycleBatchResult } from "@/hooks/use-asset-lifecycle.ts";
+import type { Asset, CreateAsset } from "@exposurenexus/types/model/asset";
+import type {
+  AssetCustomFieldValue,
+  UpdateAssetCustomFieldValue,
+} from "@exposurenexus/types/model/asset-custom-field";
+import type { ReactNode } from "react";
 
 const {
   createAssetRequestMock,
@@ -30,7 +32,7 @@ const {
   toastErrorMock,
   toastSuccessMock,
   updateOwnerRequestMock,
-  updateValuesRequestMock
+  updateValuesRequestMock,
 } = vi.hoisted(() => ({
   createAssetRequestMock: vi.fn(),
   deleteAssetRequestMock: vi.fn(),
@@ -38,18 +40,18 @@ const {
   toastErrorMock: vi.fn(),
   toastSuccessMock: vi.fn(),
   updateOwnerRequestMock: vi.fn(),
-  updateValuesRequestMock: vi.fn()
-}))
+  updateValuesRequestMock: vi.fn(),
+}));
 
 vi.mock("sonner", () => ({
   toast: {
     error: toastErrorMock,
-    success: toastSuccessMock
-  }
-}))
+    success: toastSuccessMock,
+  },
+}));
 
 vi.mock("@/api/asset.ts", async (importOriginal) => {
-  const actual = await importOriginal<typeof AssetApi>()
+  const actual = await importOriginal<typeof AssetApi>();
 
   return {
     ...actual,
@@ -59,22 +61,22 @@ vi.mock("@/api/asset.ts", async (importOriginal) => {
     updateAssetCustomFieldValues: updateValuesRequestMock,
     updateAssetOwner: updateOwnerRequestMock,
     useCreateAssetMutation: () => ({
-      mutateAsync: createAssetRequestMock
+      mutateAsync: createAssetRequestMock,
     }),
     useDeleteAssetMutation: () => ({
-      mutateAsync: deleteAssetRequestMock
+      mutateAsync: deleteAssetRequestMock,
     }),
     useReplaceAssetCustomFieldAssociationsMutation: () => ({
-      mutateAsync: replaceAssociationsRequestMock
+      mutateAsync: replaceAssociationsRequestMock,
     }),
     useUpdateAssetCustomFieldValuesMutation: () => ({
-      mutateAsync: updateValuesRequestMock
+      mutateAsync: updateValuesRequestMock,
     }),
     useUpdateAssetOwnerMutation: () => ({
-      mutateAsync: updateOwnerRequestMock
-    })
-  }
-})
+      mutateAsync: updateOwnerRequestMock,
+    }),
+  };
+});
 
 function createAssetFixture(overrides: Partial<Asset> = {}): Asset {
   return {
@@ -82,22 +84,20 @@ function createAssetFixture(overrides: Partial<Asset> = {}): Asset {
     name: overrides.name ?? "web-01",
     type: overrides.type ?? AssetType.Host,
     ownerId:
-      "ownerId" in overrides
-        ? (overrides.ownerId ?? null)
-        : "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d"
-  }
+      "ownerId" in overrides ? (overrides.ownerId ?? null) : "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+  };
 }
 
 function createAssetPayload(overrides: Partial<CreateAsset> = {}): CreateAsset {
   return {
     name: overrides.name ?? "web-01",
     type: overrides.type ?? AssetType.Host,
-    ownerId: "ownerId" in overrides ? overrides.ownerId : null
-  }
+    ownerId: "ownerId" in overrides ? overrides.ownerId : null,
+  };
 }
 
 function createCustomFieldValue(
-  overrides: Partial<AssetCustomFieldValue> = {}
+  overrides: Partial<AssetCustomFieldValue> = {},
 ): AssetCustomFieldValue {
   return {
     fieldId: overrides.fieldId ?? "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
@@ -105,293 +105,258 @@ function createCustomFieldValue(
     name: overrides.name ?? "Category",
     source: overrides.source ?? AssetCustomFieldValueSource.Asset,
     type: AssetCustomFieldType.Text,
-    value: "value" in overrides ? overrides.value : "internet-facing"
-  } as AssetCustomFieldValue
+    value: "value" in overrides ? overrides.value : "internet-facing",
+  } as AssetCustomFieldValue;
 }
 
 function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        retry: false
-      }
-    }
-  })
+        retry: false,
+      },
+    },
+  });
 }
 
 function renderLifecycleHook(queryClient = createQueryClient()) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  )
+  );
 
   return {
     queryClient,
-    ...renderHook(() => useAssetLifecycle(), { wrapper })
-  }
+    ...renderHook(() => useAssetLifecycle(), { wrapper }),
+  };
 }
 
 beforeEach(() => {
-  createAssetRequestMock.mockReset()
-  deleteAssetRequestMock.mockReset()
-  replaceAssociationsRequestMock.mockReset()
-  toastErrorMock.mockReset()
-  toastSuccessMock.mockReset()
-  updateOwnerRequestMock.mockReset()
-  updateValuesRequestMock.mockReset()
-})
+  createAssetRequestMock.mockReset();
+  deleteAssetRequestMock.mockReset();
+  replaceAssociationsRequestMock.mockReset();
+  toastErrorMock.mockReset();
+  toastSuccessMock.mockReset();
+  updateOwnerRequestMock.mockReset();
+  updateValuesRequestMock.mockReset();
+});
 
 afterEach(() => {
-  cleanup()
-  vi.restoreAllMocks()
-})
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 describe("useAssetLifecycle", () => {
   it("creates assets and invalidates asset reads", async () => {
-    const asset = createAssetFixture()
-    const payload = createAssetPayload()
-    createAssetRequestMock.mockResolvedValueOnce(asset)
-    const { queryClient, result } = renderLifecycleHook()
-    const invalidateSpy = vi
-      .spyOn(queryClient, "invalidateQueries")
-      .mockResolvedValue(undefined)
+    const asset = createAssetFixture();
+    const payload = createAssetPayload();
+    createAssetRequestMock.mockResolvedValueOnce(asset);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
-    let createdAsset: Asset | null = null
+    let createdAsset: Asset | null = null;
     await act(async () => {
-      createdAsset = await result.current.createAsset(payload)
-    })
+      createdAsset = await result.current.createAsset(payload);
+    });
 
-    expect(createdAsset).toEqual(asset)
-    expect(createAssetRequestMock).toHaveBeenCalledWith(payload)
+    expect(createdAsset).toEqual(asset);
+    expect(createAssetRequestMock).toHaveBeenCalledWith(payload);
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createListAssetsQueryOptions().queryKey,
-      exact: true
-    })
+      exact: true,
+    });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createListAssetsWithCustomFieldsQueryOptions().queryKey,
-      exact: true
-    })
+      exact: true,
+    });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createAssetByIDQueryOptions(asset.id).queryKey,
-      exact: true
-    })
-    expect(toastSuccessMock).toHaveBeenCalledWith("Created new asset web-01")
-  })
+      exact: true,
+    });
+    expect(toastSuccessMock).toHaveBeenCalledWith("Created new asset web-01");
+  });
 
   it("reports partial delete failures and invalidates affected asset reads", async () => {
     const first = createAssetFixture({
       id: "4b4f4dc9-77d5-4bb5-90a4-0d764a5fbf4b",
-      name: "web-01"
-    })
+      name: "web-01",
+    });
     const second = createAssetFixture({
       id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
-      name: "api-01"
-    })
-    const error = new Error("Delete failed")
+      name: "api-01",
+    });
+    const error = new Error("Delete failed");
     deleteAssetRequestMock.mockImplementation((id: string) =>
-      id === first.id ? Promise.resolve(first) : Promise.reject(error)
-    )
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined)
-    const { queryClient, result } = renderLifecycleHook()
-    const invalidateSpy = vi
-      .spyOn(queryClient, "invalidateQueries")
-      .mockResolvedValue(undefined)
+      id === first.id ? Promise.resolve(first) : Promise.reject(error),
+    );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
-    let batchResult: AssetLifecycleBatchResult | undefined
+    let batchResult: AssetLifecycleBatchResult | undefined;
     await act(async () => {
-      batchResult = await result.current.deleteAssets([first, second])
-    })
+      batchResult = await result.current.deleteAssets([first, second]);
+    });
 
     expect(batchResult).toMatchObject({
       successful: [first],
-      failed: [{ asset: second }]
-    })
+      failed: [{ asset: second }],
+    });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createListAssetsQueryOptions().queryKey,
-      exact: true
-    })
+      exact: true,
+    });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createListAssetsWithCustomFieldsQueryOptions().queryKey,
-      exact: true
-    })
+      exact: true,
+    });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createAssetByIDQueryOptions(first.id).queryKey,
-      exact: true
-    })
+      exact: true,
+    });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createAssetByIDQueryOptions(second.id).queryKey,
-      exact: true
-    })
-    expect(toastErrorMock).toHaveBeenCalledWith(
-      "Deleted 1 asset; failed 1 asset"
-    )
-    expect(consoleError).toHaveBeenCalledWith(error)
-  })
+      exact: true,
+    });
+    expect(toastErrorMock).toHaveBeenCalledWith("Deleted 1 asset; failed 1 asset");
+    expect(consoleError).toHaveBeenCalledWith(error);
+  });
 
   it("updates asset owners, writes detail cache, and invalidates asset reads", async () => {
-    const asset = createAssetFixture()
+    const asset = createAssetFixture();
     const updatedAsset = createAssetFixture({
-      ownerId: "bb9f2b64-2f45-4bb8-9f16-659d633cb398"
-    })
-    updateOwnerRequestMock.mockResolvedValueOnce(updatedAsset)
-    const { queryClient, result } = renderLifecycleHook()
-    const invalidateSpy = vi
-      .spyOn(queryClient, "invalidateQueries")
-      .mockResolvedValue(undefined)
+      ownerId: "bb9f2b64-2f45-4bb8-9f16-659d633cb398",
+    });
+    updateOwnerRequestMock.mockResolvedValueOnce(updatedAsset);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
-    let resultAsset: Asset | null = null
+    let resultAsset: Asset | null = null;
     await act(async () => {
-      resultAsset = await result.current.updateAssetOwner(
-        asset.id,
-        updatedAsset.ownerId
-      )
-    })
+      resultAsset = await result.current.updateAssetOwner(asset.id, updatedAsset.ownerId);
+    });
 
-    expect(resultAsset).toEqual(updatedAsset)
+    expect(resultAsset).toEqual(updatedAsset);
     expect(updateOwnerRequestMock).toHaveBeenCalledWith({
       assetId: asset.id,
-      ownerId: updatedAsset.ownerId
-    })
-    expect(
-      queryClient.getQueryData<Asset>(createAssetByIDQueryOptions(asset.id).queryKey)
-    ).toEqual(updatedAsset)
+      ownerId: updatedAsset.ownerId,
+    });
+    expect(queryClient.getQueryData<Asset>(createAssetByIDQueryOptions(asset.id).queryKey)).toEqual(
+      updatedAsset,
+    );
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createListAssetsQueryOptions().queryKey,
-      exact: true
-    })
+      exact: true,
+    });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createListAssetsWithCustomFieldsQueryOptions().queryKey,
-      exact: true
-    })
+      exact: true,
+    });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createAssetByIDQueryOptions(asset.id).queryKey,
-      exact: true
-    })
-  })
+      exact: true,
+    });
+  });
 
   it("updates custom field values, writes values cache, and invalidates values", async () => {
-    const asset = createAssetFixture()
+    const asset = createAssetFixture();
     const updatedValues = [
-      createCustomFieldValue({ value: "internal", source: AssetCustomFieldValueSource.Asset })
-    ]
+      createCustomFieldValue({ value: "internal", source: AssetCustomFieldValueSource.Asset }),
+    ];
     const values: Array<UpdateAssetCustomFieldValue> = [
-      { fieldId: updatedValues[0].fieldId, value: "internal" }
-    ]
-    updateValuesRequestMock.mockResolvedValueOnce(updatedValues)
-    const { queryClient, result } = renderLifecycleHook()
-    const invalidateSpy = vi
-      .spyOn(queryClient, "invalidateQueries")
-      .mockResolvedValue(undefined)
+      { fieldId: updatedValues[0].fieldId, value: "internal" },
+    ];
+    updateValuesRequestMock.mockResolvedValueOnce(updatedValues);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
-    let resultValues: Array<AssetCustomFieldValue> | null = null
+    let resultValues: Array<AssetCustomFieldValue> | null = null;
     await act(async () => {
-      resultValues = await result.current.updateAssetCustomFieldValues(
-        asset.id,
-        values
-      )
-    })
+      resultValues = await result.current.updateAssetCustomFieldValues(asset.id, values);
+    });
 
-    expect(resultValues).toEqual(updatedValues)
+    expect(resultValues).toEqual(updatedValues);
     expect(updateValuesRequestMock).toHaveBeenCalledWith({
       assetId: asset.id,
-      values
-    })
+      values,
+    });
     expect(
       queryClient.getQueryData<Array<AssetCustomFieldValue>>(
-        createAssetCustomFieldValuesQueryOptions(asset.id).queryKey
-      )
-    ).toEqual(updatedValues)
+        createAssetCustomFieldValuesQueryOptions(asset.id).queryKey,
+      ),
+    ).toEqual(updatedValues);
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createAssetCustomFieldValuesQueryOptions(asset.id).queryKey,
-      exact: true
-    })
-  })
+      exact: true,
+    });
+  });
 
   it("reports reset custom field value failures", async () => {
-    const asset = createAssetFixture()
+    const asset = createAssetFixture();
     const values: Array<UpdateAssetCustomFieldValue> = [
-      { fieldId: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3", value: null }
-    ]
-    const error = new Error("Reset failed")
-    updateValuesRequestMock.mockRejectedValueOnce(error)
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined)
-    const { result } = renderLifecycleHook()
+      { fieldId: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3", value: null },
+    ];
+    const error = new Error("Reset failed");
+    updateValuesRequestMock.mockRejectedValueOnce(error);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { result } = renderLifecycleHook();
 
-    let resultValues: Array<AssetCustomFieldValue> | null = []
+    let resultValues: Array<AssetCustomFieldValue> | null = [];
     await act(async () => {
-      resultValues = await result.current.resetAssetCustomFieldValues(
-        asset.id,
-        values
-      )
-    })
+      resultValues = await result.current.resetAssetCustomFieldValues(asset.id, values);
+    });
 
-    expect(resultValues).toBeNull()
-    expect(toastErrorMock).toHaveBeenCalledWith(
-      "Failed to reset asset custom field"
-    )
-    expect(consoleError).toHaveBeenCalledWith(error)
-  })
+    expect(resultValues).toBeNull();
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to reset asset custom field");
+    expect(consoleError).toHaveBeenCalledWith(error);
+  });
 
   it("assigns custom fields, writes values cache, and invalidates association reads", async () => {
-    const asset = createAssetFixture()
-    const updatedValues = [createCustomFieldValue()]
-    const fieldIds = [updatedValues[0].fieldId]
-    replaceAssociationsRequestMock.mockResolvedValueOnce(updatedValues)
-    const { queryClient, result } = renderLifecycleHook()
-    const invalidateSpy = vi
-      .spyOn(queryClient, "invalidateQueries")
-      .mockResolvedValue(undefined)
+    const asset = createAssetFixture();
+    const updatedValues = [createCustomFieldValue()];
+    const fieldIds = [updatedValues[0].fieldId];
+    replaceAssociationsRequestMock.mockResolvedValueOnce(updatedValues);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
-    let resultValues: Array<AssetCustomFieldValue> | null = null
+    let resultValues: Array<AssetCustomFieldValue> | null = null;
     await act(async () => {
-      resultValues = await result.current.assignAssetCustomField(
-        asset.id,
-        fieldIds
-      )
-    })
+      resultValues = await result.current.assignAssetCustomField(asset.id, fieldIds);
+    });
 
-    expect(resultValues).toEqual(updatedValues)
+    expect(resultValues).toEqual(updatedValues);
     expect(replaceAssociationsRequestMock).toHaveBeenCalledWith({
       assetId: asset.id,
-      fieldIds
-    })
+      fieldIds,
+    });
     expect(
       queryClient.getQueryData<Array<AssetCustomFieldValue>>(
-        createAssetCustomFieldValuesQueryOptions(asset.id).queryKey
-      )
-    ).toEqual(updatedValues)
+        createAssetCustomFieldValuesQueryOptions(asset.id).queryKey,
+      ),
+    ).toEqual(updatedValues);
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createAssetCustomFieldValuesQueryOptions(asset.id).queryKey,
-      exact: true
-    })
+      exact: true,
+    });
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: createAvailableAssetCustomFieldDefinitionsQueryOptions(asset.id)
-        .queryKey,
-      exact: true
-    })
-  })
+      queryKey: createAvailableAssetCustomFieldDefinitionsQueryOptions(asset.id).queryKey,
+      exact: true,
+    });
+  });
 
   it("reports detach custom field failures", async () => {
-    const asset = createAssetFixture()
-    const error = new Error("Detach failed")
-    replaceAssociationsRequestMock.mockRejectedValueOnce(error)
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined)
-    const { result } = renderLifecycleHook()
+    const asset = createAssetFixture();
+    const error = new Error("Detach failed");
+    replaceAssociationsRequestMock.mockRejectedValueOnce(error);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { result } = renderLifecycleHook();
 
-    let resultValues: Array<AssetCustomFieldValue> | null = []
+    let resultValues: Array<AssetCustomFieldValue> | null = [];
     await act(async () => {
-      resultValues = await result.current.detachAssetCustomField(asset.id, [])
-    })
+      resultValues = await result.current.detachAssetCustomField(asset.id, []);
+    });
 
-    expect(resultValues).toBeNull()
-    expect(toastErrorMock).toHaveBeenCalledWith(
-      "Failed to detach asset custom field"
-    )
-    expect(consoleError).toHaveBeenCalledWith(error)
-  })
-})
+    expect(resultValues).toBeNull();
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to detach asset custom field");
+    expect(consoleError).toHaveBeenCalledWith(error);
+  });
+});

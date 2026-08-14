@@ -1,27 +1,24 @@
-import { useMemo } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { Link, useNavigate } from "@tanstack/react-router"
-import { ArrowLeft, Pencil } from "lucide-react"
-import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts"
-import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content"
-import { buttonVariants } from "@/components/ui/button.tsx"
-import { usePageMeta } from "@/context/page.tsx"
-import { cn } from "@/lib/utils.ts"
+import { useQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, Pencil } from "lucide-react";
+import { useMemo } from "react";
+
+import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts";
+import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content";
+import { buttonVariants } from "@/components/ui/button.tsx";
+import { usePageMeta } from "@/context/page.tsx";
+import { cn } from "@/lib/utils.ts";
 
 interface CustomFieldDetailPageProps {
-  customFieldId: string
+  customFieldId: string;
 }
 
-export function CustomFieldDetailPage({
-  customFieldId
-}: CustomFieldDetailPageProps) {
-  const navigate = useNavigate()
-  const customField = useQuery(
-    createAssetCustomFieldDefinitionByIDQueryOptions(customFieldId)
-  )
+export function CustomFieldDetailPage({ customFieldId }: CustomFieldDetailPageProps) {
+  const navigate = useNavigate();
+  const customField = useQuery(createAssetCustomFieldDefinitionByIDQueryOptions(customFieldId));
   const actions = useMemo(() => {
     if (!customField.data) {
-      return []
+      return [];
     }
 
     return [
@@ -31,18 +28,18 @@ export function CustomFieldDetailPage({
         onClick: () => {
           void navigate({
             to: "/custom-fields/$id/edit",
-            params: { id: customFieldId }
-          })
-        }
-      }
-    ]
-  }, [customField.data, customFieldId, navigate])
+            params: { id: customFieldId },
+          });
+        },
+      },
+    ];
+  }, [customField.data, customFieldId, navigate]);
 
   usePageMeta({
     title: customField.data?.name ?? "Custom Field",
     description: "Review asset custom field settings and allowed values.",
-    actions
-  })
+    actions,
+  });
 
   return (
     <AssetCustomFieldDetailContent
@@ -54,17 +51,14 @@ export function CustomFieldDetailPage({
             filter: previous.filter,
             type: previous.type,
             required: previous.required,
-            selected: undefined
+            selected: undefined,
           })}
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "sm" }),
-            "-ml-2 rounded-xl"
-          )}
+          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2 rounded-xl")}
         >
           <ArrowLeft />
           Back to custom fields
         </Link>
       }
     />
-  )
+  );
 }

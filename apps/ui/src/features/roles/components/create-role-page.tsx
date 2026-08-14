@@ -1,33 +1,34 @@
-import { useQuery } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
-import { CircleAlert } from "lucide-react"
-import { createListRolesQueryOptions } from "@/api/role.ts"
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { CircleAlert } from "lucide-react";
+
+import { createListRolesQueryOptions } from "@/api/role.ts";
 import {
   RoleForm,
   getAvailableRolePermissions,
-  mapCreateRoleFormValues
-} from "@/components/role-form.tsx"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
+  mapCreateRoleFormValues,
+} from "@/components/role-form.tsx";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
-import { Skeleton } from "@/components/ui/skeleton.tsx"
-import { usePageMeta } from "@/context/page.tsx"
-import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts"
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { usePageMeta } from "@/context/page.tsx";
+import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts";
 
 export function CreateRolePage() {
-  const navigate = useNavigate()
-  const roleLifecycle = useRoleLifecycle()
-  const roles = useQuery(createListRolesQueryOptions())
+  const navigate = useNavigate();
+  const roleLifecycle = useRoleLifecycle();
+  const roles = useQuery(createListRolesQueryOptions());
 
   usePageMeta({
     title: "Create Role",
-    description: "Add a custom role and choose its permission grants."
-  })
+    description: "Add a custom role and choose its permission grants.",
+  });
 
   const handleCancel = async () => {
     await navigate({
@@ -35,24 +36,22 @@ export function CreateRolePage() {
       search: (previous) => ({
         filter: previous.filter,
         kind: previous.kind,
-        selected: undefined
-      })
-    })
-  }
+        selected: undefined,
+      }),
+    });
+  };
 
-  const handleSubmit = async (
-    values: Parameters<typeof mapCreateRoleFormValues>[0]
-  ) => {
-    const payload = mapCreateRoleFormValues(values)
-    const role = await roleLifecycle.createRole(payload)
+  const handleSubmit = async (values: Parameters<typeof mapCreateRoleFormValues>[0]) => {
+    const payload = mapCreateRoleFormValues(values);
+    const role = await roleLifecycle.createRole(payload);
 
     if (role) {
       await navigate({
         to: "/roles/$id",
-        params: { id: role.id }
-      })
+        params: { id: role.id },
+      });
     }
-  }
+  };
 
   if (roles.isPending) {
     return (
@@ -66,7 +65,7 @@ export function CreateRolePage() {
           <Skeleton className="h-64 w-full" />
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (!roles.data) {
@@ -74,9 +73,7 @@ export function CreateRolePage() {
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader>
           <CardTitle>Create role</CardTitle>
-          <CardDescription>
-            Available permissions could not be loaded.
-          </CardDescription>
+          <CardDescription>Available permissions could not be loaded.</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
@@ -86,7 +83,7 @@ export function CreateRolePage() {
           </Alert>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -96,5 +93,5 @@ export function CreateRolePage() {
       onSubmit={handleSubmit}
       onCancel={handleCancel}
     />
-  )
+  );
 }

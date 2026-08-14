@@ -1,60 +1,61 @@
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 
-import { SeverityBadge } from "@/components/severity-badge"
+import { SeverityBadge } from "@/components/severity-badge";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Components/SeverityBadge",
   component: SeverityBadge,
   parameters: {
-    layout: "centered"
+    layout: "centered",
   },
   args: {
-    severity: VulnerabilitySeverity.Medium
+    severity: VulnerabilitySeverity.Medium,
   },
   argTypes: {
     severity: {
       control: "select",
-      options: Object.values(VulnerabilitySeverity)
-    }
-  }
-} satisfies Meta<typeof SeverityBadge>
+      options: Object.values(VulnerabilitySeverity),
+    },
+  },
+} satisfies Meta<typeof SeverityBadge>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {}
+export const Default: Story = {};
 
 export const Info: Story = {
   args: {
-    severity: VulnerabilitySeverity.Info
-  }
-}
+    severity: VulnerabilitySeverity.Info,
+  },
+};
 
 export const Low: Story = {
   args: {
-    severity: VulnerabilitySeverity.Low
-  }
-}
+    severity: VulnerabilitySeverity.Low,
+  },
+};
 
 export const Medium: Story = {
   args: {
-    severity: VulnerabilitySeverity.Medium
-  }
-}
+    severity: VulnerabilitySeverity.Medium,
+  },
+};
 
 export const High: Story = {
   args: {
-    severity: VulnerabilitySeverity.High
-  }
-}
+    severity: VulnerabilitySeverity.High,
+  },
+};
 
 export const Critical: Story = {
   args: {
-    severity: VulnerabilitySeverity.Critical
-  }
-}
+    severity: VulnerabilitySeverity.Critical,
+  },
+};
 
 export const AllSeverities: Story = {
   render: () => (
@@ -63,8 +64,8 @@ export const AllSeverities: Story = {
         <SeverityBadge key={severity} severity={severity} />
       ))}
     </div>
-  )
-}
+  ),
+};
 
 export const DarkSurface: Story = {
   render: () => (
@@ -75,5 +76,5 @@ export const DarkSurface: Story = {
         ))}
       </div>
     </div>
-  )
-}
+  ),
+};

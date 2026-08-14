@@ -1,103 +1,92 @@
-import { Hono } from "hono"
-import { notFound } from "../lib/api-error.js"
-import { replyArray, replyObject } from "../lib/reply.js"
-import { zValidator } from "@hono/zod-validator"
-import { z } from "zod/v4"
-import {
-  createAssetSchema,
-  updateAssetOwnerSchema
-} from "@exposurenexus/types/model/asset"
+import { createAssetSchema, updateAssetOwnerSchema } from "@exposurenexus/types/model/asset";
 import {
   updateAssetCustomFieldAssociationsSchema,
-  updateAssetCustomFieldValuesSchema
-} from "@exposurenexus/types/model/asset-custom-field"
-import type { ContextVariables } from "../lib/hono-schema.js"
-import { requestEventContext } from "../lib/request-event-context.js"
-import type { RequireDomainPermission } from "../middleware/auth.js"
-import { createAssetCustomFieldRoute } from "./asset-custom-fields.js"
-import type { AssetService } from "../service/asset.js"
-import type { AssetCustomFieldService } from "../service/asset-custom-field.js"
+  updateAssetCustomFieldValuesSchema,
+} from "@exposurenexus/types/model/asset-custom-field";
+import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
+import { z } from "zod/v4";
+
+import { notFound } from "../lib/api-error.js";
+import { replyArray, replyObject } from "../lib/reply.js";
+import { requestEventContext } from "../lib/request-event-context.js";
+import { createAssetCustomFieldRoute } from "./asset-custom-fields.js";
+
+import type { ContextVariables } from "../lib/hono-schema.js";
+import type { RequireDomainPermission } from "../middleware/auth.js";
+import type { AssetCustomFieldService } from "../service/asset-custom-field.js";
+import type { AssetService } from "../service/asset.js";
 
 interface AssetRouteDependencies {
-  requireDomainPermission: RequireDomainPermission
+  requireDomainPermission: RequireDomainPermission;
 }
 
-const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
+const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }));
 const listAssetQueryValidator = zValidator(
   "query",
   z.object({
     includeCustomFields: z
       .stringbool({
         truthy: ["true"],
-        falsy: ["false"]
+        falsy: ["false"],
       })
-      .optional()
-  })
-)
+      .optional(),
+  }),
+);
 export function createAssetRoute(
   assetService: AssetService,
   assetCustomFieldService: AssetCustomFieldService,
-  { requireDomainPermission }: AssetRouteDependencies
+  { requireDomainPermission }: AssetRouteDependencies,
 ) {
-  const asset = new Hono<{ Variables: ContextVariables }>()
+  const asset = new Hono<{ Variables: ContextVariables }>();
 
-  asset.get(
-    "/",
-    requireDomainPermission("asset", "read"),
-    listAssetQueryValidator,
-    async (c) => {
-      const query = c.req.valid("query")
-      const assets =
-        query.includeCustomFields === true
-          ? await assetService.listAllWithCustomFields()
-          : await assetService.listAll()
-      return replyArray(c, assets)
-    }
-  )
+  asset.get("/", requireDomainPermission("asset", "read"), listAssetQueryValidator, async (c) => {
+    const query = c.req.valid("query");
+    const assets =
+      query.includeCustomFields === true
+        ? await assetService.listAllWithCustomFields()
+        : await assetService.listAll();
+    return replyArray(c, assets);
+  });
 
   asset.route(
     "/custom-fields",
     createAssetCustomFieldRoute(assetCustomFieldService, {
-      requireDomainPermission
-    })
-  )
+      requireDomainPermission,
+    }),
+  );
 
   asset.get(
     "/:id/custom-fields/available",
     requireDomainPermission("asset", "read"),
     idParamValidator,
     async (c) => {
-      const params = c.req.valid("param")
+      const params = c.req.valid("param");
 
-      const definitions =
-        await assetCustomFieldService.listAvailableDefinitionsForAsset(
-          params.id
-        )
+      const definitions = await assetCustomFieldService.listAvailableDefinitionsForAsset(params.id);
       if (!definitions) {
-        throw notFound("asset", params.id)
+        throw notFound("asset", params.id);
       }
 
-      return replyArray(c, definitions)
-    }
-  )
+      return replyArray(c, definitions);
+    },
+  );
 
   asset.get(
     "/:id/custom-fields",
     requireDomainPermission("asset", "read"),
     idParamValidator,
     async (c) => {
-      const params = c.req.valid("param")
+      const params = c.req.valid("param");
 
-      const values = await assetCustomFieldService.listEffectiveValuesForAsset(
-        params.id
-      )
+      const values = await assetCustomFieldService.listEffectiveValuesForAsset(params.id);
       if (!values) {
-        throw notFound("asset", params.id)
+        throw notFound("asset", params.id);
       }
 
-      return replyArray(c, values)
-    }
-  )
+      return replyArray(c, values);
+    },
+  );
 
   asset.put(
     "/:id/custom-fields/associations",
@@ -105,21 +94,21 @@ export function createAssetRoute(
     idParamValidator,
     zValidator("json", updateAssetCustomFieldAssociationsSchema),
     async (c) => {
-      const params = c.req.valid("param")
-      const body = c.req.valid("json")
+      const params = c.req.valid("param");
+      const body = c.req.valid("json");
 
       const values = await assetCustomFieldService.replaceAssignmentsForAsset({
         assetId: params.id,
         fieldIds: body.fieldIds,
-        eventContext: requestEventContext(c)
-      })
+        eventContext: requestEventContext(c),
+      });
       if (!values) {
-        throw notFound("asset", params.id)
+        throw notFound("asset", params.id);
       }
 
-      return replyArray(c, values)
-    }
-  )
+      return replyArray(c, values);
+    },
+  );
 
   asset.put(
     "/:id/custom-fields",
@@ -127,51 +116,43 @@ export function createAssetRoute(
     idParamValidator,
     zValidator("json", updateAssetCustomFieldValuesSchema),
     async (c) => {
-      const params = c.req.valid("param")
-      const body = c.req.valid("json")
+      const params = c.req.valid("param");
+      const body = c.req.valid("json");
 
       const values = await assetCustomFieldService.replaceValuesForAsset({
         assetId: params.id,
         values: body.values,
-        eventContext: requestEventContext(c)
-      })
+        eventContext: requestEventContext(c),
+      });
       if (!values) {
-        throw notFound("asset", params.id)
+        throw notFound("asset", params.id);
       }
 
-      return replyArray(c, values)
+      return replyArray(c, values);
+    },
+  );
+
+  asset.get("/:id", requireDomainPermission("asset", "read"), idParamValidator, async (c) => {
+    const params = c.req.valid("param");
+
+    const assetResult = await assetService.getByID(params.id);
+    if (!assetResult) {
+      throw notFound("asset", params.id);
     }
-  )
 
-  asset.get(
-    "/:id",
-    requireDomainPermission("asset", "read"),
-    idParamValidator,
-    async (c) => {
-      const params = c.req.valid("param")
-
-      const assetResult = await assetService.getByID(params.id)
-      if (!assetResult) {
-        throw notFound("asset", params.id)
-      }
-
-      return replyObject(c, assetResult)
-    }
-  )
+    return replyObject(c, assetResult);
+  });
 
   asset.post(
     "/",
     requireDomainPermission("asset", "write"),
     zValidator("json", createAssetSchema),
     async (c) => {
-      const body = c.req.valid("json")
-      const createdAsset = await assetService.create(
-        body,
-        requestEventContext(c)
-      )
-      return replyObject(c, createdAsset, true)
-    }
-  )
+      const body = c.req.valid("json");
+      const createdAsset = await assetService.create(body, requestEventContext(c));
+      return replyObject(c, createdAsset, true);
+    },
+  );
 
   asset.put(
     "/:id/owner",
@@ -179,40 +160,32 @@ export function createAssetRoute(
     idParamValidator,
     zValidator("json", updateAssetOwnerSchema),
     async (c) => {
-      const params = c.req.valid("param")
-      const body = c.req.valid("json")
+      const params = c.req.valid("param");
+      const body = c.req.valid("json");
 
       const updatedAsset = await assetService.updateOwnerByID({
         id: params.id,
         ownerId: body.ownerId,
-        eventContext: requestEventContext(c)
-      })
+        eventContext: requestEventContext(c),
+      });
       if (!updatedAsset) {
-        throw notFound("asset", params.id)
+        throw notFound("asset", params.id);
       }
 
-      return replyObject(c, updatedAsset)
+      return replyObject(c, updatedAsset);
+    },
+  );
+
+  asset.delete("/:id", requireDomainPermission("asset", "delete"), idParamValidator, async (c) => {
+    const params = c.req.valid("param");
+
+    const deleted = await assetService.deleteByID(params.id, requestEventContext(c));
+    if (!deleted) {
+      throw notFound("asset", params.id);
     }
-  )
 
-  asset.delete(
-    "/:id",
-    requireDomainPermission("asset", "delete"),
-    idParamValidator,
-    async (c) => {
-      const params = c.req.valid("param")
+    return replyObject(c, deleted);
+  });
 
-      const deleted = await assetService.deleteByID(
-        params.id,
-        requestEventContext(c)
-      )
-      if (!deleted) {
-        throw notFound("asset", params.id)
-      }
-
-      return replyObject(c, deleted)
-    }
-  )
-
-  return asset
+  return asset;
 }

@@ -1,34 +1,34 @@
-import { useState } from "react"
-import { expect, fn, userEvent } from "storybook/test"
-import type { UseQueryResult } from "@tanstack/react-query"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
-import type { DataTableFilterState } from "@/components/data-table/types.ts"
-import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
-import { AssetCustomFieldTable } from "@/components/asset-custom-field-table"
+import { useState } from "react";
+import { expect, fn, userEvent } from "storybook/test";
+
+import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
+import { AssetCustomFieldTable } from "@/components/asset-custom-field-table";
+
+import type { DataTableFilterState } from "@/components/data-table/types.ts";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { UseQueryResult } from "@tanstack/react-query";
 
 type AssetCustomFieldTableStoryArgs = {
-  selectedCustomFieldId?: string
-  onSelectCustomField?: (field: AssetCustomFieldDefinition) => void
-  onOpenCustomField?: (field: AssetCustomFieldDefinition) => void
-  onCreateCustomField?: () => void
-  onDeleteCustomFields?: (
-    fields: Array<AssetCustomFieldDefinition>
-  ) => Promise<void>
-  fields: Array<AssetCustomFieldDefinition>
-  pending?: boolean
-}
+  selectedCustomFieldId?: string;
+  onSelectCustomField?: (field: AssetCustomFieldDefinition) => void;
+  onOpenCustomField?: (field: AssetCustomFieldDefinition) => void;
+  onCreateCustomField?: () => void;
+  onDeleteCustomFields?: (fields: Array<AssetCustomFieldDefinition>) => Promise<void>;
+  fields: Array<AssetCustomFieldDefinition>;
+  pending?: boolean;
+};
 
 function createQueryResult({
   data,
   isFetching,
   isPending,
-  refetch
+  refetch,
 }: {
-  data: Array<AssetCustomFieldDefinition> | undefined
-  isFetching: boolean
-  isPending: boolean
-  refetch: () => Promise<unknown>
+  data: Array<AssetCustomFieldDefinition> | undefined;
+  isFetching: boolean;
+  isPending: boolean;
+  refetch: () => Promise<unknown>;
 }): UseQueryResult<Array<AssetCustomFieldDefinition>, Error> {
   return {
     data,
@@ -56,8 +56,8 @@ function createQueryResult({
     errorUpdatedAt: 0,
     isEnabled: true,
     promise: Promise.resolve(data ?? []),
-    refetch
-  } as unknown as UseQueryResult<Array<AssetCustomFieldDefinition>, Error>
+    refetch,
+  } as unknown as UseQueryResult<Array<AssetCustomFieldDefinition>, Error>;
 }
 
 function AssetCustomFieldTableStoryShell({
@@ -67,12 +67,12 @@ function AssetCustomFieldTableStoryShell({
   onSelectCustomField,
   onOpenCustomField,
   onCreateCustomField,
-  onDeleteCustomFields
+  onDeleteCustomFields,
 }: AssetCustomFieldTableStoryArgs) {
   const [filterState, setFilterState] = useState<DataTableFilterState>({
     globalFilter: "",
-    selectFilters: {}
-  })
+    selectFilters: {},
+  });
 
   return (
     <div className="w-full max-w-6xl">
@@ -81,7 +81,7 @@ function AssetCustomFieldTableStoryShell({
           data: pending ? undefined : fields,
           isFetching: false,
           isPending: pending,
-          refetch: () => Promise.resolve({ data: fields })
+          refetch: () => Promise.resolve({ data: fields }),
         })}
         selectedCustomFieldId={selectedCustomFieldId}
         onSelectCustomField={onSelectCustomField}
@@ -92,7 +92,7 @@ function AssetCustomFieldTableStoryShell({
         onFilterStateChange={setFilterState}
       />
     </div>
-  )
+  );
 }
 
 const meta = {
@@ -100,68 +100,66 @@ const meta = {
   component: AssetCustomFieldTableStoryShell,
   tags: ["!test"],
   parameters: {
-    layout: "padded"
+    layout: "padded",
   },
   args: {
-    fields: ASSET_CUSTOM_FIELD_FIXTURES
+    fields: ASSET_CUSTOM_FIELD_FIXTURES,
   },
-  render: (args) => <AssetCustomFieldTableStoryShell {...args} />
-} satisfies Meta<typeof AssetCustomFieldTableStoryShell>
+  render: (args) => <AssetCustomFieldTableStoryShell {...args} />,
+} satisfies Meta<typeof AssetCustomFieldTableStoryShell>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {}
+export const Default: Story = {};
 
 export const Loading: Story = {
   args: {
-    pending: true
-  }
-}
+    pending: true,
+  },
+};
 
 export const Empty: Story = {
   args: {
-    fields: []
-  }
-}
+    fields: [],
+  },
+};
 
 export const ActiveRow: Story = {
   args: {
-    selectedCustomFieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577"
-  }
-}
+    selectedCustomFieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+  },
+};
 
 export const Selection: Story = {
   args: {
     onSelectCustomField: fn(),
-    onOpenCustomField: fn()
+    onOpenCustomField: fn(),
   },
   play: async ({ canvas, args }) => {
-    const rowLabel = await canvas.findByText("Environment")
+    const rowLabel = await canvas.findByText("Environment");
 
-    await userEvent.click(rowLabel)
-    await expect(args.onSelectCustomField).toHaveBeenCalled()
+    await userEvent.click(rowLabel);
+    await expect(args.onSelectCustomField).toHaveBeenCalled();
 
-    await userEvent.dblClick(rowLabel)
-    await expect(args.onOpenCustomField).toHaveBeenCalled()
-  }
-}
+    await userEvent.dblClick(rowLabel);
+    await expect(args.onOpenCustomField).toHaveBeenCalled();
+  },
+};
 
 export const Deletable: Story = {
   args: {
-    onDeleteCustomFields: fn(async () => {})
-  }
-}
+    onDeleteCustomFields: fn(async () => {}),
+  },
+};
 
 export const Creatable: Story = {
   args: {
-    onCreateCustomField: fn()
+    onCreateCustomField: fn(),
   },
   play: async ({ canvas, args }) => {
-    await userEvent.click(
-      await canvas.findByRole("button", { name: /new custom field/i })
-    )
-    await expect(args.onCreateCustomField).toHaveBeenCalled()
-  }
-}
+    await userEvent.click(await canvas.findByRole("button", { name: /new custom field/i }));
+    await expect(args.onCreateCustomField).toHaveBeenCalled();
+  },
+};

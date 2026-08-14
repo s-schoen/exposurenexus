@@ -1,33 +1,27 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor
-} from "@testing-library/react"
-import type { ReactNode } from "react"
-import { Inplace } from "@/components/inplace.tsx"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { Inplace } from "@/components/inplace.tsx";
+
+import type { ReactNode } from "react";
 
 const selectMocks = vi.hoisted(() => ({
-  onValueChange: undefined as undefined | ((value: string) => void)
-}))
+  onValueChange: undefined as undefined | ((value: string) => void),
+}));
 
 vi.mock("@/components/ui/select.tsx", () => ({
   Select: ({
     children,
-    onValueChange
+    onValueChange,
   }: {
-    children: ReactNode
-    onValueChange?: (value: string) => void
+    children: ReactNode;
+    onValueChange?: (value: string) => void;
   }) => {
-    selectMocks.onValueChange = onValueChange
+    selectMocks.onValueChange = onValueChange;
 
-    return <div>{children}</div>
+    return <div>{children}</div>;
   },
-  SelectContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
+  SelectContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   SelectItem: ({ children, value }: { children: ReactNode; value: string }) => (
     <button type="button" onClick={() => selectMocks.onValueChange?.(value)}>
       {children}
@@ -37,27 +31,27 @@ vi.mock("@/components/ui/select.tsx", () => ({
     <button type="button" role="combobox">
       {children}
     </button>
-  )
-}))
+  ),
+}));
 
 beforeEach(() => {
-  selectMocks.onValueChange = undefined
-})
+  selectMocks.onValueChange = undefined;
+});
 
 afterEach(() => {
-  cleanup()
-})
+  cleanup();
+});
 
 function editButton() {
-  return screen.getAllByRole("button")[0]
+  return screen.getAllByRole("button")[0];
 }
 
 function saveButton() {
-  return screen.getAllByRole("button")[0]
+  return screen.getAllByRole("button")[0];
 }
 
 function cancelButton() {
-  return screen.getAllByRole("button")[1]
+  return screen.getAllByRole("button")[1];
 }
 
 describe("Inplace", () => {
@@ -67,76 +61,76 @@ describe("Inplace", () => {
         value="api-01"
         onSave={vi.fn()}
         displayElement={(value) => <strong>Asset: {value}</strong>}
-      />
-    )
+      />,
+    );
 
-    expect(screen.getByText("Asset: api-01")).toBeTruthy()
-  })
+    expect(screen.getByText("Asset: api-01")).toBeTruthy();
+  });
 
   it("enters edit mode from the edit icon and saves input changes", async () => {
-    const onSave = vi.fn()
-    render(<Inplace value="api-01" onSave={onSave} />)
+    const onSave = vi.fn();
+    render(<Inplace value="api-01" onSave={onSave} />);
 
-    fireEvent.click(editButton())
+    fireEvent.click(editButton());
     fireEvent.change(screen.getByRole("textbox"), {
-      target: { value: "api-02" }
-    })
-    fireEvent.click(saveButton())
+      target: { value: "api-02" },
+    });
+    fireEvent.click(saveButton());
 
     await waitFor(() => {
-      expect(onSave).toHaveBeenCalledWith("api-02")
-    })
-    expect(screen.getByText("api-01")).toBeTruthy()
-  })
+      expect(onSave).toHaveBeenCalledWith("api-02");
+    });
+    expect(screen.getByText("api-01")).toBeTruthy();
+  });
 
   it("enters edit mode by clicking the display value", () => {
-    render(<Inplace value="api-01" onSave={vi.fn()} editOnClick />)
+    render(<Inplace value="api-01" onSave={vi.fn()} editOnClick />);
 
-    fireEvent.click(screen.getByText("api-01"))
+    fireEvent.click(screen.getByText("api-01"));
 
-    expect(screen.getByRole("textbox")).toBeTruthy()
-  })
+    expect(screen.getByRole("textbox")).toBeTruthy();
+  });
 
   it("does not save unchanged values", async () => {
-    const onSave = vi.fn()
-    render(<Inplace value="api-01" onSave={onSave} />)
+    const onSave = vi.fn();
+    render(<Inplace value="api-01" onSave={onSave} />);
 
-    fireEvent.click(editButton())
-    fireEvent.click(saveButton())
+    fireEvent.click(editButton());
+    fireEvent.click(saveButton());
 
     await waitFor(() => {
-      expect(screen.getByText("api-01")).toBeTruthy()
-    })
-    expect(onSave).not.toHaveBeenCalled()
-  })
+      expect(screen.getByText("api-01")).toBeTruthy();
+    });
+    expect(onSave).not.toHaveBeenCalled();
+  });
 
   it("commits input changes with Enter and cancels with Escape", async () => {
-    const onSave = vi.fn()
-    const { rerender } = render(<Inplace value="api-01" onSave={onSave} />)
+    const onSave = vi.fn();
+    const { rerender } = render(<Inplace value="api-01" onSave={onSave} />);
 
-    fireEvent.click(editButton())
+    fireEvent.click(editButton());
     fireEvent.change(screen.getByRole("textbox"), {
-      target: { value: "api-02" }
-    })
-    fireEvent.keyDown(screen.getByRole("textbox"), { key: "Enter" })
+      target: { value: "api-02" },
+    });
+    fireEvent.keyDown(screen.getByRole("textbox"), { key: "Enter" });
 
     await waitFor(() => {
-      expect(onSave).toHaveBeenCalledWith("api-02")
-    })
+      expect(onSave).toHaveBeenCalledWith("api-02");
+    });
 
-    rerender(<Inplace value="api-01" onSave={onSave} />)
-    fireEvent.click(editButton())
+    rerender(<Inplace value="api-01" onSave={onSave} />);
+    fireEvent.click(editButton());
     fireEvent.change(screen.getByRole("textbox"), {
-      target: { value: "api-03" }
-    })
-    fireEvent.keyDown(screen.getByRole("textbox"), { key: "Escape" })
+      target: { value: "api-03" },
+    });
+    fireEvent.keyDown(screen.getByRole("textbox"), { key: "Escape" });
 
-    expect(screen.getByText("api-01")).toBeTruthy()
-    expect(onSave).not.toHaveBeenCalledWith("api-03")
-  })
+    expect(screen.getByText("api-01")).toBeTruthy();
+    expect(onSave).not.toHaveBeenCalledWith("api-03");
+  });
 
   it("commits selected values", async () => {
-    const onSave = vi.fn()
+    const onSave = vi.fn();
     render(
       <Inplace
         value="host"
@@ -145,24 +139,24 @@ describe("Inplace", () => {
           type: "select",
           options: [
             { label: "Host", value: "host" },
-            { label: "Container", value: "container" }
-          ]
+            { label: "Container", value: "container" },
+          ],
         }}
-      />
-    )
+      />,
+    );
 
-    fireEvent.click(editButton())
-    fireEvent.click(screen.getByRole("combobox"))
-    fireEvent.click(await screen.findByText("Container"))
+    fireEvent.click(editButton());
+    fireEvent.click(screen.getByRole("combobox"));
+    fireEvent.click(await screen.findByText("Container"));
 
     await waitFor(() => {
-      expect(onSave).toHaveBeenCalledWith("container")
-    })
-  })
+      expect(onSave).toHaveBeenCalledWith("container");
+    });
+  });
 
   it("commits and cancels custom edit elements", async () => {
-    const onSave = vi.fn()
-    const onEditingChange = vi.fn()
+    const onSave = vi.fn();
+    const onEditingChange = vi.fn();
     render(
       <Inplace
         value="api-01"
@@ -183,47 +177,47 @@ describe("Inplace", () => {
                 cancel custom
               </button>
             </div>
-          )
+          ),
         }}
-      />
-    )
+      />,
+    );
 
-    fireEvent.click(editButton())
-    expect(onEditingChange).toHaveBeenLastCalledWith(true)
-    fireEvent.click(screen.getByRole("button", { name: /change custom/i }))
-    fireEvent.click(screen.getByRole("button", { name: /save custom/i }))
+    fireEvent.click(editButton());
+    expect(onEditingChange).toHaveBeenLastCalledWith(true);
+    fireEvent.click(screen.getByRole("button", { name: /change custom/i }));
+    fireEvent.click(screen.getByRole("button", { name: /save custom/i }));
 
     await waitFor(() => {
-      expect(onSave).toHaveBeenCalledWith("api-02")
-    })
+      expect(onSave).toHaveBeenCalledWith("api-02");
+    });
     await waitFor(() => {
-      expect(onEditingChange).toHaveBeenLastCalledWith(false)
-    })
+      expect(onEditingChange).toHaveBeenLastCalledWith(false);
+    });
 
-    fireEvent.click(editButton())
-    fireEvent.click(screen.getByRole("button", { name: /cancel custom/i }))
+    fireEvent.click(editButton());
+    fireEvent.click(screen.getByRole("button", { name: /cancel custom/i }));
 
-    expect(screen.getByText("api-01")).toBeTruthy()
+    expect(screen.getByText("api-01")).toBeTruthy();
     await waitFor(() => {
-      expect(onEditingChange).toHaveBeenLastCalledWith(false)
-    })
-  })
+      expect(onEditingChange).toHaveBeenLastCalledWith(false);
+    });
+  });
 
   it("hides the edit icon when requested", () => {
-    render(<Inplace value="api-01" onSave={vi.fn()} showEditIcon={false} />)
+    render(<Inplace value="api-01" onSave={vi.fn()} showEditIcon={false} />);
 
-    expect(editButton().className).toContain("opacity-0")
-  })
+    expect(editButton().className).toContain("opacity-0");
+  });
 
   it("cancels input editing from the cancel button", () => {
-    render(<Inplace value="api-01" onSave={vi.fn()} />)
+    render(<Inplace value="api-01" onSave={vi.fn()} />);
 
-    fireEvent.click(editButton())
+    fireEvent.click(editButton());
     fireEvent.change(screen.getByRole("textbox"), {
-      target: { value: "api-02" }
-    })
-    fireEvent.click(cancelButton())
+      target: { value: "api-02" },
+    });
+    fireEvent.click(cancelButton());
 
-    expect(screen.getByText("api-01")).toBeTruthy()
-  })
-})
+    expect(screen.getByText("api-01")).toBeTruthy();
+  });
+});

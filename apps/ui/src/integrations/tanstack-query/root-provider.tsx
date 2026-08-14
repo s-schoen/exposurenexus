@@ -1,22 +1,22 @@
-import { QueryClientProvider } from "@tanstack/react-query"
-import type { QueryClient } from "@tanstack/react-query"
-import { createAppQueryClient } from "@/lib/auth-session-expiry.ts"
+import { QueryClientProvider } from "@tanstack/react-query";
+
+import { createAppQueryClient } from "@/lib/auth-session-expiry.ts";
+
+import type { QueryClient } from "@tanstack/react-query";
 
 export function getContext() {
-  const queryClient = createAppQueryClient()
+  const queryClient = createAppQueryClient();
   return {
-    queryClient
-  }
+    queryClient,
+  };
 }
 
 export function Provider({
   children,
-  queryClient
+  queryClient,
 }: {
-  children: React.ReactNode
-  queryClient: QueryClient
+  children: React.ReactNode;
+  queryClient: QueryClient;
 }) {
-  return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  )
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }

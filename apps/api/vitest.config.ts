@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config"
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
@@ -17,8 +17,8 @@ export default defineConfig({
         "src/env.ts",
         // Migrations are covered by provider/full-chain tests and focused tests
         // for risky data changes, not by requiring isolated coverage per file.
-        "src/db/migrations/**"
-      ]
-    }
-  }
-})
+        "src/db/migrations/**",
+      ],
+    },
+  },
+});

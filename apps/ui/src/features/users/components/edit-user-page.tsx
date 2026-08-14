@@ -1,62 +1,58 @@
-import { useNavigate } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
-import { CircleAlert } from "lucide-react"
-import { createUserByIDQueryOptions } from "@/api/user.ts"
-import { createListRolesQueryOptions } from "@/api/role.ts"
-import { UserForm, mapUpdateUserFormValues } from "@/components/user-form.tsx"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { CircleAlert } from "lucide-react";
+
+import { createListRolesQueryOptions } from "@/api/role.ts";
+import { createUserByIDQueryOptions } from "@/api/user.ts";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
-import { Skeleton } from "@/components/ui/skeleton.tsx"
-import { usePageMeta } from "@/context/page.tsx"
-import { useUserLifecycle } from "@/hooks/use-user-lifecycle.ts"
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { UserForm, mapUpdateUserFormValues } from "@/components/user-form.tsx";
+import { usePageMeta } from "@/context/page.tsx";
+import { useUserLifecycle } from "@/hooks/use-user-lifecycle.ts";
 
 interface EditUserPageProps {
-  userId: string
+  userId: string;
 }
 
 export function EditUserPage({ userId }: EditUserPageProps) {
-  const navigate = useNavigate()
-  const userLifecycle = useUserLifecycle()
-  const user = useQuery(createUserByIDQueryOptions(userId))
-  const roles = useQuery(createListRolesQueryOptions())
+  const navigate = useNavigate();
+  const userLifecycle = useUserLifecycle();
+  const user = useQuery(createUserByIDQueryOptions(userId));
+  const roles = useQuery(createListRolesQueryOptions());
 
   usePageMeta({
     title: user.data?.displayName ?? "Edit User",
-    description: "Update user profile fields and optionally reset the password."
-  })
+    description: "Update user profile fields and optionally reset the password.",
+  });
 
   const handleCancel = async () => {
     await navigate({
       to: "/users/$id",
-      params: { id: userId }
-    })
-  }
+      params: { id: userId },
+    });
+  };
 
-  const handleSubmit = async (
-    values: Parameters<typeof mapUpdateUserFormValues>[0]
-  ) => {
+  const handleSubmit = async (values: Parameters<typeof mapUpdateUserFormValues>[0]) => {
     if (!user.data) {
-      return
+      return;
     }
 
-    const updatedUser = await userLifecycle.updateUser(
-      userId,
-      mapUpdateUserFormValues(values)
-    )
+    const updatedUser = await userLifecycle.updateUser(userId, mapUpdateUserFormValues(values));
 
     if (updatedUser) {
       await navigate({
         to: "/users/$id",
-        params: { id: userId }
-      })
+        params: { id: userId },
+      });
     }
-  }
+  };
 
   if (user.isPending || roles.isPending) {
     return (
@@ -71,7 +67,7 @@ export function EditUserPage({ userId }: EditUserPageProps) {
           <Skeleton className="h-20 w-full" />
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (!user.data || !roles.data) {
@@ -79,9 +75,7 @@ export function EditUserPage({ userId }: EditUserPageProps) {
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader>
           <CardTitle>Edit user</CardTitle>
-          <CardDescription>
-            The selected user could not be loaded for editing.
-          </CardDescription>
+          <CardDescription>The selected user could not be loaded for editing.</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
@@ -95,7 +89,7 @@ export function EditUserPage({ userId }: EditUserPageProps) {
           </Alert>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -108,10 +102,10 @@ export function EditUserPage({ userId }: EditUserPageProps) {
         email: user.data.email,
         enabled: user.data.enabled,
         password: "",
-        roleIds: user.data.roleIds
+        roleIds: user.data.roleIds,
       }}
       onSubmit={handleSubmit}
       onCancel={handleCancel}
     />
-  )
+  );
 }

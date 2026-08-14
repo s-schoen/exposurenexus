@@ -1,49 +1,36 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { FindingStatus } from "@exposurenexus/types/model/finding"
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
-import type { ReactElement, ReactNode, RefObject } from "react"
-import type { Finding } from "@exposurenexus/types/model/finding"
-import type { FindingContextMenu } from "@/components/finding-table/context-menu.tsx"
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { FindingContextMenu } from "@/components/finding-table/context-menu.tsx";
+import type { Finding } from "@exposurenexus/types/model/finding";
+import type { ReactElement, ReactNode, RefObject } from "react";
 
 const mocks = vi.hoisted(() => ({
-  bulkUpdateFindingField: vi.fn()
-}))
+  bulkUpdateFindingField: vi.fn(),
+}));
 
 vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
   useFindingLifecycle: () => ({
-    bulkUpdateFindingField: mocks.bulkUpdateFindingField
-  })
-}))
+    bulkUpdateFindingField: mocks.bulkUpdateFindingField,
+  }),
+}));
 
 vi.mock("@/components/ui/context-menu", () => ({
   ContextMenu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  ContextMenuContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  ContextMenuItem: ({
-    children,
-    onClick
-  }: {
-    children: ReactNode
-    onClick?: () => void
-  }) => (
+  ContextMenuContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ContextMenuItem: ({ children, onClick }: { children: ReactNode; onClick?: () => void }) => (
     <button type="button" onClick={onClick}>
       {children}
     </button>
   ),
   ContextMenuSeparator: () => <hr />,
-  ContextMenuSub: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  ContextMenuSubContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  ContextMenuSubTrigger: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  ContextMenuTrigger: ({ render: trigger }: { render: ReactElement }) => trigger
-}))
+  ContextMenuSub: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ContextMenuSubContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ContextMenuSubTrigger: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  ContextMenuTrigger: ({ render: trigger }: { render: ReactElement }) => trigger,
+}));
 
 const finding: Finding = {
   id: "2713d833-eb13-4517-ac7c-7761545ed42a",
@@ -73,83 +60,79 @@ const finding: Finding = {
     createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
     updatedBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    updatedAt: new Date("2026-01-01T00:00:00.000Z")
-  }
-}
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+  },
+};
 
-type FindingContextMenuComponent = typeof FindingContextMenu
+type FindingContextMenuComponent = typeof FindingContextMenu;
 
 function renderContextMenu(
   Component: FindingContextMenuComponent,
   findings: Array<Finding>,
-  onDelete = vi.fn()
+  onDelete = vi.fn(),
 ) {
-  const findingsRef = { current: findings } as RefObject<Array<Finding>>
+  const findingsRef = { current: findings } as RefObject<Array<Finding>>;
 
   return {
     onDelete,
     ...render(
       <Component findingsRef={findingsRef} onDelete={onDelete}>
         <button type="button">Selected row</button>
-      </Component>
-    )
-  }
+      </Component>,
+    ),
+  };
 }
 
 describe("FindingContextMenu", () => {
   beforeEach(() => {
-    mocks.bulkUpdateFindingField.mockReset()
-  })
+    mocks.bulkUpdateFindingField.mockReset();
+  });
 
   afterEach(() => {
-    cleanup()
-  })
+    cleanup();
+  });
 
   it("renders selected count and all status/severity actions", async () => {
-    const { FindingContextMenu } = await import(
-      "@/components/finding-table/context-menu.tsx"
-    )
+    const { FindingContextMenu } = await import("@/components/finding-table/context-menu.tsx");
 
-    renderContextMenu(FindingContextMenu, [finding])
+    renderContextMenu(FindingContextMenu, [finding]);
 
-    expect(screen.getByText("1 finding selected")).toBeTruthy()
-    expect(screen.getByText("Set Status")).toBeTruthy()
-    expect(screen.getByText("Set Severity")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Confirmed" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Critical" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Delete" })).toBeTruthy()
-  })
+    expect(screen.getByText("1 finding selected")).toBeTruthy();
+    expect(screen.getByText("Set Status")).toBeTruthy();
+    expect(screen.getByText("Set Severity")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Confirmed" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Critical" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Delete" })).toBeTruthy();
+  });
 
   it("updates selected findings and deletes from menu actions", async () => {
-    const { FindingContextMenu } = await import(
-      "@/components/finding-table/context-menu.tsx"
-    )
+    const { FindingContextMenu } = await import("@/components/finding-table/context-menu.tsx");
     const secondFinding = {
       ...finding,
       id: "73e8f746-a620-4996-909b-60b99f52e9a2",
-      status: FindingStatus.Confirmed
-    }
-    const selectedFindings = [finding, secondFinding]
-    const { onDelete } = renderContextMenu(FindingContextMenu, selectedFindings)
+      status: FindingStatus.Confirmed,
+    };
+    const selectedFindings = [finding, secondFinding];
+    const { onDelete } = renderContextMenu(FindingContextMenu, selectedFindings);
 
-    expect(screen.getByText("2 findings selected")).toBeTruthy()
+    expect(screen.getByText("2 findings selected")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Mitigated" }))
-    fireEvent.click(screen.getByRole("button", { name: "Critical" }))
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }))
+    fireEvent.click(screen.getByRole("button", { name: "Mitigated" }));
+    fireEvent.click(screen.getByRole("button", { name: "Critical" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 
     await waitFor(() => {
       expect(mocks.bulkUpdateFindingField).toHaveBeenCalledWith(
         selectedFindings,
         "status",
-        FindingStatus.Mitigated
-      )
+        FindingStatus.Mitigated,
+      );
       expect(mocks.bulkUpdateFindingField).toHaveBeenCalledWith(
         selectedFindings,
         "severity",
-        VulnerabilitySeverity.Critical
-      )
-    })
-    expect(onDelete).toHaveBeenCalledTimes(1)
-  })
-})
+        VulnerabilitySeverity.Critical,
+      );
+    });
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+});

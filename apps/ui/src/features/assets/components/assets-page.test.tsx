@@ -1,34 +1,31 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
-import { useState } from "react"
-import type { ReactNode } from "react"
-import type {
-  AssetWithCustomFields,
-  CreateAsset
-} from "@exposurenexus/types/model/asset"
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
-import type { UserProfile } from "@exposurenexus/types/model/user"
-import { AssetsPage } from "@/features/assets/components/assets-page.tsx"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useState } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { AssetsPage } from "@/features/assets/components/assets-page.tsx";
+
+import type { AssetWithCustomFields, CreateAsset } from "@exposurenexus/types/model/asset";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { ReactNode } from "react";
 
 type NavigateCall = {
-  params?: Record<string, unknown>
-  replace?: boolean
-  search?: unknown
-  to?: string
-}
+  params?: Record<string, unknown>;
+  replace?: boolean;
+  search?: unknown;
+  to?: string;
+};
 
-type SearchUpdater = (
-  previous: Record<string, unknown>
-) => Record<string, unknown>
+type SearchUpdater = (previous: Record<string, unknown>) => Record<string, unknown>;
 
 interface RouteState {
-  search: Record<string, unknown>
-  selected?: string
+  search: Record<string, unknown>;
+  selected?: string;
 }
 
 interface QueryOptionsLike {
-  queryKey: ReadonlyArray<unknown>
+  queryKey: ReadonlyArray<unknown>;
 }
 
 const mocks = vi.hoisted(() => {
@@ -39,30 +36,30 @@ const mocks = vi.hoisted(() => {
       displayName: "Robin Owner",
       email: "robin@example.com",
       enabled: true,
-      roleIds: []
-    }
-  ]
+      roleIds: [],
+    },
+  ];
   const assets: Array<AssetWithCustomFields> = [
     {
       id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
       name: "api-01",
       type: "host" as AssetWithCustomFields["type"],
       ownerId: users[0].id,
-      customFields: []
+      customFields: [],
     },
     {
       id: "0bb9b410-7763-4e7a-9942-b752367fd63d",
       name: "worker-02",
       type: "software" as AssetWithCustomFields["type"],
       ownerId: null,
-      customFields: []
-    }
-  ]
+      customFields: [],
+    },
+  ];
   const createdAsset: CreateAsset = {
     name: "queue-01",
     type: "host" as CreateAsset["type"],
-    ownerId: null
-  }
+    ownerId: null,
+  };
 
   return {
     assetDialogCall: vi.fn(),
@@ -74,17 +71,17 @@ const mocks = vi.hoisted(() => {
     navigate: vi.fn(),
     createdAsset,
     users,
-    usePageMeta: vi.fn()
-  }
-})
+    usePageMeta: vi.fn(),
+  };
+});
 
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mocks.navigate
-}))
+  useNavigate: () => mocks.navigate,
+}));
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: QueryOptionsLike) => {
-    const queryKey = options.queryKey.join("/")
+    const queryKey = options.queryKey.join("/");
 
     if (queryKey === "assets/with-custom-fields") {
       return {
@@ -92,8 +89,8 @@ vi.mock("@tanstack/react-query", () => ({
         isFetching: false,
         isPending: false,
         isSuccess: true,
-        refetch: vi.fn()
-      }
+        refetch: vi.fn(),
+      };
     }
 
     if (queryKey === "asset-custom-fields") {
@@ -102,8 +99,8 @@ vi.mock("@tanstack/react-query", () => ({
         isFetching: false,
         isPending: false,
         isSuccess: true,
-        refetch: vi.fn()
-      }
+        refetch: vi.fn(),
+      };
     }
 
     if (queryKey === "users") {
@@ -112,54 +109,54 @@ vi.mock("@tanstack/react-query", () => ({
         isFetching: false,
         isPending: false,
         isSuccess: true,
-        refetch: vi.fn()
-      }
+        refetch: vi.fn(),
+      };
     }
 
-    throw new Error(`Unhandled query key ${queryKey}`)
-  }
-}))
+    throw new Error(`Unhandled query key ${queryKey}`);
+  },
+}));
 
 vi.mock("@/api/asset.ts", () => ({
   createListAssetsWithCustomFieldsQueryOptions: () => ({
-    queryKey: ["assets", "with-custom-fields"]
-  })
-}))
+    queryKey: ["assets", "with-custom-fields"],
+  }),
+}));
 
 vi.mock("@/api/asset-custom-field.ts", () => ({
   createListAssetCustomFieldDefinitionsQueryOptions: () => ({
-    queryKey: ["asset-custom-fields"]
-  })
-}))
+    queryKey: ["asset-custom-fields"],
+  }),
+}));
 
 vi.mock("@/api/user.ts", () => ({
   createListUsersQueryOptions: () => ({
-    queryKey: ["users"]
-  })
-}))
+    queryKey: ["users"],
+  }),
+}));
 
 vi.mock("@/hooks/use-asset-lifecycle.ts", () => ({
   useAssetLifecycle: () => ({
     createAsset: mocks.createAsset,
-    deleteAssets: mocks.deleteAssets
-  })
-}))
+    deleteAssets: mocks.deleteAssets,
+  }),
+}));
 
 vi.mock("@/components/asset-dialog.tsx", () => ({
   AssetDialog: {
-    call: mocks.assetDialogCall
-  }
-}))
+    call: mocks.assetDialogCall,
+  },
+}));
 
 vi.mock("@/components/confirm-dialog.tsx", () => ({
   ConfirmDialog: {
-    call: mocks.confirmDelete
-  }
-}))
+    call: mocks.confirmDelete,
+  },
+}));
 
 vi.mock("@/context/page.tsx", () => ({
-  usePageMeta: mocks.usePageMeta
-}))
+  usePageMeta: mocks.usePageMeta,
+}));
 
 vi.mock("@/components/detail-preview-dialog.tsx", () => ({
   DetailPreviewDialog: ({
@@ -168,14 +165,14 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
     fullPageHref,
     onClose,
     selectedId,
-    title
+    title,
   }: {
-    children: ReactNode
-    description: string
-    fullPageHref?: string
-    onClose: () => void
-    selectedId?: string
-    title: string
+    children: ReactNode;
+    description: string;
+    fullPageHref?: string;
+    onClose: () => void;
+    selectedId?: string;
+    title: string;
   }) =>
     selectedId ? (
       <section aria-label={title} role="dialog">
@@ -186,14 +183,12 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
         </button>
         {children}
       </section>
-    ) : null
-}))
+    ) : null,
+}));
 
 vi.mock("@/components/asset-detail-content.tsx", () => ({
-  AssetDetailContent: ({ assetId }: { assetId: string }) => (
-    <div>Asset detail for {assetId}</div>
-  )
-}))
+  AssetDetailContent: ({ assetId }: { assetId: string }) => <div>Asset detail for {assetId}</div>,
+}));
 
 class ResizeObserverMock {
   observe() {}
@@ -203,160 +198,150 @@ class ResizeObserverMock {
   disconnect() {}
 }
 
-globalThis.ResizeObserver = ResizeObserverMock
-HTMLElement.prototype.scrollIntoView = vi.fn()
+globalThis.ResizeObserver = ResizeObserverMock;
+HTMLElement.prototype.scrollIntoView = vi.fn();
 
 function StatefulAssetsRoute({
   initialSearch = {},
-  initialSelected
+  initialSelected,
 }: {
-  initialSearch?: Record<string, unknown>
-  initialSelected?: string
+  initialSearch?: Record<string, unknown>;
+  initialSelected?: string;
 }) {
   const [routeState, setRouteState] = useState<RouteState>({
     search: initialSearch,
-    selected: initialSelected
-  })
+    selected: initialSelected,
+  });
 
   mocks.navigate.mockImplementation((options: NavigateCall) => {
     if (options.to !== "/assets" || typeof options.search !== "function") {
-      return
+      return;
     }
 
-    const updateSearch = options.search as SearchUpdater
+    const updateSearch = options.search as SearchUpdater;
 
     setRouteState((current) => {
       const nextSearch = updateSearch({
         ...current.search,
-        selected: current.selected
-      })
+        selected: current.selected,
+      });
 
       return {
         search: nextSearch,
-        selected:
-          typeof nextSearch.selected === "string" ? nextSearch.selected : undefined
-      }
-    })
-  })
+        selected: typeof nextSearch.selected === "string" ? nextSearch.selected : undefined,
+      };
+    });
+  });
 
-  return (
-    <AssetsPage
-      search={routeState.search}
-      selected={routeState.selected}
-    />
-  )
+  return <AssetsPage search={routeState.search} selected={routeState.selected} />;
 }
 
 function renderAssetsRoute({
   initialSearch,
-  initialSelected
+  initialSelected,
 }: {
-  initialSearch?: Record<string, unknown>
-  initialSelected?: string
+  initialSearch?: Record<string, unknown>;
+  initialSelected?: string;
 } = {}) {
   return render(
-    <StatefulAssetsRoute
-      initialSearch={initialSearch}
-      initialSelected={initialSelected}
-    />
-  )
+    <StatefulAssetsRoute initialSearch={initialSearch} initialSelected={initialSelected} />,
+  );
 }
 
 describe("AssetsPage", () => {
   beforeEach(() => {
-    mocks.assetDialogCall.mockReset()
-    mocks.assetDialogCall.mockResolvedValue(mocks.createdAsset)
-    mocks.confirmDelete.mockReset()
-    mocks.confirmDelete.mockResolvedValue(true)
-    mocks.createAsset.mockReset()
-    mocks.deleteAssets.mockReset()
-    mocks.deleteAssets.mockResolvedValue({ successful: mocks.assets, failed: [] })
-    mocks.navigate.mockReset()
-    mocks.usePageMeta.mockReset()
-  })
+    mocks.assetDialogCall.mockReset();
+    mocks.assetDialogCall.mockResolvedValue(mocks.createdAsset);
+    mocks.confirmDelete.mockReset();
+    mocks.confirmDelete.mockResolvedValue(true);
+    mocks.createAsset.mockReset();
+    mocks.deleteAssets.mockReset();
+    mocks.deleteAssets.mockResolvedValue({ successful: mocks.assets, failed: [] });
+    mocks.navigate.mockReset();
+    mocks.usePageMeta.mockReset();
+  });
 
   afterEach(() => {
-    cleanup()
-  })
+    cleanup();
+  });
 
   it("opens and closes the selected asset preview", async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
-    renderAssetsRoute()
+    renderAssetsRoute();
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Assets",
-      description: "View systems in scope."
-    })
+      description: "View systems in scope.",
+    });
 
-    const assetRow = screen.getByText("api-01").closest("tr")
+    const assetRow = screen.getByText("api-01").closest("tr");
 
     if (!assetRow) {
-      throw new Error("Expected asset row")
+      throw new Error("Expected asset row");
     }
 
-    fireEvent.click(assetRow)
+    fireEvent.click(assetRow);
 
-    expect(
-      await screen.findByText(`Asset detail for ${mocks.assets[0].id}`)
-    ).toBeVisible()
-    expect(
-      screen.getByRole("link", { name: /open full page/i })
-    ).toHaveAttribute("href", `/assets/${mocks.assets[0].id}`)
+    expect(await screen.findByText(`Asset detail for ${mocks.assets[0].id}`)).toBeVisible();
+    expect(screen.getByRole("link", { name: /open full page/i })).toHaveAttribute(
+      "href",
+      `/assets/${mocks.assets[0].id}`,
+    );
 
-    await user.click(screen.getByRole("button", { name: /close/i }))
+    await user.click(screen.getByRole("button", { name: /close/i }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
-      expect(screen.queryByTestId("data-table-active-row")).not.toBeInTheDocument()
-    })
-  })
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("data-table-active-row")).not.toBeInTheDocument();
+    });
+  });
 
   it("updates visible asset results from route-owned search state", async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
-    renderAssetsRoute()
+    renderAssetsRoute();
     await user.type(
       screen.getByRole("textbox", { name: /search across visible columns/i }),
-      "worker"
-    )
+      "worker",
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
         "data-filtered-rows",
-        "1"
-      )
-      expect(screen.getByText("worker-02")).toBeVisible()
-      expect(screen.queryByText("api-01")).not.toBeInTheDocument()
-    })
-  })
+        "1",
+      );
+      expect(screen.getByText("worker-02")).toBeVisible();
+      expect(screen.queryByText("api-01")).not.toBeInTheDocument();
+    });
+  });
 
   it("creates and deletes assets through the table actions", async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
-    renderAssetsRoute()
+    renderAssetsRoute();
 
-    await user.click(screen.getByRole("button", { name: /new asset/i }))
+    await user.click(screen.getByRole("button", { name: /new asset/i }));
 
     await waitFor(() => {
-      expect(mocks.assetDialogCall).toHaveBeenCalledWith({})
-      expect(mocks.createAsset).toHaveBeenCalledWith(mocks.createdAsset)
-    })
+      expect(mocks.assetDialogCall).toHaveBeenCalledWith({});
+      expect(mocks.createAsset).toHaveBeenCalledWith(mocks.createdAsset);
+    });
 
-    await user.click(screen.getByLabelText("Select all"))
+    await user.click(screen.getByLabelText("Select all"));
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /^delete$/i })).toBeEnabled()
-    })
-    await user.click(screen.getByRole("button", { name: /^delete$/i }))
+      expect(screen.getByRole("button", { name: /^delete$/i })).toBeEnabled();
+    });
+    await user.click(screen.getByRole("button", { name: /^delete$/i }));
 
     await waitFor(() => {
       expect(mocks.confirmDelete).toHaveBeenCalledWith({
         title: "Delete Assets",
         description: "This action cannot be undone",
         message: "Are you sure you want to delete 2 asset(s)?",
-        confirmVariant: "destructive"
-      })
-      expect(mocks.deleteAssets).toHaveBeenCalledWith(mocks.assets)
-    })
-  })
-})
+        confirmVariant: "destructive",
+      });
+      expect(mocks.deleteAssets).toHaveBeenCalledWith(mocks.assets);
+    });
+  });
+});

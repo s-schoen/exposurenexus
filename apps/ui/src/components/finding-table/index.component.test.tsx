@@ -1,15 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor
-} from "@testing-library/react"
-import { FindingStatus } from "@exposurenexus/types/model/finding"
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
-import type { ReactElement, ReactNode, RefObject } from "react"
-import type { Finding } from "@exposurenexus/types/model/finding"
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { Finding } from "@exposurenexus/types/model/finding";
+import type { ReactElement, ReactNode, RefObject } from "react";
 
 const mocks = vi.hoisted(() => {
   const finding: Finding = {
@@ -40,9 +35,9 @@ const mocks = vi.hoisted(() => {
       createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
       updatedBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-01T00:00:00.000Z")
-    }
-  }
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    },
+  };
 
   return {
     bulkUpdateFindingField: vi.fn(),
@@ -50,13 +45,13 @@ const mocks = vi.hoisted(() => {
     dataTableProps: undefined as undefined | Record<string, unknown>,
     deleteFindings: vi.fn(),
     finding,
-    navigate: vi.fn()
-  }
-})
+    navigate: vi.fn(),
+  };
+});
 
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mocks.navigate
-}))
+  useNavigate: () => mocks.navigate,
+}));
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: { queryKey: Array<string> }) => {
@@ -67,12 +62,12 @@ vi.mock("@tanstack/react-query", () => ({
             id: mocks.finding.assetId,
             name: "api-01",
             type: "host",
-            ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21"
-          }
+            ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+          },
         ],
         isPending: false,
-        isSuccess: true
-      }
+        isSuccess: true,
+      };
     }
 
     if (options.queryKey.join("/") === "users") {
@@ -84,7 +79,7 @@ vi.mock("@tanstack/react-query", () => ({
             displayName: "Robin Owner",
             email: "robin@example.com",
             enabled: false,
-            roleIds: []
+            roleIds: [],
           },
           {
             id: "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206",
@@ -92,83 +87,80 @@ vi.mock("@tanstack/react-query", () => ({
             displayName: "Alex Assignee",
             email: "alex@example.com",
             enabled: true,
-            roleIds: []
-          }
+            roleIds: [],
+          },
         ],
         isPending: false,
-        isSuccess: true
-      }
+        isSuccess: true,
+      };
     }
 
     return {
       data: [mocks.finding],
       isPending: false,
-      isSuccess: true
-    }
-  }
-}))
+      isSuccess: true,
+    };
+  },
+}));
 
 vi.mock("@/api/asset.ts", () => ({
   createListAssetsQueryOptions: () => ({
-    queryKey: ["assets"]
-  })
-}))
+    queryKey: ["assets"],
+  }),
+}));
 
 vi.mock("@/api/finding.ts", () => ({
   createListFindingsQueryOptions: () => ({
-    queryKey: ["findings"]
-  })
-}))
+    queryKey: ["findings"],
+  }),
+}));
 
 vi.mock("@/api/user.ts", () => ({
   createListUsersQueryOptions: () => ({
-    queryKey: ["users"]
-  })
-}))
+    queryKey: ["users"],
+  }),
+}));
 
 vi.mock("@/components/user-label.tsx", () => ({
-  createUserProfileById: (
-    users: Array<{ displayName: string; id: string }> | undefined
-  ) => new Map((users ?? []).map((user) => [user.id, user])),
+  createUserProfileById: (users: Array<{ displayName: string; id: string }> | undefined) =>
+    new Map((users ?? []).map((user) => [user.id, user])),
   formatUserProfileReference: (
     userId: string | null | undefined,
     usersById: Map<string, { displayName: string }>,
     {
       emptyLabel = "No Owner",
-      unknownLabel = "Unknown Owner"
+      unknownLabel = "Unknown Owner",
     }: {
-      emptyLabel?: string
-      unknownLabel?: string
-    } = {}
-  ) =>
-    !userId ? emptyLabel : (usersById.get(userId)?.displayName ?? unknownLabel),
-  getUserProfileDisplayName: (user: { displayName: string }) =>
-    user.displayName,
+      emptyLabel?: string;
+      unknownLabel?: string;
+    } = {},
+  ) => (!userId ? emptyLabel : (usersById.get(userId)?.displayName ?? unknownLabel)),
+  getUserProfileDisplayName: (user: { displayName: string }) => user.displayName,
   UserLabel: ({ user }: { user?: { displayName: string } | null }) => (
     <span>{user?.displayName ?? "No Owner"}</span>
-  )
-}))
+  ),
+}));
 
 vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
   useFindingLifecycle: () => ({
     bulkUpdateFindingField: mocks.bulkUpdateFindingField,
-    deleteFindings: mocks.deleteFindings
-  })
-}))
+    deleteFindings: mocks.deleteFindings,
+  }),
+}));
 
 vi.mock("@/components/confirm-dialog.tsx", () => ({
   ConfirmDialog: {
-    call: mocks.confirmDialogCall
-  }
-}))
+    call: mocks.confirmDialogCall,
+  },
+}));
 
 vi.mock("@/components/finding-table/context-menu.tsx", () => ({
   FindingContextMenu: ({
     children,
-    onDelete
+    onDelete,
   }: {
-    children: ReactElement
-    onDelete: () => void
+    children: ReactElement;
+    onDelete: () => void;
   }) => (
     <div>
       {children}
@@ -176,67 +168,42 @@ vi.mock("@/components/finding-table/context-menu.tsx", () => ({
         context delete
       </button>
     </div>
-  )
-}))
+  ),
+}));
 
 vi.mock("@/components/ui/dropdown-menu.tsx", () => ({
-  DropdownMenu: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DropdownMenuContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DropdownMenuItem: ({
-    children,
-    onClick
-  }: {
-    children: ReactNode
-    onClick?: () => void
-  }) => (
+  DropdownMenu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DropdownMenuContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DropdownMenuItem: ({ children, onClick }: { children: ReactNode; onClick?: () => void }) => (
     <button type="button" onClick={onClick}>
       {children}
     </button>
   ),
   DropdownMenuSeparator: () => <hr />,
-  DropdownMenuTrigger: ({ render: trigger }: { render: ReactElement }) =>
-    trigger
-}))
+  DropdownMenuTrigger: ({ render: trigger }: { render: ReactElement }) => trigger,
+}));
 
 vi.mock("@/components/data-table/data-table.tsx", () => ({
   DataTable: (props: Record<string, unknown>) => {
-    mocks.dataTableProps = props
+    mocks.dataTableProps = props;
 
     const contextMenu = props.contextMenu as
-      | ((
-          rowsRef: RefObject<Array<Finding>>,
-          children: ReactElement,
-          key: string
-        ) => ReactNode)
-      | undefined
-    const isRowActive = props.isRowActive as
-      | ((finding: Finding) => boolean)
-      | undefined
-    const onFilterStateChange = props.onFilterStateChange as
-      | ((state: unknown) => void)
-      | undefined
-    const onRowClick = props.onRowClick as
-      | ((finding: Finding) => void)
-      | undefined
+      | ((rowsRef: RefObject<Array<Finding>>, children: ReactElement, key: string) => ReactNode)
+      | undefined;
+    const isRowActive = props.isRowActive as ((finding: Finding) => boolean) | undefined;
+    const onFilterStateChange = props.onFilterStateChange as ((state: unknown) => void) | undefined;
+    const onRowClick = props.onRowClick as ((finding: Finding) => void) | undefined;
     const onRowDelete = props.onRowDelete as
       | ((findings: Array<Finding>) => Promise<void>)
-      | undefined
-    const onRowDoubleClick = props.onRowDoubleClick as
-      | ((finding: Finding) => void)
-      | undefined
+      | undefined;
+    const onRowDoubleClick = props.onRowDoubleClick as ((finding: Finding) => void) | undefined;
     const toolbarControls = props.toolbarControls as
       | ((selectedRows: Array<Finding>) => ReactNode)
-      | undefined
+      | undefined;
 
     return (
       <div>
-        <div data-testid="active-row">
-          {String(isRowActive?.(mocks.finding))}
-        </div>
+        <div data-testid="active-row">{String(isRowActive?.(mocks.finding))}</div>
         <div data-testid="toolbar">{toolbarControls?.([mocks.finding])}</div>
         <button type="button" onClick={() => onRowClick?.(mocks.finding)}>
           select finding
@@ -244,10 +211,7 @@ vi.mock("@/components/data-table/data-table.tsx", () => ({
         <button type="button" onClick={() => onRowDoubleClick?.(mocks.finding)}>
           open finding
         </button>
-        <button
-          type="button"
-          onClick={() => void onRowDelete?.([mocks.finding])}
-        >
+        <button type="button" onClick={() => void onRowDelete?.([mocks.finding])}>
           delete finding
         </button>
         <button
@@ -258,8 +222,8 @@ vi.mock("@/components/data-table/data-table.tsx", () => ({
               selectFilters: {
                 assignee: ["1fab3f6c-4b82-4a52-a5d0-59d9c33f8206"],
                 severity: ["critical"],
-                status: ["confirmed"]
-              }
+                status: ["confirmed"],
+              },
             })
           }
         >
@@ -269,208 +233,200 @@ vi.mock("@/components/data-table/data-table.tsx", () => ({
           {contextMenu?.(
             { current: [mocks.finding] },
             <button type="button">context child</button>,
-            "finding-context"
+            "finding-context",
           )}
         </div>
       </div>
-    )
-  }
-}))
+    );
+  },
+}));
 
 async function flushPromises() {
-  await new Promise((resolve) => setTimeout(resolve, 0))
+  await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 describe("FindingTable workflow wiring", () => {
   beforeEach(() => {
-    mocks.bulkUpdateFindingField.mockReset()
-    mocks.confirmDialogCall.mockReset()
-    mocks.dataTableProps = undefined
-    mocks.deleteFindings.mockReset()
-    mocks.navigate.mockReset()
-  })
+    mocks.bulkUpdateFindingField.mockReset();
+    mocks.confirmDialogCall.mockReset();
+    mocks.dataTableProps = undefined;
+    mocks.deleteFindings.mockReset();
+    mocks.navigate.mockReset();
+  });
 
   afterEach(() => {
-    cleanup()
-  })
+    cleanup();
+  });
 
   it("passes query-state filters and row handlers to DataTable", async () => {
-    const { FindingTable } =
-      await import("@/components/finding-table/index.tsx")
-    const onSelectFinding = vi.fn()
+    const { FindingTable } = await import("@/components/finding-table/index.tsx");
+    const onSelectFinding = vi.fn();
     const filterState = {
       globalFilter: "admin",
       selectFilters: {
         assignee: ["__unassigned_assignee__"],
         severity: ["high"],
-        status: ["active"]
-      }
-    }
+        status: ["active"],
+      },
+    };
 
     render(
       <FindingTable
         filterState={filterState}
         selectedFindingId={mocks.finding.id}
         onSelectFinding={onSelectFinding}
-      />
-    )
+      />,
+    );
 
-    expect(screen.getByTestId("active-row").textContent).toBe("true")
-    expect(mocks.dataTableProps?.filterState).toBe(filterState)
+    expect(screen.getByTestId("active-row").textContent).toBe("true");
+    expect(mocks.dataTableProps?.filterState).toBe(filterState);
     expect(mocks.dataTableProps?.initialSorting).toEqual([
       { id: "severity", desc: true },
-      { id: "lastSeen", desc: true }
-    ])
+      { id: "lastSeen", desc: true },
+    ]);
     expect(
-      (mocks.dataTableProps?.columns as Array<{ id?: string }>).some(
-        (column) => column.id === "responsibleOwner"
-      )
-    ).toBe(true)
+      (mocks.dataTableProps?.columns as Array<{ id?: string }> | undefined)?.some(
+        (column) => column.id === "responsibleOwner",
+      ),
+    ).toBe(true);
     expect(
-      (mocks.dataTableProps?.columns as Array<{ id?: string }>).some(
-        (column) => column.id === "assignee"
-      )
-    ).toBe(true)
+      (mocks.dataTableProps?.columns as Array<{ id?: string }> | undefined)?.some(
+        (column) => column.id === "assignee",
+      ),
+    ).toBe(true);
     expect(mocks.dataTableProps?.groupingOptions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: "responsibleOwner",
-          label: "Asset Owner"
+          label: "Asset Owner",
         }),
         expect.objectContaining({
           id: "assignee",
-          label: "Assignee"
-        })
-      ])
-    )
+          label: "Assignee",
+        }),
+      ]),
+    );
     const assigneeGroupingOption = (
-      mocks.dataTableProps?.groupingOptions as Array<{
-        id: string
-        formatValue?: (value: unknown) => string
-      }>
-    ).find((option) => option.id === "assignee")
-    expect(
-      assigneeGroupingOption?.formatValue?.("__unassigned_assignee__")
-    ).toBe("Unassigned")
-    expect(
-      assigneeGroupingOption?.formatValue?.(
-        "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206"
-      )
-    ).toBe("Alex Assignee")
-    expect(
-      assigneeGroupingOption?.formatValue?.(
-        "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12"
-      )
-    ).toBe("Unknown Assignee")
+      mocks.dataTableProps?.groupingOptions as
+        | Array<{
+            id: string;
+            formatValue?: (value: unknown) => string;
+          }>
+        | undefined
+    )?.find((option) => option.id === "assignee");
+    expect(assigneeGroupingOption?.formatValue?.("__unassigned_assignee__")).toBe("Unassigned");
+    expect(assigneeGroupingOption?.formatValue?.("1fab3f6c-4b82-4a52-a5d0-59d9c33f8206")).toBe(
+      "Alex Assignee",
+    );
+    expect(assigneeGroupingOption?.formatValue?.("6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12")).toBe(
+      "Unknown Assignee",
+    );
     const assigneeColumn = (
-      mocks.dataTableProps?.columns as Array<{
-        id?: string
-        meta?: { options?: Array<{ label: string; value: string }> }
-      }>
-    ).find((column) => column.id === "assignee")
+      mocks.dataTableProps?.columns as
+        | Array<{
+            id?: string;
+            meta?: { options?: Array<{ label: string; value: string }> };
+          }>
+        | undefined
+    )?.find((column) => column.id === "assignee");
     expect(assigneeColumn?.meta?.options).toEqual(
       expect.arrayContaining([
         {
           label: "Unassigned",
-          value: "__unassigned_assignee__"
+          value: "__unassigned_assignee__",
         },
         {
           label: "Alex Assignee",
-          value: "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206"
-        }
-      ])
-    )
+          value: "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206",
+        },
+      ]),
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: /select finding/i }))
-    expect(onSelectFinding).toHaveBeenCalledWith(mocks.finding)
+    fireEvent.click(screen.getByRole("button", { name: /select finding/i }));
+    expect(onSelectFinding).toHaveBeenCalledWith(mocks.finding);
 
-    fireEvent.click(screen.getByRole("button", { name: /open finding/i }))
+    fireEvent.click(screen.getByRole("button", { name: /open finding/i }));
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith({
         to: "/findings/$id",
         params: {
-          id: mocks.finding.id
-        }
-      })
-    })
-  })
+          id: mocks.finding.id,
+        },
+      });
+    });
+  });
 
   it("delegates filter changes to the route owner", async () => {
-    const { FindingTable } =
-      await import("@/components/finding-table/index.tsx")
-    const onFilterStateChange = vi.fn()
+    const { FindingTable } = await import("@/components/finding-table/index.tsx");
+    const onFilterStateChange = vi.fn();
 
-    render(<FindingTable onFilterStateChange={onFilterStateChange} />)
-    fireEvent.click(screen.getByRole("button", { name: /change filters/i }))
+    render(<FindingTable onFilterStateChange={onFilterStateChange} />);
+    fireEvent.click(screen.getByRole("button", { name: /change filters/i }));
 
     expect(onFilterStateChange).toHaveBeenCalledWith({
       globalFilter: "edge",
       selectFilters: {
         assignee: ["1fab3f6c-4b82-4a52-a5d0-59d9c33f8206"],
         severity: ["critical"],
-        status: ["confirmed"]
-      }
-    })
-  })
+        status: ["confirmed"],
+      },
+    });
+  });
 
   it("navigates to create finding from the toolbar", async () => {
-    const { FindingTable } =
-      await import("@/components/finding-table/index.tsx")
+    const { FindingTable } = await import("@/components/finding-table/index.tsx");
 
-    render(<FindingTable />)
-    fireEvent.click(screen.getByRole("button", { name: /new finding/i }))
+    render(<FindingTable />);
+    fireEvent.click(screen.getByRole("button", { name: /new finding/i }));
 
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith({
-        to: "/findings/new"
-      })
-    })
-  })
+        to: "/findings/new",
+      });
+    });
+  });
 
   it("runs bulk status and severity updates from the toolbar", async () => {
-    const { FindingTable } =
-      await import("@/components/finding-table/index.tsx")
+    const { FindingTable } = await import("@/components/finding-table/index.tsx");
 
-    render(<FindingTable />)
-    fireEvent.click(screen.getByRole("button", { name: /^confirmed$/i }))
-    fireEvent.click(screen.getByRole("button", { name: /^critical$/i }))
+    render(<FindingTable />);
+    fireEvent.click(screen.getByRole("button", { name: /^confirmed$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^critical$/i }));
 
     expect(mocks.bulkUpdateFindingField).toHaveBeenCalledWith(
       [mocks.finding],
       "status",
-      FindingStatus.Confirmed
-    )
+      FindingStatus.Confirmed,
+    );
     expect(mocks.bulkUpdateFindingField).toHaveBeenCalledWith(
       [mocks.finding],
       "severity",
-      VulnerabilitySeverity.Critical
-    )
-  })
+      VulnerabilitySeverity.Critical,
+    );
+  });
 
   it("does not delete findings when confirmation is cancelled", async () => {
-    const { FindingTable } =
-      await import("@/components/finding-table/index.tsx")
-    mocks.confirmDialogCall.mockResolvedValueOnce(false)
+    const { FindingTable } = await import("@/components/finding-table/index.tsx");
+    mocks.confirmDialogCall.mockResolvedValueOnce(false);
 
-    render(<FindingTable />)
-    fireEvent.click(screen.getByRole("button", { name: /delete finding/i }))
-    await flushPromises()
+    render(<FindingTable />);
+    fireEvent.click(screen.getByRole("button", { name: /delete finding/i }));
+    await flushPromises();
 
-    expect(mocks.deleteFindings).not.toHaveBeenCalled()
-  })
+    expect(mocks.deleteFindings).not.toHaveBeenCalled();
+  });
 
   it("deletes findings after confirmation from row and context menu actions", async () => {
-    const { FindingTable } =
-      await import("@/components/finding-table/index.tsx")
-    mocks.confirmDialogCall.mockResolvedValue(true)
+    const { FindingTable } = await import("@/components/finding-table/index.tsx");
+    mocks.confirmDialogCall.mockResolvedValue(true);
 
-    render(<FindingTable />)
-    fireEvent.click(screen.getByRole("button", { name: /delete finding/i }))
-    fireEvent.click(screen.getByRole("button", { name: /context delete/i }))
+    render(<FindingTable />);
+    fireEvent.click(screen.getByRole("button", { name: /delete finding/i }));
+    fireEvent.click(screen.getByRole("button", { name: /context delete/i }));
 
     await waitFor(() => {
-      expect(mocks.deleteFindings).toHaveBeenCalledTimes(2)
-    })
-    expect(mocks.deleteFindings).toHaveBeenCalledWith([mocks.finding])
-  })
-})
+      expect(mocks.deleteFindings).toHaveBeenCalledTimes(2);
+    });
+    expect(mocks.deleteFindings).toHaveBeenCalledWith([mocks.finding]);
+  });
+});

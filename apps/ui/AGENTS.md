@@ -4,7 +4,8 @@
 
 - Use `pnpm`, NEVER use `npm` or `yarn`
 - `pnpm build` to build code with `tsc` and check for syntax errors
-- `pnpm check` to lint code with `eslint`
+- Run `pnpm lint` from the repository root to lint with Oxlint
+- Run `pnpm format:check` from the repository root to verify Oxfmt formatting
 - `pnpm test` to run the full Vitest suite
 - `pnpm test:unit` to run unit tests only; pass a file path after `--` to target an individual test file
 - `pnpm test:coverage` to run the test suite with coverage output
@@ -85,5 +86,5 @@ Do NOT commit any changes to git unless you are explicitly asked.
   component through its real public API instead of brittle DOM-structure assertions.
 - If a component needs browser APIs that jsdom does not provide, add the smallest possible test-local polyfill in the
   test file.
-- Validate new component work with `pnpm check` and `pnpm test`. Use `pnpm test:coverage` when you need a coverage
+- Validate new component work with root `pnpm lint` and `pnpm test`. Use `pnpm test:coverage` when you need a coverage
   report.

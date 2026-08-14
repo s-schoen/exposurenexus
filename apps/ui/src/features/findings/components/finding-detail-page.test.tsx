@@ -1,28 +1,29 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, render, screen } from "@testing-library/react"
-import type { ReactNode } from "react"
-import type { Asset } from "@exposurenexus/types/model/asset"
-import type { Finding } from "@exposurenexus/types/model/finding"
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { Asset } from "@exposurenexus/types/model/asset";
+import type { Finding } from "@exposurenexus/types/model/finding";
+import type { ReactNode } from "react";
 
 interface QueryState<TData> {
-  data?: TData
-  isPending: boolean
-  isSuccess: boolean
+  data?: TData;
+  isPending: boolean;
+  isSuccess: boolean;
 }
 
 interface QueryOptionsLike {
-  queryKey: ReadonlyArray<unknown>
+  queryKey: ReadonlyArray<unknown>;
 }
 
-const findingId = "3703bd68-5d5e-4209-90dc-365bc7030f67"
+const findingId = "3703bd68-5d5e-4209-90dc-365bc7030f67";
 
 const mocks = vi.hoisted(() => {
   const asset: Asset = {
     id: "61303e6e-9aa5-49cc-a863-bc1bd6eb45ac",
     name: "Payment API",
     type: "host" as Asset["type"],
-    ownerId: null
-  }
+    ownerId: null,
+  };
   const finding: Finding = {
     id: "3703bd68-5d5e-4209-90dc-365bc7030f67",
     vulnerabilityId: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
@@ -51,161 +52,151 @@ const mocks = vi.hoisted(() => {
       createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
       updatedBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-02T00:00:00.000Z")
-    }
-  }
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    },
+  };
   const assetQuery: QueryState<Asset> = {
     data: asset,
     isPending: false,
-    isSuccess: true
-  }
+    isSuccess: true,
+  };
   const findingQuery: QueryState<Finding> = {
     data: finding,
     isPending: false,
-    isSuccess: true
-  }
+    isSuccess: true,
+  };
 
   return {
     asset,
     assetQuery,
     finding,
     findingQuery,
-    usePageMeta: vi.fn()
-  }
-})
+    usePageMeta: vi.fn(),
+  };
+});
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({
-    children,
-    className,
-    to
-  }: {
-    children: ReactNode
-    className?: string
-    to: string
-  }) => (
+  Link: ({ children, className, to }: { children: ReactNode; className?: string; to: string }) => (
     <a className={className} href={to}>
       {children}
     </a>
-  )
-}))
+  ),
+}));
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: QueryOptionsLike) => {
     if (options.queryKey[0] === "findings") {
-      return mocks.findingQuery
+      return mocks.findingQuery;
     }
 
     if (options.queryKey[0] === "assets") {
-      return mocks.assetQuery
+      return mocks.assetQuery;
     }
 
-    throw new Error(`Unhandled query key ${String(options.queryKey[0])}`)
-  }
-}))
+    throw new Error(`Unhandled query key ${String(options.queryKey[0])}`);
+  },
+}));
 
 vi.mock("@/api/asset.ts", () => ({
   createAssetByIDQueryOptions: (id: string) => ({
-    queryKey: ["assets", id]
-  })
-}))
+    queryKey: ["assets", id],
+  }),
+}));
 
 vi.mock("@/api/finding.ts", () => ({
   createFindingByIDQueryOptions: (id: string) => ({
-    queryKey: ["findings", id]
-  })
-}))
+    queryKey: ["findings", id],
+  }),
+}));
 
 vi.mock("@/context/page.tsx", () => ({
-  usePageMeta: mocks.usePageMeta
-}))
+  usePageMeta: mocks.usePageMeta,
+}));
 
 vi.mock("@/components/finding-detail-content.tsx", () => ({
   FindingDetailContent: ({
     findingId: renderedFindingId,
-    titleAction
+    titleAction,
   }: {
-    findingId: string
-    titleAction?: ReactNode
+    findingId: string;
+    titleAction?: ReactNode;
   }) => (
     <div>
       {titleAction}
       <div>Finding detail for {renderedFindingId}</div>
     </div>
-  )
-}))
+  ),
+}));
 
 describe("FindingDetailPage", () => {
   beforeEach(() => {
     mocks.assetQuery = {
       data: mocks.asset,
       isPending: false,
-      isSuccess: true
-    }
+      isSuccess: true,
+    };
     mocks.findingQuery = {
       data: mocks.finding,
       isPending: false,
-      isSuccess: true
-    }
-    mocks.usePageMeta.mockReset()
-  })
+      isSuccess: true,
+    };
+    mocks.usePageMeta.mockReset();
+  });
 
   afterEach(() => {
-    cleanup()
-  })
+    cleanup();
+  });
 
   it("uses loaded finding and asset data for page metadata and renders the back link", async () => {
-    const { FindingDetailPage } = await import(
-      "@/features/findings/components/finding-detail-page.tsx"
-    )
+    const { FindingDetailPage } =
+      await import("@/features/findings/components/finding-detail-page.tsx");
 
-    render(<FindingDetailPage findingId={findingId} />)
+    render(<FindingDetailPage findingId={findingId} />);
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Missing MFA enforcement",
-      description: "Confirmed finding on Payment API"
-    })
-    expect(
-      screen.getByRole("link", { name: /back to findings/i })
-    ).toHaveAttribute("href", "/findings")
-    expect(screen.getByText(`Finding detail for ${findingId}`)).toBeVisible()
-  })
+      description: "Confirmed finding on Payment API",
+    });
+    expect(screen.getByRole("link", { name: /back to findings/i })).toHaveAttribute(
+      "href",
+      "/findings",
+    );
+    expect(screen.getByText(`Finding detail for ${findingId}`)).toBeVisible();
+  });
 
   it("uses fallback page metadata before finding data is available", async () => {
-    const { FindingDetailPage } = await import(
-      "@/features/findings/components/finding-detail-page.tsx"
-    )
+    const { FindingDetailPage } =
+      await import("@/features/findings/components/finding-detail-page.tsx");
     mocks.findingQuery = {
       isPending: true,
-      isSuccess: false
-    }
+      isSuccess: false,
+    };
     mocks.assetQuery = {
       isPending: true,
-      isSuccess: false
-    }
+      isSuccess: false,
+    };
 
-    render(<FindingDetailPage findingId={findingId} />)
+    render(<FindingDetailPage findingId={findingId} />);
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Finding",
-      description: "Inspect, update, and triage a specific finding."
-    })
-  })
+      description: "Inspect, update, and triage a specific finding.",
+    });
+  });
 
   it("uses fallback description while the finding asset is loading", async () => {
-    const { FindingDetailPage } = await import(
-      "@/features/findings/components/finding-detail-page.tsx"
-    )
+    const { FindingDetailPage } =
+      await import("@/features/findings/components/finding-detail-page.tsx");
     mocks.assetQuery = {
       isPending: true,
-      isSuccess: false
-    }
+      isSuccess: false,
+    };
 
-    render(<FindingDetailPage findingId={findingId} />)
+    render(<FindingDetailPage findingId={findingId} />);
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Missing MFA enforcement",
-      description: "Inspect, update, and triage a specific finding."
-    })
-  })
-})
+      description: "Inspect, update, and triage a specific finding.",
+    });
+  });
+});

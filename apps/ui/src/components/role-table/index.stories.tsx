@@ -1,32 +1,34 @@
-import { useState } from "react"
-import { expect, fn, userEvent } from "storybook/test"
-import type { UseQueryResult } from "@tanstack/react-query"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import type { Role } from "@exposurenexus/types/model/rbac"
-import type { DataTableFilterState } from "@/components/data-table/types.ts"
-import { ROLE_FIXTURES } from "@/components/role-fixtures.ts"
-import { RoleTable } from "@/components/role-table"
+import { useState } from "react";
+import { expect, fn, userEvent } from "storybook/test";
+
+import { ROLE_FIXTURES } from "@/components/role-fixtures.ts";
+import { RoleTable } from "@/components/role-table";
+
+import type { DataTableFilterState } from "@/components/data-table/types.ts";
+import type { Role } from "@exposurenexus/types/model/rbac";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { UseQueryResult } from "@tanstack/react-query";
 
 type RoleTableStoryArgs = {
-  selectedRoleId?: string
-  onSelectRole?: (role: Role) => void
-  onOpenRole?: (role: Role) => void
-  onCreateRole?: () => void
-  onDeleteRoles?: (roles: Array<Role>) => Promise<void>
-  roles: Array<Role>
-  pending?: boolean
-}
+  selectedRoleId?: string;
+  onSelectRole?: (role: Role) => void;
+  onOpenRole?: (role: Role) => void;
+  onCreateRole?: () => void;
+  onDeleteRoles?: (roles: Array<Role>) => Promise<void>;
+  roles: Array<Role>;
+  pending?: boolean;
+};
 
 function createQueryResult({
   data,
   isFetching,
   isPending,
-  refetch
+  refetch,
 }: {
-  data: Array<Role> | undefined
-  isFetching: boolean
-  isPending: boolean
-  refetch: () => Promise<unknown>
+  data: Array<Role> | undefined;
+  isFetching: boolean;
+  isPending: boolean;
+  refetch: () => Promise<unknown>;
 }): UseQueryResult<Array<Role>, Error> {
   return {
     data,
@@ -54,8 +56,8 @@ function createQueryResult({
     errorUpdatedAt: 0,
     isEnabled: true,
     promise: Promise.resolve(data ?? []),
-    refetch
-  } as unknown as UseQueryResult<Array<Role>, Error>
+    refetch,
+  } as unknown as UseQueryResult<Array<Role>, Error>;
 }
 
 function RoleTableStoryShell({
@@ -65,12 +67,12 @@ function RoleTableStoryShell({
   onSelectRole,
   onOpenRole,
   onCreateRole,
-  onDeleteRoles
+  onDeleteRoles,
 }: RoleTableStoryArgs) {
   const [filterState, setFilterState] = useState<DataTableFilterState>({
     globalFilter: "",
-    selectFilters: {}
-  })
+    selectFilters: {},
+  });
 
   return (
     <div className="w-full max-w-6xl">
@@ -79,7 +81,7 @@ function RoleTableStoryShell({
           data: pending ? undefined : roles,
           isFetching: false,
           isPending: pending,
-          refetch: () => Promise.resolve({ data: roles })
+          refetch: () => Promise.resolve({ data: roles }),
         })}
         selectedRoleId={selectedRoleId}
         onSelectRole={onSelectRole}
@@ -90,7 +92,7 @@ function RoleTableStoryShell({
         onFilterStateChange={setFilterState}
       />
     </div>
-  )
+  );
 }
 
 const meta = {
@@ -98,68 +100,66 @@ const meta = {
   component: RoleTableStoryShell,
   tags: ["!test"],
   parameters: {
-    layout: "padded"
+    layout: "padded",
   },
   args: {
-    roles: ROLE_FIXTURES
+    roles: ROLE_FIXTURES,
   },
-  render: (args) => <RoleTableStoryShell {...args} />
-} satisfies Meta<typeof RoleTableStoryShell>
+  render: (args) => <RoleTableStoryShell {...args} />,
+} satisfies Meta<typeof RoleTableStoryShell>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {}
+export const Default: Story = {};
 
 export const Loading: Story = {
   args: {
-    pending: true
-  }
-}
+    pending: true,
+  },
+};
 
 export const Empty: Story = {
   args: {
-    roles: []
-  }
-}
+    roles: [],
+  },
+};
 
 export const ActiveRow: Story = {
   args: {
-    selectedRoleId: "0e7b7e25-47f2-4baf-a2c1-6ec48b0d8b03"
-  }
-}
+    selectedRoleId: "0e7b7e25-47f2-4baf-a2c1-6ec48b0d8b03",
+  },
+};
 
 export const Creatable: Story = {
   args: {
-    onCreateRole: fn()
+    onCreateRole: fn(),
   },
   play: async ({ canvas, args }) => {
-    await userEvent.click(
-      await canvas.findByRole("button", { name: /new role/i })
-    )
-    await expect(args.onCreateRole).toHaveBeenCalled()
-  }
-}
+    await userEvent.click(await canvas.findByRole("button", { name: /new role/i }));
+    await expect(args.onCreateRole).toHaveBeenCalled();
+  },
+};
 
 export const Deletable: Story = {
   args: {
-    onDeleteRoles: fn(() => Promise.resolve())
-  }
-}
+    onDeleteRoles: fn(() => Promise.resolve()),
+  },
+};
 
 export const Selection: Story = {
   args: {
     onSelectRole: fn(),
-    onOpenRole: fn()
+    onOpenRole: fn(),
   },
   play: async ({ canvas, args }) => {
-    const rowLabel = await canvas.findByText("security-auditor")
+    const rowLabel = await canvas.findByText("security-auditor");
 
-    await userEvent.click(rowLabel)
-    await expect(args.onSelectRole).toHaveBeenCalled()
+    await userEvent.click(rowLabel);
+    await expect(args.onSelectRole).toHaveBeenCalled();
 
-    await userEvent.dblClick(rowLabel)
-    await expect(args.onOpenRole).toHaveBeenCalled()
-  }
-}
+    await userEvent.dblClick(rowLabel);
+    await expect(args.onOpenRole).toHaveBeenCalled();
+  },
+};

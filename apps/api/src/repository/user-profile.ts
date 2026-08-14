@@ -1,47 +1,45 @@
-import type { Database } from "../db/index.js"
-import type { Kysely, Transaction } from "kysely"
+import type { Database } from "../db/index.js";
 import type {
   UserProfileInternal,
-  UserProfileInternalWithRoles
-} from "@exposurenexus/types/model/user"
+  UserProfileInternalWithRoles,
+} from "@exposurenexus/types/model/user";
+import type { Kysely, Transaction } from "kysely";
 
-type DatabaseExecutor = Kysely<Database> | Transaction<Database>
+type DatabaseExecutor = Kysely<Database> | Transaction<Database>;
 
 export interface UpdateUserProfileByIDOptions {
-  id: string
-  userProfile: Omit<UserProfileInternal, "id">
-  roleIds: readonly string[]
-  revokeSessions?: boolean
+  id: string;
+  userProfile: Omit<UserProfileInternal, "id">;
+  roleIds: readonly string[];
+  revokeSessions?: boolean;
 }
 
 export interface UpdateUserProfileByIDResult {
-  userProfile: UserProfileInternalWithRoles
-  revokedSessionCount: number
+  userProfile: UserProfileInternalWithRoles;
+  revokedSessionCount: number;
 }
 
 export interface UserProfileRepository {
-  list(): Promise<UserProfileInternalWithRoles[]>
-  getByID(id: string): Promise<UserProfileInternalWithRoles | null>
-  getByUsername(username: string): Promise<UserProfileInternalWithRoles | null>
+  list(): Promise<UserProfileInternalWithRoles[]>;
+  getByID(id: string): Promise<UserProfileInternalWithRoles | null>;
+  getByUsername(username: string): Promise<UserProfileInternalWithRoles | null>;
   create(
     userProfile: Omit<UserProfileInternal, "id">,
-    roleIds: readonly string[]
-  ): Promise<UserProfileInternalWithRoles>
-  updateByID(
-    options: UpdateUserProfileByIDOptions
-  ): Promise<UpdateUserProfileByIDResult | null>
+    roleIds: readonly string[],
+  ): Promise<UserProfileInternalWithRoles>;
+  updateByID(options: UpdateUserProfileByIDOptions): Promise<UpdateUserProfileByIDResult | null>;
 }
 
 function uniqueRoleIds(roleIds: readonly string[]): string[] {
-  return [...new Set(roleIds)]
+  return [...new Set(roleIds)];
 }
 
 async function listRoleIdsByUserIDs(
   database: DatabaseExecutor,
-  userIds: readonly string[]
+  userIds: readonly string[],
 ): Promise<Map<string, string[]>> {
   if (userIds.length === 0) {
-    return new Map()
+    return new Map();
   }
 
   const rows = await database
@@ -49,44 +47,41 @@ async function listRoleIdsByUserIDs(
     .select(["userId", "roleId"])
     .where("userId", "in", [...userIds])
     .orderBy("roleId", "asc")
-    .execute()
-  const roleIdsByUserId = new Map<string, string[]>()
+    .execute();
+  const roleIdsByUserId = new Map<string, string[]>();
 
   for (const row of rows) {
-    const roleIds = roleIdsByUserId.get(row.userId) ?? []
-    roleIds.push(row.roleId)
-    roleIdsByUserId.set(row.userId, roleIds)
+    const roleIds = roleIdsByUserId.get(row.userId) ?? [];
+    roleIds.push(row.roleId);
+    roleIdsByUserId.set(row.userId, roleIds);
   }
 
-  return roleIdsByUserId
+  return roleIdsByUserId;
 }
 
 async function attachRoleIds(
   database: DatabaseExecutor,
-  profiles: UserProfileInternal[]
+  profiles: UserProfileInternal[],
 ): Promise<UserProfileInternalWithRoles[]> {
   const roleIdsByUserId = await listRoleIdsByUserIDs(
     database,
-    profiles.map((profile) => profile.id)
-  )
+    profiles.map((profile) => profile.id),
+  );
 
   return profiles.map((profile) => ({
     ...profile,
-    roleIds: roleIdsByUserId.get(profile.id) ?? []
-  }))
+    roleIds: roleIdsByUserId.get(profile.id) ?? [],
+  }));
 }
 
 async function replaceRoleAssignments(
   database: DatabaseExecutor,
   userId: string,
-  roleIds: readonly string[]
+  roleIds: readonly string[],
 ): Promise<string[]> {
-  const distinctRoleIds = uniqueRoleIds(roleIds)
+  const distinctRoleIds = uniqueRoleIds(roleIds);
 
-  await database
-    .deleteFrom("user_role_assignment")
-    .where("userId", "=", userId)
-    .execute()
+  await database.deleteFrom("user_role_assignment").where("userId", "=", userId).execute();
 
   if (distinctRoleIds.length > 0) {
     await database
@@ -94,38 +89,30 @@ async function replaceRoleAssignments(
       .values(
         distinctRoleIds.map((roleId) => ({
           userId,
-          roleId
-        }))
+          roleId,
+        })),
       )
-      .execute()
+      .execute();
   }
 
-  return distinctRoleIds
+  return distinctRoleIds;
 }
 
-async function deleteSessionsByUserID(
-  database: DatabaseExecutor,
-  userId: string
-): Promise<number> {
+async function deleteSessionsByUserID(database: DatabaseExecutor, userId: string): Promise<number> {
   const deletedSessions = await database
     .deleteFrom("user_session")
     .where("userId", "=", userId)
     .returning("id")
-    .execute()
+    .execute();
 
-  return deletedSessions.length
+  return deletedSessions.length;
 }
 
-export function createUserProfileRepository(
-  database: Kysely<Database>
-): UserProfileRepository {
+export function createUserProfileRepository(database: Kysely<Database>): UserProfileRepository {
   return {
     async list(): Promise<UserProfileInternalWithRoles[]> {
-      const profiles = await database
-        .selectFrom("user_profile")
-        .selectAll()
-        .execute()
-      return await attachRoleIds(database, profiles)
+      const profiles = await database.selectFrom("user_profile").selectAll().execute();
+      return await attachRoleIds(database, profiles);
     },
 
     async getByID(id: string): Promise<UserProfileInternalWithRoles | null> {
@@ -133,91 +120,83 @@ export function createUserProfileRepository(
         .selectFrom("user_profile")
         .selectAll()
         .where("id", "=", id)
-        .executeTakeFirst()
+        .executeTakeFirst();
 
       if (!profile) {
-        return null
+        return null;
       }
 
-      const [profileWithRoles] = await attachRoleIds(database, [profile])
-      return profileWithRoles!
+      const [profileWithRoles] = await attachRoleIds(database, [profile]);
+      return profileWithRoles!;
     },
 
-    async getByUsername(
-      username: string
-    ): Promise<UserProfileInternalWithRoles | null> {
+    async getByUsername(username: string): Promise<UserProfileInternalWithRoles | null> {
       const profile = await database
         .selectFrom("user_profile")
         .selectAll()
         .where("username", "=", username)
-        .executeTakeFirst()
+        .executeTakeFirst();
 
       if (!profile) {
-        return null
+        return null;
       }
 
-      const [profileWithRoles] = await attachRoleIds(database, [profile])
-      return profileWithRoles!
+      const [profileWithRoles] = await attachRoleIds(database, [profile]);
+      return profileWithRoles!;
     },
 
     async create(
       userProfile: Omit<UserProfileInternal, "id">,
-      roleIds: readonly string[]
+      roleIds: readonly string[],
     ): Promise<UserProfileInternalWithRoles> {
       return await database.transaction().execute(async (trx) => {
         const createdProfile = await trx
           .insertInto("user_profile")
           .values({
-            ...userProfile
+            ...userProfile,
           })
           .returningAll()
-          .executeTakeFirstOrThrow()
-        const assignedRoleIds = await replaceRoleAssignments(
-          trx,
-          createdProfile.id,
-          roleIds
-        )
+          .executeTakeFirstOrThrow();
+        const assignedRoleIds = await replaceRoleAssignments(trx, createdProfile.id, roleIds);
 
         return {
           ...createdProfile,
-          roleIds: assignedRoleIds
-        }
-      })
+          roleIds: assignedRoleIds,
+        };
+      });
     },
 
     async updateByID({
       id,
       userProfile,
       roleIds,
-      revokeSessions = false
+      revokeSessions = false,
     }: UpdateUserProfileByIDOptions): Promise<UpdateUserProfileByIDResult | null> {
       return await database.transaction().execute(async (trx) => {
         const updated = await trx
           .updateTable("user_profile")
           .set({
-            ...userProfile
+            ...userProfile,
           })
           .where("id", "=", id)
           .returningAll()
-          .executeTakeFirst()
+          .executeTakeFirst();
 
         if (!updated) {
-          return null
+          return null;
         }
 
-        const assignedRoleIds = await replaceRoleAssignments(trx, id, roleIds)
-        const revokedSessionCount = revokeSessions
-          ? await deleteSessionsByUserID(trx, id)
-          : 0
+        const assignedRoleIds = await replaceRoleAssignments(trx, id, roleIds);
+        const revokedSessionCount = revokeSessions ? await deleteSessionsByUserID(trx, id) : 0;
 
         return {
           userProfile: {
             ...updated,
-            roleIds: assignedRoleIds
+            roleIds: assignedRoleIds,
           },
-          revokedSessionCount
-        }
-      })
-    }
-  }
+          revokedSessionCount,
+        };
+      });
+    },
+  };
 }

@@ -1,30 +1,25 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import {
-  RouterContextProvider,
-  createMemoryHistory,
-  createRouter
-} from "@tanstack/react-router"
-import { useLayoutEffect, useMemo, useRef, useState } from "react"
-import {
-  FindingSource,
-  FindingStatus
-} from "@exposurenexus/types/model/finding"
-import { AssetType } from "@exposurenexus/types/model/asset"
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import type { Asset } from "@exposurenexus/types/model/asset"
-import type { Finding, UpdateFinding } from "@exposurenexus/types/model/finding"
-import type { UserProfile } from "@exposurenexus/types/model/user"
-import { routeTree } from "@/routeTree.gen.ts"
-import { FindingDetailContent } from "@/components/finding-detail-content.tsx"
-import { createLoginRedirects } from "@/lib/login-redirect.ts"
+import { AssetType } from "@exposurenexus/types/model/asset";
+import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+
+import { FindingDetailContent } from "@/components/finding-detail-content.tsx";
+import { createLoginRedirects } from "@/lib/login-redirect.ts";
+import { routeTree } from "@/routeTree.gen.ts";
+
+import type { Asset } from "@exposurenexus/types/model/asset";
+import type { Finding, UpdateFinding } from "@exposurenexus/types/model/finding";
+import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type FindingDetailStoryArgs = {
-  finding: Finding
-  asset: Asset
-  users: Array<UserProfile>
-  scenario: "success" | "undated" | "loading" | "error-update"
-}
+  finding: Finding;
+  asset: Asset;
+  users: Array<UserProfile>;
+  scenario: "success" | "undated" | "loading" | "error-update";
+};
 
 const USERS: Array<UserProfile> = [
   {
@@ -33,7 +28,7 @@ const USERS: Array<UserProfile> = [
     displayName: "Robin Owner",
     email: "robin@example.com",
     enabled: false,
-    roleIds: []
+    roleIds: [],
   },
   {
     id: "7b2b7d98-6242-4efe-b630-5908727103fb",
@@ -41,7 +36,7 @@ const USERS: Array<UserProfile> = [
     displayName: "Alex Assignee",
     email: "alex@example.com",
     enabled: true,
-    roleIds: []
+    roleIds: [],
   },
   {
     id: "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12",
@@ -49,21 +44,21 @@ const USERS: Array<UserProfile> = [
     displayName: "Casey Handler",
     email: "casey@example.com",
     enabled: true,
-    roleIds: []
-  }
-]
+    roleIds: [],
+  },
+];
 
 const storyRedirects = createLoginRedirects({
   origin: "http://localhost",
-  isKnownRoutePath: () => true
-})
+  isKnownRoutePath: () => true,
+});
 
 const ASSET: Asset = {
   id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
   name: "web-01",
   type: AssetType.Host,
-  ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21"
-}
+  ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+};
 
 const FINDING: Finding = {
   id: "2713d833-eb13-4517-ac7c-7761545ed42a",
@@ -95,15 +90,15 @@ const FINDING: Finding = {
     createdBy: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
     updatedBy: "7b2b7d98-6242-4efe-b630-5908727103fb",
     createdAt: new Date("2026-04-30T12:00:00.000Z"),
-    updatedAt: new Date("2026-05-01T08:30:00.000Z")
-  }
-}
+    updatedAt: new Date("2026-05-01T08:30:00.000Z"),
+  },
+};
 
 function FindingDetailContentStoryShell({
   finding,
   asset,
   users,
-  scenario
+  scenario,
 }: FindingDetailStoryArgs) {
   const effectiveFinding = useMemo(
     () =>
@@ -112,61 +107,61 @@ function FindingDetailContentStoryShell({
             ...finding,
             dueDate: null,
             status: FindingStatus.Active,
-            assigneeId: null
+            assigneeId: null,
           }
         : finding,
-    [finding, scenario]
-  )
-  const findingRef = useRef<Finding>(effectiveFinding)
-  const assetRef = useRef<Asset>(asset)
+    [finding, scenario],
+  );
+  const findingRef = useRef<Finding>(effectiveFinding);
+  const assetRef = useRef<Asset>(asset);
   const queryClient = useMemo(() => {
     const client = new QueryClient({
       defaultOptions: {
         queries: {
           retry: false,
-          staleTime: Number.POSITIVE_INFINITY
-        }
-      }
-    })
+          staleTime: Number.POSITIVE_INFINITY,
+        },
+      },
+    });
 
     if (scenario !== "loading") {
-      client.setQueryData(["findings", effectiveFinding.id], effectiveFinding)
-      client.setQueryData(["assets", asset.id], asset)
-      client.setQueryData(["users"], users)
+      client.setQueryData(["findings", effectiveFinding.id], effectiveFinding);
+      client.setQueryData(["assets", asset.id], asset);
+      client.setQueryData(["users"], users);
     }
 
-    return client
-  }, [asset, effectiveFinding, scenario, users])
+    return client;
+  }, [asset, effectiveFinding, scenario, users]);
   const router = useMemo(
     () =>
       createRouter({
         routeTree,
         history: createMemoryHistory({
-          initialEntries: [`/findings/${effectiveFinding.id}`]
+          initialEntries: [`/findings/${effectiveFinding.id}`],
         }),
         context: {
           auth: undefined!,
           page: undefined!,
           redirects: storyRedirects,
-          queryClient
-        }
+          queryClient,
+        },
       }),
-    [effectiveFinding.id, queryClient]
-  )
-  const [ready, setReady] = useState(scenario !== "loading")
+    [effectiveFinding.id, queryClient],
+  );
+  const [ready, setReady] = useState(scenario !== "loading");
 
   useLayoutEffect(() => {
-    const originalFetch = globalThis.fetch
-    findingRef.current = effectiveFinding
-    assetRef.current = asset
+    const originalFetch = globalThis.fetch;
+    findingRef.current = effectiveFinding;
+    assetRef.current = asset;
 
     globalThis.fetch = async (input, init) => {
-      const requestUrl = input instanceof Request ? input.url : String(input)
-      const method = (init?.method ?? "GET").toUpperCase()
+      const requestUrl = input instanceof Request ? input.url : String(input);
+      const method = (init?.method ?? "GET").toUpperCase();
 
       if (requestUrl.endsWith(`/api/findings/${effectiveFinding.id}`)) {
         if (scenario === "loading") {
-          return await new Promise<Response>(() => {})
+          return await new Promise<Response>(() => {});
         }
 
         if (method === "PUT") {
@@ -174,49 +169,46 @@ function FindingDetailContentStoryShell({
             return new Response(JSON.stringify({ error: "Update failed" }), {
               status: 400,
               headers: {
-                "Content-Type": "application/json"
-              }
-            })
+                "Content-Type": "application/json",
+              },
+            });
           }
 
-          const update = JSON.parse(String(init?.body ?? "{}")) as UpdateFinding
+          const update = JSON.parse(String(init?.body ?? "{}")) as UpdateFinding;
           findingRef.current = {
             ...findingRef.current,
             ...update,
             dueDate: update.dueDate ? new Date(update.dueDate) : null,
-            updatedAt: new Date()
-          }
-          queryClient.setQueryData(
-            ["findings", effectiveFinding.id],
-            findingRef.current
-          )
+            updatedAt: new Date(),
+          };
+          queryClient.setQueryData(["findings", effectiveFinding.id], findingRef.current);
 
-          return createObjectResponse(findingRef.current)
+          return createObjectResponse(findingRef.current);
         }
 
-        return createObjectResponse(findingRef.current)
+        return createObjectResponse(findingRef.current);
       }
 
       if (requestUrl.endsWith(`/api/assets/${asset.id}`)) {
-        return createObjectResponse(assetRef.current)
+        return createObjectResponse(assetRef.current);
       }
 
       if (requestUrl.endsWith("/api/users")) {
-        return createArrayResponse(users)
+        return createArrayResponse(users);
       }
 
-      return originalFetch(input, init)
-    }
+      return originalFetch(input, init);
+    };
 
-    setReady(true)
+    setReady(true);
 
     return () => {
-      globalThis.fetch = originalFetch
-    }
-  }, [asset, effectiveFinding, queryClient, scenario, users])
+      globalThis.fetch = originalFetch;
+    };
+  }, [asset, effectiveFinding, queryClient, scenario, users]);
 
   if (!ready) {
-    return null
+    return null;
   }
 
   return (
@@ -227,60 +219,60 @@ function FindingDetailContentStoryShell({
         </div>
       </QueryClientProvider>
     </RouterContextProvider>
-  )
+  );
 }
 
 function createObjectResponse(data: unknown): Response {
   return new Response(JSON.stringify({ data }), {
     headers: {
-      "Content-Type": "application/json"
-    }
-  })
+      "Content-Type": "application/json",
+    },
+  });
 }
 
 function createArrayResponse(data: Array<unknown>): Response {
   return new Response(JSON.stringify({ data: { items: data } }), {
     headers: {
-      "Content-Type": "application/json"
-    }
-  })
+      "Content-Type": "application/json",
+    },
+  });
 }
 
 const meta = {
   title: "Resources/Findings/Detail",
   component: FindingDetailContentStoryShell,
   parameters: {
-    layout: "padded"
+    layout: "padded",
   },
   args: {
     finding: FINDING,
     asset: ASSET,
     users: USERS,
-    scenario: "success"
+    scenario: "success",
   },
-  render: (args) => <FindingDetailContentStoryShell {...args} />
-} satisfies Meta<typeof FindingDetailContentStoryShell>
+  render: (args) => <FindingDetailContentStoryShell {...args} />,
+} satisfies Meta<typeof FindingDetailContentStoryShell>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const WithDueDate: Story = {}
+export const WithDueDate: Story = {};
 
 export const Undated: Story = {
   args: {
-    scenario: "undated"
-  }
-}
+    scenario: "undated",
+  },
+};
 
 export const Loading: Story = {
   args: {
-    scenario: "loading"
-  }
-}
+    scenario: "loading",
+  },
+};
 
 export const UpdateError: Story = {
   args: {
-    scenario: "error-update"
-  }
-}
+    scenario: "error-update",
+  },
+};

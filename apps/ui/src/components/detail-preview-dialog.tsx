@@ -1,23 +1,25 @@
-import { Expand } from "lucide-react"
-import type { ReactNode } from "react"
+import { Expand } from "lucide-react";
+
+import { buttonVariants } from "@/components/ui/button.tsx";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog.tsx"
-import { buttonVariants } from "@/components/ui/button.tsx"
-import { cn } from "@/lib/utils.ts"
+  DialogTitle,
+} from "@/components/ui/dialog.tsx";
+import { cn } from "@/lib/utils.ts";
+
+import type { ReactNode } from "react";
 
 interface DetailPreviewDialogProps {
-  selectedId?: string
-  title: string
-  description: string
-  fullPageHref?: string
-  fullPageLabel?: string
-  children: ReactNode
-  onClose: () => void
+  selectedId?: string;
+  title: string;
+  description: string;
+  fullPageHref?: string;
+  fullPageLabel?: string;
+  children: ReactNode;
+  onClose: () => void;
 }
 
 export function DetailPreviewDialog({
@@ -27,16 +29,16 @@ export function DetailPreviewDialog({
   fullPageHref,
   fullPageLabel = "Open full page",
   children,
-  onClose
+  onClose,
 }: DetailPreviewDialogProps) {
-  const open = Boolean(selectedId)
+  const open = Boolean(selectedId);
 
   return (
     <Dialog
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
-          onClose()
+          onClose();
         }
       }}
     >
@@ -51,10 +53,7 @@ export function DetailPreviewDialog({
               {fullPageHref && (
                 <a
                   href={fullPageHref}
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "rounded-xl"
-                  )}
+                  className={cn(buttonVariants({ variant: "outline", size: "sm" }), "rounded-xl")}
                 >
                   <Expand />
                   {fullPageLabel}
@@ -66,5 +65,5 @@ export function DetailPreviewDialog({
         )}
       </DialogContent>
     </Dialog>
-  )
+  );
 }

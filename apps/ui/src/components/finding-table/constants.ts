@@ -1,13 +1,13 @@
-import { FindingStatus } from "@exposurenexus/types/model/finding"
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 
 export const SEVERITY_ORDER: Array<VulnerabilitySeverity> = [
   VulnerabilitySeverity.Critical,
   VulnerabilitySeverity.High,
   VulnerabilitySeverity.Medium,
   VulnerabilitySeverity.Low,
-  VulnerabilitySeverity.Info
-]
+  VulnerabilitySeverity.Info,
+];
 
 export const STATUS_ORDER: Array<FindingStatus> = [
   FindingStatus.Active,
@@ -17,5 +17,5 @@ export const STATUS_ORDER: Array<FindingStatus> = [
   FindingStatus.RiskAccepted,
   FindingStatus.Duplicate,
   FindingStatus.OutOfScope,
-  FindingStatus.Mitigated
-]
+  FindingStatus.Mitigated,
+];

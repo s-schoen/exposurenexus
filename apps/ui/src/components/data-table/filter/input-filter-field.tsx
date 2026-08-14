@@ -1,21 +1,15 @@
-import type { Column } from "@tanstack/react-table"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput
-} from "@/components/ui/input-group.tsx"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group.tsx";
+
+import type { Column } from "@tanstack/react-table";
 
 export interface InputFilterFieldProps<TData> {
-  column: Column<TData>
-  type: "number" | "text"
+  column: Column<TData>;
+  type: "number" | "text";
 }
 
-export function InputFilterField<TData>({
-  column,
-  type
-}: InputFilterFieldProps<TData>) {
-  const label = column.columnDef.meta?.label || column.id
-  const value = (column.getFilterValue() as string | undefined) ?? ""
+export function InputFilterField<TData>({ column, type }: InputFilterFieldProps<TData>) {
+  const label = column.columnDef.meta?.label || column.id;
+  const value = (column.getFilterValue() as string | undefined) ?? "";
 
   return (
     <InputGroup className="w-52 max-w-full rounded-xl border-dashed bg-background">
@@ -28,10 +22,10 @@ export function InputFilterField<TData>({
         aria-label={`${label} filter`}
         placeholder="Filter..."
         onChange={(event) => {
-          const nextValue = event.target.value
-          column.setFilterValue(nextValue.trim() ? nextValue : undefined)
+          const nextValue = event.target.value;
+          column.setFilterValue(nextValue.trim() ? nextValue : undefined);
         }}
       />
     </InputGroup>
-  )
+  );
 }

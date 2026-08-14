@@ -1,21 +1,18 @@
-import { queryOptions } from "@tanstack/react-query"
-import { z } from "zod/v4"
-import { dateSchema } from "@exposurenexus/types/model/date"
-import { userProfileSchema } from "@exposurenexus/types/model/user"
-import type { AuthSessionDataReply } from "@exposurenexus/types/api"
-import type { UserProfile } from "@exposurenexus/types/model/user"
-import {
-  APIError,
-  apiRequest,
-  parseErrorReply,
-  parseObjectReply
-} from "@/api/common.ts"
+import { dateSchema } from "@exposurenexus/types/model/date";
+import { userProfileSchema } from "@exposurenexus/types/model/user";
+import { queryOptions } from "@tanstack/react-query";
+import { z } from "zod/v4";
+
+import { APIError, apiRequest, parseErrorReply, parseObjectReply } from "@/api/common.ts";
 import {
   SKIP_AUTH_SESSION_EXPIRY_META,
-  shouldRetryAuthAwareQuery
-} from "@/lib/auth-session-expiry.ts"
+  shouldRetryAuthAwareQuery,
+} from "@/lib/auth-session-expiry.ts";
 
-export const AUTH_SESSION_QUERY_KEY = ["auth", "session"] as const
+import type { AuthSessionDataReply } from "@exposurenexus/types/api";
+import type { UserProfile } from "@exposurenexus/types/model/user";
+
+export const AUTH_SESSION_QUERY_KEY = ["auth", "session"] as const;
 const authSessionReplySchema = z.strictObject({
   user: userProfileSchema,
   session: z.strictObject({
@@ -24,103 +21,99 @@ const authSessionReplySchema = z.strictObject({
     sourceIp: z.string().nullable(),
     userAgent: z.string().nullable(),
     createdAt: dateSchema,
-    expiresAt: dateSchema
-  })
-})
+    expiresAt: dateSchema,
+  }),
+});
 const signOutReplySchema = z.strictObject({
-  revoked: z.boolean()
-})
+  revoked: z.boolean(),
+});
 
-export type Session = AuthSessionDataReply
-export type AuthSessionQueryData = AuthSessionDataReply | null
-export type User = UserProfile
+export type Session = AuthSessionDataReply;
+export type AuthSessionQueryData = AuthSessionDataReply | null;
+export type User = UserProfile;
 
 interface AuthClientResult<T> {
-  data: T
+  data: T;
 }
 
 interface SignInUsernameInput {
-  username: string
-  password: string
+  username: string;
+  password: string;
 }
 
 interface SignOutOptions {
   fetchOptions?: {
-    onSuccess?: () => void
-  }
+    onSuccess?: () => void;
+  };
 }
 
-async function parseAuthSessionReply(
-  response: Response
-): Promise<AuthSessionDataReply> {
+async function parseAuthSessionReply(response: Response): Promise<AuthSessionDataReply> {
   if (!response.ok) {
-    throw await parseErrorReply(response)
+    throw await parseErrorReply(response);
   }
 
-  return parseObjectReply(response, authSessionReplySchema)
+  return parseObjectReply(response, authSessionReplySchema);
 }
 
-export async function getSession(): Promise<
-  AuthClientResult<AuthSessionDataReply>
-> {
+export async function getSession(): Promise<AuthClientResult<AuthSessionDataReply>> {
   const response = await apiRequest("/api/auth/session", {
-    method: "GET"
-  })
+    method: "GET",
+  });
 
   return {
-    data: await parseAuthSessionReply(response)
-  }
+    data: await parseAuthSessionReply(response),
+  };
 }
 
 export const signIn = {
   async username({
     username,
-    password
+    password,
   }: SignInUsernameInput): Promise<AuthClientResult<AuthSessionDataReply>> {
     const response = await apiRequest(
       "/api/auth",
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password }),
       },
-      { csrf: false }
-    )
+      { csrf: false },
+    );
 
     return {
-      data: await parseAuthSessionReply(response)
-    }
-  }
-}
+      data: await parseAuthSessionReply(response),
+    };
+  },
+};
 
 export async function signOut(
-  options: SignOutOptions = {}
+  options: SignOutOptions = {},
 ): Promise<AuthClientResult<{ revoked: boolean }>> {
   const response = await apiRequest("/api/auth", {
-    method: "DELETE"
-  })
+    method: "DELETE",
+  });
 
   if (!response.ok) {
-    throw await parseErrorReply(response)
+    throw await parseErrorReply(response);
   }
 
-  const data = await parseObjectReply(response, signOutReplySchema)
-  options.fetchOptions?.onSuccess?.()
+  const data = await parseObjectReply(response, signOutReplySchema);
+  options.fetchOptions?.onSuccess?.();
 
-  return { data }
+  return { data };
 }
 
 async function loadAuthSession(): Promise<AuthSessionQueryData> {
   try {
-    return (await getSession()).data
+    return (await getSession()).data;
   } catch (error) {
     if (error instanceof APIError && error.statusCode === 401) {
-      return null
+      return null;
     }
 
-    throw error
+    throw error;
   }
 }
 
@@ -129,12 +122,12 @@ export function createAuthSessionQueryOptions() {
     queryKey: AUTH_SESSION_QUERY_KEY,
     queryFn: loadAuthSession,
     meta: SKIP_AUTH_SESSION_EXPIRY_META,
-    retry: shouldRetryAuthAwareQuery
-  })
+    retry: shouldRetryAuthAwareQuery,
+  });
 }
 
 export const authClient = {
   signIn,
   signOut,
-  getSession
-}
+  getSession,
+};

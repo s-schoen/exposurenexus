@@ -1,15 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor
-} from "@testing-library/react"
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
-import type { ReactNode } from "react"
-import type { UserProfile } from "@exposurenexus/types/model/user"
-import type { Role } from "@exposurenexus/types/model/rbac"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { Role } from "@exposurenexus/types/model/rbac";
+import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => {
   const user: UserProfile = {
@@ -18,26 +13,26 @@ const mocks = vi.hoisted(() => {
     displayName: "Alice Example",
     email: "alice@example.com",
     enabled: true,
-    roleIds: ["6d0d8a47-0f6d-47b6-9b9a-d8f0d3f4dd01"]
-  }
+    roleIds: ["6d0d8a47-0f6d-47b6-9b9a-d8f0d3f4dd01"],
+  };
 
   const roles: Array<Role> = [
     {
       id: "6d0d8a47-0f6d-47b6-9b9a-d8f0d3f4dd01",
       name: "viewer",
-      permissions: []
+      permissions: [],
     },
     {
       id: "5d5f5c6f-a9d6-4d49-9f4d-9462b873a902",
       name: "editor",
-      permissions: []
+      permissions: [],
     },
     {
       id: "0e7b7e25-47f2-4baf-a2c1-6ec48b0d8b03",
       name: "admin",
-      permissions: []
-    }
-  ]
+      permissions: [],
+    },
+  ];
   return {
     dataTableProps: undefined as undefined | Record<string, unknown>,
     navigate: vi.fn(),
@@ -45,59 +40,51 @@ const mocks = vi.hoisted(() => {
     rolesQuery: {
       data: roles,
       isPending: false,
-      isSuccess: true
+      isSuccess: true,
     },
-    user
-  }
-})
+    user,
+  };
+});
 
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mocks.navigate
-}))
+  useNavigate: () => mocks.navigate,
+}));
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: { queryKey: Array<string> }) => {
     if (options.queryKey.join("/") === "roles") {
-      return mocks.rolesQuery
+      return mocks.rolesQuery;
     }
 
     return {
       data: [mocks.user],
       isPending: false,
-      isSuccess: true
-    }
-  }
-}))
+      isSuccess: true,
+    };
+  },
+}));
 
 vi.mock("@/api/role.ts", () => ({
   createListRolesQueryOptions: () => ({
-    queryKey: ["roles"]
-  })
-}))
+    queryKey: ["roles"],
+  }),
+}));
 
 vi.mock("@/api/user.ts", () => ({
   createListUsersQueryOptions: () => ({
-    queryKey: ["users"]
-  })
-}))
+    queryKey: ["users"],
+  }),
+}));
 
 vi.mock("@/components/data-table/data-table.tsx", () => ({
   DataTable: (props: Record<string, unknown>) => {
-    mocks.dataTableProps = props
+    mocks.dataTableProps = props;
 
-    const isRowActive = props.isRowActive as
-      | ((user: UserProfile) => boolean)
-      | undefined
-    const onFilterStateChange = props.onFilterStateChange as
-      | ((state: unknown) => void)
-      | undefined
-    const onRowClick = props.onRowClick as
-      | ((user: UserProfile) => void)
-      | undefined
-    const onRowDoubleClick = props.onRowDoubleClick as
-      | ((user: UserProfile) => void)
-      | undefined
-    const toolbarControls = props.toolbarControls as ReactNode
+    const isRowActive = props.isRowActive as ((user: UserProfile) => boolean) | undefined;
+    const onFilterStateChange = props.onFilterStateChange as ((state: unknown) => void) | undefined;
+    const onRowClick = props.onRowClick as ((user: UserProfile) => void) | undefined;
+    const onRowDoubleClick = props.onRowDoubleClick as ((user: UserProfile) => void) | undefined;
+    const toolbarControls = props.toolbarControls as ReactNode;
 
     return (
       <div>
@@ -115,8 +102,8 @@ vi.mock("@/components/data-table/data-table.tsx", () => ({
             onFilterStateChange?.({
               globalFilter: "bob",
               selectFilters: {
-                enabled: ["false"]
-              }
+                enabled: ["false"],
+              },
             })
           }
         >
@@ -127,160 +114,158 @@ vi.mock("@/components/data-table/data-table.tsx", () => ({
           onClick={() =>
             onFilterStateChange?.({
               globalFilter: "",
-              selectFilters: {}
+              selectFilters: {},
             })
           }
         >
           clear filters
         </button>
       </div>
-    )
-  }
-}))
+    );
+  },
+}));
 
 function renderCell(cell: unknown, user: UserProfile) {
   if (typeof cell !== "function") {
-    throw new Error("Expected a cell renderer")
+    throw new Error("Expected a cell renderer");
   }
 
-  return render(<>{cell({ row: { original: user } })}</>)
+  return render(<>{cell({ row: { original: user } })}</>);
 }
 
 describe("UserTable workflow wiring", () => {
   beforeEach(() => {
-    mocks.dataTableProps = undefined
-    mocks.navigate.mockReset()
+    mocks.dataTableProps = undefined;
+    mocks.navigate.mockReset();
     mocks.rolesQuery = {
       data: mocks.roles,
       isPending: false,
-      isSuccess: true
-    }
-  })
+      isSuccess: true,
+    };
+  });
 
   afterEach(() => {
-    cleanup()
-  })
+    cleanup();
+  });
 
   it("passes route-owned filters, active row state, and row handlers to DataTable", async () => {
-    const { UserTable } = await import("@/components/user-table/index.tsx")
-    const onSelectUser = vi.fn()
+    const { UserTable } = await import("@/components/user-table/index.tsx");
+    const onSelectUser = vi.fn();
     const filterState = {
       globalFilter: "alice",
       selectFilters: {
-        enabled: ["true"]
-      }
-    }
+        enabled: ["true"],
+      },
+    };
 
     render(
       <UserTable
         filterState={filterState}
         selectedUserId={mocks.user.id}
         onSelectUser={onSelectUser}
-      />
-    )
+      />,
+    );
 
-    expect(screen.getByTestId("active-row").textContent).toBe("true")
-    expect(mocks.dataTableProps?.filterState).toEqual(filterState)
-    expect(mocks.dataTableProps?.onRowDelete).toBeUndefined()
+    expect(screen.getByTestId("active-row").textContent).toBe("true");
+    expect(mocks.dataTableProps?.filterState).toEqual(filterState);
+    expect(mocks.dataTableProps?.onRowDelete).toBeUndefined();
 
-    fireEvent.click(screen.getByRole("button", { name: /select user/i }))
-    expect(onSelectUser).toHaveBeenCalledWith(mocks.user)
+    fireEvent.click(screen.getByRole("button", { name: /select user/i }));
+    expect(onSelectUser).toHaveBeenCalledWith(mocks.user);
 
-    fireEvent.click(screen.getByRole("button", { name: /open user/i }))
+    fireEvent.click(screen.getByRole("button", { name: /open user/i }));
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith({
         to: "/users/$id",
         params: {
-          id: mocks.user.id
-        }
-      })
-    })
-  })
+          id: mocks.user.id,
+        },
+      });
+    });
+  });
 
   it("forwards table filter changes", async () => {
-    const { UserTable } = await import("@/components/user-table/index.tsx")
-    const onFilterStateChange = vi.fn()
+    const { UserTable } = await import("@/components/user-table/index.tsx");
+    const onFilterStateChange = vi.fn();
 
-    render(<UserTable onFilterStateChange={onFilterStateChange} />)
-    fireEvent.click(screen.getByRole("button", { name: /change filters/i }))
+    render(<UserTable onFilterStateChange={onFilterStateChange} />);
+    fireEvent.click(screen.getByRole("button", { name: /change filters/i }));
 
     expect(onFilterStateChange).toHaveBeenCalledWith({
       globalFilter: "bob",
       selectFilters: {
-        enabled: ["false"]
-      }
-    })
+        enabled: ["false"],
+      },
+    });
 
-    fireEvent.click(screen.getByRole("button", { name: /clear filters/i }))
+    fireEvent.click(screen.getByRole("button", { name: /clear filters/i }));
 
     expect(onFilterStateChange).toHaveBeenCalledWith({
       globalFilter: "",
-      selectFilters: {}
-    })
-  })
+      selectFilters: {},
+    });
+  });
 
   it("renders the create-user toolbar action when provided", async () => {
-    const { UserTable } = await import("@/components/user-table/index.tsx")
-    const onCreateUser = vi.fn()
+    const { UserTable } = await import("@/components/user-table/index.tsx");
+    const onCreateUser = vi.fn();
 
-    render(<UserTable onCreateUser={onCreateUser} />)
-    fireEvent.click(screen.getByRole("button", { name: /new user/i }))
+    render(<UserTable onCreateUser={onCreateUser} />);
+    fireEvent.click(screen.getByRole("button", { name: /new user/i }));
 
-    expect(onCreateUser).toHaveBeenCalledTimes(1)
-  })
+    expect(onCreateUser).toHaveBeenCalledTimes(1);
+  });
 
   it("does not create filter state without route-owned filters", async () => {
-    const { UserTable } = await import("@/components/user-table/index.tsx")
+    const { UserTable } = await import("@/components/user-table/index.tsx");
 
-    render(<UserTable />)
+    render(<UserTable />);
 
-    expect(mocks.dataTableProps?.filterState).toBeUndefined()
-  })
-})
+    expect(mocks.dataTableProps?.filterState).toBeUndefined();
+  });
+});
 
 describe("user table role columns", () => {
   afterEach(() => {
-    cleanup()
-  })
+    cleanup();
+  });
 
   it("renders unresolved role counts while role data is unavailable", async () => {
-    const { createColumns } =
-      await import("@/components/user-table/columns.tsx")
+    const { createColumns } = await import("@/components/user-table/columns.tsx");
     const rolesColumn = createColumns(new Map(), false).find(
-      (column) => "id" in column && column.id === "roles"
-    )
+      (column) => "id" in column && column.id === "roles",
+    );
 
     renderCell(rolesColumn?.cell, {
       ...mocks.user,
-      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
-    })
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor],
+    });
 
-    expect(screen.getByText("2 roles")).toBeTruthy()
-  })
+    expect(screen.getByText("2 roles")).toBeTruthy();
+  });
 
   it("renders resolved role labels, unknown counts, and empty roles", async () => {
-    const { createColumns } =
-      await import("@/components/user-table/columns.tsx")
+    const { createColumns } = await import("@/components/user-table/columns.tsx");
     const rolesColumn = createColumns(
       new Map([
         [builtInRoleIds.viewer, "viewer"],
-        [builtInRoleIds.editor, "editor"]
+        [builtInRoleIds.editor, "editor"],
       ]),
-      true
-    ).find((column) => "id" in column && column.id === "roles")
+      true,
+    ).find((column) => "id" in column && column.id === "roles");
 
-    const unknownRoleId = "a1ed0f1c-28af-40f4-b08e-9fe9ab4a3223"
+    const unknownRoleId = "a1ed0f1c-28af-40f4-b08e-9fe9ab4a3223";
     const { rerender } = renderCell(rolesColumn?.cell, {
       ...mocks.user,
-      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor, unknownRoleId]
-    })
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor, unknownRoleId],
+    });
 
-    expect(screen.getByText("viewer")).toBeTruthy()
-    expect(screen.getByText("editor")).toBeTruthy()
-    expect(screen.getByText("+1 unknown")).toBeTruthy()
+    expect(screen.getByText("viewer")).toBeTruthy();
+    expect(screen.getByText("editor")).toBeTruthy();
+    expect(screen.getByText("+1 unknown")).toBeTruthy();
 
     if (typeof rolesColumn?.cell !== "function") {
-      throw new Error("Expected a cell renderer")
+      throw new Error("Expected a cell renderer");
     }
 
     rerender(
@@ -289,43 +274,36 @@ describe("user table role columns", () => {
           row: {
             original: {
               ...mocks.user,
-              roleIds: []
-            }
-          }
+              roleIds: [],
+            },
+          },
         } as never)}
-      </>
-    )
+      </>,
+    );
 
-    expect(screen.getByText("No roles")).toBeTruthy()
-  })
+    expect(screen.getByText("No roles")).toBeTruthy();
+  });
 
   it("filters enabled rows from string filter values", async () => {
-    const { createColumns } =
-      await import("@/components/user-table/columns.tsx")
+    const { createColumns } = await import("@/components/user-table/columns.tsx");
     const enabledColumn = createColumns(new Map(), false).find(
-      (column) => "accessorKey" in column && column.accessorKey === "enabled"
-    )
-    const filterFn = enabledColumn?.filterFn
+      (column) => "accessorKey" in column && column.accessorKey === "enabled",
+    );
+    const filterFn = enabledColumn?.filterFn;
 
     if (typeof filterFn !== "function") {
-      throw new Error("Expected a filter function")
+      throw new Error("Expected a filter function");
     }
 
     const enabledRow = {
-      getValue: () => true
-    }
+      getValue: () => true,
+    };
     const disabledRow = {
-      getValue: () => false
-    }
+      getValue: () => false,
+    };
 
-    expect(filterFn(enabledRow as never, "enabled", [], () => undefined)).toBe(
-      true
-    )
-    expect(
-      filterFn(enabledRow as never, "enabled", ["true"], () => undefined)
-    ).toBe(true)
-    expect(
-      filterFn(disabledRow as never, "enabled", ["true"], () => undefined)
-    ).toBe(false)
-  })
-})
+    expect(filterFn(enabledRow as never, "enabled", [], () => undefined)).toBe(true);
+    expect(filterFn(enabledRow as never, "enabled", ["true"], () => undefined)).toBe(true);
+    expect(filterFn(disabledRow as never, "enabled", ["true"], () => undefined)).toBe(false);
+  });
+});

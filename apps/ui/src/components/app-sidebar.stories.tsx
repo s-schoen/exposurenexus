@@ -1,69 +1,71 @@
-import { useLayoutEffect, useMemo, useState } from "react"
-import { FindingStatus } from "@exposurenexus/types/model/finding"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import { AppSidebar } from "@/components/app-sidebar.tsx"
-import { SidebarProvider } from "@/components/ui/sidebar.tsx"
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { useLayoutEffect, useMemo, useState } from "react";
+
+import { AppSidebar } from "@/components/app-sidebar.tsx";
 import {
   RouterStoryProvider,
   createObjectResponse,
-  createStoryQueryClient
-} from "@/components/storybook-utils.tsx"
+  createStoryQueryClient,
+} from "@/components/storybook-utils.tsx";
+import { SidebarProvider } from "@/components/ui/sidebar.tsx";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type AppSidebarStoryArgs = {
-  initialPath: string
-  activeFindings: number
-  confirmedFindings: number
-}
+  initialPath: string;
+  activeFindings: number;
+  confirmedFindings: number;
+};
 
 function AppSidebarStoryShell({
   activeFindings,
   confirmedFindings,
-  initialPath
+  initialPath,
 }: AppSidebarStoryArgs) {
   const stats = useMemo(
     () => ({
       total: activeFindings + confirmedFindings,
       status: {
         [FindingStatus.Active]: activeFindings,
-        [FindingStatus.Confirmed]: confirmedFindings
+        [FindingStatus.Confirmed]: confirmedFindings,
       },
       severity: {},
       source: {},
-      assets: {}
+      assets: {},
     }),
-    [activeFindings, confirmedFindings]
-  )
+    [activeFindings, confirmedFindings],
+  );
   const queryClient = useMemo(() => {
-    const client = createStoryQueryClient()
+    const client = createStoryQueryClient();
 
-    client.setQueryData(["findings", "stats"], stats)
+    client.setQueryData(["findings", "stats"], stats);
 
-    return client
-  }, [stats])
-  const [ready, setReady] = useState(false)
+    return client;
+  }, [stats]);
+  const [ready, setReady] = useState(false);
 
   useLayoutEffect(() => {
-    const originalFetch = globalThis.fetch
+    const originalFetch = globalThis.fetch;
 
     globalThis.fetch = async (input, init) => {
-      const requestUrl = input instanceof Request ? input.url : String(input)
+      const requestUrl = input instanceof Request ? input.url : String(input);
 
       if (requestUrl.endsWith("/api/findings/stats")) {
-        return createObjectResponse(stats)
+        return createObjectResponse(stats);
       }
 
-      return originalFetch(input, init)
-    }
+      return originalFetch(input, init);
+    };
 
-    setReady(true)
+    setReady(true);
 
     return () => {
-      globalThis.fetch = originalFetch
-    }
-  }, [stats])
+      globalThis.fetch = originalFetch;
+    };
+  }, [stats]);
 
   if (!ready) {
-    return null
+    return null;
   }
 
   return (
@@ -72,38 +74,38 @@ function AppSidebarStoryShell({
         <AppSidebar />
       </SidebarProvider>
     </RouterStoryProvider>
-  )
+  );
 }
 
 const meta = {
   title: "App/Shell/Sidebar",
   component: AppSidebarStoryShell,
   parameters: {
-    layout: "fullscreen"
+    layout: "fullscreen",
   },
   args: {
     initialPath: "/findings/triage",
     activeFindings: 7,
-    confirmedFindings: 3
+    confirmedFindings: 3,
   },
-  render: (args) => <AppSidebarStoryShell {...args} />
-} satisfies Meta<typeof AppSidebarStoryShell>
+  render: (args) => <AppSidebarStoryShell {...args} />,
+} satisfies Meta<typeof AppSidebarStoryShell>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const TriageActive: Story = {}
+export const TriageActive: Story = {};
 
 export const AssetsActive: Story = {
   args: {
-    initialPath: "/assets/447b53a7-c3ce-4a0c-b96a-099f5e5dc71c"
-  }
-}
+    initialPath: "/assets/447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
+  },
+};
 
 export const WithoutBadges: Story = {
   args: {
     activeFindings: 0,
-    confirmedFindings: 0
-  }
-}
+    confirmedFindings: 0,
+  },
+};

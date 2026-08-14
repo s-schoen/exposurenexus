@@ -1,16 +1,18 @@
-import type { Kysely } from "kysely"
-import type { Logger } from "pino"
-import { createApp } from "./app.js"
-import type { Database } from "./db/index.js"
-import { createDefaultAdmin } from "./lib/default-admin.js"
-import { createLogger } from "./logging.js"
+import { createApp } from "./app.js";
+import { registerEventHandlers } from "./event-handler/index.js";
+import { createFindingImporter } from "./import/importer.js";
+import { createNucleiFindingParser } from "./import/nuclei.js";
+import { createGetOrCreateAsset } from "./import/util.js";
+import { createDefaultAdmin } from "./lib/default-admin.js";
+import { EventBus } from "./lib/eventbus/eventbus.js";
+import { createLogger } from "./logging.js";
 import {
   createAuthAnnotate,
   authNRequire,
   createRequireDomainPermission,
-  createAuthCookiePolicy
-} from "./middleware/auth.js"
-import { createCsrfProtection } from "./middleware/csrf.js"
+  createAuthCookiePolicy,
+} from "./middleware/auth.js";
+import { createCsrfProtection } from "./middleware/csrf.js";
 import {
   createAssetCustomFieldRepository,
   createAssetRepository,
@@ -19,8 +21,17 @@ import {
   createUserProfileRepository,
   createUserRoleRepository,
   createUserSessionRepository,
-  createVulnerabilityRepository
-} from "./repository/index.js"
+  createVulnerabilityRepository,
+} from "./repository/index.js";
+import { createAssetRoute } from "./routes/assets.js";
+import { createAuthRoute } from "./routes/auth.js";
+import { createFindingRoute } from "./routes/findings.js";
+import health from "./routes/health.js";
+import { createImportRoute } from "./routes/import.js";
+import { createRoleRoute } from "./routes/roles.js";
+import { createFindingStatsRoute } from "./routes/stats.js";
+import { createUserRoute } from "./routes/users.js";
+import { createVulnerabilityRoute } from "./routes/vulnerabilities.js";
 import {
   createAssetCustomFieldService,
   createAuthService,
@@ -29,50 +40,40 @@ import {
   createRoleService,
   createStatsService,
   createUserProfileService,
-  createVulnerabilityService
-} from "./service/index.js"
-import health from "./routes/health.js"
-import { createAuthRoute } from "./routes/auth.js"
-import { createAssetRoute } from "./routes/assets.js"
-import { createRoleRoute } from "./routes/roles.js"
-import { createUserRoute } from "./routes/users.js"
-import { createVulnerabilityRoute } from "./routes/vulnerabilities.js"
-import { createFindingStatsRoute } from "./routes/stats.js"
-import { createFindingRoute } from "./routes/findings.js"
-import { createImportRoute } from "./routes/import.js"
-import { createGetOrCreateAsset } from "./import/util.js"
-import { createNucleiFindingParser } from "./import/nuclei.js"
-import { createFindingImporter } from "./import/importer.js"
-import { EventBus } from "./lib/eventbus/eventbus.js"
-import type { DomainEvent } from "./lib/eventbus/events/index.js"
-import { registerEventHandlers } from "./event-handler/index.js"
+  createVulnerabilityService,
+} from "./service/index.js";
 
-type LoggerFactory = (moduleName: string) => Logger
+import type { Database } from "./db/index.js";
+import type { DomainEvent } from "./lib/eventbus/events/index.js";
+import type { Kysely } from "kysely";
+import type { Logger } from "pino";
+
+type LoggerFactory = (moduleName: string) => Logger;
 
 export interface CreateAppContainerOptions {
-  db: Kysely<Database>
-  appOrigin: string
-  staticDir?: string
-  authSessionLifetimeHours: number
-  authSessionHmacSecret: string
-  authCookieSecure: boolean
-  authTrustedProxies: readonly string[]
-  apiTimeoutMs: number
-  logger: Logger
-  accessLogger: Logger
-  dbLogger?: Logger
-  loggerFactory?: LoggerFactory
+  db: Kysely<Database>;
+  appOrigin: string;
+  staticDir?: string;
+  authSessionLifetimeHours: number;
+  authSessionHmacSecret: string;
+  authCookieSecure: boolean;
+  authTrustedProxies: readonly string[];
+  apiTimeoutMs: number;
+  logger: Logger;
+  accessLogger: Logger;
+  dbLogger?: Logger;
+  loggerFactory?: LoggerFactory;
 }
 
 export function createAppContainer(options: CreateAppContainerOptions) {
-  const loggerFactory = options.loggerFactory ?? createLogger
+  const loggerFactory = options.loggerFactory ?? createLogger;
   const authCookiePolicy = createAuthCookiePolicy({
-    secure: options.authCookieSecure
-  })
+    secure: options.authCookieSecure,
+  });
 
   // setup event bus
-  const eventBus = new EventBus<DomainEvent>()
-  registerEventHandlers({ eventBus, loggerFactory })
+  const eventBus = new EventBus<DomainEvent>();
+  registerEventHandlers({ eventBus, loggerFactory });
 
   const repositories = {
     assetCustomFieldRepository: createAssetCustomFieldRepository(options.db),
@@ -82,8 +83,8 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     userRoleRepository: createUserRoleRepository(options.db),
     userProfileRepository: createUserProfileRepository(options.db),
     userSessionRepository: createUserSessionRepository(options.db),
-    vulnerabilityRepository: createVulnerabilityRepository(options.db)
-  }
+    vulnerabilityRepository: createVulnerabilityRepository(options.db),
+  };
 
   const authService = createAuthService({
     userProfileRepository: repositories.userProfileRepository,
@@ -92,108 +93,106 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     domainEventEmitter: eventBus,
     sessionLifetimeHours: options.authSessionLifetimeHours,
     sessionHmacSecret: options.authSessionHmacSecret,
-    logger: loggerFactory("service/auth")
-  })
-  const requireDomainPermission = createRequireDomainPermission(
-    authService.userHasPermission
-  )
+    logger: loggerFactory("service/auth"),
+  });
+  const requireDomainPermission = createRequireDomainPermission(authService.userHasPermission);
   const roleService = createRoleService({
     roleRepository: repositories.roleRepository,
     domainEventEmitter: eventBus,
-    logger: loggerFactory("service/role")
-  })
+    logger: loggerFactory("service/role"),
+  });
   const userProfileService = createUserProfileService({
     userProfileRepository: repositories.userProfileRepository,
     domainEventEmitter: eventBus,
-    logger: loggerFactory("service/user-profile")
-  })
+    logger: loggerFactory("service/user-profile"),
+  });
   const assetCustomFieldService = createAssetCustomFieldService({
     assetCustomFieldRepository: repositories.assetCustomFieldRepository,
     assetRepository: repositories.assetRepository,
     domainEventEmitter: eventBus,
-    logger: loggerFactory("service/asset-custom-field")
-  })
+    logger: loggerFactory("service/asset-custom-field"),
+  });
   const assetService = createAssetService({
     assetRepository: repositories.assetRepository,
     assetCustomFieldReader: assetCustomFieldService,
     userProfileService,
     domainEventEmitter: eventBus,
-    logger: loggerFactory("service/asset")
-  })
+    logger: loggerFactory("service/asset"),
+  });
   const vulnerabilityService = createVulnerabilityService({
     vulnerabilityRepository: repositories.vulnerabilityRepository,
     domainEventEmitter: eventBus,
-    logger: loggerFactory("service/vulnerability")
-  })
+    logger: loggerFactory("service/vulnerability"),
+  });
   const findingService = createFindingService({
     findingRepository: repositories.findingRepository,
     assetService,
     userProfileService,
     vulnerabilityService,
     domainEventEmitter: eventBus,
-    logger: loggerFactory("service/finding")
-  })
+    logger: loggerFactory("service/finding"),
+  });
   const statsService = createStatsService({
     findingRepository: repositories.findingRepository,
-    logger: loggerFactory("service/stats")
-  })
+    logger: loggerFactory("service/stats"),
+  });
 
-  const importLogger = loggerFactory("findings/import")
-  const nucleiLogger = loggerFactory("findings/import/nuclei")
+  const importLogger = loggerFactory("findings/import");
+  const nucleiLogger = loggerFactory("findings/import/nuclei");
   const getOrCreateAsset = createGetOrCreateAsset({
     assetService,
-    logger: importLogger
-  })
+    logger: importLogger,
+  });
   const nucleiParser = createNucleiFindingParser({
     vulnerabilityService,
     findingService,
     getOrCreateAsset,
-    logger: nucleiLogger
-  })
+    logger: nucleiLogger,
+  });
   const importer = createFindingImporter({
     nucleiParser,
-    logger: importLogger
-  })
+    logger: importLogger,
+  });
 
   const csrfProtection = createCsrfProtection({
     allowedOrigins: [options.appOrigin],
     tokenSecret: options.authSessionHmacSecret,
-    cookiePolicy: authCookiePolicy
-  })
+    cookiePolicy: authCookiePolicy,
+  });
 
   const routes = {
     healthRoute: health,
     authRoute: createAuthRoute(authService, {
       csrf: csrfProtection,
       cookiePolicy: authCookiePolicy,
-      trustedProxies: options.authTrustedProxies
+      trustedProxies: options.authTrustedProxies,
     }),
     assetRoute: createAssetRoute(assetService, assetCustomFieldService, {
-      requireDomainPermission
+      requireDomainPermission,
     }),
     roleRoute: createRoleRoute(roleService, { requireDomainPermission }),
     userRoute: createUserRoute(userProfileService, { requireDomainPermission }),
     vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService, {
-      requireDomainPermission
+      requireDomainPermission,
     }),
     findingStatsRoute: createFindingStatsRoute(statsService, {
-      requireDomainPermission
+      requireDomainPermission,
     }),
     findingRoute: createFindingRoute(findingService, {
-      requireDomainPermission
+      requireDomainPermission,
     }),
     importerRoute: createImportRoute({
       importer,
       logger: importLogger,
-      requireDomainPermission
-    })
-  }
+      requireDomainPermission,
+    }),
+  };
 
   const middleware = {
     annotateAuth: createAuthAnnotate(authService, authCookiePolicy),
     csrfProtection: csrfProtection.middleware,
-    requireAuth: authNRequire()
-  }
+    requireAuth: authNRequire(),
+  };
 
   const app = createApp({
     logger: options.logger,
@@ -204,8 +203,8 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     annotateAuth: middleware.annotateAuth,
     csrfProtection: middleware.csrfProtection,
     requireAuth: middleware.requireAuth,
-    ...routes
-  })
+    ...routes,
+  });
 
   return {
     repositories,
@@ -217,7 +216,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
       userProfileService,
       vulnerabilityService,
       findingService,
-      statsService
+      statsService,
     },
     importer,
     routes,
@@ -226,7 +225,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     createDefaultAdmin: () =>
       createDefaultAdmin({
         db: options.db,
-        logger: options.dbLogger ?? loggerFactory("db")
-      })
-  }
+        logger: options.dbLogger ?? loggerFactory("db"),
+      }),
+  };
 }

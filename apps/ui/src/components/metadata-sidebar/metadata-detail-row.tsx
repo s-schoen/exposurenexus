@@ -1,40 +1,35 @@
-import type { ReactNode } from "react"
-import type { EditElement } from "@/components/inplace.tsx"
-import { Inplace } from "@/components/inplace.tsx"
+import { Inplace } from "@/components/inplace.tsx";
+
+import type { EditElement } from "@/components/inplace.tsx";
+import type { ReactNode } from "react";
 
 interface MetadataDetailRowBaseProps {
-  label: string
-  mono?: boolean
+  label: string;
+  mono?: boolean;
 }
 
 interface StaticMetadataDetailRowProps extends MetadataDetailRowBaseProps {
-  value: ReactNode
-  editable?: never
+  value: ReactNode;
+  editable?: never;
 }
 
 interface EditableMetadataDetailRowProps<T> extends MetadataDetailRowBaseProps {
-  value?: never
+  value?: never;
   editable: {
-    value: T
-    onSave: (value: T) => void | Promise<void>
-    displayElement?: (value: T) => ReactNode
-    editElement?: EditElement<T>
-    editOnClick?: boolean
-    showEditIcon?: boolean
-    onEditingChange?: (editing: boolean) => void
-  }
+    value: T;
+    onSave: (value: T) => void | Promise<void>;
+    displayElement?: (value: T) => ReactNode;
+    editElement?: EditElement<T>;
+    editOnClick?: boolean;
+    showEditIcon?: boolean;
+    onEditingChange?: (editing: boolean) => void;
+  };
 }
 
-type MetadataDetailRowProps<T> =
-  | StaticMetadataDetailRowProps
-  | EditableMetadataDetailRowProps<T>
+type MetadataDetailRowProps<T> = StaticMetadataDetailRowProps | EditableMetadataDetailRowProps<T>;
 
-export function MetadataDetailRow<T>({
-  label,
-  mono = false,
-  ...props
-}: MetadataDetailRowProps<T>) {
-  const editable = "editable" in props ? props.editable : undefined
+export function MetadataDetailRow<T>({ label, mono = false, ...props }: MetadataDetailRowProps<T>) {
+  const editable = "editable" in props ? props.editable : undefined;
 
   if (editable) {
     return (
@@ -54,7 +49,7 @@ export function MetadataDetailRow<T>({
           />
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -72,5 +67,5 @@ export function MetadataDetailRow<T>({
         {props.value}
       </span>
     </div>
-  )
+  );
 }

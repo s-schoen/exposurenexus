@@ -1,48 +1,41 @@
 import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi
-} from "vitest"
-import {
   BuiltInRoleName,
   PermissionResource,
   PermissionVerb,
-  builtInRoleIds
-} from "@exposurenexus/types/model/rbac"
-import { createRoleRepository } from "./role.js"
-import { createTestDatabase, resetTestDatabase } from "../test/db.js"
+  builtInRoleIds,
+} from "@exposurenexus/types/model/rbac";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { createTestDatabase, resetTestDatabase } from "../test/db.js";
+import { createRoleRepository } from "./role.js";
 
 vi.mock("../db/index.js", () => ({
   db: {},
   logger: {},
-  pool: {}
-}))
+  pool: {},
+}));
 
 describe("role repository", () => {
-  const testDb = createTestDatabase()
+  const testDb = createTestDatabase();
 
   beforeAll(async () => {
-    await testDb.start()
-  })
+    await testDb.start();
+  });
 
   afterAll(async () => {
-    await testDb.dispose()
-  })
+    await testDb.dispose();
+  });
 
   beforeEach(async () => {
-    await resetTestDatabase(testDb.db)
-  })
+    await resetTestDatabase(testDb.db);
+  });
 
   it("lists seeded roles with their permissions", async () => {
-    const repository = createRoleRepository(testDb.db)
+    const repository = createRoleRepository(testDb.db);
 
-    const roles = await repository.list()
+    const roles = await repository.list();
 
-    expect(roles).toHaveLength(3)
+    expect(roles).toHaveLength(3);
     expect(roles).toEqual(
       expect.arrayContaining([
         {
@@ -51,17 +44,17 @@ describe("role repository", () => {
           permissions: expect.arrayContaining([
             {
               resource: PermissionResource.User,
-              verb: PermissionVerb.Write
+              verb: PermissionVerb.Write,
             },
             {
               resource: PermissionResource.Asset,
-              verb: PermissionVerb.Delete
+              verb: PermissionVerb.Delete,
             },
             {
               resource: PermissionResource.CustomField,
-              verb: PermissionVerb.Delete
-            }
-          ])
+              verb: PermissionVerb.Delete,
+            },
+          ]),
         },
         {
           id: builtInRoleIds.editor,
@@ -69,13 +62,13 @@ describe("role repository", () => {
           permissions: expect.arrayContaining([
             {
               resource: PermissionResource.Import,
-              verb: PermissionVerb.Write
+              verb: PermissionVerb.Write,
             },
             {
               resource: PermissionResource.CustomField,
-              verb: PermissionVerb.Write
-            }
-          ])
+              verb: PermissionVerb.Write,
+            },
+          ]),
         },
         {
           id: builtInRoleIds.viewer,
@@ -84,28 +77,28 @@ describe("role repository", () => {
             { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
             {
               resource: PermissionResource.CustomField,
-              verb: PermissionVerb.Read
+              verb: PermissionVerb.Read,
             },
             {
               resource: PermissionResource.Finding,
-              verb: PermissionVerb.Read
+              verb: PermissionVerb.Read,
             },
             {
               resource: PermissionResource.Vulnerability,
-              verb: PermissionVerb.Read
+              verb: PermissionVerb.Read,
             },
             {
               resource: PermissionResource.Stats,
-              verb: PermissionVerb.Read
-            }
-          ])
-        }
-      ])
-    )
-  })
+              verb: PermissionVerb.Read,
+            },
+          ]),
+        },
+      ]),
+    );
+  });
 
   it("returns a role by id", async () => {
-    const repository = createRoleRepository(testDb.db)
+    const repository = createRoleRepository(testDb.db);
 
     await expect(repository.getByID(builtInRoleIds.viewer)).resolves.toEqual({
       id: builtInRoleIds.viewer,
@@ -114,217 +107,208 @@ describe("role repository", () => {
         { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
         {
           resource: PermissionResource.CustomField,
-          verb: PermissionVerb.Read
+          verb: PermissionVerb.Read,
         },
         {
           resource: PermissionResource.Finding,
-          verb: PermissionVerb.Read
+          verb: PermissionVerb.Read,
         },
         {
           resource: PermissionResource.Vulnerability,
-          verb: PermissionVerb.Read
+          verb: PermissionVerb.Read,
         },
         {
           resource: PermissionResource.Stats,
-          verb: PermissionVerb.Read
-        }
-      ])
-    })
-  })
+          verb: PermissionVerb.Read,
+        },
+      ]),
+    });
+  });
 
   it("returns null for unknown role ids", async () => {
-    const repository = createRoleRepository(testDb.db)
+    const repository = createRoleRepository(testDb.db);
 
-    await expect(
-      repository.getByID("c738c53c-1660-4535-b630-8a3b99505555")
-    ).resolves.toBeNull()
-  })
+    await expect(repository.getByID("c738c53c-1660-4535-b630-8a3b99505555")).resolves.toBeNull();
+  });
 
   it("returns matching roles by ids in database order", async () => {
-    const repository = createRoleRepository(testDb.db)
+    const repository = createRoleRepository(testDb.db);
 
     const roles = await repository.getByIDs([
       builtInRoleIds.viewer,
       builtInRoleIds.admin,
-      builtInRoleIds.viewer
-    ])
+      builtInRoleIds.viewer,
+    ]);
 
-    expect(roles).toHaveLength(2)
+    expect(roles).toHaveLength(2);
     expect(roles).toEqual(
       expect.arrayContaining([
         {
           id: builtInRoleIds.admin,
           name: BuiltInRoleName.Admin,
-          permissions: expect.any(Array)
+          permissions: expect.any(Array),
         },
         {
           id: builtInRoleIds.viewer,
           name: BuiltInRoleName.Viewer,
-          permissions: expect.any(Array)
-        }
-      ])
-    )
-  })
+          permissions: expect.any(Array),
+        },
+      ]),
+    );
+  });
 
   it("returns matching roles by names in database order", async () => {
-    const repository = createRoleRepository(testDb.db)
+    const repository = createRoleRepository(testDb.db);
 
     const roles = await repository.getByNames([
       BuiltInRoleName.Editor,
       BuiltInRoleName.Viewer,
-      BuiltInRoleName.Editor
-    ])
+      BuiltInRoleName.Editor,
+    ]);
 
-    expect(roles).toHaveLength(2)
+    expect(roles).toHaveLength(2);
     expect(roles).toEqual(
       expect.arrayContaining([
         {
           id: builtInRoleIds.viewer,
           name: BuiltInRoleName.Viewer,
-          permissions: expect.any(Array)
+          permissions: expect.any(Array),
         },
         {
           id: builtInRoleIds.editor,
           name: BuiltInRoleName.Editor,
-          permissions: expect.any(Array)
-        }
-      ])
-    )
-  })
+          permissions: expect.any(Array),
+        },
+      ]),
+    );
+  });
 
   it("creates a role with permissions", async () => {
-    const repository = createRoleRepository(testDb.db)
+    const repository = createRoleRepository(testDb.db);
 
     const createdRole = await repository.create({
       name: "security-analyst",
       permissions: [
         {
           resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
+          verb: PermissionVerb.Read,
         },
         {
           resource: PermissionResource.Finding,
-          verb: PermissionVerb.Write
-        }
-      ]
-    })
+          verb: PermissionVerb.Write,
+        },
+      ],
+    });
 
     expect(createdRole.id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u
-    )
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
+    );
     expect(createdRole).toEqual({
       id: createdRole.id,
       name: "security-analyst",
       permissions: expect.arrayContaining([
         {
           resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
+          verb: PermissionVerb.Read,
         },
         {
           resource: PermissionResource.Finding,
-          verb: PermissionVerb.Write
-        }
-      ])
-    })
-    expect(createdRole.permissions).toHaveLength(2)
-    await expect(repository.getByID(createdRole.id)).resolves.toEqual(
-      createdRole
-    )
-  })
+          verb: PermissionVerb.Write,
+        },
+      ]),
+    });
+    expect(createdRole.permissions).toHaveLength(2);
+    await expect(repository.getByID(createdRole.id)).resolves.toEqual(createdRole);
+  });
 
   it("creates a role without permissions", async () => {
-    const repository = createRoleRepository(testDb.db)
+    const repository = createRoleRepository(testDb.db);
 
     const createdRole = await repository.create({
       name: "no-access",
-      permissions: []
-    })
+      permissions: [],
+    });
 
     expect(createdRole).toEqual({
       id: createdRole.id,
       name: "no-access",
-      permissions: []
-    })
-    await expect(repository.getByID(createdRole.id)).resolves.toEqual(
-      createdRole
-    )
-  })
+      permissions: [],
+    });
+    await expect(repository.getByID(createdRole.id)).resolves.toEqual(createdRole);
+  });
 
   it("deduplicates duplicate permission pairs when creating a role", async () => {
-    const repository = createRoleRepository(testDb.db)
+    const repository = createRoleRepository(testDb.db);
 
     const createdRole = await repository.create({
       name: "deduped-role",
       permissions: [
         {
           resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
+          verb: PermissionVerb.Read,
         },
         {
           resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
+          verb: PermissionVerb.Read,
         },
         {
           resource: PermissionResource.Asset,
-          verb: PermissionVerb.Write
-        }
-      ]
-    })
+          verb: PermissionVerb.Write,
+        },
+      ],
+    });
 
     expect(createdRole.permissions).toEqual([
       {
         resource: PermissionResource.Asset,
-        verb: PermissionVerb.Read
+        verb: PermissionVerb.Read,
       },
       {
         resource: PermissionResource.Asset,
-        verb: PermissionVerb.Write
-      }
-    ])
+        verb: PermissionVerb.Write,
+      },
+    ]);
 
     const assignments = await testDb.db
       .selectFrom("role_permission_assignment")
       .select(["resource", "verb"])
       .where("roleId", "=", createdRole.id)
-      .execute()
+      .execute();
 
-    expect(assignments).toEqual(createdRole.permissions)
-  })
+    expect(assignments).toEqual(createdRole.permissions);
+  });
 
   it("fails when creating a role with a duplicate name", async () => {
-    const repository = createRoleRepository(testDb.db)
+    const repository = createRoleRepository(testDb.db);
 
     await expect(
       repository.create({
         name: BuiltInRoleName.Viewer,
-        permissions: []
-      })
-    ).rejects.toThrow()
-  })
+        permissions: [],
+      }),
+    ).rejects.toThrow();
+  });
 
   it("updates a role and replaces its permissions", async () => {
-    const repository = createRoleRepository(testDb.db)
-    const roleId = "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830"
+    const repository = createRoleRepository(testDb.db);
+    const roleId = "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830";
 
-    await testDb.db
-      .insertInto("role")
-      .values({ id: roleId, name: "analyst" })
-      .execute()
+    await testDb.db.insertInto("role").values({ id: roleId, name: "analyst" }).execute();
     await testDb.db
       .insertInto("role_permission_assignment")
       .values([
         {
           roleId,
           resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
+          verb: PermissionVerb.Read,
         },
         {
           roleId,
           resource: PermissionResource.Finding,
-          verb: PermissionVerb.Read
-        }
+          verb: PermissionVerb.Read,
+        },
       ])
-      .execute()
+      .execute();
 
     await expect(
       repository.updateByID(roleId, {
@@ -332,18 +316,18 @@ describe("role repository", () => {
         permissions: [
           {
             resource: PermissionResource.Asset,
-            verb: PermissionVerb.Read
+            verb: PermissionVerb.Read,
           },
           {
             resource: PermissionResource.Asset,
-            verb: PermissionVerb.Read
+            verb: PermissionVerb.Read,
           },
           {
             resource: PermissionResource.Asset,
-            verb: PermissionVerb.Write
-          }
-        ]
-      })
+            verb: PermissionVerb.Write,
+          },
+        ],
+      }),
     ).resolves.toEqual({
       role: {
         id: roleId,
@@ -351,18 +335,18 @@ describe("role repository", () => {
         permissions: [
           {
             resource: PermissionResource.Asset,
-            verb: PermissionVerb.Read
+            verb: PermissionVerb.Read,
           },
           {
             resource: PermissionResource.Asset,
-            verb: PermissionVerb.Write
-          }
-        ]
+            verb: PermissionVerb.Write,
+          },
+        ],
       },
       permissionsChanged: true,
       affectedUserCount: 0,
-      revokedSessionCount: 0
-    })
+      revokedSessionCount: 0,
+    });
 
     await expect(repository.getByID(roleId)).resolves.toEqual({
       id: roleId,
@@ -370,34 +354,31 @@ describe("role repository", () => {
       permissions: [
         {
           resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
+          verb: PermissionVerb.Read,
         },
         {
           resource: PermissionResource.Asset,
-          verb: PermissionVerb.Write
-        }
-      ]
-    })
-  })
+          verb: PermissionVerb.Write,
+        },
+      ],
+    });
+  });
 
   it("revokes assigned user sessions when role permissions change", async () => {
-    const repository = createRoleRepository(testDb.db)
-    const roleId = "3fb9f330-637a-4779-a65b-cc9a44d67850"
-    const assignedUserId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f"
-    const unrelatedUserId = "86f9cb55-857c-4316-a4f1-a7e63ee680ad"
+    const repository = createRoleRepository(testDb.db);
+    const roleId = "3fb9f330-637a-4779-a65b-cc9a44d67850";
+    const assignedUserId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f";
+    const unrelatedUserId = "86f9cb55-857c-4316-a4f1-a7e63ee680ad";
 
-    await testDb.db
-      .insertInto("role")
-      .values({ id: roleId, name: "analyst" })
-      .execute()
+    await testDb.db.insertInto("role").values({ id: roleId, name: "analyst" }).execute();
     await testDb.db
       .insertInto("role_permission_assignment")
       .values({
         roleId,
         resource: PermissionResource.Asset,
-        verb: PermissionVerb.Read
+        verb: PermissionVerb.Read,
       })
-      .execute()
+      .execute();
     await testDb.db
       .insertInto("user_profile")
       .values([
@@ -407,7 +388,7 @@ describe("role repository", () => {
           displayName: "Assigned User",
           email: "assigned@example.com",
           enabled: true,
-          passwordHash: "hash"
+          passwordHash: "hash",
         },
         {
           id: unrelatedUserId,
@@ -415,17 +396,17 @@ describe("role repository", () => {
           displayName: "Unrelated User",
           email: "unrelated@example.com",
           enabled: true,
-          passwordHash: "hash"
-        }
+          passwordHash: "hash",
+        },
       ])
-      .execute()
+      .execute();
     await testDb.db
       .insertInto("user_role_assignment")
       .values({
         userId: assignedUserId,
-        roleId
+        roleId,
       })
-      .execute()
+      .execute();
     await testDb.db
       .insertInto("user_session")
       .values([
@@ -435,7 +416,7 @@ describe("role repository", () => {
           sourceIp: "203.0.113.10",
           userAgent: "Mozilla/5.0",
           createdAt: new Date("2026-04-23T08:00:00.000Z"),
-          expiresAt: new Date("2026-04-23T10:00:00.000Z")
+          expiresAt: new Date("2026-04-23T10:00:00.000Z"),
         },
         {
           sessionId: "unrelated-user-session-digest",
@@ -443,10 +424,10 @@ describe("role repository", () => {
           sourceIp: "203.0.113.11",
           userAgent: "curl/8.0.1",
           createdAt: new Date("2026-04-23T08:00:00.000Z"),
-          expiresAt: new Date("2026-04-23T10:00:00.000Z")
-        }
+          expiresAt: new Date("2026-04-23T10:00:00.000Z"),
+        },
       ])
-      .execute()
+      .execute();
 
     await expect(
       repository.updateByID(roleId, {
@@ -454,14 +435,14 @@ describe("role repository", () => {
         permissions: [
           {
             resource: PermissionResource.Asset,
-            verb: PermissionVerb.Read
+            verb: PermissionVerb.Read,
           },
           {
             resource: PermissionResource.Asset,
-            verb: PermissionVerb.Write
-          }
-        ]
-      })
+            verb: PermissionVerb.Write,
+          },
+        ],
+      }),
     ).resolves.toEqual({
       role: {
         id: roleId,
@@ -469,49 +450,46 @@ describe("role repository", () => {
         permissions: [
           {
             resource: PermissionResource.Asset,
-            verb: PermissionVerb.Read
+            verb: PermissionVerb.Read,
           },
           {
             resource: PermissionResource.Asset,
-            verb: PermissionVerb.Write
-          }
-        ]
+            verb: PermissionVerb.Write,
+          },
+        ],
       },
       permissionsChanged: true,
       affectedUserCount: 1,
-      revokedSessionCount: 1
-    })
+      revokedSessionCount: 1,
+    });
 
     const remainingSessions = await testDb.db
       .selectFrom("user_session")
       .select(["sessionId", "userId"])
-      .execute()
+      .execute();
 
     expect(remainingSessions).toEqual([
       {
         sessionId: "unrelated-user-session-digest",
-        userId: unrelatedUserId
-      }
-    ])
-  })
+        userId: unrelatedUserId,
+      },
+    ]);
+  });
 
   it("does not revoke assigned user sessions for role name-only updates", async () => {
-    const repository = createRoleRepository(testDb.db)
-    const roleId = "38f9a236-e78d-4776-a373-ee25908be7b1"
-    const assignedUserId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f"
+    const repository = createRoleRepository(testDb.db);
+    const roleId = "38f9a236-e78d-4776-a373-ee25908be7b1";
+    const assignedUserId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f";
 
-    await testDb.db
-      .insertInto("role")
-      .values({ id: roleId, name: "name-only-analyst" })
-      .execute()
+    await testDb.db.insertInto("role").values({ id: roleId, name: "name-only-analyst" }).execute();
     await testDb.db
       .insertInto("role_permission_assignment")
       .values({
         roleId,
         resource: PermissionResource.Asset,
-        verb: PermissionVerb.Read
+        verb: PermissionVerb.Read,
       })
-      .execute()
+      .execute();
     await testDb.db
       .insertInto("user_profile")
       .values({
@@ -520,16 +498,16 @@ describe("role repository", () => {
         displayName: "Assigned User",
         email: "assigned@example.com",
         enabled: true,
-        passwordHash: "hash"
+        passwordHash: "hash",
       })
-      .execute()
+      .execute();
     await testDb.db
       .insertInto("user_role_assignment")
       .values({
         userId: assignedUserId,
-        roleId
+        roleId,
       })
-      .execute()
+      .execute();
     await testDb.db
       .insertInto("user_session")
       .values({
@@ -538,9 +516,9 @@ describe("role repository", () => {
         sourceIp: "203.0.113.10",
         userAgent: "Mozilla/5.0",
         createdAt: new Date("2026-04-23T08:00:00.000Z"),
-        expiresAt: new Date("2026-04-23T10:00:00.000Z")
+        expiresAt: new Date("2026-04-23T10:00:00.000Z"),
       })
-      .execute()
+      .execute();
 
     await expect(
       repository.updateByID(roleId, {
@@ -548,10 +526,10 @@ describe("role repository", () => {
         permissions: [
           {
             resource: PermissionResource.Asset,
-            verb: PermissionVerb.Read
-          }
-        ]
-      })
+            verb: PermissionVerb.Read,
+          },
+        ],
+      }),
     ).resolves.toEqual({
       role: {
         id: roleId,
@@ -559,36 +537,33 @@ describe("role repository", () => {
         permissions: [
           {
             resource: PermissionResource.Asset,
-            verb: PermissionVerb.Read
-          }
-        ]
+            verb: PermissionVerb.Read,
+          },
+        ],
       },
       permissionsChanged: false,
       affectedUserCount: 0,
-      revokedSessionCount: 0
-    })
+      revokedSessionCount: 0,
+    });
 
-    await expect(
-      testDb.db.selectFrom("user_session").selectAll().execute()
-    ).resolves.toHaveLength(1)
-  })
+    await expect(testDb.db.selectFrom("user_session").selectAll().execute()).resolves.toHaveLength(
+      1,
+    );
+  });
 
   it("deletes a role and cascades its permission assignments", async () => {
-    const repository = createRoleRepository(testDb.db)
-    const roleId = "27ff3776-a905-481e-8e53-444cc55f1af5"
+    const repository = createRoleRepository(testDb.db);
+    const roleId = "27ff3776-a905-481e-8e53-444cc55f1af5";
 
-    await testDb.db
-      .insertInto("role")
-      .values({ id: roleId, name: "contractor" })
-      .execute()
+    await testDb.db.insertInto("role").values({ id: roleId, name: "contractor" }).execute();
     await testDb.db
       .insertInto("role_permission_assignment")
       .values({
         roleId,
         resource: PermissionResource.Asset,
-        verb: PermissionVerb.Read
+        verb: PermissionVerb.Read,
       })
-      .execute()
+      .execute();
 
     await expect(repository.deleteByID(roleId)).resolves.toEqual({
       id: roleId,
@@ -596,25 +571,25 @@ describe("role repository", () => {
       permissions: [
         {
           resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read
-        }
-      ]
-    })
+          verb: PermissionVerb.Read,
+        },
+      ],
+    });
 
-    await expect(repository.getByID(roleId)).resolves.toBeNull()
+    await expect(repository.getByID(roleId)).resolves.toBeNull();
 
     const assignments = await testDb.db
       .selectFrom("role_permission_assignment")
       .selectAll()
       .where("roleId", "=", roleId)
-      .execute()
+      .execute();
 
-    expect(assignments).toEqual([])
-  })
+    expect(assignments).toEqual([]);
+  });
 
   it("detects users assigned to a role by role id", async () => {
-    const repository = createRoleRepository(testDb.db)
-    const userId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f"
+    const repository = createRoleRepository(testDb.db);
+    const userId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f";
 
     await testDb.db
       .insertInto("user_profile")
@@ -624,22 +599,18 @@ describe("role repository", () => {
         displayName: "Assigned User",
         email: "assigned@example.com",
         enabled: true,
-        passwordHash: "hash"
+        passwordHash: "hash",
       })
-      .execute()
+      .execute();
     await testDb.db
       .insertInto("user_role_assignment")
       .values({
         userId,
-        roleId: builtInRoleIds.viewer
+        roleId: builtInRoleIds.viewer,
       })
-      .execute()
+      .execute();
 
-    await expect(
-      repository.hasUsersWithRoleID(builtInRoleIds.viewer)
-    ).resolves.toBe(true)
-    await expect(
-      repository.hasUsersWithRoleID(builtInRoleIds.editor)
-    ).resolves.toBe(false)
-  })
-})
+    await expect(repository.hasUsersWithRoleID(builtInRoleIds.viewer)).resolves.toBe(true);
+    await expect(repository.hasUsersWithRoleID(builtInRoleIds.editor)).resolves.toBe(false);
+  });
+});

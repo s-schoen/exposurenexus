@@ -1,8 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, render, screen } from "@testing-library/react"
-import { FindingStatus } from "@exposurenexus/types/model/finding"
-import type { ReactNode } from "react"
-import { TriageFindingsPage } from "@/features/findings/components/triage-findings-page.tsx"
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { TriageFindingsPage } from "@/features/findings/components/triage-findings-page.tsx";
+
+import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => ({
   clearSelected: vi.fn(),
@@ -10,43 +12,43 @@ const mocks = vi.hoisted(() => ({
   selectRow: vi.fn(),
   useFindingTableSearchState: vi.fn(() => ({
     filterState: { status: [FindingStatus.Active] },
-    onFilterStateChange: vi.fn()
+    onFilterStateChange: vi.fn(),
   })),
   usePageMeta: vi.fn(),
   useSelectedSearchParam: vi.fn(() => ({
     clearSelected: vi.fn(),
     selectRow: vi.fn(),
-    selectedId: undefined as string | undefined
-  }))
-}))
+    selectedId: undefined as string | undefined,
+  })),
+}));
 
 vi.mock("@/context/page.tsx", () => ({
-  usePageMeta: mocks.usePageMeta
-}))
+  usePageMeta: mocks.usePageMeta,
+}));
 
 vi.mock("@/hooks/use-finding-table-search-state.ts", () => ({
-  useFindingTableSearchState: mocks.useFindingTableSearchState
-}))
+  useFindingTableSearchState: mocks.useFindingTableSearchState,
+}));
 
 vi.mock("@/hooks/use-selected-search-param.ts", () => ({
-  useSelectedSearchParam: mocks.useSelectedSearchParam
-}))
+  useSelectedSearchParam: mocks.useSelectedSearchParam,
+}));
 
 vi.mock("@/components/finding-table", () => ({
   FindingTable: ({
     initialGrouping,
-    selectedFindingId
+    selectedFindingId,
   }: {
-    initialGrouping?: Array<string>
-    selectedFindingId?: string
+    initialGrouping?: Array<string>;
+    selectedFindingId?: string;
   }) => (
     <div
       data-testid="finding-table"
       data-initial-grouping={initialGrouping?.join(",")}
       data-selected-finding-id={selectedFindingId}
     />
-  )
-}))
+  ),
+}));
 
 vi.mock("@/components/detail-preview-dialog.tsx", () => ({
   DetailPreviewDialog: ({
@@ -54,83 +56,79 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
     description,
     fullPageHref,
     selectedId,
-    title
+    title,
   }: {
-    children: ReactNode
-    description: string
-    fullPageHref?: string
-    selectedId?: string
-    title: string
+    children: ReactNode;
+    description: string;
+    fullPageHref?: string;
+    selectedId?: string;
+    title: string;
   }) => (
     <section aria-label={title} data-selected-id={selectedId}>
       <p>{description}</p>
       {fullPageHref ? <a href={fullPageHref}>Open full page</a> : null}
       {children}
     </section>
-  )
-}))
+  ),
+}));
 
 vi.mock("@/components/finding-detail-content.tsx", () => ({
   FindingDetailContent: ({ findingId }: { findingId: string }) => (
     <div>Finding detail for {findingId}</div>
-  )
-}))
+  ),
+}));
 
 describe("TriageFindingsPage", () => {
   beforeEach(() => {
-    mocks.onFilterStateChange = vi.fn()
-    mocks.clearSelected = vi.fn()
-    mocks.selectRow = vi.fn()
+    mocks.onFilterStateChange = vi.fn();
+    mocks.clearSelected = vi.fn();
+    mocks.selectRow = vi.fn();
     mocks.useFindingTableSearchState.mockReturnValue({
       filterState: { status: [FindingStatus.Active] },
-      onFilterStateChange: mocks.onFilterStateChange
-    })
-    mocks.usePageMeta.mockReset()
+      onFilterStateChange: mocks.onFilterStateChange,
+    });
+    mocks.usePageMeta.mockReset();
     mocks.useSelectedSearchParam.mockReturnValue({
       clearSelected: mocks.clearSelected,
       selectRow: mocks.selectRow,
-      selectedId: "2713d833-eb13-4517-ac7c-7761545ed42a"
-    })
-  })
+      selectedId: "2713d833-eb13-4517-ac7c-7761545ed42a",
+    });
+  });
 
   afterEach(() => {
-    cleanup()
-  })
+    cleanup();
+  });
 
   it("configures the triage queue search state and preview", () => {
     render(
       <TriageFindingsPage
         search={{ selected: "2713d833-eb13-4517-ac7c-7761545ed42a" }}
         selected="2713d833-eb13-4517-ac7c-7761545ed42a"
-      />
-    )
+      />,
+    );
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Triage Queue",
-      description:
-        "Work through active findings in a queue optimized for repetitive triage."
-    })
+      description: "Work through active findings in a queue optimized for repetitive triage.",
+    });
     expect(mocks.useFindingTableSearchState).toHaveBeenCalledWith({
       search: { selected: "2713d833-eb13-4517-ac7c-7761545ed42a" },
       to: "/findings/triage",
-      defaultStatusFilter: [FindingStatus.Active]
-    })
+      defaultStatusFilter: [FindingStatus.Active],
+    });
     expect(mocks.useSelectedSearchParam).toHaveBeenCalledWith({
       selectedId: "2713d833-eb13-4517-ac7c-7761545ed42a",
       to: "/findings/triage",
       replace: true,
-      getId: expect.any(Function)
-    })
-    expect(screen.getByTestId("finding-table")).toHaveAttribute(
-      "data-initial-grouping",
-      "assetId"
-    )
+      getId: expect.any(Function),
+    });
+    expect(screen.getByTestId("finding-table")).toHaveAttribute("data-initial-grouping", "assetId");
     expect(
-      screen.getByText("Finding detail for 2713d833-eb13-4517-ac7c-7761545ed42a")
-    ).toBeVisible()
+      screen.getByText("Finding detail for 2713d833-eb13-4517-ac7c-7761545ed42a"),
+    ).toBeVisible();
     expect(screen.getByRole("link", { name: /open full page/i })).toHaveAttribute(
       "href",
-      "/findings/2713d833-eb13-4517-ac7c-7761545ed42a"
-    )
-  })
-})
+      "/findings/2713d833-eb13-4517-ac7c-7761545ed42a",
+    );
+  });
+});

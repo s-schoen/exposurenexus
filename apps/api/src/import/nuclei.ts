@@ -1,19 +1,17 @@
-import {
-  type Finding,
-  FindingSource,
-  FindingStatus
-} from "@exposurenexus/types/model/finding"
-import { AssetType, type Asset } from "@exposurenexus/types/model/asset"
-import { z } from "zod/v4"
-import { badRequest } from "../lib/api-error.js"
-import type { ImportContext } from "./importer.js"
+import { AssetType, type Asset } from "@exposurenexus/types/model/asset";
+import { type Finding, FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
 import {
   type Vulnerability,
-  VulnerabilitySeverity
-} from "@exposurenexus/types/model/vulnerability"
-import type { FindingService } from "../service/finding.js"
-import type { VulnerabilityService } from "../service/vulnerability.js"
-import type { Logger } from "pino"
+  VulnerabilitySeverity,
+} from "@exposurenexus/types/model/vulnerability";
+import { z } from "zod/v4";
+
+import { badRequest } from "../lib/api-error.js";
+
+import type { FindingService } from "../service/finding.js";
+import type { VulnerabilityService } from "../service/vulnerability.js";
+import type { ImportContext } from "./importer.js";
+import type { Logger } from "pino";
 
 const nucleiFindingSchema = z
   .object({
@@ -29,19 +27,15 @@ const nucleiFindingSchema = z
       severity: z.string().optional(),
       classification: z
         .object({
-          "cve-id": z
-            .union([z.string(), z.array(z.string()), z.null()])
-            .optional(),
-          "cwe-id": z
-            .union([z.string(), z.array(z.string()), z.null()])
-            .optional(),
+          "cve-id": z.union([z.string(), z.array(z.string()), z.null()]).optional(),
+          "cwe-id": z.union([z.string(), z.array(z.string()), z.null()]).optional(),
           "cvss-metrics": z.string().optional(),
           "cvss-score": z.number().optional(),
           "epss-score": z.number().optional(),
           "epss-percentile": z.number().optional(),
-          cpe: z.string().optional()
+          cpe: z.string().optional(),
         })
-        .optional()
+        .optional(),
     }),
     type: z.string(),
     host: z.string().optional(),
@@ -54,62 +48,58 @@ const nucleiFindingSchema = z
     meta: z.record(z.string(), z.any()).optional(),
     ip: z.string().optional(),
     timestamp: z.iso.datetime({ offset: true }).optional(),
-    "curl-command": z.string().optional()
+    "curl-command": z.string().optional(),
   })
   .transform((data) => ({
     templateID: data["template-id"],
     curlCommand: data["curl-command"],
-    ...data
-  }))
+    ...data,
+  }));
 
-type NucleiFinding = z.infer<typeof nucleiFindingSchema>
+type NucleiFinding = z.infer<typeof nucleiFindingSchema>;
 
 type NucleiVulnerabilityService = Pick<
   VulnerabilityService,
   "listMappings" | "getByID" | "create" | "createMapping"
->
+>;
 
-type NucleiFindingService = Pick<FindingService, "createOrUpdate">
+type NucleiFindingService = Pick<FindingService, "createOrUpdate">;
 
 interface NucleiFindingParserDependencies {
-  vulnerabilityService: NucleiVulnerabilityService
-  findingService: NucleiFindingService
+  vulnerabilityService: NucleiVulnerabilityService;
+  findingService: NucleiFindingService;
   getOrCreateAsset(
     type: AssetType,
     name: string,
-    eventContext?: ImportContext["eventContext"]
-  ): Promise<Asset>
-  logger: Logger
+    eventContext?: ImportContext["eventContext"],
+  ): Promise<Asset>;
+  logger: Logger;
 }
 
 export function createNucleiFindingParser({
   vulnerabilityService,
   findingService,
   getOrCreateAsset,
-  logger
+  logger,
 }: NucleiFindingParserDependencies) {
   async function getOrCreateVulnerability(
     ctx: ImportContext,
-    finding: NucleiFinding
+    finding: NucleiFinding,
   ): Promise<Vulnerability | null> {
-    const mappings = await vulnerabilityService.listMappings(
-      FindingSource.Nuclei
-    )
+    const mappings = await vulnerabilityService.listMappings(FindingSource.Nuclei);
 
     const query = JSON.stringify({
-      templateID: finding.templateID
-    })
+      templateID: finding.templateID,
+    });
 
-    const mapping = mappings.find((v) => v.matchQuery === query)
+    const mapping = mappings.find((v) => v.matchQuery === query);
     if (mapping) {
-      return (await vulnerabilityService.getByID(mapping.vulnerabilityId))!
+      return (await vulnerabilityService.getByID(mapping.vulnerabilityId))!;
     }
 
     if (!finding.info.name) {
-      logger.warn(
-        `no name found in finding with template id ${finding.templateID}. Skipping`
-      )
-      return null
+      logger.warn(`no name found in finding with template id ${finding.templateID}. Skipping`);
+      return null;
     }
 
     const createdVuln = await vulnerabilityService.create({
@@ -120,71 +110,59 @@ export function createNucleiFindingParser({
         severity: parseNucleiSeverity(finding.info.severity || "info"),
         description: finding.info.description || "",
         cve: "",
-        cwe: 0
-      }
-    })
+        cwe: 0,
+      },
+    });
 
     await vulnerabilityService.createMapping({
       vulnerabilityId: createdVuln.id,
       source: FindingSource.Nuclei,
       matchQuery: query,
-      eventContext: ctx.eventContext
-    })
+      eventContext: ctx.eventContext,
+    });
 
-    return createdVuln
+    return createdVuln;
   }
 
   return {
-    async parseNucleiFindings(
-      ctx: ImportContext,
-      file: Buffer
-    ): Promise<Array<Finding>> {
-      logger.info("parsing nuclei findings")
+    async parseNucleiFindings(ctx: ImportContext, file: Buffer): Promise<Array<Finding>> {
+      logger.info("parsing nuclei findings");
       const jsonl = file
         .toString()
         .split("\n")
-        .filter((line) => line.startsWith("{"))
+        .filter((line) => line.startsWith("{"));
 
-      const createdFindings: Array<Finding> = []
-      let currentLine = 1
+      const createdFindings: Array<Finding> = [];
+      let currentLine = 1;
       for (const line of jsonl) {
         try {
-          const nucleiFinding = nucleiFindingSchema.parse(JSON.parse(line))
+          const nucleiFinding = nucleiFindingSchema.parse(JSON.parse(line));
 
-          logger.debug(`parsing finding ${currentLine} of ${jsonl.length}`)
+          logger.debug(`parsing finding ${currentLine} of ${jsonl.length}`);
           if (!nucleiFinding) {
-            continue
+            continue;
           }
 
           if (!nucleiFinding.host) {
-            logger.warn(`no host defined in finding ${currentLine}. Skipping`)
-            continue
+            logger.warn(`no host defined in finding ${currentLine}. Skipping`);
+            continue;
           }
 
-          const host = parseNucleiHostname(nucleiFinding.host)
-          const vulnerability = await getOrCreateVulnerability(
-            ctx,
-            nucleiFinding
-          )
+          const host = parseNucleiHostname(nucleiFinding.host);
+          const vulnerability = await getOrCreateVulnerability(ctx, nucleiFinding);
           if (!vulnerability) {
-            logger.warn(
-              `could not find vulnerability for finding ${currentLine}. Skipping`
-            )
-            continue
+            logger.warn(`could not find vulnerability for finding ${currentLine}. Skipping`);
+            continue;
           }
           logger.debug(
-            `using vulnerability ${vulnerability.id} (${vulnerability.title}) for finding ${currentLine}`
-          )
+            `using vulnerability ${vulnerability.id} (${vulnerability.title}) for finding ${currentLine}`,
+          );
 
-          const asset = await getOrCreateAsset(
-            AssetType.Host,
-            host,
-            ctx.eventContext
-          )
+          const asset = await getOrCreateAsset(AssetType.Host, host, ctx.eventContext);
           const fingerprintInfo = {
             port: nucleiFinding.port || "",
-            path: nucleiFinding.path || ""
-          }
+            path: nucleiFinding.path || "",
+          };
 
           const { finding, created } = await findingService.createOrUpdate({
             user: ctx.user,
@@ -197,40 +175,38 @@ export function createNucleiFindingParser({
               evidence: parseEvidence(nucleiFinding),
               mitigation: nucleiFinding.info.remediation || "",
               assigneeId: null,
-              dueDate: null
+              dueDate: null,
             },
             firstSeen: new Date(),
             fingerprintOptions: fingerprintInfo,
-            eventContext: ctx.eventContext
-          })
-          createdFindings.push(finding)
-          logger.info(
-            `${created ? "created" : "updated"} finding ${finding.id} for ${host}`
-          )
+            eventContext: ctx.eventContext,
+          });
+          createdFindings.push(finding);
+          logger.info(`${created ? "created" : "updated"} finding ${finding.id} for ${host}`);
 
-          currentLine++
+          currentLine++;
         } catch (error) {
-          logger.error(error, `failed to parse line ${currentLine}`)
-          throw badRequest(`failed to parse line ${currentLine}`)
+          logger.error(error, `failed to parse line ${currentLine}`);
+          throw badRequest(`failed to parse line ${currentLine}`);
         }
       }
 
-      return createdFindings
-    }
-  }
+      return createdFindings;
+    },
+  };
 }
 
 function parseNucleiSeverity(severity: string): VulnerabilitySeverity {
-  return severity as VulnerabilitySeverity
+  return severity as VulnerabilitySeverity;
 }
 
 function parseNucleiHostname(host: string): string {
-  return host.split(":")[0]
+  return host.split(":")[0];
 }
 
 function parseEvidence(finding: NucleiFinding): string {
   if (!finding.request) {
-    return ""
+    return "";
   }
 
   return `
@@ -257,5 +233,5 @@ function parseEvidence(finding: NucleiFinding): string {
   \`\`\`
   
   </details>
-  `
+  `;
 }

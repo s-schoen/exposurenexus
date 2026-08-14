@@ -12,7 +12,8 @@ Hono.js API Server
 
 - Use `pnpm`, NEVER use `npm` or `yarn`
 - `pnpm build` to build code with `tsc` and check for syntax errors
-- `pnpm check` to lint code with `eslint`
+- Run `pnpm lint` from the repository root to lint with Oxlint
+- Run `pnpm format:check` from the repository root to verify Oxfmt formatting
 - `pnpm typecheck` to type-check production source files without emitting build output
 - `pnpm typecheck:test` to type-check test files without building them for production
 - `pnpm typecheck:all` to run both production and test type checks

@@ -1,28 +1,27 @@
-import { createEnv } from "@t3-oss/env-core"
-import { z } from "zod/v4"
-import { isValidTrustedProxy } from "./lib/source-ip.js"
+import { createEnv } from "@t3-oss/env-core";
+import { z } from "zod/v4";
+
+import { isValidTrustedProxy } from "./lib/source-ip.js";
 
 function trustedProxies(value: string): string[] {
   return value
     .split(",")
     .map((proxy) => proxy.trim())
-    .filter((proxy) => proxy.length > 0)
+    .filter((proxy) => proxy.length > 0);
 }
 
-function configuredAppOrigin(
-  environment: NodeJS.ProcessEnv
-): string | undefined {
-  const appOrigin = environment.APP_ORIGIN?.trim()
+function configuredAppOrigin(environment: NodeJS.ProcessEnv): string | undefined {
+  const appOrigin = environment.APP_ORIGIN?.trim();
   if (appOrigin) {
-    return environment.APP_ORIGIN
+    return environment.APP_ORIGIN;
   }
 
-  const corsOrigin = environment.CORS_ORIGIN?.trim()
+  const corsOrigin = environment.CORS_ORIGIN?.trim();
   if (corsOrigin) {
-    return environment.CORS_ORIGIN
+    return environment.CORS_ORIGIN;
   }
 
-  return undefined
+  return undefined;
 }
 
 export const env = createEnv({
@@ -44,22 +43,20 @@ export const env = createEnv({
       .string()
       .default("")
       .transform((value, ctx) => {
-        const proxies = trustedProxies(value)
-        const invalidProxies = proxies.filter(
-          (proxy) => !isValidTrustedProxy(proxy)
-        )
+        const proxies = trustedProxies(value);
+        const invalidProxies = proxies.filter((proxy) => !isValidTrustedProxy(proxy));
 
         if (invalidProxies.length > 0) {
           ctx.addIssue({
             code: "custom",
-            message: `invalid trusted proxy entries: ${invalidProxies.join(", ")}`
-          })
-          return z.NEVER
+            message: `invalid trusted proxy entries: ${invalidProxies.join(", ")}`,
+          });
+          return z.NEVER;
         }
 
-        return proxies
+        return proxies;
       }),
-    DATABASE_URL: z.url()
+    DATABASE_URL: z.url(),
   },
 
   /**
@@ -68,7 +65,7 @@ export const env = createEnv({
    */
   runtimeEnv: {
     ...process.env,
-    APP_ORIGIN: configuredAppOrigin(process.env)
+    APP_ORIGIN: configuredAppOrigin(process.env),
   },
 
   /**
@@ -84,5 +81,5 @@ export const env = createEnv({
    * In order to solve these issues, we recommend that all new projects
    * explicitly specify this option as true.
    */
-  emptyStringAsUndefined: true
-})
+  emptyStringAsUndefined: true,
+});

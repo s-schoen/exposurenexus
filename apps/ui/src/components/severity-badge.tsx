@@ -1,12 +1,13 @@
-import type { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
-import { formatSeverity } from "@/lib/format.ts"
-import { Badge } from "@/components/ui/badge.tsx"
-import { cn } from "@/lib/utils.ts"
-import { severityBadgeClass } from "@/lib/colors.ts"
+import { Badge } from "@/components/ui/badge.tsx";
+import { severityBadgeClass } from "@/lib/colors.ts";
+import { formatSeverity } from "@/lib/format.ts";
+import { cn } from "@/lib/utils.ts";
+
+import type { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 
 interface SeverityBadgeProps {
-  severity: VulnerabilitySeverity
-  className?: string
+  severity: VulnerabilitySeverity;
+  className?: string;
 }
 
 export function SeverityBadge({ severity, className }: SeverityBadgeProps) {
@@ -16,10 +17,10 @@ export function SeverityBadge({ severity, className }: SeverityBadgeProps) {
       className={cn(
         "rounded-md border px-2.5 font-medium shadow-none",
         severityBadgeClass(severity),
-        className
+        className,
       )}
     >
       {formatSeverity(severity)}
     </Badge>
-  )
+  );
 }

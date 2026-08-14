@@ -1,14 +1,14 @@
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
 
 export type CustomFieldEventPayloads = {
   "custom-field.created": {
-    customFieldDefinition: AssetCustomFieldDefinition
-  }
+    customFieldDefinition: AssetCustomFieldDefinition;
+  };
   "custom-field.updated": {
-    previous: AssetCustomFieldDefinition
-    current: AssetCustomFieldDefinition
-  }
+    previous: AssetCustomFieldDefinition;
+    current: AssetCustomFieldDefinition;
+  };
   "custom-field.deleted": {
-    customFieldDefinition: AssetCustomFieldDefinition
-  }
-}
+    customFieldDefinition: AssetCustomFieldDefinition;
+  };
+};

@@ -1,6 +1,8 @@
-import { FindingStatus } from "@exposurenexus/types/model/finding"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import { FindingStatusChart } from "@/components/finding-status-chart"
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+
+import { FindingStatusChart } from "@/components/finding-status-chart";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const baselineData: Record<FindingStatus, number> = {
   [FindingStatus.Active]: 18,
@@ -10,8 +12,8 @@ const baselineData: Record<FindingStatus, number> = {
   [FindingStatus.OutOfScope]: 6,
   [FindingStatus.RiskAccepted]: 3,
   [FindingStatus.FalsePositive]: 5,
-  [FindingStatus.Inactive]: 2
-}
+  [FindingStatus.Inactive]: 2,
+};
 
 const activeWorkData: Record<FindingStatus, number> = {
   [FindingStatus.Active]: 42,
@@ -21,50 +23,49 @@ const activeWorkData: Record<FindingStatus, number> = {
   [FindingStatus.OutOfScope]: 1,
   [FindingStatus.RiskAccepted]: 6,
   [FindingStatus.FalsePositive]: 3,
-  [FindingStatus.Inactive]: 5
-}
+  [FindingStatus.Inactive]: 5,
+};
 
 const meta = {
   title: "Resources/Findings/StatusChart",
   component: FindingStatusChart,
   parameters: {
-    layout: "padded"
+    layout: "padded",
   },
   args: {
     data: baselineData,
-    height: "24rem"
-  }
-} satisfies Meta<typeof FindingStatusChart>
+    height: "24rem",
+  },
+} satisfies Meta<typeof FindingStatusChart>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {}
+export const Default: Story = {};
 
 export const ActiveWorkProfile: Story = {
   args: {
-    data: activeWorkData
-  }
-}
+    data: activeWorkData,
+  },
+};
 
 export const Loading: Story = {
   args: {
-    loading: true
-  }
-}
+    loading: true,
+  },
+};
 
 export const EmptyState: Story = {
   args: {
-    data: {}
-  }
-}
+    data: {},
+  },
+};
 
 export const CompactCard: Story = {
   args: {
     data: baselineData,
     height: "18rem",
-    className:
-      "max-w-xl border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
-  }
-}
+    className: "max-w-xl border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm",
+  },
+};

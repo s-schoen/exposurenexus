@@ -1,12 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { EditUserPage } from "@/features/users/components/edit-user-page.tsx"
+import { createFileRoute } from "@tanstack/react-router";
+
+import { EditUserPage } from "@/features/users/components/edit-user-page.tsx";
 
 export const Route = createFileRoute("/_authenticated/users/$id/edit")({
-  component: RouteComponent
-})
+  component: RouteComponent,
+});
 
 function RouteComponent() {
-  const { id } = Route.useParams()
+  const { id } = Route.useParams();
 
-  return <EditUserPage userId={id} />
+  return <EditUserPage userId={id} />;
 }

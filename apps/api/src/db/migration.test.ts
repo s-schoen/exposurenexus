@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest"
-import { createMigrationProvider } from "./migration.js"
+import { describe, expect, it } from "vitest";
+
+import { createMigrationProvider } from "./migration.js";
 
 const expectedMigrationNames = [
   "20251219-init-better-auth",
@@ -23,47 +24,47 @@ const expectedMigrationNames = [
   "20260509-03-finding-asset-delete-restrict",
   "20260509-vulnerability-source-mapping-unique",
   "20260510-audit-nullability-contract",
-  "20260510-rbac-role-permission-role-id-camel-case"
-]
+  "20260510-rbac-role-permission-role-id-camel-case",
+];
 
 // Forward-only migration history prevents renaming this already-applied file set.
-const legacyMixedMigrationDateExceptions = new Set(["20260509"])
+const legacyMixedMigrationDateExceptions = new Set(["20260509"]);
 
 function migrationDate(migrationName: string): string {
-  return migrationName.slice(0, 8)
+  return migrationName.slice(0, 8);
 }
 
 function migrationNameStyle(migrationName: string): "numbered" | "unnumbered" {
-  return /^\d{8}-\d{2}-/u.test(migrationName) ? "numbered" : "unnumbered"
+  return /^\d{8}-\d{2}-/u.test(migrationName) ? "numbered" : "unnumbered";
 }
 
 describe("database migration provider", () => {
   it("loads runtime migrations from the migration directory by filename", async () => {
-    const migrations = await createMigrationProvider().getMigrations()
+    const migrations = await createMigrationProvider().getMigrations();
 
-    expect(Object.keys(migrations).sort()).toEqual(expectedMigrationNames)
+    expect(Object.keys(migrations).sort()).toEqual(expectedMigrationNames);
     for (const name of expectedMigrationNames) {
-      expect(migrations[name]?.up).toEqual(expect.any(Function))
+      expect(migrations[name]?.up).toEqual(expect.any(Function));
     }
-  })
+  });
 
   it("does not mix numbered and unnumbered migrations on the same date", async () => {
-    const migrations = await createMigrationProvider().getMigrations()
-    const migrationStylesByDate = new Map<string, Set<string>>()
+    const migrations = await createMigrationProvider().getMigrations();
+    const migrationStylesByDate = new Map<string, Set<string>>();
 
     for (const migrationName of Object.keys(migrations)) {
-      const date = migrationDate(migrationName)
-      const styles = migrationStylesByDate.get(date) ?? new Set<string>()
+      const date = migrationDate(migrationName);
+      const styles = migrationStylesByDate.get(date) ?? new Set<string>();
 
-      styles.add(migrationNameStyle(migrationName))
-      migrationStylesByDate.set(date, styles)
+      styles.add(migrationNameStyle(migrationName));
+      migrationStylesByDate.set(date, styles);
     }
 
     const mixedDates = [...migrationStylesByDate.entries()]
       .filter(([date]) => !legacyMixedMigrationDateExceptions.has(date))
       .filter(([, styles]) => styles.size > 1)
-      .map(([date]) => date)
+      .map(([date]) => date);
 
-    expect(mixedDates).toEqual([])
-  })
-})
+    expect(mixedDates).toEqual([]);
+  });
+});

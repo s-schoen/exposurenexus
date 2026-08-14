@@ -1,30 +1,27 @@
-import { useMemo } from "react"
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
-import type { CSSProperties } from "react"
-import type { ChartConfig } from "@/components/ui/chart.tsx"
-import { severityChartColor } from "@/lib/colors.ts"
-import { formatSeverity } from "@/lib/format.ts"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
-import { cn } from "@/lib/utils.ts"
-import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { useMemo } from "react";
+
+import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
+import { severityChartColor } from "@/lib/colors.ts";
+import { formatSeverity } from "@/lib/format.ts";
+import { cn } from "@/lib/utils.ts";
+
+import type { ChartConfig } from "@/components/ui/chart.tsx";
+import type { CSSProperties } from "react";
 
 interface FindingSeverityChartProps {
-  data: Record<VulnerabilitySeverity, number> | {}
-  loading?: boolean
-  className?: string
-  height?: CSSProperties["height"]
+  data: Partial<Record<VulnerabilitySeverity, number>>;
+  loading?: boolean;
+  className?: string;
+  height?: CSSProperties["height"];
 }
 
 export function FindingSeverityChart({
   data,
   loading,
   className,
-  height
+  height,
 }: FindingSeverityChartProps) {
   const chartData = useMemo(
     () =>
@@ -32,37 +29,37 @@ export function FindingSeverityChart({
         return {
           label: severity,
           value,
-          fill: `var(--color-${severity})`
-        }
+          fill: `var(--color-${severity})`,
+        };
       }),
-    [data]
-  )
+    [data],
+  );
 
   const chartConfig = {
     value: {
-      label: "Findings"
+      label: "Findings",
     },
     [VulnerabilitySeverity.Info]: {
       label: formatSeverity(VulnerabilitySeverity.Info),
-      color: severityChartColor(VulnerabilitySeverity.Info)
+      color: severityChartColor(VulnerabilitySeverity.Info),
     },
     [VulnerabilitySeverity.Low]: {
       label: formatSeverity(VulnerabilitySeverity.Low),
-      color: severityChartColor(VulnerabilitySeverity.Low)
+      color: severityChartColor(VulnerabilitySeverity.Low),
     },
     [VulnerabilitySeverity.Medium]: {
       label: formatSeverity(VulnerabilitySeverity.Medium),
-      color: severityChartColor(VulnerabilitySeverity.Medium)
+      color: severityChartColor(VulnerabilitySeverity.Medium),
     },
     [VulnerabilitySeverity.High]: {
       label: formatSeverity(VulnerabilitySeverity.High),
-      color: severityChartColor(VulnerabilitySeverity.High)
+      color: severityChartColor(VulnerabilitySeverity.High),
     },
     [VulnerabilitySeverity.Critical]: {
       label: formatSeverity(VulnerabilitySeverity.Critical),
-      color: severityChartColor(VulnerabilitySeverity.Critical)
-    }
-  } satisfies ChartConfig
+      color: severityChartColor(VulnerabilitySeverity.Critical),
+    },
+  } satisfies ChartConfig;
 
   return (
     <Card className={cn("aspect-auto", className)}>
@@ -78,5 +75,5 @@ export function FindingSeverityChart({
         />
       </CardContent>
     </Card>
-  )
+  );
 }

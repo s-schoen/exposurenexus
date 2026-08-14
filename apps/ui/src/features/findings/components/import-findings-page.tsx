@@ -1,80 +1,81 @@
-import { CircleAlert, FileJson2, UploadCloud, X } from "lucide-react"
-import { useId, useState } from "react"
-import type { ChangeEvent } from "react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
-import { Button, buttonVariants } from "@/components/ui/button.tsx"
+import { CircleAlert, FileJson2, UploadCloud, X } from "lucide-react";
+import { useId, useState } from "react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
+import { Button, buttonVariants } from "@/components/ui/button.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
-import { Input } from "@/components/ui/input.tsx"
-import { usePageMeta } from "@/context/page.tsx"
-import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts"
-import { cn } from "@/lib/utils.ts"
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { usePageMeta } from "@/context/page.tsx";
+import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
+import { cn } from "@/lib/utils.ts";
+
+import type { ChangeEvent } from "react";
 
 function formatFileSize(size: number) {
   if (size < 1024) {
-    return `${size} B`
+    return `${size} B`;
   }
 
   if (size < 1024 * 1024) {
-    return `${(size / 1024).toFixed(1)} KB`
+    return `${(size / 1024).toFixed(1)} KB`;
   }
 
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function ImportFindingsPage() {
-  const findingLifecycle = useFindingLifecycle()
-  const [file, setFile] = useState<File | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [inputKey, setInputKey] = useState(0)
-  const inputId = useId()
+  const findingLifecycle = useFindingLifecycle();
+  const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [inputKey, setInputKey] = useState(0);
+  const inputId = useId();
 
   usePageMeta({
     title: "Import Findings",
-    description:
-      "Upload external scan results and ingest them into the platform as findings."
-  })
+    description: "Upload external scan results and ingest them into the platform as findings.",
+  });
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const nextFile = e.target.files?.[0] ?? null
-    setFile(nextFile)
-    setErrorMessage(null)
-  }
+    const nextFile = e.target.files?.[0] ?? null;
+    setFile(nextFile);
+    setErrorMessage(null);
+  };
 
   const handleClearFile = () => {
-    setFile(null)
-    setErrorMessage(null)
-    setInputKey((current) => current + 1)
-  }
+    setFile(null);
+    setErrorMessage(null);
+    setInputKey((current) => current + 1);
+  };
 
   const handleImport = async () => {
     if (!file) {
-      setErrorMessage("Select a nuclei export file before starting the import.")
-      return
+      setErrorMessage("Select a nuclei export file before starting the import.");
+      return;
     }
 
-    setIsUploading(true)
-    setErrorMessage(null)
+    setIsUploading(true);
+    setErrorMessage(null);
 
     try {
-      const result = await findingLifecycle.importFindingFile("nuclei", file)
+      const result = await findingLifecycle.importFindingFile("nuclei", file);
 
       if (!result.success) {
-        setErrorMessage(result.errorMessage)
-        return
+        setErrorMessage(result.errorMessage);
+        return;
       }
 
-      handleClearFile()
+      handleClearFile();
     } finally {
-      setIsUploading(false)
+      setIsUploading(false);
     }
-  }
+  };
 
   return (
     <div className="flex w-full flex-col">
@@ -157,7 +158,7 @@ export function ImportFindingsPage() {
               htmlFor={inputId}
               className={cn(
                 buttonVariants({ variant: "outline" }),
-                isUploading && "pointer-events-none opacity-50"
+                isUploading && "pointer-events-none opacity-50",
               )}
             >
               Select another file
@@ -166,5 +167,5 @@ export function ImportFindingsPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

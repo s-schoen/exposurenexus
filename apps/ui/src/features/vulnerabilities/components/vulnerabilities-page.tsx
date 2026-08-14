@@ -1,65 +1,59 @@
-import { useNavigate } from "@tanstack/react-router"
-import type { Vulnerability } from "@exposurenexus/types/model/vulnerability"
-import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
-import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx"
-import { VulnerabilityDetailContent } from "@/components/vulnerability-detail-content.tsx"
-import { VulnerabilityTable } from "@/components/vulnerability-table"
-import { usePageMeta } from "@/context/page.tsx"
-import { useVulnerabilityLifecycle } from "@/hooks/use-vulnerability-lifecycle.ts"
-import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts"
-import { useVulnerabilityTableSearchState } from "@/hooks/use-vulnerability-table-search-state.ts"
+import { useNavigate } from "@tanstack/react-router";
+
+import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
+import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
+import { VulnerabilityDetailContent } from "@/components/vulnerability-detail-content.tsx";
+import { VulnerabilityTable } from "@/components/vulnerability-table";
+import { usePageMeta } from "@/context/page.tsx";
+import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
+import { useVulnerabilityLifecycle } from "@/hooks/use-vulnerability-lifecycle.ts";
+import { useVulnerabilityTableSearchState } from "@/hooks/use-vulnerability-table-search-state.ts";
+
+import type { Vulnerability } from "@exposurenexus/types/model/vulnerability";
 
 interface VulnerabilitiesPageProps {
-  search?: Record<string, unknown>
-  selected?: string
+  search?: Record<string, unknown>;
+  selected?: string;
 }
 
-export function VulnerabilitiesPage({
-  search = {},
-  selected
-}: VulnerabilitiesPageProps) {
-  const navigate = useNavigate()
-  const vulnerabilityLifecycle = useVulnerabilityLifecycle()
-  const { filterState, onFilterStateChange } =
-    useVulnerabilityTableSearchState({
-      search
-    })
+export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPageProps) {
+  const navigate = useNavigate();
+  const vulnerabilityLifecycle = useVulnerabilityLifecycle();
+  const { filterState, onFilterStateChange } = useVulnerabilityTableSearchState({
+    search,
+  });
   const selectedSearch = useSelectedSearchParam<Vulnerability>({
     selectedId: selected,
     to: "/vulnerabilities",
-    getId: (vulnerability) => vulnerability.id
-  })
+    getId: (vulnerability) => vulnerability.id,
+  });
 
   usePageMeta({
     title: "Vulnerabilities",
-    description:
-      "Browse the underlying vulnerability catalog and inspect severity classification."
-  })
+    description: "Browse the underlying vulnerability catalog and inspect severity classification.",
+  });
 
-  const handleDeleteVulnerabilities = async (
-    vulnerabilities: Array<Vulnerability>
-  ) => {
+  const handleDeleteVulnerabilities = async (vulnerabilities: Array<Vulnerability>) => {
     const confirmed = await ConfirmDialog.call({
       title: "Delete Vulnerabilities",
       description: "This action cannot be undone",
       message: `Are you sure you want to delete ${vulnerabilities.length} vulnerability record(s)?`,
-      confirmVariant: "destructive"
-    })
+      confirmVariant: "destructive",
+    });
 
     if (!confirmed) {
-      return
+      return;
     }
 
-    const result =
-      await vulnerabilityLifecycle.deleteVulnerabilities(vulnerabilities)
+    const result = await vulnerabilityLifecycle.deleteVulnerabilities(vulnerabilities);
     const deletedVulnerabilityIds = new Set(
-      result.successful.map((vulnerability) => vulnerability.id)
-    )
+      result.successful.map((vulnerability) => vulnerability.id),
+    );
 
     if (selected && deletedVulnerabilityIds.has(selected)) {
-      await selectedSearch.clearSelected()
+      await selectedSearch.clearSelected();
     }
-  }
+  };
 
   return (
     <>
@@ -69,18 +63,18 @@ export function VulnerabilitiesPage({
         selectedVulnerabilityId={selectedSearch.selectedId}
         onCreateVulnerability={() =>
           navigate({
-            to: "/vulnerabilities/new"
+            to: "/vulnerabilities/new",
           })
         }
         onSelectVulnerability={(vulnerability) => {
-          void selectedSearch.selectRow(vulnerability)
+          void selectedSearch.selectRow(vulnerability);
         }}
         onDeleteVulnerabilities={handleDeleteVulnerabilities}
       />
       <DetailPreviewDialog
         selectedId={selectedSearch.selectedId}
         onClose={() => {
-          void selectedSearch.clearSelected()
+          void selectedSearch.clearSelected();
         }}
         title="Vulnerability details"
         description="Review the selected vulnerability without leaving the vulnerability table."
@@ -89,5 +83,5 @@ export function VulnerabilitiesPage({
         {selected && <VulnerabilityDetailContent vulnerabilityId={selected} />}
       </DetailPreviewDialog>
     </>
-  )
+  );
 }

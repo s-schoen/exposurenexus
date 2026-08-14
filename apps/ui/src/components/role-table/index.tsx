@@ -1,30 +1,29 @@
-import { Plus } from "lucide-react"
-import type { UseQueryResult } from "@tanstack/react-query"
-import type { Role } from "@exposurenexus/types/model/rbac"
-import type {
-  DataTableFilterState,
-  GroupingOption
-} from "@/components/data-table/types.ts"
-import { DataTable } from "@/components/data-table/data-table.tsx"
-import { columns } from "@/components/role-table/columns.tsx"
-import { Button } from "@/components/ui/button.tsx"
+import { Plus } from "lucide-react";
+
+import { DataTable } from "@/components/data-table/data-table.tsx";
+import { columns } from "@/components/role-table/columns.tsx";
+import { Button } from "@/components/ui/button.tsx";
+
+import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
+import type { Role } from "@exposurenexus/types/model/rbac";
+import type { UseQueryResult } from "@tanstack/react-query";
 
 const groupingOptions: Array<GroupingOption> = [
   {
     id: "kind",
-    label: "Type"
-  }
-]
+    label: "Type",
+  },
+];
 
 interface RoleTableProps {
-  query: UseQueryResult<Array<Role>, Error>
-  selectedRoleId?: string
-  onSelectRole?: (role: Role) => void
-  onOpenRole?: (role: Role) => void
-  onCreateRole?: () => void
-  onDeleteRoles?: (roles: Array<Role>) => Promise<void>
-  filterState?: DataTableFilterState
-  onFilterStateChange?: (state: DataTableFilterState) => void
+  query: UseQueryResult<Array<Role>, Error>;
+  selectedRoleId?: string;
+  onSelectRole?: (role: Role) => void;
+  onOpenRole?: (role: Role) => void;
+  onCreateRole?: () => void;
+  onDeleteRoles?: (roles: Array<Role>) => Promise<void>;
+  filterState?: DataTableFilterState;
+  onFilterStateChange?: (state: DataTableFilterState) => void;
 }
 
 export function RoleTable({
@@ -35,20 +34,15 @@ export function RoleTable({
   onCreateRole,
   onDeleteRoles,
   filterState,
-  onFilterStateChange
+  onFilterStateChange,
 }: RoleTableProps) {
   function ToolbarElements() {
     return (
-      <Button
-        variant="default"
-        size="sm"
-        className="h-9 rounded-xl"
-        onClick={onCreateRole}
-      >
+      <Button variant="default" size="sm" className="h-9 rounded-xl" onClick={onCreateRole}>
         <Plus />
         New role
       </Button>
-    )
+    );
   }
 
   return (
@@ -64,5 +58,5 @@ export function RoleTable({
       isRowActive={(role) => role.id === selectedRoleId}
       toolbarControls={onCreateRole ? <ToolbarElements /> : undefined}
     />
-  )
+  );
 }

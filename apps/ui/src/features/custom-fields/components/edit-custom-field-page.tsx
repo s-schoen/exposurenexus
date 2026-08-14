@@ -1,66 +1,61 @@
-import { useQuery } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
-import { CircleAlert } from "lucide-react"
-import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts"
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { CircleAlert } from "lucide-react";
+
+import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts";
 import {
   AssetCustomFieldForm,
   mapAssetCustomFieldDefinitionToFormValues,
-  mapUpdateAssetCustomFieldFormValues
-} from "@/components/asset-custom-field-form.tsx"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
+  mapUpdateAssetCustomFieldFormValues,
+} from "@/components/asset-custom-field-form.tsx";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
-import { Skeleton } from "@/components/ui/skeleton.tsx"
-import { usePageMeta } from "@/context/page.tsx"
-import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts"
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { usePageMeta } from "@/context/page.tsx";
+import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts";
 
 interface EditCustomFieldPageProps {
-  customFieldId: string
+  customFieldId: string;
 }
 
-export function EditCustomFieldPage({
-  customFieldId
-}: EditCustomFieldPageProps) {
-  const navigate = useNavigate()
-  const fieldLifecycle = useAssetCustomFieldDefinitionLifecycle()
-  const customField = useQuery(
-    createAssetCustomFieldDefinitionByIDQueryOptions(customFieldId)
-  )
+export function EditCustomFieldPage({ customFieldId }: EditCustomFieldPageProps) {
+  const navigate = useNavigate();
+  const fieldLifecycle = useAssetCustomFieldDefinitionLifecycle();
+  const customField = useQuery(createAssetCustomFieldDefinitionByIDQueryOptions(customFieldId));
 
   usePageMeta({
-    title: customField.data?.name
-      ? `Edit ${customField.data.name}`
-      : "Edit Custom Field",
-    description: "Update the asset custom field definition and allowed values."
-  })
+    title: customField.data?.name ? `Edit ${customField.data.name}` : "Edit Custom Field",
+    description: "Update the asset custom field definition and allowed values.",
+  });
 
   const handleCancel = async () => {
     await navigate({
       to: "/custom-fields/$id",
-      params: { id: customFieldId }
-    })
-  }
+      params: { id: customFieldId },
+    });
+  };
 
   const handleSubmit = async (
-    values: Parameters<typeof mapUpdateAssetCustomFieldFormValues>[0]
+    values: Parameters<typeof mapUpdateAssetCustomFieldFormValues>[0],
   ) => {
     const updatedCustomField = await fieldLifecycle.updateDefinition(
       customFieldId,
-      mapUpdateAssetCustomFieldFormValues(values)
-    )
+      mapUpdateAssetCustomFieldFormValues(values),
+    );
 
     if (updatedCustomField) {
       await navigate({
         to: "/custom-fields/$id",
-        params: { id: customFieldId }
-      })
+        params: { id: customFieldId },
+      });
     }
-  }
+  };
 
   if (customField.isPending) {
     return (
@@ -75,7 +70,7 @@ export function EditCustomFieldPage({
           <Skeleton className="h-64 w-full" />
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (!customField.data) {
@@ -95,7 +90,7 @@ export function EditCustomFieldPage({
           </Alert>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -105,5 +100,5 @@ export function EditCustomFieldPage({
       onSubmit={handleSubmit}
       onCancel={handleCancel}
     />
-  )
+  );
 }

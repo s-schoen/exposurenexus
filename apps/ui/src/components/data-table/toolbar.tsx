@@ -1,51 +1,39 @@
-import { RotateCw, Rows3, Trash, X } from "lucide-react"
-import type { Column, Table } from "@tanstack/react-table"
-import type { ReactNode } from "react"
-import type { GroupingOption } from "@/components/data-table/types.ts"
-import { DataTableColumnVisibilityOptions } from "@/components/data-table/column-visibility.tsx"
-import { DataTableFilter } from "@/components/data-table/filter.tsx"
-import { NO_GROUPING_VALUE } from "@/components/data-table/types.ts"
-import { Badge } from "@/components/ui/badge.tsx"
-import { Button } from "@/components/ui/button.tsx"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger
-} from "@/components/ui/select.tsx"
-import { Spinner } from "@/components/ui/spinner.tsx"
-import { SelectFilterField } from "@/components/data-table/filter/select-filter-field.tsx"
-import { InputFilterField } from "@/components/data-table/filter/input-filter-field.tsx"
+import { RotateCw, Rows3, Trash, X } from "lucide-react";
+
+import { DataTableColumnVisibilityOptions } from "@/components/data-table/column-visibility.tsx";
+import { DataTableFilter } from "@/components/data-table/filter.tsx";
+import { InputFilterField } from "@/components/data-table/filter/input-filter-field.tsx";
+import { SelectFilterField } from "@/components/data-table/filter/select-filter-field.tsx";
+import { NO_GROUPING_VALUE } from "@/components/data-table/types.ts";
+import { Badge } from "@/components/ui/badge.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select.tsx";
+import { Spinner } from "@/components/ui/spinner.tsx";
+
+import type { GroupingOption } from "@/components/data-table/types.ts";
+import type { Column, Table } from "@tanstack/react-table";
+import type { ReactNode } from "react";
 
 interface DataTableToolbarProps<TData> {
-  table: Table<TData>
-  isFetching: boolean
-  deleteDisabled: boolean
-  groupingOptions?: Array<GroupingOption>
-  additionalElements?: ReactNode
-  onRequestRefresh: () => void
-  onRequestDelete?: () => void
-  globalFilterValue: string
-  onGlobalFilterChange: (value: string) => void
-  onClearAllFilters: () => void
+  table: Table<TData>;
+  isFetching: boolean;
+  deleteDisabled: boolean;
+  groupingOptions?: Array<GroupingOption>;
+  additionalElements?: ReactNode;
+  onRequestRefresh: () => void;
+  onRequestDelete?: () => void;
+  globalFilterValue: string;
+  onGlobalFilterChange: (value: string) => void;
+  onClearAllFilters: () => void;
 }
 
-function GlobalFilterChip({
-  filter,
-  onClear
-}: {
-  filter: string
-  onClear: () => void
-}) {
+function GlobalFilterChip({ filter, onClear }: { filter: string; onClear: () => void }) {
   if (!filter) {
-    return null
+    return null;
   }
 
   return (
-    <Badge
-      variant="outline"
-      className="h-8 gap-2 rounded-full bg-background px-3"
-    >
+    <Badge variant="outline" className="h-8 gap-2 rounded-full bg-background px-3">
       <span className="text-muted-foreground">Search</span>
       <span className="max-w-48 truncate text-foreground">{filter}</span>
       <button
@@ -57,21 +45,18 @@ function GlobalFilterChip({
         <X className="size-3.5" />
       </button>
     </Badge>
-  )
+  );
 }
 
 function SelectFilterChips<TData>({ column }: { column: Column<TData> }) {
-  const selectedValues =
-    (column.getFilterValue() as Array<string> | undefined) ?? []
+  const selectedValues = (column.getFilterValue() as Array<string> | undefined) ?? [];
 
-  const options = column.columnDef.meta?.options ?? []
-  const label = column.columnDef.meta?.label || column.id
-  const selectedOptions = options.filter((option) =>
-    selectedValues.includes(option.value)
-  )
+  const options = column.columnDef.meta?.options ?? [];
+  const label = column.columnDef.meta?.label || column.id;
+  const selectedOptions = options.filter((option) => selectedValues.includes(option.value));
 
   if (selectedOptions.length === 0) {
-    return null
+    return null;
   }
 
   return selectedOptions.map((option) => (
@@ -86,25 +71,23 @@ function SelectFilterChips<TData>({ column }: { column: Column<TData> }) {
         type="button"
         className="rounded-full text-muted-foreground transition-colors hover:text-foreground"
         onClick={() => {
-          const nextValues = selectedValues.filter(
-            (value) => value !== option.value
-          )
-          column.setFilterValue(nextValues.length > 0 ? nextValues : undefined)
+          const nextValues = selectedValues.filter((value) => value !== option.value);
+          column.setFilterValue(nextValues.length > 0 ? nextValues : undefined);
         }}
         aria-label={`Clear ${label} filter ${option.label}`}
       >
         <X className="size-3.5" />
       </button>
     </Badge>
-  ))
+  ));
 }
 
 function ScalarFilterChip<TData>({ column }: { column: Column<TData> }) {
-  const value = column.getFilterValue() as string | undefined
-  const label = column.columnDef.meta?.label || column.id
+  const value = column.getFilterValue() as string | undefined;
+  const label = column.columnDef.meta?.label || column.id;
 
   if (!value) {
-    return null
+    return null;
   }
 
   return (
@@ -124,7 +107,7 @@ function ScalarFilterChip<TData>({ column }: { column: Column<TData> }) {
         <X className="size-3.5" />
       </button>
     </Badge>
-  )
+  );
 }
 
 export function DataTableToolbar<TData>({
@@ -137,24 +120,21 @@ export function DataTableToolbar<TData>({
   onRequestDelete,
   globalFilterValue,
   onGlobalFilterChange,
-  onClearAllFilters
+  onClearAllFilters,
 }: DataTableToolbarProps<TData>) {
-  const selectedRows = table.getFilteredSelectedRowModel().rows.length
-  const totalRows = table.getCoreRowModel().rows.length
-  const filteredRows = table.getFilteredRowModel().rows.length
-  const activeGrouping = table.getState().grouping[0]
-  const activeGroupingOption = groupingOptions.find(
-    (option) => option.id === activeGrouping
-  )
+  const selectedRows = table.getFilteredSelectedRowModel().rows.length;
+  const totalRows = table.getCoreRowModel().rows.length;
+  const filteredRows = table.getFilteredRowModel().rows.length;
+  const activeGrouping = table.getState().grouping[0];
+  const activeGroupingOption = groupingOptions.find((option) => option.id === activeGrouping);
   const activeSelectFilters = table
     .getAllColumns()
     .filter(
       (column) =>
         column.getCanFilter() &&
         column.columnDef.meta?.filterVariant === "select" &&
-        ((column.getFilterValue() as Array<string> | undefined)?.length ?? 0) >
-          0
-    )
+        ((column.getFilterValue() as Array<string> | undefined)?.length ?? 0) > 0,
+    );
   const activeScalarFilters = table
     .getAllColumns()
     .filter(
@@ -162,26 +142,21 @@ export function DataTableToolbar<TData>({
         column.getCanFilter() &&
         (column.columnDef.meta?.filterVariant === "text" ||
           column.columnDef.meta?.filterVariant === "number") &&
-        ((column.getFilterValue() as string | undefined)?.trim().length ?? 0) >
-          0
-    )
+        ((column.getFilterValue() as string | undefined)?.trim().length ?? 0) > 0,
+    );
   const hasActiveFilters =
-    Boolean(globalFilterValue) ||
-    activeSelectFilters.length > 0 ||
-    activeScalarFilters.length > 0
+    Boolean(globalFilterValue) || activeSelectFilters.length > 0 || activeScalarFilters.length > 0;
 
   function getFilterField(column: Column<TData>) {
     switch (column.columnDef.meta?.filterVariant) {
       case "number":
-        return (
-          <InputFilterField key={column.id} column={column} type="number" />
-        )
+        return <InputFilterField key={column.id} column={column} type="number" />;
       case "select":
-        return <SelectFilterField key={column.id} column={column} />
+        return <SelectFilterField key={column.id} column={column} />;
       case "text":
-        return <InputFilterField key={column.id} column={column} type="text" />
+        return <InputFilterField key={column.id} column={column} type="text" />;
       default:
-        return null
+        return null;
     }
   }
 
@@ -225,10 +200,8 @@ export function DataTableToolbar<TData>({
               <Select
                 value={activeGrouping}
                 onValueChange={(value) => {
-                  table.setGrouping(
-                    !value || value === NO_GROUPING_VALUE ? [] : [value]
-                  )
-                  table.setExpanded(true)
+                  table.setGrouping(!value || value === NO_GROUPING_VALUE ? [] : [value]);
+                  table.setExpanded(true);
                 }}
               >
                 <SelectTrigger
@@ -260,15 +233,12 @@ export function DataTableToolbar<TData>({
             data-filtered-rows={filteredRows}
             data-total-rows={totalRows}
           >
-            <span className="font-medium text-foreground">{filteredRows}</span>{" "}
-            of {totalRows} results
+            <span className="font-medium text-foreground">{filteredRows}</span> of {totalRows}{" "}
+            results
           </span>
           {selectedRows > 0 && (
             <span>
-              <span className="font-medium text-foreground">
-                {selectedRows}
-              </span>{" "}
-              selected
+              <span className="font-medium text-foreground">{selectedRows}</span> selected
             </span>
           )}
           {hasActiveFilters && (
@@ -291,10 +261,7 @@ export function DataTableToolbar<TData>({
         </div>
         {hasActiveFilters && (
           <div className="flex flex-wrap items-center gap-2">
-            <GlobalFilterChip
-              filter={globalFilterValue}
-              onClear={() => onGlobalFilterChange("")}
-            />
+            <GlobalFilterChip filter={globalFilterValue} onClear={() => onGlobalFilterChange("")} />
             {activeSelectFilters.map((column) => (
               <SelectFilterChips key={column.id} column={column} />
             ))}
@@ -311,10 +278,10 @@ export function DataTableToolbar<TData>({
                 column.getCanFilter() &&
                 column.columnDef.meta &&
                 column.columnDef.meta.filterVariant &&
-                getFilterField(column)
+                getFilterField(column),
             )}
         </div>
       </div>
     </div>
-  )
+  );
 }
