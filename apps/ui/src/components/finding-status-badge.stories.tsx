@@ -1,47 +1,49 @@
-import { FindingStatus } from "@exposurenexus/types/model/finding"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import { FindingStatusBadge } from "@/components/finding-status-badge.tsx"
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+
+import { FindingStatusBadge } from "@/components/finding-status-badge.tsx";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Resources/Findings/StatusBadge",
   component: FindingStatusBadge,
   parameters: {
-    layout: "centered"
+    layout: "centered",
   },
   args: {
-    status: FindingStatus.Active
+    status: FindingStatus.Active,
   },
   argTypes: {
     status: {
       control: "select",
-      options: Object.values(FindingStatus)
-    }
-  }
-} satisfies Meta<typeof FindingStatusBadge>
+      options: Object.values(FindingStatus),
+    },
+  },
+} satisfies Meta<typeof FindingStatusBadge>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const Active: Story = {}
+export const Active: Story = {};
 
 export const Confirmed: Story = {
   args: {
-    status: FindingStatus.Confirmed
-  }
-}
+    status: FindingStatus.Confirmed,
+  },
+};
 
 export const RiskAccepted: Story = {
   args: {
-    status: FindingStatus.RiskAccepted
-  }
-}
+    status: FindingStatus.RiskAccepted,
+  },
+};
 
 export const FalsePositive: Story = {
   args: {
-    status: FindingStatus.FalsePositive
-  }
-}
+    status: FindingStatus.FalsePositive,
+  },
+};
 
 export const AllStatuses: Story = {
   render: () => (
@@ -50,5 +52,5 @@ export const AllStatuses: Story = {
         <FindingStatusBadge key={status} status={status} />
       ))}
     </div>
-  )
-}
+  ),
+};

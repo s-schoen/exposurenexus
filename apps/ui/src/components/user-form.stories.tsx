@@ -1,35 +1,33 @@
-import { useState } from "react"
-import { expect, fn, userEvent, within } from "storybook/test"
 import {
   BuiltInRoleName,
   PermissionResource,
   PermissionVerb,
-  builtInRoleIds
-} from "@exposurenexus/types/model/rbac"
-import type { Role } from "@exposurenexus/types/model/rbac"
+  builtInRoleIds,
+} from "@exposurenexus/types/model/rbac";
+import { useState } from "react";
+import { expect, fn, userEvent, within } from "storybook/test";
 
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import type { ComponentProps } from "react"
+import { UserForm } from "@/components/user-form";
 
-import { UserForm } from "@/components/user-form"
+import type { Role } from "@exposurenexus/types/model/rbac";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
 
-type UserFormStoryArgs = ComponentProps<typeof UserForm>
+type UserFormStoryArgs = ComponentProps<typeof UserForm>;
 
 export const ROLE_FIXTURES: Array<Role> = [
   {
     id: builtInRoleIds.viewer,
     name: BuiltInRoleName.Viewer,
-    permissions: [
-      { resource: PermissionResource.User, verb: PermissionVerb.Read }
-    ]
+    permissions: [{ resource: PermissionResource.User, verb: PermissionVerb.Read }],
   },
   {
     id: builtInRoleIds.editor,
     name: BuiltInRoleName.Editor,
     permissions: [
       { resource: PermissionResource.User, verb: PermissionVerb.Read },
-      { resource: PermissionResource.User, verb: PermissionVerb.Write }
-    ]
+      { resource: PermissionResource.User, verb: PermissionVerb.Write },
+    ],
   },
   {
     id: builtInRoleIds.admin,
@@ -37,19 +35,19 @@ export const ROLE_FIXTURES: Array<Role> = [
     permissions: [
       { resource: PermissionResource.User, verb: PermissionVerb.Read },
       { resource: PermissionResource.User, verb: PermissionVerb.Write },
-      { resource: PermissionResource.User, verb: PermissionVerb.Delete }
-    ]
-  }
-]
+      { resource: PermissionResource.User, verb: PermissionVerb.Delete },
+    ],
+  },
+];
 
 function UserFormStoryShell(args: UserFormStoryArgs) {
   const [lastSubmittedValues, setLastSubmittedValues] =
-    useState<UserFormStoryArgs["defaultValues"]>()
+    useState<UserFormStoryArgs["defaultValues"]>();
 
   const handleSubmit: UserFormStoryArgs["onSubmit"] = async (values) => {
-    setLastSubmittedValues(values)
-    await args.onSubmit(values)
-  }
+    setLastSubmittedValues(values);
+    await args.onSubmit(values);
+  };
 
   return (
     <div className="w-full max-w-2xl space-y-4">
@@ -63,34 +61,34 @@ function UserFormStoryShell(args: UserFormStoryArgs) {
         </div>
       ) : null}
     </div>
-  )
+  );
 }
 
 const meta = {
   title: "Resources/Users/Form",
   component: UserForm,
   parameters: {
-    layout: "padded"
+    layout: "padded",
   },
   args: {
     mode: "create",
     roles: ROLE_FIXTURES,
     defaultValues: {
-      roleIds: [builtInRoleIds.viewer]
+      roleIds: [builtInRoleIds.viewer],
     },
     onSubmit: fn(async (_values) => {
-      await new Promise((resolve) => setTimeout(resolve, 300))
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }),
-    onCancel: fn()
+    onCancel: fn(),
   },
-  render: (args) => <UserFormStoryShell {...args} />
-} satisfies Meta<typeof UserForm>
+  render: (args) => <UserFormStoryShell {...args} />,
+} satisfies Meta<typeof UserForm>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const Create: Story = {}
+export const Create: Story = {};
 
 export const EditPrefilled: Story = {
   args: {
@@ -101,10 +99,10 @@ export const EditPrefilled: Story = {
       email: "alice@example.com",
       enabled: true,
       password: "",
-      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
-    }
-  }
-}
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor],
+    },
+  },
+};
 
 export const CustomSubmitLabel: Story = {
   args: {
@@ -115,72 +113,54 @@ export const CustomSubmitLabel: Story = {
       email: "alice@example.com",
       enabled: true,
       password: "",
-      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor],
     },
-    submitLabel: "Update account"
-  }
-}
+    submitLabel: "Update account",
+  },
+};
 
 export const ValidationErrors: Story = {
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
-    await userEvent.click(
-      await canvas.findByRole("button", { name: /create user/i })
-    )
-  }
-}
+    await userEvent.click(await canvas.findByRole("button", { name: /create user/i }));
+  },
+};
 
 export const Submitting: Story = {
   args: {
     onSubmit: fn(async (_values) => {
-      await new Promise((resolve) => setTimeout(resolve, 4000))
-    })
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+    }),
   },
   play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
-    await userEvent.type(
-      await canvas.findByLabelText(/display name/i),
-      "Alice Example"
-    )
-    await userEvent.type(await canvas.findByLabelText(/username/i), "alice")
-    await userEvent.type(
-      await canvas.findByLabelText(/email/i),
-      "alice@example.com"
-    )
-    await userEvent.type(
-      await canvas.findByLabelText(/password/i),
-      "correct horse battery staple"
-    )
-    await userEvent.click(
-      await canvas.findByRole("button", { name: /create user/i })
-    )
+    await userEvent.type(await canvas.findByLabelText(/display name/i), "Alice Example");
+    await userEvent.type(await canvas.findByLabelText(/username/i), "alice");
+    await userEvent.type(await canvas.findByLabelText(/email/i), "alice@example.com");
+    await userEvent.type(await canvas.findByLabelText(/password/i), "correct horse battery staple");
+    await userEvent.click(await canvas.findByRole("button", { name: /create user/i }));
 
-    await expect(args.onSubmit).toHaveBeenCalled()
-  }
-}
+    await expect(args.onSubmit).toHaveBeenCalled();
+  },
+};
 
 export const RoleSelection: Story = {
   play: async ({ canvasElement, args }) => {
-    const canvas = within(canvasElement)
-    const page = within(canvasElement.ownerDocument.body)
+    const canvas = within(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
 
-    await userEvent.click(
-      await canvas.findByRole("combobox", { name: /roles/i })
-    )
-    await userEvent.type(
-      await page.findByPlaceholderText(/search roles/i),
-      "admin"
-    )
-    await userEvent.click(await page.findByText("admin"))
+    await userEvent.click(await canvas.findByRole("combobox", { name: /roles/i }));
+    await userEvent.type(await page.findByPlaceholderText(/search roles/i), "admin");
+    await userEvent.click(await page.findByText("admin"));
 
-    await expect(
-      await canvas.findByRole("combobox", { name: /roles/i })
-    ).toHaveTextContent(/viewer, admin/i)
-    await expect(args.onSubmit).not.toHaveBeenCalled()
-  }
-}
+    await expect(await canvas.findByRole("combobox", { name: /roles/i })).toHaveTextContent(
+      /viewer, admin/i,
+    );
+    await expect(args.onSubmit).not.toHaveBeenCalled();
+  },
+};
 
 export const DarkSurface: Story = {
   args: {
@@ -191,12 +171,12 @@ export const DarkSurface: Story = {
       email: "alice@example.com",
       enabled: true,
       password: "",
-      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor]
-    }
+      roleIds: [builtInRoleIds.viewer, builtInRoleIds.editor],
+    },
   },
   render: (args) => (
     <div className="dark rounded-2xl bg-background p-6">
       <UserFormStoryShell {...args} />
     </div>
-  )
-}
+  ),
+};

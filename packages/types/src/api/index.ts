@@ -1,45 +1,45 @@
-import type { UserProfile, UserSession } from "../model/user.js"
+import type { UserProfile, UserSession } from "../model/user.js";
 
 interface APIReply {
-  correlationId: string
+  correlationId: string;
 }
 
 export interface APISingleDataReply<T extends object> extends APIReply {
-  data: T
+  data: T;
 }
 
 export interface APIArrayDataReply<T extends object> extends APIReply {
   data: {
-    currentItemCount: number
-    startIndex: number
-    totalItems: number
-    items: T[]
-  }
+    currentItemCount: number;
+    startIndex: number;
+    totalItems: number;
+    items: T[];
+  };
 }
 
 export interface APIErrorReply extends APIReply {
-  status: number
-  error: string
-  reason?: string
+  status: number;
+  error: string;
+  reason?: string;
 }
 
-export type AuthSessionReply = Omit<UserSession, "sessionId">
+export type AuthSessionReply = Omit<UserSession, "sessionId">;
 
 export interface AuthSessionDataReply {
-  user: UserProfile
-  session: AuthSessionReply
+  user: UserProfile;
+  session: AuthSessionReply;
 }
 
 export function createObjectReply<T extends object>(
   correlationId: string,
-  data: T
+  data: T,
 ): APISingleDataReply<T> {
-  return { correlationId, data }
+  return { correlationId, data };
 }
 
 export function createArrayReply<T extends object>(
   correlationId: string,
-  data: T[]
+  data: T[],
 ): APIArrayDataReply<T> {
   return {
     correlationId,
@@ -47,7 +47,7 @@ export function createArrayReply<T extends object>(
       items: data,
       totalItems: data.length,
       startIndex: 0,
-      currentItemCount: data.length
-    }
-  }
+      currentItemCount: data.length,
+    },
+  };
 }

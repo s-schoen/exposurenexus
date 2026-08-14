@@ -1,52 +1,50 @@
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac";
+
+import { capitalizeFirstLetter } from "@/lib/format.ts";
+
 import type {
   Permission,
   PermissionResource,
-  PermissionVerb
-} from "@exposurenexus/types/model/rbac"
-import { capitalizeFirstLetter } from "@/lib/format.ts"
+  PermissionVerb,
+} from "@exposurenexus/types/model/rbac";
 
-const builtInRoleIdSet = new Set<string>(Object.values(builtInRoleIds))
+const builtInRoleIdSet = new Set<string>(Object.values(builtInRoleIds));
 
 export function isBuiltInRoleId(roleId: string) {
-  return builtInRoleIdSet.has(roleId)
+  return builtInRoleIdSet.has(roleId);
 }
 
 export function getRoleKindLabel(roleId: string) {
-  return isBuiltInRoleId(roleId) ? "Built-in" : "Custom"
+  return isBuiltInRoleId(roleId) ? "Built-in" : "Custom";
 }
 
 export function getUniqueRoleResources(
-  permissions: ReadonlyArray<Pick<Permission, "resource">>
+  permissions: ReadonlyArray<Pick<Permission, "resource">>,
 ): Array<PermissionResource> {
-  return [...new Set(permissions.map((permission) => permission.resource))]
+  return [...new Set(permissions.map((permission) => permission.resource))];
 }
 
 export function groupRolePermissionsByResource(
-  permissions: ReadonlyArray<Permission>
+  permissions: ReadonlyArray<Permission>,
 ): Array<{ resource: PermissionResource; verbs: Array<PermissionVerb> }> {
-  const permissionsByResource = new Map<
-    PermissionResource,
-    Array<PermissionVerb>
-  >()
+  const permissionsByResource = new Map<PermissionResource, Array<PermissionVerb>>();
 
   for (const permission of permissions) {
-    const resourcePermissions =
-      permissionsByResource.get(permission.resource) ?? []
+    const resourcePermissions = permissionsByResource.get(permission.resource) ?? [];
 
     if (!resourcePermissions.includes(permission.verb)) {
-      resourcePermissions.push(permission.verb)
+      resourcePermissions.push(permission.verb);
     }
 
-    permissionsByResource.set(permission.resource, resourcePermissions)
+    permissionsByResource.set(permission.resource, resourcePermissions);
   }
 
   return [...permissionsByResource.entries()].map(([resource, verbs]) => ({
     resource,
-    verbs
-  }))
+    verbs,
+  }));
 }
 
 export function formatPermissionLabel(value: string) {
-  return capitalizeFirstLetter(value.replaceAll("-", " "))
+  return capitalizeFirstLetter(value.replaceAll("-", " "));
 }

@@ -1,11 +1,13 @@
-import { afterEach, describe, expect, it } from "vitest"
-import { cleanup, render, screen } from "@testing-library/react"
-import type { DetailQueryBoundaryState } from "@/components/detail-query-boundary.tsx"
-import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx"
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+
+import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
+
+import type { DetailQueryBoundaryState } from "@/components/detail-query-boundary.tsx";
 
 afterEach(() => {
-  cleanup()
-})
+  cleanup();
+});
 
 function renderBoundary(query: DetailQueryBoundaryState<{ name: string }>) {
   render(
@@ -17,8 +19,8 @@ function renderBoundary(query: DetailQueryBoundaryState<{ name: string }>) {
       missingMessage="The API did not return an asset record."
     >
       {(asset) => <div>{asset.name}</div>}
-    </DetailQueryBoundary>
-  )
+    </DetailQueryBoundary>,
+  );
 }
 
 describe("DetailQueryBoundary", () => {
@@ -32,44 +34,42 @@ describe("DetailQueryBoundary", () => {
         missingMessage="The API did not return an asset record."
       >
         {(asset: { name: string }) => <div>{asset.name}</div>}
-      </DetailQueryBoundary>
-    )
+      </DetailQueryBoundary>,
+    );
 
-    expect(screen.getByText("Asset details")).toBeTruthy()
-    expect(container.querySelector('[data-slot="skeleton"]')).toBeTruthy()
-  })
+    expect(screen.getByText("Asset details")).toBeTruthy();
+    expect(container.querySelector('[data-slot="skeleton"]')).toBeTruthy();
+  });
 
   it("renders the query error when the primary detail query fails", () => {
     renderBoundary({
       data: undefined,
       error: new Error("Asset request failed"),
-      isPending: false
-    })
+      isPending: false,
+    });
 
-    expect(screen.getByText("Unable to load asset")).toBeTruthy()
-    expect(screen.getByText("Asset request failed")).toBeTruthy()
-  })
+    expect(screen.getByText("Unable to load asset")).toBeTruthy();
+    expect(screen.getByText("Asset request failed")).toBeTruthy();
+  });
 
   it("renders the missing message when the query has no data or error", () => {
     renderBoundary({
       data: undefined,
       error: null,
-      isPending: false
-    })
+      isPending: false,
+    });
 
-    expect(screen.getByText("Unable to load asset")).toBeTruthy()
-    expect(
-      screen.getByText("The API did not return an asset record.")
-    ).toBeTruthy()
-  })
+    expect(screen.getByText("Unable to load asset")).toBeTruthy();
+    expect(screen.getByText("The API did not return an asset record.")).toBeTruthy();
+  });
 
   it("passes non-null data to the success renderer", () => {
     renderBoundary({
       data: { name: "web-01" },
       error: null,
-      isPending: false
-    })
+      isPending: false,
+    });
 
-    expect(screen.getByText("web-01")).toBeTruthy()
-  })
-})
+    expect(screen.getByText("web-01")).toBeTruthy();
+  });
+});

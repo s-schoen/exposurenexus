@@ -1,20 +1,15 @@
-import { Kysely, sql } from "kysely"
+import { Kysely, sql } from "kysely";
 
-// eslint-disable-next-line
+// oxlint-disable-next-line typescript/no-explicit-any
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable("asset_custom_field_assignment")
-    .addColumn("assetId", "uuid", (col) =>
-      col.notNull().references("asset.id").onDelete("cascade")
-    )
+    .addColumn("assetId", "uuid", (col) => col.notNull().references("asset.id").onDelete("cascade"))
     .addColumn("fieldId", "uuid", (col) =>
-      col.notNull().references("asset_custom_field.id").onDelete("cascade")
+      col.notNull().references("asset_custom_field.id").onDelete("cascade"),
     )
-    .addPrimaryKeyConstraint("asset_custom_field_assignment_pkey", [
-      "assetId",
-      "fieldId"
-    ])
-    .execute()
+    .addPrimaryKeyConstraint("asset_custom_field_assignment_pkey", ["assetId", "fieldId"])
+    .execute();
 
   await sql`
     insert into asset_custom_field_assignment ("assetId", "fieldId")
@@ -22,10 +17,10 @@ export async function up(db: Kysely<any>): Promise<void> {
     from asset
     cross join asset_custom_field
     on conflict do nothing
-  `.execute(db)
+  `.execute(db);
 }
 
-// eslint-disable-next-line
+// oxlint-disable-next-line typescript/no-explicit-any
 export async function down(db: Kysely<any>): Promise<void> {
-  await db.schema.dropTable("asset_custom_field_assignment").execute()
+  await db.schema.dropTable("asset_custom_field_assignment").execute();
 }

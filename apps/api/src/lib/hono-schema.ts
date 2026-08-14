@@ -1,7 +1,7 @@
-import type { UserProfile, UserSession } from "@exposurenexus/types/model/user"
+import type { UserProfile, UserSession } from "@exposurenexus/types/model/user";
 
 export interface ContextVariables {
-  requestId: string
-  user: UserProfile | null
-  session: UserSession | null
+  requestId: string;
+  user: UserProfile | null;
+  session: UserSession | null;
 }

@@ -1,29 +1,27 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import {
-  RouterContextProvider,
-  createMemoryHistory,
-  createRouter
-} from "@tanstack/react-router"
-import { NuqsAdapter } from "nuqs/adapters/tanstack-router"
-import { useMemo } from "react"
-import type { ReactNode } from "react"
-import { routeTree } from "@/routeTree.gen.ts"
-import { createLoginRedirects } from "@/lib/login-redirect.ts"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
+import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
+import { useMemo } from "react";
+
+import { createLoginRedirects } from "@/lib/login-redirect.ts";
+import { routeTree } from "@/routeTree.gen.ts";
+
+import type { ReactNode } from "react";
 
 const storyRedirects = createLoginRedirects({
   origin: "http://localhost",
-  isKnownRoutePath: () => true
-})
+  isKnownRoutePath: () => true,
+});
 
 export function createStoryQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
         retry: false,
-        staleTime: Number.POSITIVE_INFINITY
-      }
-    }
-  })
+        staleTime: Number.POSITIVE_INFINITY,
+      },
+    },
+  });
 }
 
 export function createObjectResponse(data: unknown, init?: ResponseInit) {
@@ -31,9 +29,9 @@ export function createObjectResponse(data: unknown, init?: ResponseInit) {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      ...init?.headers
-    }
-  })
+      ...init?.headers,
+    },
+  });
 }
 
 export function createArrayResponse(data: Array<unknown>, init?: ResponseInit) {
@@ -41,40 +39,40 @@ export function createArrayResponse(data: Array<unknown>, init?: ResponseInit) {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      ...init?.headers
-    }
-  })
+      ...init?.headers,
+    },
+  });
 }
 
 interface RouterStoryProviderProps {
-  children: ReactNode
-  queryClient: QueryClient
-  initialPath?: string
-  withNuqs?: boolean
+  children: ReactNode;
+  queryClient: QueryClient;
+  initialPath?: string;
+  withNuqs?: boolean;
 }
 
 export function RouterStoryProvider({
   children,
   queryClient,
   initialPath = "/",
-  withNuqs = false
+  withNuqs = false,
 }: RouterStoryProviderProps) {
   const router = useMemo(
     () =>
       createRouter({
         routeTree,
         history: createMemoryHistory({
-          initialEntries: [initialPath]
+          initialEntries: [initialPath],
         }),
         context: {
           auth: undefined!,
           page: undefined!,
           redirects: storyRedirects,
-          queryClient
-        }
+          queryClient,
+        },
       }),
-    [initialPath, queryClient]
-  )
+    [initialPath, queryClient],
+  );
 
   return (
     <RouterContextProvider router={router}>
@@ -82,5 +80,5 @@ export function RouterStoryProvider({
         {withNuqs ? <NuqsAdapter>{children}</NuqsAdapter> : children}
       </QueryClientProvider>
     </RouterContextProvider>
-  )
+  );
 }

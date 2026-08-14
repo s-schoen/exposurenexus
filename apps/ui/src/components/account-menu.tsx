@@ -1,29 +1,30 @@
-"use client"
+"use client";
 
-import { useNavigate } from "@tanstack/react-router"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { useAuth } from "@/context/auth"
+import { useNavigate } from "@tanstack/react-router";
+
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
-import { Spinner } from "@/components/ui/spinner"
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Spinner } from "@/components/ui/spinner";
+import { useAuth } from "@/context/auth";
 
 export function AccountMenu() {
-  const { logout, status, user } = useAuth()
-  const navigate = useNavigate()
+  const { logout, status, user } = useAuth();
+  const navigate = useNavigate();
 
   const onSignOut = async () => {
-    await logout()
-    navigate({ to: "/login", search: { redirect: "/" } })
-  }
+    await logout();
+    navigate({ to: "/login", search: { redirect: "/" } });
+  };
 
-  const displayName = user?.displayName ?? user?.email ?? "Account"
-  const initial = displayName.at(0)?.toUpperCase() ?? "?"
+  const displayName = user?.displayName ?? user?.email ?? "Account";
+  const initial = displayName.at(0)?.toUpperCase() ?? "?";
 
   return (
     <DropdownMenu>
@@ -43,9 +44,7 @@ export function AccountMenu() {
                 <p className="truncate text-sm font-medium text-foreground select-none">
                   {displayName}
                 </p>
-                <p className="truncate text-xs text-muted-foreground select-none">
-                  Account
-                </p>
+                <p className="truncate text-xs text-muted-foreground select-none">Account</p>
               </div>
             </div>
           )
@@ -59,5 +58,5 @@ export function AccountMenu() {
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

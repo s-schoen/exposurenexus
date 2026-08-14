@@ -1,21 +1,19 @@
-import type { Database } from "../db/index.js"
-import type { Kysely } from "kysely"
-import type { UserSession } from "@exposurenexus/types/model/user"
+import type { Database } from "../db/index.js";
+import type { UserSession } from "@exposurenexus/types/model/user";
+import type { Kysely } from "kysely";
 
 export interface UserSessionRepository {
-  list(): Promise<UserSession[]>
-  getBySessionID(sessionId: string): Promise<UserSession | null>
-  create(session: Omit<UserSession, "id">): Promise<UserSession>
-  deleteBySessionID(sessionId: string): Promise<UserSession | null>
-  expireSessions(thresholdDate: Date): Promise<UserSession[]>
+  list(): Promise<UserSession[]>;
+  getBySessionID(sessionId: string): Promise<UserSession | null>;
+  create(session: Omit<UserSession, "id">): Promise<UserSession>;
+  deleteBySessionID(sessionId: string): Promise<UserSession | null>;
+  expireSessions(thresholdDate: Date): Promise<UserSession[]>;
 }
 
-export function createUserSessionRepository(
-  database: Kysely<Database>
-): UserSessionRepository {
+export function createUserSessionRepository(database: Kysely<Database>): UserSessionRepository {
   return {
     async list(): Promise<UserSession[]> {
-      return await database.selectFrom("user_session").selectAll().execute()
+      return await database.selectFrom("user_session").selectAll().execute();
     },
 
     async getBySessionID(sessionId: string): Promise<UserSession | null> {
@@ -23,21 +21,21 @@ export function createUserSessionRepository(
         .selectFrom("user_session")
         .selectAll()
         .where("sessionId", "=", sessionId)
-        .executeTakeFirst()
+        .executeTakeFirst();
 
-      return session || null
+      return session || null;
     },
 
     async create(session: Omit<UserSession, "id">): Promise<UserSession> {
       const createdSession = await database
         .insertInto("user_session")
         .values({
-          ...session
+          ...session,
         })
         .returningAll()
-        .executeTakeFirst()
+        .executeTakeFirst();
 
-      return createdSession!
+      return createdSession!;
     },
 
     async deleteBySessionID(sessionId: string): Promise<UserSession | null> {
@@ -45,9 +43,9 @@ export function createUserSessionRepository(
         .deleteFrom("user_session")
         .where("sessionId", "=", sessionId)
         .returningAll()
-        .executeTakeFirst()
+        .executeTakeFirst();
 
-      return deletedSession || null
+      return deletedSession || null;
     },
 
     async expireSessions(thresholdDate: Date): Promise<UserSession[]> {
@@ -55,7 +53,7 @@ export function createUserSessionRepository(
         .deleteFrom("user_session")
         .where("expiresAt", "<", thresholdDate)
         .returningAll()
-        .execute()
-    }
-  }
+        .execute();
+    },
+  };
 }

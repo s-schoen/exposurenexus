@@ -1,21 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor
-} from "@testing-library/react"
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
-import type { Role } from "@exposurenexus/types/model/rbac"
-import type { UserFormValues } from "@/components/user-form.tsx"
-import { CreateUserPage } from "@/features/users/components/create-user-page.tsx"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { CreateUserPage } from "@/features/users/components/create-user-page.tsx";
+
+import type { UserFormValues } from "@/components/user-form.tsx";
+import type { Role } from "@exposurenexus/types/model/rbac";
 
 interface QueryState<TData> {
-  data?: TData
-  error?: Error
-  isPending: boolean
-  isSuccess: boolean
+  data?: TData;
+  error?: Error;
+  isPending: boolean;
+  isSuccess: boolean;
 }
 
 const mocks = vi.hoisted(() => {
@@ -23,27 +19,27 @@ const mocks = vi.hoisted(() => {
     {
       id: "6d0d8a47-0f6d-47b6-9b9a-d8f0d3f4dd01",
       name: "viewer",
-      permissions: []
+      permissions: [],
     },
     {
       id: "5d5f5c6f-a9d6-4d49-9f4d-9462b873a902",
       name: "editor",
-      permissions: []
-    }
-  ]
+      permissions: [],
+    },
+  ];
   const submitValues: UserFormValues = {
     displayName: "  Alice Example  ",
     username: "  alice  ",
     email: "  alice@example.com  ",
     enabled: true,
     password: "correct horse battery staple",
-    roleIds: ["5d5f5c6f-a9d6-4d49-9f4d-9462b873a902"]
-  }
+    roleIds: ["5d5f5c6f-a9d6-4d49-9f4d-9462b873a902"],
+  };
   const rolesQuery: QueryState<Array<Role>> = {
     data: roles,
     isPending: false,
-    isSuccess: true
-  }
+    isSuccess: true,
+  };
 
   return {
     createUser: vi.fn(),
@@ -51,32 +47,32 @@ const mocks = vi.hoisted(() => {
     roles,
     rolesQuery,
     submitValues,
-    usePageMeta: vi.fn()
-  }
-})
+    usePageMeta: vi.fn(),
+  };
+});
 
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mocks.navigate
-}))
+  useNavigate: () => mocks.navigate,
+}));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.rolesQuery
-}))
+  useQuery: () => mocks.rolesQuery,
+}));
 
 vi.mock("@/api/role.ts", () => ({
   createListRolesQueryOptions: () => ({
-    queryKey: ["roles"]
-  })
-}))
+    queryKey: ["roles"],
+  }),
+}));
 
 vi.mock("@/hooks/use-user-lifecycle.ts", () => ({
   useUserLifecycle: () => ({
-    createUser: mocks.createUser
-  })
-}))
+    createUser: mocks.createUser,
+  }),
+}));
 
 vi.mock("@/components/user-form.tsx", async (importOriginal) => {
-  const actual = await importOriginal()
+  const actual = await importOriginal();
 
   return Object.assign({}, actual, {
     UserForm: ({
@@ -84,19 +80,17 @@ vi.mock("@/components/user-form.tsx", async (importOriginal) => {
       mode,
       onCancel,
       onSubmit,
-      roles
+      roles,
     }: {
-      defaultValues?: Partial<UserFormValues>
-      mode: string
-      onCancel: () => void
-      onSubmit: (values: UserFormValues) => Promise<void> | void
-      roles: Array<Role>
+      defaultValues?: Partial<UserFormValues>;
+      mode: string;
+      onCancel: () => void;
+      onSubmit: (values: UserFormValues) => Promise<void> | void;
+      roles: Array<Role>;
     }) => (
       <div>
         <div data-testid="mode">{mode}</div>
-        <div data-testid="roles">
-          {roles.map((role) => role.name).join(",")}
-        </div>
+        <div data-testid="roles">{roles.map((role) => role.name).join(",")}</div>
         <div data-testid="default-values">{JSON.stringify(defaultValues)}</div>
         <button type="button" onClick={onCancel}>
           cancel
@@ -105,74 +99,72 @@ vi.mock("@/components/user-form.tsx", async (importOriginal) => {
           submit
         </button>
       </div>
-    )
-  })
-})
+    ),
+  });
+});
 
 vi.mock("@/context/page.tsx", () => ({
-  usePageMeta: mocks.usePageMeta
-}))
+  usePageMeta: mocks.usePageMeta,
+}));
 
 describe("CreateUserPage", () => {
   beforeEach(() => {
-    mocks.createUser.mockReset()
-    mocks.navigate.mockReset()
+    mocks.createUser.mockReset();
+    mocks.navigate.mockReset();
     mocks.rolesQuery = {
       data: mocks.roles,
       isPending: false,
-      isSuccess: true
-    }
-    mocks.usePageMeta.mockReset()
-  })
+      isSuccess: true,
+    };
+    mocks.usePageMeta.mockReset();
+  });
 
   afterEach(() => {
-    cleanup()
-    vi.restoreAllMocks()
-  })
+    cleanup();
+    vi.restoreAllMocks();
+  });
 
   it("renders the loading state while roles are pending", () => {
     mocks.rolesQuery = {
       isPending: true,
-      isSuccess: false
-    }
+      isSuccess: false,
+    };
 
-    render(<CreateUserPage />)
+    render(<CreateUserPage />);
 
-    expect(
-      screen.getAllByText("Loading available roles.").length
-    ).toBeGreaterThan(0)
-  })
+    expect(screen.getAllByText("Loading available roles.").length).toBeGreaterThan(0);
+  });
 
   it("renders the role loading error state", () => {
     mocks.rolesQuery = {
       error: new Error("Roles request failed"),
       isPending: false,
-      isSuccess: false
-    }
+      isSuccess: false,
+    };
 
-    render(<CreateUserPage />)
+    render(<CreateUserPage />);
 
-    expect(screen.getByText("Unable to load roles")).toBeTruthy()
-    expect(screen.getByText("Roles request failed")).toBeTruthy()
-  })
+    expect(screen.getByText("Unable to load roles")).toBeTruthy();
+    expect(screen.getByText("Roles request failed")).toBeTruthy();
+  });
 
   it("uses the viewer role as the create form default", () => {
-    render(<CreateUserPage />)
+    render(<CreateUserPage />);
 
-    expect(screen.getByTestId("mode").textContent).toBe("create")
-    expect(screen.getByTestId("roles").textContent).toBe("viewer,editor")
+    expect(screen.getByTestId("mode").textContent).toBe("create");
+    expect(screen.getByTestId("roles").textContent).toBe("viewer,editor");
     expect(screen.getByTestId("default-values").textContent).toBe(
-      JSON.stringify({ roleIds: [builtInRoleIds.viewer] })
-    )
-  })
+      JSON.stringify({ roleIds: [builtInRoleIds.viewer] }),
+    );
+  });
 
   it("creates a user through the lifecycle hook and navigates back to the user list", async () => {
     mocks.createUser.mockResolvedValueOnce({
-      id: "1f9c36d2-1355-49d1-8464-b01ce955d88f"
-    })
+      id: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
+    });
 
-    render(<CreateUserPage />)
-    fireEvent.click(screen.getByRole("button", { name: /submit/i }))
+    render(<CreateUserPage />);
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
 
     await waitFor(() => {
       expect(mocks.createUser).toHaveBeenCalledWith({
@@ -181,54 +173,54 @@ describe("CreateUserPage", () => {
         enabled: true,
         password: "correct horse battery staple",
         roleIds: [builtInRoleIds.editor],
-        username: "alice"
-      })
-    })
+        username: "alice",
+      });
+    });
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/users",
-      search: expect.any(Function)
-    })
+      search: expect.any(Function),
+    });
     const search = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>
-    ) => Record<string, unknown>
+      previous: Record<string, unknown>,
+    ) => Record<string, unknown>;
 
     expect(search({ enabled: "true", filter: "alice", selected: "user-1" })).toEqual({
       enabled: "true",
       filter: "alice",
-      selected: undefined
-    })
-  })
+      selected: undefined,
+    });
+  });
 
   it("does not navigate when the lifecycle hook handles create failures", async () => {
-    mocks.createUser.mockResolvedValueOnce(null)
+    mocks.createUser.mockResolvedValueOnce(null);
 
-    render(<CreateUserPage />)
-    fireEvent.click(screen.getByRole("button", { name: /submit/i }))
+    render(<CreateUserPage />);
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
 
     await waitFor(() => {
-      expect(mocks.createUser).toHaveBeenCalled()
-    })
-    expect(mocks.navigate).not.toHaveBeenCalled()
-  })
+      expect(mocks.createUser).toHaveBeenCalled();
+    });
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
 
   it("cancels back to the user list", async () => {
-    render(<CreateUserPage />)
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }))
+    render(<CreateUserPage />);
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
 
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith({
         to: "/users",
-        search: expect.any(Function)
-      })
-    })
+        search: expect.any(Function),
+      });
+    });
     const search = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>
-    ) => Record<string, unknown>
+      previous: Record<string, unknown>,
+    ) => Record<string, unknown>;
 
     expect(search({ enabled: "false", filter: "bob", selected: "user-1" })).toEqual({
       enabled: "false",
       filter: "bob",
-      selected: undefined
-    })
-  })
-})
+      selected: undefined,
+    });
+  });
+});

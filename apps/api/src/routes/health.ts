@@ -1,10 +1,11 @@
-import { Hono } from "hono"
-import { replyObject } from "../lib/reply.js"
+import { Hono } from "hono";
 
-const health = new Hono()
+import { replyObject } from "../lib/reply.js";
+
+const health = new Hono();
 
 health.get("/", (c) => {
-  return replyObject(c, { status: "ok" })
-})
+  return replyObject(c, { status: "ok" });
+});
 
-export default health
+export default health;

@@ -1,48 +1,47 @@
-import { type Kysely, sql } from "kysely"
+import { type Kysely, sql } from "kysely";
 
-const uuidPattern =
-  "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
-const uuidPatternSql = sql.lit(uuidPattern)
-const auditTables = ["vulnerability", "finding"] as const
-const auditColumns = ["createdBy", "updatedBy"] as const
+const uuidPattern = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
+const uuidPatternSql = sql.lit(uuidPattern);
+const auditTables = ["vulnerability", "finding"] as const;
+const auditColumns = ["createdBy", "updatedBy"] as const;
 
-type AuditTable = (typeof auditTables)[number]
-type AuditColumn = (typeof auditColumns)[number]
+type AuditTable = (typeof auditTables)[number];
+type AuditColumn = (typeof auditColumns)[number];
 
 interface AuditTableRecord {
-  createdBy: string | null
-  updatedBy: string | null
+  createdBy: string | null;
+  updatedBy: string | null;
 }
 
 interface MigrationDatabase {
-  vulnerability: AuditTableRecord
-  finding: AuditTableRecord
+  vulnerability: AuditTableRecord;
+  finding: AuditTableRecord;
   user_profile: {
-    id: string
-  }
+    id: string;
+  };
 }
 
 function auditForeignKeyName(table: AuditTable, column: AuditColumn): string {
-  return `${table}_${column}_fkey`
+  return `${table}_${column}_fkey`;
 }
 
 async function dropAuditForeignKeys(
   db: Kysely<MigrationDatabase>,
-  table: AuditTable
+  table: AuditTable,
 ): Promise<void> {
   for (const column of auditColumns) {
     await db.schema
       .alterTable(table)
       .dropConstraint(auditForeignKeyName(table, column))
       .ifExists()
-      .execute()
+      .execute();
   }
 }
 
 async function addAuditForeignKeys(
   db: Kysely<MigrationDatabase>,
   table: AuditTable,
-  targetTable: "user" | "user_profile"
+  targetTable: "user" | "user_profile",
 ): Promise<void> {
   for (const column of auditColumns) {
     await db.schema
@@ -52,28 +51,28 @@ async function addAuditForeignKeys(
         [column],
         targetTable,
         ["id"],
-        (constraint) => constraint.onDelete("set null")
+        (constraint) => constraint.onDelete("set null"),
       )
-      .execute()
+      .execute();
   }
 }
 
 async function nullAuditReferencesWithoutProfile(
   db: Kysely<MigrationDatabase>,
   table: AuditTable,
-  column: AuditColumn
+  column: AuditColumn,
 ): Promise<void> {
   await db
     .updateTable(table)
     .set({ [column]: null } as Partial<AuditTableRecord>)
     .where(column, "is not", null)
     .where(column, "not in", db.selectFrom("user_profile").select("id"))
-    .execute()
+    .execute();
 }
 
 export async function up(db: Kysely<MigrationDatabase>): Promise<void> {
   for (const table of auditTables) {
-    await dropAuditForeignKeys(db, table)
+    await dropAuditForeignKeys(db, table);
   }
 
   await sql`
@@ -84,7 +83,7 @@ export async function up(db: Kysely<MigrationDatabase>): Promise<void> {
       alter column "updatedBy" type uuid using (
         case when "updatedBy" ~* ${uuidPatternSql} then "updatedBy"::uuid else null end
       )
-  `.execute(db)
+  `.execute(db);
 
   await sql`
     alter table "finding"
@@ -94,45 +93,45 @@ export async function up(db: Kysely<MigrationDatabase>): Promise<void> {
       alter column "updatedBy" type uuid using (
         case when "updatedBy" ~* ${uuidPatternSql} then "updatedBy"::uuid else null end
       )
-  `.execute(db)
+  `.execute(db);
 
   for (const table of auditTables) {
     for (const column of auditColumns) {
-      await nullAuditReferencesWithoutProfile(db, table, column)
+      await nullAuditReferencesWithoutProfile(db, table, column);
     }
 
-    await addAuditForeignKeys(db, table, "user_profile")
+    await addAuditForeignKeys(db, table, "user_profile");
   }
 
-  await db.schema.dropTable("account").ifExists().execute()
-  await db.schema.dropTable("session").ifExists().execute()
-  await db.schema.dropTable("verification").ifExists().execute()
-  await db.schema.dropTable("user").ifExists().execute()
+  await db.schema.dropTable("account").ifExists().execute();
+  await db.schema.dropTable("session").ifExists().execute();
+  await db.schema.dropTable("verification").ifExists().execute();
+  await db.schema.dropTable("user").ifExists().execute();
 }
 
 export async function down(db: Kysely<MigrationDatabase>): Promise<void> {
   for (const table of auditTables) {
-    await dropAuditForeignKeys(db, table)
+    await dropAuditForeignKeys(db, table);
     await db
       .updateTable(table)
       .set({
         createdBy: null,
-        updatedBy: null
+        updatedBy: null,
       })
-      .execute()
+      .execute();
   }
 
   await sql`
     alter table "vulnerability"
       alter column "createdBy" type text using "createdBy"::text,
       alter column "updatedBy" type text using "updatedBy"::text
-  `.execute(db)
+  `.execute(db);
 
   await sql`
     alter table "finding"
       alter column "createdBy" type text using "createdBy"::text,
       alter column "updatedBy" type text using "updatedBy"::text
-  `.execute(db)
+  `.execute(db);
 
   await db.schema
     .createTable("user")
@@ -142,9 +141,7 @@ export async function down(db: Kysely<MigrationDatabase>): Promise<void> {
     .addColumn("email", "text", (col) => col.notNull().unique())
     .addColumn("emailVerified", "boolean", (col) => col.notNull())
     .addColumn("image", "text")
-    .addColumn("createdAt", "timestamptz", (col) =>
-      col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
-    )
+    .addColumn("createdAt", "timestamptz", (col) => col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
     .addColumn("updatedAt", "timestamptz", (col) => col.notNull())
     .addColumn("username", "text", (col) => col.unique())
     .addColumn("displayUsername", "text")
@@ -152,7 +149,7 @@ export async function down(db: Kysely<MigrationDatabase>): Promise<void> {
     .addColumn("banned", "boolean", (col) => col.defaultTo(false))
     .addColumn("banReason", "text")
     .addColumn("banExpires", "timestamptz")
-    .execute()
+    .execute();
 
   await db.schema
     .createTable("session")
@@ -160,17 +157,13 @@ export async function down(db: Kysely<MigrationDatabase>): Promise<void> {
     .addColumn("id", "text", (col) => col.primaryKey().notNull())
     .addColumn("expiresAt", "timestamptz", (col) => col.notNull())
     .addColumn("token", "text", (col) => col.notNull().unique())
-    .addColumn("createdAt", "timestamptz", (col) =>
-      col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
-    )
+    .addColumn("createdAt", "timestamptz", (col) => col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
     .addColumn("updatedAt", "timestamptz", (col) => col.notNull())
     .addColumn("ipAddress", "text")
     .addColumn("userAgent", "text")
-    .addColumn("userId", "text", (col) =>
-      col.notNull().references("user.id").onDelete("cascade")
-    )
+    .addColumn("userId", "text", (col) => col.notNull().references("user.id").onDelete("cascade"))
     .addColumn("impersonatedBy", "text")
-    .execute()
+    .execute();
 
   await db.schema
     .createTable("account")
@@ -178,9 +171,7 @@ export async function down(db: Kysely<MigrationDatabase>): Promise<void> {
     .addColumn("id", "text", (col) => col.primaryKey().notNull())
     .addColumn("accountId", "text", (col) => col.notNull())
     .addColumn("providerId", "text", (col) => col.notNull())
-    .addColumn("userId", "text", (col) =>
-      col.notNull().references("user.id").onDelete("cascade")
-    )
+    .addColumn("userId", "text", (col) => col.notNull().references("user.id").onDelete("cascade"))
     .addColumn("accessToken", "text")
     .addColumn("refreshToken", "text")
     .addColumn("idToken", "text")
@@ -188,11 +179,9 @@ export async function down(db: Kysely<MigrationDatabase>): Promise<void> {
     .addColumn("refreshTokenExpiresAt", "timestamptz")
     .addColumn("scope", "text")
     .addColumn("password", "text")
-    .addColumn("createdAt", "timestamptz", (col) =>
-      col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
-    )
+    .addColumn("createdAt", "timestamptz", (col) => col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
     .addColumn("updatedAt", "timestamptz", (col) => col.notNull())
-    .execute()
+    .execute();
 
   await db.schema
     .createTable("verification")
@@ -201,36 +190,32 @@ export async function down(db: Kysely<MigrationDatabase>): Promise<void> {
     .addColumn("identifier", "text", (col) => col.notNull())
     .addColumn("value", "text", (col) => col.notNull())
     .addColumn("expiresAt", "timestamptz", (col) => col.notNull())
-    .addColumn("createdAt", "timestamptz", (col) =>
-      col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
-    )
-    .addColumn("updatedAt", "timestamptz", (col) =>
-      col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`)
-    )
-    .execute()
+    .addColumn("createdAt", "timestamptz", (col) => col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
+    .addColumn("updatedAt", "timestamptz", (col) => col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`))
+    .execute();
 
   await db.schema
     .createIndex("session_userId_idx")
     .ifNotExists()
     .on("session")
     .column("userId")
-    .execute()
+    .execute();
 
   await db.schema
     .createIndex("account_userId_idx")
     .ifNotExists()
     .on("account")
     .column("userId")
-    .execute()
+    .execute();
 
   await db.schema
     .createIndex("verification_identifier_idx")
     .ifNotExists()
     .on("verification")
     .column("identifier")
-    .execute()
+    .execute();
 
   for (const table of auditTables) {
-    await addAuditForeignKeys(db, table, "user")
+    await addAuditForeignKeys(db, table, "user");
   }
 }

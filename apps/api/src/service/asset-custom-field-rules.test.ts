@@ -1,17 +1,15 @@
-import { describe, expect, it } from "vitest"
 import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   type CreateAssetCustomFieldDefinition,
-  validateAssetCustomFieldDefinitionRules
-} from "@exposurenexus/types/model/asset-custom-field"
+  validateAssetCustomFieldDefinitionRules,
+} from "@exposurenexus/types/model/asset-custom-field";
+import { describe, expect, it } from "vitest";
 
 function violationReasons(
-  definition: CreateAssetCustomFieldDefinition
+  definition: CreateAssetCustomFieldDefinition,
 ): AssetCustomFieldRuleViolationReason[] {
-  return validateAssetCustomFieldDefinitionRules(definition).map(
-    (violation) => violation.reason
-  )
+  return validateAssetCustomFieldDefinitionRules(definition).map((violation) => violation.reason);
 }
 
 describe("asset custom field definition rules", () => {
@@ -21,18 +19,18 @@ describe("asset custom field definition rules", () => {
         key: "category",
         name: "Category",
         required: false,
-        type: AssetCustomFieldType.Text
-      })
-    ).toEqual([])
+        type: AssetCustomFieldType.Text,
+      }),
+    ).toEqual([]);
     expect(
       validateAssetCustomFieldDefinitionRules({
         key: "priority",
         name: "Priority",
         required: true,
         type: AssetCustomFieldType.Number,
-        defaultValue: 1
-      })
-    ).toEqual([])
+        defaultValue: 1,
+      }),
+    ).toEqual([]);
     expect(
       validateAssetCustomFieldDefinitionRules({
         key: "environment",
@@ -42,11 +40,11 @@ describe("asset custom field definition rules", () => {
         defaultValue: "prod",
         options: [
           { value: "prod", label: "Production" },
-          { value: "stage", label: "Staging" }
-        ]
-      })
-    ).toEqual([])
-  })
+          { value: "stage", label: "Staging" },
+        ],
+      }),
+    ).toEqual([]);
+  });
 
   it("treats omitted defaults as null for required fields", () => {
     expect(
@@ -54,15 +52,15 @@ describe("asset custom field definition rules", () => {
         key: "category",
         name: "Category",
         required: true,
-        type: AssetCustomFieldType.Text
-      })
+        type: AssetCustomFieldType.Text,
+      }),
     ).toEqual([
       {
         reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
-        path: ["defaultValue"]
-      }
-    ])
-  })
+        path: ["defaultValue"],
+      },
+    ]);
+  });
 
   it("reports typed default violations", () => {
     expect(
@@ -71,18 +69,18 @@ describe("asset custom field definition rules", () => {
         name: "Category",
         required: false,
         type: AssetCustomFieldType.Text,
-        defaultValue: 5 as never
-      })
-    ).toEqual([AssetCustomFieldRuleViolationReason.TextDefaultMustBeString])
+        defaultValue: 5 as never,
+      }),
+    ).toEqual([AssetCustomFieldRuleViolationReason.TextDefaultMustBeString]);
     expect(
       violationReasons({
         key: "priority",
         name: "Priority",
         required: false,
         type: AssetCustomFieldType.Number,
-        defaultValue: "high" as never
-      })
-    ).toEqual([AssetCustomFieldRuleViolationReason.NumberDefaultMustBeNumber])
+        defaultValue: "high" as never,
+      }),
+    ).toEqual([AssetCustomFieldRuleViolationReason.NumberDefaultMustBeNumber]);
     expect(
       violationReasons({
         key: "environment",
@@ -90,10 +88,10 @@ describe("asset custom field definition rules", () => {
         required: false,
         type: AssetCustomFieldType.Select,
         defaultValue: 5 as never,
-        options: [{ value: "prod", label: "Production" }]
-      })
-    ).toEqual([AssetCustomFieldRuleViolationReason.SelectDefaultMustBeString])
-  })
+        options: [{ value: "prod", label: "Production" }],
+      }),
+    ).toEqual([AssetCustomFieldRuleViolationReason.SelectDefaultMustBeString]);
+  });
 
   it("reports select option rule violations in API-compatible order", () => {
     expect(
@@ -105,14 +103,14 @@ describe("asset custom field definition rules", () => {
         defaultValue: 5 as never,
         options: [
           { value: "prod", label: "Production" },
-          { value: "prod", label: "Prod" }
-        ]
-      })
+          { value: "prod", label: "Prod" },
+        ],
+      }),
     ).toEqual([
       AssetCustomFieldRuleViolationReason.SelectOptionValuesMustBeUnique,
-      AssetCustomFieldRuleViolationReason.SelectDefaultMustBeString
-    ])
-  })
+      AssetCustomFieldRuleViolationReason.SelectDefaultMustBeString,
+    ]);
+  });
 
   it("requires select defaults to match an option value", () => {
     expect(
@@ -122,14 +120,13 @@ describe("asset custom field definition rules", () => {
         required: false,
         type: AssetCustomFieldType.Select,
         defaultValue: "dev",
-        options: [{ value: "prod", label: "Production" }]
-      })
+        options: [{ value: "prod", label: "Production" }],
+      }),
     ).toEqual([
       {
-        reason:
-          AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption,
-        path: ["defaultValue"]
-      }
-    ])
-  })
-})
+        reason: AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption,
+        path: ["defaultValue"],
+      },
+    ]);
+  });
+});

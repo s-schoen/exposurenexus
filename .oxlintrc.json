@@ -1,0 +1,172 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "import", "oxc", "typescript", "unicorn"],
+  "categories": {
+    "correctness": "off"
+  },
+  "env": {
+    "es2022": true
+  },
+  "ignorePatterns": [
+    "coverage",
+    "dist",
+    "node_modules",
+    "apps/ui/storybook-static",
+    "apps/ui/src/**/*.gen.ts"
+  ],
+  "options": {
+    "maxWarnings": 0,
+    "reportUnusedDisableDirectives": "error",
+    "respectEslintDisableDirectives": false,
+    "typeAware": true,
+    "typeCheck": true
+  },
+  "rules": {
+    "eslint/no-async-promise-executor": "error",
+    "eslint/no-case-declarations": "error",
+    "eslint/no-class-assign": "error",
+    "eslint/no-compare-neg-zero": "error",
+    "eslint/no-constant-binary-expression": "error",
+    "eslint/no-constant-condition": "error",
+    "eslint/no-control-regex": "error",
+    "eslint/no-debugger": "error",
+    "eslint/no-delete-var": "error",
+    "eslint/no-dupe-else-if": "error",
+    "eslint/no-duplicate-case": "error",
+    "eslint/no-empty-character-class": "error",
+    "eslint/no-empty-pattern": "error",
+    "eslint/no-empty-static-block": "error",
+    "eslint/no-ex-assign": "error",
+    "eslint/no-extra-boolean-cast": "error",
+    "eslint/no-fallthrough": "error",
+    "eslint/no-global-assign": "error",
+    "eslint/no-invalid-regexp": "error",
+    "eslint/no-irregular-whitespace": "error",
+    "eslint/no-loss-of-precision": "error",
+    "eslint/no-misleading-character-class": "error",
+    "eslint/no-nonoctal-decimal-escape": "error",
+    "eslint/no-prototype-builtins": "error",
+    "eslint/no-regex-spaces": "error",
+    "eslint/no-self-assign": "error",
+    "eslint/no-shadow-restricted-names": "error",
+    "eslint/no-sparse-arrays": "error",
+    "eslint/no-unsafe-finally": "error",
+    "eslint/no-unsafe-optional-chaining": "error",
+    "eslint/no-unused-labels": "error",
+    "eslint/no-unused-private-class-members": "error",
+    "eslint/no-useless-backreference": "error",
+    "eslint/no-useless-catch": "error",
+    "eslint/no-useless-escape": "error",
+    "eslint/no-var": "error",
+    "eslint/no-with": "error",
+    "eslint/prefer-const": "error",
+    "eslint/require-yield": "error",
+    "eslint/use-isnan": "error",
+    "eslint/valid-typeof": "error",
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-duplicate-enum-values": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-extra-non-null-assertion": "error",
+    "typescript/no-misused-new": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-non-null-asserted-optional-chain": "error",
+    "typescript/no-require-imports": "error",
+    "typescript/no-this-alias": "error",
+    "typescript/no-unsafe-declaration-merging": "error",
+    "typescript/no-unsafe-function-type": "error",
+    "typescript/no-unused-expressions": "error",
+    "typescript/no-unused-vars": "error",
+    "typescript/no-wrapper-object-types": "error",
+    "typescript/prefer-as-const": "error",
+    "typescript/prefer-namespace-keyword": "error",
+    "typescript/triple-slash-reference": "error",
+    "unicorn/prefer-node-protocol": "error"
+  },
+  "overrides": [
+    {
+      "files": [
+        "apps/api/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}",
+        "packages/types/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
+      ],
+      "env": {
+        "node": true
+      },
+      "rules": {
+        "unicorn/prefer-node-protocol": "error"
+      }
+    },
+    {
+      "files": [
+        "apps/ui/vite.config.ts",
+        "apps/ui/.storybook/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
+      ],
+      "env": {
+        "node": true
+      },
+      "rules": {
+        "unicorn/prefer-node-protocol": "error"
+      }
+    },
+    {
+      "files": ["apps/ui/src/**/*.{ts,tsx}"],
+      "env": {
+        "browser": true
+      },
+      "rules": {
+        "eslint/no-shadow": "warn",
+        "eslint/no-unused-expressions": "off",
+        "eslint/sort-imports": [
+          "error",
+          { "ignoreDeclarationSort": true, "ignoreMemberSort": true }
+        ],
+        "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
+        "import/first": "error",
+        "import/no-commonjs": "error",
+        "import/no-duplicates": "error",
+        "import/newline-after-import": "error",
+        "typescript/array-type": [
+          "error",
+          {
+            "default": "generic",
+            "readonly": "generic"
+          }
+        ],
+        "typescript/ban-ts-comment": [
+          "error",
+          {
+            "ts-expect-error": false,
+            "ts-ignore": "allow-with-description"
+          }
+        ],
+        "typescript/consistent-type-imports": ["error", { "prefer": "type-imports" }],
+        "typescript/method-signature-style": ["error", "property"],
+        "typescript/no-empty-object-type": "off",
+        "typescript/no-for-in-array": "error",
+        "typescript/no-inferrable-types": ["error", { "ignoreParameters": true }],
+        "typescript/no-unused-expressions": "off",
+        "typescript/no-unnecessary-condition": "error",
+        "typescript/no-unnecessary-type-assertion": "error",
+        "typescript/prefer-for-of": "off",
+        "typescript/require-await": "off",
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/*.{test,spec}.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+      "env": {
+        "vitest": true
+      }
+    }
+  ]
+}

@@ -1,129 +1,116 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, render, screen } from "@testing-library/react"
-import type { ReactNode } from "react"
-import type { Asset } from "@exposurenexus/types/model/asset"
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { Asset } from "@exposurenexus/types/model/asset";
+import type { ReactNode } from "react";
 
 interface QueryState<TData> {
-  data?: TData
-  isPending: boolean
-  isSuccess: boolean
+  data?: TData;
+  isPending: boolean;
+  isSuccess: boolean;
 }
 
-const assetId = "61303e6e-9aa5-49cc-a863-bc1bd6eb45ac"
+const assetId = "61303e6e-9aa5-49cc-a863-bc1bd6eb45ac";
 
 const mocks = vi.hoisted(() => {
   const asset: Asset = {
     id: "61303e6e-9aa5-49cc-a863-bc1bd6eb45ac",
     name: "Payment API",
     type: "host" as Asset["type"],
-    ownerId: null
-  }
+    ownerId: null,
+  };
   const assetQuery: QueryState<Asset> = {
     data: asset,
     isPending: false,
-    isSuccess: true
-  }
+    isSuccess: true,
+  };
 
   return {
     asset,
     assetQuery,
-    usePageMeta: vi.fn()
-  }
-})
+    usePageMeta: vi.fn(),
+  };
+});
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({
-    children,
-    className,
-    to
-  }: {
-    children: ReactNode
-    className?: string
-    to: string
-  }) => (
+  Link: ({ children, className, to }: { children: ReactNode; className?: string; to: string }) => (
     <a className={className} href={to}>
       {children}
     </a>
-  )
-}))
+  ),
+}));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.assetQuery
-}))
+  useQuery: () => mocks.assetQuery,
+}));
 
 vi.mock("@/api/asset.ts", () => ({
   createAssetByIDQueryOptions: (id: string) => ({
-    queryKey: ["assets", id]
-  })
-}))
+    queryKey: ["assets", id],
+  }),
+}));
 
 vi.mock("@/context/page.tsx", () => ({
-  usePageMeta: mocks.usePageMeta
-}))
+  usePageMeta: mocks.usePageMeta,
+}));
 
 vi.mock("@/components/asset-detail-content.tsx", () => ({
   AssetDetailContent: ({
     assetId: renderedAssetId,
-    titleAction
+    titleAction,
   }: {
-    assetId: string
-    titleAction?: ReactNode
+    assetId: string;
+    titleAction?: ReactNode;
   }) => (
     <div>
       {titleAction}
       <div>Asset detail for {renderedAssetId}</div>
     </div>
-  )
-}))
+  ),
+}));
 
 describe("AssetDetailPage", () => {
   beforeEach(() => {
     mocks.assetQuery = {
       data: mocks.asset,
       isPending: false,
-      isSuccess: true
-    }
-    mocks.usePageMeta.mockReset()
-  })
+      isSuccess: true,
+    };
+    mocks.usePageMeta.mockReset();
+  });
 
   afterEach(() => {
-    cleanup()
-  })
+    cleanup();
+  });
 
   it("uses loaded asset data for page metadata and renders the back link", async () => {
-    const { AssetDetailPage } = await import(
-      "@/features/assets/components/asset-detail-page.tsx"
-    )
+    const { AssetDetailPage } = await import("@/features/assets/components/asset-detail-page.tsx");
 
-    render(<AssetDetailPage assetId={assetId} />)
+    render(<AssetDetailPage assetId={assetId} />);
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Payment API",
-      description:
-        "Inspect the selected asset and review its core inventory metadata."
-    })
+      description: "Inspect the selected asset and review its core inventory metadata.",
+    });
     expect(screen.getByRole("link", { name: /back to assets/i })).toHaveAttribute(
       "href",
-      "/assets"
-    )
-    expect(screen.getByText(`Asset detail for ${assetId}`)).toBeVisible()
-  })
+      "/assets",
+    );
+    expect(screen.getByText(`Asset detail for ${assetId}`)).toBeVisible();
+  });
 
   it("uses fallback page metadata before asset data is available", async () => {
-    const { AssetDetailPage } = await import(
-      "@/features/assets/components/asset-detail-page.tsx"
-    )
+    const { AssetDetailPage } = await import("@/features/assets/components/asset-detail-page.tsx");
     mocks.assetQuery = {
       isPending: true,
-      isSuccess: false
-    }
+      isSuccess: false,
+    };
 
-    render(<AssetDetailPage assetId={assetId} />)
+    render(<AssetDetailPage assetId={assetId} />);
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Asset",
-      description:
-        "Inspect the selected asset and review its core inventory metadata."
-    })
-  })
-})
+      description: "Inspect the selected asset and review its core inventory metadata.",
+    });
+  });
+});

@@ -1,59 +1,51 @@
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
-import type { AssetWithCustomFields } from "@exposurenexus/types/model/asset"
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
-import type { UserProfile } from "@exposurenexus/types/model/user"
-import type { ColumnDef } from "@tanstack/react-table"
-import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx"
-import {
-  UserLabel,
-  formatUserProfileReference
-} from "@/components/user-label.tsx"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
 
-import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts"
-import { capitalizeFirstLetter } from "@/lib/format.ts"
+import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx";
+import { UserLabel, formatUserProfileReference } from "@/components/user-label.tsx";
+import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts";
+import { capitalizeFirstLetter } from "@/lib/format.ts";
 
-const emptyCustomFieldFilterValue = "__empty__"
+import type { AssetWithCustomFields } from "@exposurenexus/types/model/asset";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { ColumnDef } from "@tanstack/react-table";
+
+const emptyCustomFieldFilterValue = "__empty__";
 
 export function getAssetCustomFieldColumnId(fieldId: string) {
-  return `custom-field:${fieldId}`
+  return `custom-field:${fieldId}`;
 }
 
 function createBaseColumns(
   userProfileById: Map<string, UserProfile>,
-  usersLoading = false
+  usersLoading = false,
 ): Array<ColumnDef<AssetWithCustomFields>> {
   return [
     {
       accessorKey: "name",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Name" />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
       meta: {
-        label: "Name"
-      }
+        label: "Name",
+      },
     },
     {
       accessorKey: "type",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Type" />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
       cell: ({ row }) => {
-        return <span>{capitalizeFirstLetter(row.getValue("type"))}</span>
+        return <span>{capitalizeFirstLetter(row.getValue("type"))}</span>;
       },
       meta: {
-        label: "Type"
-      }
+        label: "Type",
+      },
     },
     {
       id: "ownerId",
       accessorFn: (asset) =>
         formatUserProfileReference(asset.ownerId, userProfileById, {
           emptyLabel: "No Owner",
-          unknownLabel: "Unknown Owner"
+          unknownLabel: "Unknown Owner",
         }),
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Owner" />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Owner" />,
       cell: ({ row }) => (
         <UserLabel
           userId={row.original.ownerId}
@@ -69,84 +61,76 @@ function createBaseColumns(
         />
       ),
       meta: {
-        label: "Owner"
-      }
-    }
-  ]
+        label: "Owner",
+      },
+    },
+  ];
 }
 
 function createCustomFieldColumn(
-  definition: AssetCustomFieldDefinition
+  definition: AssetCustomFieldDefinition,
 ): ColumnDef<AssetWithCustomFields> {
-  const columnId = getAssetCustomFieldColumnId(definition.id)
+  const columnId = getAssetCustomFieldColumnId(definition.id);
   const filterVariant = (() => {
     switch (definition.type) {
       case AssetCustomFieldType.Number:
-        return "number" as const
+        return "number" as const;
       case AssetCustomFieldType.Select:
-        return "select" as const
+        return "select" as const;
       case AssetCustomFieldType.Text:
-        return "text" as const
+        return "text" as const;
     }
-  })()
+  })();
 
   return {
     id: columnId,
     accessorFn: (asset) =>
       formatAssetCustomFieldValue(
-        asset.customFields.find((field) => field.fieldId === definition.id)
+        asset.customFields.find((field) => field.fieldId === definition.id),
       ),
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={definition.name} />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title={definition.name} />,
     cell: ({ getValue }) => {
-      const value = getValue<string>()
+      const value = getValue<string>();
 
-      return (
-        <span className={value === "None" ? "text-muted-foreground" : ""}>
-          {value}
-        </span>
-      )
+      return <span className={value === "None" ? "text-muted-foreground" : ""}>{value}</span>;
     },
     filterFn: (row, _columnId, filterValue: Array<string> | string) => {
-      const value = row.original.customFields.find(
-        (field) => field.fieldId === definition.id
-      )
+      const value = row.original.customFields.find((field) => field.fieldId === definition.id);
 
       switch (definition.type) {
         case AssetCustomFieldType.Number: {
           if (typeof filterValue !== "string" || !filterValue.trim()) {
-            return true
+            return true;
           }
 
-          const parsedFilterValue = Number(filterValue)
+          const parsedFilterValue = Number(filterValue);
 
           return (
             Number.isFinite(parsedFilterValue) &&
             typeof value?.value === "number" &&
             value.value === parsedFilterValue
-          )
+          );
         }
         case AssetCustomFieldType.Select: {
           if (!Array.isArray(filterValue) || filterValue.length === 0) {
-            return true
+            return true;
           }
 
           const resolvedValue =
             value?.value === null || typeof value === "undefined"
               ? emptyCustomFieldFilterValue
-              : String(value.value)
+              : String(value.value);
 
-          return filterValue.includes(resolvedValue)
+          return filterValue.includes(resolvedValue);
         }
         case AssetCustomFieldType.Text: {
           if (typeof filterValue !== "string" || !filterValue.trim()) {
-            return true
+            return true;
           }
 
           return formatAssetCustomFieldValue(value)
             .toLocaleLowerCase()
-            .includes(filterValue.toLocaleLowerCase())
+            .includes(filterValue.toLocaleLowerCase());
         }
       }
     },
@@ -159,24 +143,22 @@ function createCustomFieldColumn(
               { label: "None", value: emptyCustomFieldFilterValue },
               ...definition.options.map((option) => ({
                 label: option.label,
-                value: option.value
-              }))
-            ]
+                value: option.value,
+              })),
+            ],
           }
-        : {})
-    }
-  }
+        : {}),
+    },
+  };
 }
 
 export function createAssetTableColumns(
   customFieldDefinitions: Array<AssetCustomFieldDefinition>,
   userProfileById: Map<string, UserProfile> = new Map(),
-  usersLoading = false
+  usersLoading = false,
 ): Array<ColumnDef<AssetWithCustomFields>> {
   return [
     ...createBaseColumns(userProfileById, usersLoading),
-    ...customFieldDefinitions.map((definition) =>
-      createCustomFieldColumn(definition)
-    )
-  ]
+    ...customFieldDefinitions.map((definition) => createCustomFieldColumn(definition)),
+  ];
 }

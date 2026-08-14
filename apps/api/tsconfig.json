@@ -5,12 +5,12 @@
     "strict": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "rootDir": "."
   },
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "src/**/*.test.ts", "src/test/**", "vitest.config.ts"]
 }

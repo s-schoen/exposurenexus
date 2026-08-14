@@ -1,68 +1,68 @@
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 
-import { FindingSeverityChart } from "@/components/finding-severity-chart"
+import { FindingSeverityChart } from "@/components/finding-severity-chart";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const baselineData: Record<VulnerabilitySeverity, number> = {
   [VulnerabilitySeverity.Info]: 8,
   [VulnerabilitySeverity.Low]: 19,
   [VulnerabilitySeverity.Medium]: 27,
   [VulnerabilitySeverity.High]: 15,
-  [VulnerabilitySeverity.Critical]: 4
-}
+  [VulnerabilitySeverity.Critical]: 4,
+};
 
 const highRiskData: Record<VulnerabilitySeverity, number> = {
   [VulnerabilitySeverity.Info]: 2,
   [VulnerabilitySeverity.Low]: 7,
   [VulnerabilitySeverity.Medium]: 18,
   [VulnerabilitySeverity.High]: 24,
-  [VulnerabilitySeverity.Critical]: 11
-}
+  [VulnerabilitySeverity.Critical]: 11,
+};
 
 const meta = {
   title: "Resources/Findings/SeverityChart",
   component: FindingSeverityChart,
   parameters: {
-    layout: "padded"
+    layout: "padded",
   },
   args: {
     data: baselineData,
-    height: "24rem"
-  }
-} satisfies Meta<typeof FindingSeverityChart>
+    height: "24rem",
+  },
+} satisfies Meta<typeof FindingSeverityChart>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {}
+export const Default: Story = {};
 
 export const HighRiskProfile: Story = {
   args: {
-    data: highRiskData
-  }
-}
+    data: highRiskData,
+  },
+};
 
 export const Loading: Story = {
   args: {
-    loading: true
-  }
-}
+    loading: true,
+  },
+};
 
 export const EmptyState: Story = {
   args: {
-    data: {}
-  }
-}
+    data: {},
+  },
+};
 
 export const CompactCard: Story = {
   args: {
     data: baselineData,
     height: "18rem",
-    className:
-      "max-w-xl border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
-  }
-}
+    className: "max-w-xl border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm",
+  },
+};
 
 export const DarkSurface: Story = {
   render: () => (
@@ -73,5 +73,5 @@ export const DarkSurface: Story = {
         className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
       />
     </div>
-  )
-}
+  ),
+};

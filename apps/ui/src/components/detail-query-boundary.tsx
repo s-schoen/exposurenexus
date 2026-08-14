@@ -1,28 +1,30 @@
-import { CircleAlert } from "lucide-react"
-import type { ReactNode } from "react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
+import { CircleAlert } from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
-import { Skeleton } from "@/components/ui/skeleton.tsx"
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
+
+import type { ReactNode } from "react";
 
 export interface DetailQueryBoundaryState<TData> {
-  data: TData | undefined
-  error?: Error | null
-  isPending: boolean
+  data: TData | undefined;
+  error?: Error | null;
+  isPending: boolean;
 }
 
 interface DetailQueryBoundaryProps<TData> {
-  children: (data: TData) => ReactNode
-  errorDescription: ReactNode
-  errorTitle: ReactNode
-  missingMessage: ReactNode
-  query: DetailQueryBoundaryState<TData>
-  title: ReactNode
+  children: (data: TData) => ReactNode;
+  errorDescription: ReactNode;
+  errorTitle: ReactNode;
+  missingMessage: ReactNode;
+  query: DetailQueryBoundaryState<TData>;
+  title: ReactNode;
 }
 
 export function DetailQueryBoundary<TData>({
@@ -31,7 +33,7 @@ export function DetailQueryBoundary<TData>({
   errorTitle,
   missingMessage,
   query,
-  title
+  title,
 }: DetailQueryBoundaryProps<TData>) {
   if (query.isPending) {
     return (
@@ -45,7 +47,7 @@ export function DetailQueryBoundary<TData>({
           <Skeleton className="h-64 w-full" />
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (!query.data) {
@@ -59,14 +61,12 @@ export function DetailQueryBoundary<TData>({
           <Alert variant="destructive">
             <CircleAlert />
             <AlertTitle>{errorTitle}</AlertTitle>
-            <AlertDescription>
-              {query.error?.message ?? missingMessage}
-            </AlertDescription>
+            <AlertDescription>{query.error?.message ?? missingMessage}</AlertDescription>
           </Alert>
         </CardContent>
       </Card>
-    )
+    );
   }
 
-  return children(query.data)
+  return children(query.data);
 }

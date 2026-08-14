@@ -1,140 +1,125 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
-import type { ReactNode } from "react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { ReactNode } from "react";
 
 interface SessionQuery {
   user: {
-    displayName?: string | null
-    email?: string | null
-  } | null
-  status: "loading" | "authenticated" | "unauthenticated"
+    displayName?: string | null;
+    email?: string | null;
+  } | null;
+  status: "loading" | "authenticated" | "unauthenticated";
 }
 
 const mocks = vi.hoisted(() => {
   const sessionQuery: SessionQuery = {
     user: {
       displayName: "Alice Example",
-      email: "alice@example.com"
+      email: "alice@example.com",
     },
-    status: "authenticated"
-  }
+    status: "authenticated",
+  };
 
   return {
     navigate: vi.fn(),
     sessionQuery,
-    logout: vi.fn()
-  }
-})
+    logout: vi.fn(),
+  };
+});
 
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mocks.navigate
-}))
+  useNavigate: () => mocks.navigate,
+}));
 
 vi.mock("@/context/auth", () => ({
   useAuth: () => ({
     logout: mocks.logout,
     status: mocks.sessionQuery.status,
-    user: mocks.sessionQuery.user
-  })
-}))
+    user: mocks.sessionQuery.user,
+  }),
+}));
 
 vi.mock("@/components/ui/avatar", () => ({
   Avatar: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  AvatarFallback: ({ children }: { children: ReactNode }) => (
-    <span>{children}</span>
-  )
-}))
+  AvatarFallback: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+}));
 
 vi.mock("@/components/ui/dropdown-menu", () => ({
   DropdownMenu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  DropdownMenuContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DropdownMenuGroup: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DropdownMenuItem: ({
-    children,
-    onClick
-  }: {
-    children: ReactNode
-    onClick?: () => void
-  }) => (
+  DropdownMenuContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DropdownMenuGroup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DropdownMenuItem: ({ children, onClick }: { children: ReactNode; onClick?: () => void }) => (
     <button type="button" onClick={onClick}>
       {children}
     </button>
   ),
-  DropdownMenuLabel: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DropdownMenuTrigger: ({ render: trigger }: { render: ReactNode }) => (
-    <>{trigger}</>
-  )
-}))
+  DropdownMenuLabel: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ render: trigger }: { render: ReactNode }) => <>{trigger}</>,
+}));
 
 vi.mock("@/components/ui/spinner", () => ({
-  Spinner: () => <span>Loading account</span>
-}))
+  Spinner: () => <span>Loading account</span>,
+}));
 
 describe("AccountMenu", () => {
   beforeEach(() => {
-    mocks.navigate.mockReset()
-    mocks.logout.mockReset()
+    mocks.navigate.mockReset();
+    mocks.logout.mockReset();
     mocks.sessionQuery = {
       user: {
         displayName: "Alice Example",
-        email: "alice@example.com"
+        email: "alice@example.com",
       },
-      status: "authenticated"
-    }
-  })
+      status: "authenticated",
+    };
+  });
 
   afterEach(() => {
-    cleanup()
-  })
+    cleanup();
+  });
 
   it("renders the current user and signs out through auth context", async () => {
-    const { AccountMenu } = await import("@/components/account-menu.tsx")
-    mocks.logout.mockResolvedValueOnce(undefined)
+    const { AccountMenu } = await import("@/components/account-menu.tsx");
+    mocks.logout.mockResolvedValueOnce(undefined);
 
-    render(<AccountMenu />)
+    render(<AccountMenu />);
 
-    expect(screen.getByText("Alice Example")).toBeTruthy()
-    expect(screen.getByText("A")).toBeTruthy()
-    expect(screen.getByText("Account")).toBeTruthy()
+    expect(screen.getByText("Alice Example")).toBeTruthy();
+    expect(screen.getByText("A")).toBeTruthy();
+    expect(screen.getByText("Account")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Sign Out" }))
+    fireEvent.click(screen.getByRole("button", { name: "Sign Out" }));
 
     await waitFor(() => {
-      expect(mocks.logout).toHaveBeenCalledTimes(1)
+      expect(mocks.logout).toHaveBeenCalledTimes(1);
       expect(mocks.navigate).toHaveBeenCalledWith({
         search: { redirect: "/" },
-        to: "/login"
-      })
-    })
-  })
+        to: "/login",
+      });
+    });
+  });
 
   it("falls back to email and shows a spinner while the session is pending", async () => {
-    const { AccountMenu } = await import("@/components/account-menu.tsx")
+    const { AccountMenu } = await import("@/components/account-menu.tsx");
     mocks.sessionQuery = {
       user: {
         displayName: null,
-        email: "alice@example.com"
+        email: "alice@example.com",
       },
-      status: "authenticated"
-    }
+      status: "authenticated",
+    };
 
-    const { rerender } = render(<AccountMenu />)
+    const { rerender } = render(<AccountMenu />);
 
-    expect(screen.getByText("alice@example.com")).toBeTruthy()
-    expect(screen.getByText("A")).toBeTruthy()
+    expect(screen.getByText("alice@example.com")).toBeTruthy();
+    expect(screen.getByText("A")).toBeTruthy();
 
     mocks.sessionQuery = {
       user: null,
-      status: "loading"
-    }
-    rerender(<AccountMenu />)
+      status: "loading",
+    };
+    rerender(<AccountMenu />);
 
-    expect(screen.getByText("Loading account")).toBeTruthy()
-  })
-})
+    expect(screen.getByText("Loading account")).toBeTruthy();
+  });
+});

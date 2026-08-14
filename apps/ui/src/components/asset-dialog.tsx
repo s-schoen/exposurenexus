@@ -1,72 +1,66 @@
-import { createCallable } from "react-call"
-import { AssetType, assetSchema } from "@exposurenexus/types/model/asset"
-import { useForm } from "@tanstack/react-form"
-import { useQuery } from "@tanstack/react-query"
-import type { ReactCall } from "react-call"
-import type { Asset } from "@exposurenexus/types/model/asset"
-import { createListUsersQueryOptions } from "@/api/user.ts"
-import { Button } from "@/components/ui/button.tsx"
+import { AssetType, assetSchema } from "@exposurenexus/types/model/asset";
+import { useForm } from "@tanstack/react-form";
+import { useQuery } from "@tanstack/react-query";
+import { createCallable } from "react-call";
+
+import { createListUsersQueryOptions } from "@/api/user.ts";
+import { Button } from "@/components/ui/button.tsx";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog.tsx"
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel
-} from "@/components/ui/field.tsx"
-import { Input } from "@/components/ui/input.tsx"
+  DialogTitle,
+} from "@/components/ui/dialog.tsx";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field.tsx";
+import { Input } from "@/components/ui/input.tsx";
 import {
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
   SelectTrigger,
-  SelectValue
-} from "@/components/ui/select.tsx"
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { capitalizeFirstLetter } from "@/lib/format.ts";
 
-import { capitalizeFirstLetter } from "@/lib/format.ts"
+import type { Asset } from "@exposurenexus/types/model/asset";
+import type { ReactCall } from "react-call";
 
-interface AssetDialogProps {}
+type AssetDialogProps = object;
 
-const formSchema = assetSchema.omit({ id: true })
-const noOwnerValue = "__no_owner__"
+const formSchema = assetSchema.omit({ id: true });
+const noOwnerValue = "__no_owner__";
 
-export const AssetDialog = ({
-  call
-}: ReactCall.Props<AssetDialogProps, Asset | null, {}>) => {
-  const users = useQuery(createListUsersQueryOptions())
+export const AssetDialog = ({ call }: ReactCall.Props<AssetDialogProps, Asset | null, object>) => {
+  const users = useQuery(createListUsersQueryOptions());
   const form = useForm({
     defaultValues: {
       name: "",
       type: AssetType.Host,
-      ownerId: null as string | null
+      ownerId: null as string | null,
     },
     validators: {
-      onSubmit: formSchema
+      onSubmit: formSchema,
     },
     onSubmit: ({ value }) => {
       call.end({
         id: "",
         name: value.name,
         type: value.type,
-        ownerId: value.ownerId ?? null
-      })
-    }
-  })
+        ownerId: value.ownerId ?? null,
+      });
+    },
+  });
 
   return (
     <Dialog open={!call.ended}>
       <form
         id="asset-form"
         onSubmit={async (e) => {
-          e.preventDefault()
-          await form.handleSubmit()
+          e.preventDefault();
+          await form.handleSubmit();
         }}
       >
         <DialogContent className="sm:max-w-106.25">
@@ -78,8 +72,7 @@ export const AssetDialog = ({
             <form.Field
               name="name"
               children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
                 return (
                   <Field data-invalid={isInvalid}>
                     <FieldLabel htmlFor={field.name}>Name</FieldLabel>
@@ -93,11 +86,9 @@ export const AssetDialog = ({
                       placeholder="Asset name"
                       autoComplete="off"
                     />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
+                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
                   </Field>
-                )
+                );
               }}
             />
             <form.Field
@@ -110,8 +101,8 @@ export const AssetDialog = ({
                       value={field.state.value}
                       name={field.name}
                       onValueChange={(e) => {
-                        field.handleChange(e as AssetType)
-                        field.handleBlur()
+                        field.handleChange(e as AssetType);
+                        field.handleBlur();
                       }}
                     >
                       <SelectTrigger id={field.name}>
@@ -128,7 +119,7 @@ export const AssetDialog = ({
                       </SelectContent>
                     </Select>
                   </Field>
-                )
+                );
               }}
             />
             <form.Field
@@ -141,10 +132,8 @@ export const AssetDialog = ({
                       value={field.state.value ?? noOwnerValue}
                       name={field.name}
                       onValueChange={(value) => {
-                        field.handleChange(
-                          value === noOwnerValue ? null : value
-                        )
-                        field.handleBlur()
+                        field.handleChange(value === noOwnerValue ? null : value);
+                        field.handleBlur();
                       }}
                     >
                       <SelectTrigger id={field.name}>
@@ -162,16 +151,12 @@ export const AssetDialog = ({
                       </SelectContent>
                     </Select>
                   </Field>
-                )
+                );
               }}
             />
           </FieldGroup>
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => call.end(null)}
-            >
+            <Button type="button" variant="outline" onClick={() => call.end(null)}>
               Cancel
             </Button>
             <Button type="submit" form="asset-form">
@@ -181,13 +166,11 @@ export const AssetDialog = ({
         </DialogContent>
       </form>
     </Dialog>
-  )
-}
+  );
+};
 
 // needed because of hot reload issues with react-call: https://github.com/desko27/react-call/issues/31
-const callable = createCallable(((props) => (
-  <AssetDialog {...props} />
-)) as typeof AssetDialog)
-AssetDialog.call = callable.call
-AssetDialog.Root = callable.Root
-AssetDialog.callable = callable
+const callable = createCallable(((props) => <AssetDialog {...props} />) as typeof AssetDialog);
+AssetDialog.call = callable.call;
+AssetDialog.Root = callable.Root;
+AssetDialog.callable = callable;

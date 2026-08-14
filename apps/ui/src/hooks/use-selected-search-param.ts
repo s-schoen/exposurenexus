@@ -1,37 +1,35 @@
-import { useCallback } from "react"
-import { useNavigate } from "@tanstack/react-router"
-import type { FileRouteTypes } from "@/routeTree.gen.ts"
+import { useNavigate } from "@tanstack/react-router";
+import { useCallback } from "react";
 
-type AppRouteTo = FileRouteTypes["to"]
+import type { FileRouteTypes } from "@/routeTree.gen.ts";
+
+type AppRouteTo = FileRouteTypes["to"];
 
 export function validateSelectedSearch(search: Record<string, unknown>) {
   return {
-    selected: typeof search.selected === "string" ? search.selected : undefined
-  }
+    selected: typeof search.selected === "string" ? search.selected : undefined,
+  };
 }
 
 export function createSelectedSearch(selected: string | undefined) {
   return (prev: Record<string, unknown>) => ({
     ...prev,
-    selected
-  })
+    selected,
+  });
 }
 
-export function useSelectedSearchParam<
-  TItem,
-  TTo extends AppRouteTo = AppRouteTo
->({
+export function useSelectedSearchParam<TItem, TTo extends AppRouteTo = AppRouteTo>({
   getId,
   replace,
   selectedId,
-  to
+  to,
 }: {
-  getId: (item: TItem) => string
-  replace?: boolean
-  selectedId?: string
-  to: TTo
+  getId: (item: TItem) => string;
+  replace?: boolean;
+  selectedId?: string;
+  to: TTo;
 }) {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const navigateSelected = useCallback(
     (selected: string | undefined) => {
       // This helper accepts any generated route target. TanStack cannot prove
@@ -40,16 +38,16 @@ export function useSelectedSearchParam<
       return navigate({
         to,
         ...(typeof replace === "boolean" ? { replace } : {}),
-        search: createSelectedSearch(selected)
-      } as never)
+        search: createSelectedSearch(selected),
+      } as never);
     },
-    [navigate, replace, to]
-  )
+    [navigate, replace, to],
+  );
 
   return {
     selectedId,
     selectRow: (item: TItem) => navigateSelected(getId(item)),
     clearSelected: () => navigateSelected(undefined),
-    isRowSelected: (item: TItem) => getId(item) === selectedId
-  }
+    isRowSelected: (item: TItem) => getId(item) === selectedId,
+  };
 }

@@ -1,7 +1,7 @@
-import { sql, type Kysely } from "kysely"
-import { PermissionResource } from "@exposurenexus/types/model/rbac"
+import { PermissionResource } from "@exposurenexus/types/model/rbac";
+import { sql, type Kysely } from "kysely";
 
-// eslint-disable-next-line
+// oxlint-disable-next-line typescript/no-explicit-any
 export async function up(db: Kysely<any>): Promise<void> {
   const existing = await sql<{ exists: boolean }>`
     select exists (
@@ -11,17 +11,17 @@ export async function up(db: Kysely<any>): Promise<void> {
       where pg_type.typname = 'permission_resource'
         and pg_enum.enumlabel = ${PermissionResource.CustomField}
     ) as exists
-  `.execute(db)
+  `.execute(db);
 
   if (existing.rows[0]?.exists) {
-    return
+    return;
   }
 
   await sql`
     alter type permission_resource
     add value ${sql.lit(PermissionResource.CustomField)}
-  `.execute(db)
+  `.execute(db);
 }
 
-// eslint-disable-next-line
+// oxlint-disable-next-line typescript/no-explicit-any
 export async function down(_db: Kysely<any>): Promise<void> {}

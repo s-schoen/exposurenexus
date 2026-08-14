@@ -6,14 +6,16 @@ sources.
 ## Tech Stack
 
 - `pnpm` Monorepo
-    - `apps/api`: API Server based on Hono
-    - `apps/ui`: React frontend
-    - `packages/types`: Types common to both apps
+  - `apps/api`: API Server based on Hono
+  - `apps/ui`: React frontend
+  - `packages/types`: Types common to both apps
 
 ## Commands
 
 - Always use `pnpm`, NEVER use `npm` or `yarn`
-- Use `pnpm lint` to run linter on all workspaces
+- Use `pnpm lint` to run Oxlint with type-aware checks across the repository
+- Use `pnpm format:check` to verify Oxfmt formatting
+- Use `pnpm format` to format the repository with Oxfmt
 - Use `pnpm build` to build all workspaces and check for TypeScript errors
 
 ## Agent skills

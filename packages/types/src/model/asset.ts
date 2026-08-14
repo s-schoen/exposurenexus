@@ -1,39 +1,40 @@
-import { z } from "zod/v4"
-import { assetCustomFieldValueSchema } from "./asset-custom-field.js"
+import { z } from "zod/v4";
+
+import { assetCustomFieldValueSchema } from "./asset-custom-field.js";
 
 export enum AssetType {
   Host = "host",
   Software = "software",
-  Container = "container"
+  Container = "container",
 }
 
 export const assetSchema = z.strictObject({
   id: z.uuidv4(),
   name: z.string().nonempty(),
   type: z.enum(AssetType),
-  ownerId: z.uuidv4().nullable()
-})
+  ownerId: z.uuidv4().nullable(),
+});
 
 export const createAssetSchema = assetSchema
   .omit({
-    id: true
+    id: true,
   })
   .extend({
-    ownerId: assetSchema.shape.ownerId.optional()
-  })
+    ownerId: assetSchema.shape.ownerId.optional(),
+  });
 
 export const updateAssetOwnerSchema = z.strictObject({
-  ownerId: assetSchema.shape.ownerId
-})
+  ownerId: assetSchema.shape.ownerId,
+});
 
 export const assetWithCustomFieldsSchema = assetSchema.extend({
-  customFields: z.array(assetCustomFieldValueSchema)
-})
+  customFields: z.array(assetCustomFieldValueSchema),
+});
 
-export type Asset = z.infer<typeof assetSchema>
-export type AssetWithCustomFields = z.infer<typeof assetWithCustomFieldsSchema>
-export type CreateAsset = z.infer<typeof createAssetSchema>
-export type UpdateAssetOwner = z.infer<typeof updateAssetOwnerSchema>
+export type Asset = z.infer<typeof assetSchema>;
+export type AssetWithCustomFields = z.infer<typeof assetWithCustomFieldsSchema>;
+export type CreateAsset = z.infer<typeof createAssetSchema>;
+export type UpdateAssetOwner = z.infer<typeof updateAssetOwnerSchema>;
 
 export {
   AssetCustomFieldRuleViolationReason,
@@ -62,8 +63,8 @@ export {
   updateNumberAssetCustomFieldDefinitionSchema,
   updateSelectAssetCustomFieldDefinitionSchema,
   updateTextAssetCustomFieldDefinitionSchema,
-  validateAssetCustomFieldDefinitionRules
-} from "./asset-custom-field.js"
+  validateAssetCustomFieldDefinitionRules,
+} from "./asset-custom-field.js";
 export type {
   AssetCustomFieldDefinition,
   AssetCustomFieldOption,
@@ -75,5 +76,5 @@ export type {
   UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldDefinition,
   UpdateAssetCustomFieldValue,
-  UpdateAssetCustomFieldValues
-} from "./asset-custom-field.js"
+  UpdateAssetCustomFieldValues,
+} from "./asset-custom-field.js";

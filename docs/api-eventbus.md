@@ -113,10 +113,7 @@ events. They should create a source-bound helper once and use it for the
 service's supported subject namespace:
 
 ```ts
-const emitAssetEvent = createDomainEventEmitter<AssetEventSubject>(
-  domainEventEmitter,
-  "asset",
-);
+const emitAssetEvent = createDomainEventEmitter<AssetEventSubject>(domainEventEmitter, "asset");
 
 emitAssetEvent("asset.created", { asset }, eventContext);
 ```

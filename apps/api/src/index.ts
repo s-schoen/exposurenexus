@@ -1,14 +1,15 @@
-import { serve } from "@hono/node-server"
-import { env } from "./env.js"
-import { createLogger } from "./logging.js"
-import { migrateToLatest } from "./db/migration.js"
-import { db, logger as dbLogger } from "./db/index.js"
-import { createAppContainer } from "./container.js"
+import { serve } from "@hono/node-server";
 
-const logger = createLogger("api")
-const auditLogger = createLogger("audit/api")
+import { createAppContainer } from "./container.js";
+import { db, logger as dbLogger } from "./db/index.js";
+import { migrateToLatest } from "./db/migration.js";
+import { env } from "./env.js";
+import { createLogger } from "./logging.js";
 
-await migrateToLatest(db, dbLogger)
+const logger = createLogger("api");
+const auditLogger = createLogger("audit/api");
+
+await migrateToLatest(db, dbLogger);
 
 const container = createAppContainer({
   db,
@@ -21,17 +22,17 @@ const container = createAppContainer({
   apiTimeoutMs: env.API_TIMEOUT_MS,
   logger,
   accessLogger: auditLogger,
-  dbLogger
-})
+  dbLogger,
+});
 
-await container.createDefaultAdmin()
+await container.createDefaultAdmin();
 
 serve(
   {
     fetch: container.app.fetch,
-    port: env.PORT
+    port: env.PORT,
   },
   (info) => {
-    logger.info(`server is running on localhost:${info.port}`)
-  }
-)
+    logger.info(`server is running on localhost:${info.port}`);
+  },
+);

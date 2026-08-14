@@ -1,26 +1,27 @@
-import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
-import { afterEach, describe, expect, it, vi } from "vitest"
-import { FindingStatus } from "@exposurenexus/types/model/finding"
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
 import {
   createFindingTableFilterState,
   createFindingTableSearchParams,
   useFindingTableSearchState,
-  validateFindingTableSearch
-} from "@/hooks/use-finding-table-search-state.ts"
+  validateFindingTableSearch,
+} from "@/hooks/use-finding-table-search-state.ts";
 
 const mocks = vi.hoisted(() => ({
-  navigate: vi.fn()
-}))
+  navigate: vi.fn(),
+}));
 
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mocks.navigate
-}))
+  useNavigate: () => mocks.navigate,
+}));
 
 describe("useFindingTableSearchState", () => {
   afterEach(() => {
-    cleanup()
-    mocks.navigate.mockReset()
-  })
+    cleanup();
+    mocks.navigate.mockReset();
+  });
 
   it("validates finding table filter search params", () => {
     expect(
@@ -28,15 +29,15 @@ describe("useFindingTableSearchState", () => {
         assignee: ["user-1,user-2", 42],
         filter: "admin",
         severity: "critical,high",
-        status: ["active", "fixed,false-positive"]
-      })
+        status: ["active", "fixed,false-positive"],
+      }),
     ).toEqual({
       assignee: "user-1,user-2",
       filter: "admin",
       severity: "critical,high",
-      status: "active,fixed,false-positive"
-    })
-  })
+      status: "active,fixed,false-positive",
+    });
+  });
 
   it("creates finding table filter state from route search", () => {
     expect(
@@ -44,28 +45,26 @@ describe("useFindingTableSearchState", () => {
         assignee: ["user-1"],
         filter: "admin",
         severity: "critical,high",
-        status: ["confirmed"]
-      })
+        status: ["confirmed"],
+      }),
     ).toEqual({
       globalFilter: "admin",
       selectFilters: {
         assignee: ["user-1"],
         severity: ["critical", "high"],
-        status: ["confirmed"]
-      }
-    })
-  })
+        status: ["confirmed"],
+      },
+    });
+  });
 
   it("uses the explicit default status when status is absent", () => {
-    expect(
-      createFindingTableFilterState({}, [FindingStatus.Active])
-    ).toEqual({
+    expect(createFindingTableFilterState({}, [FindingStatus.Active])).toEqual({
       globalFilter: "",
       selectFilters: {
-        status: [FindingStatus.Active]
-      }
-    })
-  })
+        status: [FindingStatus.Active],
+      },
+    });
+  });
 
   it("serializes finding table filters back to search params", () => {
     expect(
@@ -74,24 +73,24 @@ describe("useFindingTableSearchState", () => {
         selectFilters: {
           assignee: ["user-1"],
           severity: ["critical"],
-          status: ["confirmed"]
-        }
-      })
+          status: ["confirmed"],
+        },
+      }),
     ).toEqual({
       assignee: "user-1",
       filter: "edge",
       severity: "critical",
-      status: "confirmed"
-    })
-  })
+      status: "confirmed",
+    });
+  });
 
   it("updates the finding route search state", () => {
     const { result } = renderHook(() =>
       useFindingTableSearchState({
         search: {},
-        to: "/findings"
-      })
-    )
+        to: "/findings",
+      }),
+    );
 
     act(() => {
       result.current.onFilterStateChange({
@@ -99,75 +98,75 @@ describe("useFindingTableSearchState", () => {
         selectFilters: {
           assignee: ["user-1"],
           severity: ["critical"],
-          status: ["confirmed"]
-        }
-      })
-    })
+          status: ["confirmed"],
+        },
+      });
+    });
 
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/findings",
       replace: true,
-      search: expect.any(Function)
-    })
+      search: expect.any(Function),
+    });
 
     const search = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>
-    ) => Record<string, unknown>
+      previous: Record<string, unknown>,
+    ) => Record<string, unknown>;
 
     expect(search({ filter: "old", selected: "finding-1" })).toEqual({
       assignee: "user-1",
       filter: "edge",
       selected: "finding-1",
       severity: "critical",
-      status: "confirmed"
-    })
-  })
+      status: "confirmed",
+    });
+  });
 
   it("writes the triage default status into the URL when absent", async () => {
     renderHook(() =>
       useFindingTableSearchState({
         search: {},
         to: "/findings/triage",
-        defaultStatusFilter: [FindingStatus.Active]
-      })
-    )
+        defaultStatusFilter: [FindingStatus.Active],
+      }),
+    );
 
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith({
         to: "/findings/triage",
         replace: true,
-        search: expect.any(Function)
-      })
-    })
+        search: expect.any(Function),
+      });
+    });
 
     const search = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>
-    ) => Record<string, unknown>
+      previous: Record<string, unknown>,
+    ) => Record<string, unknown>;
 
     expect(search({ selected: "finding-1" })).toEqual({
       assignee: undefined,
       filter: undefined,
       selected: "finding-1",
       severity: undefined,
-      status: FindingStatus.Active
-    })
-  })
+      status: FindingStatus.Active,
+    });
+  });
 
   it("uses an existing comma-delimited triage status instead of writing the default", () => {
     const { result } = renderHook(() =>
       useFindingTableSearchState({
         search: { status: "fixed,false-positive" },
         to: "/findings/triage",
-        defaultStatusFilter: [FindingStatus.Active]
-      })
-    )
+        defaultStatusFilter: [FindingStatus.Active],
+      }),
+    );
 
     expect(result.current.filterState).toEqual({
       globalFilter: "",
       selectFilters: {
-        status: ["fixed", "false-positive"]
-      }
-    })
-    expect(mocks.navigate).not.toHaveBeenCalled()
-  })
-})
+        status: ["fixed", "false-positive"],
+      },
+    });
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+});

@@ -1,27 +1,20 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor
-} from "@testing-library/react"
-import {
-  PermissionResource,
-  PermissionVerb
-} from "@exposurenexus/types/model/rbac"
-import type { Role } from "@exposurenexus/types/model/rbac"
-import type { RoleFormValues } from "@/components/role-form.tsx"
-import { EditRolePage } from "@/features/roles/components/edit-role-page.tsx"
+import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { EditRolePage } from "@/features/roles/components/edit-role-page.tsx";
+
+import type { RoleFormValues } from "@/components/role-form.tsx";
+import type { Role } from "@exposurenexus/types/model/rbac";
 
 interface QueryState<TData> {
-  data?: TData
-  error?: Error
-  isPending: boolean
-  isSuccess: boolean
+  data?: TData;
+  error?: Error;
+  isPending: boolean;
+  isSuccess: boolean;
 }
 
-const roleId = "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830"
+const roleId = "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830";
 
 const mocks = vi.hoisted(() => {
   const role: Role = {
@@ -29,17 +22,17 @@ const mocks = vi.hoisted(() => {
     name: "security-analyst",
     permissions: [
       { resource: "asset", verb: "read" },
-      { resource: "finding", verb: "read" }
-    ]
-  } as Role
+      { resource: "finding", verb: "read" },
+    ],
+  } as Role;
   const roles: Array<Role> = [
     {
       id: "6d0d8a47-0f6d-47b6-9b9a-d8f0d3f4dd01",
       name: "viewer",
       permissions: [
         { resource: "asset", verb: "read" },
-        { resource: "finding", verb: "read" }
-      ]
+        { resource: "finding", verb: "read" },
+      ],
     },
     {
       id: "5d5f5c6f-a9d6-4d49-9f4d-9462b873a902",
@@ -47,27 +40,27 @@ const mocks = vi.hoisted(() => {
       permissions: [
         { resource: "asset", verb: "read" },
         { resource: "asset", verb: "write" },
-        { resource: "finding", verb: "read" }
-      ]
-    }
-  ] as Array<Role>
+        { resource: "finding", verb: "read" },
+      ],
+    },
+  ] as Array<Role>;
   const submitValues: RoleFormValues = {
     name: "  security-analyst-plus  ",
     permissions: [
       { resource: "asset", verb: "read" },
-      { resource: "asset", verb: "write" }
-    ]
-  } as RoleFormValues
+      { resource: "asset", verb: "write" },
+    ],
+  } as RoleFormValues;
   const roleQuery: QueryState<Role> = {
     data: role,
     isPending: false,
-    isSuccess: true
-  }
+    isSuccess: true,
+  };
   const rolesQuery: QueryState<Array<Role>> = {
     data: roles,
     isPending: false,
-    isSuccess: true
-  }
+    isSuccess: true,
+  };
 
   return {
     navigate: vi.fn(),
@@ -77,41 +70,41 @@ const mocks = vi.hoisted(() => {
     rolesQuery,
     submitValues,
     updateRole: vi.fn(),
-    usePageMeta: vi.fn()
-  }
-})
+    usePageMeta: vi.fn(),
+  };
+});
 
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mocks.navigate
-}))
+  useNavigate: () => mocks.navigate,
+}));
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: { queryKey: Array<string> }) => {
     if (options.queryKey.join("/") === "roles") {
-      return mocks.rolesQuery
+      return mocks.rolesQuery;
     }
 
-    return mocks.roleQuery
-  }
-}))
+    return mocks.roleQuery;
+  },
+}));
 
 vi.mock("@/api/role.ts", () => ({
   createListRolesQueryOptions: () => ({
-    queryKey: ["roles"]
+    queryKey: ["roles"],
   }),
   createRoleByIDQueryOptions: (id: string) => ({
-    queryKey: ["roles", id]
-  })
-}))
+    queryKey: ["roles", id],
+  }),
+}));
 
 vi.mock("@/hooks/use-role-lifecycle.ts", () => ({
   useRoleLifecycle: () => ({
-    updateRole: mocks.updateRole
-  })
-}))
+    updateRole: mocks.updateRole,
+  }),
+}));
 
 vi.mock("@/components/role-form.tsx", async (importOriginal) => {
-  const actual = await importOriginal()
+  const actual = await importOriginal();
 
   return Object.assign({}, actual, {
     RoleForm: ({
@@ -119,13 +112,13 @@ vi.mock("@/components/role-form.tsx", async (importOriginal) => {
       defaultValues,
       mode,
       onCancel,
-      onSubmit
+      onSubmit,
     }: {
-      availablePermissions: Array<RoleFormValues["permissions"][number]>
-      defaultValues?: Partial<RoleFormValues>
-      mode: string
-      onCancel: () => void
-      onSubmit: (values: RoleFormValues) => Promise<void> | void
+      availablePermissions: Array<RoleFormValues["permissions"][number]>;
+      defaultValues?: Partial<RoleFormValues>;
+      mode: string;
+      onCancel: () => void;
+      onSubmit: (values: RoleFormValues) => Promise<void> | void;
     }) => (
       <div>
         <div data-testid="mode">{mode}</div>
@@ -138,159 +131,155 @@ vi.mock("@/components/role-form.tsx", async (importOriginal) => {
           submit
         </button>
       </div>
-    )
-  })
-})
+    ),
+  });
+});
 
 vi.mock("@/context/page.tsx", () => ({
-  usePageMeta: mocks.usePageMeta
-}))
+  usePageMeta: mocks.usePageMeta,
+}));
 
 function resetQueries() {
   mocks.roleQuery = {
     data: mocks.role,
     isPending: false,
-    isSuccess: true
-  }
+    isSuccess: true,
+  };
   mocks.rolesQuery = {
     data: mocks.roles,
     isPending: false,
-    isSuccess: true
-  }
+    isSuccess: true,
+  };
 }
 
 describe("EditRolePage", () => {
   beforeEach(() => {
-    mocks.navigate.mockReset()
-    resetQueries()
-    mocks.updateRole.mockReset()
-    mocks.usePageMeta.mockReset()
-  })
+    mocks.navigate.mockReset();
+    resetQueries();
+    mocks.updateRole.mockReset();
+    mocks.usePageMeta.mockReset();
+  });
 
   afterEach(() => {
-    cleanup()
-    vi.restoreAllMocks()
-  })
+    cleanup();
+    vi.restoreAllMocks();
+  });
 
   it("renders the loading state while the role is pending", () => {
     mocks.roleQuery = {
       isPending: true,
-      isSuccess: false
-    }
+      isSuccess: false,
+    };
 
-    render(<EditRolePage roleId={roleId} />)
+    render(<EditRolePage roleId={roleId} />);
 
     expect(
-      screen.getAllByText("Loading role details and available permissions.")
-        .length
-    ).toBeGreaterThan(0)
-  })
+      screen.getAllByText("Loading role details and available permissions.").length,
+    ).toBeGreaterThan(0);
+  });
 
   it("renders the loading state while roles are pending", () => {
     mocks.rolesQuery = {
       isPending: true,
-      isSuccess: false
-    }
+      isSuccess: false,
+    };
 
-    render(<EditRolePage roleId={roleId} />)
+    render(<EditRolePage roleId={roleId} />);
 
     expect(
-      screen.getAllByText("Loading role details and available permissions.")
-        .length
-    ).toBeGreaterThan(0)
-  })
+      screen.getAllByText("Loading role details and available permissions.").length,
+    ).toBeGreaterThan(0);
+  });
 
   it("renders the role loading error state", () => {
     mocks.roleQuery = {
       error: new Error("Role request failed"),
       isPending: false,
-      isSuccess: false
-    }
+      isSuccess: false,
+    };
 
-    render(<EditRolePage roleId={roleId} />)
+    render(<EditRolePage roleId={roleId} />);
 
-    expect(screen.getByText("Unable to load edit form")).toBeTruthy()
-    expect(screen.getByText("Role request failed")).toBeTruthy()
-  })
+    expect(screen.getByText("Unable to load edit form")).toBeTruthy();
+    expect(screen.getByText("Role request failed")).toBeTruthy();
+  });
 
   it("renders the roles loading error state", () => {
     mocks.rolesQuery = {
       error: new Error("Roles request failed"),
       isPending: false,
-      isSuccess: false
-    }
+      isSuccess: false,
+    };
 
-    render(<EditRolePage roleId={roleId} />)
+    render(<EditRolePage roleId={roleId} />);
 
-    expect(screen.getByText("Unable to load edit form")).toBeTruthy()
-    expect(screen.getByText("Roles request failed")).toBeTruthy()
-  })
+    expect(screen.getByText("Unable to load edit form")).toBeTruthy();
+    expect(screen.getByText("Roles request failed")).toBeTruthy();
+  });
 
   it("passes default form values from the loaded role", () => {
-    render(<EditRolePage roleId={roleId} />)
+    render(<EditRolePage roleId={roleId} />);
 
-    expect(screen.getByTestId("mode").textContent).toBe("edit")
-    expect(Number(screen.getByTestId("permission-count").textContent)).toBe(3)
-    expect(
-      JSON.parse(screen.getByTestId("default-values").textContent)
-    ).toEqual({
+    expect(screen.getByTestId("mode").textContent).toBe("edit");
+    expect(Number(screen.getByTestId("permission-count").textContent)).toBe(3);
+    expect(JSON.parse(screen.getByTestId("default-values").textContent)).toEqual({
       name: "security-analyst",
       permissions: [
         { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
-        { resource: PermissionResource.Finding, verb: PermissionVerb.Read }
-      ]
-    })
-  })
+        { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
+      ],
+    });
+  });
 
   it("updates a role through the lifecycle hook and navigates back to detail", async () => {
     mocks.updateRole.mockResolvedValueOnce({
       ...mocks.role,
-      name: "security-analyst-plus"
-    })
+      name: "security-analyst-plus",
+    });
 
-    render(<EditRolePage roleId={roleId} />)
-    fireEvent.click(screen.getByRole("button", { name: /submit/i }))
+    render(<EditRolePage roleId={roleId} />);
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
 
     await waitFor(() => {
       expect(mocks.updateRole).toHaveBeenCalledWith(roleId, {
         name: "security-analyst-plus",
         permissions: [
           { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
-          { resource: PermissionResource.Asset, verb: PermissionVerb.Write }
-        ]
-      })
-    })
+          { resource: PermissionResource.Asset, verb: PermissionVerb.Write },
+        ],
+      });
+    });
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/roles/$id",
       params: {
-        id: roleId
-      }
-    })
-  })
+        id: roleId,
+      },
+    });
+  });
 
   it("does not navigate when the lifecycle handles update failures", async () => {
-    mocks.updateRole.mockResolvedValueOnce(null)
+    mocks.updateRole.mockResolvedValueOnce(null);
 
-    render(<EditRolePage roleId={roleId} />)
-    fireEvent.click(screen.getByRole("button", { name: /submit/i }))
+    render(<EditRolePage roleId={roleId} />);
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
 
     await waitFor(() => {
-      expect(mocks.updateRole).toHaveBeenCalled()
-    })
-    expect(mocks.navigate).not.toHaveBeenCalled()
-  })
+      expect(mocks.updateRole).toHaveBeenCalled();
+    });
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
 
   it("cancels back to the role detail page", async () => {
-    render(<EditRolePage roleId={roleId} />)
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }))
+    render(<EditRolePage roleId={roleId} />);
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
 
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith({
         to: "/roles/$id",
         params: {
-          id: roleId
-        }
-      })
-    })
-  })
-})
+          id: roleId,
+        },
+      });
+    });
+  });
+});

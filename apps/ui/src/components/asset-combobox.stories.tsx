@@ -1,62 +1,58 @@
-import { QueryClientProvider } from "@tanstack/react-query"
-import { useLayoutEffect, useMemo, useState } from "react"
-import { expect, fn, userEvent, within } from "storybook/test"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import type { Asset } from "@exposurenexus/types/model/asset"
-import { AssetCombobox } from "@/components/asset-combobox.tsx"
-import { STORY_ASSETS } from "@/components/storybook-fixtures.ts"
-import {
-  createArrayResponse,
-  createStoryQueryClient
-} from "@/components/storybook-utils.tsx"
+import { QueryClientProvider } from "@tanstack/react-query";
+import { useLayoutEffect, useMemo, useState } from "react";
+import { expect, fn, userEvent, within } from "storybook/test";
+
+import { AssetCombobox } from "@/components/asset-combobox.tsx";
+import { STORY_ASSETS } from "@/components/storybook-fixtures.ts";
+import { createArrayResponse, createStoryQueryClient } from "@/components/storybook-utils.tsx";
+
+import type { Asset } from "@exposurenexus/types/model/asset";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type AssetComboboxStoryArgs = {
-  scenario: "loaded" | "empty" | "loading"
-  onChange: (asset: Asset) => void
-}
+  scenario: "loaded" | "empty" | "loading";
+  onChange: (asset: Asset) => void;
+};
 
-function AssetComboboxStoryShell({
-  scenario,
-  onChange
-}: AssetComboboxStoryArgs) {
-  const assets = scenario === "empty" ? [] : STORY_ASSETS
+function AssetComboboxStoryShell({ scenario, onChange }: AssetComboboxStoryArgs) {
+  const assets = scenario === "empty" ? [] : STORY_ASSETS;
   const queryClient = useMemo(() => {
-    const client = createStoryQueryClient()
+    const client = createStoryQueryClient();
 
     if (scenario !== "loading") {
-      client.setQueryData(["assets"], assets)
+      client.setQueryData(["assets"], assets);
     }
 
-    return client
-  }, [assets, scenario])
-  const [ready, setReady] = useState(scenario !== "loading")
+    return client;
+  }, [assets, scenario]);
+  const [ready, setReady] = useState(scenario !== "loading");
 
   useLayoutEffect(() => {
-    const originalFetch = globalThis.fetch
+    const originalFetch = globalThis.fetch;
 
     globalThis.fetch = async (input, init) => {
-      const requestUrl = input instanceof Request ? input.url : String(input)
+      const requestUrl = input instanceof Request ? input.url : String(input);
 
       if (requestUrl.endsWith("/api/assets")) {
         if (scenario === "loading") {
-          return await new Promise<Response>(() => {})
+          return await new Promise<Response>(() => {});
         }
 
-        return createArrayResponse(assets)
+        return createArrayResponse(assets);
       }
 
-      return originalFetch(input, init)
-    }
+      return originalFetch(input, init);
+    };
 
-    setReady(true)
+    setReady(true);
 
     return () => {
-      globalThis.fetch = originalFetch
-    }
-  }, [assets, scenario])
+      globalThis.fetch = originalFetch;
+    };
+  }, [assets, scenario]);
 
   if (!ready) {
-    return null
+    return null;
   }
 
   return (
@@ -65,52 +61,52 @@ function AssetComboboxStoryShell({
         <AssetCombobox onChange={onChange} />
       </div>
     </QueryClientProvider>
-  )
+  );
 }
 
 const meta = {
   title: "Resources/Assets/Combobox",
   component: AssetComboboxStoryShell,
   parameters: {
-    layout: "centered"
+    layout: "centered",
   },
   args: {
     scenario: "loaded",
-    onChange: fn()
+    onChange: fn(),
   },
   argTypes: {
     scenario: {
       control: "radio",
-      options: ["loaded", "empty", "loading"]
-    }
+      options: ["loaded", "empty", "loading"],
+    },
   },
-  render: (args) => <AssetComboboxStoryShell {...args} />
-} satisfies Meta<typeof AssetComboboxStoryShell>
+  render: (args) => <AssetComboboxStoryShell {...args} />,
+} satisfies Meta<typeof AssetComboboxStoryShell>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
 export const Loaded: Story = {
   play: async ({ args, canvasElement }) => {
-    const canvas = within(canvasElement)
-    const page = within(canvasElement.ownerDocument.body)
+    const canvas = within(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
 
-    await userEvent.click(await canvas.findByRole("combobox"))
-    await userEvent.click(await page.findByText("web-01"))
+    await userEvent.click(await canvas.findByRole("combobox"));
+    await userEvent.click(await page.findByText("web-01"));
 
-    await expect(args.onChange).toHaveBeenCalledWith(STORY_ASSETS[0])
-  }
-}
+    await expect(args.onChange).toHaveBeenCalledWith(STORY_ASSETS[0]);
+  },
+};
 
 export const Empty: Story = {
   args: {
-    scenario: "empty"
-  }
-}
+    scenario: "empty",
+  },
+};
 
 export const Loading: Story = {
   args: {
-    scenario: "loading"
-  }
-}
+    scenario: "loading",
+  },
+};

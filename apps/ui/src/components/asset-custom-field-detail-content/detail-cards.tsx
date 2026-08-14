@@ -1,22 +1,23 @@
-import { ListChecks } from "lucide-react"
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field"
-import type { ReactNode } from "react"
-import type { CustomFieldSummary } from "@/components/asset-custom-field-detail-content/helpers.ts"
-import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
-import { Badge } from "@/components/ui/badge.tsx"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+import { ListChecks } from "lucide-react";
+
+import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
+  CardTitle,
+} from "@/components/ui/card.tsx";
 
-const DETAIL_CARD_CLASS =
-  "border-border/60 bg-shell-panel shadow-(--shell-shadow)"
+import type { CustomFieldSummary } from "@/components/asset-custom-field-detail-content/helpers.ts";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { ReactNode } from "react";
+
+const DETAIL_CARD_CLASS = "border-border/60 bg-shell-panel shadow-(--shell-shadow)";
 const FIELD_VALUE_CLASS =
-  "rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground"
+  "rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground";
 
 export function CustomFieldRequiredBadge({ required }: { required: boolean }) {
   return (
@@ -30,17 +31,17 @@ export function CustomFieldRequiredBadge({ required }: { required: boolean }) {
     >
       {required ? "Required" : "Optional"}
     </Badge>
-  )
+  );
 }
 
 export function CustomFieldOverviewCard({
   field,
   summary,
-  titleAction
+  titleAction,
 }: {
-  field: AssetCustomFieldDefinition
-  summary: CustomFieldSummary
-  titleAction?: ReactNode
+  field: AssetCustomFieldDefinition;
+  summary: CustomFieldSummary;
+  titleAction?: ReactNode;
 }) {
   return (
     <Card className={DETAIL_CARD_CLASS}>
@@ -51,12 +52,9 @@ export function CustomFieldOverviewCard({
         </div>
         <div className="space-y-3">
           <div className="space-y-2">
-            <CardTitle className="text-2xl font-semibold tracking-tight">
-              {field.name}
-            </CardTitle>
+            <CardTitle className="text-2xl font-semibold tracking-tight">{field.name}</CardTitle>
             <CardDescription className="max-w-3xl text-sm leading-6">
-              Asset metadata field definition used to capture additional
-              registry information.
+              Asset metadata field definition used to capture additional registry information.
             </CardDescription>
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -84,15 +82,15 @@ export function CustomFieldOverviewCard({
         </div>
       </CardHeader>
     </Card>
-  )
+  );
 }
 
 export function CustomFieldDefinitionCard({
   field,
-  summary
+  summary,
 }: {
-  field: AssetCustomFieldDefinition
-  summary: CustomFieldSummary
+  field: AssetCustomFieldDefinition;
+  summary: CustomFieldSummary;
 }) {
   return (
     <Card className={DETAIL_CARD_CLASS}>
@@ -100,9 +98,7 @@ export function CustomFieldDefinitionCard({
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
             <CardTitle className="text-xl font-semibold">Definition</CardTitle>
-            <CardDescription>
-              General settings for this asset custom field.
-            </CardDescription>
+            <CardDescription>General settings for this asset custom field.</CardDescription>
           </div>
           <Badge variant="outline" className="rounded-md">
             <ListChecks className="size-3" />
@@ -117,16 +113,12 @@ export function CustomFieldDefinitionCard({
         <DefinitionValue label="Default value" value={summary.defaultValue} />
       </CardContent>
     </Card>
-  )
+  );
 }
 
-export function SelectOptionsCard({
-  field
-}: {
-  field: AssetCustomFieldDefinition
-}) {
+export function SelectOptionsCard({ field }: { field: AssetCustomFieldDefinition }) {
   if (field.type !== AssetCustomFieldType.Select) {
-    return null
+    return null;
   }
 
   return (
@@ -134,9 +126,7 @@ export function SelectOptionsCard({
       <CardHeader>
         <div className="space-y-2">
           <CardTitle className="text-xl font-semibold">Select options</CardTitle>
-          <CardDescription>
-            Values available when assigning this field to an asset.
-          </CardDescription>
+          <CardDescription>Values available when assigning this field to an asset.</CardDescription>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -151,26 +141,22 @@ export function SelectOptionsCard({
         ))}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function DefinitionValue({
   label,
   value,
-  mono = false
+  mono = false,
 }: {
-  label: string
-  value: string
-  mono?: boolean
+  label: string;
+  value: string;
+  mono?: boolean;
 }) {
   return (
     <div className="space-y-2">
       <div className="text-sm font-medium text-foreground">{label}</div>
-      <div
-        className={mono ? `${FIELD_VALUE_CLASS} font-mono` : FIELD_VALUE_CLASS}
-      >
-        {value}
-      </div>
+      <div className={mono ? `${FIELD_VALUE_CLASS} font-mono` : FIELD_VALUE_CLASS}>{value}</div>
     </div>
-  )
+  );
 }

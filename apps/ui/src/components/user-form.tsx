@@ -1,71 +1,61 @@
-import { Check, ChevronsUpDownIcon } from "lucide-react"
-import { useForm } from "@tanstack/react-form"
-import { useMemo, useState } from "react"
-import { z } from "zod/v4"
+import { createUserProfileSchema, updateUserProfileSchema } from "@exposurenexus/types/model/user";
+import { useForm } from "@tanstack/react-form";
+import { Check, ChevronsUpDownIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { z } from "zod/v4";
+
+import { Button } from "@/components/ui/button.tsx";
 import {
-  createUserProfileSchema,
-  updateUserProfileSchema
-} from "@exposurenexus/types/model/user"
-import type {
-  CreateUserProfile,
-  UpdateUserProfile
-} from "@exposurenexus/types/model/user"
-import type { Role } from "@exposurenexus/types/model/rbac"
-import { Button } from "@/components/ui/button.tsx"
-import { Checkbox } from "@/components/ui/checkbox.tsx"
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { Checkbox } from "@/components/ui/checkbox.tsx";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList
-} from "@/components/ui/command.tsx"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
+  CommandList,
+} from "@/components/ui/command.tsx";
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
-  FieldLabel
-} from "@/components/ui/field.tsx"
-import { Input } from "@/components/ui/input.tsx"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from "@/components/ui/popover.tsx"
-import { Spinner } from "@/components/ui/spinner.tsx"
+  FieldLabel,
+} from "@/components/ui/field.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
+import { Spinner } from "@/components/ui/spinner.tsx";
 
-export type UserFormMode = "create" | "edit"
+import type { Role } from "@exposurenexus/types/model/rbac";
+import type { CreateUserProfile, UpdateUserProfile } from "@exposurenexus/types/model/user";
+
+export type UserFormMode = "create" | "edit";
 
 export interface UserFormValues {
-  displayName: string
-  username: string
-  email: string
-  enabled: boolean
-  password: string
-  roleIds: Array<string>
+  displayName: string;
+  username: string;
+  email: string;
+  enabled: boolean;
+  password: string;
+  roleIds: Array<string>;
 }
 
 interface UserFormProps {
-  mode: UserFormMode
-  roles: Array<Role>
-  defaultValues?: Partial<UserFormValues>
-  onSubmit: (values: UserFormValues) => Promise<void> | void
-  onCancel: () => void
-  submitLabel?: string
+  mode: UserFormMode;
+  roles: Array<Role>;
+  defaultValues?: Partial<UserFormValues>;
+  onSubmit: (values: UserFormValues) => Promise<void> | void;
+  onCancel: () => void;
+  submitLabel?: string;
 }
 
-const roleIdsFieldSchema = z
-  .array(z.uuidv4())
-  .min(1, "Select at least one role")
+const roleIdsFieldSchema = z.array(z.uuidv4()).min(1, "Select at least one role");
 
 const createUserFormSchema = z.strictObject({
   displayName: createUserProfileSchema.shape.displayName,
@@ -73,8 +63,8 @@ const createUserFormSchema = z.strictObject({
   email: createUserProfileSchema.shape.email,
   enabled: createUserProfileSchema.shape.enabled,
   password: createUserProfileSchema.shape.password,
-  roleIds: roleIdsFieldSchema
-})
+  roleIds: roleIdsFieldSchema,
+});
 
 const editUserFormSchema = z.strictObject({
   displayName: updateUserProfileSchema.shape.displayName,
@@ -82,8 +72,8 @@ const editUserFormSchema = z.strictObject({
   email: updateUserProfileSchema.shape.email,
   enabled: updateUserProfileSchema.shape.enabled,
   password: z.string(),
-  roleIds: roleIdsFieldSchema
-})
+  roleIds: roleIdsFieldSchema,
+});
 
 const DEFAULT_USER_FORM_VALUES: UserFormValues = {
   displayName: "",
@@ -91,17 +81,17 @@ const DEFAULT_USER_FORM_VALUES: UserFormValues = {
   email: "",
   enabled: true,
   password: "",
-  roleIds: []
-}
+  roleIds: [],
+};
 
 interface RoleMultiSelectProps {
-  id: string
-  roles: Array<Role>
-  value: Array<string>
-  onChange: (value: Array<string>) => void
-  onBlur: () => void
-  disabled?: boolean
-  invalid?: boolean
+  id: string;
+  roles: Array<Role>;
+  value: Array<string>;
+  onChange: (value: Array<string>) => void;
+  onBlur: () => void;
+  disabled?: boolean;
+  invalid?: boolean;
 }
 
 function RoleMultiSelect({
@@ -111,48 +101,44 @@ function RoleMultiSelect({
   onChange,
   onBlur,
   disabled = false,
-  invalid = false
+  invalid = false,
 }: RoleMultiSelectProps) {
-  const [open, setOpen] = useState(false)
-  const popupId = `${id}-popover`
-  const roleNameById = useMemo(
-    () => new Map(roles.map((role) => [role.id, role.name])),
-    [roles]
-  )
+  const [open, setOpen] = useState(false);
+  const popupId = `${id}-popover`;
+  const roleNameById = useMemo(() => new Map(roles.map((role) => [role.id, role.name])), [roles]);
   const selectedRoleNames = value.flatMap((roleId) => {
-    const roleName = roleNameById.get(roleId)
-    return roleName ? [roleName] : []
-  })
+    const roleName = roleNameById.get(roleId);
+    return roleName ? [roleName] : [];
+  });
 
   const selectedSummary =
     value.length === 0
       ? "Select roles..."
-      : selectedRoleNames.length === value.length &&
-          selectedRoleNames.length <= 2
+      : selectedRoleNames.length === value.length && selectedRoleNames.length <= 2
         ? selectedRoleNames.join(", ")
-        : `${value.length} roles selected`
+        : `${value.length} roles selected`;
 
   const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen)
+    setOpen(nextOpen);
 
     if (!nextOpen) {
-      onBlur()
+      onBlur();
     }
-  }
+  };
 
   const handleToggleRole = (roleId: string) => {
     const nextSelection = value.includes(roleId)
       ? value.filter((currentRoleId) => currentRoleId !== roleId)
-      : [...value, roleId]
+      : [...value, roleId];
 
-    onChange(nextSelection)
-    onBlur()
-  }
+    onChange(nextSelection);
+    onBlur();
+  };
 
   const handleClearSelection = () => {
-    onChange([])
-    onBlur()
-  }
+    onChange([]);
+    onBlur();
+  };
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -170,13 +156,7 @@ function RoleMultiSelect({
             disabled={disabled}
             className="w-full justify-between"
           >
-            <span
-              className={
-                value.length === 0
-                  ? "truncate text-muted-foreground"
-                  : "truncate"
-              }
-            >
+            <span className={value.length === 0 ? "truncate text-muted-foreground" : "truncate"}>
               {selectedSummary}
             </span>
             <ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
@@ -194,7 +174,7 @@ function RoleMultiSelect({
             <CommandEmpty>No roles available</CommandEmpty>
             <CommandGroup className="max-h-75 space-y-1 overflow-y-auto overflow-x-hidden p-2">
               {roles.map((role) => {
-                const isSelected = value.includes(role.id)
+                const isSelected = value.includes(role.id);
 
                 return (
                   <CommandItem
@@ -204,11 +184,9 @@ function RoleMultiSelect({
                     onSelect={() => handleToggleRole(role.id)}
                   >
                     <span className="truncate">{role.name}</span>
-                    {isSelected && (
-                      <Check className="ml-auto size-4 text-foreground" />
-                    )}
+                    {isSelected && <Check className="ml-auto size-4 text-foreground" />}
                   </CommandItem>
-                )
+                );
               })}
             </CommandGroup>
           </CommandList>
@@ -228,13 +206,11 @@ function RoleMultiSelect({
         )}
       </PopoverContent>
     </Popover>
-  )
+  );
 }
 
-export function mapCreateUserFormValues(
-  values: UserFormValues
-): CreateUserProfile {
-  const displayName = values.displayName.trim()
+export function mapCreateUserFormValues(values: UserFormValues): CreateUserProfile {
+  const displayName = values.displayName.trim();
 
   return {
     displayName,
@@ -242,22 +218,20 @@ export function mapCreateUserFormValues(
     email: values.email.trim(),
     enabled: values.enabled,
     password: values.password,
-    roleIds: values.roleIds
-  }
+    roleIds: values.roleIds,
+  };
 }
 
-export function mapUpdateUserFormValues(
-  values: UserFormValues
-): UpdateUserProfile {
-  const displayName = values.displayName.trim()
+export function mapUpdateUserFormValues(values: UserFormValues): UpdateUserProfile {
+  const displayName = values.displayName.trim();
 
   return {
     displayName,
     email: values.email.trim(),
     enabled: values.enabled,
     roleIds: values.roleIds,
-    ...(values.password === "" ? {} : { password: values.password })
-  }
+    ...(values.password === "" ? {} : { password: values.password }),
+  };
 }
 
 export function UserForm({
@@ -266,26 +240,25 @@ export function UserForm({
   defaultValues,
   onSubmit,
   onCancel,
-  submitLabel
+  submitLabel,
 }: UserFormProps) {
-  const isCreateMode = mode === "create"
-  const formSchema = isCreateMode ? createUserFormSchema : editUserFormSchema
+  const isCreateMode = mode === "create";
+  const formSchema = isCreateMode ? createUserFormSchema : editUserFormSchema;
   const form = useForm({
     defaultValues: {
       ...DEFAULT_USER_FORM_VALUES,
-      ...defaultValues
+      ...defaultValues,
     },
     validators: {
-      onSubmit: formSchema
+      onSubmit: formSchema,
     },
     onSubmit: async ({ value }) => {
-      await onSubmit(value)
-    }
-  })
+      await onSubmit(value);
+    },
+  });
 
-  const isSubmitting = form.state.isSubmitting
-  const resolvedSubmitLabel =
-    submitLabel ?? (isCreateMode ? "Create user" : "Save changes")
+  const isSubmitting = form.state.isSubmitting;
+  const resolvedSubmitLabel = submitLabel ?? (isCreateMode ? "Create user" : "Save changes");
 
   return (
     <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
@@ -301,8 +274,8 @@ export function UserForm({
         <form
           id={`user-form-${mode}`}
           onSubmit={(event) => {
-            event.preventDefault()
-            form.handleSubmit()
+            event.preventDefault();
+            form.handleSubmit();
           }}
           className="flex flex-col gap-6"
         >
@@ -310,8 +283,7 @@ export function UserForm({
             <form.Field
               name="displayName"
               children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid}>
@@ -321,28 +293,23 @@ export function UserForm({
                       name={field.name}
                       value={field.state.value}
                       onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(event.target.value)
-                      }
+                      onChange={(event) => field.handleChange(event.target.value)}
                       aria-invalid={isInvalid}
                       placeholder="Alice Example"
                     />
                     <FieldDescription>
                       This value is shown in the UI as the user&apos;s name.
                     </FieldDescription>
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
+                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
                   </Field>
-                )
+                );
               }}
             />
             {isCreateMode && (
               <form.Field
                 name="username"
                 children={(field) => {
-                  const isInvalid =
-                    field.state.meta.isTouched && !field.state.meta.isValid
+                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
                   return (
                     <Field data-invalid={isInvalid}>
@@ -352,9 +319,7 @@ export function UserForm({
                         name={field.name}
                         value={field.state.value}
                         onBlur={field.handleBlur}
-                        onChange={(event) =>
-                          field.handleChange(event.target.value)
-                        }
+                        onChange={(event) => field.handleChange(event.target.value)}
                         aria-invalid={isInvalid}
                         placeholder="alice"
                         autoComplete="username"
@@ -362,19 +327,16 @@ export function UserForm({
                       <FieldDescription>
                         This is used for sign-in and cannot be changed later.
                       </FieldDescription>
-                      {isInvalid && (
-                        <FieldError errors={field.state.meta.errors} />
-                      )}
+                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
                     </Field>
-                  )
+                  );
                 }}
               />
             )}
             <form.Field
               name="email"
               children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid}>
@@ -385,25 +347,20 @@ export function UserForm({
                       type="email"
                       value={field.state.value}
                       onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(event.target.value)
-                      }
+                      onChange={(event) => field.handleChange(event.target.value)}
                       aria-invalid={isInvalid}
                       placeholder="alice@example.com"
                       autoComplete="email"
                     />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
+                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
                   </Field>
-                )
+                );
               }}
             />
             <form.Field
               name="roleIds"
               children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid}>
@@ -418,14 +375,12 @@ export function UserForm({
                       invalid={isInvalid}
                     />
                     <FieldDescription>
-                      Assign one or more roles to control the user&apos;s access
-                      across the platform.
+                      Assign one or more roles to control the user&apos;s access across the
+                      platform.
                     </FieldDescription>
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
+                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
                   </Field>
-                )
+                );
               }}
             />
             <form.Field
@@ -442,19 +397,16 @@ export function UserForm({
                     />
                     <div className="grid gap-1.5 leading-none">
                       <FieldLabel htmlFor={field.name}>Enabled</FieldLabel>
-                      <FieldDescription>
-                        Disabled users cannot authenticate.
-                      </FieldDescription>
+                      <FieldDescription>Disabled users cannot authenticate.</FieldDescription>
                     </div>
                   </Field>
-                )
+                );
               }}
             />
             <form.Field
               name="password"
               children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                   <Field data-invalid={isInvalid}>
@@ -465,9 +417,7 @@ export function UserForm({
                       type="password"
                       value={field.state.value}
                       onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(event.target.value)
-                      }
+                      onChange={(event) => field.handleChange(event.target.value)}
                       aria-invalid={isInvalid}
                       placeholder={
                         isCreateMode
@@ -478,25 +428,17 @@ export function UserForm({
                     />
                     {!isCreateMode && (
                       <FieldDescription>
-                        Only enter a value here when you want to reset the
-                        password.
+                        Only enter a value here when you want to reset the password.
                       </FieldDescription>
                     )}
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
+                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
                   </Field>
-                )
+                );
               }}
             />
           </FieldGroup>
           <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              disabled={isSubmitting}
-            >
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
@@ -507,5 +449,5 @@ export function UserForm({
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

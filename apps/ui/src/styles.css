@@ -6,16 +6,13 @@
 
 body {
   @apply m-0;
-  font-family:
-    "Instrument Sans", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial,
-    sans-serif;
+  font-family: "Instrument Sans", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family:
-    source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 
 :root {
@@ -53,11 +50,7 @@ code {
   --sidebar-border: oklch(0.88 0.012 220);
   --sidebar-ring: oklch(0.67 0.05 225);
   --shell-bg:
-    radial-gradient(
-      circle at top left,
-      oklch(0.97 0.012 212 / 0.95),
-      transparent 30%
-    ),
+    radial-gradient(circle at top left, oklch(0.97 0.012 212 / 0.95), transparent 30%),
     linear-gradient(180deg, oklch(0.995 0.004 210), oklch(0.975 0.008 220));
   --shell-panel: oklch(1 0 0 / 0.82);
   --shell-panel-strong: oklch(1 0 0 / 0.96);
@@ -99,11 +92,7 @@ code {
   --sidebar-border: oklch(0.3 0.016 245);
   --sidebar-ring: oklch(0.68 0.06 215);
   --shell-bg:
-    radial-gradient(
-      circle at top left,
-      oklch(0.28 0.028 220 / 0.55),
-      transparent 25%
-    ),
+    radial-gradient(circle at top left, oklch(0.28 0.028 220 / 0.55), transparent 25%),
     linear-gradient(180deg, oklch(0.18 0.02 248), oklch(0.16 0.016 248));
   --shell-panel: oklch(0.22 0.02 248 / 0.82);
   --shell-panel-strong: oklch(0.24 0.02 248 / 0.9);

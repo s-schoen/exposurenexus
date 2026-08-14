@@ -1,160 +1,145 @@
-import type { DataTableFilterState } from "@/components/data-table/types.ts"
+import type { DataTableFilterState } from "@/components/data-table/types.ts";
 
 export function getSearchParamString(value: unknown): string | undefined {
   if (typeof value === "string") {
-    return value
+    return value;
   }
 
   if (Array.isArray(value)) {
-    return value
-      .filter((item): item is string => typeof item === "string")
-      .join(",")
+    return value.filter((item): item is string => typeof item === "string").join(",");
   }
 
-  return undefined
+  return undefined;
 }
 
 function getSearchParamArrayValues(value: string): Array<string> {
-  return value.split(",").filter(Boolean)
+  return value.split(",").filter(Boolean);
 }
 
 export function getSearchParamArray(value: unknown): Array<string> {
   if (Array.isArray(value)) {
     return value.flatMap((item) =>
-      typeof item === "string" ? getSearchParamArrayValues(item) : []
-    )
+      typeof item === "string" ? getSearchParamArrayValues(item) : [],
+    );
   }
 
-  return typeof value === "string" && value.length > 0
-    ? getSearchParamArrayValues(value)
-    : []
+  return typeof value === "string" && value.length > 0 ? getSearchParamArrayValues(value) : [];
 }
 
-export function getSearchParamArrayOrUndefined(
-  value: unknown
-): Array<string> | undefined {
-  const values = getSearchParamArray(value)
+export function getSearchParamArrayOrUndefined(value: unknown): Array<string> | undefined {
+  const values = getSearchParamArray(value);
 
-  return values.length > 0 ? values : undefined
+  return values.length > 0 ? values : undefined;
 }
 
 export function createSearchParamString(value: string): string | undefined {
-  return value.length > 0 ? value : undefined
+  return value.length > 0 ? value : undefined;
 }
 
-export function createSearchParamArray(
-  value: Array<string> | undefined
-): string | undefined {
-  return value && value.length > 0 ? value.join(",") : undefined
+export function createSearchParamArray(value: Array<string> | undefined): string | undefined {
+  return value && value.length > 0 ? value.join(",") : undefined;
 }
 
 export function getFilterValue(
   filters: Partial<Record<string, string>> | undefined,
-  columnId: string
+  columnId: string,
 ) {
-  const value = filters?.[columnId]
+  const value = filters?.[columnId];
 
-  return typeof value === "string" && value.trim().length > 0
-    ? value
-    : undefined
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
 }
 
 function createActiveSelectFilters(
-  filters: Partial<Record<string, Array<string>>>
+  filters: Partial<Record<string, Array<string>>>,
 ): Partial<Record<string, Array<string>>> {
   return Object.fromEntries(
-    Object.entries(filters).filter(
-      ([, values]) => Array.isArray(values) && values.length > 0
-    )
-  )
+    Object.entries(filters).filter(([, values]) => Array.isArray(values) && values.length > 0),
+  );
 }
 
 function createActiveScalarFilters(
-  filters: Partial<Record<string, string>> | undefined
+  filters: Partial<Record<string, string>> | undefined,
 ): Partial<Record<string, string>> | undefined {
   if (!filters) {
-    return undefined
+    return undefined;
   }
 
   const activeFilters = Object.fromEntries(
     Object.entries(filters).filter(
-      ([, value]) => typeof value === "string" && value.trim().length > 0
-    )
-  )
+      ([, value]) => typeof value === "string" && value.trim().length > 0,
+    ),
+  );
 
-  return Object.keys(activeFilters).length > 0 ? activeFilters : undefined
+  return Object.keys(activeFilters).length > 0 ? activeFilters : undefined;
 }
 
 export function createDataTableFilterState({
   globalFilter,
   selectFilters,
   textFilters,
-  numberFilters
+  numberFilters,
 }: {
-  globalFilter?: string
-  selectFilters?: Partial<Record<string, Array<string>>>
-  textFilters?: Partial<Record<string, string>>
-  numberFilters?: Partial<Record<string, string>>
+  globalFilter?: string;
+  selectFilters?: Partial<Record<string, Array<string>>>;
+  textFilters?: Partial<Record<string, string>>;
+  numberFilters?: Partial<Record<string, string>>;
 }): DataTableFilterState {
   const filterState: DataTableFilterState = {
     globalFilter: globalFilter ?? "",
-    selectFilters: createActiveSelectFilters(selectFilters ?? {})
-  }
-  const activeTextFilters = createActiveScalarFilters(textFilters)
-  const activeNumberFilters = createActiveScalarFilters(numberFilters)
+    selectFilters: createActiveSelectFilters(selectFilters ?? {}),
+  };
+  const activeTextFilters = createActiveScalarFilters(textFilters);
+  const activeNumberFilters = createActiveScalarFilters(numberFilters);
 
   if (activeTextFilters) {
-    filterState.textFilters = activeTextFilters
+    filterState.textFilters = activeTextFilters;
   }
 
   if (activeNumberFilters) {
-    filterState.numberFilters = activeNumberFilters
+    filterState.numberFilters = activeNumberFilters;
   }
 
-  return filterState
+  return filterState;
 }
 
 export function validateDataTableListFilterSearch(
   search: Record<string, unknown>,
-  selectFilterIds: ReadonlyArray<string>
+  selectFilterIds: ReadonlyArray<string>,
 ): Record<string, string | undefined> {
   return {
     filter: getSearchParamString(search.filter),
     ...Object.fromEntries(
       selectFilterIds.map((filterId) => [
         filterId,
-        createSearchParamArray(getSearchParamArray(search[filterId]))
-      ])
-    )
-  }
+        createSearchParamArray(getSearchParamArray(search[filterId])),
+      ]),
+    ),
+  };
 }
 
 export function createDataTableListFilterState(
   search: Record<string, unknown>,
-  selectFilterIds: ReadonlyArray<string>
+  selectFilterIds: ReadonlyArray<string>,
 ): DataTableFilterState {
   return createDataTableFilterState({
     globalFilter: getSearchParamString(search.filter) ?? "",
     selectFilters: Object.fromEntries(
-      selectFilterIds.map((filterId) => [
-        filterId,
-        getSearchParamArray(search[filterId])
-      ])
-    )
-  })
+      selectFilterIds.map((filterId) => [filterId, getSearchParamArray(search[filterId])]),
+    ),
+  });
 }
 
 export function createDataTableListFilterSearchParams(
   filterState: DataTableFilterState,
-  selectFilterIds: ReadonlyArray<string>
+  selectFilterIds: ReadonlyArray<string>,
 ): Record<string, string | undefined> {
   return {
     filter: createSearchParamString(filterState.globalFilter),
     ...Object.fromEntries(
       selectFilterIds.map((filterId) => [
         filterId,
-        createSearchParamArray(filterState.selectFilters[filterId])
-      ])
-    )
-  }
+        createSearchParamArray(filterState.selectFilters[filterId]),
+      ]),
+    ),
+  };
 }

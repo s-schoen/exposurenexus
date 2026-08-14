@@ -1,14 +1,16 @@
-import { describe, expect, it } from "vitest"
-import type { DomainEventPayloadBase } from "../lib/eventbus/events/index.js"
+import { describe, expect, it } from "vitest";
+
 import {
   REDACTED_EVENT_LOG_VALUE,
   redactLogProperties,
-  serializeDomainEventForLog
-} from "./log-event.js"
+  serializeDomainEventForLog,
+} from "./log-event.js";
+
+import type { DomainEventPayloadBase } from "../lib/eventbus/events/index.js";
 
 describe("serialize DomainEvent for log", () => {
   it("serializes common domain event fields", () => {
-    const eventTime = new Date("2026-05-07T10:00:00.000Z")
+    const eventTime = new Date("2026-05-07T10:00:00.000Z");
     const event: DomainEventPayloadBase<"user.created", { userId: string }> = {
       id: "event-1",
       subject: "user.created",
@@ -17,9 +19,9 @@ describe("serialize DomainEvent for log", () => {
       actor: "admin-user",
       correlationId: "request-1",
       data: {
-        userId: "user-1"
-      }
-    }
+        userId: "user-1",
+      },
+    };
 
     expect(serializeDomainEventForLog(event)).toEqual({
       eventId: "event-1",
@@ -29,36 +31,36 @@ describe("serialize DomainEvent for log", () => {
       actor: "admin-user",
       correlationId: "request-1",
       data: {
-        userId: "user-1"
-      }
-    })
-  })
+        userId: "user-1",
+      },
+    });
+  });
 
   it("redacts default secret keys recursively while preserving surrounding data", () => {
-    const createdAt = new Date("2026-05-07T10:00:00.000Z")
-    const expiresAt = new Date("2026-05-07T22:00:00.000Z")
+    const createdAt = new Date("2026-05-07T10:00:00.000Z");
+    const expiresAt = new Date("2026-05-07T22:00:00.000Z");
     const event: DomainEventPayloadBase<
       "auth.session.created",
       {
-        sessionId: string
+        sessionId: string;
         user: {
-          username: string
-          passwordHash: string
-        }
+          username: string;
+          passwordHash: string;
+        };
         session: {
-          id: string
-          sessionId: string
-          createdAt: Date
-          expiresAt: Date
-        }
-        evidence: string
+          id: string;
+          sessionId: string;
+          createdAt: Date;
+          expiresAt: Date;
+        };
+        evidence: string;
         attempts: Array<{
-          sessionId?: string
+          sessionId?: string;
           nested?: {
-            sessionId: string
-            kept: string
-          }
-        }>
+            sessionId: string;
+            kept: string;
+          };
+        }>;
       }
     > = {
       id: "event-2",
@@ -69,56 +71,56 @@ describe("serialize DomainEvent for log", () => {
         sessionId: "public-session-token",
         user: {
           username: "alice",
-          passwordHash: "argon2-password-hash"
+          passwordHash: "argon2-password-hash",
         },
         session: {
           id: "session-1",
           sessionId: "stored-session-id-digest",
           createdAt,
-          expiresAt
+          expiresAt,
         },
         evidence: "GET /admin HTTP/1.1\nHTTP/1.1 200 OK",
         attempts: [
           {
-            sessionId: "attempt-session-id"
+            sessionId: "attempt-session-id",
           },
           {
             nested: {
               sessionId: "nested-session-id",
-              kept: "visible"
-            }
-          }
-        ]
-      }
-    }
+              kept: "visible",
+            },
+          },
+        ],
+      },
+    };
 
     expect(serializeDomainEventForLog(event).data).toEqual({
       sessionId: REDACTED_EVENT_LOG_VALUE,
       user: {
         username: "alice",
-        passwordHash: REDACTED_EVENT_LOG_VALUE
+        passwordHash: REDACTED_EVENT_LOG_VALUE,
       },
       session: {
         id: "session-1",
         sessionId: REDACTED_EVENT_LOG_VALUE,
         createdAt,
-        expiresAt
+        expiresAt,
       },
       evidence: REDACTED_EVENT_LOG_VALUE,
       attempts: [
         {
-          sessionId: REDACTED_EVENT_LOG_VALUE
+          sessionId: REDACTED_EVENT_LOG_VALUE,
         },
         {
           nested: {
             sessionId: REDACTED_EVENT_LOG_VALUE,
-            kept: "visible"
-          }
-        }
-      ]
-    })
-  })
-})
+            kept: "visible",
+          },
+        },
+      ],
+    });
+  });
+});
 
 describe("redact log properties", () => {
   it("redacts any configured property name recursively", () => {
@@ -130,29 +132,29 @@ describe("redact log properties", () => {
           sessionId: "visible-session-id",
           nested: {
             apiKey: "api-key",
-            kept: "visible"
+            kept: "visible",
           },
           attempts: [
             {
-              apiKey: "array-api-key"
-            }
-          ]
+              apiKey: "array-api-key",
+            },
+          ],
         },
-        ["password", "apiKey"]
-      )
+        ["password", "apiKey"],
+      ),
     ).toEqual({
       username: "alice",
       password: REDACTED_EVENT_LOG_VALUE,
       sessionId: "visible-session-id",
       nested: {
         apiKey: REDACTED_EVENT_LOG_VALUE,
-        kept: "visible"
+        kept: "visible",
       },
       attempts: [
         {
-          apiKey: REDACTED_EVENT_LOG_VALUE
-        }
-      ]
-    })
-  })
-})
+          apiKey: REDACTED_EVENT_LOG_VALUE,
+        },
+      ],
+    });
+  });
+});

@@ -1,14 +1,14 @@
-import { type Kysely, sql } from "kysely"
+import { type Kysely, sql } from "kysely";
 
-const auditTables = ["vulnerability", "finding"] as const
-const auditColumns = ["createdBy", "updatedBy"] as const
+const auditTables = ["vulnerability", "finding"] as const;
+const auditColumns = ["createdBy", "updatedBy"] as const;
 
-type AuditTable = (typeof auditTables)[number]
-type AuditColumn = (typeof auditColumns)[number]
-type AuditDeleteAction = "restrict" | "set null"
+type AuditTable = (typeof auditTables)[number];
+type AuditColumn = (typeof auditColumns)[number];
+type AuditDeleteAction = "restrict" | "set null";
 
 function auditForeignKeyName(table: AuditTable, column: AuditColumn): string {
-  return `${table}_${column}_fkey`
+  return `${table}_${column}_fkey`;
 }
 
 async function dropAuditForeignKeys(db: Kysely<object>): Promise<void> {
@@ -18,15 +18,12 @@ async function dropAuditForeignKeys(db: Kysely<object>): Promise<void> {
         .alterTable(table)
         .dropConstraint(auditForeignKeyName(table, column))
         .ifExists()
-        .execute()
+        .execute();
     }
   }
 }
 
-async function addAuditForeignKeys(
-  db: Kysely<object>,
-  onDelete: AuditDeleteAction
-): Promise<void> {
+async function addAuditForeignKeys(db: Kysely<object>, onDelete: AuditDeleteAction): Promise<void> {
   for (const table of auditTables) {
     for (const column of auditColumns) {
       await db.schema
@@ -36,56 +33,56 @@ async function addAuditForeignKeys(
           [column],
           "user_profile",
           ["id"],
-          (constraint) => constraint.onDelete(onDelete)
+          (constraint) => constraint.onDelete(onDelete),
         )
-        .execute()
+        .execute();
     }
   }
 }
 
 export async function up(db: Kysely<object>): Promise<void> {
-  await dropAuditForeignKeys(db)
+  await dropAuditForeignKeys(db);
 
   await sql`
     alter table "finding"
       alter column "createdBy" set not null,
       alter column "updatedBy" set not null
-  `.execute(db)
+  `.execute(db);
 
   await sql`
     alter table "vulnerability"
       alter column "createdBy" set not null,
       alter column "updatedBy" set not null
-  `.execute(db)
+  `.execute(db);
 
   await sql`
     alter table "user_profile"
       alter column "enabled" set default true,
       alter column "enabled" set not null
-  `.execute(db)
+  `.execute(db);
 
-  await addAuditForeignKeys(db, "restrict")
+  await addAuditForeignKeys(db, "restrict");
 }
 
 export async function down(db: Kysely<object>): Promise<void> {
-  await dropAuditForeignKeys(db)
+  await dropAuditForeignKeys(db);
 
   await sql`
     alter table "finding"
       alter column "createdBy" drop not null,
       alter column "updatedBy" drop not null
-  `.execute(db)
+  `.execute(db);
 
   await sql`
     alter table "vulnerability"
       alter column "createdBy" drop not null,
       alter column "updatedBy" drop not null
-  `.execute(db)
+  `.execute(db);
 
   await sql`
     alter table "user_profile"
       alter column "enabled" drop not null
-  `.execute(db)
+  `.execute(db);
 
-  await addAuditForeignKeys(db, "set null")
+  await addAuditForeignKeys(db, "set null");
 }

@@ -1,94 +1,91 @@
-import { Hono } from "hono"
-import { notFound, unauthorized } from "../lib/api-error.js"
-import { replyArray, replyObject } from "../lib/reply.js"
-import { zValidator } from "@hono/zod-validator"
-import { z } from "zod/v4"
 import {
   createFindingSchema,
   reclassifyFindingsSchema,
-  updateFindingSchema
-} from "@exposurenexus/types/model/finding"
-import type { ContextVariables } from "../lib/hono-schema.js"
-import { requestEventContext } from "../lib/request-event-context.js"
-import type { RequireDomainPermission } from "../middleware/auth.js"
-import type { FindingService } from "../service/finding.js"
+  updateFindingSchema,
+} from "@exposurenexus/types/model/finding";
+import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
+import { z } from "zod/v4";
+
+import { notFound, unauthorized } from "../lib/api-error.js";
+import { replyArray, replyObject } from "../lib/reply.js";
+import { requestEventContext } from "../lib/request-event-context.js";
+
+import type { ContextVariables } from "../lib/hono-schema.js";
+import type { RequireDomainPermission } from "../middleware/auth.js";
+import type { FindingService } from "../service/finding.js";
 
 interface FindingRouteDependencies {
-  requireDomainPermission: RequireDomainPermission
+  requireDomainPermission: RequireDomainPermission;
 }
 
-const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }))
+const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }));
 
 export function createFindingRoute(
   findingService: FindingService,
-  { requireDomainPermission }: FindingRouteDependencies
+  { requireDomainPermission }: FindingRouteDependencies,
 ) {
-  const finding = new Hono<{ Variables: ContextVariables }>()
+  const finding = new Hono<{ Variables: ContextVariables }>();
 
   finding.get("/", requireDomainPermission("finding", "read"), async (c) => {
-    const findings = await findingService.listAll()
-    return replyArray(c, findings)
-  })
+    const findings = await findingService.listAll();
+    return replyArray(c, findings);
+  });
 
   finding.post(
     "/reclassify",
     requireDomainPermission("finding", "write"),
     zValidator("json", reclassifyFindingsSchema),
     async (c) => {
-      const body = c.req.valid("json")
-      const user = c.get("user")
+      const body = c.req.valid("json");
+      const user = c.get("user");
 
       if (!user) {
-        throw unauthorized()
+        throw unauthorized();
       }
 
       const result = await findingService.reclassify({
         reclassification: body,
         user,
-        eventContext: requestEventContext(c)
-      })
+        eventContext: requestEventContext(c),
+      });
 
-      return replyObject(c, result)
+      return replyObject(c, result);
+    },
+  );
+
+  finding.get("/:id", requireDomainPermission("finding", "read"), idParamValidator, async (c) => {
+    const params = c.req.valid("param");
+
+    const findingResult = await findingService.getByID(params.id);
+    if (!findingResult) {
+      throw notFound("finding", params.id);
     }
-  )
 
-  finding.get(
-    "/:id",
-    requireDomainPermission("finding", "read"),
-    idParamValidator,
-    async (c) => {
-      const params = c.req.valid("param")
-
-      const findingResult = await findingService.getByID(params.id)
-      if (!findingResult) {
-        throw notFound("finding", params.id)
-      }
-
-      return replyObject(c, findingResult)
-    }
-  )
+    return replyObject(c, findingResult);
+  });
 
   finding.post(
     "/",
     requireDomainPermission("finding", "write"),
     zValidator("json", createFindingSchema),
     async (c) => {
-      const body = c.req.valid("json")
-      const user = c.get("user")
+      const body = c.req.valid("json");
+      const user = c.get("user");
 
       if (!user) {
-        throw unauthorized()
+        throw unauthorized();
       }
 
       const createdFinding = await findingService.create({
         finding: body,
         user,
-        eventContext: requestEventContext(c)
-      })
+        eventContext: requestEventContext(c),
+      });
 
-      return replyObject(c, createdFinding, true)
-    }
-  )
+      return replyObject(c, createdFinding, true);
+    },
+  );
 
   finding.put(
     "/:id",
@@ -96,52 +93,49 @@ export function createFindingRoute(
     idParamValidator,
     zValidator("json", updateFindingSchema),
     async (c) => {
-      const body = c.req.valid("json")
-      const params = c.req.valid("param")
-      const user = c.get("user")
+      const body = c.req.valid("json");
+      const params = c.req.valid("param");
+      const user = c.get("user");
 
       if (!user) {
-        throw unauthorized()
+        throw unauthorized();
       }
 
       const updatedFinding = await findingService.updateByID({
         id: params.id,
         finding: body,
         user,
-        eventContext: requestEventContext(c)
-      })
+        eventContext: requestEventContext(c),
+      });
 
       if (!updatedFinding) {
-        throw notFound("finding", params.id)
+        throw notFound("finding", params.id);
       }
 
-      return replyObject(c, updatedFinding)
-    }
-  )
+      return replyObject(c, updatedFinding);
+    },
+  );
 
   finding.delete(
     "/:id",
     requireDomainPermission("finding", "delete"),
     idParamValidator,
     async (c) => {
-      const params = c.req.valid("param")
-      const user = c.get("user")
+      const params = c.req.valid("param");
+      const user = c.get("user");
 
       if (!user) {
-        throw unauthorized()
+        throw unauthorized();
       }
 
-      const deleted = await findingService.deleteByID(
-        params.id,
-        requestEventContext(c)
-      )
+      const deleted = await findingService.deleteByID(params.id, requestEventContext(c));
       if (!deleted) {
-        throw notFound("finding", params.id)
+        throw notFound("finding", params.id);
       }
 
-      return replyObject(c, deleted)
-    }
-  )
+      return replyObject(c, deleted);
+    },
+  );
 
-  return finding
+  return finding;
 }

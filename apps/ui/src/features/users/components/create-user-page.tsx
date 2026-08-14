@@ -1,30 +1,31 @@
-import { useNavigate } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
-import { CircleAlert } from "lucide-react"
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac"
-import { createListRolesQueryOptions } from "@/api/role.ts"
-import { UserForm, mapCreateUserFormValues } from "@/components/user-form.tsx"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
+import { builtInRoleIds } from "@exposurenexus/types/model/rbac";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { CircleAlert } from "lucide-react";
+
+import { createListRolesQueryOptions } from "@/api/role.ts";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
-import { Skeleton } from "@/components/ui/skeleton.tsx"
-import { usePageMeta } from "@/context/page.tsx"
-import { useUserLifecycle } from "@/hooks/use-user-lifecycle.ts"
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { UserForm, mapCreateUserFormValues } from "@/components/user-form.tsx";
+import { usePageMeta } from "@/context/page.tsx";
+import { useUserLifecycle } from "@/hooks/use-user-lifecycle.ts";
 
 export function CreateUserPage() {
-  const navigate = useNavigate()
-  const userLifecycle = useUserLifecycle()
-  const roles = useQuery(createListRolesQueryOptions())
+  const navigate = useNavigate();
+  const userLifecycle = useUserLifecycle();
+  const roles = useQuery(createListRolesQueryOptions());
 
   usePageMeta({
     title: "Create User",
-    description: "Add a new platform user and set their initial credentials."
-  })
+    description: "Add a new platform user and set their initial credentials.",
+  });
 
   const handleCancel = async () => {
     await navigate({
@@ -32,16 +33,14 @@ export function CreateUserPage() {
       search: (previous) => ({
         enabled: previous.enabled,
         filter: previous.filter,
-        selected: undefined
-      })
-    })
-  }
+        selected: undefined,
+      }),
+    });
+  };
 
-  const handleSubmit = async (
-    values: Parameters<typeof mapCreateUserFormValues>[0]
-  ) => {
-    const payload = mapCreateUserFormValues(values)
-    const createdUser = await userLifecycle.createUser(payload)
+  const handleSubmit = async (values: Parameters<typeof mapCreateUserFormValues>[0]) => {
+    const payload = mapCreateUserFormValues(values);
+    const createdUser = await userLifecycle.createUser(payload);
 
     if (createdUser) {
       await navigate({
@@ -49,11 +48,11 @@ export function CreateUserPage() {
         search: (previous) => ({
           enabled: previous.enabled,
           filter: previous.filter,
-          selected: undefined
-        })
-      })
+          selected: undefined,
+        }),
+      });
     }
-  }
+  };
 
   if (roles.isPending) {
     return (
@@ -68,7 +67,7 @@ export function CreateUserPage() {
           <Skeleton className="h-20 w-full" />
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (!roles.data) {
@@ -76,9 +75,7 @@ export function CreateUserPage() {
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader>
           <CardTitle>Create user</CardTitle>
-          <CardDescription>
-            Available roles could not be loaded.
-          </CardDescription>
+          <CardDescription>Available roles could not be loaded.</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
@@ -88,7 +85,7 @@ export function CreateUserPage() {
           </Alert>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -99,5 +96,5 @@ export function CreateUserPage() {
       onSubmit={handleSubmit}
       onCancel={handleCancel}
     />
-  )
+  );
 }

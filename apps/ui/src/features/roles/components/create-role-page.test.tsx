@@ -1,24 +1,17 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor
-} from "@testing-library/react"
-import {
-  PermissionResource,
-  PermissionVerb
-} from "@exposurenexus/types/model/rbac"
-import type { Role } from "@exposurenexus/types/model/rbac"
-import type { RoleFormValues } from "@/components/role-form.tsx"
-import { CreateRolePage } from "@/features/roles/components/create-role-page.tsx"
+import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { CreateRolePage } from "@/features/roles/components/create-role-page.tsx";
+
+import type { RoleFormValues } from "@/components/role-form.tsx";
+import type { Role } from "@exposurenexus/types/model/rbac";
 
 interface QueryState<TData> {
-  data?: TData
-  error?: Error
-  isPending: boolean
-  isSuccess: boolean
+  data?: TData;
+  error?: Error;
+  isPending: boolean;
+  isSuccess: boolean;
 }
 
 const mocks = vi.hoisted(() => {
@@ -28,8 +21,8 @@ const mocks = vi.hoisted(() => {
       name: "viewer",
       permissions: [
         { resource: "asset", verb: "read" },
-        { resource: "finding", verb: "read" }
-      ]
+        { resource: "finding", verb: "read" },
+      ],
     },
     {
       id: "5d5f5c6f-a9d6-4d49-9f4d-9462b873a902",
@@ -37,23 +30,23 @@ const mocks = vi.hoisted(() => {
       permissions: [
         { resource: "asset", verb: "read" },
         { resource: "asset", verb: "write" },
-        { resource: "finding", verb: "read" }
-      ]
-    }
-  ] as Array<Role>
+        { resource: "finding", verb: "read" },
+      ],
+    },
+  ] as Array<Role>;
   const submitValues: RoleFormValues = {
     name: "  security-analyst  ",
     permissions: [
       { resource: "asset", verb: "read" },
       { resource: "asset", verb: "read" },
-      { resource: "asset", verb: "write" }
-    ]
-  } as RoleFormValues
+      { resource: "asset", verb: "write" },
+    ],
+  } as RoleFormValues;
   const rolesQuery: QueryState<Array<Role>> = {
     data: roles,
     isPending: false,
-    isSuccess: true
-  }
+    isSuccess: true,
+  };
 
   return {
     createRole: vi.fn(),
@@ -61,44 +54,44 @@ const mocks = vi.hoisted(() => {
     roles,
     rolesQuery,
     submitValues,
-    usePageMeta: vi.fn()
-  }
-})
+    usePageMeta: vi.fn(),
+  };
+});
 
 vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mocks.navigate
-}))
+  useNavigate: () => mocks.navigate,
+}));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.rolesQuery
-}))
+  useQuery: () => mocks.rolesQuery,
+}));
 
 vi.mock("@/api/role.ts", () => ({
   createListRolesQueryOptions: () => ({
-    queryKey: ["roles"]
-  })
-}))
+    queryKey: ["roles"],
+  }),
+}));
 
 vi.mock("@/hooks/use-role-lifecycle.ts", () => ({
   useRoleLifecycle: () => ({
-    createRole: mocks.createRole
-  })
-}))
+    createRole: mocks.createRole,
+  }),
+}));
 
 vi.mock("@/components/role-form.tsx", async (importOriginal) => {
-  const actual = await importOriginal()
+  const actual = await importOriginal();
 
   return Object.assign({}, actual, {
     RoleForm: ({
       availablePermissions,
       mode,
       onCancel,
-      onSubmit
+      onSubmit,
     }: {
-      availablePermissions: Array<RoleFormValues["permissions"][number]>
-      mode: string
-      onCancel: () => void
-      onSubmit: (values: RoleFormValues) => Promise<void> | void
+      availablePermissions: Array<RoleFormValues["permissions"][number]>;
+      mode: string;
+      onCancel: () => void;
+      onSubmit: (values: RoleFormValues) => Promise<void> | void;
     }) => (
       <div>
         <div data-testid="mode">{mode}</div>
@@ -110,121 +103,117 @@ vi.mock("@/components/role-form.tsx", async (importOriginal) => {
           submit
         </button>
       </div>
-    )
-  })
-})
+    ),
+  });
+});
 
 vi.mock("@/context/page.tsx", () => ({
-  usePageMeta: mocks.usePageMeta
-}))
+  usePageMeta: mocks.usePageMeta,
+}));
 
 describe("CreateRolePage", () => {
   beforeEach(() => {
-    mocks.createRole.mockReset()
-    mocks.navigate.mockReset()
+    mocks.createRole.mockReset();
+    mocks.navigate.mockReset();
     mocks.rolesQuery = {
       data: mocks.roles,
       isPending: false,
-      isSuccess: true
-    }
-    mocks.usePageMeta.mockReset()
-  })
+      isSuccess: true,
+    };
+    mocks.usePageMeta.mockReset();
+  });
 
   afterEach(() => {
-    cleanup()
-    vi.restoreAllMocks()
-  })
+    cleanup();
+    vi.restoreAllMocks();
+  });
 
   it("renders the loading state while roles are pending", () => {
     mocks.rolesQuery = {
       isPending: true,
-      isSuccess: false
-    }
+      isSuccess: false,
+    };
 
-    render(<CreateRolePage />)
+    render(<CreateRolePage />);
 
-    expect(
-      screen.getAllByText("Loading available permissions.").length
-    ).toBeGreaterThan(0)
-  })
+    expect(screen.getAllByText("Loading available permissions.").length).toBeGreaterThan(0);
+  });
 
   it("renders the role loading error state", () => {
     mocks.rolesQuery = {
       error: new Error("Roles request failed"),
       isPending: false,
-      isSuccess: false
-    }
+      isSuccess: false,
+    };
 
-    render(<CreateRolePage />)
+    render(<CreateRolePage />);
 
-    expect(screen.getByText("Unable to load permissions")).toBeTruthy()
-    expect(screen.getByText("Roles request failed")).toBeTruthy()
-  })
+    expect(screen.getByText("Unable to load permissions")).toBeTruthy();
+    expect(screen.getByText("Roles request failed")).toBeTruthy();
+  });
 
   it("renders the role form in create mode", () => {
-    render(<CreateRolePage />)
+    render(<CreateRolePage />);
 
-    expect(screen.getByTestId("mode").textContent).toBe("create")
-    expect(Number(screen.getByTestId("permission-count").textContent)).toBe(3)
-  })
+    expect(screen.getByTestId("mode").textContent).toBe("create");
+    expect(Number(screen.getByTestId("permission-count").textContent)).toBe(3);
+  });
 
   it("creates a role through the lifecycle hook and navigates to the created role", async () => {
     mocks.createRole.mockResolvedValueOnce({
       id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830",
       name: "security-analyst",
-      permissions: [
-        { resource: PermissionResource.Asset, verb: PermissionVerb.Read }
-      ]
-    })
+      permissions: [{ resource: PermissionResource.Asset, verb: PermissionVerb.Read }],
+    });
 
-    render(<CreateRolePage />)
-    fireEvent.click(screen.getByRole("button", { name: /submit/i }))
+    render(<CreateRolePage />);
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
 
     await waitFor(() => {
       expect(mocks.createRole).toHaveBeenCalledWith({
         name: "security-analyst",
         permissions: [
           { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
-          { resource: PermissionResource.Asset, verb: PermissionVerb.Write }
-        ]
-      })
-    })
+          { resource: PermissionResource.Asset, verb: PermissionVerb.Write },
+        ],
+      });
+    });
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/roles/$id",
-      params: { id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830" }
-    })
-  })
+      params: { id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830" },
+    });
+  });
 
   it("does not navigate when the lifecycle handles create failures", async () => {
-    mocks.createRole.mockResolvedValueOnce(null)
+    mocks.createRole.mockResolvedValueOnce(null);
 
-    render(<CreateRolePage />)
-    fireEvent.click(screen.getByRole("button", { name: /submit/i }))
+    render(<CreateRolePage />);
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
 
     await waitFor(() => {
-      expect(mocks.createRole).toHaveBeenCalled()
-    })
-    expect(mocks.navigate).not.toHaveBeenCalled()
-  })
+      expect(mocks.createRole).toHaveBeenCalled();
+    });
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
 
   it("cancels back to the roles list", async () => {
-    render(<CreateRolePage />)
-    fireEvent.click(screen.getByRole("button", { name: /cancel/i }))
+    render(<CreateRolePage />);
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
 
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith({
         to: "/roles",
-        search: expect.any(Function)
-      })
-    })
+        search: expect.any(Function),
+      });
+    });
     const search = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>
-    ) => Record<string, unknown>
+      previous: Record<string, unknown>,
+    ) => Record<string, unknown>;
 
     expect(search({ filter: "security", kind: "custom", selected: "role-1" })).toEqual({
       filter: "security",
       kind: "custom",
-      selected: undefined
-    })
-  })
-})
+      selected: undefined,
+    });
+  });
+});

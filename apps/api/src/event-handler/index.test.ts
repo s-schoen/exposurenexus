@@ -1,22 +1,21 @@
-import { describe, expect, it, vi } from "vitest"
-import type { Logger } from "pino"
-import { EventBus } from "../lib/eventbus/eventbus.js"
-import {
-  createEventPayload,
-  type DomainEvent
-} from "../lib/eventbus/events/index.js"
-import { registerEventHandlers } from "./index.js"
+import { describe, expect, it, vi } from "vitest";
+
+import { EventBus } from "../lib/eventbus/eventbus.js";
+import { createEventPayload, type DomainEvent } from "../lib/eventbus/events/index.js";
+import { registerEventHandlers } from "./index.js";
+
+import type { Logger } from "pino";
 
 describe("registerEventHandlers", () => {
   it("registers the audit logger with its own logger category", async () => {
-    const eventBus = new EventBus<DomainEvent>()
+    const eventBus = new EventBus<DomainEvent>();
     const logger = {
       info: vi.fn(),
-      warn: vi.fn()
-    } as unknown as Logger
-    const loggerFactory = vi.fn(() => logger)
+      warn: vi.fn(),
+    } as unknown as Logger;
+    const loggerFactory = vi.fn(() => logger);
 
-    registerEventHandlers({ eventBus, loggerFactory })
+    registerEventHandlers({ eventBus, loggerFactory });
 
     await eventBus.emit(
       createEventPayload({
@@ -30,18 +29,18 @@ describe("registerEventHandlers", () => {
             username: "tester",
             displayName: "Test User",
             enabled: true,
-            roleIds: []
-          }
-        }
-      })
-    )
+            roleIds: [],
+          },
+        },
+      }),
+    );
 
     expect(logger.info).toHaveBeenCalledWith(
       expect.objectContaining({
         eventId: "event-1",
-        eventSubject: "auth.success"
+        eventSubject: "auth.success",
       }),
-      "auth.success"
-    )
-  })
-})
+      "auth.success",
+    );
+  });
+});

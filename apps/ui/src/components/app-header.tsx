@@ -1,4 +1,4 @@
-import { AccountMenu } from "@/components/account-menu"
+import { AccountMenu } from "@/components/account-menu";
 
 export default function AppHeader() {
   return (
@@ -21,5 +21,5 @@ export default function AppHeader() {
         </div>
       </div>
     </div>
-  )
+  );
 }

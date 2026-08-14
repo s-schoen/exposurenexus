@@ -4,8 +4,8 @@ permissions:
 
 on:
   push:
-    branches: [ "**" ]
-    tags: [ "v*.*.*" ]
+    branches: ["**"]
+    tags: ["v*.*.*"]
 
 jobs:
   lint:
@@ -30,6 +30,9 @@ jobs:
 
       - name: Run lint
         run: pnpm lint
+
+      - name: Check formatting
+        run: pnpm format:check
 
   build:
     name: Build

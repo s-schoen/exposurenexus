@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest"
-import { HTTPException } from "hono/http-exception"
-import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/types/model/asset-custom-field"
+import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/types/model/asset-custom-field";
+import { HTTPException } from "hono/http-exception";
+import { describe, expect, it } from "vitest";
+
+import { ApplicationError } from "../service/application-error.js";
 import {
   badRequest,
   conflict,
@@ -8,54 +10,53 @@ import {
   forbidden,
   internalServerError,
   isApiError,
-  unauthorized
-} from "./api-error.js"
-import { ApplicationError } from "../service/application-error.js"
+  unauthorized,
+} from "./api-error.js";
 
 describe("api errors", () => {
   it("creates typed API errors", () => {
     expect(badRequest("invalid input")).toMatchObject({
       status: 400,
-      message: "invalid input"
-    })
+      message: "invalid input",
+    });
     expect(conflict("already exists")).toMatchObject({
       status: 409,
-      message: "already exists"
-    })
+      message: "already exists",
+    });
     expect(forbidden()).toMatchObject({
       status: 403,
-      message: "Forbidden"
-    })
+      message: "Forbidden",
+    });
     expect(unauthorized()).toMatchObject({
       status: 401,
-      message: "Unauthorized"
-    })
-  })
+      message: "Unauthorized",
+    });
+  });
 
   it("serializes explicit client-facing reasons", () => {
     const error = badRequest("invalid custom field", {
-      reason: "required-default-missing"
-    })
+      reason: "required-default-missing",
+    });
 
     expect(createApiErrorReply("api-error-test", error)).toEqual({
       correlationId: "api-error-test",
       status: 400,
       error: "invalid custom field",
-      reason: "required-default-missing"
-    })
-  })
+      reason: "required-default-missing",
+    });
+  });
 
   it("does not infer reasons from causes", () => {
     const error = badRequest("invalid custom field", {
-      cause: { reason: "internal-detail" }
-    })
+      cause: { reason: "internal-detail" },
+    });
 
     expect(createApiErrorReply("api-error-test", error)).toEqual({
       correlationId: "api-error-test",
       status: 400,
-      error: "invalid custom field"
-    })
-  })
+      error: "invalid custom field",
+    });
+  });
 
   it("maps application error kinds to HTTP statuses", () => {
     expect(
@@ -65,15 +66,15 @@ describe("api errors", () => {
           code: "role.unknown_ids",
           kind: "validation",
           message: "unknown role ids: missing-role",
-          details: { roleIds: ["missing-role"] }
-        })
-      )
+          details: { roleIds: ["missing-role"] },
+        }),
+      ),
     ).toMatchObject({
       correlationId: "api-error-test",
       status: 400,
       error: expect.any(String),
-      reason: "role.unknown_ids"
-    })
+      reason: "role.unknown_ids",
+    });
 
     expect(
       createApiErrorReply(
@@ -82,14 +83,14 @@ describe("api errors", () => {
           code: "role.protected_role",
           kind: "denied",
           message: "built-in roles cannot be modified",
-          details: { roleId: "viewer-role-id" }
-        })
-      )
+          details: { roleId: "viewer-role-id" },
+        }),
+      ),
     ).toMatchObject({
       correlationId: "api-error-test",
       status: 403,
-      error: expect.any(String)
-    })
+      error: expect.any(String),
+    });
 
     expect(
       createApiErrorReply(
@@ -98,14 +99,14 @@ describe("api errors", () => {
           code: "role.create_conflict",
           kind: "conflict",
           message: "role already exists",
-          details: { roleName: "viewer" }
-        })
-      )
+          details: { roleName: "viewer" },
+        }),
+      ),
     ).toMatchObject({
       correlationId: "api-error-test",
       status: 409,
-      error: expect.any(String)
-    })
+      error: expect.any(String),
+    });
 
     expect(
       createApiErrorReply(
@@ -114,14 +115,14 @@ describe("api errors", () => {
           code: "finding.reclassification_target_vulnerability_missing",
           kind: "missing",
           message: "target vulnerability does not exist",
-          details: { vulnerabilityId: "missing-vulnerability-id" }
-        })
-      )
+          details: { vulnerabilityId: "missing-vulnerability-id" },
+        }),
+      ),
     ).toMatchObject({
       correlationId: "api-error-test",
       status: 404,
-      error: expect.any(String)
-    })
+      error: expect.any(String),
+    });
 
     expect(
       createApiErrorReply(
@@ -129,33 +130,33 @@ describe("api errors", () => {
         new ApplicationError({
           code: "role.list_failed",
           kind: "unexpected",
-          message: "failed to list roles"
-        })
-      )
+          message: "failed to list roles",
+        }),
+      ),
     ).toMatchObject({
       correlationId: "api-error-test",
       status: 500,
-      error: expect.any(String)
-    })
-  })
+      error: expect.any(String),
+    });
+  });
 
   it("does not expose application error codes as public reasons by default", () => {
     const error = new ApplicationError({
       code: "role.protected_role",
       kind: "denied",
       message: "built-in roles cannot be modified",
-      details: { roleId: "viewer-role-id" }
-    })
+      details: { roleId: "viewer-role-id" },
+    });
 
-    const reply = createApiErrorReply("api-error-test", error)
+    const reply = createApiErrorReply("api-error-test", error);
 
     expect(reply).toMatchObject({
       correlationId: "api-error-test",
       status: 403,
-      error: expect.any(String)
-    })
-    expect(reply).not.toHaveProperty("reason")
-  })
+      error: expect.any(String),
+    });
+    expect(reply).not.toHaveProperty("reason");
+  });
 
   it("does not expose sensitive auth application diagnostics", () => {
     const error = new ApplicationError({
@@ -163,57 +164,57 @@ describe("api errors", () => {
       kind: "unexpected",
       message: "failed to create session for credentials",
       cause: new Error("credential lookup failed"),
-      details: { username: "alice" }
-    })
+      details: { username: "alice" },
+    });
 
-    const reply = createApiErrorReply("api-error-test", error)
+    const reply = createApiErrorReply("api-error-test", error);
 
     expect(reply).toMatchObject({
       correlationId: "api-error-test",
       status: 500,
-      error: expect.any(String)
-    })
-    expect(reply.error).not.toContain("credentials")
-    expect(reply.error).not.toContain("alice")
-    expect(reply).not.toHaveProperty("reason")
-  })
+      error: expect.any(String),
+    });
+    expect(reply.error).not.toContain("credentials");
+    expect(reply.error).not.toContain("alice");
+    expect(reply).not.toHaveProperty("reason");
+  });
 
   it("does not expose user profile application error codes as public reasons", () => {
     const error = new ApplicationError({
       code: "user_profile.role_assignment_invalid",
       kind: "validation",
       message: "invalid user role assignment",
-      details: { roleIds: ["missing-role-id"] }
-    })
+      details: { roleIds: ["missing-role-id"] },
+    });
 
-    const reply = createApiErrorReply("api-error-test", error)
+    const reply = createApiErrorReply("api-error-test", error);
 
     expect(reply).toMatchObject({
       correlationId: "api-error-test",
       status: 400,
-      error: expect.any(String)
-    })
-    expect(reply).not.toHaveProperty("reason")
-  })
+      error: expect.any(String),
+    });
+    expect(reply).not.toHaveProperty("reason");
+  });
 
   it("does not expose vulnerability application error details by default", () => {
     const error = new ApplicationError({
       code: "vulnerability.mapping.source_required",
       kind: "validation",
       message: "source is required",
-      details: { source: "   " }
-    })
+      details: { source: "   " },
+    });
 
-    const reply = createApiErrorReply("api-error-test", error)
+    const reply = createApiErrorReply("api-error-test", error);
 
     expect(reply).toMatchObject({
       correlationId: "api-error-test",
       status: 400,
-      error: expect.any(String)
-    })
-    expect(reply).not.toHaveProperty("reason")
-    expect(reply).not.toHaveProperty("details")
-  })
+      error: expect.any(String),
+    });
+    expect(reply).not.toHaveProperty("reason");
+    expect(reply).not.toHaveProperty("details");
+  });
 
   it("exposes allowlisted asset custom field rule reasons", () => {
     const error = new ApplicationError({
@@ -222,68 +223,65 @@ describe("api errors", () => {
       message: "required asset custom fields must define a default value",
       details: {
         reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
-        path: ["defaultValue"]
-      }
-    })
+        path: ["defaultValue"],
+      },
+    });
 
-    const reply = createApiErrorReply("api-error-test", error)
+    const reply = createApiErrorReply("api-error-test", error);
 
     expect(reply).toMatchObject({
       correlationId: "api-error-test",
       status: 400,
       error: expect.any(String),
-      reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing
-    })
-    expect(reply).not.toHaveProperty("details")
-  })
+      reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
+    });
+    expect(reply).not.toHaveProperty("details");
+  });
 
   it("does not expose asset custom field application error details by default", () => {
     const error = new ApplicationError({
       code: "asset_custom_field.definition.unknown",
       kind: "validation",
       message: "unknown asset custom field",
-      details: { fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25" }
-    })
+      details: { fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25" },
+    });
 
-    const reply = createApiErrorReply("api-error-test", error)
+    const reply = createApiErrorReply("api-error-test", error);
 
     expect(reply).toMatchObject({
       correlationId: "api-error-test",
       status: 400,
-      error: expect.any(String)
-    })
-    expect(reply).not.toHaveProperty("reason")
-    expect(reply).not.toHaveProperty("details")
-  })
+      error: expect.any(String),
+    });
+    expect(reply).not.toHaveProperty("reason");
+    expect(reply).not.toHaveProperty("details");
+  });
 
   it("serializes server errors with a generic public message", () => {
     expect(
-      createApiErrorReply(
-        "api-error-test",
-        internalServerError("failed to list roles")
-      )
+      createApiErrorReply("api-error-test", internalServerError("failed to list roles")),
     ).toEqual({
       correlationId: "api-error-test",
       status: 500,
-      error: "internal server error"
-    })
-  })
+      error: "internal server error",
+    });
+  });
 
   it("applies the generic server error message to legacy Hono errors", () => {
     expect(
       createApiErrorReply(
         "api-error-test",
-        new HTTPException(500, { message: "failed to list roles" })
-      )
+        new HTTPException(500, { message: "failed to list roles" }),
+      ),
     ).toEqual({
       correlationId: "api-error-test",
       status: 500,
-      error: "internal server error"
-    })
-  })
+      error: "internal server error",
+    });
+  });
 
   it("identifies API errors", () => {
-    expect(isApiError(badRequest("invalid input"))).toBe(true)
-    expect(isApiError(new Error("invalid input"))).toBe(false)
-  })
-})
+    expect(isApiError(badRequest("invalid input"))).toBe(true);
+    expect(isApiError(new Error("invalid input"))).toBe(false);
+  });
+});

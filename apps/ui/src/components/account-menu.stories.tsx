@@ -1,20 +1,19 @@
-import { useLayoutEffect, useMemo, useState } from "react"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import { AccountMenu } from "@/components/account-menu.tsx"
-import {
-  STORY_AUTH_SESSION,
-  STORY_USERS
-} from "@/components/storybook-fixtures.ts"
+import { useLayoutEffect, useMemo, useState } from "react";
+
+import { AccountMenu } from "@/components/account-menu.tsx";
+import { STORY_AUTH_SESSION, STORY_USERS } from "@/components/storybook-fixtures.ts";
 import {
   RouterStoryProvider,
   createObjectResponse,
-  createStoryQueryClient
-} from "@/components/storybook-utils.tsx"
-import { AuthProvider } from "@/context/auth.tsx"
+  createStoryQueryClient,
+} from "@/components/storybook-utils.tsx";
+import { AuthProvider } from "@/context/auth.tsx";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type AccountMenuStoryArgs = {
-  scenario: "authenticated" | "email-fallback" | "pending"
-}
+  scenario: "authenticated" | "email-fallback" | "pending";
+};
 
 function AccountMenuStoryShell({ scenario }: AccountMenuStoryArgs) {
   const session = useMemo(
@@ -24,56 +23,56 @@ function AccountMenuStoryShell({ scenario }: AccountMenuStoryArgs) {
             ...STORY_AUTH_SESSION,
             user: {
               ...STORY_USERS[1],
-              displayName: ""
-            }
+              displayName: "",
+            },
           }
         : STORY_AUTH_SESSION,
-    [scenario]
-  )
+    [scenario],
+  );
   const queryClient = useMemo(() => {
-    const client = createStoryQueryClient()
+    const client = createStoryQueryClient();
 
     if (scenario !== "pending") {
-      client.setQueryData(["auth", "session"], session)
+      client.setQueryData(["auth", "session"], session);
     }
 
-    return client
-  }, [scenario, session])
-  const [ready, setReady] = useState(scenario !== "pending")
+    return client;
+  }, [scenario, session]);
+  const [ready, setReady] = useState(scenario !== "pending");
 
   useLayoutEffect(() => {
-    const originalFetch = globalThis.fetch
+    const originalFetch = globalThis.fetch;
 
     globalThis.fetch = async (input, init) => {
-      const requestUrl = input instanceof Request ? input.url : String(input)
+      const requestUrl = input instanceof Request ? input.url : String(input);
       const method = (
         init?.method ?? (input instanceof Request ? input.method : "GET")
-      ).toUpperCase()
+      ).toUpperCase();
 
       if (requestUrl.endsWith("/api/auth/session")) {
         if (scenario === "pending") {
-          return await new Promise<Response>(() => {})
+          return await new Promise<Response>(() => {});
         }
 
-        return createObjectResponse(session)
+        return createObjectResponse(session);
       }
 
       if (requestUrl.endsWith("/api/auth") && method === "DELETE") {
-        return createObjectResponse({ revoked: true })
+        return createObjectResponse({ revoked: true });
       }
 
-      return originalFetch(input, init)
-    }
+      return originalFetch(input, init);
+    };
 
-    setReady(true)
+    setReady(true);
 
     return () => {
-      globalThis.fetch = originalFetch
-    }
-  }, [scenario, session])
+      globalThis.fetch = originalFetch;
+    };
+  }, [scenario, session]);
 
   if (!ready) {
-    return null
+    return null;
   }
 
   return (
@@ -82,41 +81,41 @@ function AccountMenuStoryShell({ scenario }: AccountMenuStoryArgs) {
         <AccountMenu />
       </AuthProvider>
     </RouterStoryProvider>
-  )
+  );
 }
 
 const meta = {
   title: "App/Shell/AccountMenu",
   component: AccountMenuStoryShell,
   parameters: {
-    layout: "centered"
+    layout: "centered",
   },
   args: {
-    scenario: "authenticated"
+    scenario: "authenticated",
   },
   argTypes: {
     scenario: {
       control: "radio",
-      options: ["authenticated", "email-fallback", "pending"]
-    }
+      options: ["authenticated", "email-fallback", "pending"],
+    },
   },
-  render: (args) => <AccountMenuStoryShell {...args} />
-} satisfies Meta<typeof AccountMenuStoryShell>
+  render: (args) => <AccountMenuStoryShell {...args} />,
+} satisfies Meta<typeof AccountMenuStoryShell>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const Authenticated: Story = {}
+export const Authenticated: Story = {};
 
 export const EmailFallback: Story = {
   args: {
-    scenario: "email-fallback"
-  }
-}
+    scenario: "email-fallback",
+  },
+};
 
 export const Pending: Story = {
   args: {
-    scenario: "pending"
-  }
-}
+    scenario: "pending",
+  },
+};

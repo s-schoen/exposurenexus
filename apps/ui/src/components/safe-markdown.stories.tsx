@@ -1,5 +1,6 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import { SafeMarkdown } from "@/components/safe-markdown.tsx"
+import { SafeMarkdown } from "@/components/safe-markdown.tsx";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const SAMPLE_MARKDOWN = `## Impact
 
@@ -21,7 +22,7 @@ Host: web-01.example.test
 
 - Restrict access to trusted networks
 - Require strong authentication
-`
+`;
 
 const SANITIZED_MARKDOWN = `## Sanitized Content
 
@@ -38,34 +39,34 @@ Raw HTML details remain available for scanner evidence.
 ![External image](https://example.com/image.png)
 
 [Unsafe link](javascript:alert(1)) and [safe link](https://example.com).
-`
+`;
 
 const meta = {
   title: "Components/SafeMarkdown",
   component: SafeMarkdown,
   parameters: {
-    layout: "padded"
+    layout: "padded",
   },
   decorators: [
     (Story) => (
       <div className="max-w-3xl rounded-xl border border-border bg-card p-6">
         <Story />
       </div>
-    )
+    ),
   ],
   args: {
-    children: SAMPLE_MARKDOWN
-  }
-} satisfies Meta<typeof SafeMarkdown>
+    children: SAMPLE_MARKDOWN,
+  },
+} satisfies Meta<typeof SafeMarkdown>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const RichContent: Story = {}
+export const RichContent: Story = {};
 
 export const SanitizedContent: Story = {
   args: {
-    children: SANITIZED_MARKDOWN
-  }
-}
+    children: SANITIZED_MARKDOWN,
+  },
+};

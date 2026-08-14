@@ -1,20 +1,20 @@
-import { Kysely, sql } from "kysely"
+import { Kysely, sql } from "kysely";
 
-// eslint-disable-next-line
+// oxlint-disable-next-line typescript/no-explicit-any
 export async function up(db: Kysely<any>): Promise<void> {
   await sql`
     update "user"
     set "role" = 'viewer'
     where "role" is null or "role" = 'user'
-  `.execute(db)
+  `.execute(db);
 
   await db.schema
     .alterTable("user")
     .alterColumn("role", (col) => col.setDefault("viewer"))
-    .execute()
+    .execute();
 }
 
-// eslint-disable-next-line
+// oxlint-disable-next-line typescript/no-explicit-any
 export async function down(db: Kysely<any>): Promise<void> {
   // This migration intentionally performs a schema-only rollback.
   // Rewriting persisted viewer roles back to user would corrupt legitimate
@@ -23,5 +23,5 @@ export async function down(db: Kysely<any>): Promise<void> {
   await db.schema
     .alterTable("user")
     .alterColumn("role", (col) => col.setDefault("user"))
-    .execute()
+    .execute();
 }

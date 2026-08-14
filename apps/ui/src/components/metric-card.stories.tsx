@@ -1,31 +1,32 @@
-import { Activity, Radar, ShieldAlert } from "lucide-react"
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import { Activity, Radar, ShieldAlert } from "lucide-react";
 
-import { MetricCard } from "@/components/metric-card"
+import { MetricCard } from "@/components/metric-card";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Components/MetricCard",
   component: MetricCard,
   parameters: {
-    layout: "padded"
+    layout: "padded",
   },
   args: {
     title: "Critical / high",
     value: 12,
     description: "Highest severity exposure right now",
-    icon: ShieldAlert
-  }
-} satisfies Meta<typeof MetricCard>
+    icon: ShieldAlert,
+  },
+} satisfies Meta<typeof MetricCard>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    variant: "card"
-  }
-}
+    variant: "card",
+  },
+};
 
 export const Panel: Story = {
   args: {
@@ -33,30 +34,30 @@ export const Panel: Story = {
     value: "84%",
     description: "Share of findings already mitigated",
     icon: Activity,
-    variant: "panel"
-  }
-}
+    variant: "panel",
+  },
+};
 
 export const Emphasis: Story = {
   args: {
-    emphasis: true
-  }
-}
+    emphasis: true,
+  },
+};
 
 export const Loading: Story = {
   args: {
-    loading: true
-  }
-}
+    loading: true,
+  },
+};
 
 export const WithoutIcon: Story = {
   args: {
     title: "Affected assets",
     value: 37,
     description: "Assets with at least one linked finding",
-    showIcon: false
-  }
-}
+    showIcon: false,
+  },
+};
 
 export const OverviewGrid: Story = {
   render: () => (
@@ -101,8 +102,8 @@ export const OverviewGrid: Story = {
         variant="panel"
       />
     </div>
-  )
-}
+  ),
+};
 
 export const DarkSurface: Story = {
   render: () => (
@@ -124,5 +125,5 @@ export const DarkSurface: Story = {
         />
       </div>
     </div>
-  )
-}
+  ),
+};

@@ -1,5 +1,5 @@
-import { FindingStatus } from "@exposurenexus/types/model/finding"
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 
 const severityBadgeClasses = {
   [VulnerabilitySeverity.Info]:
@@ -11,28 +11,27 @@ const severityBadgeClasses = {
   [VulnerabilitySeverity.High]:
     "border-[oklch(0.74_0.11_32)] bg-[oklch(0.94_0.05_28)] text-[oklch(0.44_0.16_28)] dark:border-[oklch(0.58_0.1_28)] dark:bg-[oklch(0.33_0.055_28)] dark:text-[oklch(0.86_0.11_28)]",
   [VulnerabilitySeverity.Critical]:
-    "border-[oklch(0.68_0.13_12)] bg-[oklch(0.92_0.07_12)] text-[oklch(0.38_0.17_12)] dark:border-[oklch(0.6_0.12_12)] dark:bg-[oklch(0.34_0.07_12)] dark:text-[oklch(0.84_0.13_12)]"
-} satisfies Record<VulnerabilitySeverity, string>
+    "border-[oklch(0.68_0.13_12)] bg-[oklch(0.92_0.07_12)] text-[oklch(0.38_0.17_12)] dark:border-[oklch(0.6_0.12_12)] dark:bg-[oklch(0.34_0.07_12)] dark:text-[oklch(0.84_0.13_12)]",
+} satisfies Record<VulnerabilitySeverity, string>;
 
 const severityChartColors = {
   [VulnerabilitySeverity.Info]: "var(--color-blue-700)",
   [VulnerabilitySeverity.Low]: "var(--color-yellow-600)",
   [VulnerabilitySeverity.Medium]: "var(--color-orange-600)",
   [VulnerabilitySeverity.High]: "var(--color-red-600)",
-  [VulnerabilitySeverity.Critical]: "var(--color-pink-800)"
-} satisfies Record<VulnerabilitySeverity, string>
+  [VulnerabilitySeverity.Critical]: "var(--color-pink-800)",
+} satisfies Record<VulnerabilitySeverity, string>;
 
 const findingStatusBadgeClasses = {
   [FindingStatus.Active]: "border-red-200 bg-red-50 text-red-700",
   [FindingStatus.Confirmed]: "border-orange-200 bg-orange-50 text-orange-700",
-  [FindingStatus.Mitigated]:
-    "border-emerald-200 bg-emerald-50 text-emerald-700",
+  [FindingStatus.Mitigated]: "border-emerald-200 bg-emerald-50 text-emerald-700",
   [FindingStatus.FalsePositive]: "border-slate-200 bg-slate-100 text-slate-700",
   [FindingStatus.RiskAccepted]: "border-amber-200 bg-amber-50 text-amber-700",
   [FindingStatus.Duplicate]: "border-zinc-200 bg-zinc-100 text-zinc-700",
   [FindingStatus.OutOfScope]: "border-sky-200 bg-sky-50 text-sky-700",
-  [FindingStatus.Inactive]: "border-neutral-200 bg-neutral-100 text-neutral-700"
-} satisfies Record<FindingStatus, string>
+  [FindingStatus.Inactive]: "border-neutral-200 bg-neutral-100 text-neutral-700",
+} satisfies Record<FindingStatus, string>;
 
 const findingStatusChartColors = {
   [FindingStatus.Active]: "var(--color-red-700)",
@@ -42,21 +41,21 @@ const findingStatusChartColors = {
   [FindingStatus.RiskAccepted]: "var(--color-amber-600)",
   [FindingStatus.Duplicate]: "var(--color-zinc-600)",
   [FindingStatus.OutOfScope]: "var(--color-sky-600)",
-  [FindingStatus.Inactive]: "var(--color-neutral-600)"
-} satisfies Record<FindingStatus, string>
+  [FindingStatus.Inactive]: "var(--color-neutral-600)",
+} satisfies Record<FindingStatus, string>;
 
 export function severityBadgeClass(severity: VulnerabilitySeverity): string {
-  return severityBadgeClasses[severity]
+  return severityBadgeClasses[severity];
 }
 
 export function severityChartColor(severity: VulnerabilitySeverity): string {
-  return severityChartColors[severity]
+  return severityChartColors[severity];
 }
 
 export function findingStatusBadgeClass(status: FindingStatus): string {
-  return findingStatusBadgeClasses[status]
+  return findingStatusBadgeClasses[status];
 }
 
 export function findingStatusChartColor(status: FindingStatus): string {
-  return findingStatusChartColors[status]
+  return findingStatusChartColors[status];
 }

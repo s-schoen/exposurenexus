@@ -1,79 +1,73 @@
-import { useQuery } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
-import { CircleAlert } from "lucide-react"
-import {
-  createListRolesQueryOptions,
-  createRoleByIDQueryOptions
-} from "@/api/role.ts"
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { CircleAlert } from "lucide-react";
+
+import { createListRolesQueryOptions, createRoleByIDQueryOptions } from "@/api/role.ts";
 import {
   RoleForm,
   getAvailableRolePermissions,
   mapRoleToFormValues,
-  mapUpdateRoleFormValues
-} from "@/components/role-form.tsx"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx"
+  mapUpdateRoleFormValues,
+} from "@/components/role-form.tsx";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
-import { Skeleton } from "@/components/ui/skeleton.tsx"
-import { usePageMeta } from "@/context/page.tsx"
-import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts"
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { usePageMeta } from "@/context/page.tsx";
+import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts";
 
 interface EditRolePageProps {
-  roleId: string
+  roleId: string;
 }
 
 export function EditRolePage({ roleId }: EditRolePageProps) {
-  const navigate = useNavigate()
-  const roleLifecycle = useRoleLifecycle()
-  const role = useQuery(createRoleByIDQueryOptions(roleId))
-  const roles = useQuery(createListRolesQueryOptions())
+  const navigate = useNavigate();
+  const roleLifecycle = useRoleLifecycle();
+  const role = useQuery(createRoleByIDQueryOptions(roleId));
+  const roles = useQuery(createListRolesQueryOptions());
 
   usePageMeta({
     title: role.data?.name ? `Edit ${role.data.name}` : "Edit Role",
-    description: "Update the role name and permission grants."
-  })
+    description: "Update the role name and permission grants.",
+  });
 
   const handleCancel = async () => {
     await navigate({
       to: "/roles/$id",
-      params: { id: roleId }
-    })
-  }
+      params: { id: roleId },
+    });
+  };
 
-  const handleSubmit = async (
-    values: Parameters<typeof mapUpdateRoleFormValues>[0]
-  ) => {
-    const payload = mapUpdateRoleFormValues(values)
-    const updatedRole = await roleLifecycle.updateRole(roleId, payload)
+  const handleSubmit = async (values: Parameters<typeof mapUpdateRoleFormValues>[0]) => {
+    const payload = mapUpdateRoleFormValues(values);
+    const updatedRole = await roleLifecycle.updateRole(roleId, payload);
 
     if (updatedRole) {
       await navigate({
         to: "/roles/$id",
-        params: { id: roleId }
-      })
+        params: { id: roleId },
+      });
     }
-  }
+  };
 
   if (role.isPending || roles.isPending) {
     return (
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader>
           <CardTitle>Edit role</CardTitle>
-          <CardDescription>
-            Loading role details and available permissions.
-          </CardDescription>
+          <CardDescription>Loading role details and available permissions.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Skeleton className="h-20 w-full" />
           <Skeleton className="h-64 w-full" />
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (!role.data || !roles.data) {
@@ -81,9 +75,7 @@ export function EditRolePage({ roleId }: EditRolePageProps) {
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader>
           <CardTitle>Edit role</CardTitle>
-          <CardDescription>
-            The selected role could not be loaded for editing.
-          </CardDescription>
+          <CardDescription>The selected role could not be loaded for editing.</CardDescription>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
@@ -97,7 +89,7 @@ export function EditRolePage({ roleId }: EditRolePageProps) {
           </Alert>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -108,5 +100,5 @@ export function EditRolePage({ roleId }: EditRolePageProps) {
       onSubmit={handleSubmit}
       onCancel={handleCancel}
     />
-  )
+  );
 }

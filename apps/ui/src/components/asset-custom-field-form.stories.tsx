@@ -1,22 +1,22 @@
-import { useState } from "react"
-import { expect, fn, userEvent, within } from "storybook/test"
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import type { ComponentProps } from "react"
-import { AssetCustomFieldForm } from "@/components/asset-custom-field-form.tsx"
+import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+import { useState } from "react";
+import { expect, fn, userEvent, within } from "storybook/test";
 
-type AssetCustomFieldFormStoryArgs = ComponentProps<typeof AssetCustomFieldForm>
+import { AssetCustomFieldForm } from "@/components/asset-custom-field-form.tsx";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ComponentProps } from "react";
+
+type AssetCustomFieldFormStoryArgs = ComponentProps<typeof AssetCustomFieldForm>;
 
 function AssetCustomFieldFormStoryShell(args: AssetCustomFieldFormStoryArgs) {
   const [lastSubmittedValues, setLastSubmittedValues] =
-    useState<AssetCustomFieldFormStoryArgs["defaultValues"]>()
+    useState<AssetCustomFieldFormStoryArgs["defaultValues"]>();
 
-  const handleSubmit: AssetCustomFieldFormStoryArgs["onSubmit"] = async (
-    values
-  ) => {
-    setLastSubmittedValues(values)
-    await args.onSubmit(values)
-  }
+  const handleSubmit: AssetCustomFieldFormStoryArgs["onSubmit"] = async (values) => {
+    setLastSubmittedValues(values);
+    await args.onSubmit(values);
+  };
 
   return (
     <div className="w-full max-w-2xl space-y-4">
@@ -30,30 +30,30 @@ function AssetCustomFieldFormStoryShell(args: AssetCustomFieldFormStoryArgs) {
         </div>
       ) : null}
     </div>
-  )
+  );
 }
 
 const meta = {
   title: "Resources/Custom Fields/Form",
   component: AssetCustomFieldForm,
   parameters: {
-    layout: "padded"
+    layout: "padded",
   },
   args: {
     mode: "create",
     onSubmit: fn(async (_values) => {
-      await new Promise((resolve) => setTimeout(resolve, 300))
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }),
-    onCancel: fn()
+    onCancel: fn(),
   },
-  render: (args) => <AssetCustomFieldFormStoryShell {...args} />
-} satisfies Meta<typeof AssetCustomFieldForm>
+  render: (args) => <AssetCustomFieldFormStoryShell {...args} />,
+} satisfies Meta<typeof AssetCustomFieldForm>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const CreateText: Story = {}
+export const CreateText: Story = {};
 
 export const CreateNumber: Story = {
   args: {
@@ -62,10 +62,10 @@ export const CreateNumber: Story = {
       key: "priority",
       type: AssetCustomFieldType.Number,
       required: true,
-      defaultValue: "3"
-    }
-  }
-}
+      defaultValue: "3",
+    },
+  },
+};
 
 export const CreateSelect: Story = {
   args: {
@@ -77,11 +77,11 @@ export const CreateSelect: Story = {
       defaultValue: "production",
       options: [
         { value: "production", label: "Production" },
-        { value: "staging", label: "Staging" }
-      ]
-    }
-  }
-}
+        { value: "staging", label: "Staging" },
+      ],
+    },
+  },
+};
 
 export const EditSelect: Story = {
   args: {
@@ -94,11 +94,11 @@ export const EditSelect: Story = {
       defaultValue: "production",
       options: [
         { value: "production", label: "Production" },
-        { value: "staging", label: "Staging" }
-      ]
-    }
-  }
-}
+        { value: "staging", label: "Staging" },
+      ],
+    },
+  },
+};
 
 export const ValidationErrors: Story = {
   args: {
@@ -107,17 +107,15 @@ export const ValidationErrors: Story = {
       required: true,
       options: [
         { value: "production", label: "Production" },
-        { value: "production", label: "Production duplicate" }
-      ]
-    }
+        { value: "production", label: "Production duplicate" },
+      ],
+    },
   },
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
+    const canvas = within(canvasElement);
 
-    await userEvent.click(
-      await canvas.findByRole("button", { name: /create custom field/i })
-    )
+    await userEvent.click(await canvas.findByRole("button", { name: /create custom field/i }));
 
-    await expect(await canvas.findAllByRole("alert")).not.toHaveLength(0)
-  }
-}
+    await expect(await canvas.findAllByRole("alert")).not.toHaveLength(0);
+  },
+};

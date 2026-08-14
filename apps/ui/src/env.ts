@@ -1,16 +1,16 @@
-import { createEnv } from "@t3-oss/env-core"
-import { z } from "zod/v4"
+import { createEnv } from "@t3-oss/env-core";
+import { z } from "zod/v4";
 
 function isApiBaseUrl(value: string): boolean {
   if (value.startsWith("/") && !value.startsWith("//")) {
-    return true
+    return true;
   }
 
   try {
-    new URL(value)
-    return true
+    new URL(value);
+    return true;
   } catch {
-    return false
+    return false;
   }
 }
 
@@ -27,9 +27,9 @@ export const env = createEnv({
       .trim()
       .min(1)
       .refine(isApiBaseUrl, {
-        message: "Must be an absolute URL or same-origin path"
+        message: "Must be an absolute URL or same-origin path",
       })
-      .default("/api")
+      .default("/api"),
   },
 
   /**
@@ -51,5 +51,5 @@ export const env = createEnv({
    * In order to solve these issues, we recommend that all new projects
    * explicitly specify this option as true.
    */
-  emptyStringAsUndefined: true
-})
+  emptyStringAsUndefined: true,
+});

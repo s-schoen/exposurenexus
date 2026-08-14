@@ -1,33 +1,35 @@
-import { ShieldCheck } from "lucide-react"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
-import { Badge } from "@/components/ui/badge.tsx"
+import { ShieldCheck } from "lucide-react";
+
+import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Components/DetailHighlightCard",
   component: DetailHighlightCard,
   parameters: {
-    layout: "centered"
+    layout: "centered",
   },
   decorators: [
     (Story) => (
       <div className="w-72">
         <Story />
       </div>
-    )
+    ),
   ],
   args: {
     label: "CVE",
     value: "CVE-2026-0001",
-    description: "External vulnerability identifier when available"
-  }
-} satisfies Meta<typeof DetailHighlightCard>
+    description: "External vulnerability identifier when available",
+  },
+} satisfies Meta<typeof DetailHighlightCard>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const TextValue: Story = {}
+export const TextValue: Story = {};
 
 export const BadgeValue: Story = {
   args: {
@@ -38,6 +40,6 @@ export const BadgeValue: Story = {
         Verified
       </Badge>
     ),
-    description: "Current validation state for this record"
-  }
-}
+    description: "Current validation state for this record",
+  },
+};

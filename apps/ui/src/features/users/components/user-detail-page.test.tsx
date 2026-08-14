@@ -1,15 +1,16 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { cleanup, render, screen } from "@testing-library/react"
-import type { ReactNode } from "react"
-import type { UserProfile } from "@exposurenexus/types/model/user"
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { ReactNode } from "react";
 
 interface QueryState<TData> {
-  data?: TData
-  isPending: boolean
-  isSuccess: boolean
+  data?: TData;
+  isPending: boolean;
+  isSuccess: boolean;
 }
 
-const userId = "1f9c36d2-1355-49d1-8464-b01ce955d88f"
+const userId = "1f9c36d2-1355-49d1-8464-b01ce955d88f";
 
 const mocks = vi.hoisted(() => {
   const user: UserProfile = {
@@ -18,141 +19,124 @@ const mocks = vi.hoisted(() => {
     displayName: "Alice Example",
     email: "alice@example.com",
     enabled: true,
-    roleIds: []
-  }
+    roleIds: [],
+  };
   const userQuery: QueryState<UserProfile> = {
     data: user,
     isPending: false,
-    isSuccess: true
-  }
+    isSuccess: true,
+  };
 
   return {
     navigate: vi.fn(),
     user,
     userQuery,
-    usePageMeta: vi.fn()
-  }
-})
+    usePageMeta: vi.fn(),
+  };
+});
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({
-    children,
-    className,
-    to
-  }: {
-    children: ReactNode
-    className?: string
-    to: string
-  }) => (
+  Link: ({ children, className, to }: { children: ReactNode; className?: string; to: string }) => (
     <a className={className} href={to}>
       {children}
     </a>
   ),
-  useNavigate: () => mocks.navigate
-}))
+  useNavigate: () => mocks.navigate,
+}));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.userQuery
-}))
+  useQuery: () => mocks.userQuery,
+}));
 
 vi.mock("@/api/user.ts", () => ({
   createUserByIDQueryOptions: (id: string) => ({
-    queryKey: ["users", id]
-  })
-}))
+    queryKey: ["users", id],
+  }),
+}));
 
 vi.mock("@/context/page.tsx", () => ({
-  usePageMeta: mocks.usePageMeta
-}))
+  usePageMeta: mocks.usePageMeta,
+}));
 
 vi.mock("@/components/user-detail-content.tsx", () => ({
   UserDetailContent: ({
     titleAction,
-    userId: renderedUserId
+    userId: renderedUserId,
   }: {
-    titleAction?: ReactNode
-    userId: string
+    titleAction?: ReactNode;
+    userId: string;
   }) => (
     <div>
       {titleAction}
       <div>User detail for {renderedUserId}</div>
     </div>
-  )
-}))
+  ),
+}));
 
 describe("UserDetailPage", () => {
   beforeEach(() => {
-    mocks.navigate.mockReset()
+    mocks.navigate.mockReset();
     mocks.userQuery = {
       data: mocks.user,
       isPending: false,
-      isSuccess: true
-    }
-    mocks.usePageMeta.mockReset()
-  })
+      isSuccess: true,
+    };
+    mocks.usePageMeta.mockReset();
+  });
 
   afterEach(() => {
-    cleanup()
-  })
+    cleanup();
+  });
 
   it("uses loaded user data for page metadata and renders the back link", async () => {
-    const { UserDetailPage } = await import(
-      "@/features/users/components/user-detail-page.tsx"
-    )
+    const { UserDetailPage } = await import("@/features/users/components/user-detail-page.tsx");
 
-    render(<UserDetailPage userId={userId} />)
+    render(<UserDetailPage userId={userId} />);
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Alice Example",
       description: "Review account identity fields, status, and role assignments.",
       actions: [
         expect.objectContaining({
-          label: "Edit user"
-        })
-      ]
-    })
-    expect(screen.getByRole("link", { name: /back to users/i })).toHaveAttribute(
-      "href",
-      "/users"
-    )
-    expect(screen.getByText(`User detail for ${userId}`)).toBeVisible()
-  })
+          label: "Edit user",
+        }),
+      ],
+    });
+    expect(screen.getByRole("link", { name: /back to users/i })).toHaveAttribute("href", "/users");
+    expect(screen.getByText(`User detail for ${userId}`)).toBeVisible();
+  });
 
   it("uses fallback page metadata before user data is available", async () => {
-    const { UserDetailPage } = await import(
-      "@/features/users/components/user-detail-page.tsx"
-    )
+    const { UserDetailPage } = await import("@/features/users/components/user-detail-page.tsx");
     mocks.userQuery = {
       isPending: true,
-      isSuccess: false
-    }
+      isSuccess: false,
+    };
 
-    render(<UserDetailPage userId={userId} />)
+    render(<UserDetailPage userId={userId} />);
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "User",
       description: "Review account identity fields, status, and role assignments.",
       actions: [
         expect.objectContaining({
-          label: "Edit user"
-        })
-      ]
-    })
-  })
+          label: "Edit user",
+        }),
+      ],
+    });
+  });
 
   it("navigates to edit from the page action", async () => {
-    const { UserDetailPage } = await import(
-      "@/features/users/components/user-detail-page.tsx"
-    )
+    const { UserDetailPage } = await import("@/features/users/components/user-detail-page.tsx");
 
-    render(<UserDetailPage userId={userId} />)
+    render(<UserDetailPage userId={userId} />);
 
-    const meta = mocks.usePageMeta.mock.calls[0][0]
-    meta.actions[0].onClick()
+    const meta = mocks.usePageMeta.mock.calls[0][0];
+    meta.actions[0].onClick();
 
     expect(mocks.navigate).toHaveBeenCalledWith({
       to: "/users/$id/edit",
-      params: { id: userId }
-    })
-  })
-})
+      params: { id: userId },
+    });
+  });
+});

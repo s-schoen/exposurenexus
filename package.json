@@ -2,26 +2,35 @@
   "name": "exposurenexus",
   "version": "0.1.0",
   "description": "",
+  "keywords": [],
+  "license": "MIT",
+  "author": "s-schoen",
   "main": "index.js",
   "scripts": {
     "build": "pnpm -r build",
-    "lint": "pnpm --filter @exposurenexus/types build && pnpm -r check",
+    "coverage:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api test:coverage",
+    "coverage:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test:coverage",
+    "dev:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api dev",
+    "dev:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui dev",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "lint": "pnpm --filter @exposurenexus/types build && oxlint .",
+    "lint:agent": "pnpm --filter @exposurenexus/types build && oxlint --format=agent .",
+    "lint:fix": "pnpm --filter @exposurenexus/types build && oxlint --fix .",
+    "storybook:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui storybook",
     "test": "pnpm test:api && pnpm test:ui",
     "test:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api test",
     "test:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test",
     "test:ui:unit": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test:unit",
-    "coverage:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api test:coverage",
-    "coverage:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test:coverage",
-    "verify:container": "sh scripts/verify-container-build.sh",
-    "dev:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui dev",
-    "dev:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api dev",
-    "storybook:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui storybook"
+    "verify:container": "sh scripts/verify-container-build.sh"
+  },
+  "devDependencies": {
+    "oxfmt": "0.63.0",
+    "oxlint": "1.78.0",
+    "oxlint-tsgolint": "7.0.2001"
   },
   "engines": {
     "node": ">=24.15.0 <25"
   },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
   "packageManager": "pnpm@11.21.0"
 }

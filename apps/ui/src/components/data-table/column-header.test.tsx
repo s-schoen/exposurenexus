@@ -1,26 +1,24 @@
-/* eslint-disable import/consistent-type-specifier-style */
-import { afterEach, describe, expect, it } from "vitest"
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
-import { useMemo, useState } from "react"
 import {
-  type Column,
-  type SortingState,
-  type VisibilityState,
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
-  useReactTable
-} from "@tanstack/react-table"
+  useReactTable,
+} from "@tanstack/react-table";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { useMemo, useState } from "react";
+import { afterEach, describe, expect, it } from "vitest";
 
-import { DataTableColumnHeader } from "@/components/data-table/column-header"
+import { DataTableColumnHeader } from "@/components/data-table/column-header";
+
+import type { Column, SortingState, VisibilityState } from "@tanstack/react-table";
 
 interface SortableRow {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
-window.HTMLElement.prototype.scrollIntoView = () => {}
+window.HTMLElement.prototype.scrollIntoView = () => {};
 
 class ResizeObserverMock {
   observe() {}
@@ -28,23 +26,23 @@ class ResizeObserverMock {
   disconnect() {}
 }
 
-globalThis.ResizeObserver = ResizeObserverMock
+globalThis.ResizeObserver = ResizeObserverMock;
 
 afterEach(() => {
-  cleanup()
-})
+  cleanup();
+});
 
 function SortableColumnHeaderHarness({ sortable = true }) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const data = useMemo(
     () => [
       { id: "row-1", name: "Charlie" },
       { id: "row-2", name: "Alice" },
-      { id: "row-3", name: "Bob" }
+      { id: "row-3", name: "Bob" },
     ],
-    []
-  )
+    [],
+  );
   const columns = useMemo(
     () => [
       {
@@ -55,8 +53,8 @@ function SortableColumnHeaderHarness({ sortable = true }) {
         enableSorting: sortable,
       },
     ],
-    [sortable]
-  )
+    [sortable],
+  );
 
   const table = useReactTable({
     data,
@@ -69,18 +67,20 @@ function SortableColumnHeaderHarness({ sortable = true }) {
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-  })
+  });
 
   return (
     <div>
       <div aria-label="Column header" role="group">
-        {table.getHeaderGroups().map((headerGroup) =>
-          headerGroup.headers.map((header) => (
-            <div key={header.id}>
-              {flexRender(header.column.columnDef.header, header.getContext())}
-            </div>
-          ))
-        )}
+        {table
+          .getHeaderGroups()
+          .map((headerGroup) =>
+            headerGroup.headers.map((header) => (
+              <div key={header.id}>
+                {flexRender(header.column.columnDef.header, header.getContext())}
+              </div>
+            )),
+          )}
       </div>
       <div aria-label="Visible cells" role="list">
         {table.getRowModel().rows.map((row) => (
@@ -92,110 +92,94 @@ function SortableColumnHeaderHarness({ sortable = true }) {
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 describe("DataTableColumnHeader", () => {
   it("renders a plain title when sorting is disabled", async () => {
-    render(<SortableColumnHeaderHarness sortable={false} />)
+    render(<SortableColumnHeaderHarness sortable={false} />);
 
     await waitFor(() => {
       expect(
-        within(screen.getByRole("group", { name: /column header/i })).queryByRole(
-          "button"
-        )
-      ).not.toBeInTheDocument()
-      expect(screen.getByText("Name")).toBeInTheDocument()
-    })
-  })
+        within(screen.getByRole("group", { name: /column header/i })).queryByRole("button"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText("Name")).toBeInTheDocument();
+    });
+  });
 
   it("opens the menu for sortable columns", async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
-    render(<SortableColumnHeaderHarness />)
+    render(<SortableColumnHeaderHarness />);
 
     await user.click(
-      within(screen.getByRole("group", { name: /column header/i })).getByRole(
-        "button"
-      )
-    )
+      within(screen.getByRole("group", { name: /column header/i })).getByRole("button"),
+    );
 
     await waitFor(() => {
-      expect(screen.getByRole("menuitem", { name: /asc/i })).toBeInTheDocument()
-      expect(screen.getByRole("menuitem", { name: /desc/i })).toBeInTheDocument()
-      expect(screen.getByRole("menuitem", { name: /hide/i })).toBeInTheDocument()
-    })
-  })
+      expect(screen.getByRole("menuitem", { name: /asc/i })).toBeInTheDocument();
+      expect(screen.getByRole("menuitem", { name: /desc/i })).toBeInTheDocument();
+      expect(screen.getByRole("menuitem", { name: /hide/i })).toBeInTheDocument();
+    });
+  });
 
   it("sorts rows ascending and descending", async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
-    render(<SortableColumnHeaderHarness />)
+    render(<SortableColumnHeaderHarness />);
 
-    const headerButton = within(
-      screen.getByRole("group", { name: /column header/i })
-    ).getByRole("button")
+    const headerButton = within(screen.getByRole("group", { name: /column header/i })).getByRole(
+      "button",
+    );
 
-    await user.click(headerButton)
-    await user.click(await screen.findByRole("menuitem", { name: /asc/i }))
+    await user.click(headerButton);
+    await user.click(await screen.findByRole("menuitem", { name: /asc/i }));
 
     await waitFor(() => {
-      const cells = within(
-        screen.getByRole("list", { name: /visible cells/i })
-      ).getAllByText(/Alice|Bob|Charlie/)
+      const cells = within(screen.getByRole("list", { name: /visible cells/i })).getAllByText(
+        /Alice|Bob|Charlie/,
+      );
 
-      expect(cells.map((cell) => cell.textContent)).toEqual(["Alice", "Bob", "Charlie"])
-    })
+      expect(cells.map((cell) => cell.textContent)).toEqual(["Alice", "Bob", "Charlie"]);
+    });
 
     await user.click(
-      within(screen.getByRole("group", { name: /column header/i })).getByRole(
-        "button"
-      )
-    )
-    await user.click(await screen.findByRole("menuitem", { name: /desc/i }))
+      within(screen.getByRole("group", { name: /column header/i })).getByRole("button"),
+    );
+    await user.click(await screen.findByRole("menuitem", { name: /desc/i }));
 
     await waitFor(() => {
-      const cells = within(
-        screen.getByRole("list", { name: /visible cells/i })
-      ).getAllByText(/Alice|Bob|Charlie/)
+      const cells = within(screen.getByRole("list", { name: /visible cells/i })).getAllByText(
+        /Alice|Bob|Charlie/,
+      );
 
-      expect(cells.map((cell) => cell.textContent)).toEqual(["Charlie", "Bob", "Alice"])
-    })
-  })
+      expect(cells.map((cell) => cell.textContent)).toEqual(["Charlie", "Bob", "Alice"]);
+    });
+  });
 
   it("hides the column", async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup();
 
-    render(<SortableColumnHeaderHarness />)
+    render(<SortableColumnHeaderHarness />);
 
     await user.click(
-      within(screen.getByRole("group", { name: /column header/i })).getByRole(
-        "button"
-      )
-    )
-    await user.click(await screen.findByRole("menuitem", { name: /hide/i }))
+      within(screen.getByRole("group", { name: /column header/i })).getByRole("button"),
+    );
+    await user.click(await screen.findByRole("menuitem", { name: /hide/i }));
 
     await waitFor(() => {
       expect(
-        within(screen.getByRole("group", { name: /column header/i })).queryByRole(
-          "button"
-        )
-      ).not.toBeInTheDocument()
+        within(screen.getByRole("group", { name: /column header/i })).queryByRole("button"),
+      ).not.toBeInTheDocument();
       expect(
-        within(screen.getByRole("list", { name: /visible cells/i })).queryByText(
-          "Alice"
-        )
-      ).not.toBeInTheDocument()
+        within(screen.getByRole("list", { name: /visible cells/i })).queryByText("Alice"),
+      ).not.toBeInTheDocument();
       expect(
-        within(screen.getByRole("list", { name: /visible cells/i })).queryByText(
-          "Bob"
-        )
-      ).not.toBeInTheDocument()
+        within(screen.getByRole("list", { name: /visible cells/i })).queryByText("Bob"),
+      ).not.toBeInTheDocument();
       expect(
-        within(screen.getByRole("list", { name: /visible cells/i })).queryByText(
-          "Charlie"
-        )
-      ).not.toBeInTheDocument()
-    })
-  })
-})
+        within(screen.getByRole("list", { name: /visible cells/i })).queryByText("Charlie"),
+      ).not.toBeInTheDocument();
+    });
+  });
+});

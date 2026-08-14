@@ -1,34 +1,36 @@
-import { KeyRound } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
-import type { ReactNode } from "react"
-import { createRoleByIDQueryOptions } from "@/api/role.ts"
-import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx"
-import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx"
-import { MetadataSidebar } from "@/components/metadata-sidebar/index.tsx"
-import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx"
-import { Badge } from "@/components/ui/badge.tsx"
+import { useQuery } from "@tanstack/react-query";
+import { KeyRound } from "lucide-react";
+
+import { createRoleByIDQueryOptions } from "@/api/role.ts";
+import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
+import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
+import { MetadataSidebar } from "@/components/metadata-sidebar/index.tsx";
+import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
+  CardTitle,
+} from "@/components/ui/card.tsx";
 import {
   formatPermissionLabel,
   getRoleKindLabel,
   getUniqueRoleResources,
   groupRolePermissionsByResource,
-  isBuiltInRoleId
-} from "@/lib/role.ts"
+  isBuiltInRoleId,
+} from "@/lib/role.ts";
+
+import type { ReactNode } from "react";
 
 interface RoleDetailContentProps {
-  roleId: string
-  titleAction?: ReactNode
+  roleId: string;
+  titleAction?: ReactNode;
 }
 
 function RoleTypeBadge({ roleId }: { roleId: string }) {
-  const kind = getRoleKindLabel(roleId)
+  const kind = getRoleKindLabel(roleId);
 
   return (
     <Badge
@@ -42,21 +44,16 @@ function RoleTypeBadge({ roleId }: { roleId: string }) {
       <KeyRound className="size-3" />
       {kind}
     </Badge>
-  )
+  );
 }
 
-export function RoleDetailContent({
-  roleId,
-  titleAction
-}: RoleDetailContentProps) {
-  const role = useQuery(createRoleByIDQueryOptions(roleId))
+export function RoleDetailContent({ roleId, titleAction }: RoleDetailContentProps) {
+  const role = useQuery(createRoleByIDQueryOptions(roleId));
 
   function renderRoleDetail(roleData: NonNullable<typeof role.data>) {
-    const kindLabel = getRoleKindLabel(roleData.id)
-    const resources = getUniqueRoleResources(roleData.permissions)
-    const permissionsByResource = groupRolePermissionsByResource(
-      roleData.permissions
-    )
+    const kindLabel = getRoleKindLabel(roleData.id);
+    const resources = getUniqueRoleResources(roleData.permissions);
+    const permissionsByResource = groupRolePermissionsByResource(roleData.permissions);
 
     function RoleOverviewCard() {
       return (
@@ -72,8 +69,8 @@ export function RoleDetailContent({
                   {roleData.name}
                 </CardTitle>
                 <CardDescription className="max-w-3xl text-sm leading-6">
-                  Roles define which resources a user can read, write, or delete
-                  across the platform.
+                  Roles define which resources a user can read, write, or delete across the
+                  platform.
                 </CardDescription>
               </div>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -101,7 +98,7 @@ export function RoleDetailContent({
             </div>
           </CardHeader>
         </Card>
-      )
+      );
     }
 
     function RolePermissionsCard() {
@@ -110,8 +107,8 @@ export function RoleDetailContent({
           <CardHeader>
             <CardTitle>Permissions</CardTitle>
             <CardDescription>
-              Grants are grouped by resource to show how this role maps onto the
-              API authorization model.
+              Grants are grouped by resource to show how this role maps onto the API authorization
+              model.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -131,11 +128,7 @@ export function RoleDetailContent({
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {permissionGroup.verbs.map((verb) => (
-                    <Badge
-                      key={verb}
-                      variant="secondary"
-                      className="rounded-full"
-                    >
+                    <Badge key={verb} variant="secondary" className="rounded-full">
                       {formatPermissionLabel(verb)}
                     </Badge>
                   ))}
@@ -144,7 +137,7 @@ export function RoleDetailContent({
             ))}
           </CardContent>
         </Card>
-      )
+      );
     }
 
     function RoleSidebar() {
@@ -162,24 +155,17 @@ export function RoleDetailContent({
               value={
                 <div className="flex max-w-[16rem] flex-wrap justify-end gap-1">
                   {resources.map((resource) => (
-                    <Badge
-                      key={resource}
-                      variant="outline"
-                      className="rounded-full"
-                    >
+                    <Badge key={resource} variant="outline" className="rounded-full">
                       {formatPermissionLabel(resource)}
                     </Badge>
                   ))}
                 </div>
               }
             />
-            <MetadataDetailRow
-              label="Permissions"
-              value={`${roleData.permissions.length}`}
-            />
+            <MetadataDetailRow label="Permissions" value={`${roleData.permissions.length}`} />
           </div>
         </MetadataSidebar>
-      )
+      );
     }
 
     return (
@@ -190,7 +176,7 @@ export function RoleDetailContent({
         </div>
         <RoleSidebar />
       </div>
-    )
+    );
   }
 
   return (
@@ -203,5 +189,5 @@ export function RoleDetailContent({
     >
       {renderRoleDetail}
     </DetailQueryBoundary>
-  )
+  );
 }

@@ -1,60 +1,59 @@
-import { useLayoutEffect, useMemo, useState } from "react"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import { AssetInfoItem } from "@/components/asset-info-item.tsx"
-import { STORY_ASSETS } from "@/components/storybook-fixtures.ts"
+import { useLayoutEffect, useMemo, useState } from "react";
+
+import { AssetInfoItem } from "@/components/asset-info-item.tsx";
+import { STORY_ASSETS } from "@/components/storybook-fixtures.ts";
 import {
   RouterStoryProvider,
   createObjectResponse,
-  createStoryQueryClient
-} from "@/components/storybook-utils.tsx"
+  createStoryQueryClient,
+} from "@/components/storybook-utils.tsx";
+
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type AssetInfoItemStoryArgs = {
-  assetId: string
-  scenario: "loaded" | "loading"
-}
+  assetId: string;
+  scenario: "loaded" | "loading";
+};
 
-function AssetInfoItemStoryShell({
-  assetId,
-  scenario
-}: AssetInfoItemStoryArgs) {
-  const asset = STORY_ASSETS.find((candidate) => candidate.id === assetId)
+function AssetInfoItemStoryShell({ assetId, scenario }: AssetInfoItemStoryArgs) {
+  const asset = STORY_ASSETS.find((candidate) => candidate.id === assetId);
   const queryClient = useMemo(() => {
-    const client = createStoryQueryClient()
+    const client = createStoryQueryClient();
 
     if (scenario === "loaded" && asset) {
-      client.setQueryData(["assets", assetId], asset)
+      client.setQueryData(["assets", assetId], asset);
     }
 
-    return client
-  }, [asset, assetId, scenario])
-  const [ready, setReady] = useState(scenario !== "loading")
+    return client;
+  }, [asset, assetId, scenario]);
+  const [ready, setReady] = useState(scenario !== "loading");
 
   useLayoutEffect(() => {
-    const originalFetch = globalThis.fetch
+    const originalFetch = globalThis.fetch;
 
     globalThis.fetch = async (input, init) => {
-      const requestUrl = input instanceof Request ? input.url : String(input)
+      const requestUrl = input instanceof Request ? input.url : String(input);
 
       if (requestUrl.endsWith(`/api/assets/${assetId}`)) {
         if (scenario === "loading") {
-          return await new Promise<Response>(() => {})
+          return await new Promise<Response>(() => {});
         }
 
-        return createObjectResponse(asset)
+        return createObjectResponse(asset);
       }
 
-      return originalFetch(input, init)
-    }
+      return originalFetch(input, init);
+    };
 
-    setReady(true)
+    setReady(true);
 
     return () => {
-      globalThis.fetch = originalFetch
-    }
-  }, [asset, assetId, scenario])
+      globalThis.fetch = originalFetch;
+    };
+  }, [asset, assetId, scenario]);
 
   if (!ready) {
-    return null
+    return null;
   }
 
   return (
@@ -63,36 +62,36 @@ function AssetInfoItemStoryShell({
         <AssetInfoItem assetId={assetId} />
       </div>
     </RouterStoryProvider>
-  )
+  );
 }
 
 const meta = {
   title: "Resources/Assets/InfoItem",
   component: AssetInfoItemStoryShell,
   parameters: {
-    layout: "centered"
+    layout: "centered",
   },
   args: {
     assetId: STORY_ASSETS[0].id,
-    scenario: "loaded"
+    scenario: "loaded",
   },
   argTypes: {
     scenario: {
       control: "radio",
-      options: ["loaded", "loading"]
-    }
+      options: ["loaded", "loading"],
+    },
   },
-  render: (args) => <AssetInfoItemStoryShell {...args} />
-} satisfies Meta<typeof AssetInfoItemStoryShell>
+  render: (args) => <AssetInfoItemStoryShell {...args} />,
+} satisfies Meta<typeof AssetInfoItemStoryShell>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const Loaded: Story = {}
+export const Loaded: Story = {};
 
 export const Loading: Story = {
   args: {
-    scenario: "loading"
-  }
-}
+    scenario: "loading",
+  },
+};

@@ -1,72 +1,58 @@
-import { useMemo } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
-import { FindingStatus } from "@exposurenexus/types/model/finding"
-import {
-  Activity,
-  Bug,
-  CircleCheckBig,
-  Radar,
-  Server,
-  ShieldAlert,
-  Waypoints
-} from "lucide-react"
-import type { ChartConfig } from "@/components/ui/chart.tsx"
-import { createListAssetsQueryOptions } from "@/api/asset.ts"
-import { createFindingStatsQueryOptions } from "@/api/finding.ts"
-import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx"
-import { MetricCard } from "@/components/metric-card.tsx"
-import { FindingSeverityChart } from "@/components/finding-severity-chart.tsx"
-import { FindingStatusChart } from "@/components/finding-status-chart.tsx"
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { Activity, Bug, CircleCheckBig, Radar, Server, ShieldAlert, Waypoints } from "lucide-react";
+import { useMemo } from "react";
+
+import { createListAssetsQueryOptions } from "@/api/asset.ts";
+import { createFindingStatsQueryOptions } from "@/api/finding.ts";
+import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx";
+import { FindingSeverityChart } from "@/components/finding-severity-chart.tsx";
+import { FindingStatusChart } from "@/components/finding-status-chart.tsx";
+import { MetricCard } from "@/components/metric-card.tsx";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
-} from "@/components/ui/card.tsx"
-import { Skeleton } from "@/components/ui/skeleton.tsx"
-import { usePageMeta } from "@/context/page.tsx"
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { usePageMeta } from "@/context/page.tsx";
+
+import type { ChartConfig } from "@/components/ui/chart.tsx";
 
 const DASHBOARD_CHART_COLORS = [
   "var(--chart-1)",
   "var(--chart-2)",
   "var(--chart-3)",
   "var(--chart-4)",
-  "var(--chart-5)"
-]
+  "var(--chart-5)",
+];
 
 export function DashboardPage() {
   usePageMeta({
     title: "Dashboard",
-    description:
-      "Monitor platform activity, finding trends, and current triage workload."
-  })
+    description: "Monitor platform activity, finding trends, and current triage workload.",
+  });
 
-  const findingStats = useQuery(createFindingStatsQueryOptions())
-  const assets = useQuery(createListAssetsQueryOptions())
+  const findingStats = useQuery(createFindingStatsQueryOptions());
+  const assets = useQuery(createListAssetsQueryOptions());
 
   const overview = useMemo(() => {
-    const stats = findingStats.data
-    const assetList = assets.data ?? []
-    const totalFindings = stats?.total ?? 0
-    const totalAssets = assetList.length
-    const affectedAssets = Object.values(stats?.assets ?? {}).filter(
-      (value) => value > 0
-    ).length
-    const activeFindings = stats?.status[FindingStatus.Active] ?? 0
-    const confirmedFindings = stats?.status[FindingStatus.Confirmed] ?? 0
-    const criticalHighFindings =
-      (stats?.severity.critical ?? 0) + (stats?.severity.high ?? 0)
-    const mitigatedFindings = stats?.status[FindingStatus.Mitigated] ?? 0
+    const stats = findingStats.data;
+    const assetList = assets.data ?? [];
+    const totalFindings = stats?.total ?? 0;
+    const totalAssets = assetList.length;
+    const affectedAssets = Object.values(stats?.assets ?? {}).filter((value) => value > 0).length;
+    const activeFindings = stats?.status[FindingStatus.Active] ?? 0;
+    const confirmedFindings = stats?.status[FindingStatus.Confirmed] ?? 0;
+    const criticalHighFindings = (stats?.severity.critical ?? 0) + (stats?.severity.high ?? 0);
+    const mitigatedFindings = stats?.status[FindingStatus.Mitigated] ?? 0;
     const mitigatedRate =
-      totalFindings > 0
-        ? Math.round((mitigatedFindings / totalFindings) * 100)
-        : 0
+      totalFindings > 0 ? Math.round((mitigatedFindings / totalFindings) * 100) : 0;
 
-    const assetNamesById = new Map(
-      assetList.map((asset) => [asset.id, asset.name])
-    )
+    const assetNamesById = new Map(assetList.map((asset) => [asset.id, asset.name]));
 
     const topAssets = Object.entries(stats?.assets ?? {})
       .filter(([, count]) => count > 0)
@@ -75,8 +61,8 @@ export function DashboardPage() {
       .map(([assetId, count], index) => ({
         key: `asset-${index + 1}`,
         name: assetNamesById.get(assetId) ?? "Unknown asset",
-        value: count
-      }))
+        value: count,
+      }));
 
     const findingSources = Object.entries(stats?.source ?? {})
       .filter(([, count]) => count > 0)
@@ -85,8 +71,8 @@ export function DashboardPage() {
       .map(([source, count], index) => ({
         key: `source-${index + 1}`,
         name: formatSource(source),
-        value: count
-      }))
+        value: count,
+      }));
 
     const priorityItems = [
       {
@@ -94,13 +80,11 @@ export function DashboardPage() {
         description: "Critical and high severity findings",
         value: criticalHighFindings,
         tone:
-          criticalHighFindings > 0
-            ? "text-destructive"
-            : "text-emerald-600 dark:text-emerald-400",
+          criticalHighFindings > 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400",
         href: buildFilterHref("/findings", {
           severity: ["critical", "high"],
-          status: ["active"]
-        })
+          status: ["active"],
+        }),
       },
       {
         label: "Triage queue",
@@ -108,8 +92,8 @@ export function DashboardPage() {
         value: activeFindings,
         tone: "text-foreground",
         href: buildFilterHref("/findings/triage", {
-          status: ["active"]
-        })
+          status: ["active"],
+        }),
       },
       {
         label: "Needs mitigation",
@@ -117,8 +101,8 @@ export function DashboardPage() {
         value: confirmedFindings,
         tone: "text-foreground",
         href: buildFilterHref("/findings", {
-          status: ["confirmed"]
-        })
+          status: ["confirmed"],
+        }),
       },
       {
         label: "Blast radius",
@@ -126,10 +110,10 @@ export function DashboardPage() {
         value: affectedAssets,
         tone: "text-foreground",
         href: buildFilterHref("/findings", {
-          status: ["active", "confirmed"]
-        })
-      }
-    ]
+          status: ["active", "confirmed"],
+        }),
+      },
+    ];
 
     return {
       totalFindings,
@@ -142,12 +126,12 @@ export function DashboardPage() {
       mitigatedRate,
       topAssets,
       findingSources,
-      priorityItems
-    }
-  }, [assets.data, findingStats.data])
+      priorityItems,
+    };
+  }, [assets.data, findingStats.data]);
 
-  const chartsLoading = findingStats.isPending
-  const cardsLoading = findingStats.isPending || assets.isPending
+  const chartsLoading = findingStats.isPending;
+  const cardsLoading = findingStats.isPending || assets.isPending;
 
   return (
     <div className="flex flex-col gap-6">
@@ -156,9 +140,7 @@ export function DashboardPage() {
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
             <div className="space-y-2">
               <div className="space-y-1">
-                <CardTitle className="text-2xl font-semibold tracking-tight">
-                  Overview
-                </CardTitle>
+                <CardTitle className="text-2xl font-semibold tracking-tight">Overview</CardTitle>
               </div>
             </div>
           </div>
@@ -245,9 +227,7 @@ export function DashboardPage() {
           <CardContent className="grid gap-4 md:grid-cols-3">
             <MetricCard
               title="Healthy assets"
-              value={formatNumber(
-                Math.max(overview.totalAssets - overview.affectedAssets, 0)
-              )}
+              value={formatNumber(Math.max(overview.totalAssets - overview.affectedAssets, 0))}
               description="Assets without any linked findings"
               icon={CircleCheckBig}
               loading={cardsLoading}
@@ -305,7 +285,7 @@ export function DashboardPage() {
         />
       </div>
     </div>
-  )
+  );
 }
 
 function OverviewChartCard({
@@ -313,40 +293,40 @@ function OverviewChartCard({
   description,
   data,
   loading,
-  emptyMessage
+  emptyMessage,
 }: {
-  title: string
-  description: string
-  data: Array<{ key: string; name: string; value: number }>
-  loading?: boolean
-  emptyMessage: string
+  title: string;
+  description: string;
+  data: Array<{ key: string; name: string; value: number }>;
+  loading?: boolean;
+  emptyMessage: string;
 }) {
   const chartConfig = useMemo(() => {
     return data.reduce<ChartConfig>(
       (config, item, index) => {
         config[item.key] = {
           label: item.name,
-          color: DASHBOARD_CHART_COLORS[index % DASHBOARD_CHART_COLORS.length]
-        }
-        return config
+          color: DASHBOARD_CHART_COLORS[index % DASHBOARD_CHART_COLORS.length],
+        };
+        return config;
       },
       {
         value: {
-          label: "Findings"
-        }
-      }
-    )
-  }, [data])
+          label: "Findings",
+        },
+      },
+    );
+  }, [data]);
 
   const chartData = useMemo(
     () =>
       data.map((item, index) => ({
         label: item.key,
         value: item.value,
-        fill: DASHBOARD_CHART_COLORS[index % DASHBOARD_CHART_COLORS.length]
+        fill: DASHBOARD_CHART_COLORS[index % DASHBOARD_CHART_COLORS.length],
       })),
-    [data]
-  )
+    [data],
+  );
 
   return (
     <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm">
@@ -362,15 +342,11 @@ function OverviewChartCard({
             {emptyMessage}
           </div>
         ) : (
-          <SimpleBarChart
-            chartData={chartData}
-            chartConfig={chartConfig}
-            height="24rem"
-          />
+          <SimpleBarChart chartData={chartData} chartConfig={chartConfig} height="24rem" />
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function formatSource(source: string) {
@@ -378,25 +354,22 @@ function formatSource(source: string) {
     .split(/[_-]/g)
     .filter(Boolean)
     .map((part) => part[0].toUpperCase() + part.slice(1))
-    .join(" ")
+    .join(" ");
 }
 
 function formatNumber(value: number) {
-  return value.toLocaleString()
+  return value.toLocaleString();
 }
 
-function buildFilterHref(
-  pathname: string,
-  filters: Record<string, Array<string>>
-) {
-  const params = new URLSearchParams()
+function buildFilterHref(pathname: string, filters: Record<string, Array<string>>) {
+  const params = new URLSearchParams();
 
   for (const [key, values] of Object.entries(filters)) {
     if (values.length > 0) {
-      params.set(key, values.join(","))
+      params.set(key, values.join(","));
     }
   }
 
-  const search = params.toString()
-  return search ? `${pathname}?${search}` : pathname
+  const search = params.toString();
+  return search ? `${pathname}?${search}` : pathname;
 }

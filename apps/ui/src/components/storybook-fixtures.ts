@@ -1,33 +1,32 @@
-import { AssetType } from "@exposurenexus/types/model/asset"
+import { AssetType } from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
-  AssetCustomFieldValueSource
-} from "@exposurenexus/types/model/asset-custom-field"
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
-import type { AuthSessionDataReply } from "@exposurenexus/types/api"
-import type {
-  Asset,
-  AssetWithCustomFields
-} from "@exposurenexus/types/model/asset"
-import type { UserProfile } from "@exposurenexus/types/model/user"
-import type { Vulnerability } from "@exposurenexus/types/model/vulnerability"
-import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts"
-import { ROLE_FIXTURES } from "@/components/role-fixtures.ts"
+  AssetCustomFieldValueSource,
+} from "@exposurenexus/types/model/asset-custom-field";
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+
+import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
+import { ROLE_FIXTURES } from "@/components/role-fixtures.ts";
+
+import type { AuthSessionDataReply } from "@exposurenexus/types/api";
+import type { Asset, AssetWithCustomFields } from "@exposurenexus/types/model/asset";
+import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { Vulnerability } from "@exposurenexus/types/model/vulnerability";
 
 const STORY_ENVIRONMENT_OPTIONS = [
   {
     id: "6b567696-6808-45be-ab67-a8683d98a138",
     fieldId: ASSET_CUSTOM_FIELD_FIXTURES[2].id,
     value: "production",
-    label: "Production"
+    label: "Production",
   },
   {
     id: "1dec1f7b-0650-4e64-bdfa-1d4228a99e87",
     fieldId: ASSET_CUSTOM_FIELD_FIXTURES[2].id,
     value: "staging",
-    label: "Staging"
-  }
-]
+    label: "Staging",
+  },
+];
 
 export const STORY_USERS: Array<UserProfile> = [
   {
@@ -36,7 +35,7 @@ export const STORY_USERS: Array<UserProfile> = [
     displayName: "Robin Owner",
     email: "robin@example.com",
     enabled: true,
-    roleIds: [ROLE_FIXTURES[2].id]
+    roleIds: [ROLE_FIXTURES[2].id],
   },
   {
     id: "bb9f2b64-2f45-4bb8-9f16-659d633cb398",
@@ -44,7 +43,7 @@ export const STORY_USERS: Array<UserProfile> = [
     displayName: "Morgan Analyst",
     email: "morgan@example.com",
     enabled: true,
-    roleIds: [ROLE_FIXTURES[1].id, ROLE_FIXTURES[3].id]
+    roleIds: [ROLE_FIXTURES[1].id, ROLE_FIXTURES[3].id],
   },
   {
     id: "7b413aba-5164-456b-8ffd-88fb6b99bbed",
@@ -52,9 +51,9 @@ export const STORY_USERS: Array<UserProfile> = [
     displayName: "Casey Disabled",
     email: "casey@example.com",
     enabled: false,
-    roleIds: []
-  }
-]
+    roleIds: [],
+  },
+];
 
 export const STORY_AUTH_SESSION: AuthSessionDataReply = {
   user: STORY_USERS[0],
@@ -64,30 +63,30 @@ export const STORY_AUTH_SESSION: AuthSessionDataReply = {
     sourceIp: "203.0.113.10",
     userAgent: "Storybook",
     createdAt: new Date("2026-01-02T03:04:05.000Z"),
-    expiresAt: new Date("2026-01-03T03:04:05.000Z")
-  }
-}
+    expiresAt: new Date("2026-01-03T03:04:05.000Z"),
+  },
+};
 
 export const STORY_ASSETS: Array<Asset> = [
   {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
     name: "web-01",
     type: AssetType.Host,
-    ownerId: STORY_USERS[0].id
+    ownerId: STORY_USERS[0].id,
   },
   {
     id: "0bb9b410-7763-4e7a-9942-b752367fd63d",
     name: "container-01",
     type: AssetType.Container,
-    ownerId: null
+    ownerId: null,
   },
   {
     id: "4eaf1ce4-51f4-4a63-80b4-7b550e91050d",
     name: "api-worker",
     type: AssetType.Software,
-    ownerId: STORY_USERS[1].id
-  }
-]
+    ownerId: STORY_USERS[1].id,
+  },
+];
 
 export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
   {
@@ -99,7 +98,7 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
         name: "Category",
         source: AssetCustomFieldValueSource.Asset,
         type: AssetCustomFieldType.Text,
-        value: "Internet-facing"
+        value: "Internet-facing",
       },
       {
         fieldId: ASSET_CUSTOM_FIELD_FIXTURES[1].id,
@@ -107,7 +106,7 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
         name: "Priority",
         source: AssetCustomFieldValueSource.Default,
         type: AssetCustomFieldType.Number,
-        value: 3
+        value: 3,
       },
       {
         fieldId: ASSET_CUSTOM_FIELD_FIXTURES[2].id,
@@ -116,9 +115,9 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
         options: STORY_ENVIRONMENT_OPTIONS,
         source: AssetCustomFieldValueSource.Asset,
         type: AssetCustomFieldType.Select,
-        value: "production"
-      }
-    ]
+        value: "production",
+      },
+    ],
   },
   {
     ...STORY_ASSETS[1],
@@ -129,7 +128,7 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
         name: "Category",
         source: AssetCustomFieldValueSource.Asset,
         type: AssetCustomFieldType.Text,
-        value: "Runtime"
+        value: "Runtime",
       },
       {
         fieldId: ASSET_CUSTOM_FIELD_FIXTURES[1].id,
@@ -137,7 +136,7 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
         name: "Priority",
         source: AssetCustomFieldValueSource.Asset,
         type: AssetCustomFieldType.Number,
-        value: 2
+        value: 2,
       },
       {
         fieldId: ASSET_CUSTOM_FIELD_FIXTURES[2].id,
@@ -146,15 +145,15 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
         options: STORY_ENVIRONMENT_OPTIONS,
         source: AssetCustomFieldValueSource.Asset,
         type: AssetCustomFieldType.Select,
-        value: "staging"
-      }
-    ]
+        value: "staging",
+      },
+    ],
   },
   {
     ...STORY_ASSETS[2],
-    customFields: []
-  }
-]
+    customFields: [],
+  },
+];
 
 export const STORY_VULNERABILITIES: Array<Vulnerability> = [
   {
@@ -167,7 +166,7 @@ export const STORY_VULNERABILITIES: Array<Vulnerability> = [
     createdBy: STORY_USERS[0].id,
     updatedBy: STORY_USERS[1].id,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    updatedAt: new Date("2026-01-02T00:00:00.000Z")
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
   },
   {
     id: "4fb566c6-e642-48d8-b70d-418efb074f8d",
@@ -179,7 +178,7 @@ export const STORY_VULNERABILITIES: Array<Vulnerability> = [
     createdBy: STORY_USERS[0].id,
     updatedBy: STORY_USERS[1].id,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    updatedAt: new Date("2026-01-02T00:00:00.000Z")
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
   },
   {
     id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
@@ -191,6 +190,6 @@ export const STORY_VULNERABILITIES: Array<Vulnerability> = [
     createdBy: STORY_USERS[1].id,
     updatedBy: STORY_USERS[1].id,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    updatedAt: new Date("2026-01-02T00:00:00.000Z")
-  }
-]
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+  },
+];

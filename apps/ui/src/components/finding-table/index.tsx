@@ -1,45 +1,41 @@
-import { Check, Layers3, Plus } from "lucide-react"
-import { useNavigate } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
-import { useMemo } from "react"
-import type { Finding } from "@exposurenexus/types/model/finding"
-import type {
-  DataTableFilterState,
-  GroupingOption
-} from "@/components/data-table/types.ts"
-import { DataTable } from "@/components/data-table/data-table.tsx"
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { Check, Layers3, Plus } from "lucide-react";
+import { useMemo } from "react";
+
+import { createListAssetsQueryOptions } from "@/api/asset.ts";
+import { createListFindingsQueryOptions } from "@/api/finding.ts";
+import { createListUsersQueryOptions } from "@/api/user.ts";
+import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
+import { DataTable } from "@/components/data-table/data-table.tsx";
 import {
   FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE,
   createFindingColumns,
-  formatFindingAssignee
-} from "@/components/finding-table/columns.tsx"
-import {
-  SEVERITY_ORDER,
-  STATUS_ORDER
-} from "@/components/finding-table/constants.ts"
-import { FindingContextMenu } from "@/components/finding-table/context-menu.tsx"
-import { Button } from "@/components/ui/button.tsx"
-import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
+  formatFindingAssignee,
+} from "@/components/finding-table/columns.tsx";
+import { SEVERITY_ORDER, STATUS_ORDER } from "@/components/finding-table/constants.ts";
+import { FindingContextMenu } from "@/components/finding-table/context-menu.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu.tsx"
-import { createListAssetsQueryOptions } from "@/api/asset.ts"
-import { createListFindingsQueryOptions } from "@/api/finding.ts"
-import { createListUsersQueryOptions } from "@/api/user.ts"
-import { createUserProfileById } from "@/components/user-label.tsx"
-import { formatFindingStatus, formatSeverity } from "@/lib/format.ts"
-import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts"
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu.tsx";
+import { createUserProfileById } from "@/components/user-label.tsx";
+import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
+import { formatFindingStatus, formatSeverity } from "@/lib/format.ts";
+
+import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
+import type { Finding } from "@exposurenexus/types/model/finding";
 
 interface FindingTableProps {
-  initialGrouping?: Array<string>
-  filterState?: DataTableFilterState
-  onFilterStateChange?: (state: DataTableFilterState) => void
-  selectedFindingId?: string
-  onSelectFinding?: (finding: Finding) => void
+  initialGrouping?: Array<string>;
+  filterState?: DataTableFilterState;
+  onFilterStateChange?: (state: DataTableFilterState) => void;
+  selectedFindingId?: string;
+  onSelectFinding?: (finding: Finding) => void;
 }
 
 export function FindingTable({
@@ -47,61 +43,50 @@ export function FindingTable({
   filterState,
   onFilterStateChange,
   selectedFindingId,
-  onSelectFinding
+  onSelectFinding,
 }: FindingTableProps) {
-  const navigate = useNavigate()
-  const findingLifecycle = useFindingLifecycle()
-  const findingsQuery = useQuery(createListFindingsQueryOptions())
-  const assetsQuery = useQuery(createListAssetsQueryOptions())
-  const usersQuery = useQuery(createListUsersQueryOptions())
+  const navigate = useNavigate();
+  const findingLifecycle = useFindingLifecycle();
+  const findingsQuery = useQuery(createListFindingsQueryOptions());
+  const assetsQuery = useQuery(createListAssetsQueryOptions());
+  const usersQuery = useQuery(createListUsersQueryOptions());
 
   const assetsById = useMemo(
     () => new Map((assetsQuery.data ?? []).map((asset) => [asset.id, asset])),
-    [assetsQuery.data]
-  )
+    [assetsQuery.data],
+  );
   const assetNamesById = useMemo(
-    () =>
-      new Map((assetsQuery.data ?? []).map((asset) => [asset.id, asset.name])),
-    [assetsQuery.data]
-  )
-  const userProfileById = useMemo(
-    () => createUserProfileById(usersQuery.data),
-    [usersQuery.data]
-  )
+    () => new Map((assetsQuery.data ?? []).map((asset) => [asset.id, asset.name])),
+    [assetsQuery.data],
+  );
+  const userProfileById = useMemo(() => createUserProfileById(usersQuery.data), [usersQuery.data]);
 
   const columns = useMemo(
-    () =>
-      createFindingColumns(
-        assetNamesById,
-        assetsById,
-        userProfileById,
-        usersQuery.isPending
-      ),
-    [assetNamesById, assetsById, userProfileById, usersQuery.isPending]
-  )
+    () => createFindingColumns(assetNamesById, assetsById, userProfileById, usersQuery.isPending),
+    [assetNamesById, assetsById, userProfileById, usersQuery.isPending],
+  );
 
   const groupingOptions = useMemo<Array<GroupingOption>>(
     () => [
       {
         id: "severity",
         label: "Severity",
-        formatValue: (value) => formatSeverity(String(value) as never)
+        formatValue: (value) => formatSeverity(String(value) as never),
       },
       {
         id: "status",
         label: "Status",
-        formatValue: (value) => formatFindingStatus(String(value) as never)
+        formatValue: (value) => formatFindingStatus(String(value) as never),
       },
       {
         id: "assetId",
         label: "Asset",
-        formatValue: (value) =>
-          assetNamesById.get(String(value)) ?? "Unknown asset"
+        formatValue: (value) => assetNamesById.get(String(value)) ?? "Unknown asset",
       },
       {
         id: "responsibleOwner",
         label: "Asset Owner",
-        formatValue: (value) => String(value)
+        formatValue: (value) => String(value),
       },
       {
         id: "assignee",
@@ -109,55 +94,55 @@ export function FindingTable({
         formatValue: (value) =>
           String(value) === FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE
             ? "Unassigned"
-            : formatFindingAssignee(String(value), userProfileById)
+            : formatFindingAssignee(String(value), userProfileById),
       },
       {
         id: "source",
         label: "Source",
-        formatValue: (value) => String(value || "Manual")
-      }
+        formatValue: (value) => String(value || "Manual"),
+      },
     ],
-    [assetNamesById, userProfileById]
-  )
+    [assetNamesById, userProfileById],
+  );
 
   const handleOpenFinding = async (finding: Finding) => {
     await navigate({
       to: "/findings/$id",
       params: {
-        id: finding.id
-      }
-    })
-  }
+        id: finding.id,
+      },
+    });
+  };
 
   const handleDeleteFindings = async (findings: Array<Finding>) => {
     const confirmed = await ConfirmDialog.call({
       title: "Delete Findings",
       description: "This action cannot be undone",
       message: `Are you sure you want to delete ${findings.length} findings(s)?`,
-      confirmVariant: "destructive"
-    })
+      confirmVariant: "destructive",
+    });
 
     if (confirmed) {
-      await findingLifecycle.deleteFindings(findings)
+      await findingLifecycle.deleteFindings(findings);
     }
-  }
+  };
 
   const handleCreateFinding = async () => {
     await navigate({
-      to: "/findings/new"
-    })
-  }
+      to: "/findings/new",
+    });
+  };
 
   const handleBulkUpdate = async <TKey extends "severity" | "status">(
     findings: Array<Finding>,
     key: TKey,
-    value: Finding[TKey]
+    value: Finding[TKey],
   ) => {
-    await findingLifecycle.bulkUpdateFindingField(findings, key, value)
-  }
+    await findingLifecycle.bulkUpdateFindingField(findings, key, value);
+  };
 
   function ToolbarElements(selectedRows: Array<Finding>) {
-    const hasSelection = selectedRows.length > 0
+    const hasSelection = selectedRows.length > 0;
 
     return (
       <>
@@ -225,9 +210,7 @@ export function FindingTable({
             {SEVERITY_ORDER.map((severity) => (
               <DropdownMenuItem
                 key={severity}
-                onClick={() =>
-                  handleBulkUpdate(selectedRows, "severity", severity)
-                }
+                onClick={() => handleBulkUpdate(selectedRows, "severity", severity)}
               >
                 {formatSeverity(severity)}
               </DropdownMenuItem>
@@ -235,7 +218,7 @@ export function FindingTable({
           </DropdownMenuContent>
         </DropdownMenu>
       </>
-    )
+    );
   }
 
   return (
@@ -248,7 +231,7 @@ export function FindingTable({
       onFilterStateChange={onFilterStateChange}
       initialSorting={[
         { id: "severity", desc: true },
-        { id: "lastSeen", desc: true }
+        { id: "lastSeen", desc: true },
       ]}
       onRowClick={onSelectFinding}
       onRowDoubleClick={handleOpenFinding}
@@ -265,5 +248,5 @@ export function FindingTable({
         </FindingContextMenu>
       )}
     />
-  )
+  );
 }

@@ -1,36 +1,37 @@
-import { afterEach, describe, expect, it } from "vitest"
-import { cleanup, render, screen } from "@testing-library/react"
-import { composeStories } from "@storybook/react-vite"
-import * as stories from "@/components/timestamp.stories"
+import { composeStories } from "@storybook/react-vite";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
-const { DateValue, InvalidDate, StringValue } = composeStories(stories)
+import * as stories from "@/components/timestamp.stories";
+
+const { DateValue, InvalidDate, StringValue } = composeStories(stories);
 
 afterEach(() => {
-  cleanup()
-})
+  cleanup();
+});
 
 describe("Timestamp stories", () => {
   it("renders Date values as semantic timestamps", () => {
-    render(<DateValue />)
+    render(<DateValue />);
 
-    const timestamp = screen.getByText(/2026/)
+    const timestamp = screen.getByText(/2026/);
 
-    expect(timestamp.tagName.toLowerCase()).toBe("time")
-    expect(timestamp).toHaveAttribute("datetime", "2026-01-02T03:04:05.000Z")
-  })
+    expect(timestamp.tagName.toLowerCase()).toBe("time");
+    expect(timestamp).toHaveAttribute("datetime", "2026-01-02T03:04:05.000Z");
+  });
 
   it("renders string values as semantic timestamps", () => {
-    render(<StringValue />)
+    render(<StringValue />);
 
-    const timestamp = screen.getByText(/2026/)
+    const timestamp = screen.getByText(/2026/);
 
-    expect(timestamp.tagName.toLowerCase()).toBe("time")
-    expect(timestamp).toHaveAttribute("datetime", "2026-01-02T03:04:05.000Z")
-  })
+    expect(timestamp.tagName.toLowerCase()).toBe("time");
+    expect(timestamp).toHaveAttribute("datetime", "2026-01-02T03:04:05.000Z");
+  });
 
   it("renders invalid values as a fallback label", () => {
-    render(<InvalidDate />)
+    render(<InvalidDate />);
 
-    expect(screen.getByText("Invalid date")).toBeVisible()
-  })
-})
+    expect(screen.getByText("Invalid date")).toBeVisible();
+  });
+});

@@ -1,24 +1,23 @@
-import { StrictMode, useEffect } from "react"
-import ReactDOM from "react-dom/client"
-import { RouterProvider, createRouter } from "@tanstack/react-router"
+import { RouterProvider, createRouter } from "@tanstack/react-router";
+import { StrictMode, useEffect } from "react";
+import ReactDOM from "react-dom/client";
 
-import * as TanStackQueryProvider from "@/integrations/tanstack-query/root-provider.tsx"
+import { AuthProvider, useAuth } from "@/context/auth.tsx";
+import { PageProvider, usePage } from "@/context/page.tsx";
 
-// Import the generated route tree
-import { routeTree } from "@/routeTree.gen.ts"
-
-import "@/styles.css"
-import { AuthProvider, useAuth } from "@/context/auth.tsx"
-import { PageProvider, usePage } from "@/context/page.tsx"
-import { createRouterLoginRedirects } from "@/lib/login-redirect.ts"
+import "@/styles.css";
+import * as TanStackQueryProvider from "@/integrations/tanstack-query/root-provider.tsx";
 import {
   createUserSessionExpiredRedirectHandler,
-  subscribeUserSessionExpired
-} from "@/lib/auth-session-expiry.ts"
+  subscribeUserSessionExpired,
+} from "@/lib/auth-session-expiry.ts";
+import { createRouterLoginRedirects } from "@/lib/login-redirect.ts";
+// Import the generated route tree
+import { routeTree } from "@/routeTree.gen.ts";
 
 // Create a new router instance
 
-const TanStackQueryProviderContext = TanStackQueryProvider.getContext()
+const TanStackQueryProviderContext = TanStackQueryProvider.getContext();
 const router = createRouter({
   routeTree,
   context: {
@@ -26,38 +25,38 @@ const router = createRouter({
     // auth will be passed down from App component
     auth: undefined!,
     page: undefined!,
-    redirects: undefined!
+    redirects: undefined!,
   },
   defaultPreload: "intent",
   scrollRestoration: true,
   defaultStructuralSharing: true,
-  defaultPreloadStaleTime: 0
-})
-const redirects = createRouterLoginRedirects(router)
+  defaultPreloadStaleTime: 0,
+});
+const redirects = createRouterLoginRedirects(router);
 
 // Register the router instance for type safety
 declare module "@tanstack/react-router" {
   interface Register {
-    router: typeof router
+    router: typeof router;
   }
 }
 
 // Render the app
-const rootElement = document.getElementById("app")
+const rootElement = document.getElementById("app");
 if (rootElement && !rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement)
+  const root = ReactDOM.createRoot(rootElement);
   root.render(
     <StrictMode>
       <TanStackQueryProvider.Provider {...TanStackQueryProviderContext}>
         <App />
       </TanStackQueryProvider.Provider>
-    </StrictMode>
-  )
+    </StrictMode>,
+  );
 }
 
 function InnerApp() {
-  const auth = useAuth()
-  const page = usePage()
+  const auth = useAuth();
+  const page = usePage();
 
   useEffect(
     () =>
@@ -70,16 +69,16 @@ function InnerApp() {
               to: "/login",
               replace: true,
               search: {
-                redirect
-              }
+                redirect,
+              },
             }),
-          safeLoginRedirect: redirects.safeLoginRedirect
-        })
+          safeLoginRedirect: redirects.safeLoginRedirect,
+        }),
       ),
-    [auth]
-  )
+    [auth],
+  );
 
-  return <RouterProvider router={router} context={{ auth, page, redirects }} />
+  return <RouterProvider router={router} context={{ auth, page, redirects }} />;
 }
 
 function App() {
@@ -89,5 +88,5 @@ function App() {
         <InnerApp />
       </PageProvider>
     </AuthProvider>
-  )
+  );
 }

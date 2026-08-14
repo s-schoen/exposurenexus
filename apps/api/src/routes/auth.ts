@@ -1,36 +1,35 @@
-import { Hono, type Context } from "hono"
-import { deleteCookie, getCookie, setCookie } from "hono/cookie"
-import { zValidator } from "@hono/zod-validator"
-import { getConnInfo } from "@hono/node-server/conninfo"
-import { z } from "zod/v4"
-import type {
-  AuthSessionDataReply,
-  AuthSessionReply
-} from "@exposurenexus/types/api"
-import type { UserSession } from "@exposurenexus/types/model/user"
-import { unauthorized } from "../lib/api-error.js"
-import { replyObject } from "../lib/reply.js"
-import { resolveRequestSourceIp } from "../lib/source-ip.js"
+import { getConnInfo } from "@hono/node-server/conninfo";
+import { zValidator } from "@hono/zod-validator";
+import { Hono, type Context } from "hono";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { z } from "zod/v4";
+
+import { unauthorized } from "../lib/api-error.js";
+import { replyObject } from "../lib/reply.js";
+import { resolveRequestSourceIp } from "../lib/source-ip.js";
 import {
   AUTH_SESSION_COOKIE,
   DEFAULT_AUTH_COOKIE_POLICY,
   cookieOptions,
-  type AuthCookiePolicy
-} from "../middleware/auth.js"
-import type { CsrfProtection } from "../middleware/csrf.js"
-import type { ContextVariables } from "../lib/hono-schema.js"
-import type { AuthService } from "../service/auth.js"
+  type AuthCookiePolicy,
+} from "../middleware/auth.js";
+
+import type { ContextVariables } from "../lib/hono-schema.js";
+import type { CsrfProtection } from "../middleware/csrf.js";
+import type { AuthService } from "../service/auth.js";
+import type { AuthSessionDataReply, AuthSessionReply } from "@exposurenexus/types/api";
+import type { UserSession } from "@exposurenexus/types/model/user";
 
 const loginSchema = z.strictObject({
   username: z.string().trim().min(1),
-  password: z.string().min(1)
-})
-type LoginBody = z.infer<typeof loginSchema>
+  password: z.string().min(1),
+});
+type LoginBody = z.infer<typeof loginSchema>;
 
 interface AuthRouteOptions {
-  csrf?: Pick<CsrfProtection, "issueToken" | "clearToken">
-  cookiePolicy?: AuthCookiePolicy
-  trustedProxies?: readonly string[]
+  csrf?: Pick<CsrfProtection, "issueToken" | "clearToken">;
+  cookiePolicy?: AuthCookiePolicy;
+  trustedProxies?: readonly string[];
 }
 
 function sessionReply(session: UserSession): AuthSessionReply {
@@ -40,117 +39,111 @@ function sessionReply(session: UserSession): AuthSessionReply {
     sourceIp: session.sourceIp,
     userAgent: session.userAgent,
     createdAt: session.createdAt,
-    expiresAt: session.expiresAt
-  }
+    expiresAt: session.expiresAt,
+  };
 }
 
 function getRequestSourceIp(
   c: Context<{ Variables: ContextVariables }>,
-  trustedProxies: readonly string[]
+  trustedProxies: readonly string[],
 ): string {
-  let remoteAddress: string | null
+  let remoteAddress: string | null;
   try {
-    remoteAddress = getConnInfo(c).remote.address ?? null
+    remoteAddress = getConnInfo(c).remote.address ?? null;
   } catch {
-    remoteAddress = null
+    remoteAddress = null;
   }
 
   return resolveRequestSourceIp({
     remoteAddress,
     forwardedFor: c.req.header("x-forwarded-for"),
     realIp: c.req.header("x-real-ip"),
-    trustedProxies
-  })
+    trustedProxies,
+  });
 }
 
 function requestCorrelation(c: Context<{ Variables: ContextVariables }>): {
-  correlationId?: string
+  correlationId?: string;
 } {
-  const requestId = c.get("requestId") as string | undefined
+  const requestId = c.get("requestId") as string | undefined;
 
-  return requestId !== undefined ? { correlationId: requestId } : {}
+  return requestId !== undefined ? { correlationId: requestId } : {};
 }
 
-export function createAuthRoute(
-  authService: AuthService,
-  options: AuthRouteOptions = {}
-) {
-  const auth = new Hono<{ Variables: ContextVariables }>()
-  const cookiePolicy = options.cookiePolicy ?? DEFAULT_AUTH_COOKIE_POLICY
-  const trustedProxies = options.trustedProxies ?? []
+export function createAuthRoute(authService: AuthService, options: AuthRouteOptions = {}) {
+  const auth = new Hono<{ Variables: ContextVariables }>();
+  const cookiePolicy = options.cookiePolicy ?? DEFAULT_AUTH_COOKIE_POLICY;
+  const trustedProxies = options.trustedProxies ?? [];
 
-  async function createLoginResponse(
-    c: Context<{ Variables: ContextVariables }>,
-    body: LoginBody
-  ) {
+  async function createLoginResponse(c: Context<{ Variables: ContextVariables }>, body: LoginBody) {
     const createdSession = await authService.createSessionForCredentials({
       username: body.username,
       password: body.password,
       sourceIp: getRequestSourceIp(c, trustedProxies),
       userAgent: c.req.header("user-agent") ?? undefined,
-      ...requestCorrelation(c)
-    })
+      ...requestCorrelation(c),
+    });
 
     if (!createdSession) {
-      throw unauthorized()
+      throw unauthorized();
     }
 
     setCookie(c, AUTH_SESSION_COOKIE, createdSession.sessionId, {
       ...cookieOptions(cookiePolicy),
-      expires: createdSession.session.expiresAt
-    })
-    options.csrf?.issueToken(c, createdSession.session)
+      expires: createdSession.session.expiresAt,
+    });
+    options.csrf?.issueToken(c, createdSession.session);
 
     const reply: AuthSessionDataReply = {
       user: createdSession.user,
-      session: sessionReply(createdSession.session)
-    }
+      session: sessionReply(createdSession.session),
+    };
 
-    return replyObject(c, reply)
+    return replyObject(c, reply);
   }
 
   auth.post("/", zValidator("json", loginSchema), async (c) => {
-    return createLoginResponse(c, c.req.valid("json"))
-  })
+    return createLoginResponse(c, c.req.valid("json"));
+  });
 
   auth.get("/session", async (c) => {
-    const sessionId = getCookie(c, AUTH_SESSION_COOKIE)
+    const sessionId = getCookie(c, AUTH_SESSION_COOKIE);
     if (!sessionId) {
-      throw unauthorized()
+      throw unauthorized();
     }
 
     const validatedSession = await authService.validateSession({
       sessionId,
-      ...requestCorrelation(c)
-    })
+      ...requestCorrelation(c),
+    });
     if (!validatedSession) {
-      deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(cookiePolicy))
-      options.csrf?.clearToken(c)
-      throw unauthorized()
+      deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(cookiePolicy));
+      options.csrf?.clearToken(c);
+      throw unauthorized();
     }
 
     const reply: AuthSessionDataReply = {
       user: validatedSession.user,
-      session: sessionReply(validatedSession.session)
-    }
+      session: sessionReply(validatedSession.session),
+    };
 
-    return replyObject(c, reply)
-  })
+    return replyObject(c, reply);
+  });
 
   auth.delete("/", async (c) => {
-    const sessionId = getCookie(c, AUTH_SESSION_COOKIE)
+    const sessionId = getCookie(c, AUTH_SESSION_COOKIE);
     const revoked = sessionId
       ? await authService.revokeSession({
           sessionId,
-          ...requestCorrelation(c)
+          ...requestCorrelation(c),
         })
-      : false
+      : false;
 
-    deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(cookiePolicy))
-    options.csrf?.clearToken(c)
+    deleteCookie(c, AUTH_SESSION_COOKIE, cookieOptions(cookiePolicy));
+    options.csrf?.clearToken(c);
 
-    return replyObject(c, { revoked })
-  })
+    return replyObject(c, { revoked });
+  });
 
-  return auth
+  return auth;
 }

@@ -1,45 +1,38 @@
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi
-} from "vitest"
-import { AssetType } from "@exposurenexus/types/model/asset"
+import { AssetType } from "@exposurenexus/types/model/asset";
 import {
   FindingSource,
   FindingStatus,
-  type FindingInternal
-} from "@exposurenexus/types/model/finding"
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
-import { createAssetRepository } from "./asset.js"
-import { createFindingRepository } from "./finding.js"
-import { createVulnerabilityRepository } from "./vulnerability.js"
-import { createTestDatabase, resetTestDatabase } from "../test/db.js"
+  type FindingInternal,
+} from "@exposurenexus/types/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { createTestDatabase, resetTestDatabase } from "../test/db.js";
+import { createAssetRepository } from "./asset.js";
+import { createFindingRepository } from "./finding.js";
+import { createVulnerabilityRepository } from "./vulnerability.js";
 
 vi.mock("../db/index.js", () => ({
   db: {},
   logger: {},
-  pool: {}
-}))
+  pool: {},
+}));
 
 describe("finding repository", () => {
-  const testDb = createTestDatabase()
-  const createdBy = "85196743-cfba-4afb-b286-d36be32a64a4"
-  const assigneeId = "c7f0f5a8-f3e7-4d24-8f72-e3fbc2a48aa6"
+  const testDb = createTestDatabase();
+  const createdBy = "85196743-cfba-4afb-b286-d36be32a64a4";
+  const assigneeId = "c7f0f5a8-f3e7-4d24-8f72-e3fbc2a48aa6";
 
   beforeAll(async () => {
-    await testDb.start()
-  })
+    await testDb.start();
+  });
 
   afterAll(async () => {
-    await testDb.dispose()
-  })
+    await testDb.dispose();
+  });
 
   beforeEach(async () => {
-    await resetTestDatabase(testDb.db)
+    await resetTestDatabase(testDb.db);
     await testDb.db
       .insertInto("user_profile")
       .values([
@@ -49,7 +42,7 @@ describe("finding repository", () => {
           displayName: "Test User",
           email: "tester@example.com",
           enabled: true,
-          passwordHash: "password-hash"
+          passwordHash: "password-hash",
         },
         {
           id: assigneeId,
@@ -57,22 +50,22 @@ describe("finding repository", () => {
           displayName: "Assigned User",
           email: "assignee@example.com",
           enabled: false,
-          passwordHash: "password-hash"
-        }
+          passwordHash: "password-hash",
+        },
       ])
-      .execute()
-  })
+      .execute();
+  });
 
   it("persists, updates, counts, and deletes findings against a real database", async () => {
-    const assetRepository = createAssetRepository(testDb.db)
-    const vulnerabilityRepository = createVulnerabilityRepository(testDb.db)
-    const repository = createFindingRepository(testDb.db)
+    const assetRepository = createAssetRepository(testDb.db);
+    const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
+    const repository = createFindingRepository(testDb.db);
 
     const asset = await assetRepository.create({
       id: "",
       name: "api.exposurenexus.local",
-      type: AssetType.Host
-    })
+      type: AssetType.Host,
+    });
     const vulnerability = await vulnerabilityRepository.create({
       title: "Exposed Admin Endpoint",
       description: "Administrative interface is reachable externally",
@@ -82,8 +75,8 @@ describe("finding repository", () => {
       createdBy,
       updatedBy: createdBy,
       createdAt: new Date("2026-01-02T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-02T00:00:00.000Z")
-    })
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    });
 
     const findingInput: Omit<FindingInternal, "id"> = {
       assetId: asset.id,
@@ -101,63 +94,59 @@ describe("finding repository", () => {
       createdAt: new Date("2026-01-03T00:00:00.000Z"),
       updatedAt: new Date("2026-01-03T00:00:00.000Z"),
       createdBy,
-      updatedBy: createdBy
-    }
+      updatedBy: createdBy,
+    };
 
-    const created = await repository.create(findingInput)
+    const created = await repository.create(findingInput);
 
-    expect(created.id).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    )
+    expect(created.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
     expect(created).toMatchObject({
       ...findingInput,
-      id: created.id
-    })
+      id: created.id,
+    });
 
-    await expect(repository.getByID(created.id)).resolves.toEqual(created)
-    await expect(
-      repository.getByFingerprint("finding-fingerprint")
-    ).resolves.toEqual(created)
-    await expect(repository.list()).resolves.toEqual([created])
+    await expect(repository.getByID(created.id)).resolves.toEqual(created);
+    await expect(repository.getByFingerprint("finding-fingerprint")).resolves.toEqual(created);
+    await expect(repository.list()).resolves.toEqual([created]);
 
     const updatedInput: Omit<FindingInternal, "id"> = {
       ...created,
       status: FindingStatus.Mitigated,
       mitigation: "Administrative interface restricted to VPN",
       dueDate: null,
-      updatedAt: new Date("2026-01-04T00:00:00.000Z")
-    }
+      updatedAt: new Date("2026-01-04T00:00:00.000Z"),
+    };
 
-    const updated = await repository.updateByID(created.id, updatedInput)
+    const updated = await repository.updateByID(created.id, updatedInput);
 
-    await expect(repository.getByID(created.id)).resolves.toEqual(updated)
-    expect(updated.dueDate).toBeNull()
+    await expect(repository.getByID(created.id)).resolves.toEqual(updated);
+    expect(updated.dueDate).toBeNull();
     await expect(repository.countBy("status")).resolves.toEqual({
-      [FindingStatus.Mitigated]: 1
-    })
+      [FindingStatus.Mitigated]: 1,
+    });
     await expect(repository.countBy("severity")).resolves.toEqual({
-      [VulnerabilitySeverity.High]: 1
-    })
+      [VulnerabilitySeverity.High]: 1,
+    });
     await expect(repository.countBy("assetId")).resolves.toEqual({
-      [asset.id]: 1
-    })
+      [asset.id]: 1,
+    });
     await expect(repository.countBy("source")).resolves.toEqual({
-      [FindingSource.Manual]: 1
-    })
-    await expect(repository.deleteByID(created.id)).resolves.toEqual(updated)
-    await expect(repository.getByID(created.id)).resolves.toBeNull()
-  })
+      [FindingSource.Manual]: 1,
+    });
+    await expect(repository.deleteByID(created.id)).resolves.toEqual(updated);
+    await expect(repository.getByID(created.id)).resolves.toBeNull();
+  });
 
   it("reclassifies findings matching source and vulnerability only", async () => {
-    const assetRepository = createAssetRepository(testDb.db)
-    const vulnerabilityRepository = createVulnerabilityRepository(testDb.db)
-    const repository = createFindingRepository(testDb.db)
+    const assetRepository = createAssetRepository(testDb.db);
+    const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
+    const repository = createFindingRepository(testDb.db);
 
     const asset = await assetRepository.create({
       id: "",
       name: "api.exposurenexus.local",
-      type: AssetType.Host
-    })
+      type: AssetType.Host,
+    });
     const oldVulnerability = await vulnerabilityRepository.create({
       title: "Exposed Admin Endpoint",
       description: "Administrative interface is reachable externally",
@@ -167,8 +156,8 @@ describe("finding repository", () => {
       createdBy,
       updatedBy: createdBy,
       createdAt: new Date("2026-01-02T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-02T00:00:00.000Z")
-    })
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    });
     const targetVulnerability = await vulnerabilityRepository.create({
       title: "Account Takeover",
       description: "Finding should be classified as account takeover",
@@ -178,8 +167,8 @@ describe("finding repository", () => {
       createdBy,
       updatedBy: createdBy,
       createdAt: new Date("2026-01-02T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-02T00:00:00.000Z")
-    })
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    });
     const unrelatedVulnerability = await vulnerabilityRepository.create({
       title: "Missing Security Header",
       description: "Header is not present",
@@ -189,8 +178,8 @@ describe("finding repository", () => {
       createdBy,
       updatedBy: createdBy,
       createdAt: new Date("2026-01-02T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-02T00:00:00.000Z")
-    })
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    });
     const baseFindingInput: Omit<FindingInternal, "id"> = {
       assetId: asset.id,
       vulnerabilityId: oldVulnerability.id,
@@ -207,21 +196,21 @@ describe("finding repository", () => {
       createdAt: new Date("2026-01-03T00:00:00.000Z"),
       updatedAt: new Date("2026-01-03T00:00:00.000Z"),
       createdBy,
-      updatedBy: createdBy
-    }
-    const matchingFinding = await repository.create(baseFindingInput)
+      updatedBy: createdBy,
+    };
+    const matchingFinding = await repository.create(baseFindingInput);
     const manualFinding = await repository.create({
       ...baseFindingInput,
       source: FindingSource.Manual,
-      fingerprint: "reclassify-manual-finding"
-    })
+      fingerprint: "reclassify-manual-finding",
+    });
     const unrelatedFinding = await repository.create({
       ...baseFindingInput,
       vulnerabilityId: unrelatedVulnerability.id,
       severity: VulnerabilitySeverity.Low,
-      fingerprint: "reclassify-unrelated-finding"
-    })
-    const updatedAt = new Date("2026-01-04T00:00:00.000Z")
+      fingerprint: "reclassify-unrelated-finding",
+    });
+    const updatedAt = new Date("2026-01-04T00:00:00.000Z");
 
     const reclassified = await repository.reclassifyBySourceAndVulnerability({
       source: FindingSource.Nuclei,
@@ -229,46 +218,42 @@ describe("finding repository", () => {
       targetVulnerabilityId: targetVulnerability.id,
       severity: VulnerabilitySeverity.Critical,
       updatedAt,
-      updatedBy: assigneeId
-    })
+      updatedBy: assigneeId,
+    });
 
-    expect(reclassified).toHaveLength(1)
+    expect(reclassified).toHaveLength(1);
     expect(reclassified[0]).toMatchObject({
       id: matchingFinding.id,
       source: FindingSource.Nuclei,
       vulnerabilityId: targetVulnerability.id,
       severity: VulnerabilitySeverity.Critical,
-      updatedBy: assigneeId
-    })
-    expect(reclassified[0].updatedAt).toEqual(updatedAt)
-    await expect(repository.getByID(matchingFinding.id)).resolves.toMatchObject(
-      {
-        vulnerabilityId: targetVulnerability.id,
-        severity: VulnerabilitySeverity.Critical
-      }
-    )
+      updatedBy: assigneeId,
+    });
+    expect(reclassified[0].updatedAt).toEqual(updatedAt);
+    await expect(repository.getByID(matchingFinding.id)).resolves.toMatchObject({
+      vulnerabilityId: targetVulnerability.id,
+      severity: VulnerabilitySeverity.Critical,
+    });
     await expect(repository.getByID(manualFinding.id)).resolves.toMatchObject({
       vulnerabilityId: oldVulnerability.id,
-      severity: VulnerabilitySeverity.High
-    })
-    await expect(
-      repository.getByID(unrelatedFinding.id)
-    ).resolves.toMatchObject({
+      severity: VulnerabilitySeverity.High,
+    });
+    await expect(repository.getByID(unrelatedFinding.id)).resolves.toMatchObject({
       vulnerabilityId: unrelatedVulnerability.id,
-      severity: VulnerabilitySeverity.Low
-    })
-  })
+      severity: VulnerabilitySeverity.Low,
+    });
+  });
 
   it("clears assignee identity when the assigned user profile is deleted", async () => {
-    const assetRepository = createAssetRepository(testDb.db)
-    const vulnerabilityRepository = createVulnerabilityRepository(testDb.db)
-    const repository = createFindingRepository(testDb.db)
+    const assetRepository = createAssetRepository(testDb.db);
+    const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
+    const repository = createFindingRepository(testDb.db);
 
     const asset = await assetRepository.create({
       id: "",
       name: "api.exposurenexus.local",
-      type: AssetType.Host
-    })
+      type: AssetType.Host,
+    });
     const vulnerability = await vulnerabilityRepository.create({
       title: "Exposed Admin Endpoint",
       description: "Administrative interface is reachable externally",
@@ -278,8 +263,8 @@ describe("finding repository", () => {
       createdBy,
       updatedBy: createdBy,
       createdAt: new Date("2026-01-02T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-02T00:00:00.000Z")
-    })
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    });
     const created = await repository.create({
       assetId: asset.id,
       vulnerabilityId: vulnerability.id,
@@ -296,19 +281,16 @@ describe("finding repository", () => {
       createdAt: new Date("2026-01-03T00:00:00.000Z"),
       updatedAt: new Date("2026-01-03T00:00:00.000Z"),
       createdBy,
-      updatedBy: createdBy
-    })
+      updatedBy: createdBy,
+    });
 
-    expect(created.assigneeId).toBe(assigneeId)
+    expect(created.assigneeId).toBe(assigneeId);
 
-    await testDb.db
-      .deleteFrom("user_profile")
-      .where("id", "=", assigneeId)
-      .execute()
+    await testDb.db.deleteFrom("user_profile").where("id", "=", assigneeId).execute();
 
     await expect(repository.getByID(created.id)).resolves.toMatchObject({
       id: created.id,
-      assigneeId: null
-    })
-  })
-})
+      assigneeId: null,
+    });
+  });
+});

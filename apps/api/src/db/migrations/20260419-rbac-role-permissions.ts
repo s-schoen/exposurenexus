@@ -1,10 +1,10 @@
-import { Kysely, sql } from "kysely"
 import {
   BuiltInRoleName,
   PermissionResource,
   PermissionVerb,
-  builtInRoleIds
-} from "@exposurenexus/types/model/rbac"
+  builtInRoleIds,
+} from "@exposurenexus/types/model/rbac";
+import { Kysely, sql } from "kysely";
 
 const seededRoles = [
   {
@@ -15,10 +15,10 @@ const seededRoles = [
       { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
       {
         resource: PermissionResource.Vulnerability,
-        verb: PermissionVerb.Read
+        verb: PermissionVerb.Read,
       },
-      { resource: PermissionResource.Stats, verb: PermissionVerb.Read }
-    ]
+      { resource: PermissionResource.Stats, verb: PermissionVerb.Read },
+    ],
   },
   {
     id: builtInRoleIds.editor,
@@ -32,19 +32,19 @@ const seededRoles = [
       { resource: PermissionResource.Finding, verb: PermissionVerb.Delete },
       {
         resource: PermissionResource.Vulnerability,
-        verb: PermissionVerb.Read
+        verb: PermissionVerb.Read,
       },
       {
         resource: PermissionResource.Vulnerability,
-        verb: PermissionVerb.Write
+        verb: PermissionVerb.Write,
       },
       {
         resource: PermissionResource.Vulnerability,
-        verb: PermissionVerb.Delete
+        verb: PermissionVerb.Delete,
       },
       { resource: PermissionResource.Import, verb: PermissionVerb.Write },
-      { resource: PermissionResource.Stats, verb: PermissionVerb.Read }
-    ]
+      { resource: PermissionResource.Stats, verb: PermissionVerb.Read },
+    ],
   },
   {
     id: builtInRoleIds.admin,
@@ -58,36 +58,33 @@ const seededRoles = [
       { resource: PermissionResource.Finding, verb: PermissionVerb.Delete },
       {
         resource: PermissionResource.Vulnerability,
-        verb: PermissionVerb.Read
+        verb: PermissionVerb.Read,
       },
       {
         resource: PermissionResource.Vulnerability,
-        verb: PermissionVerb.Write
+        verb: PermissionVerb.Write,
       },
       {
         resource: PermissionResource.Vulnerability,
-        verb: PermissionVerb.Delete
+        verb: PermissionVerb.Delete,
       },
       { resource: PermissionResource.Import, verb: PermissionVerb.Write },
       { resource: PermissionResource.Stats, verb: PermissionVerb.Read },
       { resource: PermissionResource.User, verb: PermissionVerb.Read },
       { resource: PermissionResource.User, verb: PermissionVerb.Write },
-      { resource: PermissionResource.User, verb: PermissionVerb.Delete }
-    ]
-  }
-] as const
+      { resource: PermissionResource.User, verb: PermissionVerb.Delete },
+    ],
+  },
+] as const;
 
-// eslint-disable-next-line
+// oxlint-disable-next-line typescript/no-explicit-any
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createType("permission_resource")
     .asEnum(Object.values(PermissionResource))
-    .execute()
+    .execute();
 
-  await db.schema
-    .createType("permission_verb")
-    .asEnum(Object.values(PermissionVerb))
-    .execute()
+  await db.schema.createType("permission_verb").asEnum(Object.values(PermissionVerb)).execute();
 
   await db.schema
     .createTable("role")
@@ -95,29 +92,23 @@ export async function up(db: Kysely<any>): Promise<void> {
       col
         .primaryKey()
         .notNull()
-        .defaultTo(sql`gen_random_uuid()`)
+        .defaultTo(sql`gen_random_uuid()`),
     )
     .addColumn("name", "text", (col) => col.notNull().unique())
-    .execute()
+    .execute();
 
   await db.schema
     .createTable("role_permission_assignment")
-    .addColumn("role_id", "uuid", (col) =>
-      col.notNull().references("role.id").onDelete("cascade")
-    )
+    .addColumn("role_id", "uuid", (col) => col.notNull().references("role.id").onDelete("cascade"))
     .addColumn("resource", sql`permission_resource`, (col) => col.notNull())
     .addColumn("verb", sql`permission_verb`, (col) => col.notNull())
-    .addPrimaryKeyConstraint("role_permission_assignment_pkey", [
-      "role_id",
-      "resource",
-      "verb"
-    ])
-    .execute()
+    .addPrimaryKeyConstraint("role_permission_assignment_pkey", ["role_id", "resource", "verb"])
+    .execute();
 
   await db
     .insertInto("role")
     .values(seededRoles.map((role) => ({ id: role.id, name: role.name })))
-    .execute()
+    .execute();
 
   await db
     .insertInto("role_permission_assignment")
@@ -126,17 +117,17 @@ export async function up(db: Kysely<any>): Promise<void> {
         role.permissions.map((permission) => ({
           role_id: role.id,
           resource: permission.resource,
-          verb: permission.verb
-        }))
-      )
+          verb: permission.verb,
+        })),
+      ),
     )
-    .execute()
+    .execute();
 }
 
-// eslint-disable-next-line
+// oxlint-disable-next-line typescript/no-explicit-any
 export async function down(db: Kysely<any>): Promise<void> {
-  await db.schema.dropTable("role_permission_assignment").execute()
-  await db.schema.dropTable("role").execute()
-  await db.schema.dropType("permission_verb").execute()
-  await db.schema.dropType("permission_resource").execute()
+  await db.schema.dropTable("role_permission_assignment").execute();
+  await db.schema.dropTable("role").execute();
+  await db.schema.dropType("permission_verb").execute();
+  await db.schema.dropType("permission_resource").execute();
 }

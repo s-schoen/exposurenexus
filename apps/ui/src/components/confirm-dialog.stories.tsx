@@ -1,49 +1,45 @@
-import { useMemo } from "react"
-import { fn } from "storybook/test"
-import type { Meta, StoryObj } from "@storybook/react-vite"
-import { ConfirmDialog } from "@/components/confirm-dialog.tsx"
+import { useMemo } from "react";
+import { fn } from "storybook/test";
 
-type ConfirmDialogStoryArgs = Omit<
-  Parameters<typeof ConfirmDialog>[0],
-  "call"
-> & {
-  ended?: boolean
-}
+import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 
-function ConfirmDialogStoryShell({
-  ended = false,
-  ...args
-}: ConfirmDialogStoryArgs) {
+import type { Meta, StoryObj } from "@storybook/react-vite";
+
+type ConfirmDialogStoryArgs = Omit<Parameters<typeof ConfirmDialog>[0], "call"> & {
+  ended?: boolean;
+};
+
+function ConfirmDialogStoryShell({ ended = false, ...args }: ConfirmDialogStoryArgs) {
   const call = useMemo(
     () => ({
       ended,
-      end: fn()
+      end: fn(),
     }),
-    [ended]
-  )
+    [ended],
+  );
 
-  return <ConfirmDialog {...args} call={call as never} />
+  return <ConfirmDialog {...args} call={call as never} />;
 }
 
 const meta = {
   title: "Components/ConfirmDialog",
   component: ConfirmDialogStoryShell,
   parameters: {
-    layout: "centered"
+    layout: "centered",
   },
   args: {
     title: "Confirm",
     message: "Apply this change?",
-    ended: false
+    ended: false,
   },
-  render: (args) => <ConfirmDialogStoryShell {...args} />
-} satisfies Meta<typeof ConfirmDialogStoryShell>
+  render: (args) => <ConfirmDialogStoryShell {...args} />,
+} satisfies Meta<typeof ConfirmDialogStoryShell>;
 
-export default meta
+export default meta;
 
-type Story = StoryObj<typeof meta>
+type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {}
+export const Default: Story = {};
 
 export const Destructive: Story = {
   args: {
@@ -52,12 +48,12 @@ export const Destructive: Story = {
     message: "Delete api-01?",
     cancelText: "Keep asset",
     confirmText: "Delete",
-    confirmVariant: "destructive"
-  }
-}
+    confirmVariant: "destructive",
+  },
+};
 
 export const Closed: Story = {
   args: {
-    ended: true
-  }
-}
+    ended: true,
+  },
+};

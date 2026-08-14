@@ -29,8 +29,6 @@ allowBuilds:
   esbuild: true
   # MSW postinstall is not required for this workspace.
   msw: false
-  # Required native resolver setup for eslint-plugin-import-x.
-  unrs-resolver: true
 auditLevel: moderate
 engineStrict: true
 pmOnFail: error

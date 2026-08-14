@@ -1,60 +1,48 @@
-import { useMemo } from "react"
-import { useNavigate } from "@tanstack/react-router"
-import type { DataTableFilterState } from "@/components/data-table/types.ts"
+import { useNavigate } from "@tanstack/react-router";
+import { useMemo } from "react";
+
 import {
   createDataTableListFilterSearchParams,
   createDataTableListFilterState,
-  validateDataTableListFilterSearch
-} from "@/lib/data-table-search-state.ts"
+  validateDataTableListFilterSearch,
+} from "@/lib/data-table-search-state.ts";
 
-const customFieldTableSelectFilterIds = ["type", "required"]
+import type { DataTableFilterState } from "@/components/data-table/types.ts";
 
-export function validateCustomFieldTableSearch(
-  search: Record<string, unknown>
-) {
-  const validated = validateDataTableListFilterSearch(
-    search,
-    customFieldTableSelectFilterIds
-  )
+const customFieldTableSelectFilterIds = ["type", "required"];
+
+export function validateCustomFieldTableSearch(search: Record<string, unknown>) {
+  const validated = validateDataTableListFilterSearch(search, customFieldTableSelectFilterIds);
 
   return {
     filter: validated.filter,
     type: validated.type,
-    required: validated.required
-  }
+    required: validated.required,
+  };
 }
 
 export function createCustomFieldTableFilterState(
-  search: Record<string, unknown>
+  search: Record<string, unknown>,
 ): DataTableFilterState {
-  return createDataTableListFilterState(search, customFieldTableSelectFilterIds)
+  return createDataTableListFilterState(search, customFieldTableSelectFilterIds);
 }
 
-export function createCustomFieldTableSearchParams(
-  filterState: DataTableFilterState
-) {
+export function createCustomFieldTableSearchParams(filterState: DataTableFilterState) {
   const params = createDataTableListFilterSearchParams(
     filterState,
-    customFieldTableSelectFilterIds
-  )
+    customFieldTableSelectFilterIds,
+  );
 
   return {
     filter: params.filter,
     type: params.type,
-    required: params.required
-  }
+    required: params.required,
+  };
 }
 
-export function useCustomFieldTableSearchState({
-  search
-}: {
-  search: Record<string, unknown>
-}) {
-  const navigate = useNavigate()
-  const filterState = useMemo(
-    () => createCustomFieldTableFilterState(search),
-    [search]
-  )
+export function useCustomFieldTableSearchState({ search }: { search: Record<string, unknown> }) {
+  const navigate = useNavigate();
+  const filterState = useMemo(() => createCustomFieldTableFilterState(search), [search]);
 
   return {
     filterState,
@@ -65,9 +53,9 @@ export function useCustomFieldTableSearchState({
         search: (prev) => ({
           ...prev,
           selected: prev.selected,
-          ...createCustomFieldTableSearchParams(nextState)
-        })
-      })
-    }
-  }
+          ...createCustomFieldTableSearchParams(nextState),
+        }),
+      });
+    },
+  };
 }

@@ -1,4 +1,4 @@
-/* eslint-disable */
+/* oxlint-disable */
 
 // @ts-nocheck
 
@@ -8,611 +8,611 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets/index'
-import { Route as AuthenticatedAssetsIdRouteImport } from './routes/_authenticated/assets/$id'
-import { Route as AuthenticatedCustomFieldsIndexRouteImport } from './routes/_authenticated/custom-fields/index'
-import { Route as AuthenticatedCustomFieldsIdRouteImport } from './routes/_authenticated/custom-fields/$id'
-import { Route as AuthenticatedCustomFieldsNewRouteImport } from './routes/_authenticated/custom-fields/new'
-import { Route as AuthenticatedFindingsIndexRouteImport } from './routes/_authenticated/findings/index'
-import { Route as AuthenticatedFindingsIdRouteImport } from './routes/_authenticated/findings/$id'
-import { Route as AuthenticatedFindingsImportRouteImport } from './routes/_authenticated/findings/import'
-import { Route as AuthenticatedFindingsNewRouteImport } from './routes/_authenticated/findings/new'
-import { Route as AuthenticatedFindingsTriageRouteImport } from './routes/_authenticated/findings/triage'
-import { Route as AuthenticatedRolesIndexRouteImport } from './routes/_authenticated/roles/index'
-import { Route as AuthenticatedRolesIdRouteImport } from './routes/_authenticated/roles/$id'
-import { Route as AuthenticatedRolesNewRouteImport } from './routes/_authenticated/roles/new'
-import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
-import { Route as AuthenticatedUsersIdRouteImport } from './routes/_authenticated/users/$id'
-import { Route as AuthenticatedUsersNewRouteImport } from './routes/_authenticated/users/new'
-import { Route as AuthenticatedVulnerabilitiesIndexRouteImport } from './routes/_authenticated/vulnerabilities/index'
-import { Route as AuthenticatedVulnerabilitiesIdRouteImport } from './routes/_authenticated/vulnerabilities/$id'
-import { Route as AuthenticatedVulnerabilitiesNewRouteImport } from './routes/_authenticated/vulnerabilities/new'
-import { Route as AuthenticatedCustomFieldsIdEditRouteImport } from './routes/_authenticated/custom-fields/$id.edit'
-import { Route as AuthenticatedRolesIdEditRouteImport } from './routes/_authenticated/roles/$id.edit'
-import { Route as AuthenticatedUsersIdEditRouteImport } from './routes/_authenticated/users/$id.edit'
-import { Route as AuthenticatedVulnerabilitiesIdEditRouteImport } from './routes/_authenticated/vulnerabilities/$id.edit'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as AuthenticatedRouteImport } from "./routes/_authenticated";
+import { Route as LoginRouteImport } from "./routes/login";
+import { Route as AuthenticatedIndexRouteImport } from "./routes/_authenticated/index";
+import { Route as AuthenticatedAssetsIndexRouteImport } from "./routes/_authenticated/assets/index";
+import { Route as AuthenticatedAssetsIdRouteImport } from "./routes/_authenticated/assets/$id";
+import { Route as AuthenticatedCustomFieldsIndexRouteImport } from "./routes/_authenticated/custom-fields/index";
+import { Route as AuthenticatedCustomFieldsIdRouteImport } from "./routes/_authenticated/custom-fields/$id";
+import { Route as AuthenticatedCustomFieldsNewRouteImport } from "./routes/_authenticated/custom-fields/new";
+import { Route as AuthenticatedFindingsIndexRouteImport } from "./routes/_authenticated/findings/index";
+import { Route as AuthenticatedFindingsIdRouteImport } from "./routes/_authenticated/findings/$id";
+import { Route as AuthenticatedFindingsImportRouteImport } from "./routes/_authenticated/findings/import";
+import { Route as AuthenticatedFindingsNewRouteImport } from "./routes/_authenticated/findings/new";
+import { Route as AuthenticatedFindingsTriageRouteImport } from "./routes/_authenticated/findings/triage";
+import { Route as AuthenticatedRolesIndexRouteImport } from "./routes/_authenticated/roles/index";
+import { Route as AuthenticatedRolesIdRouteImport } from "./routes/_authenticated/roles/$id";
+import { Route as AuthenticatedRolesNewRouteImport } from "./routes/_authenticated/roles/new";
+import { Route as AuthenticatedUsersIndexRouteImport } from "./routes/_authenticated/users/index";
+import { Route as AuthenticatedUsersIdRouteImport } from "./routes/_authenticated/users/$id";
+import { Route as AuthenticatedUsersNewRouteImport } from "./routes/_authenticated/users/new";
+import { Route as AuthenticatedVulnerabilitiesIndexRouteImport } from "./routes/_authenticated/vulnerabilities/index";
+import { Route as AuthenticatedVulnerabilitiesIdRouteImport } from "./routes/_authenticated/vulnerabilities/$id";
+import { Route as AuthenticatedVulnerabilitiesNewRouteImport } from "./routes/_authenticated/vulnerabilities/new";
+import { Route as AuthenticatedCustomFieldsIdEditRouteImport } from "./routes/_authenticated/custom-fields/$id.edit";
+import { Route as AuthenticatedRolesIdEditRouteImport } from "./routes/_authenticated/roles/$id.edit";
+import { Route as AuthenticatedUsersIdEditRouteImport } from "./routes/_authenticated/users/$id.edit";
+import { Route as AuthenticatedVulnerabilitiesIdEditRouteImport } from "./routes/_authenticated/vulnerabilities/$id.edit";
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
+  id: "/_authenticated",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+  id: "/login",
+  path: "/login",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => AuthenticatedRoute,
-} as any)
+} as any);
 const AuthenticatedAssetsIndexRoute =
   AuthenticatedAssetsIndexRouteImport.update({
-    id: '/assets/',
-    path: '/assets/',
+    id: "/assets/",
+    path: "/assets/",
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
+  } as any);
 const AuthenticatedAssetsIdRoute = AuthenticatedAssetsIdRouteImport.update({
-  id: '/assets/$id',
-  path: '/assets/$id',
+  id: "/assets/$id",
+  path: "/assets/$id",
   getParentRoute: () => AuthenticatedRoute,
-} as any)
+} as any);
 const AuthenticatedCustomFieldsIndexRoute =
   AuthenticatedCustomFieldsIndexRouteImport.update({
-    id: '/custom-fields/',
-    path: '/custom-fields/',
+    id: "/custom-fields/",
+    path: "/custom-fields/",
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
+  } as any);
 const AuthenticatedCustomFieldsIdRoute =
   AuthenticatedCustomFieldsIdRouteImport.update({
-    id: '/custom-fields/$id',
-    path: '/custom-fields/$id',
+    id: "/custom-fields/$id",
+    path: "/custom-fields/$id",
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
+  } as any);
 const AuthenticatedCustomFieldsNewRoute =
   AuthenticatedCustomFieldsNewRouteImport.update({
-    id: '/custom-fields/new',
-    path: '/custom-fields/new',
+    id: "/custom-fields/new",
+    path: "/custom-fields/new",
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
+  } as any);
 const AuthenticatedFindingsIndexRoute =
   AuthenticatedFindingsIndexRouteImport.update({
-    id: '/findings/',
-    path: '/findings/',
+    id: "/findings/",
+    path: "/findings/",
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
+  } as any);
 const AuthenticatedFindingsIdRoute = AuthenticatedFindingsIdRouteImport.update({
-  id: '/findings/$id',
-  path: '/findings/$id',
+  id: "/findings/$id",
+  path: "/findings/$id",
   getParentRoute: () => AuthenticatedRoute,
-} as any)
+} as any);
 const AuthenticatedFindingsImportRoute =
   AuthenticatedFindingsImportRouteImport.update({
-    id: '/findings/import',
-    path: '/findings/import',
+    id: "/findings/import",
+    path: "/findings/import",
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
+  } as any);
 const AuthenticatedFindingsNewRoute =
   AuthenticatedFindingsNewRouteImport.update({
-    id: '/findings/new',
-    path: '/findings/new',
+    id: "/findings/new",
+    path: "/findings/new",
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
+  } as any);
 const AuthenticatedFindingsTriageRoute =
   AuthenticatedFindingsTriageRouteImport.update({
-    id: '/findings/triage',
-    path: '/findings/triage',
+    id: "/findings/triage",
+    path: "/findings/triage",
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
+  } as any);
 const AuthenticatedRolesIndexRoute = AuthenticatedRolesIndexRouteImport.update({
-  id: '/roles/',
-  path: '/roles/',
+  id: "/roles/",
+  path: "/roles/",
   getParentRoute: () => AuthenticatedRoute,
-} as any)
+} as any);
 const AuthenticatedRolesIdRoute = AuthenticatedRolesIdRouteImport.update({
-  id: '/roles/$id',
-  path: '/roles/$id',
+  id: "/roles/$id",
+  path: "/roles/$id",
   getParentRoute: () => AuthenticatedRoute,
-} as any)
+} as any);
 const AuthenticatedRolesNewRoute = AuthenticatedRolesNewRouteImport.update({
-  id: '/roles/new',
-  path: '/roles/new',
+  id: "/roles/new",
+  path: "/roles/new",
   getParentRoute: () => AuthenticatedRoute,
-} as any)
+} as any);
 const AuthenticatedUsersIndexRoute = AuthenticatedUsersIndexRouteImport.update({
-  id: '/users/',
-  path: '/users/',
+  id: "/users/",
+  path: "/users/",
   getParentRoute: () => AuthenticatedRoute,
-} as any)
+} as any);
 const AuthenticatedUsersIdRoute = AuthenticatedUsersIdRouteImport.update({
-  id: '/users/$id',
-  path: '/users/$id',
+  id: "/users/$id",
+  path: "/users/$id",
   getParentRoute: () => AuthenticatedRoute,
-} as any)
+} as any);
 const AuthenticatedUsersNewRoute = AuthenticatedUsersNewRouteImport.update({
-  id: '/users/new',
-  path: '/users/new',
+  id: "/users/new",
+  path: "/users/new",
   getParentRoute: () => AuthenticatedRoute,
-} as any)
+} as any);
 const AuthenticatedVulnerabilitiesIndexRoute =
   AuthenticatedVulnerabilitiesIndexRouteImport.update({
-    id: '/vulnerabilities/',
-    path: '/vulnerabilities/',
+    id: "/vulnerabilities/",
+    path: "/vulnerabilities/",
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
+  } as any);
 const AuthenticatedVulnerabilitiesIdRoute =
   AuthenticatedVulnerabilitiesIdRouteImport.update({
-    id: '/vulnerabilities/$id',
-    path: '/vulnerabilities/$id',
+    id: "/vulnerabilities/$id",
+    path: "/vulnerabilities/$id",
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
+  } as any);
 const AuthenticatedVulnerabilitiesNewRoute =
   AuthenticatedVulnerabilitiesNewRouteImport.update({
-    id: '/vulnerabilities/new',
-    path: '/vulnerabilities/new',
+    id: "/vulnerabilities/new",
+    path: "/vulnerabilities/new",
     getParentRoute: () => AuthenticatedRoute,
-  } as any)
+  } as any);
 const AuthenticatedCustomFieldsIdEditRoute =
   AuthenticatedCustomFieldsIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
+    id: "/edit",
+    path: "/edit",
     getParentRoute: () => AuthenticatedCustomFieldsIdRoute,
-  } as any)
+  } as any);
 const AuthenticatedRolesIdEditRoute =
   AuthenticatedRolesIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
+    id: "/edit",
+    path: "/edit",
     getParentRoute: () => AuthenticatedRolesIdRoute,
-  } as any)
+  } as any);
 const AuthenticatedUsersIdEditRoute =
   AuthenticatedUsersIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
+    id: "/edit",
+    path: "/edit",
     getParentRoute: () => AuthenticatedUsersIdRoute,
-  } as any)
+  } as any);
 const AuthenticatedVulnerabilitiesIdEditRoute =
   AuthenticatedVulnerabilitiesIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
+    id: "/edit",
+    path: "/edit",
     getParentRoute: () => AuthenticatedVulnerabilitiesIdRoute,
-  } as any)
+  } as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthenticatedIndexRoute
-  '/login': typeof LoginRoute
-  '/assets/$id': typeof AuthenticatedAssetsIdRoute
-  '/custom-fields/$id': typeof AuthenticatedCustomFieldsIdRouteWithChildren
-  '/custom-fields/new': typeof AuthenticatedCustomFieldsNewRoute
-  '/findings/$id': typeof AuthenticatedFindingsIdRoute
-  '/findings/import': typeof AuthenticatedFindingsImportRoute
-  '/findings/new': typeof AuthenticatedFindingsNewRoute
-  '/findings/triage': typeof AuthenticatedFindingsTriageRoute
-  '/roles/$id': typeof AuthenticatedRolesIdRouteWithChildren
-  '/roles/new': typeof AuthenticatedRolesNewRoute
-  '/users/$id': typeof AuthenticatedUsersIdRouteWithChildren
-  '/users/new': typeof AuthenticatedUsersNewRoute
-  '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRouteWithChildren
-  '/vulnerabilities/new': typeof AuthenticatedVulnerabilitiesNewRoute
-  '/assets/': typeof AuthenticatedAssetsIndexRoute
-  '/custom-fields/': typeof AuthenticatedCustomFieldsIndexRoute
-  '/findings/': typeof AuthenticatedFindingsIndexRoute
-  '/roles/': typeof AuthenticatedRolesIndexRoute
-  '/users/': typeof AuthenticatedUsersIndexRoute
-  '/vulnerabilities/': typeof AuthenticatedVulnerabilitiesIndexRoute
-  '/custom-fields/$id/edit': typeof AuthenticatedCustomFieldsIdEditRoute
-  '/roles/$id/edit': typeof AuthenticatedRolesIdEditRoute
-  '/users/$id/edit': typeof AuthenticatedUsersIdEditRoute
-  '/vulnerabilities/$id/edit': typeof AuthenticatedVulnerabilitiesIdEditRoute
+  "/": typeof AuthenticatedIndexRoute;
+  "/login": typeof LoginRoute;
+  "/assets/$id": typeof AuthenticatedAssetsIdRoute;
+  "/custom-fields/$id": typeof AuthenticatedCustomFieldsIdRouteWithChildren;
+  "/custom-fields/new": typeof AuthenticatedCustomFieldsNewRoute;
+  "/findings/$id": typeof AuthenticatedFindingsIdRoute;
+  "/findings/import": typeof AuthenticatedFindingsImportRoute;
+  "/findings/new": typeof AuthenticatedFindingsNewRoute;
+  "/findings/triage": typeof AuthenticatedFindingsTriageRoute;
+  "/roles/$id": typeof AuthenticatedRolesIdRouteWithChildren;
+  "/roles/new": typeof AuthenticatedRolesNewRoute;
+  "/users/$id": typeof AuthenticatedUsersIdRouteWithChildren;
+  "/users/new": typeof AuthenticatedUsersNewRoute;
+  "/vulnerabilities/$id": typeof AuthenticatedVulnerabilitiesIdRouteWithChildren;
+  "/vulnerabilities/new": typeof AuthenticatedVulnerabilitiesNewRoute;
+  "/assets/": typeof AuthenticatedAssetsIndexRoute;
+  "/custom-fields/": typeof AuthenticatedCustomFieldsIndexRoute;
+  "/findings/": typeof AuthenticatedFindingsIndexRoute;
+  "/roles/": typeof AuthenticatedRolesIndexRoute;
+  "/users/": typeof AuthenticatedUsersIndexRoute;
+  "/vulnerabilities/": typeof AuthenticatedVulnerabilitiesIndexRoute;
+  "/custom-fields/$id/edit": typeof AuthenticatedCustomFieldsIdEditRoute;
+  "/roles/$id/edit": typeof AuthenticatedRolesIdEditRoute;
+  "/users/$id/edit": typeof AuthenticatedUsersIdEditRoute;
+  "/vulnerabilities/$id/edit": typeof AuthenticatedVulnerabilitiesIdEditRoute;
 }
 export interface FileRoutesByTo {
-  '/login': typeof LoginRoute
-  '/': typeof AuthenticatedIndexRoute
-  '/assets/$id': typeof AuthenticatedAssetsIdRoute
-  '/custom-fields/$id': typeof AuthenticatedCustomFieldsIdRouteWithChildren
-  '/custom-fields/new': typeof AuthenticatedCustomFieldsNewRoute
-  '/findings/$id': typeof AuthenticatedFindingsIdRoute
-  '/findings/import': typeof AuthenticatedFindingsImportRoute
-  '/findings/new': typeof AuthenticatedFindingsNewRoute
-  '/findings/triage': typeof AuthenticatedFindingsTriageRoute
-  '/roles/$id': typeof AuthenticatedRolesIdRouteWithChildren
-  '/roles/new': typeof AuthenticatedRolesNewRoute
-  '/users/$id': typeof AuthenticatedUsersIdRouteWithChildren
-  '/users/new': typeof AuthenticatedUsersNewRoute
-  '/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRouteWithChildren
-  '/vulnerabilities/new': typeof AuthenticatedVulnerabilitiesNewRoute
-  '/assets': typeof AuthenticatedAssetsIndexRoute
-  '/custom-fields': typeof AuthenticatedCustomFieldsIndexRoute
-  '/findings': typeof AuthenticatedFindingsIndexRoute
-  '/roles': typeof AuthenticatedRolesIndexRoute
-  '/users': typeof AuthenticatedUsersIndexRoute
-  '/vulnerabilities': typeof AuthenticatedVulnerabilitiesIndexRoute
-  '/custom-fields/$id/edit': typeof AuthenticatedCustomFieldsIdEditRoute
-  '/roles/$id/edit': typeof AuthenticatedRolesIdEditRoute
-  '/users/$id/edit': typeof AuthenticatedUsersIdEditRoute
-  '/vulnerabilities/$id/edit': typeof AuthenticatedVulnerabilitiesIdEditRoute
+  "/login": typeof LoginRoute;
+  "/": typeof AuthenticatedIndexRoute;
+  "/assets/$id": typeof AuthenticatedAssetsIdRoute;
+  "/custom-fields/$id": typeof AuthenticatedCustomFieldsIdRouteWithChildren;
+  "/custom-fields/new": typeof AuthenticatedCustomFieldsNewRoute;
+  "/findings/$id": typeof AuthenticatedFindingsIdRoute;
+  "/findings/import": typeof AuthenticatedFindingsImportRoute;
+  "/findings/new": typeof AuthenticatedFindingsNewRoute;
+  "/findings/triage": typeof AuthenticatedFindingsTriageRoute;
+  "/roles/$id": typeof AuthenticatedRolesIdRouteWithChildren;
+  "/roles/new": typeof AuthenticatedRolesNewRoute;
+  "/users/$id": typeof AuthenticatedUsersIdRouteWithChildren;
+  "/users/new": typeof AuthenticatedUsersNewRoute;
+  "/vulnerabilities/$id": typeof AuthenticatedVulnerabilitiesIdRouteWithChildren;
+  "/vulnerabilities/new": typeof AuthenticatedVulnerabilitiesNewRoute;
+  "/assets": typeof AuthenticatedAssetsIndexRoute;
+  "/custom-fields": typeof AuthenticatedCustomFieldsIndexRoute;
+  "/findings": typeof AuthenticatedFindingsIndexRoute;
+  "/roles": typeof AuthenticatedRolesIndexRoute;
+  "/users": typeof AuthenticatedUsersIndexRoute;
+  "/vulnerabilities": typeof AuthenticatedVulnerabilitiesIndexRoute;
+  "/custom-fields/$id/edit": typeof AuthenticatedCustomFieldsIdEditRoute;
+  "/roles/$id/edit": typeof AuthenticatedRolesIdEditRoute;
+  "/users/$id/edit": typeof AuthenticatedUsersIdEditRoute;
+  "/vulnerabilities/$id/edit": typeof AuthenticatedVulnerabilitiesIdEditRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/_authenticated': typeof AuthenticatedRouteWithChildren
-  '/login': typeof LoginRoute
-  '/_authenticated/': typeof AuthenticatedIndexRoute
-  '/_authenticated/assets/$id': typeof AuthenticatedAssetsIdRoute
-  '/_authenticated/custom-fields/$id': typeof AuthenticatedCustomFieldsIdRouteWithChildren
-  '/_authenticated/custom-fields/new': typeof AuthenticatedCustomFieldsNewRoute
-  '/_authenticated/findings/$id': typeof AuthenticatedFindingsIdRoute
-  '/_authenticated/findings/import': typeof AuthenticatedFindingsImportRoute
-  '/_authenticated/findings/new': typeof AuthenticatedFindingsNewRoute
-  '/_authenticated/findings/triage': typeof AuthenticatedFindingsTriageRoute
-  '/_authenticated/roles/$id': typeof AuthenticatedRolesIdRouteWithChildren
-  '/_authenticated/roles/new': typeof AuthenticatedRolesNewRoute
-  '/_authenticated/users/$id': typeof AuthenticatedUsersIdRouteWithChildren
-  '/_authenticated/users/new': typeof AuthenticatedUsersNewRoute
-  '/_authenticated/vulnerabilities/$id': typeof AuthenticatedVulnerabilitiesIdRouteWithChildren
-  '/_authenticated/vulnerabilities/new': typeof AuthenticatedVulnerabilitiesNewRoute
-  '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
-  '/_authenticated/custom-fields/': typeof AuthenticatedCustomFieldsIndexRoute
-  '/_authenticated/findings/': typeof AuthenticatedFindingsIndexRoute
-  '/_authenticated/roles/': typeof AuthenticatedRolesIndexRoute
-  '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
-  '/_authenticated/vulnerabilities/': typeof AuthenticatedVulnerabilitiesIndexRoute
-  '/_authenticated/custom-fields/$id/edit': typeof AuthenticatedCustomFieldsIdEditRoute
-  '/_authenticated/roles/$id/edit': typeof AuthenticatedRolesIdEditRoute
-  '/_authenticated/users/$id/edit': typeof AuthenticatedUsersIdEditRoute
-  '/_authenticated/vulnerabilities/$id/edit': typeof AuthenticatedVulnerabilitiesIdEditRoute
+  __root__: typeof rootRouteImport;
+  "/_authenticated": typeof AuthenticatedRouteWithChildren;
+  "/login": typeof LoginRoute;
+  "/_authenticated/": typeof AuthenticatedIndexRoute;
+  "/_authenticated/assets/$id": typeof AuthenticatedAssetsIdRoute;
+  "/_authenticated/custom-fields/$id": typeof AuthenticatedCustomFieldsIdRouteWithChildren;
+  "/_authenticated/custom-fields/new": typeof AuthenticatedCustomFieldsNewRoute;
+  "/_authenticated/findings/$id": typeof AuthenticatedFindingsIdRoute;
+  "/_authenticated/findings/import": typeof AuthenticatedFindingsImportRoute;
+  "/_authenticated/findings/new": typeof AuthenticatedFindingsNewRoute;
+  "/_authenticated/findings/triage": typeof AuthenticatedFindingsTriageRoute;
+  "/_authenticated/roles/$id": typeof AuthenticatedRolesIdRouteWithChildren;
+  "/_authenticated/roles/new": typeof AuthenticatedRolesNewRoute;
+  "/_authenticated/users/$id": typeof AuthenticatedUsersIdRouteWithChildren;
+  "/_authenticated/users/new": typeof AuthenticatedUsersNewRoute;
+  "/_authenticated/vulnerabilities/$id": typeof AuthenticatedVulnerabilitiesIdRouteWithChildren;
+  "/_authenticated/vulnerabilities/new": typeof AuthenticatedVulnerabilitiesNewRoute;
+  "/_authenticated/assets/": typeof AuthenticatedAssetsIndexRoute;
+  "/_authenticated/custom-fields/": typeof AuthenticatedCustomFieldsIndexRoute;
+  "/_authenticated/findings/": typeof AuthenticatedFindingsIndexRoute;
+  "/_authenticated/roles/": typeof AuthenticatedRolesIndexRoute;
+  "/_authenticated/users/": typeof AuthenticatedUsersIndexRoute;
+  "/_authenticated/vulnerabilities/": typeof AuthenticatedVulnerabilitiesIndexRoute;
+  "/_authenticated/custom-fields/$id/edit": typeof AuthenticatedCustomFieldsIdEditRoute;
+  "/_authenticated/roles/$id/edit": typeof AuthenticatedRolesIdEditRoute;
+  "/_authenticated/users/$id/edit": typeof AuthenticatedUsersIdEditRoute;
+  "/_authenticated/vulnerabilities/$id/edit": typeof AuthenticatedVulnerabilitiesIdEditRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/'
-    | '/login'
-    | '/assets/$id'
-    | '/custom-fields/$id'
-    | '/custom-fields/new'
-    | '/findings/$id'
-    | '/findings/import'
-    | '/findings/new'
-    | '/findings/triage'
-    | '/roles/$id'
-    | '/roles/new'
-    | '/users/$id'
-    | '/users/new'
-    | '/vulnerabilities/$id'
-    | '/vulnerabilities/new'
-    | '/assets/'
-    | '/custom-fields/'
-    | '/findings/'
-    | '/roles/'
-    | '/users/'
-    | '/vulnerabilities/'
-    | '/custom-fields/$id/edit'
-    | '/roles/$id/edit'
-    | '/users/$id/edit'
-    | '/vulnerabilities/$id/edit'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/login"
+    | "/assets/$id"
+    | "/custom-fields/$id"
+    | "/custom-fields/new"
+    | "/findings/$id"
+    | "/findings/import"
+    | "/findings/new"
+    | "/findings/triage"
+    | "/roles/$id"
+    | "/roles/new"
+    | "/users/$id"
+    | "/users/new"
+    | "/vulnerabilities/$id"
+    | "/vulnerabilities/new"
+    | "/assets/"
+    | "/custom-fields/"
+    | "/findings/"
+    | "/roles/"
+    | "/users/"
+    | "/vulnerabilities/"
+    | "/custom-fields/$id/edit"
+    | "/roles/$id/edit"
+    | "/users/$id/edit"
+    | "/vulnerabilities/$id/edit";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/login'
-    | '/'
-    | '/assets/$id'
-    | '/custom-fields/$id'
-    | '/custom-fields/new'
-    | '/findings/$id'
-    | '/findings/import'
-    | '/findings/new'
-    | '/findings/triage'
-    | '/roles/$id'
-    | '/roles/new'
-    | '/users/$id'
-    | '/users/new'
-    | '/vulnerabilities/$id'
-    | '/vulnerabilities/new'
-    | '/assets'
-    | '/custom-fields'
-    | '/findings'
-    | '/roles'
-    | '/users'
-    | '/vulnerabilities'
-    | '/custom-fields/$id/edit'
-    | '/roles/$id/edit'
-    | '/users/$id/edit'
-    | '/vulnerabilities/$id/edit'
+    | "/login"
+    | "/"
+    | "/assets/$id"
+    | "/custom-fields/$id"
+    | "/custom-fields/new"
+    | "/findings/$id"
+    | "/findings/import"
+    | "/findings/new"
+    | "/findings/triage"
+    | "/roles/$id"
+    | "/roles/new"
+    | "/users/$id"
+    | "/users/new"
+    | "/vulnerabilities/$id"
+    | "/vulnerabilities/new"
+    | "/assets"
+    | "/custom-fields"
+    | "/findings"
+    | "/roles"
+    | "/users"
+    | "/vulnerabilities"
+    | "/custom-fields/$id/edit"
+    | "/roles/$id/edit"
+    | "/users/$id/edit"
+    | "/vulnerabilities/$id/edit";
   id:
-    | '__root__'
-    | '/_authenticated'
-    | '/login'
-    | '/_authenticated/'
-    | '/_authenticated/assets/$id'
-    | '/_authenticated/custom-fields/$id'
-    | '/_authenticated/custom-fields/new'
-    | '/_authenticated/findings/$id'
-    | '/_authenticated/findings/import'
-    | '/_authenticated/findings/new'
-    | '/_authenticated/findings/triage'
-    | '/_authenticated/roles/$id'
-    | '/_authenticated/roles/new'
-    | '/_authenticated/users/$id'
-    | '/_authenticated/users/new'
-    | '/_authenticated/vulnerabilities/$id'
-    | '/_authenticated/vulnerabilities/new'
-    | '/_authenticated/assets/'
-    | '/_authenticated/custom-fields/'
-    | '/_authenticated/findings/'
-    | '/_authenticated/roles/'
-    | '/_authenticated/users/'
-    | '/_authenticated/vulnerabilities/'
-    | '/_authenticated/custom-fields/$id/edit'
-    | '/_authenticated/roles/$id/edit'
-    | '/_authenticated/users/$id/edit'
-    | '/_authenticated/vulnerabilities/$id/edit'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/_authenticated"
+    | "/login"
+    | "/_authenticated/"
+    | "/_authenticated/assets/$id"
+    | "/_authenticated/custom-fields/$id"
+    | "/_authenticated/custom-fields/new"
+    | "/_authenticated/findings/$id"
+    | "/_authenticated/findings/import"
+    | "/_authenticated/findings/new"
+    | "/_authenticated/findings/triage"
+    | "/_authenticated/roles/$id"
+    | "/_authenticated/roles/new"
+    | "/_authenticated/users/$id"
+    | "/_authenticated/users/new"
+    | "/_authenticated/vulnerabilities/$id"
+    | "/_authenticated/vulnerabilities/new"
+    | "/_authenticated/assets/"
+    | "/_authenticated/custom-fields/"
+    | "/_authenticated/findings/"
+    | "/_authenticated/roles/"
+    | "/_authenticated/users/"
+    | "/_authenticated/vulnerabilities/"
+    | "/_authenticated/custom-fields/$id/edit"
+    | "/_authenticated/roles/$id/edit"
+    | "/_authenticated/users/$id/edit"
+    | "/_authenticated/vulnerabilities/$id/edit";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
-  LoginRoute: typeof LoginRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren;
+  LoginRoute: typeof LoginRoute;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/': {
-      id: '/_authenticated/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/assets/': {
-      id: '/_authenticated/assets/'
-      path: '/assets'
-      fullPath: '/assets/'
-      preLoaderRoute: typeof AuthenticatedAssetsIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/assets/$id': {
-      id: '/_authenticated/assets/$id'
-      path: '/assets/$id'
-      fullPath: '/assets/$id'
-      preLoaderRoute: typeof AuthenticatedAssetsIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/custom-fields/': {
-      id: '/_authenticated/custom-fields/'
-      path: '/custom-fields'
-      fullPath: '/custom-fields/'
-      preLoaderRoute: typeof AuthenticatedCustomFieldsIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/custom-fields/$id': {
-      id: '/_authenticated/custom-fields/$id'
-      path: '/custom-fields/$id'
-      fullPath: '/custom-fields/$id'
-      preLoaderRoute: typeof AuthenticatedCustomFieldsIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/custom-fields/new': {
-      id: '/_authenticated/custom-fields/new'
-      path: '/custom-fields/new'
-      fullPath: '/custom-fields/new'
-      preLoaderRoute: typeof AuthenticatedCustomFieldsNewRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/findings/': {
-      id: '/_authenticated/findings/'
-      path: '/findings'
-      fullPath: '/findings/'
-      preLoaderRoute: typeof AuthenticatedFindingsIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/findings/$id': {
-      id: '/_authenticated/findings/$id'
-      path: '/findings/$id'
-      fullPath: '/findings/$id'
-      preLoaderRoute: typeof AuthenticatedFindingsIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/findings/import': {
-      id: '/_authenticated/findings/import'
-      path: '/findings/import'
-      fullPath: '/findings/import'
-      preLoaderRoute: typeof AuthenticatedFindingsImportRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/findings/new': {
-      id: '/_authenticated/findings/new'
-      path: '/findings/new'
-      fullPath: '/findings/new'
-      preLoaderRoute: typeof AuthenticatedFindingsNewRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/findings/triage': {
-      id: '/_authenticated/findings/triage'
-      path: '/findings/triage'
-      fullPath: '/findings/triage'
-      preLoaderRoute: typeof AuthenticatedFindingsTriageRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/roles/': {
-      id: '/_authenticated/roles/'
-      path: '/roles'
-      fullPath: '/roles/'
-      preLoaderRoute: typeof AuthenticatedRolesIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/roles/$id': {
-      id: '/_authenticated/roles/$id'
-      path: '/roles/$id'
-      fullPath: '/roles/$id'
-      preLoaderRoute: typeof AuthenticatedRolesIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/roles/new': {
-      id: '/_authenticated/roles/new'
-      path: '/roles/new'
-      fullPath: '/roles/new'
-      preLoaderRoute: typeof AuthenticatedRolesNewRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/users/': {
-      id: '/_authenticated/users/'
-      path: '/users'
-      fullPath: '/users/'
-      preLoaderRoute: typeof AuthenticatedUsersIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/users/$id': {
-      id: '/_authenticated/users/$id'
-      path: '/users/$id'
-      fullPath: '/users/$id'
-      preLoaderRoute: typeof AuthenticatedUsersIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/users/new': {
-      id: '/_authenticated/users/new'
-      path: '/users/new'
-      fullPath: '/users/new'
-      preLoaderRoute: typeof AuthenticatedUsersNewRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/vulnerabilities/': {
-      id: '/_authenticated/vulnerabilities/'
-      path: '/vulnerabilities'
-      fullPath: '/vulnerabilities/'
-      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/vulnerabilities/$id': {
-      id: '/_authenticated/vulnerabilities/$id'
-      path: '/vulnerabilities/$id'
-      fullPath: '/vulnerabilities/$id'
-      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/vulnerabilities/new': {
-      id: '/_authenticated/vulnerabilities/new'
-      path: '/vulnerabilities/new'
-      fullPath: '/vulnerabilities/new'
-      preLoaderRoute: typeof AuthenticatedVulnerabilitiesNewRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/custom-fields/$id/edit': {
-      id: '/_authenticated/custom-fields/$id/edit'
-      path: '/edit'
-      fullPath: '/custom-fields/$id/edit'
-      preLoaderRoute: typeof AuthenticatedCustomFieldsIdEditRouteImport
-      parentRoute: typeof AuthenticatedCustomFieldsIdRoute
-    }
-    '/_authenticated/roles/$id/edit': {
-      id: '/_authenticated/roles/$id/edit'
-      path: '/edit'
-      fullPath: '/roles/$id/edit'
-      preLoaderRoute: typeof AuthenticatedRolesIdEditRouteImport
-      parentRoute: typeof AuthenticatedRolesIdRoute
-    }
-    '/_authenticated/users/$id/edit': {
-      id: '/_authenticated/users/$id/edit'
-      path: '/edit'
-      fullPath: '/users/$id/edit'
-      preLoaderRoute: typeof AuthenticatedUsersIdEditRouteImport
-      parentRoute: typeof AuthenticatedUsersIdRoute
-    }
-    '/_authenticated/vulnerabilities/$id/edit': {
-      id: '/_authenticated/vulnerabilities/$id/edit'
-      path: '/edit'
-      fullPath: '/vulnerabilities/$id/edit'
-      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIdEditRouteImport
-      parentRoute: typeof AuthenticatedVulnerabilitiesIdRoute
-    }
+    "/_authenticated": {
+      id: "/_authenticated";
+      path: "";
+      fullPath: "/";
+      preLoaderRoute: typeof AuthenticatedRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/login": {
+      id: "/login";
+      path: "/login";
+      fullPath: "/login";
+      preLoaderRoute: typeof LoginRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/_authenticated/": {
+      id: "/_authenticated/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/assets/": {
+      id: "/_authenticated/assets/";
+      path: "/assets";
+      fullPath: "/assets/";
+      preLoaderRoute: typeof AuthenticatedAssetsIndexRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/assets/$id": {
+      id: "/_authenticated/assets/$id";
+      path: "/assets/$id";
+      fullPath: "/assets/$id";
+      preLoaderRoute: typeof AuthenticatedAssetsIdRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/custom-fields/": {
+      id: "/_authenticated/custom-fields/";
+      path: "/custom-fields";
+      fullPath: "/custom-fields/";
+      preLoaderRoute: typeof AuthenticatedCustomFieldsIndexRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/custom-fields/$id": {
+      id: "/_authenticated/custom-fields/$id";
+      path: "/custom-fields/$id";
+      fullPath: "/custom-fields/$id";
+      preLoaderRoute: typeof AuthenticatedCustomFieldsIdRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/custom-fields/new": {
+      id: "/_authenticated/custom-fields/new";
+      path: "/custom-fields/new";
+      fullPath: "/custom-fields/new";
+      preLoaderRoute: typeof AuthenticatedCustomFieldsNewRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/findings/": {
+      id: "/_authenticated/findings/";
+      path: "/findings";
+      fullPath: "/findings/";
+      preLoaderRoute: typeof AuthenticatedFindingsIndexRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/findings/$id": {
+      id: "/_authenticated/findings/$id";
+      path: "/findings/$id";
+      fullPath: "/findings/$id";
+      preLoaderRoute: typeof AuthenticatedFindingsIdRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/findings/import": {
+      id: "/_authenticated/findings/import";
+      path: "/findings/import";
+      fullPath: "/findings/import";
+      preLoaderRoute: typeof AuthenticatedFindingsImportRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/findings/new": {
+      id: "/_authenticated/findings/new";
+      path: "/findings/new";
+      fullPath: "/findings/new";
+      preLoaderRoute: typeof AuthenticatedFindingsNewRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/findings/triage": {
+      id: "/_authenticated/findings/triage";
+      path: "/findings/triage";
+      fullPath: "/findings/triage";
+      preLoaderRoute: typeof AuthenticatedFindingsTriageRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/roles/": {
+      id: "/_authenticated/roles/";
+      path: "/roles";
+      fullPath: "/roles/";
+      preLoaderRoute: typeof AuthenticatedRolesIndexRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/roles/$id": {
+      id: "/_authenticated/roles/$id";
+      path: "/roles/$id";
+      fullPath: "/roles/$id";
+      preLoaderRoute: typeof AuthenticatedRolesIdRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/roles/new": {
+      id: "/_authenticated/roles/new";
+      path: "/roles/new";
+      fullPath: "/roles/new";
+      preLoaderRoute: typeof AuthenticatedRolesNewRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/users/": {
+      id: "/_authenticated/users/";
+      path: "/users";
+      fullPath: "/users/";
+      preLoaderRoute: typeof AuthenticatedUsersIndexRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/users/$id": {
+      id: "/_authenticated/users/$id";
+      path: "/users/$id";
+      fullPath: "/users/$id";
+      preLoaderRoute: typeof AuthenticatedUsersIdRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/users/new": {
+      id: "/_authenticated/users/new";
+      path: "/users/new";
+      fullPath: "/users/new";
+      preLoaderRoute: typeof AuthenticatedUsersNewRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/vulnerabilities/": {
+      id: "/_authenticated/vulnerabilities/";
+      path: "/vulnerabilities";
+      fullPath: "/vulnerabilities/";
+      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIndexRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/vulnerabilities/$id": {
+      id: "/_authenticated/vulnerabilities/$id";
+      path: "/vulnerabilities/$id";
+      fullPath: "/vulnerabilities/$id";
+      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIdRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/vulnerabilities/new": {
+      id: "/_authenticated/vulnerabilities/new";
+      path: "/vulnerabilities/new";
+      fullPath: "/vulnerabilities/new";
+      preLoaderRoute: typeof AuthenticatedVulnerabilitiesNewRouteImport;
+      parentRoute: typeof AuthenticatedRoute;
+    };
+    "/_authenticated/custom-fields/$id/edit": {
+      id: "/_authenticated/custom-fields/$id/edit";
+      path: "/edit";
+      fullPath: "/custom-fields/$id/edit";
+      preLoaderRoute: typeof AuthenticatedCustomFieldsIdEditRouteImport;
+      parentRoute: typeof AuthenticatedCustomFieldsIdRoute;
+    };
+    "/_authenticated/roles/$id/edit": {
+      id: "/_authenticated/roles/$id/edit";
+      path: "/edit";
+      fullPath: "/roles/$id/edit";
+      preLoaderRoute: typeof AuthenticatedRolesIdEditRouteImport;
+      parentRoute: typeof AuthenticatedRolesIdRoute;
+    };
+    "/_authenticated/users/$id/edit": {
+      id: "/_authenticated/users/$id/edit";
+      path: "/edit";
+      fullPath: "/users/$id/edit";
+      preLoaderRoute: typeof AuthenticatedUsersIdEditRouteImport;
+      parentRoute: typeof AuthenticatedUsersIdRoute;
+    };
+    "/_authenticated/vulnerabilities/$id/edit": {
+      id: "/_authenticated/vulnerabilities/$id/edit";
+      path: "/edit";
+      fullPath: "/vulnerabilities/$id/edit";
+      preLoaderRoute: typeof AuthenticatedVulnerabilitiesIdEditRouteImport;
+      parentRoute: typeof AuthenticatedVulnerabilitiesIdRoute;
+    };
   }
 }
 
 interface AuthenticatedCustomFieldsIdRouteChildren {
-  AuthenticatedCustomFieldsIdEditRoute: typeof AuthenticatedCustomFieldsIdEditRoute
+  AuthenticatedCustomFieldsIdEditRoute: typeof AuthenticatedCustomFieldsIdEditRoute;
 }
 
 const AuthenticatedCustomFieldsIdRouteChildren: AuthenticatedCustomFieldsIdRouteChildren =
   {
     AuthenticatedCustomFieldsIdEditRoute: AuthenticatedCustomFieldsIdEditRoute,
-  }
+  };
 
 const AuthenticatedCustomFieldsIdRouteWithChildren =
   AuthenticatedCustomFieldsIdRoute._addFileChildren(
     AuthenticatedCustomFieldsIdRouteChildren,
-  )
+  );
 
 interface AuthenticatedRolesIdRouteChildren {
-  AuthenticatedRolesIdEditRoute: typeof AuthenticatedRolesIdEditRoute
+  AuthenticatedRolesIdEditRoute: typeof AuthenticatedRolesIdEditRoute;
 }
 
 const AuthenticatedRolesIdRouteChildren: AuthenticatedRolesIdRouteChildren = {
   AuthenticatedRolesIdEditRoute: AuthenticatedRolesIdEditRoute,
-}
+};
 
 const AuthenticatedRolesIdRouteWithChildren =
-  AuthenticatedRolesIdRoute._addFileChildren(AuthenticatedRolesIdRouteChildren)
+  AuthenticatedRolesIdRoute._addFileChildren(AuthenticatedRolesIdRouteChildren);
 
 interface AuthenticatedUsersIdRouteChildren {
-  AuthenticatedUsersIdEditRoute: typeof AuthenticatedUsersIdEditRoute
+  AuthenticatedUsersIdEditRoute: typeof AuthenticatedUsersIdEditRoute;
 }
 
 const AuthenticatedUsersIdRouteChildren: AuthenticatedUsersIdRouteChildren = {
   AuthenticatedUsersIdEditRoute: AuthenticatedUsersIdEditRoute,
-}
+};
 
 const AuthenticatedUsersIdRouteWithChildren =
-  AuthenticatedUsersIdRoute._addFileChildren(AuthenticatedUsersIdRouteChildren)
+  AuthenticatedUsersIdRoute._addFileChildren(AuthenticatedUsersIdRouteChildren);
 
 interface AuthenticatedVulnerabilitiesIdRouteChildren {
-  AuthenticatedVulnerabilitiesIdEditRoute: typeof AuthenticatedVulnerabilitiesIdEditRoute
+  AuthenticatedVulnerabilitiesIdEditRoute: typeof AuthenticatedVulnerabilitiesIdEditRoute;
 }
 
 const AuthenticatedVulnerabilitiesIdRouteChildren: AuthenticatedVulnerabilitiesIdRouteChildren =
   {
     AuthenticatedVulnerabilitiesIdEditRoute:
       AuthenticatedVulnerabilitiesIdEditRoute,
-  }
+  };
 
 const AuthenticatedVulnerabilitiesIdRouteWithChildren =
   AuthenticatedVulnerabilitiesIdRoute._addFileChildren(
     AuthenticatedVulnerabilitiesIdRouteChildren,
-  )
+  );
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
-  AuthenticatedAssetsIdRoute: typeof AuthenticatedAssetsIdRoute
-  AuthenticatedCustomFieldsIdRoute: typeof AuthenticatedCustomFieldsIdRouteWithChildren
-  AuthenticatedCustomFieldsNewRoute: typeof AuthenticatedCustomFieldsNewRoute
-  AuthenticatedFindingsIdRoute: typeof AuthenticatedFindingsIdRoute
-  AuthenticatedFindingsImportRoute: typeof AuthenticatedFindingsImportRoute
-  AuthenticatedFindingsNewRoute: typeof AuthenticatedFindingsNewRoute
-  AuthenticatedFindingsTriageRoute: typeof AuthenticatedFindingsTriageRoute
-  AuthenticatedRolesIdRoute: typeof AuthenticatedRolesIdRouteWithChildren
-  AuthenticatedRolesNewRoute: typeof AuthenticatedRolesNewRoute
-  AuthenticatedUsersIdRoute: typeof AuthenticatedUsersIdRouteWithChildren
-  AuthenticatedUsersNewRoute: typeof AuthenticatedUsersNewRoute
-  AuthenticatedVulnerabilitiesIdRoute: typeof AuthenticatedVulnerabilitiesIdRouteWithChildren
-  AuthenticatedVulnerabilitiesNewRoute: typeof AuthenticatedVulnerabilitiesNewRoute
-  AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute
-  AuthenticatedCustomFieldsIndexRoute: typeof AuthenticatedCustomFieldsIndexRoute
-  AuthenticatedFindingsIndexRoute: typeof AuthenticatedFindingsIndexRoute
-  AuthenticatedRolesIndexRoute: typeof AuthenticatedRolesIndexRoute
-  AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
-  AuthenticatedVulnerabilitiesIndexRoute: typeof AuthenticatedVulnerabilitiesIndexRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute;
+  AuthenticatedAssetsIdRoute: typeof AuthenticatedAssetsIdRoute;
+  AuthenticatedCustomFieldsIdRoute: typeof AuthenticatedCustomFieldsIdRouteWithChildren;
+  AuthenticatedCustomFieldsNewRoute: typeof AuthenticatedCustomFieldsNewRoute;
+  AuthenticatedFindingsIdRoute: typeof AuthenticatedFindingsIdRoute;
+  AuthenticatedFindingsImportRoute: typeof AuthenticatedFindingsImportRoute;
+  AuthenticatedFindingsNewRoute: typeof AuthenticatedFindingsNewRoute;
+  AuthenticatedFindingsTriageRoute: typeof AuthenticatedFindingsTriageRoute;
+  AuthenticatedRolesIdRoute: typeof AuthenticatedRolesIdRouteWithChildren;
+  AuthenticatedRolesNewRoute: typeof AuthenticatedRolesNewRoute;
+  AuthenticatedUsersIdRoute: typeof AuthenticatedUsersIdRouteWithChildren;
+  AuthenticatedUsersNewRoute: typeof AuthenticatedUsersNewRoute;
+  AuthenticatedVulnerabilitiesIdRoute: typeof AuthenticatedVulnerabilitiesIdRouteWithChildren;
+  AuthenticatedVulnerabilitiesNewRoute: typeof AuthenticatedVulnerabilitiesNewRoute;
+  AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute;
+  AuthenticatedCustomFieldsIndexRoute: typeof AuthenticatedCustomFieldsIndexRoute;
+  AuthenticatedFindingsIndexRoute: typeof AuthenticatedFindingsIndexRoute;
+  AuthenticatedRolesIndexRoute: typeof AuthenticatedRolesIndexRoute;
+  AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute;
+  AuthenticatedVulnerabilitiesIndexRoute: typeof AuthenticatedVulnerabilitiesIndexRoute;
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -639,16 +639,16 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,
   AuthenticatedVulnerabilitiesIndexRoute:
     AuthenticatedVulnerabilitiesIndexRoute,
-}
+};
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
-)
+);
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();

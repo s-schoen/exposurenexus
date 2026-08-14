@@ -1,7 +1,8 @@
-import type { Logger } from "pino"
-import type { EventBus, EventListenerName } from "../lib/eventbus/eventbus.js"
-import type { DomainEvent } from "../lib/eventbus/events/index.js"
-import { serializeDomainEventForLog } from "./log-event.js"
+import { serializeDomainEventForLog } from "./log-event.js";
+
+import type { EventBus, EventListenerName } from "../lib/eventbus/eventbus.js";
+import type { DomainEvent } from "../lib/eventbus/events/index.js";
+import type { Logger } from "pino";
 
 export const DEFAULT_AUDIT_EVENT_PATTERNS = [
   "asset.*",
@@ -10,32 +11,32 @@ export const DEFAULT_AUDIT_EVENT_PATTERNS = [
   "role.*",
   "user.*",
   "finding.*",
-  "vulnerability.*"
-] as const satisfies readonly EventListenerName<DomainEvent>[]
+  "vulnerability.*",
+] as const satisfies readonly EventListenerName<DomainEvent>[];
 
-const WARN_AUDIT_EVENT_SUBJECTS = new Set<string>(["auth.failure"])
+const WARN_AUDIT_EVENT_SUBJECTS = new Set<string>(["auth.failure"]);
 
 interface RegisterAuditLoggerDependencies {
-  eventBus: EventBus<DomainEvent>
-  logger: Pick<Logger, "info" | "warn">
-  eventPatterns?: readonly EventListenerName<DomainEvent>[]
+  eventBus: EventBus<DomainEvent>;
+  logger: Pick<Logger, "info" | "warn">;
+  eventPatterns?: readonly EventListenerName<DomainEvent>[];
 }
 
 export function registerAuditLogger({
   eventBus,
   logger,
-  eventPatterns = DEFAULT_AUDIT_EVENT_PATTERNS
+  eventPatterns = DEFAULT_AUDIT_EVENT_PATTERNS,
 }: RegisterAuditLoggerDependencies): void {
   for (const eventPattern of eventPatterns) {
     eventBus.on(eventPattern, (event) => {
-      const fields = serializeDomainEventForLog(event)
+      const fields = serializeDomainEventForLog(event);
 
       if (WARN_AUDIT_EVENT_SUBJECTS.has(event.subject)) {
-        logger.warn(fields, event.subject)
-        return
+        logger.warn(fields, event.subject);
+        return;
       }
 
-      logger.info(fields, event.subject)
-    })
+      logger.info(fields, event.subject);
+    });
   }
 }
