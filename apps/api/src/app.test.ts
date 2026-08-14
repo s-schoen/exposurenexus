@@ -2,17 +2,21 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createTestApp } from "./test/app.js";
 
 import type { ContextVariables } from "./lib/hono-schema.js";
+import type { ServerType } from "@hono/node-server";
 import type { MiddlewareHandler } from "hono";
 
 const INDEX_HTML = '<!doctype html><title>ExposureNexus</title><div id="root"></div>';
 const ASSET_JS = "console.log('exposurenexus')\n";
 
 const staticDirs: string[] = [];
+const servers: ServerType[] = [];
 
 async function createStaticDir(): Promise<string> {
   const staticDir = await mkdtemp(join(tmpdir(), "exposurenexus-static-"));
@@ -25,7 +29,39 @@ async function createStaticDir(): Promise<string> {
   return staticDir;
 }
 
+async function startServer(app: ReturnType<typeof createTestApp>) {
+  const address = await new Promise<{ port: number }>((resolve, reject) => {
+    const server = serve(
+      {
+        fetch: app.fetch,
+        hostname: "127.0.0.1",
+        port: 0,
+      },
+      resolve,
+    );
+    servers.push(server);
+    server.once("error", reject);
+  });
+
+  return `http://127.0.0.1:${address.port}`;
+}
+
 afterEach(async () => {
+  await Promise.all(
+    servers.splice(0).map(
+      (server) =>
+        new Promise<void>((resolve, reject) => {
+          server.close((error) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+
+            resolve();
+          });
+        }),
+    ),
+  );
   await Promise.all(
     staticDirs.splice(0).map((staticDir) => rm(staticDir, { recursive: true, force: true })),
   );
@@ -95,5 +131,37 @@ describe("static app serving", () => {
     expect(headResponse.status).toBe(200);
     expect(headResponse.headers.get("Content-Length")).toBe(String(Buffer.byteLength(INDEX_HTML)));
     await expect(headResponse.text()).resolves.toBe("");
+  });
+});
+
+describe("Hono Node server adapter", () => {
+  it("serves API JSON requests and static files over a real socket", async () => {
+    const healthRoute = new Hono();
+    healthRoute.get("/", (c) => c.json({ status: "ok" }));
+    healthRoute.post("/echo", async (c) => c.json(await c.req.json()));
+
+    const app = createTestApp({
+      healthRoute,
+      staticDir: await createStaticDir(),
+    });
+    const url = await startServer(app);
+
+    const healthResponse = await fetch(`${url}/api/health`);
+    expect(healthResponse.status).toBe(200);
+    await expect(healthResponse.json()).resolves.toEqual({ status: "ok" });
+
+    const echoResponse = await fetch(`${url}/api/health/echo`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: "hello" }),
+    });
+    expect(echoResponse.status).toBe(200);
+    await expect(echoResponse.json()).resolves.toEqual({ message: "hello" });
+
+    const staticResponse = await fetch(`${url}/assets/app.js`);
+    expect(staticResponse.status).toBe(200);
+    await expect(staticResponse.text()).resolves.toBe(ASSET_JS);
   });
 });
