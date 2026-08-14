@@ -7,10 +7,9 @@ import { DataTable } from "@/components/data-table/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import type { GroupingOption } from "@/components/data-table/types";
+import type { DataTableColumnDef, GroupingOption } from "@/components/data-table/types";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { UseQueryResult } from "@tanstack/react-query";
-import type { ColumnDef } from "@tanstack/react-table";
 
 type StoryFindingStatus = "active" | "review" | "mitigated";
 type StoryFindingSource = "scanner" | "manual" | "vendor-feed";
@@ -125,7 +124,7 @@ const groupingOptions: Array<GroupingOption> = [
   },
 ];
 
-const columns: Array<ColumnDef<StoryFinding>> = [
+const columns: Array<DataTableColumnDef<StoryFinding>> = [
   {
     accessorKey: "title",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Finding" />,

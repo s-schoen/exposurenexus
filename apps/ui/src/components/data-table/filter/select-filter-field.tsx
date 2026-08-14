@@ -14,14 +14,14 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
 
-import type { SelectOption } from "@/components/data-table/types.ts";
-import type { Column } from "@tanstack/react-table";
+import type { DataTableColumn, SelectOption } from "@/components/data-table/types.ts";
+import type { RowData } from "@tanstack/react-table";
 
-export interface FilterFieldProps<TData> {
-  column: Column<TData>;
+export interface FilterFieldProps<TData extends RowData> {
+  column: DataTableColumn<TData>;
 }
 
-export function SelectFilterField<TData>({ column }: FilterFieldProps<TData>) {
+export function SelectFilterField<TData extends RowData>({ column }: FilterFieldProps<TData>) {
   const [open, setOpen] = useState(false);
   const label = column.columnDef.meta!.label || column.id;
   const selectedValues = (column.getFilterValue() as Array<string> | undefined) ?? [];

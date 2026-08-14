@@ -1,21 +1,12 @@
 "use client";
 
-import {
-  flexRender,
-  functionalUpdate,
-  getCoreRowModel,
-  getExpandedRowModel,
-  getFilteredRowModel,
-  getGroupedRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { flexRender, functionalUpdate, useTable } from "@tanstack/react-table";
 import { ChevronDown, ChevronRight, DatabaseZap } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { DataTablePagination } from "@/components/data-table/pagination-control.tsx";
 import { DataTableToolbar } from "@/components/data-table/toolbar.tsx";
+import { dataTableFeatures } from "@/components/data-table/types.ts";
 import { Checkbox } from "@/components/ui/checkbox.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import {
@@ -27,23 +18,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
+import type {
+  DataTableColumnDef,
+  DataTableFeatures,
+  DataTableFilterState,
+  DataTableRow,
+  GroupingOption,
+} from "@/components/data-table/types.ts";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type {
-  ColumnDef,
   ColumnFiltersState,
   ExpandedState,
   GroupingState,
-  Row,
+  RowData,
   SortingState,
-  VisibilityState,
+  ColumnVisibilityState,
 } from "@tanstack/react-table";
 import type { MouseEvent, ReactElement, ReactNode, RefObject } from "react";
 
-const defaultInitialColumnVisibility: VisibilityState = {};
+const defaultInitialColumnVisibility: ColumnVisibilityState = {};
 type FilterVariant = "number" | "select" | "text";
 
-function getColumnId<TData, TValue>(column: ColumnDef<TData, TValue>) {
+function getColumnId<TData extends RowData, TValue>(column: DataTableColumnDef<TData, TValue>) {
   if (column.id) {
     return column.id;
   }
@@ -129,13 +125,13 @@ function columnFiltersToDataTableFilterState(
   };
 }
 
-interface DataTableProps<TData, TValue> {
-  columns: Array<ColumnDef<TData, TValue>>;
+interface DataTableProps<TData extends RowData> {
+  columns: Array<DataTableColumnDef<TData>>;
   query: UseQueryResult<Array<TData>, Error>;
   groupingOptions?: Array<GroupingOption>;
   initialGrouping?: GroupingState;
   initialSorting?: SortingState;
-  initialColumnVisibility?: VisibilityState;
+  initialColumnVisibility?: ColumnVisibilityState;
   onRowDelete?: (rows: Array<TData>) => Promise<void>;
   onRowClick?: (row: TData) => void;
   onRowDoubleClick?: (row: TData) => void;
@@ -150,7 +146,7 @@ interface DataTableProps<TData, TValue> {
   ) => ReactNode;
 }
 
-export function DataTable<TData, TValue>({
+export function DataTable<TData extends RowData>({
   columns,
   query,
   groupingOptions = [],
@@ -165,12 +161,12 @@ export function DataTable<TData, TValue>({
   filterState,
   onFilterStateChange,
   contextMenu,
-}: DataTableProps<TData, TValue>) {
+}: DataTableProps<TData>) {
   const [grouping, setGrouping] = useState<GroupingState>(initialGrouping);
   const [expanded, setExpanded] = useState<ExpandedState>(true);
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
   const [columnVisibility, setColumnVisibility] =
-    useState<VisibilityState>(initialColumnVisibility);
+    useState<ColumnVisibilityState>(initialColumnVisibility);
   const [localFilterState, setLocalFilterState] = useState<DataTableFilterState>({
     globalFilter: "",
     selectFilters: {},
@@ -222,7 +218,7 @@ export function DataTable<TData, TValue>({
     setLocalFilterState(nextState);
   };
 
-  const selectColumn: ColumnDef<TData, TValue> = {
+  const selectColumn: DataTableColumnDef<TData> = {
     id: "select",
     header: ({ table }) => (
       <Checkbox
@@ -242,7 +238,8 @@ export function DataTable<TData, TValue>({
     enableHiding: false,
   };
 
-  const table = useReactTable({
+  const table = useTable<DataTableFeatures, TData>({
+    features: dataTableFeatures,
     data: query.data ?? [],
     columns: [selectColumn, ...columns],
     groupedColumnMode: false,
@@ -283,12 +280,6 @@ export function DataTable<TData, TValue>({
         );
       });
     },
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getGroupedRowModel: getGroupedRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     globalFilterFn: "includesString",
   });
 
@@ -307,13 +298,13 @@ export function DataTable<TData, TValue>({
     }
   };
 
-  const handleOnRowDoubleClick = (row: Row<TData>) => {
+  const handleOnRowDoubleClick = (row: DataTableRow<TData>) => {
     if (onRowDoubleClick) {
       onRowDoubleClick(row.original);
     }
   };
 
-  const handleOnRowClick = (event: MouseEvent<HTMLElement>, row: Row<TData>) => {
+  const handleOnRowClick = (event: MouseEvent<HTMLElement>, row: DataTableRow<TData>) => {
     const target = event.target as HTMLElement;
 
     if (
@@ -327,7 +318,7 @@ export function DataTable<TData, TValue>({
     }
   };
 
-  const handleOnRowContextMenu = (row: Row<TData>) => {
+  const handleOnRowContextMenu = (row: DataTableRow<TData>) => {
     if (!row.getIsSelected()) {
       table.resetRowSelection();
       row.toggleSelected(true);

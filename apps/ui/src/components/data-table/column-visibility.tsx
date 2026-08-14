@@ -9,9 +9,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
 
-import type { Table } from "@tanstack/react-table";
+import type { DataTableTable } from "@/components/data-table/types.ts";
+import type { RowData } from "@tanstack/react-table";
 
-export function DataTableColumnVisibilityOptions<TData>({ table }: { table: Table<TData> }) {
+export function DataTableColumnVisibilityOptions<TData extends RowData>({
+  table,
+}: {
+  table: DataTableTable<TData>;
+}) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger

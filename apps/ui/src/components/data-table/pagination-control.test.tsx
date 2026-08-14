@@ -1,16 +1,13 @@
-import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { flexRender, useTable } from "@tanstack/react-table";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useMemo, useState } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { DataTablePagination } from "@/components/data-table/pagination-control";
+import { dataTableFeatures } from "@/components/data-table/types";
+
+import type { DataTableColumnDef } from "@/components/data-table/types";
 
 window.HTMLElement.prototype.scrollIntoView = () => {};
 
@@ -27,8 +24,9 @@ afterEach(() => {
 });
 
 function PaginationHarness({ rowCount = 25, filterTerm = "" }) {
+  type PaginationRow = { id: string; name: string };
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
-  const columns = useMemo(
+  const columns = useMemo<Array<DataTableColumnDef<PaginationRow>>>(
     () => [
       {
         accessorKey: "name",
@@ -37,7 +35,7 @@ function PaginationHarness({ rowCount = 25, filterTerm = "" }) {
     ],
     [],
   );
-  const data = useMemo(
+  const data = useMemo<Array<PaginationRow>>(
     () =>
       Array.from({ length: rowCount }, (_, index) => ({
         id: `row-${index + 1}`,
@@ -46,7 +44,8 @@ function PaginationHarness({ rowCount = 25, filterTerm = "" }) {
     [rowCount],
   );
 
-  const table = useReactTable({
+  const table = useTable({
+    features: dataTableFeatures,
     data,
     columns,
     state: {
@@ -54,9 +53,6 @@ function PaginationHarness({ rowCount = 25, filterTerm = "" }) {
       globalFilter: filterTerm,
     },
     onPaginationChange: setPagination,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: "includesString",
   });
 

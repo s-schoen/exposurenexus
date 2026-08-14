@@ -116,7 +116,7 @@ interface TestColumn {
   meta?: {
     options?: Array<{ label: string; value: string }>;
   };
-  sortingFn?: (rowA: RowStub, rowB: RowStub, columnId: string) => number;
+  sortFn?: (rowA: RowStub, rowB: RowStub, columnId: string) => number;
 }
 
 function createRow(original: Finding): RowStub {
@@ -492,20 +492,20 @@ describe("createFindingColumns", () => {
     };
 
     expect(
-      severityColumn.sortingFn?.(createRow(lowFinding), createRow(criticalFinding), "severity"),
+      severityColumn.sortFn?.(createRow(lowFinding), createRow(criticalFinding), "severity"),
     ).toBeLessThan(0);
     expect(
-      firstSeenColumn.sortingFn?.(createRow(finding), createRow(laterFinding), "firstSeen"),
+      firstSeenColumn.sortFn?.(createRow(finding), createRow(laterFinding), "firstSeen"),
     ).toBeLessThan(0);
     expect(
-      dueDateColumn.sortingFn?.(
+      dueDateColumn.sortFn?.(
         createRow(earlierDueDateFinding),
         createRow(laterDueDateFinding),
         "dueDate",
       ),
     ).toBeLessThan(0);
     expect(
-      dueDateColumn.sortingFn?.(
+      dueDateColumn.sortFn?.(
         createRow(missingDueDateFinding),
         createRow(laterDueDateFinding),
         "dueDate",

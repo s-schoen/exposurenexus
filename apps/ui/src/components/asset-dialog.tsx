@@ -26,14 +26,14 @@ import {
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
 import type { Asset } from "@exposurenexus/types/model/asset";
-import type { ReactCall } from "react-call";
+import type { PropsWithCall } from "react-call";
 
 type AssetDialogProps = object;
 
 const formSchema = assetSchema.omit({ id: true });
 const noOwnerValue = "__no_owner__";
 
-export const AssetDialog = ({ call }: ReactCall.Props<AssetDialogProps, Asset | null, object>) => {
+export const AssetDialog = ({ call }: PropsWithCall<AssetDialogProps, Asset | null, object>) => {
   const users = useQuery(createListUsersQueryOptions());
   const form = useForm({
     defaultValues: {

@@ -6,8 +6,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { DataTable } from "@/components/data-table/data-table";
 import * as stories from "@/components/data-table/data-table.stories";
 
+import type { DataTableColumnDef } from "@/components/data-table/types";
 import type { UseQueryResult } from "@tanstack/react-query";
-import type { ColumnDef } from "@tanstack/react-table";
 
 const { ActiveRow, Default, Empty, GroupedByStatus, Loading, WithToolbarControls } =
   composeStories(stories);
@@ -31,7 +31,7 @@ const directRows: Array<TestRow> = [
   { id: "row-2", name: "Bravo" },
 ];
 
-const directColumns: Array<ColumnDef<TestRow>> = [
+const directColumns: Array<DataTableColumnDef<TestRow>> = [
   {
     accessorKey: "name",
     header: "Name",

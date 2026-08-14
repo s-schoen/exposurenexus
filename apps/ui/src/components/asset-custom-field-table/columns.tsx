@@ -3,8 +3,8 @@ import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-fi
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 
+import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
-import type { ColumnDef } from "@tanstack/react-table";
 
 function formatTypeLabel(type: AssetCustomFieldType): string {
   switch (type) {
@@ -35,7 +35,7 @@ function formatDefaultValue(field: AssetCustomFieldDefinition): string | null {
   return String(field.defaultValue);
 }
 
-export const columns: Array<ColumnDef<AssetCustomFieldDefinition>> = [
+export const columns: Array<DataTableColumnDef<AssetCustomFieldDefinition>> = [
   {
     accessorKey: "name",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,

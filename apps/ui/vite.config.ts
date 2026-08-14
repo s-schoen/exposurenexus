@@ -47,7 +47,6 @@ export default defineConfig({
         "src/components/ui/**",
         "src/integrations/tanstack-query/devtools.tsx",
         "src/main.tsx",
-        "src/reportWebVitals.ts",
         "src/routeTree.gen.ts",
       ],
     },

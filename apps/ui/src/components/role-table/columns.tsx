@@ -2,10 +2,10 @@ import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx
 import { Badge } from "@/components/ui/badge.tsx";
 import { formatPermissionLabel, getRoleKindLabel, getUniqueRoleResources } from "@/lib/role.ts";
 
+import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { Role } from "@exposurenexus/types/model/rbac";
-import type { ColumnDef } from "@tanstack/react-table";
 
-export const columns: Array<ColumnDef<Role>> = [
+export const columns: Array<DataTableColumnDef<Role>> = [
   {
     accessorKey: "name",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Role" />,

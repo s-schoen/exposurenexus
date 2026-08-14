@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
-import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import { useMemo } from "react";
 
 import { createLoginRedirects } from "@/lib/login-redirect.ts";
@@ -48,14 +47,12 @@ interface RouterStoryProviderProps {
   children: ReactNode;
   queryClient: QueryClient;
   initialPath?: string;
-  withNuqs?: boolean;
 }
 
 export function RouterStoryProvider({
   children,
   queryClient,
   initialPath = "/",
-  withNuqs = false,
 }: RouterStoryProviderProps) {
   const router = useMemo(
     () =>
@@ -76,9 +73,7 @@ export function RouterStoryProvider({
 
   return (
     <RouterContextProvider router={router}>
-      <QueryClientProvider client={queryClient}>
-        {withNuqs ? <NuqsAdapter>{children}</NuqsAdapter> : children}
-      </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </RouterContextProvider>
   );
 }

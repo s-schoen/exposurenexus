@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
 
-import type { ReactCall } from "react-call";
+import type { PropsWithCall } from "react-call";
 
 interface ConfirmDialogProps {
   title?: string;
@@ -29,7 +29,7 @@ export const ConfirmDialog = ({
   confirmText = "Confirm",
   confirmVariant,
   message,
-}: ReactCall.Props<ConfirmDialogProps, boolean, object>) => {
+}: PropsWithCall<ConfirmDialogProps, boolean, object>) => {
   return (
     <Dialog open={!call.ended}>
       <DialogContent className="sm:max-w-106.25">
