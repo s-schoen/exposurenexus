@@ -1,7 +1,15 @@
+import type { AnyRoute } from "@tanstack/react-router";
+
 export const DEFAULT_LOGIN_REDIRECT = "/";
 
 interface RouteMatchLookup {
-  getMatchedRoutes: (pathname: string) => [unknown, unknown, unknown | undefined];
+  getMatchedRoutes: (
+    pathname: string,
+  ) => [
+    matchedRoutes: ReadonlyArray<AnyRoute>,
+    rawParams: Record<string, string>,
+    foundRoute: AnyRoute | undefined,
+  ];
 }
 
 interface LoginRedirectOptions {

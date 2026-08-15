@@ -8,7 +8,7 @@ import {
   useDeleteRoleMutation,
   useUpdateRoleMutation,
 } from "@/api/role.ts";
-import { toastActionError } from "@/lib/action-error-toast.ts";
+import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 
 import type { CreateRole, Role, UpdateRole } from "@exposurenexus/types/model/rbac";
 
@@ -111,7 +111,7 @@ export function useRoleLifecycle(): RoleLifecycleActions {
 
         return createdRole;
       } catch (error) {
-        toastActionError(error, `Failed to create role: ${error}`);
+        toastActionError(error, `Failed to create role: ${formatActionError(error)}`);
         console.error(error);
         return null;
       }
@@ -129,7 +129,7 @@ export function useRoleLifecycle(): RoleLifecycleActions {
 
         return updatedRole;
       } catch (error) {
-        toastActionError(error, `Failed to update role: ${error}`);
+        toastActionError(error, `Failed to update role: ${formatActionError(error)}`);
         console.error(error);
         return null;
       }

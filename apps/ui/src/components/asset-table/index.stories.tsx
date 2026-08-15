@@ -94,7 +94,9 @@ function AssetTableStoryShell({ scenario, selectedAssetId }: AssetTableStoryArgs
       }
 
       if (requestUrl.endsWith("/api/assets") && method === "POST") {
-        const body = JSON.parse(String(init?.body ?? "{}")) as Omit<Asset, "id">;
+        const body = JSON.parse(
+          typeof init?.body === "string" ? init.body : JSON.stringify(init?.body ?? {}),
+        ) as Omit<Asset, "id">;
         const createdAsset: AssetWithCustomFields = {
           id: crypto.randomUUID(),
           name: body.name,

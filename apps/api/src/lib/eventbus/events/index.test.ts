@@ -6,6 +6,7 @@ import {
   createEventPayload,
   type DomainEvent,
   type DomainEventPayloadBase,
+  type EventSubjects,
 } from "./index.js";
 
 import type { AssetEventPayloads } from "./asset.js";
@@ -327,7 +328,7 @@ describe("createDomainEventPayload", () => {
   it("creates source-bound emitters with subject-specific payload types", () => {
     const emittedEvents: DomainEvent[] = [];
     const user = createTestUser();
-    const emitUserEvent = createDomainEventEmitter<"user.created" | "user.updated">(
+    const emitUserEvent = createDomainEventEmitter<EventSubjects<UserEventPayloads>>(
       {
         async emit(event) {
           emittedEvents.push(event);

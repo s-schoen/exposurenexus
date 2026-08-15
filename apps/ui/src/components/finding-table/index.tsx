@@ -99,7 +99,7 @@ export function FindingTable({
       {
         id: "source",
         label: "Source",
-        formatValue: (value) => String(value || "Manual"),
+        formatValue: (value) => (typeof value === "string" && value.length > 0 ? value : "Manual"),
       },
     ],
     [assetNamesById, userProfileById],

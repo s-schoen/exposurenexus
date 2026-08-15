@@ -21,7 +21,7 @@ interface LoginPageProps {
   auth: Pick<AuthState, "login">;
   redirects: LoginRedirects;
   redirect: string;
-  navigate: (options: { href: string }) => Promise<unknown> | unknown;
+  navigate: (options: { href: string }) => Promise<void>;
 }
 
 const formSchema = z.object({

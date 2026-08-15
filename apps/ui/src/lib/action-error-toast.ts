@@ -8,6 +8,18 @@ export function isForbiddenAPIError(error: unknown): boolean {
   return error instanceof APIError && error.statusCode === 403;
 }
 
+export function formatActionError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.toString();
+  }
+
+  if (typeof error === "object" && error !== null) {
+    return "Unknown error";
+  }
+
+  return String(error);
+}
+
 export function actionErrorMessage(error: unknown, fallbackMessage: string): string {
   if (isForbiddenAPIError(error)) {
     return FORBIDDEN_ACTION_MESSAGE;

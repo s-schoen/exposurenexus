@@ -76,12 +76,8 @@ interface NucleiFindingParserDependencies {
   logger: Logger;
 }
 
-export function createNucleiFindingParser({
-  vulnerabilityService,
-  findingService,
-  getOrCreateAsset,
-  logger,
-}: NucleiFindingParserDependencies) {
+export function createNucleiFindingParser(dependencies: NucleiFindingParserDependencies) {
+  const { vulnerabilityService, findingService, logger } = dependencies;
   async function getOrCreateVulnerability(
     ctx: ImportContext,
     finding: NucleiFinding,
@@ -158,7 +154,7 @@ export function createNucleiFindingParser({
             `using vulnerability ${vulnerability.id} (${vulnerability.title}) for finding ${currentLine}`,
           );
 
-          const asset = await getOrCreateAsset(AssetType.Host, host, ctx.eventContext);
+          const asset = await dependencies.getOrCreateAsset(AssetType.Host, host, ctx.eventContext);
           const fingerprintInfo = {
             port: nucleiFinding.port || "",
             path: nucleiFinding.path || "",

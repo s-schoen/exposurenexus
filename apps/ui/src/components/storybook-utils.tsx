@@ -24,23 +24,24 @@ export function createStoryQueryClient() {
 }
 
 export function createObjectResponse(data: unknown, init?: ResponseInit) {
-  return new Response(JSON.stringify({ data }), {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
-  });
+  return new Response(JSON.stringify({ data }), createJsonResponseInit(init));
 }
 
 export function createArrayResponse(data: Array<unknown>, init?: ResponseInit) {
-  return new Response(JSON.stringify({ data: { items: data } }), {
+  return new Response(JSON.stringify({ data: { items: data } }), createJsonResponseInit(init));
+}
+
+function createJsonResponseInit(init?: ResponseInit): ResponseInit {
+  const headers = new Headers(init?.headers);
+
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  return {
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
-  });
+    headers,
+  };
 }
 
 interface RouterStoryProviderProps {

@@ -40,7 +40,7 @@ describe("user id route", () => {
     const { Route } = await import("@/routes/_authenticated/users/$id.tsx");
     const RouteComponent = Route.options.component as ComponentType;
 
-    await act(() => {
+    await act(async () => {
       render(
         <Suspense fallback={null}>
           <RouteComponent />

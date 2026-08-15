@@ -15,6 +15,7 @@ import {
   createDomainEventEmitter,
   type DomainEventContext,
   type DomainEventEmitter,
+  type EventSubjects,
   type FindingEventPayloads,
 } from "../lib/eventbus/events/index.js";
 import { ApplicationError, isApplicationError } from "./application-error.js";
@@ -119,8 +120,7 @@ export function createFindingService({
   domainEventEmitter,
   logger,
 }: FindingServiceDependencies): FindingService {
-  type FindingEventSubject = keyof FindingEventPayloads & string;
-  const emitFindingEvent = createDomainEventEmitter<FindingEventSubject>(
+  const emitFindingEvent = createDomainEventEmitter<EventSubjects<FindingEventPayloads>>(
     domainEventEmitter,
     "finding",
   );

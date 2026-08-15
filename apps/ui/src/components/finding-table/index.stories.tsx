@@ -305,7 +305,9 @@ function FindingTableStoryShell({ findings, assets, users, scenario }: FindingTa
         }
 
         if (method === "PUT") {
-          const update = JSON.parse(String(init?.body ?? "{}")) as UpdateFinding;
+          const update = JSON.parse(
+            typeof init?.body === "string" ? init.body : JSON.stringify(init?.body ?? {}),
+          ) as UpdateFinding;
           const updatedFinding = {
             ...finding,
             ...update,

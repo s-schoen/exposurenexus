@@ -3,6 +3,7 @@ import {
   createDomainEventEmitter,
   type DomainEventContext,
   type DomainEventEmitter,
+  type EventSubjects,
   type UserEventPayloads,
 } from "../lib/eventbus/events/index.js";
 import { ApplicationError } from "./application-error.js";
@@ -22,8 +23,6 @@ interface UserProfileServiceDependencies {
   domainEventEmitter: DomainEventEmitter;
   logger: Logger;
 }
-
-type UserEventSubject = keyof UserEventPayloads & string;
 
 export interface UpdateUserProfileByIDOptions {
   id: string;
@@ -66,7 +65,7 @@ export function createUserProfileService({
   domainEventEmitter,
   logger,
 }: UserProfileServiceDependencies): UserProfileService {
-  const emitUserProfileEvent = createDomainEventEmitter<UserEventSubject>(
+  const emitUserProfileEvent = createDomainEventEmitter<EventSubjects<UserEventPayloads>>(
     domainEventEmitter,
     "user-profile",
   );

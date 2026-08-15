@@ -187,7 +187,11 @@ function AssetDetailContentStoryShell({
           });
         }
 
-        const body = JSON.parse(String(init?.body ?? '{"ownerId":null}')) as Pick<Asset, "ownerId">;
+        const body = JSON.parse(
+          typeof init?.body === "string"
+            ? init.body
+            : JSON.stringify(init?.body ?? { ownerId: null }),
+        ) as Pick<Asset, "ownerId">;
         assetRef.current = {
           ...assetRef.current,
           ownerId: body.ownerId,
@@ -234,7 +238,9 @@ function AssetDetailContentStoryShell({
       if (requestUrl.includes(`${customFieldPath}/associations`)) {
         if (method === "PUT") {
           const body = JSON.parse(
-            String(init?.body ?? '{"fieldIds":[]}'),
+            typeof init?.body === "string"
+              ? init.body
+              : JSON.stringify(init?.body ?? { fieldIds: [] }),
           ) as UpdateAssetCustomFieldAssociations;
           const currentById = new Map(
             customFieldsRef.current.map((field) => [field.fieldId, field]),
@@ -265,7 +271,7 @@ function AssetDetailContentStoryShell({
 
       if (method === "PUT") {
         const body = JSON.parse(
-          String(init?.body ?? '{"values":[]}'),
+          typeof init?.body === "string" ? init.body : JSON.stringify(init?.body ?? { values: [] }),
         ) as UpdateAssetCustomFieldValues;
         customFieldsRef.current = applyCustomFieldValueUpdates(
           customFieldsRef.current,

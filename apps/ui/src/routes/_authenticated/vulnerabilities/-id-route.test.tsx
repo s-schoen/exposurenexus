@@ -42,7 +42,7 @@ describe("vulnerability id route", () => {
     const { Route } = await import("@/routes/_authenticated/vulnerabilities/$id.tsx");
     const RouteComponent = Route.options.component as ComponentType;
 
-    await act(() => {
+    await act(async () => {
       render(
         <Suspense fallback={null}>
           <RouteComponent />

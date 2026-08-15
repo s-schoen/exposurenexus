@@ -20,7 +20,7 @@ export function AccountMenu() {
 
   const onSignOut = async () => {
     await logout();
-    navigate({ to: "/login", search: { redirect: "/" } });
+    void navigate({ to: "/login", search: { redirect: "/" } });
   };
 
   const displayName = user?.displayName ?? user?.email ?? "Account";

@@ -5,6 +5,7 @@ import {
   createDomainEventEmitter,
   type AuthEventPayloads,
   type DomainEventEmitter,
+  type EventSubjects,
 } from "../lib/eventbus/events/index.js";
 import { ApplicationError } from "./application-error.js";
 
@@ -79,8 +80,6 @@ export interface ValidatedSession {
 }
 
 type ResourcePermissionVerbAssignment = Partial<Record<PermissionResource, PermissionVerb[]>>;
-type AuthEventSubject = keyof AuthEventPayloads & string;
-
 export interface AuthService {
   createSessionForCredentials(
     input: CreateSessionForCredentialsInput,
@@ -149,7 +148,10 @@ export function createAuthService(dependencies: AuthServiceDependencies): AuthSe
     domainEventEmitter,
     logger,
   } = dependencies;
-  const emitAuthEvent = createDomainEventEmitter<AuthEventSubject>(domainEventEmitter, "auth");
+  const emitAuthEvent = createDomainEventEmitter<EventSubjects<AuthEventPayloads>>(
+    domainEventEmitter,
+    "auth",
+  );
 
   async function authenticateUserProfile(
     username: string,

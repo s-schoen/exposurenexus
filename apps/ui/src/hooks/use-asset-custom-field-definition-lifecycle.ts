@@ -8,7 +8,7 @@ import {
   useDeleteAssetCustomFieldDefinitionMutation,
   useUpdateAssetCustomFieldDefinitionMutation,
 } from "@/api/asset-custom-field.ts";
-import { toastActionError } from "@/lib/action-error-toast.ts";
+import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 
 import type {
   AssetCustomFieldDefinition,
@@ -122,7 +122,7 @@ export function useAssetCustomFieldDefinitionLifecycle(): AssetCustomFieldDefini
 
         return createdDefinition;
       } catch (error) {
-        toastActionError(error, `Failed to create custom field: ${error}`);
+        toastActionError(error, `Failed to create custom field: ${formatActionError(error)}`);
         console.error(error);
         return null;
       }
@@ -141,7 +141,7 @@ export function useAssetCustomFieldDefinitionLifecycle(): AssetCustomFieldDefini
 
         return updatedDefinition;
       } catch (error) {
-        toastActionError(error, `Failed to update custom field: ${error}`);
+        toastActionError(error, `Failed to update custom field: ${formatActionError(error)}`);
         console.error(error);
         return null;
       }

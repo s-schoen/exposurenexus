@@ -186,7 +186,7 @@ describe("app container", () => {
     vi.clearAllMocks();
   });
 
-  it("wires custom auth services and routes", () => {
+  it("wires custom auth services and routes", async () => {
     const logger = pino({ enabled: false });
 
     const container = createAppContainer({
@@ -236,9 +236,7 @@ describe("app container", () => {
       createAuthServiceMock.mock.results[0]?.value,
       createAuthCookiePolicyMock.mock.results[0]?.value,
     );
-    expect(createRequireDomainPermissionMock).toHaveBeenCalledWith(
-      createAuthServiceMock.mock.results[0]?.value.userHasPermission,
-    );
+    expect(createRequireDomainPermissionMock).toHaveBeenCalledWith(expect.any(Function));
     expect(createUserProfileServiceMock).toHaveBeenCalledWith(
       expect.objectContaining({
         domainEventEmitter: expect.objectContaining({
@@ -301,7 +299,7 @@ describe("app container", () => {
       }),
     );
 
-    container.createDefaultAdmin();
+    await container.createDefaultAdmin();
 
     expect(createDefaultAdminMock).toHaveBeenCalledWith({
       db: {},

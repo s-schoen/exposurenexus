@@ -44,7 +44,7 @@ describe("database migration provider", () => {
 
     expect(Object.keys(migrations).sort()).toEqual(expectedMigrationNames);
     for (const name of expectedMigrationNames) {
-      expect(migrations[name]?.up).toEqual(expect.any(Function));
+      expect(typeof migrations[name]?.up).toBe("function");
     }
   });
 

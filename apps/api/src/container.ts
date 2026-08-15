@@ -95,7 +95,9 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     sessionHmacSecret: options.authSessionHmacSecret,
     logger: loggerFactory("service/auth"),
   });
-  const requireDomainPermission = createRequireDomainPermission(authService.userHasPermission);
+  const requireDomainPermission = createRequireDomainPermission(
+    authService.userHasPermission.bind(authService),
+  );
   const roleService = createRoleService({
     roleRepository: repositories.roleRepository,
     domainEventEmitter: eventBus,

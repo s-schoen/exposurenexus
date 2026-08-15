@@ -7,7 +7,7 @@ import {
   useCreateUserMutation,
   useUpdateUserMutation,
 } from "@/api/user.ts";
-import { toastActionError } from "@/lib/action-error-toast.ts";
+import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 
 import type {
   CreateUserProfile,
@@ -56,7 +56,7 @@ export function useUserLifecycle(): UserLifecycleActions {
 
         return createdUser;
       } catch (error) {
-        toastActionError(error, `Failed to create user: ${error}`);
+        toastActionError(error, `Failed to create user: ${formatActionError(error)}`);
         console.error(error);
         return null;
       }
@@ -75,7 +75,7 @@ export function useUserLifecycle(): UserLifecycleActions {
 
         return updatedUser;
       } catch (error) {
-        toastActionError(error, `Failed to update user: ${error}`);
+        toastActionError(error, `Failed to update user: ${formatActionError(error)}`);
         console.error(error);
         return null;
       }

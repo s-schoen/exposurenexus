@@ -13,7 +13,7 @@ import {
   useUpdateAssetCustomFieldValuesMutation,
   useUpdateAssetOwnerMutation,
 } from "@/api/asset.ts";
-import { toastActionError } from "@/lib/action-error-toast.ts";
+import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 
 import type { Asset, CreateAsset, UpdateAssetOwner } from "@exposurenexus/types/model/asset";
 import type {
@@ -219,7 +219,7 @@ export function useAssetLifecycle(): AssetLifecycleActions {
 
         return createdAsset;
       } catch (error) {
-        toastActionError(error, `Failed to create asset: ${error}`);
+        toastActionError(error, `Failed to create asset: ${formatActionError(error)}`);
         console.error(error);
         return null;
       }

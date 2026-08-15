@@ -26,7 +26,7 @@ interface SessionExpiryLocation {
 interface UserSessionExpiredRedirectOptions {
   clearSession: () => void;
   getLocation: () => SessionExpiryLocation;
-  navigateToLogin: (redirect: string) => Promise<unknown> | unknown;
+  navigateToLogin: (redirect: string) => Promise<void>;
   safeLoginRedirect: (redirect: unknown) => string;
 }
 

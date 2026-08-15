@@ -163,7 +163,7 @@ describe("authenticated route guard", () => {
     };
     const Component = Route.options.component as () => ReactNode;
 
-    await act(() => {
+    await act(async () => {
       render(<Component />);
     });
 
