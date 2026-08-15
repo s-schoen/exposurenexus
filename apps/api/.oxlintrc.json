@@ -1,0 +1,29 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.oxlintrc.json"],
+  "plugins": [],
+  "categories": {
+    "correctness": "off"
+  },
+  "env": {
+    "es2022": true
+  },
+  "ignorePatterns": ["coverage", "dist", "node_modules"],
+  "overrides": [
+    {
+      "files": ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+      "env": {
+        "node": true
+      },
+      "rules": {
+        "unicorn/prefer-node-protocol": "error"
+      }
+    },
+    {
+      "files": ["**/*.{test,spec}.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+      "env": {
+        "vitest": true
+      }
+    }
+  ]
+}
