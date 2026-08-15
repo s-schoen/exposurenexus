@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
 import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
@@ -14,7 +14,7 @@ vi.mock("../logging.js", () => ({
 vi.mock("../repository/asset.js", () => ({
   list: vi.fn(),
   getByID: vi.fn(),
-  getByName: vi.fn(),
+  getByDisplayName: vi.fn(),
   create: vi.fn(),
   deleteByID: vi.fn(),
 }));
@@ -74,9 +74,9 @@ describe("service factories", () => {
     const repository = {
       list: vi.fn().mockResolvedValue([]),
       getByID: vi.fn(),
-      getByName: vi.fn(),
+      getByDisplayName: vi.fn(),
       create: vi.fn(),
-      updateOwnerByID: vi.fn(),
+      updateByID: vi.fn(),
       deleteByID: vi.fn(),
       countFindingsByAssetID: vi.fn(),
     };
@@ -260,9 +260,15 @@ describe("service factories", () => {
     const assetService = {
       getByID: vi.fn().mockResolvedValue({
         id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-        name: "api.exposurenexus.local",
+        displayName: "api.exposurenexus.local",
         type: AssetType.Host,
+        environment: AssetEnvironment.Production,
+        lifecycleState: AssetLifecycleState.Active,
         ownerId: null,
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+        createdBy: user.id,
+        updatedBy: user.id,
       }),
     };
     vi.useFakeTimers();

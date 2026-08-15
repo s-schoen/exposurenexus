@@ -3,16 +3,18 @@ import { type Kysely } from "kysely";
 
 import { type Database } from "../db/index.js";
 
-export type CreateAssetRecord = Omit<Asset, "ownerId"> & {
-  ownerId?: Asset["ownerId"];
-};
+export type CreateAssetRecord = Omit<Asset, "id">;
+export type UpdateAssetRecord = Partial<
+  Pick<Asset, "displayName" | "type" | "environment" | "lifecycleState" | "ownerId">
+> &
+  Pick<Asset, "updatedAt" | "updatedBy">;
 
 export interface AssetRepository {
   list(): Promise<Asset[]>;
   getByID(id: string): Promise<Asset | null>;
-  getByName(name: string, type?: AssetType): Promise<Asset | null>;
+  getByDisplayName(displayName: string, type?: AssetType): Promise<Asset | null>;
   create(asset: CreateAssetRecord): Promise<Asset>;
-  updateOwnerByID(id: string, ownerId: Asset["ownerId"]): Promise<Asset | null>;
+  updateByID(id: string, asset: UpdateAssetRecord): Promise<Asset | null>;
   deleteByID(id: string): Promise<Asset | null>;
   countFindingsByAssetID(id: string): Promise<number>;
 }
@@ -33,8 +35,8 @@ export function createAssetRepository(database: Kysely<Database>): AssetReposito
       return assets[0];
     },
 
-    async getByName(name: string, type?: AssetType): Promise<Asset | null> {
-      let query = database.selectFrom("asset").selectAll().where("name", "=", name);
+    async getByDisplayName(displayName: string, type?: AssetType): Promise<Asset | null> {
+      let query = database.selectFrom("asset").selectAll().where("displayName", "=", displayName);
       if (type) {
         query = query.where("type", "=", type);
       }
@@ -47,9 +49,7 @@ export function createAssetRepository(database: Kysely<Database>): AssetReposito
       const createdAsset = await database
         .insertInto("asset")
         .values({
-          name: asset.name,
-          type: asset.type,
-          ownerId: asset.ownerId ?? null,
+          ...asset,
         })
         .returningAll()
         .executeTakeFirst();
@@ -57,11 +57,17 @@ export function createAssetRepository(database: Kysely<Database>): AssetReposito
       return createdAsset!;
     },
 
-    async updateOwnerByID(id: string, ownerId: Asset["ownerId"]): Promise<Asset | null> {
+    async updateByID(id: string, asset: UpdateAssetRecord): Promise<Asset | null> {
       const updatedAsset = await database
         .updateTable("asset")
         .set({
-          ownerId,
+          ...(asset.displayName === undefined ? {} : { displayName: asset.displayName }),
+          ...(asset.type === undefined ? {} : { type: asset.type }),
+          ...(asset.environment === undefined ? {} : { environment: asset.environment }),
+          ...(asset.lifecycleState === undefined ? {} : { lifecycleState: asset.lifecycleState }),
+          ...(asset.ownerId === undefined ? {} : { ownerId: asset.ownerId }),
+          updatedAt: asset.updatedAt,
+          updatedBy: asset.updatedBy,
         })
         .where("id", "=", id)
         .returningAll()

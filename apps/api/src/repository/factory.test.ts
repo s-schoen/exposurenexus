@@ -33,10 +33,10 @@ describe("repository factories", () => {
 
     const repository = createAssetRepository(db as never);
 
-    await repository.getByName("api.exposurenexus.local", AssetType.Host);
+    await repository.getByDisplayName("api.exposurenexus.local", AssetType.Host);
 
     expect(selectFrom).toHaveBeenCalledWith("asset");
-    expect(query.where).toHaveBeenNthCalledWith(1, "name", "=", "api.exposurenexus.local");
+    expect(query.where).toHaveBeenNthCalledWith(1, "displayName", "=", "api.exposurenexus.local");
     expect(query.where).toHaveBeenNthCalledWith(2, "type", "=", AssetType.Host);
     expect(execute).toHaveBeenCalledOnce();
   });

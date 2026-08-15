@@ -124,7 +124,7 @@ describe("asset custom field service", () => {
   it("lists effective custom field values for an existing asset", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: "host",
       ownerId: null,
     };
@@ -162,7 +162,7 @@ describe("asset custom field service", () => {
   it("maps effective value list failures to an application error", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: "host",
       ownerId: null,
     };
@@ -209,7 +209,7 @@ describe("asset custom field service", () => {
   it("lists custom field definitions available for an existing asset", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: "host",
       ownerId: null,
     };
@@ -248,7 +248,7 @@ describe("asset custom field service", () => {
   it("maps available custom field list failures to an application error", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: "host",
       ownerId: null,
     };
@@ -269,7 +269,7 @@ describe("asset custom field service", () => {
   it("replaces custom field assignments for an existing asset", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -341,7 +341,7 @@ describe("asset custom field service", () => {
   it("rejects replacing assignments with unknown custom field ids", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -368,7 +368,7 @@ describe("asset custom field service", () => {
   it("rejects replacing assignments with duplicate custom field ids", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -395,7 +395,7 @@ describe("asset custom field service", () => {
   it("does not emit asset update events when assignment changes do not change the effective snapshot", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -437,7 +437,7 @@ describe("asset custom field service", () => {
   it("maps custom field assignment replacement failures to an application error", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -492,7 +492,7 @@ describe("asset custom field service", () => {
   it("rejects value replacements for unassigned custom field ids", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -524,7 +524,7 @@ describe("asset custom field service", () => {
   it("rejects invalid custom field value types", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -574,7 +574,7 @@ describe("asset custom field service", () => {
   it("rejects value replacements that omit assigned custom fields", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -616,7 +616,7 @@ describe("asset custom field service", () => {
   it("rejects value replacements with duplicate custom field ids", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -661,7 +661,7 @@ describe("asset custom field service", () => {
   it("rejects select custom field values outside the option set", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -720,7 +720,7 @@ describe("asset custom field service", () => {
   it("replaces custom field values and emits changed asset snapshots", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -798,7 +798,7 @@ describe("asset custom field service", () => {
   it("does not emit asset update events for unchanged custom field values", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -844,7 +844,7 @@ describe("asset custom field service", () => {
   it("replaces text custom field values", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -900,7 +900,7 @@ describe("asset custom field service", () => {
   it("maps custom field value replacement failures to an application error", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };

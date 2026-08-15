@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import {
   type AssetCustomFieldDefinition,
   AssetCustomFieldType,
@@ -67,9 +67,15 @@ describe("registerAuditLogger", () => {
   };
   const asset = {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-    name: "api.exposurenexus.local",
+    displayName: "api.exposurenexus.local",
     type: AssetType.Host,
+    environment: AssetEnvironment.Production,
+    lifecycleState: AssetLifecycleState.Active,
     ownerId: null,
+    createdAt: new Date("2026-05-07T09:10:00.000Z"),
+    updatedAt: new Date("2026-05-07T09:10:00.000Z"),
+    createdBy: user.id,
+    updatedBy: user.id,
     customFields: [],
   };
   const customFieldDefinition: AssetCustomFieldDefinition = {

@@ -1,8 +1,11 @@
 import {
   type Asset,
   type AssetWithCustomFields,
+  AssetEnvironment,
+  AssetLifecycleState,
   AssetType,
   type CreateAsset,
+  type UpdateAsset,
 } from "@exposurenexus/types/model/asset";
 import { type AssetCustomFieldValue } from "@exposurenexus/types/model/asset-custom-field";
 
@@ -33,6 +36,20 @@ function assetSnapshotsEqual(
   return JSON.stringify(previous) === JSON.stringify(current);
 }
 
+function normalizeDisplayName(displayName: string): string {
+  const normalized = displayName.trim();
+  if (normalized.length === 0 || normalized.length > 255) {
+    throw new ApplicationError({
+      code: "asset.display_name_invalid",
+      kind: "validation",
+      message: "asset display name must contain 1 to 255 characters",
+      details: { displayName },
+    });
+  }
+
+  return normalized;
+}
+
 interface UserProfileLookupService {
   getByID(id: string): Promise<UserProfile | null>;
 }
@@ -45,9 +62,16 @@ interface AssetServiceDependencies {
   logger: Logger;
 }
 
-export interface UpdateAssetOwnerOptions {
+export interface CreateAssetOptions {
+  asset: CreateAsset;
+  user: UserProfile;
+  eventContext?: DomainEventContext;
+}
+
+export interface UpdateAssetOptions {
   id: string;
-  ownerId: Asset["ownerId"];
+  asset: UpdateAsset;
+  user: UserProfile;
   eventContext?: DomainEventContext;
 }
 
@@ -55,9 +79,9 @@ export interface AssetService {
   listAll(): Promise<Asset[]>;
   listAllWithCustomFields(): Promise<AssetWithCustomFields[]>;
   getByID(id: string): Promise<Asset | null>;
-  getByName(name: string, type?: AssetType): Promise<Asset | null>;
-  create(asset: CreateAsset, eventContext?: DomainEventContext): Promise<Asset>;
-  updateOwnerByID(opts: UpdateAssetOwnerOptions): Promise<Asset | null>;
+  getByDisplayName(displayName: string, type?: AssetType): Promise<Asset | null>;
+  create(opts: CreateAssetOptions): Promise<Asset>;
+  updateByID(opts: UpdateAssetOptions): Promise<Asset | null>;
   deleteByID(id: string, eventContext?: DomainEventContext): Promise<Asset | null>;
 }
 
@@ -99,6 +123,22 @@ export function createAssetService({
       ...asset,
       customFields: valuesByAssetId.get(asset.id) ?? [],
     }));
+  }
+
+  async function validateOwner(ownerId: string | null | undefined): Promise<void> {
+    if (!ownerId) {
+      return;
+    }
+
+    const owner = await userProfileService.getByID(ownerId);
+    if (!owner) {
+      throw new ApplicationError({
+        code: "asset.owner_unknown",
+        kind: "validation",
+        message: "asset owner does not exist",
+        details: { ownerId },
+      });
+    }
   }
 
   function emitUpdatedAssetEvent(
@@ -166,97 +206,111 @@ export function createAssetService({
       }
     },
 
-    async getByName(name: string, type?: AssetType): Promise<Asset | null> {
+    async getByDisplayName(displayName: string, type?: AssetType): Promise<Asset | null> {
       try {
-        const asset = await assetRepository.getByName(name, type);
+        const asset = await assetRepository.getByDisplayName(displayName, type);
         if (!asset) {
-          logger.debug(`asset with name='${name}' and type=${type} not found`);
+          logger.debug(`asset with displayName='${displayName}' and type=${type} not found`);
         }
         return asset;
       } catch (error) {
-        logger.error(error, `failed to get asset with name='${name}' and type=${type}`);
+        logger.error(
+          error,
+          `failed to get asset with displayName='${displayName}' and type=${type}`,
+        );
         throw new ApplicationError({
           code: "asset.get_by_name_failed",
           kind: "unexpected",
           message: "failed to get asset",
           cause: error,
-          details: { assetName: name, assetType: type },
+          details: { assetDisplayName: displayName, assetType: type },
         });
       }
     },
 
-    async create(asset: CreateAsset, eventContext?: DomainEventContext): Promise<Asset> {
+    async create(opts: CreateAssetOptions): Promise<Asset> {
       try {
-        if (asset.ownerId) {
-          const owner = await userProfileService.getByID(asset.ownerId);
+        const displayName = normalizeDisplayName(opts.asset.displayName);
+        await validateOwner(opts.asset.ownerId);
 
-          if (!owner) {
-            throw new ApplicationError({
-              code: "asset.owner_unknown",
-              kind: "validation",
-              message: "asset owner does not exist",
-              details: { ownerId: asset.ownerId },
-            });
-          }
-        }
-
+        const now = new Date();
         const created = await assetRepository.create({
-          id: "",
-          ownerId: null,
-          ...asset,
+          displayName,
+          type: opts.asset.type,
+          environment: opts.asset.environment ?? AssetEnvironment.Unknown,
+          lifecycleState: opts.asset.lifecycleState ?? AssetLifecycleState.Active,
+          ownerId: opts.asset.ownerId ?? null,
+          createdAt: now,
+          updatedAt: now,
+          createdBy: opts.user.id,
+          updatedBy: opts.user.id,
         });
 
         const createdSnapshot = await hydrateAsset(created);
-        emitAssetEvent("asset.created", { asset: createdSnapshot }, eventContext);
+        emitAssetEvent("asset.created", { asset: createdSnapshot }, opts.eventContext);
         return created;
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;
         }
 
-        logger.error(error, `failed to create new asset ${asset.name}`);
+        logger.error(error, `failed to create new asset ${opts.asset.displayName}`);
         throw new ApplicationError({
           code: "asset.create_failed",
           kind: "unexpected",
           message: "failed to create asset",
           cause: error,
-          details: { assetName: asset.name, assetType: asset.type },
+          details: { assetDisplayName: opts.asset.displayName, assetType: opts.asset.type },
         });
       }
     },
 
-    async updateOwnerByID(opts: UpdateAssetOwnerOptions): Promise<Asset | null> {
-      const { id, ownerId, eventContext } = opts;
-
+    async updateByID(opts: UpdateAssetOptions): Promise<Asset | null> {
       try {
-        if (ownerId) {
-          const owner = await userProfileService.getByID(ownerId);
-
-          if (!owner) {
-            throw new ApplicationError({
-              code: "asset.owner_unknown",
-              kind: "validation",
-              message: "asset owner does not exist",
-              details: { ownerId },
-            });
-          }
+        if (Object.keys(opts.asset).length === 0) {
+          throw new ApplicationError({
+            code: "asset.update_empty",
+            kind: "validation",
+            message: "at least one asset field must be provided",
+          });
         }
 
-        const previous = await getAssetSnapshot(id);
-        if (!previous) {
-          logger.debug(`cannot update asset ${id} owner: not found`);
+        const asset: UpdateAsset = {
+          ...opts.asset,
+          ...(opts.asset.displayName === undefined
+            ? {}
+            : { displayName: normalizeDisplayName(opts.asset.displayName) }),
+        };
+
+        const previousAsset = await assetRepository.getByID(opts.id);
+        if (!previousAsset) {
+          logger.debug(`cannot update asset ${opts.id}: not found`);
           return null;
         }
 
-        const updated = await assetRepository.updateOwnerByID(id, ownerId);
+        await validateOwner(asset.ownerId);
+
+        const hasChanges = Object.entries(asset).some(
+          ([key, value]) => previousAsset[key as keyof UpdateAsset] !== value,
+        );
+        if (!hasChanges) {
+          return previousAsset;
+        }
+
+        const updated = await assetRepository.updateByID(opts.id, {
+          ...asset,
+          updatedAt: new Date(),
+          updatedBy: opts.user.id,
+        });
         if (!updated) {
-          logger.debug(`cannot update asset ${id} owner: not found`);
+          logger.debug(`cannot update asset ${opts.id}: not found`);
           return null;
         }
 
-        const current = await getAssetSnapshot(id);
+        const previous = await hydrateAsset(previousAsset);
+        const current = await getAssetSnapshot(opts.id);
         if (current) {
-          emitUpdatedAssetEvent(previous, current, eventContext);
+          emitUpdatedAssetEvent(previous, current, opts.eventContext);
         }
         return updated;
       } catch (error) {
@@ -264,13 +318,13 @@ export function createAssetService({
           throw error;
         }
 
-        logger.error(error, `failed to update asset ${id} owner`);
+        logger.error(error, `failed to update asset with id ${opts.id}`);
         throw new ApplicationError({
-          code: "asset.owner_update_failed",
+          code: "asset.update_failed",
           kind: "unexpected",
-          message: "failed to update asset owner",
+          message: "failed to update asset",
           cause: error,
-          details: { assetId: id },
+          details: { assetId: opts.id },
         });
       }
     },

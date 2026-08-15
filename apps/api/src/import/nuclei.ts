@@ -11,6 +11,7 @@ import { badRequest } from "../lib/api-error.js";
 import type { FindingService } from "../service/finding.js";
 import type { VulnerabilityService } from "../service/vulnerability.js";
 import type { ImportContext } from "./importer.js";
+import type { GetOrCreateAssetOptions } from "./util.js";
 import type { Logger } from "pino";
 
 const nucleiFindingSchema = z
@@ -68,11 +69,7 @@ type NucleiFindingService = Pick<FindingService, "createOrUpdate">;
 interface NucleiFindingParserDependencies {
   vulnerabilityService: NucleiVulnerabilityService;
   findingService: NucleiFindingService;
-  getOrCreateAsset(
-    type: AssetType,
-    name: string,
-    eventContext?: ImportContext["eventContext"],
-  ): Promise<Asset>;
+  getOrCreateAsset(options: GetOrCreateAssetOptions): Promise<Asset>;
   logger: Logger;
 }
 
@@ -154,7 +151,12 @@ export function createNucleiFindingParser(dependencies: NucleiFindingParserDepen
             `using vulnerability ${vulnerability.id} (${vulnerability.title}) for finding ${currentLine}`,
           );
 
-          const asset = await dependencies.getOrCreateAsset(AssetType.Host, host, ctx.eventContext);
+          const asset = await dependencies.getOrCreateAsset({
+            type: AssetType.Host,
+            displayName: host,
+            user: ctx.user,
+            eventContext: ctx.eventContext,
+          });
           const fingerprintInfo = {
             port: nucleiFinding.port || "",
             path: nucleiFinding.path || "",

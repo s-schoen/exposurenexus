@@ -276,6 +276,146 @@ describe("db migration columns", () => {
     ]);
   });
 
+  it("creates the expanded asset core metadata and audit contract", async () => {
+    const assetColumns = await sql<{
+      column_name: string;
+      data_type: string;
+      is_nullable: string;
+    }>`
+      select column_name, data_type, is_nullable
+      from information_schema.columns
+      where table_name = 'asset'
+        and column_name in (
+          'displayName',
+          'type',
+          'environment',
+          'lifecycleState',
+          'ownerId',
+          'createdAt',
+          'updatedAt',
+          'createdBy',
+          'updatedBy'
+        )
+      order by column_name asc
+    `.execute(testDb.db);
+    const assetTypes = await sql<{ typname: string; enumlabel: string }>`
+      select pg_type.typname, pg_enum.enumlabel
+      from pg_type
+      join pg_enum on pg_enum.enumtypid = pg_type.oid
+      where pg_type.typname in ('asset_type', 'asset_environment', 'asset_lifecycle_state')
+      order by pg_type.typname asc, pg_enum.enumsortorder asc
+    `.execute(testDb.db);
+    const auditForeignKeys = await sql<{
+      constraint_name: string;
+      source_table: string;
+      target_table: string;
+      delete_rule: string;
+    }>`
+      select
+        rc.constraint_name,
+        kcu.table_name as source_table,
+        ccu.table_name as target_table,
+        rc.delete_rule
+      from information_schema.referential_constraints rc
+      join information_schema.key_column_usage kcu
+        on kcu.constraint_catalog = rc.constraint_catalog
+        and kcu.constraint_schema = rc.constraint_schema
+        and kcu.constraint_name = rc.constraint_name
+      join information_schema.constraint_column_usage ccu
+        on ccu.constraint_catalog = rc.unique_constraint_catalog
+        and ccu.constraint_schema = rc.unique_constraint_schema
+        and ccu.constraint_name = rc.unique_constraint_name
+      where kcu.table_name = 'asset'
+        and kcu.column_name in ('ownerId', 'createdBy', 'updatedBy')
+      order by constraint_name asc
+    `.execute(testDb.db);
+
+    expect(assetColumns.rows).toEqual(
+      expect.arrayContaining([
+        {
+          column_name: "displayName",
+          data_type: "character varying",
+          is_nullable: "NO",
+        },
+        {
+          column_name: "type",
+          data_type: "USER-DEFINED",
+          is_nullable: "NO",
+        },
+        {
+          column_name: "environment",
+          data_type: "USER-DEFINED",
+          is_nullable: "NO",
+        },
+        {
+          column_name: "lifecycleState",
+          data_type: "USER-DEFINED",
+          is_nullable: "NO",
+        },
+        {
+          column_name: "ownerId",
+          data_type: "uuid",
+          is_nullable: "YES",
+        },
+        {
+          column_name: "createdAt",
+          data_type: "timestamp with time zone",
+          is_nullable: "NO",
+        },
+        {
+          column_name: "updatedAt",
+          data_type: "timestamp with time zone",
+          is_nullable: "NO",
+        },
+        {
+          column_name: "createdBy",
+          data_type: "uuid",
+          is_nullable: "NO",
+        },
+        {
+          column_name: "updatedBy",
+          data_type: "uuid",
+          is_nullable: "NO",
+        },
+      ]),
+    );
+    expect(assetColumns.rows.map((row) => row.column_name)).not.toContain("name");
+    expect(assetTypes.rows).toEqual([
+      { typname: "asset_environment", enumlabel: "development" },
+      { typname: "asset_environment", enumlabel: "staging" },
+      { typname: "asset_environment", enumlabel: "production" },
+      { typname: "asset_environment", enumlabel: "unknown" },
+      { typname: "asset_environment", enumlabel: "notApplicable" },
+      { typname: "asset_lifecycle_state", enumlabel: "active" },
+      { typname: "asset_lifecycle_state", enumlabel: "archived" },
+      { typname: "asset_type", enumlabel: "host" },
+      { typname: "asset_type", enumlabel: "software" },
+      { typname: "asset_type", enumlabel: "containerImage" },
+      { typname: "asset_type", enumlabel: "cloudResource" },
+    ]);
+    expect(auditForeignKeys.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source_table: "asset",
+          target_table: "user_profile",
+          delete_rule: "SET NULL",
+        }),
+        expect.objectContaining({
+          constraint_name: "asset_createdBy_fkey",
+          source_table: "asset",
+          target_table: "user_profile",
+          delete_rule: "RESTRICT",
+        }),
+        expect.objectContaining({
+          constraint_name: "asset_updatedBy_fkey",
+          source_table: "asset",
+          target_table: "user_profile",
+          delete_rule: "RESTRICT",
+        }),
+      ]),
+    );
+  });
+
   it("adds nullable finding assignee identity pointing at user profiles", async () => {
     const findingAssigneeColumns = await sql<{
       column_name: string;
