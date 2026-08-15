@@ -1,0 +1,25 @@
+import {
+  failure,
+  finishValue,
+  invalidFormat,
+  type NormalizationResult,
+} from "./normalization-result.js";
+import { AssetIdentifierValidationReason } from "./types.js";
+
+export function normalizeCloudResourceId(value: string): NormalizationResult {
+  const normalized = value.trim();
+  if (normalized.length === 0) {
+    return failure(
+      AssetIdentifierValidationReason.Empty,
+      "empty",
+      "Cloud resource IDs must not be empty.",
+    );
+  }
+  if (/[\p{Cc}\p{Cf}]/u.test(normalized)) {
+    return invalidFormat(
+      "cloud_control",
+      "Cloud resource IDs must not contain control characters.",
+    );
+  }
+  return finishValue(normalized, "cloud_value");
+}
