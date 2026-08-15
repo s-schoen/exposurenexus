@@ -22,10 +22,10 @@ function createBaseColumns(
 ): Array<DataTableColumnDef<AssetWithCustomFields>> {
   return [
     {
-      accessorKey: "name",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      accessorKey: "displayName",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Display name" />,
       meta: {
-        label: "Name",
+        label: "Display name",
       },
     },
     {
@@ -36,6 +36,26 @@ function createBaseColumns(
       },
       meta: {
         label: "Type",
+      },
+    },
+    {
+      accessorKey: "environment",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Environment" />,
+      cell: ({ row }) => {
+        return <span>{capitalizeFirstLetter(row.getValue("environment"))}</span>;
+      },
+      meta: {
+        label: "Environment",
+      },
+    },
+    {
+      accessorKey: "lifecycleState",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Lifecycle state" />,
+      cell: ({ row }) => {
+        return <span>{capitalizeFirstLetter(row.getValue("lifecycleState"))}</span>;
+      },
+      meta: {
+        label: "Lifecycle state",
       },
     },
     {

@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -146,9 +146,15 @@ describe("asset table custom field grouping", () => {
       | undefined;
     const asset: AssetWithCustomFields = {
       id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
-      name: "api-01",
+      displayName: "api-01",
       type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Active,
       ownerId,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: ownerId,
+      updatedBy: ownerId,
       customFields: [],
     };
 
@@ -206,9 +212,15 @@ describe("asset table custom field grouping", () => {
     ) as DataTableAccessorFnColumnDef<AssetWithCustomFields, string>;
     const asset: AssetWithCustomFields = {
       id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
-      name: "api-01",
+      displayName: "api-01",
       type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Active,
       ownerId: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+      updatedBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
       customFields: [
         {
           fieldId: environmentDefinition.id,
@@ -239,7 +251,7 @@ describe("asset table custom field grouping", () => {
     const row = {
       original: {
         id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
-        name: "api-01",
+        displayName: "api-01",
         type: AssetType.Host,
         customFields: [
           {
@@ -273,7 +285,7 @@ describe("asset table custom field grouping", () => {
     const row = {
       original: {
         id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
-        name: "api-01",
+        displayName: "api-01",
         type: AssetType.Host,
         customFields: [
           {
@@ -314,7 +326,7 @@ describe("asset table custom field grouping", () => {
     const row = {
       original: {
         id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
-        name: "api-01",
+        displayName: "api-01",
         type: AssetType.Host,
         customFields: [
           {
@@ -332,7 +344,7 @@ describe("asset table custom field grouping", () => {
     const emptyRow = {
       original: {
         id: "08488dd1-4f23-445b-81e5-74e76361caa0",
-        name: "worker-01",
+        displayName: "worker-01",
         type: AssetType.Host,
         customFields: [],
       },

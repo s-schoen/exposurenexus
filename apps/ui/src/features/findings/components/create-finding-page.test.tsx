@@ -105,7 +105,7 @@ vi.mock("@/components/ui/select.tsx", async () => {
       placeholder?: string;
     }) => {
       const { value } = React.useContext(SelectContext);
-      const content = typeof children === "function" ? children(value) : (value ?? children);
+      const content = typeof children === "function" ? children(value) : (children ?? value);
 
       return <span>{content ?? placeholder}</span>;
     },
@@ -288,6 +288,14 @@ describe("CreateFindingPage", () => {
         }),
       );
     });
+  });
+
+  it("renders the selected assignee label instead of its id", () => {
+    renderCreateFindingPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Alex Assignee" }));
+
+    expect(screen.getByLabelText(/assignee/i)).toHaveTextContent("Alex Assignee");
   });
 
   it("clears a selected assignee before creating", async () => {

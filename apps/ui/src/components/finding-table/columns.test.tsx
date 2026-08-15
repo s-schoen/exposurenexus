@@ -1,9 +1,10 @@
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { FindingStatus } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { Asset, AssetType } from "@exposurenexus/types/model/asset";
+import type { Asset } from "@exposurenexus/types/model/asset";
 import type { Finding } from "@exposurenexus/types/model/finding";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { ReactNode } from "react";
@@ -80,9 +81,15 @@ const finding: Finding = {
 };
 const asset: Asset = {
   id: finding.assetId,
-  name: "api-01",
-  type: "host" as AssetType,
+  displayName: "api-01",
+  type: AssetType.Host,
+  environment: AssetEnvironment.Production,
+  lifecycleState: AssetLifecycleState.Active,
   ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+  createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
+  updatedBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
 };
 const user: UserProfile = {
   id: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",

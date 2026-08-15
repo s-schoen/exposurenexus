@@ -15,9 +15,9 @@ import {
 
 import type {
   Asset,
-  AssetType,
+  CreateAsset,
   AssetWithCustomFields,
-  UpdateAssetOwner,
+  UpdateAsset,
 } from "@exposurenexus/types/model/asset";
 import type {
   AssetCustomFieldDefinition,
@@ -156,21 +156,13 @@ export async function replaceAssetCustomFieldAssociations(
   return parseArrayReply(response, assetCustomFieldValueSchema);
 }
 
-export async function createAsset(
-  name: string,
-  type: AssetType,
-  ownerId: string | null = null,
-): Promise<Asset> {
+export async function createAsset(asset: CreateAsset): Promise<Asset> {
   const response = await apiRequest("/api/assets", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      name,
-      type,
-      ownerId,
-    }),
+    body: JSON.stringify(asset),
   });
 
   if (!response.ok) {
@@ -182,18 +174,13 @@ export async function createAsset(
   return parseObjectReply(response, assetSchema);
 }
 
-export async function updateAssetOwner(
-  assetId: string,
-  ownerId: UpdateAssetOwner["ownerId"],
-): Promise<Asset> {
-  const response = await apiRequest(`/api/assets/${assetId}/owner`, {
-    method: "PUT",
+export async function updateAsset(assetId: string, asset: UpdateAsset): Promise<Asset> {
+  const response = await apiRequest(`/api/assets/${assetId}`, {
+    method: "PATCH",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      ownerId,
-    }),
+    body: JSON.stringify(asset),
   });
 
   if (!response.ok) {
@@ -250,15 +237,7 @@ export function createAvailableAssetCustomFieldDefinitionsQueryOptions(assetId: 
 
 export function useCreateAssetMutation() {
   return useMutation({
-    mutationFn: ({
-      name,
-      type,
-      ownerId = null,
-    }: {
-      name: string;
-      type: AssetType;
-      ownerId?: string | null;
-    }) => createAsset(name, type, ownerId),
+    mutationFn: (asset: CreateAsset) => createAsset(asset),
   });
 }
 
@@ -268,10 +247,10 @@ export function useDeleteAssetMutation() {
   });
 }
 
-export function useUpdateAssetOwnerMutation() {
+export function useUpdateAssetMutation() {
   return useMutation({
-    mutationFn: ({ assetId, ownerId }: { assetId: string; ownerId: UpdateAssetOwner["ownerId"] }) =>
-      updateAssetOwner(assetId, ownerId),
+    mutationFn: ({ assetId, asset }: { assetId: string; asset: UpdateAsset }) =>
+      updateAsset(assetId, asset),
   });
 }
 

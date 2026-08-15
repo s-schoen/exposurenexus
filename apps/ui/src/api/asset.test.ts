@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -18,10 +18,10 @@ import {
   listAvailableAssetCustomFieldDefinitions,
   replaceAssetCustomFieldAssociations,
   updateAssetCustomFieldValues,
-  updateAssetOwner,
+  updateAsset,
 } from "@/api/asset.ts";
 
-import type { Asset, AssetWithCustomFields } from "@exposurenexus/types/model/asset";
+import type { Asset, AssetWithCustomFields, CreateAsset } from "@exposurenexus/types/model/asset";
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
@@ -58,9 +58,15 @@ const assetId = "0bb9b410-7763-4e7a-9942-b752367fd63d";
 const fieldId = "33d63e64-8f2b-4f88-b26f-fb090b4366ff";
 const asset: Asset = {
   id: assetId,
-  name: "api.exposurenexus.local",
+  displayName: "api.exposurenexus.local",
   type: AssetType.Host,
+  environment: AssetEnvironment.Production,
+  lifecycleState: AssetLifecycleState.Active,
   ownerId: null,
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+  createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+  updatedBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
 };
 const definition: AssetCustomFieldDefinition = {
   id: fieldId,
@@ -82,13 +88,17 @@ const values: Array<AssetCustomFieldValue> = [
 ];
 const assetsWithCustomFields: Array<AssetWithCustomFields> = [
   {
-    id: assetId,
-    name: "api.exposurenexus.local",
-    type: AssetType.Host,
-    ownerId: null,
+    ...asset,
     customFields: values,
   },
 ];
+const createPayload: CreateAsset = {
+  displayName: asset.displayName,
+  type: asset.type,
+  environment: asset.environment,
+  lifecycleState: asset.lifecycleState,
+  ownerId: asset.ownerId,
+};
 const associationUpdates: UpdateAssetCustomFieldAssociations["fieldIds"] = [fieldId];
 const valueUpdates: UpdateAssetCustomFieldValues["values"] = [
   {
@@ -182,7 +192,7 @@ describe("asset custom field value api", () => {
       }),
     );
 
-    await expect(createAsset(asset.name, asset.type, asset.ownerId)).resolves.toEqual(asset);
+    await expect(createAsset(createPayload)).resolves.toEqual(asset);
 
     const headers = requestInit().headers as Headers;
     expect(fetchMock).toHaveBeenCalledWith(
@@ -194,9 +204,7 @@ describe("asset custom field value api", () => {
     );
     expect(headers.get("Content-Type")).toBe("application/json");
     expect(requestJsonBody()).toEqual({
-      name: asset.name,
-      type: asset.type,
-      ownerId: asset.ownerId,
+      ...createPayload,
     });
   });
 
@@ -211,19 +219,18 @@ describe("asset custom field value api", () => {
       }),
     );
 
-    await expect(createAsset(asset.name, asset.type, ownerId)).resolves.toEqual({
+    await expect(createAsset({ ...createPayload, ownerId })).resolves.toEqual({
       ...asset,
       ownerId,
     });
 
     expect(requestJsonBody()).toEqual({
-      name: asset.name,
-      type: asset.type,
+      ...createPayload,
       ownerId,
     });
   });
 
-  it("updates asset owners", async () => {
+  it("updates asset core metadata", async () => {
     const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
     const updatedAsset = {
       ...asset,
@@ -232,13 +239,13 @@ describe("asset custom field value api", () => {
 
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: updatedAsset }));
 
-    await expect(updateAssetOwner(asset.id, ownerId)).resolves.toEqual(updatedAsset);
+    await expect(updateAsset(asset.id, { ownerId })).resolves.toEqual(updatedAsset);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `/api/assets/${asset.id}/owner`,
+      `/api/assets/${asset.id}`,
       expect.objectContaining({
         credentials: "include",
-        method: "PUT",
+        method: "PATCH",
       }),
     );
     expect(requestJsonBody()).toEqual({ ownerId });
@@ -247,7 +254,7 @@ describe("asset custom field value api", () => {
   it("clears asset owners", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: asset }));
 
-    await expect(updateAssetOwner(asset.id, null)).resolves.toEqual(asset);
+    await expect(updateAsset(asset.id, { ownerId: null })).resolves.toEqual(asset);
 
     expect(requestJsonBody()).toEqual({ ownerId: null });
   });

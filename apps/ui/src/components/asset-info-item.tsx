@@ -28,7 +28,7 @@ export function AssetInfoItem({ assetId }: AssetInfoItemProps) {
       </ItemMedia>
       <ItemContent>
         <ItemTitle className="font-semibold">
-          {asset.isLoading ? <Skeleton className="w-32" /> : asset.data?.name}
+          {asset.isLoading ? <Skeleton className="w-32" /> : asset.data?.displayName}
         </ItemTitle>
         <ItemDescription>
           {asset.isLoading ? (

@@ -4,7 +4,7 @@ import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 interface StoryAsset {
-  name: string;
+  displayName: string;
   type: string;
 }
 
@@ -24,7 +24,7 @@ const meta = {
   args: {
     query: {
       data: {
-        name: "web-01",
+        displayName: "web-01",
         type: "Host",
       },
       error: null,
@@ -38,8 +38,8 @@ const meta = {
       <div className="grid gap-3 sm:grid-cols-2">
         <DetailHighlightCard
           label="Asset"
-          value={asset.name}
-          description="Primary identifier used across the platform"
+          value={asset.displayName}
+          description="Human-readable label for this asset"
         />
         <DetailHighlightCard
           label="Type"

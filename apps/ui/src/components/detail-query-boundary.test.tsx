@@ -9,7 +9,7 @@ afterEach(() => {
   cleanup();
 });
 
-function renderBoundary(query: DetailQueryBoundaryState<{ name: string }>) {
+function renderBoundary(query: DetailQueryBoundaryState<{ displayName: string }>) {
   render(
     <DetailQueryBoundary
       query={query}
@@ -18,7 +18,7 @@ function renderBoundary(query: DetailQueryBoundaryState<{ name: string }>) {
       errorDescription="The selected asset could not be loaded."
       missingMessage="The API did not return an asset record."
     >
-      {(asset) => <div>{asset.name}</div>}
+      {(asset) => <div>{asset.displayName}</div>}
     </DetailQueryBoundary>,
   );
 }
@@ -33,7 +33,7 @@ describe("DetailQueryBoundary", () => {
         errorDescription="The selected asset could not be loaded."
         missingMessage="The API did not return an asset record."
       >
-        {(asset: { name: string }) => <div>{asset.name}</div>}
+        {(asset: { displayName: string }) => <div>{asset.displayName}</div>}
       </DetailQueryBoundary>,
     );
 
@@ -65,7 +65,7 @@ describe("DetailQueryBoundary", () => {
 
   it("passes non-null data to the success renderer", () => {
     renderBoundary({
-      data: { name: "web-01" },
+      data: { displayName: "web-01" },
       error: null,
       isPending: false,
     });

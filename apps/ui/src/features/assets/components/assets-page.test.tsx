@@ -42,22 +42,36 @@ const mocks = vi.hoisted(() => {
   const assets: Array<AssetWithCustomFields> = [
     {
       id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-      name: "api-01",
+      displayName: "api-01",
       type: "host" as AssetWithCustomFields["type"],
+      environment: "production" as AssetWithCustomFields["environment"],
+      lifecycleState: "active" as AssetWithCustomFields["lifecycleState"],
       ownerId: users[0].id,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: users[0].id,
+      updatedBy: users[0].id,
       customFields: [],
     },
     {
       id: "0bb9b410-7763-4e7a-9942-b752367fd63d",
-      name: "worker-02",
+      displayName: "worker-02",
       type: "software" as AssetWithCustomFields["type"],
+      environment: "unknown" as AssetWithCustomFields["environment"],
+      lifecycleState: "active" as AssetWithCustomFields["lifecycleState"],
       ownerId: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: users[0].id,
+      updatedBy: users[0].id,
       customFields: [],
     },
   ];
   const createdAsset: CreateAsset = {
-    name: "queue-01",
+    displayName: "queue-01",
     type: "host" as CreateAsset["type"],
+    environment: "unknown" as NonNullable<CreateAsset["environment"]>,
+    lifecycleState: "active" as NonNullable<CreateAsset["lifecycleState"]>,
     ownerId: null,
   };
 

@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -11,9 +11,15 @@ import type { ReactNode } from "react";
 const mocks = vi.hoisted(() => {
   const asset: AssetWithCustomFields = {
     id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
-    name: "api-01",
-    type: "host" as AssetType,
+    displayName: "api-01",
+    type: "host" as AssetWithCustomFields["type"],
+    environment: "production" as AssetWithCustomFields["environment"],
+    lifecycleState: "active" as AssetWithCustomFields["lifecycleState"],
     ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+    updatedBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
     customFields: [],
   };
   const users = [
@@ -79,8 +85,7 @@ vi.mock("@/api/asset.ts", () => ({
 
 vi.mock("@/hooks/use-asset-lifecycle.ts", () => ({
   useAssetLifecycle: () => ({
-    createAsset: (asset: { name: string; type: unknown; ownerId?: string | null }) =>
-      mocks.createAsset(asset.name, asset.type, asset.ownerId ?? null),
+    createAsset: mocks.createAsset,
     deleteAssets: mocks.deleteAssets,
   }),
 }));
@@ -320,32 +325,46 @@ describe("AssetTable workflow wiring", () => {
   it("creates assets from the asset dialog through the lifecycle hook", async () => {
     const { AssetTable } = await import("@/components/asset-table/index.tsx");
     mocks.assetDialogCall.mockResolvedValueOnce({
-      id: "",
-      name: "worker-01",
-      type: AssetType.Container,
+      displayName: "worker-01",
+      type: AssetType.ContainerImage,
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
       ownerId: null,
     });
     mocks.createAsset.mockResolvedValueOnce({
       id: "08488dd1-4f23-445b-81e5-74e76361caa0",
-      name: "worker-01",
-      type: AssetType.Container,
+      displayName: "worker-01",
+      type: AssetType.ContainerImage,
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
       ownerId: null,
+      createdAt: mocks.asset.createdAt,
+      updatedAt: mocks.asset.updatedAt,
+      createdBy: mocks.asset.createdBy,
+      updatedBy: mocks.asset.updatedBy,
     });
 
     render(<AssetTable />);
     fireEvent.click(screen.getByRole("button", { name: /new asset/i }));
 
     await waitFor(() => {
-      expect(mocks.createAsset).toHaveBeenCalledWith("worker-01", AssetType.Container, null);
+      expect(mocks.createAsset).toHaveBeenCalledWith({
+        displayName: "worker-01",
+        type: AssetType.ContainerImage,
+        environment: AssetEnvironment.Unknown,
+        lifecycleState: AssetLifecycleState.Active,
+        ownerId: null,
+      });
     });
   });
 
   it("delegates asset creation failures to the lifecycle hook", async () => {
     const { AssetTable } = await import("@/components/asset-table/index.tsx");
     mocks.assetDialogCall.mockResolvedValueOnce({
-      id: "",
-      name: "worker-01",
-      type: AssetType.Container,
+      displayName: "worker-01",
+      type: AssetType.ContainerImage,
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
       ownerId: null,
     });
     mocks.createAsset.mockResolvedValueOnce(null);
@@ -354,34 +373,49 @@ describe("AssetTable workflow wiring", () => {
     fireEvent.click(screen.getByRole("button", { name: /new asset/i }));
 
     await waitFor(() => {
-      expect(mocks.createAsset).toHaveBeenCalledWith("worker-01", AssetType.Container, null);
+      expect(mocks.createAsset).toHaveBeenCalledWith({
+        displayName: "worker-01",
+        type: AssetType.ContainerImage,
+        environment: AssetEnvironment.Unknown,
+        lifecycleState: AssetLifecycleState.Active,
+        ownerId: null,
+      });
     });
   });
 
   it("passes selected owner ids when creating assets", async () => {
     const { AssetTable } = await import("@/components/asset-table/index.tsx");
     mocks.assetDialogCall.mockResolvedValueOnce({
-      id: "",
-      name: "worker-01",
-      type: AssetType.Container,
+      displayName: "worker-01",
+      type: AssetType.ContainerImage,
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
       ownerId: mocks.asset.ownerId,
     });
     mocks.createAsset.mockResolvedValueOnce({
       id: "08488dd1-4f23-445b-81e5-74e76361caa0",
-      name: "worker-01",
-      type: AssetType.Container,
+      displayName: "worker-01",
+      type: AssetType.ContainerImage,
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
       ownerId: mocks.asset.ownerId,
+      createdAt: mocks.asset.createdAt,
+      updatedAt: mocks.asset.updatedAt,
+      createdBy: mocks.asset.createdBy,
+      updatedBy: mocks.asset.updatedBy,
     });
 
     render(<AssetTable />);
     fireEvent.click(screen.getByRole("button", { name: /new asset/i }));
 
     await waitFor(() => {
-      expect(mocks.createAsset).toHaveBeenCalledWith(
-        "worker-01",
-        AssetType.Container,
-        mocks.asset.ownerId,
-      );
+      expect(mocks.createAsset).toHaveBeenCalledWith({
+        displayName: "worker-01",
+        type: AssetType.ContainerImage,
+        environment: AssetEnvironment.Unknown,
+        lifecycleState: AssetLifecycleState.Active,
+        ownerId: mocks.asset.ownerId,
+      });
     });
   });
 });

@@ -24,8 +24,8 @@ export function FindingDetailPage({ findingId }: FindingDetailPageProps) {
   usePageMeta({
     title: finding.data?.vulnerability.title ?? "Finding",
     description:
-      asset.data?.name && finding.data
-        ? `${formatFindingStatus(finding.data.status)} finding on ${asset.data.name}`
+      asset.data?.displayName && finding.data
+        ? `${formatFindingStatus(finding.data.status)} finding on ${asset.data.displayName}`
         : "Inspect, update, and triage a specific finding.",
   });
 

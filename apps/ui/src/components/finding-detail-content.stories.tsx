@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -55,9 +55,15 @@ const storyRedirects = createLoginRedirects({
 
 const ASSET: Asset = {
   id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-  name: "web-01",
+  displayName: "web-01",
   type: AssetType.Host,
+  environment: AssetEnvironment.Production,
+  lifecycleState: AssetLifecycleState.Active,
   ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+  createdBy: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+  updatedBy: "7b2b7d98-6242-4efe-b630-5908727103fb",
 };
 
 const FINDING: Finding = {

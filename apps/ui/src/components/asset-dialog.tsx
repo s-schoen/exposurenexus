@@ -1,4 +1,9 @@
-import { AssetType, assetSchema } from "@exposurenexus/types/model/asset";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+  assetSchema,
+} from "@exposurenexus/types/model/asset";
 import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { createCallable } from "react-call";
@@ -25,20 +30,30 @@ import {
 } from "@/components/ui/select.tsx";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
-import type { Asset } from "@exposurenexus/types/model/asset";
+import type { CreateAsset } from "@exposurenexus/types/model/asset";
 import type { PropsWithCall } from "react-call";
 
 type AssetDialogProps = object;
 
-const formSchema = assetSchema.omit({ id: true });
+const formSchema = assetSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  createdBy: true,
+  updatedBy: true,
+});
 const noOwnerValue = "__no_owner__";
 
-export const AssetDialog = ({ call }: PropsWithCall<AssetDialogProps, Asset | null, object>) => {
+export const AssetDialog = ({
+  call,
+}: PropsWithCall<AssetDialogProps, CreateAsset | null, object>) => {
   const users = useQuery(createListUsersQueryOptions());
   const form = useForm({
     defaultValues: {
-      name: "",
+      displayName: "",
       type: AssetType.Host,
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
       ownerId: null as string | null,
     },
     validators: {
@@ -46,16 +61,24 @@ export const AssetDialog = ({ call }: PropsWithCall<AssetDialogProps, Asset | nu
     },
     onSubmit: ({ value }) => {
       call.end({
-        id: "",
-        name: value.name,
+        displayName: value.displayName,
         type: value.type,
+        environment: value.environment,
+        lifecycleState: value.lifecycleState,
         ownerId: value.ownerId ?? null,
       });
     },
   });
 
   return (
-    <Dialog open={!call.ended}>
+    <Dialog
+      open={!call.ended}
+      onOpenChange={(open) => {
+        if (!open) {
+          call.end(null);
+        }
+      }}
+    >
       <form
         id="asset-form"
         onSubmit={async (e) => {
@@ -70,12 +93,12 @@ export const AssetDialog = ({ call }: PropsWithCall<AssetDialogProps, Asset | nu
           </DialogHeader>
           <FieldGroup>
             <form.Field
-              name="name"
+              name="displayName"
               children={(field) => {
                 const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
                 return (
                   <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>Display name</FieldLabel>
                     <Input
                       id={field.name}
                       name={field.name}
@@ -83,7 +106,7 @@ export const AssetDialog = ({ call }: PropsWithCall<AssetDialogProps, Asset | nu
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
                       aria-invalid={isInvalid}
-                      placeholder="Asset name"
+                      placeholder="Asset display name"
                       autoComplete="off"
                     />
                     {isInvalid && <FieldError errors={field.state.meta.errors} />}
@@ -106,13 +129,75 @@ export const AssetDialog = ({ call }: PropsWithCall<AssetDialogProps, Asset | nu
                       }}
                     >
                       <SelectTrigger id={field.name}>
-                        <SelectValue placeholder="Select asset type" />
+                        <SelectValue>{capitalizeFirstLetter(field.state.value)}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
                           {Object.values(AssetType).map((t) => (
                             <SelectItem key={t} value={t}>
                               {capitalizeFirstLetter(t)}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                );
+              }}
+            />
+            <form.Field
+              name="environment"
+              children={(field) => {
+                return (
+                  <Field>
+                    <FieldLabel htmlFor={field.name}>Environment</FieldLabel>
+                    <Select
+                      value={field.state.value}
+                      name={field.name}
+                      onValueChange={(value) => {
+                        field.handleChange(value as AssetEnvironment);
+                        field.handleBlur();
+                      }}
+                    >
+                      <SelectTrigger id={field.name}>
+                        <SelectValue>{capitalizeFirstLetter(field.state.value)}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {Object.values(AssetEnvironment).map((environment) => (
+                            <SelectItem key={environment} value={environment}>
+                              {capitalizeFirstLetter(environment)}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                );
+              }}
+            />
+            <form.Field
+              name="lifecycleState"
+              children={(field) => {
+                return (
+                  <Field>
+                    <FieldLabel htmlFor={field.name}>Lifecycle state</FieldLabel>
+                    <Select
+                      value={field.state.value}
+                      name={field.name}
+                      onValueChange={(value) => {
+                        field.handleChange(value as AssetLifecycleState);
+                        field.handleBlur();
+                      }}
+                    >
+                      <SelectTrigger id={field.name}>
+                        <SelectValue>{capitalizeFirstLetter(field.state.value)}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {Object.values(AssetLifecycleState).map((state) => (
+                            <SelectItem key={state} value={state}>
+                              {capitalizeFirstLetter(state)}
                             </SelectItem>
                           ))}
                         </SelectGroup>
@@ -137,7 +222,12 @@ export const AssetDialog = ({ call }: PropsWithCall<AssetDialogProps, Asset | nu
                       }}
                     >
                       <SelectTrigger id={field.name}>
-                        <SelectValue placeholder="Select asset owner" />
+                        <SelectValue>
+                          {field.state.value === noOwnerValue
+                            ? "No Owner"
+                            : (users.data?.find((user) => user.id === field.state.value)
+                                ?.displayName ?? "Select asset owner")}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>

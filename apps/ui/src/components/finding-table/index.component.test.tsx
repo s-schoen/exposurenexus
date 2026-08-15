@@ -60,7 +60,7 @@ vi.mock("@tanstack/react-query", () => ({
         data: [
           {
             id: mocks.finding.assetId,
-            name: "api-01",
+            displayName: "api-01",
             type: "host",
             ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
           },

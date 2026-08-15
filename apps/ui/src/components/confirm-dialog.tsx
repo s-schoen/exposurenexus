@@ -31,7 +31,14 @@ export const ConfirmDialog = ({
   message,
 }: PropsWithCall<ConfirmDialogProps, boolean, object>) => {
   return (
-    <Dialog open={!call.ended}>
+    <Dialog
+      open={!call.ended}
+      onOpenChange={(open) => {
+        if (!open) {
+          call.end(false);
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-106.25">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

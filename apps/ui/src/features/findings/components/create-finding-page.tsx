@@ -237,6 +237,10 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
               <form.Field
                 name="assigneeId"
                 children={(field) => {
+                  const selectedAssignee = users.data?.find(
+                    (user) => user.id === field.state.value,
+                  );
+
                   return (
                     <Field>
                       <FieldLabel htmlFor={field.name}>Assignee</FieldLabel>
@@ -249,7 +253,13 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         }}
                       >
                         <SelectTrigger id={field.name}>
-                          <SelectValue placeholder="Select assignee" />
+                          <SelectValue>
+                            {field.state.value === null
+                              ? "Unassigned"
+                              : selectedAssignee
+                                ? getUserProfileDisplayName(selectedAssignee)
+                                : "Select assignee"}
+                          </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>

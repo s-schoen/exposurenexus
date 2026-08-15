@@ -17,7 +17,7 @@ describe("AssetInfoItem stories", () => {
     render(<Loaded />);
 
     await waitFor(() => {
-      expect(screen.getByText(primaryAsset.name)).toBeVisible();
+      expect(screen.getByText(primaryAsset.displayName)).toBeVisible();
       expect(screen.getByText("Host")).toBeVisible();
       expect(screen.getByRole("link")).toHaveAttribute("href", `/assets/${primaryAsset.id}`);
     });
@@ -28,7 +28,7 @@ describe("AssetInfoItem stories", () => {
 
     await waitFor(() => {
       expect(container.querySelector('[data-slot="skeleton"]')).toBeTruthy();
-      expect(screen.queryByText(primaryAsset.name)).not.toBeInTheDocument();
+      expect(screen.queryByText(primaryAsset.displayName)).not.toBeInTheDocument();
     });
   });
 });
