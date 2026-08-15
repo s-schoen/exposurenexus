@@ -1,9 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["eslint", "import", "oxc", "typescript", "unicorn"],
-  "categories": {
-    "correctness": "off"
-  },
   "env": {
     "es2022": true
   },
