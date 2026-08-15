@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
@@ -26,9 +26,9 @@ describe("asset routes", () => {
     listAll: vi.fn(),
     listAllWithCustomFields: vi.fn(),
     getByID: vi.fn(),
-    getByName: vi.fn(),
+    getByDisplayName: vi.fn(),
     create: vi.fn(),
-    updateOwnerByID: vi.fn(),
+    updateByID: vi.fn(),
     deleteByID: vi.fn(),
   };
   const assetCustomFieldService = {
@@ -77,7 +77,7 @@ describe("asset routes", () => {
     const assets = [
       {
         id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-        name: "api.exposurenexus.local",
+        displayName: "api.exposurenexus.local",
         type: AssetType.Host,
         ownerId: null,
       },
@@ -152,7 +152,7 @@ describe("asset routes", () => {
     const assets = [
       {
         id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-        name: "api.exposurenexus.local",
+        displayName: "api.exposurenexus.local",
         type: AssetType.Host,
         ownerId: null,
         customFields: [
@@ -202,7 +202,7 @@ describe("asset routes", () => {
     const assets = [
       {
         id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-        name: "api.exposurenexus.local",
+        displayName: "api.exposurenexus.local",
         type: AssetType.Host,
         ownerId: null,
       },
@@ -913,7 +913,7 @@ describe("asset routes", () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3";
     const assetRecord = {
       id: assetId,
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };
@@ -1374,15 +1374,21 @@ describe("asset routes", () => {
     expect(assetCustomFieldService.replaceValuesForAsset).not.toHaveBeenCalled();
   });
 
-  it("returns 201 when creating an asset", async () => {
+  it("returns 201 when creating an asset with the authenticated actor", async () => {
     const requestId = "assets-create-request";
     const payload = {
-      name: "worker.exposurenexus.local",
+      displayName: "worker.exposurenexus.local",
       type: AssetType.Host,
     };
     const createdAsset = {
       id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
       ownerId: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      createdBy: user.id,
+      updatedBy: user.id,
       ...payload,
     };
 
@@ -1405,25 +1411,39 @@ describe("asset routes", () => {
     const body = await response.json();
 
     expect(response.status).toBe(201);
-    expect(assetService.create).toHaveBeenCalledWith(payload, {
-      actor: user.id,
-      correlationId: requestId,
+    expect(assetService.create).toHaveBeenCalledWith({
+      asset: payload,
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId,
+      },
     });
     expect(body).toEqual({
       correlationId: requestId,
-      data: createdAsset,
+      data: {
+        ...createdAsset,
+        createdAt: createdAsset.createdAt.toISOString(),
+        updatedAt: createdAsset.updatedAt.toISOString(),
+      },
     });
   });
 
   it("passes nullable asset owner ids when creating an asset", async () => {
     const requestId = "assets-create-with-owner-request";
     const payload = {
-      name: "worker.exposurenexus.local",
+      displayName: "worker.exposurenexus.local",
       type: AssetType.Host,
       ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
     };
     const createdAsset = {
       id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      createdBy: user.id,
+      updatedBy: user.id,
       ...payload,
     };
 
@@ -1446,13 +1466,21 @@ describe("asset routes", () => {
     const body = await response.json();
 
     expect(response.status).toBe(201);
-    expect(assetService.create).toHaveBeenCalledWith(payload, {
-      actor: user.id,
-      correlationId: requestId,
+    expect(assetService.create).toHaveBeenCalledWith({
+      asset: payload,
+      user,
+      eventContext: {
+        actor: user.id,
+        correlationId: requestId,
+      },
     });
     expect(body).toEqual({
       correlationId: requestId,
-      data: createdAsset,
+      data: {
+        ...createdAsset,
+        createdAt: createdAsset.createdAt.toISOString(),
+        updatedAt: createdAsset.updatedAt.toISOString(),
+      },
     });
   });
 
@@ -1470,7 +1498,7 @@ describe("asset routes", () => {
         "X-Request-Id": "assets-invalid-create-body-request",
       },
       body: JSON.stringify({
-        name: "",
+        displayName: "",
         type: AssetType.Host,
       }),
     });
@@ -1479,18 +1507,27 @@ describe("asset routes", () => {
     expect(assetService.create).not.toHaveBeenCalled();
   });
 
-  it("updates an asset owner", async () => {
-    const requestId = "assets-owner-update-request";
+  it("updates asset core metadata with the authenticated actor", async () => {
+    const requestId = "assets-update-request";
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3";
     const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
-    const updatedAsset = {
-      id: assetId,
-      name: "worker.exposurenexus.local",
-      type: AssetType.Host,
+    const payload = {
+      displayName: "worker.exposurenexus.local",
+      type: AssetType.CloudResource,
+      environment: AssetEnvironment.Staging,
+      lifecycleState: AssetLifecycleState.Archived,
       ownerId,
     };
+    const updatedAsset = {
+      id: assetId,
+      ...payload,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: user.id,
+      updatedBy: user.id,
+    };
 
-    assetService.updateOwnerByID.mockResolvedValue(updatedAsset);
+    assetService.updateByID.mockResolvedValue(updatedAsset);
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -1498,13 +1535,13 @@ describe("asset routes", () => {
       assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
     });
 
-    const response = await app.request(`/api/assets/${assetId}/owner`, {
-      method: "PUT",
+    const response = await app.request(`/api/assets/${assetId}`, {
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         "X-Request-Id": requestId,
       },
-      body: JSON.stringify({ ownerId }),
+      body: JSON.stringify(payload),
     });
     const body = await response.json();
 
@@ -1512,9 +1549,10 @@ describe("asset routes", () => {
     expect(userHasPermission).toHaveBeenCalledWith(user.id, {
       asset: ["write"],
     });
-    expect(assetService.updateOwnerByID).toHaveBeenCalledWith({
+    expect(assetService.updateByID).toHaveBeenCalledWith({
       id: assetId,
-      ownerId,
+      asset: payload,
+      user,
       eventContext: {
         actor: user.id,
         correlationId: requestId,
@@ -1522,48 +1560,15 @@ describe("asset routes", () => {
     });
     expect(body).toEqual({
       correlationId: requestId,
-      data: updatedAsset,
-    });
-  });
-
-  it("clears an asset owner", async () => {
-    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3";
-    const updatedAsset = {
-      id: assetId,
-      name: "worker.exposurenexus.local",
-      type: AssetType.Host,
-      ownerId: null,
-    };
-
-    assetService.updateOwnerByID.mockResolvedValue(updatedAsset);
-
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
-    });
-
-    const response = await app.request(`/api/assets/${assetId}/owner`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": "assets-owner-clear-request",
-      },
-      body: JSON.stringify({ ownerId: null }),
-    });
-
-    expect(response.status).toBe(200);
-    expect(assetService.updateOwnerByID).toHaveBeenCalledWith({
-      id: assetId,
-      ownerId: null,
-      eventContext: {
-        actor: user.id,
-        correlationId: "assets-owner-clear-request",
+      data: {
+        ...updatedAsset,
+        createdAt: updatedAsset.createdAt.toISOString(),
+        updatedAt: updatedAsset.updatedAt.toISOString(),
       },
     });
   });
 
-  it("returns 403 when updating an asset owner without write permission", async () => {
+  it("returns 403 when updating asset metadata without write permission", async () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3";
 
     userHasPermission.mockResolvedValue(false);
@@ -1574,23 +1579,23 @@ describe("asset routes", () => {
       assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
     });
 
-    const response = await app.request(`/api/assets/${assetId}/owner`, {
-      method: "PUT",
+    const response = await app.request(`/api/assets/${assetId}`, {
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         "X-Request-Id": "assets-owner-update-forbidden-request",
       },
-      body: JSON.stringify({ ownerId: null }),
+      body: JSON.stringify({ lifecycleState: AssetLifecycleState.Archived }),
     });
 
     expect(response.status).toBe(403);
     expect(userHasPermission).toHaveBeenCalledWith(user.id, {
       asset: ["write"],
     });
-    expect(assetService.updateOwnerByID).not.toHaveBeenCalled();
+    expect(assetService.updateByID).not.toHaveBeenCalled();
   });
 
-  it("rejects invalid asset owner update bodies before calling the service", async () => {
+  it("rejects empty asset updates before calling the service", async () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3";
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -1598,24 +1603,24 @@ describe("asset routes", () => {
       assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
     });
 
-    const response = await app.request(`/api/assets/${assetId}/owner`, {
-      method: "PUT",
+    const response = await app.request(`/api/assets/${assetId}`, {
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        "X-Request-Id": "assets-owner-invalid-update-request",
+        "X-Request-Id": "assets-empty-update-request",
       },
-      body: JSON.stringify({ ownerId: "not-a-user-id" }),
+      body: JSON.stringify({}),
     });
 
     expect(response.status).toBe(400);
-    expect(assetService.updateOwnerByID).not.toHaveBeenCalled();
+    expect(assetService.updateByID).not.toHaveBeenCalled();
   });
 
-  it("returns 404 when updating a missing asset owner", async () => {
-    const requestId = "assets-owner-update-not-found-request";
+  it("returns 404 when updating a missing asset", async () => {
+    const requestId = "assets-update-not-found-request";
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3";
 
-    assetService.updateOwnerByID.mockResolvedValue(null);
+    assetService.updateByID.mockResolvedValue(null);
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -1623,20 +1628,21 @@ describe("asset routes", () => {
       assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
     });
 
-    const response = await app.request(`/api/assets/${assetId}/owner`, {
-      method: "PUT",
+    const response = await app.request(`/api/assets/${assetId}`, {
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         "X-Request-Id": requestId,
       },
-      body: JSON.stringify({ ownerId: null }),
+      body: JSON.stringify({ lifecycleState: AssetLifecycleState.Archived }),
     });
     const body = await response.json();
 
     expect(response.status).toBe(404);
-    expect(assetService.updateOwnerByID).toHaveBeenCalledWith({
+    expect(assetService.updateByID).toHaveBeenCalledWith({
       id: assetId,
-      ownerId: null,
+      asset: { lifecycleState: AssetLifecycleState.Archived },
+      user,
       eventContext: {
         actor: user.id,
         correlationId: requestId,
@@ -1654,7 +1660,7 @@ describe("asset routes", () => {
     const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3";
     const deletedAsset = {
       id: assetId,
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       ownerId: null,
     };

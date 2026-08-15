@@ -1,9 +1,17 @@
 import type { DomainEventContext } from "../lib/eventbus/events/index.js";
 import type { AssetService } from "../service/asset.js";
-import type { Asset, AssetType, CreateAsset } from "@exposurenexus/types/model/asset";
+import type { Asset, AssetType } from "@exposurenexus/types/model/asset";
+import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { Logger } from "pino";
 
-type AssetLookupService = Pick<AssetService, "getByName" | "create">;
+type AssetLookupService = Pick<AssetService, "getByDisplayName" | "create">;
+
+export interface GetOrCreateAssetOptions {
+  type: AssetType;
+  displayName: string;
+  user: UserProfile;
+  eventContext?: DomainEventContext;
+}
 
 interface AssetImportDependencies {
   assetService: AssetLookupService;
@@ -11,17 +19,25 @@ interface AssetImportDependencies {
 }
 
 export function createGetOrCreateAsset({ assetService, logger }: AssetImportDependencies) {
-  return async function getOrCreateAsset(
-    type: AssetType,
-    name: string,
-    eventContext?: DomainEventContext,
-  ): Promise<Asset> {
-    const asset = await assetService.getByName(name, type);
+  return async function getOrCreateAsset({
+    type,
+    displayName,
+    user,
+    eventContext,
+  }: GetOrCreateAssetOptions): Promise<Asset> {
+    const asset = await assetService.getByDisplayName(displayName, type);
     if (asset) {
       return asset;
     }
 
-    logger.info(`creating new asset ${name} based on finding import`);
-    return assetService.create({ name, type } satisfies CreateAsset, eventContext);
+    logger.info(
+      { assetDisplayName: displayName, assetType: type },
+      "creating new asset based on finding import",
+    );
+    return assetService.create({
+      asset: { displayName, type },
+      user,
+      eventContext,
+    });
   };
 }

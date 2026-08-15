@@ -82,6 +82,11 @@ change the behavior of an asset. Archived assets retain their identifiers and
 historical findings. Hard deletion is reserved for erroneous assets without
 referencing findings.
 
+Every asset records `createdAt`, `updatedAt`, `createdBy`, and `updatedBy`.
+Creation and edits require an authenticated user profile explicitly; creation
+defaults environment to `unknown` and lifecycle state to `active`. Audit actor
+references are required user-profile links whose deletion is restricted.
+
 ### Asset Owner
 
 An **asset owner** is the single user profile responsible for handling findings

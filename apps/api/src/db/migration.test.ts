@@ -25,6 +25,7 @@ const expectedMigrationNames = [
   "20260509-vulnerability-source-mapping-unique",
   "20260510-audit-nullability-contract",
   "20260510-rbac-role-permission-role-id-camel-case",
+  "20260511-asset-model-cutover",
 ];
 
 // Forward-only migration history prevents renaming this already-applied file set.

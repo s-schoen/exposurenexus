@@ -79,16 +79,33 @@ that target:
 - collection subresources are replaced by the submitted collection, not patched
   or appended to.
 
-Partial updates require a future `PATCH` endpoint with a separate schema and
-explicit merge rules.
+Partial core metadata updates use `PATCH` with a separate schema and explicit
+merge rules. The asset update payload must contain at least one editable field;
+omitted fields remain unchanged and a no-op does not advance audit metadata.
 
 ## Call Shapes
 
-Use plain positional parameters for one or two arguments:
+Use plain positional parameters for simple methods with one or two arguments:
 
 ```ts
-assetService.create(asset, eventContext);
 assetService.deleteByID(id, eventContext);
+```
+
+Use an options object when a method carries a domain payload plus actor/request
+context:
+
+```ts
+assetService.create({
+  asset,
+  user,
+  eventContext,
+});
+assetService.updateByID({
+  id,
+  asset,
+  user,
+  eventContext,
+});
 ```
 
 Use an options object when a method needs more than two inputs, has multiple

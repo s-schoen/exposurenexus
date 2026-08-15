@@ -1,4 +1,4 @@
-import { createAssetSchema, updateAssetOwnerSchema } from "@exposurenexus/types/model/asset";
+import { createAssetSchema, updateAssetSchema } from "@exposurenexus/types/model/asset";
 import {
   updateAssetCustomFieldAssociationsSchema,
   updateAssetCustomFieldValuesSchema,
@@ -7,7 +7,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod/v4";
 
-import { notFound } from "../lib/api-error.js";
+import { notFound, unauthorized } from "../lib/api-error.js";
 import { replyArray, replyObject } from "../lib/reply.js";
 import { requestEventContext } from "../lib/request-event-context.js";
 import { createAssetCustomFieldRoute } from "./asset-custom-fields.js";
@@ -149,23 +149,39 @@ export function createAssetRoute(
     zValidator("json", createAssetSchema),
     async (c) => {
       const body = c.req.valid("json");
-      const createdAsset = await assetService.create(body, requestEventContext(c));
+      const user = c.get("user");
+
+      if (!user) {
+        throw unauthorized();
+      }
+
+      const createdAsset = await assetService.create({
+        asset: body,
+        user,
+        eventContext: requestEventContext(c),
+      });
       return replyObject(c, createdAsset, true);
     },
   );
 
-  asset.put(
-    "/:id/owner",
+  asset.patch(
+    "/:id",
     requireDomainPermission("asset", "write"),
     idParamValidator,
-    zValidator("json", updateAssetOwnerSchema),
+    zValidator("json", updateAssetSchema),
     async (c) => {
       const params = c.req.valid("param");
       const body = c.req.valid("json");
+      const user = c.get("user");
 
-      const updatedAsset = await assetService.updateOwnerByID({
+      if (!user) {
+        throw unauthorized();
+      }
+
+      const updatedAsset = await assetService.updateByID({
         id: params.id,
-        ownerId: body.ownerId,
+        asset: body,
+        user,
         eventContext: requestEventContext(c),
       });
       if (!updatedAsset) {

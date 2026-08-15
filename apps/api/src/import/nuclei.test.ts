@@ -47,7 +47,7 @@ describe("nuclei importer", () => {
   };
   const asset = {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-    name: "api.exposurenexus.local",
+    displayName: "api.exposurenexus.local",
     type: AssetType.Host,
     ownerId: null,
   };
@@ -125,11 +125,12 @@ describe("nuclei importer", () => {
     expect(result).toEqual([finding]);
     expect(vulnerabilityService.create).not.toHaveBeenCalled();
     expect(vulnerabilityService.createMapping).not.toHaveBeenCalled();
-    expect(getOrCreateAsset).toHaveBeenCalledWith(
-      AssetType.Host,
-      "api.exposurenexus.local",
-      ctx.eventContext,
-    );
+    expect(getOrCreateAsset).toHaveBeenCalledWith({
+      type: AssetType.Host,
+      displayName: "api.exposurenexus.local",
+      user,
+      eventContext: ctx.eventContext,
+    });
     expect(findingService.createOrUpdate).toHaveBeenCalledWith({
       user,
       finding: {

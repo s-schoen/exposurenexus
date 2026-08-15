@@ -72,7 +72,7 @@ describe("finding service", () => {
   };
   const asset = {
     id: createPayload.assetId,
-    name: "api.exposurenexus.local",
+    displayName: "api.exposurenexus.local",
     type: AssetType.Host,
     ownerId: null,
   };

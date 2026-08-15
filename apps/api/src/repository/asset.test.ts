@@ -1,10 +1,12 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";
 import { createAssetRepository } from "./asset.js";
+
+import type { CreateAssetRecord } from "./asset.js";
 
 vi.mock("../db/index.js", () => ({
   db: {},
@@ -15,6 +17,23 @@ vi.mock("../db/index.js", () => ({
 describe("asset repository", () => {
   const testDb = createTestDatabase();
   const createdBy = "85196743-cfba-4afb-b286-d36be32a64a4";
+
+  function createAssetRecord(overrides: Partial<CreateAssetRecord> = {}): CreateAssetRecord {
+    const timestamp = new Date("2026-01-01T00:00:00.000Z");
+
+    return {
+      displayName: "api.exposurenexus.local",
+      type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      createdBy,
+      updatedBy: createdBy,
+      ...overrides,
+    };
+  }
 
   beforeAll(async () => {
     await testDb.start();
@@ -39,23 +58,23 @@ describe("asset repository", () => {
       .execute();
   });
 
-  it("persists and retrieves assets against a real database", async () => {
+  it("persists and retrieves the expanded asset shape", async () => {
     const repository = createAssetRepository(testDb.db);
-    const created = await repository.create({
-      id: "",
-      name: "api.exposurenexus.local",
-      type: AssetType.Host,
-    });
+    const created = await repository.create(createAssetRecord());
 
     expect(created.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-    expect(created.name).toBe("api.exposurenexus.local");
+    expect(created.displayName).toBe("api.exposurenexus.local");
     expect(created.type).toBe(AssetType.Host);
+    expect(created.environment).toBe(AssetEnvironment.Production);
+    expect(created.lifecycleState).toBe(AssetLifecycleState.Active);
     expect(created.ownerId).toBeNull();
+    expect(created.createdBy).toBe(createdBy);
+    expect(created.updatedBy).toBe(createdBy);
 
     await expect(repository.getByID(created.id)).resolves.toEqual(created);
-    await expect(repository.getByName("api.exposurenexus.local", AssetType.Host)).resolves.toEqual(
-      created,
-    );
+    await expect(
+      repository.getByDisplayName("api.exposurenexus.local", AssetType.Host),
+    ).resolves.toEqual(created);
     await expect(repository.list()).resolves.toEqual([created]);
   });
 
@@ -75,18 +94,12 @@ describe("asset repository", () => {
       })
       .execute();
 
-    const ownedAsset = await repository.create({
-      id: "",
-      name: "owned.exposurenexus.local",
-      type: AssetType.Host,
-      ownerId,
-    });
-    const ownerlessAsset = await repository.create({
-      id: "",
-      name: "ownerless.exposurenexus.local",
-      type: AssetType.Host,
-      ownerId: null,
-    });
+    const ownedAsset = await repository.create(
+      createAssetRecord({ displayName: "owned.exposurenexus.local", ownerId }),
+    );
+    const ownerlessAsset = await repository.create(
+      createAssetRecord({ displayName: "ownerless.exposurenexus.local" }),
+    );
 
     expect(ownedAsset.ownerId).toBe(ownerId);
     expect(ownerlessAsset.ownerId).toBeNull();
@@ -99,49 +112,41 @@ describe("asset repository", () => {
     });
   });
 
-  it("updates and clears asset owners", async () => {
+  it("updates core metadata and audit fields", async () => {
     const repository = createAssetRepository(testDb.db);
-    const ownerId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";
+    const asset = await repository.create(createAssetRecord());
+    const updatedAt = new Date("2026-01-02T00:00:00.000Z");
 
-    await testDb.db
-      .insertInto("user_profile")
-      .values({
-        id: ownerId,
-        username: "owner",
-        displayName: "Asset Owner",
-        email: "owner@example.com",
-        enabled: false,
-        passwordHash: "hash-owner",
-      })
-      .execute();
-
-    const asset = await repository.create({
-      id: "",
-      name: "owned.exposurenexus.local",
-      type: AssetType.Host,
-      ownerId: null,
-    });
-
-    await expect(repository.updateOwnerByID(asset.id, ownerId)).resolves.toMatchObject({
-      id: asset.id,
-      ownerId,
-    });
-    await expect(repository.updateOwnerByID(asset.id, null)).resolves.toEqual({
+    await expect(
+      repository.updateByID(asset.id, {
+        displayName: "renamed.exposurenexus.local",
+        type: AssetType.CloudResource,
+        environment: AssetEnvironment.Staging,
+        lifecycleState: AssetLifecycleState.Archived,
+        ownerId: null,
+        updatedAt,
+        updatedBy: createdBy,
+      }),
+    ).resolves.toEqual({
       ...asset,
-      ownerId: null,
+      displayName: "renamed.exposurenexus.local",
+      type: AssetType.CloudResource,
+      environment: AssetEnvironment.Staging,
+      lifecycleState: AssetLifecycleState.Archived,
+      updatedAt,
     });
     await expect(
-      repository.updateOwnerByID("76b1885f-2d28-4b7d-93da-2751ff385aa3", null),
+      repository.updateByID("76b1885f-2d28-4b7d-93da-2751ff385aa3", {
+        ownerId: null,
+        updatedAt,
+        updatedBy: createdBy,
+      }),
     ).resolves.toBeNull();
   });
 
   it("does not delete assets linked to findings", async () => {
     const repository = createAssetRepository(testDb.db);
-    const asset = await repository.create({
-      id: "",
-      name: "api.exposurenexus.local",
-      type: AssetType.Host,
-    });
+    const asset = await repository.create(createAssetRecord());
     const vulnerability = await testDb.db
       .insertInto("vulnerability")
       .values({

@@ -1,3 +1,4 @@
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { createTestUser } from "../../../test/app.js";
@@ -204,9 +205,15 @@ describe("createDomainEventPayload", () => {
   it("includes asset events in the aggregate event catalog", () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
-      type: "host",
+      displayName: "api.exposurenexus.local",
+      type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Active,
       ownerId: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+      updatedBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
       customFields: [],
     } as AssetEventPayloads["asset.created"]["asset"];
 

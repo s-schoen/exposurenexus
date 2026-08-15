@@ -1,13 +1,15 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createTestUser } from "../test/app.js";
 import { createGetOrCreateAsset } from "./util.js";
 
 describe("import util", () => {
   const logger = pino({ enabled: false });
+  const user = createTestUser();
   const assetService = {
-    getByName: vi.fn(),
+    getByDisplayName: vi.fn(),
     create: vi.fn(),
   };
 
@@ -19,15 +21,23 @@ describe("import util", () => {
     const getOrCreateAsset = createGetOrCreateAsset({ assetService, logger });
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Active,
       ownerId: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: user.id,
+      updatedBy: user.id,
     };
 
-    assetService.getByName.mockResolvedValue(asset);
+    assetService.getByDisplayName.mockResolvedValue(asset);
 
-    await expect(getOrCreateAsset(AssetType.Host, asset.name)).resolves.toEqual(asset);
-    expect(assetService.getByName).toHaveBeenCalledWith(asset.name, AssetType.Host);
+    await expect(
+      getOrCreateAsset({ type: AssetType.Host, displayName: asset.displayName, user }),
+    ).resolves.toEqual(asset);
+    expect(assetService.getByDisplayName).toHaveBeenCalledWith(asset.displayName, AssetType.Host);
     expect(assetService.create).not.toHaveBeenCalled();
   });
 
@@ -39,23 +49,35 @@ describe("import util", () => {
     };
     const createdAsset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Active,
       ownerId: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: user.id,
+      updatedBy: user.id,
     };
 
-    assetService.getByName.mockResolvedValue(null);
+    assetService.getByDisplayName.mockResolvedValue(null);
     assetService.create.mockResolvedValue(createdAsset);
 
     await expect(
-      getOrCreateAsset(AssetType.Host, createdAsset.name, eventContext),
+      getOrCreateAsset({
+        type: AssetType.Host,
+        displayName: createdAsset.displayName,
+        user,
+        eventContext,
+      }),
     ).resolves.toEqual(createdAsset);
-    expect(assetService.create).toHaveBeenCalledWith(
-      {
-        name: createdAsset.name,
+    expect(assetService.create).toHaveBeenCalledWith({
+      asset: {
+        displayName: createdAsset.displayName,
         type: AssetType.Host,
       },
+      user,
       eventContext,
-    );
+    });
   });
 });

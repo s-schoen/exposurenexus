@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import {
   FindingSource,
   FindingStatus,
@@ -22,6 +22,22 @@ describe("finding repository", () => {
   const testDb = createTestDatabase();
   const createdBy = "85196743-cfba-4afb-b286-d36be32a64a4";
   const assigneeId = "c7f0f5a8-f3e7-4d24-8f72-e3fbc2a48aa6";
+
+  function assetRecord(displayName: string) {
+    const timestamp = new Date("2026-01-01T00:00:00.000Z");
+
+    return {
+      displayName,
+      type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      createdBy,
+      updatedBy: createdBy,
+    };
+  }
 
   beforeAll(async () => {
     await testDb.start();
@@ -61,11 +77,7 @@ describe("finding repository", () => {
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const repository = createFindingRepository(testDb.db);
 
-    const asset = await assetRepository.create({
-      id: "",
-      name: "api.exposurenexus.local",
-      type: AssetType.Host,
-    });
+    const asset = await assetRepository.create(assetRecord("api.exposurenexus.local"));
     const vulnerability = await vulnerabilityRepository.create({
       title: "Exposed Admin Endpoint",
       description: "Administrative interface is reachable externally",
@@ -142,11 +154,7 @@ describe("finding repository", () => {
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const repository = createFindingRepository(testDb.db);
 
-    const asset = await assetRepository.create({
-      id: "",
-      name: "api.exposurenexus.local",
-      type: AssetType.Host,
-    });
+    const asset = await assetRepository.create(assetRecord("api.exposurenexus.local"));
     const oldVulnerability = await vulnerabilityRepository.create({
       title: "Exposed Admin Endpoint",
       description: "Administrative interface is reachable externally",
@@ -249,11 +257,7 @@ describe("finding repository", () => {
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const repository = createFindingRepository(testDb.db);
 
-    const asset = await assetRepository.create({
-      id: "",
-      name: "api.exposurenexus.local",
-      type: AssetType.Host,
-    });
+    const asset = await assetRepository.create(assetRecord("api.exposurenexus.local"));
     const vulnerability = await vulnerabilityRepository.create({
       title: "Exposed Admin Endpoint",
       description: "Administrative interface is reachable externally",

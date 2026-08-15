@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import {
   type AssetCustomFieldDefinition,
   AssetCustomFieldType,
@@ -28,6 +28,7 @@ function expectSelectDefinition(
 
 describe("asset custom field repository", () => {
   const testDb = createTestDatabase();
+  const auditUserId = "85196743-cfba-4afb-b286-d36be32a64a4";
 
   beforeAll(async () => {
     await testDb.start();
@@ -39,6 +40,17 @@ describe("asset custom field repository", () => {
 
   beforeEach(async () => {
     await resetTestDatabase(testDb.db);
+    await testDb.db
+      .insertInto("user_profile")
+      .values({
+        id: auditUserId,
+        username: "asset-custom-field-tester",
+        displayName: "Asset Custom Field Tester",
+        email: "asset-custom-field-tester@example.com",
+        enabled: true,
+        passwordHash: "password-hash",
+      })
+      .execute();
   });
 
   it("persists and retrieves custom field definitions with options", async () => {
@@ -170,14 +182,26 @@ describe("asset custom field repository", () => {
     const assetRepository = createAssetRepository(testDb.db);
     const repository = createAssetCustomFieldRepository(testDb.db);
     const apiAsset = await assetRepository.create({
-      id: "",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      createdBy: auditUserId,
+      updatedBy: auditUserId,
     });
     const workerAsset = await assetRepository.create({
-      id: "",
-      name: "worker.exposurenexus.local",
+      displayName: "worker.exposurenexus.local",
       type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      createdBy: auditUserId,
+      updatedBy: auditUserId,
     });
     const category = await repository.createDefinition({
       key: "category",
@@ -308,9 +332,15 @@ describe("asset custom field repository", () => {
     const assetRepository = createAssetRepository(testDb.db);
     const repository = createAssetCustomFieldRepository(testDb.db);
     const asset = await assetRepository.create({
-      id: "",
-      name: "api.exposurenexus.local",
+      displayName: "api.exposurenexus.local",
       type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      createdBy: auditUserId,
+      updatedBy: auditUserId,
     });
     const environment = await repository.createDefinition({
       key: "environment",
