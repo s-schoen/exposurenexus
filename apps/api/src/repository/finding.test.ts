@@ -32,6 +32,7 @@ describe("finding repository", () => {
       environment: AssetEnvironment.Production,
       lifecycleState: AssetLifecycleState.Active,
       ownerId: null,
+      identifiers: [],
       createdAt: timestamp,
       updatedAt: timestamp,
       createdBy,

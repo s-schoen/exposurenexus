@@ -10,7 +10,7 @@ import type {
   AssetCustomFieldTable,
   AssetCustomFieldValueTable,
 } from "./schema/asset-custom-field.js";
-import type { AssetTable } from "./schema/asset.js";
+import type { AssetIdentifierTable, AssetTable } from "./schema/asset.js";
 import type { UserProfileTable, UserSessionTable } from "./schema/auth.js";
 import type { FindingTable } from "./schema/finding.js";
 import type {
@@ -30,6 +30,7 @@ export interface Database {
   user_role_assignment: UserRoleAssignmentTable;
   user_session: UserSessionTable;
   asset: AssetTable;
+  asset_identifier: AssetIdentifierTable;
   asset_custom_field: AssetCustomFieldTable;
   asset_custom_field_assignment: AssetCustomFieldAssignmentTable;
   asset_custom_field_option: AssetCustomFieldOptionTable;

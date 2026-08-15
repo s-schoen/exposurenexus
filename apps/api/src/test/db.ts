@@ -57,6 +57,7 @@ export function createTestDatabase(): TestDatabase {
 }
 
 export async function resetTestDatabase(db: Kysely<Database>): Promise<void> {
+  await db.deleteFrom("asset_identifier").execute();
   await db.deleteFrom("asset_custom_field_value").execute();
   await db.deleteFrom("asset_custom_field_option").execute();
   await db.deleteFrom("asset_custom_field").execute();

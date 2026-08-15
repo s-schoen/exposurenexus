@@ -1,4 +1,5 @@
 import type {
+  AssetIdentifierRecord,
   AssetEnvironment,
   AssetLifecycleState,
   AssetType,
@@ -16,4 +17,12 @@ export interface AssetTable {
   updatedAt: Date;
   createdBy: string;
   updatedBy: string;
+}
+
+export interface AssetIdentifierTable {
+  id: Generated<string>;
+  assetId: string;
+  type: AssetIdentifierRecord["type"];
+  namespace: string | null;
+  value: string;
 }

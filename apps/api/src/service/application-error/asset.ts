@@ -1,4 +1,8 @@
-import type { AssetType } from "@exposurenexus/types/model/asset";
+import type {
+  AssetIdentifierValidationIssue,
+  AssetIdentifierType,
+  AssetType,
+} from "@exposurenexus/types/model/asset";
 
 export type AssetApplicationErrorCatalog = {
   "asset.list_failed": { kind: "unexpected" };
@@ -15,6 +19,41 @@ export type AssetApplicationErrorCatalog = {
   "asset.display_name_invalid": {
     kind: "validation";
     details: { displayName: string };
+  };
+  "asset.identifier_invalid": {
+    kind: "validation";
+    details: { issues: AssetIdentifierValidationIssue[] };
+  };
+  "asset.identifier_duplicate": {
+    kind: "validation";
+    details: {
+      type: AssetIdentifierType;
+      namespace: string | null;
+      value: string;
+    };
+  };
+  "asset.identifier_conflict": {
+    kind: "conflict";
+    details: {
+      assetId?: string;
+      identifierId?: string;
+      type: AssetIdentifierType;
+      namespace: string | null;
+      value: string;
+      conflictingAssetId: string;
+    };
+  };
+  "asset.identifier_add_failed": {
+    kind: "unexpected";
+    details: { assetId: string };
+  };
+  "asset.identifier_update_failed": {
+    kind: "unexpected";
+    details: { assetId: string; identifierId: string };
+  };
+  "asset.identifier_delete_failed": {
+    kind: "unexpected";
+    details: { assetId: string; identifierId: string };
   };
   "asset.create_failed": {
     kind: "unexpected";
