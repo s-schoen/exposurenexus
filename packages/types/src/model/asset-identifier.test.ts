@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   AssetIdentifierType,
+  assetIdentifierRecordSchema,
   assetIdentifierSchema,
   normalizeAssetIdentifier,
   validateAssetIdentifier,
@@ -223,6 +224,22 @@ describe("asset identifier normalization", () => {
     expect(
       assetIdentifierSchema.parse({ type: AssetIdentifierType.DnsName, value: "Example.COM" }),
     ).toEqual({
+      type: AssetIdentifierType.DnsName,
+      namespace: null,
+      value: "example.com",
+    });
+  });
+
+  it("parses response records with stable identifier ids", () => {
+    expect(
+      assetIdentifierRecordSchema.parse({
+        id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+        type: AssetIdentifierType.DnsName,
+        namespace: null,
+        value: "Example.COM",
+      }),
+    ).toEqual({
+      id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
       type: AssetIdentifierType.DnsName,
       namespace: null,
       value: "example.com",

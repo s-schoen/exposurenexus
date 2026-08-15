@@ -96,6 +96,41 @@ const cloudResourceIdIdentifierSchema = z.strictObject({
   value: cloudResourceIdValueSchema,
 });
 
+const dnsNameIdentifierRecordSchema = z.strictObject({
+  id: z.uuidv4(),
+  type: z.literal(AssetIdentifierType.DnsName),
+  namespace: assetIdentifierNamespaceSchema.nullable(),
+  value: dnsNameValueSchema,
+});
+
+const ipAddressIdentifierRecordSchema = z.strictObject({
+  id: z.uuidv4(),
+  type: z.literal(AssetIdentifierType.IpAddress),
+  namespace: assetIdentifierNamespaceSchema.nullable(),
+  value: ipAddressValueSchema,
+});
+
+const vcsRepositoryIdentifierRecordSchema = z.strictObject({
+  id: z.uuidv4(),
+  type: z.literal(AssetIdentifierType.VcsRepository),
+  namespace: assetIdentifierNamespaceSchema.nullable(),
+  value: vcsRepositoryValueSchema,
+});
+
+const ociImageNameIdentifierRecordSchema = z.strictObject({
+  id: z.uuidv4(),
+  type: z.literal(AssetIdentifierType.OciImageName),
+  namespace: assetIdentifierNamespaceSchema.nullable(),
+  value: ociImageNameValueSchema,
+});
+
+const cloudResourceIdIdentifierRecordSchema = z.strictObject({
+  id: z.uuidv4(),
+  type: z.literal(AssetIdentifierType.CloudResourceId),
+  namespace: assetIdentifierNamespaceSchema.nullable(),
+  value: cloudResourceIdValueSchema,
+});
+
 export const assetIdentifierSchema = z
   .discriminatedUnion("type", [
     dnsNameIdentifierSchema,
@@ -109,8 +144,22 @@ export const assetIdentifierSchema = z
     namespace: identifier.namespace ?? null,
   }));
 
+export const assetIdentifierRecordSchema = z.discriminatedUnion("type", [
+  dnsNameIdentifierRecordSchema,
+  ipAddressIdentifierRecordSchema,
+  vcsRepositoryIdentifierRecordSchema,
+  ociImageNameIdentifierRecordSchema,
+  cloudResourceIdIdentifierRecordSchema,
+]);
+
+export const createAssetIdentifierSchema = assetIdentifierSchema;
+export const updateAssetIdentifierSchema = assetIdentifierSchema;
+
 export type AssetIdentifier = z.infer<typeof assetIdentifierSchema>;
 export type AssetIdentifierInput = z.input<typeof assetIdentifierSchema>;
+export type AssetIdentifierRecord = z.infer<typeof assetIdentifierRecordSchema>;
+export type CreateAssetIdentifier = z.input<typeof createAssetIdentifierSchema>;
+export type UpdateAssetIdentifier = z.input<typeof updateAssetIdentifierSchema>;
 
 export type AssetIdentifierValidationResult =
   | {
