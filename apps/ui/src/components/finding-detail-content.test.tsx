@@ -385,11 +385,15 @@ describe("FindingDetailContent", () => {
         "severity",
         VulnerabilitySeverity.Critical,
       );
+    });
+    await waitFor(() => {
       expect(mocks.updateFindingField).toHaveBeenCalledWith(
         mocks.finding,
         "status",
         FindingStatus.Confirmed,
       );
+    });
+    await waitFor(() => {
       expect(mocks.updateFindingField).toHaveBeenCalledWith(
         mocks.finding,
         "source",

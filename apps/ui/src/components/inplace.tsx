@@ -197,7 +197,21 @@ export function Inplace<T>({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div onClick={editOnClick ? enterEdit : undefined}>
+      <div
+        role={editOnClick ? "button" : undefined}
+        tabIndex={editOnClick ? 0 : undefined}
+        onClick={editOnClick ? enterEdit : undefined}
+        onKeyDown={
+          editOnClick
+            ? (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  enterEdit();
+                }
+              }
+            : undefined
+        }
+      >
         {editing ? renderEditComponent() : renderDisplayComponent()}
       </div>
       {getIcons()}

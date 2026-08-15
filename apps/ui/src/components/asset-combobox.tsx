@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { createListAssetsQueryOptions } from "@/api/asset.ts";
 import { Button } from "@/components/ui/button.tsx";
@@ -34,6 +34,7 @@ export function AssetCombobox({
   const assets = useQuery(createListAssetsQueryOptions());
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState<Asset | null>(null);
+  const listboxId = useId();
 
   const handleAssetSelected = (selectedId: string) => {
     const selectedAsset = assets.data?.find((i) => i.id === selectedId);
@@ -57,6 +58,7 @@ export function AssetCombobox({
             variant="outline"
             role="combobox"
             aria-expanded={open}
+            aria-controls={listboxId}
             aria-invalid={invalid}
             aria-label={id ? undefined : label}
             className="justify-between"
@@ -73,7 +75,7 @@ export function AssetCombobox({
       <PopoverContent className="p-0">
         <Command>
           <CommandInput aria-label="Search assets" placeholder="Select asset..." />
-          <CommandList>
+          <CommandList id={listboxId}>
             <CommandEmpty>No assets available</CommandEmpty>
             <CommandGroup>
               {assets.data?.map((a) => (

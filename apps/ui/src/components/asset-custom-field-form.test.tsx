@@ -103,9 +103,9 @@ describe("AssetCustomFieldForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /create custom field/i }));
 
     await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledTimes(1);
       expect(onSubmit).toHaveBeenCalledWith(values);
     });
+    expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
   it("shows validation errors after submitting an empty create form", async () => {

@@ -131,8 +131,8 @@ describe("AssetDialog", () => {
         type: AssetType.Host,
         ownerId: null,
       });
-      expect(call.end).toHaveBeenCalledTimes(1);
     });
+    expect(call.end).toHaveBeenCalledTimes(1);
   });
 
   it("submits the selected asset type", async () => {

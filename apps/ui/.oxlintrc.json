@@ -1,7 +1,8 @@
 {
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
   "extends": ["../../.oxlintrc.json"],
-  "plugins": [],
+  "plugins": ["react", "jsx-a11y", "vitest"],
+  "jsPlugins": ["eslint-plugin-storybook", "eslint-plugin-testing-library"],
   "env": {
     "es2022": true
   },
@@ -57,6 +58,9 @@
         "typescript/no-unnecessary-type-assertion": "error",
         "typescript/prefer-for-of": "off",
         "typescript/require-await": "off",
+        "react/no-children-prop": "off",
+        "jsx-a11y/label-has-associated-control": "off",
+        "jsx-a11y/prefer-tag-over-role": "off",
         "no-restricted-imports": [
           "error",
           {
@@ -71,9 +75,71 @@
       }
     },
     {
-      "files": ["**/*.{test,spec}.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+      "files": [
+        "**/*.{test,spec}.{js,jsx,mjs,cjs,ts,tsx,mts,cts}",
+        "src/test/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"
+      ],
       "env": {
         "vitest": true
+      },
+      "plugins": ["eslint", "import", "oxc", "typescript", "unicorn", "vitest"],
+      "rules": {
+        "vitest/no-conditional-expect": "off",
+        "vitest/require-mock-type-parameters": "off",
+        "vitest/require-to-throw-message": "off",
+        "jsx-a11y/role-has-required-aria-props": "off",
+        "testing-library/await-async-events": ["error", { "eventModule": "userEvent" }],
+        "testing-library/await-async-queries": "error",
+        "testing-library/await-async-utils": "error",
+        "testing-library/no-await-sync-events": ["error", { "eventModules": ["fire-event"] }],
+        "testing-library/no-await-sync-queries": "error",
+        "testing-library/no-dom-import": ["error", "react"],
+        "testing-library/no-global-regexp-flag-in-query": "error",
+        "testing-library/no-promise-in-fire-event": "error",
+        "testing-library/no-wait-for-multiple-assertions": "error",
+        "testing-library/prefer-find-by": "error",
+        "testing-library/prefer-presence-queries": "error",
+        "testing-library/prefer-query-by-disappearance": "error"
+      }
+    },
+    {
+      "files": ["src/**/*.stories.{ts,tsx}"],
+      "plugins": ["eslint", "import", "oxc", "typescript", "unicorn", "react", "jsx-a11y"],
+      "rules": {
+        "react/exhaustive-deps": "off",
+        "storybook/await-interactions": "error",
+        "storybook/context-in-play-function": "error",
+        "storybook/default-exports": "error",
+        "storybook/hierarchy-separator": "warn",
+        "storybook/no-redundant-story-name": "warn",
+        "storybook/no-renderer-packages": "error",
+        "storybook/prefer-pascal-case": "warn",
+        "storybook/story-exports": "error",
+        "storybook/use-storybook-expect": "error",
+        "storybook/use-storybook-testing-library": "error"
+      }
+    },
+    {
+      "files": [".storybook/main.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+      "rules": {
+        "storybook/no-uninstalled-addons": [
+          "error",
+          { "packageJsonLocation": "apps/ui/package.json" }
+        ]
+      }
+    },
+    {
+      "files": ["src/components/ui/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+      "plugins": ["eslint", "import", "oxc", "typescript", "unicorn", "react"],
+      "rules": {
+        "jsx-a11y/click-events-have-key-events": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off"
+      }
+    },
+    {
+      "files": ["src/components/inplace.tsx"],
+      "rules": {
+        "jsx-a11y/no-static-element-interactions": "off"
       }
     }
   ]
