@@ -1,4 +1,9 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
+import {
+  AssetEnvironment,
+  AssetIdentifierType,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
@@ -29,6 +34,9 @@ describe("asset routes", () => {
     getByDisplayName: vi.fn(),
     create: vi.fn(),
     updateByID: vi.fn(),
+    addIdentifier: vi.fn(),
+    updateIdentifierByID: vi.fn(),
+    deleteIdentifierByID: vi.fn(),
     deleteByID: vi.fn(),
   };
   const assetCustomFieldService = {
@@ -1389,7 +1397,8 @@ describe("asset routes", () => {
       updatedAt: new Date("2026-01-01T00:00:00.000Z"),
       createdBy: user.id,
       updatedBy: user.id,
-      ...payload,
+      displayName: payload.displayName,
+      type: payload.type,
     };
 
     assetService.create.mockResolvedValue(createdAsset);
@@ -1444,7 +1453,8 @@ describe("asset routes", () => {
       updatedAt: new Date("2026-01-01T00:00:00.000Z"),
       createdBy: user.id,
       updatedBy: user.id,
-      ...payload,
+      displayName: payload.displayName,
+      type: payload.type,
     };
 
     assetService.create.mockResolvedValue(createdAsset);
@@ -1481,6 +1491,143 @@ describe("asset routes", () => {
         createdAt: createdAsset.createdAt.toISOString(),
         updatedAt: createdAsset.updatedAt.toISOString(),
       },
+    });
+  });
+
+  it("creates an asset with canonical identifiers", async () => {
+    const requestId = "assets-create-with-identifiers-request";
+    const payload = {
+      displayName: "worker.exposurenexus.local",
+      type: AssetType.Host,
+      identifiers: [
+        {
+          type: AssetIdentifierType.DnsName,
+          value: "WORKER.ExposureNexus.local.",
+        },
+      ],
+    };
+    const createdAsset = {
+      id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+      environment: AssetEnvironment.Unknown,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: null,
+      identifiers: [
+        {
+          id: "2db67190-9d84-482f-9936-cfbf4244752b",
+          type: AssetIdentifierType.DnsName,
+          namespace: null,
+          value: "worker.exposurenexus.local",
+        },
+      ],
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      createdBy: user.id,
+      updatedBy: user.id,
+      displayName: payload.displayName,
+      type: payload.type,
+    };
+    assetService.create.mockResolvedValue(createdAsset);
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
+    });
+
+    const response = await app.request("/api/assets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    expect(response.status).toBe(201);
+    expect(assetService.create).toHaveBeenCalledWith({
+      asset: {
+        ...payload,
+        identifiers: [
+          {
+            type: AssetIdentifierType.DnsName,
+            namespace: null,
+            value: "worker.exposurenexus.local",
+          },
+        ],
+      },
+      user,
+      eventContext: { actor: user.id, correlationId: requestId },
+    });
+  });
+
+  it("adds, updates, and removes identifiers through asset write routes", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3";
+    const identifierId = "2db67190-9d84-482f-9936-cfbf4244752b";
+    const created = {
+      id: identifierId,
+      type: AssetIdentifierType.DnsName,
+      namespace: null,
+      value: "api.example.com",
+    };
+    const updated = { ...created, value: "api.internal.example.com" };
+    assetService.addIdentifier.mockResolvedValue(created);
+    assetService.updateIdentifierByID.mockResolvedValue(updated);
+    assetService.deleteIdentifierByID.mockResolvedValue(updated);
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
+    });
+
+    const addResponse = await app.request(`/api/assets/${assetId}/identifiers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Request-Id": "asset-identifier-add" },
+      body: JSON.stringify({ type: AssetIdentifierType.DnsName, value: "API.Example.com." }),
+    });
+    expect(addResponse.status).toBe(201);
+    expect(assetService.addIdentifier).toHaveBeenCalledWith({
+      assetId,
+      identifier: {
+        type: AssetIdentifierType.DnsName,
+        namespace: null,
+        value: "api.example.com",
+      },
+      user,
+      eventContext: { actor: user.id, correlationId: "asset-identifier-add" },
+    });
+
+    const updateResponse = await app.request(`/api/assets/${assetId}/identifiers/${identifierId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Request-Id": "asset-identifier-update" },
+      body: JSON.stringify({
+        type: AssetIdentifierType.DnsName,
+        value: "api.internal.example.com",
+      }),
+    });
+    expect(updateResponse.status).toBe(200);
+    expect(assetService.updateIdentifierByID).toHaveBeenCalledWith({
+      assetId,
+      identifierId,
+      identifier: {
+        type: AssetIdentifierType.DnsName,
+        namespace: null,
+        value: "api.internal.example.com",
+      },
+      user,
+      eventContext: { actor: user.id, correlationId: "asset-identifier-update" },
+    });
+
+    const deleteResponse = await app.request(`/api/assets/${assetId}/identifiers/${identifierId}`, {
+      method: "DELETE",
+      headers: { "X-Request-Id": "asset-identifier-delete" },
+    });
+    expect(deleteResponse.status).toBe(200);
+    expect(assetService.deleteIdentifierByID).toHaveBeenCalledWith({
+      assetId,
+      identifierId,
+      user,
+      eventContext: { actor: user.id, correlationId: "asset-identifier-delete" },
     });
   });
 

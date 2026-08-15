@@ -1,11 +1,16 @@
 import {
   type Asset,
+  type AssetIdentifier,
+  type AssetIdentifierRecord,
   type AssetWithCustomFields,
   AssetEnvironment,
   AssetLifecycleState,
   AssetType,
   type CreateAsset,
+  type CreateAssetIdentifier,
   type UpdateAsset,
+  type UpdateAssetIdentifier,
+  validateAssetIdentifier,
 } from "@exposurenexus/types/model/asset";
 import { type AssetCustomFieldValue } from "@exposurenexus/types/model/asset-custom-field";
 
@@ -17,7 +22,7 @@ import {
   type EventSubjects,
 } from "../lib/eventbus/events/index.js";
 import { ApplicationError, isApplicationError } from "./application-error.js";
-import { isForeignKeyError } from "./errors.js";
+import { isConflictError, isForeignKeyError } from "./errors.js";
 
 import type { AssetRepository } from "../repository/asset.js";
 import type { UserProfile } from "@exposurenexus/types/model/user";
@@ -50,6 +55,47 @@ function normalizeDisplayName(displayName: string): string {
   return normalized;
 }
 
+function identifierKey(identifier: Pick<AssetIdentifier, "type" | "namespace" | "value">): string {
+  return JSON.stringify([identifier.type, identifier.namespace, identifier.value]);
+}
+
+function normalizeIdentifier(input: unknown): AssetIdentifier {
+  const result = validateAssetIdentifier(input);
+  if (!result.success) {
+    throw new ApplicationError({
+      code: "asset.identifier_invalid",
+      kind: "validation",
+      message: "asset identifier is invalid",
+      details: { issues: result.issues },
+    });
+  }
+
+  return result.data;
+}
+
+function normalizeIdentifiers(inputs: readonly unknown[]): AssetIdentifier[] {
+  const normalized: AssetIdentifier[] = [];
+  const seen = new Set<string>();
+
+  for (const input of inputs) {
+    const identifier = normalizeIdentifier(input);
+    const key = identifierKey(identifier);
+    if (seen.has(key)) {
+      throw new ApplicationError({
+        code: "asset.identifier_duplicate",
+        kind: "validation",
+        message: "asset identifiers must be unique",
+        details: identifier,
+      });
+    }
+
+    seen.add(key);
+    normalized.push(identifier);
+  }
+
+  return normalized;
+}
+
 interface UserProfileLookupService {
   getByID(id: string): Promise<UserProfile | null>;
 }
@@ -75,6 +121,28 @@ export interface UpdateAssetOptions {
   eventContext?: DomainEventContext;
 }
 
+export interface AddAssetIdentifierOptions {
+  assetId: string;
+  identifier: CreateAssetIdentifier;
+  user: UserProfile;
+  eventContext?: DomainEventContext;
+}
+
+export interface UpdateAssetIdentifierOptions {
+  assetId: string;
+  identifierId: string;
+  identifier: UpdateAssetIdentifier;
+  user: UserProfile;
+  eventContext?: DomainEventContext;
+}
+
+export interface DeleteAssetIdentifierOptions {
+  assetId: string;
+  identifierId: string;
+  user: UserProfile;
+  eventContext?: DomainEventContext;
+}
+
 export interface AssetService {
   listAll(): Promise<Asset[]>;
   listAllWithCustomFields(): Promise<AssetWithCustomFields[]>;
@@ -82,6 +150,9 @@ export interface AssetService {
   getByDisplayName(displayName: string, type?: AssetType): Promise<Asset | null>;
   create(opts: CreateAssetOptions): Promise<Asset>;
   updateByID(opts: UpdateAssetOptions): Promise<Asset | null>;
+  addIdentifier(opts: AddAssetIdentifierOptions): Promise<AssetIdentifierRecord | null>;
+  updateIdentifierByID(opts: UpdateAssetIdentifierOptions): Promise<AssetIdentifierRecord | null>;
+  deleteIdentifierByID(opts: DeleteAssetIdentifierOptions): Promise<AssetIdentifierRecord | null>;
   deleteByID(id: string, eventContext?: DomainEventContext): Promise<Asset | null>;
 }
 
@@ -151,6 +222,27 @@ export function createAssetService({
     }
 
     emitAssetEvent("asset.updated", { previous, current }, eventContext);
+  }
+
+  async function identifierConflictError(
+    identifier: AssetIdentifier,
+    context: { assetId?: string; identifierId?: string },
+  ): Promise<ApplicationError | null> {
+    const conflictingAssetId = await assetRepository.getAssetIDByIdentifier(identifier);
+    if (!conflictingAssetId) {
+      return null;
+    }
+
+    return new ApplicationError({
+      code: "asset.identifier_conflict",
+      kind: "conflict",
+      message: "asset identifier is already owned by another asset",
+      details: {
+        ...context,
+        ...identifier,
+        conflictingAssetId,
+      },
+    });
   }
 
   return {
@@ -231,6 +323,7 @@ export function createAssetService({
     async create(opts: CreateAssetOptions): Promise<Asset> {
       try {
         const displayName = normalizeDisplayName(opts.asset.displayName);
+        const identifiers = normalizeIdentifiers(opts.asset.identifiers ?? []);
         await validateOwner(opts.asset.ownerId);
 
         const now = new Date();
@@ -240,6 +333,7 @@ export function createAssetService({
           environment: opts.asset.environment ?? AssetEnvironment.Unknown,
           lifecycleState: opts.asset.lifecycleState ?? AssetLifecycleState.Active,
           ownerId: opts.asset.ownerId ?? null,
+          identifiers,
           createdAt: now,
           updatedAt: now,
           createdBy: opts.user.id,
@@ -252,6 +346,17 @@ export function createAssetService({
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;
+        }
+
+        if (isConflictError(error)) {
+          const identifiers = opts.asset.identifiers ?? [];
+          for (const input of identifiers) {
+            const identifier = normalizeIdentifier(input);
+            const conflict = await identifierConflictError(identifier, {});
+            if (conflict) {
+              throw conflict;
+            }
+          }
         }
 
         logger.error(error, `failed to create new asset ${opts.asset.displayName}`);
@@ -325,6 +430,166 @@ export function createAssetService({
           message: "failed to update asset",
           cause: error,
           details: { assetId: opts.id },
+        });
+      }
+    },
+
+    async addIdentifier(opts: AddAssetIdentifierOptions): Promise<AssetIdentifierRecord | null> {
+      try {
+        const previous = await getAssetSnapshot(opts.assetId);
+        if (!previous) {
+          logger.debug(`cannot add identifier to asset ${opts.assetId}: not found`);
+          return null;
+        }
+
+        const identifier = normalizeIdentifier(opts.identifier);
+        const created = await assetRepository.addIdentifier(opts.assetId, identifier, {
+          updatedAt: new Date(),
+          updatedBy: opts.user.id,
+        });
+        if (!created) {
+          logger.debug(`cannot add identifier to asset ${opts.assetId}: not found`);
+          return null;
+        }
+
+        const current = await getAssetSnapshot(opts.assetId);
+        if (current) {
+          emitUpdatedAssetEvent(previous, current, opts.eventContext);
+        }
+        return created;
+      } catch (error) {
+        if (isApplicationError(error)) {
+          throw error;
+        }
+
+        if (isConflictError(error)) {
+          const identifier = normalizeIdentifier(opts.identifier);
+          const conflict = await identifierConflictError(identifier, { assetId: opts.assetId });
+          if (conflict) {
+            throw conflict;
+          }
+        }
+
+        logger.error(error, `failed to add identifier to asset ${opts.assetId}`);
+        throw new ApplicationError({
+          code: "asset.identifier_add_failed",
+          kind: "unexpected",
+          message: "failed to add asset identifier",
+          cause: error,
+          details: { assetId: opts.assetId },
+        });
+      }
+    },
+
+    async updateIdentifierByID(
+      opts: UpdateAssetIdentifierOptions,
+    ): Promise<AssetIdentifierRecord | null> {
+      try {
+        const previous = await getAssetSnapshot(opts.assetId);
+        if (!previous) {
+          logger.debug(`cannot update identifier ${opts.identifierId}: asset not found`);
+          return null;
+        }
+
+        const currentIdentifier = previous.identifiers.find(
+          (identifier) => identifier.id === opts.identifierId,
+        );
+        if (!currentIdentifier) {
+          logger.debug(`cannot update identifier ${opts.identifierId}: not found`);
+          return null;
+        }
+
+        const identifier = normalizeIdentifier(opts.identifier);
+        if (identifierKey(currentIdentifier) === identifierKey(identifier)) {
+          return currentIdentifier;
+        }
+
+        const updated = await assetRepository.updateIdentifierByID(
+          opts.assetId,
+          opts.identifierId,
+          identifier,
+          {
+            updatedAt: new Date(),
+            updatedBy: opts.user.id,
+          },
+        );
+        if (!updated) {
+          logger.debug(`cannot update identifier ${opts.identifierId}: not found`);
+          return null;
+        }
+
+        const current = await getAssetSnapshot(opts.assetId);
+        if (current) {
+          emitUpdatedAssetEvent(previous, current, opts.eventContext);
+        }
+        return updated;
+      } catch (error) {
+        if (isApplicationError(error)) {
+          throw error;
+        }
+
+        if (isConflictError(error)) {
+          const identifier = normalizeIdentifier(opts.identifier);
+          const conflict = await identifierConflictError(identifier, {
+            assetId: opts.assetId,
+            identifierId: opts.identifierId,
+          });
+          if (conflict) {
+            throw conflict;
+          }
+        }
+
+        logger.error(error, `failed to update identifier ${opts.identifierId}`);
+        throw new ApplicationError({
+          code: "asset.identifier_update_failed",
+          kind: "unexpected",
+          message: "failed to update asset identifier",
+          cause: error,
+          details: { assetId: opts.assetId, identifierId: opts.identifierId },
+        });
+      }
+    },
+
+    async deleteIdentifierByID(
+      opts: DeleteAssetIdentifierOptions,
+    ): Promise<AssetIdentifierRecord | null> {
+      try {
+        const previous = await getAssetSnapshot(opts.assetId);
+        if (!previous) {
+          logger.debug(`cannot delete identifier ${opts.identifierId}: asset not found`);
+          return null;
+        }
+
+        const deleted = await assetRepository.deleteIdentifierByID(
+          opts.assetId,
+          opts.identifierId,
+          {
+            updatedAt: new Date(),
+            updatedBy: opts.user.id,
+          },
+        );
+        if (!deleted) {
+          logger.debug(`cannot delete identifier ${opts.identifierId}: not found`);
+          return null;
+        }
+
+        const current = await getAssetSnapshot(opts.assetId);
+        if (current) {
+          emitUpdatedAssetEvent(previous, current, opts.eventContext);
+        }
+        return deleted;
+      } catch (error) {
+        if (isApplicationError(error)) {
+          throw error;
+        }
+
+        logger.error(error, `failed to delete identifier ${opts.identifierId}`);
+        throw new ApplicationError({
+          code: "asset.identifier_delete_failed",
+          kind: "unexpected",
+          message: "failed to delete asset identifier",
+          cause: error,
+          details: { assetId: opts.assetId, identifierId: opts.identifierId },
         });
       }
     },

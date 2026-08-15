@@ -50,6 +50,7 @@ describe("nuclei importer", () => {
     displayName: "api.exposurenexus.local",
     type: AssetType.Host,
     ownerId: null,
+    identifiers: [],
   };
   const nucleiFinding = {
     "template-id": "admin-panel",

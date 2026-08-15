@@ -1,4 +1,9 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
+import {
+  AssetEnvironment,
+  AssetIdentifierType,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/types/model/asset";
 import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -27,6 +32,7 @@ describe("asset repository", () => {
       environment: AssetEnvironment.Production,
       lifecycleState: AssetLifecycleState.Active,
       ownerId: null,
+      identifiers: [],
       createdAt: timestamp,
       updatedAt: timestamp,
       createdBy,
@@ -68,6 +74,7 @@ describe("asset repository", () => {
     expect(created.environment).toBe(AssetEnvironment.Production);
     expect(created.lifecycleState).toBe(AssetLifecycleState.Active);
     expect(created.ownerId).toBeNull();
+    expect(created.identifiers).toEqual([]);
     expect(created.createdBy).toBe(createdBy);
     expect(created.updatedBy).toBe(createdBy);
 
@@ -142,6 +149,129 @@ describe("asset repository", () => {
         updatedBy: createdBy,
       }),
     ).resolves.toBeNull();
+  });
+
+  it("persists identifiers in deterministic order and keeps their ids stable", async () => {
+    const repository = createAssetRepository(testDb.db);
+    const asset = await repository.create(
+      createAssetRecord({
+        identifiers: [
+          {
+            type: AssetIdentifierType.CloudResourceId,
+            namespace: "prod",
+            value: "resource-2",
+          },
+          {
+            type: AssetIdentifierType.DnsName,
+            namespace: null,
+            value: "api.example.com",
+          },
+          {
+            type: AssetIdentifierType.CloudResourceId,
+            namespace: null,
+            value: "resource-1",
+          },
+        ],
+      }),
+    );
+
+    expect(
+      asset.identifiers.map(({ type, namespace, value }) => ({ type, namespace, value })),
+    ).toEqual([
+      {
+        type: AssetIdentifierType.DnsName,
+        namespace: null,
+        value: "api.example.com",
+      },
+      {
+        type: AssetIdentifierType.CloudResourceId,
+        namespace: null,
+        value: "resource-1",
+      },
+      {
+        type: AssetIdentifierType.CloudResourceId,
+        namespace: "prod",
+        value: "resource-2",
+      },
+    ]);
+
+    const identifier = asset.identifiers[0]!;
+    const updatedAt = new Date("2026-01-02T00:00:00.000Z");
+    await expect(
+      repository.updateIdentifierByID(
+        asset.id,
+        identifier.id,
+        {
+          type: identifier.type,
+          namespace: "archive",
+          value: identifier.value,
+        },
+        { updatedAt, updatedBy: createdBy },
+      ),
+    ).resolves.toMatchObject({ id: identifier.id, namespace: "archive" });
+    await expect(repository.getByID(asset.id)).resolves.toMatchObject({
+      updatedAt,
+      identifiers: expect.arrayContaining([expect.objectContaining({ id: identifier.id })]),
+    });
+  });
+
+  it("enforces identifier identity uniqueness across archived assets and cascades on deletion", async () => {
+    const repository = createAssetRepository(testDb.db);
+    const identifier = {
+      type: AssetIdentifierType.DnsName,
+      namespace: null,
+      value: "api.example.com",
+    } as const;
+    const first = await repository.create(createAssetRecord({ identifiers: [identifier] }));
+    const archived = await repository.create(
+      createAssetRecord({
+        displayName: "archived.example.com",
+        lifecycleState: AssetLifecycleState.Archived,
+      }),
+    );
+
+    await expect(
+      repository.addIdentifier(archived.id, identifier, {
+        updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+        updatedBy: createdBy,
+      }),
+    ).rejects.toThrow(/unique|duplicate/i);
+    await expect(repository.getAssetIDByIdentifier(identifier)).resolves.toBe(first.id);
+
+    await expect(repository.deleteByID(first.id)).resolves.toMatchObject({
+      id: first.id,
+      identifiers: [expect.objectContaining(identifier)],
+    });
+    await expect(repository.getAssetIDByIdentifier(identifier)).resolves.toBeNull();
+  });
+
+  it("adds and removes identifiers while auditing the parent asset", async () => {
+    const repository = createAssetRepository(testDb.db);
+    const asset = await repository.create(createAssetRecord());
+    const updatedAt = new Date("2026-01-02T00:00:00.000Z");
+    const identifier = {
+      type: AssetIdentifierType.IpAddress,
+      namespace: "private",
+      value: "192.0.2.1",
+    } as const;
+
+    const added = await repository.addIdentifier(asset.id, identifier, {
+      updatedAt,
+      updatedBy: createdBy,
+    });
+    expect(added).toMatchObject(identifier);
+    await expect(repository.getByID(asset.id)).resolves.toMatchObject({
+      updatedAt,
+      identifiers: [expect.objectContaining(identifier)],
+    });
+
+    await expect(
+      repository.deleteIdentifierByID(asset.id, added!.id, {
+        updatedAt: new Date("2026-01-03T00:00:00.000Z"),
+        updatedBy: createdBy,
+      }),
+    ).resolves.toMatchObject({ id: added!.id });
+    await expect(repository.getByID(asset.id)).resolves.toMatchObject({ identifiers: [] });
   });
 
   it("does not delete assets linked to findings", async () => {

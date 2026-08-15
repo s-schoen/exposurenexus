@@ -210,6 +210,7 @@ describe("createDomainEventPayload", () => {
       environment: AssetEnvironment.Production,
       lifecycleState: AssetLifecycleState.Active,
       ownerId: null,
+      identifiers: [],
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
       updatedAt: new Date("2026-01-02T00:00:00.000Z"),
       createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",

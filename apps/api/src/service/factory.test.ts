@@ -75,8 +75,13 @@ describe("service factories", () => {
       list: vi.fn().mockResolvedValue([]),
       getByID: vi.fn(),
       getByDisplayName: vi.fn(),
+      getIdentifierByID: vi.fn(),
+      getAssetIDByIdentifier: vi.fn(),
       create: vi.fn(),
       updateByID: vi.fn(),
+      addIdentifier: vi.fn(),
+      updateIdentifierByID: vi.fn(),
+      deleteIdentifierByID: vi.fn(),
       deleteByID: vi.fn(),
       countFindingsByAssetID: vi.fn(),
     };

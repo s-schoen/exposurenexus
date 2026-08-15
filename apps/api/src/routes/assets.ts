@@ -1,4 +1,9 @@
-import { createAssetSchema, updateAssetSchema } from "@exposurenexus/types/model/asset";
+import {
+  createAssetIdentifierSchema,
+  createAssetSchema,
+  updateAssetIdentifierSchema,
+  updateAssetSchema,
+} from "@exposurenexus/types/model/asset";
 import {
   updateAssetCustomFieldAssociationsSchema,
   updateAssetCustomFieldValuesSchema,
@@ -22,6 +27,10 @@ interface AssetRouteDependencies {
 }
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }));
+const identifierParamValidator = zValidator(
+  "param",
+  z.object({ id: z.uuidv4(), identifierId: z.uuidv4() }),
+);
 const listAssetQueryValidator = zValidator(
   "query",
   z.object({
@@ -129,6 +138,87 @@ export function createAssetRoute(
       }
 
       return replyArray(c, values);
+    },
+  );
+
+  asset.post(
+    "/:id/identifiers",
+    requireDomainPermission("asset", "write"),
+    idParamValidator,
+    zValidator("json", createAssetIdentifierSchema),
+    async (c) => {
+      const params = c.req.valid("param");
+      const user = c.get("user");
+
+      if (!user) {
+        throw unauthorized();
+      }
+
+      const identifier = await assetService.addIdentifier({
+        assetId: params.id,
+        identifier: c.req.valid("json"),
+        user,
+        eventContext: requestEventContext(c),
+      });
+      if (!identifier) {
+        throw notFound("asset", params.id);
+      }
+
+      return replyObject(c, identifier, true);
+    },
+  );
+
+  asset.put(
+    "/:id/identifiers/:identifierId",
+    requireDomainPermission("asset", "write"),
+    identifierParamValidator,
+    zValidator("json", updateAssetIdentifierSchema),
+    async (c) => {
+      const params = c.req.valid("param");
+      const user = c.get("user");
+
+      if (!user) {
+        throw unauthorized();
+      }
+
+      const identifier = await assetService.updateIdentifierByID({
+        assetId: params.id,
+        identifierId: params.identifierId,
+        identifier: c.req.valid("json"),
+        user,
+        eventContext: requestEventContext(c),
+      });
+      if (!identifier) {
+        throw notFound("asset identifier", params.identifierId);
+      }
+
+      return replyObject(c, identifier);
+    },
+  );
+
+  asset.delete(
+    "/:id/identifiers/:identifierId",
+    requireDomainPermission("asset", "write"),
+    identifierParamValidator,
+    async (c) => {
+      const params = c.req.valid("param");
+      const user = c.get("user");
+
+      if (!user) {
+        throw unauthorized();
+      }
+
+      const identifier = await assetService.deleteIdentifierByID({
+        assetId: params.id,
+        identifierId: params.identifierId,
+        user,
+        eventContext: requestEventContext(c),
+      });
+      if (!identifier) {
+        throw notFound("asset identifier", params.identifierId);
+      }
+
+      return replyObject(c, identifier);
     },
   );
 

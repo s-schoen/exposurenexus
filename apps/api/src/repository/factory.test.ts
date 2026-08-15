@@ -22,11 +22,15 @@ describe("repository factories", () => {
 
   it("creates an asset repository bound to the injected db", async () => {
     const execute = vi.fn().mockResolvedValue([]);
+    const orderBy = vi.fn();
     const query = {
       where: vi.fn(),
+      orderBy,
       executeTakeFirst: execute,
+      execute,
     };
     query.where.mockReturnValue(query);
+    orderBy.mockReturnValue(query);
     const selectAll = vi.fn().mockReturnValue(query);
     const selectFrom = vi.fn().mockReturnValue({ selectAll });
     const db = { selectFrom };
@@ -38,7 +42,7 @@ describe("repository factories", () => {
     expect(selectFrom).toHaveBeenCalledWith("asset");
     expect(query.where).toHaveBeenNthCalledWith(1, "displayName", "=", "api.exposurenexus.local");
     expect(query.where).toHaveBeenNthCalledWith(2, "type", "=", AssetType.Host);
-    expect(execute).toHaveBeenCalledOnce();
+    expect(execute).toHaveBeenCalledTimes(2);
   });
 
   it("creates a finding repository bound to the injected db", async () => {

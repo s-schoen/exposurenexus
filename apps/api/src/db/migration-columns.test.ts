@@ -416,6 +416,91 @@ describe("db migration columns", () => {
     );
   });
 
+  it("creates the globally unique typed asset identifier contract", async () => {
+    const identifierColumns = await sql<{
+      column_name: string;
+      data_type: string;
+      is_nullable: string;
+      character_maximum_length: number | null;
+    }>`
+      select column_name, data_type, is_nullable, character_maximum_length
+      from information_schema.columns
+      where table_name = 'asset_identifier'
+      order by ordinal_position asc
+    `.execute(testDb.db);
+    const identifierTypes = await sql<{ enumlabel: string }>`
+      select pg_enum.enumlabel
+      from pg_type
+      join pg_enum on pg_enum.enumtypid = pg_type.oid
+      where pg_type.typname = 'asset_identifier_type'
+      order by pg_enum.enumsortorder asc
+    `.execute(testDb.db);
+    const indexes = await sql<{ indexname: string; indexdef: string }>`
+      select indexname, indexdef
+      from pg_indexes
+      where tablename = 'asset_identifier'
+        and indexname = 'asset_identifier_type_namespace_value_unique'
+    `.execute(testDb.db);
+    const foreignKeys = await sql<{ target_table: string; delete_rule: string }>`
+      select ccu.table_name as target_table, rc.delete_rule
+      from information_schema.referential_constraints rc
+      join information_schema.key_column_usage kcu
+        on kcu.constraint_catalog = rc.constraint_catalog
+        and kcu.constraint_schema = rc.constraint_schema
+        and kcu.constraint_name = rc.constraint_name
+      join information_schema.constraint_column_usage ccu
+        on ccu.constraint_catalog = rc.unique_constraint_catalog
+        and ccu.constraint_schema = rc.unique_constraint_schema
+        and ccu.constraint_name = rc.unique_constraint_name
+      where kcu.table_name = 'asset_identifier'
+        and kcu.column_name = 'assetId'
+    `.execute(testDb.db);
+
+    expect(identifierColumns.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ column_name: "id", data_type: "uuid", is_nullable: "NO" }),
+        expect.objectContaining({
+          column_name: "assetId",
+          data_type: "uuid",
+          is_nullable: "NO",
+        }),
+        expect.objectContaining({
+          column_name: "type",
+          data_type: "USER-DEFINED",
+          is_nullable: "NO",
+        }),
+        expect.objectContaining({
+          column_name: "namespace",
+          data_type: "character varying",
+          character_maximum_length: 255,
+          is_nullable: "YES",
+        }),
+        expect.objectContaining({
+          column_name: "value",
+          data_type: "character varying",
+          character_maximum_length: 2048,
+          is_nullable: "NO",
+        }),
+      ]),
+    );
+    expect(identifierTypes.rows).toEqual([
+      { enumlabel: "dnsName" },
+      { enumlabel: "ipAddress" },
+      { enumlabel: "vcsRepository" },
+      { enumlabel: "ociImageName" },
+      { enumlabel: "cloudResourceId" },
+    ]);
+    expect(indexes.rows).toEqual([
+      expect.objectContaining({
+        indexname: "asset_identifier_type_namespace_value_unique",
+        indexdef: expect.stringContaining("UNIQUE"),
+      }),
+    ]);
+    expect(foreignKeys.rows).toEqual([
+      expect.objectContaining({ target_table: "asset", delete_rule: "CASCADE" }),
+    ]);
+  });
+
   it("adds nullable finding assignee identity pointing at user profiles", async () => {
     const findingAssigneeColumns = await sql<{
       column_name: string;

@@ -72,6 +72,7 @@ describe("registerAuditLogger", () => {
     environment: AssetEnvironment.Production,
     lifecycleState: AssetLifecycleState.Active,
     ownerId: null,
+    identifiers: [],
     createdAt: new Date("2026-05-07T09:10:00.000Z"),
     updatedAt: new Date("2026-05-07T09:10:00.000Z"),
     createdBy: user.id,
