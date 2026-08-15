@@ -47,6 +47,7 @@ const mocks = vi.hoisted(() => {
       environment: "production" as AssetWithCustomFields["environment"],
       lifecycleState: "active" as AssetWithCustomFields["lifecycleState"],
       ownerId: users[0].id,
+      identifiers: [],
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
       updatedAt: new Date("2026-01-02T00:00:00.000Z"),
       createdBy: users[0].id,
@@ -60,6 +61,7 @@ const mocks = vi.hoisted(() => {
       environment: "unknown" as AssetWithCustomFields["environment"],
       lifecycleState: "active" as AssetWithCustomFields["lifecycleState"],
       ownerId: null,
+      identifiers: [],
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
       updatedAt: new Date("2026-01-02T00:00:00.000Z"),
       createdBy: users[0].id,
@@ -73,6 +75,7 @@ const mocks = vi.hoisted(() => {
     environment: "unknown" as NonNullable<CreateAsset["environment"]>,
     lifecycleState: "active" as NonNullable<CreateAsset["lifecycleState"]>,
     ownerId: null,
+    identifiers: [],
   };
 
   return {

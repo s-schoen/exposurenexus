@@ -1,4 +1,9 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
+import {
+  AssetEnvironment,
+  AssetIdentifierType,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -13,11 +18,14 @@ import {
   createListAssetsQueryOptions,
   createListAssetsWithCustomFieldsQueryOptions,
   deleteAsset,
+  addAssetIdentifier,
+  deleteAssetIdentifier,
   listAssetCustomFieldValues,
   listAssetsWithCustomFields,
   listAvailableAssetCustomFieldDefinitions,
   replaceAssetCustomFieldAssociations,
   updateAssetCustomFieldValues,
+  updateAssetIdentifier,
   updateAsset,
 } from "@/api/asset.ts";
 
@@ -63,11 +71,18 @@ const asset: Asset = {
   environment: AssetEnvironment.Production,
   lifecycleState: AssetLifecycleState.Active,
   ownerId: null,
+  identifiers: [],
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   updatedAt: new Date("2026-01-02T00:00:00.000Z"),
   createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
   updatedBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
 };
+const identifier = {
+  id: "f1c4c65c-4486-4a4d-b3fc-86f702390ba3",
+  type: AssetIdentifierType.DnsName,
+  namespace: null,
+  value: "api.example.com",
+} as const;
 const definition: AssetCustomFieldDefinition = {
   id: fieldId,
   key: "environment",
@@ -257,6 +272,50 @@ describe("asset custom field value api", () => {
     await expect(updateAsset(asset.id, { ownerId: null })).resolves.toEqual(asset);
 
     expect(requestJsonBody()).toEqual({ ownerId: null });
+  });
+
+  it("adds, updates, and deletes asset identifiers", async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ data: identifier }))
+      .mockResolvedValueOnce(
+        jsonResponse({ data: { ...identifier, value: "api.internal.example.com" } }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ data: identifier }));
+
+    await expect(
+      addAssetIdentifier(assetId, {
+        type: AssetIdentifierType.DnsName,
+        value: "api.example.com",
+      }),
+    ).resolves.toEqual(identifier);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      `/api/assets/${assetId}/identifiers`,
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toEqual({
+      type: AssetIdentifierType.DnsName,
+      value: "api.example.com",
+    });
+
+    await expect(
+      updateAssetIdentifier(assetId, identifier.id, {
+        type: AssetIdentifierType.DnsName,
+        value: "api.internal.example.com",
+      }),
+    ).resolves.toMatchObject({ value: "api.internal.example.com" });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      `/api/assets/${assetId}/identifiers/${identifier.id}`,
+      expect.objectContaining({ method: "PUT" }),
+    );
+
+    await expect(deleteAssetIdentifier(assetId, identifier.id)).resolves.toEqual(identifier);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      `/api/assets/${assetId}/identifiers/${identifier.id}`,
+      expect.objectContaining({ method: "DELETE" }),
+    );
   });
 
   it("deletes assets", async () => {

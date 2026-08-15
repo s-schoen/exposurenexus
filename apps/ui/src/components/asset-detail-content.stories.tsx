@@ -1,4 +1,9 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
+import {
+  AssetEnvironment,
+  AssetIdentifierType,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -38,6 +43,14 @@ const ASSET: Asset = {
   environment: AssetEnvironment.Production,
   lifecycleState: AssetLifecycleState.Active,
   ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+  identifiers: [
+    {
+      id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+      type: AssetIdentifierType.DnsName,
+      namespace: null,
+      value: "web-01.example.com",
+    },
+  ],
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   updatedAt: new Date("2026-01-02T00:00:00.000Z"),
   createdBy: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",

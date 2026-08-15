@@ -1,4 +1,9 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
+import {
+  AssetEnvironment,
+  AssetIdentifierType,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -75,6 +80,14 @@ export const STORY_ASSETS: Array<Asset> = [
     environment: AssetEnvironment.Production,
     lifecycleState: AssetLifecycleState.Active,
     ownerId: STORY_USERS[0].id,
+    identifiers: [
+      {
+        id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+        type: AssetIdentifierType.DnsName,
+        namespace: null,
+        value: "web-01.example.com",
+      },
+    ],
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-02T00:00:00.000Z"),
     createdBy: STORY_USERS[0].id,
@@ -87,6 +100,14 @@ export const STORY_ASSETS: Array<Asset> = [
     environment: AssetEnvironment.Staging,
     lifecycleState: AssetLifecycleState.Active,
     ownerId: null,
+    identifiers: [
+      {
+        id: "2db67190-9d84-482f-9936-cfbf4244752b",
+        type: AssetIdentifierType.OciImageName,
+        namespace: null,
+        value: "ghcr.io/exposurenexus/container",
+      },
+    ],
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-02T00:00:00.000Z"),
     createdBy: STORY_USERS[0].id,
@@ -99,6 +120,14 @@ export const STORY_ASSETS: Array<Asset> = [
     environment: AssetEnvironment.Development,
     lifecycleState: AssetLifecycleState.Active,
     ownerId: STORY_USERS[1].id,
+    identifiers: [
+      {
+        id: "f1c4c65c-4486-4a4d-b3fc-86f702390ba3",
+        type: AssetIdentifierType.VcsRepository,
+        namespace: "engineering",
+        value: "github.com/exposurenexus/api",
+      },
+    ],
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-02T00:00:00.000Z"),
     createdBy: STORY_USERS[0].id,

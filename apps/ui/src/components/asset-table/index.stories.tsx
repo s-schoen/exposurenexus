@@ -34,6 +34,7 @@ function toAsset(asset: AssetWithCustomFields): Asset {
     environment: asset.environment,
     lifecycleState: asset.lifecycleState,
     ownerId: asset.ownerId,
+    identifiers: asset.identifiers,
     createdAt: asset.createdAt,
     updatedAt: asset.updatedAt,
     createdBy: asset.createdBy,
@@ -112,6 +113,11 @@ function AssetTableStoryShell({ scenario, selectedAssetId }: AssetTableStoryArgs
           environment: body.environment ?? AssetEnvironment.Unknown,
           lifecycleState: body.lifecycleState ?? AssetLifecycleState.Active,
           ownerId: body.ownerId ?? null,
+          identifiers: (body.identifiers ?? []).map((identifier) => ({
+            id: crypto.randomUUID(),
+            ...identifier,
+            namespace: identifier.namespace ?? null,
+          })),
           customFields: [],
         };
 

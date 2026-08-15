@@ -1,4 +1,9 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
+import {
+  AssetEnvironment,
+  AssetIdentifierType,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -27,19 +32,25 @@ import type { ReactNode } from "react";
 
 const {
   createAssetRequestMock,
+  addIdentifierRequestMock,
   deleteAssetRequestMock,
+  deleteIdentifierRequestMock,
   replaceAssociationsRequestMock,
   toastErrorMock,
   toastSuccessMock,
   updateAssetRequestMock,
+  updateIdentifierRequestMock,
   updateValuesRequestMock,
 } = vi.hoisted(() => ({
   createAssetRequestMock: vi.fn(),
+  addIdentifierRequestMock: vi.fn(),
   deleteAssetRequestMock: vi.fn(),
+  deleteIdentifierRequestMock: vi.fn(),
   replaceAssociationsRequestMock: vi.fn(),
   toastErrorMock: vi.fn(),
   toastSuccessMock: vi.fn(),
   updateAssetRequestMock: vi.fn(),
+  updateIdentifierRequestMock: vi.fn(),
   updateValuesRequestMock: vi.fn(),
 }));
 
@@ -56,15 +67,24 @@ vi.mock("@/api/asset.ts", async (importOriginal) => {
   return {
     ...actual,
     createAsset: createAssetRequestMock,
+    addAssetIdentifier: addIdentifierRequestMock,
     deleteAsset: deleteAssetRequestMock,
+    deleteAssetIdentifier: deleteIdentifierRequestMock,
     replaceAssetCustomFieldAssociations: replaceAssociationsRequestMock,
     updateAssetCustomFieldValues: updateValuesRequestMock,
     updateAsset: updateAssetRequestMock,
+    updateAssetIdentifier: updateIdentifierRequestMock,
     useCreateAssetMutation: () => ({
       mutateAsync: createAssetRequestMock,
     }),
+    useAddAssetIdentifierMutation: () => ({
+      mutateAsync: addIdentifierRequestMock,
+    }),
     useDeleteAssetMutation: () => ({
       mutateAsync: deleteAssetRequestMock,
+    }),
+    useDeleteAssetIdentifierMutation: () => ({
+      mutateAsync: deleteIdentifierRequestMock,
     }),
     useReplaceAssetCustomFieldAssociationsMutation: () => ({
       mutateAsync: replaceAssociationsRequestMock,
@@ -74,6 +94,9 @@ vi.mock("@/api/asset.ts", async (importOriginal) => {
     }),
     useUpdateAssetMutation: () => ({
       mutateAsync: updateAssetRequestMock,
+    }),
+    useUpdateAssetIdentifierMutation: () => ({
+      mutateAsync: updateIdentifierRequestMock,
     }),
   };
 });
@@ -87,6 +110,7 @@ function createAssetFixture(overrides: Partial<Asset> = {}): Asset {
     lifecycleState: overrides.lifecycleState ?? AssetLifecycleState.Active,
     ownerId:
       "ownerId" in overrides ? (overrides.ownerId ?? null) : "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+    identifiers: overrides.identifiers ?? [],
     createdAt: overrides.createdAt ?? new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: overrides.updatedAt ?? new Date("2026-01-02T00:00:00.000Z"),
     createdBy: overrides.createdBy ?? "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
@@ -101,6 +125,7 @@ function createAssetPayload(overrides: Partial<CreateAsset> = {}): CreateAsset {
     environment: overrides.environment ?? AssetEnvironment.Production,
     lifecycleState: overrides.lifecycleState ?? AssetLifecycleState.Active,
     ownerId: "ownerId" in overrides ? overrides.ownerId : null,
+    identifiers: overrides.identifiers ?? [],
   };
 }
 
@@ -140,11 +165,14 @@ function renderLifecycleHook(queryClient = createQueryClient()) {
 
 beforeEach(() => {
   createAssetRequestMock.mockReset();
+  addIdentifierRequestMock.mockReset();
   deleteAssetRequestMock.mockReset();
+  deleteIdentifierRequestMock.mockReset();
   replaceAssociationsRequestMock.mockReset();
   toastErrorMock.mockReset();
   toastSuccessMock.mockReset();
   updateAssetRequestMock.mockReset();
+  updateIdentifierRequestMock.mockReset();
   updateValuesRequestMock.mockReset();
 });
 
@@ -258,6 +286,54 @@ describe("useAssetLifecycle", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createListAssetsWithCustomFieldsQueryOptions().queryKey,
       exact: true,
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: createAssetByIDQueryOptions(asset.id).queryKey,
+      exact: true,
+    });
+  });
+
+  it("runs identifier mutations through the asset lifecycle and invalidates asset reads", async () => {
+    const asset = createAssetFixture();
+    const identifier = {
+      id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+      type: AssetIdentifierType.DnsName,
+      namespace: null,
+      value: "api.example.com",
+    } as const;
+    addIdentifierRequestMock.mockResolvedValueOnce(identifier);
+    updateIdentifierRequestMock.mockResolvedValueOnce({
+      ...identifier,
+      value: "api.internal.example.com",
+    });
+    deleteIdentifierRequestMock.mockResolvedValueOnce(identifier);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+
+    await act(async () => {
+      await result.current.addAssetIdentifier(asset.id, {
+        type: identifier.type,
+        value: identifier.value,
+      });
+      await result.current.updateAssetIdentifier(asset.id, identifier.id, {
+        type: identifier.type,
+        value: "api.internal.example.com",
+      });
+      await result.current.deleteAssetIdentifier(asset.id, identifier.id);
+    });
+
+    expect(addIdentifierRequestMock).toHaveBeenCalledWith({
+      assetId: asset.id,
+      identifier: { type: identifier.type, value: identifier.value },
+    });
+    expect(updateIdentifierRequestMock).toHaveBeenCalledWith({
+      assetId: asset.id,
+      identifierId: identifier.id,
+      identifier: { type: identifier.type, value: "api.internal.example.com" },
+    });
+    expect(deleteIdentifierRequestMock).toHaveBeenCalledWith({
+      assetId: asset.id,
+      identifierId: identifier.id,
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createAssetByIDQueryOptions(asset.id).queryKey,

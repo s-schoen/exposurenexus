@@ -128,6 +128,7 @@ describe("AssetDetailContent stories", () => {
       environment: AssetEnvironment.Production,
       lifecycleState: AssetLifecycleState.Active,
       ownerId: null,
+      identifiers: [],
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
       updatedAt: new Date("2026-01-02T00:00:00.000Z"),
       createdBy: "f74d7ff2-2f45-4bb8-9f16-659d633cb398",
