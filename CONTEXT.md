@@ -7,7 +7,7 @@ for triage, mitigation tracking, asset metadata, and access control.
 
 Exposure is the product and category framing. Keep the core domain terms below
 precise: a vulnerability is the catalog item, a finding is the concrete
-occurrence on an asset, and an asset is the affected system or component.
+occurrence on an asset, and an asset is the managed thing being affected.
 
 Use this file as the domain glossary for issues, PRDs, refactors, tests, and
 agent work. Prefer these terms over close synonyms.
@@ -16,12 +16,71 @@ agent work. Prefer these terms over close synonyms.
 
 ### Asset
 
-An **asset** is a system or component tracked by ExposureNexus. Current asset types
-are `host`, `software`, and `container`.
+An **asset** is one user-managed thing that is relevant for vulnerability
+tracking, such as a host, custom-developed software codebase, container image,
+or cloud resource. Assets are the things affected by findings.
 
-Assets are the things affected by findings. Imports may create assets when an
-external finding references an asset that is not already in the registry.
-Treat asset type values as labels without deeper domain semantics for now.
+An asset has an immutable internal ID that remains distinct from its external
+identifiers. An asset may exist without any external identifiers.
+
+### Asset Display Name
+
+An **asset display name** is the required human-readable label for an asset.
+Display names need not be unique and must not be treated as asset identity.
+
+Use **display name** for presentation and **asset identifier** for external
+identity. Avoid using **name** when it is unclear which concept is intended.
+
+### Asset Type
+
+An **asset type** is the broad classification of an asset. Current types are
+`host`, `software`, `containerImage`, and `cloudResource`.
+
+Type values are labels and do not restrict which identifier types an asset may
+have. A `software` asset may represent a custom-developed codebase identified by
+a VCS repository. A `containerImage` asset represents the image itself, not a
+tag, digest, version, or platform variant.
+
+### Asset Identifier
+
+An **asset identifier** is a typed, canonical external identity associated with
+one asset. An asset may have any number of identifiers, including multiple
+identifiers of the same type; identifiers form an unordered set with no primary
+member.
+
+Current identifier types are `dnsName`, `ipAddress`, `vcsRepository`,
+`ociImageName`, and `cloudResourceId`. Generic software names and endpoint
+details such as ports and paths are not asset identifiers. The same identifier
+type, namespace, and canonical value cannot identify more than one asset,
+including archived assets.
+
+### Asset Identifier Namespace
+
+An **asset identifier namespace** is an optional identity scope used when an
+identifier is not globally unambiguous, such as split DNS or overlapping private
+networks. A missing namespace means global scope; namespaces are case-sensitive.
+
+Use namespace only for identity scope. Do not use it for import source,
+provenance, ownership, or arbitrary categorization.
+
+### Asset Environment
+
+An **asset environment** is the single operational environment assigned to an
+asset. Values are `development`, `staging`, `production`, `unknown`, and
+`notApplicable`.
+
+Use `unknown` when the environment has not been established. Use
+`notApplicable` only when environment does not meaningfully apply to the asset.
+
+### Asset Lifecycle State
+
+An **asset lifecycle state** is the current inventory classification of an
+asset. Values are `active` and `archived`.
+
+Archiving is reversible and does not currently hide, disable, or otherwise
+change the behavior of an asset. Archived assets retain their identifiers and
+historical findings. Hard deletion is reserved for erroneous assets without
+referencing findings.
 
 ### Asset Owner
 
@@ -31,15 +90,14 @@ on an asset.
 Assets may have no known owner. Avoid using owner as free text; asset ownership
 refers to a link to a user profile. Asset ownership is distinct from finding
 assignment: the asset owner is not necessarily the assignee for a specific
-finding. Imported assets start without an owner unless ownership is set
-explicitly after import. A disabled user profile can remain an asset owner. If
-an asset owner user profile is deleted, their assets become ownerless. Changing
-asset ownership is treated as editing asset metadata. Asset ownership can be
-set when an asset is created or changed later. Ownership can be cleared
-explicitly. When set, the owner must reference an existing user profile,
-including disabled user profiles. Asset responses expose the owner as an owner
-user profile ID; clients resolve user profile display data separately when
-needed. Owner identity is part of the base asset representation.
+finding. A disabled user profile can remain an asset owner. If an asset owner
+user profile is deleted, their assets become ownerless. Changing asset ownership
+is treated as editing asset metadata. Asset ownership can be set when an asset
+is created or changed later. Ownership can be cleared explicitly. When set, the
+owner must reference an existing user profile, including disabled user profiles.
+Asset responses expose the owner as an owner user profile ID; clients resolve
+user profile display data separately when needed. Owner identity is part of the
+base asset representation.
 
 ### Vulnerability
 
@@ -189,6 +247,9 @@ type, required flag, and optional default value.
 
 Supported types are `text`, `number`, and `select`.
 
+Asset custom fields must not duplicate core asset concepts such as display name,
+type, environment, lifecycle state, ownership, identifiers, or audit metadata.
+
 ### Asset Custom Field Option
 
 An **asset custom field option** belongs to a select custom field definition.
@@ -220,9 +281,9 @@ Sending `null` for a custom field value clears the asset override.
 An **import** ingests external findings into ExposureNexus. The current importer
 supports Nuclei JSONL files.
 
-The import flow parses each source record, finds or creates the matching
-vulnerability, finds or creates the target asset, then creates or updates the
-finding based on its fingerprint.
+Imports resolve findings against user-managed assets and do not create assets.
+An imported record whose target cannot be resolved to one asset does not become
+a finding.
 
 ### Vulnerability Source Mapping
 
@@ -315,6 +376,12 @@ or high exposure, affected assets, and mitigation rate.
 
 - Say **finding** for an observed vulnerability on an asset.
 - Say **vulnerability** for the reusable catalog entry.
+- Say **asset display name** for an asset's human-readable label; do not call it
+  an identifier.
+- Say **asset identifier** for a typed external identity; do not use identifier
+  for the asset's internal ID.
+- Say **asset identifier namespace** for identity scope; do not use namespace
+  for source provenance or arbitrary grouping.
 - Say **asset owner** for the user profile responsible for findings on an asset.
 - Say **asset custom field** when referring to custom metadata; do not shorten
   to custom field if the surrounding context could imply findings or users.

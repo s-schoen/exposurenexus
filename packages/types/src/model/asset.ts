@@ -37,6 +37,28 @@ export type CreateAsset = z.infer<typeof createAssetSchema>;
 export type UpdateAssetOwner = z.infer<typeof updateAssetOwnerSchema>;
 
 export {
+  AssetIdentifierType,
+  AssetIdentifierValidationReason,
+  ASSET_IDENTIFIER_NAMESPACE_MAX_LENGTH,
+  ASSET_IDENTIFIER_VALUE_MAX_LENGTH,
+  assetIdentifierNamespaceSchema,
+  assetIdentifierSchema,
+  assetIdentifierTypeSchema,
+  cloudResourceIdValueSchema,
+  dnsNameValueSchema,
+  ipAddressValueSchema,
+  normalizeAssetIdentifier,
+  ociImageNameValueSchema,
+  validateAssetIdentifier,
+  vcsRepositoryValueSchema,
+} from "./asset-identifier.js";
+export type {
+  AssetIdentifier,
+  AssetIdentifierInput,
+  AssetIdentifierValidationIssue,
+  AssetIdentifierValidationResult,
+} from "./asset-identifier.js";
+export {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   AssetCustomFieldValueSource,

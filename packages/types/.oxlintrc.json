@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
   "extends": ["../../.oxlintrc.json"],
-  "plugins": [],
+  "plugins": ["vitest"],
   "env": {
     "es2022": true
   },
@@ -20,6 +20,11 @@
       "files": ["**/*.{test,spec}.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
       "env": {
         "vitest": true
+      },
+      "rules": {
+        "vitest/no-conditional-expect": "off",
+        "vitest/require-mock-type-parameters": "off",
+        "vitest/require-to-throw-message": "off"
       }
     }
   ]

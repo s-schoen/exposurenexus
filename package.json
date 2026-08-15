@@ -18,8 +18,9 @@
     "lint:agent": "pnpm --filter @exposurenexus/types build && oxlint --format=agent .",
     "lint:fix": "pnpm --filter @exposurenexus/types build && oxlint --fix .",
     "storybook:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui storybook",
-    "test": "pnpm test:api && pnpm test:ui",
+    "test": "pnpm test:types && pnpm test:api && pnpm test:ui",
     "test:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api test",
+    "test:types": "pnpm --filter @exposurenexus/types build && pnpm --filter @exposurenexus/types typecheck:test && pnpm --filter @exposurenexus/types test",
     "test:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test",
     "test:ui:unit": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test:unit",
     "verify:container": "sh scripts/verify-container-build.sh"
