@@ -2,13 +2,14 @@ import {
   AssetEnvironment,
   AssetLifecycleState,
   AssetType,
-  assetSchema,
+  createAssetSchema,
 } from "@exposurenexus/types/model/asset";
 import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { createCallable } from "react-call";
 
 import { createListUsersQueryOptions } from "@/api/user.ts";
+import { AssetIdentifierEditor } from "@/components/asset-identifier-editor.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Dialog,
@@ -35,27 +36,23 @@ import type { PropsWithCall } from "react-call";
 
 type AssetDialogProps = object;
 
-const formSchema = assetSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  createdBy: true,
-  updatedBy: true,
-});
+const formSchema = createAssetSchema;
 const noOwnerValue = "__no_owner__";
 
 export const AssetDialog = ({
   call,
 }: PropsWithCall<AssetDialogProps, CreateAsset | null, object>) => {
   const users = useQuery(createListUsersQueryOptions());
+  const defaultValues: CreateAsset = {
+    displayName: "",
+    type: AssetType.Host,
+    environment: AssetEnvironment.Unknown,
+    lifecycleState: AssetLifecycleState.Active,
+    ownerId: null,
+    identifiers: [],
+  };
   const form = useForm({
-    defaultValues: {
-      displayName: "",
-      type: AssetType.Host,
-      environment: AssetEnvironment.Unknown,
-      lifecycleState: AssetLifecycleState.Active,
-      ownerId: null as string | null,
-    },
+    defaultValues,
     validators: {
       onSubmit: formSchema,
     },
@@ -66,6 +63,9 @@ export const AssetDialog = ({
         environment: value.environment,
         lifecycleState: value.lifecycleState,
         ownerId: value.ownerId ?? null,
+        ...(value.identifiers && value.identifiers.length > 0
+          ? { identifiers: value.identifiers }
+          : {}),
       });
     },
   });
@@ -160,7 +160,9 @@ export const AssetDialog = ({
                       }}
                     >
                       <SelectTrigger id={field.name}>
-                        <SelectValue>{capitalizeFirstLetter(field.state.value)}</SelectValue>
+                        <SelectValue>
+                          {capitalizeFirstLetter(field.state.value ?? AssetLifecycleState.Active)}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
@@ -191,7 +193,9 @@ export const AssetDialog = ({
                       }}
                     >
                       <SelectTrigger id={field.name}>
-                        <SelectValue>{capitalizeFirstLetter(field.state.value)}</SelectValue>
+                        <SelectValue>
+                          {capitalizeFirstLetter(field.state.value ?? AssetType.Host)}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
@@ -243,6 +247,15 @@ export const AssetDialog = ({
                   </Field>
                 );
               }}
+            />
+            <form.Field
+              name="identifiers"
+              children={(field) => (
+                <AssetIdentifierEditor
+                  value={field.state.value ?? []}
+                  onChange={(value) => field.handleChange(value)}
+                />
+              )}
             />
           </FieldGroup>
           <DialogFooter>

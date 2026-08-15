@@ -145,6 +145,7 @@ export function Inplace<T>({
       <Input
         ref={inputRef}
         type={editElement.inputType ?? "text"}
+        aria-label="Edit value"
         value={String(draft)}
         onChange={(e) => {
           const raw = e.target.value;
@@ -167,11 +168,23 @@ export function Inplace<T>({
         {editing ? (
           <div className="flex items-center gap-2">
             {editElement.type !== "select" && (
-              <Button onClick={() => commit()} size="icon-sm" variant="ghost">
+              <Button
+                onClick={() => commit()}
+                size="icon-sm"
+                variant="ghost"
+                aria-label="Save edit"
+                title="Save"
+              >
                 <LucideCheck />
               </Button>
             )}
-            <Button onClick={() => cancel()} size="icon-sm" variant="ghost">
+            <Button
+              onClick={() => cancel()}
+              size="icon-sm"
+              variant="ghost"
+              aria-label="Cancel edit"
+              title="Cancel"
+            >
               <XIcon />
             </Button>
           </div>
@@ -180,6 +193,8 @@ export function Inplace<T>({
             onClick={() => enterEdit()}
             size="icon-sm"
             variant="ghost"
+            aria-label="Edit value"
+            title="Edit"
             className={hovered && showEditIcon ? "opacity-100" : "opacity-0"}
           >
             <PencilIcon />

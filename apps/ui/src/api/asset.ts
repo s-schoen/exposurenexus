@@ -1,4 +1,8 @@
-import { assetSchema, assetWithCustomFieldsSchema } from "@exposurenexus/types/model/asset";
+import {
+  assetIdentifierRecordSchema,
+  assetSchema,
+  assetWithCustomFieldsSchema,
+} from "@exposurenexus/types/model/asset";
 import {
   assetCustomFieldDefinitionSchema,
   assetCustomFieldValueSchema,
@@ -15,9 +19,12 @@ import {
 
 import type {
   Asset,
+  AssetIdentifierRecord,
   CreateAsset,
+  CreateAssetIdentifier,
   AssetWithCustomFields,
   UpdateAsset,
+  UpdateAssetIdentifier,
 } from "@exposurenexus/types/model/asset";
 import type {
   AssetCustomFieldDefinition,
@@ -192,6 +199,66 @@ export async function updateAsset(assetId: string, asset: UpdateAsset): Promise<
   return parseObjectReply(response, assetSchema);
 }
 
+export async function addAssetIdentifier(
+  assetId: string,
+  identifier: CreateAssetIdentifier,
+): Promise<AssetIdentifierRecord> {
+  const response = await apiRequest(`/api/assets/${assetId}/identifiers`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(identifier),
+  });
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response);
+    console.error(error);
+    throw error;
+  }
+
+  return parseObjectReply(response, assetIdentifierRecordSchema);
+}
+
+export async function updateAssetIdentifier(
+  assetId: string,
+  identifierId: string,
+  identifier: UpdateAssetIdentifier,
+): Promise<AssetIdentifierRecord> {
+  const response = await apiRequest(`/api/assets/${assetId}/identifiers/${identifierId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(identifier),
+  });
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response);
+    console.error(error);
+    throw error;
+  }
+
+  return parseObjectReply(response, assetIdentifierRecordSchema);
+}
+
+export async function deleteAssetIdentifier(
+  assetId: string,
+  identifierId: string,
+): Promise<AssetIdentifierRecord> {
+  const response = await apiRequest(`/api/assets/${assetId}/identifiers/${identifierId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response);
+    console.error(error);
+    throw error;
+  }
+
+  return parseObjectReply(response, assetIdentifierRecordSchema);
+}
+
 export function createListAssetsQueryOptions() {
   return queryOptions({
     queryKey: ["assets"],
@@ -251,6 +318,34 @@ export function useUpdateAssetMutation() {
   return useMutation({
     mutationFn: ({ assetId, asset }: { assetId: string; asset: UpdateAsset }) =>
       updateAsset(assetId, asset),
+  });
+}
+
+export function useAddAssetIdentifierMutation() {
+  return useMutation({
+    mutationFn: ({ assetId, identifier }: { assetId: string; identifier: CreateAssetIdentifier }) =>
+      addAssetIdentifier(assetId, identifier),
+  });
+}
+
+export function useUpdateAssetIdentifierMutation() {
+  return useMutation({
+    mutationFn: ({
+      assetId,
+      identifierId,
+      identifier,
+    }: {
+      assetId: string;
+      identifierId: string;
+      identifier: UpdateAssetIdentifier;
+    }) => updateAssetIdentifier(assetId, identifierId, identifier),
+  });
+}
+
+export function useDeleteAssetIdentifierMutation() {
+  return useMutation({
+    mutationFn: ({ assetId, identifierId }: { assetId: string; identifierId: string }) =>
+      deleteAssetIdentifier(assetId, identifierId),
   });
 }
 

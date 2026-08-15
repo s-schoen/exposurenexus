@@ -7,15 +7,25 @@ import {
   createAvailableAssetCustomFieldDefinitionsQueryOptions,
   createListAssetsQueryOptions,
   createListAssetsWithCustomFieldsQueryOptions,
+  useAddAssetIdentifierMutation,
   useCreateAssetMutation,
+  useDeleteAssetIdentifierMutation,
   useDeleteAssetMutation,
   useReplaceAssetCustomFieldAssociationsMutation,
+  useUpdateAssetIdentifierMutation,
   useUpdateAssetCustomFieldValuesMutation,
   useUpdateAssetMutation,
 } from "@/api/asset.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 
-import type { Asset, CreateAsset, UpdateAsset } from "@exposurenexus/types/model/asset";
+import type {
+  Asset,
+  AssetIdentifierRecord,
+  CreateAsset,
+  CreateAssetIdentifier,
+  UpdateAsset,
+  UpdateAssetIdentifier,
+} from "@exposurenexus/types/model/asset";
 import type {
   AssetCustomFieldValue,
   UpdateAssetCustomFieldAssociations,
@@ -36,6 +46,19 @@ export interface AssetLifecycleActions {
   createAsset: (value: CreateAsset) => Promise<Asset | null>;
   deleteAssets: (assets: Array<Asset>) => Promise<AssetLifecycleBatchResult>;
   updateAsset: (assetId: string, asset: UpdateAsset) => Promise<Asset | null>;
+  addAssetIdentifier: (
+    assetId: string,
+    identifier: CreateAssetIdentifier,
+  ) => Promise<AssetIdentifierRecord | null>;
+  updateAssetIdentifier: (
+    assetId: string,
+    identifierId: string,
+    identifier: UpdateAssetIdentifier,
+  ) => Promise<AssetIdentifierRecord | null>;
+  deleteAssetIdentifier: (
+    assetId: string,
+    identifierId: string,
+  ) => Promise<AssetIdentifierRecord | null>;
   updateAssetCustomFieldValues: (
     assetId: string,
     values: UpdateAssetCustomFieldValues["values"],
@@ -120,6 +143,9 @@ export function useAssetLifecycle(): AssetLifecycleActions {
   const assetCreate = useCreateAssetMutation();
   const assetDelete = useDeleteAssetMutation();
   const assetUpdate = useUpdateAssetMutation();
+  const assetIdentifierAdd = useAddAssetIdentifierMutation();
+  const assetIdentifierUpdate = useUpdateAssetIdentifierMutation();
+  const assetIdentifierDelete = useDeleteAssetIdentifierMutation();
   const customFieldValuesUpdate = useUpdateAssetCustomFieldValuesMutation();
   const customFieldAssociationsReplace = useReplaceAssetCustomFieldAssociationsMutation();
 
@@ -255,6 +281,49 @@ export function useAssetLifecycle(): AssetLifecycleActions {
         return updatedAsset;
       } catch (error) {
         toastActionError(error, "Failed to update asset");
+        console.error(error);
+        return null;
+      }
+    },
+
+    async addAssetIdentifier(assetId, identifier) {
+      try {
+        const createdIdentifier = await assetIdentifierAdd.mutateAsync({ assetId, identifier });
+        await invalidateAssetReads([assetId]);
+        return createdIdentifier;
+      } catch (error) {
+        toastActionError(error, "Failed to add asset identifier");
+        console.error(error);
+        return null;
+      }
+    },
+
+    async updateAssetIdentifier(assetId, identifierId, identifier) {
+      try {
+        const updatedIdentifier = await assetIdentifierUpdate.mutateAsync({
+          assetId,
+          identifierId,
+          identifier,
+        });
+        await invalidateAssetReads([assetId]);
+        return updatedIdentifier;
+      } catch (error) {
+        toastActionError(error, "Failed to update asset identifier");
+        console.error(error);
+        return null;
+      }
+    },
+
+    async deleteAssetIdentifier(assetId, identifierId) {
+      try {
+        const deletedIdentifier = await assetIdentifierDelete.mutateAsync({
+          assetId,
+          identifierId,
+        });
+        await invalidateAssetReads([assetId]);
+        return deletedIdentifier;
+      } catch (error) {
+        toastActionError(error, "Failed to remove asset identifier");
         console.error(error);
         return null;
       }

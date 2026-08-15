@@ -86,6 +86,7 @@ const asset: Asset = {
   environment: AssetEnvironment.Production,
   lifecycleState: AssetLifecycleState.Active,
   ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+  identifiers: [],
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   updatedAt: new Date("2026-01-02T00:00:00.000Z"),
   createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",

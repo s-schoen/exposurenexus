@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => {
     environment: "production" as AssetWithCustomFields["environment"],
     lifecycleState: "active" as AssetWithCustomFields["lifecycleState"],
     ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+    identifiers: [],
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-02T00:00:00.000Z"),
     createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",

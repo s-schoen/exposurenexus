@@ -13,6 +13,7 @@ import {
   createAvailableAssetCustomFieldDefinitionsQueryOptions,
 } from "@/api/asset.ts";
 import { createListUsersQueryOptions } from "@/api/user.ts";
+import { AssetIdentifierManager } from "@/components/asset-identifier-editor.tsx";
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import { Inplace } from "@/components/inplace.tsx";
@@ -223,6 +224,23 @@ export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentP
     await assetLifecycle.updateAsset(assetId, field);
   }
 
+  async function handleAddAssetIdentifier(
+    identifier: Parameters<typeof assetLifecycle.addAssetIdentifier>[1],
+  ) {
+    return await assetLifecycle.addAssetIdentifier(assetId, identifier);
+  }
+
+  async function handleUpdateAssetIdentifier(
+    identifierId: string,
+    identifier: Parameters<typeof assetLifecycle.updateAssetIdentifier>[2],
+  ) {
+    await assetLifecycle.updateAssetIdentifier(assetId, identifierId, identifier);
+  }
+
+  async function handleRemoveAssetIdentifier(identifierId: string) {
+    await assetLifecycle.deleteAssetIdentifier(assetId, identifierId);
+  }
+
   function formatAssetValue(value: string) {
     return capitalizeFirstLetter(value.replace(/([a-z])([A-Z])/gu, "$1 $2"));
   }
@@ -385,6 +403,13 @@ export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentP
             }}
           />
         </div>
+        <Separator />
+        <AssetIdentifierManager
+          identifiers={assetData.identifiers}
+          onAdd={handleAddAssetIdentifier}
+          onUpdate={handleUpdateAssetIdentifier}
+          onRemove={handleRemoveAssetIdentifier}
+        />
         <Separator />
         <div className="space-y-3">
           <MetadataDetailRow label="Created" value={assetData.createdAt.toLocaleString()} />
