@@ -16,7 +16,7 @@ export function AssetDetailPage({ assetId }: AssetDetailPageProps) {
   const asset = useQuery(createAssetByIDQueryOptions(assetId));
 
   usePageMeta({
-    title: asset.data?.name ?? "Asset",
+    title: asset.data?.displayName ?? "Asset",
     description: "Inspect the selected asset and review its core inventory metadata.",
   });
 

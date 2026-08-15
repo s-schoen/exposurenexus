@@ -277,7 +277,7 @@ export function FindingDetailContent({ findingId, titleAction }: FindingDetailCo
             <div className="grid gap-3 xl:grid-cols-6">
               <DetailHighlightCard
                 label="Affected asset"
-                value={asset.data?.name ?? "Unknown asset"}
+                value={asset.data?.displayName ?? "Unknown asset"}
                 description={capitalizeFirstLetter(asset.data?.type ?? "Unclassified")}
               />
               <DetailHighlightCard
@@ -385,7 +385,7 @@ export function FindingDetailContent({ findingId, titleAction }: FindingDetailCo
             label="Updated by"
             value={<UserLabel userId={findingData.updatedBy} />}
           />
-          <MetadataDetailRow label="Asset" value={asset.data?.name ?? "Unknown asset"} />
+          <MetadataDetailRow label="Asset" value={asset.data?.displayName ?? "Unknown asset"} />
           <MetadataDetailRow label="Asset owner" value={<ResponsibleOwnerLabel />} />
           <MetadataDetailRow
             label="Assignee"

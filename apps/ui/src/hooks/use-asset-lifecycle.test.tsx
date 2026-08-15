@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -31,7 +31,7 @@ const {
   replaceAssociationsRequestMock,
   toastErrorMock,
   toastSuccessMock,
-  updateOwnerRequestMock,
+  updateAssetRequestMock,
   updateValuesRequestMock,
 } = vi.hoisted(() => ({
   createAssetRequestMock: vi.fn(),
@@ -39,7 +39,7 @@ const {
   replaceAssociationsRequestMock: vi.fn(),
   toastErrorMock: vi.fn(),
   toastSuccessMock: vi.fn(),
-  updateOwnerRequestMock: vi.fn(),
+  updateAssetRequestMock: vi.fn(),
   updateValuesRequestMock: vi.fn(),
 }));
 
@@ -59,7 +59,7 @@ vi.mock("@/api/asset.ts", async (importOriginal) => {
     deleteAsset: deleteAssetRequestMock,
     replaceAssetCustomFieldAssociations: replaceAssociationsRequestMock,
     updateAssetCustomFieldValues: updateValuesRequestMock,
-    updateAssetOwner: updateOwnerRequestMock,
+    updateAsset: updateAssetRequestMock,
     useCreateAssetMutation: () => ({
       mutateAsync: createAssetRequestMock,
     }),
@@ -72,8 +72,8 @@ vi.mock("@/api/asset.ts", async (importOriginal) => {
     useUpdateAssetCustomFieldValuesMutation: () => ({
       mutateAsync: updateValuesRequestMock,
     }),
-    useUpdateAssetOwnerMutation: () => ({
-      mutateAsync: updateOwnerRequestMock,
+    useUpdateAssetMutation: () => ({
+      mutateAsync: updateAssetRequestMock,
     }),
   };
 });
@@ -81,17 +81,25 @@ vi.mock("@/api/asset.ts", async (importOriginal) => {
 function createAssetFixture(overrides: Partial<Asset> = {}): Asset {
   return {
     id: overrides.id ?? "4b4f4dc9-77d5-4bb5-90a4-0d764a5fbf4b",
-    name: overrides.name ?? "web-01",
+    displayName: overrides.displayName ?? "web-01",
     type: overrides.type ?? AssetType.Host,
+    environment: overrides.environment ?? AssetEnvironment.Production,
+    lifecycleState: overrides.lifecycleState ?? AssetLifecycleState.Active,
     ownerId:
       "ownerId" in overrides ? (overrides.ownerId ?? null) : "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+    createdAt: overrides.createdAt ?? new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: overrides.updatedAt ?? new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: overrides.createdBy ?? "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+    updatedBy: overrides.updatedBy ?? "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
   };
 }
 
 function createAssetPayload(overrides: Partial<CreateAsset> = {}): CreateAsset {
   return {
-    name: overrides.name ?? "web-01",
+    displayName: overrides.displayName ?? "web-01",
     type: overrides.type ?? AssetType.Host,
+    environment: overrides.environment ?? AssetEnvironment.Production,
+    lifecycleState: overrides.lifecycleState ?? AssetLifecycleState.Active,
     ownerId: "ownerId" in overrides ? overrides.ownerId : null,
   };
 }
@@ -136,7 +144,7 @@ beforeEach(() => {
   replaceAssociationsRequestMock.mockReset();
   toastErrorMock.mockReset();
   toastSuccessMock.mockReset();
-  updateOwnerRequestMock.mockReset();
+  updateAssetRequestMock.mockReset();
   updateValuesRequestMock.mockReset();
 });
 
@@ -178,11 +186,11 @@ describe("useAssetLifecycle", () => {
   it("reports partial delete failures and invalidates affected asset reads", async () => {
     const first = createAssetFixture({
       id: "4b4f4dc9-77d5-4bb5-90a4-0d764a5fbf4b",
-      name: "web-01",
+      displayName: "web-01",
     });
     const second = createAssetFixture({
       id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
-      name: "api-01",
+      displayName: "api-01",
     });
     const error = new Error("Delete failed");
     deleteAssetRequestMock.mockImplementation((id: string) =>
@@ -221,24 +229,24 @@ describe("useAssetLifecycle", () => {
     expect(consoleError).toHaveBeenCalledWith(error);
   });
 
-  it("updates asset owners, writes detail cache, and invalidates asset reads", async () => {
+  it("updates asset metadata, writes detail cache, and invalidates asset reads", async () => {
     const asset = createAssetFixture();
     const updatedAsset = createAssetFixture({
       ownerId: "bb9f2b64-2f45-4bb8-9f16-659d633cb398",
     });
-    updateOwnerRequestMock.mockResolvedValueOnce(updatedAsset);
+    updateAssetRequestMock.mockResolvedValueOnce(updatedAsset);
     const { queryClient, result } = renderLifecycleHook();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
     let resultAsset: Asset | null = null;
     await act(async () => {
-      resultAsset = await result.current.updateAssetOwner(asset.id, updatedAsset.ownerId);
+      resultAsset = await result.current.updateAsset(asset.id, { ownerId: updatedAsset.ownerId });
     });
 
     expect(resultAsset).toEqual(updatedAsset);
-    expect(updateOwnerRequestMock).toHaveBeenCalledWith({
+    expect(updateAssetRequestMock).toHaveBeenCalledWith({
       assetId: asset.id,
-      ownerId: updatedAsset.ownerId,
+      asset: { ownerId: updatedAsset.ownerId },
     });
     expect(queryClient.getQueryData<Asset>(createAssetByIDQueryOptions(asset.id).queryKey)).toEqual(
       updatedAsset,

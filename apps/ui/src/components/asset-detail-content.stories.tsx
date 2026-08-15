@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -33,9 +33,15 @@ type AssetDetailStoryArgs = {
 
 const ASSET: Asset = {
   id: "4b4f4dc9-77d5-4bb5-90a4-0d764a5fbf4b",
-  name: "web-01",
+  displayName: "web-01",
   type: AssetType.Host,
+  environment: AssetEnvironment.Production,
+  lifecycleState: AssetLifecycleState.Active,
   ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+  createdAt: new Date("2026-01-01T00:00:00.000Z"),
+  updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+  createdBy: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+  updatedBy: "bb9f2b64-2f45-4bb8-9f16-659d633cb398",
 };
 
 const USERS: Array<UserProfile> = [
@@ -164,7 +170,6 @@ function AssetDetailContentStoryShell({
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
     const assetPath = `/api/assets/${asset.id}`;
-    const ownerPath = `${assetPath}/owner`;
     const customFieldPath = `/api/assets/${asset.id}/custom-fields`;
     assetRef.current = asset;
     customFieldsRef.current = effectiveInitialCustomFields;
@@ -177,7 +182,7 @@ function AssetDetailContentStoryShell({
       const requestUrl = input instanceof Request ? input.url : String(input);
       const method = (init?.method ?? "GET").toUpperCase();
 
-      if (requestUrl.includes(ownerPath) && method === "PUT") {
+      if (requestUrl === assetPath && method === "PATCH") {
         if (scenario === "error-owner-update") {
           return new Response(JSON.stringify({ error: "Owner update failed" }), {
             status: 400,

@@ -11,11 +11,11 @@ import {
   useDeleteAssetMutation,
   useReplaceAssetCustomFieldAssociationsMutation,
   useUpdateAssetCustomFieldValuesMutation,
-  useUpdateAssetOwnerMutation,
+  useUpdateAssetMutation,
 } from "@/api/asset.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 
-import type { Asset, CreateAsset, UpdateAssetOwner } from "@exposurenexus/types/model/asset";
+import type { Asset, CreateAsset, UpdateAsset } from "@exposurenexus/types/model/asset";
 import type {
   AssetCustomFieldValue,
   UpdateAssetCustomFieldAssociations,
@@ -35,10 +35,7 @@ export interface AssetLifecycleBatchResult {
 export interface AssetLifecycleActions {
   createAsset: (value: CreateAsset) => Promise<Asset | null>;
   deleteAssets: (assets: Array<Asset>) => Promise<AssetLifecycleBatchResult>;
-  updateAssetOwner: (
-    assetId: string,
-    ownerId: UpdateAssetOwner["ownerId"],
-  ) => Promise<Asset | null>;
+  updateAsset: (assetId: string, asset: UpdateAsset) => Promise<Asset | null>;
   updateAssetCustomFieldValues: (
     assetId: string,
     values: UpdateAssetCustomFieldValues["values"],
@@ -122,7 +119,7 @@ export function useAssetLifecycle(): AssetLifecycleActions {
   const queryClient = useQueryClient();
   const assetCreate = useCreateAssetMutation();
   const assetDelete = useDeleteAssetMutation();
-  const ownerUpdate = useUpdateAssetOwnerMutation();
+  const assetUpdate = useUpdateAssetMutation();
   const customFieldValuesUpdate = useUpdateAssetCustomFieldValuesMutation();
   const customFieldAssociationsReplace = useReplaceAssetCustomFieldAssociationsMutation();
 
@@ -214,7 +211,7 @@ export function useAssetLifecycle(): AssetLifecycleActions {
       try {
         const createdAsset = await assetCreate.mutateAsync(value);
 
-        toast.success(`Created new asset ${createdAsset.name}`);
+        toast.success(`Created new asset ${createdAsset.displayName}`);
         await invalidateAssetReads([createdAsset.id]);
 
         return createdAsset;
@@ -248,16 +245,16 @@ export function useAssetLifecycle(): AssetLifecycleActions {
       return result;
     },
 
-    async updateAssetOwner(assetId, ownerId) {
+    async updateAsset(assetId, asset) {
       try {
-        const updatedAsset = await ownerUpdate.mutateAsync({ assetId, ownerId });
+        const updatedAsset = await assetUpdate.mutateAsync({ assetId, asset });
 
         queryClient.setQueryData(detailQueryKey(assetId), updatedAsset);
         await invalidateAssetReads([assetId]);
 
         return updatedAsset;
       } catch (error) {
-        toastActionError(error, "Failed to update asset owner");
+        toastActionError(error, "Failed to update asset");
         console.error(error);
         return null;
       }

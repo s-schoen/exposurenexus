@@ -52,7 +52,7 @@ export function DashboardPage() {
     const mitigatedRate =
       totalFindings > 0 ? Math.round((mitigatedFindings / totalFindings) * 100) : 0;
 
-    const assetNamesById = new Map(assetList.map((asset) => [asset.id, asset.name]));
+    const assetNamesById = new Map(assetList.map((asset) => [asset.id, asset.displayName]));
 
     const topAssets = Object.entries(stats?.assets ?? {})
       .filter(([, count]) => count > 0)

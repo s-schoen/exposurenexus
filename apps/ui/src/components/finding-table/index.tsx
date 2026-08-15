@@ -56,7 +56,7 @@ export function FindingTable({
     [assetsQuery.data],
   );
   const assetNamesById = useMemo(
-    () => new Map((assetsQuery.data ?? []).map((asset) => [asset.id, asset.name])),
+    () => new Map((assetsQuery.data ?? []).map((asset) => [asset.id, asset.displayName])),
     [assetsQuery.data],
   );
   const userProfileById = useMemo(() => createUserProfileById(usersQuery.data), [usersQuery.data]);

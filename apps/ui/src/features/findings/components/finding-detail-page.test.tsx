@@ -20,9 +20,15 @@ const findingId = "3703bd68-5d5e-4209-90dc-365bc7030f67";
 const mocks = vi.hoisted(() => {
   const asset: Asset = {
     id: "61303e6e-9aa5-49cc-a863-bc1bd6eb45ac",
-    name: "Payment API",
+    displayName: "Payment API",
     type: "host" as Asset["type"],
+    environment: "production" as Asset["environment"],
+    lifecycleState: "active" as Asset["lifecycleState"],
     ownerId: null,
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+    updatedBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
   };
   const finding: Finding = {
     id: "3703bd68-5d5e-4209-90dc-365bc7030f67",

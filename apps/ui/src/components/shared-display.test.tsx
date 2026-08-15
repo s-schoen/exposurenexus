@@ -1,4 +1,3 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
 import { FindingStatus } from "@exposurenexus/types/model/finding";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,8 +14,15 @@ const mocks = vi.hoisted(() => ({
   assetQuery: {
     data: {
       id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-      name: "api-01",
-      type: "host" as AssetType,
+      displayName: "api-01",
+      type: "host" as Asset["type"],
+      environment: "production" as Asset["environment"],
+      lifecycleState: "active" as Asset["lifecycleState"],
+      ownerId: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+      updatedBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
     },
     isLoading: false,
   } as QueryState,
@@ -53,9 +59,15 @@ beforeEach(() => {
   mocks.assetQuery = {
     data: {
       id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-      name: "api-01",
-      type: AssetType.Host,
+      displayName: "api-01",
+      type: "host" as Asset["type"],
+      environment: "production" as Asset["environment"],
+      lifecycleState: "active" as Asset["lifecycleState"],
       ownerId: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+      updatedBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
     },
     isLoading: false,
   };
@@ -129,16 +141,22 @@ describe("shared display components", () => {
     mocks.assetQuery = {
       data: {
         id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-        name: "api-01",
-        type: AssetType.Container,
+        displayName: "api-01",
+        type: "containerImage" as Asset["type"],
+        environment: "production" as Asset["environment"],
+        lifecycleState: "active" as Asset["lifecycleState"],
         ownerId: null,
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+        createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+        updatedBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
       },
       isLoading: false,
     };
     rerender(<AssetInfoItem assetId="447b53a7-c3ce-4a0c-b96a-099f5e5dc71c" />);
 
     expect(screen.getByText("api-01")).toBeTruthy();
-    expect(screen.getByText("Container")).toBeTruthy();
+    expect(screen.getByText("ContainerImage")).toBeTruthy();
     expect(screen.getByRole("link", { name: /open asset/i }).getAttribute("href")).toBe(
       "/assets/447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
     );

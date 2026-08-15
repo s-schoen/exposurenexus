@@ -54,6 +54,15 @@ describe("ConfirmDialog", () => {
     expect(call.end).toHaveBeenCalledTimes(1);
   });
 
+  it("resolves false when the close control is clicked", async () => {
+    const user = userEvent.setup();
+    const call = renderConfirmDialog();
+
+    await user.click(screen.getByRole("button", { name: /close/i }));
+
+    expect(call.end).toHaveBeenCalledWith(false);
+  });
+
   it("applies destructive intent to the confirm action", () => {
     renderConfirmDialog({
       confirmText: "Delete",

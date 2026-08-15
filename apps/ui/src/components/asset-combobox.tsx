@@ -66,7 +66,7 @@ export function AssetCombobox({
           >
             <div className="flex items-center gap-2 ">
               {assets.isLoading && <Spinner />}
-              {value ? assets.data?.find((a) => a.id === value.id)?.name : "Select asset..."}
+              {value ? assets.data?.find((a) => a.id === value.id)?.displayName : "Select asset..."}
             </div>
             <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -81,15 +81,15 @@ export function AssetCombobox({
               {assets.data?.map((a) => (
                 <CommandItem
                   key={a.id}
-                  value={a.id}
-                  onSelect={(selected) => {
-                    handleAssetSelected(selected);
+                  value={`${a.id} ${a.displayName}`}
+                  onSelect={() => {
+                    handleAssetSelected(a.id);
                   }}
                 >
                   <CheckIcon
                     className={cn("mr-2 h-4 w-4", value?.id === a.id ? "opacity-100" : "opacity-0")}
                   />
-                  {a.name}
+                  {a.displayName}
                 </CommandItem>
               ))}
             </CommandGroup>

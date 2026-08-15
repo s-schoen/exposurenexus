@@ -42,9 +42,15 @@ const mocks = vi.hoisted(() => {
   const assets: Array<Asset> = [
     {
       id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-      name: "api-01",
+      displayName: "api-01",
       type: "host" as Asset["type"],
+      environment: "production" as Asset["environment"],
+      lifecycleState: "active" as Asset["lifecycleState"],
       ownerId: users[0].id,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: users[0].id,
+      updatedBy: users[0].id,
     },
   ];
   const findings: Array<Finding> = [

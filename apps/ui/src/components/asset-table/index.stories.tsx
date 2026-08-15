@@ -1,3 +1,4 @@
+import { AssetEnvironment, AssetLifecycleState } from "@exposurenexus/types/model/asset";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
@@ -17,7 +18,7 @@ import {
 } from "@/components/storybook-utils.tsx";
 import { Toaster } from "@/components/ui/sonner.tsx";
 
-import type { Asset, AssetWithCustomFields } from "@exposurenexus/types/model/asset";
+import type { Asset, AssetWithCustomFields, CreateAsset } from "@exposurenexus/types/model/asset";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type AssetTableStoryArgs = {
@@ -28,9 +29,15 @@ type AssetTableStoryArgs = {
 function toAsset(asset: AssetWithCustomFields): Asset {
   return {
     id: asset.id,
-    name: asset.name,
+    displayName: asset.displayName,
     type: asset.type,
+    environment: asset.environment,
+    lifecycleState: asset.lifecycleState,
     ownerId: asset.ownerId,
+    createdAt: asset.createdAt,
+    updatedAt: asset.updatedAt,
+    createdBy: asset.createdBy,
+    updatedBy: asset.updatedBy,
   };
 }
 
@@ -96,11 +103,14 @@ function AssetTableStoryShell({ scenario, selectedAssetId }: AssetTableStoryArgs
       if (requestUrl.endsWith("/api/assets") && method === "POST") {
         const body = JSON.parse(
           typeof init?.body === "string" ? init.body : JSON.stringify(init?.body ?? {}),
-        ) as Omit<Asset, "id">;
+        ) as CreateAsset;
         const createdAsset: AssetWithCustomFields = {
+          ...STORY_ASSETS[0],
           id: crypto.randomUUID(),
-          name: body.name,
+          displayName: body.displayName,
           type: body.type,
+          environment: body.environment ?? AssetEnvironment.Unknown,
+          lifecycleState: body.lifecycleState ?? AssetLifecycleState.Active,
           ownerId: body.ownerId ?? null,
           customFields: [],
         };

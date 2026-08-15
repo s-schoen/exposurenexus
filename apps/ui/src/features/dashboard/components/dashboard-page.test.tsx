@@ -13,8 +13,8 @@ interface QueryOptionsLike {
 
 const mocks = vi.hoisted(() => ({
   assets: [
-    { id: "447b53a7-c4e7-4b4e-a3b2-123456789abc", name: "edge-gateway" },
-    { id: "7d5312b8-0f70-4d18-92b1-123456789abc", name: "worker-node" },
+    { id: "447b53a7-c4e7-4b4e-a3b2-123456789abc", displayName: "edge-gateway" },
+    { id: "7d5312b8-0f70-4d18-92b1-123456789abc", displayName: "worker-node" },
   ],
   stats: {
     assets: {

@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -70,21 +70,39 @@ export const STORY_AUTH_SESSION: AuthSessionDataReply = {
 export const STORY_ASSETS: Array<Asset> = [
   {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-    name: "web-01",
+    displayName: "web-01",
     type: AssetType.Host,
+    environment: AssetEnvironment.Production,
+    lifecycleState: AssetLifecycleState.Active,
     ownerId: STORY_USERS[0].id,
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: STORY_USERS[0].id,
+    updatedBy: STORY_USERS[1].id,
   },
   {
     id: "0bb9b410-7763-4e7a-9942-b752367fd63d",
-    name: "container-01",
-    type: AssetType.Container,
+    displayName: "container-01",
+    type: AssetType.ContainerImage,
+    environment: AssetEnvironment.Staging,
+    lifecycleState: AssetLifecycleState.Active,
     ownerId: null,
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: STORY_USERS[0].id,
+    updatedBy: STORY_USERS[1].id,
   },
   {
     id: "4eaf1ce4-51f4-4a63-80b4-7b550e91050d",
-    name: "api-worker",
+    displayName: "api-worker",
     type: AssetType.Software,
+    environment: AssetEnvironment.Development,
+    lifecycleState: AssetLifecycleState.Active,
     ownerId: STORY_USERS[1].id,
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: STORY_USERS[0].id,
+    updatedBy: STORY_USERS[1].id,
   },
 ];
 

@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -69,21 +69,39 @@ const USERS: Array<UserProfile> = [
 const ASSETS: Array<Asset> = [
   {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-    name: "web-01",
+    displayName: "web-01",
     type: AssetType.Host,
+    environment: AssetEnvironment.Production,
+    lifecycleState: AssetLifecycleState.Active,
     ownerId: USERS[0].id,
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: USERS[0].id,
+    updatedBy: USERS[1].id,
   },
   {
     id: "4eaf1ce4-51f4-4a63-80b4-7b550e91050d",
-    name: "api-worker",
+    displayName: "api-worker",
     type: AssetType.Software,
+    environment: AssetEnvironment.Development,
+    lifecycleState: AssetLifecycleState.Active,
     ownerId: USERS[2].id,
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: USERS[0].id,
+    updatedBy: USERS[1].id,
   },
   {
     id: "5968e90b-5967-4149-b2a7-c4d42f011ccf",
-    name: "container-registry",
-    type: AssetType.Container,
+    displayName: "container-registry",
+    type: AssetType.ContainerImage,
+    environment: AssetEnvironment.Staging,
+    lifecycleState: AssetLifecycleState.Active,
     ownerId: null,
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: USERS[0].id,
+    updatedBy: USERS[1].id,
   },
 ];
 

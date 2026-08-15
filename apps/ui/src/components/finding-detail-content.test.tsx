@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx";
 
-import type { Asset, AssetType } from "@exposurenexus/types/model/asset";
+import type { Asset } from "@exposurenexus/types/model/asset";
 import type { Finding } from "@exposurenexus/types/model/finding";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { ReactNode } from "react";
@@ -53,9 +53,15 @@ const mocks = vi.hoisted(() => {
 
   const asset: Asset = {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-    name: "web-01",
-    type: "host" as AssetType,
+    displayName: "web-01",
+    type: "host" as Asset["type"],
+    environment: "production" as Asset["environment"],
+    lifecycleState: "active" as Asset["lifecycleState"],
     ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
+    updatedBy: "4e33f42e-764b-4812-88fb-11a183d43434",
   };
   const users: Array<UserProfile> = [
     {

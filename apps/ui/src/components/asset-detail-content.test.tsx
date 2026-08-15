@@ -1,4 +1,4 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -115,7 +115,7 @@ describe("AssetDetailContent stories", () => {
       expect(screen.getAllByText("Priority").length).toBeGreaterThan(0);
       expect(screen.getByText("3")).toBeTruthy();
       expect(screen.getAllByText("Environment").length).toBeGreaterThan(0);
-      expect(screen.getByText("Production")).toBeTruthy();
+      expect(screen.getAllByText("Production").length).toBeGreaterThan(0);
       expect(screen.getByText("None")).toBeTruthy();
     });
   });
@@ -123,9 +123,15 @@ describe("AssetDetailContent stories", () => {
   it("renders no-owner and unknown owner states", async () => {
     const noOwnerAsset = {
       id: "4b4f4dc9-77d5-4bb5-90a4-0d764a5fbf4b",
-      name: "web-01",
+      displayName: "web-01",
       type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Active,
       ownerId: null,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: "f74d7ff2-2f45-4bb8-9f16-659d633cb398",
+      updatedBy: "bb9f2b64-2f45-4bb8-9f16-659d633cb398",
     };
     const unknownOwnerAsset = {
       ...noOwnerAsset,
@@ -157,8 +163,8 @@ describe("AssetDetailContent stories", () => {
     expect(screen.queryByRole("button", { name: "Asset owner" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Edit asset owner" })).toBeNull();
 
-    const ownerLabels = screen.getAllByText("Robin Owner");
-    fireEvent.click(ownerLabels[ownerLabels.length - 1]);
+    const ownerButtons = screen.getAllByRole("button", { name: "Robin Owner" });
+    fireEvent.click(ownerButtons[ownerButtons.length - 1]);
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Asset owner" })).toBeTruthy();
@@ -194,10 +200,11 @@ describe("AssetDetailContent stories", () => {
     render(<WithCustomFields />);
 
     await waitFor(() => {
-      expect(screen.getByText("Production")).toBeTruthy();
+      expect(screen.getAllByText("Production").length).toBeGreaterThan(0);
     });
 
-    fireEvent.click(screen.getByText("Production"));
+    const environmentButtons = screen.getAllByRole("button", { name: "Production" });
+    fireEvent.click(environmentButtons[environmentButtons.length - 1]);
     fireEvent.click(await screen.findByText("Staging"));
 
     await waitFor(() => {
@@ -230,10 +237,11 @@ describe("AssetDetailContent stories", () => {
       expect(screen.getAllByText("Robin Owner").length).toBeGreaterThan(0);
     });
 
-    const ownerLabels = screen.getAllByText("Robin Owner");
-    fireEvent.click(ownerLabels[ownerLabels.length - 1]);
+    const ownerButtons = screen.getAllByRole("button", { name: "Robin Owner" });
+    fireEvent.click(ownerButtons[ownerButtons.length - 1]);
     fireEvent.click(screen.getByRole("button", { name: "Asset owner" }));
-    fireEvent.click(await screen.findByText("Morgan Owner"));
+    const morganOptions = await screen.findAllByText("Morgan Owner");
+    fireEvent.click(morganOptions[morganOptions.length - 1]);
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Asset owner" })).toBeNull();
@@ -248,10 +256,10 @@ describe("AssetDetailContent stories", () => {
       expect(screen.getAllByText("Robin Owner").length).toBeGreaterThan(0);
     });
 
-    const ownerLabels = screen.getAllByText("Robin Owner");
-    fireEvent.click(ownerLabels[ownerLabels.length - 1]);
+    const ownerButtons = screen.getAllByRole("button", { name: "Robin Owner" });
+    fireEvent.click(ownerButtons[ownerButtons.length - 1]);
     fireEvent.click(screen.getByRole("button", { name: "Asset owner" }));
-    fireEvent.click(await screen.findByText("No Owner"));
+    fireEvent.click(await screen.findByRole("option", { name: "No Owner" }));
 
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Asset owner" })).toBeNull();
@@ -266,15 +274,16 @@ describe("AssetDetailContent stories", () => {
       expect(screen.getAllByText("Robin Owner").length).toBeGreaterThan(0);
     });
 
-    const ownerLabels = screen.getAllByText("Robin Owner");
-    fireEvent.click(ownerLabels[ownerLabels.length - 1]);
+    const ownerButtons = screen.getAllByRole("button", { name: "Robin Owner" });
+    fireEvent.click(ownerButtons[ownerButtons.length - 1]);
     fireEvent.click(screen.getByRole("button", { name: "Asset owner" }));
-    fireEvent.click(await screen.findByText("Morgan Owner"));
+    const morganOptions = await screen.findAllByText("Morgan Owner");
+    fireEvent.click(morganOptions[morganOptions.length - 1]);
 
     await waitFor(() => {
       expect(mocks.toastActionError).toHaveBeenCalledWith(
         expect.anything(),
-        "Failed to update asset owner",
+        "Failed to update asset",
       );
     });
   });

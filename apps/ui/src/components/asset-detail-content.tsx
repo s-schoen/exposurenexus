@@ -1,3 +1,4 @@
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -42,7 +43,7 @@ import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 import { cn } from "@/lib/utils.ts";
 
-import type { Asset } from "@exposurenexus/types/model/asset";
+import type { Asset, UpdateAsset } from "@exposurenexus/types/model/asset";
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
@@ -215,7 +216,15 @@ export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentP
       return;
     }
 
-    await assetLifecycle.updateAssetOwner(assetId, ownerId);
+    await assetLifecycle.updateAsset(assetId, { ownerId });
+  }
+
+  async function handleSaveAssetField(field: UpdateAsset) {
+    await assetLifecycle.updateAsset(assetId, field);
+  }
+
+  function formatAssetValue(value: string) {
+    return capitalizeFirstLetter(value.replace(/([a-z])([A-Z])/gu, "$1 $2"));
   }
 
   async function handleSaveCustomFieldValue(field: AssetCustomFieldValue, value: string) {
@@ -264,7 +273,7 @@ export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentP
           <div className="space-y-3">
             <div className="space-y-2">
               <CardTitle className="text-2xl font-semibold tracking-tight">
-                {assetData.name}
+                {assetData.displayName}
               </CardTitle>
               <CardDescription className="max-w-3xl text-sm leading-6">
                 Inventory record representing a tracked platform asset that can be linked to
@@ -273,9 +282,9 @@ export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentP
             </div>
             <div className="grid gap-3 xl:grid-cols-3">
               <DetailHighlightCard
-                label="Asset name"
-                value={assetData.name}
-                description="Primary identifier used across the platform"
+                label="Asset display name"
+                value={assetData.displayName}
+                description="Human-readable label for this asset"
               />
               <DetailHighlightCard
                 label="Asset type"
@@ -298,8 +307,66 @@ export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentP
     return (
       <MetadataSidebar title="Asset details" icon={Server}>
         <div className="space-y-3">
-          <MetadataDetailRow label="Name" value={assetData.name} />
-          <MetadataDetailRow label="Type" value={capitalizeFirstLetter(assetData.type)} />
+          <MetadataDetailRow
+            label="Display name"
+            editable={{
+              value: assetData.displayName,
+              onSave: (value) => handleSaveAssetField({ displayName: value }),
+              editOnClick: true,
+              showEditIcon: false,
+            }}
+          />
+          <MetadataDetailRow
+            label="Type"
+            editable={{
+              value: assetData.type,
+              onSave: (value) => handleSaveAssetField({ type: value }),
+              displayElement: (value) => formatAssetValue(value),
+              editElement: {
+                type: "select",
+                options: Object.values(AssetType).map((value) => ({
+                  label: formatAssetValue(value),
+                  value,
+                })),
+              },
+              editOnClick: true,
+              showEditIcon: false,
+            }}
+          />
+          <MetadataDetailRow
+            label="Environment"
+            editable={{
+              value: assetData.environment,
+              onSave: (value) => handleSaveAssetField({ environment: value }),
+              displayElement: (value) => formatAssetValue(value),
+              editElement: {
+                type: "select",
+                options: Object.values(AssetEnvironment).map((value) => ({
+                  label: formatAssetValue(value),
+                  value,
+                })),
+              },
+              editOnClick: true,
+              showEditIcon: false,
+            }}
+          />
+          <MetadataDetailRow
+            label="Lifecycle state"
+            editable={{
+              value: assetData.lifecycleState,
+              onSave: (value) => handleSaveAssetField({ lifecycleState: value }),
+              displayElement: (value) => formatAssetValue(value),
+              editElement: {
+                type: "select",
+                options: Object.values(AssetLifecycleState).map((value) => ({
+                  label: formatAssetValue(value),
+                  value,
+                })),
+              },
+              editOnClick: true,
+              showEditIcon: false,
+            }}
+          />
           <MetadataDetailRow
             label="Owner"
             editable={{
@@ -316,6 +383,35 @@ export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentP
               editOnClick: true,
               showEditIcon: false,
             }}
+          />
+        </div>
+        <Separator />
+        <div className="space-y-3">
+          <MetadataDetailRow label="Created" value={assetData.createdAt.toLocaleString()} />
+          <MetadataDetailRow
+            label="Created by"
+            value={
+              <UserLabel
+                userId={assetData.createdBy}
+                user={
+                  users.isPending ? undefined : (userProfileById.get(assetData.createdBy) ?? null)
+                }
+                unknownLabel="Unknown User"
+              />
+            }
+          />
+          <MetadataDetailRow label="Updated" value={assetData.updatedAt.toLocaleString()} />
+          <MetadataDetailRow
+            label="Updated by"
+            value={
+              <UserLabel
+                userId={assetData.updatedBy}
+                user={
+                  users.isPending ? undefined : (userProfileById.get(assetData.updatedBy) ?? null)
+                }
+                unknownLabel="Unknown User"
+              />
+            }
           />
         </div>
         <Separator />
