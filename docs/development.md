@@ -95,8 +95,9 @@ pnpm format:check
 pnpm build
 ```
 
-`pnpm lint` runs the root Oxlint configuration with type-aware checks. `pnpm format:check`
-verifies the root Oxfmt configuration. Use `pnpm format` to apply formatting changes.
+`pnpm lint` runs Oxlint with the root baseline and nested workspace configurations,
+with type-aware checks. `pnpm format:check` verifies the root Oxfmt configuration.
+Use `pnpm format` to apply formatting changes.
 
 `@exposurenexus/types` exports its built `dist` files. `pnpm build` uses pnpm's
 recursive workspace execution, which runs dependencies before dependents.
