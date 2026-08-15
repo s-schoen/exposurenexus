@@ -198,11 +198,7 @@ export function DataTable<TData extends RowData>({
 
   const columnFilters = useMemo<ColumnFiltersState>(
     () => dataTableFilterStateToColumnFilters(resolvedFilterState),
-    [
-      resolvedFilterState.numberFilters,
-      resolvedFilterState.selectFilters,
-      resolvedFilterState.textFilters,
-    ],
+    [resolvedFilterState],
   );
 
   const updateFilterState = (

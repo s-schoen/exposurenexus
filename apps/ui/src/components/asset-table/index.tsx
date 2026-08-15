@@ -71,7 +71,10 @@ export function AssetTable({
   const assetsQuery = useQuery(createListAssetsWithCustomFieldsQueryOptions());
   const usersQuery = useQuery(createListUsersQueryOptions());
   const customFieldDefinitionsQuery = useQuery(createListAssetCustomFieldDefinitionsQueryOptions());
-  const customFieldDefinitions = customFieldDefinitionsQuery.data ?? [];
+  const customFieldDefinitions = useMemo(
+    () => customFieldDefinitionsQuery.data ?? [],
+    [customFieldDefinitionsQuery.data],
+  );
   const userProfileById = useMemo(() => createUserProfileById(usersQuery.data), [usersQuery.data]);
   const tableColumns = useMemo(
     () => createAssetTableColumns(customFieldDefinitions, userProfileById, usersQuery.isPending),

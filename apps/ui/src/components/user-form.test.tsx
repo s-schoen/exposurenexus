@@ -122,9 +122,9 @@ describe("UserForm", () => {
     await user.click(screen.getByRole("button", { name: /create user/i }));
 
     await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledTimes(1);
       expect(onSubmit).toHaveBeenCalledWith(values);
     });
+    expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
   it("filters and clears role selections", async () => {

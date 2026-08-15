@@ -1,5 +1,5 @@
 import { Check, PlusCircle, XCircle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button.tsx";
@@ -26,11 +26,9 @@ export function SelectFilterField<TData extends RowData>({ column }: FilterField
   const label = column.columnDef.meta!.label || column.id;
   const selectedValues = (column.getFilterValue() as Array<string> | undefined) ?? [];
 
-  const selectedOptions = useMemo(() => {
-    return (column.columnDef.meta!.options || []).filter((opt) =>
-      selectedValues.includes(opt.value),
-    );
-  }, [selectedValues, column.columnDef.meta]);
+  const selectedOptions = (column.columnDef.meta!.options || []).filter((opt) =>
+    selectedValues.includes(opt.value),
+  );
 
   const handleSelectOption = (option: SelectOption) => {
     let newSelection: Array<string> = [];

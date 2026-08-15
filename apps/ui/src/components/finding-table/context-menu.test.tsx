@@ -127,6 +127,8 @@ describe("FindingContextMenu", () => {
         "status",
         FindingStatus.Mitigated,
       );
+    });
+    await waitFor(() => {
       expect(mocks.bulkUpdateFindingField).toHaveBeenCalledWith(
         selectedFindings,
         "severity",

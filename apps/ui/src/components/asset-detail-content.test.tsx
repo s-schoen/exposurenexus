@@ -217,7 +217,9 @@ describe("AssetDetailContent stories", () => {
 
     await waitFor(() => {
       expect(screen.getAllByText("Lifecycle").length).toBeGreaterThan(0);
-      expect(screen.getByRole("button", { name: "Remove Lifecycle" }));
+    });
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Remove Lifecycle" })).toBeTruthy();
     });
   });
 

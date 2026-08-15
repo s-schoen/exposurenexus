@@ -191,8 +191,8 @@ describe("CreateFindingPage", () => {
         status: FindingStatus.Active,
         vulnerabilityId: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
       });
-      expect(mocks.createFinding).toHaveBeenCalledTimes(1);
     });
+    expect(mocks.createFinding).toHaveBeenCalledTimes(1);
     expect(mocks.historyBack).toHaveBeenCalledTimes(1);
   });
 
@@ -224,8 +224,8 @@ describe("CreateFindingPage", () => {
           status: FindingStatus.Confirmed,
         }),
       );
-      expect(mocks.createFinding).toHaveBeenCalledTimes(1);
     });
+    expect(mocks.createFinding).toHaveBeenCalledTimes(1);
   });
 
   it("submits a valid finding with a selected due date", async () => {
