@@ -8,17 +8,23 @@ export {
 export type { AssetIdentifierValidationIssue } from "./asset-identifier/types.js";
 export {
   assetIdentifierNamespaceSchema,
+  assetIdentifierRecordSchema,
   assetIdentifierSchema,
   cloudResourceIdValueSchema,
+  createAssetIdentifierSchema,
   dnsNameValueSchema,
   ipAddressValueSchema,
   normalizeAssetIdentifier,
   ociImageNameValueSchema,
+  updateAssetIdentifierSchema,
   validateAssetIdentifier,
   vcsRepositoryValueSchema,
 } from "./asset-identifier/schema.js";
 export type {
   AssetIdentifier,
   AssetIdentifierInput,
+  AssetIdentifierRecord,
+  CreateAssetIdentifier,
+  UpdateAssetIdentifier,
   AssetIdentifierValidationResult,
 } from "./asset-identifier/schema.js";

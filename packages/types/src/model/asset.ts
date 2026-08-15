@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 
 import { assetCustomFieldValueSchema } from "./asset-custom-field.js";
+import { assetIdentifierRecordSchema, assetIdentifierSchema } from "./asset-identifier.js";
 import { dateSchema } from "./date.js";
 
 export enum AssetType {
@@ -30,6 +31,7 @@ export const assetSchema = z.strictObject({
   environment: z.enum(AssetEnvironment),
   lifecycleState: z.enum(AssetLifecycleState),
   ownerId: z.uuidv4().nullable(),
+  identifiers: z.array(assetIdentifierRecordSchema),
   createdAt: dateSchema,
   updatedAt: dateSchema,
   createdBy: z.uuidv4(),
@@ -41,6 +43,7 @@ export const createAssetSchema = assetSchema
     id: true,
     environment: true,
     lifecycleState: true,
+    identifiers: true,
     createdAt: true,
     updatedAt: true,
     createdBy: true,
@@ -50,6 +53,7 @@ export const createAssetSchema = assetSchema
     environment: assetSchema.shape.environment.optional(),
     lifecycleState: assetSchema.shape.lifecycleState.optional(),
     ownerId: assetSchema.shape.ownerId.optional(),
+    identifiers: z.array(assetIdentifierSchema).optional(),
   });
 
 export const updateAssetSchema = assetSchema
@@ -71,7 +75,7 @@ export const assetWithCustomFieldsSchema = assetSchema.extend({
 
 export type Asset = z.infer<typeof assetSchema>;
 export type AssetWithCustomFields = z.infer<typeof assetWithCustomFieldsSchema>;
-export type CreateAsset = z.infer<typeof createAssetSchema>;
+export type CreateAsset = z.input<typeof createAssetSchema>;
 export type UpdateAsset = z.infer<typeof updateAssetSchema>;
 
 export {
@@ -80,19 +84,25 @@ export {
   ASSET_IDENTIFIER_NAMESPACE_MAX_LENGTH,
   ASSET_IDENTIFIER_VALUE_MAX_LENGTH,
   assetIdentifierNamespaceSchema,
+  assetIdentifierRecordSchema,
   assetIdentifierSchema,
   assetIdentifierTypeSchema,
   cloudResourceIdValueSchema,
+  createAssetIdentifierSchema,
   dnsNameValueSchema,
   ipAddressValueSchema,
   normalizeAssetIdentifier,
   ociImageNameValueSchema,
+  updateAssetIdentifierSchema,
   validateAssetIdentifier,
   vcsRepositoryValueSchema,
 } from "./asset-identifier.js";
 export type {
   AssetIdentifier,
   AssetIdentifierInput,
+  AssetIdentifierRecord,
+  CreateAssetIdentifier,
+  UpdateAssetIdentifier,
   AssetIdentifierValidationIssue,
   AssetIdentifierValidationResult,
 } from "./asset-identifier.js";
