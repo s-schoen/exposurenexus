@@ -17,6 +17,7 @@ import {
   type CustomFieldEventPayloads,
   type DomainEventContext,
   type DomainEventEmitter,
+  type EventSubjects,
 } from "../lib/eventbus/events/index.js";
 import { ApplicationError, isApplicationError } from "./application-error.js";
 import { isConflictError } from "./errors.js";
@@ -163,13 +164,14 @@ export function createAssetCustomFieldService({
   domainEventEmitter,
   logger,
 }: AssetCustomFieldServiceDependencies): AssetCustomFieldService {
-  type CustomFieldEventSubject = keyof CustomFieldEventPayloads & string;
-  const emitCustomFieldEvent = createDomainEventEmitter<CustomFieldEventSubject>(
+  const emitCustomFieldEvent = createDomainEventEmitter<EventSubjects<CustomFieldEventPayloads>>(
     domainEventEmitter,
     "asset-custom-field",
   );
-  type AssetEventSubject = keyof AssetEventPayloads & string;
-  const emitAssetEvent = createDomainEventEmitter<AssetEventSubject>(domainEventEmitter, "asset");
+  const emitAssetEvent = createDomainEventEmitter<EventSubjects<AssetEventPayloads>>(
+    domainEventEmitter,
+    "asset",
+  );
 
   async function getAssetSnapshot(assetId: string): Promise<AssetWithCustomFields | null> {
     const asset = await assetRepository.getByID(assetId);

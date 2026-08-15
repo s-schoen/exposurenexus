@@ -10,7 +10,11 @@ import {
   useUpdateFindingMutation,
   useUploadFindingFileMutation,
 } from "@/api/finding.ts";
-import { actionErrorMessage, toastActionError } from "@/lib/action-error-toast.ts";
+import {
+  actionErrorMessage,
+  formatActionError,
+  toastActionError,
+} from "@/lib/action-error-toast.ts";
 import { formatFindingCount } from "@/lib/format.ts";
 
 import type { CreateFinding, Finding } from "@exposurenexus/types/model/finding";
@@ -256,7 +260,7 @@ export function useFindingLifecycle(): FindingLifecycleActions {
 
         return createdFinding;
       } catch (error) {
-        toastActionError(error, `Failed to create finding: ${error}`);
+        toastActionError(error, `Failed to create finding: ${formatActionError(error)}`);
         console.error(error);
         return null;
       }
@@ -372,7 +376,7 @@ export function useFindingLifecycle(): FindingLifecycleActions {
       } catch (error) {
         const errorMessage = actionErrorMessage(
           error,
-          `Failed to upload findings for import: ${error}`,
+          `Failed to upload findings for import: ${formatActionError(error)}`,
         );
 
         toastActionError(error, errorMessage);

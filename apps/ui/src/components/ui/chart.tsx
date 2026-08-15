@@ -133,7 +133,7 @@ function ChartTooltipContent({
     }
 
     const [item] = payload;
-    const key = `${labelKey || item.dataKey || item.name || "value"}`;
+    const key = getPayloadKey(labelKey, item.dataKey, item.name);
     const itemConfig = getPayloadConfigFromPayload(config, item, key);
     const value =
       !labelKey && typeof label === "string" ? config[label]?.label || label : itemConfig?.label;
@@ -169,7 +169,7 @@ function ChartTooltipContent({
         {payload
           .filter((item) => item.type !== "none")
           .map((item, index) => {
-            const key = `${nameKey || item.name || item.dataKey || "value"}`;
+            const key = getPayloadKey(nameKey, item.name, item.dataKey);
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
             const indicatorColor = color || item.payload?.fill || item.color;
 
@@ -267,7 +267,7 @@ function ChartLegendContent({
       {payload
         .filter((item) => item.type !== "none")
         .map((item) => {
-          const key = `${nameKey || item.dataKey || "value"}`;
+          const key = getPayloadKey(nameKey, item.dataKey);
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
 
           return (
@@ -318,6 +318,26 @@ function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key:
   }
 
   return configLabelKey in config ? config[configLabelKey] : config[key];
+}
+
+function getPayloadKey(
+  preferredKey: string | undefined,
+  dataKey: unknown,
+  fallbackKey?: unknown,
+): string {
+  if (preferredKey) {
+    return preferredKey;
+  }
+
+  if (dataKey && (typeof dataKey === "string" || typeof dataKey === "number")) {
+    return String(dataKey);
+  }
+
+  if (fallbackKey && (typeof fallbackKey === "string" || typeof fallbackKey === "number")) {
+    return String(fallbackKey);
+  }
+
+  return "value";
 }
 
 export {

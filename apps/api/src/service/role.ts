@@ -9,6 +9,7 @@ import {
   createDomainEventEmitter,
   type DomainEventContext,
   type DomainEventEmitter,
+  type EventSubjects,
   type RoleEventPayloads,
 } from "../lib/eventbus/events/index.js";
 import { ApplicationError, isApplicationError } from "./application-error.js";
@@ -59,8 +60,10 @@ export function createRoleService({
   domainEventEmitter,
   logger,
 }: RoleServiceDependencies): RoleService {
-  type RoleEventSubject = keyof RoleEventPayloads & string;
-  const emitRoleEvent = createDomainEventEmitter<RoleEventSubject>(domainEventEmitter, "role");
+  const emitRoleEvent = createDomainEventEmitter<EventSubjects<RoleEventPayloads>>(
+    domainEventEmitter,
+    "role",
+  );
 
   return {
     async listAll(): Promise<Role[]> {

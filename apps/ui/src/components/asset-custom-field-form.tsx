@@ -236,7 +236,7 @@ export function AssetCustomFieldForm({
           id={`asset-custom-field-form-${mode}`}
           onSubmit={(event) => {
             event.preventDefault();
-            form.handleSubmit();
+            void form.handleSubmit();
           }}
           className="flex flex-col gap-6"
         >

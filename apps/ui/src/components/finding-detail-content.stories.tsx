@@ -174,7 +174,9 @@ function FindingDetailContentStoryShell({
             });
           }
 
-          const update = JSON.parse(String(init?.body ?? "{}")) as UpdateFinding;
+          const update = JSON.parse(
+            typeof init?.body === "string" ? init.body : JSON.stringify(init?.body ?? {}),
+          ) as UpdateFinding;
           findingRef.current = {
             ...findingRef.current,
             ...update,

@@ -24,7 +24,8 @@ export type EventPayloads = AssetEventPayloads &
   FindingEventPayloads &
   VulnerabilityEventPayloads;
 
-export type EventSubject = keyof EventPayloads & string;
+export type EventSubjects<TPayloads extends object> = Extract<keyof TPayloads, string>;
+export type EventSubject = EventSubjects<EventPayloads>;
 
 export interface DomainEventPayloadBase<TSubject extends string, TData extends object> {
   id: string;
@@ -37,8 +38,8 @@ export interface DomainEventPayloadBase<TSubject extends string, TData extends o
 }
 
 export type DomainEvents<TPayloads extends Record<string, object>> = {
-  [TSubject in keyof TPayloads & string]: DomainEventPayloadBase<TSubject, TPayloads[TSubject]>;
-}[keyof TPayloads & string];
+  [TSubject in EventSubjects<TPayloads>]: DomainEventPayloadBase<TSubject, TPayloads[TSubject]>;
+}[EventSubjects<TPayloads>];
 
 export type DomainEvent = DomainEvents<EventPayloads>;
 export type DomainEventFor<TSubject extends EventSubject> = Extract<

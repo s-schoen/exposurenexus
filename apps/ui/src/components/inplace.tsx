@@ -89,7 +89,7 @@ export function Inplace<T>({
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") commit();
+    if (e.key === "Enter") void commit();
     if (e.key === "Escape") cancel();
   };
 
@@ -123,7 +123,7 @@ export function Inplace<T>({
           onValueChange={(v) => {
             const typed = typeof value === "number" ? (Number(v) as T) : (v as T);
             setDraft(typed);
-            commit(typed);
+            void commit(typed);
           }}
         >
           <SelectTrigger className="h-7 min-w-32 text-sm">

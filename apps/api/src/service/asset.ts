@@ -11,6 +11,7 @@ import {
   type AssetEventPayloads,
   type DomainEventContext,
   type DomainEventEmitter,
+  type EventSubjects,
 } from "../lib/eventbus/events/index.js";
 import { ApplicationError, isApplicationError } from "./application-error.js";
 import { isForeignKeyError } from "./errors.js";
@@ -67,8 +68,10 @@ export function createAssetService({
   domainEventEmitter,
   logger,
 }: AssetServiceDependencies): AssetService {
-  type AssetEventSubject = keyof AssetEventPayloads & string;
-  const emitAssetEvent = createDomainEventEmitter<AssetEventSubject>(domainEventEmitter, "asset");
+  const emitAssetEvent = createDomainEventEmitter<EventSubjects<AssetEventPayloads>>(
+    domainEventEmitter,
+    "asset",
+  );
 
   async function getAssetSnapshot(id: string): Promise<AssetWithCustomFields | null> {
     const asset = await assetRepository.getByID(id);

@@ -28,7 +28,7 @@ vi.mock("@/components/chart/simple-bar-chart.tsx", () => ({
       {!loading
         ? chartData.map((item) => (
             <div key={item.label}>
-              {String(chartConfig[item.label].label)}: {item.value}
+              {chartConfig[item.label].label}: {item.value}
             </div>
           ))
         : null}
