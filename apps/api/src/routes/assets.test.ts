@@ -32,6 +32,7 @@ describe("asset routes", () => {
     listAllWithCustomFields: vi.fn(),
     getByID: vi.fn(),
     getByDisplayName: vi.fn(),
+    listByDisplayName: vi.fn(),
     create: vi.fn(),
     updateByID: vi.fn(),
     addIdentifier: vi.fn(),

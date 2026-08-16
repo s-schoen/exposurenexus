@@ -16,7 +16,7 @@ production deployment guide. The first supported external finding source is Nucl
 
 ## Key Features
 
-- Import Nuclei JSONL findings and normalize them into assets, vulnerabilities, and findings.
+- Import Nuclei JSONL findings against managed assets and normalize them into vulnerabilities and findings.
 - Review active findings in a triage queue grouped around affected assets.
 - Track finding status from discovery through confirmation, mitigation, accepted risk, false positive, duplicate, or
   out-of-scope.

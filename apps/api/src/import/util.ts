@@ -1,16 +1,12 @@
-import type { DomainEventContext } from "../lib/eventbus/events/index.js";
 import type { AssetService } from "../service/asset.js";
 import type { Asset, AssetType } from "@exposurenexus/types/model/asset";
-import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { Logger } from "pino";
 
-type AssetLookupService = Pick<AssetService, "getByDisplayName" | "create">;
+type AssetLookupService = Pick<AssetService, "listByDisplayName">;
 
-export interface GetOrCreateAssetOptions {
+export interface ResolveAssetOptions {
   type: AssetType;
   displayName: string;
-  user: UserProfile;
-  eventContext?: DomainEventContext;
 }
 
 interface AssetImportDependencies {
@@ -18,26 +14,20 @@ interface AssetImportDependencies {
   logger: Logger;
 }
 
-export function createGetOrCreateAsset({ assetService, logger }: AssetImportDependencies) {
-  return async function getOrCreateAsset({
+export function createResolveAsset({ assetService, logger }: AssetImportDependencies) {
+  return async function resolveAsset({
     type,
     displayName,
-    user,
-    eventContext,
-  }: GetOrCreateAssetOptions): Promise<Asset> {
-    const asset = await assetService.getByDisplayName(displayName, type);
-    if (asset) {
-      return asset;
+  }: ResolveAssetOptions): Promise<Asset | null> {
+    const matches = await assetService.listByDisplayName(displayName, type);
+    if (matches.length === 1) {
+      return matches[0]!;
     }
 
-    logger.info(
-      { assetDisplayName: displayName, assetType: type },
-      "creating new asset based on finding import",
+    logger.warn(
+      { assetDisplayName: displayName, assetType: type, matchCount: matches.length },
+      "could not resolve managed asset for finding import",
     );
-    return assetService.create({
-      asset: { displayName, type },
-      user,
-      eventContext,
-    });
+    return null;
   };
 }

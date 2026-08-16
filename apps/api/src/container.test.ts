@@ -164,7 +164,7 @@ vi.mock("./service/index.js", () => ({
 }));
 
 vi.mock("./import/util.js", () => ({
-  createGetOrCreateAsset: vi.fn(() => ({ kind: "get-or-create-asset" })),
+  createResolveAsset: vi.fn(() => ({ kind: "resolve-asset" })),
 }));
 
 vi.mock("./import/nuclei.js", () => ({

@@ -32,7 +32,7 @@ describe("nuclei importer", () => {
   const findingService = {
     createOrUpdate: vi.fn(),
   };
-  const getOrCreateAsset = vi.fn();
+  const resolveAsset = vi.fn();
   const vulnerability = {
     id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
     title: "Exposed Admin Endpoint",
@@ -99,7 +99,7 @@ describe("nuclei importer", () => {
     const parser = createNucleiFindingParser({
       vulnerabilityService,
       findingService,
-      getOrCreateAsset,
+      resolveAsset,
       logger,
     });
 
@@ -112,7 +112,7 @@ describe("nuclei importer", () => {
       },
     ] as VulnerabilitySourceMapping[]);
     vulnerabilityService.getByID.mockResolvedValue(vulnerability as Vulnerability);
-    getOrCreateAsset.mockResolvedValue(asset);
+    resolveAsset.mockResolvedValue(asset);
     findingService.createOrUpdate.mockResolvedValue({
       finding,
       created: true,
@@ -126,11 +126,9 @@ describe("nuclei importer", () => {
     expect(result).toEqual([finding]);
     expect(vulnerabilityService.create).not.toHaveBeenCalled();
     expect(vulnerabilityService.createMapping).not.toHaveBeenCalled();
-    expect(getOrCreateAsset).toHaveBeenCalledWith({
+    expect(resolveAsset).toHaveBeenCalledWith({
       type: AssetType.Host,
       displayName: "api.exposurenexus.local",
-      user,
-      eventContext: ctx.eventContext,
     });
     expect(findingService.createOrUpdate).toHaveBeenCalledWith({
       user,
@@ -154,11 +152,83 @@ describe("nuclei importer", () => {
     });
   });
 
+  it("skips findings when no managed host asset matches", async () => {
+    const parser = createNucleiFindingParser({
+      vulnerabilityService,
+      findingService,
+      resolveAsset,
+      logger,
+    });
+
+    vulnerabilityService.listMappings.mockResolvedValue([
+      {
+        id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
+        vulnerabilityId: vulnerability.id,
+        source: FindingSource.Nuclei,
+        matchQuery: '{"templateID":"admin-panel"}',
+      },
+    ] as VulnerabilitySourceMapping[]);
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability as Vulnerability);
+    resolveAsset.mockResolvedValue(null);
+
+    await expect(
+      parser.parseNucleiFindings(ctx, Buffer.from(`${JSON.stringify(nucleiFinding)}\n`)),
+    ).resolves.toEqual([]);
+
+    expect(resolveAsset).toHaveBeenCalledWith({
+      type: AssetType.Host,
+      displayName: "api.exposurenexus.local",
+    });
+    expect(findingService.createOrUpdate).not.toHaveBeenCalled();
+  });
+
+  it("skips unresolved records while importing resolvable records", async () => {
+    const parser = createNucleiFindingParser({
+      vulnerabilityService,
+      findingService,
+      resolveAsset,
+      logger,
+    });
+
+    vulnerabilityService.listMappings.mockResolvedValue([
+      {
+        id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
+        vulnerabilityId: vulnerability.id,
+        source: FindingSource.Nuclei,
+        matchQuery: '{"templateID":"admin-panel"}',
+      },
+    ] as VulnerabilitySourceMapping[]);
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability as Vulnerability);
+    resolveAsset.mockResolvedValueOnce(asset).mockResolvedValueOnce(null);
+    findingService.createOrUpdate.mockResolvedValue({ finding, created: true });
+
+    const result = await parser.parseNucleiFindings(
+      ctx,
+      Buffer.from(
+        `${JSON.stringify(nucleiFinding)}\n${JSON.stringify({
+          ...nucleiFinding,
+          host: "unmanaged.exposurenexus.local",
+        })}\n`,
+      ),
+    );
+
+    expect(result).toEqual([finding]);
+    expect(resolveAsset).toHaveBeenNthCalledWith(1, {
+      type: AssetType.Host,
+      displayName: "api.exposurenexus.local",
+    });
+    expect(resolveAsset).toHaveBeenNthCalledWith(2, {
+      type: AssetType.Host,
+      displayName: "unmanaged.exposurenexus.local",
+    });
+    expect(findingService.createOrUpdate).toHaveBeenCalledTimes(1);
+  });
+
   it("creates vulnerabilities and mappings when no mapping exists", async () => {
     const parser = createNucleiFindingParser({
       vulnerabilityService,
       findingService,
-      getOrCreateAsset,
+      resolveAsset,
       logger,
     });
 
@@ -170,7 +240,7 @@ describe("nuclei importer", () => {
       source: FindingSource.Nuclei,
       matchQuery: '{"templateID":"admin-panel"}',
     } as VulnerabilitySourceMapping);
-    getOrCreateAsset.mockResolvedValue(asset);
+    resolveAsset.mockResolvedValue(asset);
     findingService.createOrUpdate.mockResolvedValue({
       finding,
       created: true,
@@ -201,7 +271,7 @@ describe("nuclei importer", () => {
     const parser = createNucleiFindingParser({
       vulnerabilityService,
       findingService,
-      getOrCreateAsset,
+      resolveAsset,
       logger,
     });
 
@@ -218,7 +288,7 @@ describe("nuclei importer", () => {
     );
 
     expect(result).toEqual([]);
-    expect(getOrCreateAsset).not.toHaveBeenCalled();
+    expect(resolveAsset).not.toHaveBeenCalled();
     expect(findingService.createOrUpdate).not.toHaveBeenCalled();
   });
 
@@ -226,7 +296,7 @@ describe("nuclei importer", () => {
     const parser = createNucleiFindingParser({
       vulnerabilityService,
       findingService,
-      getOrCreateAsset,
+      resolveAsset,
       logger,
     });
 
@@ -247,14 +317,14 @@ describe("nuclei importer", () => {
 
     expect(result).toEqual([]);
     expect(vulnerabilityService.create).not.toHaveBeenCalled();
-    expect(getOrCreateAsset).not.toHaveBeenCalled();
+    expect(resolveAsset).not.toHaveBeenCalled();
   });
 
   it("throws a 400 HTTP exception when a line cannot be parsed", async () => {
     const parser = createNucleiFindingParser({
       vulnerabilityService,
       findingService,
-      getOrCreateAsset,
+      resolveAsset,
       logger,
     });
 
@@ -270,7 +340,7 @@ describe("nuclei importer", () => {
     const parser = createNucleiFindingParser({
       vulnerabilityService,
       findingService,
-      getOrCreateAsset,
+      resolveAsset,
       logger,
     });
 
@@ -283,7 +353,7 @@ describe("nuclei importer", () => {
       },
     ] as VulnerabilitySourceMapping[]);
     vulnerabilityService.getByID.mockResolvedValue(vulnerability as Vulnerability);
-    getOrCreateAsset.mockResolvedValue(asset);
+    resolveAsset.mockResolvedValue(asset);
     findingService.createOrUpdate.mockResolvedValue({
       finding,
       created: true,

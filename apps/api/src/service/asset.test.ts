@@ -22,6 +22,7 @@ describe("asset service", () => {
     list: vi.fn(),
     getByID: vi.fn(),
     getByDisplayName: vi.fn(),
+    listByDisplayName: vi.fn(),
     getIdentifierByID: vi.fn(),
     getAssetIDByIdentifier: vi.fn(),
     create: vi.fn(),
@@ -87,6 +88,20 @@ describe("asset service", () => {
     assetRepository.list.mockResolvedValue(assets);
 
     await expect(assetService.listAll()).resolves.toEqual(assets);
+  });
+
+  it("lists assets by exact display name and type", async () => {
+    const assets = [createAssetFixture()];
+    const assetService = createTestAssetService();
+    assetRepository.listByDisplayName.mockResolvedValue(assets);
+
+    await expect(
+      assetService.listByDisplayName("api.exposurenexus.local", AssetType.Host),
+    ).resolves.toEqual(assets);
+    expect(assetRepository.listByDisplayName).toHaveBeenCalledWith(
+      "api.exposurenexus.local",
+      AssetType.Host,
+    );
   });
 
   it("lists all assets with effective custom fields", async () => {

@@ -132,6 +132,12 @@ describe("asset repository", () => {
         ],
       }),
     );
+    const nonHostDuplicate = await repository.create(
+      createAssetRecord({
+        displayName: "Duplicate asset",
+        type: AssetType.Software,
+      }),
+    );
     const unidentified = await repository.create(
       createAssetRecord({
         displayName: "Unidentified software",
@@ -165,9 +171,20 @@ describe("asset repository", () => {
     await expect(repository.list({ search: "duplicate" })).resolves.toEqual([
       matching,
       archivedDuplicate,
+      nonHostDuplicate,
     ]);
+    await expect(repository.listByDisplayName("Duplicate asset", AssetType.Host)).resolves.toEqual(
+      expect.arrayContaining([matching, archivedDuplicate]),
+    );
+    await expect(
+      repository.listByDisplayName("Duplicate asset", AssetType.Host),
+    ).resolves.toHaveLength(2);
+    await expect(
+      repository.listByDisplayName("Duplicate asset", AssetType.Software),
+    ).resolves.toEqual([nonHostDuplicate]);
     await expect(repository.list({ ownerIds: [null] })).resolves.toEqual([
       archivedDuplicate,
+      nonHostDuplicate,
     ]);
     await expect(repository.list({ search: "unidentified" })).resolves.toEqual([unidentified]);
   });

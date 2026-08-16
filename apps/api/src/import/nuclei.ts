@@ -11,7 +11,7 @@ import { badRequest } from "../lib/api-error.js";
 import type { FindingService } from "../service/finding.js";
 import type { VulnerabilityService } from "../service/vulnerability.js";
 import type { ImportContext } from "./importer.js";
-import type { GetOrCreateAssetOptions } from "./util.js";
+import type { ResolveAssetOptions } from "./util.js";
 import type { Logger } from "pino";
 
 const nucleiFindingSchema = z
@@ -69,7 +69,7 @@ type NucleiFindingService = Pick<FindingService, "createOrUpdate">;
 interface NucleiFindingParserDependencies {
   vulnerabilityService: NucleiVulnerabilityService;
   findingService: NucleiFindingService;
-  getOrCreateAsset(options: GetOrCreateAssetOptions): Promise<Asset>;
+  resolveAsset(options: ResolveAssetOptions): Promise<Asset | null>;
   logger: Logger;
 }
 
@@ -128,35 +128,45 @@ export function createNucleiFindingParser(dependencies: NucleiFindingParserDepen
       const createdFindings: Array<Finding> = [];
       let currentLine = 1;
       for (const line of jsonl) {
+        const lineNumber = currentLine++;
         try {
           const nucleiFinding = nucleiFindingSchema.parse(JSON.parse(line));
 
-          logger.debug(`parsing finding ${currentLine} of ${jsonl.length}`);
+          logger.debug(`parsing finding ${lineNumber} of ${jsonl.length}`);
           if (!nucleiFinding) {
             continue;
           }
 
           if (!nucleiFinding.host) {
-            logger.warn(`no host defined in finding ${currentLine}. Skipping`);
+            logger.warn(`no host defined in finding ${lineNumber}. Skipping`);
             continue;
           }
 
           const host = parseNucleiHostname(nucleiFinding.host);
           const vulnerability = await getOrCreateVulnerability(ctx, nucleiFinding);
           if (!vulnerability) {
-            logger.warn(`could not find vulnerability for finding ${currentLine}. Skipping`);
+            logger.warn(`could not find vulnerability for finding ${lineNumber}. Skipping`);
             continue;
           }
           logger.debug(
-            `using vulnerability ${vulnerability.id} (${vulnerability.title}) for finding ${currentLine}`,
+            `using vulnerability ${vulnerability.id} (${vulnerability.title}) for finding ${lineNumber}`,
           );
 
-          const asset = await dependencies.getOrCreateAsset({
+          const asset = await dependencies.resolveAsset({
             type: AssetType.Host,
             displayName: host,
-            user: ctx.user,
-            eventContext: ctx.eventContext,
           });
+          if (!asset) {
+            logger.warn(
+              {
+                line: lineNumber,
+                assetDisplayName: host,
+                assetType: AssetType.Host,
+              },
+              "skipping finding because its managed asset could not be resolved",
+            );
+            continue;
+          }
           const fingerprintInfo = {
             port: nucleiFinding.port || "",
             path: nucleiFinding.path || "",
@@ -181,11 +191,9 @@ export function createNucleiFindingParser(dependencies: NucleiFindingParserDepen
           });
           createdFindings.push(finding);
           logger.info(`${created ? "created" : "updated"} finding ${finding.id} for ${host}`);
-
-          currentLine++;
         } catch (error) {
-          logger.error(error, `failed to parse line ${currentLine}`);
-          throw badRequest(`failed to parse line ${currentLine}`);
+          logger.error(error, `failed to parse line ${lineNumber}`);
+          throw badRequest(`failed to parse line ${lineNumber}`);
         }
       }
 
