@@ -26,6 +26,10 @@
       "types": "./dist/model/asset-custom-field.d.ts",
       "import": "./dist/model/asset-custom-field.js"
     },
+    "./model/affected-resource": {
+      "types": "./dist/model/affected-resource.d.ts",
+      "import": "./dist/model/affected-resource.js"
+    },
     "./model/finding": {
       "types": "./dist/model/finding.d.ts",
       "import": "./dist/model/finding.js"
@@ -33,6 +37,14 @@
     "./model/date": {
       "types": "./dist/model/date.d.ts",
       "import": "./dist/model/date.js"
+    },
+    "./model/normalization": {
+      "types": "./dist/model/normalization.d.ts",
+      "import": "./dist/model/normalization.js"
+    },
+    "./model/weakness": {
+      "types": "./dist/model/weakness.d.ts",
+      "import": "./dist/model/weakness.js"
     },
     "./model/vulnerability": {
       "types": "./dist/model/vulnerability.d.ts",
