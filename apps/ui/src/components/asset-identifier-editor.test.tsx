@@ -1,11 +1,8 @@
 import { AssetIdentifierType } from "@exposurenexus/types/model/asset";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  AssetIdentifierEditor,
-  AssetIdentifierManager,
-} from "@/components/asset-identifier-editor.tsx";
+import { AssetIdentifierEditor } from "@/components/asset-identifier-editor.tsx";
 
 afterEach(() => {
   cleanup();
@@ -45,78 +42,5 @@ describe("AssetIdentifierEditor", () => {
       />,
     );
     expect(screen.getByText(/must not contain a scheme/i)).toBeTruthy();
-  });
-});
-
-describe("AssetIdentifierManager", () => {
-  it("adds, updates, and removes managed identifiers", async () => {
-    const identifier = {
-      id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
-      type: AssetIdentifierType.DnsName,
-      namespace: null,
-      value: "api.example.com",
-    } as const;
-    const onAdd = vi.fn().mockResolvedValue(undefined);
-    const onUpdate = vi.fn().mockResolvedValue(undefined);
-    const onRemove = vi.fn().mockResolvedValue(undefined);
-    render(
-      <AssetIdentifierManager
-        identifiers={[identifier]}
-        onAdd={onAdd}
-        onUpdate={onUpdate}
-        onRemove={onRemove}
-      />,
-    );
-
-    fireEvent.change(screen.getByLabelText("Identifier value 1"), {
-      target: { value: "api.internal.example.com" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /update identifier/i }));
-    await waitFor(() =>
-      expect(onUpdate).toHaveBeenCalledWith(
-        identifier.id,
-        expect.objectContaining({
-          value: "api.internal.example.com",
-        }),
-      ),
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /remove identifier 1/i }));
-    expect(onRemove).toHaveBeenCalledWith(identifier.id);
-
-    fireEvent.click(screen.getByRole("button", { name: /^add identifier$/i }));
-    fireEvent.change(screen.getByLabelText("Identifier value 2"), {
-      target: { value: "new.example.com" },
-    });
-    const addButtons = screen.getAllByRole("button", { name: /^add identifier$/i });
-    fireEvent.click(addButtons[addButtons.length - 1]);
-    await waitFor(() =>
-      expect(onAdd).toHaveBeenCalledWith(
-        expect.objectContaining({
-          value: "new.example.com",
-        }),
-      ),
-    );
-  });
-
-  it("keeps a draft when adding an identifier fails", async () => {
-    const onAdd = vi.fn().mockResolvedValue(null);
-    render(
-      <AssetIdentifierManager
-        identifiers={[]}
-        onAdd={onAdd}
-        onUpdate={vi.fn()}
-        onRemove={vi.fn()}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: /^add identifier$/i }));
-    fireEvent.change(screen.getByLabelText("Identifier value 1"), {
-      target: { value: "new.example.com" },
-    });
-    fireEvent.click(screen.getAllByRole("button", { name: /^add identifier$/i }).at(-1)!);
-
-    await waitFor(() => expect(onAdd).toHaveBeenCalled());
-    expect(screen.getByLabelText("Identifier value 1")).toBeTruthy();
   });
 });

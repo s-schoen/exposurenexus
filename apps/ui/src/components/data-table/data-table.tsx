@@ -127,7 +127,10 @@ function columnFiltersToDataTableFilterState(
 
 interface DataTableProps<TData extends RowData> {
   columns: Array<DataTableColumnDef<TData>>;
-  query: UseQueryResult<Array<TData>, Error>;
+  query?: UseQueryResult<Array<TData>, Error>;
+  rows?: Array<TData>;
+  embedded?: boolean;
+  emptyState?: ReactNode;
   groupingOptions?: Array<GroupingOption>;
   initialGrouping?: GroupingState;
   initialSorting?: SortingState;
@@ -149,6 +152,9 @@ interface DataTableProps<TData extends RowData> {
 export function DataTable<TData extends RowData>({
   columns,
   query,
+  rows,
+  embedded = false,
+  emptyState,
   groupingOptions = [],
   initialGrouping = [],
   initialSorting = [],
@@ -162,6 +168,8 @@ export function DataTable<TData extends RowData>({
   onFilterStateChange,
   contextMenu,
 }: DataTableProps<TData>) {
+  const tableRows = rows ?? query?.data ?? [];
+  const isPending = query?.isPending ?? false;
   const [grouping, setGrouping] = useState<GroupingState>(initialGrouping);
   const [expanded, setExpanded] = useState<ExpandedState>(true);
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
@@ -236,8 +244,8 @@ export function DataTable<TData extends RowData>({
 
   const table = useTable<DataTableFeatures, TData>({
     features: dataTableFeatures,
-    data: query.data ?? [],
-    columns: [selectColumn, ...columns],
+    data: tableRows,
+    columns: embedded ? columns : [selectColumn, ...columns],
     groupedColumnMode: false,
     autoResetExpanded: false,
     state: {
@@ -285,7 +293,7 @@ export function DataTable<TData extends RowData>({
     typeof toolbarControls === "function" ? toolbarControls(selectedRows) : toolbarControls;
 
   const handleOnRefresh = async () => {
-    await query.refetch();
+    await query?.refetch();
   };
 
   const handleOnRowsDelete = async () => {
@@ -339,41 +347,45 @@ export function DataTable<TData extends RowData>({
     return (
       <TableRow>
         <TableCell colSpan={table.getAllColumns().length} className="h-56 p-0">
-          <div
-            data-testid="data-table-empty-state"
-            className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center"
-          >
-            <div className="flex size-14 items-center justify-center rounded-2xl border border-border/70 bg-muted/60 text-muted-foreground">
-              <DatabaseZap className="size-6" />
+          {emptyState ?? (
+            <div
+              data-testid="data-table-empty-state"
+              className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center"
+            >
+              <div className="flex size-14 items-center justify-center rounded-2xl border border-border/70 bg-muted/60 text-muted-foreground">
+                <DatabaseZap className="size-6" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">No results to show</p>
+                <p className="max-w-md text-sm text-muted-foreground">
+                  Adjust your filters or refresh the table to load a different result set.
+                </p>
+              </div>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">No results to show</p>
-              <p className="max-w-md text-sm text-muted-foreground">
-                Adjust your filters or refresh the table to load a different result set.
-              </p>
-            </div>
-          </div>
+          )}
         </TableCell>
       </TableRow>
     );
   }
 
   function DataRows() {
+    const visibleRows = embedded ? table.getPrePaginatedRowModel().rows : table.getRowModel().rows;
+
     return (
       <TableBody key="data-table-body-data">
-        {table.getRowModel().rows.length ? (
-          table.getRowModel().rows.map((row) => {
-            const isGroupedRow = Boolean(row.groupingColumnId);
+        {visibleRows.length ? (
+          visibleRows.map((row) => {
+            const groupingColumnId = row.groupingColumnId;
 
-            if (isGroupedRow) {
+            if (groupingColumnId) {
               const groupingOption = groupingOptions.find(
-                (option) => option.id === row.groupingColumnId,
+                (option) => option.id === groupingColumnId,
               );
               const groupingLabel =
                 groupingOption?.label ??
-                table.getColumn(row.groupingColumnId!)?.columnDef.meta?.label ??
-                row.groupingColumnId;
-              const groupingValue = row.getValue(row.groupingColumnId!);
+                table.getColumn(groupingColumnId)?.columnDef.meta?.label ??
+                groupingColumnId;
+              const groupingValue = row.getValue(groupingColumnId);
               const formattedGroupingValue = groupingOption?.formatValue
                 ? groupingOption.formatValue(groupingValue)
                 : String(groupingValue);
@@ -420,9 +432,9 @@ export function DataTable<TData extends RowData>({
                 data-state={row.getIsSelected() && "selected"}
                 data-active={isRowActive?.(row.original) || undefined}
                 data-testid={isRowActive?.(row.original) ? "data-table-active-row" : undefined}
-                className="cursor-pointer select-none border-b border-border/60 transition-colors hover:bg-muted/40 data-[active=true]:bg-accent/60 data-[state=selected]:bg-primary/6"
-                onClick={(event) => handleOnRowClick(event, row)}
-                onDoubleClick={() => handleOnRowDoubleClick(row)}
+                className={`${onRowClick ? "cursor-pointer " : ""}select-none border-b border-border/60 transition-colors hover:bg-muted/40 data-[active=true]:bg-accent/60 data-[state=selected]:bg-primary/6`}
+                onClick={onRowClick ? (event) => handleOnRowClick(event, row) : undefined}
+                onDoubleClick={onRowDoubleClick ? () => handleOnRowDoubleClick(row) : undefined}
                 onContextMenu={contextMenu ? () => handleOnRowContextMenu(row) : undefined}
               >
                 {row.getVisibleCells().map((cell) => (
@@ -466,20 +478,28 @@ export function DataTable<TData extends RowData>({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <DataTableToolbar
-        table={table}
-        isFetching={query.isFetching}
-        deleteDisabled={selectedRows.length === 0}
-        groupingOptions={groupingOptions}
-        additionalElements={resolvedToolbarControls}
-        onRequestRefresh={handleOnRefresh}
-        onRequestDelete={onRowDelete ? handleOnRowsDelete : undefined}
-        globalFilterValue={resolvedFilterState.globalFilter}
-        onGlobalFilterChange={(value) => table.setGlobalFilter(value || undefined)}
-        onClearAllFilters={handleClearAllFilters}
-      />
-      <div className="overflow-hidden rounded-[1.5rem] border border-shell-border-strong/70 bg-shell-panel shadow-sm">
+    <div className={embedded ? "flex flex-col" : "flex flex-col gap-4"}>
+      {!embedded ? (
+        <DataTableToolbar
+          table={table}
+          isFetching={query?.isFetching ?? false}
+          deleteDisabled={selectedRows.length === 0}
+          groupingOptions={groupingOptions}
+          additionalElements={resolvedToolbarControls}
+          onRequestRefresh={handleOnRefresh}
+          onRequestDelete={onRowDelete ? handleOnRowsDelete : undefined}
+          globalFilterValue={resolvedFilterState.globalFilter}
+          onGlobalFilterChange={(value) => table.setGlobalFilter(value || undefined)}
+          onClearAllFilters={handleClearAllFilters}
+        />
+      ) : null}
+      <div
+        className={
+          embedded
+            ? "overflow-hidden rounded-xl border border-border/70 bg-background/60"
+            : "overflow-hidden rounded-[1.5rem] border border-shell-border-strong/70 bg-shell-panel shadow-sm"
+        }
+      >
         <Table className="min-w-full">
           <TableHeader className="bg-muted/35 [&_tr]:border-border/60">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -491,7 +511,7 @@ export function DataTable<TData extends RowData>({
                   return (
                     <TableHead
                       key={header.id}
-                      className="h-12 px-3 text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase first:pl-4 last:pr-4"
+                      className={`${embedded ? "h-10 " : "h-12 "}px-3 text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase first:pl-4 last:pr-4`}
                     >
                       {header.isPlaceholder
                         ? null
@@ -502,11 +522,13 @@ export function DataTable<TData extends RowData>({
               </TableRow>
             ))}
           </TableHeader>
-          {query.isPending ? <SkeletonRows /> : <DataRows />}
+          {isPending ? <SkeletonRows /> : <DataRows />}
         </Table>
-        <div className="border-t border-border/60 bg-muted/15 px-4 py-3">
-          <DataTablePagination table={table} />
-        </div>
+        {!embedded ? (
+          <div className="border-t border-border/60 bg-muted/15 px-4 py-3">
+            <DataTablePagination table={table} />
+          </div>
+        ) : null}
       </div>
     </div>
   );

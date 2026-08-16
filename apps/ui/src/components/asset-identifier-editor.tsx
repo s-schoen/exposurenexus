@@ -1,5 +1,5 @@
 import { AssetIdentifierType, validateAssetIdentifier } from "@exposurenexus/types/model/asset";
-import { Check, Plus, Trash2 } from "lucide-react";
+import { Check, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.tsx";
@@ -12,18 +12,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.tsx";
-import { capitalizeFirstLetter } from "@/lib/format.ts";
+import { Spinner } from "@/components/ui/spinner.tsx";
 
 import type {
   AssetIdentifierRecord,
   CreateAssetIdentifier,
 } from "@exposurenexus/types/model/asset";
-import type { ReactNode } from "react";
+import type { FormEvent, ReactNode } from "react";
 
 export interface AssetIdentifierDraft {
   type: AssetIdentifierType;
   namespace: string;
   value: string;
+}
+
+export function identifierTypeLabel(type: AssetIdentifierType): string {
+  switch (type) {
+    case AssetIdentifierType.DnsName:
+      return "DNS name";
+    case AssetIdentifierType.IpAddress:
+      return "IP address";
+    case AssetIdentifierType.VcsRepository:
+      return "VCS repository";
+    case AssetIdentifierType.OciImageName:
+      return "OCI image";
+    case AssetIdentifierType.CloudResourceId:
+      return "Cloud resource ID";
+  }
 }
 
 interface IdentifierRowProps {
@@ -33,6 +48,17 @@ interface IdentifierRowProps {
   onRemove: () => void;
   onSave?: () => void | Promise<void>;
   saveLabel?: string;
+}
+
+interface IdentifierFieldsProps {
+  draft: AssetIdentifierDraft;
+  inputId: string;
+  onChange: (draft: AssetIdentifierDraft) => void;
+  onNormalize: () => void;
+  onRemove?: () => void;
+  disabled?: boolean;
+  showError?: boolean;
+  ariaLabelSuffix?: string;
 }
 
 function toDraft(identifier: CreateAssetIdentifier | AssetIdentifierRecord): AssetIdentifierDraft {
@@ -69,23 +95,24 @@ function validationMessage(draft: AssetIdentifierDraft): string | null {
   return result.success ? null : (result.issues[0]?.message ?? "Identifier is invalid.");
 }
 
-function IdentifierRow({
+function IdentifierFields({
   draft,
-  index,
+  inputId,
   onChange,
+  onNormalize,
   onRemove,
-  onSave,
-  saveLabel = "Save identifier",
-}: IdentifierRowProps) {
+  disabled = false,
+  showError = true,
+  ariaLabelSuffix,
+}: IdentifierFieldsProps) {
   const error = validationMessage(draft);
-  const inputId = `asset-identifier-${index}`;
+  const labelSuffix = ariaLabelSuffix ? ` ${ariaLabelSuffix}` : "";
   const updateDraft = (changes: Partial<AssetIdentifierDraft>) => {
     onChange({ ...draft, ...changes });
   };
-  const normalize = () => onChange(canonicalizeDraft(draft));
 
   return (
-    <div className="space-y-3 rounded-lg border border-border/70 p-3">
+    <>
       <div className="grid gap-3 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)]">
         <div className="space-y-1.5">
           <label htmlFor={`${inputId}-type`} className="text-sm font-medium">
@@ -94,15 +121,16 @@ function IdentifierRow({
           <Select
             value={draft.type}
             onValueChange={(value) => updateDraft({ type: value as AssetIdentifierType })}
+            disabled={disabled}
           >
-            <SelectTrigger id={`${inputId}-type`} aria-label={`Identifier type ${index + 1}`}>
-              <SelectValue>{capitalizeFirstLetter(draft.type)}</SelectValue>
+            <SelectTrigger id={`${inputId}-type`} aria-label={`Identifier type${labelSuffix}`}>
+              <SelectValue>{identifierTypeLabel(draft.type)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
                 {Object.values(AssetIdentifierType).map((type) => (
                   <SelectItem key={type} value={type}>
-                    {capitalizeFirstLetter(type)}
+                    {identifierTypeLabel(type)}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -115,12 +143,13 @@ function IdentifierRow({
           </label>
           <Input
             id={`${inputId}-namespace`}
-            aria-label={`Identifier namespace ${index + 1}`}
+            aria-label={`Identifier namespace${labelSuffix}`}
             value={draft.namespace}
             onChange={(event) => updateDraft({ namespace: event.target.value })}
-            onBlur={normalize}
+            onBlur={onNormalize}
             placeholder="Global scope"
             autoComplete="off"
+            disabled={disabled}
           />
         </div>
       </div>
@@ -131,33 +160,62 @@ function IdentifierRow({
         <div className="flex items-start gap-2">
           <Input
             id={`${inputId}-value`}
-            aria-label={`Identifier value ${index + 1}`}
+            aria-label={`Identifier value${labelSuffix}`}
             value={draft.value}
             onChange={(event) => updateDraft({ value: event.target.value })}
-            onBlur={normalize}
+            onBlur={onNormalize}
             placeholder="Enter an external identity"
             autoComplete="off"
-            aria-invalid={error !== null}
+            aria-invalid={showError && error !== null}
+            disabled={disabled}
           />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Remove identifier ${index + 1}`}
-            title="Remove identifier"
-            onClick={onRemove}
-          >
-            <Trash2 />
-          </Button>
+          {onRemove ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Remove identifier${labelSuffix}`}
+              title="Remove identifier"
+              onClick={onRemove}
+              disabled={disabled}
+            >
+              <Trash2 />
+            </Button>
+          ) : null}
         </div>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        {onSave ? (
-          <Button type="button" variant="outline" size="sm" onClick={() => void onSave()}>
-            <Check />
-            {saveLabel}
-          </Button>
-        ) : null}
+        {showError && error ? <p className="text-sm text-destructive">{error}</p> : null}
       </div>
+    </>
+  );
+}
+
+function IdentifierRow({
+  draft,
+  index,
+  onChange,
+  onRemove,
+  onSave,
+  saveLabel = "Save identifier",
+}: IdentifierRowProps) {
+  const inputId = `asset-identifier-${index}`;
+  const normalize = () => onChange(canonicalizeDraft(draft));
+
+  return (
+    <div className="space-y-3 rounded-lg border border-border/70 p-3">
+      <IdentifierFields
+        draft={draft}
+        inputId={inputId}
+        onChange={onChange}
+        onNormalize={normalize}
+        onRemove={onRemove}
+        ariaLabelSuffix={String(index + 1)}
+      />
+      {onSave ? (
+        <Button type="button" variant="outline" size="sm" onClick={() => void onSave()}>
+          <Check />
+          {saveLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -228,88 +286,69 @@ export function AssetIdentifierEditor({ value, onChange }: AssetIdentifierEditor
   );
 }
 
-export interface AssetIdentifierManagerProps {
-  identifiers: ReadonlyArray<AssetIdentifierRecord>;
-  onAdd: (
-    identifier: CreateAssetIdentifier,
-  ) => void | AssetIdentifierRecord | null | Promise<void | AssetIdentifierRecord | null>;
-  onUpdate: (identifierId: string, identifier: CreateAssetIdentifier) => void | Promise<void>;
-  onRemove: (identifierId: string) => void | Promise<void>;
+export interface AssetIdentifierFormProps {
+  defaultValue?: CreateAssetIdentifier | AssetIdentifierRecord;
+  onSubmit: (identifier: CreateAssetIdentifier) => Promise<AssetIdentifierRecord | null>;
+  onCancel: () => void;
+  pending?: boolean;
+  submitLabel: string;
 }
 
-function ManagedIdentifierRow({
-  identifier,
-  index,
-  onUpdate,
-  onRemove,
-}: {
-  identifier: AssetIdentifierRecord;
-  index: number;
-  onUpdate: AssetIdentifierManagerProps["onUpdate"];
-  onRemove: AssetIdentifierManagerProps["onRemove"];
-}) {
-  const [draft, setDraft] = useState(() => toDraft(identifier));
-
-  return (
-    <IdentifierRow
-      draft={draft}
-      index={index}
-      onChange={setDraft}
-      onRemove={() => void onRemove(identifier.id)}
-      onSave={() => onUpdate(identifier.id, toIdentifier(canonicalizeDraft(draft)))}
-      saveLabel="Update identifier"
-    />
+export function AssetIdentifierForm({
+  defaultValue,
+  onSubmit,
+  onCancel,
+  pending = false,
+  submitLabel,
+}: AssetIdentifierFormProps) {
+  const [draft, setDraft] = useState<AssetIdentifierDraft>(() =>
+    toDraft(
+      defaultValue ?? {
+        type: AssetIdentifierType.DnsName,
+        namespace: undefined,
+        value: "",
+      },
+    ),
   );
-}
+  const [submitted, setSubmitted] = useState(false);
+  const showError = submitted || draft.namespace.length > 0 || draft.value.length > 0;
 
-export function AssetIdentifierManager({
-  identifiers,
-  onAdd,
-  onUpdate,
-  onRemove,
-}: AssetIdentifierManagerProps) {
-  const [draft, setDraft] = useState<AssetIdentifierDraft | null>(null);
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubmitted(true);
+    const normalized = canonicalizeDraft(draft);
+    setDraft(normalized);
+
+    if (validationMessage(normalized)) {
+      return;
+    }
+
+    const saved = await onSubmit(toIdentifier(normalized));
+    if (saved !== null) {
+      onCancel();
+    }
+  };
 
   return (
-    <AssetIdentifierSection
-      onAdd={() => setDraft({ type: AssetIdentifierType.DnsName, namespace: "", value: "" })}
-    >
-      {identifiers.length === 0 && !draft ? (
-        <p className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-          No identifiers. Add one when an external identity is known.
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {identifiers.map((identifier, index) => (
-            <ManagedIdentifierRow
-              key={identifier.id}
-              identifier={identifier}
-              index={index}
-              onUpdate={onUpdate}
-              onRemove={onRemove}
-            />
-          ))}
-          {draft ? (
-            <IdentifierRow
-              draft={draft}
-              index={identifiers.length}
-              onChange={setDraft}
-              onRemove={() => setDraft(null)}
-              onSave={async () => {
-                const normalized = canonicalizeDraft(draft);
-                if (validationMessage(normalized)) {
-                  return;
-                }
-                const added = await onAdd(toIdentifier(normalized));
-                if (added !== null) {
-                  setDraft(null);
-                }
-              }}
-              saveLabel="Add identifier"
-            />
-          ) : null}
-        </div>
-      )}
-    </AssetIdentifierSection>
+    <form className="space-y-5" onSubmit={(event) => void handleSubmit(event)}>
+      <IdentifierFields
+        draft={draft}
+        inputId="asset-identifier-dialog"
+        onChange={setDraft}
+        onNormalize={() => setDraft(canonicalizeDraft(draft))}
+        disabled={pending}
+        showError={showError}
+      />
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
+          <X />
+          Cancel
+        </Button>
+        <Button type="submit" disabled={pending}>
+          {pending ? <Spinner /> : <Check />}
+          {submitLabel}
+        </Button>
+      </div>
+    </form>
   );
 }

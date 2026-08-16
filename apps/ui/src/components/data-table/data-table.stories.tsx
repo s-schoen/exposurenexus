@@ -27,6 +27,7 @@ interface StoryFinding {
 interface DataTableStoryArgs {
   rows: Array<StoryFinding>;
   pending?: boolean;
+  embedded?: boolean;
   initialGrouping?: Array<string>;
   showToolbarControls?: boolean;
   activeRowId?: string;
@@ -268,6 +269,7 @@ function createQueryResult<TData>({
 function DataTableStoryShell({
   rows,
   pending = false,
+  embedded = false,
   initialGrouping = [],
   showToolbarControls = false,
   activeRowId,
@@ -317,7 +319,8 @@ function DataTableStoryShell({
     <div className="w-full space-y-4">
       <DataTable
         columns={columns}
-        query={query}
+        {...(embedded ? { rows: currentRows } : { query })}
+        embedded={embedded}
         groupingOptions={groupingOptions}
         initialGrouping={initialGrouping}
         onRowDelete={async (selectedRows) => {
@@ -354,6 +357,7 @@ const meta = {
   args: {
     rows: defaultRows,
     pending: false,
+    embedded: false,
     initialGrouping: [],
     showToolbarControls: false,
     activeRowId: undefined,
@@ -393,4 +397,8 @@ export const DarkSurface: Story = {
       <DataTableStoryShell {...meta.args} showToolbarControls={true} activeRowId="finding-003" />
     </div>
   ),
+};
+
+export const Embedded: Story = {
+  render: () => <DataTableStoryShell {...meta.args} embedded rows={defaultRows.slice(0, 2)} />,
 };

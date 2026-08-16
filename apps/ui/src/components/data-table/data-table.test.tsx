@@ -9,7 +9,7 @@ import * as stories from "@/components/data-table/data-table.stories";
 import type { DataTableColumnDef } from "@/components/data-table/types";
 import type { UseQueryResult } from "@tanstack/react-query";
 
-const { ActiveRow, Default, Empty, GroupedByStatus, Loading, WithToolbarControls } =
+const { ActiveRow, Default, Empty, Embedded, GroupedByStatus, Loading, WithToolbarControls } =
   composeStories(stories);
 
 class ResizeObserverMock {
@@ -170,6 +170,34 @@ describe("DataTable stories", () => {
       // `data-active` is DataTable's intentional public row-state marker.
       expect(screen.getByTestId("data-table-active-row")).toHaveAttribute("data-active", "true");
     });
+  });
+
+  it("renders an embedded table without list controls", async () => {
+    render(<Embedded />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Exposed admin interface")).toBeInTheDocument();
+      expect(screen.getByText("Outdated dependency in API worker")).toBeInTheDocument();
+    });
+    expect(screen.queryByRole("textbox", { name: /search across visible columns/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /refresh/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /delete/i })).toBeNull();
+    expect(screen.queryByRole("navigation", { name: /pagination/i })).toBeNull();
+    expect(screen.queryByLabelText("Select row")).toBeNull();
+  });
+
+  it("renders a custom embedded empty state", async () => {
+    render(
+      <DataTable
+        columns={directColumns}
+        rows={[]}
+        embedded
+        emptyState={<p>Nothing linked yet</p>}
+      />,
+    );
+
+    expect(screen.getByText("Nothing linked yet")).toBeInTheDocument();
+    expect(screen.queryByTestId("data-table-empty-state")).toBeNull();
   });
 
   it("filters rows from the global search input and clears them", async () => {
