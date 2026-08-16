@@ -112,6 +112,27 @@ describe("asset service", () => {
     ]);
   });
 
+  it("passes inventory filters to base and custom-field-hydrated reads", async () => {
+    const assets = [createAssetFixture()];
+    const filters = {
+      search: "api.example.com",
+      types: [AssetType.Host],
+      environments: [AssetEnvironment.Production],
+      lifecycleStates: [AssetLifecycleState.Active],
+      ownerIds: [null],
+    } as const;
+    const assetService = createTestAssetService();
+    assetRepository.list.mockResolvedValue(assets);
+
+    await expect(assetService.listAll(filters)).resolves.toEqual(assets);
+    await expect(assetService.listAllWithCustomFields(filters)).resolves.toEqual([
+      { ...assets[0], customFields: [] },
+    ]);
+
+    expect(assetRepository.list).toHaveBeenNthCalledWith(1, filters);
+    expect(assetRepository.list).toHaveBeenNthCalledWith(2, filters);
+  });
+
   it("creates assets with server-owned defaults and audit attribution", async () => {
     const now = new Date("2026-02-03T04:05:06.000Z");
     vi.useFakeTimers();

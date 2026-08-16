@@ -85,6 +85,93 @@ describe("asset repository", () => {
     await expect(repository.list()).resolves.toEqual([created]);
   });
 
+  it("filters by display name, identifiers, core metadata, and nullable owners", async () => {
+    const repository = createAssetRepository(testDb.db);
+    const ownerId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";
+
+    await testDb.db
+      .insertInto("user_profile")
+      .values({
+        id: ownerId,
+        username: "asset-owner",
+        displayName: "Asset Owner",
+        email: "asset-owner@example.com",
+        enabled: false,
+        passwordHash: "owner-password-hash",
+      })
+      .execute();
+
+    const matching = await repository.create(
+      createAssetRecord({
+        displayName: "Duplicate asset",
+        ownerId,
+        identifiers: [
+          {
+            type: AssetIdentifierType.IpAddress,
+            namespace: null,
+            value: "192.0.2.10",
+          },
+          {
+            type: AssetIdentifierType.DnsName,
+            namespace: "internal",
+            value: "api.example.com",
+          },
+        ],
+      }),
+    );
+    const archivedDuplicate = await repository.create(
+      createAssetRecord({
+        displayName: "Duplicate asset",
+        lifecycleState: AssetLifecycleState.Archived,
+        identifiers: [
+          {
+            type: AssetIdentifierType.DnsName,
+            namespace: null,
+            value: "archived.example.com",
+          },
+        ],
+      }),
+    );
+    const unidentified = await repository.create(
+      createAssetRecord({
+        displayName: "Unidentified software",
+        type: AssetType.Software,
+        ownerId,
+      }),
+    );
+    await repository.create(
+      createAssetRecord({
+        displayName: "Different asset",
+        environment: AssetEnvironment.Staging,
+        ownerId,
+        identifiers: [
+          {
+            type: AssetIdentifierType.IpAddress,
+            namespace: null,
+            value: "192.0.2.11",
+          },
+        ],
+      }),
+    );
+
+    await expect(
+      repository.list({
+        search: "192.0.2.10",
+        types: [AssetType.Host],
+        environments: [AssetEnvironment.Production],
+        ownerIds: [ownerId],
+      }),
+    ).resolves.toEqual([matching]);
+    await expect(repository.list({ search: "duplicate" })).resolves.toEqual([
+      matching,
+      archivedDuplicate,
+    ]);
+    await expect(repository.list({ ownerIds: [null] })).resolves.toEqual([
+      archivedDuplicate,
+    ]);
+    await expect(repository.list({ search: "unidentified" })).resolves.toEqual([unidentified]);
+  });
+
   it("stores nullable asset owners and clears them when the user profile is deleted", async () => {
     const repository = createAssetRepository(testDb.db);
     const ownerId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";

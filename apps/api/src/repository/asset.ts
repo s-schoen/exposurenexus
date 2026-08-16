@@ -2,6 +2,8 @@ import {
   type Asset,
   type AssetIdentifier,
   type AssetIdentifierRecord,
+  AssetEnvironment,
+  AssetLifecycleState,
   AssetType,
 } from "@exposurenexus/types/model/asset";
 import { sql, type Kysely, type Selectable, type Transaction } from "kysely";
@@ -21,10 +23,18 @@ export type UpdateAssetRecord = Partial<
   Pick<Asset, "updatedAt" | "updatedBy">;
 export type AssetIdentifierAuditRecord = Pick<Asset, "updatedAt" | "updatedBy">;
 
+export interface AssetListOptions {
+  search?: string;
+  types?: readonly AssetType[];
+  environments?: readonly AssetEnvironment[];
+  lifecycleStates?: readonly AssetLifecycleState[];
+  ownerIds?: readonly (string | null)[];
+}
+
 type AssetIdentifierIdentity = Pick<AssetIdentifier, "type" | "namespace" | "value">;
 
 export interface AssetRepository {
-  list(): Promise<Asset[]>;
+  list(options?: AssetListOptions): Promise<Asset[]>;
   getByID(id: string): Promise<Asset | null>;
   getByDisplayName(displayName: string, type?: AssetType): Promise<Asset | null>;
   getIdentifierByID(assetId: string, identifierId: string): Promise<AssetIdentifierRecord | null>;
@@ -145,8 +155,53 @@ function identityQuery(database: DatabaseExecutor, identifier: AssetIdentifierId
 
 export function createAssetRepository(database: Kysely<Database>): AssetRepository {
   return {
-    async list(): Promise<Asset[]> {
-      const data = await database.selectFrom("asset").selectAll().execute();
+    async list(options: AssetListOptions = {}): Promise<Asset[]> {
+      let query = database.selectFrom("asset").selectAll();
+
+      const search = options.search?.trim().toLowerCase();
+      if (search) {
+        query = query.where(sql<boolean>`(
+          position(${search} in lower("asset"."displayName")) > 0
+          or exists (
+            select 1
+            from "asset_identifier"
+            where "asset_identifier"."assetId" = "asset"."id"
+              and position(${search} in lower("asset_identifier"."value")) > 0
+          )
+        )`);
+      }
+
+      if (options.types && options.types.length > 0) {
+        query = query.where("type", "in", [...options.types]);
+      }
+
+      if (options.environments && options.environments.length > 0) {
+        query = query.where("environment", "in", [...options.environments]);
+      }
+
+      if (options.lifecycleStates && options.lifecycleStates.length > 0) {
+        query = query.where("lifecycleState", "in", [...options.lifecycleStates]);
+      }
+
+      if (options.ownerIds && options.ownerIds.length > 0) {
+        const includesOwnerless = options.ownerIds.includes(null);
+        const ownerIds = options.ownerIds.filter((ownerId): ownerId is string => ownerId !== null);
+
+        if (includesOwnerless && ownerIds.length > 0) {
+          query = query.where((expressionBuilder) =>
+            expressionBuilder.or([
+              expressionBuilder("ownerId", "is", null),
+              expressionBuilder("ownerId", "in", ownerIds),
+            ]),
+          );
+        } else if (includesOwnerless) {
+          query = query.where("ownerId", "is", null);
+        } else if (ownerIds.length > 0) {
+          query = query.where("ownerId", "in", ownerIds);
+        }
+      }
+
+      const data = await query.execute();
       return await toAssets(database, data);
     },
 

@@ -1,4 +1,7 @@
 import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
   createAssetIdentifierSchema,
   createAssetSchema,
   updateAssetIdentifierSchema,
@@ -31,6 +34,22 @@ const identifierParamValidator = zValidator(
   "param",
   z.object({ id: z.uuidv4(), identifierId: z.uuidv4() }),
 );
+
+function commaSeparated<T extends z.ZodType>(schema: T) {
+  return z
+    .preprocess(
+      (value) =>
+        typeof value === "string"
+          ? value
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : value,
+      z.array(schema).min(1),
+    )
+    .optional();
+}
+
 const listAssetQueryValidator = zValidator(
   "query",
   z.object({
@@ -40,8 +59,34 @@ const listAssetQueryValidator = zValidator(
         falsy: ["false"],
       })
       .optional(),
+    filter: z
+      .string()
+      .trim()
+      .transform((value) => (value.length > 0 ? value : undefined))
+      .optional(),
+    assetType: commaSeparated(z.enum(AssetType)),
+    assetEnvironment: commaSeparated(z.enum(AssetEnvironment)),
+    assetLifecycleState: commaSeparated(z.enum(AssetLifecycleState)),
+    assetOwnerId: commaSeparated(z.union([z.uuidv4(), z.literal("none")])),
   }),
 );
+
+function toAssetListOptions(query: {
+  filter?: string;
+  assetType?: AssetType[];
+  assetEnvironment?: AssetEnvironment[];
+  assetLifecycleState?: AssetLifecycleState[];
+  assetOwnerId?: Array<string>;
+}) {
+  return {
+    search: query.filter,
+    types: query.assetType,
+    environments: query.assetEnvironment,
+    lifecycleStates: query.assetLifecycleState,
+    ownerIds: query.assetOwnerId?.map((ownerId) => (ownerId === "none" ? null : ownerId)),
+  };
+}
+
 export function createAssetRoute(
   assetService: AssetService,
   assetCustomFieldService: AssetCustomFieldService,
@@ -51,10 +96,11 @@ export function createAssetRoute(
 
   asset.get("/", requireDomainPermission("asset", "read"), listAssetQueryValidator, async (c) => {
     const query = c.req.valid("query");
+    const options = toAssetListOptions(query);
     const assets =
       query.includeCustomFields === true
-        ? await assetService.listAllWithCustomFields()
-        : await assetService.listAll();
+        ? await assetService.listAllWithCustomFields(options)
+        : await assetService.listAll(options);
     return replyArray(c, assets);
   });
 
