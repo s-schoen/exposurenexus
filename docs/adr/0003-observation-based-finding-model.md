@@ -62,15 +62,9 @@ case-sensitive. An empty weakness is represented canonically as
 ```json
 {
   "identifiers": {
-    "cve": [
-      "CVE-2026-34256"
-    ],
-    "cwe": [
-      "CWE-200"
-    ],
-    "nuclei": [
-      "admin-panel"
-    ]
+    "cve": ["CVE-2026-34256"],
+    "cwe": ["CWE-200"],
+    "nuclei": ["admin-panel"]
   }
 }
 ```
@@ -80,12 +74,8 @@ For SAST-like data, the weakness may be rule-based without a catalog identifier:
 ```json
 {
   "identifiers": {
-    "cwe": [
-      "CWE-89"
-    ],
-    "semgrep": [
-      "typescript.express.security.sql-injection"
-    ]
+    "cwe": ["CWE-89"],
+    "semgrep": ["typescript.express.security.sql-injection"]
   }
 }
 ```
@@ -456,12 +446,8 @@ and matching.
   "mitigation": "Restrict access to the admin route or require authentication.",
   "weakness": {
     "identifiers": {
-      "cwe": [
-        "CWE-200"
-      ],
-      "nuclei": [
-        "admin-panel"
-      ]
+      "cwe": ["CWE-200"],
+      "nuclei": ["admin-panel"]
     }
   },
   "affectedResource": {
@@ -486,10 +472,7 @@ Finding responses may include observation-derived summaries:
 ```json
 {
   "observationCount": 4,
-  "observingSources": [
-    "manual",
-    "nuclei"
-  ],
+  "observingSources": ["manual", "nuclei"],
   "firstSeen": "2026-06-01T10:15:00.000Z",
   "lastSeen": "2026-06-20T08:30:00.000Z"
 }
@@ -522,12 +505,8 @@ finding. It does not link directly to vulnerability catalog entries.
   "remediation": "Restrict access to trusted users or networks.",
   "weakness": {
     "identifiers": {
-      "cwe": [
-        "CWE-200"
-      ],
-      "nuclei": [
-        "admin-panel"
-      ]
+      "cwe": ["CWE-200"],
+      "nuclei": ["admin-panel"]
     }
   },
   "affectedResource": {
@@ -691,9 +670,7 @@ entries for enrichment. They do not define finding identity.
   "id": "mapping-uuid",
   "weakness": {
     "identifiers": {
-      "nuclei": [
-        "admin-panel"
-      ]
+      "nuclei": ["admin-panel"]
     }
   },
   "vulnerabilityId": "vulnerability-uuid"
