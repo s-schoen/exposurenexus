@@ -1,4 +1,9 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
+import {
+  AssetEnvironment,
+  AssetIdentifierType,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/types/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -128,6 +133,45 @@ describe("asset table custom field grouping", () => {
           column.id === getAssetCustomFieldColumnId("7f732d2b-8985-4551-b45d-0eaf527a1577"),
       )?.meta?.filterVariant,
     ).toBe("select");
+  });
+
+  it("exposes core asset filters and canonical identifiers", () => {
+    const columns = createAssetTableColumns(ASSET_CUSTOM_FIELD_FIXTURES);
+    const asset: AssetWithCustomFields = {
+      id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
+      displayName: "api-01",
+      type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Archived,
+      ownerId: null,
+      identifiers: [
+        {
+          id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+          type: AssetIdentifierType.DnsName,
+          namespace: null,
+          value: "api.example.com",
+        },
+      ],
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+      updatedBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+      customFields: [],
+    };
+
+    expect(columns.find((column) => column.id === "type")?.meta?.filterVariant).toBe("select");
+    expect(columns.find((column) => column.id === "environment")?.meta?.filterVariant).toBe(
+      "select",
+    );
+    expect(columns.find((column) => column.id === "lifecycleState")?.meta?.filterVariant).toBe(
+      "select",
+    );
+    expect(columns.find((column) => column.id === "ownerId")?.meta?.filterVariant).toBe("select");
+
+    const identifierColumn = columns.find((column) => column.id === "identifiers") as
+      | DataTableAccessorFnColumnDef<AssetWithCustomFields, string>
+      | undefined;
+    expect(identifierColumn?.accessorFn(asset, 0)).toBe("api.example.com");
   });
 
   it("resolves owner display values from user profiles", () => {
