@@ -2,7 +2,10 @@ import { AssetIdentifierType } from "@exposurenexus/types/model/asset";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { AssetIdentifierEditor } from "@/components/asset-identifier-editor.tsx";
+import {
+  AssetIdentifierEditor,
+  AssetIdentifierForm,
+} from "@/components/asset-identifier-editor.tsx";
 
 afterEach(() => {
   cleanup();
@@ -42,5 +45,46 @@ describe("AssetIdentifierEditor", () => {
       />,
     );
     expect(screen.getByText(/must not contain a scheme/i)).toBeTruthy();
+  });
+
+  it("updates and removes the intended row without changing its sibling", () => {
+    const onChange = vi.fn();
+    const identifiers = [
+      { type: AssetIdentifierType.DnsName, value: "api.example.com" },
+      { type: AssetIdentifierType.IpAddress, namespace: "private", value: "192.0.2.10" },
+    ];
+    render(<AssetIdentifierEditor value={identifiers} onChange={onChange} />);
+
+    fireEvent.change(screen.getByLabelText("Identifier value 1"), {
+      target: { value: "web.example.com" },
+    });
+
+    expect(onChange).toHaveBeenLastCalledWith([
+      { type: AssetIdentifierType.DnsName, namespace: undefined, value: "web.example.com" },
+      { type: AssetIdentifierType.IpAddress, namespace: "private", value: "192.0.2.10" },
+    ]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove identifier 1" }));
+
+    expect(onChange).toHaveBeenLastCalledWith([
+      { type: AssetIdentifierType.IpAddress, namespace: "private", value: "192.0.2.10" },
+    ]);
+  });
+
+  it("blocks submission of an invalid identifier", async () => {
+    const onSubmit = vi.fn();
+    const onCancel = vi.fn();
+    render(
+      <AssetIdentifierForm onSubmit={onSubmit} onCancel={onCancel} submitLabel="Save identifier" />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Identifier value"), {
+      target: { value: "https://example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save identifier" }));
+
+    expect(await screen.findByText(/must not contain a scheme/i)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
   });
 });

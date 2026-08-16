@@ -277,16 +277,23 @@ describe("asset custom field value api", () => {
     });
   });
 
-  it("updates asset core metadata", async () => {
+  it("updates all asset core metadata in one JSON request", async () => {
     const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
+    const update = {
+      displayName: "api-production",
+      type: AssetType.Software,
+      environment: AssetEnvironment.Staging,
+      lifecycleState: AssetLifecycleState.Archived,
+      ownerId,
+    } as const;
     const updatedAsset = {
       ...asset,
-      ownerId,
+      ...update,
     };
 
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: updatedAsset }));
 
-    await expect(updateAsset(asset.id, { ownerId })).resolves.toEqual(updatedAsset);
+    await expect(updateAsset(asset.id, update)).resolves.toEqual(updatedAsset);
 
     expect(fetchMock).toHaveBeenCalledWith(
       `/api/assets/${asset.id}`,
@@ -295,7 +302,7 @@ describe("asset custom field value api", () => {
         method: "PATCH",
       }),
     );
-    expect(requestJsonBody()).toEqual({ ownerId });
+    expect(requestJsonBody()).toEqual(update);
   });
 
   it("clears asset owners", async () => {
@@ -310,7 +317,13 @@ describe("asset custom field value api", () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse({ data: identifier }))
       .mockResolvedValueOnce(
-        jsonResponse({ data: { ...identifier, value: "api.internal.example.com" } }),
+        jsonResponse({
+          data: {
+            ...identifier,
+            namespace: "private-network",
+            value: "api.internal.example.com",
+          },
+        }),
       )
       .mockResolvedValueOnce(jsonResponse({ data: identifier }));
 
@@ -333,6 +346,7 @@ describe("asset custom field value api", () => {
     await expect(
       updateAssetIdentifier(assetId, identifier.id, {
         type: AssetIdentifierType.DnsName,
+        namespace: "private-network",
         value: "api.internal.example.com",
       }),
     ).resolves.toMatchObject({ value: "api.internal.example.com" });
@@ -341,6 +355,11 @@ describe("asset custom field value api", () => {
       `/api/assets/${assetId}/identifiers/${identifier.id}`,
       expect.objectContaining({ method: "PUT" }),
     );
+    expect(JSON.parse(fetchMock.mock.calls[1]?.[1]?.body as string)).toEqual({
+      type: AssetIdentifierType.DnsName,
+      namespace: "private-network",
+      value: "api.internal.example.com",
+    });
 
     await expect(deleteAssetIdentifier(assetId, identifier.id)).resolves.toEqual(identifier);
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -348,6 +367,24 @@ describe("asset custom field value api", () => {
       `/api/assets/${assetId}/identifiers/${identifier.id}`,
       expect.objectContaining({ method: "DELETE" }),
     );
+  });
+
+  it("rejects malformed asset identifier replies", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          ...identifier,
+          id: "not-a-uuid",
+        },
+      }),
+    );
+
+    await expect(
+      addAssetIdentifier(assetId, {
+        type: AssetIdentifierType.DnsName,
+        value: identifier.value,
+      }),
+    ).rejects.toThrow();
   });
 
   it("deletes assets", async () => {
@@ -410,6 +447,33 @@ describe("asset custom field value api", () => {
         method: "GET",
         credentials: "include",
       }),
+    );
+  });
+
+  it("creates filtered query options for assets with custom field values", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          items: assetsWithCustomFields,
+        },
+      }),
+    );
+
+    const queryOptions = createListAssetsWithCustomFieldsQueryOptions({
+      filter: "api.example.com",
+      assetEnvironment: [AssetEnvironment.Production],
+    });
+    const queryFn = queryOptions.queryFn as () => Promise<Array<AssetWithCustomFields>>;
+
+    await expect(queryFn()).resolves.toEqual(assetsWithCustomFields);
+    expect(queryOptions.queryKey).toEqual([
+      "assets",
+      "with-custom-fields",
+      "filter=api.example.com&assetEnvironment=production",
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/assets?includeCustomFields=true&filter=api.example.com&assetEnvironment=production",
+      expect.objectContaining({ method: "GET" }),
     );
   });
 

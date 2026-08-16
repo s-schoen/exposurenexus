@@ -175,7 +175,12 @@ export function AssetIdentifierTable({
               External identity claims used to recognize this asset across security sources.
             </CardDescription>
           </div>
-          <Button type="button" size="sm" onClick={() => setDialog({ mode: "add" })}>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setDialog({ mode: "add" })}
+            disabled={pendingAction !== null}
+          >
             <Plus />
             Add identifier
           </Button>

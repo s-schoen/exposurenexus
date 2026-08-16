@@ -5,6 +5,7 @@ import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fix
 import { getAssetCustomFieldColumnId } from "@/components/asset-table/columns.tsx";
 import {
   createAssetTableFilterState,
+  createAssetListOptions,
   createAssetTableSearchParams,
   useAssetTableSearchState,
   validateAssetTableSearch,
@@ -47,6 +48,19 @@ describe("useAssetTableSearchState", () => {
       assetEnvironment: "production",
       assetLifecycleState: "archived",
       assetOwnerId: "none",
+    });
+
+    expect(
+      validateAssetTableSearch({
+        assetType: 42,
+        assetEnvironment: ["production", 42],
+        assetLifecycleState: ["archived"],
+        assetOwnerId: null,
+      }),
+    ).toEqual({
+      filter: undefined,
+      assetEnvironment: "production",
+      assetLifecycleState: "archived",
     });
   });
 
@@ -149,6 +163,38 @@ describe("useAssetTableSearchState", () => {
     });
   });
 
+  it("maps active asset filters to API list options and omits empty filters", () => {
+    expect(
+      createAssetListOptions({
+        globalFilter: "  api  ",
+        selectFilters: {
+          type: ["host", "software"],
+          environment: ["production"],
+          lifecycleState: ["archived"],
+          ownerId: ["none"],
+        },
+        textFilters: {},
+        numberFilters: {},
+      }),
+    ).toEqual({
+      filter: "api",
+      assetType: ["host", "software"],
+      assetEnvironment: ["production"],
+      assetLifecycleState: ["archived"],
+      assetOwnerId: ["none"],
+    });
+
+    expect(
+      createAssetListOptions({
+        globalFilter: "  ",
+        selectFilters: {},
+        textFilters: {},
+        numberFilters: {},
+      }),
+    ).toBeUndefined();
+    expect(createAssetListOptions(undefined)).toBeUndefined();
+  });
+
   it("updates the asset route search state", () => {
     const { result } = renderHook(() =>
       useAssetTableSearchState({
@@ -189,12 +235,20 @@ describe("useAssetTableSearchState", () => {
       search({
         category: "old",
         filter: "old",
+        assetType: "host",
+        assetEnvironment: "production",
+        assetLifecycleState: "active",
+        assetOwnerId: "owner-1",
         selected: "asset-1",
       }),
     ).toEqual({
       category: "internet",
       deployment_tier: "production,staging",
       filter: "edge",
+      assetType: undefined,
+      assetEnvironment: undefined,
+      assetLifecycleState: undefined,
+      assetOwnerId: undefined,
       priority: "3",
       selected: "asset-1",
     });

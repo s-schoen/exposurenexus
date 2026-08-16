@@ -109,6 +109,24 @@ describe("AssetCustomFieldForm", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
+  it("blocks reserved core metadata keys through form submission", async () => {
+    const onSubmit = vi.fn();
+    render(<AssetCustomFieldForm mode="create" onSubmit={onSubmit} onCancel={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/^name$/i), {
+      target: { value: "Environment" },
+    });
+    fireEvent.change(screen.getByLabelText(/^key$/i), {
+      target: { value: "environment" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /create custom field/i }));
+
+    expect(
+      await screen.findByText("This key is reserved for core asset metadata"),
+    ).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("shows validation errors after submitting an empty create form", async () => {
     render(<CreateText />);
 

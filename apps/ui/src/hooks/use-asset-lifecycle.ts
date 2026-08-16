@@ -92,6 +92,20 @@ function availableCustomFieldDefinitionsQueryKey(assetId: string) {
   return createAvailableAssetCustomFieldDefinitionsQueryOptions(assetId).queryKey;
 }
 
+function isFilteredAssetListQuery(queryKey: ReadonlyArray<unknown>) {
+  const [resource, scope, filter] = queryKey;
+
+  if (resource !== "assets") {
+    return false;
+  }
+
+  if (scope === "with-custom-fields") {
+    return typeof filter === "string";
+  }
+
+  return queryKey.length === 2 && typeof scope === "string" && scope.includes("=");
+}
+
 function formatAssetCount(count: number) {
   return `${count} asset${count === 1 ? "" : "s"}`;
 }
@@ -158,6 +172,9 @@ export function useAssetLifecycle(): AssetLifecycleActions {
       queryClient.invalidateQueries({
         queryKey: listWithCustomFieldsQueryKey,
         exact: true,
+      }),
+      queryClient.invalidateQueries({
+        predicate: (query) => isFilteredAssetListQuery(query.queryKey),
       }),
       ...assetIds.map((assetId) =>
         queryClient.invalidateQueries({

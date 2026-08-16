@@ -21,6 +21,22 @@ const identifier: AssetIdentifierRecord = {
   value: "web-01.example.com",
 };
 
+const namespacedIpIdentifier: AssetIdentifierRecord = {
+  id: "2db67190-9d84-482f-9936-cfbf4244752b",
+  type: AssetIdentifierType.IpAddress,
+  namespace: "private-network",
+  value: "192.0.2.10",
+};
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+
+  return { promise, resolve };
+}
+
 afterEach(() => {
   cleanup();
   confirmMock.mockReset();
@@ -101,6 +117,39 @@ describe("AssetIdentifierTable", () => {
     );
   });
 
+  it("submits a non-DNS identifier with its namespace", async () => {
+    const onUpdate = vi.fn().mockResolvedValue({
+      ...namespacedIpIdentifier,
+      value: "192.0.2.11",
+    });
+    render(
+      <AssetIdentifierTable
+        identifiers={[namespacedIpIdentifier]}
+        onAdd={vi.fn()}
+        onUpdate={onUpdate}
+        onRemove={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Edit identifier IP address 192\.0\.2\.10/i,
+      }),
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: "Identifier value" }), {
+      target: { value: "192.0.2.11" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() =>
+      expect(onUpdate).toHaveBeenCalledWith(namespacedIpIdentifier.id, {
+        type: AssetIdentifierType.IpAddress,
+        namespace: "private-network",
+        value: "192.0.2.11",
+      }),
+    );
+  });
+
   it("keeps the add dialog open when the lifecycle rejects the mutation", async () => {
     const onAdd = vi.fn().mockResolvedValue(null);
     render(
@@ -116,6 +165,62 @@ describe("AssetIdentifierTable", () => {
 
     await waitFor(() => expect(onAdd).toHaveBeenCalled());
     expect(screen.getByRole("heading", { name: "Add asset identifier" })).toBeInTheDocument();
+  });
+
+  it("disables all identifier actions while a mutation is pending", async () => {
+    const pending = deferred<AssetIdentifierRecord | null>();
+    const onAdd = vi.fn().mockReturnValue(pending.promise);
+    render(
+      <AssetIdentifierTable identifiers={[]} onAdd={onAdd} onUpdate={vi.fn()} onRemove={vi.fn()} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add identifier" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Identifier value" }), {
+      target: { value: "new.example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /add identifier/i }));
+
+    await waitFor(() => expect(onAdd).toHaveBeenCalled());
+    expect(screen.getByRole("textbox", { name: "Identifier value" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+
+    pending.resolve({ ...identifier, value: "new.example.com" });
+    await waitFor(() =>
+      expect(screen.queryByRole("heading", { name: "Add asset identifier" })).toBeNull(),
+    );
+  });
+
+  it("disables table actions while a deletion is pending", async () => {
+    const pending = deferred<AssetIdentifierRecord | null>();
+    const onRemove = vi.fn().mockReturnValue(pending.promise);
+    confirmMock.mockResolvedValueOnce(true);
+    render(
+      <AssetIdentifierTable
+        identifiers={[identifier]}
+        onAdd={vi.fn()}
+        onUpdate={vi.fn()}
+        onRemove={onRemove}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Delete identifier DNS name web-01\.example\.com/i }),
+    );
+
+    await waitFor(() => expect(onRemove).toHaveBeenCalledWith(identifier.id));
+    expect(screen.getByRole("button", { name: "Add identifier" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /Edit identifier DNS name web-01\.example\.com/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /Delete identifier DNS name web-01\.example\.com/i }),
+    ).toBeDisabled();
+    expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
+
+    pending.resolve(identifier);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Add identifier" })).toBeEnabled(),
+    );
   });
 
   it("confirms identifier deletion before calling the lifecycle action", async () => {
@@ -141,5 +246,25 @@ describe("AssetIdentifierTable", () => {
         confirmVariant: "destructive",
       }),
     );
+  });
+
+  it("does not delete an identifier when deletion is cancelled", async () => {
+    confirmMock.mockResolvedValueOnce(false);
+    const onRemove = vi.fn();
+    render(
+      <AssetIdentifierTable
+        identifiers={[identifier]}
+        onAdd={vi.fn()}
+        onUpdate={vi.fn()}
+        onRemove={onRemove}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Delete identifier DNS name web-01\.example\.com/i }),
+    );
+
+    await waitFor(() => expect(confirmMock).toHaveBeenCalled());
+    expect(onRemove).not.toHaveBeenCalled();
   });
 });

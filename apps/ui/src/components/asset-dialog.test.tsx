@@ -107,6 +107,7 @@ describe("AssetDialog", () => {
     expect(screen.getByLabelText(/^environment$/i)).toHaveValue(AssetEnvironment.Unknown);
     expect(screen.getByLabelText(/^lifecycle state$/i)).toHaveValue(AssetLifecycleState.Active);
     expect(screen.getByLabelText(/^owner$/i)).toHaveValue("__no_owner__");
+    expect(screen.getByTestId("ownerId-trigger")).toHaveTextContent("No Owner");
   });
 
   it("resolves null when cancelled", async () => {
@@ -219,6 +220,59 @@ describe("AssetDialog", () => {
         environment: AssetEnvironment.Unknown,
         lifecycleState: AssetLifecycleState.Active,
         ownerId: queryMocks.ownerId,
+      });
+    });
+  });
+
+  it("submits the selected environment and lifecycle state", async () => {
+    const user = userEvent.setup();
+    const { call } = renderAssetDialog();
+
+    await user.type(screen.getByLabelText(/^display name$/i), "api-01");
+    await user.selectOptions(
+      screen.getByLabelText(/^environment$/i),
+      AssetEnvironment.NotApplicable,
+    );
+    await user.selectOptions(
+      screen.getByLabelText(/^lifecycle state$/i),
+      AssetLifecycleState.Archived,
+    );
+    await user.click(screen.getByRole("button", { name: /^create$/i }));
+
+    await waitFor(() => {
+      expect(call.end).toHaveBeenCalledWith({
+        displayName: "api-01",
+        type: AssetType.Host,
+        environment: AssetEnvironment.NotApplicable,
+        lifecycleState: AssetLifecycleState.Archived,
+        ownerId: null,
+      });
+    });
+  });
+
+  it("submits identifiers entered in the asset form", async () => {
+    const user = userEvent.setup();
+    const { call } = renderAssetDialog();
+
+    await user.type(screen.getByLabelText(/^display name$/i), "api-01");
+    await user.click(screen.getByRole("button", { name: /add identifier/i }));
+    await user.type(screen.getByLabelText("Identifier value 1"), "API.Example.com.");
+    await user.click(screen.getByRole("button", { name: /^create$/i }));
+
+    await waitFor(() => {
+      expect(call.end).toHaveBeenCalledWith({
+        displayName: "api-01",
+        type: AssetType.Host,
+        environment: AssetEnvironment.Unknown,
+        lifecycleState: AssetLifecycleState.Active,
+        ownerId: null,
+        identifiers: [
+          {
+            type: "dnsName",
+            namespace: undefined,
+            value: "api.example.com",
+          },
+        ],
       });
     });
   });

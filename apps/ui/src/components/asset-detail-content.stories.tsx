@@ -209,10 +209,10 @@ function AssetDetailContentStoryShell({
           typeof init?.body === "string"
             ? init.body
             : JSON.stringify(init?.body ?? { ownerId: null }),
-        ) as Pick<Asset, "ownerId">;
+        ) as Partial<Asset>;
         assetRef.current = {
           ...assetRef.current,
-          ownerId: body.ownerId,
+          ...body,
         };
         queryClient.setQueryData(["assets", asset.id], assetRef.current);
 
