@@ -17,6 +17,9 @@ const {
   createFindingStatsRouteMock,
   createFindingRouteMock,
   createImportRouteMock,
+  createResolveAssetMock,
+  createNucleiFindingParserMock,
+  createFindingImporterMock,
   registerEventHandlersMock,
   createAuthServiceMock,
   createAssetCustomFieldServiceMock,
@@ -47,6 +50,9 @@ const {
   createFindingStatsRouteMock: vi.fn(() => ({ route: "stats" })),
   createFindingRouteMock: vi.fn(() => ({ route: "findings" })),
   createImportRouteMock: vi.fn(() => ({ route: "import" })),
+  createResolveAssetMock: vi.fn(() => ({ kind: "resolve-asset" })),
+  createNucleiFindingParserMock: vi.fn(() => ({ kind: "nuclei-parser" })),
+  createFindingImporterMock: vi.fn(() => ({ kind: "importer" })),
   registerEventHandlersMock: vi.fn(),
   createAuthServiceMock: vi.fn(() => ({
     kind: "auth-service",
@@ -164,15 +170,15 @@ vi.mock("./service/index.js", () => ({
 }));
 
 vi.mock("./import/util.js", () => ({
-  createResolveAsset: vi.fn(() => ({ kind: "resolve-asset" })),
+  createResolveAsset: createResolveAssetMock,
 }));
 
 vi.mock("./import/nuclei.js", () => ({
-  createNucleiFindingParser: vi.fn(() => ({ kind: "nuclei-parser" })),
+  createNucleiFindingParser: createNucleiFindingParserMock,
 }));
 
 vi.mock("./import/importer.js", () => ({
-  createFindingImporter: vi.fn(() => ({ kind: "importer" })),
+  createFindingImporter: createFindingImporterMock,
 }));
 
 vi.mock("./event-handler/index.js", () => ({
@@ -287,6 +293,25 @@ describe("app container", () => {
         }),
       }),
     );
+    expect(createResolveAssetMock).toHaveBeenCalledWith({
+      assetService: createAssetServiceMock.mock.results[0]?.value,
+      logger,
+    });
+    expect(createNucleiFindingParserMock).toHaveBeenCalledWith({
+      vulnerabilityService: createVulnerabilityServiceMock.mock.results[0]?.value,
+      findingService: createFindingServiceMock.mock.results[0]?.value,
+      resolveAsset: createResolveAssetMock.mock.results[0]?.value,
+      logger,
+    });
+    expect(createFindingImporterMock).toHaveBeenCalledWith({
+      nucleiParser: createNucleiFindingParserMock.mock.results[0]?.value,
+      logger,
+    });
+    expect(createImportRouteMock).toHaveBeenCalledWith({
+      importer: createFindingImporterMock.mock.results[0]?.value,
+      logger,
+      requireDomainPermission: expect.any(Function),
+    });
     expect(createRoleRouteMock).toHaveBeenCalledOnce();
     expect(createUserRouteMock).toHaveBeenCalledWith(
       { kind: "user-profile-service" },

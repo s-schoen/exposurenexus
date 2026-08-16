@@ -143,15 +143,6 @@ export function createNucleiFindingParser(dependencies: NucleiFindingParserDepen
           }
 
           const host = parseNucleiHostname(nucleiFinding.host);
-          const vulnerability = await getOrCreateVulnerability(ctx, nucleiFinding);
-          if (!vulnerability) {
-            logger.warn(`could not find vulnerability for finding ${lineNumber}. Skipping`);
-            continue;
-          }
-          logger.debug(
-            `using vulnerability ${vulnerability.id} (${vulnerability.title}) for finding ${lineNumber}`,
-          );
-
           const asset = await dependencies.resolveAsset({
             type: AssetType.Host,
             displayName: host,
@@ -167,6 +158,16 @@ export function createNucleiFindingParser(dependencies: NucleiFindingParserDepen
             );
             continue;
           }
+
+          const vulnerability = await getOrCreateVulnerability(ctx, nucleiFinding);
+          if (!vulnerability) {
+            logger.warn(`could not find vulnerability for finding ${lineNumber}. Skipping`);
+            continue;
+          }
+          logger.debug(
+            `using vulnerability ${vulnerability.id} (${vulnerability.title}) for finding ${lineNumber}`,
+          );
+
           const fingerprintInfo = {
             port: nucleiFinding.port || "",
             path: nucleiFinding.path || "",

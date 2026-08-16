@@ -237,6 +237,51 @@ describe("asset routes", () => {
     expect(assetService.listAll).not.toHaveBeenCalled();
   });
 
+  it("passes search and core filters to plain asset reads", async () => {
+    const requestId = "assets-plain-list-filtered-request";
+    const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
+    assetService.listAll.mockResolvedValue([]);
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
+    });
+
+    const response = await app.request(
+      `/api/assets?filter=api.example.com&assetType=host,software&assetEnvironment=production&assetLifecycleState=archived&assetOwnerId=${ownerId},none`,
+      {
+        headers: { "X-Request-Id": requestId },
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(assetService.listAll).toHaveBeenCalledWith({
+      search: "api.example.com",
+      types: [AssetType.Host, AssetType.Software],
+      environments: [AssetEnvironment.Production],
+      lifecycleStates: [AssetLifecycleState.Archived],
+      ownerIds: [ownerId, null],
+    });
+    expect(assetService.listAllWithCustomFields).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid inventory filters before calling the service", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
+    });
+
+    const response = await app.request("/api/assets?assetLifecycleState=not-a-state", {
+      headers: { "X-Request-Id": "assets-invalid-filter-request" },
+    });
+
+    expect(response.status).toBe(400);
+    expect(assetService.listAll).not.toHaveBeenCalled();
+    expect(assetService.listAllWithCustomFields).not.toHaveBeenCalled();
+  });
+
   it("returns plain assets when custom field values are explicitly disabled", async () => {
     const requestId = "assets-list-with-custom-fields-disabled-request";
     const assets = [
@@ -1710,6 +1755,128 @@ describe("asset routes", () => {
       user,
       eventContext: { actor: user.id, correlationId: "asset-identifier-delete" },
     });
+  });
+
+  it("requires asset write permission for all identifier mutations", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3";
+    const identifierId = "2db67190-9d84-482f-9936-cfbf4244752b";
+    userHasPermission.mockResolvedValue(false);
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
+    });
+
+    const addResponse = await app.request(`/api/assets/${assetId}/identifiers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: AssetIdentifierType.DnsName, value: "api.example.com" }),
+    });
+    const updateResponse = await app.request(
+      `/api/assets/${assetId}/identifiers/${identifierId}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: AssetIdentifierType.DnsName,
+          value: "api.internal.example.com",
+        }),
+      },
+    );
+    const deleteResponse = await app.request(
+      `/api/assets/${assetId}/identifiers/${identifierId}`,
+      { method: "DELETE" },
+    );
+
+    expect(addResponse.status).toBe(403);
+    expect(updateResponse.status).toBe(403);
+    expect(deleteResponse.status).toBe(403);
+    expect(userHasPermission).toHaveBeenNthCalledWith(1, user.id, {
+      asset: ["write"],
+    });
+    expect(userHasPermission).toHaveBeenNthCalledWith(2, user.id, {
+      asset: ["write"],
+    });
+    expect(userHasPermission).toHaveBeenNthCalledWith(3, user.id, { asset: ["write"] });
+    expect(assetService.addIdentifier).not.toHaveBeenCalled();
+    expect(assetService.updateIdentifierByID).not.toHaveBeenCalled();
+    expect(assetService.deleteIdentifierByID).not.toHaveBeenCalled();
+  });
+
+  it("returns not found when identifier mutations target missing records", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3";
+    const identifierId = "2db67190-9d84-482f-9936-cfbf4244752b";
+    assetService.addIdentifier.mockResolvedValue(null);
+    assetService.updateIdentifierByID.mockResolvedValue(null);
+    assetService.deleteIdentifierByID.mockResolvedValue(null);
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
+    });
+
+    const addResponse = await app.request(`/api/assets/${assetId}/identifiers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Request-Id": "identifier-add-missing" },
+      body: JSON.stringify({ type: AssetIdentifierType.DnsName, value: "api.example.com" }),
+    });
+    const updateResponse = await app.request(
+      `/api/assets/${assetId}/identifiers/${identifierId}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Request-Id": "identifier-update-missing",
+        },
+        body: JSON.stringify({
+          type: AssetIdentifierType.DnsName,
+          value: "api.internal.example.com",
+        }),
+      },
+    );
+    const deleteResponse = await app.request(
+      `/api/assets/${assetId}/identifiers/${identifierId}`,
+      {
+        method: "DELETE",
+        headers: { "X-Request-Id": "identifier-delete-missing" },
+      },
+    );
+    const addBody = await addResponse.json();
+    const updateBody = await updateResponse.json();
+    const deleteBody = await deleteResponse.json();
+
+    expect(addResponse.status).toBe(404);
+    expect(addBody.error).toBe(`asset with id ${assetId} does not exist`);
+    expect(updateResponse.status).toBe(404);
+    expect(updateBody.error).toBe(`asset identifier with id ${identifierId} does not exist`);
+    expect(deleteResponse.status).toBe(404);
+    expect(deleteBody.error).toBe(`asset identifier with id ${identifierId} does not exist`);
+  });
+
+  it("rejects invalid identifier route parameters and bodies before the service", async () => {
+    const assetId = "76b1885f-2d28-4b7d-93da-2751ff385aa3";
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
+    });
+
+    const invalidBodyResponse = await app.request(`/api/assets/${assetId}/identifiers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "unknown", value: "" }),
+    });
+    const invalidParamResponse = await app.request(
+      `/api/assets/${assetId}/identifiers/not-a-uuid`,
+      { method: "DELETE" },
+    );
+
+    expect(invalidBodyResponse.status).toBe(400);
+    expect(invalidParamResponse.status).toBe(400);
+    expect(assetService.addIdentifier).not.toHaveBeenCalled();
+    expect(assetService.deleteIdentifierByID).not.toHaveBeenCalled();
   });
 
   it("rejects invalid asset create bodies before calling the service", async () => {

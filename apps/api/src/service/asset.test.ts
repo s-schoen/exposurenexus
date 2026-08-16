@@ -104,6 +104,61 @@ describe("asset service", () => {
     );
   });
 
+  it("gets an asset by exact display name and type", async () => {
+    const asset = createAssetFixture();
+    const assetService = createTestAssetService();
+    assetRepository.getByDisplayName.mockResolvedValue(asset);
+
+    await expect(
+      assetService.getByDisplayName(asset.displayName, AssetType.Host),
+    ).resolves.toEqual(asset);
+    expect(assetRepository.getByDisplayName).toHaveBeenCalledWith(
+      asset.displayName,
+      AssetType.Host,
+    );
+  });
+
+  it("returns null when a display-name lookup does not match", async () => {
+    const assetService = createTestAssetService();
+    assetRepository.getByDisplayName.mockResolvedValue(null);
+
+    await expect(
+      assetService.getByDisplayName("missing.exposurenexus.local", AssetType.Host),
+    ).resolves.toBeNull();
+  });
+
+  it("maps display-name lookup failures to an application error", async () => {
+    const assetService = createTestAssetService();
+    assetRepository.getByDisplayName.mockRejectedValue(new Error("select failed"));
+
+    await expect(
+      assetService.getByDisplayName("api.exposurenexus.local", AssetType.Host),
+    ).rejects.toMatchObject({
+      code: "asset.get_by_name_failed",
+      kind: "unexpected",
+      details: {
+        assetDisplayName: "api.exposurenexus.local",
+        assetType: AssetType.Host,
+      },
+    } satisfies Partial<ApplicationError>);
+  });
+
+  it("maps display-name list failures to an application error", async () => {
+    const assetService = createTestAssetService();
+    assetRepository.listByDisplayName.mockRejectedValue(new Error("select failed"));
+
+    await expect(
+      assetService.listByDisplayName("api.exposurenexus.local", AssetType.Host),
+    ).rejects.toMatchObject({
+      code: "asset.list_by_display_name_failed",
+      kind: "unexpected",
+      details: {
+        assetDisplayName: "api.exposurenexus.local",
+        assetType: AssetType.Host,
+      },
+    } satisfies Partial<ApplicationError>);
+  });
+
   it("lists all assets with effective custom fields", async () => {
     const asset = createAssetFixture();
     const customFields = [
@@ -235,6 +290,113 @@ describe("asset service", () => {
     );
   });
 
+  it("rejects duplicate identifiers after normalization", async () => {
+    const assetService = createTestAssetService();
+
+    await expect(
+      assetService.create({
+        asset: {
+          displayName: "api.example.com",
+          type: AssetType.Host,
+          identifiers: [
+            { type: AssetIdentifierType.DnsName, value: "API.Example.com." },
+            { type: AssetIdentifierType.DnsName, value: "api.example.com" },
+          ],
+        },
+        user,
+      }),
+    ).rejects.toMatchObject({
+      code: "asset.identifier_duplicate",
+      kind: "validation",
+      details: {
+        type: AssetIdentifierType.DnsName,
+        namespace: null,
+        value: "api.example.com",
+      },
+    } satisfies Partial<ApplicationError>);
+    expect(assetRepository.create).not.toHaveBeenCalled();
+  });
+
+  it("reports the owning asset when creation hits an identifier conflict", async () => {
+    const conflictingAssetId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";
+    const assetService = createTestAssetService();
+    assetRepository.create.mockRejectedValue(
+      Object.assign(new Error("duplicate key value"), { code: "23505" }),
+    );
+    assetRepository.getAssetIDByIdentifier.mockResolvedValue(conflictingAssetId);
+
+    await expect(
+      assetService.create({
+        asset: {
+          displayName: "api.example.com",
+          type: AssetType.Host,
+          identifiers: [{ type: AssetIdentifierType.DnsName, value: "API.Example.com." }],
+        },
+        user,
+      }),
+    ).rejects.toMatchObject({
+      code: "asset.identifier_conflict",
+      kind: "conflict",
+      details: {
+        type: AssetIdentifierType.DnsName,
+        namespace: null,
+        value: "api.example.com",
+        conflictingAssetId,
+      },
+    } satisfies Partial<ApplicationError>);
+    expect(assetRepository.getAssetIDByIdentifier).toHaveBeenCalledWith({
+      type: AssetIdentifierType.DnsName,
+      namespace: null,
+      value: "api.example.com",
+    });
+  });
+
+  it("passes explicit asset metadata and ownership to the repository", async () => {
+    const ownerId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";
+    const now = new Date("2026-02-03T04:05:06.000Z");
+    const created = createAssetFixture({
+      displayName: "api.example.com",
+      type: AssetType.CloudResource,
+      environment: AssetEnvironment.Staging,
+      lifecycleState: AssetLifecycleState.Archived,
+      ownerId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const assetService = createTestAssetService();
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+    userProfileService.getByID.mockResolvedValue({ ...user, id: ownerId });
+    assetRepository.create.mockResolvedValue(created);
+
+    await expect(
+      assetService.create({
+        asset: {
+          displayName: " api.example.com ",
+          type: AssetType.CloudResource,
+          environment: AssetEnvironment.Staging,
+          lifecycleState: AssetLifecycleState.Archived,
+          ownerId,
+        },
+        user,
+      }),
+    ).resolves.toEqual(created);
+
+    expect(assetRepository.create).toHaveBeenCalledWith({
+      displayName: "api.example.com",
+      type: AssetType.CloudResource,
+      environment: AssetEnvironment.Staging,
+      lifecycleState: AssetLifecycleState.Archived,
+      ownerId,
+      identifiers: [],
+      createdAt: now,
+      updatedAt: now,
+      createdBy: user.id,
+      updatedBy: user.id,
+    });
+    vi.useRealTimers();
+  });
+
   it("rejects blank display names before creating an asset", async () => {
     const assetService = createTestAssetService();
 
@@ -332,6 +494,73 @@ describe("asset service", () => {
       },
     });
     vi.useRealTimers();
+  });
+
+  it("assigns an existing owner through the core update path", async () => {
+    const ownerId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";
+    const previous = createAssetFixture();
+    const current = createAssetFixture({ ownerId, updatedBy: user.id });
+    const assetService = createTestAssetService();
+    userProfileService.getByID.mockResolvedValue({ ...user, id: ownerId });
+    assetRepository.getByID.mockResolvedValueOnce(previous).mockResolvedValueOnce(current);
+    assetRepository.updateByID.mockResolvedValue(current);
+
+    await expect(
+      assetService.updateByID({
+        id: previous.id,
+        asset: { ownerId },
+        user,
+        eventContext,
+      }),
+    ).resolves.toEqual(current);
+
+    expect(userProfileService.getByID).toHaveBeenCalledWith(ownerId);
+    expect(assetRepository.updateByID).toHaveBeenCalledWith(
+      previous.id,
+      expect.objectContaining({ ownerId, updatedBy: user.id, updatedAt: expect.any(Date) }),
+    );
+    expect(domainEvents.eventsFor("asset.updated")).toHaveLength(1);
+  });
+
+  it("clears an existing owner without looking up a profile", async () => {
+    const ownerId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";
+    const previous = createAssetFixture({ ownerId });
+    const current = createAssetFixture({ updatedBy: user.id });
+    const assetService = createTestAssetService();
+    assetRepository.getByID.mockResolvedValueOnce(previous).mockResolvedValueOnce(current);
+    assetRepository.updateByID.mockResolvedValue(current);
+
+    await expect(
+      assetService.updateByID({
+        id: previous.id,
+        asset: { ownerId: null },
+        user,
+        eventContext,
+      }),
+    ).resolves.toEqual(current);
+
+    expect(userProfileService.getByID).not.toHaveBeenCalled();
+    expect(assetRepository.updateByID).toHaveBeenCalledWith(
+      previous.id,
+      expect.objectContaining({ ownerId: null }),
+    );
+  });
+
+  it("rejects unknown owners through the core update path", async () => {
+    const ownerId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";
+    const asset = createAssetFixture();
+    const assetService = createTestAssetService();
+    assetRepository.getByID.mockResolvedValue(asset);
+    userProfileService.getByID.mockResolvedValue(null);
+
+    await expect(
+      assetService.updateByID({ id: asset.id, asset: { ownerId }, user }),
+    ).rejects.toMatchObject({
+      code: "asset.owner_unknown",
+      kind: "validation",
+      details: { ownerId },
+    } satisfies Partial<ApplicationError>);
+    expect(assetRepository.updateByID).not.toHaveBeenCalled();
   });
 
   it("does not advance audit metadata or emit an event for a no-op update", async () => {
@@ -434,6 +663,101 @@ describe("asset service", () => {
     expect(domainEvents.subjects()).toEqual([]);
   });
 
+  it("updates identifiers and emits snapshots with the new audit metadata", async () => {
+    const identifier = {
+      id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+      type: AssetIdentifierType.DnsName,
+      namespace: null,
+      value: "api.example.com",
+    } as const;
+    const previous = createAssetFixture({ identifiers: [identifier] });
+    const updatedIdentifier = {
+      ...identifier,
+      namespace: "private",
+      value: "api.internal.example.com",
+    } as const;
+    const current = createAssetFixture({
+      identifiers: [updatedIdentifier],
+      updatedAt: new Date("2026-02-03T04:05:06.000Z"),
+      updatedBy: user.id,
+    });
+    const assetService = createTestAssetService();
+    vi.useFakeTimers();
+    vi.setSystemTime(current.updatedAt);
+    assetRepository.getByID.mockResolvedValueOnce(previous).mockResolvedValueOnce(current);
+    assetRepository.updateIdentifierByID.mockResolvedValue(updatedIdentifier);
+
+    await expect(
+      assetService.updateIdentifierByID({
+        assetId: previous.id,
+        identifierId: identifier.id,
+        identifier: {
+          type: AssetIdentifierType.DnsName,
+          namespace: " private ",
+          value: "API.INTERNAL.EXAMPLE.COM.",
+        },
+        user,
+        eventContext,
+      }),
+    ).resolves.toEqual(updatedIdentifier);
+
+    expect(assetRepository.updateIdentifierByID).toHaveBeenCalledWith(
+      previous.id,
+      identifier.id,
+      {
+        type: AssetIdentifierType.DnsName,
+        namespace: "private",
+        value: "api.internal.example.com",
+      },
+      { updatedAt: current.updatedAt, updatedBy: user.id },
+    );
+    expect(domainEvents.eventsFor("asset.updated")[0]).toMatchObject({
+      data: {
+        previous: { ...previous, customFields: [] },
+        current: { ...current, customFields: [] },
+      },
+    });
+    vi.useRealTimers();
+  });
+
+  it("reports the owning asset when updating an identifier conflicts", async () => {
+    const identifier = {
+      id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+      type: AssetIdentifierType.DnsName,
+      namespace: null,
+      value: "api.example.com",
+    } as const;
+    const conflictingAssetId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";
+    const asset = createAssetFixture({ identifiers: [identifier] });
+    const assetService = createTestAssetService();
+    assetRepository.getByID.mockResolvedValue(asset);
+    assetRepository.updateIdentifierByID.mockRejectedValue(
+      Object.assign(new Error("duplicate key value"), { code: "23505" }),
+    );
+    assetRepository.getAssetIDByIdentifier.mockResolvedValue(conflictingAssetId);
+
+    await expect(
+      assetService.updateIdentifierByID({
+        assetId: asset.id,
+        identifierId: identifier.id,
+        identifier: { type: AssetIdentifierType.DnsName, value: "other.example.com" },
+        user,
+      }),
+    ).rejects.toMatchObject({
+      code: "asset.identifier_conflict",
+      kind: "conflict",
+      details: {
+        assetId: asset.id,
+        identifierId: identifier.id,
+        type: AssetIdentifierType.DnsName,
+        namespace: null,
+        value: "other.example.com",
+        conflictingAssetId,
+      },
+    } satisfies Partial<ApplicationError>);
+    expect(domainEvents.subjects()).toEqual([]);
+  });
+
   it("rejects identifier conflicts with the owning asset id", async () => {
     const previous = createAssetFixture();
     const assetService = createTestAssetService();
@@ -529,5 +853,24 @@ describe("asset service", () => {
       details: { assetId: asset.id },
     } satisfies Partial<ApplicationError>);
     expect(assetRepository.deleteByID).not.toHaveBeenCalled();
+  });
+
+  it("maps a deletion race with a foreign key conflict to a reference conflict", async () => {
+    const asset = createAssetFixture();
+    const foreignKeyError = Object.assign(new Error("violates foreign key constraint"), {
+      code: "23503",
+    });
+    const assetService = createTestAssetService();
+    assetRepository.getByID.mockResolvedValue(asset);
+    assetRepository.countFindingsByAssetID.mockResolvedValue(0);
+    assetRepository.deleteByID.mockRejectedValue(foreignKeyError);
+
+    await expect(assetService.deleteByID(asset.id)).rejects.toMatchObject({
+      code: "asset.delete_referenced_by_findings",
+      kind: "conflict",
+      details: { assetId: asset.id },
+    } satisfies Partial<ApplicationError>);
+    expect(assetRepository.deleteByID).toHaveBeenCalledWith(asset.id);
+    expect(domainEvents.subjects()).toEqual([]);
   });
 });
