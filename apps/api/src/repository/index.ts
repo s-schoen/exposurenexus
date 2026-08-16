@@ -1,8 +1,13 @@
 export { createAssetRepository } from "./asset.js";
 export { createAssetCustomFieldRepository } from "./asset-custom-field.js";
 export { createFindingRepository } from "./finding.js";
+export { createFindingPersistenceRepository } from "./finding-persistence.js";
+export { createFindingVulnerabilityRepository } from "./finding-vulnerability.js";
+export { createIngestionRepository } from "./ingestion.js";
+export { createObservationRepository } from "./observation.js";
 export { createRoleRepository } from "./role.js";
 export { createUserRoleRepository } from "./user-role.js";
 export { createVulnerabilityRepository } from "./vulnerability.js";
+export { createVulnerabilityPersistenceRepository } from "./vulnerability-persistence.js";
 export { createUserProfileRepository } from "./user-profile.js";
 export { createUserSessionRepository } from "./user-session.js";

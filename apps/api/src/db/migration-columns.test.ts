@@ -159,12 +159,13 @@ describe("db migration columns", () => {
       from information_schema.columns
       where (
           table_name = 'finding'
-          and column_name in (
-            'createdBy',
-            'updatedBy',
-            'firstSeen',
-            'lastSeen'
-          )
+           and column_name in (
+             'createdBy',
+             'updatedBy',
+             'title',
+             'weakness',
+             'affectedResource'
+           )
         )
         or (
           table_name = 'vulnerability'
@@ -187,14 +188,20 @@ describe("db migration columns", () => {
         },
         {
           table_name: "finding",
-          column_name: "firstSeen",
-          data_type: "timestamp with time zone",
+          column_name: "title",
+          data_type: "text",
           is_nullable: "NO",
         },
         {
           table_name: "finding",
-          column_name: "lastSeen",
-          data_type: "timestamp with time zone",
+          column_name: "weakness",
+          data_type: "jsonb",
+          is_nullable: "NO",
+        },
+        {
+          table_name: "finding",
+          column_name: "affectedResource",
+          data_type: "jsonb",
           is_nullable: "NO",
         },
         {
@@ -782,7 +789,7 @@ describe("db migration columns", () => {
     );
   });
 
-  it("adds a unique vulnerability source mapping identity index", async () => {
+  it("adds a unique structured vulnerability source mapping identity index", async () => {
     const indexes = await sql<{
       indexname: string;
       indexdef: string;
@@ -790,18 +797,18 @@ describe("db migration columns", () => {
       select indexname, indexdef
       from pg_indexes
       where tablename = 'vulnerability_source_mapping'
-        and indexname = 'vulnerability_source_mapping_source_matchQuery_unique'
+        and indexname = 'vulnerability_source_mapping_weakness_vulnerability_unique'
     `.execute(testDb.db);
 
     expect(indexes.rows).toEqual([
       expect.objectContaining({
-        indexname: "vulnerability_source_mapping_source_matchQuery_unique",
+        indexname: "vulnerability_source_mapping_weakness_vulnerability_unique",
         indexdef: expect.stringContaining("UNIQUE"),
       }),
     ]);
   });
 
-  it("blocks vulnerability deletion while findings reference it", async () => {
+  it("cascades vulnerability links when a vulnerability is deleted", async () => {
     const findingVulnerabilityForeignKeys = await sql<{
       constraint_name: string;
       source_table: string;
@@ -822,16 +829,16 @@ describe("db migration columns", () => {
         on ccu.constraint_catalog = rc.unique_constraint_catalog
         and ccu.constraint_schema = rc.unique_constraint_schema
         and ccu.constraint_name = rc.unique_constraint_name
-      where kcu.table_name = 'finding'
+      where kcu.table_name = 'finding_vulnerability'
         and kcu.column_name = 'vulnerabilityId'
     `.execute(testDb.db);
 
     expect(findingVulnerabilityForeignKeys.rows).toEqual([
       expect.objectContaining({
-        constraint_name: "finding_vulnerabilityId_fkey",
-        source_table: "finding",
+        constraint_name: "finding_vulnerability_vulnerabilityId_fkey",
+        source_table: "finding_vulnerability",
         target_table: "vulnerability",
-        delete_rule: "RESTRICT",
+        delete_rule: "CASCADE",
       }),
     ]);
   });
@@ -869,5 +876,199 @@ describe("db migration columns", () => {
         delete_rule: "RESTRICT",
       }),
     ]);
+  });
+
+  it("creates the final finding, observation, ingestion, and catalog contracts", async () => {
+    const columns = await sql<{
+      table_name: string;
+      column_name: string;
+      data_type: string;
+      udt_name: string;
+      is_nullable: string;
+    }>`
+      select table_name, column_name, data_type, udt_name, is_nullable
+      from information_schema.columns
+      where table_name in (
+        'finding',
+        'observation',
+        'ingestion',
+        'vulnerability',
+        'finding_vulnerability',
+        'vulnerability_source_mapping'
+      )
+      order by table_name asc, ordinal_position asc
+    `.execute(testDb.db);
+
+    expect(columns.rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          table_name: "finding",
+          column_name: "title",
+          data_type: "text",
+          is_nullable: "NO",
+        }),
+        expect.objectContaining({
+          table_name: "finding",
+          column_name: "weakness",
+          data_type: "jsonb",
+          is_nullable: "NO",
+        }),
+        expect.objectContaining({
+          table_name: "finding",
+          column_name: "affectedResource",
+          data_type: "jsonb",
+          is_nullable: "NO",
+        }),
+        expect.objectContaining({
+          table_name: "observation",
+          column_name: "findingId",
+          data_type: "uuid",
+          is_nullable: "NO",
+        }),
+        expect.objectContaining({
+          table_name: "observation",
+          column_name: "ingestionId",
+          data_type: "uuid",
+          is_nullable: "YES",
+        }),
+        expect.objectContaining({
+          table_name: "observation",
+          column_name: "affectedResource",
+          data_type: "jsonb",
+          is_nullable: "NO",
+        }),
+        expect.objectContaining({
+          table_name: "ingestion",
+          column_name: "createdObservations",
+          data_type: "integer",
+          is_nullable: "NO",
+        }),
+        expect.objectContaining({
+          table_name: "vulnerability",
+          column_name: "type",
+          data_type: "USER-DEFINED",
+          udt_name: "vulnerability_type",
+          is_nullable: "NO",
+        }),
+        expect.objectContaining({
+          table_name: "vulnerability",
+          column_name: "identifier",
+          data_type: "character varying",
+          is_nullable: "NO",
+        }),
+        expect.objectContaining({
+          table_name: "vulnerability",
+          column_name: "metadata",
+          data_type: "jsonb",
+          is_nullable: "YES",
+        }),
+        expect.objectContaining({
+          table_name: "vulnerability_source_mapping",
+          column_name: "weakness",
+          data_type: "jsonb",
+          is_nullable: "NO",
+        }),
+      ]),
+    );
+
+    for (const legacyColumn of [
+      "vulnerabilityId",
+      "source",
+      "evidence",
+      "firstSeen",
+      "lastSeen",
+      "fingerprint",
+    ]) {
+      expect(
+        columns.rows.some(
+          (column) => column.table_name === "finding" && column.column_name === legacyColumn,
+        ),
+      ).toBe(false);
+    }
+    expect(columns.rows.map((column) => column.table_name)).toEqual(
+      expect.arrayContaining(["finding_vulnerability", "observation", "ingestion"]),
+    );
+  });
+
+  it("uses closed catalog and source enums with no manual ingestion source", async () => {
+    const enumValues = await sql<{ typname: string; enumlabel: string }>`
+      select pg_type.typname, pg_enum.enumlabel
+      from pg_type
+      join pg_enum on pg_enum.enumtypid = pg_type.oid
+      where pg_type.typname in ('vulnerability_type', 'observation_source', 'ingestion_source')
+      order by pg_type.typname asc, pg_enum.enumsortorder asc
+    `.execute(testDb.db);
+
+    expect(enumValues.rows).toEqual([
+      { typname: "ingestion_source", enumlabel: "nuclei" },
+      { typname: "observation_source", enumlabel: "manual" },
+      { typname: "observation_source", enumlabel: "nuclei" },
+      { typname: "vulnerability_type", enumlabel: "cve" },
+      { typname: "vulnerability_type", enumlabel: "cwe" },
+      { typname: "vulnerability_type", enumlabel: "ghsa" },
+      { typname: "vulnerability_type", enumlabel: "advisory" },
+      { typname: "vulnerability_type", enumlabel: "custom" },
+    ]);
+  });
+
+  it("cascades child records and restricts ingestion deletion while observations remain", async () => {
+    const foreignKeys = await sql<{
+      source_table: string;
+      source_column: string;
+      target_table: string;
+      delete_rule: string;
+    }>`
+      select
+        kcu.table_name as source_table,
+        kcu.column_name as source_column,
+        ccu.table_name as target_table,
+        rc.delete_rule
+      from information_schema.referential_constraints rc
+      join information_schema.key_column_usage kcu
+        on kcu.constraint_catalog = rc.constraint_catalog
+        and kcu.constraint_schema = rc.constraint_schema
+        and kcu.constraint_name = rc.constraint_name
+      join information_schema.constraint_column_usage ccu
+        on ccu.constraint_catalog = rc.unique_constraint_catalog
+        and ccu.constraint_schema = rc.unique_constraint_schema
+        and ccu.constraint_name = rc.unique_constraint_name
+      where kcu.table_name in ('observation', 'finding_vulnerability', 'vulnerability_source_mapping')
+      order by source_table asc, source_column asc
+    `.execute(testDb.db);
+
+    expect(foreignKeys.rows).toEqual(
+      expect.arrayContaining([
+        {
+          source_table: "finding_vulnerability",
+          source_column: "findingId",
+          target_table: "finding",
+          delete_rule: "CASCADE",
+        },
+        {
+          source_table: "finding_vulnerability",
+          source_column: "vulnerabilityId",
+          target_table: "vulnerability",
+          delete_rule: "CASCADE",
+        },
+        {
+          source_table: "observation",
+          source_column: "findingId",
+          target_table: "finding",
+          delete_rule: "CASCADE",
+        },
+        {
+          source_table: "observation",
+          source_column: "ingestionId",
+          target_table: "ingestion",
+          delete_rule: "RESTRICT",
+        },
+        {
+          source_table: "vulnerability_source_mapping",
+          source_column: "vulnerabilityId",
+          target_table: "vulnerability",
+          delete_rule: "CASCADE",
+        },
+      ]),
+    );
   });
 });

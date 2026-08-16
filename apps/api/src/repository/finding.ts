@@ -1,7 +1,31 @@
 import { type FindingInternal } from "@exposurenexus/types/model/finding";
 
 import type { Database } from "../db/index.js";
-import type { Kysely } from "kysely";
+import type { Generated, Kysely } from "kysely";
+
+interface LegacyFindingTable {
+  id: Generated<string>;
+  vulnerabilityId: string;
+  severity: FindingInternal["severity"];
+  status: FindingInternal["status"];
+  source: string;
+  evidence: string | null;
+  mitigation: string | null;
+  assigneeId: string | null;
+  dueDate: Date | null;
+  firstSeen: Date;
+  lastSeen: Date;
+  fingerprint: string;
+  assetId: string;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface LegacyDatabase {
+  finding: LegacyFindingTable;
+}
 
 export type FindingCountByField = "severity" | "status" | "assetId" | "source";
 
@@ -26,13 +50,15 @@ export interface FindingRepository {
 }
 
 export function createFindingRepository(database: Kysely<Database>): FindingRepository {
+  const legacyDatabase = database as unknown as Kysely<LegacyDatabase>;
+
   return {
     async list(): Promise<FindingInternal[]> {
-      return await database.selectFrom("finding").selectAll().execute();
+      return await legacyDatabase.selectFrom("finding").selectAll().execute();
     },
 
     async getByID(id: string): Promise<FindingInternal | null> {
-      const finding = await database
+      const finding = await legacyDatabase
         .selectFrom("finding")
         .selectAll()
         .where("id", "=", id)
@@ -42,7 +68,7 @@ export function createFindingRepository(database: Kysely<Database>): FindingRepo
     },
 
     async getByFingerprint(hash: string): Promise<FindingInternal | null> {
-      const finding = await database
+      const finding = await legacyDatabase
         .selectFrom("finding")
         .selectAll()
         .where("fingerprint", "=", hash)
@@ -52,7 +78,7 @@ export function createFindingRepository(database: Kysely<Database>): FindingRepo
     },
 
     async create(finding: Omit<FindingInternal, "id">): Promise<FindingInternal> {
-      const createdFinding = await database
+      const createdFinding = await legacyDatabase
         .insertInto("finding")
         .values({
           ...finding,
@@ -67,7 +93,7 @@ export function createFindingRepository(database: Kysely<Database>): FindingRepo
       id: string,
       updatedFinding: Omit<FindingInternal, "id">,
     ): Promise<FindingInternal> {
-      const createdFinding = await database
+      const createdFinding = await legacyDatabase
         .updateTable("finding")
         .set(updatedFinding)
         .where("id", "=", id)
@@ -78,7 +104,7 @@ export function createFindingRepository(database: Kysely<Database>): FindingRepo
     },
 
     async deleteByID(id: string): Promise<FindingInternal | null> {
-      const deletedFinding = await database
+      const deletedFinding = await legacyDatabase
         .deleteFrom("finding")
         .where("id", "=", id)
         .returningAll()
@@ -95,7 +121,7 @@ export function createFindingRepository(database: Kysely<Database>): FindingRepo
       updatedAt,
       updatedBy,
     }: ReclassifyFindingsQuery): Promise<FindingInternal[]> {
-      return await database
+      return await legacyDatabase
         .updateTable("finding")
         .set({
           vulnerabilityId: targetVulnerabilityId,
@@ -110,9 +136,9 @@ export function createFindingRepository(database: Kysely<Database>): FindingRepo
     },
 
     async countBy(field: FindingCountByField): Promise<Record<string, number>> {
-      const result = await database
+      const result = await legacyDatabase
         .selectFrom("finding")
-        .select([`${field} as field`, database.fn.countAll().as("count")])
+        .select([`${field} as field`, legacyDatabase.fn.countAll().as("count")])
         .groupBy(field)
         .execute();
 

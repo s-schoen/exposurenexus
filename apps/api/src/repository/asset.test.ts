@@ -1,11 +1,12 @@
+import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import {
   AssetEnvironment,
   AssetIdentifierType,
   AssetLifecycleState,
   AssetType,
 } from "@exposurenexus/types/model/asset";
-import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";
@@ -581,9 +582,10 @@ describe("asset repository", () => {
       .values({
         title: "Exposed Admin Endpoint",
         description: "Administrative interface is reachable externally",
+        type: VulnerabilityType.Cwe,
+        identifier: "CWE-284",
         severity: VulnerabilitySeverity.High,
-        cve: null,
-        cwe: 284,
+        metadata: null,
         createdAt: new Date("2026-01-02T00:00:00.000Z"),
         updatedAt: new Date("2026-01-02T00:00:00.000Z"),
         createdBy,
@@ -595,17 +597,14 @@ describe("asset repository", () => {
       .insertInto("finding")
       .values({
         assetId: asset.id,
-        vulnerabilityId: vulnerability.id,
+        title: "Exposed Admin Endpoint",
         severity: VulnerabilitySeverity.High,
         status: FindingStatus.Active,
-        evidence: "Observed exposed admin endpoint",
-        source: FindingSource.Manual,
         mitigation: "Restrict access to internal networks",
         assigneeId: null,
         dueDate: null,
-        firstSeen: new Date("2026-01-03T00:00:00.000Z"),
-        lastSeen: new Date("2026-01-03T00:00:00.000Z"),
-        fingerprint: "asset-delete-blocked-finding",
+        weakness: { identifiers: {} },
+        affectedResource: { type: AffectedResourceType.Asset },
         createdAt: new Date("2026-01-03T00:00:00.000Z"),
         updatedAt: new Date("2026-01-03T00:00:00.000Z"),
         createdBy,
@@ -613,6 +612,10 @@ describe("asset repository", () => {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+    await testDb.db
+      .insertInto("finding_vulnerability")
+      .values({ findingId: finding.id, vulnerabilityId: vulnerability.id })
+      .execute();
 
     await expect(repository.countFindingsByAssetID(asset.id)).resolves.toBe(1);
     await expect(repository.deleteByID(asset.id)).rejects.toThrow(/foreign key|violates/i);

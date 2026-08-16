@@ -27,6 +27,7 @@ const expectedMigrationNames = [
   "20260510-rbac-role-permission-role-id-camel-case",
   "20260511-asset-model-cutover",
   "20260512-asset-identifiers",
+  "20260816-observation-model-cutover",
 ];
 
 // Forward-only migration history prevents renaming this already-applied file set.
