@@ -29,6 +29,10 @@ function expectSelectDefinition(
 describe("asset custom field repository", () => {
   const testDb = createTestDatabase();
   const auditUserId = "85196743-cfba-4afb-b286-d36be32a64a4";
+  const audit = {
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    updatedBy: auditUserId,
+  };
 
   beforeAll(async () => {
     await testDb.start();
@@ -71,8 +75,8 @@ describe("asset custom field repository", () => {
       defaultValue: 3,
     });
     const environment = await repository.createDefinition({
-      key: "environment",
-      name: "Environment",
+      key: "deployment_tier",
+      name: "Deployment tier",
       required: true,
       type: AssetCustomFieldType.Select,
       defaultValue: "prod",
@@ -97,8 +101,8 @@ describe("asset custom field repository", () => {
       defaultValue: 3,
     });
     expect(environment).toMatchObject({
-      key: "environment",
-      name: "Environment",
+      key: "deployment_tier",
+      name: "Deployment tier",
       required: true,
       type: AssetCustomFieldType.Select,
       defaultValue: "prod",
@@ -124,8 +128,8 @@ describe("asset custom field repository", () => {
   it("updates custom field definitions and replaces select options", async () => {
     const repository = createAssetCustomFieldRepository(testDb.db);
     const environment = await repository.createDefinition({
-      key: "environment",
-      name: "Environment",
+      key: "deployment_tier",
+      name: "Deployment tier",
       required: false,
       type: AssetCustomFieldType.Select,
       defaultValue: "prod",
@@ -213,8 +217,8 @@ describe("asset custom field repository", () => {
       defaultValue: "platform",
     });
     const environment = await repository.createDefinition({
-      key: "environment",
-      name: "Environment",
+      key: "deployment_tier",
+      name: "Deployment tier",
       required: false,
       type: AssetCustomFieldType.Select,
       defaultValue: "stage",
@@ -238,15 +242,17 @@ describe("asset custom field repository", () => {
       defaultValue: null,
     });
 
-    await repository.replaceAssignmentsForAsset(apiAsset.id, [
-      category.id,
-      environment.id,
-      priority.id,
-    ]);
-    await repository.replaceValuesForAsset(apiAsset.id, [
-      { fieldId: environment.id, value: "prod" },
-    ]);
-    await repository.replaceAssignmentsForAsset(workerAsset.id, [category.id]);
+    await repository.replaceAssignmentsForAsset(
+      apiAsset.id,
+      [category.id, environment.id, priority.id],
+      audit,
+    );
+    await repository.replaceValuesForAsset(
+      apiAsset.id,
+      [{ fieldId: environment.id, value: "prod" }],
+      audit,
+    );
+    await repository.replaceAssignmentsForAsset(workerAsset.id, [category.id], audit);
 
     await expect(repository.listEffectiveValuesForAsset(apiAsset.id)).resolves.toMatchObject([
       {
@@ -271,7 +277,11 @@ describe("asset custom field repository", () => {
     ]);
 
     await expect(
-      repository.replaceValuesForAsset(apiAsset.id, [{ fieldId: environment.id, value: null }]),
+      repository.replaceValuesForAsset(
+        apiAsset.id,
+        [{ fieldId: environment.id, value: null }],
+        audit,
+      ),
     ).resolves.toMatchObject([
       {
         fieldId: category.id,
@@ -303,10 +313,16 @@ describe("asset custom field repository", () => {
     ]);
     await expect(repository.listAvailableDefinitionsForAsset(apiAsset.id)).resolves.toEqual([team]);
 
-    await repository.replaceValuesForAsset(apiAsset.id, [
-      { fieldId: environment.id, value: "prod" },
-    ]);
-    await repository.replaceAssignmentsForAsset(apiAsset.id, [category.id, priority.id]);
+    await repository.replaceValuesForAsset(
+      apiAsset.id,
+      [{ fieldId: environment.id, value: "prod" }],
+      audit,
+    );
+    await repository.replaceAssignmentsForAsset(
+      apiAsset.id,
+      [category.id, priority.id],
+      audit,
+    );
 
     await expect(repository.listEffectiveValuesForAsset(apiAsset.id)).resolves.toMatchObject([
       {
@@ -346,16 +362,20 @@ describe("asset custom field repository", () => {
       updatedBy: auditUserId,
     });
     const environment = await repository.createDefinition({
-      key: "environment",
-      name: "Environment",
+      key: "deployment_tier",
+      name: "Deployment tier",
       required: false,
       type: AssetCustomFieldType.Select,
       defaultValue: null,
       options: [{ value: "prod", label: "Production" }],
     });
 
-    await repository.replaceAssignmentsForAsset(asset.id, [environment.id]);
-    await repository.replaceValuesForAsset(asset.id, [{ fieldId: environment.id, value: "prod" }]);
+    await repository.replaceAssignmentsForAsset(asset.id, [environment.id], audit);
+    await repository.replaceValuesForAsset(
+      asset.id,
+      [{ fieldId: environment.id, value: "prod" }],
+      audit,
+    );
 
     await expect(repository.deleteDefinitionByID(environment.id)).resolves.toEqual(environment);
     await expect(repository.listDefinitions()).resolves.toEqual([]);
@@ -373,5 +393,109 @@ describe("asset custom field repository", () => {
     expect(optionRows).toEqual([]);
     expect(valueRows).toEqual([]);
     expect(assignmentRows).toEqual([]);
+  });
+
+  it("updates parent audit metadata atomically for effective custom field changes", async () => {
+    const assetRepository = createAssetRepository(testDb.db);
+    const repository = createAssetCustomFieldRepository(testDb.db);
+    const asset = await assetRepository.create({
+      displayName: "api.exposurenexus.local",
+      type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Active,
+      ownerId: null,
+      identifiers: [],
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      createdBy: auditUserId,
+      updatedBy: auditUserId,
+    });
+    const category = await repository.createDefinition({
+      key: "category",
+      name: "Category",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: null,
+    });
+    const assignmentAudit = {
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      updatedBy: auditUserId,
+    };
+
+    await repository.replaceAssignmentsForAsset(asset.id, [category.id], assignmentAudit);
+
+    await expect(
+      testDb.db
+        .selectFrom("asset")
+        .select(["updatedAt", "updatedBy"])
+        .where("id", "=", asset.id)
+        .executeTakeFirstOrThrow(),
+    ).resolves.toEqual(assignmentAudit);
+
+    const noOpAssignmentAudit = {
+      updatedAt: new Date("2026-01-03T00:00:00.000Z"),
+      updatedBy: auditUserId,
+    };
+    await repository.replaceAssignmentsForAsset(asset.id, [category.id], noOpAssignmentAudit);
+
+    await expect(
+      testDb.db
+        .selectFrom("asset")
+        .select(["updatedAt", "updatedBy"])
+        .where("id", "=", asset.id)
+        .executeTakeFirstOrThrow(),
+    ).resolves.toEqual(assignmentAudit);
+
+    const valueAudit = {
+      updatedAt: new Date("2026-01-04T00:00:00.000Z"),
+      updatedBy: auditUserId,
+    };
+    await repository.replaceValuesForAsset(
+      asset.id,
+      [{ fieldId: category.id, value: "platform" }],
+      valueAudit,
+    );
+    await repository.replaceValuesForAsset(
+      asset.id,
+      [{ fieldId: category.id, value: "platform" }],
+      noOpAssignmentAudit,
+    );
+
+    await expect(
+      testDb.db
+        .selectFrom("asset")
+        .select(["updatedAt", "updatedBy"])
+        .where("id", "=", asset.id)
+        .executeTakeFirstOrThrow(),
+    ).resolves.toEqual(valueAudit);
+
+    await expect(
+      repository.replaceAssignmentsForAsset(asset.id, [], {
+        updatedAt: new Date("2026-01-05T00:00:00.000Z"),
+        updatedBy: "00000000-0000-0000-0000-000000000000",
+      }),
+    ).rejects.toThrow();
+
+    await expect(
+      testDb.db
+        .selectFrom("asset_custom_field_assignment")
+        .selectAll()
+        .where("assetId", "=", asset.id)
+        .execute(),
+    ).resolves.toHaveLength(1);
+    await expect(
+      testDb.db
+        .selectFrom("asset_custom_field_value")
+        .selectAll()
+        .where("assetId", "=", asset.id)
+        .execute(),
+    ).resolves.toHaveLength(1);
+    await expect(
+      testDb.db
+        .selectFrom("asset")
+        .select(["updatedAt", "updatedBy"])
+        .where("id", "=", asset.id)
+        .executeTakeFirstOrThrow(),
+    ).resolves.toEqual(valueAudit);
   });
 });

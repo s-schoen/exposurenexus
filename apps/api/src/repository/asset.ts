@@ -21,7 +21,7 @@ export type UpdateAssetRecord = Partial<
   Pick<Asset, "displayName" | "type" | "environment" | "lifecycleState" | "ownerId">
 > &
   Pick<Asset, "updatedAt" | "updatedBy">;
-export type AssetIdentifierAuditRecord = Pick<Asset, "updatedAt" | "updatedBy">;
+export type AssetAuditRecord = Pick<Asset, "updatedAt" | "updatedBy">;
 
 export interface AssetListOptions {
   search?: string;
@@ -44,18 +44,18 @@ export interface AssetRepository {
   addIdentifier(
     assetId: string,
     identifier: AssetIdentifierIdentity,
-    audit: AssetIdentifierAuditRecord,
+    audit: AssetAuditRecord,
   ): Promise<AssetIdentifierRecord | null>;
   updateIdentifierByID(
     assetId: string,
     identifierId: string,
     identifier: AssetIdentifierIdentity,
-    audit: AssetIdentifierAuditRecord,
+    audit: AssetAuditRecord,
   ): Promise<AssetIdentifierRecord | null>;
   deleteIdentifierByID(
     assetId: string,
     identifierId: string,
-    audit: AssetIdentifierAuditRecord,
+    audit: AssetAuditRecord,
   ): Promise<AssetIdentifierRecord | null>;
   deleteByID(id: string): Promise<Asset | null>;
   countFindingsByAssetID(id: string): Promise<number>;
@@ -123,10 +123,10 @@ async function getAssetByID(database: DatabaseExecutor, id: string): Promise<Ass
   return (await toAssets(database, [asset]))[0] ?? null;
 }
 
-async function updateAssetAudit(
-  database: DatabaseExecutor,
+export async function updateAssetAudit(
+  database: Kysely<Database> | Transaction<Database>,
   assetId: string,
-  audit: AssetIdentifierAuditRecord,
+  audit: AssetAuditRecord,
 ): Promise<void> {
   await database
     .updateTable("asset")
@@ -287,7 +287,7 @@ export function createAssetRepository(database: Kysely<Database>): AssetReposito
     async addIdentifier(
       assetId: string,
       identifier: AssetIdentifierIdentity,
-      audit: AssetIdentifierAuditRecord,
+      audit: AssetAuditRecord,
     ): Promise<AssetIdentifierRecord | null> {
       return await database.transaction().execute(async (trx) => {
         const asset = await trx
@@ -313,7 +313,7 @@ export function createAssetRepository(database: Kysely<Database>): AssetReposito
       assetId: string,
       identifierId: string,
       identifier: AssetIdentifierIdentity,
-      audit: AssetIdentifierAuditRecord,
+      audit: AssetAuditRecord,
     ): Promise<AssetIdentifierRecord | null> {
       return await database.transaction().execute(async (trx) => {
         const updated = await trx
@@ -335,7 +335,7 @@ export function createAssetRepository(database: Kysely<Database>): AssetReposito
     async deleteIdentifierByID(
       assetId: string,
       identifierId: string,
-      audit: AssetIdentifierAuditRecord,
+      audit: AssetAuditRecord,
     ): Promise<AssetIdentifierRecord | null> {
       return await database.transaction().execute(async (trx) => {
         const deleted = await trx

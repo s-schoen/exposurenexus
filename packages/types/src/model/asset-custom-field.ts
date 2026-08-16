@@ -12,6 +12,21 @@ export enum AssetCustomFieldValueSource {
   Empty = "empty",
 }
 
+export const ASSET_CUSTOM_FIELD_RESERVED_KEYS = [
+  "display_name",
+  "type",
+  "environment",
+  "lifecycle_state",
+  "owner_id",
+  "identifiers",
+  "created_at",
+  "updated_at",
+  "created_by",
+  "updated_by",
+] as const;
+
+const assetCustomFieldReservedKeys = new Set<string>(ASSET_CUSTOM_FIELD_RESERVED_KEYS);
+
 export const assetCustomFieldKeySchema = z
   .string()
   .trim()
@@ -172,6 +187,7 @@ export type UpdateAssetCustomFieldAssociations = z.infer<
 >;
 
 export enum AssetCustomFieldRuleViolationReason {
+  ReservedKey = "reserved_key",
   RequiredDefaultMissing = "required_default_missing",
   TextDefaultMustBeString = "text_default_must_be_string",
   NumberDefaultMustBeNumber = "number_default_must_be_number",
@@ -198,6 +214,15 @@ function getAssetCustomFieldDefaultValue(
 export function validateAssetCustomFieldDefinitionRules(
   definition: CreateAssetCustomFieldDefinition | UpdateAssetCustomFieldDefinition,
 ): AssetCustomFieldRuleViolation[] {
+  if (assetCustomFieldReservedKeys.has(definition.key)) {
+    return [
+      {
+        reason: AssetCustomFieldRuleViolationReason.ReservedKey,
+        path: ["key"],
+      },
+    ];
+  }
+
   const defaultValue = getAssetCustomFieldDefaultValue(definition);
 
   if (definition.required && defaultValue === null) {

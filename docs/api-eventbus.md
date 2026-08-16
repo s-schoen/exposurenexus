@@ -215,8 +215,10 @@ The API currently emits these event families:
   custom field assignments and values are included in asset lifecycle events.
   The core asset service emits core asset lifecycle events. Asset custom field
   assignment and value changes are emitted by the asset custom field service
-  with the `asset` source, while effective custom field value hydration is
-  delegated to the asset custom field service.
+  with the `asset` source after the persistence transaction commits. These
+  changes update the parent asset audit actor and timestamp in the same
+  transaction, include complete previous and current snapshots with effective
+  custom field values, and do not emit an event for a no-op replacement.
 - Custom fields: registry-level asset custom field definitions created,
   updated, and deleted. These events use the `custom-field.*` subjects and the
   `asset-custom-field` source.

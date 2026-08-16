@@ -11,6 +11,7 @@ import {
 import { sql, type Kysely, type RawBuilder, type Selectable, type Transaction } from "kysely";
 
 import { type Database } from "../db/index.js";
+import { updateAssetAudit, type AssetAuditRecord } from "./asset.js";
 
 import type { AssetCustomFieldStoredValue } from "../db/schema/asset-custom-field.js";
 
@@ -39,10 +40,12 @@ export interface AssetCustomFieldRepository {
   replaceAssignmentsForAsset(
     assetId: string,
     fieldIds: readonly string[],
+    audit: AssetAuditRecord,
   ): Promise<AssetCustomFieldValue[]>;
   replaceValuesForAsset(
     assetId: string,
     values: readonly UpdateAssetCustomFieldValue[],
+    audit: AssetAuditRecord,
   ): Promise<AssetCustomFieldValue[]>;
 }
 
@@ -362,8 +365,10 @@ async function replaceAssignmentsForAsset(
   database: Kysely<Database>,
   assetId: string,
   fieldIds: readonly string[],
+  audit: AssetAuditRecord,
 ): Promise<AssetCustomFieldValue[]> {
   return await database.transaction().execute(async (trx) => {
+    const previousValues = await listEffectiveValuesForAsset(trx, assetId);
     const valueDelete = trx.deleteFrom("asset_custom_field_value").where("assetId", "=", assetId);
 
     if (fieldIds.length === 0) {
@@ -381,7 +386,12 @@ async function replaceAssignmentsForAsset(
         .execute();
     }
 
-    return await listEffectiveValuesForAsset(trx, assetId);
+    const currentValues = await listEffectiveValuesForAsset(trx, assetId);
+    if (JSON.stringify(previousValues) !== JSON.stringify(currentValues)) {
+      await updateAssetAudit(trx, assetId, audit);
+    }
+
+    return currentValues;
   });
 }
 
@@ -389,8 +399,10 @@ async function replaceValuesForAsset(
   database: Kysely<Database>,
   assetId: string,
   values: readonly UpdateAssetCustomFieldValue[],
+  audit: AssetAuditRecord,
 ): Promise<AssetCustomFieldValue[]> {
   return await database.transaction().execute(async (trx) => {
+    const previousValues = await listEffectiveValuesForAsset(trx, assetId);
     await trx.deleteFrom("asset_custom_field_value").where("assetId", "=", assetId).execute();
 
     for (const value of values) {
@@ -413,7 +425,12 @@ async function replaceValuesForAsset(
         .execute();
     }
 
-    return await listEffectiveValuesForAsset(trx, assetId);
+    const currentValues = await listEffectiveValuesForAsset(trx, assetId);
+    if (JSON.stringify(previousValues) !== JSON.stringify(currentValues)) {
+      await updateAssetAudit(trx, assetId, audit);
+    }
+
+    return currentValues;
   });
 }
 
@@ -532,15 +549,17 @@ export function createAssetCustomFieldRepository(
     async replaceAssignmentsForAsset(
       assetId: string,
       fieldIds: readonly string[],
+      audit: AssetAuditRecord,
     ): Promise<AssetCustomFieldValue[]> {
-      return await replaceAssignmentsForAsset(database, assetId, fieldIds);
+      return await replaceAssignmentsForAsset(database, assetId, fieldIds, audit);
     },
 
     async replaceValuesForAsset(
       assetId: string,
       values: readonly UpdateAssetCustomFieldValue[],
+      audit: AssetAuditRecord,
     ): Promise<AssetCustomFieldValue[]> {
-      return await replaceValuesForAsset(database, assetId, values);
+      return await replaceValuesForAsset(database, assetId, values, audit);
     },
   };
 }

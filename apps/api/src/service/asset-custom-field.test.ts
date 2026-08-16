@@ -1,5 +1,6 @@
 import { AssetType } from "@exposurenexus/types/model/asset";
 import {
+  ASSET_CUSTOM_FIELD_RESERVED_KEYS,
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -12,6 +13,7 @@ import { createDomainEventCollector } from "../test/eventbus.js";
 import { createAssetCustomFieldService } from "./asset-custom-field.js";
 
 import type { ApplicationError } from "./application-error.js";
+import type { UserProfile } from "@exposurenexus/types/model/user";
 
 describe("asset custom field service", () => {
   const domainEvents = createDomainEventCollector();
@@ -35,6 +37,7 @@ describe("asset custom field service", () => {
     actor: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
     correlationId: "asset-custom-field-service-request",
   };
+  const user = { id: eventContext.actor } as UserProfile;
 
   function createTestAssetCustomFieldService() {
     return createAssetCustomFieldService({
@@ -303,13 +306,16 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceAssignmentsForAsset({
         assetId: asset.id,
+        user,
         fieldIds: [definition.id],
         eventContext,
       }),
     ).resolves.toEqual(values);
-    expect(assetCustomFieldRepository.replaceAssignmentsForAsset).toHaveBeenCalledWith(asset.id, [
-      definition.id,
-    ]);
+    expect(assetCustomFieldRepository.replaceAssignmentsForAsset).toHaveBeenCalledWith(
+      asset.id,
+      [definition.id],
+      expect.objectContaining({ updatedBy: user.id, updatedAt: expect.any(Date) }),
+    );
     expect(domainEvents.eventsFor("asset.updated")).toMatchObject([
       {
         source: "asset",
@@ -331,6 +337,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceAssignmentsForAsset({
         assetId: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+        user,
         fieldIds: ["5bde818a-bb4f-4a0f-a5eb-a190d5142a25"],
       }),
     ).resolves.toBeNull();
@@ -355,6 +362,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceAssignmentsForAsset({
         assetId: asset.id,
+        user,
         fieldIds: [fieldId],
       }),
     ).rejects.toMatchObject({
@@ -381,6 +389,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceAssignmentsForAsset({
         assetId: asset.id,
+        user,
         fieldIds: [fieldId, fieldId],
       }),
     ).rejects.toMatchObject({
@@ -427,6 +436,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceAssignmentsForAsset({
         assetId: asset.id,
+        user,
         fieldIds: [definition.id],
         eventContext,
       }),
@@ -461,6 +471,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceAssignmentsForAsset({
         assetId: asset.id,
+        user,
         fieldIds: [definition.id],
       }),
     ).rejects.toMatchObject({
@@ -478,6 +489,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceValuesForAsset({
         assetId: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+        user,
         values: [
           {
             fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
@@ -504,6 +516,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceValuesForAsset({
         assetId: asset.id,
+        user,
         values: [
           {
             fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
@@ -553,6 +566,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceValuesForAsset({
         assetId: asset.id,
+        user,
         values: [
           {
             fieldId: definition.id,
@@ -603,6 +617,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceValuesForAsset({
         assetId: asset.id,
+        user,
         values: [],
       }),
     ).rejects.toMatchObject({
@@ -645,6 +660,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceValuesForAsset({
         assetId: asset.id,
+        user,
         values: [
           { fieldId: definition.id, value: 1 },
           { fieldId: definition.id, value: 2 },
@@ -667,8 +683,8 @@ describe("asset custom field service", () => {
     };
     const definition = {
       id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
-      key: "environment",
-      name: "Environment",
+      key: "deployment_tier",
+      name: "Deployment tier",
       required: false,
       type: AssetCustomFieldType.Select,
       defaultValue: null,
@@ -699,6 +715,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceValuesForAsset({
         assetId: asset.id,
+        user,
         values: [
           {
             fieldId: definition.id,
@@ -763,6 +780,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceValuesForAsset({
         assetId: asset.id,
+        user,
         values: [
           {
             fieldId: definition.id,
@@ -772,9 +790,11 @@ describe("asset custom field service", () => {
         eventContext,
       }),
     ).resolves.toEqual(values);
-    expect(assetCustomFieldRepository.replaceValuesForAsset).toHaveBeenCalledWith(asset.id, [
-      { fieldId: definition.id, value: 5 },
-    ]);
+    expect(assetCustomFieldRepository.replaceValuesForAsset).toHaveBeenCalledWith(
+      asset.id,
+      [{ fieldId: definition.id, value: 5 }],
+      expect.objectContaining({ updatedBy: user.id, updatedAt: expect.any(Date) }),
+    );
     expect(domainEvents.eventsFor("asset.updated")).toMatchObject([
       {
         subject: "asset.updated",
@@ -829,6 +849,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceValuesForAsset({
         assetId: asset.id,
+        user,
         values: [
           {
             fieldId: definition.id,
@@ -887,6 +908,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceValuesForAsset({
         assetId: asset.id,
+        user,
         values: [
           {
             fieldId: definition.id,
@@ -930,6 +952,7 @@ describe("asset custom field service", () => {
     await expect(
       service.replaceValuesForAsset({
         assetId: asset.id,
+        user,
         values: [
           {
             fieldId: definition.id,
@@ -946,8 +969,8 @@ describe("asset custom field service", () => {
 
   it("creates a valid custom field definition", async () => {
     const payload: UpdateAssetCustomFieldDefinition = {
-      key: "environment",
-      name: "Environment",
+      key: "deployment_tier",
+      name: "Deployment tier",
       required: true,
       type: AssetCustomFieldType.Select,
       defaultValue: "prod",
@@ -1003,6 +1026,46 @@ describe("asset custom field service", () => {
     expect(assetCustomFieldRepository.createDefinition).not.toHaveBeenCalled();
   });
 
+  it("rejects reserved core asset metadata keys on create and update", async () => {
+    const service = createTestAssetCustomFieldService();
+
+    for (const key of ASSET_CUSTOM_FIELD_RESERVED_KEYS) {
+      const definition = {
+        key,
+        name: "Core metadata",
+        required: false,
+        type: AssetCustomFieldType.Text,
+        defaultValue: null,
+      } as const;
+
+      await expect(service.createDefinition(definition)).rejects.toMatchObject({
+        code: "asset_custom_field.definition.rule_violation",
+        kind: "validation",
+        details: {
+          reason: AssetCustomFieldRuleViolationReason.ReservedKey,
+          path: ["key"],
+        },
+      } satisfies Partial<ApplicationError>);
+
+      await expect(
+        service.updateDefinitionByID({
+          id: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+          definition,
+        }),
+      ).rejects.toMatchObject({
+        code: "asset_custom_field.definition.rule_violation",
+        kind: "validation",
+        details: {
+          reason: AssetCustomFieldRuleViolationReason.ReservedKey,
+          path: ["key"],
+        },
+      } satisfies Partial<ApplicationError>);
+    }
+
+    expect(assetCustomFieldRepository.createDefinition).not.toHaveBeenCalled();
+    expect(assetCustomFieldRepository.getDefinitionByID).not.toHaveBeenCalled();
+  });
+
   it("rejects invalid custom field default types", async () => {
     const service = createTestAssetCustomFieldService();
 
@@ -1050,8 +1113,8 @@ describe("asset custom field service", () => {
 
     await expect(
       service.createDefinition({
-        key: "environment",
-        name: "Environment",
+      key: "deployment_tier",
+      name: "Deployment tier",
         required: false,
         type: AssetCustomFieldType.Select,
         defaultValue: 5 as never,
@@ -1072,8 +1135,8 @@ describe("asset custom field service", () => {
 
     await expect(
       service.createDefinition({
-        key: "environment",
-        name: "Environment",
+        key: "deployment_tier",
+        name: "Deployment tier",
         required: false,
         type: AssetCustomFieldType.Select,
         defaultValue: "dev",
@@ -1094,8 +1157,8 @@ describe("asset custom field service", () => {
 
     await expect(
       service.createDefinition({
-        key: "environment",
-        name: "Environment",
+        key: "deployment_tier",
+        name: "Deployment tier",
         required: false,
         type: AssetCustomFieldType.Select,
         defaultValue: null,

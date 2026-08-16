@@ -1,4 +1,5 @@
 import {
+  ASSET_CUSTOM_FIELD_RESERVED_KEYS,
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   type CreateAssetCustomFieldDefinition,
@@ -33,8 +34,8 @@ describe("asset custom field definition rules", () => {
     ).toEqual([]);
     expect(
       validateAssetCustomFieldDefinitionRules({
-        key: "environment",
-        name: "Environment",
+        key: "deployment_tier",
+        name: "Deployment tier",
         required: true,
         type: AssetCustomFieldType.Select,
         defaultValue: "prod",
@@ -83,8 +84,8 @@ describe("asset custom field definition rules", () => {
     ).toEqual([AssetCustomFieldRuleViolationReason.NumberDefaultMustBeNumber]);
     expect(
       violationReasons({
-        key: "environment",
-        name: "Environment",
+        key: "deployment_tier",
+        name: "Deployment tier",
         required: false,
         type: AssetCustomFieldType.Select,
         defaultValue: 5 as never,
@@ -96,8 +97,8 @@ describe("asset custom field definition rules", () => {
   it("reports select option rule violations in API-compatible order", () => {
     expect(
       violationReasons({
-        key: "environment",
-        name: "Environment",
+        key: "deployment_tier",
+        name: "Deployment tier",
         required: false,
         type: AssetCustomFieldType.Select,
         defaultValue: 5 as never,
@@ -115,8 +116,8 @@ describe("asset custom field definition rules", () => {
   it("requires select defaults to match an option value", () => {
     expect(
       validateAssetCustomFieldDefinitionRules({
-        key: "environment",
-        name: "Environment",
+        key: "deployment_tier",
+        name: "Deployment tier",
         required: false,
         type: AssetCustomFieldType.Select,
         defaultValue: "dev",
@@ -128,5 +129,24 @@ describe("asset custom field definition rules", () => {
         path: ["defaultValue"],
       },
     ]);
+  });
+
+  it("rejects every core asset metadata key", () => {
+    for (const key of ASSET_CUSTOM_FIELD_RESERVED_KEYS) {
+      expect(
+        validateAssetCustomFieldDefinitionRules({
+          key,
+          name: "Core metadata",
+          required: false,
+          type: AssetCustomFieldType.Text,
+          defaultValue: null,
+        }),
+      ).toEqual([
+        {
+          reason: AssetCustomFieldRuleViolationReason.ReservedKey,
+          path: ["key"],
+        },
+      ]);
+    }
   });
 });

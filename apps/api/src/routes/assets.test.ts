@@ -417,8 +417,8 @@ describe("asset routes", () => {
   it("returns 201 when creating an asset custom field definition", async () => {
     const requestId = "assets-custom-fields-create-request";
     const payload = {
-      key: "environment",
-      name: "Environment",
+      key: "deployment_tier",
+      name: "Deployment tier",
       required: true,
       type: AssetCustomFieldType.Select,
       defaultValue: "prod",
@@ -483,8 +483,8 @@ describe("asset routes", () => {
         "X-Request-Id": "assets-custom-fields-invalid-create-body-request",
       },
       body: JSON.stringify({
-        key: "environment",
-        name: "Environment",
+        key: "deployment_tier",
+        name: "Deployment tier",
         required: false,
         type: AssetCustomFieldType.Select,
         defaultValue: null,
@@ -547,6 +547,52 @@ describe("asset routes", () => {
       reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
     });
     expect(body).not.toHaveProperty("details");
+  });
+
+  it("returns the reserved-key reason for core asset metadata keys", async () => {
+    const requestId = "assets-custom-fields-create-reserved-key-request";
+    const payload = {
+      key: "environment",
+      name: "Environment",
+      required: false,
+      type: AssetCustomFieldType.Text,
+      defaultValue: null,
+    };
+
+    assetCustomFieldService.createDefinition.mockRejectedValue(
+      new ApplicationError({
+        code: "asset_custom_field.definition.rule_violation",
+        kind: "validation",
+        message: "asset custom field key is reserved for core asset metadata",
+        details: {
+          reason: AssetCustomFieldRuleViolationReason.ReservedKey,
+          path: ["key"],
+        },
+      }),
+    );
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
+    });
+
+    const response = await app.request("/api/assets/custom-fields", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": requestId,
+      },
+      body: JSON.stringify(payload),
+    });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toMatchObject({
+      correlationId: requestId,
+      status: 400,
+      reason: AssetCustomFieldRuleViolationReason.ReservedKey,
+    });
   });
 
   it("passes non-rule custom field create errors to the error handler", async () => {
@@ -691,8 +737,8 @@ describe("asset routes", () => {
     const requestId = "assets-custom-fields-update-rule-failure-request";
     const fieldId = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25";
     const payload = {
-      key: "environment",
-      name: "Environment",
+      key: "deployment_tier",
+      name: "Deployment tier",
       required: false,
       type: AssetCustomFieldType.Select,
       defaultValue: "dev",
@@ -1181,6 +1227,7 @@ describe("asset routes", () => {
     expect(response.status).toBe(200);
     expect(assetCustomFieldService.replaceValuesForAsset).toHaveBeenCalledWith({
       assetId,
+      user,
       values: payload.values,
       eventContext: {
         actor: user.id,
@@ -1236,6 +1283,7 @@ describe("asset routes", () => {
     expect(response.status).toBe(200);
     expect(assetCustomFieldService.replaceAssignmentsForAsset).toHaveBeenCalledWith({
       assetId,
+      user,
       fieldIds: payload.fieldIds,
       eventContext: {
         actor: user.id,
@@ -1366,6 +1414,7 @@ describe("asset routes", () => {
     expect(response.status).toBe(404);
     expect(assetCustomFieldService.replaceValuesForAsset).toHaveBeenCalledWith({
       assetId,
+      user,
       values: payload.values,
       eventContext: {
         actor: user.id,

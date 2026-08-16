@@ -151,10 +151,16 @@ export function createAssetRoute(
     async (c) => {
       const params = c.req.valid("param");
       const body = c.req.valid("json");
+      const user = c.get("user");
+
+      if (!user) {
+        throw unauthorized();
+      }
 
       const values = await assetCustomFieldService.replaceAssignmentsForAsset({
         assetId: params.id,
         fieldIds: body.fieldIds,
+        user,
         eventContext: requestEventContext(c),
       });
       if (!values) {
@@ -173,10 +179,16 @@ export function createAssetRoute(
     async (c) => {
       const params = c.req.valid("param");
       const body = c.req.valid("json");
+      const user = c.get("user");
+
+      if (!user) {
+        throw unauthorized();
+      }
 
       const values = await assetCustomFieldService.replaceValuesForAsset({
         assetId: params.id,
         values: body.values,
+        user,
         eventContext: requestEventContext(c),
       });
       if (!values) {

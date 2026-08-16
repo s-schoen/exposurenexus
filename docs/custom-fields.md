@@ -68,8 +68,8 @@ The supported custom field types are predefined in code:
 Each custom field definition has:
 
 - `id`: stable UUID assigned by the database.
-- `key`: machine-readable unique identifier, for example `environment`.
-- `name`: human-readable label, for example `Environment`.
+- `key`: machine-readable unique identifier, for example `deployment_tier`.
+- `name`: human-readable label, for example `Deployment tier`.
 - `type`: one of the supported custom field types.
 - `required`: whether the field must have a default value.
 - `defaultValue`: optional registry-level fallback value.
@@ -201,6 +201,9 @@ validated in the service layer.
 
 Field definition validation includes:
 
+- Keys cannot recreate core asset metadata. The reserved keys are
+  `display_name`, `type`, `environment`, `lifecycle_state`, `owner_id`,
+  `identifiers`, `created_at`, `updated_at`, `created_by`, and `updated_by`.
 - Required fields must define a non-null default value.
 - Text defaults must be strings.
 - Number defaults must be numbers.
@@ -226,6 +229,13 @@ Assignment validation includes:
 - Assigned field IDs must not contain duplicates.
 - Each assigned or detached field ID must reference an existing custom field
   definition.
+
+Assignment and value mutations require an authenticated user profile. A
+successful mutation updates the parent asset's `updatedAt` and `updatedBy` in
+the same transaction as the custom-field rows. No-op replacements leave the
+parent audit metadata unchanged and do not emit an `asset.updated` event.
+Changed replacements emit one post-commit `asset.updated` event with complete
+previous and current asset snapshots, including effective custom field values.
 
 ## Authorization
 

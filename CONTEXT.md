@@ -254,6 +254,9 @@ Supported types are `text`, `number`, and `select`.
 
 Asset custom fields must not duplicate core asset concepts such as display name,
 type, environment, lifecycle state, ownership, identifiers, or audit metadata.
+The reserved machine keys are `display_name`, `type`, `environment`,
+`lifecycle_state`, `owner_id`, `identifiers`, `created_at`, `updated_at`,
+`created_by`, and `updated_by`.
 
 ### Asset Custom Field Option
 
@@ -278,6 +281,11 @@ source:
 - `empty`: neither an override nor a default exists.
 
 Sending `null` for a custom field value clears the asset override.
+
+Assignment and value mutations require an authenticated user profile and update
+the parent asset's `updatedAt` and `updatedBy` atomically. No-op replacements do
+not advance parent audit metadata or emit an asset update event; successful
+changes emit complete previous and current asset snapshots after commit.
 
 ## Importing
 
