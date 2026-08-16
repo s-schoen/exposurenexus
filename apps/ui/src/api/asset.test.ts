@@ -85,8 +85,8 @@ const identifier = {
 } as const;
 const definition: AssetCustomFieldDefinition = {
   id: fieldId,
-  key: "environment",
-  name: "Environment",
+  key: "deployment_tier",
+  name: "Deployment tier",
   required: false,
   type: AssetCustomFieldType.Text,
   defaultValue: null,
@@ -94,8 +94,8 @@ const definition: AssetCustomFieldDefinition = {
 const values: Array<AssetCustomFieldValue> = [
   {
     fieldId,
-    key: "environment",
-    name: "Environment",
+    key: "deployment_tier",
+    name: "Deployment tier",
     source: AssetCustomFieldValueSource.Asset,
     type: AssetCustomFieldType.Text,
     value: "production",

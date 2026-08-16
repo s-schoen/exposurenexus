@@ -15,7 +15,7 @@ describe("AssetCustomFieldDetailContent stories", () => {
     render(<SelectField />);
 
     await waitFor(() => {
-      expect(screen.getAllByText("Environment").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Deployment tier").length).toBeGreaterThan(0);
       expect(screen.getAllByText("Select").length).toBeGreaterThan(0);
       expect(screen.getAllByText("production").length).toBeGreaterThan(0);
       expect(screen.getAllByText("Production").length).toBeGreaterThan(0);

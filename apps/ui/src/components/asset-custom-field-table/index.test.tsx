@@ -26,7 +26,7 @@ describe("AssetCustomFieldTable stories", () => {
     await waitFor(() => {
       expect(screen.getByText("Category")).toBeTruthy();
       expect(screen.getByText("Priority")).toBeTruthy();
-      expect(screen.getByText("Environment")).toBeTruthy();
+      expect(screen.getByText("Deployment tier")).toBeTruthy();
       expect(screen.getByText("Production")).toBeTruthy();
       expect(screen.getByText("2 options")).toBeTruthy();
     });
@@ -55,7 +55,7 @@ describe("AssetCustomFieldTable stories", () => {
       const activeRow = container.querySelector('tr[data-active="true"]');
 
       expect(activeRow).toBeTruthy();
-      expect(within(activeRow as HTMLTableRowElement).getByText("Environment")).toBeTruthy();
+       expect(within(activeRow as HTMLTableRowElement).getByText("Deployment tier")).toBeTruthy();
     });
   });
 
@@ -86,7 +86,7 @@ describe("AssetCustomFieldTable stories", () => {
     fireEvent.click(selectOptions.at(-1) as HTMLElement);
 
     await waitFor(() => {
-      expect(screen.getByText("Environment")).toBeTruthy();
+       expect(screen.getByText("Deployment tier")).toBeTruthy();
       expect(screen.queryByText("Category")).toBeNull();
       expect(screen.queryByText("Priority")).toBeNull();
       expect(screen.getByText("Filters active")).toBeTruthy();
@@ -97,7 +97,7 @@ describe("AssetCustomFieldTable stories", () => {
     await waitFor(() => {
       expect(screen.getByText("Category")).toBeTruthy();
       expect(screen.getByText("Priority")).toBeTruthy();
-      expect(screen.getByText("Environment")).toBeTruthy();
+       expect(screen.getByText("Deployment tier")).toBeTruthy();
       expect(screen.queryByText("Filters active")).toBeNull();
     });
   });
@@ -117,7 +117,7 @@ describe("AssetCustomFieldTable stories", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Priority")).toBeTruthy();
-      expect(screen.getByText("Environment")).toBeTruthy();
+       expect(screen.getByText("Deployment tier")).toBeTruthy();
       expect(screen.queryByText("Category")).toBeNull();
       expect(screen.getByText("Filters active")).toBeTruthy();
     });
@@ -127,7 +127,7 @@ describe("AssetCustomFieldTable stories", () => {
     await waitFor(() => {
       expect(screen.getByText("Category")).toBeTruthy();
       expect(screen.getByText("Priority")).toBeTruthy();
-      expect(screen.getByText("Environment")).toBeTruthy();
+       expect(screen.getByText("Deployment tier")).toBeTruthy();
       expect(screen.queryByText("Filters active")).toBeNull();
     });
   });

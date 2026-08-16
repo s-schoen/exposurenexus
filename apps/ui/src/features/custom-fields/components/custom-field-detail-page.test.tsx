@@ -20,8 +20,8 @@ const customFieldId = "7f732d2b-8985-4551-b45d-0eaf527a1577";
 const mocks = vi.hoisted(() => {
   const customField: SelectAssetCustomFieldDefinition = {
     id: "7f732d2b-8985-4551-b45d-0eaf527a1577",
-    key: "environment",
-    name: "Environment",
+    key: "deployment_tier",
+    name: "Deployment tier",
     required: true,
     type: "select" as SelectAssetCustomFieldDefinition["type"],
     defaultValue: "production",
@@ -108,7 +108,7 @@ describe("CustomFieldDetailPage", () => {
     render(<CustomFieldDetailPage customFieldId={customFieldId} />);
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
-      title: "Environment",
+      title: "Deployment tier",
       description: "Review asset custom field settings and allowed values.",
       actions: [
         expect.objectContaining({

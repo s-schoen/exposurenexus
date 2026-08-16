@@ -43,8 +43,8 @@ const mocks = vi.hoisted(() => {
     } as AssetCustomFieldDefinition,
     {
       id: "7f732d2b-8985-4551-b45d-0eaf527a1577",
-      key: "environment",
-      name: "Environment",
+      key: "deployment_tier",
+      name: "Deployment tier",
       required: true,
       type: "select",
       defaultValue: "production",
@@ -254,14 +254,14 @@ describe("CustomFieldsPage", () => {
       description: "Manage asset metadata fields.",
     });
 
-    await user.click(screen.getByText("Environment"));
+    await user.click(screen.getByText("Deployment tier"));
 
     expect(await screen.findByText(`Detail for custom field ${environmentField.id}`)).toBeVisible();
     expect(screen.getByRole("link", { name: /open full page/i })).toHaveAttribute(
       "href",
       `/custom-fields/${environmentField.id}`,
     );
-    expect(screen.getByTestId("data-table-active-row")).toHaveTextContent("Environment");
+    expect(screen.getByTestId("data-table-active-row")).toHaveTextContent("Deployment tier");
   });
 
   it("clears the selected custom field when the preview closes", async () => {
@@ -303,7 +303,7 @@ describe("CustomFieldsPage", () => {
       );
       expect(screen.getByText("Priority")).toBeVisible();
       expect(screen.queryByText("Category")).not.toBeInTheDocument();
-      expect(screen.queryByText("Environment")).not.toBeInTheDocument();
+      expect(screen.queryByText("Deployment tier")).not.toBeInTheDocument();
     });
   });
 

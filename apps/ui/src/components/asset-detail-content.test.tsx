@@ -54,8 +54,8 @@ afterEach(() => {
 
 const selectValue: AssetCustomFieldValue = {
   fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
-  key: "environment",
-  name: "Environment",
+  key: "deployment_tier",
+  name: "Deployment tier",
   source: AssetCustomFieldValueSource.Asset,
   type: AssetCustomFieldType.Select,
   value: "production",
@@ -116,7 +116,7 @@ describe("AssetDetailContent stories", () => {
       expect(screen.getByText("Internet-facing")).toBeTruthy();
       expect(screen.getAllByText("Priority").length).toBeGreaterThan(0);
       expect(screen.getByText("3")).toBeTruthy();
-      expect(screen.getAllByText("Environment").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Deployment tier").length).toBeGreaterThan(0);
       expect(screen.getAllByText("Production").length).toBeGreaterThan(0);
       expect(screen.getByText("None")).toBeTruthy();
     });
@@ -179,7 +179,7 @@ describe("AssetDetailContent stories", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Reset Category" })).toBeTruthy();
-      expect(screen.getByRole("button", { name: "Reset Environment" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Reset Deployment tier" })).toBeTruthy();
       expect(screen.queryByRole("button", { name: "Reset Priority" })).toBeNull();
     });
   });

@@ -138,7 +138,7 @@ export const Selection: Story = {
     onOpenCustomField: fn(),
   },
   play: async ({ canvas, args }) => {
-    const rowLabel = await canvas.findByText("Environment");
+    const rowLabel = await canvas.findByText("Deployment tier");
 
     await userEvent.click(rowLabel);
     await expect(args.onSelectCustomField).toHaveBeenCalled();

@@ -287,7 +287,7 @@ export function AssetCustomFieldForm({
                     />
                     <FieldDescription>
                       Use lowercase letters, numbers, and underscores. The key must start with a
-                      letter.
+                      letter and cannot recreate core asset metadata such as type or environment.
                     </FieldDescription>
                     {isInvalid && <FieldError errors={field.state.meta.errors} />}
                   </Field>
@@ -312,7 +312,7 @@ export function AssetCustomFieldForm({
                       <SelectTrigger
                         id={field.name}
                         aria-invalid={isInvalid}
-                        className="w-full bg-background"
+                                       className="w-full bg-background text-foreground"
                         disabled={isSubmitting}
                       >
                         <span className="min-w-0 flex-1 truncate text-left">
@@ -400,7 +400,7 @@ export function AssetCustomFieldForm({
                                     <SelectTrigger
                                       id={field.name}
                                       aria-invalid={isInvalid}
-                                      className="w-full bg-background"
+                                       className="w-full bg-background text-foreground"
                                       disabled={isSubmitting}
                                     >
                                       <span className="min-w-0 flex-1 truncate text-left">

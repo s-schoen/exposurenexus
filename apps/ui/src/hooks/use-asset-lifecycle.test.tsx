@@ -372,6 +372,18 @@ describe("useAssetLifecycle", () => {
       queryKey: createAssetCustomFieldValuesQueryOptions(asset.id).queryKey,
       exact: true,
     });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: createListAssetsQueryOptions().queryKey,
+      exact: true,
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: createListAssetsWithCustomFieldsQueryOptions().queryKey,
+      exact: true,
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: createAssetByIDQueryOptions(asset.id).queryKey,
+      exact: true,
+    });
   });
 
   it("reports reset custom field value failures", async () => {
@@ -423,6 +435,18 @@ describe("useAssetLifecycle", () => {
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createAvailableAssetCustomFieldDefinitionsQueryOptions(asset.id).queryKey,
+      exact: true,
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: createListAssetsQueryOptions().queryKey,
+      exact: true,
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: createListAssetsWithCustomFieldsQueryOptions().queryKey,
+      exact: true,
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: createAssetByIDQueryOptions(asset.id).queryKey,
       exact: true,
     });
   });

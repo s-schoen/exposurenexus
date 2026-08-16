@@ -201,6 +201,7 @@ export function useAssetLifecycle(): AssetLifecycleActions {
 
       queryClient.setQueryData(customFieldValuesQueryKey(assetId), updatedValues);
       await invalidateCustomFieldAssociations(assetId);
+      await invalidateAssetReads([assetId]);
 
       return updatedValues;
     } catch (error) {
@@ -223,6 +224,7 @@ export function useAssetLifecycle(): AssetLifecycleActions {
 
       queryClient.setQueryData(customFieldValuesQueryKey(assetId), updatedValues);
       await invalidateCustomFieldValues(assetId);
+      await invalidateAssetReads([assetId]);
 
       return updatedValues;
     } catch (error) {

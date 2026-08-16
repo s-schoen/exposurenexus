@@ -54,7 +54,7 @@ describe("asset table custom field grouping", () => {
 
     expect(searchParams).toEqual({
       category: "internet",
-      environment: "production",
+      deployment_tier: "production",
       priority: "3",
     });
   });
@@ -74,7 +74,7 @@ describe("asset table custom field grouping", () => {
         ASSET_CUSTOM_FIELD_FIXTURES,
       ),
     ).toEqual({
-      environment: "production,staging",
+      deployment_tier: "production,staging",
     });
   });
 
@@ -83,7 +83,7 @@ describe("asset table custom field grouping", () => {
       parseAssetCustomFieldFiltersFromSearch(
         {
           category: "internet",
-          environment: "production,staging",
+          deployment_tier: "production,staging",
           priority: "3",
         },
         ASSET_CUSTOM_FIELD_FIXTURES,
@@ -107,7 +107,7 @@ describe("asset table custom field grouping", () => {
   it("builds cleared search params for all custom field keys", () => {
     expect(createClearedAssetCustomFieldSearchParams(ASSET_CUSTOM_FIELD_FIXTURES)).toEqual({
       category: undefined,
-      environment: undefined,
+      deployment_tier: undefined,
       priority: undefined,
     });
   });
@@ -224,7 +224,7 @@ describe("asset table custom field grouping", () => {
       "Owner",
       "Category",
       "Priority",
-      "Environment",
+      "Deployment tier",
     ]);
     expect(groupingOptions.map((option) => option.id)).toEqual([
       "type",
@@ -250,7 +250,7 @@ describe("asset table custom field grouping", () => {
       (
         definition,
       ): definition is Extract<AssetCustomFieldDefinition, { type: AssetCustomFieldType.Select }> =>
-        definition.name === "Environment" && definition.type === AssetCustomFieldType.Select,
+        definition.name === "Deployment tier" && definition.type === AssetCustomFieldType.Select,
     )!;
     const environmentColumn = createAssetTableColumns(ASSET_CUSTOM_FIELD_FIXTURES).find(
       (column) => column.id === getAssetCustomFieldColumnId(environmentDefinition.id),
@@ -357,7 +357,7 @@ describe("asset table custom field grouping", () => {
       (
         definition,
       ): definition is Extract<AssetCustomFieldDefinition, { type: AssetCustomFieldType.Select }> =>
-        definition.name === "Environment" && definition.type === AssetCustomFieldType.Select,
+        definition.name === "Deployment tier" && definition.type === AssetCustomFieldType.Select,
     )!;
     const environmentColumn = createAssetTableColumns(ASSET_CUSTOM_FIELD_FIXTURES).find(
       (column) => column.id === getAssetCustomFieldColumnId(environmentDefinition.id),
