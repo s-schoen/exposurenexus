@@ -12,7 +12,9 @@ import type {
 } from "./schema/asset-custom-field.js";
 import type { AssetIdentifierTable, AssetTable } from "./schema/asset.js";
 import type { UserProfileTable, UserSessionTable } from "./schema/auth.js";
-import type { FindingTable } from "./schema/finding.js";
+import type { FindingTable, FindingVulnerabilityTable } from "./schema/finding.js";
+import type { IngestionTable } from "./schema/ingestion.js";
+import type { ObservationTable } from "./schema/observation.js";
 import type {
   RolePermissionAssignmentTable,
   RoleTable,
@@ -36,8 +38,11 @@ export interface Database {
   asset_custom_field_option: AssetCustomFieldOptionTable;
   asset_custom_field_value: AssetCustomFieldValueTable;
   finding: FindingTable;
+  finding_vulnerability: FindingVulnerabilityTable;
   vulnerability: VulnerabilityTable;
   vulnerability_source_mapping: VulnerabilitySourceMappingTable;
+  observation: ObservationTable;
+  ingestion: IngestionTable;
 }
 
 const database = createDatabase(env.DATABASE_URL);

@@ -89,6 +89,10 @@ export const weaknessSchema = z
 
 export const findingWeaknessSchema = weaknessSchema;
 export const observationWeaknessSchema = weaknessSchema;
+export const nonEmptyWeaknessSchema = weaknessSchema.refine(
+  (weakness) => Object.keys(weakness.identifiers).length > 0,
+  "Weakness mappings must contain at least one identifier.",
+);
 
 export function normalizeWeakness(input: unknown): Weakness {
   return weaknessSchema.parse(input);

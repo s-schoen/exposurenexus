@@ -34,6 +34,18 @@
       "types": "./dist/model/finding.d.ts",
       "import": "./dist/model/finding.js"
     },
+    "./model/finding-vulnerability": {
+      "types": "./dist/model/finding-vulnerability.d.ts",
+      "import": "./dist/model/finding-vulnerability.js"
+    },
+    "./model/ingestion": {
+      "types": "./dist/model/ingestion.d.ts",
+      "import": "./dist/model/ingestion.js"
+    },
+    "./model/observation": {
+      "types": "./dist/model/observation.d.ts",
+      "import": "./dist/model/observation.js"
+    },
     "./model/date": {
       "types": "./dist/model/date.d.ts",
       "import": "./dist/model/date.js"

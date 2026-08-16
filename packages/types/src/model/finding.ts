@@ -1,7 +1,12 @@
 import { z } from "zod/v4";
 
+import {
+  findingAffectedResourceSchema,
+  type FindingAffectedResource,
+} from "./affected-resource.js";
 import { dateSchema, utcStartDateSchema } from "./date.js";
 import { vulnerabilitySchema, VulnerabilitySeverity } from "./vulnerability.js";
+import { findingWeaknessSchema, type Weakness } from "./weakness.js";
 
 const dueDateSchema = utcStartDateSchema as z.ZodType<Date, Date>;
 
@@ -43,6 +48,23 @@ export const findingInternalSchema = z.strictObject({
 
 export const findingSchema = findingInternalSchema.extend({
   vulnerability: vulnerabilitySchema,
+});
+
+export const findingPersistenceSchema = z.strictObject({
+  id: z.uuidv4(),
+  assetId: z.uuidv4(),
+  title: z.string().nonempty(),
+  severity: z.enum(VulnerabilitySeverity),
+  status: z.enum(FindingStatus),
+  assigneeId: z.uuidv4().nullable(),
+  dueDate: dueDateSchema.nullable(),
+  mitigation: z.string().nullable(),
+  weakness: findingWeaknessSchema,
+  affectedResource: findingAffectedResourceSchema,
+  createdAt: dateSchema,
+  updatedAt: dateSchema,
+  createdBy: z.uuidv4(),
+  updatedBy: z.uuidv4(),
 });
 
 export const createFindingSchema = findingInternalSchema
@@ -110,6 +132,9 @@ export const FindingStatistics = z.strictObject({
 
 export type FindingInternal = z.infer<typeof findingInternalSchema>;
 export type Finding = z.infer<typeof findingSchema>;
+export type FindingPersistence = z.infer<typeof findingPersistenceSchema>;
+export type FindingWeakness = Weakness;
+export type FindingResource = FindingAffectedResource;
 export type CreateFinding = z.infer<typeof createFindingSchema>;
 export type UpdateFinding = z.infer<typeof updateFindingSchema>;
 export type ReclassifyFindings = z.infer<typeof reclassifyFindingsSchema>;
