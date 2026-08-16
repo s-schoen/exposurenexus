@@ -318,11 +318,7 @@ describe("asset custom field repository", () => {
       [{ fieldId: environment.id, value: "prod" }],
       audit,
     );
-    await repository.replaceAssignmentsForAsset(
-      apiAsset.id,
-      [category.id, priority.id],
-      audit,
-    );
+    await repository.replaceAssignmentsForAsset(apiAsset.id, [category.id, priority.id], audit);
 
     await expect(repository.listEffectiveValuesForAsset(apiAsset.id)).resolves.toMatchObject([
       {

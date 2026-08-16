@@ -1,10 +1,11 @@
+import { describe, expect, it } from "vitest";
+
 import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   ASSET_CUSTOM_FIELD_RESERVED_KEYS,
   validateAssetCustomFieldDefinitionRules,
 } from "./asset-custom-field.js";
-import { describe, expect, it } from "vitest";
 
 describe("asset custom field definition rules", () => {
   it("rejects every core asset metadata key", () => {

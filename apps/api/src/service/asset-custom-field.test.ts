@@ -1113,8 +1113,8 @@ describe("asset custom field service", () => {
 
     await expect(
       service.createDefinition({
-      key: "deployment_tier",
-      name: "Deployment tier",
+        key: "deployment_tier",
+        name: "Deployment tier",
         required: false,
         type: AssetCustomFieldType.Select,
         defaultValue: 5 as never,
