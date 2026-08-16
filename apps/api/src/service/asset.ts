@@ -24,7 +24,7 @@ import {
 import { ApplicationError, isApplicationError } from "./application-error.js";
 import { isConflictError, isForeignKeyError } from "./errors.js";
 
-import type { AssetRepository } from "../repository/asset.js";
+import type { AssetListOptions, AssetRepository } from "../repository/asset.js";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { Logger } from "pino";
 
@@ -144,8 +144,8 @@ export interface DeleteAssetIdentifierOptions {
 }
 
 export interface AssetService {
-  listAll(): Promise<Asset[]>;
-  listAllWithCustomFields(): Promise<AssetWithCustomFields[]>;
+  listAll(options?: AssetListOptions): Promise<Asset[]>;
+  listAllWithCustomFields(options?: AssetListOptions): Promise<AssetWithCustomFields[]>;
   getByID(id: string): Promise<Asset | null>;
   getByDisplayName(displayName: string, type?: AssetType): Promise<Asset | null>;
   create(opts: CreateAssetOptions): Promise<Asset>;
@@ -246,9 +246,9 @@ export function createAssetService({
   }
 
   return {
-    async listAll(): Promise<Asset[]> {
+    async listAll(options?: AssetListOptions): Promise<Asset[]> {
       try {
-        return await assetRepository.list();
+        return await assetRepository.list(options);
       } catch (error) {
         logger.error(error, "failed to list assets");
         throw new ApplicationError({
@@ -260,9 +260,9 @@ export function createAssetService({
       }
     },
 
-    async listAllWithCustomFields(): Promise<AssetWithCustomFields[]> {
+    async listAllWithCustomFields(options?: AssetListOptions): Promise<AssetWithCustomFields[]> {
       try {
-        const assets = await assetRepository.list();
+        const assets = await assetRepository.list(options);
         return await hydrateAssets(assets);
       } catch (error) {
         if (isApplicationError(error)) {

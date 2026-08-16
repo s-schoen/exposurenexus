@@ -205,6 +205,37 @@ describe("asset routes", () => {
     });
   });
 
+  it("passes search and core filters to custom-field-hydrated asset reads", async () => {
+    const requestId = "assets-list-filtered-request";
+    const ownerId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
+    assetService.listAllWithCustomFields.mockResolvedValue([]);
+
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      assetRoute: createAssetRoute(assetService, assetCustomFieldService, routeDependencies),
+    });
+
+    const response = await app.request(
+      `/api/assets?includeCustomFields=true&filter=api.example.com&assetType=host,software&assetEnvironment=production&assetLifecycleState=archived&assetOwnerId=${ownerId},none`,
+      {
+        headers: {
+          "X-Request-Id": requestId,
+        },
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(assetService.listAllWithCustomFields).toHaveBeenCalledWith({
+      search: "api.example.com",
+      types: [AssetType.Host, AssetType.Software],
+      environments: [AssetEnvironment.Production],
+      lifecycleStates: [AssetLifecycleState.Archived],
+      ownerIds: [ownerId, null],
+    });
+    expect(assetService.listAll).not.toHaveBeenCalled();
+  });
+
   it("returns plain assets when custom field values are explicitly disabled", async () => {
     const requestId = "assets-list-with-custom-fields-disabled-request";
     const assets = [
