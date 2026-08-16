@@ -1,412 +1,158 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
-import { FindingSource, FindingStatus, type Finding } from "@exposurenexus/types/model/finding";
-import {
-  VulnerabilitySeverity,
-  type Vulnerability,
-  type VulnerabilitySourceMapping,
-} from "@exposurenexus/types/model/vulnerability";
-import { pino } from "pino";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { describe, expect, it } from "vitest";
 
-import { createTestUser } from "../test/app.js";
-import { createNucleiFindingParser } from "./nuclei.js";
+import { translateNucleiJsonl, translateNucleiRecord } from "./nuclei.js";
 
-import type { ApiError } from "../lib/api-error.js";
+const ingestionTime = new Date("2026-01-02T03:04:05.000Z");
 
-describe("nuclei importer", () => {
-  const user = createTestUser();
-  const ctx = {
-    user,
-    eventContext: {
-      actor: user.id,
-      correlationId: "findings-import-request",
-    },
-  };
-  const logger = pino({ enabled: false });
-  const vulnerabilityService = {
-    listMappings: vi.fn(),
-    getByID: vi.fn(),
-    create: vi.fn(),
-    createMapping: vi.fn(),
-  };
-  const findingService = {
-    createOrUpdate: vi.fn(),
-  };
-  const resolveAsset = vi.fn();
-  const vulnerability = {
-    id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-    title: "Exposed Admin Endpoint",
-    severity: VulnerabilitySeverity.High,
+const httpRecord = {
+  "template-id": "admin-panel",
+  info: {
+    name: "Exposed Admin Endpoint",
     description: "Administrative interface is reachable externally",
-    cwe: 284,
-    cve: null,
-    createdBy: user.id,
-    updatedBy: user.id,
-    createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
-  };
-  const asset = {
-    id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-    displayName: "api.exposurenexus.local",
-    type: AssetType.Host,
-    ownerId: null,
-    identifiers: [],
-  };
-  const nucleiFinding = {
-    "template-id": "admin-panel",
-    info: {
-      name: "Exposed Admin Endpoint",
-      description: "Administrative interface is reachable externally",
-      remediation: "Restrict access to internal networks",
-      severity: "high",
+    remediation: "Restrict access to internal networks",
+    severity: "HIGH",
+    classification: {
+      "cve-id": ["cve-2026-34256"],
+      "cwe-id": "cwe-200",
+      "cvss-score": 8.1,
+      "cvss-metrics": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      cpe: "cpe:2.3:a:example:product:1.0:*:*:*:*:*:*:*",
     },
-    type: "http",
-    host: "api.exposurenexus.local:443",
-    port: "443",
-    path: "/admin",
-    request: "GET /admin HTTP/1.1",
-    response: "HTTP/1.1 200 OK",
-    "curl-command": "curl https://api.exposurenexus.local/admin",
-    timestamp: "2026-01-02T03:04:05+00:00",
-  };
-  const finding: Finding = {
-    id: "2713d833-eb13-4517-ac7c-7761545ed42a",
-    source: FindingSource.Nuclei,
-    status: FindingStatus.Active,
-    vulnerabilityId: vulnerability.id,
-    assetId: asset.id,
-    severity: vulnerability.severity,
-    evidence: "evidence",
-    mitigation: nucleiFinding.info.remediation,
-    assigneeId: null,
-    dueDate: null,
-    fingerprint: "abc123",
-    firstSeen: new Date("2026-01-02T00:00:00.000Z"),
-    lastSeen: new Date("2026-01-02T00:00:00.000Z"),
-    createdBy: user.id,
-    updatedBy: user.id,
-    createdAt: new Date("2026-01-02T00:00:00.000Z"),
-    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
-    vulnerability,
-  };
+  },
+  type: "http",
+  host: "EXAMPLE.com:443",
+  scheme: "https",
+  url: "https://EXAMPLE.com:443/admin?debug=true#fragment",
+  path: "/ignored-by-the-reported-url",
+  method: "get",
+  request: "GET /admin HTTP/1.1",
+  response: "HTTP/1.1 200 OK",
+  "curl-command": "curl https://EXAMPLE.com/admin",
+  timestamp: "2026-01-03T04:05:06+00:00",
+};
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.useRealTimers();
-  });
+describe("nuclei translator", () => {
+  it("translates HTTP records into normalized observation drafts", () => {
+    const result = translateNucleiRecord(httpRecord, ingestionTime);
 
-  it("creates or updates findings for mapped vulnerabilities", async () => {
-    const parser = createNucleiFindingParser({
-      vulnerabilityService,
-      findingService,
-      resolveAsset,
-      logger,
-    });
-
-    vulnerabilityService.listMappings.mockResolvedValue([
-      {
-        id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
-        vulnerabilityId: vulnerability.id,
-        source: FindingSource.Nuclei,
-        matchQuery: '{"templateID":"admin-panel"}',
-      },
-    ] as VulnerabilitySourceMapping[]);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability as Vulnerability);
-    resolveAsset.mockResolvedValue(asset);
-    findingService.createOrUpdate.mockResolvedValue({
-      finding,
-      created: true,
-    });
-
-    const result = await parser.parseNucleiFindings(
-      ctx,
-      Buffer.from(`${JSON.stringify(nucleiFinding)}\n`),
-    );
-
-    expect(result).toEqual([finding]);
-    expect(vulnerabilityService.create).not.toHaveBeenCalled();
-    expect(vulnerabilityService.createMapping).not.toHaveBeenCalled();
-    expect(resolveAsset).toHaveBeenCalledWith({
-      type: AssetType.Host,
-      displayName: "api.exposurenexus.local",
-    });
-    expect(findingService.createOrUpdate).toHaveBeenCalledWith({
-      user,
-      finding: {
-        source: FindingSource.Nuclei,
-        status: FindingStatus.Active,
-        vulnerabilityId: vulnerability.id,
-        assetId: asset.id,
-        severity: vulnerability.severity,
-        evidence: expect.stringContaining("GET /admin HTTP/1.1"),
-        mitigation: "Restrict access to internal networks",
-        assigneeId: null,
-        dueDate: null,
-      },
-      firstSeen: expect.any(Date),
-      eventContext: ctx.eventContext,
-      fingerprintOptions: {
-        port: "443",
-        path: "/admin",
-      },
-    });
-  });
-
-  it("skips findings when no managed host asset matches", async () => {
-    const parser = createNucleiFindingParser({
-      vulnerabilityService,
-      findingService,
-      resolveAsset,
-      logger,
-    });
-
-    vulnerabilityService.listMappings.mockResolvedValue([
-      {
-        id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
-        vulnerabilityId: vulnerability.id,
-        source: FindingSource.Nuclei,
-        matchQuery: '{"templateID":"admin-panel"}',
-      },
-    ] as VulnerabilitySourceMapping[]);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability as Vulnerability);
-    resolveAsset.mockResolvedValue(null);
-
-    await expect(
-      parser.parseNucleiFindings(ctx, Buffer.from(`${JSON.stringify(nucleiFinding)}\n`)),
-    ).resolves.toEqual([]);
-
-    expect(resolveAsset).toHaveBeenCalledWith({
-      type: AssetType.Host,
-      displayName: "api.exposurenexus.local",
-    });
-    expect(findingService.createOrUpdate).not.toHaveBeenCalled();
-  });
-
-  it("does not create vulnerability records for unresolved assets", async () => {
-    const parser = createNucleiFindingParser({
-      vulnerabilityService,
-      findingService,
-      resolveAsset,
-      logger,
-    });
-
-    vulnerabilityService.listMappings.mockResolvedValue([]);
-    vulnerabilityService.create.mockResolvedValue(vulnerability as Vulnerability);
-    resolveAsset.mockResolvedValue(null);
-
-    await expect(
-      parser.parseNucleiFindings(ctx, Buffer.from(`${JSON.stringify(nucleiFinding)}\n`)),
-    ).resolves.toEqual([]);
-
-    expect(resolveAsset).toHaveBeenCalledWith({
-      type: AssetType.Host,
-      displayName: "api.exposurenexus.local",
-    });
-    expect(vulnerabilityService.create).not.toHaveBeenCalled();
-    expect(vulnerabilityService.createMapping).not.toHaveBeenCalled();
-    expect(findingService.createOrUpdate).not.toHaveBeenCalled();
-  });
-
-  it("skips unresolved records while importing resolvable records", async () => {
-    const parser = createNucleiFindingParser({
-      vulnerabilityService,
-      findingService,
-      resolveAsset,
-      logger,
-    });
-
-    vulnerabilityService.listMappings.mockResolvedValue([
-      {
-        id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
-        vulnerabilityId: vulnerability.id,
-        source: FindingSource.Nuclei,
-        matchQuery: '{"templateID":"admin-panel"}',
-      },
-    ] as VulnerabilitySourceMapping[]);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability as Vulnerability);
-    resolveAsset.mockResolvedValueOnce(asset).mockResolvedValueOnce(null);
-    findingService.createOrUpdate.mockResolvedValue({ finding, created: true });
-
-    const result = await parser.parseNucleiFindings(
-      ctx,
-      Buffer.from(
-        `${JSON.stringify(nucleiFinding)}\n${JSON.stringify({
-          ...nucleiFinding,
-          host: "unmanaged.exposurenexus.local",
-        })}\n`,
-      ),
-    );
-
-    expect(result).toEqual([finding]);
-    expect(resolveAsset).toHaveBeenNthCalledWith(1, {
-      type: AssetType.Host,
-      displayName: "api.exposurenexus.local",
-    });
-    expect(resolveAsset).toHaveBeenNthCalledWith(2, {
-      type: AssetType.Host,
-      displayName: "unmanaged.exposurenexus.local",
-    });
-    expect(findingService.createOrUpdate).toHaveBeenCalledTimes(1);
-  });
-
-  it("creates vulnerabilities and mappings when no mapping exists", async () => {
-    const parser = createNucleiFindingParser({
-      vulnerabilityService,
-      findingService,
-      resolveAsset,
-      logger,
-    });
-
-    vulnerabilityService.listMappings.mockResolvedValue([]);
-    vulnerabilityService.create.mockResolvedValue(vulnerability as Vulnerability);
-    vulnerabilityService.createMapping.mockResolvedValue({
-      id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
-      vulnerabilityId: vulnerability.id,
-      source: FindingSource.Nuclei,
-      matchQuery: '{"templateID":"admin-panel"}',
-    } as VulnerabilitySourceMapping);
-    resolveAsset.mockResolvedValue(asset);
-    findingService.createOrUpdate.mockResolvedValue({
-      finding,
-      created: true,
-    });
-
-    await parser.parseNucleiFindings(ctx, Buffer.from(`${JSON.stringify(nucleiFinding)}\n`));
-
-    expect(vulnerabilityService.create).toHaveBeenCalledWith({
-      user,
-      eventContext: ctx.eventContext,
-      vulnerability: {
+    expect(result).toEqual({
+      status: "translated",
+      draft: {
+        source: "nuclei",
         title: "Exposed Admin Endpoint",
-        severity: VulnerabilitySeverity.High,
         description: "Administrative interface is reachable externally",
-        cve: "",
-        cwe: 0,
-      },
-    });
-    expect(vulnerabilityService.createMapping).toHaveBeenCalledWith({
-      vulnerabilityId: vulnerability.id,
-      source: FindingSource.Nuclei,
-      matchQuery: '{"templateID":"admin-panel"}',
-      eventContext: ctx.eventContext,
-    });
-  });
-
-  it("skips findings without a host", async () => {
-    const parser = createNucleiFindingParser({
-      vulnerabilityService,
-      findingService,
-      resolveAsset,
-      logger,
-    });
-
-    vulnerabilityService.listMappings.mockResolvedValue([]);
-
-    const result = await parser.parseNucleiFindings(
-      ctx,
-      Buffer.from(
-        `${JSON.stringify({
-          ...nucleiFinding,
-          host: undefined,
-        })}\n`,
-      ),
-    );
-
-    expect(result).toEqual([]);
-    expect(resolveAsset).not.toHaveBeenCalled();
-    expect(findingService.createOrUpdate).not.toHaveBeenCalled();
-  });
-
-  it("skips findings when a new vulnerability cannot be named", async () => {
-    const parser = createNucleiFindingParser({
-      vulnerabilityService,
-      findingService,
-      resolveAsset,
-      logger,
-    });
-
-    vulnerabilityService.listMappings.mockResolvedValue([]);
-
-    const result = await parser.parseNucleiFindings(
-      ctx,
-      Buffer.from(
-        `${JSON.stringify({
-          ...nucleiFinding,
-          info: {
-            ...nucleiFinding.info,
-            name: undefined,
+        remediation: "Restrict access to internal networks",
+        severity: VulnerabilitySeverity.High,
+        weakness: {
+          identifiers: {
+            cve: ["CVE-2026-34256"],
+            cwe: ["CWE-200"],
+            nuclei: ["admin-panel"],
           },
-        })}\n`,
-      ),
-    );
-
-    expect(result).toEqual([]);
-    expect(vulnerabilityService.create).not.toHaveBeenCalled();
-  });
-
-  it("throws a 400 HTTP exception when a line cannot be parsed", async () => {
-    const parser = createNucleiFindingParser({
-      vulnerabilityService,
-      findingService,
-      resolveAsset,
-      logger,
-    });
-
-    await expect(
-      parser.parseNucleiFindings(ctx, Buffer.from("{not-json}\n")),
-    ).rejects.toMatchObject({
-      status: 400,
-      message: "failed to parse line 1",
-    } satisfies Partial<ApiError>);
-  });
-
-  it("returns empty evidence when the request body is missing", async () => {
-    const parser = createNucleiFindingParser({
-      vulnerabilityService,
-      findingService,
-      resolveAsset,
-      logger,
-    });
-
-    vulnerabilityService.listMappings.mockResolvedValue([
-      {
-        id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
-        vulnerabilityId: vulnerability.id,
-        source: FindingSource.Nuclei,
-        matchQuery: '{"templateID":"admin-panel"}',
-      },
-    ] as VulnerabilitySourceMapping[]);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability as Vulnerability);
-    resolveAsset.mockResolvedValue(asset);
-    findingService.createOrUpdate.mockResolvedValue({
-      finding,
-      created: true,
-    });
-
-    await parser.parseNucleiFindings(
-      ctx,
-      Buffer.from(
-        `${JSON.stringify({
-          ...nucleiFinding,
-          request: undefined,
-          response: undefined,
-          "curl-command": undefined,
-        })}\n`,
-      ),
-    );
-
-    expect(findingService.createOrUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        finding: expect.objectContaining({
-          evidence: "",
-          assigneeId: null,
-          dueDate: null,
-        }),
-        fingerprintOptions: {
-          port: "443",
-          path: "/admin",
         },
-      }),
+        affectedResource: {
+          type: AffectedResourceType.WebEndpoint,
+          reportedUrl: "https://EXAMPLE.com:443/admin?debug=true#fragment",
+          scheme: "https",
+          host: "example.com",
+          port: 443,
+          path: "/admin",
+          method: "GET",
+        },
+        observedAt: new Date("2026-01-03T04:05:06.000Z"),
+        evidence: expect.stringContaining("GET /admin HTTP/1.1"),
+      },
+    });
+
+    if (result.status === "translated") {
+      expect(result.draft.evidence).toContain("HTTP/1.1 200 OK");
+      expect(result.draft.evidence).toContain("curl https://EXAMPLE.com/admin");
+    }
+  });
+
+  it("supports HTTPS records and falls back missing values", () => {
+    const result = translateNucleiRecord(
+      {
+        "template-id": "missing-security-header",
+        info: {
+          severity: "not-a-severity",
+          classification: null,
+        },
+        type: "https",
+        host: "api.example.com",
+        path: "/headers",
+      },
+      ingestionTime,
+    );
+
+    expect(result).toEqual({
+      status: "translated",
+      draft: {
+        source: "nuclei",
+        title: "missing-security-header",
+        severity: VulnerabilitySeverity.Info,
+        weakness: {
+          identifiers: {
+            nuclei: ["missing-security-header"],
+          },
+        },
+        affectedResource: {
+          type: AffectedResourceType.WebEndpoint,
+          scheme: "https",
+          host: "api.example.com",
+          path: "/headers",
+          port: 443,
+        },
+        observedAt: ingestionTime,
+      },
+    });
+  });
+
+  it("returns a typed unsupported result for non-HTTP protocols", () => {
+    expect(
+      translateNucleiRecord(
+        {
+          "template-id": "postgres-exposed",
+          info: {},
+          type: "tcp",
+          host: "db.example.com",
+        },
+        ingestionTime,
+      ),
+    ).toEqual({
+      status: "unsupported",
+      reason: {
+        code: "unsupported_protocol",
+        protocol: "tcp",
+      },
+    });
+  });
+
+  it("translates JSONL records without retaining source payloads", () => {
+    const results = translateNucleiJsonl(
+      `${JSON.stringify(httpRecord)}\n\n${JSON.stringify({
+        ...httpRecord,
+        type: "dns",
+      })}\n`,
+      ingestionTime,
+    );
+
+    expect(results).toHaveLength(2);
+    expect(results[0]).toMatchObject({ status: "translated" });
+    expect(results[1]).toMatchObject({
+      status: "unsupported",
+      reason: { protocol: "dns" },
+    });
+    expect(JSON.stringify(results[0])).not.toContain('"template-id"');
+    expect(JSON.stringify(results[0])).not.toContain('"request"');
+  });
+
+  it("rejects malformed records and invalid ingestion times", () => {
+    expect(() => translateNucleiRecord({ type: "http", info: {} }, ingestionTime)).toThrow();
+    expect(() => translateNucleiRecord(httpRecord, new Date(Number.NaN))).toThrow(
+      "ingestion time must be a valid date",
     );
   });
 });

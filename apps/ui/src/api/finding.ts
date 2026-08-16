@@ -124,23 +124,6 @@ export async function updateFinding(f: Finding): Promise<Finding> {
   return parseObjectReply(response, findingSchema);
 }
 
-export async function uploadFindingFile(type: string, file: File) {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("type", type);
-
-  const response = await apiRequest("/api/findings/import", {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
-  }
-}
-
 export async function reclassifyFindings(
   reclassification: ReclassifyFindings,
 ): Promise<ReclassifyFindingsResult> {
@@ -201,12 +184,6 @@ export function useUpdateFindingMutation() {
 export function useDeleteFindingMutation() {
   return useMutation({
     mutationFn: (id: string) => deleteFinding(id),
-  });
-}
-
-export function useUploadFindingFileMutation() {
-  return useMutation({
-    mutationFn: ({ type, file }: { type: string; file: File }) => uploadFindingFile(type, file),
   });
 }
 

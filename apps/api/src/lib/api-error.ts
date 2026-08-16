@@ -96,6 +96,13 @@ export function internalServerError(
   return new ApiError(500, message, options);
 }
 
+export function notImplemented(
+  message: string = "Not Implemented",
+  options?: ApiErrorOptions,
+): ApiError {
+  return new ApiError(501, message, { ...options, exposeMessage: true });
+}
+
 function shouldExposeMessage(error: ApiError | HTTPException | ApplicationError): boolean {
   if (isApplicationError(error)) {
     return getApplicationErrorStatus(error.kind) < 500;

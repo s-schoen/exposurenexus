@@ -1,226 +1,160 @@
-import { AssetType, type Asset } from "@exposurenexus/types/model/asset";
-import { type Finding, FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
 import {
-  type Vulnerability,
-  VulnerabilitySeverity,
-} from "@exposurenexus/types/model/vulnerability";
+  AffectedResourceType,
+  normalizeObservationAffectedResource,
+} from "@exposurenexus/types/model/affected-resource";
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { normalizeWeakness } from "@exposurenexus/types/model/weakness";
 import { z } from "zod/v4";
 
-import { badRequest } from "../lib/api-error.js";
+import type { NormalizedObservationDraft } from "./observation.js";
 
-import type { FindingService } from "../service/finding.js";
-import type { VulnerabilityService } from "../service/vulnerability.js";
-import type { ImportContext } from "./importer.js";
-import type { ResolveAssetOptions } from "./util.js";
-import type { Logger } from "pino";
-
-const nucleiFindingSchema = z
-  .object({
-    template: z.string().optional(),
-    "template-id": z.string(),
-    info: z.object({
-      name: z.string().optional(),
-      tags: z.array(z.string()).optional(),
-      impact: z.string().optional(),
-      reference: z.array(z.string()).optional(),
-      description: z.string().optional(),
-      remediation: z.string().optional(),
-      severity: z.string().optional(),
-      classification: z
-        .object({
-          "cve-id": z.union([z.string(), z.array(z.string()), z.null()]).optional(),
-          "cwe-id": z.union([z.string(), z.array(z.string()), z.null()]).optional(),
-          "cvss-metrics": z.string().optional(),
-          "cvss-score": z.number().optional(),
-          "epss-score": z.number().optional(),
-          "epss-percentile": z.number().optional(),
-          cpe: z.string().optional(),
-        })
-        .optional(),
+const nucleiClassificationSchema = z
+  .union([
+    z.object({
+      "cve-id": z.union([z.string(), z.array(z.string()), z.null()]).optional(),
+      "cwe-id": z.union([z.string(), z.array(z.string()), z.null()]).optional(),
     }),
-    type: z.string(),
-    host: z.string().optional(),
-    port: z.string().optional(),
-    scheme: z.string().optional(),
-    url: z.string().optional(),
-    path: z.string().optional(),
-    request: z.string().optional(),
-    response: z.string().optional(),
-    meta: z.record(z.string(), z.any()).optional(),
-    ip: z.string().optional(),
-    timestamp: z.iso.datetime({ offset: true }).optional(),
-    "curl-command": z.string().optional(),
-  })
-  .transform((data) => ({
-    templateID: data["template-id"],
-    curlCommand: data["curl-command"],
-    ...data,
-  }));
+    z.null(),
+  ])
+  .optional();
 
-type NucleiFinding = z.infer<typeof nucleiFindingSchema>;
+const nucleiRecordSchema = z.object({
+  "template-id": z.string().trim().min(1),
+  info: z.object({
+    name: z.string().optional(),
+    description: z.string().optional(),
+    remediation: z.string().optional(),
+    severity: z.string().optional(),
+    classification: nucleiClassificationSchema,
+  }),
+  type: z.string().trim().min(1),
+  host: z.string().optional(),
+  port: z.union([z.string(), z.number().int()]).optional(),
+  scheme: z.string().optional(),
+  url: z.string().optional(),
+  path: z.string().optional(),
+  method: z.string().optional(),
+  request: z.string().optional(),
+  response: z.string().optional(),
+  "curl-command": z.string().optional(),
+  timestamp: z.string().optional(),
+});
 
-type NucleiVulnerabilityService = Pick<
-  VulnerabilityService,
-  "listMappings" | "getByID" | "create" | "createMapping"
->;
+type NucleiRecord = z.infer<typeof nucleiRecordSchema>;
 
-type NucleiFindingService = Pick<FindingService, "createOrUpdate">;
-
-interface NucleiFindingParserDependencies {
-  vulnerabilityService: NucleiVulnerabilityService;
-  findingService: NucleiFindingService;
-  resolveAsset(options: ResolveAssetOptions): Promise<Asset | null>;
-  logger: Logger;
-}
-
-export function createNucleiFindingParser(dependencies: NucleiFindingParserDependencies) {
-  const { vulnerabilityService, findingService, logger } = dependencies;
-  async function getOrCreateVulnerability(
-    ctx: ImportContext,
-    finding: NucleiFinding,
-  ): Promise<Vulnerability | null> {
-    const mappings = await vulnerabilityService.listMappings(FindingSource.Nuclei);
-
-    const query = JSON.stringify({
-      templateID: finding.templateID,
-    });
-
-    const mapping = mappings.find((v) => v.matchQuery === query);
-    if (mapping) {
-      return (await vulnerabilityService.getByID(mapping.vulnerabilityId))!;
-    }
-
-    if (!finding.info.name) {
-      logger.warn(`no name found in finding with template id ${finding.templateID}. Skipping`);
-      return null;
-    }
-
-    const createdVuln = await vulnerabilityService.create({
-      user: ctx.user,
-      eventContext: ctx.eventContext,
-      vulnerability: {
-        title: finding.info.name,
-        severity: parseNucleiSeverity(finding.info.severity || "info"),
-        description: finding.info.description || "",
-        cve: "",
-        cwe: 0,
-      },
-    });
-
-    await vulnerabilityService.createMapping({
-      vulnerabilityId: createdVuln.id,
-      source: FindingSource.Nuclei,
-      matchQuery: query,
-      eventContext: ctx.eventContext,
-    });
-
-    return createdVuln;
-  }
-
-  return {
-    async parseNucleiFindings(ctx: ImportContext, file: Buffer): Promise<Array<Finding>> {
-      logger.info("parsing nuclei findings");
-      const jsonl = file
-        .toString()
-        .split("\n")
-        .filter((line) => line.startsWith("{"));
-
-      const createdFindings: Array<Finding> = [];
-      let currentLine = 1;
-      for (const line of jsonl) {
-        const lineNumber = currentLine++;
-        try {
-          const nucleiFinding = nucleiFindingSchema.parse(JSON.parse(line));
-
-          logger.debug(`parsing finding ${lineNumber} of ${jsonl.length}`);
-          if (!nucleiFinding) {
-            continue;
-          }
-
-          if (!nucleiFinding.host) {
-            logger.warn(`no host defined in finding ${lineNumber}. Skipping`);
-            continue;
-          }
-
-          const host = parseNucleiHostname(nucleiFinding.host);
-          const asset = await dependencies.resolveAsset({
-            type: AssetType.Host,
-            displayName: host,
-          });
-          if (!asset) {
-            logger.warn(
-              {
-                line: lineNumber,
-                assetDisplayName: host,
-                assetType: AssetType.Host,
-              },
-              "skipping finding because its managed asset could not be resolved",
-            );
-            continue;
-          }
-
-          const vulnerability = await getOrCreateVulnerability(ctx, nucleiFinding);
-          if (!vulnerability) {
-            logger.warn(`could not find vulnerability for finding ${lineNumber}. Skipping`);
-            continue;
-          }
-          logger.debug(
-            `using vulnerability ${vulnerability.id} (${vulnerability.title}) for finding ${lineNumber}`,
-          );
-
-          const fingerprintInfo = {
-            port: nucleiFinding.port || "",
-            path: nucleiFinding.path || "",
-          };
-
-          const { finding, created } = await findingService.createOrUpdate({
-            user: ctx.user,
-            finding: {
-              source: FindingSource.Nuclei,
-              status: FindingStatus.Active,
-              vulnerabilityId: vulnerability.id,
-              assetId: asset.id,
-              severity: vulnerability.severity,
-              evidence: parseEvidence(nucleiFinding),
-              mitigation: nucleiFinding.info.remediation || "",
-              assigneeId: null,
-              dueDate: null,
-            },
-            firstSeen: new Date(),
-            fingerprintOptions: fingerprintInfo,
-            eventContext: ctx.eventContext,
-          });
-          createdFindings.push(finding);
-          logger.info(`${created ? "created" : "updated"} finding ${finding.id} for ${host}`);
-        } catch (error) {
-          logger.error(error, `failed to parse line ${lineNumber}`);
-          throw badRequest(`failed to parse line ${lineNumber}`);
-        }
-      }
-
-      return createdFindings;
-    },
+export interface UnsupportedNucleiResult {
+  status: "unsupported";
+  reason: {
+    code: "unsupported_protocol";
+    protocol: string;
   };
 }
 
-function parseNucleiSeverity(severity: string): VulnerabilitySeverity {
-  return severity as VulnerabilitySeverity;
+export interface TranslatedNucleiResult {
+  status: "translated";
+  draft: NormalizedObservationDraft;
 }
 
-function parseNucleiHostname(host: string): string {
-  return host.split(":")[0];
+export type NucleiTranslationResult = UnsupportedNucleiResult | TranslatedNucleiResult;
+
+export type NucleiObservationDraft = NormalizedObservationDraft;
+
+const supportedProtocols = new Set(["http", "https"]);
+
+function parseIdentifierValues(value: string | string[] | null | undefined): string[] {
+  if (value === null || value === undefined) {
+    return [];
+  }
+
+  return Array.isArray(value) ? value : [value];
 }
 
-function parseEvidence(finding: NucleiFinding): string {
-  if (!finding.request) {
-    return "";
+function parseSeverity(value: string | undefined): VulnerabilitySeverity {
+  const normalized = value?.trim().toLowerCase();
+  return Object.values(VulnerabilitySeverity).includes(normalized as VulnerabilitySeverity)
+    ? (normalized as VulnerabilitySeverity)
+    : VulnerabilitySeverity.Info;
+}
+
+function parseObservedAt(value: string | undefined, ingestionTime: Date): Date {
+  if (value === undefined) {
+    return new Date(ingestionTime.getTime());
+  }
+
+  const observedAt = new Date(value);
+  if (Number.isNaN(observedAt.getTime())) {
+    throw new Error("Nuclei observation timestamp must be a valid date.");
+  }
+
+  return observedAt;
+}
+
+function parsePort(value: string | number | undefined): number | undefined {
+  if (value === undefined || (typeof value === "string" && value.trim().length === 0)) {
+    return undefined;
+  }
+
+  return typeof value === "number" ? value : Number(value);
+}
+
+function parseHost(value: string | undefined): { host?: string; port?: number } {
+  if (value === undefined || value.trim().length === 0) {
+    return {};
+  }
+
+  const rawHost = value.trim();
+  try {
+    const parsed = new URL(rawHost.includes("://") ? rawHost : `http://${rawHost}`);
+    const host = parsed.hostname.replace(/^\[|\]$/gu, "");
+    return {
+      host,
+      ...(parsed.port.length > 0 ? { port: Number(parsed.port) } : {}),
+    };
+  } catch {
+    return {
+      host: rawHost,
+    };
+  }
+}
+
+function parseEndpoint(record: NucleiRecord) {
+  let parsedUrl: URL | undefined;
+  if (record.url !== undefined && record.url.length > 0) {
+    try {
+      parsedUrl = new URL(record.url);
+    } catch {
+      parsedUrl = undefined;
+    }
+  }
+
+  const parsedHost = parseHost(record.host);
+  const scheme = parsedUrl?.protocol.slice(0, -1) || record.scheme || record.type;
+  const host = parsedUrl?.hostname.replace(/^\[|\]$/gu, "") || parsedHost.host;
+  const explicitPort = parsePort(record.port);
+  const port = explicitPort ?? (parsedUrl?.port ? Number(parsedUrl.port) : parsedHost.port);
+  const path = parsedUrl?.pathname || record.path;
+
+  return {
+    type: AffectedResourceType.WebEndpoint,
+    ...(scheme === undefined ? {} : { scheme }),
+    ...(host === undefined ? {} : { host }),
+    ...(port === undefined ? {} : { port }),
+    ...(path === undefined ? {} : { path }),
+    ...(record.method === undefined ? {} : { method: record.method }),
+    ...(record.url === undefined ? {} : { reportedUrl: record.url }),
+  };
+}
+
+function parseEvidence(record: NucleiRecord): string | undefined {
+  if (!record.request) {
+    return undefined;
   }
 
   return `
   <details><summary>Request</summary>
   
   \`\`\`
-  ${finding.request}
+  ${record.request}
   \`\`\`
   
   </details>
@@ -228,7 +162,7 @@ function parseEvidence(finding: NucleiFinding): string {
   <details><summary>Response</summary>
   
   \`\`\`
-  ${finding.response}
+  ${record.response}
   \`\`\`
   
   </details>
@@ -236,9 +170,75 @@ function parseEvidence(finding: NucleiFinding): string {
   <details><summary>cURL Command</summary>
     
   \`\`\`shell
-  ${finding.curlCommand}
+  ${record["curl-command"]}
   \`\`\`
   
   </details>
   `;
+}
+
+function translateRecord(record: NucleiRecord, ingestionTime: Date): NucleiTranslationResult {
+  const protocol = record.type.toLowerCase();
+  if (!supportedProtocols.has(protocol)) {
+    return {
+      status: "unsupported",
+      reason: {
+        code: "unsupported_protocol",
+        protocol: record.type,
+      },
+    };
+  }
+
+  const classification = record.info.classification;
+  const weakness = normalizeWeakness({
+    identifiers: {
+      nuclei: [record["template-id"]],
+      ...(classification === undefined || classification === null
+        ? {}
+        : {
+            cve: parseIdentifierValues(classification["cve-id"]),
+            cwe: parseIdentifierValues(classification["cwe-id"]),
+          }),
+    },
+  });
+  const affectedResource = normalizeObservationAffectedResource(parseEndpoint(record));
+  const evidence = parseEvidence(record);
+  const title = record.info.name?.trim() || record["template-id"];
+
+  return {
+    status: "translated",
+    draft: {
+      source: "nuclei",
+      title,
+      ...(record.info.description === undefined ? {} : { description: record.info.description }),
+      ...(evidence === undefined ? {} : { evidence }),
+      ...(record.info.remediation === undefined ? {} : { remediation: record.info.remediation }),
+      severity: parseSeverity(record.info.severity),
+      weakness,
+      affectedResource,
+      observedAt: parseObservedAt(record.timestamp, ingestionTime),
+    },
+  };
+}
+
+export function translateNucleiRecord(
+  input: unknown,
+  ingestionTime: Date,
+): NucleiTranslationResult {
+  if (Number.isNaN(ingestionTime.getTime())) {
+    throw new Error("Nuclei ingestion time must be a valid date.");
+  }
+
+  return translateRecord(nucleiRecordSchema.parse(input), ingestionTime);
+}
+
+export function translateNucleiJsonl(
+  input: Buffer | string,
+  ingestionTime: Date,
+): Array<NucleiTranslationResult> {
+  return input
+    .toString()
+    .split(/\r?\n/u)
+    .filter((line) => line.trim().length > 0)
+    .map((line) => translateNucleiRecord(JSON.parse(line), ingestionTime));
 }
