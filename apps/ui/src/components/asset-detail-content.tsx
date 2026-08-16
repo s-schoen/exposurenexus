@@ -13,7 +13,7 @@ import {
   createAvailableAssetCustomFieldDefinitionsQueryOptions,
 } from "@/api/asset.ts";
 import { createListUsersQueryOptions } from "@/api/user.ts";
-import { AssetIdentifierManager } from "@/components/asset-identifier-editor.tsx";
+import { AssetIdentifierTable } from "@/components/asset-identifier-table.tsx";
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import { Inplace } from "@/components/inplace.tsx";
@@ -234,11 +234,11 @@ export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentP
     identifierId: string,
     identifier: Parameters<typeof assetLifecycle.updateAssetIdentifier>[2],
   ) {
-    await assetLifecycle.updateAssetIdentifier(assetId, identifierId, identifier);
+    return await assetLifecycle.updateAssetIdentifier(assetId, identifierId, identifier);
   }
 
   async function handleRemoveAssetIdentifier(identifierId: string) {
-    await assetLifecycle.deleteAssetIdentifier(assetId, identifierId);
+    return await assetLifecycle.deleteAssetIdentifier(assetId, identifierId);
   }
 
   function formatAssetValue(value: string) {
@@ -404,13 +404,6 @@ export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentP
           />
         </div>
         <Separator />
-        <AssetIdentifierManager
-          identifiers={assetData.identifiers}
-          onAdd={handleAddAssetIdentifier}
-          onUpdate={handleUpdateAssetIdentifier}
-          onRemove={handleRemoveAssetIdentifier}
-        />
-        <Separator />
         <div className="space-y-3">
           <MetadataDetailRow label="Created" value={assetData.createdAt.toLocaleString()} />
           <MetadataDetailRow
@@ -467,6 +460,12 @@ export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentP
         <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="flex min-w-0 flex-col gap-4">
             <AssetOverviewCard assetData={assetData} />
+            <AssetIdentifierTable
+              identifiers={assetData.identifiers}
+              onAdd={handleAddAssetIdentifier}
+              onUpdate={handleUpdateAssetIdentifier}
+              onRemove={handleRemoveAssetIdentifier}
+            />
           </div>
           <AssetSidebar assetData={assetData} />
         </div>

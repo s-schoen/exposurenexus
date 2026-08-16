@@ -109,6 +109,8 @@ describe("AssetDetailContent stories", () => {
 
     await waitFor(() => {
       expect(screen.getAllByText("Robin Owner").length).toBeGreaterThan(0);
+      expect(screen.getByRole("heading", { name: "Asset identifiers" })).toBeInTheDocument();
+      expect(screen.getByText("web-01.example.com")).toBeInTheDocument();
       expect(screen.getAllByText("Custom fields").length).toBeGreaterThan(0);
       expect(screen.getAllByText("Category").length).toBeGreaterThan(0);
       expect(screen.getByText("Internet-facing")).toBeTruthy();
