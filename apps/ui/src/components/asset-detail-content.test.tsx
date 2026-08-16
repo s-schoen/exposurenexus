@@ -4,7 +4,8 @@ import {
   AssetCustomFieldValueSource,
 } from "@exposurenexus/types/model/asset-custom-field";
 import { composeStories } from "@storybook/react-vite";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as stories from "@/components/asset-detail-content.stories";
@@ -120,6 +121,53 @@ describe("AssetDetailContent stories", () => {
       expect(screen.getAllByText("Production").length).toBeGreaterThan(0);
       expect(screen.getByText("None")).toBeTruthy();
     });
+  });
+
+  it("edits each core asset field from the detail sidebar", async () => {
+    const user = userEvent.setup();
+    render(<WithCustomFields />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("web-01").length).toBeGreaterThan(0);
+    });
+
+    const metadataRow = (label: string) => {
+      const labelElement = screen.getByText(label, { selector: "span" });
+      const row = labelElement.parentElement?.parentElement;
+      if (!row) {
+        throw new Error(`Expected metadata row for ${label}`);
+      }
+      return within(row);
+    };
+
+    const displayNameRow = metadataRow("Display name");
+    await user.click(displayNameRow.getByRole("button", { name: "web-01" }));
+    const displayNameInput = displayNameRow.getByRole("textbox", { name: "Edit value" });
+    fireEvent.change(displayNameInput, { target: { value: "api-01" } });
+    await user.click(displayNameRow.getByRole("button", { name: "Save edit" }));
+
+    await waitFor(() => expect(screen.getAllByText("api-01").length).toBeGreaterThan(0));
+
+    const typeRow = metadataRow("Type");
+    await user.click(typeRow.getByRole("button", { name: "Host" }));
+    await user.click(screen.getByRole("option", { name: "Container Image" }));
+    await waitFor(() =>
+      expect(metadataRow("Type").getByText("Container Image")).toBeInTheDocument(),
+    );
+
+    const environmentRow = metadataRow("Environment");
+    await user.click(environmentRow.getByRole("button", { name: "Production" }));
+    await user.click(screen.getByRole("option", { name: "Staging" }));
+    await waitFor(() =>
+      expect(metadataRow("Environment").getByText("Staging")).toBeInTheDocument(),
+    );
+
+    const lifecycleRow = metadataRow("Lifecycle state");
+    await user.click(lifecycleRow.getByRole("button", { name: "Active" }));
+    await user.click(screen.getByRole("option", { name: "Archived" }));
+    await waitFor(() =>
+      expect(metadataRow("Lifecycle state").getByText("Archived")).toBeInTheDocument(),
+    );
   });
 
   it("renders no-owner and unknown owner states", async () => {

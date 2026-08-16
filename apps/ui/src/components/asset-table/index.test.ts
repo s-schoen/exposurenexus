@@ -216,6 +216,52 @@ describe("asset table custom field grouping", () => {
     ).toBe("Unknown Owner");
   });
 
+  it("filters core asset columns, including ownerless assets", () => {
+    const columns = createAssetTableColumns(ASSET_CUSTOM_FIELD_FIXTURES);
+    const asset: AssetWithCustomFields = {
+      id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
+      displayName: "api-01",
+      type: AssetType.Host,
+      environment: AssetEnvironment.Production,
+      lifecycleState: AssetLifecycleState.Archived,
+      ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+      identifiers: [],
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+      updatedBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
+      customFields: [],
+    };
+    const row = {
+      original: asset,
+      getValue: (columnId: string) => asset[columnId as keyof AssetWithCustomFields],
+    };
+    const ownerlessRow = {
+      ...row,
+      original: { ...asset, ownerId: null },
+    };
+
+    const typeFilter = getColumnFilterFn(columns.find((column) => column.id === "type"));
+    const environmentFilter = getColumnFilterFn(
+      columns.find((column) => column.id === "environment"),
+    );
+    const lifecycleFilter = getColumnFilterFn(
+      columns.find((column) => column.id === "lifecycleState"),
+    );
+    const ownerFilter = getColumnFilterFn(columns.find((column) => column.id === "ownerId"));
+
+    expect(typeFilter(row, "type", [AssetType.Host])).toBe(true);
+    expect(typeFilter(row, "type", [AssetType.Software])).toBe(false);
+    expect(environmentFilter(row, "environment", [AssetEnvironment.Production])).toBe(true);
+    expect(environmentFilter(row, "environment", [AssetEnvironment.Staging])).toBe(false);
+    expect(lifecycleFilter(row, "lifecycleState", [AssetLifecycleState.Archived])).toBe(true);
+    expect(lifecycleFilter(row, "lifecycleState", [AssetLifecycleState.Active])).toBe(false);
+    expect(ownerFilter(row, "ownerId", [asset.ownerId])).toBe(true);
+    expect(ownerFilter(ownerlessRow, "ownerId", ["none"])).toBe(true);
+    expect(ownerFilter(ownerlessRow, "ownerId", [asset.ownerId])).toBe(false);
+    expect(ownerFilter(row, "ownerId", [])).toBe(true);
+  });
+
   it("adds custom field definitions to the grouping options", () => {
     const groupingOptions = createAssetTableGroupingOptions(ASSET_CUSTOM_FIELD_FIXTURES);
 

@@ -227,7 +227,7 @@ export const AssetDialog = ({
                     >
                       <SelectTrigger id={field.name}>
                         <SelectValue>
-                          {field.state.value === noOwnerValue
+                          {field.state.value === null || field.state.value === noOwnerValue
                             ? "No Owner"
                             : (users.data?.find((user) => user.id === field.state.value)
                                 ?.displayName ?? "Select asset owner")}

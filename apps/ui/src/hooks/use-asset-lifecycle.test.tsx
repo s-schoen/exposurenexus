@@ -293,6 +293,30 @@ describe("useAssetLifecycle", () => {
     });
   });
 
+  it("invalidates filtered asset list caches after asset mutations", async () => {
+    const asset = createAssetFixture();
+    const filteredAssets = createListAssetsQueryOptions({ filter: "web" });
+    const filteredAssetsWithCustomFields = createListAssetsWithCustomFieldsQueryOptions({
+      assetEnvironment: [AssetEnvironment.Production],
+    });
+    updateAssetRequestMock.mockResolvedValueOnce(asset);
+    const { queryClient, result } = renderLifecycleHook();
+
+    queryClient.setQueryData(filteredAssets.queryKey, [asset]);
+    queryClient.setQueryData(filteredAssetsWithCustomFields.queryKey, [
+      { ...asset, customFields: [] },
+    ]);
+
+    await act(async () => {
+      await result.current.updateAsset(asset.id, { displayName: "updated-web-01" });
+    });
+
+    expect(queryClient.getQueryState(filteredAssets.queryKey)?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(filteredAssetsWithCustomFields.queryKey)?.isInvalidated).toBe(
+      true,
+    );
+  });
+
   it("runs identifier mutations through the asset lifecycle and invalidates asset reads", async () => {
     const asset = createAssetFixture();
     const identifier = {
@@ -311,15 +335,20 @@ describe("useAssetLifecycle", () => {
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
     await act(async () => {
-      await result.current.addAssetIdentifier(asset.id, {
+      const added = await result.current.addAssetIdentifier(asset.id, {
         type: identifier.type,
         value: identifier.value,
       });
-      await result.current.updateAssetIdentifier(asset.id, identifier.id, {
+      const updated = await result.current.updateAssetIdentifier(asset.id, identifier.id, {
         type: identifier.type,
         value: "api.internal.example.com",
       });
-      await result.current.deleteAssetIdentifier(asset.id, identifier.id);
+
+      expect(added).toEqual(identifier);
+      expect(updated).toEqual({ ...identifier, value: "api.internal.example.com" });
+
+      const deleted = await result.current.deleteAssetIdentifier(asset.id, identifier.id);
+      expect(deleted).toEqual(identifier);
     });
 
     expect(addIdentifierRequestMock).toHaveBeenCalledWith({
@@ -339,6 +368,52 @@ describe("useAssetLifecycle", () => {
       queryKey: createAssetByIDQueryOptions(asset.id).queryKey,
       exact: true,
     });
+    expect(invalidateSpy).toHaveBeenCalledTimes(12);
+  });
+
+  it("reports each failed identifier lifecycle mutation without invalidating reads", async () => {
+    const asset = createAssetFixture();
+    const identifier = {
+      id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
+      type: AssetIdentifierType.DnsName,
+      namespace: null,
+      value: "api.example.com",
+    } as const;
+    const addError = new Error("Add failed");
+    const updateError = new Error("Update failed");
+    const deleteError = new Error("Delete failed");
+    addIdentifierRequestMock.mockRejectedValueOnce(addError);
+    updateIdentifierRequestMock.mockRejectedValueOnce(updateError);
+    deleteIdentifierRequestMock.mockRejectedValueOnce(deleteError);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+
+    await act(async () => {
+      await expect(
+        result.current.addAssetIdentifier(asset.id, {
+          type: identifier.type,
+          value: identifier.value,
+        }),
+      ).resolves.toBeNull();
+      await expect(
+        result.current.updateAssetIdentifier(asset.id, identifier.id, {
+          type: identifier.type,
+          value: "api.internal.example.com",
+        }),
+      ).resolves.toBeNull();
+      await expect(
+        result.current.deleteAssetIdentifier(asset.id, identifier.id),
+      ).resolves.toBeNull();
+    });
+
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to add asset identifier");
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to update asset identifier");
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to remove asset identifier");
+    expect(consoleError).toHaveBeenCalledWith(addError);
+    expect(consoleError).toHaveBeenCalledWith(updateError);
+    expect(consoleError).toHaveBeenCalledWith(deleteError);
+    expect(invalidateSpy).not.toHaveBeenCalled();
   });
 
   it("updates custom field values, writes values cache, and invalidates values", async () => {

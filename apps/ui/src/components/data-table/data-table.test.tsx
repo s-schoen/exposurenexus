@@ -200,6 +200,20 @@ describe("DataTable stories", () => {
     expect(screen.queryByTestId("data-table-empty-state")).toBeNull();
   });
 
+  it("renders every embedded row without applying pagination", async () => {
+    const rows = Array.from({ length: 11 }, (_, index) => ({
+      id: `row-${index + 1}`,
+      name: `Row ${index + 1}`,
+    }));
+
+    render(<DataTable columns={directColumns} rows={rows} embedded />);
+
+    expect(screen.getByText("Row 1")).toBeInTheDocument();
+    expect(screen.getByText("Row 11")).toBeInTheDocument();
+    expect(screen.getAllByRole("row")).toHaveLength(12);
+    expect(screen.queryByRole("navigation", { name: /pagination/i })).toBeNull();
+  });
+
   it("filters rows from the global search input and clears them", async () => {
     const user = userEvent.setup();
 
