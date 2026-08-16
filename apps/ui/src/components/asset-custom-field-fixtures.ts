@@ -21,8 +21,8 @@ export const ASSET_CUSTOM_FIELD_FIXTURES: Array<AssetCustomFieldDefinition> = [
   },
   {
     id: "7f732d2b-8985-4551-b45d-0eaf527a1577",
-    key: "environment",
-    name: "Environment",
+    key: "deployment_tier",
+    name: "Deployment tier",
     required: true,
     type: AssetCustomFieldType.Select,
     defaultValue: "production",

@@ -55,6 +55,7 @@ describe("AssetCustomFieldForm", () => {
     expect(screen.getByRole("combobox", { name: /type/i })).toBeTruthy();
     expect(screen.getByRole("checkbox", { name: /required/i })).toBeTruthy();
     expect(screen.getByLabelText(/default value/i)).toBeTruthy();
+    expect(screen.getByText(/cannot recreate core asset metadata/i)).toBeTruthy();
     expect(screen.getByRole("button", { name: /create custom field/i })).toBeTruthy();
   });
 
@@ -141,8 +142,8 @@ describe("AssetCustomFieldForm", () => {
 
   it("validates duplicate select option values", () => {
     const result = assetCustomFieldFormSchema.safeParse({
-      name: "Environment",
-      key: "environment",
+      name: "Deployment tier",
+      key: "deployment_tier",
       type: AssetCustomFieldType.Select,
       required: false,
       defaultValue: "",
@@ -164,6 +165,25 @@ describe("AssetCustomFieldForm", () => {
         }),
       ]),
     );
+  });
+
+  it("validates reserved core asset metadata keys", () => {
+    const values = {
+      name: "Environment",
+      key: "environment",
+      type: AssetCustomFieldType.Text,
+      required: false,
+      defaultValue: "",
+      options: [{ value: "", label: "" }],
+    };
+
+    expect(validateAssetCustomFieldFormRuleValues(values)).toEqual([
+      {
+        reason: AssetCustomFieldRuleViolationReason.ReservedKey,
+        path: ["key"],
+        message: "This key is reserved for core asset metadata",
+      },
+    ]);
   });
 
   it("maps text, number, and select form values to API payloads", () => {
@@ -203,8 +223,8 @@ describe("AssetCustomFieldForm", () => {
 
     expect(
       mapAssetCustomFieldFormValues({
-        name: "Environment",
-        key: "environment",
+        name: "Deployment tier",
+        key: "deployment_tier",
         type: AssetCustomFieldType.Select,
         required: true,
         defaultValue: "production",
@@ -214,8 +234,8 @@ describe("AssetCustomFieldForm", () => {
         ],
       }),
     ).toEqual({
-      name: "Environment",
-      key: "environment",
+      name: "Deployment tier",
+      key: "deployment_tier",
       type: AssetCustomFieldType.Select,
       required: true,
       defaultValue: "production",
@@ -236,8 +256,8 @@ describe("AssetCustomFieldForm", () => {
     }
 
     expect(mapAssetCustomFieldDefinitionToFormValues(field)).toEqual({
-      name: "Environment",
-      key: "environment",
+      name: "Deployment tier",
+      key: "deployment_tier",
       type: AssetCustomFieldType.Select,
       required: true,
       defaultValue: "production",
@@ -251,8 +271,8 @@ describe("AssetCustomFieldForm", () => {
   it("maps edit form values to a full update payload", () => {
     expect(
       mapUpdateAssetCustomFieldFormValues({
-        name: "Environment",
-        key: "environment",
+        name: "Deployment tier",
+        key: "deployment_tier",
         type: AssetCustomFieldType.Select,
         required: true,
         defaultValue: "production",
@@ -262,8 +282,8 @@ describe("AssetCustomFieldForm", () => {
         ],
       }),
     ).toEqual({
-      name: "Environment",
-      key: "environment",
+      name: "Deployment tier",
+      key: "deployment_tier",
       type: AssetCustomFieldType.Select,
       required: true,
       defaultValue: "production",

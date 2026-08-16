@@ -36,6 +36,8 @@ export function assetCustomFieldRuleViolationMessage(
   surface: AssetCustomFieldRuleValidationSurface,
 ): string {
   switch (reason) {
+    case AssetCustomFieldRuleViolationReason.ReservedKey:
+      return "This key is reserved for core asset metadata";
     case AssetCustomFieldRuleViolationReason.RequiredDefaultMissing:
       return "Required fields need a default value";
     case AssetCustomFieldRuleViolationReason.TextDefaultMustBeString:

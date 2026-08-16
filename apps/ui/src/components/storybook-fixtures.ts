@@ -157,8 +157,8 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
       },
       {
         fieldId: ASSET_CUSTOM_FIELD_FIXTURES[2].id,
-        key: "environment",
-        name: "Environment",
+        key: "deployment_tier",
+        name: "Deployment tier",
         options: STORY_ENVIRONMENT_OPTIONS,
         source: AssetCustomFieldValueSource.Asset,
         type: AssetCustomFieldType.Select,
@@ -187,8 +187,8 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
       },
       {
         fieldId: ASSET_CUSTOM_FIELD_FIXTURES[2].id,
-        key: "environment",
-        name: "Environment",
+        key: "deployment_tier",
+        name: "Deployment tier",
         options: STORY_ENVIRONMENT_OPTIONS,
         source: AssetCustomFieldValueSource.Asset,
         type: AssetCustomFieldType.Select,

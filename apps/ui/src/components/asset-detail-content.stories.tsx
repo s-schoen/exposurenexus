@@ -95,8 +95,8 @@ const CUSTOM_FIELDS: Array<AssetCustomFieldValue> = [
   },
   {
     fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
-    key: "environment",
-    name: "Environment",
+    key: "deployment_tier",
+    name: "Deployment tier",
     source: AssetCustomFieldValueSource.Asset,
     type: AssetCustomFieldType.Select,
     value: "production",

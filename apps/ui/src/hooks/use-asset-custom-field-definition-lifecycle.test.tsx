@@ -64,8 +64,8 @@ function createDefinitionFixture(
 ): AssetCustomFieldDefinition {
   return {
     id: overrides.id ?? "bb4d076a-1ae9-43d7-8cef-69eba82de2af",
-    key: overrides.key ?? "environment",
-    name: overrides.name ?? "Environment",
+    key: overrides.key ?? "deployment_tier",
+    name: overrides.name ?? "Deployment tier",
     required: overrides.required ?? false,
     type: AssetCustomFieldType.Text,
     defaultValue: "defaultValue" in overrides ? overrides.defaultValue : "production",
@@ -76,8 +76,8 @@ function createDefinitionPayload(
   overrides: Partial<CreateAssetCustomFieldDefinition> = {},
 ): CreateAssetCustomFieldDefinition {
   return {
-    key: overrides.key ?? "environment",
-    name: overrides.name ?? "Environment",
+    key: overrides.key ?? "deployment_tier",
+    name: overrides.name ?? "Deployment tier",
     required: overrides.required ?? false,
     type: AssetCustomFieldType.Text,
     defaultValue: "defaultValue" in overrides ? overrides.defaultValue : "production",
@@ -141,17 +141,17 @@ describe("useAssetCustomFieldDefinitionLifecycle", () => {
       queryKey: createAssetCustomFieldDefinitionByIDQueryOptions(definition.id).queryKey,
       exact: true,
     });
-    expect(toastSuccessMock).toHaveBeenCalledWith("Created custom field Environment");
+    expect(toastSuccessMock).toHaveBeenCalledWith("Created custom field Deployment tier");
   });
 
   it("updates definition detail cache after successful updates", async () => {
     const definition = createDefinitionFixture();
     const updatedDefinition = createDefinitionFixture({
-      name: "Environment label",
+      name: "Deployment tier label",
       defaultValue: "production",
     });
     const payload: UpdateAssetCustomFieldDefinition = createDefinitionPayload({
-      name: "Environment label",
+      name: "Deployment tier label",
     }) as UpdateAssetCustomFieldDefinition;
     updateDefinitionRequestMock.mockResolvedValueOnce(updatedDefinition);
     const { queryClient, result } = renderLifecycleHook();
@@ -165,13 +165,13 @@ describe("useAssetCustomFieldDefinitionLifecycle", () => {
     expect(queryClient.getQueryData<AssetCustomFieldDefinition>(queryKey)).toEqual(
       updatedDefinition,
     );
-    expect(toastSuccessMock).toHaveBeenCalledWith("Updated custom field Environment label");
+    expect(toastSuccessMock).toHaveBeenCalledWith("Updated custom field Deployment tier label");
   });
 
   it("reports update failures without changing cached definition detail", async () => {
     const definition = createDefinitionFixture();
     const payload: UpdateAssetCustomFieldDefinition = createDefinitionPayload({
-      name: "Environment label",
+      name: "Deployment tier label",
     }) as UpdateAssetCustomFieldDefinition;
     const error = new Error("Update failed");
     updateDefinitionRequestMock.mockRejectedValueOnce(error);
@@ -248,7 +248,7 @@ describe("useAssetCustomFieldDefinitionLifecycle", () => {
   it("reports partial delete failures and invalidates affected reads", async () => {
     const first = createDefinitionFixture({
       id: "bb4d076a-1ae9-43d7-8cef-69eba82de2af",
-      name: "Environment",
+      name: "Deployment tier",
     });
     const second = createDefinitionFixture({
       id: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",

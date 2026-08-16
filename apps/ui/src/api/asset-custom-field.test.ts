@@ -44,8 +44,8 @@ function requestJsonBody(): unknown {
 
 const definition: AssetCustomFieldDefinition = {
   id: "33d63e64-8f2b-4f88-b26f-fb090b4366ff",
-  key: "environment",
-  name: "Environment",
+  key: "deployment_tier",
+  name: "Deployment tier",
   required: false,
   type: AssetCustomFieldType.Select,
   defaultValue: "production",
@@ -60,8 +60,8 @@ const definition: AssetCustomFieldDefinition = {
 };
 
 const payload: UpdateAssetCustomFieldDefinition = {
-  key: "environment",
-  name: "Environment",
+  key: "deployment_tier",
+  name: "Deployment tier",
   required: false,
   type: AssetCustomFieldType.Select,
   defaultValue: "production",

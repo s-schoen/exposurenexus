@@ -55,7 +55,7 @@ describe("useAssetTableSearchState", () => {
       createAssetTableFilterState(
         {
           category: "internet",
-          environment: "production,staging",
+           deployment_tier: "production,staging",
           filter: "api",
           priority: "3",
         },
@@ -119,7 +119,7 @@ describe("useAssetTableSearchState", () => {
       ),
     ).toEqual({
       category: "internet",
-      environment: "production,staging",
+       deployment_tier: "production,staging",
       filter: "edge",
       priority: undefined,
     });
@@ -192,8 +192,8 @@ describe("useAssetTableSearchState", () => {
         selected: "asset-1",
       }),
     ).toEqual({
-      category: "internet",
-      environment: "production,staging",
+       category: "internet",
+       deployment_tier: "production,staging",
       filter: "edge",
       priority: "3",
       selected: "asset-1",
