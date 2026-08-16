@@ -77,9 +77,11 @@ const mocks = vi.hoisted(() => {
     ownerId: null,
     identifiers: [],
   };
+  const assetListOptions: unknown = undefined;
 
   return {
     assetDialogCall: vi.fn(),
+    assetListOptions,
     assets,
     confirmDelete: vi.fn(),
     createAsset: vi.fn(),
@@ -135,9 +137,13 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 vi.mock("@/api/asset.ts", () => ({
-  createListAssetsWithCustomFieldsQueryOptions: () => ({
-    queryKey: ["assets", "with-custom-fields"],
-  }),
+  createListAssetsWithCustomFieldsQueryOptions: (options?: unknown) => {
+    mocks.assetListOptions = options;
+
+    return {
+      queryKey: ["assets", "with-custom-fields"],
+    };
+  },
 }));
 
 vi.mock("@/api/asset-custom-field.ts", () => ({
@@ -268,6 +274,7 @@ function renderAssetsRoute({
 describe("AssetsPage", () => {
   beforeEach(() => {
     mocks.assetDialogCall.mockReset();
+    mocks.assetListOptions = undefined;
     mocks.assetDialogCall.mockResolvedValue(mocks.createdAsset);
     mocks.confirmDelete.mockReset();
     mocks.confirmDelete.mockResolvedValue(true);
@@ -330,6 +337,26 @@ describe("AssetsPage", () => {
       );
       expect(screen.getByText("worker-02")).toBeVisible();
       expect(screen.queryByText("api-01")).not.toBeInTheDocument();
+    });
+  });
+
+  it("sends route-owned core search and filters to the asset query", () => {
+    renderAssetsRoute({
+      initialSearch: {
+        filter: "api.example.com",
+        assetType: "host",
+        assetEnvironment: "production",
+        assetLifecycleState: "archived",
+        assetOwnerId: "none",
+      },
+    });
+
+    expect(mocks.assetListOptions).toEqual({
+      filter: "api.example.com",
+      assetType: ["host"],
+      assetEnvironment: ["production"],
+      assetLifecycleState: ["archived"],
+      assetOwnerId: ["none"],
     });
   });
 

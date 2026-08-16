@@ -158,6 +158,38 @@ describe("asset custom field value api", () => {
     );
   });
 
+  it("sends inventory search and core filters to the asset list endpoint", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          items: [asset],
+        },
+      }),
+    );
+
+    const queryOptions = createListAssetsQueryOptions({
+      filter: "api.example.com",
+      assetType: [AssetType.Host, AssetType.Software],
+      assetEnvironment: [AssetEnvironment.Production],
+      assetLifecycleState: [AssetLifecycleState.Archived],
+      assetOwnerId: ["f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d", "none"],
+    });
+    const queryFn = queryOptions.queryFn as () => Promise<Array<Asset>>;
+
+    await expect(queryFn()).resolves.toEqual([asset]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/assets?filter=api.example.com&assetType=host%2Csoftware&assetEnvironment=production&assetLifecycleState=archived&assetOwnerId=f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d%2Cnone",
+      expect.objectContaining({
+        credentials: "include",
+        method: "GET",
+      }),
+    );
+    expect(queryOptions.queryKey).toEqual([
+      "assets",
+      "filter=api.example.com&assetType=host%2Csoftware&assetEnvironment=production&assetLifecycleState=archived&assetOwnerId=f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d%2Cnone",
+    ]);
+  });
+
   it("rejects malformed asset replies", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
@@ -349,6 +381,31 @@ describe("asset custom field value api", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/assets?includeCustomFields=true",
+      expect.objectContaining({
+        method: "GET",
+        credentials: "include",
+      }),
+    );
+  });
+
+  it("sends filters when listing assets with custom field values", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          items: assetsWithCustomFields,
+        },
+      }),
+    );
+
+    await expect(
+      listAssetsWithCustomFields({
+        filter: "api.example.com",
+        assetType: [AssetType.Host],
+      }),
+    ).resolves.toEqual(assetsWithCustomFields);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/assets?includeCustomFields=true&filter=api.example.com&assetType=host",
       expect.objectContaining({
         method: "GET",
         credentials: "include",

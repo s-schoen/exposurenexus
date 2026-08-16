@@ -1,3 +1,8 @@
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/types/model/asset";
 import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
 
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx";
@@ -16,12 +21,22 @@ export function getAssetCustomFieldColumnId(fieldId: string) {
   return `custom-field:${fieldId}`;
 }
 
+export const ASSET_OWNERLESS_FILTER_VALUE = "none";
+
+function createEnumFilterOptions<T extends string>(values: ReadonlyArray<T>) {
+  return values.map((value) => ({
+    label: capitalizeFirstLetter(value),
+    value,
+  }));
+}
+
 function createBaseColumns(
   userProfileById: Map<string, UserProfile>,
   usersLoading = false,
 ): Array<DataTableColumnDef<AssetWithCustomFields>> {
   return [
     {
+      id: "displayName",
       accessorKey: "displayName",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Display name" />,
       meta: {
@@ -29,33 +44,88 @@ function createBaseColumns(
       },
     },
     {
+      id: "identifiers",
+      accessorFn: (asset) => asset.identifiers.map((identifier) => identifier.value).join(" "),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Identifiers" />,
+      cell: ({ row }) => {
+        const identifiers = row.original.identifiers;
+
+        if (identifiers.length === 0) {
+          return <span className="text-muted-foreground">No identifiers</span>;
+        }
+
+        return (
+          <div className="max-w-80 space-y-0.5">
+            {identifiers.slice(0, 2).map((identifier) => (
+              <span
+                key={identifier.id}
+                className="block truncate font-mono text-xs"
+                title={identifier.value}
+              >
+                {identifier.value}
+              </span>
+            ))}
+            {identifiers.length > 2 && (
+              <span className="block text-xs text-muted-foreground">
+                +{identifiers.length - 2} more
+              </span>
+            )}
+          </div>
+        );
+      },
+      meta: {
+        label: "Identifiers",
+      },
+    },
+    {
+      id: "type",
       accessorKey: "type",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
       cell: ({ row }) => {
         return <span>{capitalizeFirstLetter(row.getValue("type"))}</span>;
       },
+      filterFn: (row, _columnId, filterValue: Array<string>) => {
+        if (filterValue.length === 0) return true;
+        return filterValue.includes(String(row.getValue("type")));
+      },
       meta: {
         label: "Type",
+        filterVariant: "select",
+        options: createEnumFilterOptions(Object.values(AssetType)),
       },
     },
     {
+      id: "environment",
       accessorKey: "environment",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Environment" />,
       cell: ({ row }) => {
         return <span>{capitalizeFirstLetter(row.getValue("environment"))}</span>;
       },
+      filterFn: (row, _columnId, filterValue: Array<string>) => {
+        if (filterValue.length === 0) return true;
+        return filterValue.includes(String(row.getValue("environment")));
+      },
       meta: {
         label: "Environment",
+        filterVariant: "select",
+        options: createEnumFilterOptions(Object.values(AssetEnvironment)),
       },
     },
     {
+      id: "lifecycleState",
       accessorKey: "lifecycleState",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Lifecycle state" />,
       cell: ({ row }) => {
         return <span>{capitalizeFirstLetter(row.getValue("lifecycleState"))}</span>;
       },
+      filterFn: (row, _columnId, filterValue: Array<string>) => {
+        if (filterValue.length === 0) return true;
+        return filterValue.includes(String(row.getValue("lifecycleState")));
+      },
       meta: {
         label: "Lifecycle state",
+        filterVariant: "select",
+        options: createEnumFilterOptions(Object.values(AssetLifecycleState)),
       },
     },
     {
@@ -80,8 +150,19 @@ function createBaseColumns(
           unknownLabel="Unknown Owner"
         />
       ),
+      filterFn: (row, _columnId, filterValue: Array<string>) => {
+        if (filterValue.length === 0) return true;
+        return filterValue.includes(row.original.ownerId ?? ASSET_OWNERLESS_FILTER_VALUE);
+      },
       meta: {
         label: "Owner",
+        filterVariant: "select",
+        options: [
+          { label: "No owner", value: ASSET_OWNERLESS_FILTER_VALUE },
+          ...[...userProfileById.values()]
+            .sort((left, right) => left.displayName.localeCompare(right.displayName))
+            .map((user) => ({ label: user.displayName, value: user.id })),
+        ],
       },
     },
   ];

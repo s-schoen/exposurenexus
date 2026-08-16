@@ -33,6 +33,23 @@ describe("useAssetTableSearchState", () => {
     });
   });
 
+  it("validates core asset filter search params", () => {
+    expect(
+      validateAssetTableSearch({
+        assetType: "host,software",
+        assetEnvironment: "production",
+        assetLifecycleState: "archived",
+        assetOwnerId: "none",
+      }),
+    ).toEqual({
+      filter: undefined,
+      assetType: "host,software",
+      assetEnvironment: "production",
+      assetLifecycleState: "archived",
+      assetOwnerId: "none",
+    });
+  });
+
   it("parses dynamic top-level custom field params into table filters", () => {
     expect(
       createAssetTableFilterState(
@@ -61,6 +78,27 @@ describe("useAssetTableSearchState", () => {
     });
   });
 
+  it("parses core asset filter params alongside custom field filters", () => {
+    expect(
+      createAssetTableFilterState(
+        {
+          assetType: "host,software",
+          assetEnvironment: "production",
+          assetLifecycleState: "archived",
+          assetOwnerId: "none",
+        },
+        ASSET_CUSTOM_FIELD_FIXTURES,
+      ),
+    ).toMatchObject({
+      selectFilters: {
+        type: ["host", "software"],
+        environment: ["production"],
+        lifecycleState: ["archived"],
+        ownerId: ["none"],
+      },
+    });
+  });
+
   it("serializes dynamic custom field filter params and clears inactive ones", () => {
     expect(
       createAssetTableSearchParams(
@@ -84,6 +122,30 @@ describe("useAssetTableSearchState", () => {
       environment: "production,staging",
       filter: "edge",
       priority: undefined,
+    });
+  });
+
+  it("serializes core asset filters without colliding with custom field keys", () => {
+    expect(
+      createAssetTableSearchParams(
+        {
+          globalFilter: "edge",
+          selectFilters: {
+            type: ["host"],
+            environment: ["production"],
+            lifecycleState: ["archived"],
+            ownerId: ["none"],
+          },
+          textFilters: {},
+          numberFilters: {},
+        },
+        ASSET_CUSTOM_FIELD_FIXTURES,
+      ),
+    ).toMatchObject({
+      assetType: "host",
+      assetEnvironment: "production",
+      assetLifecycleState: "archived",
+      assetOwnerId: "none",
     });
   });
 

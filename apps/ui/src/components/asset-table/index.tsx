@@ -15,6 +15,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DataTable } from "@/components/data-table/data-table.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { createUserProfileById, formatUserProfileReference } from "@/components/user-label.tsx";
+import { createAssetListOptions } from "@/hooks/use-asset-table-search-state.ts";
 import { useAssetLifecycle } from "@/hooks/use-asset-lifecycle.ts";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
@@ -68,7 +69,9 @@ export function AssetTable({
 }: AssetTableProps = {}) {
   const navigate = useNavigate();
   const assetLifecycle = useAssetLifecycle();
-  const assetsQuery = useQuery(createListAssetsWithCustomFieldsQueryOptions());
+  const assetsQuery = useQuery(
+    createListAssetsWithCustomFieldsQueryOptions(createAssetListOptions(filterState)),
+  );
   const usersQuery = useQuery(createListUsersQueryOptions());
   const customFieldDefinitionsQuery = useQuery(createListAssetCustomFieldDefinitionsQueryOptions());
   const customFieldDefinitions = useMemo(

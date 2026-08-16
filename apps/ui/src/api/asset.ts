@@ -19,9 +19,12 @@ import {
 
 import type {
   Asset,
+  AssetEnvironment,
   AssetIdentifierRecord,
+  AssetLifecycleState,
   CreateAsset,
   CreateAssetIdentifier,
+  AssetType,
   AssetWithCustomFields,
   UpdateAsset,
   UpdateAssetIdentifier,
@@ -33,8 +36,61 @@ import type {
   UpdateAssetCustomFieldValues,
 } from "@exposurenexus/types/model/asset-custom-field";
 
-async function listAssets(): Promise<Array<Asset>> {
-  const response = await apiRequest("/api/assets", {
+export interface AssetListOptions {
+  filter?: string;
+  assetType?: ReadonlyArray<AssetType>;
+  assetEnvironment?: ReadonlyArray<AssetEnvironment>;
+  assetLifecycleState?: ReadonlyArray<AssetLifecycleState>;
+  assetOwnerId?: ReadonlyArray<string>;
+}
+
+function createAssetListQueryString(options?: AssetListOptions): string {
+  const params = new URLSearchParams();
+  const filter = options?.filter?.trim();
+
+  if (filter) {
+    params.set("filter", filter);
+  }
+
+  if (options?.assetType && options.assetType.length > 0) {
+    params.set("assetType", options.assetType.join(","));
+  }
+
+  if (options?.assetEnvironment && options.assetEnvironment.length > 0) {
+    params.set("assetEnvironment", options.assetEnvironment.join(","));
+  }
+
+  if (options?.assetLifecycleState && options.assetLifecycleState.length > 0) {
+    params.set("assetLifecycleState", options.assetLifecycleState.join(","));
+  }
+
+  if (options?.assetOwnerId && options.assetOwnerId.length > 0) {
+    params.set("assetOwnerId", options.assetOwnerId.join(","));
+  }
+
+  return params.toString();
+}
+
+function createAssetListUrl(includeCustomFields: boolean, options?: AssetListOptions): string {
+  const params = new URLSearchParams();
+
+  if (includeCustomFields) {
+    params.set("includeCustomFields", "true");
+  }
+
+  const query = createAssetListQueryString(options);
+  if (query) {
+    for (const [key, value] of new URLSearchParams(query)) {
+      params.set(key, value);
+    }
+  }
+
+  const serialized = params.toString();
+  return serialized ? `/api/assets?${serialized}` : "/api/assets";
+}
+
+async function listAssets(options?: AssetListOptions): Promise<Array<Asset>> {
+  const response = await apiRequest(createAssetListUrl(false, options), {
     method: "GET",
   });
 
@@ -47,8 +103,10 @@ async function listAssets(): Promise<Array<Asset>> {
   return parseArrayReply(response, assetSchema);
 }
 
-export async function listAssetsWithCustomFields(): Promise<Array<AssetWithCustomFields>> {
-  const response = await apiRequest("/api/assets?includeCustomFields=true", {
+export async function listAssetsWithCustomFields(
+  options?: AssetListOptions,
+): Promise<Array<AssetWithCustomFields>> {
+  const response = await apiRequest(createAssetListUrl(true, options), {
     method: "GET",
   });
 
@@ -259,19 +317,23 @@ export async function deleteAssetIdentifier(
   return parseObjectReply(response, assetIdentifierRecordSchema);
 }
 
-export function createListAssetsQueryOptions() {
+export function createListAssetsQueryOptions(options?: AssetListOptions) {
+  const query = createAssetListQueryString(options);
+
   return queryOptions({
-    queryKey: ["assets"],
-    queryFn: () => listAssets(),
+    queryKey: query ? ["assets", query] : ["assets"],
+    queryFn: () => listAssets(options),
     placeholderData: keepPreviousData,
     staleTime: DEFAULT_QUERY_STALE_TIME,
   });
 }
 
-export function createListAssetsWithCustomFieldsQueryOptions() {
+export function createListAssetsWithCustomFieldsQueryOptions(options?: AssetListOptions) {
+  const query = createAssetListQueryString(options);
+
   return queryOptions({
-    queryKey: ["assets", "with-custom-fields"],
-    queryFn: () => listAssetsWithCustomFields(),
+    queryKey: query ? ["assets", "with-custom-fields", query] : ["assets", "with-custom-fields"],
+    queryFn: () => listAssetsWithCustomFields(options),
     placeholderData: keepPreviousData,
     staleTime: DEFAULT_QUERY_STALE_TIME,
   });

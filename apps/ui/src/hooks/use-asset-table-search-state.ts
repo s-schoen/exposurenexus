@@ -2,10 +2,13 @@ import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-fi
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 
+import type { AssetListOptions } from "@/api/asset.ts";
 import { getAssetCustomFieldColumnId } from "@/components/asset-table/columns.tsx";
 import {
   createDataTableFilterState,
+  createSearchParamArray,
   createSearchParamString,
+  getSearchParamArray,
   getFilterValue,
   getSearchParamString,
 } from "@/lib/data-table-search-state.ts";
@@ -22,6 +25,18 @@ export interface AssetCustomFieldFilterSearchState {
 export function validateAssetTableSearch(search: Record<string, unknown>) {
   return {
     filter: getSearchParamString(search.filter),
+    ...(getSearchParamString(search.assetType)
+      ? { assetType: getSearchParamString(search.assetType) }
+      : {}),
+    ...(getSearchParamString(search.assetEnvironment)
+      ? { assetEnvironment: getSearchParamString(search.assetEnvironment) }
+      : {}),
+    ...(getSearchParamString(search.assetLifecycleState)
+      ? { assetLifecycleState: getSearchParamString(search.assetLifecycleState) }
+      : {}),
+    ...(getSearchParamString(search.assetOwnerId)
+      ? { assetOwnerId: getSearchParamString(search.assetOwnerId) }
+      : {}),
   };
 }
 
@@ -72,7 +87,13 @@ export function createAssetTableFilterState(
 
   return createDataTableFilterState({
     globalFilter: getSearchParamString(search.filter) ?? "",
-    selectFilters: customFieldFilters.select,
+    selectFilters: {
+      type: getSearchParamArray(search.assetType),
+      environment: getSearchParamArray(search.assetEnvironment),
+      lifecycleState: getSearchParamArray(search.assetLifecycleState),
+      ownerId: getSearchParamArray(search.assetOwnerId),
+      ...customFieldFilters.select,
+    },
     textFilters: customFieldFilters.text,
     numberFilters: customFieldFilters.number,
   });
@@ -118,9 +139,46 @@ export function createAssetTableSearchParams(
 ) {
   return {
     filter: createSearchParamString(filterState.globalFilter),
+    assetType: createSearchParamArray(filterState.selectFilters.type),
+    assetEnvironment: createSearchParamArray(filterState.selectFilters.environment),
+    assetLifecycleState: createSearchParamArray(filterState.selectFilters.lifecycleState),
+    assetOwnerId: createSearchParamArray(filterState.selectFilters.ownerId),
     ...createClearedAssetCustomFieldSearchParams(customFieldDefinitions),
     ...createAssetCustomFieldSearchParams(filterState, customFieldDefinitions),
   };
+}
+
+export function createAssetListOptions(
+  filterState: DataTableFilterState | undefined,
+): AssetListOptions | undefined {
+  if (!filterState) {
+    return undefined;
+  }
+
+  const options: AssetListOptions = {};
+  const filter = filterState.globalFilter.trim();
+  const assetType = filterState.selectFilters.type;
+  const assetEnvironment = filterState.selectFilters.environment;
+  const assetLifecycleState = filterState.selectFilters.lifecycleState;
+  const assetOwnerId = filterState.selectFilters.ownerId;
+
+  if (filter) {
+    options.filter = filter;
+  }
+  if (assetType && assetType.length > 0) {
+    options.assetType = assetType as AssetListOptions["assetType"];
+  }
+  if (assetEnvironment && assetEnvironment.length > 0) {
+    options.assetEnvironment = assetEnvironment as AssetListOptions["assetEnvironment"];
+  }
+  if (assetLifecycleState && assetLifecycleState.length > 0) {
+    options.assetLifecycleState = assetLifecycleState as AssetListOptions["assetLifecycleState"];
+  }
+  if (assetOwnerId && assetOwnerId.length > 0) {
+    options.assetOwnerId = assetOwnerId;
+  }
+
+  return Object.keys(options).length > 0 ? options : undefined;
 }
 
 export function useAssetTableSearchState({
