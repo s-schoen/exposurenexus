@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { usePageMeta } from "@/context/page.tsx";
-import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 import { cn } from "@/lib/utils.ts";
 
 import type { ChangeEvent } from "react";
@@ -30,51 +29,23 @@ function formatFileSize(size: number) {
 }
 
 export function ImportFindingsPage() {
-  const findingLifecycle = useFindingLifecycle();
   const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [inputKey, setInputKey] = useState(0);
   const inputId = useId();
 
   usePageMeta({
     title: "Import Findings",
-    description: "Upload external scan results and ingest them into the platform as findings.",
+    description: "Automated scan imports are currently work in progress.",
   });
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const nextFile = e.target.files?.[0] ?? null;
     setFile(nextFile);
-    setErrorMessage(null);
   };
 
   const handleClearFile = () => {
     setFile(null);
-    setErrorMessage(null);
     setInputKey((current) => current + 1);
-  };
-
-  const handleImport = async () => {
-    if (!file) {
-      setErrorMessage("Select a nuclei export file before starting the import.");
-      return;
-    }
-
-    setIsUploading(true);
-    setErrorMessage(null);
-
-    try {
-      const result = await findingLifecycle.importFindingFile("nuclei", file);
-
-      if (!result.success) {
-        setErrorMessage(result.errorMessage);
-        return;
-      }
-
-      handleClearFile();
-    } finally {
-      setIsUploading(false);
-    }
   };
 
   return (
@@ -83,10 +54,19 @@ export function ImportFindingsPage() {
         <CardHeader>
           <CardTitle>Upload file</CardTitle>
           <CardDescription>
-            Select a nuclei export file and import it into ExposureNexus.
+            Select a nuclei export file to prepare for the future import workflow.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          <Alert>
+            <CircleAlert />
+            <AlertTitle>Automated imports are work in progress</AlertTitle>
+            <AlertDescription>
+              Importing scan results is temporarily unavailable while observation-based finding
+              matching is being implemented.
+            </AlertDescription>
+          </Alert>
+
           <Input
             key={inputKey}
             id={inputId}
@@ -128,12 +108,7 @@ export function ImportFindingsPage() {
                     </div>
                   </div>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleClearFile}
-                  disabled={isUploading}
-                >
+                <Button type="button" variant="ghost" onClick={handleClearFile}>
                   <X />
                   Clear
                 </Button>
@@ -141,26 +116,12 @@ export function ImportFindingsPage() {
             </div>
           ) : null}
 
-          {errorMessage ? (
-            <Alert variant="destructive">
-              <CircleAlert />
-              <AlertTitle>Import failed</AlertTitle>
-              <AlertDescription>{errorMessage}</AlertDescription>
-            </Alert>
-          ) : null}
-
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button onClick={handleImport} disabled={isUploading}>
+            <Button type="button" disabled>
               <UploadCloud />
-              {isUploading ? "Importing..." : "Import findings"}
+              Import findings unavailable
             </Button>
-            <label
-              htmlFor={inputId}
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                isUploading && "pointer-events-none opacity-50",
-              )}
-            >
+            <label htmlFor={inputId} className={cn(buttonVariants({ variant: "outline" }))}>
               Select another file
             </label>
           </div>

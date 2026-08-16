@@ -10,7 +10,6 @@ import {
   deleteFinding,
   reclassifyFindings,
   updateFinding,
-  uploadFindingFile,
 } from "@/api/finding.ts";
 
 import type { CreateFinding, Finding, FindingStatistics } from "@exposurenexus/types/model/finding";
@@ -315,27 +314,6 @@ describe("finding api", () => {
     );
 
     await expect(runQuery<FindingStatistics>(createFindingStatsQueryOptions())).rejects.toThrow();
-  });
-
-  it("uploads finding import files as form data", async () => {
-    fetchMock.mockResolvedValueOnce(jsonResponse({ data: {} }));
-    const file = new File(["{}"], "nuclei.json", {
-      type: "application/json",
-    });
-
-    await uploadFindingFile("nuclei", file);
-
-    const body = requestInit().body;
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/findings/import",
-      expect.objectContaining({
-        credentials: "include",
-        method: "POST",
-      }),
-    );
-    expect(body).toBeInstanceOf(FormData);
-    expect((body as FormData).get("type")).toBe("nuclei");
-    expect((body as FormData).get("file")).toBe(file);
   });
 
   it("reclassifies findings with a JSON request body", async () => {

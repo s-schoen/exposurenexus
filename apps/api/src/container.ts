@@ -1,8 +1,5 @@
 import { createApp } from "./app.js";
 import { registerEventHandlers } from "./event-handler/index.js";
-import { createFindingImporter } from "./import/importer.js";
-import { createNucleiFindingParser } from "./import/nuclei.js";
-import { createResolveAsset } from "./import/util.js";
 import { createDefaultAdmin } from "./lib/default-admin.js";
 import { EventBus } from "./lib/eventbus/eventbus.js";
 import { createLogger } from "./logging.js";
@@ -139,23 +136,6 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     logger: loggerFactory("service/stats"),
   });
 
-  const importLogger = loggerFactory("findings/import");
-  const nucleiLogger = loggerFactory("findings/import/nuclei");
-  const resolveAsset = createResolveAsset({
-    assetService,
-    logger: nucleiLogger,
-  });
-  const nucleiParser = createNucleiFindingParser({
-    vulnerabilityService,
-    findingService,
-    resolveAsset,
-    logger: nucleiLogger,
-  });
-  const importer = createFindingImporter({
-    nucleiParser,
-    logger: importLogger,
-  });
-
   const csrfProtection = createCsrfProtection({
     allowedOrigins: [options.appOrigin],
     tokenSecret: options.authSessionHmacSecret,
@@ -184,8 +164,6 @@ export function createAppContainer(options: CreateAppContainerOptions) {
       requireDomainPermission,
     }),
     importerRoute: createImportRoute({
-      importer,
-      logger: importLogger,
       requireDomainPermission,
     }),
   };
@@ -220,7 +198,6 @@ export function createAppContainer(options: CreateAppContainerOptions) {
       findingService,
       statsService,
     },
-    importer,
     routes,
     middleware,
     app,
