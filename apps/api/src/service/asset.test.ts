@@ -109,9 +109,9 @@ describe("asset service", () => {
     const assetService = createTestAssetService();
     assetRepository.getByDisplayName.mockResolvedValue(asset);
 
-    await expect(
-      assetService.getByDisplayName(asset.displayName, AssetType.Host),
-    ).resolves.toEqual(asset);
+    await expect(assetService.getByDisplayName(asset.displayName, AssetType.Host)).resolves.toEqual(
+      asset,
+    );
     expect(assetRepository.getByDisplayName).toHaveBeenCalledWith(
       asset.displayName,
       AssetType.Host,
