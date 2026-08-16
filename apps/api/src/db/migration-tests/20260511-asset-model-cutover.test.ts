@@ -59,11 +59,7 @@ describe("20260511 asset model cutover migration", () => {
         order by ordinal_position asc
       `.execute(db),
     ).resolves.toMatchObject({
-      rows: [
-        { column_name: "id" },
-        { column_name: "name" },
-        { column_name: "type" },
-      ],
+      rows: [{ column_name: "id" }, { column_name: "name" }, { column_name: "type" }],
     });
     await expect(
       sql<{ id: string; name: string; type: string }>`

@@ -1773,21 +1773,17 @@ describe("asset routes", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: AssetIdentifierType.DnsName, value: "api.example.com" }),
     });
-    const updateResponse = await app.request(
-      `/api/assets/${assetId}/identifiers/${identifierId}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: AssetIdentifierType.DnsName,
-          value: "api.internal.example.com",
-        }),
-      },
-    );
-    const deleteResponse = await app.request(
-      `/api/assets/${assetId}/identifiers/${identifierId}`,
-      { method: "DELETE" },
-    );
+    const updateResponse = await app.request(`/api/assets/${assetId}/identifiers/${identifierId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: AssetIdentifierType.DnsName,
+        value: "api.internal.example.com",
+      }),
+    });
+    const deleteResponse = await app.request(`/api/assets/${assetId}/identifiers/${identifierId}`, {
+      method: "DELETE",
+    });
 
     expect(addResponse.status).toBe(403);
     expect(updateResponse.status).toBe(403);
@@ -1822,27 +1818,21 @@ describe("asset routes", () => {
       headers: { "Content-Type": "application/json", "X-Request-Id": "identifier-add-missing" },
       body: JSON.stringify({ type: AssetIdentifierType.DnsName, value: "api.example.com" }),
     });
-    const updateResponse = await app.request(
-      `/api/assets/${assetId}/identifiers/${identifierId}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Request-Id": "identifier-update-missing",
-        },
-        body: JSON.stringify({
-          type: AssetIdentifierType.DnsName,
-          value: "api.internal.example.com",
-        }),
+    const updateResponse = await app.request(`/api/assets/${assetId}/identifiers/${identifierId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-Id": "identifier-update-missing",
       },
-    );
-    const deleteResponse = await app.request(
-      `/api/assets/${assetId}/identifiers/${identifierId}`,
-      {
-        method: "DELETE",
-        headers: { "X-Request-Id": "identifier-delete-missing" },
-      },
-    );
+      body: JSON.stringify({
+        type: AssetIdentifierType.DnsName,
+        value: "api.internal.example.com",
+      }),
+    });
+    const deleteResponse = await app.request(`/api/assets/${assetId}/identifiers/${identifierId}`, {
+      method: "DELETE",
+      headers: { "X-Request-Id": "identifier-delete-missing" },
+    });
     const addBody = await addResponse.json();
     const updateBody = await updateResponse.json();
     const deleteBody = await deleteResponse.json();
