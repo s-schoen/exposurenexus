@@ -1,8 +1,4 @@
-import {
-  AssetEnvironment,
-  AssetLifecycleState,
-  AssetType,
-} from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
 
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx";

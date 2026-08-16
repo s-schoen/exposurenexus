@@ -2,7 +2,6 @@ import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-fi
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 
-import type { AssetListOptions } from "@/api/asset.ts";
 import { getAssetCustomFieldColumnId } from "@/components/asset-table/columns.tsx";
 import {
   createDataTableFilterState,
@@ -13,6 +12,7 @@ import {
   getSearchParamString,
 } from "@/lib/data-table-search-state.ts";
 
+import type { AssetListOptions } from "@/api/asset.ts";
 import type { DataTableFilterState } from "@/components/data-table/types.ts";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
 

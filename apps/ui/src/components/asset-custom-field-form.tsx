@@ -312,7 +312,7 @@ export function AssetCustomFieldForm({
                       <SelectTrigger
                         id={field.name}
                         aria-invalid={isInvalid}
-                                       className="w-full bg-background text-foreground"
+                        className="w-full bg-background text-foreground"
                         disabled={isSubmitting}
                       >
                         <span className="min-w-0 flex-1 truncate text-left">
@@ -400,7 +400,7 @@ export function AssetCustomFieldForm({
                                     <SelectTrigger
                                       id={field.name}
                                       aria-invalid={isInvalid}
-                                       className="w-full bg-background text-foreground"
+                                      className="w-full bg-background text-foreground"
                                       disabled={isSubmitting}
                                     >
                                       <span className="min-w-0 flex-1 truncate text-left">

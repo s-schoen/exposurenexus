@@ -70,8 +70,8 @@ export const CreateNumber: Story = {
 export const CreateSelect: Story = {
   args: {
     defaultValues: {
-       name: "Deployment tier",
-       key: "deployment_tier",
+      name: "Deployment tier",
+      key: "deployment_tier",
       type: AssetCustomFieldType.Select,
       required: true,
       defaultValue: "production",
@@ -87,8 +87,8 @@ export const EditSelect: Story = {
   args: {
     mode: "edit",
     defaultValues: {
-       name: "Deployment tier",
-       key: "deployment_tier",
+      name: "Deployment tier",
+      key: "deployment_tier",
       type: AssetCustomFieldType.Select,
       required: true,
       defaultValue: "production",
