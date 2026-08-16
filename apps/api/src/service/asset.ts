@@ -148,6 +148,7 @@ export interface AssetService {
   listAllWithCustomFields(options?: AssetListOptions): Promise<AssetWithCustomFields[]>;
   getByID(id: string): Promise<Asset | null>;
   getByDisplayName(displayName: string, type?: AssetType): Promise<Asset | null>;
+  listByDisplayName(displayName: string, type?: AssetType): Promise<Asset[]>;
   create(opts: CreateAssetOptions): Promise<Asset>;
   updateByID(opts: UpdateAssetOptions): Promise<Asset | null>;
   addIdentifier(opts: AddAssetIdentifierOptions): Promise<AssetIdentifierRecord | null>;
@@ -314,6 +315,24 @@ export function createAssetService({
           code: "asset.get_by_name_failed",
           kind: "unexpected",
           message: "failed to get asset",
+          cause: error,
+          details: { assetDisplayName: displayName, assetType: type },
+        });
+      }
+    },
+
+    async listByDisplayName(displayName: string, type?: AssetType): Promise<Asset[]> {
+      try {
+        return await assetRepository.listByDisplayName(displayName, type);
+      } catch (error) {
+        logger.error(
+          error,
+          `failed to list assets with displayName='${displayName}' and type=${type}`,
+        );
+        throw new ApplicationError({
+          code: "asset.list_by_display_name_failed",
+          kind: "unexpected",
+          message: "failed to list assets",
           cause: error,
           details: { assetDisplayName: displayName, assetType: type },
         });

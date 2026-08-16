@@ -37,6 +37,7 @@ export interface AssetRepository {
   list(options?: AssetListOptions): Promise<Asset[]>;
   getByID(id: string): Promise<Asset | null>;
   getByDisplayName(displayName: string, type?: AssetType): Promise<Asset | null>;
+  listByDisplayName(displayName: string, type?: AssetType): Promise<Asset[]>;
   getIdentifierByID(assetId: string, identifierId: string): Promise<AssetIdentifierRecord | null>;
   getAssetIDByIdentifier(identifier: AssetIdentifierIdentity): Promise<string | null>;
   create(asset: CreateAssetRecord): Promise<Asset>;
@@ -217,6 +218,15 @@ export function createAssetRepository(database: Kysely<Database>): AssetReposito
 
       const asset = await query.executeTakeFirst();
       return asset ? ((await toAssets(database, [asset]))[0] ?? null) : null;
+    },
+
+    async listByDisplayName(displayName: string, type?: AssetType): Promise<Asset[]> {
+      let query = database.selectFrom("asset").selectAll().where("displayName", "=", displayName);
+      if (type) {
+        query = query.where("type", "=", type);
+      }
+
+      return await toAssets(database, await query.execute());
     },
 
     async getIdentifierByID(

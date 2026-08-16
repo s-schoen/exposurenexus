@@ -12,6 +12,10 @@ export type AssetApplicationErrorCatalog = {
     kind: "unexpected";
     details: { assetDisplayName: string; assetType: AssetType | undefined };
   };
+  "asset.list_by_display_name_failed": {
+    kind: "unexpected";
+    details: { assetDisplayName: string; assetType: AssetType | undefined };
+  };
   "asset.owner_unknown": {
     kind: "validation";
     details: { ownerId: string };
