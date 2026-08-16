@@ -182,6 +182,31 @@ describe("nuclei importer", () => {
     expect(findingService.createOrUpdate).not.toHaveBeenCalled();
   });
 
+  it("does not create vulnerability records for unresolved assets", async () => {
+    const parser = createNucleiFindingParser({
+      vulnerabilityService,
+      findingService,
+      resolveAsset,
+      logger,
+    });
+
+    vulnerabilityService.listMappings.mockResolvedValue([]);
+    vulnerabilityService.create.mockResolvedValue(vulnerability as Vulnerability);
+    resolveAsset.mockResolvedValue(null);
+
+    await expect(
+      parser.parseNucleiFindings(ctx, Buffer.from(`${JSON.stringify(nucleiFinding)}\n`)),
+    ).resolves.toEqual([]);
+
+    expect(resolveAsset).toHaveBeenCalledWith({
+      type: AssetType.Host,
+      displayName: "api.exposurenexus.local",
+    });
+    expect(vulnerabilityService.create).not.toHaveBeenCalled();
+    expect(vulnerabilityService.createMapping).not.toHaveBeenCalled();
+    expect(findingService.createOrUpdate).not.toHaveBeenCalled();
+  });
+
   it("skips unresolved records while importing resolvable records", async () => {
     const parser = createNucleiFindingParser({
       vulnerabilityService,
@@ -317,7 +342,6 @@ describe("nuclei importer", () => {
 
     expect(result).toEqual([]);
     expect(vulnerabilityService.create).not.toHaveBeenCalled();
-    expect(resolveAsset).not.toHaveBeenCalled();
   });
 
   it("throws a 400 HTTP exception when a line cannot be parsed", async () => {

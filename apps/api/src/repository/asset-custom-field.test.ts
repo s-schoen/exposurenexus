@@ -466,6 +466,23 @@ describe("asset custom field repository", () => {
     ).resolves.toEqual(valueAudit);
 
     await expect(
+      repository.replaceAssignmentsForAsset(asset.id, [category.id], noOpAssignmentAudit),
+    ).resolves.toMatchObject([
+      {
+        fieldId: category.id,
+        source: AssetCustomFieldValueSource.Asset,
+        value: "platform",
+      },
+    ]);
+    await expect(
+      testDb.db
+        .selectFrom("asset")
+        .select(["updatedAt", "updatedBy"])
+        .where("id", "=", asset.id)
+        .executeTakeFirstOrThrow(),
+    ).resolves.toEqual(valueAudit);
+
+    await expect(
       repository.replaceAssignmentsForAsset(asset.id, [], {
         updatedAt: new Date("2026-01-05T00:00:00.000Z"),
         updatedBy: "00000000-0000-0000-0000-000000000000",

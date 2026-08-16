@@ -815,6 +815,66 @@ describe("asset custom field service", () => {
     ]);
   });
 
+  it("separates persisted audit attribution from event actor metadata", async () => {
+    const persistedUser = { id: "a7d3ef96-d3b4-48bb-8386-681eb3be7b12" } as UserProfile;
+    const distinctEventContext = {
+      actor: "95d5909c-a9ab-4350-a515-4b89eb1065ae",
+      correlationId: "asset-custom-field-distinct-actor-request",
+    };
+    const previous = {
+      id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",
+      displayName: "api.exposurenexus.local",
+      type: AssetType.Host,
+      ownerId: null,
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedBy: persistedUser.id,
+    };
+    const current = {
+      ...previous,
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      updatedBy: persistedUser.id,
+    };
+    const definition = {
+      fieldId: "5bde818a-bb4f-4a0f-a5eb-a190d5142a25",
+      key: "priority",
+      name: "Priority",
+      source: AssetCustomFieldValueSource.Empty,
+      type: AssetCustomFieldType.Number,
+      value: null,
+    };
+    const updatedValue = { ...definition, value: 5 };
+    const service = createTestAssetCustomFieldService();
+
+    assetRepository.getByID.mockResolvedValueOnce(previous).mockResolvedValueOnce(current);
+    assetCustomFieldRepository.listEffectiveValuesForAsset
+      .mockResolvedValueOnce([definition])
+      .mockResolvedValueOnce([updatedValue]);
+    assetCustomFieldRepository.replaceValuesForAsset.mockResolvedValue([updatedValue]);
+
+    await expect(
+      service.replaceValuesForAsset({
+        assetId: previous.id,
+        user: persistedUser,
+        values: [{ fieldId: definition.fieldId, value: 5 }],
+        eventContext: distinctEventContext,
+      }),
+    ).resolves.toEqual([updatedValue]);
+
+    expect(assetCustomFieldRepository.replaceValuesForAsset).toHaveBeenCalledWith(
+      previous.id,
+      [{ fieldId: definition.fieldId, value: 5 }],
+      { updatedAt: expect.any(Date), updatedBy: persistedUser.id },
+    );
+    expect(domainEvents.eventsFor("asset.updated")[0]).toMatchObject({
+      actor: distinctEventContext.actor,
+      correlationId: distinctEventContext.correlationId,
+      data: {
+        previous: { ...previous, customFields: [definition] },
+        current: { ...current, customFields: [updatedValue] },
+      },
+    });
+  });
+
   it("does not emit asset update events for unchanged custom field values", async () => {
     const asset = {
       id: "76b1885f-2d28-4b7d-93da-2751ff385aa3",

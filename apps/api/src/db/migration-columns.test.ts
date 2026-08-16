@@ -285,18 +285,12 @@ describe("db migration columns", () => {
       select column_name, data_type, is_nullable
       from information_schema.columns
       where table_name = 'asset'
-        and column_name in (
-          'displayName',
-          'type',
-          'environment',
-          'lifecycleState',
-          'ownerId',
-          'createdAt',
-          'updatedAt',
-          'createdBy',
-          'updatedBy'
-        )
       order by column_name asc
+    `.execute(testDb.db);
+    const displayNameColumn = await sql<{ character_maximum_length: number | null }>`
+      select character_maximum_length
+      from information_schema.columns
+      where table_name = 'asset' and column_name = 'displayName'
     `.execute(testDb.db);
     const assetTypes = await sql<{ typname: string; enumlabel: string }>`
       select pg_type.typname, pg_enum.enumlabel
@@ -379,6 +373,7 @@ describe("db migration columns", () => {
         },
       ]),
     );
+    expect(displayNameColumn.rows).toEqual([{ character_maximum_length: 255 }]);
     expect(assetColumns.rows.map((row) => row.column_name)).not.toContain("name");
     expect(assetTypes.rows).toEqual([
       { typname: "asset_environment", enumlabel: "development" },

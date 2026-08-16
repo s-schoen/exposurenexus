@@ -189,6 +189,80 @@ describe("asset repository", () => {
     await expect(repository.list({ search: "unidentified" })).resolves.toEqual([unidentified]);
   });
 
+  it("applies each inventory filter independently", async () => {
+    const repository = createAssetRepository(testDb.db);
+    const ownerId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";
+
+    await testDb.db
+      .insertInto("user_profile")
+      .values({
+        id: ownerId,
+        username: "inventory-owner",
+        displayName: "Inventory Owner",
+        email: "inventory-owner@example.com",
+        enabled: true,
+        passwordHash: "owner-password-hash",
+      })
+      .execute();
+
+    const ownedHost = await repository.create(
+      createAssetRecord({
+        displayName: "Owned host",
+        ownerId,
+        identifiers: [
+          { type: AssetIdentifierType.IpAddress, namespace: null, value: "192.0.2.20" },
+          { type: AssetIdentifierType.DnsName, namespace: null, value: "api.second.example.com" },
+        ],
+      }),
+    );
+    const ownedSoftware = await repository.create(
+      createAssetRecord({ displayName: "Owned software", type: AssetType.Software, ownerId }),
+    );
+    const archivedHost = await repository.create(
+      createAssetRecord({
+        displayName: "Archived host",
+        lifecycleState: AssetLifecycleState.Archived,
+        ownerId,
+      }),
+    );
+    const stagingHost = await repository.create(
+      createAssetRecord({
+        displayName: "Staging host",
+        environment: AssetEnvironment.Staging,
+        ownerId,
+      }),
+    );
+    const ownerlessHost = await repository.create(
+      createAssetRecord({ displayName: "Ownerless host" }),
+    );
+
+    await expect(repository.list({ types: [AssetType.Software] })).resolves.toEqual([
+      ownedSoftware,
+    ]);
+    await expect(repository.list({ environments: [AssetEnvironment.Staging] })).resolves.toEqual([
+      stagingHost,
+    ]);
+    await expect(
+      repository.list({ lifecycleStates: [AssetLifecycleState.Archived] }),
+    ).resolves.toEqual([archivedHost]);
+    await expect(repository.list({ ownerIds: [ownerId] })).resolves.toEqual([
+      ownedHost,
+      ownedSoftware,
+      archivedHost,
+      stagingHost,
+    ]);
+    await expect(repository.list({ ownerIds: [null, ownerId] })).resolves.toEqual([
+      ownedHost,
+      ownedSoftware,
+      archivedHost,
+      stagingHost,
+      ownerlessHost,
+    ]);
+    await expect(repository.list({ search: "  API.SECOND.EXAMPLE.COM  " })).resolves.toEqual([
+      ownedHost,
+    ]);
+  });
+
   it("stores nullable asset owners and clears them when the user profile is deleted", async () => {
     const repository = createAssetRepository(testDb.db);
     const ownerId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";
@@ -253,6 +327,39 @@ describe("asset repository", () => {
         updatedBy: createdBy,
       }),
     ).resolves.toBeNull();
+  });
+
+  it("preserves omitted fields during partial asset updates", async () => {
+    const repository = createAssetRepository(testDb.db);
+    const asset = await repository.create(
+      createAssetRecord({
+        displayName: "api.exposurenexus.local",
+        type: AssetType.CloudResource,
+        environment: AssetEnvironment.Staging,
+        lifecycleState: AssetLifecycleState.Archived,
+        ownerId: createdBy,
+        identifiers: [
+          {
+            type: AssetIdentifierType.CloudResourceId,
+            namespace: "prod",
+            value: "resource-1",
+          },
+        ],
+      }),
+    );
+    const updatedAt = new Date("2026-01-02T00:00:00.000Z");
+
+    await expect(
+      repository.updateByID(asset.id, {
+        displayName: "renamed.exposurenexus.local",
+        updatedAt,
+        updatedBy: createdBy,
+      }),
+    ).resolves.toEqual({
+      ...asset,
+      displayName: "renamed.exposurenexus.local",
+      updatedAt,
+    });
   });
 
   it("persists identifiers in deterministic order and keeps their ids stable", async () => {
@@ -349,6 +456,52 @@ describe("asset repository", () => {
     await expect(repository.getAssetIDByIdentifier(identifier)).resolves.toBeNull();
   });
 
+  it("scopes identifier identity by namespace", async () => {
+    const repository = createAssetRepository(testDb.db);
+    const identifier = {
+      type: AssetIdentifierType.DnsName,
+      value: "api.example.com",
+    } as const;
+    const networkA = await repository.create(
+      createAssetRecord({
+        displayName: "Network A",
+        identifiers: [{ ...identifier, namespace: "network-a" }],
+      }),
+    );
+    const networkB = await repository.create(
+      createAssetRecord({
+        displayName: "Network B",
+        identifiers: [{ ...identifier, namespace: "network-b" }],
+      }),
+    );
+    const global = await repository.create(
+      createAssetRecord({
+        displayName: "Global",
+        identifiers: [{ ...identifier, namespace: null }],
+      }),
+    );
+
+    await expect(
+      repository.getAssetIDByIdentifier({ ...identifier, namespace: "network-a" }),
+    ).resolves.toBe(networkA.id);
+    await expect(
+      repository.getAssetIDByIdentifier({ ...identifier, namespace: "network-b" }),
+    ).resolves.toBe(networkB.id);
+    await expect(
+      repository.getAssetIDByIdentifier({ ...identifier, namespace: null }),
+    ).resolves.toBe(global.id);
+    await expect(
+      repository.addIdentifier(
+        networkB.id,
+        { ...identifier, namespace: "network-a" },
+        {
+          updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+          updatedBy: createdBy,
+        },
+      ),
+    ).rejects.toThrow(/unique|duplicate/i);
+  });
+
   it("adds and removes identifiers while auditing the parent asset", async () => {
     const repository = createAssetRepository(testDb.db);
     const asset = await repository.create(createAssetRecord());
@@ -376,6 +529,48 @@ describe("asset repository", () => {
       }),
     ).resolves.toMatchObject({ id: added!.id });
     await expect(repository.getByID(asset.id)).resolves.toMatchObject({ identifiers: [] });
+  });
+
+  it("rolls back identifier mutations when parent audit updates fail", async () => {
+    const repository = createAssetRepository(testDb.db);
+    const asset = await repository.create(createAssetRecord());
+    const invalidAudit = {
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+      updatedBy: "00000000-0000-0000-0000-000000000000",
+    };
+    const identifier = {
+      type: AssetIdentifierType.IpAddress,
+      namespace: "private",
+      value: "192.0.2.1",
+    } as const;
+
+    await expect(repository.addIdentifier(asset.id, identifier, invalidAudit)).rejects.toThrow();
+    await expect(repository.getByID(asset.id)).resolves.toMatchObject({ identifiers: [] });
+
+    const added = await repository.addIdentifier(asset.id, identifier, {
+      updatedAt: new Date("2026-01-03T00:00:00.000Z"),
+      updatedBy: createdBy,
+    });
+    expect(added).not.toBeNull();
+
+    await expect(
+      repository.updateIdentifierByID(
+        asset.id,
+        added!.id,
+        { ...identifier, value: "192.0.2.2" },
+        invalidAudit,
+      ),
+    ).rejects.toThrow();
+    await expect(repository.getByID(asset.id)).resolves.toMatchObject({
+      identifiers: [expect.objectContaining(identifier)],
+    });
+
+    await expect(
+      repository.deleteIdentifierByID(asset.id, added!.id, invalidAudit),
+    ).rejects.toThrow();
+    await expect(repository.getByID(asset.id)).resolves.toMatchObject({
+      identifiers: [expect.objectContaining(identifier)],
+    });
   });
 
   it("does not delete assets linked to findings", async () => {
