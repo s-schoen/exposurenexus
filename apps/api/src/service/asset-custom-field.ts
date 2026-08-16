@@ -24,6 +24,7 @@ import { isConflictError } from "./errors.js";
 
 import type { AssetCustomFieldRepository } from "../repository/asset-custom-field.js";
 import type { Asset, AssetWithCustomFields } from "@exposurenexus/types/model/asset";
+import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { Logger } from "pino";
 
 interface AssetLookupRepository {
@@ -32,6 +33,8 @@ interface AssetLookupRepository {
 
 function customFieldRuleViolationMessage(violation: AssetCustomFieldRuleViolation): string {
   switch (violation.reason) {
+    case AssetCustomFieldRuleViolationReason.ReservedKey:
+      return "asset custom field key is reserved for core asset metadata";
     case AssetCustomFieldRuleViolationReason.RequiredDefaultMissing:
       return "required asset custom fields must define a default value";
     case AssetCustomFieldRuleViolationReason.TextDefaultMustBeString:
@@ -122,12 +125,14 @@ export interface UpdateAssetCustomFieldDefinitionOptions {
 export interface ReplaceAssetCustomFieldAssignmentsOptions {
   assetId: string;
   fieldIds: string[];
+  user: UserProfile;
   eventContext?: DomainEventContext;
 }
 
 export interface ReplaceAssetCustomFieldValuesOptions {
   assetId: string;
   values: UpdateAssetCustomFieldValue[];
+  user: UserProfile;
   eventContext?: DomainEventContext;
 }
 
@@ -410,7 +415,7 @@ export function createAssetCustomFieldService({
     async replaceAssignmentsForAsset(
       opts: ReplaceAssetCustomFieldAssignmentsOptions,
     ): Promise<AssetCustomFieldValue[] | null> {
-      const { assetId, fieldIds, eventContext } = opts;
+      const { assetId, fieldIds, user, eventContext } = opts;
 
       try {
         const previous = await getAssetSnapshot(assetId);
@@ -446,6 +451,7 @@ export function createAssetCustomFieldService({
         const values = await assetCustomFieldRepository.replaceAssignmentsForAsset(
           assetId,
           fieldIds,
+          { updatedAt: new Date(), updatedBy: user.id },
         );
         const current = await getAssetSnapshot(assetId);
         if (current) {
@@ -474,7 +480,7 @@ export function createAssetCustomFieldService({
     async replaceValuesForAsset(
       opts: ReplaceAssetCustomFieldValuesOptions,
     ): Promise<AssetCustomFieldValue[] | null> {
-      const { assetId, values, eventContext } = opts;
+      const { assetId, values, user, eventContext } = opts;
 
       try {
         const previous = await getAssetSnapshot(assetId);
@@ -536,6 +542,7 @@ export function createAssetCustomFieldService({
         const updatedValues = await assetCustomFieldRepository.replaceValuesForAsset(
           assetId,
           values,
+          { updatedAt: new Date(), updatedBy: user.id },
         );
         const current = await getAssetSnapshot(assetId);
         if (current) {

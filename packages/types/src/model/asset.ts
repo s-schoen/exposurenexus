@@ -107,6 +107,7 @@ export type {
   AssetIdentifierValidationResult,
 } from "./asset-identifier.js";
 export {
+  ASSET_CUSTOM_FIELD_RESERVED_KEYS,
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
