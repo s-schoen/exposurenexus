@@ -1,13 +1,14 @@
 # ExposureNexus Context
 
 ExposureNexus is an open-source continuous threat exposure management (CTEM)
-platform. It collects findings from manual entry and external scanners,
-normalizes them around assets and vulnerabilities, and gives users workflows
-for triage, mitigation tracking, asset metadata, and access control.
+platform. It collects observations from manual entry and external scanners,
+organizes them into findings on assets, and gives users workflows for triage,
+mitigation tracking, asset metadata, and access control.
 
 Exposure is the product and category framing. Keep the core domain terms below
-precise: a vulnerability is the catalog item, a finding is the concrete
-occurrence on an asset, and an asset is the managed thing being affected.
+precise: a vulnerability is a catalog item, a finding is a human-facing case,
+an observation is a source detection record, and an asset is the managed thing
+being affected.
 
 Use this file as the domain glossary for issues, PRDs, refactors, tests, and
 agent work. Prefer these terms over close synonyms.
@@ -106,30 +107,74 @@ base asset representation.
 
 ### Vulnerability
 
-A **vulnerability** is a catalog entry describing a weakness that can affect one
-or more assets. It has a title, severity, optional description, optional CVE,
-and optional CWE.
+A **vulnerability** is a reusable catalog entry that enriches findings. It may
+represent a CVE, CWE, advisory, or manually curated reusable weakness. Its
+catalog identity is the combination of its type and identifier.
 
-Use **vulnerability** for the catalog item, not for a concrete occurrence on an
-asset. The concrete occurrence is a finding.
+Use **vulnerability** for the catalog item, not for a human workflow case or a
+source detection record. A finding may link to zero or more vulnerabilities;
+catalog links do not define finding identity, title, severity, or lifecycle.
+
+### Weakness
+
+A **weakness** is the underlying security problem or suspected problem,
+independent of the vulnerability catalog. A weakness may contain identifiers
+grouped by namespace, such as CVE, CWE, scanner rule, or advisory identifiers,
+and does not require a catalog match.
+
+Findings own normalized weakness data used for workflow and matching.
+Observations preserve the weakness data reported by their source.
+
+### Affected Resource
+
+An **affected resource** is the specific part of an asset affected by a
+weakness. It has an explicit type whose schema defines its allowed fields.
+
+The affected-resource type `asset` means the weakness affirmatively applies to
+the asset as a whole. `unspecified` means that a narrower affected resource is
+not known. These meanings are not interchangeable.
+
+Findings own canonical affected-resource data. Observations may additionally
+preserve source-snapshot context that is not part of long-lived finding
+identity.
 
 ### Finding
 
-A **finding** is an occurrence of a vulnerability on a specific asset. It links
-one asset to one vulnerability and carries the operational lifecycle data:
-severity, status, source, evidence, mitigation, assignee, due date, first seen
-time, last seen time, and fingerprint.
+A **finding** is the human-facing workflow case for one weakness affecting one
+asset and one canonical affected resource. It owns its title, severity, status,
+assignee, due date, mitigation, normalized weakness, and canonical affected
+resource.
 
-Findings are first-class workflow and evidence records. Deleting an asset or
-vulnerability must be blocked while any finding still references it, regardless
-of finding status. Findings are removed only by explicit finding deletion, or by
-a future explicit finding-level cleanup workflow. Subordinate implementation
-rows, such as asset custom field assignments, asset custom field values, and
-vulnerability source mappings, may cascade with their owning parent.
+Findings are the things users triage, assign, accept, mitigate, close, and see in
+finding-based counts. A finding may link to zero or more vulnerability catalog
+entries and may have zero or more observations. Removing its last observation
+does not automatically delete, close, or otherwise change the finding.
 
-Use **finding** for anything being triaged, deduplicated, imported, mitigated,
-or displayed in the finding table. Do not call this an issue unless referring to
-the project issue tracker.
+Every finding records `createdAt`, `updatedAt`, `createdBy`, and `updatedBy`.
+Creating, editing, moving, or deleting an attached observation updates the
+parent finding's update time and actor because the finding has received changed
+supporting information. Moving an observation updates both its previous and new
+parent findings.
+
+Deleting an asset is blocked while any finding references it. Deleting a
+vulnerability removes its enrichment links without deleting findings. Deleting
+a finding deletes its attached observations and enrichment links.
+
+Use **finding** for the workflow case, not for an individual scanner result. Do
+not call a finding an issue unless referring to the project issue tracker.
+
+### Observation
+
+An **observation** is a scanner or manual detection record attached to exactly
+one finding. It carries source context such as its title, source, severity,
+description, evidence, remediation, weakness, affected resource, and observed
+time. It inherits its canonical asset through its finding and does not link
+directly to vulnerability catalog entries.
+
+Observations have no lifecycle status. Correct an inaccurate observation by
+editing, moving, or deleting it; these actions do not automatically change the
+finding's workflow state. Imported observations belong to an ingestion. Manual
+observations do not.
 
 ### Finding Assignee
 
@@ -145,7 +190,7 @@ profile is deleted, their findings become unassigned. Assignment is independent
 of finding status and remains until explicitly changed or cleared. New findings
 start unassigned, including imported findings and manually created findings.
 Manual finding creation may set an assignee explicitly.
-Imports that update an existing finding preserve the existing assignee.
+Attaching imported observations preserves the existing finding assignee.
 Changing or clearing assignment is treated as editing the finding itself.
 Finding responses expose assignment as an assignee user profile ID; clients
 resolve user profile display data separately when needed.
@@ -190,26 +235,16 @@ distinct from finding status, which records lifecycle state. Scanner output may
 call this remediation, but in ExposureNexus use mitigation for finding-level
 guidance.
 
-### Finding Source
+### Observation Source
 
-A **finding source** identifies where a finding came from. Current sources are:
+An **observation source** identifies the scanner or reporting family that
+reported an observation. Current sources are:
 
-- `manual`: created directly by a user.
+- `manual`: recorded directly by a user.
 - `nuclei`: imported from a Nuclei JSONL export.
 
-The import system is intentionally source-aware so other scanners can be added
-without changing the finding model.
-
-### Fingerprint
-
-A **fingerprint** is the deduplication key for a finding. It is currently
-derived from vulnerability ID, asset ID, and optional source-specific fields.
-The Nuclei importer includes port and path in the fingerprint options.
-
-When an imported finding has the same fingerprint as an existing finding, the
-existing finding is updated and its `lastSeen` timestamp moves forward instead
-of creating a duplicate. Imports preserve the existing finding due date when
-updating a finding and do not assign a due date when creating a finding.
+One finding may have observations from multiple sources. Source is not a
+finding-owned identity or lifecycle field.
 
 ### Finding Status
 
@@ -233,14 +268,14 @@ Positive" and "Risk Accepted", but code and API payloads use the enum values.
 
 ### Severity
 
-**Severity** is shared by vulnerabilities and findings. Values are `info`,
-`low`, `medium`, `high`, and `critical`.
+**Severity** is shared by vulnerabilities, findings, and observations. Values
+are `info`, `low`, `medium`, `high`, and `critical`.
 
-Findings store their own severity even though each finding also links to a
-vulnerability with a severity. Vulnerability severity represents upstream or
-catalog scoring, such as a CVSS base score. Finding severity represents the
-local impact for that asset and environment, such as a CVSS environmental
-score, and may be edited independently.
+Findings store and own their severity independently of observation and catalog
+severity. Vulnerability severity represents upstream or catalog scoring, such
+as a CVSS base score. Observation severity records what its source reported.
+Finding severity represents the local workflow assessment and may be edited
+independently.
 
 ## Asset Custom Fields
 
@@ -291,37 +326,29 @@ changes emit complete previous and current asset snapshots after commit.
 
 ### Import
 
-An **import** ingests external findings into ExposureNexus. The current importer
-supports Nuclei JSONL files.
+An **import** ingests external observations into ExposureNexus. The current
+importer supports Nuclei JSONL files.
 
-Imports resolve findings against user-managed assets and do not create assets.
-An imported record whose target cannot be resolved to one asset does not become
-a finding.
+Imports resolve source records against user-managed assets and findings. They do
+not create assets or vulnerability catalog entries. A record whose target cannot
+be resolved to one asset does not become an observation.
+
+### Ingestion
+
+An **ingestion** groups observations created from one imported source file or
+source dataset. It records the source, scope, actor, creation time, and a summary
+of processed, created, skipped, and erroneous records. Manual observations do
+not belong to ingestions.
 
 ### Vulnerability Source Mapping
 
-A **vulnerability source mapping** links an external source-specific match query
-to an ExposureNexus vulnerability. The match query is stored as raw JSON and is
-validated only as JSON, not against a source-specific schema. A Nuclei mapping
-may use a template ID in that JSON, but the mapping model is not tied to one
-Nuclei-specific shape.
+A **vulnerability source mapping** links structured source-reported weakness
+data to a vulnerability catalog entry for enrichment. A source-specific
+weakness may map to more than one catalog entry.
 
 Use this term when discussing how imported scanner output maps onto the
-vulnerability catalog. Source mappings affect classification of future imports;
-they do not automatically rewrite existing findings.
-
-### Finding Reclassification
-
-**Finding reclassification** moves existing findings from one vulnerability to
-another for a selected finding source. It is the explicit workflow for changing
-historical findings after a source mapping or catalog decision changes.
-
-Reclassification matches findings by source and current vulnerability. It does
-not create, update, or delete vulnerability source mappings. When findings are
-reclassified, their linked vulnerability changes to the target vulnerability and
-their finding severity is aligned to the target vulnerability severity for that
-operation. Reclassifying findings is a finding-level write operation and
-requires `finding:write`, not `vulnerability:write`.
+vulnerability catalog. Source mappings add optional enrichment and do not define
+finding identity or automatically rewrite existing findings.
 
 ## Identity And Access
 
@@ -367,9 +394,9 @@ only for technical vulnerability guidance or write-ups.
 
 ### Dashboard
 
-The **dashboard** summarizes finding statistics by status, severity, source,
-and affected asset. It highlights triage workload, confirmed findings, critical
-or high exposure, affected assets, and mitigation rate.
+The **dashboard** summarizes finding statistics by status, severity, and
+affected asset. It highlights triage workload, confirmed findings, critical or
+high exposure, affected assets, and mitigation rate.
 
 ## System Boundaries
 
@@ -383,12 +410,17 @@ or high exposure, affected assets, and mitigation rate.
   used by both API and UI.
 - Asset custom fields currently apply only to assets, not findings,
   vulnerabilities, users, or roles.
-- The only implemented external finding source is Nuclei JSONL.
+- The only implemented external observation source is Nuclei JSONL.
 
 ## Vocabulary Rules
 
-- Say **finding** for an observed vulnerability on an asset.
+- Say **finding** for the human-facing workflow case on an asset.
+- Say **observation** for a scanner or manual detection record attached to a
+  finding.
 - Say **vulnerability** for the reusable catalog entry.
+- Say **weakness** for the security problem independent of catalog enrichment.
+- Say **affected resource** for the typed part of an asset involved in a
+  finding or observation.
 - Say **asset display name** for an asset's human-readable label; do not call it
   an identifier.
 - Say **asset identifier** for a typed external identity; do not use identifier
