@@ -36,10 +36,6 @@ describe("stats service", () => {
           return {
             "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c": 3,
           } as Record<string, number>;
-        case "source":
-          return {
-            nuclei: 3,
-          } as Record<string, number>;
       }
     });
 
@@ -65,14 +61,11 @@ describe("stats service", () => {
       assets: {
         "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c": 3,
       },
-      source: {
-        nuclei: 3,
-      },
     });
     expect(findingRepository.countBy).toHaveBeenNthCalledWith(1, "severity");
     expect(findingRepository.countBy).toHaveBeenNthCalledWith(2, "status");
     expect(findingRepository.countBy).toHaveBeenNthCalledWith(3, "assetId");
-    expect(findingRepository.countBy).toHaveBeenNthCalledWith(4, "source");
+    expect(findingRepository.countBy).toHaveBeenCalledTimes(3);
   });
 
   it("maps repository failures to an application error", async () => {

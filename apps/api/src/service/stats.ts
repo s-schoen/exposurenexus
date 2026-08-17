@@ -3,10 +3,10 @@ import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 
 import { ApplicationError } from "./application-error.js";
 
-import type { FindingRepository } from "../repository/finding.js";
+import type { FindingPersistenceRepository } from "../repository/finding-persistence.js";
 import type { Logger } from "pino";
 
-type FindingStatsRepository = Pick<FindingRepository, "countBy">;
+type FindingStatsRepository = Pick<FindingPersistenceRepository, "countBy">;
 
 interface StatsServiceDependencies {
   findingRepository: FindingStatsRepository;
@@ -40,8 +40,6 @@ export function createStatsService({
         const severityCount = await findingRepository.countBy("severity");
         const statusCount = await findingRepository.countBy("status");
         const assetCount = await findingRepository.countBy("assetId");
-        const sourceCount = await findingRepository.countBy("source");
-
         const total = Object.values(severityCount).reduce((acc, v) => acc + v, 0);
 
         return {
@@ -49,7 +47,6 @@ export function createStatsService({
           status: normalizeEnumCounts(FindingStatus, statusCount),
           severity: normalizeEnumCounts(VulnerabilitySeverity, severityCount),
           assets: assetCount,
-          source: sourceCount,
         };
       } catch (error) {
         logger.error(error, `failed to get finding statistics`);

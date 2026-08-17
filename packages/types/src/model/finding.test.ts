@@ -1,10 +1,31 @@
 import { describe, expect, it } from "vitest";
 
 import { AffectedResourceType } from "./affected-resource.js";
-import { FindingStatus, createFindingSchema, updateFindingSchema } from "./finding.js";
+import {
+  FindingStatistics,
+  FindingStatus,
+  createFindingSchema,
+  updateFindingSchema,
+} from "./finding.js";
 import { VulnerabilitySeverity } from "./vulnerability.js";
 
 const assetId = "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c";
+
+describe("finding statistics schema", () => {
+  const statistics = {
+    total: 1,
+    status: Object.fromEntries(Object.values(FindingStatus).map((status) => [status, 0])),
+    severity: Object.fromEntries(
+      Object.values(VulnerabilitySeverity).map((severity) => [severity, 0]),
+    ),
+    assets: { [assetId]: 1 },
+  };
+
+  it("contains only finding-owned aggregate dimensions", () => {
+    expect(FindingStatistics.parse(statistics)).toEqual(statistics);
+    expect(() => FindingStatistics.parse({ ...statistics, source: { nuclei: 1 } })).toThrow();
+  });
+});
 
 describe("manual finding creation schema", () => {
   it("defaults optional workflow, catalog, and observation values", () => {

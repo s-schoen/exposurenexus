@@ -174,7 +174,6 @@ export const FindingStatistics = z.strictObject({
     [VulnerabilitySeverity.High]: z.int(),
     [VulnerabilitySeverity.Critical]: z.int(),
   }),
-  source: z.record(z.string(), z.int()),
   assets: z.record(z.uuidv4(), z.int()),
 });
 

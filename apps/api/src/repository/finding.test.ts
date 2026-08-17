@@ -828,6 +828,7 @@ describe("observation-based persistence repositories", () => {
     const projectedFinding = projections.find((item) => item.id === finding.id);
     const projectedEmptyFinding = projections.find((item) => item.id === emptyFinding.id);
 
+    expect(projections.map((item) => item.id)).toEqual([emptyFinding.id, finding.id]);
     expect(projectedFinding).toMatchObject({
       id: finding.id,
       title: finding.title,
@@ -849,6 +850,9 @@ describe("observation-based persistence repositories", () => {
       firstSeen: null,
       lastSeen: null,
       vulnerabilities: [],
+    });
+    await expect(findingRepository.countBy("status")).resolves.toEqual({
+      [FindingStatus.Active]: 2,
     });
     await expect(findingRepository.getProjectedByID(finding.id)).resolves.toEqual(projectedFinding);
   });
