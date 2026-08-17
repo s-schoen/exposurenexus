@@ -2,19 +2,21 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
-  Vulnerability,
+  VulnerabilityCatalog,
   VulnerabilitySeverity,
+  VulnerabilityType,
 } from "@exposurenexus/types/model/vulnerability";
 import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => {
-  const vulnerability: Vulnerability = {
+  const vulnerability: VulnerabilityCatalog = {
     id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+    type: "cve" as VulnerabilityType,
+    identifier: "CVE-2026-0001",
     title: "Exposed Admin Endpoint",
     severity: "high" as VulnerabilitySeverity,
     description: "Administrative interface is reachable externally",
-    cwe: 284,
-    cve: "CVE-2026-0001",
+    metadata: { cwe: 284 },
     createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
     updatedBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -62,12 +64,12 @@ vi.mock("@/components/vulnerability-table", () => ({
   }: {
     filterState?: unknown;
     onCreateVulnerability?: () => void;
-    onDeleteVulnerabilities?: (vulnerabilities: Array<Vulnerability>) => Promise<void>;
+    onDeleteVulnerabilities?: (vulnerabilities: Array<VulnerabilityCatalog>) => Promise<void>;
     onFilterStateChange?: (filterState: {
       globalFilter: string;
       selectFilters: Record<string, Array<string>>;
     }) => void;
-    onSelectVulnerability?: (vulnerability: Vulnerability) => void;
+    onSelectVulnerability?: (vulnerability: VulnerabilityCatalog) => void;
     selectedVulnerabilityId?: string;
   }) => (
     <div>
@@ -161,13 +163,12 @@ describe("VulnerabilitiesPage", () => {
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Vulnerabilities",
-      description:
-        "Browse the underlying vulnerability catalog and inspect severity classification.",
+      description: "Browse catalog entries and inspect their enrichment metadata.",
     });
-    expect(screen.getByText("Vulnerability details")).toBeTruthy();
+    expect(screen.getByText("Catalog entry details")).toBeTruthy();
     expect(
       screen.getByText(
-        "Review the selected vulnerability without leaving the vulnerability table.",
+        "Review the selected catalog entry without leaving the vulnerability table.",
       ),
     ).toBeTruthy();
     expect(screen.getByTestId("selected-vulnerability").textContent).toBe("");
@@ -267,7 +268,8 @@ describe("VulnerabilitiesPage", () => {
       expect(mocks.confirmDelete).toHaveBeenCalledWith({
         title: "Delete Vulnerabilities",
         description: "This action cannot be undone",
-        message: "Are you sure you want to delete 1 vulnerability record(s)?",
+        message:
+          "Are you sure you want to delete 1 catalog entry? Linked enrichment will be removed while findings and observations are preserved.",
         confirmVariant: "destructive",
       });
       expect(mocks.deleteVulnerabilities).toHaveBeenCalledWith([mocks.vulnerability]);

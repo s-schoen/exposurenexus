@@ -9,7 +9,7 @@ import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 import { useVulnerabilityLifecycle } from "@/hooks/use-vulnerability-lifecycle.ts";
 import { useVulnerabilityTableSearchState } from "@/hooks/use-vulnerability-table-search-state.ts";
 
-import type { Vulnerability } from "@exposurenexus/types/model/vulnerability";
+import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerability";
 
 interface VulnerabilitiesPageProps {
   search?: Record<string, unknown>;
@@ -22,7 +22,7 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
   const { filterState, onFilterStateChange } = useVulnerabilityTableSearchState({
     search,
   });
-  const selectedSearch = useSelectedSearchParam<Vulnerability>({
+  const selectedSearch = useSelectedSearchParam<VulnerabilityCatalog>({
     selectedId: selected,
     to: "/vulnerabilities",
     getId: (vulnerability) => vulnerability.id,
@@ -30,14 +30,14 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
 
   usePageMeta({
     title: "Vulnerabilities",
-    description: "Browse the underlying vulnerability catalog and inspect severity classification.",
+    description: "Browse catalog entries and inspect their enrichment metadata.",
   });
 
-  const handleDeleteVulnerabilities = async (vulnerabilities: Array<Vulnerability>) => {
+  const handleDeleteVulnerabilities = async (vulnerabilities: Array<VulnerabilityCatalog>) => {
     const confirmed = await ConfirmDialog.call({
       title: "Delete Vulnerabilities",
       description: "This action cannot be undone",
-      message: `Are you sure you want to delete ${vulnerabilities.length} vulnerability record(s)?`,
+      message: `Are you sure you want to delete ${vulnerabilities.length} catalog entr${vulnerabilities.length === 1 ? "y" : "ies"}? Linked enrichment will be removed while findings and observations are preserved.`,
       confirmVariant: "destructive",
     });
 
@@ -76,8 +76,8 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
         onClose={() => {
           void selectedSearch.clearSelected();
         }}
-        title="Vulnerability details"
-        description="Review the selected vulnerability without leaving the vulnerability table."
+        title="Catalog entry details"
+        description="Review the selected catalog entry without leaving the vulnerability table."
         fullPageHref={selected ? `/vulnerabilities/${selected}` : undefined}
       >
         {selected && <VulnerabilityDetailContent vulnerabilityId={selected} />}

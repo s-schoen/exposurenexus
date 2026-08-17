@@ -8,7 +8,7 @@ import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
 } from "@exposurenexus/types/model/asset-custom-field";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
 import { ROLE_FIXTURES } from "@/components/role-fixtures.ts";
@@ -16,7 +16,7 @@ import { ROLE_FIXTURES } from "@/components/role-fixtures.ts";
 import type { AuthSessionDataReply } from "@exposurenexus/types/api";
 import type { Asset, AssetWithCustomFields } from "@exposurenexus/types/model/asset";
 import type { UserProfile } from "@exposurenexus/types/model/user";
-import type { Vulnerability } from "@exposurenexus/types/model/vulnerability";
+import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerability";
 
 const STORY_ENVIRONMENT_OPTIONS = [
   {
@@ -202,14 +202,15 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
   },
 ];
 
-export const STORY_VULNERABILITIES: Array<Vulnerability> = [
+export const STORY_VULNERABILITIES: Array<VulnerabilityCatalog> = [
   {
     id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+    type: VulnerabilityType.Cve,
+    identifier: "CVE-2026-0001",
     title: "Exposed Admin Endpoint",
     severity: VulnerabilitySeverity.High,
     description: "Administrative interfaces are reachable from the internet.",
-    cwe: 284,
-    cve: "CVE-2026-0001",
+    metadata: { cvss: 8.1 },
     createdBy: STORY_USERS[0].id,
     updatedBy: STORY_USERS[1].id,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -217,11 +218,12 @@ export const STORY_VULNERABILITIES: Array<Vulnerability> = [
   },
   {
     id: "4fb566c6-e642-48d8-b70d-418efb074f8d",
+    type: VulnerabilityType.Custom,
+    identifier: "account-takeover",
     title: "Account Takeover",
     severity: VulnerabilitySeverity.Critical,
     description: "Authentication controls can be bypassed.",
-    cwe: 287,
-    cve: null,
+    metadata: null,
     createdBy: STORY_USERS[0].id,
     updatedBy: STORY_USERS[1].id,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -229,11 +231,12 @@ export const STORY_VULNERABILITIES: Array<Vulnerability> = [
   },
   {
     id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
+    type: VulnerabilityType.Cwe,
+    identifier: "CWE-1104",
     title: "Outdated API Dependency",
     severity: VulnerabilitySeverity.Medium,
     description: null,
-    cwe: 1104,
-    cve: null,
+    metadata: null,
     createdBy: STORY_USERS[1].id,
     updatedBy: STORY_USERS[1].id,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
