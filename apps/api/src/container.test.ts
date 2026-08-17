@@ -145,6 +145,7 @@ vi.mock("./repository/index.js", () => ({
   })),
   createAssetRepository: vi.fn(() => ({ kind: "asset-repo" })),
   createFindingRepository: vi.fn(() => ({ kind: "finding-repo" })),
+  createFindingPersistenceRepository: vi.fn(() => ({ kind: "finding-persistence-repo" })),
   createRoleRepository: vi.fn(() => roleRepositoryMock),
   createUserRoleRepository: vi.fn(() => userRoleRepositoryMock),
   createUserProfileRepository: vi.fn(() => ({ kind: "user-profile-repo" })),

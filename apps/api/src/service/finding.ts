@@ -6,6 +6,7 @@ import {
   type CreateFinding,
   type Finding,
   type FindingInternal,
+  type FindingProjection,
   type ReclassifyFindings,
   type ReclassifyFindingsResult,
   type UpdateFinding,
@@ -21,6 +22,7 @@ import {
 import { ApplicationError, isApplicationError } from "./application-error.js";
 import { isForeignKeyError } from "./errors.js";
 
+import type { FindingPersistenceRepository } from "../repository/finding-persistence.js";
 import type { FindingRepository } from "../repository/finding.js";
 import type { Asset } from "@exposurenexus/types/model/asset";
 import type { UserProfile } from "@exposurenexus/types/model/user";
@@ -40,6 +42,10 @@ interface UserProfileLookupService {
 
 interface FindingServiceDependencies {
   findingRepository: FindingRepository;
+  findingPersistenceRepository?: Pick<
+    FindingPersistenceRepository,
+    "getProjectedByID" | "listProjected" | "deleteByID"
+  >;
   assetService: AssetLookupService;
   userProfileService: UserProfileLookupService;
   vulnerabilityService: VulnerabilityLookupService;
@@ -103,17 +109,18 @@ export interface CreateOrUpdateFindingResult {
 }
 
 export interface FindingService {
-  listAll(): Promise<Finding[]>;
-  getByID(id: string): Promise<Finding | null>;
+  listAll(): Promise<FindingProjection[]>;
+  getByID(id: string): Promise<FindingProjection | null>;
   create(opts: CreateFindingOptions): Promise<Finding>;
   updateByID(opts: UpdateFindingOptions): Promise<Finding | null>;
   createOrUpdate(opts: CreateFindingOptions): Promise<CreateOrUpdateFindingResult>;
-  deleteByID(id: string, eventContext?: DomainEventContext): Promise<Finding | null>;
+  deleteByID(id: string, eventContext?: DomainEventContext): Promise<FindingProjection | null>;
   reclassify(opts: ReclassifyFindingsOptions): Promise<ReclassifyFindingsResult>;
 }
 
 export function createFindingService({
   findingRepository,
+  findingPersistenceRepository,
   assetService,
   userProfileService,
   vulnerabilityService,
@@ -250,15 +257,19 @@ export function createFindingService({
   }
 
   return {
-    async listAll(): Promise<Finding[]> {
+    async listAll(): Promise<FindingProjection[]> {
       try {
+        if (findingPersistenceRepository) {
+          return await findingPersistenceRepository.listProjected();
+        }
+
         const findingsRaw = await findingRepository.list();
         const findings: Array<Finding> = [];
 
         for (const finding of findingsRaw) {
           findings.push(await extendWithVulnerability(finding));
         }
-        return findings;
+        return findings as unknown as FindingProjection[];
       } catch (error) {
         logger.error(error, "failed to list findings");
         throw new ApplicationError({
@@ -270,15 +281,19 @@ export function createFindingService({
       }
     },
 
-    async getByID(id: string): Promise<Finding | null> {
+    async getByID(id: string): Promise<FindingProjection | null> {
       try {
+        if (findingPersistenceRepository) {
+          return await findingPersistenceRepository.getProjectedByID(id);
+        }
+
         const finding = await findingRepository.getByID(id);
         if (!finding) {
           logger.debug(`finding with id ${id} not found`);
           return null;
         }
 
-        return await extendWithVulnerability(finding);
+        return (await extendWithVulnerability(finding)) as unknown as FindingProjection;
       } catch (error) {
         logger.error(error, `failed to get finding with id ${id}`);
         throw new ApplicationError({
@@ -434,8 +449,29 @@ export function createFindingService({
       }
     },
 
-    async deleteByID(id: string, eventContext: DomainEventContext = {}): Promise<Finding | null> {
+    async deleteByID(
+      id: string,
+      eventContext: DomainEventContext = {},
+    ): Promise<FindingProjection | null> {
       try {
+        if (findingPersistenceRepository) {
+          const finding = await findingPersistenceRepository.getProjectedByID(id);
+
+          if (!finding) {
+            logger.debug(`cannot delete finding ${id}: not found`);
+            return null;
+          }
+
+          const deleted = await findingPersistenceRepository.deleteByID(id);
+          if (!deleted) {
+            logger.debug(`cannot delete finding ${id}: not found`);
+            return null;
+          }
+
+          emitFindingEvent("finding.deleted", { finding }, eventContext);
+          return finding;
+        }
+
         const finding = await findingRepository.deleteByID(id);
 
         if (!finding) {
@@ -443,7 +479,9 @@ export function createFindingService({
           return null;
         }
 
-        const deletedFinding = await extendWithVulnerability(finding);
+        const deletedFinding = (await extendWithVulnerability(
+          finding,
+        )) as unknown as FindingProjection;
         emitFindingEvent("finding.deleted", { finding: deletedFinding }, eventContext);
         return deletedFinding;
       } catch (error) {

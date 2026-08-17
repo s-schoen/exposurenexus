@@ -1,10 +1,12 @@
 import { createHash } from "node:crypto";
 
+import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { AssetType } from "@exposurenexus/types/model/asset";
 import {
   FindingSource,
   FindingStatus,
   type FindingInternal,
+  type FindingProjection,
 } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { pino } from "pino";
@@ -29,6 +31,11 @@ describe("finding service", () => {
     deleteByID: vi.fn(),
     reclassifyBySourceAndVulnerability: vi.fn(),
     countBy: vi.fn(),
+  };
+  const findingPersistenceRepository = {
+    listProjected: vi.fn(),
+    getProjectedByID: vi.fn(),
+    deleteByID: vi.fn(),
   };
   const vulnerabilityService = {
     getByID: vi.fn(),
@@ -122,6 +129,45 @@ describe("finding service", () => {
       },
     ]);
     expect(vulnerabilityService.getByID).toHaveBeenCalledWith(baseFinding.vulnerabilityId);
+  });
+
+  it("lists the final projection without per-finding catalog lookups", async () => {
+    const service = createFindingService({
+      findingRepository,
+      findingPersistenceRepository,
+      assetService,
+      userProfileService,
+      vulnerabilityService,
+      domainEventEmitter: domainEvents.emitter,
+      logger,
+    });
+    const projection = {
+      id: baseFinding.id,
+      assetId: baseFinding.assetId,
+      title: "Exposed admin endpoint",
+      severity: VulnerabilitySeverity.High,
+      status: FindingStatus.Active,
+      assigneeId: null,
+      dueDate: null,
+      mitigation: "Restrict access to trusted networks",
+      weakness: { identifiers: { cwe: ["CWE-200"] } },
+      affectedResource: { type: AffectedResourceType.Unspecified },
+      vulnerabilities: [],
+      observationCount: 0,
+      observingSources: [],
+      firstSeen: null,
+      lastSeen: null,
+      createdAt: baseFinding.createdAt,
+      updatedAt: baseFinding.updatedAt,
+      createdBy: baseFinding.createdBy,
+      updatedBy: baseFinding.updatedBy,
+    } satisfies FindingProjection;
+
+    findingPersistenceRepository.listProjected.mockResolvedValue([projection]);
+
+    await expect(service.listAll()).resolves.toEqual([projection]);
+    expect(findingPersistenceRepository.listProjected).toHaveBeenCalledOnce();
+    expect(vulnerabilityService.getByID).not.toHaveBeenCalled();
   });
 
   it("rejects lists containing findings with missing vulnerabilities", async () => {
