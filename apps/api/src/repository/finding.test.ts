@@ -428,4 +428,127 @@ describe("observation-based persistence repositories", () => {
     await expect(linkRepository.listByFindingID(finding.id)).resolves.toEqual([]);
     await expect(vulnerabilityRepository.getByID(vulnerability.id)).resolves.toEqual(vulnerability);
   });
+
+  it("creates a manual finding, observation, and links atomically", async () => {
+    const asset = await createAssetRepository(testDb.db).create(
+      assetRecord("api.exposurenexus.local"),
+    );
+    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const vulnerabilityRepository = createVulnerabilityPersistenceRepository(testDb.db);
+    const timestamp = new Date("2026-01-03T00:00:00.000Z");
+    const vulnerability = await vulnerabilityRepository.create({
+      type: VulnerabilityType.Custom,
+      identifier: "exposed-admin-panel",
+      title: "Exposed admin panel",
+      description: null,
+      severity: VulnerabilitySeverity.High,
+      metadata: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      createdBy,
+      updatedBy: createdBy,
+    });
+
+    const created = await findingRepository.createManual({
+      finding: {
+        assetId: asset.id,
+        title: "Exposed admin panel",
+        severity: VulnerabilitySeverity.High,
+        status: FindingStatus.Active,
+        assigneeId: null,
+        dueDate: null,
+        mitigation: "Require authentication",
+        weakness: { identifiers: {} },
+        affectedResource: { type: AffectedResourceType.Unspecified },
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        createdBy,
+        updatedBy: createdBy,
+      },
+      observation: {
+        ingestionId: null,
+        source: ObservationSource.Manual,
+        title: "Admin panel observed",
+        description: "Manual confirmation",
+        evidence: "GET /admin returned 200",
+        remediation: "Require authentication",
+        severity: VulnerabilitySeverity.High,
+        weakness: { identifiers: {} },
+        affectedResource: {
+          type: AffectedResourceType.WebEndpoint,
+          reportedUrl: "https://EXAMPLE.com:443/admin",
+          scheme: "https",
+          host: "example.com",
+          path: "/admin",
+        },
+        observedAt: timestamp,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        createdBy,
+        updatedBy: createdBy,
+      },
+      vulnerabilityIds: [vulnerability.id],
+    });
+
+    expect(created.finding.title).toBe("Exposed admin panel");
+    expect(created.observation.affectedResource).toMatchObject({
+      type: AffectedResourceType.WebEndpoint,
+      reportedUrl: "https://EXAMPLE.com:443/admin",
+    });
+    expect(created.links).toEqual([
+      { findingId: created.finding.id, vulnerabilityId: vulnerability.id },
+    ]);
+    await expect(findingRepository.getProjectedByID(created.finding.id)).resolves.toMatchObject({
+      id: created.finding.id,
+      observationCount: 1,
+      vulnerabilities: [{ id: vulnerability.id }],
+    });
+  });
+
+  it("rolls back the finding and observation when a catalog link fails", async () => {
+    const asset = await createAssetRepository(testDb.db).create(
+      assetRecord("api.exposurenexus.local"),
+    );
+    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const timestamp = new Date("2026-01-03T00:00:00.000Z");
+
+    await expect(
+      findingRepository.createManual({
+        finding: {
+          assetId: asset.id,
+          title: "Atomic failure",
+          severity: VulnerabilitySeverity.Low,
+          status: FindingStatus.Active,
+          assigneeId: null,
+          dueDate: null,
+          mitigation: null,
+          weakness: { identifiers: {} },
+          affectedResource: { type: AffectedResourceType.Unspecified },
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          createdBy,
+          updatedBy: createdBy,
+        },
+        observation: {
+          ingestionId: null,
+          source: ObservationSource.Manual,
+          title: "Atomic failure",
+          description: null,
+          evidence: null,
+          remediation: null,
+          severity: VulnerabilitySeverity.Low,
+          weakness: { identifiers: {} },
+          affectedResource: { type: AffectedResourceType.Unspecified },
+          observedAt: timestamp,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          createdBy,
+          updatedBy: createdBy,
+        },
+        vulnerabilityIds: ["9d7acdd0-fad1-46c9-8218-1793f421f0fe"],
+      }),
+    ).rejects.toThrow();
+
+    await expect(findingRepository.list()).resolves.toEqual([]);
+  });
 });

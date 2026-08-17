@@ -28,6 +28,11 @@ export type FindingApplicationErrorCatalog = {
     kind: "unexpected";
     details: { assetId: string; vulnerabilityId: string };
   };
+  "finding.manual_create_unavailable": { kind: "unexpected" };
+  "finding.manual_create_failed": {
+    kind: "unexpected";
+    details: { assetId: string };
+  };
   "finding.update_failed": {
     kind: "unexpected";
     details: { findingId: string };

@@ -1,4 +1,8 @@
-import { createFindingSchema, updateFindingSchema } from "@exposurenexus/types/model/finding";
+import {
+  createFindingSchema,
+  legacyCreateFindingSchema,
+  updateFindingSchema,
+} from "@exposurenexus/types/model/finding";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod/v4";
@@ -20,6 +24,7 @@ const vulnerabilityLinkParamValidator = zValidator(
   "param",
   z.object({ findingId: z.uuidv4(), vulnerabilityId: z.uuidv4() }),
 );
+const createFindingRequestSchema = z.union([createFindingSchema, legacyCreateFindingSchema]);
 
 export function createFindingRoute(
   findingService: FindingService,
@@ -96,7 +101,7 @@ export function createFindingRoute(
   finding.post(
     "/",
     requireDomainPermission("finding", "write"),
-    zValidator("json", createFindingSchema),
+    zValidator("json", createFindingRequestSchema),
     async (c) => {
       const body = c.req.valid("json");
       const user = c.get("user");
@@ -105,11 +110,18 @@ export function createFindingRoute(
         throw unauthorized();
       }
 
-      const createdFinding = await findingService.create({
-        finding: body,
-        user,
-        eventContext: requestEventContext(c),
-      });
+      const createdFinding =
+        "vulnerabilityId" in body
+          ? await findingService.create({
+              finding: body,
+              user,
+              eventContext: requestEventContext(c),
+            })
+          : await findingService.createManual({
+              finding: body,
+              user,
+              eventContext: requestEventContext(c),
+            });
 
       return replyObject(c, createdFinding, true);
     },

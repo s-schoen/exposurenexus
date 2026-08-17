@@ -4,11 +4,15 @@ import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date";
 import {
   FindingStatus,
   type CreateFinding,
+  type CreateManualFinding,
   type Finding,
   type FindingInternal,
   type FindingProjection,
+  type LegacyCreateFinding,
+  type ManualObservationInput,
   type UpdateFinding,
 } from "@exposurenexus/types/model/finding";
+import { ObservationSource } from "@exposurenexus/types/model/observation";
 
 import {
   createDomainEventEmitter,
@@ -46,6 +50,7 @@ interface FindingServiceDependencies {
     FindingPersistenceRepository,
     "getProjectedByID" | "listProjected" | "deleteByID"
   >;
+  manualFindingRepository?: Pick<FindingPersistenceRepository, "createManual" | "getProjectedByID">;
   findingVulnerabilityRepository?: FindingVulnerabilityRepository;
   assetService: AssetLookupService;
   userProfileService: UserProfileLookupService;
@@ -84,10 +89,16 @@ function resolveImportedFindingStatus(
 }
 
 export interface CreateFindingOptions {
-  finding: CreateFinding;
+  finding: LegacyCreateFinding;
   user: UserProfile;
   firstSeen?: Date;
   fingerprintOptions?: Record<string, string>;
+  eventContext?: DomainEventContext;
+}
+
+export interface CreateManualFindingOptions {
+  finding: CreateManualFinding;
+  user: UserProfile;
   eventContext?: DomainEventContext;
 }
 
@@ -119,6 +130,7 @@ export interface FindingService {
   listAll(): Promise<FindingProjection[]>;
   getByID(id: string): Promise<FindingProjection | null>;
   create(opts: CreateFindingOptions): Promise<Finding>;
+  createManual(opts: CreateManualFindingOptions): Promise<FindingProjection>;
   updateByID(opts: UpdateFindingOptions): Promise<Finding | null>;
   createOrUpdate(opts: CreateFindingOptions): Promise<CreateOrUpdateFindingResult>;
   deleteByID(id: string, eventContext?: DomainEventContext): Promise<FindingProjection | null>;
@@ -133,6 +145,7 @@ export interface FindingService {
 export function createFindingService({
   findingRepository,
   findingPersistenceRepository,
+  manualFindingRepository,
   findingVulnerabilityRepository,
   assetService,
   userProfileService,
@@ -244,7 +257,7 @@ export function createFindingService({
   }
 
   async function validateCreateFindingRelations(
-    finding: CreateFinding,
+    finding: LegacyCreateFinding,
   ): Promise<Finding["vulnerability"]> {
     const [asset, vulnerability] = await Promise.all([
       assetService.getByID(finding.assetId),
@@ -347,6 +360,116 @@ export function createFindingService({
     }
   }
 
+  async function validateManualFindingRelations(finding: CreateManualFinding): Promise<void> {
+    const [asset, vulnerabilities] = await Promise.all([
+      assetService.getByID(finding.assetId),
+      Promise.all(finding.vulnerabilityIds.map((id) => vulnerabilityService.getByID(id))),
+    ]);
+
+    if (!asset) {
+      throw new ApplicationError({
+        code: "finding.asset_unknown",
+        kind: "validation",
+        message: "finding asset does not exist",
+        details: { assetId: finding.assetId },
+      });
+    }
+
+    for (const [index, vulnerability] of vulnerabilities.entries()) {
+      if (!vulnerability) {
+        const vulnerabilityId = finding.vulnerabilityIds[index];
+        throw new ApplicationError({
+          code: "finding.vulnerability_unknown",
+          kind: "validation",
+          message: "finding vulnerability does not exist",
+          details: { vulnerabilityId },
+        });
+      }
+    }
+
+    if (finding.assigneeId) {
+      const assignee = await userProfileService.getByID(finding.assigneeId);
+      if (!assignee) {
+        throw new ApplicationError({
+          code: "finding.assignee_unknown",
+          kind: "validation",
+          message: "finding assignee does not exist",
+          details: { assigneeId: finding.assigneeId },
+        });
+      }
+    }
+  }
+
+  async function createManualFinding(opts: CreateManualFindingOptions): Promise<FindingProjection> {
+    if (!manualFindingRepository) {
+      throw new ApplicationError({
+        code: "finding.manual_create_unavailable",
+        kind: "unexpected",
+        message: "manual finding creation is unavailable",
+      });
+    }
+
+    try {
+      await validateManualFindingRelations(opts.finding);
+
+      const now = new Date();
+      const { observation: observationInput, vulnerabilityIds, ...findingInput } = opts.finding;
+      const finding = {
+        ...findingInput,
+        assigneeId: findingInput.assigneeId ?? null,
+        dueDate: normalizeOptionalDueDate(findingInput.dueDate),
+        mitigation: findingInput.mitigation ?? null,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: opts.user.id,
+        updatedBy: opts.user.id,
+      };
+      const observation: ManualObservationInput = observationInput ?? {};
+
+      const created = await manualFindingRepository.createManual({
+        finding,
+        observation: {
+          ingestionId: null,
+          source: ObservationSource.Manual,
+          title: observation.title ?? finding.title,
+          description: observation.description ?? null,
+          evidence: observation.evidence ?? null,
+          remediation: observation.remediation ?? null,
+          severity: observation.severity ?? finding.severity,
+          weakness: observation.weakness ?? finding.weakness,
+          affectedResource: observation.affectedResource ?? finding.affectedResource,
+          observedAt: observation.observedAt ?? now,
+          createdAt: now,
+          updatedAt: now,
+          createdBy: opts.user.id,
+          updatedBy: opts.user.id,
+        },
+        vulnerabilityIds,
+      });
+
+      const createdFinding = await manualFindingRepository.getProjectedByID(created.finding.id);
+      if (!createdFinding) {
+        throw new Error("manual finding was not available after creation");
+      }
+
+      emitFindingEvent("finding.created", { finding: createdFinding }, opts.eventContext);
+      return createdFinding;
+    } catch (error) {
+      if (isApplicationError(error)) {
+        throw error;
+      }
+
+      logger.error(error, `failed to create manual finding for ${opts.finding.assetId}`);
+      throw new ApplicationError({
+        code: "finding.manual_create_failed",
+        kind: "unexpected",
+        message: "failed to create manual finding",
+        cause: error,
+        details: { assetId: opts.finding.assetId },
+      });
+    }
+  }
+
   return {
     async listAll(): Promise<FindingProjection[]> {
       try {
@@ -399,6 +522,10 @@ export function createFindingService({
 
     async create(opts: CreateFindingOptions): Promise<Finding> {
       return await createFinding(opts);
+    },
+
+    async createManual(opts: CreateManualFindingOptions): Promise<FindingProjection> {
+      return await createManualFinding(opts);
     },
 
     async updateByID(opts: UpdateFindingOptions): Promise<Finding | null> {

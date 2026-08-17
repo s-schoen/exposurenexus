@@ -1,17 +1,30 @@
 import {
   findingAffectedResourceSchema,
   type FindingAffectedResource,
+  observationAffectedResourceSchema,
 } from "@exposurenexus/types/model/affected-resource";
 import {
   findingPersistenceSchema,
   findingProjectionSchema,
   type FindingProjection,
 } from "@exposurenexus/types/model/finding";
+import { observationSchema, type Observation } from "@exposurenexus/types/model/observation";
 import { findingWeaknessSchema, type Weakness } from "@exposurenexus/types/model/weakness";
-import { sql, type Kysely, type Insertable, type Selectable, type Updateable } from "kysely";
+import { observationWeaknessSchema } from "@exposurenexus/types/model/weakness";
+import {
+  sql,
+  type Kysely,
+  type Insertable,
+  type Selectable,
+  type Transaction,
+  type Updateable,
+} from "kysely";
 
 import type { Database } from "../db/index.js";
 import type { FindingTable } from "../db/schema/finding.js";
+import type { ObservationTable } from "../db/schema/observation.js";
+import type { FindingVulnerabilityRecord } from "./finding-vulnerability.js";
+import type { CreateObservationRecord } from "./observation.js";
 
 export type FindingRecord = Selectable<FindingTable>;
 type FindingProjectionRow = FindingRecord & {
@@ -36,17 +49,33 @@ export type UpdateFindingRecord = Omit<
   affectedResource?: unknown;
 };
 export type FindingCountField = "severity" | "status" | "assetId";
+export type CreateManualFindingObservation = Omit<CreateObservationRecord, "findingId">;
+
+export interface CreateManualFindingInput {
+  finding: CreateFindingRecord;
+  observation: CreateManualFindingObservation;
+  vulnerabilityIds: readonly string[];
+}
+
+export interface CreateManualFindingResult {
+  finding: FindingRecord;
+  observation: Observation;
+  links: FindingVulnerabilityRecord[];
+}
 
 export interface FindingPersistenceRepository {
   list(): Promise<FindingRecord[]>;
   getByID(id: string): Promise<FindingRecord | null>;
   listProjected(): Promise<FindingProjection[]>;
   getProjectedByID(id: string): Promise<FindingProjection | null>;
+  createManual(input: CreateManualFindingInput): Promise<CreateManualFindingResult>;
   create(finding: CreateFindingRecord): Promise<FindingRecord>;
   updateByID(id: string, finding: UpdateFindingRecord): Promise<FindingRecord | null>;
   deleteByID(id: string): Promise<FindingRecord | null>;
   countBy(field: FindingCountField): Promise<Record<string, number>>;
 }
+
+type DatabaseExecutor = Kysely<Database> | Transaction<Database>;
 
 function normalizeFinding(finding: FindingRecord): FindingRecord {
   return findingPersistenceSchema.parse(finding) as FindingRecord;
@@ -73,7 +102,7 @@ const findingProjectionGroupColumns = [
   "finding.updatedBy",
 ] as const;
 
-function projectionQuery(database: Kysely<Database>) {
+function projectionQuery(database: DatabaseExecutor) {
   return database
     .selectFrom("finding")
     .leftJoin("observation", "observation.findingId", "finding.id")
@@ -119,6 +148,26 @@ function projectionQuery(database: Kysely<Database>) {
     ])
     .groupBy(findingProjectionGroupColumns)
     .orderBy("finding.updatedAt", "desc");
+}
+
+function normalizeObservationInput<T extends { weakness?: unknown; affectedResource?: unknown }>(
+  observation: T,
+): T {
+  return {
+    ...observation,
+    ...(observation.weakness === undefined
+      ? {}
+      : { weakness: observationWeaknessSchema.parse(observation.weakness) }),
+    ...(observation.affectedResource === undefined
+      ? {}
+      : {
+          affectedResource: observationAffectedResourceSchema.parse(observation.affectedResource),
+        }),
+  };
+}
+
+function normalizeObservation(observation: Selectable<ObservationTable>): Observation {
+  return observationSchema.parse(observation);
 }
 
 function normalizeFindingInput<T extends { weakness?: unknown; affectedResource?: unknown }>(
@@ -169,6 +218,47 @@ export function createFindingPersistenceRepository(
         .executeTakeFirst();
 
       return finding ? normalizeFindingProjection(finding) : null;
+    },
+
+    async createManual(input: CreateManualFindingInput): Promise<CreateManualFindingResult> {
+      return await database.transaction().execute(async (transaction) => {
+        const createdFinding = await transaction
+          .insertInto("finding")
+          .values(normalizeFindingInput(input.finding) as Insertable<FindingTable>)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+
+        const createdObservation = await transaction
+          .insertInto("observation")
+          .values(
+            normalizeObservationInput({
+              ...input.observation,
+              findingId: createdFinding.id,
+            }) as Insertable<ObservationTable>,
+          )
+          .returningAll()
+          .executeTakeFirstOrThrow();
+
+        const links =
+          input.vulnerabilityIds.length === 0
+            ? []
+            : await transaction
+                .insertInto("finding_vulnerability")
+                .values(
+                  input.vulnerabilityIds.map((vulnerabilityId) => ({
+                    findingId: createdFinding.id,
+                    vulnerabilityId,
+                  })),
+                )
+                .returningAll()
+                .execute();
+
+        return {
+          finding: normalizeFinding(createdFinding),
+          observation: normalizeObservation(createdObservation),
+          links: links as FindingVulnerabilityRecord[],
+        };
+      });
     },
 
     async create(finding: CreateFindingRecord): Promise<FindingRecord> {

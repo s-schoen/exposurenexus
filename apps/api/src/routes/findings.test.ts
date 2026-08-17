@@ -26,6 +26,7 @@ describe("finding routes", () => {
     listAll: vi.fn(),
     getByID: vi.fn(),
     create: vi.fn(),
+    createManual: vi.fn(),
     updateByID: vi.fn(),
     createOrUpdate: vi.fn(),
     linkVulnerability: vi.fn(),

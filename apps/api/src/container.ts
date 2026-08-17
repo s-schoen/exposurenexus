@@ -130,6 +130,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const findingService = createFindingService({
     findingRepository: repositories.findingRepository,
     findingPersistenceRepository: repositories.findingPersistenceRepository,
+    manualFindingRepository: repositories.findingPersistenceRepository,
     findingVulnerabilityRepository: repositories.findingVulnerabilityRepository,
     assetService,
     userProfileService,

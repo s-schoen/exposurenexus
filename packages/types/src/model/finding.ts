@@ -3,6 +3,7 @@ import { z } from "zod/v4";
 import {
   findingAffectedResourceSchema,
   type FindingAffectedResource,
+  observationAffectedResourceSchema,
 } from "./affected-resource.js";
 import { dateSchema, utcStartDateSchema } from "./date.js";
 import { ObservationSource } from "./observation.js";
@@ -11,7 +12,7 @@ import {
   vulnerabilitySchema,
   VulnerabilitySeverity,
 } from "./vulnerability.js";
-import { findingWeaknessSchema, type Weakness } from "./weakness.js";
+import { findingWeaknessSchema, observationWeaknessSchema, type Weakness } from "./weakness.js";
 
 const dueDateSchema = utcStartDateSchema as z.ZodType<Date, Date>;
 
@@ -94,7 +95,7 @@ export const findingProjectionSchema = z.strictObject({
   updatedBy: z.uuidv4(),
 });
 
-export const createFindingSchema = findingInternalSchema
+export const legacyCreateFindingSchema = findingInternalSchema
   .omit({
     id: true,
     createdAt: true,
@@ -112,17 +113,44 @@ export const createFindingSchema = findingInternalSchema
     dueDate: findingInternalSchema.shape.dueDate.optional(),
   });
 
-export const updateFindingSchema = createFindingSchema
-  .omit({
-    vulnerabilityId: true,
-    assetId: true,
-    assigneeId: true,
-    dueDate: true,
-  })
+export const legacyUpdateFindingSchema = legacyCreateFindingSchema
+  .omit({ vulnerabilityId: true, assetId: true, assigneeId: true, dueDate: true })
   .extend({
     assigneeId: findingInternalSchema.shape.assigneeId,
     dueDate: findingInternalSchema.shape.dueDate,
   });
+
+export const manualObservationInputSchema = z.strictObject({
+  title: z.string().trim().min(1).optional(),
+  description: z.string().nullable().optional(),
+  evidence: z.string().nullable().optional(),
+  remediation: z.string().nullable().optional(),
+  severity: z.enum(VulnerabilitySeverity).optional(),
+  weakness: observationWeaknessSchema.optional(),
+  affectedResource: observationAffectedResourceSchema.optional(),
+  observedAt: dateSchema.optional(),
+});
+
+export const createFindingSchema = z.strictObject({
+  assetId: z.uuidv4(),
+  title: z.string().trim().min(1),
+  severity: z.enum(VulnerabilitySeverity),
+  status: z.enum(FindingStatus),
+  assigneeId: z.uuidv4().nullable().optional().default(null),
+  dueDate: dueDateSchema.nullable().optional().default(null),
+  mitigation: z.string().nullable().optional().default(null),
+  weakness: findingWeaknessSchema,
+  affectedResource: findingAffectedResourceSchema,
+  vulnerabilityIds: z
+    .array(z.uuidv4())
+    .default([])
+    .transform((ids) => [...new Set(ids)]),
+  observation: manualObservationInputSchema.optional(),
+});
+
+// The update contract is replaced by the finding correction issue. Keep the
+// legacy shape available to the existing update path until that cutover.
+export const updateFindingSchema = legacyUpdateFindingSchema;
 
 export const FindingStatistics = z.strictObject({
   total: z.int(),
@@ -154,5 +182,8 @@ export type FindingProjection = z.infer<typeof findingProjectionSchema>;
 export type FindingWeakness = Weakness;
 export type FindingResource = FindingAffectedResource;
 export type CreateFinding = z.infer<typeof createFindingSchema>;
-export type UpdateFinding = z.infer<typeof updateFindingSchema>;
+export type CreateManualFinding = CreateFinding;
+export type LegacyCreateFinding = z.infer<typeof legacyCreateFindingSchema>;
+export type UpdateFinding = z.infer<typeof legacyUpdateFindingSchema>;
 export type FindingStatistics = z.infer<typeof FindingStatistics>;
+export type ManualObservationInput = z.infer<typeof manualObservationInputSchema>;
