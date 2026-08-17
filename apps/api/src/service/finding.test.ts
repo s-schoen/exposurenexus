@@ -8,6 +8,7 @@ import {
   type FindingInternal,
   type FindingProjection,
 } from "@exposurenexus/types/model/finding";
+import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -34,6 +35,7 @@ describe("finding service", () => {
   const findingPersistenceRepository = {
     listProjected: vi.fn(),
     getProjectedByID: vi.fn(),
+    updateByID: vi.fn(),
     deleteByID: vi.fn(),
   };
   const findingVulnerabilityRepository = {
@@ -74,15 +76,6 @@ describe("finding service", () => {
     mitigation: "Restrict access to internal networks",
     assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
   };
-  const updatePayloadBase = {
-    severity: createPayload.severity,
-    status: createPayload.status,
-    source: createPayload.source,
-    evidence: createPayload.evidence,
-    mitigation: createPayload.mitigation,
-    assigneeId: null,
-    dueDate: null,
-  };
   const asset = {
     id: createPayload.assetId,
     displayName: "api.exposurenexus.local",
@@ -101,6 +94,33 @@ describe("finding service", () => {
     updatedBy: user.id,
     createdAt: new Date("2026-01-02T00:00:00.000Z"),
     updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+  };
+  const baseProjection: FindingProjection = {
+    id: baseFinding.id,
+    assetId: baseFinding.assetId,
+    title: "Exposed admin endpoint",
+    severity: VulnerabilitySeverity.High,
+    status: FindingStatus.Active,
+    assigneeId: null,
+    dueDate: null,
+    mitigation: "Restrict access to trusted networks",
+    weakness: { identifiers: { cwe: ["CWE-200"], nuclei: ["admin-panel"] } },
+    affectedResource: {
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "https",
+      host: "example.com",
+      port: 443,
+      path: "/admin",
+    },
+    vulnerabilities: [],
+    observationCount: 2,
+    observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
+    firstSeen: new Date("2026-01-02T00:00:00.000Z"),
+    lastSeen: new Date("2026-01-03T00:00:00.000Z"),
+    createdAt: baseFinding.createdAt,
+    updatedAt: baseFinding.updatedAt,
+    createdBy: baseFinding.createdBy,
+    updatedBy: baseFinding.updatedBy,
   };
 
   beforeEach(() => {
@@ -549,152 +569,143 @@ describe("finding service", () => {
     );
   });
 
-  it("updates findings while preserving immutable fields", async () => {
-    const service = createService();
+  it("corrects finding-owned fields and emits complete projection snapshots", async () => {
+    const service = createFindingService({
+      findingRepository,
+      findingPersistenceRepository,
+      assetService,
+      userProfileService,
+      vulnerabilityService,
+      domainEventEmitter: domainEvents.emitter,
+      logger,
+    });
     const now = new Date("2026-03-04T05:06:07.000Z");
-    const updatePayload = {
-      ...updatePayloadBase,
-      status: FindingStatus.Mitigated,
-      mitigation: "Administrative interface restricted to VPN",
+    const correction = {
+      title: "Corrected admin endpoint",
+      weakness: { identifiers: { cwe: ["CWE-89"] } },
+      affectedResource: {
+        type: AffectedResourceType.SourceCode as const,
+        repository: "github.com/example/repository",
+        file: "src/query.ts",
+      },
     };
-    const updatedFinding = {
-      ...baseFinding,
-      ...updatePayload,
+    const current = {
+      ...baseProjection,
+      ...correction,
       updatedAt: now,
       updatedBy: user.id,
-    };
-    const previousEventFinding = {
-      ...baseFinding,
-      vulnerability,
-    };
-    const currentEventFinding = {
-      ...updatedFinding,
-      vulnerability,
     };
 
     vi.useFakeTimers();
     vi.setSystemTime(now);
-
-    findingRepository.getByID.mockResolvedValue(baseFinding);
-    findingRepository.updateByID.mockResolvedValue(updatedFinding);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
+    findingPersistenceRepository.getProjectedByID
+      .mockResolvedValueOnce(baseProjection)
+      .mockResolvedValueOnce(current);
+    findingPersistenceRepository.updateByID.mockResolvedValue({
+      ...current,
+      vulnerabilities: undefined,
+      observationCount: undefined,
+      observingSources: undefined,
+      firstSeen: undefined,
+      lastSeen: undefined,
+    });
 
     await expect(
       service.updateByID({
-        id: baseFinding.id,
-        finding: updatePayload,
+        id: baseProjection.id,
+        finding: correction,
         user,
-        eventContext: {
-          actor: user.id,
-          correlationId: "findings-update-request",
-        },
+        eventContext: { actor: user.id, correlationId: "finding-correction" },
       }),
-    ).resolves.toEqual(currentEventFinding);
+    ).resolves.toEqual(current);
 
-    expect(findingRepository.updateByID).toHaveBeenCalledWith(baseFinding.id, {
-      ...updatePayload,
-      assigneeId: baseFinding.assigneeId,
-      dueDate: null,
-      firstSeen: baseFinding.firstSeen,
-      lastSeen: baseFinding.lastSeen,
-      assetId: baseFinding.assetId,
-      vulnerabilityId: baseFinding.vulnerabilityId,
-      createdAt: baseFinding.createdAt,
-      createdBy: baseFinding.createdBy,
-      fingerprint: baseFinding.fingerprint,
+    expect(findingPersistenceRepository.updateByID).toHaveBeenCalledWith(baseProjection.id, {
+      ...correction,
       updatedAt: now,
       updatedBy: user.id,
     });
-    expect(userProfileService.getByID).not.toHaveBeenCalled();
-    expect(domainEvents.subjects()).toEqual(["finding.updated"]);
     expect(domainEvents.events[0]).toMatchObject({
       subject: "finding.updated",
-      source: "finding",
       actor: user.id,
-      correlationId: "findings-update-request",
-      data: {
-        previous: previousEventFinding,
-        current: currentEventFinding,
-      },
+      correlationId: "finding-correction",
+      data: { previous: baseProjection, current },
     });
   });
 
-  it("normalizes finding due dates during updates", async () => {
-    const service = createService();
+  it("normalizes due dates from partial updates", async () => {
+    const service = createFindingService({
+      findingRepository,
+      findingPersistenceRepository,
+      assetService,
+      userProfileService,
+      vulnerabilityService,
+      domainEventEmitter: domainEvents.emitter,
+      logger,
+    });
     const dueDate = new Date("2026-05-06T18:30:00.000Z");
     const normalizedDueDate = new Date("2026-05-06T00:00:00.000Z");
-    const updatePayload = {
-      ...updatePayloadBase,
-      dueDate,
-    };
-    const updatedFinding = {
-      ...baseFinding,
-      dueDate: normalizedDueDate,
-    };
+    const current = { ...baseProjection, dueDate: normalizedDueDate };
 
-    findingRepository.getByID.mockResolvedValue(baseFinding);
-    findingRepository.updateByID.mockResolvedValue(updatedFinding);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
+    findingPersistenceRepository.getProjectedByID
+      .mockResolvedValueOnce(baseProjection)
+      .mockResolvedValueOnce(current);
+    findingPersistenceRepository.updateByID.mockResolvedValue(current);
 
-    await service.updateByID({
-      id: baseFinding.id,
-      finding: updatePayload,
-      user,
-    });
-
-    expect(findingRepository.updateByID).toHaveBeenCalledWith(
-      baseFinding.id,
-      expect.objectContaining({
-        dueDate: normalizedDueDate,
-      }),
+    await expect(
+      service.updateByID({ id: baseProjection.id, finding: { dueDate }, user }),
+    ).resolves.toEqual(current);
+    expect(findingPersistenceRepository.updateByID).toHaveBeenCalledWith(
+      baseProjection.id,
+      expect.objectContaining({ dueDate: normalizedDueDate }),
     );
   });
 
-  it("clears finding due dates when update payloads send null", async () => {
-    const service = createService();
-    const datedFinding = {
-      ...baseFinding,
+  it("clears due dates from partial updates", async () => {
+    const service = createFindingService({
+      findingRepository,
+      findingPersistenceRepository,
+      assetService,
+      userProfileService,
+      vulnerabilityService,
+      domainEventEmitter: domainEvents.emitter,
+      logger,
+    });
+    const previous = {
+      ...baseProjection,
       dueDate: new Date("2026-05-06T00:00:00.000Z"),
     };
-    const updatedFinding = {
-      ...datedFinding,
-      dueDate: null,
-      status: FindingStatus.Mitigated,
-    };
+    const current = { ...previous, dueDate: null };
 
-    findingRepository.getByID.mockResolvedValue(datedFinding);
-    findingRepository.updateByID.mockResolvedValue(updatedFinding);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
+    findingPersistenceRepository.getProjectedByID
+      .mockResolvedValueOnce(previous)
+      .mockResolvedValueOnce(current);
+    findingPersistenceRepository.updateByID.mockResolvedValue(current);
 
-    await service.updateByID({
-      id: baseFinding.id,
-      finding: {
-        ...updatePayloadBase,
-        status: FindingStatus.Mitigated,
-      },
-      user,
-    });
-
-    expect(findingRepository.updateByID).toHaveBeenCalledWith(
-      baseFinding.id,
-      expect.objectContaining({
-        dueDate: null,
-        status: FindingStatus.Mitigated,
-      }),
+    await expect(
+      service.updateByID({ id: baseProjection.id, finding: { dueDate: null }, user }),
+    ).resolves.toEqual(current);
+    expect(findingPersistenceRepository.updateByID).toHaveBeenCalledWith(
+      baseProjection.id,
+      expect.objectContaining({ dueDate: null }),
     );
   });
 
-  it("updates findings to an existing enabled assignee", async () => {
-    const service = createService();
-    const updatePayload = {
-      ...updatePayloadBase,
-      assigneeId,
-    };
-    const updatedFinding = {
-      ...baseFinding,
-      ...updatePayload,
-    };
+  it("accepts an existing assignee from a partial update", async () => {
+    const service = createFindingService({
+      findingRepository,
+      findingPersistenceRepository,
+      assetService,
+      userProfileService,
+      vulnerabilityService,
+      domainEventEmitter: domainEvents.emitter,
+      logger,
+    });
+    const current = { ...baseProjection, assigneeId };
 
+    findingPersistenceRepository.getProjectedByID
+      .mockResolvedValueOnce(baseProjection)
+      .mockResolvedValueOnce(current);
+    findingPersistenceRepository.updateByID.mockResolvedValue(current);
     userProfileService.getByID.mockResolvedValue({
       id: assigneeId,
       username: "assignee",
@@ -703,202 +714,91 @@ describe("finding service", () => {
       enabled: true,
       roleIds: [],
     });
-    findingRepository.getByID.mockResolvedValue(baseFinding);
-    findingRepository.updateByID.mockResolvedValue(updatedFinding);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
 
     await expect(
-      service.updateByID({
-        id: baseFinding.id,
-        finding: updatePayload,
-        user,
-      }),
-    ).resolves.toEqual({
-      ...updatedFinding,
-      vulnerability,
-    });
-
+      service.updateByID({ id: baseProjection.id, finding: { assigneeId }, user }),
+    ).resolves.toEqual(current);
     expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId);
-    expect(findingRepository.updateByID).toHaveBeenCalledWith(
-      baseFinding.id,
-      expect.objectContaining({
-        assigneeId,
-      }),
+    expect(findingPersistenceRepository.updateByID).toHaveBeenCalledWith(
+      baseProjection.id,
+      expect.objectContaining({ assigneeId }),
     );
   });
 
-  it("updates findings to an existing disabled assignee", async () => {
-    const service = createService();
-    const updatePayload = {
-      ...updatePayloadBase,
-      assigneeId,
-    };
-    const updatedFinding = {
-      ...baseFinding,
-      ...updatePayload,
-    };
-
-    userProfileService.getByID.mockResolvedValue({
-      id: assigneeId,
-      username: "disabled-assignee",
-      displayName: "Disabled Assignee",
-      email: "disabled-assignee@example.com",
-      enabled: false,
-      roleIds: [],
-    });
-    findingRepository.getByID.mockResolvedValue(baseFinding);
-    findingRepository.updateByID.mockResolvedValue(updatedFinding);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-
-    await service.updateByID({
-      id: baseFinding.id,
-      finding: updatePayload,
-      user,
+  it("rejects an unknown assignee before persisting", async () => {
+    const service = createFindingService({
+      findingRepository,
+      findingPersistenceRepository,
+      assetService,
+      userProfileService,
+      vulnerabilityService,
+      domainEventEmitter: domainEvents.emitter,
+      logger,
     });
 
-    expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId);
-    expect(findingRepository.updateByID).toHaveBeenCalledWith(
-      baseFinding.id,
-      expect.objectContaining({
-        assigneeId,
-      }),
-    );
-  });
-
-  it("reassigns findings from one assignee to another", async () => {
-    const service = createService();
-    const nextAssigneeId = "98f0b0bb-af64-4d25-ae0d-03629d53444b";
-    const assignedFinding = {
-      ...baseFinding,
-      assigneeId,
-    };
-    const updatePayload = {
-      ...updatePayloadBase,
-      assigneeId: nextAssigneeId,
-    };
-    const updatedFinding = {
-      ...assignedFinding,
-      assigneeId: nextAssigneeId,
-    };
-
-    userProfileService.getByID.mockResolvedValue({
-      id: nextAssigneeId,
-      username: "next-assignee",
-      displayName: "Next Assignee",
-      email: "next-assignee@example.com",
-      enabled: true,
-      roleIds: [],
-    });
-    findingRepository.getByID.mockResolvedValue(assignedFinding);
-    findingRepository.updateByID.mockResolvedValue(updatedFinding);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-
-    await service.updateByID({
-      id: baseFinding.id,
-      finding: updatePayload,
-      user,
-    });
-
-    expect(userProfileService.getByID).toHaveBeenCalledWith(nextAssigneeId);
-    expect(findingRepository.updateByID).toHaveBeenCalledWith(
-      baseFinding.id,
-      expect.objectContaining({
-        assigneeId: nextAssigneeId,
-      }),
-    );
-  });
-
-  it("clears finding assignees", async () => {
-    const service = createService();
-    const assignedFinding = {
-      ...baseFinding,
-      assigneeId,
-    };
-    const updatePayload = {
-      ...updatePayloadBase,
-      assigneeId: null,
-    };
-    const updatedFinding = {
-      ...assignedFinding,
-      assigneeId: null,
-    };
-
-    findingRepository.getByID.mockResolvedValue(assignedFinding);
-    findingRepository.updateByID.mockResolvedValue(updatedFinding);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-
-    await service.updateByID({
-      id: baseFinding.id,
-      finding: updatePayload,
-      user,
-    });
-
-    expect(userProfileService.getByID).not.toHaveBeenCalled();
-    expect(findingRepository.updateByID).toHaveBeenCalledWith(
-      baseFinding.id,
-      expect.objectContaining({
-        assigneeId: null,
-      }),
-    );
-  });
-
-  it("rejects unknown finding assignees before updating findings", async () => {
-    const service = createService();
-    const updatePayload = {
-      ...updatePayloadBase,
-      assigneeId,
-    };
-
+    findingPersistenceRepository.getProjectedByID.mockResolvedValue(baseProjection);
     userProfileService.getByID.mockResolvedValue(null);
-    findingRepository.getByID.mockResolvedValue(baseFinding);
 
     await expect(
-      service.updateByID({
-        id: baseFinding.id,
-        finding: updatePayload,
-        user,
-      }),
+      service.updateByID({ id: baseProjection.id, finding: { assigneeId }, user }),
     ).rejects.toMatchObject({
       code: "finding.assignee_unknown",
       kind: "validation",
-      details: { assigneeId, findingId: baseFinding.id },
+      details: { assigneeId, findingId: baseProjection.id },
     } satisfies Partial<ApplicationError>);
-    expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId);
-    expect(findingRepository.updateByID).not.toHaveBeenCalled();
+    expect(findingPersistenceRepository.updateByID).not.toHaveBeenCalled();
+    expect(domainEvents.subjects()).toEqual([]);
   });
 
-  it("maps repository update failures to an application error", async () => {
-    const service = createService();
+  it("returns null without persisting or emitting when the finding is missing", async () => {
+    const service = createFindingService({
+      findingRepository,
+      findingPersistenceRepository,
+      assetService,
+      userProfileService,
+      vulnerabilityService,
+      domainEventEmitter: domainEvents.emitter,
+      logger,
+    });
 
-    findingRepository.getByID.mockResolvedValue(baseFinding);
-    findingRepository.updateByID.mockRejectedValue(new Error("db offline"));
+    findingPersistenceRepository.getProjectedByID.mockResolvedValue(null);
 
     await expect(
       service.updateByID({
-        id: baseFinding.id,
-        finding: updatePayloadBase,
+        id: baseProjection.id,
+        finding: { status: FindingStatus.Mitigated },
+        user,
+      }),
+    ).resolves.toBeNull();
+    expect(findingPersistenceRepository.updateByID).not.toHaveBeenCalled();
+    expect(domainEvents.subjects()).toEqual([]);
+  });
+
+  it("maps persistence update failures to finding.update_failed", async () => {
+    const service = createFindingService({
+      findingRepository,
+      findingPersistenceRepository,
+      assetService,
+      userProfileService,
+      vulnerabilityService,
+      domainEventEmitter: domainEvents.emitter,
+      logger,
+    });
+
+    findingPersistenceRepository.getProjectedByID.mockResolvedValue(baseProjection);
+    findingPersistenceRepository.updateByID.mockRejectedValue(new Error("db offline"));
+
+    await expect(
+      service.updateByID({
+        id: baseProjection.id,
+        finding: { status: FindingStatus.Mitigated },
         user,
       }),
     ).rejects.toMatchObject({
       code: "finding.update_failed",
       kind: "unexpected",
-      details: { findingId: baseFinding.id },
+      details: { findingId: baseProjection.id },
     } satisfies Partial<ApplicationError>);
-  });
-
-  it("returns null when updating a missing finding", async () => {
-    const service = createService();
-
-    findingRepository.getByID.mockResolvedValue(null);
-
-    await expect(
-      service.updateByID({
-        id: baseFinding.id,
-        finding: updatePayloadBase,
-        user,
-      }),
-    ).resolves.toBeNull();
-    expect(findingRepository.updateByID).not.toHaveBeenCalled();
     expect(domainEvents.subjects()).toEqual([]);
   });
 

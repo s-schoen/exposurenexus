@@ -148,9 +148,20 @@ export const createFindingSchema = z.strictObject({
   observation: manualObservationInputSchema.optional(),
 });
 
-// The update contract is replaced by the finding correction issue. Keep the
-// legacy shape available to the existing update path until that cutover.
-export const updateFindingSchema = legacyUpdateFindingSchema;
+export const updateFindingSchema = z
+  .strictObject({
+    title: findingPersistenceSchema.shape.title.optional(),
+    severity: findingPersistenceSchema.shape.severity.optional(),
+    status: findingPersistenceSchema.shape.status.optional(),
+    assigneeId: findingPersistenceSchema.shape.assigneeId.optional(),
+    dueDate: findingPersistenceSchema.shape.dueDate.optional(),
+    mitigation: findingPersistenceSchema.shape.mitigation.optional(),
+    weakness: findingPersistenceSchema.shape.weakness.optional(),
+    affectedResource: findingPersistenceSchema.shape.affectedResource.optional(),
+  })
+  .refine((finding) => Object.keys(finding).length > 0, {
+    message: "at least one mutable finding field is required",
+  });
 
 export const FindingStatistics = z.strictObject({
   total: z.int(),
@@ -184,6 +195,6 @@ export type FindingResource = FindingAffectedResource;
 export type CreateFinding = z.infer<typeof createFindingSchema>;
 export type CreateManualFinding = CreateFinding;
 export type LegacyCreateFinding = z.infer<typeof legacyCreateFindingSchema>;
-export type UpdateFinding = z.infer<typeof legacyUpdateFindingSchema>;
+export type UpdateFinding = z.infer<typeof updateFindingSchema>;
 export type FindingStatistics = z.infer<typeof FindingStatistics>;
 export type ManualObservationInput = z.infer<typeof manualObservationInputSchema>;
