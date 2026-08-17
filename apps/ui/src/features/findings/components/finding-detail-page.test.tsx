@@ -1,8 +1,9 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import type { Asset } from "@exposurenexus/types/model/asset";
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { FindingProjection } from "@exposurenexus/types/model/finding";
 import type { ReactNode } from "react";
 
 interface QueryState<TData> {
@@ -31,43 +32,33 @@ const mocks = vi.hoisted(() => {
     createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
     updatedBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
   };
-  const finding: Finding = {
+  const finding: FindingProjection = {
     id: "3703bd68-5d5e-4209-90dc-365bc7030f67",
-    vulnerabilityId: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-    severity: "high" as Finding["severity"],
-    status: "confirmed" as Finding["status"],
-    source: "manual",
-    evidence: "MFA is not enforced for administrators.",
+    assetId: "61303e6e-9aa5-49cc-a863-bc1bd6eb45ac",
+    title: "Missing MFA enforcement",
+    severity: "high" as FindingProjection["severity"],
+    status: "confirmed" as FindingProjection["status"],
     mitigation: null,
     assigneeId: null,
     dueDate: null,
-    firstSeen: new Date("2026-01-01T00:00:00.000Z"),
-    lastSeen: new Date("2026-01-02T00:00:00.000Z"),
-    fingerprint: "manual:mfa-admin",
-    assetId: "61303e6e-9aa5-49cc-a863-bc1bd6eb45ac",
+    weakness: { identifiers: {} },
+    affectedResource: { type: "unspecified" as AffectedResourceType.Unspecified },
+    vulnerabilities: [],
+    observationCount: 0,
+    observingSources: [],
+    firstSeen: null,
+    lastSeen: null,
     createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
     updatedBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-02T00:00:00.000Z"),
-    vulnerability: {
-      id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-      title: "Missing MFA enforcement",
-      severity: "high" as Finding["vulnerability"]["severity"],
-      description: "Administrative accounts can sign in without MFA.",
-      cwe: 287,
-      cve: null,
-      createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
-      updatedBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
-      createdAt: new Date("2026-01-01T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
-    },
   };
   const assetQuery: QueryState<Asset> = {
     data: asset,
     isPending: false,
     isSuccess: true,
   };
-  const findingQuery: QueryState<Finding> = {
+  const findingQuery: QueryState<FindingProjection> = {
     data: finding,
     isPending: false,
     isSuccess: true,

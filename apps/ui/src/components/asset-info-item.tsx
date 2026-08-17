@@ -39,7 +39,12 @@ export function AssetInfoItem({ assetId }: AssetInfoItemProps) {
         </ItemDescription>
       </ItemContent>
       <ItemActions>
-        <Link to="/assets/$id" params={{ id: assetId }} disabled={asset.isLoading}>
+        <Link
+          to="/assets/$id"
+          params={{ id: assetId }}
+          disabled={asset.isLoading}
+          aria-label={`Open ${asset.data?.displayName ?? "asset"}`}
+        >
           <ExternalLink className="text-accent-foreground mr-2" size={20} />
         </Link>
       </ItemActions>

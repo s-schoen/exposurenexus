@@ -7,7 +7,7 @@ import { usePageMeta } from "@/context/page.tsx";
 import { useFindingTableSearchState } from "@/hooks/use-finding-table-search-state.ts";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { FindingProjection } from "@exposurenexus/types/model/finding";
 
 interface TriageFindingsPageProps {
   search?: Record<string, unknown>;
@@ -22,7 +22,7 @@ export function TriageFindingsPage({ search = {}, selected }: TriageFindingsPage
     to: "/findings/triage",
     defaultStatusFilter: defaultTriageStatusFilter,
   });
-  const selectedSearch = useSelectedSearchParam<Finding>({
+  const selectedSearch = useSelectedSearchParam<FindingProjection>({
     selectedId: selected,
     to: "/findings/triage",
     replace: true,

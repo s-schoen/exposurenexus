@@ -5,8 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FindingsPage } from "@/features/findings/components/findings-page.tsx";
 
+import type { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import type { Asset } from "@exposurenexus/types/model/asset";
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { ObservationSource } from "@exposurenexus/types/model/observation";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { ReactNode } from "react";
 
@@ -54,68 +56,51 @@ const mocks = vi.hoisted(() => {
       updatedBy: users[0].id,
     },
   ];
-  const findings: Array<Finding> = [
+  const findings: Array<FindingProjection> = [
     {
       id: "2713d833-eb13-4517-ac7c-7761545ed42a",
-      vulnerabilityId: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-      severity: "high" as Finding["severity"],
-      status: "active" as Finding["status"],
-      source: "manual",
-      evidence: "Observed exposed admin endpoint",
+      assetId: assets[0].id,
+      title: "Exposed Admin Endpoint",
+      severity: "high" as FindingProjection["severity"],
+      status: "active" as FindingProjection["status"],
       mitigation: "Restrict access to internal networks",
       assigneeId: users[0].id,
       dueDate: null,
+      weakness: { identifiers: { cwe: ["CWE-200"] } },
+      affectedResource: { type: "unspecified" as AffectedResourceType.Unspecified },
+      vulnerabilities: [],
+      observationCount: 2,
+      observingSources: [
+        "manual" as ObservationSource.Manual,
+        "nuclei" as ObservationSource.Nuclei,
+      ],
       firstSeen: new Date("2026-01-02T00:00:00.000Z"),
       lastSeen: new Date("2026-01-03T00:00:00.000Z"),
-      fingerprint: "fingerprint-1",
-      assetId: assets[0].id,
       createdBy: users[0].id,
       updatedBy: users[0].id,
       createdAt: new Date("2026-01-02T00:00:00.000Z"),
       updatedAt: new Date("2026-01-03T00:00:00.000Z"),
-      vulnerability: {
-        id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-        title: "Exposed Admin Endpoint",
-        severity: "high" as Finding["vulnerability"]["severity"],
-        description: "Administrative interface is reachable externally",
-        cwe: 284,
-        cve: null,
-        createdBy: users[0].id,
-        updatedBy: users[0].id,
-        createdAt: new Date("2026-01-01T00:00:00.000Z"),
-        updatedAt: new Date("2026-01-01T00:00:00.000Z"),
-      },
     },
     {
       id: "3703bd68-5d5e-4209-90dc-365bc7030f67",
-      vulnerabilityId: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
-      severity: "medium" as Finding["severity"],
-      status: "confirmed" as Finding["status"],
-      source: "scanner",
-      evidence: "Dependency version is outdated",
+      assetId: assets[0].id,
+      title: "Outdated API Dependency",
+      severity: "medium" as FindingProjection["severity"],
+      status: "confirmed" as FindingProjection["status"],
       mitigation: null,
       assigneeId: null,
       dueDate: null,
-      firstSeen: new Date("2026-01-04T00:00:00.000Z"),
-      lastSeen: new Date("2026-01-05T00:00:00.000Z"),
-      fingerprint: "fingerprint-2",
-      assetId: assets[0].id,
+      weakness: { identifiers: {} },
+      affectedResource: { type: "unspecified" as AffectedResourceType.Unspecified },
+      vulnerabilities: [],
+      observationCount: 0,
+      observingSources: [],
+      firstSeen: null,
+      lastSeen: null,
       createdBy: users[0].id,
       updatedBy: users[0].id,
       createdAt: new Date("2026-01-04T00:00:00.000Z"),
       updatedAt: new Date("2026-01-05T00:00:00.000Z"),
-      vulnerability: {
-        id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
-        title: "Outdated API Dependency",
-        severity: "medium" as Finding["vulnerability"]["severity"],
-        description: null,
-        cwe: 1104,
-        cve: null,
-        createdBy: users[0].id,
-        updatedBy: users[0].id,
-        createdAt: new Date("2026-01-04T00:00:00.000Z"),
-        updatedAt: new Date("2026-01-05T00:00:00.000Z"),
-      },
     },
   ];
 

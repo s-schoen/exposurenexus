@@ -1,11 +1,7 @@
-import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date";
-import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Copy, ExternalLink, FileCode2, FileText, ShieldAlert, X } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { ExternalLink, ShieldAlert } from "lucide-react";
 
 import { createAssetByIDQueryOptions } from "@/api/asset.ts";
 import { createFindingByIDQueryOptions } from "@/api/finding.ts";
@@ -18,39 +14,21 @@ import { MetadataSidebar } from "@/components/metadata-sidebar";
 import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
 import { SafeMarkdown } from "@/components/safe-markdown.tsx";
 import { SeverityBadge } from "@/components/severity-badge.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card.tsx";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command.tsx";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
-import {
-  UserLabel,
-  createUserProfileById,
-  formatUserProfileReference,
-} from "@/components/user-label.tsx";
-import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
-import { capitalizeFirstLetter, formatFindingStatus, formatSeverity } from "@/lib/format.ts";
+import { UserLabel, createUserProfileById } from "@/components/user-label.tsx";
+import { capitalizeFirstLetter } from "@/lib/format.ts";
 
-import type { FindingEditableField } from "@/hooks/use-finding-lifecycle.ts";
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { FindingAffectedResource } from "@exposurenexus/types/model/affected-resource";
+import type { FindingProjection } from "@exposurenexus/types/model/finding";
 import type { ReactNode } from "react";
 
 interface FindingDetailContentProps {
@@ -58,202 +36,249 @@ interface FindingDetailContentProps {
   titleAction?: ReactNode;
 }
 
-const unassignedAssigneeValue = "__unassigned_assignee__";
-
-function formatDateOnly(value: Date | null | undefined) {
-  if (!value) return "No due date";
-
-  return normalizeDateToUtcStart(value).toISOString().slice(0, 10);
+function formatDateTime(value: Date | null) {
+  return value ? value.toLocaleString() : "Not available";
 }
 
-function parseDateInputValue(value: string) {
-  if (!value) return null;
+function formatResourceType(type: AffectedResourceType) {
+  switch (type) {
+    case AffectedResourceType.Asset:
+      return "Asset";
+    case AffectedResourceType.Unspecified:
+      return "Unspecified resource";
+    case AffectedResourceType.WebEndpoint:
+      return "Web endpoint";
+    case AffectedResourceType.NetworkService:
+      return "Network service";
+    case AffectedResourceType.SourceCode:
+      return "Source code";
+    case AffectedResourceType.Package:
+      return "Package";
+    case AffectedResourceType.ContainerImage:
+      return "Container image";
+    case AffectedResourceType.CloudResource:
+      return "Cloud resource";
+  }
+}
 
-  return normalizeDateToUtcStart(new Date(`${value}T00:00:00.000Z`));
+function formatLocation(
+  location: NonNullable<Extract<FindingAffectedResource, { type: "sourceCode" }>["location"]>,
+) {
+  const start = [location.startLine, location.startColumn]
+    .filter((value) => value !== undefined)
+    .join(":");
+  const end = [location.endLine, location.endColumn]
+    .filter((value) => value !== undefined)
+    .join(":");
+  return end ? `${start}-${end}` : start;
+}
+
+function formatResourceValue(value: unknown) {
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+
+  if (value && typeof value === "object" && "kind" in value) {
+    const component = value as { kind: string; name?: string };
+    return component.name ? `${component.kind}: ${component.name}` : component.kind;
+  }
+
+  return "Not recorded";
+}
+
+function formatResourceDetails(entries: Array<[string, unknown]>): Array<[string, string]> {
+  return entries
+    .filter(([, value]) => value !== undefined)
+    .map(([label, value]) => [label, formatResourceValue(value)]);
+}
+
+function getResourceDetails(resource: FindingAffectedResource): Array<[string, string]> {
+  switch (resource.type) {
+    case AffectedResourceType.Asset:
+    case AffectedResourceType.Unspecified:
+      return [];
+    case AffectedResourceType.WebEndpoint:
+      return formatResourceDetails([
+        ["Scheme", resource.scheme],
+        ["Host", resource.host],
+        ["Port", resource.port],
+        ["Path", resource.path],
+        ["Method", resource.method],
+        ["Component", resource.component],
+      ]);
+    case AffectedResourceType.NetworkService:
+      return formatResourceDetails([
+        ["Host", resource.host],
+        ["Port", resource.port],
+        ["Transport", resource.transport],
+        ["Protocol", resource.protocol],
+      ]);
+    case AffectedResourceType.SourceCode:
+      return formatResourceDetails([
+        ["Repository", resource.repository],
+        ["File", resource.file],
+        ["Location", resource.location ? formatLocation(resource.location) : undefined],
+        ["Symbol", resource.symbol],
+        ["Location fingerprint", resource.locationFingerprint],
+      ]);
+    case AffectedResourceType.Package:
+      return formatResourceDetails([
+        ["Ecosystem", resource.ecosystem],
+        ["Package", resource.name],
+        ["Installation path", resource.installationPath],
+      ]);
+    case AffectedResourceType.ContainerImage:
+      return formatResourceDetails([
+        ["Registry", resource.registry],
+        ["Repository", resource.repository],
+        ["Digest", resource.digest],
+      ]);
+    case AffectedResourceType.CloudResource:
+      return formatResourceDetails([
+        ["Provider", resource.provider],
+        ["Provider account", resource.providerAccount],
+        ["Region", resource.region],
+        ["Resource ID", resource.resourceId],
+        ["Subresource", resource.subresource],
+      ]);
+  }
+}
+
+function FindingResourceCard({ finding }: { finding: FindingProjection }) {
+  const details = getResourceDetails(finding.affectedResource);
+
+  return (
+    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold">Affected resource</CardTitle>
+        <CardDescription>Canonical resource identity used by this finding.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+          <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Type
+          </div>
+          <div className="mt-1 font-medium">
+            {formatResourceType(finding.affectedResource.type)}
+          </div>
+        </div>
+        {details.length > 0 ? (
+          <dl className="grid gap-3 sm:grid-cols-2">
+            {details.map(([label, value]) => (
+              <div key={label} className="rounded-xl border border-border/60 px-4 py-3">
+                <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+                <dd className="mt-1 break-words text-sm font-medium">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {finding.affectedResource.type === AffectedResourceType.Asset
+              ? "The weakness applies to the asset as a whole."
+              : "A narrower affected resource has not been recorded."}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FindingWeaknessCard({ finding }: { finding: FindingProjection }) {
+  const identifiers = Object.entries(finding.weakness.identifiers);
+
+  return (
+    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold">Weakness</CardTitle>
+        <CardDescription>Normalized identifiers reported for this finding.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {identifiers.length > 0 ? (
+          <dl className="grid gap-3 sm:grid-cols-2">
+            {identifiers.map(([namespace, values]) => (
+              <div key={namespace} className="rounded-xl border border-border/60 px-4 py-3">
+                <dt className="text-xs font-medium text-muted-foreground">{namespace}</dt>
+                <dd className="mt-1 break-words text-sm font-medium">{values.join(", ")}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p className="text-sm text-muted-foreground">No weakness identifiers are recorded.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FindingVulnerabilitiesCard({ finding }: { finding: FindingProjection }) {
+  return (
+    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold">Catalog enrichment</CardTitle>
+        <CardDescription>
+          Linked catalog entries are equal enrichment and do not control finding identity or
+          severity.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {finding.vulnerabilities.length > 0 ? (
+          <div className="space-y-3">
+            {finding.vulnerabilities.map((vulnerability) => (
+              <div
+                key={vulnerability.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium">{vulnerability.title}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {vulnerability.type}: {vulnerability.identifier}
+                  </div>
+                </div>
+                <Link to="/vulnerabilities/$id" params={{ id: vulnerability.id }}>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Open ${vulnerability.identifier}`}
+                  >
+                    <ExternalLink className="text-accent-foreground" size={20} />
+                  </Button>
+                </Link>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No catalog entries are linked.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export function FindingDetailContent({ findingId, titleAction }: FindingDetailContentProps) {
   const finding = useQuery(createFindingByIDQueryOptions(findingId));
   const users = useQuery(createListUsersQueryOptions());
-  const findingLifecycle = useFindingLifecycle();
   const asset = useQuery({
     ...createAssetByIDQueryOptions(finding.data?.assetId ?? ""),
     enabled: Boolean(finding.data?.assetId),
   });
-  const userProfileById = useMemo(() => createUserProfileById(users.data), [users.data]);
+  const userProfileById = createUserProfileById(users.data);
 
-  const handleUpdate = useCallback(
-    async <TKey extends FindingEditableField>(
-      findingData: Finding,
-      key: TKey,
-      value: Finding[TKey],
-    ) => {
-      await findingLifecycle.updateFindingField(findingData, key, value);
-    },
-    [findingLifecycle],
-  );
-
-  const handleCopyEvidence = useCallback(async (evidence: string) => {
-    if (!evidence) return;
-    try {
-      await navigator.clipboard.writeText(evidence);
-      toast.success("Evidence copied");
-    } catch (error) {
-      console.error("Error copying evidence:", error);
-      toast.error("Failed to copy evidence");
-    }
-  }, []);
-
-  function formatDateTime(value: Date | null | undefined) {
-    if (!value) return "Not available";
-
-    return value.toLocaleString();
-  }
-
-  function ResponsibleOwnerLabel({ className }: { className?: string }) {
+  function ResponsibleOwnerLabel() {
     if (asset.isPending) {
       return <Skeleton className="inline-flex h-4 w-24" />;
     }
 
-    if (!asset.data) {
-      return <span className="text-muted-foreground">Unknown Asset</span>;
-    }
-
     return (
       <UserLabel
-        userId={asset.data.ownerId}
-        user={
-          asset.data.ownerId && users.isPending
-            ? undefined
-            : asset.data.ownerId
-              ? (userProfileById.get(asset.data.ownerId) ?? null)
-              : null
-        }
+        userId={asset.data?.ownerId}
+        user={asset.data?.ownerId ? (userProfileById.get(asset.data.ownerId) ?? null) : null}
         emptyLabel="No Owner"
         unknownLabel="Unknown Owner"
-        className={className}
       />
     );
   }
 
-  function AssigneeLabel({ findingData, className }: { findingData: Finding; className?: string }) {
-    return (
-      <UserLabel
-        userId={findingData.assigneeId}
-        user={
-          findingData.assigneeId && users.isPending
-            ? undefined
-            : findingData.assigneeId
-              ? (userProfileById.get(findingData.assigneeId) ?? null)
-              : null
-        }
-        emptyLabel="Unassigned"
-        unknownLabel="Unknown Assignee"
-        className={className}
-      />
-    );
-  }
-
-  function getAssigneeEditValue(findingData: Finding) {
-    return findingData.assigneeId ?? unassignedAssigneeValue;
-  }
-
-  function AssigneePicker({
-    value,
-    onCancel,
-    onCommit,
-  }: {
-    value: string;
-    onCancel: () => void;
-    onCommit: (value: string) => void;
-  }) {
-    const [open, setOpen] = useState(false);
-    const assigneeId = value === unassignedAssigneeValue ? null : value;
-    const assigneeLabel =
-      assigneeId && users.isPending
-        ? "Loading assignee"
-        : formatUserProfileReference(assigneeId, userProfileById, {
-            emptyLabel: "Unassigned",
-            unknownLabel: "Unknown Assignee",
-          });
-
-    return (
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          render={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              aria-label="Finding assignee"
-              disabled={users.isPending}
-              className="max-w-full min-w-36 justify-between"
-            >
-              <span className="min-w-0 truncate">{assigneeLabel}</span>
-            </Button>
-          }
-        />
-        <PopoverContent align="end" className="w-72 p-0">
-          <Command>
-            <CommandInput placeholder="Search assignees..." />
-            <CommandList>
-              <CommandEmpty>No assignees found</CommandEmpty>
-              <CommandGroup>
-                <CommandItem
-                  value={unassignedAssigneeValue}
-                  onSelect={() => {
-                    setOpen(false);
-                    onCommit(unassignedAssigneeValue);
-                  }}
-                >
-                  Unassigned
-                </CommandItem>
-                {users.data?.map((user) => (
-                  <CommandItem
-                    key={user.id}
-                    value={`${user.displayName} ${user.username}`}
-                    onSelect={() => {
-                      setOpen(false);
-                      onCommit(user.id);
-                    }}
-                  >
-                    <div className="min-w-0">
-                      <span className="block truncate">{user.displayName}</span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {user.username}
-                      </span>
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          aria-label="Cancel finding assignee edit"
-          title="Cancel"
-          onClick={onCancel}
-        >
-          <X />
-        </Button>
-      </Popover>
-    );
-  }
-
-  async function handleSaveAssignee(findingData: Finding, value: string) {
-    const assigneeId = value === unassignedAssigneeValue ? null : value;
-
-    await handleUpdate(findingData, "assigneeId", assigneeId);
-  }
-
-  async function handleSaveDueDate(findingData: Finding, value: string) {
-    await handleUpdate(findingData, "dueDate", parseDateInputValue(value));
-  }
-
-  function FindingOverviewCard({ findingData }: { findingData: Finding }) {
+  function FindingOverviewCard({ findingData }: { findingData: FindingProjection }) {
     return (
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader className="gap-4">
@@ -267,38 +292,37 @@ export function FindingDetailContent({ findingId, titleAction }: FindingDetailCo
           <div className="space-y-3">
             <div className="space-y-2">
               <CardTitle className="text-2xl font-semibold tracking-tight">
-                {findingData.vulnerability.title}
+                {findingData.title}
               </CardTitle>
               <CardDescription className="max-w-3xl text-sm leading-6">
-                Review the affected asset, validate the evidence, and update the triage state from
-                the action panel.
+                Human workflow case for one weakness affecting one asset and canonical resource.
               </CardDescription>
             </div>
-            <div className="grid gap-3 xl:grid-cols-6">
+            <div className="grid gap-3 xl:grid-cols-5">
               <DetailHighlightCard
                 label="Affected asset"
                 value={asset.data?.displayName ?? "Unknown asset"}
                 description={capitalizeFirstLetter(asset.data?.type ?? "Unclassified")}
               />
               <DetailHighlightCard
-                label="Asset owner"
-                value={<ResponsibleOwnerLabel />}
-                description="Derived from the affected asset"
+                label="Observations"
+                value={String(findingData.observationCount)}
+                description="Supporting source reports"
               />
               <DetailHighlightCard
-                label="Source"
-                value={findingData.source}
-                description="Imported or created finding origin"
+                label="Observing sources"
+                value={findingData.observingSources.join(", ") || "None observed"}
+                description="Lexically ordered source summary"
               />
               <DetailHighlightCard
                 label="First seen"
                 value={formatDateTime(findingData.firstSeen)}
-                description="Earliest observed occurrence"
+                description="Earliest observation time"
               />
               <DetailHighlightCard
                 label="Last seen"
                 value={formatDateTime(findingData.lastSeen)}
-                description="Most recent observed occurrence"
+                description="Most recent observation time"
               />
             </div>
           </div>
@@ -307,72 +331,33 @@ export function FindingDetailContent({ findingId, titleAction }: FindingDetailCo
     );
   }
 
-  function FindingSidebar({ findingData }: { findingData: Finding }) {
+  function FindingSidebar({ findingData }: { findingData: FindingProjection }) {
     return (
       <MetadataSidebar title="Assessment" icon={ShieldAlert}>
         <div className="space-y-4">
           <MetadataDetailRow
             label="Severity"
-            editable={{
-              value: findingData.severity,
-              displayElement: (severityValue) => (
-                <SeverityBadge severity={severityValue} className="h-7 px-3 text-sm" />
-              ),
-              editElement: {
-                type: "select",
-                options: Object.values(VulnerabilitySeverity).map((v) => ({
-                  label: formatSeverity(v),
-                  value: v,
-                })),
-              },
-              editOnClick: true,
-              showEditIcon: false,
-              onSave: (value) => handleUpdate(findingData, "severity", value),
-            }}
+            value={<SeverityBadge severity={findingData.severity} className="h-7 px-3 text-sm" />}
           />
           <MetadataDetailRow
             label="Status"
-            editable={{
-              value: findingData.status,
-              displayElement: (statusValue) => (
-                <FindingStatusBadge status={statusValue} className="h-7 px-3 text-sm" />
-              ),
-              editElement: {
-                type: "select",
-                options: Object.values(FindingStatus).map((v) => ({
-                  label: formatFindingStatus(v),
-                  value: v,
-                })),
-              },
-              editOnClick: true,
-              showEditIcon: false,
-              onSave: (value) => handleUpdate(findingData, "status", value),
-            }}
+            value={<FindingStatusBadge status={findingData.status} className="h-7 px-3 text-sm" />}
           />
+          <MetadataDetailRow label="Due date" value={formatDateTime(findingData.dueDate)} />
           <MetadataDetailRow
-            label="Source"
-            editable={{
-              value: findingData.source,
-              editElement: { type: "input" },
-              editOnClick: true,
-              showEditIcon: false,
-              onSave: (value) => handleUpdate(findingData, "source", value),
-            }}
-          />
-          <MetadataDetailRow
-            label="Due Date"
-            editable={{
-              value: formatDateOnly(findingData.dueDate),
-              displayElement: () => (
-                <span className={findingData.dueDate ? undefined : "text-muted-foreground"}>
-                  {formatDateOnly(findingData.dueDate)}
-                </span>
-              ),
-              editElement: { type: "input", inputType: "date" },
-              editOnClick: true,
-              showEditIcon: false,
-              onSave: (value) => handleSaveDueDate(findingData, value),
-            }}
+            label="Assignee"
+            value={
+              <UserLabel
+                userId={findingData.assigneeId}
+                user={
+                  findingData.assigneeId
+                    ? (userProfileById.get(findingData.assigneeId) ?? null)
+                    : null
+                }
+                emptyLabel="Unassigned"
+                unknownLabel="Unknown Assignee"
+              />
+            }
           />
         </div>
         <Separator />
@@ -387,163 +372,10 @@ export function FindingDetailContent({ findingId, titleAction }: FindingDetailCo
           />
           <MetadataDetailRow label="Asset" value={asset.data?.displayName ?? "Unknown asset"} />
           <MetadataDetailRow label="Asset owner" value={<ResponsibleOwnerLabel />} />
-          <MetadataDetailRow
-            label="Assignee"
-            editable={{
-              value: getAssigneeEditValue(findingData),
-              onSave: (value) => handleSaveAssignee(findingData, value),
-              displayElement: () => <AssigneeLabel findingData={findingData} />,
-              editElement: {
-                type: "custom",
-                hideActions: true,
-                render: ({ value, onCancel, onCommit }) => (
-                  <AssigneePicker value={value} onCancel={onCancel} onCommit={onCommit} />
-                ),
-              },
-              editOnClick: true,
-              showEditIcon: false,
-            }}
-          />
-          <MetadataDetailRow
-            label="Asset type"
-            value={capitalizeFirstLetter(asset.data?.type ?? "Unknown")}
-          />
           <MetadataDetailRow label="Created" value={formatDateTime(findingData.createdAt)} />
           <MetadataDetailRow label="Updated" value={formatDateTime(findingData.updatedAt)} />
         </div>
       </MetadataSidebar>
-    );
-  }
-
-  function VulnerabilityCard({ findingData }: { findingData: Finding }) {
-    return (
-      <Card className="w-full border-border/60 bg-shell-panel shadow-(--shell-shadow)">
-        <CardHeader className="gap-3">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-2">
-              <Badge variant="outline" className="rounded-md">
-                Vulnerability reference
-              </Badge>
-              <CardTitle className="text-xl font-semibold">
-                {findingData.vulnerability.title}
-              </CardTitle>
-            </div>
-            <CardAction>
-              <Link
-                to="/vulnerabilities/$id"
-                params={{ id: findingData.vulnerability.id }}
-                disabled={finding.isLoading}
-              >
-                <Button variant="ghost" size="icon-sm" className="rounded-xl">
-                  <ExternalLink className="text-accent-foreground" size={20} />
-                </Button>
-              </Link>
-            </CardAction>
-          </div>
-          <CardDescription>
-            <SeverityBadge severity={findingData.vulnerability.severity} />
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            <DetailHighlightCard
-              label="Vulnerability severity"
-              value={
-                <SeverityBadge
-                  severity={findingData.vulnerability.severity}
-                  className="h-7 px-3 text-sm"
-                />
-              }
-              description="Canonical severity from the linked vulnerability record"
-            />
-            <DetailHighlightCard
-              label="Description"
-              value="Reference context"
-              description="Canonical vulnerability record linked to this finding."
-            />
-          </div>
-          <SafeMarkdown>{findingData.vulnerability.description ?? ""}</SafeMarkdown>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  function EvidenceCard({ findingData }: { findingData: Finding }) {
-    const evidence = findingData.evidence?.trim() ?? "";
-    const hasEvidence = evidence.length > 0;
-
-    return (
-      <Card className="w-full border-border/60 bg-shell-panel shadow-(--shell-shadow)">
-        <CardHeader className="gap-3">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-2">
-              <CardTitle className="text-xl font-semibold">Evidence</CardTitle>
-              <CardDescription>
-                Scanner output, validation notes, and technical proof supporting this finding.
-              </CardDescription>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl"
-              disabled={!hasEvidence}
-              onClick={() => handleCopyEvidence(evidence)}
-            >
-              <Copy />
-              Copy evidence
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {hasEvidence ? (
-            <Tabs defaultValue="rendered" className="gap-4">
-              <TabsContent value="rendered">
-                <TabsList variant="line" className="mb-3 rounded-none p-0">
-                  <TabsTrigger value="rendered" className="gap-2 rounded-xl px-3">
-                    <FileText />
-                    Rendered
-                  </TabsTrigger>
-                  <TabsTrigger value="raw" className="gap-2 rounded-xl px-3">
-                    <FileCode2 />
-                    Raw
-                  </TabsTrigger>
-                </TabsList>
-                <ScrollArea className="w-full rounded-2xl border border-border/70 bg-muted/20">
-                  <div className="min-w-full p-5">
-                    <SafeMarkdown className="prose-p:max-w-3xl">{evidence}</SafeMarkdown>
-                  </div>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-              </TabsContent>
-              <TabsContent value="raw">
-                <TabsList variant="line" className="mb-3 rounded-none p-0">
-                  <TabsTrigger value="rendered" className="gap-2 rounded-xl px-3">
-                    <FileText />
-                    Rendered
-                  </TabsTrigger>
-                  <TabsTrigger value="raw" className="gap-2 rounded-xl px-3">
-                    <FileCode2 />
-                    Raw
-                  </TabsTrigger>
-                </TabsList>
-                <ScrollArea className="w-full rounded-2xl border border-border/70 bg-zinc-950 text-zinc-50">
-                  <pre className="min-w-full p-5 text-xs leading-6 whitespace-pre-wrap">
-                    <code>{evidence}</code>
-                  </pre>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-background/60 p-8 text-center">
-              <div className="text-sm font-medium text-foreground">No evidence available</div>
-              <div className="mt-2 text-sm text-muted-foreground">
-                This finding does not include validation notes or scanner output yet.
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     );
   }
 
@@ -560,8 +392,22 @@ export function FindingDetailContent({ findingId, titleAction }: FindingDetailCo
           <div className="flex min-w-0 flex-col gap-4">
             <FindingOverviewCard findingData={findingData} />
             <AssetInfoItem assetId={findingData.assetId} />
-            <VulnerabilityCard findingData={findingData} />
-            <EvidenceCard findingData={findingData} />
+            <FindingWeaknessCard finding={findingData} />
+            <FindingResourceCard finding={findingData} />
+            <FindingVulnerabilitiesCard finding={findingData} />
+            <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold">Mitigation</CardTitle>
+                <CardDescription>Finding-owned handling guidance.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {findingData.mitigation ? (
+                  <SafeMarkdown>{findingData.mitigation}</SafeMarkdown>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No mitigation guidance recorded.</p>
+                )}
+              </CardContent>
+            </Card>
           </div>
           <FindingSidebar findingData={findingData} />
         </div>

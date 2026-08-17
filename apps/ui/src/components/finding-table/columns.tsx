@@ -14,7 +14,7 @@ import {
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { Asset } from "@exposurenexus/types/model/asset";
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { FindingProjection } from "@exposurenexus/types/model/finding";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 
 export const FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE = "__unassigned_assignee__";
@@ -74,7 +74,10 @@ export function formatFindingDueDate(value: Date | null | undefined) {
   return normalizeDateToUtcStart(value).toISOString().slice(0, 10);
 }
 
-export function isFindingOverdue(finding: Pick<Finding, "status" | "dueDate">, today = new Date()) {
+export function isFindingOverdue(
+  finding: Pick<FindingProjection, "status" | "dueDate">,
+  today = new Date(),
+) {
   if (!finding.dueDate || !overdueStatuses.has(finding.status)) {
     return false;
   }
@@ -85,7 +88,7 @@ export function isFindingOverdue(finding: Pick<Finding, "status" | "dueDate">, t
   return dueDateTime < todayTime;
 }
 
-function FindingDueDateCell({ finding }: { finding: Finding }) {
+function FindingDueDateCell({ finding }: { finding: FindingProjection }) {
   if (!finding.dueDate) {
     return <span className="text-muted-foreground">No due date</span>;
   }
@@ -137,16 +140,14 @@ export function createFindingColumns(
   assetsById: ReadonlyMap<string, Asset> = new Map(),
   userProfileById: Map<string, UserProfile> = new Map(),
   usersLoading = false,
-): Array<DataTableColumnDef<Finding>> {
+): Array<DataTableColumnDef<FindingProjection>> {
   return [
     {
-      accessorKey: "vulnerability.title",
+      accessorKey: "title",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Title" />,
       cell: ({ row }) => (
         <div className="min-w-0 py-0.5">
-          <div className="truncate font-medium text-foreground">
-            {row.original.vulnerability.title}
-          </div>
+          <div className="truncate font-medium text-foreground">{row.original.title}</div>
         </div>
       ),
       enableColumnFilter: false,
@@ -289,11 +290,20 @@ export function createFindingColumns(
       enableColumnFilter: false,
     },
     {
-      accessorKey: "source",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Source" />,
+      id: "observationCount",
+      accessorFn: (finding) => finding.observationCount,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Observations" />,
+      cell: ({ row }) => <span>{row.original.observationCount}</span>,
+    },
+    {
+      id: "observingSources",
+      accessorFn: (finding) => finding.observingSources.join(", "),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Observing sources" />,
       cell: ({ row }) => (
         <span className="inline-flex rounded-full border border-border/70 bg-muted/35 px-2.5 py-1 text-xs font-medium text-muted-foreground">
-          {row.original.source || "Manual"}
+          {row.original.observingSources.length > 0
+            ? row.original.observingSources.join(", ")
+            : "None observed"}
         </span>
       ),
     },
