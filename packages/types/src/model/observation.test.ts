@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { AffectedResourceType } from "./affected-resource.js";
 import {
   manualObservationInputSchema,
+  moveObservationInputSchema,
   ObservationSource,
   updateObservationSchema,
 } from "./observation.js";
@@ -90,4 +91,24 @@ describe("observation update schema", () => {
   ])("rejects immutable %s fields", (field, value) => {
     expect(() => updateObservationSchema.parse({ title: "Correction", [field]: value })).toThrow();
   });
+});
+
+describe("observation move schema", () => {
+  it("accepts only the target finding identity", () => {
+    const targetFindingId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe";
+
+    expect(moveObservationInputSchema.parse({ targetFindingId })).toEqual({ targetFindingId });
+  });
+
+  it.each(["findingId", "observationId", "source", "title"])(
+    "rejects server-owned or unrelated %s fields",
+    (field) => {
+      expect(() =>
+        moveObservationInputSchema.parse({
+          targetFindingId: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+          [field]: "2713d833-eb13-4517-ac7c-7761545ed42a",
+        }),
+      ).toThrow();
+    },
+  );
 });

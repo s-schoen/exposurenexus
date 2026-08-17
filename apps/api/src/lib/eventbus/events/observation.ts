@@ -11,4 +11,8 @@ export type ObservationEventPayloads = {
   "observation.deleted": {
     observation: Observation;
   };
+  "observation.moved": {
+    previous: Observation;
+    current: Observation;
+  };
 };

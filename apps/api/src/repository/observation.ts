@@ -79,6 +79,23 @@ export interface DeleteObservationAndTouchFindingResult {
   current: FindingProjection;
 }
 
+export interface MoveObservationAndTouchFindingsInput {
+  findingId: string;
+  observationId: string;
+  targetFindingId: string;
+  updatedAt: Date;
+  updatedBy: string;
+}
+
+export interface MoveObservationAndTouchFindingsResult {
+  previousObservation: ObservationRecord;
+  observation: ObservationRecord;
+  sourcePrevious: FindingProjection;
+  sourceCurrent: FindingProjection;
+  targetPrevious: FindingProjection;
+  targetCurrent: FindingProjection;
+}
+
 export interface ObservationRepository {
   listByFindingID(findingId: string): Promise<ObservationRecord[]>;
   getByID(id: string): Promise<ObservationRecord | null>;
@@ -92,6 +109,9 @@ export interface ObservationRepository {
   deleteAndTouchFinding(
     input: DeleteObservationAndTouchFindingInput,
   ): Promise<DeleteObservationAndTouchFindingResult | null>;
+  moveAndTouchFindings(
+    input: MoveObservationAndTouchFindingsInput,
+  ): Promise<MoveObservationAndTouchFindingsResult | null>;
 }
 
 function normalizeObservation(observation: ObservationRecord): ObservationRecord {
@@ -311,6 +331,75 @@ export function createObservationRepository(database: Kysely<Database>): Observa
           observation: normalizeObservation(deletedObservation),
           previous,
           current,
+        };
+      });
+    },
+
+    async moveAndTouchFindings(
+      input: MoveObservationAndTouchFindingsInput,
+    ): Promise<MoveObservationAndTouchFindingsResult | null> {
+      if (input.findingId === input.targetFindingId) {
+        return null;
+      }
+
+      return await database.transaction().execute(async (transaction) => {
+        const parentIds = [input.findingId, input.targetFindingId].sort();
+        const parents = await transaction
+          .selectFrom("finding")
+          .select("id")
+          .where("id", "in", parentIds)
+          .forUpdate()
+          .execute();
+        if (parents.length !== parentIds.length) {
+          return null;
+        }
+
+        const sourcePrevious = await getFindingProjectionByID(transaction, input.findingId);
+        const targetPrevious = await getFindingProjectionByID(transaction, input.targetFindingId);
+        if (!sourcePrevious || !targetPrevious) {
+          throw new Error("locked finding was not available as a projection");
+        }
+
+        const previousObservation = await transaction
+          .selectFrom("observation")
+          .selectAll()
+          .where("id", "=", input.observationId)
+          .where("findingId", "=", input.findingId)
+          .executeTakeFirst();
+        if (!previousObservation) {
+          return null;
+        }
+
+        const updatedObservation = await transaction
+          .updateTable("observation")
+          .set({ findingId: input.targetFindingId })
+          .where("id", "=", input.observationId)
+          .where("findingId", "=", input.findingId)
+          .returningAll()
+          .executeTakeFirst();
+        if (!updatedObservation) {
+          return null;
+        }
+
+        await transaction
+          .updateTable("finding")
+          .set({ updatedAt: input.updatedAt, updatedBy: input.updatedBy })
+          .where("id", "in", parentIds)
+          .execute();
+
+        const sourceCurrent = await getFindingProjectionByID(transaction, input.findingId);
+        const targetCurrent = await getFindingProjectionByID(transaction, input.targetFindingId);
+        if (!sourceCurrent || !targetCurrent) {
+          throw new Error("updated findings were not available as projections");
+        }
+
+        return {
+          previousObservation: normalizeObservation(previousObservation),
+          observation: normalizeObservation(updatedObservation),
+          sourcePrevious,
+          sourceCurrent,
+          targetPrevious,
+          targetCurrent,
         };
       });
     },

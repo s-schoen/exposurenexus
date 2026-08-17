@@ -12,6 +12,7 @@ import {
   type UpdateFinding,
 } from "@exposurenexus/types/model/finding";
 import {
+  type MoveObservationInput,
   ObservationSource,
   type ManualObservationInput,
   type Observation,
@@ -60,7 +61,11 @@ interface FindingServiceDependencies {
   findingVulnerabilityRepository?: FindingVulnerabilityRepository;
   observationRepository?: Pick<
     ObservationRepository,
-    "listByFindingID" | "createAndTouchFinding" | "updateAndTouchFinding" | "deleteAndTouchFinding"
+    | "listByFindingID"
+    | "createAndTouchFinding"
+    | "updateAndTouchFinding"
+    | "deleteAndTouchFinding"
+    | "moveAndTouchFindings"
   >;
   assetService: AssetLookupService;
   userProfileService: UserProfileLookupService;
@@ -158,9 +163,22 @@ export interface DeleteObservationOptions {
   eventContext?: DomainEventContext;
 }
 
+export interface MoveObservationOptions extends MoveObservationInput {
+  findingId: string;
+  observationId: string;
+  user: UserProfile;
+  eventContext?: DomainEventContext;
+}
+
 export interface ObservationMutationResult {
   observation: Observation;
   finding: FindingProjection;
+}
+
+export interface MoveObservationResult {
+  observation: Observation;
+  sourceFinding: FindingProjection;
+  targetFinding: FindingProjection;
 }
 
 export interface CreateOrUpdateFindingResult {
@@ -179,6 +197,7 @@ export interface FindingService {
   ): Promise<CreateManualObservationResult | null>;
   updateObservation(opts: UpdateObservationOptions): Promise<ObservationMutationResult | null>;
   deleteObservation(opts: DeleteObservationOptions): Promise<ObservationMutationResult | null>;
+  moveObservation(opts: MoveObservationOptions): Promise<MoveObservationResult | null>;
   updateByID(opts: UpdateFindingOptions): Promise<FindingProjection | null>;
   createOrUpdate(opts: CreateFindingOptions): Promise<CreateOrUpdateFindingResult>;
   deleteByID(id: string, eventContext?: DomainEventContext): Promise<FindingProjection | null>;
@@ -772,6 +791,92 @@ export function createFindingService({
           message: "failed to delete observation",
           cause: error,
           details: { findingId: opts.findingId, observationId: opts.observationId },
+        });
+      }
+    },
+
+    async moveObservation(opts: MoveObservationOptions): Promise<MoveObservationResult | null> {
+      if (!observationRepository) {
+        throw new ApplicationError({
+          code: "observation.move_failed",
+          kind: "unexpected",
+          message: "observation move is unavailable",
+          details: {
+            findingId: opts.findingId,
+            observationId: opts.observationId,
+            targetFindingId: opts.targetFindingId,
+          },
+        });
+      }
+
+      if (opts.findingId === opts.targetFindingId) {
+        throw new ApplicationError({
+          code: "observation.move_same_finding",
+          kind: "validation",
+          message: "observation already belongs to the target finding",
+          details: {
+            findingId: opts.findingId,
+            observationId: opts.observationId,
+            targetFindingId: opts.targetFindingId,
+          },
+        });
+      }
+
+      try {
+        const mutation = await observationRepository.moveAndTouchFindings({
+          findingId: opts.findingId,
+          observationId: opts.observationId,
+          targetFindingId: opts.targetFindingId,
+          updatedAt: new Date(),
+          updatedBy: opts.user.id,
+        });
+        if (!mutation) {
+          return null;
+        }
+
+        emitObservationEvent(
+          "observation.moved",
+          {
+            previous: mutation.previousObservation,
+            current: mutation.observation,
+          },
+          opts.eventContext,
+        );
+        emitFindingEvent(
+          "finding.updated",
+          { previous: mutation.sourcePrevious, current: mutation.sourceCurrent },
+          opts.eventContext,
+        );
+        emitFindingEvent(
+          "finding.updated",
+          { previous: mutation.targetPrevious, current: mutation.targetCurrent },
+          opts.eventContext,
+        );
+
+        return {
+          observation: mutation.observation,
+          sourceFinding: mutation.sourceCurrent,
+          targetFinding: mutation.targetCurrent,
+        };
+      } catch (error) {
+        if (isApplicationError(error)) {
+          throw error;
+        }
+
+        logger.error(
+          error,
+          `failed to move observation ${opts.observationId} from finding ${opts.findingId} to ${opts.targetFindingId}`,
+        );
+        throw new ApplicationError({
+          code: "observation.move_failed",
+          kind: "unexpected",
+          message: "failed to move observation",
+          cause: error,
+          details: {
+            findingId: opts.findingId,
+            observationId: opts.observationId,
+            targetFindingId: opts.targetFindingId,
+          },
         });
       }
     },

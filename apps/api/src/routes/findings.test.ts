@@ -38,6 +38,7 @@ describe("finding routes", () => {
     createManualObservation: vi.fn(),
     updateObservation: vi.fn(),
     deleteObservation: vi.fn(),
+    moveObservation: vi.fn(),
   };
   const vulnerability = {
     id: vulnerabilityId,
@@ -224,6 +225,100 @@ describe("finding routes", () => {
       eventContext: { actor: user.id, correlationId: requestId },
     });
     expect((await response.json()).data).toEqual(observation);
+  });
+
+  it("moves a nested observation to a selected finding with finding write permission", async () => {
+    const targetFindingId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
+    const observation = { id: observationId, findingId: targetFindingId };
+    findingService.moveObservation.mockResolvedValue({ observation });
+    const requestId = "finding-observation-move-request";
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request(
+      `/api/findings/${findingId}/observations/${observationId}/move`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
+        body: JSON.stringify({ targetFindingId }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: ["write"] });
+    expect(findingService.moveObservation).toHaveBeenCalledWith({
+      findingId,
+      observationId,
+      targetFindingId,
+      user,
+      eventContext: { actor: user.id, correlationId: requestId },
+    });
+    expect((await response.json()).data).toEqual(observation);
+  });
+
+  it("rejects an invalid move target before calling the service", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request(
+      `/api/findings/${findingId}/observations/${observationId}/move`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetFindingId: "not-a-uuid" }),
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(findingService.moveObservation).not.toHaveBeenCalled();
+  });
+
+  it("returns not found when a move cannot locate its source observation or parent", async () => {
+    findingService.moveObservation.mockResolvedValue(null);
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request(
+      `/api/findings/${findingId}/observations/${observationId}/move`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetFindingId: assigneeId }),
+      },
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  it("denies observation moves without finding write permission", async () => {
+    userHasPermission.mockResolvedValue(false);
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request(
+      `/api/findings/${findingId}/observations/${observationId}/move`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetFindingId: assigneeId }),
+      },
+    );
+
+    expect(response.status).toBe(403);
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: ["write"] });
+    expect(findingService.moveObservation).not.toHaveBeenCalled();
   });
 
   it.each([

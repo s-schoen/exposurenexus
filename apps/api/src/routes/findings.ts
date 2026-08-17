@@ -5,6 +5,7 @@ import {
 } from "@exposurenexus/types/model/finding";
 import {
   manualObservationInputSchema,
+  moveObservationInputSchema,
   updateObservationSchema,
 } from "@exposurenexus/types/model/observation";
 import { zValidator } from "@hono/zod-validator";
@@ -125,6 +126,34 @@ export function createFindingRoute(
       const result = await findingService.deleteObservation({
         findingId,
         observationId,
+        user,
+        eventContext: requestEventContext(c),
+      });
+      if (!result) {
+        throw notFound("observation", observationId);
+      }
+
+      return replyObject(c, result.observation);
+    },
+  );
+
+  finding.post(
+    "/:findingId/observations/:observationId/move",
+    requireDomainPermission("finding", "write"),
+    observationParamValidator,
+    zValidator("json", moveObservationInputSchema),
+    async (c) => {
+      const user = c.get("user");
+      if (!user) {
+        throw unauthorized();
+      }
+
+      const { findingId, observationId } = c.req.valid("param");
+      const { targetFindingId } = c.req.valid("json");
+      const result = await findingService.moveObservation({
+        findingId,
+        observationId,
+        targetFindingId,
         user,
         eventContext: requestEventContext(c),
       });
