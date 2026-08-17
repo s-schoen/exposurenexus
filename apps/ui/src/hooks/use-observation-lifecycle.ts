@@ -7,19 +7,53 @@ import {
   createFindingStatsQueryOptions,
   createListFindingsQueryOptions,
   useCreateFindingObservationMutation,
+  useDeleteFindingObservationMutation,
+  useUpdateFindingObservationMutation,
 } from "@/api/finding.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 
 import type { ManualObservationInput } from "@exposurenexus/types/model/finding";
-import type { Observation } from "@exposurenexus/types/model/observation";
+import type { Observation, UpdateObservation } from "@exposurenexus/types/model/observation";
 
 export interface ObservationLifecycleActions {
   addObservation: (findingId: string, value: ManualObservationInput) => Promise<Observation | null>;
+  updateObservation: (
+    findingId: string,
+    observationId: string,
+    value: UpdateObservation,
+  ) => Promise<Observation | null>;
+  deleteObservation: (findingId: string, observationId: string) => Promise<Observation | null>;
+}
+
+async function invalidateObservationReads(
+  queryClient: ReturnType<typeof useQueryClient>,
+  findingId: string,
+) {
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: createFindingObservationsQueryOptions(findingId).queryKey,
+      exact: true,
+    }),
+    queryClient.invalidateQueries({
+      queryKey: createFindingByIDQueryOptions(findingId).queryKey,
+      exact: true,
+    }),
+    queryClient.invalidateQueries({
+      queryKey: createListFindingsQueryOptions().queryKey,
+      exact: true,
+    }),
+    queryClient.invalidateQueries({
+      queryKey: createFindingStatsQueryOptions().queryKey,
+      exact: true,
+    }),
+  ]);
 }
 
 export function useObservationLifecycle(): ObservationLifecycleActions {
   const queryClient = useQueryClient();
   const observationCreate = useCreateFindingObservationMutation();
+  const observationUpdate = useUpdateFindingObservationMutation();
+  const observationDelete = useDeleteFindingObservationMutation();
 
   return {
     async addObservation(findingId, value) {
@@ -29,28 +63,41 @@ export function useObservationLifecycle(): ObservationLifecycleActions {
           observation: value,
         });
 
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: createFindingObservationsQueryOptions(findingId).queryKey,
-            exact: true,
-          }),
-          queryClient.invalidateQueries({
-            queryKey: createFindingByIDQueryOptions(findingId).queryKey,
-            exact: true,
-          }),
-          queryClient.invalidateQueries({
-            queryKey: createListFindingsQueryOptions().queryKey,
-            exact: true,
-          }),
-          queryClient.invalidateQueries({
-            queryKey: createFindingStatsQueryOptions().queryKey,
-            exact: true,
-          }),
-        ]);
+        await invalidateObservationReads(queryClient, findingId);
         toast.success("Observation added");
         return observation;
       } catch (error) {
         toastActionError(error, `Failed to add observation: ${formatActionError(error)}`);
+        console.error(error);
+        return null;
+      }
+    },
+
+    async updateObservation(findingId, observationId, value) {
+      try {
+        const observation = await observationUpdate.mutateAsync({
+          findingId,
+          observationId,
+          update: value,
+        });
+        await invalidateObservationReads(queryClient, findingId);
+        toast.success("Observation updated");
+        return observation;
+      } catch (error) {
+        toastActionError(error, `Failed to update observation: ${formatActionError(error)}`);
+        console.error(error);
+        return null;
+      }
+    },
+
+    async deleteObservation(findingId, observationId) {
+      try {
+        const observation = await observationDelete.mutateAsync({ findingId, observationId });
+        await invalidateObservationReads(queryClient, findingId);
+        toast.success("Observation deleted");
+        return observation;
+      } catch (error) {
+        toastActionError(error, `Failed to delete observation: ${formatActionError(error)}`);
         console.error(error);
         return null;
       }

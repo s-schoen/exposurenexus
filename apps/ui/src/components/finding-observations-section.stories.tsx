@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 
+import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { FindingObservationsSection } from "@/components/finding-observations-section.tsx";
 
 import type { ObservationAffectedResourceInput as ObservationResource } from "@exposurenexus/types/model/affected-resource";
@@ -17,7 +18,7 @@ import type { FindingProjection, ManualObservationInput } from "@exposurenexus/t
 import type { Observation } from "@exposurenexus/types/model/observation";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-type Scenario = "populated" | "empty" | "loading" | "error";
+type Scenario = "populated" | "single" | "empty" | "loading" | "error";
 
 interface StoryArgs {
   scenario: Scenario;
@@ -171,7 +172,9 @@ function listResponse(data: Array<unknown>) {
 }
 
 function StoryShell({ scenario }: StoryArgs) {
-  const records = useRef(scenario === "populated" ? observations : []);
+  const records = useRef(
+    scenario === "populated" ? observations : scenario === "single" ? [observations[0]] : [],
+  );
   const [ready, setReady] = useState(false);
   const queryClient = useMemo(
     () =>
@@ -185,7 +188,10 @@ function StoryShell({ scenario }: StoryArgs) {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async (input, init) => {
       const url = input instanceof Request ? input.url : String(input);
-      if (!url.endsWith(`/api/findings/${finding.id}/observations`)) return originalFetch(input);
+      const observationsPath = `/api/findings/${finding.id}/observations`;
+      if (url !== observationsPath && !url.startsWith(`${observationsPath}/`)) {
+        return originalFetch(input);
+      }
       if (scenario === "loading") return await new Promise<Response>(() => {});
       if (scenario === "error") return objectResponse({ message: "Failed" }, 500);
       if (init?.method === "POST") {
@@ -212,6 +218,30 @@ function StoryShell({ scenario }: StoryArgs) {
         records.current = [created, ...records.current];
         return objectResponse(created);
       }
+      if (init?.method === "PUT") {
+        const observationId = url.slice(`${observationsPath}/`.length);
+        const payload = JSON.parse(await new Response(init.body).text()) as Partial<Observation>;
+        const current = records.current.find((record) => record.id === observationId);
+        if (!current) return objectResponse({ message: "Not found" }, 404);
+        const updated: Observation = {
+          ...current,
+          ...payload,
+          observedAt: payload.observedAt ? new Date(payload.observedAt) : current.observedAt,
+          updatedAt: new Date("2026-06-09T09:00:00.000Z"),
+          updatedBy: ids.user,
+        };
+        records.current = records.current.map((record) =>
+          record.id === observationId ? updated : record,
+        );
+        return objectResponse(updated);
+      }
+      if (init?.method === "DELETE") {
+        const observationId = url.slice(`${observationsPath}/`.length);
+        const deleted = records.current.find((record) => record.id === observationId);
+        if (!deleted) return objectResponse({ message: "Not found" }, 404);
+        records.current = records.current.filter((record) => record.id !== observationId);
+        return objectResponse(deleted);
+      }
       return listResponse(records.current);
     };
     setReady(true);
@@ -224,6 +254,7 @@ function StoryShell({ scenario }: StoryArgs) {
   return (
     <QueryClientProvider client={queryClient}>
       <FindingObservationsSection finding={finding} />
+      <ConfirmDialog.Root />
     </QueryClientProvider>
   );
 }
@@ -253,5 +284,38 @@ export const AddManualObservation: Story = {
         name: "Add manual observation",
       }),
     ).toHaveAttribute("data-open");
+  },
+};
+export const EditObservation: Story = {
+  args: { scenario: "populated" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "Edit observation Asset-wide observation" }),
+    );
+    const dialog = within(canvasElement.ownerDocument.body).getByRole("dialog", {
+      name: "Correct observation",
+    });
+    await userEvent.clear(within(dialog).getByLabelText("Title"));
+    await userEvent.type(within(dialog).getByLabelText("Title"), "Corrected asset observation");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Save correction" }));
+    await expect(canvas.getByText("Corrected asset observation")).toBeVisible();
+  },
+};
+export const DeleteFinalObservation: Story = {
+  args: { scenario: "single" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "Delete observation Asset-wide observation" }),
+    );
+    const dialog = within(canvasElement.ownerDocument.body).getByRole("dialog", {
+      name: "Delete observation",
+    });
+    await expect(dialog).toHaveTextContent(
+      "The finding remains, even if this is its final observation.",
+    );
+    await userEvent.click(within(dialog).getByRole("button", { name: "Delete observation" }));
+    await expect(canvas.getByText("No observations recorded")).toBeVisible();
   },
 };

@@ -5,7 +5,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import * as stories from "@/components/finding-observations-section.stories.tsx";
 
-const { AddManualObservation, Empty, ErrorState, Loading, Populated } = composeStories(stories);
+const { AddManualObservation, DeleteFinalObservation, Empty, ErrorState, Loading, Populated } =
+  composeStories(stories);
 
 afterEach(cleanup);
 
@@ -100,5 +101,62 @@ describe("FindingObservationsSection", () => {
     expect(screen.getByText("Exposed Admin Endpoint")).toBeVisible();
     expect(screen.getByText("Web endpoint")).toBeVisible();
     expect(screen.queryByRole("dialog", { name: "Add manual observation" })).toBeNull();
+  });
+
+  it("corrects observation-owned fields and replaces weakness and resource values", async () => {
+    const actor = userEvent.setup();
+    render(<Populated />);
+
+    await actor.click(
+      await screen.findByRole("button", { name: "Edit observation Asset-wide observation" }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Correct observation" });
+    await actor.clear(within(dialog).getByLabelText("Title"));
+    await actor.type(within(dialog).getByLabelText("Title"), "Corrected observation");
+    await actor.clear(within(dialog).getByLabelText("Weakness identifiers"));
+    await actor.click(within(dialog).getByLabelText("Affected resource type"));
+    await actor.click(screen.getByRole("option", { name: "Source code" }));
+    await actor.type(within(dialog).getByLabelText("File"), "src/query.ts");
+    await actor.click(within(dialog).getByRole("button", { name: "Save correction" }));
+
+    expect(await screen.findByText("Corrected observation")).toBeVisible();
+    expect(screen.getAllByText("Source code").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("No identifiers recorded").length).toBeGreaterThan(0);
+  });
+
+  it("keeps observation correction open when validation fails", async () => {
+    const actor = userEvent.setup();
+    render(<Populated />);
+
+    await actor.click(
+      await screen.findByRole("button", { name: "Edit observation Asset-wide observation" }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Correct observation" });
+    await actor.clear(within(dialog).getByLabelText("Title"));
+    await actor.click(within(dialog).getByRole("button", { name: "Save correction" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Unable to save observation");
+    expect(screen.getByRole("dialog", { name: "Correct observation" })).toBeVisible();
+  });
+
+  it("confirms final observation deletion and keeps the parent finding empty", async () => {
+    const actor = userEvent.setup();
+    render(<DeleteFinalObservation />);
+
+    await actor.click(
+      await screen.findByRole("button", { name: "Delete observation Asset-wide observation" }),
+    );
+    let dialog = screen.getByRole("dialog", { name: "Delete observation" });
+    expect(dialog).toHaveTextContent("The finding remains, even if this is its final observation.");
+    await actor.click(within(dialog).getByRole("button", { name: "Keep observation" }));
+    expect(screen.getByText("Asset-wide observation")).toBeVisible();
+
+    await actor.click(
+      screen.getByRole("button", { name: "Delete observation Asset-wide observation" }),
+    );
+    dialog = screen.getByRole("dialog", { name: "Delete observation" });
+    await actor.click(within(dialog).getByRole("button", { name: "Delete observation" }));
+
+    expect(await screen.findByText("No observations recorded")).toBeVisible();
   });
 });
