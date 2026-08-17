@@ -58,6 +58,7 @@ describe("nested manual observations", () => {
     createAndTouchFinding: vi.fn(),
     updateAndTouchFinding: vi.fn(),
     deleteAndTouchFinding: vi.fn(),
+    moveAndTouchFindings: vi.fn(),
   };
   const domainEvents = createDomainEventCollector();
 
@@ -419,6 +420,146 @@ describe("nested manual observations", () => {
         user,
       }),
     ).rejects.toMatchObject({ code: "observation.update_failed" });
+
+    expect(domainEvents.subjects()).toEqual([]);
+  });
+
+  it("moves an observation and emits source, target, and moved events after the transaction", async () => {
+    const targetFindingId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
+    const targetFinding = {
+      ...previousFinding,
+      id: targetFindingId,
+      title: "Target finding",
+      observationCount: 0,
+      observingSources: [],
+      firstSeen: null,
+      lastSeen: null,
+    } satisfies FindingProjection;
+    const movedObservation = {
+      id: observationId,
+      findingId: targetFindingId,
+      ingestionId: null,
+      source: ObservationSource.Manual,
+      title: "Moved observation",
+      description: null,
+      evidence: "Evidence",
+      remediation: null,
+      severity: VulnerabilitySeverity.High,
+      weakness: { identifiers: {} },
+      affectedResource: { type: AffectedResourceType.Asset },
+      observedAt: now,
+      createdAt: oldTime,
+      updatedAt: now,
+      createdBy: user.id,
+      updatedBy: user.id,
+    } satisfies Observation;
+    const sourceCurrent = {
+      ...previousFinding,
+      observationCount: 0,
+      observingSources: [],
+      firstSeen: null,
+      lastSeen: null,
+      updatedAt: now,
+      updatedBy: user.id,
+    } satisfies FindingProjection;
+    const targetCurrent = {
+      ...targetFinding,
+      observationCount: 1,
+      observingSources: [ObservationSource.Manual],
+      firstSeen: now,
+      lastSeen: now,
+      updatedAt: now,
+      updatedBy: user.id,
+    } satisfies FindingProjection;
+    let resolveTransaction!: () => void;
+    observationRepository.moveAndTouchFindings.mockReturnValue(
+      new Promise((resolve) => {
+        resolveTransaction = () =>
+          resolve({
+            previousObservation: { ...movedObservation, findingId },
+            observation: movedObservation,
+            sourcePrevious: previousFinding,
+            sourceCurrent,
+            targetPrevious: targetFinding,
+            targetCurrent,
+          });
+      }),
+    );
+
+    const moving = createService().moveObservation({
+      findingId,
+      observationId,
+      targetFindingId,
+      user,
+      eventContext: { actor: user.id, correlationId: "request-10" },
+    });
+
+    expect(domainEvents.subjects()).toEqual([]);
+    resolveTransaction();
+    await expect(moving).resolves.toEqual({
+      observation: movedObservation,
+      sourceFinding: sourceCurrent,
+      targetFinding: targetCurrent,
+    });
+    expect(observationRepository.moveAndTouchFindings).toHaveBeenCalledWith({
+      findingId,
+      observationId,
+      targetFindingId,
+      updatedAt: expect.any(Date),
+      updatedBy: user.id,
+    });
+    expect(domainEvents.subjects()).toEqual([
+      "observation.moved",
+      "finding.updated",
+      "finding.updated",
+    ]);
+    expect(domainEvents.events).toMatchObject([
+      {
+        data: {
+          previous: { id: observationId, findingId },
+          current: movedObservation,
+        },
+        actor: user.id,
+        correlationId: "request-10",
+      },
+      {
+        data: { previous: previousFinding, current: sourceCurrent },
+        actor: user.id,
+        correlationId: "request-10",
+      },
+      {
+        data: { previous: targetFinding, current: targetCurrent },
+        actor: user.id,
+        correlationId: "request-10",
+      },
+    ]);
+  });
+
+  it("rejects moving an observation to its current parent without touching the repository", async () => {
+    await expect(
+      createService().moveObservation({
+        findingId,
+        observationId,
+        targetFindingId: findingId,
+        user,
+      }),
+    ).rejects.toMatchObject({ code: "observation.move_same_finding" });
+
+    expect(observationRepository.moveAndTouchFindings).not.toHaveBeenCalled();
+    expect(domainEvents.subjects()).toEqual([]);
+  });
+
+  it("does not emit moved or parent events when the move transaction fails", async () => {
+    observationRepository.moveAndTouchFindings.mockRejectedValue(new Error("transaction failed"));
+
+    await expect(
+      createService().moveObservation({
+        findingId,
+        observationId,
+        targetFindingId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+        user,
+      }),
+    ).rejects.toMatchObject({ code: "observation.move_failed" });
 
     expect(domainEvents.subjects()).toEqual([]);
   });

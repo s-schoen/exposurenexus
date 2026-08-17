@@ -443,6 +443,276 @@ describe("observation-based persistence repositories", () => {
     await expect(observationRepository.listByFindingID(finding.id)).resolves.toEqual([]);
   });
 
+  it("moves an observation and refreshes both parent projections atomically", async () => {
+    const asset = await createAssetRepository(testDb.db).create(
+      assetRecord("api.exposurenexus.local"),
+    );
+    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const observationRepository = createObservationRepository(testDb.db);
+    const originalTime = new Date("2026-08-16T10:00:00.000Z");
+    const updateTime = new Date("2026-08-17T10:00:00.000Z");
+    const sourceFinding = await findingRepository.create({
+      assetId: asset.id,
+      title: "Source finding",
+      severity: VulnerabilitySeverity.High,
+      status: FindingStatus.Confirmed,
+      assigneeId: null,
+      dueDate: null,
+      mitigation: "Keep the endpoint protected",
+      weakness: { identifiers: { cwe: ["CWE-200"] } },
+      affectedResource: { type: AffectedResourceType.WebEndpoint, path: "/admin" },
+      createdAt: originalTime,
+      updatedAt: originalTime,
+      createdBy,
+      updatedBy: createdBy,
+    });
+    const targetFinding = await findingRepository.create({
+      assetId: asset.id,
+      title: "Target finding",
+      severity: VulnerabilitySeverity.Medium,
+      status: FindingStatus.Active,
+      assigneeId: null,
+      dueDate: null,
+      mitigation: null,
+      weakness: { identifiers: { cwe: ["CWE-89"] } },
+      affectedResource: { type: AffectedResourceType.SourceCode, file: "src/query.ts" },
+      createdAt: originalTime,
+      updatedAt: originalTime,
+      createdBy,
+      updatedBy: createdBy,
+    });
+    const observation = await observationRepository.create({
+      findingId: sourceFinding.id,
+      ingestionId: null,
+      source: ObservationSource.Manual,
+      title: "Moved observation",
+      description: null,
+      evidence: "Evidence",
+      remediation: null,
+      severity: VulnerabilitySeverity.High,
+      weakness: { identifiers: { cwe: ["CWE-200"] } },
+      affectedResource: { type: AffectedResourceType.Asset },
+      observedAt: new Date("2026-08-15T10:00:00.000Z"),
+      createdAt: originalTime,
+      updatedAt: originalTime,
+      createdBy,
+      updatedBy: createdBy,
+    });
+
+    const moved = await observationRepository.moveAndTouchFindings({
+      findingId: sourceFinding.id,
+      observationId: observation.id,
+      targetFindingId: targetFinding.id,
+      updatedAt: updateTime,
+      updatedBy: createdBy,
+    });
+
+    expect(moved).toMatchObject({
+      previousObservation: observation,
+      observation: { ...observation, findingId: targetFinding.id },
+      sourcePrevious: { id: sourceFinding.id, observationCount: 1 },
+      sourceCurrent: {
+        id: sourceFinding.id,
+        title: "Source finding",
+        observationCount: 0,
+        observingSources: [],
+        firstSeen: null,
+        lastSeen: null,
+        updatedAt: updateTime,
+        updatedBy: createdBy,
+      },
+      targetPrevious: { id: targetFinding.id, observationCount: 0 },
+      targetCurrent: {
+        id: targetFinding.id,
+        title: "Target finding",
+        observationCount: 1,
+        observingSources: [ObservationSource.Manual],
+        firstSeen: observation.observedAt,
+        lastSeen: observation.observedAt,
+        updatedAt: updateTime,
+        updatedBy: createdBy,
+      },
+    });
+    await expect(observationRepository.listByFindingID(sourceFinding.id)).resolves.toEqual([]);
+    await expect(observationRepository.listByFindingID(targetFinding.id)).resolves.toEqual([
+      moved?.observation,
+    ]);
+    await expect(findingRepository.getProjectedByID(sourceFinding.id)).resolves.toMatchObject({
+      title: "Source finding",
+      severity: VulnerabilitySeverity.High,
+      weakness: { identifiers: { cwe: ["CWE-200"] } },
+      observationCount: 0,
+      updatedAt: updateTime,
+      updatedBy: createdBy,
+    });
+    await expect(findingRepository.getProjectedByID(targetFinding.id)).resolves.toMatchObject({
+      title: "Target finding",
+      severity: VulnerabilitySeverity.Medium,
+      weakness: { identifiers: { cwe: ["CWE-89"] } },
+      observationCount: 1,
+      updatedAt: updateTime,
+      updatedBy: createdBy,
+    });
+  });
+
+  it("does not move an observation when either parent or the observation is missing", async () => {
+    const asset = await createAssetRepository(testDb.db).create(
+      assetRecord("api.exposurenexus.local"),
+    );
+    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const observationRepository = createObservationRepository(testDb.db);
+    const timestamp = new Date("2026-08-16T10:00:00.000Z");
+    const sourceFinding = await findingRepository.create({
+      assetId: asset.id,
+      title: "Source finding",
+      severity: VulnerabilitySeverity.High,
+      status: FindingStatus.Active,
+      assigneeId: null,
+      dueDate: null,
+      mitigation: null,
+      weakness: { identifiers: {} },
+      affectedResource: { type: AffectedResourceType.Unspecified },
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      createdBy,
+      updatedBy: createdBy,
+    });
+    const targetFinding = await findingRepository.create({
+      assetId: asset.id,
+      title: "Target finding",
+      severity: VulnerabilitySeverity.Low,
+      status: FindingStatus.Active,
+      assigneeId: null,
+      dueDate: null,
+      mitigation: null,
+      weakness: { identifiers: {} },
+      affectedResource: { type: AffectedResourceType.Unspecified },
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      createdBy,
+      updatedBy: createdBy,
+    });
+
+    await expect(
+      observationRepository.moveAndTouchFindings({
+        findingId: sourceFinding.id,
+        observationId: "2713d833-eb13-4517-ac7c-7761545ed42a",
+        targetFindingId: targetFinding.id,
+        updatedAt: new Date("2026-08-17T10:00:00.000Z"),
+        updatedBy: createdBy,
+      }),
+    ).resolves.toBeNull();
+    await expect(
+      observationRepository.moveAndTouchFindings({
+        findingId: sourceFinding.id,
+        observationId: "2713d833-eb13-4517-ac7c-7761545ed42a",
+        targetFindingId: "2713d833-eb13-4517-ac7c-7761545ed42b",
+        updatedAt: new Date("2026-08-17T10:00:00.000Z"),
+        updatedBy: createdBy,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it("rolls back the observation relationship and both parent audits when a parent update fails", async () => {
+    const asset = await createAssetRepository(testDb.db).create(
+      assetRecord("api.exposurenexus.local"),
+    );
+    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const observationRepository = createObservationRepository(testDb.db);
+    const originalTime = new Date("2026-08-16T10:00:00.000Z");
+    const updateTime = new Date("2026-08-17T10:00:00.000Z");
+    const sourceFinding = await findingRepository.create({
+      assetId: asset.id,
+      title: "Source finding",
+      severity: VulnerabilitySeverity.High,
+      status: FindingStatus.Active,
+      assigneeId: null,
+      dueDate: null,
+      mitigation: null,
+      weakness: { identifiers: {} },
+      affectedResource: { type: AffectedResourceType.Unspecified },
+      createdAt: originalTime,
+      updatedAt: originalTime,
+      createdBy,
+      updatedBy: createdBy,
+    });
+    const targetFinding = await findingRepository.create({
+      assetId: asset.id,
+      title: "Target finding",
+      severity: VulnerabilitySeverity.Low,
+      status: FindingStatus.Active,
+      assigneeId: null,
+      dueDate: null,
+      mitigation: null,
+      weakness: { identifiers: {} },
+      affectedResource: { type: AffectedResourceType.Unspecified },
+      createdAt: originalTime,
+      updatedAt: originalTime,
+      createdBy,
+      updatedBy: createdBy,
+    });
+    const observation = await observationRepository.create({
+      findingId: sourceFinding.id,
+      ingestionId: null,
+      source: ObservationSource.Manual,
+      title: "Original observation",
+      description: null,
+      evidence: null,
+      remediation: null,
+      severity: VulnerabilitySeverity.High,
+      weakness: { identifiers: {} },
+      affectedResource: { type: AffectedResourceType.Unspecified },
+      observedAt: originalTime,
+      createdAt: originalTime,
+      updatedAt: originalTime,
+      createdBy,
+      updatedBy: createdBy,
+    });
+
+    await sql`
+      create function fail_target_finding_update() returns trigger as $$
+      begin
+        if new.title = 'Target finding' then
+          raise exception 'target finding update failed';
+        end if;
+        return new;
+      end;
+      $$ language plpgsql
+    `.execute(testDb.db);
+    await sql`
+      create trigger fail_target_finding_update
+      before update on finding
+      for each row execute function fail_target_finding_update()
+    `.execute(testDb.db);
+
+    try {
+      await expect(
+        observationRepository.moveAndTouchFindings({
+          findingId: sourceFinding.id,
+          observationId: observation.id,
+          targetFindingId: targetFinding.id,
+          updatedAt: updateTime,
+          updatedBy: createdBy,
+        }),
+      ).rejects.toThrow("target finding update failed");
+      await expect(observationRepository.listByFindingID(sourceFinding.id)).resolves.toEqual([
+        observation,
+      ]);
+      await expect(observationRepository.listByFindingID(targetFinding.id)).resolves.toEqual([]);
+      await expect(findingRepository.getProjectedByID(sourceFinding.id)).resolves.toMatchObject({
+        observationCount: 1,
+        updatedAt: originalTime,
+      });
+      await expect(findingRepository.getProjectedByID(targetFinding.id)).resolves.toMatchObject({
+        observationCount: 0,
+        updatedAt: originalTime,
+      });
+    } finally {
+      await sql`drop trigger fail_target_finding_update on finding`.execute(testDb.db);
+      await sql`drop function fail_target_finding_update()`.execute(testDb.db);
+    }
+  });
+
   it("builds one ordered projection for findings, observations, and catalog links", async () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),

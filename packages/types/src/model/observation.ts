@@ -66,9 +66,14 @@ export const updateObservationSchema = z
     message: "at least one mutable observation field is required",
   });
 
+export const moveObservationInputSchema = z.strictObject({
+  targetFindingId: z.uuidv4(),
+});
+
 export type Observation = z.infer<typeof observationSchema>;
 export type CreateObservation = z.infer<typeof createObservationSchema>;
 export type ManualObservationInput = z.infer<typeof manualObservationInputSchema>;
 export type UpdateObservation = z.infer<typeof updateObservationSchema>;
+export type MoveObservationInput = z.infer<typeof moveObservationInputSchema>;
 export type ObservationWeakness = Weakness;
 export type ObservationResource = ObservationAffectedResource;
