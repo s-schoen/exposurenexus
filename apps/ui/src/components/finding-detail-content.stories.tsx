@@ -10,6 +10,7 @@ import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/m
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
 
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx";
 import { createLoginRedirects } from "@/lib/login-redirect.ts";
@@ -234,10 +235,17 @@ function FindingDetailContentStoryShell({
     const originalFetch = globalThis.fetch;
     findingRef.current = effectiveFinding;
 
-    globalThis.fetch = async (input) => {
+    globalThis.fetch = async (input, init) => {
       const requestUrl = input instanceof Request ? input.url : String(input);
       if (requestUrl.endsWith(`/api/findings/${effectiveFinding.id}`)) {
         if (scenario === "loading") return await new Promise<Response>(() => {});
+        if (init?.method === "PUT") {
+          const update = JSON.parse(
+            await new Response(init.body).text(),
+          ) as Partial<FindingProjection>;
+          findingRef.current = { ...findingRef.current, ...update };
+          queryClient.setQueryData(["findings", effectiveFinding.id], findingRef.current);
+        }
         return createObjectResponse(findingRef.current);
       }
       if (requestUrl.endsWith(`/api/assets/${asset.id}`)) return createObjectResponse(asset);
@@ -292,6 +300,14 @@ export const WithDueDate: Story = {};
 export const Undated: Story = { args: { scenario: "undated" } };
 export const EmptyFinding: Story = { args: { scenario: "empty" } };
 export const Loading: Story = { args: { scenario: "loading" } };
+export const EditableCorrection: Story = {
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "Edit finding" }));
+    await expect(
+      within(canvasElement.ownerDocument.body).getByRole("dialog", { name: "Correct finding" }),
+    ).toHaveAttribute("data-open");
+  },
+};
 
 export const AssetResource: Story = {
   args: { finding: { ...baseFinding, affectedResource: RESOURCE_VARIANTS.Asset } },

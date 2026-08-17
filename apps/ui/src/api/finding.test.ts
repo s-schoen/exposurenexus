@@ -291,23 +291,20 @@ describe("finding api", () => {
   });
 
   it("updates findings with a mapped JSON request body", async () => {
-    const finding = findingJson as unknown as Finding;
+    const update = {
+      status: FindingStatus.Confirmed,
+      assigneeId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+    };
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         data: {
-          ...findingJson,
-          status: FindingStatus.Confirmed,
-          assigneeId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+          ...findingProjectionJson,
+          ...update,
         },
       }),
     );
 
-    const updatedFinding = await updateFinding({
-      ...finding,
-      status: FindingStatus.Confirmed,
-      ownerId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
-      assigneeId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
-    } as Finding);
+    const updatedFinding = await updateFinding(findingId, update);
 
     expect(updatedFinding.status).toBe(FindingStatus.Confirmed);
     expect(updatedFinding.assigneeId).toBe("8f5f4c3b-c369-481d-98f7-cf7148d80d21");
@@ -320,16 +317,7 @@ describe("finding api", () => {
       }),
     );
     expect(headers.get("Content-Type")).toBe("application/json");
-    expect(requestJsonBody()).toEqual({
-      severity: createFindingPayload.severity,
-      source: createFindingPayload.source,
-      evidence: createFindingPayload.evidence,
-      mitigation: createFindingPayload.mitigation,
-      status: FindingStatus.Confirmed,
-      assigneeId: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
-      dueDate: "2026-05-06T00:00:00.000Z",
-    });
-    expect(requestJsonBody()).not.toHaveProperty("ownerId");
+    expect(requestJsonBody()).toEqual(update);
     expect(requestJsonBody()).not.toHaveProperty("assetId");
     expect(requestJsonBody()).not.toHaveProperty("vulnerabilityId");
   });

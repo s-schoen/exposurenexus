@@ -16,28 +16,29 @@ import { formatFindingCount } from "@/lib/format.ts";
 
 import type {
   CreateManualFinding,
-  Finding,
   FindingProjection,
+  UpdateFinding,
 } from "@exposurenexus/types/model/finding";
 
 export type FindingEditableField =
+  | "title"
   | "severity"
   | "status"
-  | "source"
-  | "evidence"
   | "mitigation"
   | "assigneeId"
-  | "dueDate";
+  | "dueDate"
+  | "weakness"
+  | "affectedResource";
 
 export type FindingBulkEditableField = "severity" | "status";
 
 export interface FindingLifecycleFailure {
-  finding: Finding | FindingReference;
+  finding: FindingProjection | FindingReference;
   error: unknown;
 }
 
 export interface FindingLifecycleBatchResult {
-  successful: Array<Finding | FindingProjection>;
+  successful: Array<FindingProjection>;
   failed: Array<FindingLifecycleFailure>;
 }
 
@@ -45,7 +46,7 @@ export type FindingReference = Pick<FindingProjection, "id">;
 
 export type FindingDeleteBatchResult = FindingLifecycleBatchResult;
 
-type FindingCacheValue = Finding | FindingProjection;
+type FindingCacheValue = FindingProjection;
 
 export interface FindingLifecycleActions {
   /**
@@ -64,10 +65,15 @@ export interface FindingLifecycleActions {
    * failures after rolling optimistic cache writes back.
    */
   updateFindingField: <TKey extends FindingEditableField>(
-    finding: Finding,
+    finding: FindingProjection,
     key: TKey,
-    value: Finding[TKey],
-  ) => Promise<Finding | null>;
+    value: FindingProjection[TKey],
+  ) => Promise<FindingProjection | null>;
+
+  correctFinding: (
+    finding: FindingProjection,
+    update: UpdateFinding,
+  ) => Promise<FindingProjection | null>;
 
   /**
    * Updates one bulk-editable field for many findings, shows default summary
@@ -76,9 +82,9 @@ export interface FindingLifecycleActions {
    * API failures are represented in the returned result instead of thrown.
    */
   bulkUpdateFindingField: <TKey extends FindingBulkEditableField>(
-    findings: Array<Finding>,
+    findings: Array<FindingProjection>,
     key: TKey,
-    value: Finding[TKey],
+    value: FindingProjection[TKey],
   ) => Promise<FindingLifecycleBatchResult>;
 
   /**
@@ -119,10 +125,10 @@ function replaceFindingInList(
 }
 
 function findingWithField<TKey extends FindingEditableField>(
-  finding: Finding,
+  finding: FindingProjection,
   key: TKey,
-  value: Finding[TKey],
-): Finding {
+  value: FindingProjection[TKey],
+): FindingProjection {
   return {
     ...finding,
     [key]: value,
@@ -130,8 +136,8 @@ function findingWithField<TKey extends FindingEditableField>(
 }
 
 function createBatchResult(
-  findings: Array<Finding>,
-  results: Array<PromiseSettledResult<Finding>>,
+  findings: Array<FindingProjection>,
+  results: Array<PromiseSettledResult<FindingProjection>>,
 ): FindingLifecycleBatchResult {
   return results.reduce<FindingLifecycleBatchResult>(
     (result, settled, index) => {
@@ -286,7 +292,10 @@ export function useFindingLifecycle(): FindingLifecycleActions {
         // server response refreshes authoritative audit fields before refetch.
         writeFindingToCaches(nextFinding);
 
-        const updatedFinding = await findingUpdate.mutateAsync(nextFinding);
+        const updatedFinding = await findingUpdate.mutateAsync({
+          id: finding.id,
+          update: { [key]: value },
+        });
 
         writeFindingToCaches(updatedFinding);
         await invalidateFindingReads([finding.id]);
@@ -295,6 +304,24 @@ export function useFindingLifecycle(): FindingLifecycleActions {
       } catch (error) {
         // Restore both caches so a failed inline edit cannot leave the list and
         // detail panes showing different lifecycle state.
+        restoreFindingFromSnapshot(snapshot, finding.id);
+        toastActionError(error, "Failed to update finding");
+        console.error(error);
+        return null;
+      }
+    },
+
+    async correctFinding(finding, update) {
+      const nextFinding = { ...finding, ...update };
+      const snapshot = snapshotFindings([finding.id]);
+
+      try {
+        writeFindingToCaches(nextFinding);
+        const updatedFinding = await findingUpdate.mutateAsync({ id: finding.id, update });
+        writeFindingToCaches(updatedFinding);
+        await invalidateFindingReads([finding.id]);
+        return updatedFinding;
+      } catch (error) {
         restoreFindingFromSnapshot(snapshot, finding.id);
         toastActionError(error, "Failed to update finding");
         console.error(error);
@@ -322,14 +349,17 @@ export function useFindingLifecycle(): FindingLifecycleActions {
       const result = createBatchResult(
         findings,
         await Promise.allSettled(
-          nextFindings.map((nextFinding) => findingUpdate.mutateAsync(nextFinding)),
+          nextFindings.map((nextFinding) =>
+            findingUpdate.mutateAsync({
+              id: nextFinding.id,
+              update: { [key]: value },
+            }),
+          ),
         ),
       );
 
       for (const successfulFinding of result.successful) {
-        if ("vulnerabilityId" in successfulFinding) {
-          writeFindingToCaches(successfulFinding);
-        }
+        writeFindingToCaches(successfulFinding);
       }
 
       for (const failure of result.failed) {
