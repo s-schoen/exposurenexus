@@ -11,6 +11,7 @@ export const DEFAULT_AUDIT_EVENT_PATTERNS = [
   "role.*",
   "user.*",
   "finding.*",
+  "observation.*",
   "vulnerability.*",
 ] as const satisfies readonly EventListenerName<DomainEvent>[];
 

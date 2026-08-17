@@ -9,10 +9,13 @@ import {
   type FindingInternal,
   type FindingProjection,
   type LegacyCreateFinding,
-  type ManualObservationInput,
   type UpdateFinding,
 } from "@exposurenexus/types/model/finding";
-import { ObservationSource } from "@exposurenexus/types/model/observation";
+import {
+  ObservationSource,
+  type ManualObservationInput,
+  type Observation,
+} from "@exposurenexus/types/model/observation";
 
 import {
   createDomainEventEmitter,
@@ -20,6 +23,7 @@ import {
   type DomainEventEmitter,
   type EventSubjects,
   type FindingEventPayloads,
+  type ObservationEventPayloads,
 } from "../lib/eventbus/events/index.js";
 import { ApplicationError, isApplicationError } from "./application-error.js";
 import { isForeignKeyError } from "./errors.js";
@@ -27,6 +31,7 @@ import { isForeignKeyError } from "./errors.js";
 import type { FindingPersistenceRepository } from "../repository/finding-persistence.js";
 import type { FindingVulnerabilityRepository } from "../repository/finding-vulnerability.js";
 import type { FindingRepository } from "../repository/finding.js";
+import type { ObservationRepository } from "../repository/observation.js";
 import type { Asset } from "@exposurenexus/types/model/asset";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerability";
@@ -52,6 +57,7 @@ interface FindingServiceDependencies {
   >;
   manualFindingRepository?: Pick<FindingPersistenceRepository, "createManual" | "getProjectedByID">;
   findingVulnerabilityRepository?: FindingVulnerabilityRepository;
+  observationRepository?: Pick<ObservationRepository, "listByFindingID" | "createAndTouchFinding">;
   assetService: AssetLookupService;
   userProfileService: UserProfileLookupService;
   vulnerabilityService: VulnerabilityLookupService;
@@ -121,6 +127,18 @@ export interface FindingVulnerabilityMutationResult {
   changed: boolean;
 }
 
+export interface CreateManualObservationOptions {
+  findingId: string;
+  observation: ManualObservationInput;
+  user: UserProfile;
+  eventContext?: DomainEventContext;
+}
+
+export interface CreateManualObservationResult {
+  observation: Observation;
+  finding: FindingProjection;
+}
+
 export interface CreateOrUpdateFindingResult {
   finding: Finding;
   created: boolean;
@@ -131,6 +149,10 @@ export interface FindingService {
   getByID(id: string): Promise<FindingProjection | null>;
   create(opts: CreateFindingOptions): Promise<Finding>;
   createManual(opts: CreateManualFindingOptions): Promise<FindingProjection>;
+  listObservations(findingId: string): Promise<Observation[] | null>;
+  createManualObservation(
+    opts: CreateManualObservationOptions,
+  ): Promise<CreateManualObservationResult | null>;
   updateByID(opts: UpdateFindingOptions): Promise<FindingProjection | null>;
   createOrUpdate(opts: CreateFindingOptions): Promise<CreateOrUpdateFindingResult>;
   deleteByID(id: string, eventContext?: DomainEventContext): Promise<FindingProjection | null>;
@@ -147,6 +169,7 @@ export function createFindingService({
   findingPersistenceRepository,
   manualFindingRepository,
   findingVulnerabilityRepository,
+  observationRepository,
   assetService,
   userProfileService,
   vulnerabilityService,
@@ -156,6 +179,10 @@ export function createFindingService({
   const emitFindingEvent = createDomainEventEmitter<EventSubjects<FindingEventPayloads>>(
     domainEventEmitter,
     "finding",
+  );
+  const emitObservationEvent = createDomainEventEmitter<EventSubjects<ObservationEventPayloads>>(
+    domainEventEmitter,
+    "observation",
   );
 
   async function extendWithVulnerability(
@@ -526,6 +553,95 @@ export function createFindingService({
 
     async createManual(opts: CreateManualFindingOptions): Promise<FindingProjection> {
       return await createManualFinding(opts);
+    },
+
+    async listObservations(findingId: string): Promise<Observation[] | null> {
+      if (!findingPersistenceRepository || !observationRepository) {
+        throw new ApplicationError({
+          code: "observation.list_failed",
+          kind: "unexpected",
+          message: "finding observations are unavailable",
+          details: { findingId },
+        });
+      }
+
+      try {
+        const finding = await findingPersistenceRepository.getProjectedByID(findingId);
+        return finding ? await observationRepository.listByFindingID(findingId) : null;
+      } catch (error) {
+        logger.error(error, `failed to list observations for finding ${findingId}`);
+        throw new ApplicationError({
+          code: "observation.list_failed",
+          kind: "unexpected",
+          message: "failed to list finding observations",
+          cause: error,
+          details: { findingId },
+        });
+      }
+    },
+
+    async createManualObservation(
+      opts: CreateManualObservationOptions,
+    ): Promise<CreateManualObservationResult | null> {
+      if (!observationRepository) {
+        throw new ApplicationError({
+          code: "observation.create_failed",
+          kind: "unexpected",
+          message: "manual observation creation is unavailable",
+          details: { findingId: opts.findingId },
+        });
+      }
+
+      try {
+        const input = opts.observation;
+        const mutation = await observationRepository.createAndTouchFinding({
+          findingId: opts.findingId,
+          buildObservation(previous) {
+            const now = new Date();
+            return {
+              findingId: opts.findingId,
+              ingestionId: null,
+              source: ObservationSource.Manual,
+              title: input.title ?? previous.title,
+              description: input.description ?? null,
+              evidence: input.evidence ?? null,
+              remediation: input.remediation ?? null,
+              severity: input.severity ?? previous.severity,
+              weakness: input.weakness ?? previous.weakness,
+              affectedResource: input.affectedResource ?? previous.affectedResource,
+              observedAt: input.observedAt ?? now,
+              createdAt: now,
+              updatedAt: now,
+              createdBy: opts.user.id,
+              updatedBy: opts.user.id,
+            };
+          },
+        });
+        if (!mutation) {
+          return null;
+        }
+
+        emitObservationEvent(
+          "observation.created",
+          { observation: mutation.observation },
+          opts.eventContext,
+        );
+        emitFindingEvent(
+          "finding.updated",
+          { previous: mutation.previous, current: mutation.current },
+          opts.eventContext,
+        );
+        return { observation: mutation.observation, finding: mutation.current };
+      } catch (error) {
+        logger.error(error, `failed to create observation for finding ${opts.findingId}`);
+        throw new ApplicationError({
+          code: "observation.create_failed",
+          kind: "unexpected",
+          message: "failed to create manual observation",
+          cause: error,
+          details: { findingId: opts.findingId },
+        });
+      }
     },
 
     async updateByID(opts: UpdateFindingOptions): Promise<FindingProjection | null> {

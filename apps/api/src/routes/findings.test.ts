@@ -33,6 +33,8 @@ describe("finding routes", () => {
     linkVulnerability: vi.fn(),
     unlinkVulnerability: vi.fn(),
     deleteByID: vi.fn(),
+    listObservations: vi.fn(),
+    createManualObservation: vi.fn(),
   };
   const vulnerability = {
     id: vulnerabilityId,
@@ -70,6 +72,101 @@ describe("finding routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     userHasPermission.mockResolvedValue(true);
+  });
+
+  it("lists nested observations with finding read permission", async () => {
+    const observations = [{ id: vulnerabilityId, findingId }];
+    findingService.listObservations.mockResolvedValue(observations);
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request(`/api/findings/${findingId}/observations`);
+
+    expect(response.status).toBe(200);
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: ["read"] });
+    expect(findingService.listObservations).toHaveBeenCalledWith(findingId);
+    expect((await response.json()).data.items).toEqual(observations);
+  });
+
+  it("creates a nested manual observation with finding write permission", async () => {
+    const observation = { id: vulnerabilityId, findingId };
+    findingService.createManualObservation.mockResolvedValue({ observation, finding: {} });
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request(`/api/findings/${findingId}/observations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Request-Id": "request-08" },
+      body: JSON.stringify({ evidence: "manual evidence" }),
+    });
+
+    expect(response.status).toBe(201);
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: ["write"] });
+    expect(findingService.createManualObservation).toHaveBeenCalledWith({
+      findingId,
+      observation: { evidence: "manual evidence" },
+      user,
+      eventContext: { actor: user.id, correlationId: "request-08" },
+    });
+    expect((await response.json()).data).toEqual(observation);
+  });
+
+  it("denies nested observation listing without finding read permission", async () => {
+    userHasPermission.mockResolvedValue(false);
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request(`/api/findings/${findingId}/observations`);
+
+    expect(response.status).toBe(403);
+    expect(findingService.listObservations).not.toHaveBeenCalled();
+  });
+
+  it("denies nested observation creation without finding write permission", async () => {
+    userHasPermission.mockResolvedValue(false);
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request(`/api/findings/${findingId}/observations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+
+    expect(response.status).toBe(403);
+    expect(findingService.createManualObservation).not.toHaveBeenCalled();
+  });
+
+  it("returns not found for nested observation access under an unknown parent", async () => {
+    findingService.listObservations.mockResolvedValue(null);
+    findingService.createManualObservation.mockResolvedValue(null);
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const listResponse = await app.request(`/api/findings/${findingId}/observations`);
+    const createResponse = await app.request(`/api/findings/${findingId}/observations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+
+    expect(listResponse.status).toBe(404);
+    expect(createResponse.status).toBe(404);
   });
 
   it("returns all findings for authenticated requests", async () => {
