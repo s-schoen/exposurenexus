@@ -2,7 +2,6 @@ import {
   findingProjectionSchema,
   findingSchema,
   FindingStatistics as findingStatisticsSchema,
-  reclassifyFindingsResultSchema,
 } from "@exposurenexus/types/model/finding";
 import { keepPreviousData, queryOptions, useMutation } from "@tanstack/react-query";
 
@@ -19,8 +18,6 @@ import type {
   Finding,
   FindingProjection,
   FindingStatistics,
-  ReclassifyFindings,
-  ReclassifyFindingsResult,
   UpdateFinding,
 } from "@exposurenexus/types/model/finding";
 
@@ -126,16 +123,16 @@ export async function updateFinding(f: Finding): Promise<Finding> {
   return parseObjectReply(response, findingSchema);
 }
 
-export async function reclassifyFindings(
-  reclassification: ReclassifyFindings,
-): Promise<ReclassifyFindingsResult> {
-  const response = await apiRequest("/api/findings/reclassify", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+export async function linkFindingVulnerability(
+  findingId: string,
+  vulnerabilityId: string,
+): Promise<FindingProjection> {
+  const response = await apiRequest(
+    `/api/findings/${findingId}/vulnerabilities/${vulnerabilityId}`,
+    {
+      method: "PUT",
     },
-    body: JSON.stringify(reclassification),
-  });
+  );
 
   if (!response.ok) {
     const error = await parseErrorReply(response);
@@ -143,7 +140,27 @@ export async function reclassifyFindings(
     throw error;
   }
 
-  return parseObjectReply(response, reclassifyFindingsResultSchema);
+  return parseObjectReply(response, findingProjectionSchema);
+}
+
+export async function unlinkFindingVulnerability(
+  findingId: string,
+  vulnerabilityId: string,
+): Promise<FindingProjection> {
+  const response = await apiRequest(
+    `/api/findings/${findingId}/vulnerabilities/${vulnerabilityId}`,
+    {
+      method: "DELETE",
+    },
+  );
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response);
+    console.error(error);
+    throw error;
+  }
+
+  return parseObjectReply(response, findingProjectionSchema);
 }
 
 export function createListFindingsQueryOptions() {
@@ -195,8 +212,16 @@ export function useDeleteFindingMutation() {
   });
 }
 
-export function useReclassifyFindingsMutation() {
+export function useLinkFindingVulnerabilityMutation() {
   return useMutation({
-    mutationFn: (reclassification: ReclassifyFindings) => reclassifyFindings(reclassification),
+    mutationFn: ({ findingId, vulnerabilityId }: { findingId: string; vulnerabilityId: string }) =>
+      linkFindingVulnerability(findingId, vulnerabilityId),
+  });
+}
+
+export function useUnlinkFindingVulnerabilityMutation() {
+  return useMutation({
+    mutationFn: ({ findingId, vulnerabilityId }: { findingId: string; vulnerabilityId: string }) =>
+      unlinkFindingVulnerability(findingId, vulnerabilityId),
   });
 }

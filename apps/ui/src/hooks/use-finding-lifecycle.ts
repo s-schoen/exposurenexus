@@ -7,6 +7,8 @@ import {
   createListFindingsQueryOptions,
   useCreateFindingMutation,
   useDeleteFindingMutation,
+  useLinkFindingVulnerabilityMutation,
+  useUnlinkFindingVulnerabilityMutation,
   useUpdateFindingMutation,
 } from "@/api/finding.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
@@ -83,6 +85,14 @@ export interface FindingLifecycleActions {
    * returned result instead of thrown.
    */
   deleteFindings: (findings: Array<FindingReference>) => Promise<FindingDeleteBatchResult>;
+  linkVulnerability: (
+    findingId: string,
+    vulnerabilityId: string,
+  ) => Promise<FindingProjection | null>;
+  unlinkVulnerability: (
+    findingId: string,
+    vulnerabilityId: string,
+  ) => Promise<FindingProjection | null>;
 }
 
 interface FindingCacheSnapshot {
@@ -166,6 +176,8 @@ export function useFindingLifecycle(): FindingLifecycleActions {
   const findingCreate = useCreateFindingMutation();
   const findingUpdate = useUpdateFindingMutation();
   const findingDelete = useDeleteFindingMutation();
+  const findingVulnerabilityLink = useLinkFindingVulnerabilityMutation();
+  const findingVulnerabilityUnlink = useUnlinkFindingVulnerabilityMutation();
 
   function snapshotFindings(findingIds: Array<string>): FindingCacheSnapshot {
     return {
@@ -365,6 +377,40 @@ export function useFindingLifecycle(): FindingLifecycleActions {
       toastBatchSummary(result, "Deleted", "delete");
 
       return result;
+    },
+
+    async linkVulnerability(findingId, vulnerabilityId) {
+      try {
+        const finding = await findingVulnerabilityLink.mutateAsync({
+          findingId,
+          vulnerabilityId,
+        });
+        writeFindingToCaches(finding);
+        await invalidateFindingReads([findingId]);
+        toast.success("Linked catalog entry to finding");
+        return finding;
+      } catch (error) {
+        toastActionError(error, `Failed to link catalog entry: ${formatActionError(error)}`);
+        console.error(error);
+        return null;
+      }
+    },
+
+    async unlinkVulnerability(findingId, vulnerabilityId) {
+      try {
+        const finding = await findingVulnerabilityUnlink.mutateAsync({
+          findingId,
+          vulnerabilityId,
+        });
+        writeFindingToCaches(finding);
+        await invalidateFindingReads([findingId]);
+        toast.success("Unlinked catalog entry from finding");
+        return finding;
+      } catch (error) {
+        toastActionError(error, `Failed to unlink catalog entry: ${formatActionError(error)}`);
+        console.error(error);
+        return null;
+      }
     },
   };
 }

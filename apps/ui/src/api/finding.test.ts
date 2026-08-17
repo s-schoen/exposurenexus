@@ -8,7 +8,8 @@ import {
   createFindingStatsQueryOptions,
   createListFindingsQueryOptions,
   deleteFinding,
-  reclassifyFindings,
+  linkFindingVulnerability,
+  unlinkFindingVulnerability,
   updateFinding,
 } from "@/api/finding.ts";
 
@@ -314,6 +315,44 @@ describe("finding api", () => {
     );
   });
 
+  it("links catalog entries to findings with a PUT request", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: findingProjectionJson,
+      }),
+    );
+
+    const linkedFinding = await linkFindingVulnerability(findingId, vulnerabilityId);
+
+    expectProjectionDates(linkedFinding);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/findings/${findingId}/vulnerabilities/${vulnerabilityId}`,
+      expect.objectContaining({
+        credentials: "include",
+        method: "PUT",
+      }),
+    );
+  });
+
+  it("unlinks catalog entries from findings with a DELETE request", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: findingProjectionJson,
+      }),
+    );
+
+    const unlinkedFinding = await unlinkFindingVulnerability(findingId, vulnerabilityId);
+
+    expectProjectionDates(unlinkedFinding);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/findings/${findingId}/vulnerabilities/${vulnerabilityId}`,
+      expect.objectContaining({
+        credentials: "include",
+        method: "DELETE",
+      }),
+    );
+  });
+
   it("creates stats query options and parses finding stats", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
@@ -346,38 +385,6 @@ describe("finding api", () => {
     );
 
     await expect(runQuery<FindingStatistics>(createFindingStatsQueryOptions())).rejects.toThrow();
-  });
-
-  it("reclassifies findings with a JSON request body", async () => {
-    const targetVulnerabilityId = "4fb566c6-e642-48d8-b70d-418efb074f8d";
-    const payload = {
-      source: FindingSource.Nuclei,
-      oldVulnerabilityId: vulnerabilityId,
-      targetVulnerabilityId,
-    };
-
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        data: {
-          updatedCount: 2,
-        },
-      }),
-    );
-
-    await expect(reclassifyFindings(payload)).resolves.toEqual({
-      updatedCount: 2,
-    });
-
-    const headers = requestInit().headers as Headers;
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/findings/reclassify",
-      expect.objectContaining({
-        credentials: "include",
-        method: "POST",
-      }),
-    );
-    expect(headers.get("Content-Type")).toBe("application/json");
-    expect(requestJsonBody()).toEqual(payload);
   });
 
   it("throws API errors from finding requests", async () => {

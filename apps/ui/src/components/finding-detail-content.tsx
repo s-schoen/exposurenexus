@@ -2,11 +2,14 @@ import { AffectedResourceType } from "@exposurenexus/types/model/affected-resour
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ExternalLink, ShieldAlert } from "lucide-react";
+import { useState } from "react";
 
 import { createAssetByIDQueryOptions } from "@/api/asset.ts";
 import { createFindingByIDQueryOptions } from "@/api/finding.ts";
 import { createListUsersQueryOptions } from "@/api/user.ts";
+import { createListVulnerabilitiesQueryOptions } from "@/api/vulnerability.ts";
 import { AssetInfoItem } from "@/components/asset-info-item.tsx";
+import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import { FindingStatusBadge } from "@/components/finding-status-badge.tsx";
@@ -22,13 +25,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { Spinner } from "@/components/ui/spinner.tsx";
 import { UserLabel, createUserProfileById } from "@/components/user-label.tsx";
+import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
 import type { FindingAffectedResource } from "@exposurenexus/types/model/affected-resource";
 import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerability";
 import type { ReactNode } from "react";
 
 interface FindingDetailContentProps {
@@ -211,6 +224,47 @@ function FindingWeaknessCard({ finding }: { finding: FindingProjection }) {
 }
 
 function FindingVulnerabilitiesCard({ finding }: { finding: FindingProjection }) {
+  const vulnerabilityQuery = useQuery(createListVulnerabilitiesQueryOptions());
+  const findingLifecycle = useFindingLifecycle();
+  const [selectedVulnerabilityId, setSelectedVulnerabilityId] = useState("");
+  const [pendingVulnerabilityId, setPendingVulnerabilityId] = useState<string | null>(null);
+  const linkedVulnerabilityIds = new Set(finding.vulnerabilities.map(({ id }) => id));
+  const availableVulnerabilities =
+    vulnerabilityQuery.data?.filter(({ id }) => !linkedVulnerabilityIds.has(id)) ?? [];
+
+  const formatVulnerabilityOption = (vulnerability: VulnerabilityCatalog) =>
+    `${vulnerability.type.toUpperCase()}: ${vulnerability.identifier}`;
+
+  const handleLink = async () => {
+    if (!selectedVulnerabilityId) {
+      return;
+    }
+
+    setPendingVulnerabilityId(selectedVulnerabilityId);
+    const linked = await findingLifecycle.linkVulnerability(finding.id, selectedVulnerabilityId);
+    setPendingVulnerabilityId(null);
+    if (linked) {
+      setSelectedVulnerabilityId("");
+    }
+  };
+
+  const handleUnlink = async (vulnerability: VulnerabilityCatalog) => {
+    const confirmed = await ConfirmDialog.call({
+      title: "Unlink catalog entry",
+      description: "This does not change the finding's title, severity, or workflow state.",
+      message: `Remove ${vulnerability.identifier} from this finding?`,
+      confirmText: "Unlink",
+      confirmVariant: "destructive",
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    setPendingVulnerabilityId(vulnerability.id);
+    await findingLifecycle.unlinkVulnerability(finding.id, vulnerability.id);
+    setPendingVulnerabilityId(null);
+  };
+
   return (
     <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
       <CardHeader>
@@ -220,7 +274,7 @@ function FindingVulnerabilitiesCard({ finding }: { finding: FindingProjection })
           severity.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         {finding.vulnerabilities.length > 0 ? (
           <div className="space-y-3">
             {finding.vulnerabilities.map((vulnerability) => (
@@ -231,24 +285,76 @@ function FindingVulnerabilitiesCard({ finding }: { finding: FindingProjection })
                 <div className="min-w-0">
                   <div className="font-medium">{vulnerability.title}</div>
                   <div className="text-sm text-muted-foreground">
-                    {vulnerability.type}: {vulnerability.identifier}
+                    {formatVulnerabilityOption(vulnerability)}
                   </div>
                 </div>
-                <Link to="/vulnerabilities/$id" params={{ id: vulnerability.id }}>
+                <div className="flex items-center gap-1">
+                  <Link to="/vulnerabilities/$id" params={{ id: vulnerability.id }}>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Open ${vulnerability.identifier}`}
+                    >
+                      <ExternalLink className="text-accent-foreground" size={20} />
+                    </Button>
+                  </Link>
                   <Button
+                    type="button"
                     variant="ghost"
-                    size="icon-sm"
-                    aria-label={`Open ${vulnerability.identifier}`}
+                    size="sm"
+                    onClick={() => void handleUnlink(vulnerability)}
+                    disabled={pendingVulnerabilityId !== null}
                   >
-                    <ExternalLink className="text-accent-foreground" size={20} />
+                    {pendingVulnerabilityId === vulnerability.id ? <Spinner /> : "Unlink"}
                   </Button>
-                </Link>
+                </div>
               </div>
             ))}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">No catalog entries are linked.</p>
         )}
+        <div className="flex flex-col gap-3 rounded-xl border border-dashed border-border bg-muted/10 p-4 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1">
+            <label
+              htmlFor={`finding-${finding.id}-catalog-entry`}
+              className="mb-2 block text-sm font-medium"
+            >
+              Link catalog entry
+            </label>
+            <Select
+              value={selectedVulnerabilityId}
+              onValueChange={(value) => setSelectedVulnerabilityId(value ?? "")}
+              disabled={vulnerabilityQuery.isPending || pendingVulnerabilityId !== null}
+            >
+              <SelectTrigger id={`finding-${finding.id}-catalog-entry`} className="w-full">
+                <SelectValue>
+                  {(value) => {
+                    const selected = availableVulnerabilities.find(({ id }) => id === value);
+                    return selected
+                      ? formatVulnerabilityOption(selected)
+                      : "Select a catalog entry";
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {availableVulnerabilities.map((vulnerability) => (
+                  <SelectItem key={vulnerability.id} value={vulnerability.id}>
+                    {formatVulnerabilityOption(vulnerability)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            type="button"
+            onClick={() => void handleLink()}
+            disabled={!selectedVulnerabilityId || pendingVulnerabilityId !== null}
+          >
+            {pendingVulnerabilityId === selectedVulnerabilityId ? <Spinner /> : null}
+            Link entry
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
