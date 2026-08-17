@@ -430,7 +430,7 @@ describe("registerAuditLogger", () => {
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
-  it("audits asset, auth, custom field, role, user, finding, and vulnerability events by default", () => {
+  it("audits asset, auth, custom field, role, user, finding, observation, and vulnerability events by default", () => {
     expect(DEFAULT_AUDIT_EVENT_PATTERNS).toEqual([
       "asset.*",
       "auth.*",
@@ -438,6 +438,7 @@ describe("registerAuditLogger", () => {
       "role.*",
       "user.*",
       "finding.*",
+      "observation.*",
       "vulnerability.*",
     ]);
   });

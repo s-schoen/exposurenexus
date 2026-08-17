@@ -24,6 +24,7 @@ const {
   createRoleServiceMock,
   createUserProfileServiceMock,
   createFindingServiceMock,
+  createObservationRepositoryMock,
   createVulnerabilityServiceMock,
   roleRepositoryMock,
   userRoleRepositoryMock,
@@ -62,6 +63,7 @@ const {
   createRoleServiceMock: vi.fn(() => ({ kind: "role-service" })),
   createUserProfileServiceMock: vi.fn(() => ({ kind: "user-profile-service" })),
   createFindingServiceMock: vi.fn(() => ({ kind: "finding-service" })),
+  createObservationRepositoryMock: vi.fn(() => ({ kind: "observation-repo" })),
   createVulnerabilityServiceMock: vi.fn(() => ({
     kind: "vulnerability-service",
   })),
@@ -147,6 +149,7 @@ vi.mock("./repository/index.js", () => ({
   createFindingRepository: vi.fn(() => ({ kind: "finding-repo" })),
   createFindingPersistenceRepository: vi.fn(() => ({ kind: "finding-persistence-repo" })),
   createFindingVulnerabilityRepository: vi.fn(() => ({ kind: "finding-vulnerability-repo" })),
+  createObservationRepository: createObservationRepositoryMock,
   createRoleRepository: vi.fn(() => roleRepositoryMock),
   createUserRoleRepository: vi.fn(() => userRoleRepositoryMock),
   createUserProfileRepository: vi.fn(() => ({ kind: "user-profile-repo" })),
@@ -267,6 +270,7 @@ describe("app container", () => {
     );
     expect(createFindingServiceMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        observationRepository: { kind: "observation-repo" },
         domainEventEmitter: expect.objectContaining({
           emit: expect.any(Function),
         }),

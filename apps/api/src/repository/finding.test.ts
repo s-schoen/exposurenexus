@@ -4,6 +4,7 @@ import { FindingStatus } from "@exposurenexus/types/model/finding";
 import { IngestionSource } from "@exposurenexus/types/model/ingestion";
 import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
+import { sql } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";
@@ -159,10 +160,29 @@ describe("observation-based persistence repositories", () => {
       updatedBy: createdBy,
     });
     const manualObservation = await observationRepository.create({
+      id: "2713d833-eb13-4517-ac7c-7761545ed42a",
       findingId: finding.id,
       ingestionId: null,
       source: ObservationSource.Manual,
       title: "Manual confirmation",
+      description: null,
+      evidence: null,
+      remediation: null,
+      severity: VulnerabilitySeverity.Medium,
+      weakness: { identifiers: {} },
+      affectedResource: { type: AffectedResourceType.Asset },
+      observedAt: new Date("2026-01-04T00:00:00.000Z"),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      createdBy,
+      updatedBy: createdBy,
+    });
+    const tiedObservation = await observationRepository.create({
+      id: "2713d833-eb13-4517-ac7c-7761545ed42b",
+      findingId: finding.id,
+      ingestionId: null,
+      source: ObservationSource.Manual,
+      title: "Later deterministic ID",
       description: null,
       evidence: null,
       remediation: null,
@@ -181,6 +201,7 @@ describe("observation-based persistence repositories", () => {
       port: 443,
     });
     await expect(observationRepository.listByFindingID(finding.id)).resolves.toEqual([
+      tiedObservation,
       manualObservation,
       importedObservation,
     ]);
@@ -189,6 +210,117 @@ describe("observation-based persistence repositories", () => {
       scope: { target: "example.com" },
       createdObservations: 1,
     });
+  });
+
+  it("creates an observation and touches its parent finding atomically", async () => {
+    const asset = await createAssetRepository(testDb.db).create(
+      assetRecord("api.exposurenexus.local"),
+    );
+    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const observationRepository = createObservationRepository(testDb.db);
+    const originalTime = new Date("2026-08-16T10:00:00.000Z");
+    const updateTime = new Date("2026-08-17T10:00:00.000Z");
+    const finding = await findingRepository.create({
+      assetId: asset.id,
+      title: "Canonical title",
+      severity: VulnerabilitySeverity.High,
+      status: FindingStatus.Active,
+      assigneeId: null,
+      dueDate: null,
+      mitigation: null,
+      weakness: { identifiers: { cwe: ["CWE-200"] } },
+      affectedResource: { type: AffectedResourceType.Unspecified },
+      createdAt: originalTime,
+      updatedAt: originalTime,
+      createdBy,
+      updatedBy: createdBy,
+    });
+    const observationInput = {
+      findingId: finding.id,
+      ingestionId: null,
+      source: ObservationSource.Manual,
+      title: "Manual confirmation",
+      description: null,
+      evidence: "GET /admin returned 200",
+      remediation: null,
+      severity: VulnerabilitySeverity.Low,
+      weakness: { identifiers: { custom: ["manual-check"] } },
+      affectedResource: { type: AffectedResourceType.Asset },
+      observedAt: updateTime,
+      createdAt: updateTime,
+      updatedAt: updateTime,
+      createdBy,
+      updatedBy: createdBy,
+    };
+
+    const created = await observationRepository.createAndTouchFinding({
+      findingId: finding.id,
+      buildObservation(previous) {
+        expect(previous).toMatchObject({
+          id: finding.id,
+          title: "Canonical title",
+          observationCount: 0,
+          updatedAt: originalTime,
+        });
+        return observationInput;
+      },
+    });
+
+    expect(created).toMatchObject({
+      observation: observationInput,
+      previous: {
+        id: finding.id,
+        observationCount: 0,
+        updatedAt: originalTime,
+      },
+      current: {
+        id: finding.id,
+        observationCount: 1,
+        updatedAt: updateTime,
+        updatedBy: createdBy,
+      },
+    });
+    await expect(findingRepository.getByID(finding.id)).resolves.toMatchObject({
+      title: "Canonical title",
+      severity: VulnerabilitySeverity.High,
+      weakness: { identifiers: { cwe: ["CWE-200"] } },
+      updatedAt: updateTime,
+      updatedBy: createdBy,
+    });
+
+    await sql`
+      create function invalidate_finding_projection() returns trigger as $$
+      begin
+        new.title = '';
+        return new;
+      end;
+      $$ language plpgsql
+    `.execute(testDb.db);
+    await sql`
+      create trigger invalidate_finding_projection
+      before update on finding
+      for each row execute function invalidate_finding_projection()
+    `.execute(testDb.db);
+
+    await expect(
+      observationRepository.createAndTouchFinding({
+        findingId: finding.id,
+        buildObservation: () => ({
+          ...observationInput,
+          title: "Must roll back",
+          updatedAt: new Date("2026-08-18T10:00:00.000Z"),
+        }),
+      }),
+    ).rejects.toThrow();
+    await expect(observationRepository.listByFindingID(finding.id)).resolves.toEqual([
+      created?.observation,
+    ]);
+    await expect(findingRepository.getByID(finding.id)).resolves.toMatchObject({
+      title: "Canonical title",
+      updatedAt: updateTime,
+    });
+    await sql`drop trigger invalidate_finding_projection on finding`.execute(testDb.db);
+    await sql`drop function invalidate_finding_projection()`.execute(testDb.db);
   });
 
   it("builds one ordered projection for findings, observations, and catalog links", async () => {

@@ -150,6 +150,15 @@ function projectionQuery(database: DatabaseExecutor) {
     .orderBy("finding.updatedAt", "desc");
 }
 
+export async function getFindingProjectionByID(
+  database: DatabaseExecutor,
+  id: string,
+): Promise<FindingProjection | null> {
+  const finding = await projectionQuery(database).where("finding.id", "=", id).executeTakeFirst();
+
+  return finding ? normalizeFindingProjection(finding) : null;
+}
+
 function normalizeObservationInput<T extends { weakness?: unknown; affectedResource?: unknown }>(
   observation: T,
 ): T {
@@ -213,11 +222,7 @@ export function createFindingPersistenceRepository(
     },
 
     async getProjectedByID(id: string): Promise<FindingProjection | null> {
-      const finding = await projectionQuery(database)
-        .where("finding.id", "=", id)
-        .executeTakeFirst();
-
-      return finding ? normalizeFindingProjection(finding) : null;
+      return await getFindingProjectionByID(database, id);
     },
 
     async createManual(input: CreateManualFindingInput): Promise<CreateManualFindingResult> {

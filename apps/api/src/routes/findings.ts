@@ -3,6 +3,7 @@ import {
   legacyCreateFindingSchema,
   updateFindingSchema,
 } from "@exposurenexus/types/model/finding";
+import { manualObservationInputSchema } from "@exposurenexus/types/model/observation";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod/v4";
@@ -24,6 +25,7 @@ const vulnerabilityLinkParamValidator = zValidator(
   "param",
   z.object({ findingId: z.uuidv4(), vulnerabilityId: z.uuidv4() }),
 );
+const findingIdParamValidator = zValidator("param", z.object({ findingId: z.uuidv4() }));
 const createFindingRequestSchema = z.union([createFindingSchema, legacyCreateFindingSchema]);
 
 export function createFindingRoute(
@@ -36,6 +38,44 @@ export function createFindingRoute(
     const findings = await findingService.listAll();
     return replyArray(c, findings);
   });
+
+  finding.get(
+    "/:findingId/observations",
+    requireDomainPermission("finding", "read"),
+    findingIdParamValidator,
+    async (c) => {
+      const { findingId } = c.req.valid("param");
+      const observations = await findingService.listObservations(findingId);
+      if (!observations) {
+        throw notFound("finding", findingId);
+      }
+      return replyArray(c, observations);
+    },
+  );
+
+  finding.post(
+    "/:findingId/observations",
+    requireDomainPermission("finding", "write"),
+    findingIdParamValidator,
+    zValidator("json", manualObservationInputSchema),
+    async (c) => {
+      const user = c.get("user");
+      if (!user) {
+        throw unauthorized();
+      }
+      const { findingId } = c.req.valid("param");
+      const result = await findingService.createManualObservation({
+        findingId,
+        observation: c.req.valid("json"),
+        user,
+        eventContext: requestEventContext(c),
+      });
+      if (!result) {
+        throw notFound("finding", findingId);
+      }
+      return replyObject(c, result.observation, true);
+    },
+  );
 
   finding.get("/:id", requireDomainPermission("finding", "read"), idParamValidator, async (c) => {
     const params = c.req.valid("param");

@@ -3,16 +3,19 @@ import { z } from "zod/v4";
 import {
   findingAffectedResourceSchema,
   type FindingAffectedResource,
-  observationAffectedResourceSchema,
 } from "./affected-resource.js";
 import { dateSchema, utcStartDateSchema } from "./date.js";
-import { ObservationSource } from "./observation.js";
+import {
+  manualObservationInputSchema,
+  ObservationSource,
+  type ManualObservationInput,
+} from "./observation.js";
 import {
   vulnerabilityCatalogSchema,
   vulnerabilitySchema,
   VulnerabilitySeverity,
 } from "./vulnerability.js";
-import { findingWeaknessSchema, observationWeaknessSchema, type Weakness } from "./weakness.js";
+import { findingWeaknessSchema, type Weakness } from "./weakness.js";
 
 const dueDateSchema = utcStartDateSchema as z.ZodType<Date, Date>;
 
@@ -120,17 +123,6 @@ export const legacyUpdateFindingSchema = legacyCreateFindingSchema
     dueDate: findingInternalSchema.shape.dueDate,
   });
 
-export const manualObservationInputSchema = z.strictObject({
-  title: z.string().trim().min(1).optional(),
-  description: z.string().nullable().optional(),
-  evidence: z.string().nullable().optional(),
-  remediation: z.string().nullable().optional(),
-  severity: z.enum(VulnerabilitySeverity).optional(),
-  weakness: observationWeaknessSchema.optional(),
-  affectedResource: observationAffectedResourceSchema.optional(),
-  observedAt: dateSchema.optional(),
-});
-
 export const createFindingSchema = z.strictObject({
   assetId: z.uuidv4(),
   title: z.string().trim().min(1),
@@ -197,4 +189,5 @@ export type CreateManualFinding = CreateFinding;
 export type LegacyCreateFinding = z.infer<typeof legacyCreateFindingSchema>;
 export type UpdateFinding = z.infer<typeof updateFindingSchema>;
 export type FindingStatistics = z.infer<typeof FindingStatistics>;
-export type ManualObservationInput = z.infer<typeof manualObservationInputSchema>;
+export { manualObservationInputSchema };
+export type { ManualObservationInput };

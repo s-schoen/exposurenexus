@@ -2,6 +2,7 @@ import type { AssetCustomFieldApplicationErrorCatalog } from "./application-erro
 import type { AssetApplicationErrorCatalog } from "./application-error/asset.js";
 import type { AuthApplicationErrorCatalog } from "./application-error/auth.js";
 import type { FindingApplicationErrorCatalog } from "./application-error/finding.js";
+import type { ObservationApplicationErrorCatalog } from "./application-error/observation.js";
 import type { RoleApplicationErrorCatalog } from "./application-error/role.js";
 import type { StatsApplicationErrorCatalog } from "./application-error/stats.js";
 import type { UserProfileApplicationErrorCatalog } from "./application-error/user-profile.js";
@@ -11,6 +12,7 @@ export type { AssetCustomFieldApplicationErrorCatalog } from "./application-erro
 export type { AssetApplicationErrorCatalog } from "./application-error/asset.js";
 export type { AuthApplicationErrorCatalog } from "./application-error/auth.js";
 export type { FindingApplicationErrorCatalog } from "./application-error/finding.js";
+export type { ObservationApplicationErrorCatalog } from "./application-error/observation.js";
 export type { RoleApplicationErrorCatalog } from "./application-error/role.js";
 export type { StatsApplicationErrorCatalog } from "./application-error/stats.js";
 export type { UserProfileApplicationErrorCatalog } from "./application-error/user-profile.js";
@@ -20,6 +22,7 @@ export type ApplicationErrorCatalog = AssetApplicationErrorCatalog &
   AssetCustomFieldApplicationErrorCatalog &
   AuthApplicationErrorCatalog &
   FindingApplicationErrorCatalog &
+  ObservationApplicationErrorCatalog &
   RoleApplicationErrorCatalog &
   StatsApplicationErrorCatalog &
   UserProfileApplicationErrorCatalog &

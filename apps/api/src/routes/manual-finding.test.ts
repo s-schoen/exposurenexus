@@ -26,6 +26,8 @@ describe("manual finding creation route", () => {
     linkVulnerability: vi.fn(),
     unlinkVulnerability: vi.fn(),
     deleteByID: vi.fn(),
+    listObservations: vi.fn(),
+    createManualObservation: vi.fn(),
   };
 
   beforeEach(() => {
