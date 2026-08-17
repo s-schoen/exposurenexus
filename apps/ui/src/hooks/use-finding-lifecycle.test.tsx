@@ -1,3 +1,4 @@
+import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -13,7 +14,7 @@ import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 
 import type * as FindingApi from "@/api/finding.ts";
 import type { FindingLifecycleBatchResult } from "@/hooks/use-finding-lifecycle.ts";
-import type { CreateFinding, Finding } from "@exposurenexus/types/model/finding";
+import type { CreateManualFinding, Finding } from "@exposurenexus/types/model/finding";
 import type { ReactNode } from "react";
 
 const {
@@ -333,14 +334,18 @@ describe("useFindingLifecycle", () => {
 
   it("creates findings and invalidates the unnested list query key plus stats", async () => {
     const finding = createFindingFixture();
-    const value: CreateFinding = {
-      vulnerabilityId: finding.vulnerabilityId,
+    const value: CreateManualFinding = {
+      title: "Exposed admin endpoint",
       severity: finding.severity,
       status: finding.status,
-      source: finding.source,
-      evidence: finding.evidence,
       mitigation: finding.mitigation,
       assetId: finding.assetId,
+      assigneeId: null,
+      dueDate: null,
+      weakness: { identifiers: {} },
+      affectedResource: { type: AffectedResourceType.Unspecified },
+      vulnerabilityIds: [],
+      observation: {},
     };
     createFindingRequestMock.mockResolvedValueOnce(finding);
     const { queryClient, result } = renderLifecycleHook();

@@ -14,10 +14,11 @@ import {
 } from "@/api/common.ts";
 
 import type {
-  CreateFinding,
+  CreateManualFinding,
   Finding,
   FindingProjection,
   FindingStatistics,
+  LegacyCreateFinding,
   UpdateFinding,
 } from "@exposurenexus/types/model/finding";
 
@@ -77,7 +78,7 @@ async function getFindingStats(): Promise<FindingStatistics> {
   return parseObjectReply(response, findingStatisticsSchema);
 }
 
-export async function createFinding(f: CreateFinding): Promise<Finding> {
+export async function createFinding(f: LegacyCreateFinding): Promise<Finding> {
   const response = await apiRequest("/api/findings", {
     method: "POST",
     headers: {
@@ -93,6 +94,24 @@ export async function createFinding(f: CreateFinding): Promise<Finding> {
   }
 
   return parseObjectReply(response, findingSchema);
+}
+
+export async function createManualFinding(f: CreateManualFinding): Promise<FindingProjection> {
+  const response = await apiRequest("/api/findings", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(f),
+  });
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response);
+    console.error(error);
+    throw error;
+  }
+
+  return parseObjectReply(response, findingProjectionSchema);
 }
 
 export async function updateFinding(f: Finding): Promise<Finding> {
@@ -196,7 +215,7 @@ export function createFindingStatsQueryOptions() {
 
 export function useCreateFindingMutation() {
   return useMutation({
-    mutationFn: (finding: CreateFinding) => createFinding(finding),
+    mutationFn: (finding: CreateManualFinding) => createManualFinding(finding),
   });
 }
 

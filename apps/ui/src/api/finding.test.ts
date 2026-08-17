@@ -1,9 +1,11 @@
+import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createFinding,
+  createManualFinding,
   createFindingByIDQueryOptions,
   createFindingStatsQueryOptions,
   createListFindingsQueryOptions,
@@ -14,7 +16,8 @@ import {
 } from "@/api/finding.ts";
 
 import type {
-  CreateFinding,
+  CreateManualFinding,
+  LegacyCreateFinding,
   Finding,
   FindingProjection,
   FindingStatistics,
@@ -113,7 +116,7 @@ const findingProjectionJson = {
   createdAt: "2026-01-02T00:00:00.000Z",
   updatedAt: "2026-01-03T00:00:00.000Z",
 };
-const createFindingPayload: CreateFinding = {
+const createFindingPayload: LegacyCreateFinding = {
   vulnerabilityId,
   severity: VulnerabilitySeverity.High,
   status: FindingStatus.Active,
@@ -121,6 +124,21 @@ const createFindingPayload: CreateFinding = {
   evidence: "Observed exposed admin endpoint",
   mitigation: "Restrict access to internal networks",
   assetId,
+};
+const createManualFindingPayload: CreateManualFinding = {
+  assetId,
+  title: "Exposed admin endpoint",
+  severity: VulnerabilitySeverity.High,
+  status: FindingStatus.Active,
+  assigneeId: null,
+  dueDate: null,
+  mitigation: "Restrict access to internal networks",
+  weakness: { identifiers: {} },
+  affectedResource: { type: AffectedResourceType.Unspecified },
+  vulnerabilityIds: [],
+  observation: {
+    evidence: "GET /admin returned 200",
+  },
 };
 const findingStats: FindingStatistics = {
   total: 2,
@@ -250,6 +268,26 @@ describe("finding api", () => {
     );
     expect(headers.get("Content-Type")).toBe("application/json");
     expect(requestJsonBody()).toEqual(createFindingPayload);
+  });
+
+  it("creates manual findings with nested observation data and parses the projection", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: findingProjectionJson,
+      }),
+    );
+
+    const finding = await createManualFinding(createManualFindingPayload);
+
+    expectProjectionDates(finding);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/findings",
+      expect.objectContaining({
+        credentials: "include",
+        method: "POST",
+      }),
+    );
+    expect(requestJsonBody()).toEqual(createManualFindingPayload);
   });
 
   it("updates findings with a mapped JSON request body", async () => {
