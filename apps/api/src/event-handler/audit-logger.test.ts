@@ -5,7 +5,7 @@ import {
 } from "@exposurenexus/types/model/asset-custom-field";
 import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
 import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { describe, expect, it, vi } from "vitest";
 
 import { EventBus } from "../lib/eventbus/eventbus.js";
@@ -39,6 +39,19 @@ describe("registerAuditLogger", () => {
     createdAt: new Date("2026-05-07T09:00:00.000Z"),
     updatedAt: new Date("2026-05-07T09:00:00.000Z"),
   };
+  const catalogVulnerability = {
+    id: vulnerability.id,
+    type: VulnerabilityType.Cve,
+    identifier: "CVE-2026-0001",
+    title: vulnerability.title,
+    severity: vulnerability.severity,
+    description: vulnerability.description,
+    metadata: { cwe: 284 },
+    createdBy: vulnerability.createdBy,
+    updatedBy: vulnerability.updatedBy,
+    createdAt: vulnerability.createdAt,
+    updatedAt: vulnerability.updatedAt,
+  };
   const finding = {
     id: "2713d833-eb13-4517-ac7c-7761545ed42a",
     source: FindingSource.Nuclei,
@@ -58,12 +71,6 @@ describe("registerAuditLogger", () => {
     createdAt: new Date("2026-05-07T09:10:00.000Z"),
     updatedAt: new Date("2026-05-07T09:10:00.000Z"),
     vulnerability,
-  };
-  const mapping = {
-    id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
-    vulnerabilityId: vulnerability.id,
-    source: FindingSource.Nuclei,
-    matchQuery: '{"templateID":"admin-panel"}',
   };
   const asset = {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
@@ -286,25 +293,25 @@ describe("registerAuditLogger", () => {
       createEventPayload({
         id: "event-6",
         time: eventTime,
-        subject: "vulnerability.mapping.created",
+        subject: "vulnerability.created",
         source: "vulnerability",
         actor: user.id,
         correlationId: "request-6",
-        data: { vulnerability, mapping },
+        data: { vulnerability: catalogVulnerability },
       }),
     );
 
     expect(logger.info).toHaveBeenCalledWith(
       {
         eventId: "event-6",
-        eventSubject: "vulnerability.mapping.created",
+        eventSubject: "vulnerability.created",
         eventSource: "vulnerability",
         eventTime,
         actor: user.id,
         correlationId: "request-6",
-        data: { vulnerability, mapping },
+        data: { vulnerability: catalogVulnerability },
       },
-      "vulnerability.mapping.created",
+      "vulnerability.created",
     );
     expect(logger.warn).not.toHaveBeenCalled();
   });

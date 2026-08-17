@@ -29,13 +29,19 @@ describe("finding service", () => {
     create: vi.fn(),
     updateByID: vi.fn(),
     deleteByID: vi.fn(),
-    reclassifyBySourceAndVulnerability: vi.fn(),
     countBy: vi.fn(),
   };
   const findingPersistenceRepository = {
     listProjected: vi.fn(),
     getProjectedByID: vi.fn(),
     deleteByID: vi.fn(),
+  };
+  const findingVulnerabilityRepository = {
+    listByFindingID: vi.fn(),
+    create: vi.fn(),
+    delete: vi.fn(),
+    linkAndTouchFinding: vi.fn(),
+    unlinkAndTouchFinding: vi.fn(),
   };
   const vulnerabilityService = {
     getByID: vi.fn(),
@@ -1146,159 +1152,79 @@ describe("finding service", () => {
     } satisfies Partial<ApplicationError>);
   });
 
-  it("reclassifies findings from one vulnerability to another by source", async () => {
-    const service = createService();
-    const now = new Date("2026-05-01T02:03:04.000Z");
-    const targetVulnerability = {
-      ...vulnerability,
-      id: "4fb566c6-e642-48d8-b70d-418efb074f8d",
-      title: "Account Takeover",
-      severity: VulnerabilitySeverity.Critical,
-    };
-    const updatedFinding = {
-      ...baseFinding,
-      source: FindingSource.Nuclei,
-      vulnerabilityId: targetVulnerability.id,
-      severity: targetVulnerability.severity,
-      updatedAt: now,
-      updatedBy: user.id,
-    };
-
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
-
-    vulnerabilityService.getByID.mockImplementation(async (id) => {
-      if (id === vulnerability.id) return vulnerability;
-      if (id === targetVulnerability.id) return targetVulnerability;
-      return null;
+  it("links and unlinks catalog entries without changing finding-owned fields", async () => {
+    const service = createFindingService({
+      findingRepository,
+      findingPersistenceRepository,
+      findingVulnerabilityRepository,
+      assetService,
+      userProfileService,
+      vulnerabilityService,
+      domainEventEmitter: domainEvents.emitter,
+      logger,
     });
-    findingRepository.reclassifyBySourceAndVulnerability.mockResolvedValue([updatedFinding]);
+    const projection = {
+      id: baseFinding.id,
+      assetId: baseFinding.assetId,
+      title: "Exposed admin endpoint",
+      severity: VulnerabilitySeverity.High,
+      status: FindingStatus.Active,
+      assigneeId: null,
+      dueDate: null,
+      mitigation: baseFinding.mitigation,
+      weakness: { identifiers: { cwe: ["CWE-200"] } },
+      affectedResource: { type: AffectedResourceType.Unspecified },
+      vulnerabilities: [],
+      observationCount: 0,
+      observingSources: [],
+      firstSeen: null,
+      lastSeen: null,
+      createdAt: baseFinding.createdAt,
+      updatedAt: baseFinding.updatedAt,
+      createdBy: baseFinding.createdBy,
+      updatedBy: baseFinding.updatedBy,
+    } satisfies FindingProjection;
+    const link = { findingId: baseFinding.id, vulnerabilityId: vulnerability.id };
+    findingPersistenceRepository.getProjectedByID.mockResolvedValue(projection);
+    findingVulnerabilityRepository.linkAndTouchFinding.mockResolvedValue({
+      link,
+      changed: true,
+    });
+    findingVulnerabilityRepository.unlinkAndTouchFinding.mockResolvedValue({
+      link,
+      changed: true,
+    });
 
     await expect(
-      service.reclassify({
-        reclassification: {
-          source: FindingSource.Nuclei,
-          oldVulnerabilityId: vulnerability.id,
-          targetVulnerabilityId: targetVulnerability.id,
-        },
+      service.linkVulnerability({
+        findingId: baseFinding.id,
+        vulnerabilityId: vulnerability.id,
         user,
-        eventContext: {
-          actor: user.id,
-          correlationId: "findings-reclassify-request",
-        },
+        eventContext: { actor: user.id, correlationId: "finding-link" },
       }),
-    ).resolves.toEqual({
-      updatedCount: 1,
-    });
-
-    expect(findingRepository.reclassifyBySourceAndVulnerability).toHaveBeenCalledWith({
-      source: FindingSource.Nuclei,
-      oldVulnerabilityId: vulnerability.id,
-      targetVulnerabilityId: targetVulnerability.id,
-      severity: VulnerabilitySeverity.Critical,
-      updatedAt: now,
-      updatedBy: user.id,
-    });
-    expect(domainEvents.subjects()).toEqual(["finding.reclassified"]);
-    expect(domainEvents.events[0]).toMatchObject({
-      subject: "finding.reclassified",
-      source: "finding",
-      actor: user.id,
-      correlationId: "findings-reclassify-request",
-      data: {
-        source: FindingSource.Nuclei,
-        oldVulnerabilityId: vulnerability.id,
-        targetVulnerabilityId: targetVulnerability.id,
-        updatedCount: 1,
-      },
-    });
-  });
-
-  it("rejects reclassification when the old vulnerability does not exist", async () => {
-    const service = createService();
-    const targetVulnerability = {
-      ...vulnerability,
-      id: "4fb566c6-e642-48d8-b70d-418efb074f8d",
-    };
-
-    vulnerabilityService.getByID.mockImplementation(async (id) =>
-      id === targetVulnerability.id ? targetVulnerability : null,
+    ).resolves.toMatchObject({ finding: projection, changed: true });
+    expect(findingVulnerabilityRepository.linkAndTouchFinding).toHaveBeenCalledWith(
+      baseFinding.id,
+      vulnerability.id,
+      expect.objectContaining({ updatedBy: user.id }),
     );
+    expect(domainEvents.subjects()).toEqual(["finding.vulnerability.linked"]);
 
+    domainEvents.clear();
     await expect(
-      service.reclassify({
-        reclassification: {
-          source: FindingSource.Nuclei,
-          oldVulnerabilityId: vulnerability.id,
-          targetVulnerabilityId: targetVulnerability.id,
-        },
+      service.unlinkVulnerability({
+        findingId: baseFinding.id,
+        vulnerabilityId: vulnerability.id,
         user,
+        eventContext: { actor: user.id, correlationId: "finding-unlink" },
       }),
-    ).rejects.toMatchObject({
-      code: "finding.reclassification_old_vulnerability_missing",
-      kind: "missing",
-      details: { vulnerabilityId: vulnerability.id },
-    } satisfies Partial<ApplicationError>);
-    expect(findingRepository.reclassifyBySourceAndVulnerability).not.toHaveBeenCalled();
-  });
-
-  it("rejects reclassification when the target vulnerability does not exist", async () => {
-    const service = createService();
-    const targetVulnerabilityId = "4fb566c6-e642-48d8-b70d-418efb074f8d";
-
-    vulnerabilityService.getByID.mockImplementation(async (id) =>
-      id === vulnerability.id ? vulnerability : null,
+    ).resolves.toMatchObject({ finding: projection, changed: true });
+    expect(findingVulnerabilityRepository.unlinkAndTouchFinding).toHaveBeenCalledWith(
+      baseFinding.id,
+      vulnerability.id,
+      expect.objectContaining({ updatedBy: user.id }),
     );
-
-    await expect(
-      service.reclassify({
-        reclassification: {
-          source: FindingSource.Nuclei,
-          oldVulnerabilityId: vulnerability.id,
-          targetVulnerabilityId,
-        },
-        user,
-      }),
-    ).rejects.toMatchObject({
-      code: "finding.reclassification_target_vulnerability_missing",
-      kind: "missing",
-      details: { vulnerabilityId: targetVulnerabilityId },
-    } satisfies Partial<ApplicationError>);
-    expect(findingRepository.reclassifyBySourceAndVulnerability).not.toHaveBeenCalled();
-  });
-
-  it("maps reclassification repository failures to an application error", async () => {
-    const service = createService();
-    const targetVulnerability = {
-      ...vulnerability,
-      id: "4fb566c6-e642-48d8-b70d-418efb074f8d",
-    };
-
-    vulnerabilityService.getByID.mockImplementation(async (id) => {
-      if (id === vulnerability.id) return vulnerability;
-      if (id === targetVulnerability.id) return targetVulnerability;
-      return null;
-    });
-    findingRepository.reclassifyBySourceAndVulnerability.mockRejectedValue(new Error("db offline"));
-
-    await expect(
-      service.reclassify({
-        reclassification: {
-          source: FindingSource.Nuclei,
-          oldVulnerabilityId: vulnerability.id,
-          targetVulnerabilityId: targetVulnerability.id,
-        },
-        user,
-      }),
-    ).rejects.toMatchObject({
-      code: "finding.reclassification_failed",
-      kind: "unexpected",
-      details: {
-        source: FindingSource.Nuclei,
-        oldVulnerabilityId: vulnerability.id,
-        targetVulnerabilityId: targetVulnerability.id,
-      },
-    } satisfies Partial<ApplicationError>);
+    expect(domainEvents.subjects()).toEqual(["finding.vulnerability.unlinked"]);
   });
 
   it("deletes a finding and returns it enriched with its vulnerability", async () => {

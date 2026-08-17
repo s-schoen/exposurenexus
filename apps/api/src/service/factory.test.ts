@@ -1,7 +1,7 @@
 import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
 import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -26,23 +26,7 @@ vi.mock("../repository/finding.js", () => ({
   create: vi.fn(),
   updateByID: vi.fn(),
   deleteByID: vi.fn(),
-  reclassifyBySourceAndVulnerability: vi.fn(),
   countBy: vi.fn(),
-}));
-
-vi.mock("../repository/vulnerability.js", () => ({
-  list: vi.fn(),
-  getByID: vi.fn(),
-  create: vi.fn(),
-  updateByID: vi.fn(),
-  deleteByID: vi.fn(),
-  countFindingsByVulnerabilityID: vi.fn(),
-  listMappings: vi.fn(),
-  listMappingsByVulnerabilityID: vi.fn(),
-  getMappingBy: vi.fn(),
-  createMapping: vi.fn(),
-  updateMappingByID: vi.fn(),
-  deleteMappingByID: vi.fn(),
 }));
 
 vi.mock("./vulnerability.js", async () => {
@@ -177,13 +161,9 @@ describe("service factories", () => {
       })),
       updateByID: vi.fn(),
       deleteByID: vi.fn(),
-      countFindingsByVulnerabilityID: vi.fn(),
       listMappings: vi.fn(),
       listMappingsByVulnerabilityID: vi.fn(),
-      getMappingBy: vi.fn(),
       createMapping: vi.fn(),
-      updateMappingByID: vi.fn(),
-      deleteMappingByID: vi.fn(),
     };
     vi.useFakeTimers();
     vi.setSystemTime(now);
@@ -199,20 +179,22 @@ describe("service factories", () => {
     await service.create({
       user,
       vulnerability: {
+        type: VulnerabilityType.Custom,
+        identifier: "exposed-admin-endpoint",
         title: "Exposed Admin Endpoint",
         severity: VulnerabilitySeverity.High,
         description: "Administrative interface is reachable externally",
-        cwe: 284,
-        cve: null,
+        metadata: { cwe: 284 },
       },
     });
 
     expect(repository.create).toHaveBeenCalledWith({
+      type: "custom",
+      identifier: "exposed-admin-endpoint",
       title: "Exposed Admin Endpoint",
       severity: VulnerabilitySeverity.High,
       description: "Administrative interface is reachable externally",
-      cwe: 284,
-      cve: null,
+      metadata: { cwe: 284 },
       createdBy: user.id,
       updatedBy: user.id,
       createdAt: now,
@@ -246,7 +228,6 @@ describe("service factories", () => {
       })),
       updateByID: vi.fn(),
       deleteByID: vi.fn(),
-      reclassifyBySourceAndVulnerability: vi.fn(),
       countBy: vi.fn(),
     };
     const vulnerabilityService = {

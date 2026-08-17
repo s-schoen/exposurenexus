@@ -53,37 +53,6 @@ function assertApplicationErrorInputTypes() {
     assetRuleViolationInput.details.reason,
   ).toEqualTypeOf<AssetCustomFieldRuleViolationReason.RequiredDefaultMissing>();
 
-  const findingNotFoundInput = {
-    code: "finding.reclassification_target_vulnerability_missing",
-    kind: "missing",
-    message: "target vulnerability does not exist",
-    details: { vulnerabilityId: "missing-vulnerability-id" },
-  } satisfies ApplicationErrorInput;
-
-  expectTypeOf(findingNotFoundInput.kind).toEqualTypeOf<"missing">();
-
-  const vulnerabilityMappingConflictInput = {
-    code: "vulnerability.mapping.create_conflict",
-    kind: "conflict",
-    message: "vulnerability source mapping already exists",
-    details: {
-      vulnerabilityId: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-      source: "nuclei",
-      matchQuery: '{"templateID":"admin-panel"}',
-    },
-  } satisfies ApplicationErrorInput;
-
-  expectTypeOf(vulnerabilityMappingConflictInput.kind).toEqualTypeOf<"conflict">();
-
-  const vulnerabilityMappingTargetMissingInput = {
-    code: "vulnerability.mapping_target_missing",
-    kind: "missing",
-    message: "target vulnerability does not exist",
-    details: { vulnerabilityId: "missing-vulnerability-id" },
-  } satisfies ApplicationErrorInput;
-
-  expectTypeOf(vulnerabilityMappingTargetMissingInput.kind).toEqualTypeOf<"missing">();
-
   const statsInput = {
     code: "stats.get_finding_stats_failed",
     kind: "unexpected",

@@ -29,15 +29,6 @@ interface LegacyDatabase {
 
 export type FindingCountByField = "severity" | "status" | "assetId" | "source";
 
-export interface ReclassifyFindingsQuery {
-  source: string;
-  oldVulnerabilityId: string;
-  targetVulnerabilityId: string;
-  severity: FindingInternal["severity"];
-  updatedAt: Date;
-  updatedBy: string;
-}
-
 export interface FindingRepository {
   list(): Promise<FindingInternal[]>;
   getByID(id: string): Promise<FindingInternal | null>;
@@ -45,7 +36,6 @@ export interface FindingRepository {
   create(finding: Omit<FindingInternal, "id">): Promise<FindingInternal>;
   updateByID(id: string, updatedFinding: Omit<FindingInternal, "id">): Promise<FindingInternal>;
   deleteByID(id: string): Promise<FindingInternal | null>;
-  reclassifyBySourceAndVulnerability(query: ReclassifyFindingsQuery): Promise<FindingInternal[]>;
   countBy(field: FindingCountByField): Promise<Record<string, number>>;
 }
 
@@ -111,28 +101,6 @@ export function createFindingRepository(database: Kysely<Database>): FindingRepo
         .executeTakeFirst();
 
       return deletedFinding || null;
-    },
-
-    async reclassifyBySourceAndVulnerability({
-      source,
-      oldVulnerabilityId,
-      targetVulnerabilityId,
-      severity,
-      updatedAt,
-      updatedBy,
-    }: ReclassifyFindingsQuery): Promise<FindingInternal[]> {
-      return await legacyDatabase
-        .updateTable("finding")
-        .set({
-          vulnerabilityId: targetVulnerabilityId,
-          severity,
-          updatedAt,
-          updatedBy,
-        })
-        .where("source", "=", source)
-        .where("vulnerabilityId", "=", oldVulnerabilityId)
-        .returningAll()
-        .execute();
     },
 
     async countBy(field: FindingCountByField): Promise<Record<string, number>> {

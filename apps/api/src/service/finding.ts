@@ -7,8 +7,6 @@ import {
   type Finding,
   type FindingInternal,
   type FindingProjection,
-  type ReclassifyFindings,
-  type ReclassifyFindingsResult,
   type UpdateFinding,
 } from "@exposurenexus/types/model/finding";
 
@@ -23,13 +21,15 @@ import { ApplicationError, isApplicationError } from "./application-error.js";
 import { isForeignKeyError } from "./errors.js";
 
 import type { FindingPersistenceRepository } from "../repository/finding-persistence.js";
+import type { FindingVulnerabilityRepository } from "../repository/finding-vulnerability.js";
 import type { FindingRepository } from "../repository/finding.js";
 import type { Asset } from "@exposurenexus/types/model/asset";
 import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerability";
 import type { Logger } from "pino";
 
 interface VulnerabilityLookupService {
-  getByID(id: string): Promise<Finding["vulnerability"] | null>;
+  getByID(id: string): Promise<unknown>;
 }
 
 interface AssetLookupService {
@@ -46,6 +46,7 @@ interface FindingServiceDependencies {
     FindingPersistenceRepository,
     "getProjectedByID" | "listProjected" | "deleteByID"
   >;
+  findingVulnerabilityRepository?: FindingVulnerabilityRepository;
   assetService: AssetLookupService;
   userProfileService: UserProfileLookupService;
   vulnerabilityService: VulnerabilityLookupService;
@@ -97,10 +98,16 @@ export interface UpdateFindingOptions {
   eventContext?: DomainEventContext;
 }
 
-export interface ReclassifyFindingsOptions {
-  reclassification: ReclassifyFindings;
+export interface FindingVulnerabilityOptions {
+  findingId: string;
+  vulnerabilityId: string;
   user: UserProfile;
   eventContext?: DomainEventContext;
+}
+
+export interface FindingVulnerabilityMutationResult {
+  finding: FindingProjection;
+  changed: boolean;
 }
 
 export interface CreateOrUpdateFindingResult {
@@ -115,12 +122,18 @@ export interface FindingService {
   updateByID(opts: UpdateFindingOptions): Promise<Finding | null>;
   createOrUpdate(opts: CreateFindingOptions): Promise<CreateOrUpdateFindingResult>;
   deleteByID(id: string, eventContext?: DomainEventContext): Promise<FindingProjection | null>;
-  reclassify(opts: ReclassifyFindingsOptions): Promise<ReclassifyFindingsResult>;
+  linkVulnerability(
+    opts: FindingVulnerabilityOptions,
+  ): Promise<FindingVulnerabilityMutationResult | null>;
+  unlinkVulnerability(
+    opts: FindingVulnerabilityOptions,
+  ): Promise<FindingVulnerabilityMutationResult | null>;
 }
 
 export function createFindingService({
   findingRepository,
   findingPersistenceRepository,
+  findingVulnerabilityRepository,
   assetService,
   userProfileService,
   vulnerabilityService,
@@ -136,8 +149,10 @@ export function createFindingService({
     intFinding: FindingInternal,
     knownVulnerability?: Finding["vulnerability"],
   ): Promise<Finding> {
-    const vuln =
-      knownVulnerability ?? (await vulnerabilityService.getByID(intFinding.vulnerabilityId));
+    const vuln = (knownVulnerability ??
+      (await vulnerabilityService.getByID(intFinding.vulnerabilityId))) as
+      | Finding["vulnerability"]
+      | null;
     if (!vuln) {
       logger.error(
         `finding ${intFinding.id} references unknown vulnerability ${intFinding.vulnerabilityId}`,
@@ -149,6 +164,82 @@ export function createFindingService({
     return {
       ...intFinding,
       vulnerability: vuln,
+    };
+  }
+
+  async function mutateVulnerabilityLink(
+    opts: FindingVulnerabilityOptions,
+    operation: "link" | "unlink",
+  ): Promise<FindingVulnerabilityMutationResult | null> {
+    if (!findingPersistenceRepository || !findingVulnerabilityRepository) {
+      throw new ApplicationError({
+        code: "finding.vulnerability_link_failed",
+        kind: "unexpected",
+        message: "finding vulnerability links are unavailable",
+        details: { findingId: opts.findingId, vulnerabilityId: opts.vulnerabilityId },
+      });
+    }
+
+    const [finding, vulnerability] = await Promise.all([
+      findingPersistenceRepository.getProjectedByID(opts.findingId),
+      vulnerabilityService.getByID(opts.vulnerabilityId),
+    ]);
+
+    if (!finding) {
+      return null;
+    }
+
+    if (!vulnerability) {
+      throw new ApplicationError({
+        code: "finding.vulnerability_link_target_missing",
+        kind: "missing",
+        message: `vulnerability with id ${opts.vulnerabilityId} does not exist`,
+        details: { vulnerabilityId: opts.vulnerabilityId },
+      });
+    }
+
+    const audit = {
+      updatedAt: new Date(),
+      updatedBy: opts.user.id,
+    };
+    const mutation =
+      operation === "link"
+        ? await findingVulnerabilityRepository.linkAndTouchFinding(
+            opts.findingId,
+            opts.vulnerabilityId,
+            audit,
+          )
+        : await findingVulnerabilityRepository.unlinkAndTouchFinding(
+            opts.findingId,
+            opts.vulnerabilityId,
+            audit,
+          );
+    const current = await findingPersistenceRepository.getProjectedByID(opts.findingId);
+
+    if (!current) {
+      throw new ApplicationError({
+        code: "finding.vulnerability_link_failed",
+        kind: "unexpected",
+        message: "finding disappeared while updating its catalog links",
+        details: { findingId: opts.findingId, vulnerabilityId: opts.vulnerabilityId },
+      });
+    }
+
+    if (mutation.changed && mutation.link) {
+      emitFindingEvent(
+        operation === "link" ? "finding.vulnerability.linked" : "finding.vulnerability.unlinked",
+        {
+          finding: current,
+          vulnerability: vulnerability as VulnerabilityCatalog,
+          link: mutation.link,
+        },
+        opts.eventContext,
+      );
+    }
+
+    return {
+      finding: current,
+      changed: mutation.changed,
     };
   }
 
@@ -192,7 +283,7 @@ export function createFindingService({
       }
     }
 
-    return vulnerability;
+    return vulnerability as Finding["vulnerability"];
   }
 
   async function createFinding(opts: CreateFindingOptions): Promise<Finding> {
@@ -496,80 +587,16 @@ export function createFindingService({
       }
     },
 
-    async reclassify(opts: ReclassifyFindingsOptions): Promise<ReclassifyFindingsResult> {
-      const { reclassification } = opts;
+    async linkVulnerability(
+      opts: FindingVulnerabilityOptions,
+    ): Promise<FindingVulnerabilityMutationResult | null> {
+      return await mutateVulnerabilityLink(opts, "link");
+    },
 
-      try {
-        const [oldVulnerability, targetVulnerability] = await Promise.all([
-          vulnerabilityService.getByID(reclassification.oldVulnerabilityId),
-          vulnerabilityService.getByID(reclassification.targetVulnerabilityId),
-        ]);
-
-        if (!oldVulnerability) {
-          throw new ApplicationError({
-            code: "finding.reclassification_old_vulnerability_missing",
-            kind: "missing",
-            message: `old vulnerability with id ${reclassification.oldVulnerabilityId} does not exist`,
-            details: { vulnerabilityId: reclassification.oldVulnerabilityId },
-          });
-        }
-
-        if (!targetVulnerability) {
-          throw new ApplicationError({
-            code: "finding.reclassification_target_vulnerability_missing",
-            kind: "missing",
-            message: `target vulnerability with id ${reclassification.targetVulnerabilityId} does not exist`,
-            details: {
-              vulnerabilityId: reclassification.targetVulnerabilityId,
-            },
-          });
-        }
-
-        const updatedFindings = await findingRepository.reclassifyBySourceAndVulnerability({
-          source: reclassification.source,
-          oldVulnerabilityId: reclassification.oldVulnerabilityId,
-          targetVulnerabilityId: reclassification.targetVulnerabilityId,
-          severity: targetVulnerability.severity,
-          updatedAt: new Date(),
-          updatedBy: opts.user.id,
-        });
-        const result = {
-          updatedCount: updatedFindings.length,
-        };
-
-        emitFindingEvent(
-          "finding.reclassified",
-          {
-            source: reclassification.source,
-            oldVulnerabilityId: oldVulnerability.id,
-            targetVulnerabilityId: targetVulnerability.id,
-            updatedCount: result.updatedCount,
-          },
-          opts.eventContext,
-        );
-
-        return result;
-      } catch (error) {
-        if (isApplicationError(error)) {
-          throw error;
-        }
-
-        logger.error(
-          error,
-          `failed to reclassify findings from ${reclassification.oldVulnerabilityId} to ${reclassification.targetVulnerabilityId}`,
-        );
-        throw new ApplicationError({
-          code: "finding.reclassification_failed",
-          kind: "unexpected",
-          message: "failed to reclassify findings",
-          cause: error,
-          details: {
-            source: reclassification.source,
-            oldVulnerabilityId: reclassification.oldVulnerabilityId,
-            targetVulnerabilityId: reclassification.targetVulnerabilityId,
-          },
-        });
-      }
+    async unlinkVulnerability(
+      opts: FindingVulnerabilityOptions,
+    ): Promise<FindingVulnerabilityMutationResult | null> {
+      return await mutateVulnerabilityLink(opts, "unlink");
     },
   };
 }
