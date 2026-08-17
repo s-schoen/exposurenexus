@@ -1,3 +1,4 @@
+import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { FindingSource, FindingStatus, type Finding } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -66,16 +67,6 @@ describe("finding routes", () => {
     mitigation: "Restrict access to internal networks",
     assetId,
   };
-  const updatePayloadBase = {
-    severity: createPayload.severity,
-    status: createPayload.status,
-    source: createPayload.source,
-    evidence: createPayload.evidence,
-    mitigation: createPayload.mitigation,
-    assigneeId: null,
-    dueDate: null,
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
     userHasPermission.mockResolvedValue(true);
@@ -641,30 +632,27 @@ describe("finding routes", () => {
     expect(findingService.linkVulnerability).not.toHaveBeenCalled();
   });
 
-  it("updates a finding with the authenticated user", async () => {
+  it("accepts and normalizes a partial finding update", async () => {
     const requestId = "findings-update-request";
-    const updatePayload = {
-      ...updatePayloadBase,
-      status: FindingStatus.Mitigated,
-      mitigation: "Administrative interface restricted to VPN",
+    const payload = {
+      title: "Corrected title",
+      weakness: { identifiers: { cwe: ["cwe-89"] } },
+      affectedResource: {
+        type: AffectedResourceType.SourceCode,
+        repository: "https://github.com/example/repository.git",
+        file: "src/query.ts",
+      },
     };
-    const updatedFinding = {
-      id: findingId,
-      ...createPayload,
-      ...updatePayload,
-      assigneeId: null,
-      dueDate: null,
-      fingerprint: "abc123",
-      firstSeen: new Date("2026-01-02T00:00:00.000Z"),
-      lastSeen: new Date("2026-01-03T00:00:00.000Z"),
-      createdBy: user.id,
-      updatedBy: user.id,
-      createdAt: new Date("2026-01-02T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-03T00:00:00.000Z"),
-      vulnerability,
+    const normalizedPayload = {
+      title: "Corrected title",
+      weakness: { identifiers: { cwe: ["CWE-89"] } },
+      affectedResource: {
+        type: AffectedResourceType.SourceCode,
+        repository: "github.com/example/repository",
+        file: "src/query.ts",
+      },
     };
-
-    findingService.updateByID.mockResolvedValue(updatedFinding as Finding);
+    findingService.updateByID.mockResolvedValue({ id: findingId, ...normalizedPayload });
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -678,58 +666,28 @@ describe("finding routes", () => {
         "Content-Type": "application/json",
         "X-Request-Id": requestId,
       },
-      body: JSON.stringify(updatePayload),
+      body: JSON.stringify(payload),
     });
-    const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(findingService.updateByID).toHaveBeenCalledWith({
       id: findingId,
-      finding: updatePayload,
+      finding: normalizedPayload,
       user,
       eventContext: {
         actor: user.id,
         correlationId: requestId,
       },
     });
-    expect(body).toEqual({
+    expect(await response.json()).toEqual({
       correlationId: requestId,
-      data: {
-        ...updatedFinding,
-        firstSeen: "2026-01-02T00:00:00.000Z",
-        lastSeen: "2026-01-03T00:00:00.000Z",
-        createdAt: "2026-01-02T00:00:00.000Z",
-        updatedAt: "2026-01-03T00:00:00.000Z",
-        vulnerability: {
-          ...vulnerability,
-          createdAt: "2026-01-01T00:00:00.000Z",
-          updatedAt: "2026-01-01T00:00:00.000Z",
-        },
-      },
+      data: { id: findingId, ...normalizedPayload },
     });
   });
 
-  it("accepts assignee identity when updating a finding", async () => {
-    const requestId = "findings-update-assignee-request";
-    const updatePayload = {
-      ...updatePayloadBase,
-      assigneeId,
-    };
-    const updatedFinding = {
-      id: findingId,
-      ...createPayload,
-      ...updatePayload,
-      fingerprint: "abc123",
-      firstSeen: new Date("2026-01-02T00:00:00.000Z"),
-      lastSeen: new Date("2026-01-03T00:00:00.000Z"),
-      createdBy: user.id,
-      updatedBy: user.id,
-      createdAt: new Date("2026-01-02T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-03T00:00:00.000Z"),
-      vulnerability,
-    };
-
-    findingService.updateByID.mockResolvedValue(updatedFinding as Finding);
+  it("accepts null assignee and due date values", async () => {
+    const payload = { assigneeId: null, dueDate: null };
+    findingService.updateByID.mockResolvedValue({ id: findingId, ...payload });
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -741,44 +699,18 @@ describe("finding routes", () => {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "X-Request-Id": requestId,
+        "X-Request-Id": "findings-update-null-values-request",
       },
-      body: JSON.stringify(updatePayload),
+      body: JSON.stringify(payload),
     });
 
     expect(response.status).toBe(200);
-    expect(findingService.updateByID).toHaveBeenCalledWith({
-      id: findingId,
-      finding: updatePayload,
-      user,
-      eventContext: {
-        actor: user.id,
-        correlationId: requestId,
-      },
-    });
+    expect(findingService.updateByID).toHaveBeenCalledWith(
+      expect.objectContaining({ finding: payload }),
+    );
   });
 
-  it("accepts null assignee identity when updating a finding", async () => {
-    const updatePayload = {
-      ...updatePayloadBase,
-      assigneeId: null,
-    };
-    const updatedFinding = {
-      id: findingId,
-      ...createPayload,
-      ...updatePayload,
-      fingerprint: "abc123",
-      firstSeen: new Date("2026-01-02T00:00:00.000Z"),
-      lastSeen: new Date("2026-01-03T00:00:00.000Z"),
-      createdBy: user.id,
-      updatedBy: user.id,
-      createdAt: new Date("2026-01-02T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-03T00:00:00.000Z"),
-      vulnerability,
-    };
-
-    findingService.updateByID.mockResolvedValue(updatedFinding as Finding);
-
+  it("rejects an empty update body", async () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
@@ -789,169 +721,54 @@ describe("finding routes", () => {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "X-Request-Id": "findings-update-null-assignee-request",
+        "X-Request-Id": "findings-empty-update-request",
       },
-      body: JSON.stringify(updatePayload),
-    });
-
-    expect(response.status).toBe(200);
-    expect(findingService.updateByID).toHaveBeenCalledWith({
-      id: findingId,
-      finding: updatePayload,
-      user,
-      eventContext: {
-        actor: user.id,
-        correlationId: "findings-update-null-assignee-request",
-      },
-    });
-  });
-
-  it("accepts and normalizes due dates when updating a finding", async () => {
-    const updatePayload = {
-      ...updatePayloadBase,
-      dueDate: "2026-05-06T18:30:00.000Z",
-    };
-    const normalizedDueDate = new Date("2026-05-06T00:00:00.000Z");
-    const updatedFinding = {
-      id: findingId,
-      ...createPayload,
-      assigneeId: null,
-      dueDate: normalizedDueDate,
-      fingerprint: "abc123",
-      firstSeen: new Date("2026-01-02T00:00:00.000Z"),
-      lastSeen: new Date("2026-01-03T00:00:00.000Z"),
-      createdBy: user.id,
-      updatedBy: user.id,
-      createdAt: new Date("2026-01-02T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-03T00:00:00.000Z"),
-      vulnerability,
-    };
-
-    findingService.updateByID.mockResolvedValue(updatedFinding as Finding);
-
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService, routeDependencies),
-    });
-
-    const response = await app.request(`/api/findings/${findingId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": "findings-update-due-date-request",
-      },
-      body: JSON.stringify(updatePayload),
-    });
-
-    expect(response.status).toBe(200);
-    expect(findingService.updateByID).toHaveBeenCalledWith({
-      id: findingId,
-      finding: {
-        ...updatePayloadBase,
-        dueDate: normalizedDueDate,
-      },
-      user,
-      eventContext: {
-        actor: user.id,
-        correlationId: "findings-update-due-date-request",
-      },
-    });
-  });
-
-  it("accepts null due dates when updating a finding", async () => {
-    const updatePayload = {
-      ...updatePayloadBase,
-      dueDate: null,
-    };
-    const updatedFinding = {
-      id: findingId,
-      ...createPayload,
-      ...updatePayload,
-      assigneeId: null,
-      fingerprint: "abc123",
-      firstSeen: new Date("2026-01-02T00:00:00.000Z"),
-      lastSeen: new Date("2026-01-03T00:00:00.000Z"),
-      createdBy: user.id,
-      updatedBy: user.id,
-      createdAt: new Date("2026-01-02T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-03T00:00:00.000Z"),
-      vulnerability,
-    };
-
-    findingService.updateByID.mockResolvedValue(updatedFinding as Finding);
-
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService, routeDependencies),
-    });
-
-    const response = await app.request(`/api/findings/${findingId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": "findings-update-null-due-date-request",
-      },
-      body: JSON.stringify(updatePayload),
-    });
-
-    expect(response.status).toBe(200);
-    expect(findingService.updateByID).toHaveBeenCalledWith({
-      id: findingId,
-      finding: updatePayload,
-      user,
-      eventContext: {
-        actor: user.id,
-        correlationId: "findings-update-null-due-date-request",
-      },
-    });
-  });
-
-  it("rejects invalid finding update bodies before calling the service", async () => {
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService, routeDependencies),
-    });
-
-    const response = await app.request(`/api/findings/${findingId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": "findings-invalid-update-body-request",
-      },
-      body: JSON.stringify({
-        ...updatePayloadBase,
-        status: "not-a-status",
-      }),
+      body: JSON.stringify({}),
     });
 
     expect(response.status).toBe(400);
     expect(findingService.updateByID).not.toHaveBeenCalled();
   });
 
-  it("rejects finding updates without assignee and due date fields", async () => {
+  it.each([
+    ["assetId", { assetId }],
+    ["createdAt", { createdAt: "2026-01-02T00:00:00.000Z" }],
+    ["observationCount", { observationCount: 1 }],
+    ["vulnerabilities", { vulnerabilities: [] }],
+    [
+      "reportedUrl",
+      {
+        affectedResource: {
+          type: AffectedResourceType.WebEndpoint,
+          reportedUrl: "https://example.com/admin",
+        },
+      },
+    ],
+    [
+      "revision",
+      { affectedResource: { type: AffectedResourceType.SourceCode, revision: "abc123" } },
+    ],
+    ["version", { affectedResource: { type: AffectedResourceType.Package, version: "1.0.0" } }],
+    ["tag", { affectedResource: { type: AffectedResourceType.ContainerImage, tag: "latest" } }],
+    [
+      "displayName",
+      {
+        affectedResource: {
+          type: AffectedResourceType.CloudResource,
+          displayName: "Production bucket",
+        },
+      },
+    ],
+  ])("rejects immutable or observation-only %s updates", async (_field, payload) => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
       findingRoute: createFindingRoute(findingService, routeDependencies),
     });
 
-    const payload = {
-      severity: updatePayloadBase.severity,
-      status: updatePayloadBase.status,
-      source: updatePayloadBase.source,
-      evidence: updatePayloadBase.evidence,
-      mitigation: updatePayloadBase.mitigation,
-    };
-
     const response = await app.request(`/api/findings/${findingId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": "findings-incomplete-update-body-request",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
@@ -959,75 +776,47 @@ describe("finding routes", () => {
     expect(findingService.updateByID).not.toHaveBeenCalled();
   });
 
-  it("rejects finding relationship changes before calling the update service", async () => {
+  it.each([
+    ["assignee", `/api/findings/${findingId}`, { assigneeId: "not-a-user-id" }],
+    ["finding", "/api/findings/not-a-uuid", { title: "Corrected title" }],
+  ])("rejects an invalid %s id", async (_kind, url, payload) => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
       findingRoute: createFindingRoute(findingService, routeDependencies),
     });
 
-    const response = await app.request(`/api/findings/${findingId}`, {
+    const response = await app.request(url, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": "findings-update-relationship-request",
-      },
-      body: JSON.stringify({
-        ...updatePayloadBase,
-        assetId,
-        vulnerabilityId,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
 
     expect(response.status).toBe(400);
     expect(findingService.updateByID).not.toHaveBeenCalled();
   });
 
-  it("rejects invalid finding assignee ids before calling the update service", async () => {
-    const app = createTestApp({
+  it("requires finding write permission", async () => {
+    userHasPermission.mockResolvedValue(false);
+
+    const response = await createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
       findingRoute: createFindingRoute(findingService, routeDependencies),
-    });
-
-    const response = await app.request(`/api/findings/${findingId}`, {
+    }).request(`/api/findings/${findingId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": "findings-invalid-assignee-update-body-request",
-      },
-      body: JSON.stringify({
-        ...updatePayloadBase,
-        assigneeId: "not-a-user-id",
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Corrected title" }),
     });
 
-    expect(response.status).toBe(400);
-    expect(findingService.updateByID).not.toHaveBeenCalled();
-  });
-
-  it("rejects invalid finding ids before calling the update service", async () => {
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService, routeDependencies),
-    });
-
-    const response = await app.request("/api/findings/not-a-uuid", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": "findings-invalid-id-request",
-      },
-      body: JSON.stringify(updatePayloadBase),
-    });
-
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(403);
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: ["write"] });
     expect(findingService.updateByID).not.toHaveBeenCalled();
   });
 
   it("returns 404 when updating a missing finding", async () => {
     const requestId = "findings-update-not-found-request";
+    const payload = { title: "Corrected title" };
 
     findingService.updateByID.mockResolvedValue(null);
 
@@ -1043,14 +832,14 @@ describe("finding routes", () => {
         "Content-Type": "application/json",
         "X-Request-Id": requestId,
       },
-      body: JSON.stringify(updatePayloadBase),
+      body: JSON.stringify(payload),
     });
     const body = await response.json();
 
     expect(response.status).toBe(404);
     expect(findingService.updateByID).toHaveBeenCalledWith({
       id: findingId,
-      finding: updatePayloadBase,
+      finding: payload,
       user,
       eventContext: {
         actor: user.id,

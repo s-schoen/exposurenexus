@@ -26,6 +26,7 @@ describe("manual finding creation", () => {
   const findingPersistenceRepository = {
     listProjected: vi.fn(),
     getProjectedByID: vi.fn(),
+    updateByID: vi.fn(),
     deleteByID: vi.fn(),
   };
   const findingRepository = {

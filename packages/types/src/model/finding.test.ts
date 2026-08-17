@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { AffectedResourceType } from "./affected-resource.js";
-import { FindingStatus, createFindingSchema } from "./finding.js";
+import { FindingStatus, createFindingSchema, updateFindingSchema } from "./finding.js";
 import { VulnerabilitySeverity } from "./vulnerability.js";
 
 const assetId = "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c";
@@ -73,6 +73,50 @@ describe("manual finding creation schema", () => {
         severity: VulnerabilitySeverity.High,
         status: FindingStatus.Active,
         weakness: {},
+        affectedResource: {
+          type: AffectedResourceType.WebEndpoint,
+          reportedUrl: "https://example.com/admin",
+        },
+      }),
+    ).toThrow();
+  });
+});
+
+describe("finding correction schema", () => {
+  it("accepts each finding-owned mutable field independently", () => {
+    expect(updateFindingSchema.parse({ title: "Corrected title" })).toEqual({
+      title: "Corrected title",
+    });
+    expect(
+      updateFindingSchema.parse({
+        weakness: { identifiers: { cwe: ["cwe-89"] } },
+        affectedResource: {
+          type: AffectedResourceType.SourceCode,
+          repository: "https://github.com/example/repository.git",
+          file: "src/query.ts",
+        },
+      }),
+    ).toEqual({
+      weakness: { identifiers: { cwe: ["CWE-89"] } },
+      affectedResource: {
+        type: AffectedResourceType.SourceCode,
+        repository: "github.com/example/repository",
+        file: "src/query.ts",
+      },
+    });
+  });
+
+  it("rejects empty corrections and immutable projection fields", () => {
+    expect(() => updateFindingSchema.parse({})).toThrow();
+    expect(() => updateFindingSchema.parse({ assetId })).toThrow();
+    expect(() => updateFindingSchema.parse({ observationCount: 0 })).toThrow();
+    expect(() => updateFindingSchema.parse({ vulnerabilities: [] })).toThrow();
+    expect(() => updateFindingSchema.parse({ createdAt: new Date() })).toThrow();
+  });
+
+  it("rejects observation-only fields on corrected canonical resources", () => {
+    expect(() =>
+      updateFindingSchema.parse({
         affectedResource: {
           type: AffectedResourceType.WebEndpoint,
           reportedUrl: "https://example.com/admin",

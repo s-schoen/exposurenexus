@@ -48,7 +48,7 @@ interface FindingServiceDependencies {
   findingRepository: FindingRepository;
   findingPersistenceRepository?: Pick<
     FindingPersistenceRepository,
-    "getProjectedByID" | "listProjected" | "deleteByID"
+    "getProjectedByID" | "listProjected" | "updateByID" | "deleteByID"
   >;
   manualFindingRepository?: Pick<FindingPersistenceRepository, "createManual" | "getProjectedByID">;
   findingVulnerabilityRepository?: FindingVulnerabilityRepository;
@@ -131,7 +131,7 @@ export interface FindingService {
   getByID(id: string): Promise<FindingProjection | null>;
   create(opts: CreateFindingOptions): Promise<Finding>;
   createManual(opts: CreateManualFindingOptions): Promise<FindingProjection>;
-  updateByID(opts: UpdateFindingOptions): Promise<Finding | null>;
+  updateByID(opts: UpdateFindingOptions): Promise<FindingProjection | null>;
   createOrUpdate(opts: CreateFindingOptions): Promise<CreateOrUpdateFindingResult>;
   deleteByID(id: string, eventContext?: DomainEventContext): Promise<FindingProjection | null>;
   linkVulnerability(
@@ -528,9 +528,18 @@ export function createFindingService({
       return await createManualFinding(opts);
     },
 
-    async updateByID(opts: UpdateFindingOptions): Promise<Finding | null> {
+    async updateByID(opts: UpdateFindingOptions): Promise<FindingProjection | null> {
+      if (!findingPersistenceRepository) {
+        throw new ApplicationError({
+          code: "finding.update_failed",
+          kind: "unexpected",
+          message: "finding correction is unavailable",
+          details: { findingId: opts.id },
+        });
+      }
+
       try {
-        const finding = await findingRepository.getByID(opts.id);
+        const finding = await findingPersistenceRepository.getProjectedByID(opts.id);
 
         if (!finding) {
           logger.debug(`cannot update finding ${opts.id}: not found`);
@@ -538,7 +547,6 @@ export function createFindingService({
         }
 
         const assigneeId = opts.finding.assigneeId;
-        const dueDate = normalizeOptionalDueDate(opts.finding.dueDate);
 
         if (assigneeId) {
           const assignee = await userProfileService.getByID(assigneeId);
@@ -553,29 +561,31 @@ export function createFindingService({
           }
         }
 
-        const findingUpdate: Omit<FindingInternal, "id"> = {
+        const findingUpdate = {
           ...opts.finding,
-          firstSeen: finding.firstSeen,
-          lastSeen: finding.lastSeen,
-          assetId: finding.assetId,
-          vulnerabilityId: finding.vulnerabilityId,
-          createdAt: finding.createdAt,
-          createdBy: finding.createdBy,
-          assigneeId,
-          fingerprint: finding.fingerprint,
           updatedAt: new Date(),
           updatedBy: opts.user.id,
-          dueDate,
+          ...(opts.finding.dueDate === undefined
+            ? {}
+            : { dueDate: normalizeOptionalDueDate(opts.finding.dueDate) }),
         };
 
-        const updatedFinding = await findingRepository.updateByID(opts.id, findingUpdate);
+        const updatedFinding = await findingPersistenceRepository.updateByID(
+          opts.id,
+          findingUpdate,
+        );
+        if (!updatedFinding) {
+          return null;
+        }
 
-        const previousFinding = await extendWithVulnerability(finding);
-        const currentFinding = await extendWithVulnerability(updatedFinding);
+        const currentFinding = await findingPersistenceRepository.getProjectedByID(opts.id);
+        if (!currentFinding) {
+          throw new Error("finding was not available after correction");
+        }
         emitFindingEvent(
           "finding.updated",
           {
-            previous: previousFinding,
+            previous: finding,
             current: currentFinding,
           },
           opts.eventContext,

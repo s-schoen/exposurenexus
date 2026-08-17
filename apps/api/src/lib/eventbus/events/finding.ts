@@ -7,8 +7,8 @@ export type FindingEventPayloads = {
     finding: Finding | FindingProjection;
   };
   "finding.updated": {
-    previous: Finding;
-    current: Finding;
+    previous: Finding | FindingProjection;
+    current: Finding | FindingProjection;
   };
   "finding.deleted": {
     finding: FindingProjection;
