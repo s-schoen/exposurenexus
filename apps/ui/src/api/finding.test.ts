@@ -14,6 +14,7 @@ import {
   deleteFinding,
   deleteFindingObservation,
   linkFindingVulnerability,
+  moveFindingObservation,
   unlinkFindingVulnerability,
   updateFinding,
   updateFindingObservation,
@@ -363,6 +364,26 @@ describe("finding api", () => {
       `/api/findings/${findingId}/observations/${observationJson.id}`,
       expect.objectContaining({ credentials: "include", method: "DELETE" }),
     );
+  });
+
+  it("moves a nested observation to a target finding", async () => {
+    const targetFindingId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ data: { ...observationJson, findingId: targetFindingId } }),
+    );
+
+    const observation = await moveFindingObservation(
+      findingId,
+      observationJson.id,
+      targetFindingId,
+    );
+
+    expect(observation.findingId).toBe(targetFindingId);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/findings/${findingId}/observations/${observationJson.id}/move`,
+      expect.objectContaining({ credentials: "include", method: "POST" }),
+    );
+    expect(requestJsonBody()).toEqual({ targetFindingId });
   });
 
   it("creates findings with a JSON request body", async () => {

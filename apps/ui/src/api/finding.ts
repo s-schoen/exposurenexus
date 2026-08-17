@@ -155,6 +155,31 @@ export async function deleteFindingObservation(
   return parseObjectReply(response, observationSchema);
 }
 
+export async function moveFindingObservation(
+  findingId: string,
+  observationId: string,
+  targetFindingId: string,
+): Promise<Observation> {
+  const response = await apiRequest(
+    `/api/findings/${findingId}/observations/${observationId}/move`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ targetFindingId }),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response);
+    console.error(error);
+    throw error;
+  }
+
+  return parseObjectReply(response, observationSchema);
+}
+
 export async function createFinding(f: LegacyCreateFinding): Promise<Finding> {
   const response = await apiRequest("/api/findings", {
     method: "POST",
@@ -336,6 +361,20 @@ export function useDeleteFindingObservationMutation() {
   return useMutation({
     mutationFn: ({ findingId, observationId }: { findingId: string; observationId: string }) =>
       deleteFindingObservation(findingId, observationId),
+  });
+}
+
+export function useMoveFindingObservationMutation() {
+  return useMutation({
+    mutationFn: ({
+      findingId,
+      observationId,
+      targetFindingId,
+    }: {
+      findingId: string;
+      observationId: string;
+      targetFindingId: string;
+    }) => moveFindingObservation(findingId, observationId, targetFindingId),
   });
 }
 

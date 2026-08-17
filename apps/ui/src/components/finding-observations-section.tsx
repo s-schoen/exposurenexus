@@ -7,10 +7,13 @@ import { manualObservationInputSchema } from "@exposurenexus/types/model/finding
 import { updateObservationSchema } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { useQuery } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowRightLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
-import { createFindingObservationsQueryOptions } from "@/api/finding.ts";
+import {
+  createFindingObservationsQueryOptions,
+  createListFindingsQueryOptions,
+} from "@/api/finding.ts";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { SafeMarkdown } from "@/components/safe-markdown.tsx";
 import { SeverityBadge } from "@/components/severity-badge.tsx";
@@ -803,6 +806,128 @@ function DeleteObservationButton({ observation }: { observation: Observation }) 
   );
 }
 
+function MoveObservationDialog({ observation }: { observation: Observation }) {
+  const lifecycle = useObservationLifecycle();
+  const [open, setOpen] = useState(false);
+  const [targetFindingId, setTargetFindingId] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const findings = useQuery({ ...createListFindingsQueryOptions(), enabled: open });
+  const availableFindings = (Array.isArray(findings.data) ? findings.data : []).filter(
+    (finding) => finding.id !== observation.findingId,
+  );
+
+  const reset = () => {
+    setTargetFindingId("");
+    setError(null);
+  };
+
+  const changeOpen = (next: boolean) => {
+    if (!next && submitting) return;
+    reset();
+    setOpen(next);
+  };
+
+  const submit = async () => {
+    if (!targetFindingId) {
+      setError("Select a target finding.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    const moved = await lifecycle.moveObservation(
+      observation.findingId,
+      observation.id,
+      targetFindingId,
+    );
+    setSubmitting(false);
+    if (!moved) {
+      setError("Unable to move observation. Try again.");
+      return;
+    }
+
+    reset();
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={changeOpen}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-label={`Move observation ${observation.title}`}
+        onClick={() => changeOpen(true)}
+      >
+        <ArrowRightLeft />
+        Move
+      </Button>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Move observation</DialogTitle>
+          <DialogDescription>
+            Move this source report to another finding without changing its content or either
+            finding&apos;s identity data.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          id={`move-observation-${observation.id}`}
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submit();
+          }}
+        >
+          <Field>
+            <FieldLabel htmlFor={`move-observation-target-${observation.id}`}>
+              Target finding
+            </FieldLabel>
+            <Select
+              value={targetFindingId}
+              onValueChange={(value) => setTargetFindingId(value ?? "")}
+              disabled={findings.isPending || findings.isError || availableFindings.length === 0}
+            >
+              <SelectTrigger id={`move-observation-target-${observation.id}`} className="w-full">
+                <SelectValue placeholder="Select a target finding" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableFindings.map((finding) => (
+                  <SelectItem key={finding.id} value={finding.id}>
+                    {finding.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {findings.isError ? (
+              <FieldDescription>Target findings could not be loaded.</FieldDescription>
+            ) : availableFindings.length === 0 && !findings.isPending ? (
+              <FieldDescription>No other findings are available.</FieldDescription>
+            ) : null}
+          </Field>
+          {error ? (
+            <p role="alert" className="mt-4 text-sm font-medium text-destructive">
+              {error}
+            </p>
+          ) : null}
+        </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => changeOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form={`move-observation-${observation.id}`}
+            disabled={submitting || !targetFindingId}
+          >
+            {submitting ? <Spinner /> : null}
+            Move observation
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ObservationCard({ observation }: { observation: Observation }) {
   const details = resourceDetails(observation.affectedResource);
   const identifiers = Object.entries(observation.weakness.identifiers);
@@ -821,6 +946,7 @@ function ObservationCard({ observation }: { observation: Observation }) {
         <div className="flex flex-wrap items-center justify-end gap-2">
           <SeverityBadge severity={observation.severity} />
           <EditObservationDialog observation={observation} />
+          <MoveObservationDialog observation={observation} />
           <DeleteObservationButton observation={observation} />
         </div>
       </div>

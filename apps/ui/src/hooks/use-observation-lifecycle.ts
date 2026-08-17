@@ -8,6 +8,7 @@ import {
   createListFindingsQueryOptions,
   useCreateFindingObservationMutation,
   useDeleteFindingObservationMutation,
+  useMoveFindingObservationMutation,
   useUpdateFindingObservationMutation,
 } from "@/api/finding.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
@@ -23,21 +24,29 @@ export interface ObservationLifecycleActions {
     value: UpdateObservation,
   ) => Promise<Observation | null>;
   deleteObservation: (findingId: string, observationId: string) => Promise<Observation | null>;
+  moveObservation: (
+    findingId: string,
+    observationId: string,
+    targetFindingId: string,
+  ) => Promise<Observation | null>;
 }
 
 async function invalidateObservationReads(
   queryClient: ReturnType<typeof useQueryClient>,
-  findingId: string,
+  findingIds: ReadonlyArray<string>,
 ) {
+  const uniqueFindingIds = [...new Set(findingIds)];
   await Promise.all([
-    queryClient.invalidateQueries({
-      queryKey: createFindingObservationsQueryOptions(findingId).queryKey,
-      exact: true,
-    }),
-    queryClient.invalidateQueries({
-      queryKey: createFindingByIDQueryOptions(findingId).queryKey,
-      exact: true,
-    }),
+    ...uniqueFindingIds.flatMap((findingId) => [
+      queryClient.invalidateQueries({
+        queryKey: createFindingObservationsQueryOptions(findingId).queryKey,
+        exact: true,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: createFindingByIDQueryOptions(findingId).queryKey,
+        exact: true,
+      }),
+    ]),
     queryClient.invalidateQueries({
       queryKey: createListFindingsQueryOptions().queryKey,
       exact: true,
@@ -54,6 +63,7 @@ export function useObservationLifecycle(): ObservationLifecycleActions {
   const observationCreate = useCreateFindingObservationMutation();
   const observationUpdate = useUpdateFindingObservationMutation();
   const observationDelete = useDeleteFindingObservationMutation();
+  const observationMove = useMoveFindingObservationMutation();
 
   return {
     async addObservation(findingId, value) {
@@ -63,7 +73,7 @@ export function useObservationLifecycle(): ObservationLifecycleActions {
           observation: value,
         });
 
-        await invalidateObservationReads(queryClient, findingId);
+        await invalidateObservationReads(queryClient, [findingId]);
         toast.success("Observation added");
         return observation;
       } catch (error) {
@@ -80,7 +90,7 @@ export function useObservationLifecycle(): ObservationLifecycleActions {
           observationId,
           update: value,
         });
-        await invalidateObservationReads(queryClient, findingId);
+        await invalidateObservationReads(queryClient, [findingId]);
         toast.success("Observation updated");
         return observation;
       } catch (error) {
@@ -93,11 +103,29 @@ export function useObservationLifecycle(): ObservationLifecycleActions {
     async deleteObservation(findingId, observationId) {
       try {
         const observation = await observationDelete.mutateAsync({ findingId, observationId });
-        await invalidateObservationReads(queryClient, findingId);
+        await invalidateObservationReads(queryClient, [findingId]);
         toast.success("Observation deleted");
         return observation;
       } catch (error) {
         toastActionError(error, `Failed to delete observation: ${formatActionError(error)}`);
+        console.error(error);
+        return null;
+      }
+    },
+
+    async moveObservation(findingId, observationId, targetFindingId) {
+      try {
+        const observation = await observationMove.mutateAsync({
+          findingId,
+          observationId,
+          targetFindingId,
+        });
+
+        await invalidateObservationReads(queryClient, [findingId, targetFindingId]);
+        toast.success("Observation moved");
+        return observation;
+      } catch (error) {
+        toastActionError(error, `Failed to move observation: ${formatActionError(error)}`);
         console.error(error);
         return null;
       }

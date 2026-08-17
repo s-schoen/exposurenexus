@@ -20,12 +20,14 @@ import type { ReactNode } from "react";
 const {
   createObservationRequestMock,
   deleteObservationRequestMock,
+  moveObservationRequestMock,
   toastErrorMock,
   toastSuccessMock,
   updateObservationRequestMock,
 } = vi.hoisted(() => ({
   createObservationRequestMock: vi.fn(),
   deleteObservationRequestMock: vi.fn(),
+  moveObservationRequestMock: vi.fn(),
   toastErrorMock: vi.fn(),
   toastSuccessMock: vi.fn(),
   updateObservationRequestMock: vi.fn(),
@@ -50,6 +52,9 @@ vi.mock("@/api/finding.ts", async (importOriginal) => {
     }),
     useDeleteFindingObservationMutation: () => ({
       mutateAsync: deleteObservationRequestMock,
+    }),
+    useMoveFindingObservationMutation: () => ({
+      mutateAsync: moveObservationRequestMock,
     }),
   };
 });
@@ -88,6 +93,7 @@ function renderLifecycleHook() {
 beforeEach(() => {
   createObservationRequestMock.mockReset();
   deleteObservationRequestMock.mockReset();
+  moveObservationRequestMock.mockReset();
   toastErrorMock.mockReset();
   toastSuccessMock.mockReset();
   updateObservationRequestMock.mockReset();
@@ -189,6 +195,60 @@ describe("useObservationLifecycle", () => {
       expect(toastSuccessMock).toHaveBeenCalledWith(toast);
     },
   );
+
+  it("moves an observation and invalidates both parent subtrees plus lists and stats", async () => {
+    const targetFindingId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
+    const moved = { ...observation, findingId: targetFindingId };
+    moveObservationRequestMock.mockResolvedValueOnce(moved);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+
+    let changed: Observation | null = null;
+    await act(async () => {
+      changed = await result.current.moveObservation(findingId, observation.id, targetFindingId);
+    });
+
+    expect(changed).toEqual(moved);
+    expect(moveObservationRequestMock).toHaveBeenCalledWith({
+      findingId,
+      observationId: observation.id,
+      targetFindingId,
+    });
+    for (const queryKey of [
+      createFindingObservationsQueryOptions(findingId).queryKey,
+      createFindingByIDQueryOptions(findingId).queryKey,
+      createFindingObservationsQueryOptions(targetFindingId).queryKey,
+      createFindingByIDQueryOptions(targetFindingId).queryKey,
+      createListFindingsQueryOptions().queryKey,
+      createFindingStatsQueryOptions().queryKey,
+    ]) {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey, exact: true });
+    }
+    expect(toastSuccessMock).toHaveBeenCalledWith("Observation moved");
+  });
+
+  it("handles move failures without invalidating caches", async () => {
+    const error = new Error("Request failed");
+    moveObservationRequestMock.mockRejectedValueOnce(error);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+
+    let changed: Observation | null = observation;
+    await act(async () => {
+      changed = await result.current.moveObservation(
+        findingId,
+        observation.id,
+        "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+      );
+    });
+
+    expect(changed).toBeNull();
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(toastErrorMock).toHaveBeenCalledWith(
+      "Failed to move observation: Error: Request failed",
+    );
+    expect(console.error).toHaveBeenCalledWith(error);
+  });
 
   it.each([
     ["updateObservation", updateObservationRequestMock, "Failed to update observation"],
