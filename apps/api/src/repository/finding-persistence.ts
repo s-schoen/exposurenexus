@@ -2,14 +2,25 @@ import {
   findingAffectedResourceSchema,
   type FindingAffectedResource,
 } from "@exposurenexus/types/model/affected-resource";
-import { findingPersistenceSchema } from "@exposurenexus/types/model/finding";
+import {
+  findingPersistenceSchema,
+  findingProjectionSchema,
+  type FindingProjection,
+} from "@exposurenexus/types/model/finding";
 import { findingWeaknessSchema, type Weakness } from "@exposurenexus/types/model/weakness";
+import { sql, type Kysely, type Insertable, type Selectable, type Updateable } from "kysely";
 
 import type { Database } from "../db/index.js";
 import type { FindingTable } from "../db/schema/finding.js";
-import type { Kysely, Insertable, Selectable, Updateable } from "kysely";
 
 export type FindingRecord = Selectable<FindingTable>;
+type FindingProjectionRow = FindingRecord & {
+  vulnerabilities: unknown;
+  observationCount: number;
+  observingSources: unknown;
+  firstSeen: Date | null;
+  lastSeen: Date | null;
+};
 export type CreateFindingRecord = Omit<
   Insertable<FindingTable>,
   "weakness" | "affectedResource"
@@ -29,6 +40,8 @@ export type FindingCountField = "severity" | "status" | "assetId";
 export interface FindingPersistenceRepository {
   list(): Promise<FindingRecord[]>;
   getByID(id: string): Promise<FindingRecord | null>;
+  listProjected(): Promise<FindingProjection[]>;
+  getProjectedByID(id: string): Promise<FindingProjection | null>;
   create(finding: CreateFindingRecord): Promise<FindingRecord>;
   updateByID(id: string, finding: UpdateFindingRecord): Promise<FindingRecord | null>;
   deleteByID(id: string): Promise<FindingRecord | null>;
@@ -37,6 +50,75 @@ export interface FindingPersistenceRepository {
 
 function normalizeFinding(finding: FindingRecord): FindingRecord {
   return findingPersistenceSchema.parse(finding) as FindingRecord;
+}
+
+function normalizeFindingProjection(finding: FindingProjectionRow): FindingProjection {
+  return findingProjectionSchema.parse(finding);
+}
+
+const findingProjectionGroupColumns = [
+  "finding.id",
+  "finding.assetId",
+  "finding.title",
+  "finding.severity",
+  "finding.status",
+  "finding.assigneeId",
+  "finding.dueDate",
+  "finding.mitigation",
+  "finding.weakness",
+  "finding.affectedResource",
+  "finding.createdAt",
+  "finding.updatedAt",
+  "finding.createdBy",
+  "finding.updatedBy",
+] as const;
+
+function projectionQuery(database: Kysely<Database>) {
+  return database
+    .selectFrom("finding")
+    .leftJoin("observation", "observation.findingId", "finding.id")
+    .selectAll("finding")
+    .select([
+      sql<number>`count(distinct ${sql.ref("observation.id")})`.as("observationCount"),
+      sql<unknown>`
+        coalesce(
+          to_jsonb(array_agg(distinct ${sql.ref("observation.source")}::text order by ${sql.ref("observation.source")}::text)
+            filter (where ${sql.ref("observation.id")} is not null)),
+          '[]'::jsonb
+        )
+      `.as("observingSources"),
+      sql<Date | null>`min(${sql.ref("observation.observedAt")})`.as("firstSeen"),
+      sql<Date | null>`max(${sql.ref("observation.observedAt")})`.as("lastSeen"),
+      sql<unknown[]>`
+        coalesce(
+          (
+            select jsonb_agg(
+              jsonb_build_object(
+                'id', "projection_vulnerability"."id",
+                'type', "projection_vulnerability"."type",
+                'identifier', "projection_vulnerability"."identifier",
+                'title', "projection_vulnerability"."title",
+                'description', "projection_vulnerability"."description",
+                'severity', "projection_vulnerability"."severity",
+                'metadata', "projection_vulnerability"."metadata",
+                'createdAt', "projection_vulnerability"."createdAt",
+                'updatedAt', "projection_vulnerability"."updatedAt",
+                'createdBy', "projection_vulnerability"."createdBy",
+                'updatedBy', "projection_vulnerability"."updatedBy"
+              )
+              order by "projection_vulnerability"."type", "projection_vulnerability"."identifier"
+            )
+            from "finding_vulnerability" as "projection_link"
+            inner join "vulnerability" as "projection_vulnerability"
+              on "projection_vulnerability"."id" = "projection_link"."vulnerabilityId"
+            where "projection_link"."findingId" = "finding"."id"
+          ),
+          '[]'::jsonb
+        )
+      `.as("vulnerabilities"),
+    ])
+    .groupBy(findingProjectionGroupColumns)
+    .orderBy("finding.updatedAt", "desc");
 }
 
 function normalizeFindingInput<T extends { weakness?: unknown; affectedResource?: unknown }>(
@@ -74,6 +156,19 @@ export function createFindingPersistenceRepository(
         .executeTakeFirst();
 
       return finding ? normalizeFinding(finding) : null;
+    },
+
+    async listProjected(): Promise<FindingProjection[]> {
+      const findings = await projectionQuery(database).execute();
+      return findings.map((finding) => normalizeFindingProjection(finding));
+    },
+
+    async getProjectedByID(id: string): Promise<FindingProjection | null> {
+      const finding = await projectionQuery(database)
+        .where("finding.id", "=", id)
+        .executeTakeFirst();
+
+      return finding ? normalizeFindingProjection(finding) : null;
     },
 
     async create(finding: CreateFindingRecord): Promise<FindingRecord> {

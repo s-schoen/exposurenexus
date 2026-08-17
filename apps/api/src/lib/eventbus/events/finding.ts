@@ -1,4 +1,4 @@
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { Finding, FindingProjection } from "@exposurenexus/types/model/finding";
 
 export type FindingEventPayloads = {
   "finding.created": {
@@ -9,7 +9,7 @@ export type FindingEventPayloads = {
     current: Finding;
   };
   "finding.deleted": {
-    finding: Finding;
+    finding: FindingProjection;
   };
   "finding.reclassified": {
     source: string;

@@ -5,7 +5,12 @@ import {
   type FindingAffectedResource,
 } from "./affected-resource.js";
 import { dateSchema, utcStartDateSchema } from "./date.js";
-import { vulnerabilitySchema, VulnerabilitySeverity } from "./vulnerability.js";
+import { ObservationSource } from "./observation.js";
+import {
+  vulnerabilityCatalogSchema,
+  vulnerabilitySchema,
+  VulnerabilitySeverity,
+} from "./vulnerability.js";
 import { findingWeaknessSchema, type Weakness } from "./weakness.js";
 
 const dueDateSchema = utcStartDateSchema as z.ZodType<Date, Date>;
@@ -61,6 +66,28 @@ export const findingPersistenceSchema = z.strictObject({
   mitigation: z.string().nullable(),
   weakness: findingWeaknessSchema,
   affectedResource: findingAffectedResourceSchema,
+  createdAt: dateSchema,
+  updatedAt: dateSchema,
+  createdBy: z.uuidv4(),
+  updatedBy: z.uuidv4(),
+});
+
+export const findingProjectionSchema = z.strictObject({
+  id: z.uuidv4(),
+  assetId: z.uuidv4(),
+  title: z.string().nonempty(),
+  severity: z.enum(VulnerabilitySeverity),
+  status: z.enum(FindingStatus),
+  assigneeId: z.uuidv4().nullable(),
+  dueDate: dueDateSchema.nullable(),
+  mitigation: z.string().nullable(),
+  weakness: findingWeaknessSchema,
+  affectedResource: findingAffectedResourceSchema,
+  vulnerabilities: z.array(vulnerabilityCatalogSchema),
+  observationCount: z.int().min(0),
+  observingSources: z.array(z.enum(ObservationSource)),
+  firstSeen: dateSchema.nullable(),
+  lastSeen: dateSchema.nullable(),
   createdAt: dateSchema,
   updatedAt: dateSchema,
   createdBy: z.uuidv4(),
@@ -133,6 +160,7 @@ export const FindingStatistics = z.strictObject({
 export type FindingInternal = z.infer<typeof findingInternalSchema>;
 export type Finding = z.infer<typeof findingSchema>;
 export type FindingPersistence = z.infer<typeof findingPersistenceSchema>;
+export type FindingProjection = z.infer<typeof findingProjectionSchema>;
 export type FindingWeakness = Weakness;
 export type FindingResource = FindingAffectedResource;
 export type CreateFinding = z.infer<typeof createFindingSchema>;

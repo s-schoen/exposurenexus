@@ -14,6 +14,7 @@ import {
   createAssetCustomFieldRepository,
   createAssetRepository,
   createFindingRepository,
+  createFindingPersistenceRepository,
   createRoleRepository,
   createUserProfileRepository,
   createUserRoleRepository,
@@ -76,6 +77,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     assetCustomFieldRepository: createAssetCustomFieldRepository(options.db),
     assetRepository: createAssetRepository(options.db),
     findingRepository: createFindingRepository(options.db),
+    findingPersistenceRepository: createFindingPersistenceRepository(options.db),
     roleRepository: createRoleRepository(options.db),
     userRoleRepository: createUserRoleRepository(options.db),
     userProfileRepository: createUserProfileRepository(options.db),
@@ -125,6 +127,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   });
   const findingService = createFindingService({
     findingRepository: repositories.findingRepository,
+    findingPersistenceRepository: repositories.findingPersistenceRepository,
     assetService,
     userProfileService,
     vulnerabilityService,

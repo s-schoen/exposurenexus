@@ -191,6 +191,146 @@ describe("observation-based persistence repositories", () => {
     });
   });
 
+  it("builds one ordered projection for findings, observations, and catalog links", async () => {
+    const asset = await createAssetRepository(testDb.db).create(
+      assetRecord("api.exposurenexus.local"),
+    );
+    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const observationRepository = createObservationRepository(testDb.db);
+    const vulnerabilityRepository = createVulnerabilityPersistenceRepository(testDb.db);
+    const linkRepository = createFindingVulnerabilityRepository(testDb.db);
+    const timestamp = new Date("2026-01-03T00:00:00.000Z");
+    const finding = await findingRepository.create({
+      assetId: asset.id,
+      title: "Exposed admin endpoint",
+      severity: VulnerabilitySeverity.High,
+      status: FindingStatus.Active,
+      assigneeId: null,
+      dueDate: null,
+      mitigation: "Restrict access to trusted networks",
+      weakness: { identifiers: { cwe: ["CWE-200"] } },
+      affectedResource: {
+        type: AffectedResourceType.WebEndpoint,
+        scheme: "https",
+        host: "example.com",
+        path: "/admin",
+      },
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      createdBy,
+      updatedBy: createdBy,
+    });
+    const emptyFinding = await findingRepository.create({
+      assetId: asset.id,
+      title: "Unspecified weakness",
+      severity: VulnerabilitySeverity.Info,
+      status: FindingStatus.Active,
+      assigneeId: null,
+      dueDate: null,
+      mitigation: null,
+      weakness: { identifiers: {} },
+      affectedResource: { type: AffectedResourceType.Unspecified },
+      createdAt: new Date("2026-01-04T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-04T00:00:00.000Z"),
+      createdBy,
+      updatedBy: createdBy,
+    });
+    const cwe = await vulnerabilityRepository.create({
+      type: VulnerabilityType.Cwe,
+      identifier: "CWE-200",
+      title: "Exposure of Sensitive Information",
+      description: null,
+      severity: VulnerabilitySeverity.Medium,
+      metadata: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      createdBy,
+      updatedBy: createdBy,
+    });
+    const cve = await vulnerabilityRepository.create({
+      type: VulnerabilityType.Cve,
+      identifier: "CVE-2026-0001",
+      title: "Example endpoint exposure",
+      description: "Catalog description",
+      severity: VulnerabilitySeverity.High,
+      metadata: { cvss: 8.1 },
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      createdBy,
+      updatedBy: createdBy,
+    });
+    await linkRepository.create({ findingId: finding.id, vulnerabilityId: cwe.id });
+    await linkRepository.create({ findingId: finding.id, vulnerabilityId: cve.id });
+    await observationRepository.create({
+      findingId: finding.id,
+      ingestionId: null,
+      source: ObservationSource.Nuclei,
+      title: "Nuclei detection",
+      description: null,
+      evidence: null,
+      remediation: null,
+      severity: VulnerabilitySeverity.High,
+      weakness: { identifiers: { nuclei: ["admin-panel"] } },
+      affectedResource: {
+        type: AffectedResourceType.WebEndpoint,
+        reportedUrl: "https://EXAMPLE.com/admin",
+        scheme: "https",
+        host: "example.com",
+        path: "/admin",
+      },
+      observedAt: new Date("2026-01-05T00:00:00.000Z"),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      createdBy,
+      updatedBy: createdBy,
+    });
+    await observationRepository.create({
+      findingId: finding.id,
+      ingestionId: null,
+      source: ObservationSource.Manual,
+      title: "Manual confirmation",
+      description: null,
+      evidence: null,
+      remediation: null,
+      severity: VulnerabilitySeverity.High,
+      weakness: { identifiers: {} },
+      affectedResource: { type: AffectedResourceType.Asset },
+      observedAt: new Date("2026-01-04T00:00:00.000Z"),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      createdBy,
+      updatedBy: createdBy,
+    });
+
+    const projections = await findingRepository.listProjected();
+    const projectedFinding = projections.find((item) => item.id === finding.id);
+    const projectedEmptyFinding = projections.find((item) => item.id === emptyFinding.id);
+
+    expect(projectedFinding).toMatchObject({
+      id: finding.id,
+      title: finding.title,
+      observationCount: 2,
+      observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
+      firstSeen: new Date("2026-01-04T00:00:00.000Z"),
+      lastSeen: new Date("2026-01-05T00:00:00.000Z"),
+    });
+    expect(
+      projectedFinding?.vulnerabilities.map(({ type, identifier }) => ({ type, identifier })),
+    ).toEqual([
+      { type: VulnerabilityType.Cve, identifier: "CVE-2026-0001" },
+      { type: VulnerabilityType.Cwe, identifier: "CWE-200" },
+    ]);
+    expect(projectedEmptyFinding).toMatchObject({
+      id: emptyFinding.id,
+      observationCount: 0,
+      observingSources: [],
+      firstSeen: null,
+      lastSeen: null,
+      vulnerabilities: [],
+    });
+    await expect(findingRepository.getProjectedByID(finding.id)).resolves.toEqual(projectedFinding);
+  });
+
   it("replaces JSON identity values and preserves finding-owned persistence boundaries", async () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
