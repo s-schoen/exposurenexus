@@ -65,7 +65,7 @@ export const OverviewGrid: Story = {
       <MetricCard
         title="Total findings"
         value={148}
-        description="Current finding volume across all sources"
+        description="Current human-facing workflow cases"
         icon={Activity}
       />
       <MetricCard
@@ -95,9 +95,9 @@ export const OverviewGrid: Story = {
         variant="panel"
       />
       <MetricCard
-        title="Source diversity"
-        value={6}
-        description="Distinct inputs currently feeding the platform"
+        title="Active findings"
+        value={24}
+        description="Findings awaiting triage"
         icon={Radar}
         variant="panel"
       />

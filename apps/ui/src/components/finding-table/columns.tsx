@@ -319,5 +319,12 @@ export function createFindingColumns(
       sortFn: (rowA, rowB) => compareDateValues(rowA.original.lastSeen, rowB.original.lastSeen),
       cell: ({ row }) => <FindingDateCell value={row.getValue("lastSeen")} />,
     },
+    {
+      accessorKey: "updatedAt",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
+      sortFn: (rowA, rowB) => compareDateValues(rowA.original.updatedAt, rowB.original.updatedAt),
+      cell: ({ row }) => <FindingDateCell value={row.getValue("updatedAt")} />,
+      enableColumnFilter: false,
+    },
   ];
 }

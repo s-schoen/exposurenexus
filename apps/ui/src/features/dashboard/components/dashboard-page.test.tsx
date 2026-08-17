@@ -27,10 +27,6 @@ const mocks = vi.hoisted(() => ({
       low: 1,
       medium: 6,
     },
-    source: {
-      manual_import: 3,
-      nuclei: 7,
-    },
     status: {
       active: 3,
       confirmed: 2,
@@ -166,8 +162,10 @@ describe("DashboardPage", () => {
     expect(screen.getByText("Severity chart 1")).toBeTruthy();
     expect(screen.getByText("Status chart 3")).toBeTruthy();
     expect(screen.getByText("Top affected assets")).toBeTruthy();
-    expect(screen.getByText("Finding sources")).toBeTruthy();
     expect(screen.getByText(/edge-gateway/)).toBeTruthy();
-    expect(screen.getByText(/Manual Import/)).toBeTruthy();
+    expect(screen.queryByText("Finding sources")).toBeNull();
+    expect(screen.queryByText("Source diversity")).toBeNull();
+    expect(screen.getByText("Current human-facing workflow cases")).toBeTruthy();
+    expect(screen.getByText("Findings awaiting triage")).toBeTruthy();
   });
 });

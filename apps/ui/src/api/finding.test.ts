@@ -190,9 +190,6 @@ const findingStats: FindingStatistics = {
     [VulnerabilitySeverity.High]: 1,
     [VulnerabilitySeverity.Critical]: 1,
   },
-  source: {
-    manual: 2,
-  },
   assets: {
     [assetId]: 2,
   },
