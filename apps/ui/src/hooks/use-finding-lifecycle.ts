@@ -12,7 +12,7 @@ import {
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 import { formatFindingCount } from "@/lib/format.ts";
 
-import type { CreateFinding, Finding } from "@exposurenexus/types/model/finding";
+import type { CreateFinding, Finding, FindingProjection } from "@exposurenexus/types/model/finding";
 
 export type FindingEditableField =
   | "severity"
@@ -26,14 +26,20 @@ export type FindingEditableField =
 export type FindingBulkEditableField = "severity" | "status";
 
 export interface FindingLifecycleFailure {
-  finding: Finding;
+  finding: Finding | FindingReference;
   error: unknown;
 }
 
 export interface FindingLifecycleBatchResult {
-  successful: Array<Finding>;
+  successful: Array<Finding | FindingProjection>;
   failed: Array<FindingLifecycleFailure>;
 }
+
+export type FindingReference = Pick<FindingProjection, "id">;
+
+export type FindingDeleteBatchResult = FindingLifecycleBatchResult;
+
+type FindingCacheValue = Finding | FindingProjection;
 
 export interface FindingLifecycleActions {
   /**
@@ -76,12 +82,12 @@ export interface FindingLifecycleActions {
    * Confirmation stays with the caller. API failures are represented in the
    * returned result instead of thrown.
    */
-  deleteFindings: (findings: Array<Finding>) => Promise<FindingLifecycleBatchResult>;
+  deleteFindings: (findings: Array<FindingReference>) => Promise<FindingDeleteBatchResult>;
 }
 
 interface FindingCacheSnapshot {
-  list: Array<Finding> | undefined;
-  details: Map<string, Finding | undefined>;
+  list: Array<FindingCacheValue> | undefined;
+  details: Map<string, FindingCacheValue | undefined>;
 }
 
 const listQueryKey = createListFindingsQueryOptions().queryKey;
@@ -91,7 +97,10 @@ function detailQueryKey(findingId: string) {
   return createFindingByIDQueryOptions(findingId).queryKey;
 }
 
-function replaceFindingInList(findings: Array<Finding> | undefined, nextFinding: Finding) {
+function replaceFindingInList(
+  findings: Array<FindingCacheValue> | undefined,
+  nextFinding: FindingCacheValue,
+) {
   return findings?.map((finding) => (finding.id === nextFinding.id ? nextFinding : finding));
 }
 
@@ -131,7 +140,7 @@ function createBatchResult(
 }
 
 function toastBatchSummary(
-  result: FindingLifecycleBatchResult,
+  result: { successful: Array<unknown>; failed: Array<unknown> },
   action: "Deleted" | "Updated",
   failureVerb: "delete" | "update",
 ) {
@@ -160,16 +169,19 @@ export function useFindingLifecycle(): FindingLifecycleActions {
 
   function snapshotFindings(findingIds: Array<string>): FindingCacheSnapshot {
     return {
-      list: queryClient.getQueryData<Array<Finding>>(listQueryKey),
+      list: queryClient.getQueryData<Array<FindingCacheValue>>(listQueryKey),
       details: new Map(
-        findingIds.map((id) => [id, queryClient.getQueryData<Finding>(detailQueryKey(id))]),
+        findingIds.map((id) => [
+          id,
+          queryClient.getQueryData<FindingCacheValue>(detailQueryKey(id)),
+        ]),
       ),
     };
   }
 
-  function writeFindingToCaches(finding: Finding) {
+  function writeFindingToCaches(finding: FindingCacheValue) {
     queryClient.setQueryData(detailQueryKey(finding.id), finding);
-    queryClient.setQueryData<Array<Finding>>(listQueryKey, (current) =>
+    queryClient.setQueryData<Array<FindingCacheValue>>(listQueryKey, (current) =>
       replaceFindingInList(current, finding),
     );
   }
@@ -186,7 +198,7 @@ export function useFindingLifecycle(): FindingLifecycleActions {
       });
     }
 
-    queryClient.setQueryData<Array<Finding>>(listQueryKey, (current) => {
+    queryClient.setQueryData<Array<FindingCacheValue>>(listQueryKey, (current) => {
       if (!current || !snapshot.list) {
         return current;
       }
@@ -299,7 +311,9 @@ export function useFindingLifecycle(): FindingLifecycleActions {
       );
 
       for (const successfulFinding of result.successful) {
-        writeFindingToCaches(successfulFinding);
+        if ("vulnerabilityId" in successfulFinding) {
+          writeFindingToCaches(successfulFinding);
+        }
       }
 
       for (const failure of result.failed) {
@@ -321,9 +335,26 @@ export function useFindingLifecycle(): FindingLifecycleActions {
         };
       }
 
-      const result = createBatchResult(
-        findings,
-        await Promise.allSettled(findings.map((finding) => findingDelete.mutateAsync(finding.id))),
+      const settled = await Promise.allSettled(
+        findings.map((finding) => findingDelete.mutateAsync(finding.id)),
+      );
+      const result = settled.reduce<FindingDeleteBatchResult>(
+        (batchResult, item, index) => {
+          if (item.status === "fulfilled") {
+            batchResult.successful.push(item.value);
+          } else {
+            batchResult.failed.push({
+              finding: findings[index],
+              error: item.reason,
+            });
+          }
+
+          return batchResult;
+        },
+        {
+          successful: [],
+          failed: [],
+        },
       );
 
       for (const failure of result.failed) {

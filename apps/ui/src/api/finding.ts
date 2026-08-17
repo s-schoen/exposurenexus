@@ -1,4 +1,5 @@
 import {
+  findingProjectionSchema,
   findingSchema,
   FindingStatistics as findingStatisticsSchema,
   reclassifyFindingsResultSchema,
@@ -16,13 +17,14 @@ import {
 import type {
   CreateFinding,
   Finding,
+  FindingProjection,
   FindingStatistics,
   ReclassifyFindings,
   ReclassifyFindingsResult,
   UpdateFinding,
 } from "@exposurenexus/types/model/finding";
 
-async function listFindings(): Promise<Array<Finding>> {
+async function listFindings(): Promise<Array<FindingProjection>> {
   const response = await apiRequest("/api/findings", {
     method: "GET",
   });
@@ -33,10 +35,10 @@ async function listFindings(): Promise<Array<Finding>> {
     throw error;
   }
 
-  return parseArrayReply(response, findingSchema);
+  return parseArrayReply(response, findingProjectionSchema);
 }
 
-export async function deleteFinding(id: string): Promise<Finding> {
+export async function deleteFinding(id: string): Promise<FindingProjection> {
   const response = await apiRequest(`/api/findings/${id}`, {
     method: "DELETE",
   });
@@ -47,10 +49,10 @@ export async function deleteFinding(id: string): Promise<Finding> {
     throw error;
   }
 
-  return parseObjectReply(response, findingSchema);
+  return parseObjectReply(response, findingProjectionSchema);
 }
 
-async function getFindingByID(id: string): Promise<Finding> {
+async function getFindingByID(id: string): Promise<FindingProjection> {
   const response = await apiRequest(`/api/findings/${id}`, {
     method: "GET",
   });
@@ -61,7 +63,7 @@ async function getFindingByID(id: string): Promise<Finding> {
     throw error;
   }
 
-  return parseObjectReply(response, findingSchema);
+  return parseObjectReply(response, findingProjectionSchema);
 }
 
 async function getFindingStats(): Promise<FindingStatistics> {
@@ -145,19 +147,25 @@ export async function reclassifyFindings(
 }
 
 export function createListFindingsQueryOptions() {
-  return queryOptions({
+  return {
+    ...queryOptions({
+      queryKey: ["findings"],
+      queryFn: () => listFindings(),
+      placeholderData: keepPreviousData,
+      staleTime: DEFAULT_QUERY_STALE_TIME,
+    }),
     queryKey: ["findings"],
-    queryFn: () => listFindings(),
-    placeholderData: keepPreviousData,
-    staleTime: DEFAULT_QUERY_STALE_TIME,
-  });
+  };
 }
 
 export function createFindingByIDQueryOptions(id: string) {
-  return queryOptions({
+  return {
+    ...queryOptions({
+      queryKey: ["findings", id],
+      queryFn: () => getFindingByID(id),
+    }),
     queryKey: ["findings", id],
-    queryFn: () => getFindingByID(id),
-  });
+  };
 }
 
 export function createFindingStatsQueryOptions() {

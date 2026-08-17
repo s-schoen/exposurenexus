@@ -22,7 +22,7 @@ export function FindingDetailPage({ findingId }: FindingDetailPageProps) {
   });
 
   usePageMeta({
-    title: finding.data?.vulnerability.title ?? "Finding",
+    title: finding.data?.title ?? "Finding",
     description:
       asset.data?.displayName && finding.data
         ? `${formatFindingStatus(finding.data.status)} finding on ${asset.data.displayName}`

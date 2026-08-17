@@ -1,5 +1,7 @@
+import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
-import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
+import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
@@ -12,14 +14,14 @@ import { createLoginRedirects } from "@/lib/login-redirect.ts";
 import { routeTree } from "@/routeTree.gen.ts";
 
 import type { Asset } from "@exposurenexus/types/model/asset";
-import type { Finding, UpdateFinding } from "@exposurenexus/types/model/finding";
+import type { FindingProjection } from "@exposurenexus/types/model/finding";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type FindingTableScenario = "default" | "loading" | "empty" | "grouped";
 
 type FindingTableStoryArgs = {
-  findings: Array<Finding>;
+  findings: Array<FindingProjection>;
   assets: Array<Asset>;
   users: Array<UserProfile>;
   scenario: FindingTableScenario;
@@ -114,7 +116,6 @@ function createFinding({
   assetId,
   severity,
   status,
-  source,
   assigneeId,
   dueDate,
   firstSeenOffset,
@@ -125,55 +126,46 @@ function createFinding({
   assetId: string;
   severity: VulnerabilitySeverity;
   status: FindingStatus;
-  source: FindingSource;
   assigneeId: string | null;
   dueDate: Date | null;
   firstSeenOffset: number;
   lastSeenOffset: number;
-}): Finding {
-  const vulnerabilityId = `${id.slice(0, 8)}-${id.slice(9, 13)}-4b8d-9409-06b4b6d74b9a`;
-
+}): FindingProjection {
   return {
     id,
-    vulnerabilityId,
+    title,
     severity,
     status,
-    source,
-    evidence: "Observed during storybook fixture validation.",
     mitigation: "Apply the recommended mitigation and re-run validation.",
     assigneeId,
     dueDate,
+    weakness: { identifiers: { cwe: ["CWE-284"] } },
+    affectedResource: {
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "https",
+      host: "example.com",
+      path: "/admin",
+    },
+    vulnerabilities: [],
+    observationCount: 2,
+    observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
     firstSeen: utcDateOffset(firstSeenOffset),
     lastSeen: utcDateOffset(lastSeenOffset),
-    fingerprint: `storybook-${id}`,
     assetId,
     createdBy: USERS[0].id,
     updatedBy: USERS[1].id,
     createdAt: utcDateOffset(firstSeenOffset),
     updatedAt: utcDateOffset(lastSeenOffset),
-    vulnerability: {
-      id: vulnerabilityId,
-      title,
-      severity,
-      description: `${title} detected in the storybook dataset.`,
-      cwe: 284,
-      cve: null,
-      createdBy: USERS[0].id,
-      updatedBy: USERS[1].id,
-      createdAt: utcDateOffset(firstSeenOffset),
-      updatedAt: utcDateOffset(lastSeenOffset),
-    },
   };
 }
 
-const FINDINGS: Array<Finding> = [
+const FINDINGS: Array<FindingProjection> = [
   createFinding({
     id: "2713d833-eb13-4517-ac7c-7761545ed42a",
     title: "Exposed Admin Endpoint",
     assetId: ASSETS[0].id,
     severity: VulnerabilitySeverity.Critical,
     status: FindingStatus.Active,
-    source: FindingSource.Nuclei,
     assigneeId: USERS[1].id,
     dueDate: utcDateOffset(-2),
     firstSeenOffset: -8,
@@ -185,7 +177,6 @@ const FINDINGS: Array<Finding> = [
     assetId: ASSETS[1].id,
     severity: VulnerabilitySeverity.High,
     status: FindingStatus.Confirmed,
-    source: FindingSource.Manual,
     assigneeId: USERS[2].id,
     dueDate: utcDateOffset(0),
     firstSeenOffset: -5,
@@ -197,7 +188,6 @@ const FINDINGS: Array<Finding> = [
     assetId: ASSETS[2].id,
     severity: VulnerabilitySeverity.Medium,
     status: FindingStatus.Active,
-    source: FindingSource.Nuclei,
     assigneeId: null,
     dueDate: utcDateOffset(5),
     firstSeenOffset: -4,
@@ -209,7 +199,6 @@ const FINDINGS: Array<Finding> = [
     assetId: ASSETS[0].id,
     severity: VulnerabilitySeverity.High,
     status: FindingStatus.Inactive,
-    source: FindingSource.Manual,
     assigneeId: USERS[1].id,
     dueDate: utcDateOffset(-7),
     firstSeenOffset: -14,
@@ -221,7 +210,6 @@ const FINDINGS: Array<Finding> = [
     assetId: ASSETS[1].id,
     severity: VulnerabilitySeverity.Low,
     status: FindingStatus.RiskAccepted,
-    source: FindingSource.Manual,
     assigneeId: null,
     dueDate: null,
     firstSeenOffset: -22,
@@ -326,22 +314,10 @@ function FindingTableStoryShell({ findings, assets, users, scenario }: FindingTa
         }
 
         if (method === "PUT") {
-          const update = JSON.parse(
-            typeof init?.body === "string" ? init.body : JSON.stringify(init?.body ?? {}),
-          ) as UpdateFinding;
-          const updatedFinding = {
-            ...finding,
-            ...update,
-            dueDate: update.dueDate ? new Date(update.dueDate) : null,
-            updatedAt: new Date(),
-          };
-
-          findingsRef.current = findingsRef.current.map((item) =>
-            item.id === findingId ? updatedFinding : item,
-          );
-          queryClient.setQueryData(["findings"], findingsRef.current);
-
-          return createObjectResponse(updatedFinding);
+          return new Response(JSON.stringify({ error: "Finding updates are unavailable" }), {
+            status: 501,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         return createObjectResponse(finding);

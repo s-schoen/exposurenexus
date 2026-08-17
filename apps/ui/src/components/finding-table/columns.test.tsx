@@ -1,11 +1,13 @@
+import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Asset } from "@exposurenexus/types/model/asset";
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { FindingProjection } from "@exposurenexus/types/model/finding";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { ReactNode } from "react";
 
@@ -48,36 +50,26 @@ vi.mock("@/components/user-label.tsx", () => ({
   },
 }));
 
-const finding: Finding = {
+const finding: FindingProjection = {
   id: "2713d833-eb13-4517-ac7c-7761545ed42a",
-  vulnerabilityId: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+  assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
+  title: "Exposed Admin Endpoint",
   severity: VulnerabilitySeverity.High,
   status: FindingStatus.Active,
-  source: "nuclei",
-  evidence: "Observed exposed admin endpoint",
   mitigation: "Restrict access to internal networks",
   assigneeId: "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206",
   dueDate: null,
+  weakness: { identifiers: {} },
+  affectedResource: { type: AffectedResourceType.Unspecified },
+  vulnerabilities: [],
+  observationCount: 2,
+  observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
   firstSeen: new Date("2026-01-02T00:00:00.000Z"),
   lastSeen: new Date("2026-01-03T00:00:00.000Z"),
-  fingerprint: "fingerprint-1",
-  assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
   createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
   updatedBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
   createdAt: new Date("2026-01-02T00:00:00.000Z"),
   updatedAt: new Date("2026-01-03T00:00:00.000Z"),
-  vulnerability: {
-    id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-    title: "Exposed Admin Endpoint",
-    severity: VulnerabilitySeverity.High,
-    description: "Administrative interface is reachable externally",
-    cwe: 284,
-    cve: null,
-    createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
-    updatedBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
-    createdAt: new Date("2026-01-01T00:00:00.000Z"),
-    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
-  },
 };
 const asset: Asset = {
   id: finding.assetId,
@@ -111,14 +103,14 @@ const assignee: UserProfile = {
 
 interface RowStub {
   getValue: (columnId: string) => unknown;
-  original: Finding;
+  original: FindingProjection;
 }
 
 interface TestColumn {
   id?: string;
   accessorKey: string;
-  accessorFn?: (finding: Finding) => unknown;
-  getGroupingValue?: (finding: Finding) => unknown;
+  accessorFn?: (finding: FindingProjection) => unknown;
+  getGroupingValue?: (finding: FindingProjection) => unknown;
   cell?: (context: { row: RowStub }) => ReactNode;
   filterFn?: (row: RowStub, columnId: string, filterValue: Array<string>) => boolean;
   meta?: {
@@ -127,7 +119,7 @@ interface TestColumn {
   sortFn?: (rowA: RowStub, rowB: RowStub, columnId: string) => number;
 }
 
-function createRow(original: Finding): RowStub {
+function createRow(original: FindingProjection): RowStub {
   return {
     getValue: (columnId) => {
       if (columnId === "severity") return original.severity;
@@ -136,7 +128,8 @@ function createRow(original: Finding): RowStub {
       if (columnId === "firstSeen") return original.firstSeen;
       if (columnId === "lastSeen") return original.lastSeen;
       if (columnId === "assetId") return original.assetId;
-      if (columnId === "source") return original.source;
+      if (columnId === "observationCount") return original.observationCount;
+      if (columnId === "observingSources") return original.observingSources.join(", ");
       return undefined;
     },
     original,
@@ -176,7 +169,7 @@ function findColumn(columns: Array<TestColumn>, accessorKey: string) {
   return column;
 }
 
-function renderCell(column: TestColumn, rowFinding: Finding = finding) {
+function renderCell(column: TestColumn, rowFinding: FindingProjection = finding) {
   if (!column.cell) {
     throw new Error(`Column ${column.accessorKey} has no cell renderer`);
   }
@@ -189,10 +182,10 @@ describe("createFindingColumns", () => {
     cleanup();
   });
 
-  it("renders title, severity, status, asset, source, and date cells", async () => {
+  it("renders title, severity, status, asset, source summaries, and date cells", async () => {
     const columns = await createColumns();
 
-    renderCell(findColumn(columns, "vulnerability.title"));
+    renderCell(findColumn(columns, "title"));
     expect(screen.getByText("Exposed Admin Endpoint")).toBeTruthy();
     cleanup();
 
@@ -224,20 +217,20 @@ describe("createFindingColumns", () => {
     expect(screen.getByText("2026-05-06")).toBeTruthy();
     cleanup();
 
-    renderCell(findColumn(columns, "source"));
-    expect(screen.getByText("nuclei")).toBeTruthy();
+    renderCell(findColumn(columns, "observingSources"));
+    expect(screen.getByText("manual, nuclei")).toBeTruthy();
     cleanup();
 
     renderCell(findColumn(columns, "firstSeen"));
-    expect(screen.getByText(finding.firstSeen.toLocaleString())).toBeTruthy();
+    expect(screen.getByText(finding.firstSeen!.toLocaleString())).toBeTruthy();
   });
 
-  it("renders fallback labels for unresolved assets, empty source, and missing due date", async () => {
+  it("renders fallback labels for unresolved assets, empty source summaries, and missing due date", async () => {
     const columns = await createColumns(new Map(), new Map(), new Map());
     const fallbackFinding = {
       ...finding,
       dueDate: null,
-      source: "",
+      observingSources: [],
     };
 
     renderCell(findColumn(columns, "assetId"), fallbackFinding);
@@ -248,8 +241,8 @@ describe("createFindingColumns", () => {
     expect(screen.getByText("Unknown Asset")).toBeTruthy();
     cleanup();
 
-    renderCell(findColumn(columns, "source"), fallbackFinding);
-    expect(screen.getByText("Manual")).toBeTruthy();
+    renderCell(findColumn(columns, "observingSources"), fallbackFinding);
+    expect(screen.getByText("None observed")).toBeTruthy();
     cleanup();
 
     renderCell(findColumn(columns, "dueDate"), fallbackFinding);
