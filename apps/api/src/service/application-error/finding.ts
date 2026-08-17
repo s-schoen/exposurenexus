@@ -40,20 +40,12 @@ export type FindingApplicationErrorCatalog = {
     kind: "unexpected";
     details: { findingId: string };
   };
-  "finding.reclassification_old_vulnerability_missing": {
+  "finding.vulnerability_link_target_missing": {
     kind: "missing";
     details: { vulnerabilityId: string };
   };
-  "finding.reclassification_target_vulnerability_missing": {
-    kind: "missing";
-    details: { vulnerabilityId: string };
-  };
-  "finding.reclassification_failed": {
+  "finding.vulnerability_link_failed": {
     kind: "unexpected";
-    details: {
-      source: string;
-      oldVulnerabilityId: string;
-      targetVulnerabilityId: string;
-    };
+    details: { findingId: string; vulnerabilityId: string };
   };
 };

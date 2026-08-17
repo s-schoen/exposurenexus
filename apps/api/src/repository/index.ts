@@ -7,7 +7,6 @@ export { createIngestionRepository } from "./ingestion.js";
 export { createObservationRepository } from "./observation.js";
 export { createRoleRepository } from "./role.js";
 export { createUserRoleRepository } from "./user-role.js";
-export { createVulnerabilityRepository } from "./vulnerability.js";
 export { createVulnerabilityPersistenceRepository } from "./vulnerability-persistence.js";
 export { createUserProfileRepository } from "./user-profile.js";
 export { createUserSessionRepository } from "./user-session.js";

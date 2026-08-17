@@ -12,7 +12,7 @@ import {
   createFindingRepository,
   createRoleRepository,
   createUserRoleRepository,
-  createVulnerabilityRepository,
+  createVulnerabilityPersistenceRepository,
 } from "./index.js";
 
 describe("repository factories", () => {
@@ -60,19 +60,17 @@ describe("repository factories", () => {
     expect(where).toHaveBeenCalledWith("fingerprint", "=", "hash");
   });
 
-  it("creates a vulnerability repository bound to the injected db", async () => {
+  it("creates a vulnerability catalog repository bound to the injected db", async () => {
     const execute = vi.fn().mockResolvedValue([]);
-    const where = vi.fn().mockReturnValue({ execute });
-    const selectAll = vi.fn().mockReturnValue({ where });
+    const selectAll = vi.fn().mockReturnValue({ execute });
     const selectFrom = vi.fn().mockReturnValue({ selectAll });
     const db = { selectFrom };
 
-    const repository = createVulnerabilityRepository(db as never);
+    const repository = createVulnerabilityPersistenceRepository(db as never);
 
-    await repository.listMappings("nuclei");
+    await repository.list();
 
-    expect(selectFrom).toHaveBeenCalledWith("vulnerability_source_mapping");
-    expect(where).toHaveBeenCalledWith("source", "=", "nuclei");
+    expect(selectFrom).toHaveBeenCalledWith("vulnerability");
     expect(execute).toHaveBeenCalledOnce();
   });
 

@@ -1,4 +1,5 @@
 import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
+import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { createTestUser } from "../../../test/app.js";
@@ -166,37 +167,31 @@ describe("createDomainEventPayload", () => {
     expectTypeOf(event).toMatchTypeOf<DomainEvent>();
   });
 
-  it("includes vulnerability events in the aggregate event catalog", () => {
+  it("includes catalog vulnerability events in the aggregate event catalog", () => {
     const user = createTestUser();
     const vulnerability = {
       id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+      type: VulnerabilityType.Cve,
+      identifier: "CVE-2026-0001",
       title: "Exposed Admin Endpoint",
-      severity: "high",
+      severity: VulnerabilitySeverity.High,
       description: "Administrative interface is reachable externally",
-      cwe: 284,
-      cve: null,
+      metadata: { cwe: 284 },
       createdBy: user.id,
       updatedBy: user.id,
       createdAt: new Date("2026-05-07T09:00:00.000Z"),
       updatedAt: new Date("2026-05-07T09:00:00.000Z"),
     } as VulnerabilityEventPayloads["vulnerability.created"]["vulnerability"];
-    const mapping = {
-      id: "3dcd2647-d0e4-4281-a9cb-5b4eb5955c47",
-      vulnerabilityId: vulnerability.id,
-      source: "nuclei",
-      matchQuery: '{"templateID":"admin-panel"}',
-    };
-
     const event = createEventPayload({
-      subject: "vulnerability.mapping.created",
+      subject: "vulnerability.created",
       source: "vulnerability",
-      data: { vulnerability, mapping },
+      data: { vulnerability },
     });
 
     expectTypeOf(event).toEqualTypeOf<
       DomainEventPayloadBase<
-        "vulnerability.mapping.created",
-        VulnerabilityEventPayloads["vulnerability.mapping.created"]
+        "vulnerability.created",
+        VulnerabilityEventPayloads["vulnerability.created"]
       >
     >();
     expectTypeOf(event).toMatchTypeOf<DomainEvent>();

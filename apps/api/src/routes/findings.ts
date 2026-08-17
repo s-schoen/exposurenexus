@@ -1,8 +1,4 @@
-import {
-  createFindingSchema,
-  reclassifyFindingsSchema,
-  updateFindingSchema,
-} from "@exposurenexus/types/model/finding";
+import { createFindingSchema, updateFindingSchema } from "@exposurenexus/types/model/finding";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod/v4";
@@ -20,6 +16,10 @@ interface FindingRouteDependencies {
 }
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }));
+const vulnerabilityLinkParamValidator = zValidator(
+  "param",
+  z.object({ findingId: z.uuidv4(), vulnerabilityId: z.uuidv4() }),
+);
 
 export function createFindingRoute(
   findingService: FindingService,
@@ -32,28 +32,6 @@ export function createFindingRoute(
     return replyArray(c, findings);
   });
 
-  finding.post(
-    "/reclassify",
-    requireDomainPermission("finding", "write"),
-    zValidator("json", reclassifyFindingsSchema),
-    async (c) => {
-      const body = c.req.valid("json");
-      const user = c.get("user");
-
-      if (!user) {
-        throw unauthorized();
-      }
-
-      const result = await findingService.reclassify({
-        reclassification: body,
-        user,
-        eventContext: requestEventContext(c),
-      });
-
-      return replyObject(c, result);
-    },
-  );
-
   finding.get("/:id", requireDomainPermission("finding", "read"), idParamValidator, async (c) => {
     const params = c.req.valid("param");
 
@@ -64,6 +42,56 @@ export function createFindingRoute(
 
     return replyObject(c, findingResult);
   });
+
+  finding.put(
+    "/:findingId/vulnerabilities/:vulnerabilityId",
+    requireDomainPermission("finding", "write"),
+    vulnerabilityLinkParamValidator,
+    async (c) => {
+      const user = c.get("user");
+      if (!user) {
+        throw unauthorized();
+      }
+
+      const params = c.req.valid("param");
+      const result = await findingService.linkVulnerability({
+        findingId: params.findingId,
+        vulnerabilityId: params.vulnerabilityId,
+        user,
+        eventContext: requestEventContext(c),
+      });
+      if (!result) {
+        throw notFound("finding", params.findingId);
+      }
+
+      return replyObject(c, result.finding, result.changed);
+    },
+  );
+
+  finding.delete(
+    "/:findingId/vulnerabilities/:vulnerabilityId",
+    requireDomainPermission("finding", "write"),
+    vulnerabilityLinkParamValidator,
+    async (c) => {
+      const user = c.get("user");
+      if (!user) {
+        throw unauthorized();
+      }
+
+      const params = c.req.valid("param");
+      const result = await findingService.unlinkVulnerability({
+        findingId: params.findingId,
+        vulnerabilityId: params.vulnerabilityId,
+        user,
+        eventContext: requestEventContext(c),
+      });
+      if (!result) {
+        throw notFound("finding", params.findingId);
+      }
+
+      return replyObject(c, result.finding);
+    },
+  );
 
   finding.post(
     "/",

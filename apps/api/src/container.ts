@@ -15,11 +15,12 @@ import {
   createAssetRepository,
   createFindingRepository,
   createFindingPersistenceRepository,
+  createFindingVulnerabilityRepository,
   createRoleRepository,
   createUserProfileRepository,
   createUserRoleRepository,
   createUserSessionRepository,
-  createVulnerabilityRepository,
+  createVulnerabilityPersistenceRepository,
 } from "./repository/index.js";
 import { createAssetRoute } from "./routes/assets.js";
 import { createAuthRoute } from "./routes/auth.js";
@@ -78,11 +79,12 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     assetRepository: createAssetRepository(options.db),
     findingRepository: createFindingRepository(options.db),
     findingPersistenceRepository: createFindingPersistenceRepository(options.db),
+    findingVulnerabilityRepository: createFindingVulnerabilityRepository(options.db),
     roleRepository: createRoleRepository(options.db),
     userRoleRepository: createUserRoleRepository(options.db),
     userProfileRepository: createUserProfileRepository(options.db),
     userSessionRepository: createUserSessionRepository(options.db),
-    vulnerabilityRepository: createVulnerabilityRepository(options.db),
+    vulnerabilityRepository: createVulnerabilityPersistenceRepository(options.db),
   };
 
   const authService = createAuthService({
@@ -128,6 +130,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const findingService = createFindingService({
     findingRepository: repositories.findingRepository,
     findingPersistenceRepository: repositories.findingPersistenceRepository,
+    findingVulnerabilityRepository: repositories.findingVulnerabilityRepository,
     assetService,
     userProfileService,
     vulnerabilityService,

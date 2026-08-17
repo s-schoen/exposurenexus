@@ -1,7 +1,5 @@
 import {
-  createVulnerabilitySourceMappingSchema,
   createVulnerabilitySchema,
-  updateVulnerabilitySourceMappingSchema,
   updateVulnerabilitySchema,
 } from "@exposurenexus/types/model/vulnerability";
 import { zValidator } from "@hono/zod-validator";
@@ -21,11 +19,6 @@ interface VulnerabilityRouteDependencies {
 }
 
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }));
-const mappingIdParamValidator = zValidator("param", z.object({ mappingId: z.uuidv4() }));
-const mappingQueryValidator = zValidator(
-  "query",
-  z.object({ source: z.string().trim().min(1).optional() }),
-);
 
 export function createVulnerabilityRoute(
   vulnerabilityService: VulnerabilityService,
@@ -34,8 +27,7 @@ export function createVulnerabilityRoute(
   const vulnerability = new Hono<{ Variables: ContextVariables }>();
 
   vulnerability.get("/", requireDomainPermission("vulnerability", "read"), async (c) => {
-    const vulns = await vulnerabilityService.listAll();
-    return replyArray(c, vulns);
+    return replyArray(c, await vulnerabilityService.listAll());
   });
 
   vulnerability.post(
@@ -43,15 +35,13 @@ export function createVulnerabilityRoute(
     requireDomainPermission("vulnerability", "write"),
     zValidator("json", createVulnerabilitySchema),
     async (c) => {
-      const body = c.req.valid("json");
       const user = c.get("user");
-
       if (!user) {
         throw unauthorized();
       }
 
       const createdVulnerability = await vulnerabilityService.create({
-        vulnerability: body,
+        vulnerability: c.req.valid("json"),
         user,
         eventContext: requestEventContext(c),
       });
@@ -61,106 +51,17 @@ export function createVulnerabilityRoute(
   );
 
   vulnerability.get(
-    "/mappings",
-    requireDomainPermission("vulnerability", "read"),
-    mappingQueryValidator,
-    async (c) => {
-      const query = c.req.valid("query");
-      const mappings = await vulnerabilityService.listMappings(query.source);
-
-      return replyArray(c, mappings);
-    },
-  );
-
-  vulnerability.put(
-    "/mappings/:mappingId",
-    requireDomainPermission("vulnerability", "write"),
-    mappingIdParamValidator,
-    zValidator("json", updateVulnerabilitySourceMappingSchema),
-    async (c) => {
-      const params = c.req.valid("param");
-      const body = c.req.valid("json");
-      const mapping = await vulnerabilityService.updateMappingByID({
-        id: params.mappingId,
-        mapping: body,
-        eventContext: requestEventContext(c),
-      });
-      if (!mapping) {
-        throw notFound("vulnerability source mapping", params.mappingId);
-      }
-
-      return replyObject(c, mapping);
-    },
-  );
-
-  vulnerability.delete(
-    "/mappings/:mappingId",
-    requireDomainPermission("vulnerability", "write"),
-    mappingIdParamValidator,
-    async (c) => {
-      const params = c.req.valid("param");
-      const mapping = await vulnerabilityService.deleteMappingByID(
-        params.mappingId,
-        requestEventContext(c),
-      );
-      if (!mapping) {
-        throw notFound("vulnerability source mapping", params.mappingId);
-      }
-
-      return replyObject(c, mapping);
-    },
-  );
-
-  vulnerability.get(
     "/:id",
     requireDomainPermission("vulnerability", "read"),
     idParamValidator,
     async (c) => {
-      const params = c.req.valid("param");
-
-      const vulnResult = await vulnerabilityService.getByID(params.id);
-      if (!vulnResult) {
-        throw notFound("vulnerability", params.id);
+      const { id } = c.req.valid("param");
+      const vulnerabilityResult = await vulnerabilityService.getByID(id);
+      if (!vulnerabilityResult) {
+        throw notFound("vulnerability", id);
       }
 
-      return replyObject(c, vulnResult);
-    },
-  );
-
-  vulnerability.get(
-    "/:id/mappings",
-    requireDomainPermission("vulnerability", "read"),
-    idParamValidator,
-    async (c) => {
-      const params = c.req.valid("param");
-      const mappings = await vulnerabilityService.listMappingsByVulnerabilityID(params.id);
-      if (!mappings) {
-        throw notFound("vulnerability", params.id);
-      }
-
-      return replyArray(c, mappings);
-    },
-  );
-
-  vulnerability.post(
-    "/:id/mappings",
-    requireDomainPermission("vulnerability", "write"),
-    idParamValidator,
-    zValidator("json", createVulnerabilitySourceMappingSchema),
-    async (c) => {
-      const params = c.req.valid("param");
-      const body = c.req.valid("json");
-      const mapping = await vulnerabilityService.createMapping({
-        vulnerabilityId: params.id,
-        source: body.source,
-        matchQuery: body.matchQuery,
-        eventContext: requestEventContext(c),
-      });
-      if (!mapping) {
-        throw notFound("vulnerability", params.id);
-      }
-
-      return replyObject(c, mapping, true);
+      return replyObject(c, vulnerabilityResult);
     },
   );
 
@@ -170,22 +71,20 @@ export function createVulnerabilityRoute(
     idParamValidator,
     zValidator("json", updateVulnerabilitySchema),
     async (c) => {
-      const params = c.req.valid("param");
-      const body = c.req.valid("json");
       const user = c.get("user");
-
       if (!user) {
         throw unauthorized();
       }
 
+      const { id } = c.req.valid("param");
       const updatedVulnerability = await vulnerabilityService.updateByID({
-        id: params.id,
-        vulnerability: body,
+        id,
+        vulnerability: c.req.valid("json"),
         user,
         eventContext: requestEventContext(c),
       });
       if (!updatedVulnerability) {
-        throw notFound("vulnerability", params.id);
+        throw notFound("vulnerability", id);
       }
 
       return replyObject(c, updatedVulnerability);
@@ -197,14 +96,13 @@ export function createVulnerabilityRoute(
     requireDomainPermission("vulnerability", "delete"),
     idParamValidator,
     async (c) => {
-      const params = c.req.valid("param");
-
+      const { id } = c.req.valid("param");
       const deletedVulnerability = await vulnerabilityService.deleteByID(
-        params.id,
+        id,
         requestEventContext(c),
       );
       if (!deletedVulnerability) {
-        throw notFound("vulnerability", params.id);
+        throw notFound("vulnerability", id);
       }
 
       return replyObject(c, deletedVulnerability);

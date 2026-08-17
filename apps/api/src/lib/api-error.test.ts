@@ -112,22 +112,6 @@ describe("api errors", () => {
       createApiErrorReply(
         "api-error-test",
         new ApplicationError({
-          code: "finding.reclassification_target_vulnerability_missing",
-          kind: "missing",
-          message: "target vulnerability does not exist",
-          details: { vulnerabilityId: "missing-vulnerability-id" },
-        }),
-      ),
-    ).toMatchObject({
-      correlationId: "api-error-test",
-      status: 404,
-      error: expect.any(String),
-    });
-
-    expect(
-      createApiErrorReply(
-        "api-error-test",
-        new ApplicationError({
           code: "role.list_failed",
           kind: "unexpected",
           message: "failed to list roles",
@@ -199,10 +183,10 @@ describe("api errors", () => {
 
   it("does not expose vulnerability application error details by default", () => {
     const error = new ApplicationError({
-      code: "vulnerability.mapping.source_required",
+      code: "vulnerability.invalid_input",
       kind: "validation",
-      message: "source is required",
-      details: { source: "   " },
+      message: "catalog input is invalid",
+      details: { issues: [{ path: ["identifier"] }] },
     });
 
     const reply = createApiErrorReply("api-error-test", error);
