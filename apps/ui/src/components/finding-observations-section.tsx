@@ -4,12 +4,14 @@ import {
   WebEndpointComponentKind,
 } from "@exposurenexus/types/model/affected-resource";
 import { manualObservationInputSchema } from "@exposurenexus/types/model/finding";
+import { updateObservationSchema } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { createFindingObservationsQueryOptions } from "@/api/finding.ts";
+import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { SafeMarkdown } from "@/components/safe-markdown.tsx";
 import { SeverityBadge } from "@/components/severity-badge.tsx";
 import { Timestamp } from "@/components/timestamp.tsx";
@@ -133,15 +135,17 @@ function ResourceInput({
   resourceKey,
   label,
   numeric = false,
+  idPrefix = "observation-resource",
   onChange,
 }: {
   resource: ObservationResource;
   resourceKey: string;
   label: string;
   numeric?: boolean;
+  idPrefix?: string;
   onChange: (resource: ObservationResource) => void;
 }) {
-  const id = `observation-resource-${resourceKey}`;
+  const id = `${idPrefix}-${resourceKey}`;
   return (
     <Field>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
@@ -176,9 +180,11 @@ function updateLocation(
 
 function ObservationResourceFields({
   resource,
+  idPrefix = "observation-resource",
   onChange,
 }: {
   resource: ObservationResource;
+  idPrefix?: string;
   onChange: (resource: ObservationResource) => void;
 }) {
   switch (resource.type) {
@@ -190,14 +196,14 @@ function ObservationResourceFields({
       return (
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
-            <FieldLabel htmlFor="observation-resource-scheme">Scheme</FieldLabel>
+            <FieldLabel htmlFor={`${idPrefix}-scheme`}>Scheme</FieldLabel>
             <Select
               value={resource.scheme ?? ""}
               onValueChange={(value) =>
                 onChange(updateResourceValue(resource, "scheme", value ?? ""))
               }
             >
-              <SelectTrigger id="observation-resource-scheme" className="w-full">
+              <SelectTrigger id={`${idPrefix}-scheme`} className="w-full">
                 <SelectValue placeholder="Select scheme" />
               </SelectTrigger>
               <SelectContent>
@@ -206,29 +212,44 @@ function ObservationResourceFields({
               </SelectContent>
             </Select>
           </Field>
-          <ResourceInput resource={resource} resourceKey="host" label="Host" onChange={onChange} />
+          <ResourceInput
+            resource={resource}
+            resourceKey="host"
+            label="Host"
+            idPrefix={idPrefix}
+            onChange={onChange}
+          />
           <ResourceInput
             resource={resource}
             resourceKey="port"
             label="Port"
             numeric
+            idPrefix={idPrefix}
             onChange={onChange}
           />
-          <ResourceInput resource={resource} resourceKey="path" label="Path" onChange={onChange} />
+          <ResourceInput
+            resource={resource}
+            resourceKey="path"
+            label="Path"
+            idPrefix={idPrefix}
+            onChange={onChange}
+          />
           <ResourceInput
             resource={resource}
             resourceKey="method"
             label="Method"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <ResourceInput
             resource={resource}
             resourceKey="reportedUrl"
             label="Reported URL"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <Field>
-            <FieldLabel htmlFor="observation-resource-component">Component kind</FieldLabel>
+            <FieldLabel htmlFor={`${idPrefix}-component`}>Component kind</FieldLabel>
             <Select
               value={component?.kind ?? noComponentValue}
               onValueChange={(value) => {
@@ -245,7 +266,7 @@ function ObservationResourceFields({
                 } as ObservationResource);
               }}
             >
-              <SelectTrigger id="observation-resource-component" className="w-full">
+              <SelectTrigger id={`${idPrefix}-component`} className="w-full">
                 <SelectValue>
                   {(value) =>
                     value === noComponentValue
@@ -266,9 +287,9 @@ function ObservationResourceFields({
           </Field>
           {component && namedComponentKinds.has(component.kind) ? (
             <Field>
-              <FieldLabel htmlFor="observation-resource-component-name">Component name</FieldLabel>
+              <FieldLabel htmlFor={`${idPrefix}-component-name`}>Component name</FieldLabel>
               <Input
-                id="observation-resource-component-name"
+                id={`${idPrefix}-component-name`}
                 value={"name" in component ? component.name : ""}
                 onChange={(event) =>
                   onChange({
@@ -285,23 +306,30 @@ function ObservationResourceFields({
     case AffectedResourceType.NetworkService:
       return (
         <div className="grid gap-4 sm:grid-cols-2">
-          <ResourceInput resource={resource} resourceKey="host" label="Host" onChange={onChange} />
+          <ResourceInput
+            resource={resource}
+            resourceKey="host"
+            label="Host"
+            idPrefix={idPrefix}
+            onChange={onChange}
+          />
           <ResourceInput
             resource={resource}
             resourceKey="port"
             label="Port"
             numeric
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <Field>
-            <FieldLabel htmlFor="observation-resource-transport">Transport</FieldLabel>
+            <FieldLabel htmlFor={`${idPrefix}-transport`}>Transport</FieldLabel>
             <Select
               value={resource.transport ?? ""}
               onValueChange={(value) =>
                 onChange(updateResourceValue(resource, "transport", value ?? ""))
               }
             >
-              <SelectTrigger id="observation-resource-transport" className="w-full">
+              <SelectTrigger id={`${idPrefix}-transport`} className="w-full">
                 <SelectValue placeholder="Select transport" />
               </SelectTrigger>
               <SelectContent>
@@ -317,6 +345,7 @@ function ObservationResourceFields({
             resource={resource}
             resourceKey="protocol"
             label="Protocol"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
         </div>
@@ -328,22 +357,30 @@ function ObservationResourceFields({
             resource={resource}
             resourceKey="repository"
             label="Repository"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <ResourceInput
             resource={resource}
             resourceKey="revision"
             label="Revision"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
-          <ResourceInput resource={resource} resourceKey="file" label="File" onChange={onChange} />
+          <ResourceInput
+            resource={resource}
+            resourceKey="file"
+            label="File"
+            idPrefix={idPrefix}
+            onChange={onChange}
+          />
           {(["startLine", "startColumn", "endLine", "endColumn"] as const).map((key) => (
             <Field key={key}>
-              <FieldLabel htmlFor={`observation-resource-${key}`}>
+              <FieldLabel htmlFor={`${idPrefix}-${key}`}>
                 {key.replace(/([A-Z])/g, " $1")}
               </FieldLabel>
               <Input
-                id={`observation-resource-${key}`}
+                id={`${idPrefix}-${key}`}
                 type="number"
                 min={1}
                 value={resource.location?.[key]?.toString() ?? ""}
@@ -355,12 +392,14 @@ function ObservationResourceFields({
             resource={resource}
             resourceKey="symbol"
             label="Symbol"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <ResourceInput
             resource={resource}
             resourceKey="locationFingerprint"
             label="Location fingerprint"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
         </div>
@@ -372,24 +411,28 @@ function ObservationResourceFields({
             resource={resource}
             resourceKey="ecosystem"
             label="Ecosystem"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <ResourceInput
             resource={resource}
             resourceKey="name"
             label="Package name"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <ResourceInput
             resource={resource}
             resourceKey="version"
             label="Version"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <ResourceInput
             resource={resource}
             resourceKey="installationPath"
             label="Installation path"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
         </div>
@@ -401,21 +444,30 @@ function ObservationResourceFields({
             resource={resource}
             resourceKey="registry"
             label="Registry"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <ResourceInput
             resource={resource}
             resourceKey="repository"
             label="Repository"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <ResourceInput
             resource={resource}
             resourceKey="digest"
             label="Digest"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
-          <ResourceInput resource={resource} resourceKey="tag" label="Tag" onChange={onChange} />
+          <ResourceInput
+            resource={resource}
+            resourceKey="tag"
+            label="Tag"
+            idPrefix={idPrefix}
+            onChange={onChange}
+          />
         </div>
       );
     case AffectedResourceType.CloudResource:
@@ -425,36 +477,42 @@ function ObservationResourceFields({
             resource={resource}
             resourceKey="provider"
             label="Provider"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <ResourceInput
             resource={resource}
             resourceKey="providerAccount"
             label="Provider account"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <ResourceInput
             resource={resource}
             resourceKey="region"
             label="Region"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <ResourceInput
             resource={resource}
             resourceKey="resourceId"
             label="Resource ID"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <ResourceInput
             resource={resource}
             resourceKey="subresource"
             label="Subresource"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
           <ResourceInput
             resource={resource}
             resourceKey="displayName"
             label="Display name"
+            idPrefix={idPrefix}
             onChange={onChange}
           />
         </div>
@@ -478,6 +536,273 @@ function resourceDetails(resource: ObservationResource): Array<[string, string]>
     ]);
 }
 
+function weaknessInputValue(weakness: Observation["weakness"]): string {
+  return Object.entries(weakness.identifiers)
+    .map(([namespace, values]) => `${namespace}=${values.join(",")}`)
+    .join("; ");
+}
+
+function localDateTimeValue(value: Date): string {
+  return new Date(value.getTime() - value.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
+function observationDraft(observation: Observation): ObservationDraft {
+  return {
+    title: observation.title,
+    description: observation.description,
+    evidence: observation.evidence,
+    remediation: observation.remediation,
+    severity: observation.severity,
+    affectedResource: observation.affectedResource,
+    observedAt: observation.observedAt,
+  };
+}
+
+function EditObservationDialog({ observation }: { observation: Observation }) {
+  const lifecycle = useObservationLifecycle();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<ObservationDraft>(() => observationDraft(observation));
+  const [weakness, setWeakness] = useState(() => weaknessInputValue(observation.weakness));
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const formId = `edit-observation-${observation.id}`;
+  const idPrefix = `${formId}-resource`;
+
+  const openEditor = () => {
+    setDraft(observationDraft(observation));
+    setWeakness(weaknessInputValue(observation.weakness));
+    setError(null);
+    setOpen(true);
+  };
+
+  const closeEditor = () => {
+    if (!submitting) {
+      setError(null);
+      setOpen(false);
+    }
+  };
+
+  const submit = async () => {
+    const parsedWeakness = parseWeaknessText(weakness);
+    if (parsedWeakness === null) {
+      setError("Weakness identifiers must use namespace=identifier entries.");
+      return;
+    }
+
+    const result = updateObservationSchema.safeParse({
+      ...draft,
+      weakness: parsedWeakness ?? { identifiers: {} },
+    });
+    if (!result.success) {
+      const issue = result.error.issues[0];
+      setError(
+        `Unable to save observation. ${issue.path.length ? `${issue.path.join(".")}: ` : ""}${issue.message}`,
+      );
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    const updated = await lifecycle.updateObservation(
+      observation.findingId,
+      observation.id,
+      result.data,
+    );
+    setSubmitting(false);
+    if (!updated) {
+      setError("Unable to save observation. Try again.");
+      return;
+    }
+
+    setOpen(false);
+  };
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-label={`Edit observation ${observation.title}`}
+        onClick={openEditor}
+      >
+        <Pencil />
+        Edit
+      </Button>
+      <Dialog open={open} onOpenChange={(next) => (next ? openEditor() : closeEditor())}>
+        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Correct observation</DialogTitle>
+            <DialogDescription>
+              Correct source evidence without changing the finding's workflow or canonical identity.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            id={formId}
+            className="space-y-6"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void submit();
+            }}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field className="sm:col-span-2">
+                <FieldLabel htmlFor={`${formId}-title`}>Title</FieldLabel>
+                <Input
+                  id={`${formId}-title`}
+                  value={draft.title ?? ""}
+                  onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor={`${formId}-severity`}>Severity</FieldLabel>
+                <Select
+                  value={draft.severity}
+                  onValueChange={(value) => value && setDraft({ ...draft, severity: value })}
+                >
+                  <SelectTrigger id={`${formId}-severity`} className="w-full">
+                    <SelectValue>
+                      {() => formatSeverity(draft.severity as VulnerabilitySeverity)}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {severities.map((severity) => (
+                      <SelectItem key={severity} value={severity}>
+                        {formatSeverity(severity)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor={`${formId}-observed-at`}>Observed at</FieldLabel>
+                <Input
+                  id={`${formId}-observed-at`}
+                  type="datetime-local"
+                  value={draft.observedAt ? localDateTimeValue(draft.observedAt) : ""}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      observedAt: event.target.value ? new Date(event.target.value) : undefined,
+                    })
+                  }
+                />
+              </Field>
+              {(["description", "evidence", "remediation"] as const).map((key) => (
+                <Field key={key} className="sm:col-span-2">
+                  <FieldLabel htmlFor={`${formId}-${key}`}>{capitalizeFirstLetter(key)}</FieldLabel>
+                  <Textarea
+                    id={`${formId}-${key}`}
+                    value={draft[key] ?? ""}
+                    onChange={(event) => setDraft({ ...draft, [key]: event.target.value || null })}
+                  />
+                </Field>
+              ))}
+            </div>
+            <Separator />
+            <Field>
+              <FieldLabel htmlFor={`${formId}-weakness`}>Weakness identifiers</FieldLabel>
+              <Input
+                id={`${formId}-weakness`}
+                value={weakness}
+                placeholder="cwe=CWE-200; nuclei=admin-panel"
+                onChange={(event) => setWeakness(event.target.value)}
+              />
+              <FieldDescription>
+                Blank clears the observation weakness. Separate namespaces with semicolons and
+                identifiers with commas.
+              </FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor={`${formId}-resource-type`}>Affected resource type</FieldLabel>
+              <Select
+                value={draft.affectedResource?.type ?? AffectedResourceType.Unspecified}
+                onValueChange={(value) =>
+                  value &&
+                  setDraft({
+                    ...draft,
+                    affectedResource: emptyResource(value),
+                  })
+                }
+              >
+                <SelectTrigger id={`${formId}-resource-type`} className="w-full">
+                  <SelectValue>
+                    {(value) => formatResourceType(value as AffectedResourceType)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {resourceTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {formatResourceType(type)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            {draft.affectedResource ? (
+              <ObservationResourceFields
+                resource={draft.affectedResource}
+                idPrefix={idPrefix}
+                onChange={(affectedResource) => setDraft({ ...draft, affectedResource })}
+              />
+            ) : null}
+            {error ? (
+              <p role="alert" className="text-sm font-medium text-destructive">
+                {error}
+              </p>
+            ) : null}
+          </form>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeEditor}>
+              Cancel
+            </Button>
+            <Button type="submit" form={formId} disabled={submitting}>
+              {submitting ? <Spinner /> : null}Save correction
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function DeleteObservationButton({ observation }: { observation: Observation }) {
+  const lifecycle = useObservationLifecycle();
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    const confirmed = await ConfirmDialog.call({
+      title: "Delete observation",
+      description: "The finding remains, even if this is its final observation.",
+      message: `Delete ${observation.title}?`,
+      cancelText: "Keep observation",
+      confirmText: "Delete observation",
+      confirmVariant: "destructive",
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    setDeleting(true);
+    await lifecycle.deleteObservation(observation.findingId, observation.id);
+    setDeleting(false);
+  };
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      aria-label={`Delete observation ${observation.title}`}
+      disabled={deleting}
+      onClick={() => void handleDelete()}
+    >
+      {deleting ? <Spinner /> : <Trash2 />}
+      Delete
+    </Button>
+  );
+}
+
 function ObservationCard({ observation }: { observation: Observation }) {
   const details = resourceDetails(observation.affectedResource);
   const identifiers = Object.entries(observation.weakness.identifiers);
@@ -493,7 +818,11 @@ function ObservationCard({ observation }: { observation: Observation }) {
             <Timestamp timestamp={observation.observedAt} />
           </div>
         </div>
-        <SeverityBadge severity={observation.severity} />
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <SeverityBadge severity={observation.severity} />
+          <EditObservationDialog observation={observation} />
+          <DeleteObservationButton observation={observation} />
+        </div>
       </div>
       {observation.description ? (
         <SafeMarkdown className="mt-4">{observation.description}</SafeMarkdown>

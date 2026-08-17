@@ -17,10 +17,18 @@ import type * as FindingApi from "@/api/finding.ts";
 import type { Observation } from "@exposurenexus/types/model/observation";
 import type { ReactNode } from "react";
 
-const { createObservationRequestMock, toastErrorMock, toastSuccessMock } = vi.hoisted(() => ({
+const {
+  createObservationRequestMock,
+  deleteObservationRequestMock,
+  toastErrorMock,
+  toastSuccessMock,
+  updateObservationRequestMock,
+} = vi.hoisted(() => ({
   createObservationRequestMock: vi.fn(),
+  deleteObservationRequestMock: vi.fn(),
   toastErrorMock: vi.fn(),
   toastSuccessMock: vi.fn(),
+  updateObservationRequestMock: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -36,6 +44,12 @@ vi.mock("@/api/finding.ts", async (importOriginal) => {
     ...actual,
     useCreateFindingObservationMutation: () => ({
       mutateAsync: createObservationRequestMock,
+    }),
+    useUpdateFindingObservationMutation: () => ({
+      mutateAsync: updateObservationRequestMock,
+    }),
+    useDeleteFindingObservationMutation: () => ({
+      mutateAsync: deleteObservationRequestMock,
     }),
   };
 });
@@ -73,8 +87,10 @@ function renderLifecycleHook() {
 
 beforeEach(() => {
   createObservationRequestMock.mockReset();
+  deleteObservationRequestMock.mockReset();
   toastErrorMock.mockReset();
   toastSuccessMock.mockReset();
+  updateObservationRequestMock.mockReset();
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
 
@@ -128,4 +144,77 @@ describe("useObservationLifecycle", () => {
     expect(toastErrorMock).toHaveBeenCalledWith("Failed to add observation: Error: Request failed");
     expect(console.error).toHaveBeenCalledWith(error);
   });
+
+  it.each([
+    ["updates", "updateObservation", updateObservationRequestMock, "Observation updated"],
+    ["deletes", "deleteObservation", deleteObservationRequestMock, "Observation deleted"],
+  ] as const)(
+    "%s an observation and invalidates every exact affected read",
+    async (_label, action, requestMock, toast) => {
+      requestMock.mockResolvedValueOnce(observation);
+      const { queryClient, result } = renderLifecycleHook();
+      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+
+      let changed: Observation | null = null;
+      await act(async () => {
+        changed =
+          action === "updateObservation"
+            ? await result.current.updateObservation(findingId, observation.id, {
+                title: "Corrected observation",
+              })
+            : await result.current.deleteObservation(findingId, observation.id);
+      });
+
+      expect(changed).toEqual(observation);
+      if (action === "updateObservation") {
+        expect(updateObservationRequestMock).toHaveBeenCalledWith({
+          findingId,
+          observationId: observation.id,
+          update: { title: "Corrected observation" },
+        });
+      } else {
+        expect(deleteObservationRequestMock).toHaveBeenCalledWith({
+          findingId,
+          observationId: observation.id,
+        });
+      }
+      for (const queryKey of [
+        createFindingObservationsQueryOptions(findingId).queryKey,
+        createFindingByIDQueryOptions(findingId).queryKey,
+        createListFindingsQueryOptions().queryKey,
+        createFindingStatsQueryOptions().queryKey,
+      ]) {
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey, exact: true });
+      }
+      expect(toastSuccessMock).toHaveBeenCalledWith(toast);
+    },
+  );
+
+  it.each([
+    ["updateObservation", updateObservationRequestMock, "Failed to update observation"],
+    ["deleteObservation", deleteObservationRequestMock, "Failed to delete observation"],
+  ] as const)(
+    "handles %s failures without invalidating caches",
+    async (action, requestMock, message) => {
+      const error = new Error("Request failed");
+      requestMock.mockRejectedValueOnce(error);
+      const { queryClient, result } = renderLifecycleHook();
+      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+
+      let changed: Observation | null = observation;
+      await act(async () => {
+        changed =
+          action === "updateObservation"
+            ? await result.current.updateObservation(findingId, observation.id, {
+                title: "Corrected",
+              })
+            : await result.current.deleteObservation(findingId, observation.id);
+      });
+
+      expect(changed).toBeNull();
+      expect(invalidateSpy).not.toHaveBeenCalled();
+      expect(toastErrorMock).toHaveBeenCalledWith(`${message}: Error: Request failed`);
+      expect(console.error).toHaveBeenCalledWith(error);
+    },
+  );
 });

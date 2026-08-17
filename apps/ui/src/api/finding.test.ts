@@ -12,9 +12,11 @@ import {
   createFindingStatsQueryOptions,
   createListFindingsQueryOptions,
   deleteFinding,
+  deleteFindingObservation,
   linkFindingVulnerability,
   unlinkFindingVulnerability,
   updateFinding,
+  updateFindingObservation,
 } from "@/api/finding.ts";
 
 import type {
@@ -25,7 +27,7 @@ import type {
   FindingStatistics,
   ManualObservationInput,
 } from "@exposurenexus/types/model/finding";
-import type { Observation } from "@exposurenexus/types/model/observation";
+import type { Observation, UpdateObservation } from "@exposurenexus/types/model/observation";
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -316,6 +318,50 @@ describe("finding api", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       `/api/findings/${findingId}/observations`,
       expect.objectContaining({ credentials: "include", method: "POST" }),
+    );
+  });
+
+  it("updates a nested observation with only mutable fields", async () => {
+    const update: UpdateObservation = {
+      title: "Corrected admin endpoint",
+      description: null,
+      evidence: "GET /admin returned 401",
+      remediation: null,
+      severity: VulnerabilitySeverity.Medium,
+      weakness: { identifiers: { cwe: ["CWE-89"] } },
+      affectedResource: { type: AffectedResourceType.SourceCode, file: "src/query.ts" },
+      observedAt: new Date("2026-01-04T00:00:00.000Z"),
+    };
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ data: { ...observationJson, ...update, observedAt: update.observedAt } }),
+    );
+
+    const observation = await updateFindingObservation(findingId, observationJson.id, update);
+
+    expect(observation.title).toBe(update.title);
+    expect(observation.observedAt).toEqual(update.observedAt);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/findings/${findingId}/observations/${observationJson.id}`,
+      expect.objectContaining({ credentials: "include", method: "PUT" }),
+    );
+    expect(requestJsonBody()).toEqual({
+      ...update,
+      observedAt: update.observedAt?.toISOString(),
+    });
+    expect(requestJsonBody()).not.toHaveProperty("findingId");
+    expect(requestJsonBody()).not.toHaveProperty("source");
+    expect(requestJsonBody()).not.toHaveProperty("createdAt");
+  });
+
+  it("deletes a nested observation", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ data: observationJson }));
+
+    const observation = await deleteFindingObservation(findingId, observationJson.id);
+
+    expect(observation.id).toBe(observationJson.id);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/findings/${findingId}/observations/${observationJson.id}`,
+      expect.objectContaining({ credentials: "include", method: "DELETE" }),
     );
   });
 

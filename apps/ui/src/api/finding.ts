@@ -23,7 +23,7 @@ import type {
   ManualObservationInput,
   UpdateFinding,
 } from "@exposurenexus/types/model/finding";
-import type { Observation } from "@exposurenexus/types/model/observation";
+import type { Observation, UpdateObservation } from "@exposurenexus/types/model/observation";
 
 async function listFindings(): Promise<Array<FindingProjection>> {
   const response = await apiRequest("/api/findings", {
@@ -105,6 +105,45 @@ export async function createFindingObservation(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(observation),
+  });
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response);
+    console.error(error);
+    throw error;
+  }
+
+  return parseObjectReply(response, observationSchema);
+}
+
+export async function updateFindingObservation(
+  findingId: string,
+  observationId: string,
+  update: UpdateObservation,
+): Promise<Observation> {
+  const response = await apiRequest(`/api/findings/${findingId}/observations/${observationId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(update),
+  });
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response);
+    console.error(error);
+    throw error;
+  }
+
+  return parseObjectReply(response, observationSchema);
+}
+
+export async function deleteFindingObservation(
+  findingId: string,
+  observationId: string,
+): Promise<Observation> {
+  const response = await apiRequest(`/api/findings/${findingId}/observations/${observationId}`, {
+    method: "DELETE",
   });
 
   if (!response.ok) {
@@ -276,6 +315,27 @@ export function useCreateFindingObservationMutation() {
       findingId: string;
       observation: ManualObservationInput;
     }) => createFindingObservation(findingId, observation),
+  });
+}
+
+export function useUpdateFindingObservationMutation() {
+  return useMutation({
+    mutationFn: ({
+      findingId,
+      observationId,
+      update,
+    }: {
+      findingId: string;
+      observationId: string;
+      update: UpdateObservation;
+    }) => updateFindingObservation(findingId, observationId, update),
+  });
+}
+
+export function useDeleteFindingObservationMutation() {
+  return useMutation({
+    mutationFn: ({ findingId, observationId }: { findingId: string; observationId: string }) =>
+      deleteFindingObservation(findingId, observationId),
   });
 }
 
