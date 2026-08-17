@@ -19,6 +19,7 @@ import { AssetInfoItem } from "@/components/asset-info-item.tsx";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
+import { FindingObservationsSection } from "@/components/finding-observations-section.tsx";
 import { FindingStatusBadge } from "@/components/finding-status-badge.tsx";
 import { MetadataSidebar } from "@/components/metadata-sidebar";
 import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
@@ -506,7 +507,7 @@ function FindingCorrectionDialog({
       setOpen(true);
       return;
     }
-    if (!nextOpen && submitting) return;
+    if (submitting) return;
     reset();
     setOpen(false);
   };
@@ -1184,6 +1185,7 @@ export function FindingDetailContent({ findingId, titleAction }: FindingDetailCo
             <AssetInfoItem assetId={findingData.assetId} />
             <FindingWeaknessCard finding={findingData} />
             <FindingResourceCard finding={findingData} />
+            <FindingObservationsSection finding={findingData} />
             <FindingVulnerabilitiesCard finding={findingData} />
             <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
               <CardHeader>

@@ -237,6 +237,9 @@ function FindingDetailContentStoryShell({
 
     globalThis.fetch = async (input, init) => {
       const requestUrl = input instanceof Request ? input.url : String(input);
+      if (requestUrl.endsWith(`/api/findings/${effectiveFinding.id}/observations`)) {
+        return createArrayResponse([]);
+      }
       if (requestUrl.endsWith(`/api/findings/${effectiveFinding.id}`)) {
         if (scenario === "loading") return await new Promise<Response>(() => {});
         if (init?.method === "PUT") {

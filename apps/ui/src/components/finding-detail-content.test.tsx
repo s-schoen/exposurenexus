@@ -113,6 +113,9 @@ vi.mock("@tanstack/react-query", () => ({
   keepPreviousData: vi.fn(),
   queryOptions: <T extends object>(options: T) => options,
   useQuery: (options: { queryKey?: Array<string> }) => {
+    if (options.queryKey?.[2] === "observations") {
+      return { data: [], isPending: false, isSuccess: true, isError: false };
+    }
     if (options.queryKey?.[0] === "findings") return mocks.findingQuery;
     if (options.queryKey?.[0] === "assets") {
       return { data: asset, isPending: false, isSuccess: true };
@@ -134,6 +137,9 @@ vi.mock("@/api/asset.ts", () => ({
 
 vi.mock("@/api/finding.ts", () => ({
   createFindingByIDQueryOptions: (id: string) => ({ queryKey: ["findings", id] }),
+  createFindingObservationsQueryOptions: (id: string) => ({
+    queryKey: ["findings", id, "observations"],
+  }),
   createFindingStatsQueryOptions: () => ({ queryKey: ["findings", "stats"] }),
   createListFindingsQueryOptions: () => ({ queryKey: ["findings"] }),
   useLinkFindingVulnerabilityMutation: () => ({ mutateAsync: vi.fn() }),
@@ -150,6 +156,10 @@ vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
     linkVulnerability: vi.fn(),
     unlinkVulnerability: vi.fn(),
   }),
+}));
+
+vi.mock("@/hooks/use-observation-lifecycle.ts", () => ({
+  useObservationLifecycle: () => ({ addObservation: vi.fn() }),
 }));
 
 vi.mock("@/components/asset-info-item.tsx", () => ({
