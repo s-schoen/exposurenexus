@@ -4,7 +4,7 @@ import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerabil
 
 export type FindingEventPayloads = {
   "finding.created": {
-    finding: Finding;
+    finding: Finding | FindingProjection;
   };
   "finding.updated": {
     previous: Finding;
