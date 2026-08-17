@@ -28,6 +28,8 @@ describe("manual finding creation route", () => {
     deleteByID: vi.fn(),
     listObservations: vi.fn(),
     createManualObservation: vi.fn(),
+    updateObservation: vi.fn(),
+    deleteObservation: vi.fn(),
   };
 
   beforeEach(() => {

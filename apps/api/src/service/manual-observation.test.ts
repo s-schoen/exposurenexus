@@ -56,6 +56,8 @@ describe("nested manual observations", () => {
   const observationRepository = {
     listByFindingID: vi.fn(),
     createAndTouchFinding: vi.fn(),
+    updateAndTouchFinding: vi.fn(),
+    deleteAndTouchFinding: vi.fn(),
   };
   const domainEvents = createDomainEventCollector();
 
@@ -252,5 +254,172 @@ describe("nested manual observations", () => {
     resolveTransaction();
     await creation;
     expect(domainEvents.subjects()).toEqual(["observation.created", "finding.updated"]);
+  });
+
+  it("updates an observation and emits updated snapshots after the transaction", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+    const previousObservation = {
+      id: observationId,
+      findingId,
+      ingestionId: null,
+      source: ObservationSource.Nuclei,
+      title: "Source title",
+      description: null,
+      evidence: "Sensitive source evidence",
+      remediation: null,
+      severity: VulnerabilitySeverity.High,
+      weakness: { identifiers: { cwe: ["CWE-200"] } },
+      affectedResource: { type: AffectedResourceType.WebEndpoint, path: "/admin" },
+      observedAt: oldTime,
+      createdAt: oldTime,
+      updatedAt: oldTime,
+      createdBy: user.id,
+      updatedBy: user.id,
+    } satisfies Observation;
+    const currentObservation = {
+      ...previousObservation,
+      title: "Corrected source title",
+      evidence: "Corrected evidence",
+      weakness: { identifiers: { cwe: ["CWE-89"] } },
+      affectedResource: { type: AffectedResourceType.SourceCode, file: "src/query.ts" },
+      observedAt: now,
+      updatedAt: now,
+      updatedBy: user.id,
+    } satisfies Observation;
+    const currentFinding = {
+      ...previousFinding,
+      updatedAt: now,
+      updatedBy: user.id,
+      lastSeen: now,
+    } satisfies FindingProjection;
+    observationRepository.updateAndTouchFinding.mockResolvedValue({
+      previousObservation,
+      observation: currentObservation,
+      previous: previousFinding,
+      current: currentFinding,
+    });
+
+    await expect(
+      createService().updateObservation({
+        findingId,
+        observationId,
+        observation: {
+          title: currentObservation.title,
+          evidence: currentObservation.evidence,
+          weakness: currentObservation.weakness,
+          affectedResource: currentObservation.affectedResource,
+          observedAt: now,
+        },
+        user,
+        eventContext: { actor: user.id, correlationId: "request-09-update" },
+      }),
+    ).resolves.toEqual({ observation: currentObservation, finding: currentFinding });
+
+    expect(observationRepository.updateAndTouchFinding).toHaveBeenCalledWith({
+      findingId,
+      observationId,
+      observation: expect.objectContaining({
+        title: currentObservation.title,
+        evidence: currentObservation.evidence,
+        weakness: currentObservation.weakness,
+        affectedResource: currentObservation.affectedResource,
+        observedAt: now,
+        updatedAt: now,
+        updatedBy: user.id,
+      }),
+    });
+    expect(domainEvents.subjects()).toEqual(["observation.updated", "finding.updated"]);
+    expect(domainEvents.events).toMatchObject([
+      {
+        data: { previous: previousObservation, current: currentObservation },
+        actor: user.id,
+        correlationId: "request-09-update",
+      },
+      {
+        data: { previous: previousFinding, current: currentFinding },
+        actor: user.id,
+        correlationId: "request-09-update",
+      },
+    ]);
+  });
+
+  it("deletes an observation, touches its parent, and emits events after the transaction", async () => {
+    const deletedObservation = {
+      id: observationId,
+      findingId,
+      ingestionId: null,
+      source: ObservationSource.Manual,
+      title: "Final manual observation",
+      description: null,
+      evidence: "Sensitive source evidence",
+      remediation: null,
+      severity: VulnerabilitySeverity.High,
+      weakness: { identifiers: {} },
+      affectedResource: { type: AffectedResourceType.Unspecified },
+      observedAt: oldTime,
+      createdAt: oldTime,
+      updatedAt: oldTime,
+      createdBy: user.id,
+      updatedBy: user.id,
+    } satisfies Observation;
+    const emptyFinding = {
+      ...previousFinding,
+      observationCount: 0,
+      observingSources: [],
+      firstSeen: null,
+      lastSeen: null,
+      updatedAt: now,
+      updatedBy: user.id,
+    } satisfies FindingProjection;
+    observationRepository.deleteAndTouchFinding.mockResolvedValue({
+      observation: deletedObservation,
+      previous: previousFinding,
+      current: emptyFinding,
+    });
+
+    await expect(
+      createService().deleteObservation({
+        findingId,
+        observationId,
+        user,
+        eventContext: { actor: user.id, correlationId: "request-09-delete" },
+      }),
+    ).resolves.toEqual({ observation: deletedObservation, finding: emptyFinding });
+
+    expect(observationRepository.deleteAndTouchFinding).toHaveBeenCalledWith({
+      findingId,
+      observationId,
+      updatedAt: expect.any(Date),
+      updatedBy: user.id,
+    });
+    expect(domainEvents.subjects()).toEqual(["observation.deleted", "finding.updated"]);
+    expect(domainEvents.events).toMatchObject([
+      {
+        data: { observation: deletedObservation },
+        actor: user.id,
+        correlationId: "request-09-delete",
+      },
+      {
+        data: { previous: previousFinding, current: emptyFinding },
+        actor: user.id,
+        correlationId: "request-09-delete",
+      },
+    ]);
+  });
+
+  it("does not emit events when an observation mutation transaction fails", async () => {
+    observationRepository.updateAndTouchFinding.mockRejectedValue(new Error("transaction failed"));
+
+    await expect(
+      createService().updateObservation({
+        findingId,
+        observationId,
+        observation: { title: "Corrected title" },
+        user,
+      }),
+    ).rejects.toMatchObject({ code: "observation.update_failed" });
+
+    expect(domainEvents.subjects()).toEqual([]);
   });
 });

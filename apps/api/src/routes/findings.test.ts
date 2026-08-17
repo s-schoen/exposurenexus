@@ -20,6 +20,7 @@ describe("finding routes", () => {
     requireDomainPermission: createRequireDomainPermission(userHasPermission),
   };
   const findingId = "2713d833-eb13-4517-ac7c-7761545ed42a";
+  const observationId = "f39a0c31-33b9-4f10-a128-35158dee4a26";
   const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe";
   const assetId = "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c";
   const assigneeId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
@@ -35,6 +36,8 @@ describe("finding routes", () => {
     deleteByID: vi.fn(),
     listObservations: vi.fn(),
     createManualObservation: vi.fn(),
+    updateObservation: vi.fn(),
+    deleteObservation: vi.fn(),
   };
   const vulnerability = {
     id: vulnerabilityId,
@@ -168,6 +171,123 @@ describe("finding routes", () => {
     expect(listResponse.status).toBe(404);
     expect(createResponse.status).toBe(404);
   });
+
+  it("updates a nested observation with finding write permission", async () => {
+    const observation = { id: observationId, findingId, title: "Corrected observation" };
+    findingService.updateObservation.mockResolvedValue({ observation, finding: {} });
+    const requestId = "finding-observation-update-request";
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request(`/api/findings/${findingId}/observations/${observationId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Request-Id": requestId },
+      body: JSON.stringify({ title: "Corrected observation" }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: ["write"] });
+    expect(findingService.updateObservation).toHaveBeenCalledWith({
+      findingId,
+      observationId,
+      observation: { title: "Corrected observation" },
+      user,
+      eventContext: { actor: user.id, correlationId: requestId },
+    });
+    expect((await response.json()).data).toEqual(observation);
+  });
+
+  it("deletes a nested observation with finding delete permission", async () => {
+    const observation = { id: observationId, findingId, title: "Deleted observation" };
+    findingService.deleteObservation.mockResolvedValue({ observation, finding: {} });
+    const requestId = "finding-observation-delete-request";
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request(`/api/findings/${findingId}/observations/${observationId}`, {
+      method: "DELETE",
+      headers: { "X-Request-Id": requestId },
+    });
+
+    expect(response.status).toBe(200);
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: ["delete"] });
+    expect(findingService.deleteObservation).toHaveBeenCalledWith({
+      findingId,
+      observationId,
+      user,
+      eventContext: { actor: user.id, correlationId: requestId },
+    });
+    expect((await response.json()).data).toEqual(observation);
+  });
+
+  it.each([
+    ["update", "PUT", "write", "updateObservation"],
+    ["delete", "DELETE", "delete", "deleteObservation"],
+  ] as const)(
+    "returns not found for a missing nested observation on %s",
+    async (_name, method, permission, serviceMethod) => {
+      findingService[serviceMethod].mockResolvedValue(null);
+      const app = createTestApp({
+        annotateAuth: annotateAuthenticatedUser(user),
+        requireAuth: requireAuthenticatedUser,
+        findingRoute: createFindingRoute(findingService, routeDependencies),
+      });
+
+      const response = await app.request(
+        `/api/findings/${findingId}/observations/${observationId}`,
+        {
+          method,
+          ...(method === "PUT"
+            ? {
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: "Corrected observation" }),
+              }
+            : {}),
+        },
+      );
+
+      expect(response.status).toBe(404);
+      expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: [permission] });
+    },
+  );
+
+  it.each([
+    ["update", "PUT", "write", "updateObservation"],
+    ["delete", "DELETE", "delete", "deleteObservation"],
+  ] as const)(
+    "denies nested observation %s without permission",
+    async (_name, method, permission, serviceMethod) => {
+      userHasPermission.mockResolvedValue(false);
+      const app = createTestApp({
+        annotateAuth: annotateAuthenticatedUser(user),
+        requireAuth: requireAuthenticatedUser,
+        findingRoute: createFindingRoute(findingService, routeDependencies),
+      });
+
+      const response = await app.request(
+        `/api/findings/${findingId}/observations/${observationId}`,
+        {
+          method,
+          ...(method === "PUT"
+            ? {
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: "Corrected observation" }),
+              }
+            : {}),
+        },
+      );
+
+      expect(response.status).toBe(403);
+      expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: [permission] });
+      expect(findingService[serviceMethod]).not.toHaveBeenCalled();
+    },
+  );
 
   it("returns all findings for authenticated requests", async () => {
     const requestId = "findings-list-request";

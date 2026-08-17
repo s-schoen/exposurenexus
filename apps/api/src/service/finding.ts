@@ -15,6 +15,7 @@ import {
   ObservationSource,
   type ManualObservationInput,
   type Observation,
+  type UpdateObservation,
 } from "@exposurenexus/types/model/observation";
 
 import {
@@ -57,7 +58,10 @@ interface FindingServiceDependencies {
   >;
   manualFindingRepository?: Pick<FindingPersistenceRepository, "createManual" | "getProjectedByID">;
   findingVulnerabilityRepository?: FindingVulnerabilityRepository;
-  observationRepository?: Pick<ObservationRepository, "listByFindingID" | "createAndTouchFinding">;
+  observationRepository?: Pick<
+    ObservationRepository,
+    "listByFindingID" | "createAndTouchFinding" | "updateAndTouchFinding" | "deleteAndTouchFinding"
+  >;
   assetService: AssetLookupService;
   userProfileService: UserProfileLookupService;
   vulnerabilityService: VulnerabilityLookupService;
@@ -139,6 +143,26 @@ export interface CreateManualObservationResult {
   finding: FindingProjection;
 }
 
+export interface UpdateObservationOptions {
+  findingId: string;
+  observationId: string;
+  observation: UpdateObservation;
+  user: UserProfile;
+  eventContext?: DomainEventContext;
+}
+
+export interface DeleteObservationOptions {
+  findingId: string;
+  observationId: string;
+  user: UserProfile;
+  eventContext?: DomainEventContext;
+}
+
+export interface ObservationMutationResult {
+  observation: Observation;
+  finding: FindingProjection;
+}
+
 export interface CreateOrUpdateFindingResult {
   finding: Finding;
   created: boolean;
@@ -153,6 +177,8 @@ export interface FindingService {
   createManualObservation(
     opts: CreateManualObservationOptions,
   ): Promise<CreateManualObservationResult | null>;
+  updateObservation(opts: UpdateObservationOptions): Promise<ObservationMutationResult | null>;
+  deleteObservation(opts: DeleteObservationOptions): Promise<ObservationMutationResult | null>;
   updateByID(opts: UpdateFindingOptions): Promise<FindingProjection | null>;
   createOrUpdate(opts: CreateFindingOptions): Promise<CreateOrUpdateFindingResult>;
   deleteByID(id: string, eventContext?: DomainEventContext): Promise<FindingProjection | null>;
@@ -640,6 +666,112 @@ export function createFindingService({
           message: "failed to create manual observation",
           cause: error,
           details: { findingId: opts.findingId },
+        });
+      }
+    },
+
+    async updateObservation(
+      opts: UpdateObservationOptions,
+    ): Promise<ObservationMutationResult | null> {
+      if (!observationRepository) {
+        throw new ApplicationError({
+          code: "observation.update_failed",
+          kind: "unexpected",
+          message: "observation correction is unavailable",
+          details: { findingId: opts.findingId, observationId: opts.observationId },
+        });
+      }
+
+      try {
+        const mutation = await observationRepository.updateAndTouchFinding({
+          findingId: opts.findingId,
+          observationId: opts.observationId,
+          observation: {
+            ...opts.observation,
+            updatedAt: new Date(),
+            updatedBy: opts.user.id,
+          },
+        });
+        if (!mutation) {
+          return null;
+        }
+
+        emitObservationEvent(
+          "observation.updated",
+          {
+            previous: mutation.previousObservation,
+            current: mutation.observation,
+          },
+          opts.eventContext,
+        );
+        emitFindingEvent(
+          "finding.updated",
+          { previous: mutation.previous, current: mutation.current },
+          opts.eventContext,
+        );
+
+        return { observation: mutation.observation, finding: mutation.current };
+      } catch (error) {
+        logger.error(
+          error,
+          `failed to update observation ${opts.observationId} for finding ${opts.findingId}`,
+        );
+        throw new ApplicationError({
+          code: "observation.update_failed",
+          kind: "unexpected",
+          message: "failed to update observation",
+          cause: error,
+          details: { findingId: opts.findingId, observationId: opts.observationId },
+        });
+      }
+    },
+
+    async deleteObservation(
+      opts: DeleteObservationOptions,
+    ): Promise<ObservationMutationResult | null> {
+      if (!observationRepository) {
+        throw new ApplicationError({
+          code: "observation.delete_failed",
+          kind: "unexpected",
+          message: "observation deletion is unavailable",
+          details: { findingId: opts.findingId, observationId: opts.observationId },
+        });
+      }
+
+      try {
+        const mutation = await observationRepository.deleteAndTouchFinding({
+          findingId: opts.findingId,
+          observationId: opts.observationId,
+          updatedAt: new Date(),
+          updatedBy: opts.user.id,
+        });
+        if (!mutation) {
+          return null;
+        }
+
+        emitObservationEvent(
+          "observation.deleted",
+          { observation: mutation.observation },
+          opts.eventContext,
+        );
+        emitFindingEvent(
+          "finding.updated",
+          { previous: mutation.previous, current: mutation.current },
+          opts.eventContext,
+        );
+
+        return { observation: mutation.observation, finding: mutation.current };
+      } catch (error) {
+        logger.error(
+          error,
+          `failed to delete observation ${opts.observationId} for finding ${opts.findingId}`,
+        );
+        throw new ApplicationError({
+          code: "observation.delete_failed",
+          kind: "unexpected",
+          message: "failed to delete observation",
+          cause: error,
+          details: { findingId: opts.findingId, observationId: opts.observationId },
         });
       }
     },

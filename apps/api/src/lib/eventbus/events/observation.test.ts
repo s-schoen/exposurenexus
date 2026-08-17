@@ -16,3 +16,25 @@ it("includes observation created snapshots in the event catalog", () => {
     DomainEventPayloadBase<"observation.created", ObservationEventPayloads["observation.created"]>
   >();
 });
+
+it("includes observation update and deletion snapshots in the event catalog", () => {
+  const previous = {} as ObservationEventPayloads["observation.updated"]["previous"];
+  const current = {} as ObservationEventPayloads["observation.updated"]["current"];
+  const updated = createEventPayload({
+    subject: "observation.updated",
+    source: "finding",
+    data: { previous, current },
+  });
+  const deleted = createEventPayload({
+    subject: "observation.deleted",
+    source: "finding",
+    data: { observation: previous },
+  });
+
+  expectTypeOf(updated).toEqualTypeOf<
+    DomainEventPayloadBase<"observation.updated", ObservationEventPayloads["observation.updated"]>
+  >();
+  expectTypeOf(deleted).toEqualTypeOf<
+    DomainEventPayloadBase<"observation.deleted", ObservationEventPayloads["observation.deleted"]>
+  >();
+});
