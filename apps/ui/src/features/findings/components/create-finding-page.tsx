@@ -1,3 +1,7 @@
+import {
+  AffectedResourceType,
+  NetworkTransport,
+} from "@exposurenexus/types/model/affected-resource";
 import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date";
 import { FindingStatus, createFindingSchema } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
@@ -8,7 +12,13 @@ import { createListUsersQueryOptions } from "@/api/user.ts";
 import { AssetCombobox } from "@/components/asset-combobox.tsx";
 import { SeverityBadge } from "@/components/severity-badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field.tsx";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import {
   Select,
@@ -25,7 +35,8 @@ import { usePageMeta } from "@/context/page.tsx";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 import { formatFindingStatus } from "@/lib/format.ts";
 
-import type { CreateFinding } from "@exposurenexus/types/model/finding";
+import type { FindingAffectedResource } from "@exposurenexus/types/model/affected-resource";
+import type { CreateManualFinding } from "@exposurenexus/types/model/finding";
 
 interface CreateFindingPageProps {
   onClose: () => void;
@@ -34,17 +45,20 @@ interface CreateFindingPageProps {
 const unassignedAssigneeValue = "__unassigned__";
 const findingStatuses = Object.values(FindingStatus);
 const vulnerabilitySeverities = Object.values(VulnerabilitySeverity);
+const resourceTypes = Object.values(AffectedResourceType);
 
-const defaultFindingValues: CreateFinding = {
-  vulnerabilityId: "",
+const defaultFindingValues: CreateManualFinding = {
   assetId: "",
+  title: "",
   severity: VulnerabilitySeverity.Medium,
   status: FindingStatus.Active,
-  source: "",
-  evidence: null,
-  mitigation: null,
   assigneeId: null,
   dueDate: null,
+  mitigation: null,
+  weakness: { identifiers: {} },
+  affectedResource: { type: AffectedResourceType.Unspecified },
+  vulnerabilityIds: [],
+  observation: {},
 };
 
 function formatDateInputValue(value: Date | null | undefined) {
@@ -67,6 +81,233 @@ function isVulnerabilitySeverity(value: unknown): value is VulnerabilitySeverity
   return vulnerabilitySeverities.includes(value as VulnerabilitySeverity);
 }
 
+function isAffectedResourceType(value: unknown): value is AffectedResourceType {
+  return resourceTypes.includes(value as AffectedResourceType);
+}
+
+function formatResourceType(type: AffectedResourceType) {
+  switch (type) {
+    case AffectedResourceType.WebEndpoint:
+      return "Web endpoint";
+    case AffectedResourceType.NetworkService:
+      return "Network service";
+    case AffectedResourceType.SourceCode:
+      return "Source code";
+    case AffectedResourceType.ContainerImage:
+      return "Container image";
+    case AffectedResourceType.CloudResource:
+      return "Cloud resource";
+    case AffectedResourceType.Asset:
+      return "Whole asset";
+    case AffectedResourceType.Unspecified:
+      return "Unspecified resource";
+    case AffectedResourceType.Package:
+      return "Package";
+  }
+}
+
+function emptyResource(type: AffectedResourceType): FindingAffectedResource {
+  return { type } as FindingAffectedResource;
+}
+
+function resourceValue(resource: FindingAffectedResource, key: string): string {
+  const value = (resource as Record<string, unknown>)[key];
+  return typeof value === "string" || typeof value === "number" ? String(value) : "";
+}
+
+function updateResourceValue(
+  resource: FindingAffectedResource,
+  key: string,
+  rawValue: string,
+  numeric = false,
+): FindingAffectedResource {
+  const next = { ...resource } as Record<string, unknown>;
+  const value = rawValue.trim();
+
+  if (!value) {
+    delete next[key];
+  } else {
+    next[key] = numeric ? Number(value) : value;
+  }
+
+  return next as FindingAffectedResource;
+}
+
+function updateResourceLocation(
+  resource: FindingAffectedResource,
+  rawValue: string,
+): FindingAffectedResource {
+  const value = rawValue.trim();
+  const next = { ...resource } as Record<string, unknown>;
+
+  if (!value) {
+    delete next.location;
+  } else {
+    next.location = { startLine: Number(value) };
+  }
+
+  return next as FindingAffectedResource;
+}
+
+function weaknessText(weakness: CreateManualFinding["weakness"]) {
+  return Object.entries(weakness.identifiers)
+    .map(([namespace, identifiers]) => `${namespace}=${identifiers.join(",")}`)
+    .join("; ");
+}
+
+function parseWeaknessText(value: string): CreateManualFinding["weakness"] {
+  const identifiers: Record<string, Array<string>> = {};
+
+  for (const entry of value.split(";")) {
+    const separator = entry.indexOf("=");
+    if (separator < 1) continue;
+
+    const namespace = entry.slice(0, separator).trim();
+    const values = entry
+      .slice(separator + 1)
+      .split(",")
+      .map((identifier) => identifier.trim())
+      .filter(Boolean);
+
+    if (namespace && values.length > 0) {
+      identifiers[namespace] = values;
+    }
+  }
+
+  return { identifiers };
+}
+
+function renderResourceInput(
+  resource: FindingAffectedResource,
+  onChange: (resource: FindingAffectedResource) => void,
+  key: string,
+  label: string,
+  numeric = false,
+) {
+  return (
+    <Field key={key}>
+      <FieldLabel htmlFor={`affected-resource-${key}`}>{label}</FieldLabel>
+      <Input
+        id={`affected-resource-${key}`}
+        type={numeric ? "number" : "text"}
+        value={resourceValue(resource, key)}
+        onChange={(event) =>
+          onChange(updateResourceValue(resource, key, event.target.value, numeric))
+        }
+      />
+    </Field>
+  );
+}
+
+function renderResourceFields(
+  resource: FindingAffectedResource,
+  onChange: (resource: FindingAffectedResource) => void,
+) {
+  switch (resource.type) {
+    case AffectedResourceType.Asset:
+    case AffectedResourceType.Unspecified:
+      return null;
+    case AffectedResourceType.WebEndpoint:
+      return (
+        <div className="grid gap-2 md:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="affected-resource-scheme">Scheme</FieldLabel>
+            <Select
+              value={resource.scheme ?? ""}
+              onValueChange={(value) =>
+                onChange(updateResourceValue(resource, "scheme", value ?? ""))
+              }
+            >
+              <SelectTrigger id="affected-resource-scheme" className="w-full">
+                <SelectValue placeholder="Select scheme" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="http">HTTP</SelectItem>
+                <SelectItem value="https">HTTPS</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          {renderResourceInput(resource, onChange, "host", "Host")}
+          {renderResourceInput(resource, onChange, "port", "Port", true)}
+          {renderResourceInput(resource, onChange, "path", "Path")}
+          {renderResourceInput(resource, onChange, "method", "Method")}
+        </div>
+      );
+    case AffectedResourceType.NetworkService:
+      return (
+        <div className="grid gap-2 md:grid-cols-2">
+          {renderResourceInput(resource, onChange, "host", "Host")}
+          {renderResourceInput(resource, onChange, "port", "Port", true)}
+          <Field>
+            <FieldLabel htmlFor="affected-resource-transport">Transport</FieldLabel>
+            <Select
+              value={resource.transport ?? ""}
+              onValueChange={(value) =>
+                onChange(updateResourceValue(resource, "transport", value ?? ""))
+              }
+            >
+              <SelectTrigger id="affected-resource-transport" className="w-full">
+                <SelectValue placeholder="Select transport" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(NetworkTransport).map((transport) => (
+                  <SelectItem key={transport} value={transport}>
+                    {transport.toUpperCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          {renderResourceInput(resource, onChange, "protocol", "Protocol")}
+        </div>
+      );
+    case AffectedResourceType.SourceCode:
+      return (
+        <div className="grid gap-2 md:grid-cols-2">
+          {renderResourceInput(resource, onChange, "repository", "Repository")}
+          {renderResourceInput(resource, onChange, "file", "File")}
+          <Field>
+            <FieldLabel htmlFor="affected-resource-start-line">Start line</FieldLabel>
+            <Input
+              id="affected-resource-start-line"
+              type="number"
+              value={resource.location?.startLine.toString() ?? ""}
+              onChange={(event) => onChange(updateResourceLocation(resource, event.target.value))}
+            />
+          </Field>
+          {renderResourceInput(resource, onChange, "symbol", "Symbol")}
+          {renderResourceInput(resource, onChange, "locationFingerprint", "Location fingerprint")}
+        </div>
+      );
+    case AffectedResourceType.Package:
+      return (
+        <div className="grid gap-2 md:grid-cols-2">
+          {renderResourceInput(resource, onChange, "ecosystem", "Ecosystem")}
+          {renderResourceInput(resource, onChange, "name", "Package name")}
+          {renderResourceInput(resource, onChange, "installationPath", "Installation path")}
+        </div>
+      );
+    case AffectedResourceType.ContainerImage:
+      return (
+        <div className="grid gap-2 md:grid-cols-2">
+          {renderResourceInput(resource, onChange, "registry", "Registry")}
+          {renderResourceInput(resource, onChange, "repository", "Repository")}
+          {renderResourceInput(resource, onChange, "digest", "Digest")}
+        </div>
+      );
+    case AffectedResourceType.CloudResource:
+      return (
+        <div className="grid gap-2 md:grid-cols-2">
+          {renderResourceInput(resource, onChange, "provider", "Provider")}
+          {renderResourceInput(resource, onChange, "providerAccount", "Provider account")}
+          {renderResourceInput(resource, onChange, "region", "Region")}
+          {renderResourceInput(resource, onChange, "resourceId", "Resource ID")}
+          {renderResourceInput(resource, onChange, "subresource", "Subresource")}
+        </div>
+      );
+  }
+}
+
 export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
   usePageMeta({
     title: "Create Finding",
@@ -78,9 +319,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
 
   const form = useForm({
     defaultValues: defaultFindingValues,
-    validators: {
-      onSubmit: createFindingSchema,
-    },
+    validators: { onSubmit: createFindingSchema as never },
     onSubmit: async ({ value }) => {
       const createdFinding = await findingLifecycle.createFinding(value);
 
@@ -94,8 +333,8 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
     <div>
       <form
         id="create-finding-form"
-        onSubmit={(e) => {
-          e.preventDefault();
+        onSubmit={(event) => {
+          event.preventDefault();
           void form.handleSubmit();
         }}
         className="flex flex-col gap-4"
@@ -103,23 +342,30 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
         <FieldGroup>
           <Tabs defaultValue="general">
             <TabsList>
-              <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="general" className="text-foreground">
+                General
+              </TabsTrigger>
+              <TabsTrigger value="identity" className="text-foreground">
+                Identity
+              </TabsTrigger>
+              <TabsTrigger value="observation" className="text-foreground">
+                Observation
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="general" className="grid gap-2 grid-cols-2">
               <form.Field
-                name="vulnerabilityId"
+                name="title"
                 children={(field) => {
                   const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
                   return (
-                    <Field data-invalid={isInvalid}>
-                      <FieldLabel htmlFor={field.name}>Vulnerability ID</FieldLabel>
+                    <Field data-invalid={isInvalid} className="col-span-2">
+                      <FieldLabel htmlFor={field.name}>Title</FieldLabel>
                       <Input
                         id={field.name}
                         name={field.name}
                         value={field.state.value}
                         onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
+                        onChange={(event) => field.handleChange(event.target.value)}
                         aria-invalid={isInvalid}
                       />
                       {isInvalid && <FieldError errors={field.state.meta.errors} />}
@@ -137,7 +383,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                       <AssetCombobox
                         id={field.name}
                         invalid={isInvalid}
-                        onChange={(a) => field.handleChange(a.id)}
+                        onChange={(asset) => field.handleChange(asset.id)}
                       />
                       {isInvalid && <FieldError errors={field.state.meta.errors} />}
                     </Field>
@@ -155,8 +401,10 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         value={field.state.value}
                         name={field.name}
                         onValueChange={(value) => {
-                          field.handleChange(value as VulnerabilitySeverity);
-                          field.handleBlur();
+                          if (isVulnerabilitySeverity(value)) {
+                            field.handleChange(value);
+                            field.handleBlur();
+                          }
                         }}
                       >
                         <SelectTrigger id={field.name} aria-invalid={isInvalid} className="w-full">
@@ -191,8 +439,10 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         value={field.state.value}
                         name={field.name}
                         onValueChange={(value) => {
-                          field.handleChange(value as FindingStatus);
-                          field.handleBlur();
+                          if (isFindingStatus(value)) {
+                            field.handleChange(value);
+                            field.handleBlur();
+                          }
                         }}
                       >
                         <SelectTrigger id={field.name} aria-invalid={isInvalid} className="w-full">
@@ -215,26 +465,6 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                 }}
               />
               <form.Field
-                name="source"
-                children={(field) => {
-                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-                  return (
-                    <Field data-invalid={isInvalid}>
-                      <FieldLabel htmlFor={field.name}>Source</FieldLabel>
-                      <Input
-                        id={field.name}
-                        name={field.name}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        aria-invalid={isInvalid}
-                      />
-                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                    </Field>
-                  );
-                }}
-              />
-              <form.Field
                 name="assigneeId"
                 children={(field) => {
                   const selectedAssignee = users.data?.find(
@@ -252,7 +482,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                           field.handleBlur();
                         }}
                       >
-                        <SelectTrigger id={field.name}>
+                        <SelectTrigger id={field.name} className="w-full">
                           <SelectValue>
                             {field.state.value === null
                               ? "Unassigned"
@@ -290,31 +520,10 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         type="date"
                         value={formatDateInputValue(field.state.value)}
                         onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(parseDateInputValue(e.target.value))}
+                        onChange={(event) =>
+                          field.handleChange(parseDateInputValue(event.target.value))
+                        }
                         aria-invalid={isInvalid}
-                      />
-                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                    </Field>
-                  );
-                }}
-              />
-            </TabsContent>
-            <TabsContent value="details" className="flex flex-col gap-2">
-              <form.Field
-                name="evidence"
-                children={(field) => {
-                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-                  return (
-                    <Field data-invalid={isInvalid} className="col-span-2">
-                      <FieldLabel htmlFor={field.name}>Evidence</FieldLabel>
-                      <Textarea
-                        id={field.name}
-                        name={field.name}
-                        value={field.state.value ?? ""}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value || null)}
-                        aria-invalid={isInvalid}
-                        className="h-32"
                       />
                       {isInvalid && <FieldError errors={field.state.meta.errors} />}
                     </Field>
@@ -323,22 +532,186 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
               />
               <form.Field
                 name="mitigation"
+                children={(field) => (
+                  <Field className="col-span-2">
+                    <FieldLabel htmlFor={field.name}>Mitigation</FieldLabel>
+                    <Textarea
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value ?? ""}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value || null)}
+                      className="h-24"
+                    />
+                  </Field>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="identity" className="flex flex-col gap-4">
+              <form.Field
+                name="weakness"
+                children={(field) => (
+                  <Field>
+                    <FieldLabel htmlFor={field.name}>Weakness identifiers</FieldLabel>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={weaknessText(field.state.value)}
+                      onBlur={field.handleBlur}
+                      onChange={(event) =>
+                        field.handleChange(parseWeaknessText(event.target.value))
+                      }
+                      placeholder="cwe=CWE-200; nuclei=admin-panel"
+                    />
+                    <FieldDescription>
+                      Separate namespaces with semicolons and identifiers with commas.
+                    </FieldDescription>
+                  </Field>
+                )}
+              />
+              <form.Field
+                name="affectedResource"
                 children={(field) => {
                   const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
                   return (
-                    <Field data-invalid={isInvalid} className="col-span-2">
-                      <FieldLabel htmlFor={field.name}>Mitigation</FieldLabel>
-                      <Textarea
-                        id={field.name}
-                        name={field.name}
-                        value={field.state.value ?? ""}
-                        onBlur={field.handleBlur}
-                        onChange={(e) => field.handleChange(e.target.value || null)}
-                        aria-invalid={isInvalid}
-                        className="h-32"
-                      />
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor="affected-resource-type">Affected resource</FieldLabel>
+                      <Select
+                        value={field.state.value.type}
+                        onValueChange={(value) => {
+                          if (isAffectedResourceType(value)) {
+                            field.handleChange(emptyResource(value));
+                            field.handleBlur();
+                          }
+                        }}
+                      >
+                        <SelectTrigger id="affected-resource-type" aria-invalid={isInvalid}>
+                          <SelectValue>
+                            {(value) =>
+                              isAffectedResourceType(value) ? formatResourceType(value) : null
+                            }
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {resourceTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {formatResourceType(type)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FieldDescription>
+                        Unspecified keeps the finding at asset scope until a narrower resource is
+                        known.
+                      </FieldDescription>
+                      {renderResourceFields(field.state.value, (resource) =>
+                        field.handleChange(resource),
+                      )}
                       {isInvalid && <FieldError errors={field.state.meta.errors} />}
                     </Field>
+                  );
+                }}
+              />
+              <form.Field
+                name="vulnerabilityIds"
+                children={(field) => (
+                  <Field>
+                    <FieldLabel htmlFor={field.name}>Catalog entry IDs</FieldLabel>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value.join(", ")}
+                      onChange={(event) =>
+                        field.handleChange(
+                          event.target.value
+                            .split(",")
+                            .map((id) => id.trim())
+                            .filter(Boolean),
+                        )
+                      }
+                      placeholder="Optional catalog entry UUIDs"
+                    />
+                    <FieldDescription>
+                      Linked catalog entries enrich the finding but do not define its identity or
+                      severity.
+                    </FieldDescription>
+                  </Field>
+                )}
+              />
+            </TabsContent>
+            <TabsContent value="observation" className="flex flex-col gap-4">
+              <form.Field
+                name="observation"
+                children={(field) => {
+                  const observation = field.state.value ?? {};
+                  const update = (
+                    patch: Partial<NonNullable<CreateManualFinding["observation"]>>,
+                  ) => field.handleChange({ ...observation, ...patch });
+
+                  return (
+                    <div className="flex flex-col gap-4">
+                      <Field>
+                        <FieldLabel htmlFor="observation-title">Observation title</FieldLabel>
+                        <Input
+                          id="observation-title"
+                          value={observation.title ?? ""}
+                          onChange={(event) => update({ title: event.target.value || undefined })}
+                        />
+                        <FieldDescription>
+                          Omit to use the finding title for the initial manual observation.
+                        </FieldDescription>
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="observation-description">Description</FieldLabel>
+                        <Textarea
+                          id="observation-description"
+                          value={observation.description ?? ""}
+                          onChange={(event) => update({ description: event.target.value || null })}
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="observation-evidence">Evidence</FieldLabel>
+                        <Textarea
+                          id="observation-evidence"
+                          value={observation.evidence ?? ""}
+                          onChange={(event) => update({ evidence: event.target.value || null })}
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="observation-remediation">
+                          Observation remediation
+                        </FieldLabel>
+                        <Textarea
+                          id="observation-remediation"
+                          value={observation.remediation ?? ""}
+                          onChange={(event) => update({ remediation: event.target.value || null })}
+                        />
+                      </Field>
+                      <Field>
+                        <FieldLabel htmlFor="observation-observed-at">Observed at</FieldLabel>
+                        <Input
+                          id="observation-observed-at"
+                          type="datetime-local"
+                          value={
+                            observation.observedAt
+                              ? observation.observedAt.toISOString().slice(0, 16)
+                              : ""
+                          }
+                          onChange={(event) =>
+                            update({
+                              observedAt: event.target.value
+                                ? new Date(event.target.value)
+                                : undefined,
+                            })
+                          }
+                        />
+                        <FieldDescription>
+                          Omit to use the creation time. This timestamp belongs to the observation,
+                          not the finding.
+                        </FieldDescription>
+                      </Field>
+                    </div>
                   );
                 }}
               />
@@ -349,7 +722,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
           <Button variant="outline" type="button" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit">Create</Button>
+          <Button type="submit">Create finding</Button>
         </div>
       </form>
     </div>

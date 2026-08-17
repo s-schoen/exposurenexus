@@ -14,7 +14,11 @@ import {
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 import { formatFindingCount } from "@/lib/format.ts";
 
-import type { CreateFinding, Finding, FindingProjection } from "@exposurenexus/types/model/finding";
+import type {
+  CreateManualFinding,
+  Finding,
+  FindingProjection,
+} from "@exposurenexus/types/model/finding";
 
 export type FindingEditableField =
   | "severity"
@@ -48,10 +52,10 @@ export interface FindingLifecycleActions {
    * Creates a finding, shows default success/failure toasts, and invalidates
    * finding list and stats queries.
    *
-   * Returns the created finding on success. Returns null for handled API
+   * Returns the created finding projection on success. Returns null for handled API
    * failures; callers do not need to catch to show errors.
    */
-  createFinding: (value: CreateFinding) => Promise<Finding | null>;
+  createFinding: (value: CreateManualFinding) => Promise<FindingProjection | null>;
 
   /**
    * Updates one mutable finding field with optimistic list/detail cache updates.

@@ -1,3 +1,4 @@
+import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { FindingStatus } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -64,7 +65,7 @@ vi.mock("@/components/ui/select.tsx", async () => {
   const React = await import("react");
   const SelectContext = React.createContext<{
     onValueChange?: (value: string) => void;
-    value?: string;
+    value?: string | null;
   }>({});
 
   return {
@@ -75,7 +76,7 @@ vi.mock("@/components/ui/select.tsx", async () => {
     }: {
       children: ReactNode;
       onValueChange?: (value: string) => void;
-      value?: string;
+      value?: string | null;
     }) => (
       <SelectContext.Provider value={{ onValueChange, value }}>
         <div>{children}</div>
@@ -101,7 +102,7 @@ vi.mock("@/components/ui/select.tsx", async () => {
       children,
       placeholder,
     }: {
-      children?: ReactNode | ((value: string | undefined) => ReactNode);
+      children?: ReactNode | ((value: string | null | undefined) => ReactNode);
       placeholder?: string;
     }) => {
       const { value } = React.useContext(SelectContext);
@@ -126,6 +127,13 @@ function renderCreateFindingPage() {
   return render(<CreateFindingPage onClose={mocks.historyBack} />);
 }
 
+function fillRequiredFields() {
+  fireEvent.change(screen.getByLabelText(/^title$/i), {
+    target: { value: "Exposed admin panel" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /select asset/i }));
+}
+
 describe("CreateFindingPage", () => {
   beforeEach(() => {
     mocks.createFinding.mockReset();
@@ -140,7 +148,7 @@ describe("CreateFindingPage", () => {
   it("does not submit invalid required fields", () => {
     renderCreateFindingPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /^create$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
 
     expect(mocks.createFinding).not.toHaveBeenCalled();
   });
@@ -153,144 +161,94 @@ describe("CreateFindingPage", () => {
     expect(mocks.historyBack).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the default severity and status selections", () => {
+  it("shows the canonical empty identity defaults", () => {
     renderCreateFindingPage();
 
     expect(screen.getByLabelText(/severity/i).textContent).toMatch(/medium/i);
     expect(screen.getByLabelText(/status/i).textContent).toMatch(/active/i);
+    fireEvent.click(screen.getByRole("tab", { name: /identity/i }));
+    expect(screen.getByLabelText(/affected resource/i).textContent).toMatch(/unspecified/i);
   });
 
-  it("submits a valid finding and navigates back on success", async () => {
+  it("submits a finding with its initial manual observation defaults", async () => {
     renderCreateFindingPage();
-    mocks.createFinding.mockResolvedValueOnce({
-      id: "2713d833-eb13-4517-ac7c-7761545ed42a",
-    });
-
-    fireEvent.change(screen.getByLabelText(/vulnerability id/i), {
-      target: {
-        value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-      },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /select asset/i }));
-    fireEvent.change(screen.getByLabelText(/source/i), {
-      target: {
-        value: "manual",
-      },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /^create$/i }));
+    mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+    fillRequiredFields();
+    fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
 
     await waitFor(() => {
       expect(mocks.createFinding).toHaveBeenCalledWith({
         assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-        evidence: null,
+        title: "Exposed admin panel",
+        severity: VulnerabilitySeverity.Medium,
+        status: FindingStatus.Active,
         assigneeId: null,
         dueDate: null,
         mitigation: null,
-        severity: VulnerabilitySeverity.Medium,
-        source: "manual",
-        status: FindingStatus.Active,
-        vulnerabilityId: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+        weakness: { identifiers: {} },
+        affectedResource: { type: AffectedResourceType.Unspecified },
+        vulnerabilityIds: [],
+        observation: {},
       });
     });
-    expect(mocks.createFinding).toHaveBeenCalledTimes(1);
     expect(mocks.historyBack).toHaveBeenCalledTimes(1);
   });
 
-  it("submits a valid finding with selected severity and status", async () => {
+  it("submits selected resource, catalog, and observation values", async () => {
     renderCreateFindingPage();
-    mocks.createFinding.mockResolvedValueOnce({
-      id: "2713d833-eb13-4517-ac7c-7761545ed42a",
+    mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+    fillRequiredFields();
+
+    fireEvent.click(screen.getByRole("tab", { name: /identity/i }));
+    fireEvent.click(screen.getByRole("button", { name: /web endpoint/i }));
+    fireEvent.change(screen.getByLabelText(/catalog entry ids/i), {
+      target: { value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe" },
     });
 
-    fireEvent.change(screen.getByLabelText(/vulnerability id/i), {
-      target: {
-        value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-      },
+    fireEvent.click(screen.getByRole("tab", { name: /observation/i }));
+    fireEvent.change(screen.getByLabelText(/^evidence$/i), {
+      target: { value: "GET /admin returned 200" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /select asset/i }));
+    fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
+
+    await waitFor(() => {
+      expect(mocks.createFinding).toHaveBeenCalledWith(
+        expect.objectContaining({
+          affectedResource: { type: AffectedResourceType.WebEndpoint },
+          vulnerabilityIds: ["9d7acdd0-fad1-46c9-8218-1793f421f0fe"],
+          observation: {
+            evidence: "GET /admin returned 200",
+          },
+        }),
+      );
+    });
+  });
+
+  it("supports severity, status, due date, and assignment", async () => {
+    renderCreateFindingPage();
+    mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+    fillRequiredFields();
     fireEvent.click(screen.getByRole("button", { name: /critical/i }));
     fireEvent.click(screen.getByRole("button", { name: /confirmed/i }));
-    fireEvent.change(screen.getByLabelText(/source/i), {
-      target: {
-        value: "manual",
-      },
+    fireEvent.change(screen.getByLabelText(/due date/i), {
+      target: { value: "2026-05-06" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /^create$/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Alex Assignee" }));
+    fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
 
     await waitFor(() => {
       expect(mocks.createFinding).toHaveBeenCalledWith(
         expect.objectContaining({
           severity: VulnerabilitySeverity.Critical,
           status: FindingStatus.Confirmed,
-        }),
-      );
-    });
-    expect(mocks.createFinding).toHaveBeenCalledTimes(1);
-  });
-
-  it("submits a valid finding with a selected due date", async () => {
-    renderCreateFindingPage();
-    mocks.createFinding.mockResolvedValueOnce({
-      id: "2713d833-eb13-4517-ac7c-7761545ed42a",
-    });
-
-    fireEvent.change(screen.getByLabelText(/vulnerability id/i), {
-      target: {
-        value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-      },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /select asset/i }));
-    fireEvent.change(screen.getByLabelText(/source/i), {
-      target: {
-        value: "manual",
-      },
-    });
-    fireEvent.change(screen.getByLabelText(/due date/i), {
-      target: {
-        value: "2026-05-06",
-      },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /^create$/i }));
-
-    await waitFor(() => {
-      expect(mocks.createFinding).toHaveBeenCalledWith(
-        expect.objectContaining({
           dueDate: new Date("2026-05-06T00:00:00.000Z"),
-        }),
-      );
-    });
-  });
-
-  it("submits a valid finding with a selected assignee", async () => {
-    renderCreateFindingPage();
-    mocks.createFinding.mockResolvedValueOnce({
-      id: "2713d833-eb13-4517-ac7c-7761545ed42a",
-    });
-
-    fireEvent.change(screen.getByLabelText(/vulnerability id/i), {
-      target: {
-        value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-      },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /select asset/i }));
-    fireEvent.change(screen.getByLabelText(/source/i), {
-      target: {
-        value: "manual",
-      },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Alex Assignee" }));
-    fireEvent.click(screen.getByRole("button", { name: /^create$/i }));
-
-    await waitFor(() => {
-      expect(mocks.createFinding).toHaveBeenCalledWith(
-        expect.objectContaining({
           assigneeId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
         }),
       );
     });
   });
 
-  it("renders the selected assignee label instead of its id", () => {
+  it("renders the selected assignee label", () => {
     renderCreateFindingPage();
 
     fireEvent.click(screen.getByRole("button", { name: "Alex Assignee" }));
@@ -300,54 +258,26 @@ describe("CreateFindingPage", () => {
 
   it("clears a selected assignee before creating", async () => {
     renderCreateFindingPage();
-    mocks.createFinding.mockResolvedValueOnce({
-      id: "2713d833-eb13-4517-ac7c-7761545ed42a",
-    });
-
-    fireEvent.change(screen.getByLabelText(/vulnerability id/i), {
-      target: {
-        value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-      },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /select asset/i }));
-    fireEvent.change(screen.getByLabelText(/source/i), {
-      target: {
-        value: "manual",
-      },
-    });
+    mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+    fillRequiredFields();
     fireEvent.click(screen.getByRole("button", { name: "Alex Assignee" }));
     fireEvent.click(screen.getByRole("button", { name: "Unassigned" }));
-    fireEvent.click(screen.getByRole("button", { name: /^create$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
 
     await waitFor(() => {
       expect(mocks.createFinding).toHaveBeenCalledWith(
-        expect.objectContaining({
-          assigneeId: null,
-        }),
+        expect.objectContaining({ assigneeId: null }),
       );
     });
   });
 
-  it("stays on the form when create finding fails", async () => {
+  it("stays on the form when creation fails", async () => {
     renderCreateFindingPage();
     mocks.createFinding.mockResolvedValueOnce(null);
+    fillRequiredFields();
+    fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
 
-    fireEvent.change(screen.getByLabelText(/vulnerability id/i), {
-      target: {
-        value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-      },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /select asset/i }));
-    fireEvent.change(screen.getByLabelText(/source/i), {
-      target: {
-        value: "manual",
-      },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /^create$/i }));
-
-    await waitFor(() => {
-      expect(mocks.createFinding).toHaveBeenCalledTimes(1);
-    });
+    await waitFor(() => expect(mocks.createFinding).toHaveBeenCalledTimes(1));
     expect(mocks.historyBack).not.toHaveBeenCalled();
   });
 });
