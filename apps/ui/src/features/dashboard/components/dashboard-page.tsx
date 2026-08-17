@@ -1,7 +1,7 @@
 import { FindingStatus } from "@exposurenexus/types/model/finding";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Activity, Bug, CircleCheckBig, Radar, Server, ShieldAlert, Waypoints } from "lucide-react";
+import { Activity, Bug, CircleCheckBig, Radar, Server, ShieldAlert } from "lucide-react";
 import { useMemo } from "react";
 
 import { createListAssetsQueryOptions } from "@/api/asset.ts";
@@ -64,16 +64,6 @@ export function DashboardPage() {
         value: count,
       }));
 
-    const findingSources = Object.entries(stats?.source ?? {})
-      .filter(([, count]) => count > 0)
-      .sort(([, left], [, right]) => right - left)
-      .slice(0, 5)
-      .map(([source, count], index) => ({
-        key: `source-${index + 1}`,
-        name: formatSource(source),
-        value: count,
-      }));
-
     const priorityItems = [
       {
         label: "Needs review",
@@ -125,7 +115,6 @@ export function DashboardPage() {
       mitigatedFindings,
       mitigatedRate,
       topAssets,
-      findingSources,
       priorityItems,
     };
   }, [assets.data, findingStats.data]);
@@ -181,14 +170,14 @@ export function DashboardPage() {
         <MetricCard
           title="Total findings"
           value={overview.totalFindings}
-          description="Current finding volume across all sources"
+          description="Current human-facing workflow cases"
           icon={Bug}
           loading={cardsLoading}
         />
         <MetricCard
           title="Active findings"
           value={overview.activeFindings}
-          description="Findings requiring mitigation"
+          description="Findings awaiting triage"
           icon={Activity}
           loading={cardsLoading}
         />
@@ -224,21 +213,13 @@ export function DashboardPage() {
               A compact view of asset impact and mitigation progress.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
+          <CardContent className="grid gap-4 md:grid-cols-2">
             <MetricCard
               title="Healthy assets"
               value={formatNumber(Math.max(overview.totalAssets - overview.affectedAssets, 0))}
               description="Assets without any linked findings"
               icon={CircleCheckBig}
               loading={cardsLoading}
-              variant="panel"
-            />
-            <MetricCard
-              title="Source diversity"
-              value={formatNumber(overview.findingSources.length)}
-              description="Distinct inputs currently feeding the platform"
-              icon={Waypoints}
-              loading={chartsLoading}
               variant="panel"
             />
             <MetricCard
@@ -268,20 +249,13 @@ export function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+      <div className="grid gap-4">
         <OverviewChartCard
           title="Top affected assets"
           description="Assets with the highest current finding volume."
           data={overview.topAssets}
           emptyMessage="No affected assets to display."
           loading={chartsLoading || assets.isPending}
-        />
-        <OverviewChartCard
-          title="Finding sources"
-          description="Where the current finding inventory originates from."
-          data={overview.findingSources}
-          emptyMessage="No finding sources available yet."
-          loading={chartsLoading}
         />
       </div>
     </div>
@@ -347,14 +321,6 @@ function OverviewChartCard({
       </CardContent>
     </Card>
   );
-}
-
-function formatSource(source: string) {
-  return source
-    .split(/[_-]/g)
-    .filter(Boolean)
-    .map((part) => part[0].toUpperCase() + part.slice(1))
-    .join(" ");
 }
 
 function formatNumber(value: number) {

@@ -144,6 +144,7 @@ export function FindingTable({
       filterState={filterState}
       onFilterStateChange={onFilterStateChange}
       initialSorting={[{ id: "updatedAt", desc: true }]}
+      initialColumnVisibility={{ updatedAt: false }}
       onRowClick={onSelectFinding}
       onRowDoubleClick={handleOpenFinding}
       isRowActive={(finding) => finding.id === selectedFindingId}

@@ -30,7 +30,6 @@ function AppSidebarStoryShell({
         [FindingStatus.Confirmed]: confirmedFindings,
       },
       severity: {},
-      source: {},
       assets: {},
     }),
     [activeFindings, confirmedFindings],

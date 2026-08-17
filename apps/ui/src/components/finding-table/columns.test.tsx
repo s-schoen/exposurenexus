@@ -127,6 +127,7 @@ function createRow(original: FindingProjection): RowStub {
       if (columnId === "dueDate") return original.dueDate;
       if (columnId === "firstSeen") return original.firstSeen;
       if (columnId === "lastSeen") return original.lastSeen;
+      if (columnId === "updatedAt") return original.updatedAt;
       if (columnId === "assetId") return original.assetId;
       if (columnId === "observationCount") return original.observationCount;
       if (columnId === "observingSources") return original.observingSources.join(", ");
@@ -231,6 +232,8 @@ describe("createFindingColumns", () => {
       ...finding,
       dueDate: null,
       observingSources: [],
+      firstSeen: null,
+      lastSeen: null,
     };
 
     renderCell(findColumn(columns, "assetId"), fallbackFinding);
@@ -247,6 +250,14 @@ describe("createFindingColumns", () => {
 
     renderCell(findColumn(columns, "dueDate"), fallbackFinding);
     expect(screen.getByText("No due date")).toBeTruthy();
+    cleanup();
+
+    renderCell(findColumn(columns, "firstSeen"), fallbackFinding);
+    expect(screen.getByText("Not available")).toBeTruthy();
+    cleanup();
+
+    renderCell(findColumn(columns, "lastSeen"), fallbackFinding);
+    expect(screen.getByText("Not available")).toBeTruthy();
   });
 
   it("formats due dates without shifting the UTC date key", async () => {
@@ -466,6 +477,7 @@ describe("createFindingColumns", () => {
     const columns = await createColumns();
     const severityColumn = findColumn(columns, "severity");
     const firstSeenColumn = findColumn(columns, "firstSeen");
+    const updatedAtColumn = findColumn(columns, "updatedAt");
     const dueDateColumn = findColumn(columns, "dueDate");
     const criticalFinding = {
       ...finding,
@@ -478,6 +490,11 @@ describe("createFindingColumns", () => {
     const laterFinding = {
       ...finding,
       firstSeen: new Date("2026-01-05T00:00:00.000Z"),
+    };
+    const recentlyUpdatedFinding = {
+      ...finding,
+      updatedAt: new Date("2026-01-06T00:00:00.000Z"),
+      lastSeen: new Date("2026-01-01T00:00:00.000Z"),
     };
     const earlierDueDateFinding = {
       ...finding,
@@ -497,6 +514,9 @@ describe("createFindingColumns", () => {
     ).toBeLessThan(0);
     expect(
       firstSeenColumn.sortFn?.(createRow(finding), createRow(laterFinding), "firstSeen"),
+    ).toBeLessThan(0);
+    expect(
+      updatedAtColumn.sortFn?.(createRow(finding), createRow(recentlyUpdatedFinding), "updatedAt"),
     ).toBeLessThan(0);
     expect(
       dueDateColumn.sortFn?.(

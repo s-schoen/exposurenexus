@@ -215,6 +215,24 @@ const FINDINGS: Array<FindingProjection> = [
     firstSeenOffset: -22,
     lastSeenOffset: -9,
   }),
+  {
+    ...createFinding({
+      id: "fcf52a02-7cce-4822-8c9f-4ed636ce1b44",
+      title: "Unconfirmed Whole-Asset Weakness",
+      assetId: ASSETS[2].id,
+      severity: VulnerabilitySeverity.Info,
+      status: FindingStatus.Active,
+      assigneeId: null,
+      dueDate: null,
+      firstSeenOffset: -30,
+      lastSeenOffset: -30,
+    }),
+    observationCount: 0,
+    observingSources: [],
+    firstSeen: null,
+    lastSeen: null,
+    updatedAt: utcDateOffset(1),
+  },
 ];
 
 function FindingTableStoryShell({ findings, assets, users, scenario }: FindingTableStoryArgs) {
@@ -287,7 +305,6 @@ function FindingTableStoryShell({ findings, assets, users, scenario }: FindingTa
           total: findingsRef.current.length,
           status: {},
           severity: {},
-          source: {},
           assets: {},
         });
       }
