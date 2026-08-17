@@ -3,6 +3,7 @@ import {
   findingSchema,
   FindingStatistics as findingStatisticsSchema,
 } from "@exposurenexus/types/model/finding";
+import { observationSchema } from "@exposurenexus/types/model/observation";
 import { keepPreviousData, queryOptions, useMutation } from "@tanstack/react-query";
 
 import {
@@ -19,8 +20,10 @@ import type {
   FindingProjection,
   FindingStatistics,
   LegacyCreateFinding,
+  ManualObservationInput,
   UpdateFinding,
 } from "@exposurenexus/types/model/finding";
+import type { Observation } from "@exposurenexus/types/model/observation";
 
 async function listFindings(): Promise<Array<FindingProjection>> {
   const response = await apiRequest("/api/findings", {
@@ -76,6 +79,41 @@ async function getFindingStats(): Promise<FindingStatistics> {
   }
 
   return parseObjectReply(response, findingStatisticsSchema);
+}
+
+async function listFindingObservations(findingId: string): Promise<Array<Observation>> {
+  const response = await apiRequest(`/api/findings/${findingId}/observations`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response);
+    console.error(error);
+    throw error;
+  }
+
+  return parseArrayReply(response, observationSchema);
+}
+
+export async function createFindingObservation(
+  findingId: string,
+  observation: ManualObservationInput,
+): Promise<Observation> {
+  const response = await apiRequest(`/api/findings/${findingId}/observations`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(observation),
+  });
+
+  if (!response.ok) {
+    const error = await parseErrorReply(response);
+    console.error(error);
+    throw error;
+  }
+
+  return parseObjectReply(response, observationSchema);
 }
 
 export async function createFinding(f: LegacyCreateFinding): Promise<Finding> {
@@ -203,6 +241,13 @@ export function createFindingStatsQueryOptions() {
   });
 }
 
+export function createFindingObservationsQueryOptions(findingId: string) {
+  return queryOptions({
+    queryKey: ["findings", findingId, "observations"],
+    queryFn: () => listFindingObservations(findingId),
+  });
+}
+
 export function useCreateFindingMutation() {
   return useMutation({
     mutationFn: (finding: CreateManualFinding) => createManualFinding(finding),
@@ -219,6 +264,18 @@ export function useUpdateFindingMutation() {
 export function useDeleteFindingMutation() {
   return useMutation({
     mutationFn: (id: string) => deleteFinding(id),
+  });
+}
+
+export function useCreateFindingObservationMutation() {
+  return useMutation({
+    mutationFn: ({
+      findingId,
+      observation,
+    }: {
+      findingId: string;
+      observation: ManualObservationInput;
+    }) => createFindingObservation(findingId, observation),
   });
 }
 

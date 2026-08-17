@@ -1,0 +1,828 @@
+import {
+  AffectedResourceType,
+  NetworkTransport,
+  WebEndpointComponentKind,
+} from "@exposurenexus/types/model/affected-resource";
+import { manualObservationInputSchema } from "@exposurenexus/types/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { useQuery } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
+import { useState } from "react";
+
+import { createFindingObservationsQueryOptions } from "@/api/finding.ts";
+import { SafeMarkdown } from "@/components/safe-markdown.tsx";
+import { SeverityBadge } from "@/components/severity-badge.tsx";
+import { Timestamp } from "@/components/timestamp.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog.tsx";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { Separator } from "@/components/ui/separator.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { Spinner } from "@/components/ui/spinner.tsx";
+import { Textarea } from "@/components/ui/textarea.tsx";
+import { useObservationLifecycle } from "@/hooks/use-observation-lifecycle.ts";
+import { capitalizeFirstLetter, formatSeverity } from "@/lib/format.ts";
+
+import type { ObservationAffectedResourceInput as ObservationResource } from "@exposurenexus/types/model/affected-resource";
+import type { FindingProjection, ManualObservationInput } from "@exposurenexus/types/model/finding";
+import type { Observation } from "@exposurenexus/types/model/observation";
+
+interface FindingObservationsSectionProps {
+  finding: FindingProjection;
+}
+
+type ObservationDraft = Omit<ManualObservationInput, "affectedResource"> & {
+  affectedResource?: ObservationResource;
+};
+
+const inheritedValue = "__inherit__";
+const noComponentValue = "__none__";
+const resourceTypes = Object.values(AffectedResourceType);
+const severities = Object.values(VulnerabilitySeverity);
+const componentKinds = Object.values(WebEndpointComponentKind);
+const namedComponentKinds = new Set<WebEndpointComponentKind>([
+  WebEndpointComponentKind.QueryParameter,
+  WebEndpointComponentKind.PathParameter,
+  WebEndpointComponentKind.Header,
+  WebEndpointComponentKind.Cookie,
+  WebEndpointComponentKind.BodyField,
+]);
+
+function formatResourceType(type: AffectedResourceType) {
+  return type === AffectedResourceType.WebEndpoint
+    ? "Web endpoint"
+    : type === AffectedResourceType.NetworkService
+      ? "Network service"
+      : type === AffectedResourceType.SourceCode
+        ? "Source code"
+        : type === AffectedResourceType.ContainerImage
+          ? "Container image"
+          : type === AffectedResourceType.CloudResource
+            ? "Cloud resource"
+            : type === AffectedResourceType.Unspecified
+              ? "Unspecified resource"
+              : capitalizeFirstLetter(type);
+}
+
+function parseWeaknessText(value: string): ManualObservationInput["weakness"] | null {
+  if (!value.trim()) return undefined;
+  const identifiers: Record<string, Array<string>> = {};
+
+  for (const entry of value.split(";")) {
+    const separator = entry.indexOf("=");
+    if (separator < 1) return null;
+    const namespace = entry.slice(0, separator).trim();
+    const values = entry
+      .slice(separator + 1)
+      .split(",")
+      .map((identifier) => identifier.trim())
+      .filter(Boolean);
+    if (!namespace || values.length === 0) return null;
+    identifiers[namespace] = values;
+  }
+
+  return { identifiers };
+}
+
+function emptyResource(type: AffectedResourceType): ObservationResource {
+  return { type };
+}
+
+function resourceValue(resource: ObservationResource, key: string) {
+  const value = (resource as unknown as Record<string, unknown>)[key];
+  return typeof value === "string" || typeof value === "number" ? String(value) : "";
+}
+
+function updateResourceValue(
+  resource: ObservationResource,
+  key: string,
+  rawValue: string,
+  numeric = false,
+): ObservationResource {
+  const next = { ...resource } as unknown as Record<string, unknown>;
+  const value = rawValue.trim();
+  if (value) next[key] = numeric ? Number(value) : value;
+  else delete next[key];
+  return next as unknown as ObservationResource;
+}
+
+function ResourceInput({
+  resource,
+  resourceKey,
+  label,
+  numeric = false,
+  onChange,
+}: {
+  resource: ObservationResource;
+  resourceKey: string;
+  label: string;
+  numeric?: boolean;
+  onChange: (resource: ObservationResource) => void;
+}) {
+  const id = `observation-resource-${resourceKey}`;
+  return (
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <Input
+        id={id}
+        type={numeric ? "number" : "text"}
+        min={numeric ? 1 : undefined}
+        value={resourceValue(resource, resourceKey)}
+        onChange={(event) =>
+          onChange(updateResourceValue(resource, resourceKey, event.target.value, numeric))
+        }
+      />
+    </Field>
+  );
+}
+
+type LocationKey = "startLine" | "startColumn" | "endLine" | "endColumn";
+
+function updateLocation(
+  resource: Extract<ObservationResource, { type: AffectedResourceType.SourceCode }>,
+  key: LocationKey,
+  rawValue: string,
+): ObservationResource {
+  const location = { ...resource.location } as Partial<Record<LocationKey, number>>;
+  if (rawValue.trim()) location[key] = Number(rawValue);
+  else delete location[key];
+  return {
+    ...resource,
+    ...(Object.keys(location).length ? { location } : { location: undefined }),
+  } as ObservationResource;
+}
+
+function ObservationResourceFields({
+  resource,
+  onChange,
+}: {
+  resource: ObservationResource;
+  onChange: (resource: ObservationResource) => void;
+}) {
+  switch (resource.type) {
+    case AffectedResourceType.Asset:
+    case AffectedResourceType.Unspecified:
+      return null;
+    case AffectedResourceType.WebEndpoint: {
+      const component = resource.component;
+      return (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="observation-resource-scheme">Scheme</FieldLabel>
+            <Select
+              value={resource.scheme ?? ""}
+              onValueChange={(value) =>
+                onChange(updateResourceValue(resource, "scheme", value ?? ""))
+              }
+            >
+              <SelectTrigger id="observation-resource-scheme" className="w-full">
+                <SelectValue placeholder="Select scheme" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="http">HTTP</SelectItem>
+                <SelectItem value="https">HTTPS</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          <ResourceInput resource={resource} resourceKey="host" label="Host" onChange={onChange} />
+          <ResourceInput
+            resource={resource}
+            resourceKey="port"
+            label="Port"
+            numeric
+            onChange={onChange}
+          />
+          <ResourceInput resource={resource} resourceKey="path" label="Path" onChange={onChange} />
+          <ResourceInput
+            resource={resource}
+            resourceKey="method"
+            label="Method"
+            onChange={onChange}
+          />
+          <ResourceInput
+            resource={resource}
+            resourceKey="reportedUrl"
+            label="Reported URL"
+            onChange={onChange}
+          />
+          <Field>
+            <FieldLabel htmlFor="observation-resource-component">Component kind</FieldLabel>
+            <Select
+              value={component?.kind ?? noComponentValue}
+              onValueChange={(value) => {
+                if (!value) return;
+                if (value === noComponentValue) {
+                  const { component: _, ...next } = resource;
+                  onChange(next);
+                  return;
+                }
+                const kind = value as WebEndpointComponentKind;
+                onChange({
+                  ...resource,
+                  component: namedComponentKinds.has(kind) ? { kind, name: "" } : { kind },
+                } as ObservationResource);
+              }}
+            >
+              <SelectTrigger id="observation-resource-component" className="w-full">
+                <SelectValue>
+                  {(value) =>
+                    value === noComponentValue
+                      ? "No component"
+                      : capitalizeFirstLetter(String(value))
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={noComponentValue}>No component</SelectItem>
+                {componentKinds.map((kind) => (
+                  <SelectItem key={kind} value={kind}>
+                    {capitalizeFirstLetter(kind)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          {component && namedComponentKinds.has(component.kind) ? (
+            <Field>
+              <FieldLabel htmlFor="observation-resource-component-name">Component name</FieldLabel>
+              <Input
+                id="observation-resource-component-name"
+                value={"name" in component ? component.name : ""}
+                onChange={(event) =>
+                  onChange({
+                    ...resource,
+                    component: { kind: component.kind, name: event.target.value },
+                  })
+                }
+              />
+            </Field>
+          ) : null}
+        </div>
+      );
+    }
+    case AffectedResourceType.NetworkService:
+      return (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ResourceInput resource={resource} resourceKey="host" label="Host" onChange={onChange} />
+          <ResourceInput
+            resource={resource}
+            resourceKey="port"
+            label="Port"
+            numeric
+            onChange={onChange}
+          />
+          <Field>
+            <FieldLabel htmlFor="observation-resource-transport">Transport</FieldLabel>
+            <Select
+              value={resource.transport ?? ""}
+              onValueChange={(value) =>
+                onChange(updateResourceValue(resource, "transport", value ?? ""))
+              }
+            >
+              <SelectTrigger id="observation-resource-transport" className="w-full">
+                <SelectValue placeholder="Select transport" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(NetworkTransport).map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {value.toUpperCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <ResourceInput
+            resource={resource}
+            resourceKey="protocol"
+            label="Protocol"
+            onChange={onChange}
+          />
+        </div>
+      );
+    case AffectedResourceType.SourceCode:
+      return (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ResourceInput
+            resource={resource}
+            resourceKey="repository"
+            label="Repository"
+            onChange={onChange}
+          />
+          <ResourceInput
+            resource={resource}
+            resourceKey="revision"
+            label="Revision"
+            onChange={onChange}
+          />
+          <ResourceInput resource={resource} resourceKey="file" label="File" onChange={onChange} />
+          {(["startLine", "startColumn", "endLine", "endColumn"] as const).map((key) => (
+            <Field key={key}>
+              <FieldLabel htmlFor={`observation-resource-${key}`}>
+                {key.replace(/([A-Z])/g, " $1")}
+              </FieldLabel>
+              <Input
+                id={`observation-resource-${key}`}
+                type="number"
+                min={1}
+                value={resource.location?.[key]?.toString() ?? ""}
+                onChange={(event) => onChange(updateLocation(resource, key, event.target.value))}
+              />
+            </Field>
+          ))}
+          <ResourceInput
+            resource={resource}
+            resourceKey="symbol"
+            label="Symbol"
+            onChange={onChange}
+          />
+          <ResourceInput
+            resource={resource}
+            resourceKey="locationFingerprint"
+            label="Location fingerprint"
+            onChange={onChange}
+          />
+        </div>
+      );
+    case AffectedResourceType.Package:
+      return (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ResourceInput
+            resource={resource}
+            resourceKey="ecosystem"
+            label="Ecosystem"
+            onChange={onChange}
+          />
+          <ResourceInput
+            resource={resource}
+            resourceKey="name"
+            label="Package name"
+            onChange={onChange}
+          />
+          <ResourceInput
+            resource={resource}
+            resourceKey="version"
+            label="Version"
+            onChange={onChange}
+          />
+          <ResourceInput
+            resource={resource}
+            resourceKey="installationPath"
+            label="Installation path"
+            onChange={onChange}
+          />
+        </div>
+      );
+    case AffectedResourceType.ContainerImage:
+      return (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ResourceInput
+            resource={resource}
+            resourceKey="registry"
+            label="Registry"
+            onChange={onChange}
+          />
+          <ResourceInput
+            resource={resource}
+            resourceKey="repository"
+            label="Repository"
+            onChange={onChange}
+          />
+          <ResourceInput
+            resource={resource}
+            resourceKey="digest"
+            label="Digest"
+            onChange={onChange}
+          />
+          <ResourceInput resource={resource} resourceKey="tag" label="Tag" onChange={onChange} />
+        </div>
+      );
+    case AffectedResourceType.CloudResource:
+      return (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ResourceInput
+            resource={resource}
+            resourceKey="provider"
+            label="Provider"
+            onChange={onChange}
+          />
+          <ResourceInput
+            resource={resource}
+            resourceKey="providerAccount"
+            label="Provider account"
+            onChange={onChange}
+          />
+          <ResourceInput
+            resource={resource}
+            resourceKey="region"
+            label="Region"
+            onChange={onChange}
+          />
+          <ResourceInput
+            resource={resource}
+            resourceKey="resourceId"
+            label="Resource ID"
+            onChange={onChange}
+          />
+          <ResourceInput
+            resource={resource}
+            resourceKey="subresource"
+            label="Subresource"
+            onChange={onChange}
+          />
+          <ResourceInput
+            resource={resource}
+            resourceKey="displayName"
+            label="Display name"
+            onChange={onChange}
+          />
+        </div>
+      );
+  }
+}
+
+function resourceDetails(resource: ObservationResource): Array<[string, string]> {
+  const raw = { ...resource } as Record<string, unknown>;
+  delete raw.type;
+  if ("location" in raw && raw.location) raw.location = JSON.stringify(raw.location);
+  if ("component" in raw && raw.component) {
+    const component = raw.component as { kind: string; name?: string };
+    raw.component = component.name ? `${component.kind}: ${component.name}` : component.kind;
+  }
+  return Object.entries(raw)
+    .filter(([, value]) => value !== undefined)
+    .map(([key, value]) => [
+      key.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase()),
+      String(value),
+    ]);
+}
+
+function ObservationCard({ observation }: { observation: Observation }) {
+  const details = resourceDetails(observation.affectedResource);
+  const identifiers = Object.entries(observation.weakness.identifiers);
+
+  return (
+    <article className="rounded-2xl border border-border/70 bg-muted/10 p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="font-semibold">{observation.title}</h3>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <span>{capitalizeFirstLetter(observation.source)}</span>
+            <span aria-hidden="true">/</span>
+            <Timestamp timestamp={observation.observedAt} />
+          </div>
+        </div>
+        <SeverityBadge severity={observation.severity} />
+      </div>
+      {observation.description ? (
+        <SafeMarkdown className="mt-4">{observation.description}</SafeMarkdown>
+      ) : null}
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        {observation.evidence ? (
+          <div>
+            <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              Evidence
+            </h4>
+            <SafeMarkdown className="mt-1">{observation.evidence}</SafeMarkdown>
+          </div>
+        ) : null}
+        {observation.remediation ? (
+          <div>
+            <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              Remediation
+            </h4>
+            <SafeMarkdown className="mt-1">{observation.remediation}</SafeMarkdown>
+          </div>
+        ) : null}
+      </div>
+      <Separator className="my-4" />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div>
+          <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Weakness
+          </h4>
+          <p className="mt-1 text-sm">
+            {identifiers.length
+              ? identifiers
+                  .map(([namespace, values]) => `${namespace}: ${values.join(", ")}`)
+                  .join("; ")
+              : "No identifiers recorded"}
+          </p>
+        </div>
+        <div>
+          <h4 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Affected resource
+          </h4>
+          <p className="mt-1 text-sm font-medium">
+            {formatResourceType(observation.affectedResource.type)}
+          </p>
+          {details.length ? (
+            <dl className="mt-2 grid gap-x-4 gap-y-1 sm:grid-cols-2">
+              {details.map(([label, value]) => (
+                <div key={label} className="text-sm">
+                  <dt className="inline text-muted-foreground">{label}: </dt>
+                  <dd className="inline break-all">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function AddObservationDialog({ finding }: { finding: FindingProjection }) {
+  const lifecycle = useObservationLifecycle();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<ObservationDraft>({});
+  const [weakness, setWeakness] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const reset = () => {
+    setDraft({});
+    setWeakness("");
+    setError(null);
+  };
+  const changeOpen = (next: boolean) => {
+    if (!next && submitting) return;
+    reset();
+    setOpen(next);
+  };
+  const submit = async () => {
+    const parsedWeakness = parseWeaknessText(weakness);
+    if (parsedWeakness === null) {
+      setError("Weakness identifiers must use namespace=identifier entries.");
+      return;
+    }
+    const candidate = { ...draft, ...(parsedWeakness ? { weakness: parsedWeakness } : {}) };
+    const result = manualObservationInputSchema.safeParse(candidate);
+    if (!result.success) {
+      const issue = result.error.issues[0];
+      setError(
+        `Unable to add observation. ${issue.path.length ? `${issue.path.join(".")}: ` : ""}${issue.message}`,
+      );
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    const created = await lifecycle.addObservation(finding.id, result.data);
+    setSubmitting(false);
+    if (!created) {
+      setError("Unable to add observation. Try again.");
+      return;
+    }
+    reset();
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={changeOpen}>
+      <Button type="button" size="sm" onClick={() => changeOpen(true)}>
+        <Plus />
+        Add observation
+      </Button>
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Add manual observation</DialogTitle>
+          <DialogDescription>
+            Record source evidence without changing the finding's canonical identity. Leave
+            inherited fields blank to use server defaults.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          id={`add-observation-${finding.id}`}
+          className="space-y-6"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submit();
+          }}
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field className="sm:col-span-2">
+              <FieldLabel htmlFor="observation-title">Title</FieldLabel>
+              <Input
+                id="observation-title"
+                value={draft.title ?? ""}
+                placeholder={`Use finding title: ${finding.title}`}
+                onChange={(event) => setDraft({ ...draft, title: event.target.value || undefined })}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="observation-severity">Severity</FieldLabel>
+              <Select
+                value={draft.severity ?? inheritedValue}
+                onValueChange={(value) =>
+                  value &&
+                  setDraft({
+                    ...draft,
+                    severity:
+                      value === inheritedValue ? undefined : (value as VulnerabilitySeverity),
+                  })
+                }
+              >
+                <SelectTrigger id="observation-severity" className="w-full">
+                  <SelectValue>
+                    {(value) =>
+                      value === inheritedValue
+                        ? `Use finding severity (${formatSeverity(finding.severity)})`
+                        : formatSeverity(value as VulnerabilitySeverity)
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={inheritedValue}>Use finding severity</SelectItem>
+                  {severities.map((severity) => (
+                    <SelectItem key={severity} value={severity}>
+                      {formatSeverity(severity)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="observation-time">Observed at</FieldLabel>
+              <Input
+                id="observation-time"
+                type="datetime-local"
+                value={
+                  draft.observedAt
+                    ? new Date(
+                        draft.observedAt.getTime() - draft.observedAt.getTimezoneOffset() * 60_000,
+                      )
+                        .toISOString()
+                        .slice(0, 16)
+                    : ""
+                }
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    observedAt: event.target.value ? new Date(event.target.value) : undefined,
+                  })
+                }
+              />
+              <FieldDescription>Leave blank to use the server time.</FieldDescription>
+            </Field>
+            {(["description", "evidence", "remediation"] as const).map((key) => (
+              <Field key={key} className="sm:col-span-2">
+                <FieldLabel htmlFor={`observation-${key}`}>{capitalizeFirstLetter(key)}</FieldLabel>
+                <Textarea
+                  id={`observation-${key}`}
+                  value={draft[key] ?? ""}
+                  onChange={(event) =>
+                    setDraft({ ...draft, [key]: event.target.value || undefined })
+                  }
+                />
+              </Field>
+            ))}
+          </div>
+          <Separator />
+          <Field>
+            <FieldLabel htmlFor="observation-weakness">Weakness identifiers</FieldLabel>
+            <Input
+              id="observation-weakness"
+              value={weakness}
+              placeholder="Use finding weakness, or cwe=CWE-200; nuclei=admin-panel"
+              onChange={(event) => setWeakness(event.target.value)}
+            />
+            <FieldDescription>
+              Blank uses the finding default. Separate namespaces with semicolons and identifiers
+              with commas.
+            </FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="observation-resource-type">Affected resource type</FieldLabel>
+            <Select
+              value={draft.affectedResource?.type ?? inheritedValue}
+              onValueChange={(value) =>
+                value &&
+                setDraft({
+                  ...draft,
+                  affectedResource:
+                    value === inheritedValue
+                      ? undefined
+                      : emptyResource(value as AffectedResourceType),
+                })
+              }
+            >
+              <SelectTrigger id="observation-resource-type" className="w-full">
+                <SelectValue>
+                  {(value) =>
+                    value === inheritedValue
+                      ? `Use finding resource (${formatResourceType(finding.affectedResource.type)})`
+                      : formatResourceType(value as AffectedResourceType)
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={inheritedValue}>Use finding resource</SelectItem>
+                {resourceTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {formatResourceType(type)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          {draft.affectedResource ? (
+            <ObservationResourceFields
+              resource={draft.affectedResource}
+              onChange={(affectedResource) => setDraft({ ...draft, affectedResource })}
+            />
+          ) : null}
+          {error ? (
+            <p role="alert" className="text-sm font-medium text-destructive">
+              {error}
+            </p>
+          ) : null}
+        </form>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => changeOpen(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" form={`add-observation-${finding.id}`} disabled={submitting}>
+            {submitting ? <Spinner /> : null}Add observation
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function FindingObservationsSection({ finding }: FindingObservationsSectionProps) {
+  const observations = useQuery(createFindingObservationsQueryOptions(finding.id));
+
+  return (
+    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+      <CardHeader className="flex-row items-start justify-between gap-4">
+        <div>
+          <CardTitle className="text-xl font-semibold">Observations</CardTitle>
+          <CardDescription>Source-owned evidence supporting this finding.</CardDescription>
+        </div>
+        <AddObservationDialog finding={finding} />
+      </CardHeader>
+      <CardContent>
+        {observations.isPending ? (
+          <div role="status" aria-label="Loading observations" className="space-y-3">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        ) : observations.isError ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-destructive/30 bg-destructive/5 p-4"
+          >
+            <p className="font-medium">Unable to load observations</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              The supporting evidence could not be loaded.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => void observations.refetch()}
+            >
+              Try again
+            </Button>
+          </div>
+        ) : observations.data.length ? (
+          <div className="space-y-4">
+            {observations.data.map((observation) => (
+              <ObservationCard key={observation.id} observation={observation} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-border p-6 text-center">
+            <p className="font-medium">No observations recorded</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Add manual evidence to support this finding.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

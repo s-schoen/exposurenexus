@@ -5,8 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createFinding,
+  createFindingObservation,
   createManualFinding,
   createFindingByIDQueryOptions,
+  createFindingObservationsQueryOptions,
   createFindingStatsQueryOptions,
   createListFindingsQueryOptions,
   deleteFinding,
@@ -21,7 +23,9 @@ import type {
   Finding,
   FindingProjection,
   FindingStatistics,
+  ManualObservationInput,
 } from "@exposurenexus/types/model/finding";
+import type { Observation } from "@exposurenexus/types/model/observation";
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -114,6 +118,30 @@ const findingProjectionJson = {
   createdBy: userId,
   updatedBy: userId,
   createdAt: "2026-01-02T00:00:00.000Z",
+  updatedAt: "2026-01-03T00:00:00.000Z",
+};
+const observationJson = {
+  id: "f39a0c31-33b9-4f10-a128-35158dee4a26",
+  findingId,
+  ingestionId: null,
+  source: "manual",
+  title: "Observed admin endpoint",
+  description: "The endpoint answered without authentication.",
+  evidence: "GET /admin returned 200",
+  remediation: null,
+  severity: VulnerabilitySeverity.High,
+  weakness: { identifiers: { cwe: ["CWE-200"] } },
+  affectedResource: {
+    type: "webEndpoint",
+    scheme: "https",
+    host: "example.com",
+    path: "/admin",
+    reportedUrl: "https://example.com/admin?source=scan",
+  },
+  observedAt: "2026-01-03T00:00:00.000Z",
+  createdBy: userId,
+  updatedBy: userId,
+  createdAt: "2026-01-03T00:00:00.000Z",
   updatedAt: "2026-01-03T00:00:00.000Z",
 };
 const createFindingPayload: LegacyCreateFinding = {
@@ -245,6 +273,49 @@ describe("finding api", () => {
         credentials: "include",
         method: "GET",
       }),
+    );
+  });
+
+  it("lists nested observations with the observation schema", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ data: { items: [observationJson] } }));
+
+    const query = createFindingObservationsQueryOptions(findingId);
+    const observations = await runQuery<Array<Observation>>(query);
+
+    expect(query.queryKey).toEqual(["findings", findingId, "observations"]);
+    expect(observations[0].observedAt).toBeInstanceOf(Date);
+    expect(observations[0].affectedResource).toMatchObject({
+      type: "webEndpoint",
+      reportedUrl: "https://example.com/admin?source=scan",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/findings/${findingId}/observations`,
+      expect.objectContaining({ credentials: "include", method: "GET" }),
+    );
+  });
+
+  it("creates a nested manual observation without adding parent or source fields", async () => {
+    const input: ManualObservationInput = {
+      evidence: "GET /admin returned 200",
+      affectedResource: {
+        type: AffectedResourceType.Package,
+        ecosystem: "npm",
+        name: "example-package",
+        version: "1.2.3",
+      },
+    };
+    fetchMock.mockResolvedValueOnce(jsonResponse({ data: observationJson }));
+
+    const observation = await createFindingObservation(findingId, input);
+
+    expect(observation.findingId).toBe(findingId);
+    expect(requestJsonBody()).toEqual(input);
+    expect(requestJsonBody()).not.toHaveProperty("source");
+    expect(requestJsonBody()).not.toHaveProperty("findingId");
+    expect(requestJsonBody()).not.toHaveProperty("ingestionId");
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/findings/${findingId}/observations`,
+      expect.objectContaining({ credentials: "include", method: "POST" }),
     );
   });
 
