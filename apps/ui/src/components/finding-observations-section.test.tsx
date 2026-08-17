@@ -1,5 +1,5 @@
 import { composeStories } from "@storybook/react-vite";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -158,5 +158,22 @@ describe("FindingObservationsSection", () => {
     await actor.click(within(dialog).getByRole("button", { name: "Delete observation" }));
 
     expect(await screen.findByText("No observations recorded")).toBeVisible();
+  });
+
+  it("moves an observation to another finding and closes the parent-selection dialog", async () => {
+    const actor = userEvent.setup();
+    render(<Populated />);
+
+    await actor.click(
+      await screen.findByRole("button", { name: "Move observation Asset-wide observation" }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Move observation" });
+    expect(within(dialog).getByLabelText("Target finding")).toBeVisible();
+    await actor.click(within(dialog).getByLabelText("Target finding"));
+    await actor.click(await screen.findByRole("option", { name: /Target finding/ }));
+    await actor.click(within(dialog).getByRole("button", { name: "Move observation" }));
+
+    await waitFor(() => expect(screen.queryByText("Asset-wide observation")).toBeNull());
+    expect(screen.queryByRole("dialog", { name: "Move observation" })).toBeNull();
   });
 });

@@ -8,7 +8,7 @@ import { observationSchema, ObservationSource } from "@exposurenexus/types/model
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { FindingObservationsSection } from "@/components/finding-observations-section.tsx";
@@ -56,6 +56,16 @@ const finding: FindingProjection = {
   updatedAt: new Date("2026-06-08T09:00:00.000Z"),
   createdBy: ids.user,
   updatedBy: ids.user,
+};
+
+const targetFinding: FindingProjection = {
+  ...finding,
+  id: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+  title: "Target finding",
+  observationCount: 0,
+  observingSources: [],
+  firstSeen: null,
+  lastSeen: null,
 };
 
 const resources: Array<[string, ObservationResource]> = [
@@ -187,13 +197,35 @@ function StoryShell({ scenario }: StoryArgs) {
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async (input, init) => {
-      const url = input instanceof Request ? input.url : String(input);
+      const requestUrl = input instanceof Request ? input.url : String(input);
+      const url = new URL(requestUrl, "http://localhost").pathname;
+      const findingsPath = "/api/findings";
       const observationsPath = `/api/findings/${finding.id}/observations`;
+      if (url === findingsPath && init?.method !== "POST") {
+        return listResponse([finding, targetFinding]);
+      }
       if (url !== observationsPath && !url.startsWith(`${observationsPath}/`)) {
         return originalFetch(input);
       }
       if (scenario === "loading") return await new Promise<Response>(() => {});
       if (scenario === "error") return objectResponse({ message: "Failed" }, 500);
+      if (init?.method === "POST" && url.endsWith("/move")) {
+        const movePath = url.slice(`${observationsPath}/`.length);
+        const observationId = movePath.slice(0, -"/move".length);
+        const payload = JSON.parse(await new Response(init.body).text()) as {
+          targetFindingId: string;
+        };
+        const current = records.current.find((record) => record.id === observationId);
+        if (!current) return objectResponse({ message: "Not found" }, 404);
+        const moved: Observation = {
+          ...current,
+          findingId: payload.targetFindingId,
+          updatedAt: new Date("2026-06-09T09:00:00.000Z"),
+          updatedBy: ids.user,
+        };
+        records.current = records.current.filter((record) => record.id !== observationId);
+        return objectResponse(moved);
+      }
       if (init?.method === "POST") {
         const payload = JSON.parse(await new Response(init.body).text()) as ManualObservationInput;
         const now = new Date("2026-06-09T09:00:00.000Z");
@@ -317,5 +349,27 @@ export const DeleteFinalObservation: Story = {
     );
     await userEvent.click(within(dialog).getByRole("button", { name: "Delete observation" }));
     await expect(canvas.getByText("No observations recorded")).toBeVisible();
+  },
+};
+export const MoveObservation: Story = {
+  args: { scenario: "populated" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "Move observation Asset-wide observation" }),
+    );
+    const dialog = within(canvasElement.ownerDocument.body).getByRole("dialog", {
+      name: "Move observation",
+    });
+    await userEvent.click(within(dialog).getByLabelText("Target finding"));
+    await userEvent.click(
+      await within(canvasElement.ownerDocument.body).findByRole("option", {
+        name: "Target finding",
+      }),
+    );
+    await userEvent.click(within(dialog).getByRole("button", { name: "Move observation" }));
+    await waitFor(() =>
+      expect(canvas.queryByText("Asset-wide observation")).not.toBeInTheDocument(),
+    );
   },
 };
