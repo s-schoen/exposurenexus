@@ -24,6 +24,7 @@ const {
   createRoleServiceMock,
   createUserProfileServiceMock,
   createFindingServiceMock,
+  createStatsServiceMock,
   createObservationRepositoryMock,
   createVulnerabilityServiceMock,
   roleRepositoryMock,
@@ -63,6 +64,7 @@ const {
   createRoleServiceMock: vi.fn(() => ({ kind: "role-service" })),
   createUserProfileServiceMock: vi.fn(() => ({ kind: "user-profile-service" })),
   createFindingServiceMock: vi.fn(() => ({ kind: "finding-service" })),
+  createStatsServiceMock: vi.fn(() => ({ kind: "stats-service" })),
   createObservationRepositoryMock: vi.fn(() => ({ kind: "observation-repo" })),
   createVulnerabilityServiceMock: vi.fn(() => ({
     kind: "vulnerability-service",
@@ -165,7 +167,7 @@ vi.mock("./service/index.js", () => ({
   createAssetService: createAssetServiceMock,
   createFindingService: createFindingServiceMock,
   createRoleService: createRoleServiceMock,
-  createStatsService: vi.fn(() => ({ kind: "stats-service" })),
+  createStatsService: createStatsServiceMock,
   createUserProfileService: createUserProfileServiceMock,
   createVulnerabilityService: createVulnerabilityServiceMock,
 }));
@@ -274,6 +276,11 @@ describe("app container", () => {
         domainEventEmitter: expect.objectContaining({
           emit: expect.any(Function),
         }),
+      }),
+    );
+    expect(createStatsServiceMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        findingRepository: { kind: "finding-persistence-repo" },
       }),
     );
     expect(createVulnerabilityServiceMock).toHaveBeenCalledWith(

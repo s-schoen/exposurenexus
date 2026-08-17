@@ -1,4 +1,4 @@
-import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
+import { FindingStatus } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -69,9 +69,6 @@ describe("finding stats routes", () => {
         [VulnerabilitySeverity.Medium]: 1,
         [VulnerabilitySeverity.High]: 2,
         [VulnerabilitySeverity.Critical]: 0,
-      },
-      source: {
-        [FindingSource.Manual]: 3,
       },
       assets: {
         "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c": 3,

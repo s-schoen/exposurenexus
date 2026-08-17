@@ -142,7 +142,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     logger: loggerFactory("service/finding"),
   });
   const statsService = createStatsService({
-    findingRepository: repositories.findingRepository,
+    findingRepository: repositories.findingPersistenceRepository,
     logger: loggerFactory("service/stats"),
   });
 
