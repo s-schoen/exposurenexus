@@ -7,4 +7,12 @@ export type ObservationApplicationErrorCatalog = {
     kind: "unexpected";
     details: { findingId: string };
   };
+  "observation.update_failed": {
+    kind: "unexpected";
+    details: { findingId: string; observationId: string };
+  };
+  "observation.delete_failed": {
+    kind: "unexpected";
+    details: { findingId: string; observationId: string };
+  };
 };

@@ -157,4 +157,33 @@ describe("redact log properties", () => {
       ],
     });
   });
+
+  it("redacts observation evidence in update and deletion snapshots", () => {
+    const eventBase = {
+      id: "event-observation",
+      source: "finding",
+      time: new Date("2026-08-17T10:00:00.000Z"),
+    };
+    const updated = serializeDomainEventForLog({
+      ...eventBase,
+      subject: "observation.updated",
+      data: {
+        previous: { observation: { evidence: "old secret", title: "old" } },
+        current: { observation: { evidence: "new secret", title: "new" } },
+      },
+    });
+    const deleted = serializeDomainEventForLog({
+      ...eventBase,
+      subject: "observation.deleted",
+      data: { observation: { evidence: "deleted secret", title: "deleted" } },
+    });
+
+    expect(updated.data).toEqual({
+      previous: { observation: { evidence: REDACTED_EVENT_LOG_VALUE, title: "old" } },
+      current: { observation: { evidence: REDACTED_EVENT_LOG_VALUE, title: "new" } },
+    });
+    expect(deleted.data).toEqual({
+      observation: { evidence: REDACTED_EVENT_LOG_VALUE, title: "deleted" },
+    });
+  });
 });

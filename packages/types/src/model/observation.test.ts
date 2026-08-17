@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { AffectedResourceType } from "./affected-resource.js";
-import { manualObservationInputSchema, ObservationSource } from "./observation.js";
+import {
+  manualObservationInputSchema,
+  ObservationSource,
+  updateObservationSchema,
+} from "./observation.js";
 import { VulnerabilitySeverity } from "./vulnerability.js";
 
 describe("manual observation input schema", () => {
@@ -34,5 +38,56 @@ describe("manual observation input schema", () => {
     ["updatedBy", "85196743-cfba-4afb-b286-d36be32a64a4"],
   ])("rejects the server-owned %s field", (field, value) => {
     expect(() => manualObservationInputSchema.parse({ [field]: value })).toThrow();
+  });
+});
+
+describe("observation update schema", () => {
+  it("accepts mutable fields and replaces identity values as complete objects", () => {
+    const observedAt = new Date("2026-08-17T10:00:00.000Z");
+
+    expect(
+      updateObservationSchema.parse({
+        title: "Corrected observation",
+        description: null,
+        evidence: "Updated evidence",
+        remediation: null,
+        severity: VulnerabilitySeverity.High,
+        weakness: { identifiers: { cwe: ["cwe-89"] } },
+        affectedResource: {
+          type: AffectedResourceType.SourceCode,
+          file: "src/query.ts",
+        },
+        observedAt,
+      }),
+    ).toEqual({
+      title: "Corrected observation",
+      description: null,
+      evidence: "Updated evidence",
+      remediation: null,
+      severity: VulnerabilitySeverity.High,
+      weakness: { identifiers: { cwe: ["CWE-89"] } },
+      affectedResource: {
+        type: AffectedResourceType.SourceCode,
+        file: "src/query.ts",
+      },
+      observedAt,
+    });
+  });
+
+  it("requires at least one mutable field", () => {
+    expect(() => updateObservationSchema.parse({})).toThrow();
+  });
+
+  it.each([
+    ["id", "2713d833-eb13-4517-ac7c-7761545ed42a"],
+    ["findingId", "2713d833-eb13-4517-ac7c-7761545ed42a"],
+    ["source", ObservationSource.Nuclei],
+    ["ingestionId", "2713d833-eb13-4517-ac7c-7761545ed42a"],
+    ["createdAt", new Date()],
+    ["updatedAt", new Date()],
+    ["createdBy", "85196743-cfba-4afb-b286-d36be32a64a4"],
+    ["updatedBy", "85196743-cfba-4afb-b286-d36be32a64a4"],
+  ])("rejects immutable %s fields", (field, value) => {
+    expect(() => updateObservationSchema.parse({ title: "Correction", [field]: value })).toThrow();
   });
 });

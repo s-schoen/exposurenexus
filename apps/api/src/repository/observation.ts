@@ -21,11 +21,25 @@ export type CreateObservationRecord = Omit<
   affectedResource: unknown;
 };
 export type UpdateObservationRecord = Omit<
-  Updateable<ObservationTable>,
+  Partial<
+    Pick<
+      ObservationTable,
+      | "title"
+      | "description"
+      | "evidence"
+      | "remediation"
+      | "severity"
+      | "observedAt"
+      | "updatedAt"
+      | "updatedBy"
+    >
+  >,
   "weakness" | "affectedResource"
 > & {
   weakness?: unknown;
   affectedResource?: unknown;
+  updatedAt: Date;
+  updatedBy: string;
 };
 
 export interface CreateObservationAndTouchFindingInput {
@@ -39,6 +53,32 @@ export interface CreateObservationAndTouchFindingResult {
   current: FindingProjection;
 }
 
+export interface UpdateObservationAndTouchFindingInput {
+  findingId: string;
+  observationId: string;
+  observation: UpdateObservationRecord;
+}
+
+export interface UpdateObservationAndTouchFindingResult {
+  previousObservation: ObservationRecord;
+  observation: ObservationRecord;
+  previous: FindingProjection;
+  current: FindingProjection;
+}
+
+export interface DeleteObservationAndTouchFindingInput {
+  findingId: string;
+  observationId: string;
+  updatedAt: Date;
+  updatedBy: string;
+}
+
+export interface DeleteObservationAndTouchFindingResult {
+  observation: ObservationRecord;
+  previous: FindingProjection;
+  current: FindingProjection;
+}
+
 export interface ObservationRepository {
   listByFindingID(findingId: string): Promise<ObservationRecord[]>;
   getByID(id: string): Promise<ObservationRecord | null>;
@@ -46,8 +86,12 @@ export interface ObservationRepository {
   createAndTouchFinding(
     input: CreateObservationAndTouchFindingInput,
   ): Promise<CreateObservationAndTouchFindingResult | null>;
-  updateByID(id: string, observation: UpdateObservationRecord): Promise<ObservationRecord | null>;
-  deleteByID(id: string): Promise<ObservationRecord | null>;
+  updateAndTouchFinding(
+    input: UpdateObservationAndTouchFindingInput,
+  ): Promise<UpdateObservationAndTouchFindingResult | null>;
+  deleteAndTouchFinding(
+    input: DeleteObservationAndTouchFindingInput,
+  ): Promise<DeleteObservationAndTouchFindingResult | null>;
 }
 
 function normalizeObservation(observation: ObservationRecord): ObservationRecord {
@@ -157,28 +201,118 @@ export function createObservationRepository(database: Kysely<Database>): Observa
       });
     },
 
-    async updateByID(
-      id: string,
-      observation: UpdateObservationRecord,
-    ): Promise<ObservationRecord | null> {
-      const updated = await database
-        .updateTable("observation")
-        .set(normalizeObservationInput(observation) as Updateable<ObservationTable>)
-        .where("id", "=", id)
-        .returningAll()
-        .executeTakeFirst();
+    async updateAndTouchFinding(
+      input: UpdateObservationAndTouchFindingInput,
+    ): Promise<UpdateObservationAndTouchFindingResult | null> {
+      return await database.transaction().execute(async (transaction) => {
+        const parent = await transaction
+          .selectFrom("finding")
+          .select("id")
+          .where("id", "=", input.findingId)
+          .forUpdate()
+          .executeTakeFirst();
+        if (!parent) {
+          return null;
+        }
 
-      return updated ? normalizeObservation(updated) : null;
+        const previous = await getFindingProjectionByID(transaction, input.findingId);
+        if (!previous) {
+          throw new Error("locked finding was not available as a projection");
+        }
+
+        const previousObservation = await transaction
+          .selectFrom("observation")
+          .selectAll()
+          .where("id", "=", input.observationId)
+          .where("findingId", "=", input.findingId)
+          .executeTakeFirst();
+        if (!previousObservation) {
+          return null;
+        }
+
+        const updatedObservation = await transaction
+          .updateTable("observation")
+          .set(normalizeObservationInput(input.observation) as Updateable<ObservationTable>)
+          .where("id", "=", input.observationId)
+          .where("findingId", "=", input.findingId)
+          .returningAll()
+          .executeTakeFirst();
+        if (!updatedObservation) {
+          return null;
+        }
+
+        await transaction
+          .updateTable("finding")
+          .set({
+            updatedAt: input.observation.updatedAt,
+            updatedBy: input.observation.updatedBy,
+          })
+          .where("id", "=", input.findingId)
+          .executeTakeFirstOrThrow();
+
+        const current = await getFindingProjectionByID(transaction, input.findingId);
+        if (!current) {
+          throw new Error("updated finding was not available as a projection");
+        }
+
+        return {
+          previousObservation: normalizeObservation(previousObservation),
+          observation: normalizeObservation(updatedObservation),
+          previous,
+          current,
+        };
+      });
     },
 
-    async deleteByID(id: string): Promise<ObservationRecord | null> {
-      const deleted = await database
-        .deleteFrom("observation")
-        .where("id", "=", id)
-        .returningAll()
-        .executeTakeFirst();
+    async deleteAndTouchFinding(
+      input: DeleteObservationAndTouchFindingInput,
+    ): Promise<DeleteObservationAndTouchFindingResult | null> {
+      return await database.transaction().execute(async (transaction) => {
+        const parent = await transaction
+          .selectFrom("finding")
+          .select("id")
+          .where("id", "=", input.findingId)
+          .forUpdate()
+          .executeTakeFirst();
+        if (!parent) {
+          return null;
+        }
 
-      return deleted ? normalizeObservation(deleted) : null;
+        const previous = await getFindingProjectionByID(transaction, input.findingId);
+        if (!previous) {
+          throw new Error("locked finding was not available as a projection");
+        }
+
+        const deletedObservation = await transaction
+          .deleteFrom("observation")
+          .where("id", "=", input.observationId)
+          .where("findingId", "=", input.findingId)
+          .returningAll()
+          .executeTakeFirst();
+        if (!deletedObservation) {
+          return null;
+        }
+
+        await transaction
+          .updateTable("finding")
+          .set({
+            updatedAt: input.updatedAt,
+            updatedBy: input.updatedBy,
+          })
+          .where("id", "=", input.findingId)
+          .executeTakeFirstOrThrow();
+
+        const current = await getFindingProjectionByID(transaction, input.findingId);
+        if (!current) {
+          throw new Error("updated finding was not available as a projection");
+        }
+
+        return {
+          observation: normalizeObservation(deletedObservation),
+          previous,
+          current,
+        };
+      });
     },
   };
 }

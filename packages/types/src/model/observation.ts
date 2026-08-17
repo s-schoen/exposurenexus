@@ -51,8 +51,24 @@ export const manualObservationInputSchema = z.strictObject({
   observedAt: dateSchema.optional(),
 });
 
+export const updateObservationSchema = z
+  .strictObject({
+    title: z.string().trim().min(1).optional(),
+    description: z.string().nullable().optional(),
+    evidence: z.string().nullable().optional(),
+    remediation: z.string().nullable().optional(),
+    severity: z.enum(VulnerabilitySeverity).optional(),
+    weakness: observationWeaknessSchema.optional(),
+    affectedResource: observationAffectedResourceSchema.optional(),
+    observedAt: dateSchema.optional(),
+  })
+  .refine((observation) => Object.keys(observation).length > 0, {
+    message: "at least one mutable observation field is required",
+  });
+
 export type Observation = z.infer<typeof observationSchema>;
 export type CreateObservation = z.infer<typeof createObservationSchema>;
 export type ManualObservationInput = z.infer<typeof manualObservationInputSchema>;
+export type UpdateObservation = z.infer<typeof updateObservationSchema>;
 export type ObservationWeakness = Weakness;
 export type ObservationResource = ObservationAffectedResource;
