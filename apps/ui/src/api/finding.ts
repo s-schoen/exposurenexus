@@ -114,23 +114,13 @@ export async function createManualFinding(f: CreateManualFinding): Promise<Findi
   return parseObjectReply(response, findingProjectionSchema);
 }
 
-export async function updateFinding(f: Finding): Promise<Finding> {
-  const payload: UpdateFinding = {
-    severity: f.severity,
-    status: f.status,
-    source: f.source,
-    evidence: f.evidence,
-    mitigation: f.mitigation,
-    assigneeId: f.assigneeId,
-    dueDate: f.dueDate,
-  };
-
-  const response = await apiRequest(`/api/findings/${f.id}`, {
+export async function updateFinding(id: string, update: UpdateFinding): Promise<FindingProjection> {
+  const response = await apiRequest(`/api/findings/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(update),
   });
 
   if (!response.ok) {
@@ -139,7 +129,7 @@ export async function updateFinding(f: Finding): Promise<Finding> {
     throw error;
   }
 
-  return parseObjectReply(response, findingSchema);
+  return parseObjectReply(response, findingProjectionSchema);
 }
 
 export async function linkFindingVulnerability(
@@ -221,7 +211,8 @@ export function useCreateFindingMutation() {
 
 export function useUpdateFindingMutation() {
   return useMutation({
-    mutationFn: (finding: Finding) => updateFinding(finding),
+    mutationFn: ({ id, update }: { id: string; update: UpdateFinding }) =>
+      updateFinding(id, update),
   });
 }
 

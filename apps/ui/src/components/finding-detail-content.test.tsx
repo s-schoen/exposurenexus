@@ -7,6 +7,7 @@ import { FindingStatus } from "@exposurenexus/types/model/finding";
 import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx";
@@ -102,6 +103,7 @@ const finding: FindingProjection = {
 };
 
 const mocks = vi.hoisted(() => ({
+  correctFinding: vi.fn(),
   findingQuery: undefined as
     | { data?: FindingProjection; isPending: boolean; isSuccess: boolean; error?: Error }
     | undefined,
@@ -144,6 +146,7 @@ vi.mock("@/api/user.ts", () => ({
 
 vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
   useFindingLifecycle: () => ({
+    correctFinding: mocks.correctFinding,
     linkVulnerability: vi.fn(),
     unlinkVulnerability: vi.fn(),
   }),
@@ -168,6 +171,7 @@ vi.mock("@/components/detail-query-boundary.tsx", () => ({
 vi.mock("@/components/user-label.tsx", () => ({
   createUserProfileById: (users: Array<UserProfile> | undefined) =>
     new Map((users ?? []).map((profile) => [profile.id, profile])),
+  getUserProfileDisplayName: (profile: UserProfile) => profile.displayName,
   UserLabel: ({
     user: profile,
     emptyLabel = "No User",
@@ -179,6 +183,8 @@ vi.mock("@/components/user-label.tsx", () => ({
 
 describe("FindingDetailContent", () => {
   beforeEach(() => {
+    mocks.correctFinding.mockReset();
+    mocks.correctFinding.mockResolvedValue(finding);
     mocks.findingQuery = { data: finding, isPending: false, isSuccess: true };
   });
 
@@ -229,5 +235,86 @@ describe("FindingDetailContent", () => {
     render(<FindingDetailContent findingId={finding.id} />);
 
     expect(screen.getByText("Finding details")).toBeTruthy();
+  });
+
+  it("opens and cancels the finding correction flow", async () => {
+    const actor = userEvent.setup();
+    render(<FindingDetailContent findingId={finding.id} />);
+
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+
+    expect(screen.getByRole("dialog", { name: "Correct finding" })).toBeTruthy();
+    expect(screen.getByLabelText("Title")).toHaveValue(finding.title);
+    expect(screen.getByLabelText("Weakness identifiers")).toHaveValue(
+      "cwe=CWE-200; nuclei=admin-panel",
+    );
+
+    await actor.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog", { name: "Correct finding" })).toBeNull();
+  });
+
+  it("replaces resource fields when the affected resource type changes", async () => {
+    const actor = userEvent.setup();
+    render(<FindingDetailContent findingId={finding.id} />);
+
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+    await actor.click(screen.getByLabelText("Affected resource type"));
+    await actor.click(screen.getByRole("option", { name: "Cloud resource" }));
+
+    expect(screen.getByLabelText("Provider")).toHaveValue("");
+    expect(screen.getByLabelText("Provider account")).toHaveValue("");
+    expect(screen.getByLabelText("Region")).toHaveValue("");
+    expect(screen.getByLabelText("Resource ID")).toHaveValue("");
+    expect(screen.getByLabelText("Subresource")).toHaveValue("");
+    expect(screen.queryByLabelText("Host")).toBeNull();
+    expect(screen.queryByLabelText("Method")).toBeNull();
+  });
+
+  it("submits exactly the finding-owned correction payload", async () => {
+    const actor = userEvent.setup();
+    render(<FindingDetailContent findingId={finding.id} />);
+
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+    const title = screen.getByLabelText("Title");
+    await actor.clear(title);
+    await actor.type(title, "Corrected admin endpoint");
+    await actor.click(screen.getByRole("button", { name: "Save correction" }));
+
+    expect(mocks.correctFinding).toHaveBeenCalledWith(finding, {
+      title: "Corrected admin endpoint",
+      severity: finding.severity,
+      status: finding.status,
+      assigneeId: finding.assigneeId,
+      dueDate: finding.dueDate,
+      mitigation: finding.mitigation,
+      weakness: finding.weakness,
+      affectedResource: finding.affectedResource,
+    });
+    expect(screen.queryByRole("dialog", { name: "Correct finding" })).toBeNull();
+  });
+
+  it("shows validation errors and keeps the correction open", async () => {
+    const actor = userEvent.setup();
+    render(<FindingDetailContent findingId={finding.id} />);
+
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+    await actor.clear(screen.getByLabelText("Title"));
+    await actor.click(screen.getByRole("button", { name: "Save correction" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Unable to save correction");
+    expect(screen.getByRole("dialog", { name: "Correct finding" })).toBeTruthy();
+    expect(mocks.correctFinding).not.toHaveBeenCalled();
+  });
+
+  it("keeps the correction open when the lifecycle update fails", async () => {
+    mocks.correctFinding.mockResolvedValueOnce(null);
+    const actor = userEvent.setup();
+    render(<FindingDetailContent findingId={finding.id} />);
+
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+    await actor.click(screen.getByRole("button", { name: "Save correction" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Unable to save correction. Try again.");
+    expect(screen.getByRole("dialog", { name: "Correct finding" })).toBeTruthy();
   });
 });
