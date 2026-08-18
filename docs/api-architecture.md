@@ -64,8 +64,9 @@ Use consistent identity-based names across services and repositories:
 - Delete by identity: `deleteByID`
 
 Use explicit names for behavior that is not a plain create, read, update, or
-delete operation. For example, finding imports use `createOrUpdate` because the
-method performs upsert-like behavior based on a fingerprint.
+delete operation. The automated finding import endpoint is currently work in
+progress and returns `501 Not Implemented`; no import service contract is
+defined yet.
 
 ## HTTP Update Semantics
 
@@ -138,4 +139,4 @@ Route tests should mock the full service contract used by the route. This
 catches service API drift earlier than a narrow route-local test double.
 
 Changing a service method name or call shape is a boundary change. Update the
-service interface, routes, import adapters, and tests in the same slice.
+service interface, routes, adapters, and tests in the same slice.
