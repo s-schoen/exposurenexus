@@ -28,6 +28,22 @@ describe("weakness schemas", () => {
     });
   });
 
+  it("canonicalizes bare CWE identifiers and handles prototype-sensitive namespaces", () => {
+    expect(
+      normalizeWeakness({
+        identifiers: {
+          constructor: [" Rule-X "],
+          cwe: ["284", "cwe-284"],
+        },
+      }),
+    ).toEqual({
+      identifiers: {
+        constructor: ["Rule-X"],
+        cwe: ["CWE-284"],
+      },
+    });
+  });
+
   it("uses a canonical empty representation and removes empty namespaces", () => {
     expect(weaknessSchema.parse({})).toEqual({ identifiers: {} });
     expect(weaknessSchema.parse({ identifiers: { cve: [] } })).toEqual({ identifiers: {} });
@@ -39,6 +55,8 @@ describe("weakness schemas", () => {
     expect(() => weaknessSchema.parse({ identifiers: { "not valid": ["x"] } })).toThrow();
     expect(() => weaknessSchema.parse({ identifiers: { cve: ["   "] } })).toThrow();
     expect(() => weaknessSchema.parse({ extra: true })).toThrow();
+    expect(() => weaknessSchema.parse({ identifiers: { cwe: ["not-a-cwe"] } })).toThrow();
+    expect(() => weaknessSchema.parse(JSON.parse('{"identifiers":{"__proto__":["x"]}}'))).toThrow();
   });
 
   it("replaces the complete identifiers value when parsed independently", () => {

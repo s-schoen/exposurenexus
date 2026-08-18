@@ -61,6 +61,7 @@ export interface CreateManualFindingResult {
   finding: FindingRecord;
   observation: Observation;
   links: FindingVulnerabilityRecord[];
+  projection: FindingProjection;
 }
 
 export interface FindingPersistenceRepository {
@@ -108,7 +109,7 @@ function projectionQuery(database: DatabaseExecutor) {
     .leftJoin("observation", "observation.findingId", "finding.id")
     .selectAll("finding")
     .select([
-      sql<number>`count(distinct ${sql.ref("observation.id")})`.as("observationCount"),
+      sql<number>`count(distinct ${sql.ref("observation.id")})::integer`.as("observationCount"),
       sql<unknown>`
         coalesce(
           to_jsonb(array_agg(distinct ${sql.ref("observation.source")}::text order by ${sql.ref("observation.source")}::text)
@@ -258,10 +259,16 @@ export function createFindingPersistenceRepository(
                 .returningAll()
                 .execute();
 
+        const projection = await getFindingProjectionByID(transaction, createdFinding.id);
+        if (!projection) {
+          throw new Error("created manual finding was not available as a projection");
+        }
+
         return {
           finding: normalizeFinding(createdFinding),
           observation: normalizeObservation(createdObservation),
           links: links as FindingVulnerabilityRecord[],
+          projection,
         };
       });
     },

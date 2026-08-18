@@ -4,7 +4,7 @@ import {
   type CreateManualFinding,
   type FindingProjection,
 } from "@exposurenexus/types/model/finding";
-import { ObservationSource } from "@exposurenexus/types/model/observation";
+import { ObservationSource, type Observation } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -84,6 +84,24 @@ describe("manual finding creation", () => {
     createdBy: user.id,
     updatedBy: user.id,
   };
+  const initialObservation: Observation = {
+    id: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+    findingId,
+    ingestionId: null,
+    source: ObservationSource.Manual,
+    title: projection.title,
+    description: null,
+    evidence: "GET /admin returned 200",
+    remediation: "Require authentication",
+    severity: projection.severity,
+    weakness: projection.weakness,
+    affectedResource: { type: AffectedResourceType.Unspecified },
+    observedAt: projection.createdAt,
+    createdAt: projection.createdAt,
+    updatedAt: projection.createdAt,
+    createdBy: user.id,
+    updatedBy: user.id,
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -91,8 +109,12 @@ describe("manual finding creation", () => {
     assetService.getByID.mockResolvedValue({ id: assetId });
     userProfileService.getByID.mockResolvedValue(null);
     vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-    findingPersistenceRepository.createManual.mockResolvedValue({ finding: { id: findingId } });
-    findingPersistenceRepository.getProjectedByID.mockResolvedValue(projection);
+    findingPersistenceRepository.createManual.mockResolvedValue({
+      finding: projection,
+      observation: initialObservation,
+      links: [],
+      projection,
+    });
   });
 
   function createService() {
@@ -172,13 +194,20 @@ describe("manual finding creation", () => {
       },
       vulnerabilityIds: [vulnerabilityId],
     });
-    expect(domainEvents.subjects()).toEqual(["finding.created"]);
+    expect(domainEvents.subjects()).toEqual(["finding.created", "observation.created"]);
     expect(domainEvents.events[0]).toMatchObject({
       subject: "finding.created",
       actor: user.id,
       correlationId: "manual-create-request",
       data: { finding: projection },
     });
+    expect(domainEvents.events[1]).toMatchObject({
+      subject: "observation.created",
+      actor: user.id,
+      correlationId: "manual-create-request",
+      data: { observation: initialObservation },
+    });
+    expect(findingPersistenceRepository.getProjectedByID).not.toHaveBeenCalled();
   });
 
   it("does not emit an event when the atomic persistence operation fails", async () => {

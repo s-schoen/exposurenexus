@@ -444,6 +444,18 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("moves an observation and refreshes both parent projections atomically", async () => {
+    const movedBy = "bd093c13-6daf-42ce-8e8d-36716818fd8f";
+    await testDb.db
+      .insertInto("user_profile")
+      .values({
+        id: movedBy,
+        username: "mover",
+        displayName: "Move User",
+        email: "mover@example.com",
+        enabled: true,
+        passwordHash: "password-hash",
+      })
+      .execute();
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
     );
@@ -504,12 +516,17 @@ describe("observation-based persistence repositories", () => {
       observationId: observation.id,
       targetFindingId: targetFinding.id,
       updatedAt: updateTime,
-      updatedBy: createdBy,
+      updatedBy: movedBy,
     });
 
     expect(moved).toMatchObject({
       previousObservation: observation,
-      observation: { ...observation, findingId: targetFinding.id },
+      observation: {
+        ...observation,
+        findingId: targetFinding.id,
+        updatedAt: updateTime,
+        updatedBy: movedBy,
+      },
       sourcePrevious: { id: sourceFinding.id, observationCount: 1 },
       sourceCurrent: {
         id: sourceFinding.id,
@@ -519,7 +536,7 @@ describe("observation-based persistence repositories", () => {
         firstSeen: null,
         lastSeen: null,
         updatedAt: updateTime,
-        updatedBy: createdBy,
+        updatedBy: movedBy,
       },
       targetPrevious: { id: targetFinding.id, observationCount: 0 },
       targetCurrent: {
@@ -530,7 +547,7 @@ describe("observation-based persistence repositories", () => {
         firstSeen: observation.observedAt,
         lastSeen: observation.observedAt,
         updatedAt: updateTime,
-        updatedBy: createdBy,
+        updatedBy: movedBy,
       },
     });
     await expect(observationRepository.listByFindingID(sourceFinding.id)).resolves.toEqual([]);
@@ -543,7 +560,7 @@ describe("observation-based persistence repositories", () => {
       weakness: { identifiers: { cwe: ["CWE-200"] } },
       observationCount: 0,
       updatedAt: updateTime,
-      updatedBy: createdBy,
+      updatedBy: movedBy,
     });
     await expect(findingRepository.getProjectedByID(targetFinding.id)).resolves.toMatchObject({
       title: "Target finding",
@@ -551,7 +568,7 @@ describe("observation-based persistence repositories", () => {
       weakness: { identifiers: { cwe: ["CWE-89"] } },
       observationCount: 1,
       updatedAt: updateTime,
-      updatedBy: createdBy,
+      updatedBy: movedBy,
     });
   });
 
@@ -719,6 +736,7 @@ describe("observation-based persistence repositories", () => {
     );
     const findingRepository = createFindingPersistenceRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
+    const ingestionRepository = createIngestionRepository(testDb.db);
     const vulnerabilityRepository = createVulnerabilityPersistenceRepository(testDb.db);
     const linkRepository = createFindingVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
@@ -783,9 +801,15 @@ describe("observation-based persistence repositories", () => {
     });
     await linkRepository.create({ findingId: finding.id, vulnerabilityId: cwe.id });
     await linkRepository.create({ findingId: finding.id, vulnerabilityId: cve.id });
+    const ingestion = await ingestionRepository.create({
+      source: IngestionSource.Nuclei,
+      scope: { target: "example.com" },
+      createdAt: timestamp,
+      createdBy,
+    });
     await observationRepository.create({
       findingId: finding.id,
-      ingestionId: null,
+      ingestionId: ingestion.id,
       source: ObservationSource.Nuclei,
       title: "Nuclei detection",
       description: null,
@@ -1024,6 +1048,11 @@ describe("observation-based persistence repositories", () => {
     expect(created.links).toEqual([
       { findingId: created.finding.id, vulnerabilityId: vulnerability.id },
     ]);
+    expect(created.projection).toMatchObject({
+      id: created.finding.id,
+      observationCount: 1,
+      vulnerabilities: [{ id: vulnerability.id }],
+    });
     await expect(findingRepository.getProjectedByID(created.finding.id)).resolves.toMatchObject({
       id: created.finding.id,
       observationCount: 1,

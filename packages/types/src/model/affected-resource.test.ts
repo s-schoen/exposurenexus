@@ -253,4 +253,26 @@ describe("affected-resource schemas", () => {
       tag: "Release_2026.01",
     });
   });
+
+  it("validates split OCI registry and repository fields independently", () => {
+    expect(
+      findingResource({
+        type: "containerImage",
+        registry: "REGISTRY.EXAMPLE.COM:05000",
+        repository: "Other.Example.com/Team/App",
+      }),
+    ).toEqual({
+      type: "containerImage",
+      registry: "registry.example.com:5000",
+      repository: "other.example.com/team/app",
+    });
+
+    expect(() => findingResource({ type: "containerImage", registry: "bad_name" })).toThrow();
+    expect(() =>
+      findingResource({
+        type: "containerImage",
+        repository: "registry.example.com:5000/team/app",
+      }),
+    ).toThrow();
+  });
 });

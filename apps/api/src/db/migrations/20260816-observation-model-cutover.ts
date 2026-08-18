@@ -181,6 +181,14 @@ async function createFinalTables(db: Kysely<object>): Promise<void> {
     .addColumn("updatedBy", "uuid", (col) =>
       col.notNull().references("user_profile.id").onDelete("restrict"),
     )
+    .addCheckConstraint(
+      "observation_source_ingestion_check",
+      sql`(
+        ("source" = 'manual' and "ingestionId" is null)
+        or
+        ("source" <> 'manual' and "ingestionId" is not null)
+      )`,
+    )
     .execute();
   await addJsonObjectConstraint(db, "observation", "weakness");
   await addJsonObjectConstraint(db, "observation", "affectedResource");

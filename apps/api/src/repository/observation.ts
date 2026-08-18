@@ -372,7 +372,11 @@ export function createObservationRepository(database: Kysely<Database>): Observa
 
         const updatedObservation = await transaction
           .updateTable("observation")
-          .set({ findingId: input.targetFindingId })
+          .set({
+            findingId: input.targetFindingId,
+            updatedAt: input.updatedAt,
+            updatedBy: input.updatedBy,
+          })
           .where("id", "=", input.observationId)
           .where("findingId", "=", input.findingId)
           .returningAll()

@@ -1011,6 +1011,27 @@ describe("db migration columns", () => {
     ]);
   });
 
+  it("couples observation source to ingestion identity", async () => {
+    const constraints = await sql<{ definition: string }>`
+      select pg_get_constraintdef(pg_constraint.oid) as definition
+      from pg_constraint
+      join pg_class on pg_class.oid = pg_constraint.conrelid
+      where pg_class.relname = 'observation'
+        and pg_constraint.conname = 'observation_source_ingestion_check'
+    `.execute(testDb.db);
+
+    expect(constraints.rows).toEqual([
+      {
+        definition: expect.stringContaining(
+          "((source = 'manual'::observation_source) AND (\"ingestionId\" IS NULL))",
+        ),
+      },
+    ]);
+    expect(constraints.rows[0]?.definition).toContain(
+      "((source <> 'manual'::observation_source) AND (\"ingestionId\" IS NOT NULL))",
+    );
+  });
+
   it("cascades child records and restricts ingestion deletion while observations remain", async () => {
     const foreignKeys = await sql<{
       source_table: string;

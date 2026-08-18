@@ -4,7 +4,8 @@ import {
   cloudResourceIdValueSchema,
   dnsNameValueSchema,
   ipAddressValueSchema,
-  ociImageNameValueSchema,
+  ociRegistryValueSchema,
+  ociRepositoryPathValueSchema,
   vcsRepositoryValueSchema,
 } from "./asset-identifier.js";
 export {
@@ -188,28 +189,8 @@ const locationFingerprintSchema = nonEmptyTrimmedStringSchema.regex(
   "Location fingerprints must include an algorithm or namespace prefix.",
 );
 
-const normalizeContainerRegistry = z.string().transform((value, context) => {
-  const normalized = value.trim();
-  if (normalized.length === 0 || normalized.includes("/") || /[\s\\?#%]/u.test(normalized)) {
-    context.addIssue({
-      code: "custom",
-      message: "Container image registries must be a host with an optional port.",
-    });
-    return z.NEVER;
-  }
-
-  const result = ociImageNameValueSchema.safeParse(`${normalized}/placeholder`);
-  if (!result.success) {
-    context.addIssue({
-      code: "custom",
-      message: "Container image registries must use valid registry syntax.",
-    });
-    return z.NEVER;
-  }
-  return result.data.slice(0, -"/placeholder".length);
-});
-
-const containerRepositorySchema = ociImageNameValueSchema;
+const normalizeContainerRegistry = ociRegistryValueSchema;
+const containerRepositorySchema = ociRepositoryPathValueSchema;
 const containerDigestSchema = z
   .string()
   .trim()
