@@ -1,17 +1,10 @@
 import { z } from "zod/v4";
 
-import {
-  findingAffectedResourceSchema,
-  type FindingAffectedResource,
-} from "./affected-resource.js";
+import { findingAffectedResourceSchema } from "./affected-resource.js";
 import { dateSchema, utcStartDateSchema } from "./date.js";
-import {
-  manualObservationInputSchema,
-  ObservationSource,
-  type ManualObservationInput,
-} from "./observation.js";
+import { manualObservationInputSchema, ObservationSource } from "./observation.js";
 import { vulnerabilityCatalogSchema, VulnerabilitySeverity } from "./vulnerability.js";
-import { findingWeaknessSchema, type Weakness } from "./weakness.js";
+import { weaknessSchema } from "./weakness.js";
 
 const dueDateSchema = utcStartDateSchema as z.ZodType<Date, Date>;
 
@@ -35,7 +28,7 @@ export const findingPersistenceSchema = z.strictObject({
   assigneeId: z.uuidv4().nullable(),
   dueDate: dueDateSchema.nullable(),
   mitigation: z.string().nullable(),
-  weakness: findingWeaknessSchema,
+  weakness: weaknessSchema,
   affectedResource: findingAffectedResourceSchema,
   createdAt: dateSchema,
   updatedAt: dateSchema,
@@ -43,26 +36,12 @@ export const findingPersistenceSchema = z.strictObject({
   updatedBy: z.uuidv4(),
 });
 
-export const findingProjectionSchema = z.strictObject({
-  id: z.uuidv4(),
-  assetId: z.uuidv4(),
-  title: z.string().nonempty(),
-  severity: z.enum(VulnerabilitySeverity),
-  status: z.enum(FindingStatus),
-  assigneeId: z.uuidv4().nullable(),
-  dueDate: dueDateSchema.nullable(),
-  mitigation: z.string().nullable(),
-  weakness: findingWeaknessSchema,
-  affectedResource: findingAffectedResourceSchema,
+export const findingProjectionSchema = findingPersistenceSchema.extend({
   vulnerabilities: z.array(vulnerabilityCatalogSchema),
   observationCount: z.int().min(0),
   observingSources: z.array(z.enum(ObservationSource)),
   firstSeen: dateSchema.nullable(),
   lastSeen: dateSchema.nullable(),
-  createdAt: dateSchema,
-  updatedAt: dateSchema,
-  createdBy: z.uuidv4(),
-  updatedBy: z.uuidv4(),
 });
 
 export const createFindingSchema = z.strictObject({
@@ -73,7 +52,7 @@ export const createFindingSchema = z.strictObject({
   assigneeId: z.uuidv4().nullable().optional().default(null),
   dueDate: dueDateSchema.nullable().optional().default(null),
   mitigation: z.string().nullable().optional().default(null),
-  weakness: findingWeaknessSchema,
+  weakness: weaknessSchema,
   affectedResource: findingAffectedResourceSchema,
   vulnerabilityIds: z
     .array(z.uuidv4())
@@ -82,17 +61,19 @@ export const createFindingSchema = z.strictObject({
   observation: manualObservationInputSchema.optional(),
 });
 
-export const updateFindingSchema = z
-  .strictObject({
-    title: findingPersistenceSchema.shape.title.optional(),
-    severity: findingPersistenceSchema.shape.severity.optional(),
-    status: findingPersistenceSchema.shape.status.optional(),
-    assigneeId: findingPersistenceSchema.shape.assigneeId.optional(),
-    dueDate: findingPersistenceSchema.shape.dueDate.optional(),
-    mitigation: findingPersistenceSchema.shape.mitigation.optional(),
-    weakness: findingPersistenceSchema.shape.weakness.optional(),
-    affectedResource: findingPersistenceSchema.shape.affectedResource.optional(),
-  })
+const mutableFindingSchema = findingPersistenceSchema.pick({
+  title: true,
+  severity: true,
+  status: true,
+  assigneeId: true,
+  dueDate: true,
+  mitigation: true,
+  weakness: true,
+  affectedResource: true,
+});
+
+export const updateFindingSchema = mutableFindingSchema
+  .partial()
   .refine((finding) => Object.keys(finding).length > 0, {
     message: "at least one mutable finding field is required",
   });
@@ -119,13 +100,7 @@ export const FindingStatistics = z.strictObject({
   assets: z.record(z.uuidv4(), z.int()),
 });
 
-export type FindingPersistence = z.infer<typeof findingPersistenceSchema>;
 export type FindingProjection = z.infer<typeof findingProjectionSchema>;
-export type FindingWeakness = Weakness;
-export type FindingResource = FindingAffectedResource;
-export type CreateFinding = z.infer<typeof createFindingSchema>;
-export type CreateManualFinding = CreateFinding;
+export type CreateManualFinding = z.infer<typeof createFindingSchema>;
 export type UpdateFinding = z.infer<typeof updateFindingSchema>;
 export type FindingStatistics = z.infer<typeof FindingStatistics>;
-export { manualObservationInputSchema };
-export type { ManualObservationInput };

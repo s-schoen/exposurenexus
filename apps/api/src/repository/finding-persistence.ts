@@ -9,8 +9,7 @@ import {
   type FindingProjection,
 } from "@exposurenexus/types/model/finding";
 import { observationSchema, type Observation } from "@exposurenexus/types/model/observation";
-import { findingWeaknessSchema, type Weakness } from "@exposurenexus/types/model/weakness";
-import { observationWeaknessSchema } from "@exposurenexus/types/model/weakness";
+import { weaknessSchema, type Weakness } from "@exposurenexus/types/model/weakness";
 import {
   sql,
   type Kysely,
@@ -167,7 +166,7 @@ function normalizeObservationInput<T extends { weakness?: unknown; affectedResou
     ...observation,
     ...(observation.weakness === undefined
       ? {}
-      : { weakness: observationWeaknessSchema.parse(observation.weakness) }),
+      : { weakness: weaknessSchema.parse(observation.weakness) }),
     ...(observation.affectedResource === undefined
       ? {}
       : {
@@ -187,7 +186,7 @@ function normalizeFindingInput<T extends { weakness?: unknown; affectedResource?
     ...finding,
     ...(finding.weakness === undefined
       ? {}
-      : { weakness: findingWeaknessSchema.parse(finding.weakness) as Weakness }),
+      : { weakness: weaknessSchema.parse(finding.weakness) as Weakness }),
     ...(finding.affectedResource === undefined
       ? {}
       : {

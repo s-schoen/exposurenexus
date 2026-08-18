@@ -2,8 +2,8 @@ import {
   observationAffectedResourceSchema,
   type ObservationAffectedResource,
 } from "@exposurenexus/types/model/affected-resource";
-import { observationSchema } from "@exposurenexus/types/model/observation";
-import { observationWeaknessSchema, type Weakness } from "@exposurenexus/types/model/weakness";
+import { observationSchema, type Observation } from "@exposurenexus/types/model/observation";
+import { weaknessSchema, type Weakness } from "@exposurenexus/types/model/weakness";
 
 import { getFindingProjectionByID } from "./finding-persistence.js";
 
@@ -12,7 +12,7 @@ import type { ObservationTable } from "../db/schema/observation.js";
 import type { FindingProjection } from "@exposurenexus/types/model/finding";
 import type { Kysely, Insertable, Selectable, Updateable } from "kysely";
 
-export type ObservationRecord = Selectable<ObservationTable>;
+type ObservationRecord = Observation;
 export type CreateObservationRecord = Omit<
   Insertable<ObservationTable>,
   "weakness" | "affectedResource"
@@ -114,8 +114,8 @@ export interface ObservationRepository {
   ): Promise<MoveObservationAndTouchFindingsResult | null>;
 }
 
-function normalizeObservation(observation: ObservationRecord): ObservationRecord {
-  return observationSchema.parse(observation) as ObservationRecord;
+function normalizeObservation(observation: Selectable<ObservationTable>): ObservationRecord {
+  return observationSchema.parse(observation);
 }
 
 function normalizeObservationInput<T extends { weakness?: unknown; affectedResource?: unknown }>(
@@ -125,7 +125,7 @@ function normalizeObservationInput<T extends { weakness?: unknown; affectedResou
     ...observation,
     ...(observation.weakness === undefined
       ? {}
-      : { weakness: observationWeaknessSchema.parse(observation.weakness) as Weakness }),
+      : { weakness: weaknessSchema.parse(observation.weakness) as Weakness }),
     ...(observation.affectedResource === undefined
       ? {}
       : {

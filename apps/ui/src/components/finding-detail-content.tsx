@@ -62,6 +62,7 @@ import {
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 import { formatUtcDateOnly } from "@/lib/date-input.ts";
 import { capitalizeFirstLetter, formatFindingStatus, formatSeverity } from "@/lib/format.ts";
+import { formatWeaknessText, parseWeaknessText } from "@/lib/weakness-text.ts";
 
 import type { FindingAffectedResource } from "@exposurenexus/types/model/affected-resource";
 import type { FindingProjection, UpdateFinding } from "@exposurenexus/types/model/finding";
@@ -96,35 +97,8 @@ function parseDateInputValue(value: string) {
   return value ? normalizeDateToUtcStart(new Date(`${value}T00:00:00.000Z`)) : null;
 }
 
-function weaknessText(weakness: FindingProjection["weakness"]) {
-  return Object.entries(weakness.identifiers)
-    .map(([namespace, identifiers]) => `${namespace}=${identifiers.join(",")}`)
-    .join("; ");
-}
-
-function parseWeaknessText(value: string): FindingProjection["weakness"] | null {
-  const identifiers: Record<string, Array<string>> = {};
-  if (!value.trim()) return { identifiers };
-
-  for (const entry of value.split(";")) {
-    const separator = entry.indexOf("=");
-    if (separator < 1) return null;
-
-    const namespace = entry.slice(0, separator).trim();
-    const values = entry
-      .slice(separator + 1)
-      .split(",")
-      .map((identifier) => identifier.trim())
-      .filter(Boolean);
-    if (!namespace || values.length === 0) return null;
-    identifiers[namespace] = values;
-  }
-
-  return { identifiers };
-}
-
 function emptyResource(type: AffectedResourceType): FindingAffectedResource {
-  return { type } as FindingAffectedResource;
+  return { type };
 }
 
 function resourceValue(resource: FindingAffectedResource, key: string) {
@@ -255,7 +229,7 @@ function ResourceFields({
                 onChange({
                   ...resource,
                   component: namedComponentKinds.has(kind) ? { kind, name: "" } : { kind },
-                } as FindingAffectedResource);
+                });
               }}
             >
               <SelectTrigger id="correction-resource-component-kind" className="w-full">
@@ -483,7 +457,7 @@ function FindingCorrectionDialog({
     weakness: finding.weakness,
     affectedResource: finding.affectedResource,
   }));
-  const [weaknessDraft, setWeaknessDraft] = useState(() => weaknessText(finding.weakness));
+  const [weaknessDraft, setWeaknessDraft] = useState(() => formatWeaknessText(finding.weakness));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -498,7 +472,7 @@ function FindingCorrectionDialog({
       weakness: finding.weakness,
       affectedResource: finding.affectedResource,
     });
-    setWeaknessDraft(weaknessText(finding.weakness));
+    setWeaknessDraft(formatWeaknessText(finding.weakness));
     setError(null);
   };
 

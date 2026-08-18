@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { AffectedResourceType } from "./affected-resource.js";
 import {
-  createObservationSchema,
   manualObservationInputSchema,
   moveObservationInputSchema,
   observationSchema,
@@ -45,31 +44,18 @@ describe("observation provenance", () => {
   });
 
   it("requires imported observations to identify their ingestion", () => {
-    const createObservation = {
-      findingId: observation.findingId,
-      ingestionId: observation.ingestionId,
-      source: observation.source,
-      title: observation.title,
-      description: observation.description,
-      evidence: observation.evidence,
-      remediation: observation.remediation,
-      severity: observation.severity,
-      weakness: observation.weakness,
-      affectedResource: observation.affectedResource,
-      observedAt: observation.observedAt,
-    };
     const ingestionId = "40b71ac1-b003-46b4-a1fc-8e8d384dd140";
 
     expect(
-      createObservationSchema.parse({
-        ...createObservation,
+      observationSchema.parse({
+        ...observation,
         source: ObservationSource.Nuclei,
         ingestionId,
       }),
     ).toMatchObject({ source: ObservationSource.Nuclei, ingestionId });
     expect(() =>
-      createObservationSchema.parse({
-        ...createObservation,
+      observationSchema.parse({
+        ...observation,
         source: ObservationSource.Nuclei,
         ingestionId: null,
       }),

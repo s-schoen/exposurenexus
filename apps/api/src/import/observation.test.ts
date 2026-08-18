@@ -1,6 +1,6 @@
 import {
   AffectedResourceType,
-  normalizeFindingAffectedResource,
+  findingAffectedResourceSchema,
 } from "@exposurenexus/types/model/affected-resource";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { describe, expect, it, vi } from "vitest";
@@ -53,7 +53,7 @@ describe("observation resolver contract", () => {
           title: observation.title,
           severity: observation.severity,
           weakness: observation.weakness,
-          affectedResource: normalizeFindingAffectedResource({
+          affectedResource: findingAffectedResourceSchema.parse({
             type: AffectedResourceType.Asset,
           }),
         },

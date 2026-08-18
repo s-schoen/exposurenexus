@@ -4,11 +4,7 @@ import { normalizeCloudResourceId } from "./cloud-resource-id.js";
 import { normalizeDnsName } from "./dns-name.js";
 import { normalizeIpAddress } from "./ip-address.js";
 import { characterLength, type NormalizationResult } from "./normalization-result.js";
-import {
-  normalizeOciImageName,
-  normalizeOciRegistry,
-  normalizeOciRepositoryPath,
-} from "./oci-image-name.js";
+import { normalizeOciImageName } from "./oci-image-name.js";
 import {
   ASSET_IDENTIFIER_NAMESPACE_MAX_LENGTH,
   AssetIdentifierType,
@@ -39,14 +35,6 @@ export const dnsNameValueSchema = createValueSchema(normalizeDnsName);
 export const ipAddressValueSchema = createValueSchema(normalizeIpAddress);
 export const vcsRepositoryValueSchema = createValueSchema(normalizeVcsRepository);
 export const ociImageNameValueSchema = createValueSchema(normalizeOciImageName);
-export const ociRegistryValueSchema = z
-  .string()
-  .trim()
-  .pipe(createValueSchema(normalizeOciRegistry));
-export const ociRepositoryPathValueSchema = z
-  .string()
-  .trim()
-  .pipe(createValueSchema(normalizeOciRepositoryPath));
 export const cloudResourceIdValueSchema = createValueSchema(normalizeCloudResourceId);
 
 export const assetIdentifierNamespaceSchema = z.string().transform((value, context) => {

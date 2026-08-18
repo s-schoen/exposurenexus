@@ -13,8 +13,11 @@ import {
 } from "@/api/finding.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 
-import type { ManualObservationInput } from "@exposurenexus/types/model/finding";
-import type { Observation, UpdateObservation } from "@exposurenexus/types/model/observation";
+import type {
+  ManualObservationInput,
+  Observation,
+  UpdateObservation,
+} from "@exposurenexus/types/model/observation";
 
 export interface ObservationLifecycleActions {
   addObservation: (findingId: string, value: ManualObservationInput) => Promise<Observation | null>;

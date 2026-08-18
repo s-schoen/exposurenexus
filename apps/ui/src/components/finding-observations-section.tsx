@@ -3,8 +3,10 @@ import {
   NetworkTransport,
   WebEndpointComponentKind,
 } from "@exposurenexus/types/model/affected-resource";
-import { manualObservationInputSchema } from "@exposurenexus/types/model/finding";
-import { updateObservationSchema } from "@exposurenexus/types/model/observation";
+import {
+  manualObservationInputSchema,
+  updateObservationSchema,
+} from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRightLeft, Pencil, Plus, Trash2 } from "lucide-react";
@@ -50,10 +52,11 @@ import { Textarea } from "@/components/ui/textarea.tsx";
 import { useObservationLifecycle } from "@/hooks/use-observation-lifecycle.ts";
 import { formatLocalDateTimeInput } from "@/lib/date-input.ts";
 import { capitalizeFirstLetter, formatSeverity } from "@/lib/format.ts";
+import { formatWeaknessText, parseWeaknessText } from "@/lib/weakness-text.ts";
 
 import type { ObservationAffectedResourceInput as ObservationResource } from "@exposurenexus/types/model/affected-resource";
-import type { FindingProjection, ManualObservationInput } from "@exposurenexus/types/model/finding";
-import type { Observation } from "@exposurenexus/types/model/observation";
+import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { ManualObservationInput, Observation } from "@exposurenexus/types/model/observation";
 
 interface FindingObservationsSectionProps {
   finding: FindingProjection;
@@ -90,26 +93,6 @@ function formatResourceType(type: AffectedResourceType) {
             : type === AffectedResourceType.Unspecified
               ? "Unspecified resource"
               : capitalizeFirstLetter(type);
-}
-
-function parseWeaknessText(value: string): ManualObservationInput["weakness"] | null {
-  if (!value.trim()) return undefined;
-  const identifiers: Record<string, Array<string>> = {};
-
-  for (const entry of value.split(";")) {
-    const separator = entry.indexOf("=");
-    if (separator < 1) return null;
-    const namespace = entry.slice(0, separator).trim();
-    const values = entry
-      .slice(separator + 1)
-      .split(",")
-      .map((identifier) => identifier.trim())
-      .filter(Boolean);
-    if (!namespace || values.length === 0) return null;
-    identifiers[namespace] = values;
-  }
-
-  return { identifiers };
 }
 
 function emptyResource(type: AffectedResourceType): ObservationResource {
@@ -267,7 +250,7 @@ function ObservationResourceFields({
                 onChange({
                   ...resource,
                   component: namedComponentKinds.has(kind) ? { kind, name: "" } : { kind },
-                } as ObservationResource);
+                });
               }}
             >
               <SelectTrigger id={`${idPrefix}-component`} className="w-full">
@@ -540,12 +523,6 @@ function resourceDetails(resource: ObservationResource): Array<[string, string]>
     ]);
 }
 
-function weaknessInputValue(weakness: Observation["weakness"]): string {
-  return Object.entries(weakness.identifiers)
-    .map(([namespace, values]) => `${namespace}=${values.join(",")}`)
-    .join("; ");
-}
-
 function observationDraft(observation: Observation): ObservationDraft {
   return {
     title: observation.title,
@@ -562,7 +539,7 @@ function EditObservationDialog({ observation }: { observation: Observation }) {
   const lifecycle = useObservationLifecycle();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<ObservationDraft>(() => observationDraft(observation));
-  const [weakness, setWeakness] = useState(() => weaknessInputValue(observation.weakness));
+  const [weakness, setWeakness] = useState(() => formatWeaknessText(observation.weakness));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const formId = `edit-observation-${observation.id}`;
@@ -570,7 +547,7 @@ function EditObservationDialog({ observation }: { observation: Observation }) {
 
   const openEditor = () => {
     setDraft(observationDraft(observation));
-    setWeakness(weaknessInputValue(observation.weakness));
+    setWeakness(formatWeaknessText(observation.weakness));
     setError(null);
     setOpen(true);
   };
@@ -591,7 +568,7 @@ function EditObservationDialog({ observation }: { observation: Observation }) {
 
     const result = updateObservationSchema.safeParse({
       ...draft,
-      weakness: parsedWeakness ?? { identifiers: {} },
+      weakness: parsedWeakness,
     });
     if (!result.success) {
       const issue = result.error.issues[0];
@@ -1024,7 +1001,7 @@ function AddObservationDialog({ finding }: { finding: FindingProjection }) {
     setOpen(next);
   };
   const submit = async () => {
-    const parsedWeakness = parseWeaknessText(weakness);
+    const parsedWeakness = weakness.trim() ? parseWeaknessText(weakness) : undefined;
     if (parsedWeakness === null) {
       setError("Weakness identifiers must use namespace=identifier entries.");
       return;

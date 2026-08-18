@@ -1,14 +1,10 @@
-import {
-  ingestionCounterSchema,
-  ingestionScopeSchema,
-  ingestionSchema,
-} from "@exposurenexus/types/model/ingestion";
+import { ingestionSchema, type Ingestion } from "@exposurenexus/types/model/ingestion";
 
 import type { Database } from "../db/index.js";
 import type { IngestionTable } from "../db/schema/ingestion.js";
-import type { Kysely, Insertable, Selectable } from "kysely";
+import type { Kysely, Insertable } from "kysely";
 
-export type IngestionRecord = Selectable<IngestionTable>;
+type IngestionRecord = Ingestion;
 export type CreateIngestionRecord = Omit<
   Insertable<IngestionTable>,
   "processed" | "createdObservations" | "skipped" | "errors"
@@ -27,6 +23,9 @@ export interface IngestionRepository {
 function normalizeIngestion(ingestion: IngestionRecord): IngestionRecord {
   return ingestionSchema.parse(ingestion);
 }
+
+const ingestionScopeSchema = ingestionSchema.shape.scope;
+const ingestionCounterSchema = ingestionSchema.shape.processed;
 
 function normalizeIngestionInput<
   T extends {

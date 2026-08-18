@@ -697,7 +697,7 @@ describe("finding routes", () => {
     expect(findingService.linkVulnerability).not.toHaveBeenCalled();
   });
 
-  it("accepts and normalizes a partial finding update", async () => {
+  it("normalizes weakness and preserves affected-resource values in a partial update", async () => {
     const requestId = "findings-update-request";
     const payload = {
       title: "Corrected title",
@@ -713,7 +713,7 @@ describe("finding routes", () => {
       weakness: { identifiers: { cwe: ["CWE-89"] } },
       affectedResource: {
         type: AffectedResourceType.SourceCode,
-        repository: "github.com/example/repository",
+        repository: "https://github.com/example/repository.git",
         file: "src/query.ts",
       },
     };
