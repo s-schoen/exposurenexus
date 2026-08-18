@@ -139,6 +139,46 @@ afterEach(() => {
 });
 
 describe("useFindingLifecycle", () => {
+  it("optimistically corrects and rolls back real list and detail caches", async () => {
+    const finding = createFindingFixture();
+    const update = createDeferred<FindingProjection>();
+    updateFindingRequestMock.mockReturnValueOnce(update.promise);
+    const { queryClient, result } = renderLifecycleHook();
+
+    queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [finding]);
+    queryClient.setQueryData(createFindingByIDQueryOptions(finding.id).queryKey, finding);
+
+    let operation!: Promise<FindingProjection | null>;
+    act(() => {
+      operation = result.current.correctFinding(finding, { title: "Unsaved correction" });
+    });
+
+    expect(
+      queryClient.getQueryData<FindingProjection>(
+        createFindingByIDQueryOptions(finding.id).queryKey,
+      )?.title,
+    ).toBe("Unsaved correction");
+    expect(
+      queryClient.getQueryData<Array<FindingProjection>>(
+        createListFindingsQueryOptions().queryKey,
+      )?.[0].title,
+    ).toBe("Unsaved correction");
+
+    await act(async () => {
+      update.reject(new Error("Correction failed"));
+      await operation;
+    });
+
+    expect(
+      queryClient.getQueryData<FindingProjection>(
+        createFindingByIDQueryOptions(finding.id).queryKey,
+      ),
+    ).toEqual(finding);
+    expect(
+      queryClient.getQueryData<Array<FindingProjection>>(createListFindingsQueryOptions().queryKey),
+    ).toEqual([finding]);
+  });
+
   it("optimistically updates list and detail caches during a single-field update", async () => {
     const finding = createFindingFixture();
     const updatedFinding = {

@@ -33,6 +33,7 @@ import { Textarea } from "@/components/ui/textarea.tsx";
 import { getUserProfileDisplayName } from "@/components/user-label.tsx";
 import { usePageMeta } from "@/context/page.tsx";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
+import { formatLocalDateTimeInput, formatUtcDateOnly } from "@/lib/date-input.ts";
 import { formatFindingStatus } from "@/lib/format.ts";
 
 import type { FindingAffectedResource } from "@exposurenexus/types/model/affected-resource";
@@ -64,7 +65,7 @@ const defaultFindingValues: CreateManualFinding = {
 function formatDateInputValue(value: Date | null | undefined) {
   if (!value) return "";
 
-  return normalizeDateToUtcStart(value).toISOString().slice(0, 10);
+  return formatUtcDateOnly(value);
 }
 
 function parseDateInputValue(value: string) {
@@ -695,7 +696,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                           type="datetime-local"
                           value={
                             observation.observedAt
-                              ? observation.observedAt.toISOString().slice(0, 16)
+                              ? formatLocalDateTimeInput(observation.observedAt)
                               : ""
                           }
                           onChange={(event) =>

@@ -11,6 +11,7 @@ import {
   formatUserProfileReference,
   getUserProfileDisplayName,
 } from "@/components/user-label.tsx";
+import { formatUtcDateOnly } from "@/lib/date-input.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { Asset } from "@exposurenexus/types/model/asset";
@@ -71,7 +72,7 @@ export function formatFindingDueDate(value: Date | null | undefined) {
     return "No due date";
   }
 
-  return normalizeDateToUtcStart(value).toISOString().slice(0, 10);
+  return formatUtcDateOnly(value);
 }
 
 export function isFindingOverdue(

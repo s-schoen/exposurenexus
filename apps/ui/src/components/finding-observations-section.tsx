@@ -48,6 +48,7 @@ import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { useObservationLifecycle } from "@/hooks/use-observation-lifecycle.ts";
+import { formatLocalDateTimeInput } from "@/lib/date-input.ts";
 import { capitalizeFirstLetter, formatSeverity } from "@/lib/format.ts";
 
 import type { ObservationAffectedResourceInput as ObservationResource } from "@exposurenexus/types/model/affected-resource";
@@ -545,10 +546,6 @@ function weaknessInputValue(weakness: Observation["weakness"]): string {
     .join("; ");
 }
 
-function localDateTimeValue(value: Date): string {
-  return new Date(value.getTime() - value.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
-}
-
 function observationDraft(observation: Observation): ObservationDraft {
   return {
     title: observation.title,
@@ -682,7 +679,7 @@ function EditObservationDialog({ observation }: { observation: Observation }) {
                 <Input
                   id={`${formId}-observed-at`}
                   type="datetime-local"
-                  value={draft.observedAt ? localDateTimeValue(draft.observedAt) : ""}
+                  value={draft.observedAt ? formatLocalDateTimeInput(draft.observedAt) : ""}
                   onChange={(event) =>
                     setDraft({
                       ...draft,
