@@ -1,9 +1,12 @@
 import { z } from "zod/v4";
 
+import {
+  canonicalizeKnownSecurityIdentifier,
+  type KnownSecurityIdentifierNamespace,
+} from "./security-identifier.js";
+
 const namespacePattern = /^[a-z][a-z\d._-]*$/u;
-const cvePattern = /^cve-(\d{4})-(\d{4,})$/iu;
-const cwePattern = /^cwe-(\d+)$/iu;
-const ghsaPattern = /^ghsa-([a-z\d]{4})-([a-z\d]{4})-([a-z\d]{4})$/iu;
+const knownNamespaces = new Set<KnownSecurityIdentifierNamespace>(["cve", "cwe", "ghsa"]);
 
 function sortStrings(values: Iterable<string>): string[] {
   return [...values].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
@@ -14,32 +17,30 @@ function normalizeNamespace(value: string): string | null {
   return namespacePattern.test(normalized) ? normalized : null;
 }
 
-function normalizeKnownIdentifier(namespace: string, value: string): string {
-  switch (namespace) {
-    case "cve": {
-      const match = cvePattern.exec(value);
-      return match === null ? value : `CVE-${match[1]}-${match[2]}`;
-    }
-    case "cwe": {
-      const match = cwePattern.exec(value);
-      return match === null ? value : `CWE-${match[1]}`;
-    }
-    case "ghsa": {
-      const match = ghsaPattern.exec(value);
-      return match === null
-        ? value
-        : `GHSA-${match[1].toUpperCase()}-${match[2].toUpperCase()}-${match[3].toUpperCase()}`;
-    }
-    default:
-      return value;
-  }
+function isKnownNamespace(value: string): value is KnownSecurityIdentifierNamespace {
+  return knownNamespaces.has(value as KnownSecurityIdentifierNamespace);
 }
 
-const rawWeaknessIdentifiersSchema = z.record(z.string(), z.array(z.string()));
+const rawWeaknessIdentifiersSchema = z
+  .unknown()
+  .superRefine((value, context) => {
+    if (
+      typeof value === "object" &&
+      value !== null &&
+      Object.prototype.hasOwnProperty.call(value, "__proto__")
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Weakness identifier namespaces must use ordinary property names.",
+        path: ["__proto__"],
+      });
+    }
+  })
+  .pipe(z.record(z.string(), z.array(z.string())));
 
 export const weaknessIdentifiersSchema = rawWeaknessIdentifiersSchema.transform(
   (identifiers, context) => {
-    const normalized: Record<string, Set<string>> = {};
+    const normalized = new Map<string, Set<string>>();
 
     for (const [rawNamespace, rawValues] of Object.entries(identifiers)) {
       const namespace = normalizeNamespace(rawNamespace);
@@ -53,7 +54,8 @@ export const weaknessIdentifiersSchema = rawWeaknessIdentifiersSchema.transform(
         continue;
       }
 
-      const values = (normalized[namespace] ??= new Set<string>());
+      const values = normalized.get(namespace) ?? new Set<string>();
+      normalized.set(namespace, values);
       for (const [index, rawValue] of rawValues.entries()) {
         const value = rawValue.trim();
         if (value.length === 0) {
@@ -64,15 +66,27 @@ export const weaknessIdentifiersSchema = rawWeaknessIdentifiersSchema.transform(
           });
           continue;
         }
-        values.add(normalizeKnownIdentifier(namespace, value));
+        try {
+          values.add(
+            isKnownNamespace(namespace)
+              ? canonicalizeKnownSecurityIdentifier(namespace, value)
+              : value,
+          );
+        } catch (error) {
+          context.addIssue({
+            code: "custom",
+            message: error instanceof Error ? error.message : "Invalid weakness identifier.",
+            path: [rawNamespace, index],
+          });
+        }
       }
     }
 
     return Object.fromEntries(
-      Object.keys(normalized)
-        .sort()
-        .flatMap((namespace) => {
-          const values = sortStrings(normalized[namespace]);
+      [...normalized.entries()]
+        .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+        .flatMap(([namespace, identifiers]) => {
+          const values = sortStrings(identifiers);
           return values.length === 0 ? [] : [[namespace, values]];
         }),
     );

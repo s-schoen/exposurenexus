@@ -2,12 +2,80 @@ import { describe, expect, it } from "vitest";
 
 import { AffectedResourceType } from "./affected-resource.js";
 import {
+  createObservationSchema,
   manualObservationInputSchema,
   moveObservationInputSchema,
+  observationSchema,
   ObservationSource,
   updateObservationSchema,
 } from "./observation.js";
 import { VulnerabilitySeverity } from "./vulnerability.js";
+
+const observation = {
+  id: "2713d833-eb13-4517-ac7c-7761545ed42a",
+  findingId: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+  ingestionId: null,
+  source: ObservationSource.Manual,
+  title: "Manual confirmation",
+  description: null,
+  evidence: null,
+  remediation: null,
+  severity: VulnerabilitySeverity.Medium,
+  weakness: { identifiers: {} },
+  affectedResource: { type: AffectedResourceType.Asset },
+  observedAt: new Date("2026-08-17T10:00:00.000Z"),
+  createdAt: new Date("2026-08-17T10:00:00.000Z"),
+  updatedAt: new Date("2026-08-17T10:00:00.000Z"),
+  createdBy: "85196743-cfba-4afb-b286-d36be32a64a4",
+  updatedBy: "85196743-cfba-4afb-b286-d36be32a64a4",
+};
+
+describe("observation provenance", () => {
+  it("requires manual observations to omit ingestion identity", () => {
+    expect(observationSchema.parse(observation)).toMatchObject({
+      source: ObservationSource.Manual,
+      ingestionId: null,
+    });
+    expect(() =>
+      observationSchema.parse({
+        ...observation,
+        ingestionId: "40b71ac1-b003-46b4-a1fc-8e8d384dd140",
+      }),
+    ).toThrow();
+  });
+
+  it("requires imported observations to identify their ingestion", () => {
+    const createObservation = {
+      findingId: observation.findingId,
+      ingestionId: observation.ingestionId,
+      source: observation.source,
+      title: observation.title,
+      description: observation.description,
+      evidence: observation.evidence,
+      remediation: observation.remediation,
+      severity: observation.severity,
+      weakness: observation.weakness,
+      affectedResource: observation.affectedResource,
+      observedAt: observation.observedAt,
+    };
+    const ingestionId = "40b71ac1-b003-46b4-a1fc-8e8d384dd140";
+
+    expect(
+      createObservationSchema.parse({
+        ...createObservation,
+        source: ObservationSource.Nuclei,
+        ingestionId,
+      }),
+    ).toMatchObject({ source: ObservationSource.Nuclei, ingestionId });
+    expect(() =>
+      createObservationSchema.parse({
+        ...createObservation,
+        source: ObservationSource.Nuclei,
+        ingestionId: null,
+      }),
+    ).toThrow();
+  });
+});
 
 describe("manual observation input schema", () => {
   it("accepts only observation-owned user input", () => {

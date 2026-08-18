@@ -21,7 +21,7 @@ function normalizeOciPort(port: string): NormalizationResult {
   return { success: true, value: String(numericPort) };
 }
 
-function normalizeOciRegistry(value: string): NormalizationResult {
+export function normalizeOciRegistry(value: string): NormalizationResult {
   if (value.startsWith("[") && value.includes("]")) {
     const closeBracket = value.indexOf("]");
     const host = value.slice(1, closeBracket);
@@ -79,6 +79,46 @@ function normalizeOciRepositoryPart(value: string): NormalizationResult {
     );
   }
   return { success: true, value: normalized };
+}
+
+export function normalizeOciRepositoryPath(value: string): NormalizationResult {
+  if (value.length === 0) {
+    return failure(
+      AssetIdentifierValidationReason.Empty,
+      "empty",
+      "OCI repository paths must not be empty.",
+    );
+  }
+  if (
+    schemePattern.test(value) ||
+    /[\\?#%@:]/u.test(value) ||
+    value.includes("[") ||
+    value.includes("]") ||
+    invalidControlOrWhitespacePattern.test(value)
+  ) {
+    return invalidFormat(
+      "oci_repository",
+      "OCI repository paths must not contain registry, tag, digest, URL, or whitespace syntax.",
+    );
+  }
+
+  const parts = value.split("/");
+  if (parts.some((part) => part.length === 0)) {
+    return invalidFormat(
+      "oci_repository",
+      "OCI repository paths must not contain empty path components.",
+    );
+  }
+
+  const normalizedParts: string[] = [];
+  for (const part of parts) {
+    const normalized = normalizeOciRepositoryPart(part);
+    if (!normalized.success) {
+      return normalized;
+    }
+    normalizedParts.push(normalized.value);
+  }
+  return finishValue(normalizedParts.join("/"), "oci_repository");
 }
 
 export function normalizeOciImageName(value: string): NormalizationResult {

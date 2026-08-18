@@ -13,7 +13,7 @@ export enum ObservationSource {
   Nuclei = "nuclei",
 }
 
-export const observationSchema = z.strictObject({
+const observationSchemaBase = z.strictObject({
   id: z.uuidv4(),
   findingId: z.uuidv4(),
   ingestionId: z.uuidv4().nullable(),
@@ -32,13 +32,34 @@ export const observationSchema = z.strictObject({
   updatedBy: z.uuidv4(),
 });
 
-export const createObservationSchema = observationSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  createdBy: true,
-  updatedBy: true,
-});
+function validateObservationProvenance(
+  observation: { source: ObservationSource; ingestionId: string | null },
+  context: z.RefinementCtx,
+): void {
+  const valid =
+    (observation.source === ObservationSource.Manual && observation.ingestionId === null) ||
+    (observation.source !== ObservationSource.Manual && observation.ingestionId !== null);
+  if (!valid) {
+    context.addIssue({
+      code: "custom",
+      message:
+        "Manual observations must not have an ingestion; imported observations must have one.",
+      path: ["ingestionId"],
+    });
+  }
+}
+
+export const observationSchema = observationSchemaBase.superRefine(validateObservationProvenance);
+
+export const createObservationSchema = observationSchemaBase
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    createdBy: true,
+    updatedBy: true,
+  })
+  .superRefine(validateObservationProvenance);
 
 export const manualObservationInputSchema = z.strictObject({
   title: z.string().trim().min(1).optional(),

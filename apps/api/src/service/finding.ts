@@ -324,15 +324,13 @@ export function createFindingService({
         vulnerabilityIds,
       });
 
-      const createdFinding = await findingPersistenceRepository.getProjectedByID(
-        created.finding.id,
+      emitFindingEvent("finding.created", { finding: created.projection }, opts.eventContext);
+      emitObservationEvent(
+        "observation.created",
+        { observation: created.observation },
+        opts.eventContext,
       );
-      if (!createdFinding) {
-        throw new Error("manual finding was not available after creation");
-      }
-
-      emitFindingEvent("finding.created", { finding: createdFinding }, opts.eventContext);
-      return createdFinding;
+      return created.projection;
     } catch (error) {
       if (isApplicationError(error)) {
         throw error;
