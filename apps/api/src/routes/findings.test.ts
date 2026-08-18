@@ -1,6 +1,7 @@
 import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { FindingSource, FindingStatus, type Finding } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { FindingStatus, type FindingProjection } from "@exposurenexus/types/model/finding";
+import { ObservationSource } from "@exposurenexus/types/model/observation";
+import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createRequireDomainPermission } from "../middleware/auth.js";
@@ -27,10 +28,8 @@ describe("finding routes", () => {
   const findingService = {
     listAll: vi.fn(),
     getByID: vi.fn(),
-    create: vi.fn(),
     createManual: vi.fn(),
     updateByID: vi.fn(),
-    createOrUpdate: vi.fn(),
     linkVulnerability: vi.fn(),
     unlinkVulnerability: vi.fn(),
     deleteByID: vi.fn(),
@@ -42,11 +41,12 @@ describe("finding routes", () => {
   };
   const vulnerability = {
     id: vulnerabilityId,
+    type: VulnerabilityType.Custom,
+    identifier: "exposed-admin-endpoint",
     title: "Exposed Admin Endpoint",
     severity: VulnerabilitySeverity.High,
     description: "Administrative interface is reachable externally",
-    cwe: 284,
-    cve: null,
+    metadata: { cwe: 284 },
     createdBy: user.id,
     updatedBy: user.id,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -65,13 +65,32 @@ describe("finding routes", () => {
     updatedAt: "2026-01-02T00:00:00.000Z",
   };
   const createPayload = {
-    vulnerabilityId,
+    assetId,
+    title: "Exposed admin endpoint",
     severity: VulnerabilitySeverity.High,
     status: FindingStatus.Active,
-    source: FindingSource.Manual,
-    evidence: "Observed exposed admin endpoint",
     mitigation: "Restrict access to internal networks",
+    weakness: { identifiers: { cwe: ["CWE-200"] } },
+    affectedResource: { type: AffectedResourceType.Unspecified as const },
+    vulnerabilityIds: [vulnerabilityId],
+  };
+  const findingProjection: FindingProjection = {
+    id: findingId,
     assetId,
+    title: createPayload.title,
+    severity: createPayload.severity,
+    status: createPayload.status,
+    assigneeId: null,
+    dueDate: null,
+    mitigation: createPayload.mitigation,
+    weakness: createPayload.weakness,
+    affectedResource: createPayload.affectedResource,
+    vulnerabilities: [vulnerability],
+    observationCount: 1,
+    observingSources: [ObservationSource.Manual],
+    ...findingDates,
+    createdBy: user.id,
+    updatedBy: user.id,
   };
   beforeEach(() => {
     vi.clearAllMocks();
@@ -386,21 +405,9 @@ describe("finding routes", () => {
 
   it("returns all findings for authenticated requests", async () => {
     const requestId = "findings-list-request";
-    const findings = [
-      {
-        id: findingId,
-        ...createPayload,
-        assigneeId: null,
-        dueDate: null,
-        fingerprint: "abc123",
-        ...findingDates,
-        createdBy: user.id,
-        updatedBy: user.id,
-        vulnerability,
-      },
-    ];
+    const findings = [findingProjection];
 
-    findingService.listAll.mockResolvedValue(findings as Finding[]);
+    findingService.listAll.mockResolvedValue(findings);
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -423,11 +430,13 @@ describe("finding routes", () => {
           {
             ...findings[0],
             ...findingJsonDates,
-            vulnerability: {
-              ...vulnerability,
-              createdAt: "2026-01-01T00:00:00.000Z",
-              updatedAt: "2026-01-01T00:00:00.000Z",
-            },
+            vulnerabilities: [
+              {
+                ...vulnerability,
+                createdAt: "2026-01-01T00:00:00.000Z",
+                updatedAt: "2026-01-01T00:00:00.000Z",
+              },
+            ],
           },
         ],
         totalItems: 1,
@@ -474,19 +483,9 @@ describe("finding routes", () => {
 
   it("returns a finding by id", async () => {
     const requestId = "findings-get-by-id-request";
-    const findingRecord = {
-      id: findingId,
-      ...createPayload,
-      assigneeId: null,
-      dueDate: null,
-      fingerprint: "abc123",
-      ...findingDates,
-      createdBy: user.id,
-      updatedBy: user.id,
-      vulnerability,
-    };
+    const findingRecord = findingProjection;
 
-    findingService.getByID.mockResolvedValue(findingRecord as Finding);
+    findingService.getByID.mockResolvedValue(findingRecord);
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -507,284 +506,13 @@ describe("finding routes", () => {
       data: {
         ...findingRecord,
         ...findingJsonDates,
-        vulnerability: {
-          ...vulnerability,
-          createdAt: "2026-01-01T00:00:00.000Z",
-          updatedAt: "2026-01-01T00:00:00.000Z",
-        },
-      },
-    });
-  });
-
-  it("passes the authenticated user into finding creation", async () => {
-    const requestId = "findings-create-request";
-    const createdFinding = {
-      id: findingId,
-      ...createPayload,
-      assigneeId: null,
-      dueDate: null,
-      fingerprint: "abc123",
-      ...findingDates,
-      createdBy: user.id,
-      updatedBy: user.id,
-      vulnerability,
-    };
-
-    findingService.create.mockResolvedValue(createdFinding as Finding);
-
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService, routeDependencies),
-    });
-
-    const response = await app.request("/api/findings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": requestId,
-      },
-      body: JSON.stringify(createPayload),
-    });
-    const body = await response.json();
-
-    expect(response.status).toBe(201);
-    expect(findingService.create).toHaveBeenCalledWith({
-      finding: createPayload,
-      user,
-      eventContext: {
-        actor: user.id,
-        correlationId: requestId,
-      },
-    });
-    expect(body).toEqual({
-      correlationId: requestId,
-      data: {
-        ...createdFinding,
-        ...findingJsonDates,
-        vulnerability: {
-          ...vulnerability,
-          createdAt: "2026-01-01T00:00:00.000Z",
-          updatedAt: "2026-01-01T00:00:00.000Z",
-        },
-      },
-    });
-  });
-
-  it("maps finding creation validation failures through the error handler", async () => {
-    const requestId = "findings-create-validation-failure-request";
-
-    findingService.create.mockRejectedValueOnce(
-      new ApplicationError({
-        code: "finding.asset_unknown",
-        kind: "validation",
-        message: "finding asset does not exist",
-        details: { assetId },
-      }),
-    );
-
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService, routeDependencies),
-    });
-
-    const response = await app.request("/api/findings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": requestId,
-      },
-      body: JSON.stringify(createPayload),
-    });
-    const body = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(body).toMatchObject({
-      correlationId: requestId,
-      status: 400,
-      error: expect.any(String),
-    });
-    expect(body).not.toHaveProperty("reason");
-    expect(body).not.toHaveProperty("details");
-  });
-
-  it("accepts nullable assignee identity during finding creation", async () => {
-    const requestId = "findings-create-with-assignee-request";
-    const payload = {
-      ...createPayload,
-      assigneeId,
-    };
-    const createdFinding = {
-      id: findingId,
-      ...payload,
-      fingerprint: "abc123",
-      ...findingDates,
-      createdBy: user.id,
-      updatedBy: user.id,
-      vulnerability,
-    };
-
-    findingService.create.mockResolvedValue(createdFinding as Finding);
-
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService, routeDependencies),
-    });
-
-    const response = await app.request("/api/findings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": requestId,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    expect(response.status).toBe(201);
-    expect(findingService.create).toHaveBeenCalledWith({
-      finding: payload,
-      user,
-      eventContext: {
-        actor: user.id,
-        correlationId: requestId,
-      },
-    });
-  });
-
-  it("accepts null assignee identity during finding creation", async () => {
-    const payload = {
-      ...createPayload,
-      assigneeId: null,
-    };
-    const createdFinding = {
-      id: findingId,
-      ...payload,
-      fingerprint: "abc123",
-      ...findingDates,
-      createdBy: user.id,
-      updatedBy: user.id,
-      vulnerability,
-    };
-
-    findingService.create.mockResolvedValue(createdFinding as Finding);
-
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService, routeDependencies),
-    });
-
-    const response = await app.request("/api/findings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": "findings-create-with-null-assignee-request",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    expect(response.status).toBe(201);
-    expect(findingService.create).toHaveBeenCalledWith({
-      finding: payload,
-      user,
-      eventContext: {
-        actor: user.id,
-        correlationId: "findings-create-with-null-assignee-request",
-      },
-    });
-  });
-
-  it("accepts and normalizes due dates during finding creation", async () => {
-    const payload = {
-      ...createPayload,
-      dueDate: "2026-05-06T18:30:00.000Z",
-    };
-    const normalizedDueDate = new Date("2026-05-06T00:00:00.000Z");
-    const createdFinding = {
-      id: findingId,
-      ...createPayload,
-      assigneeId: null,
-      dueDate: normalizedDueDate,
-      fingerprint: "abc123",
-      ...findingDates,
-      createdBy: user.id,
-      updatedBy: user.id,
-      vulnerability,
-    };
-
-    findingService.create.mockResolvedValue(createdFinding as Finding);
-
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService, routeDependencies),
-    });
-
-    const response = await app.request("/api/findings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": "findings-create-with-due-date-request",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    expect(response.status).toBe(201);
-    expect(findingService.create).toHaveBeenCalledWith({
-      finding: {
-        ...createPayload,
-        dueDate: normalizedDueDate,
-      },
-      user,
-      eventContext: {
-        actor: user.id,
-        correlationId: "findings-create-with-due-date-request",
-      },
-    });
-  });
-
-  it("accepts null due dates during finding creation", async () => {
-    const payload = {
-      ...createPayload,
-      dueDate: null,
-    };
-    const createdFinding = {
-      id: findingId,
-      ...payload,
-      assigneeId: null,
-      fingerprint: "abc123",
-      ...findingDates,
-      createdBy: user.id,
-      updatedBy: user.id,
-      vulnerability,
-    };
-
-    findingService.create.mockResolvedValue(createdFinding as Finding);
-
-    const app = createTestApp({
-      annotateAuth: annotateAuthenticatedUser(user),
-      requireAuth: requireAuthenticatedUser,
-      findingRoute: createFindingRoute(findingService, routeDependencies),
-    });
-
-    const response = await app.request("/api/findings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Request-Id": "findings-create-with-null-due-date-request",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    expect(response.status).toBe(201);
-    expect(findingService.create).toHaveBeenCalledWith({
-      finding: payload,
-      user,
-      eventContext: {
-        actor: user.id,
-        correlationId: "findings-create-with-null-due-date-request",
+        vulnerabilities: [
+          {
+            ...vulnerability,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
       },
     });
   });
@@ -811,7 +539,7 @@ describe("finding routes", () => {
     expect(userHasPermission).toHaveBeenCalledWith(user.id, {
       finding: ["write"],
     });
-    expect(findingService.create).not.toHaveBeenCalled();
+    expect(findingService.createManual).not.toHaveBeenCalled();
   });
 
   it("rejects invalid finding create bodies before calling the service", async () => {
@@ -834,7 +562,7 @@ describe("finding routes", () => {
     });
 
     expect(response.status).toBe(400);
-    expect(findingService.create).not.toHaveBeenCalled();
+    expect(findingService.createManual).not.toHaveBeenCalled();
   });
 
   it("rejects invalid finding assignee ids before calling the service", async () => {
@@ -857,7 +585,32 @@ describe("finding routes", () => {
     });
 
     expect(response.status).toBe(400);
-    expect(findingService.create).not.toHaveBeenCalled();
+    expect(findingService.createManual).not.toHaveBeenCalled();
+  });
+
+  it("rejects the removed flat finding create shape", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request("/api/findings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        assetId,
+        vulnerabilityId,
+        source: "manual",
+        evidence: "legacy evidence",
+        severity: VulnerabilitySeverity.High,
+        status: FindingStatus.Active,
+        mitigation: null,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(findingService.createManual).not.toHaveBeenCalled();
   });
 
   it("links a catalog entry with finding write permission", async () => {
@@ -1167,19 +920,9 @@ describe("finding routes", () => {
 
   it("deletes a finding by id", async () => {
     const requestId = "findings-delete-request";
-    const deletedFinding = {
-      id: findingId,
-      ...createPayload,
-      assigneeId: null,
-      dueDate: null,
-      fingerprint: "abc123",
-      ...findingDates,
-      createdBy: user.id,
-      updatedBy: user.id,
-      vulnerability,
-    };
+    const deletedFinding = findingProjection;
 
-    findingService.deleteByID.mockResolvedValue(deletedFinding as Finding);
+    findingService.deleteByID.mockResolvedValue(deletedFinding);
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -1205,11 +948,13 @@ describe("finding routes", () => {
       data: {
         ...deletedFinding,
         ...findingJsonDates,
-        vulnerability: {
-          ...vulnerability,
-          createdAt: "2026-01-01T00:00:00.000Z",
-          updatedAt: "2026-01-01T00:00:00.000Z",
-        },
+        vulnerabilities: [
+          {
+            ...vulnerability,
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
       },
     });
   });

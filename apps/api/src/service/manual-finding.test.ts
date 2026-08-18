@@ -19,24 +19,26 @@ const findingId = "2713d833-eb13-4517-ac7c-7761545ed42a";
 const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe";
 
 describe("manual finding creation", () => {
-  const manualFindingRepository = {
-    createManual: vi.fn(),
-    getProjectedByID: vi.fn(),
-  };
   const findingPersistenceRepository = {
+    createManual: vi.fn(),
     listProjected: vi.fn(),
     getProjectedByID: vi.fn(),
     updateByID: vi.fn(),
     deleteByID: vi.fn(),
   };
-  const findingRepository = {
-    list: vi.fn(),
-    getByID: vi.fn(),
-    getByFingerprint: vi.fn(),
+  const findingVulnerabilityRepository = {
+    listByFindingID: vi.fn(),
     create: vi.fn(),
-    updateByID: vi.fn(),
-    deleteByID: vi.fn(),
-    countBy: vi.fn(),
+    delete: vi.fn(),
+    linkAndTouchFinding: vi.fn(),
+    unlinkAndTouchFinding: vi.fn(),
+  };
+  const observationRepository = {
+    listByFindingID: vi.fn(),
+    createAndTouchFinding: vi.fn(),
+    updateAndTouchFinding: vi.fn(),
+    deleteAndTouchFinding: vi.fn(),
+    moveAndTouchFindings: vi.fn(),
   };
   const assetService = {
     getByID: vi.fn(),
@@ -89,16 +91,15 @@ describe("manual finding creation", () => {
     assetService.getByID.mockResolvedValue({ id: assetId });
     userProfileService.getByID.mockResolvedValue(null);
     vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-    manualFindingRepository.createManual.mockResolvedValue({ finding: { id: findingId } });
-    manualFindingRepository.getProjectedByID.mockResolvedValue(projection);
+    findingPersistenceRepository.createManual.mockResolvedValue({ finding: { id: findingId } });
     findingPersistenceRepository.getProjectedByID.mockResolvedValue(projection);
   });
 
   function createService() {
     return createFindingService({
-      findingRepository,
       findingPersistenceRepository,
-      manualFindingRepository,
+      findingVulnerabilityRepository,
+      observationRepository,
       assetService,
       userProfileService,
       vulnerabilityService,
@@ -137,7 +138,7 @@ describe("manual finding creation", () => {
       }),
     ).resolves.toBe(projection);
 
-    expect(manualFindingRepository.createManual).toHaveBeenCalledWith({
+    expect(findingPersistenceRepository.createManual).toHaveBeenCalledWith({
       finding: {
         assetId,
         title: finding.title,
@@ -181,7 +182,9 @@ describe("manual finding creation", () => {
   });
 
   it("does not emit an event when the atomic persistence operation fails", async () => {
-    manualFindingRepository.createManual.mockRejectedValue(new Error("observation write failed"));
+    findingPersistenceRepository.createManual.mockRejectedValue(
+      new Error("observation write failed"),
+    );
 
     await expect(
       createService().createManual({

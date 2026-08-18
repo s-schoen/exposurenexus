@@ -19,10 +19,8 @@ describe("manual finding creation route", () => {
   const findingService = {
     listAll: vi.fn(),
     getByID: vi.fn(),
-    create: vi.fn(),
     createManual: vi.fn(),
     updateByID: vi.fn(),
-    createOrUpdate: vi.fn(),
     linkVulnerability: vi.fn(),
     unlinkVulnerability: vi.fn(),
     deleteByID: vi.fn(),
@@ -101,7 +99,6 @@ describe("manual finding creation route", () => {
       user,
       eventContext: { actor: user.id, correlationId: requestId },
     });
-    expect(findingService.create).not.toHaveBeenCalled();
     expect(await response.json()).toMatchObject({ data: { id: finding.id } });
   });
 });

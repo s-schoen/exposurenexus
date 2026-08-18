@@ -148,7 +148,6 @@ vi.mock("./repository/index.js", () => ({
     kind: "asset-custom-field-repo",
   })),
   createAssetRepository: vi.fn(() => ({ kind: "asset-repo" })),
-  createFindingRepository: vi.fn(() => ({ kind: "finding-repo" })),
   createFindingPersistenceRepository: vi.fn(() => ({ kind: "finding-persistence-repo" })),
   createFindingVulnerabilityRepository: vi.fn(() => ({ kind: "finding-vulnerability-repo" })),
   createObservationRepository: createObservationRepositoryMock,
@@ -272,6 +271,8 @@ describe("app container", () => {
     );
     expect(createFindingServiceMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        findingPersistenceRepository: { kind: "finding-persistence-repo" },
+        findingVulnerabilityRepository: { kind: "finding-vulnerability-repo" },
         observationRepository: { kind: "observation-repo" },
         domainEventEmitter: expect.objectContaining({
           emit: expect.any(Function),

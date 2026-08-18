@@ -1,8 +1,4 @@
-import {
-  createFindingSchema,
-  legacyCreateFindingSchema,
-  updateFindingSchema,
-} from "@exposurenexus/types/model/finding";
+import { createFindingSchema, updateFindingSchema } from "@exposurenexus/types/model/finding";
 import {
   manualObservationInputSchema,
   moveObservationInputSchema,
@@ -34,8 +30,6 @@ const observationParamValidator = zValidator(
   "param",
   z.object({ findingId: z.uuidv4(), observationId: z.uuidv4() }),
 );
-const createFindingRequestSchema = z.union([createFindingSchema, legacyCreateFindingSchema]);
-
 export function createFindingRoute(
   findingService: FindingService,
   { requireDomainPermission }: FindingRouteDependencies,
@@ -229,7 +223,7 @@ export function createFindingRoute(
   finding.post(
     "/",
     requireDomainPermission("finding", "write"),
-    zValidator("json", createFindingRequestSchema),
+    zValidator("json", createFindingSchema),
     async (c) => {
       const body = c.req.valid("json");
       const user = c.get("user");
@@ -238,18 +232,11 @@ export function createFindingRoute(
         throw unauthorized();
       }
 
-      const createdFinding =
-        "vulnerabilityId" in body
-          ? await findingService.create({
-              finding: body,
-              user,
-              eventContext: requestEventContext(c),
-            })
-          : await findingService.createManual({
-              finding: body,
-              user,
-              eventContext: requestEventContext(c),
-            });
+      const createdFinding = await findingService.createManual({
+        finding: body,
+        user,
+        eventContext: requestEventContext(c),
+      });
 
       return replyObject(c, createdFinding, true);
     },

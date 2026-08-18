@@ -1,9 +1,11 @@
+import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import {
   type AssetCustomFieldDefinition,
   AssetCustomFieldType,
 } from "@exposurenexus/types/model/asset-custom-field";
-import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
+import { FindingStatus, type FindingProjection } from "@exposurenexus/types/model/finding";
+import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { describe, expect, it, vi } from "vitest";
@@ -54,24 +56,25 @@ describe("registerAuditLogger", () => {
   };
   const finding = {
     id: "2713d833-eb13-4517-ac7c-7761545ed42a",
-    source: FindingSource.Nuclei,
     status: FindingStatus.Active,
-    vulnerabilityId: vulnerability.id,
     assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
+    title: "Exposed Admin Endpoint",
     severity: vulnerability.severity,
-    evidence: "GET /admin HTTP/1.1\nHTTP/1.1 200 OK",
     mitigation: "Restrict access to internal networks",
     assigneeId: null,
     dueDate: null,
-    fingerprint: "abc123",
+    weakness: { identifiers: { cwe: ["CWE-284"] } },
+    affectedResource: { type: AffectedResourceType.Unspecified },
+    vulnerabilities: [catalogVulnerability],
+    observationCount: 1,
+    observingSources: [ObservationSource.Nuclei],
     firstSeen: new Date("2026-05-07T09:10:00.000Z"),
     lastSeen: new Date("2026-05-07T09:10:00.000Z"),
     createdBy: user.id,
     updatedBy: user.id,
     createdAt: new Date("2026-05-07T09:10:00.000Z"),
     updatedAt: new Date("2026-05-07T09:10:00.000Z"),
-    vulnerability,
-  };
+  } satisfies FindingProjection;
   const asset = {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
     displayName: "api.exposurenexus.local",
@@ -243,7 +246,7 @@ describe("registerAuditLogger", () => {
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
-  it("logs finding events at info with redacted evidence", async () => {
+  it("logs final finding projections at info", async () => {
     const eventBus = new EventBus<DomainEvent>();
     const logger = createLogger();
     const eventTime = new Date("2026-05-07T10:15:00.000Z");
@@ -270,12 +273,7 @@ describe("registerAuditLogger", () => {
         eventTime,
         actor: user.id,
         correlationId: "request-5",
-        data: {
-          finding: {
-            ...finding,
-            evidence: REDACTED_EVENT_LOG_VALUE,
-          },
-        },
+        data: { finding },
       },
       "finding.created",
     );

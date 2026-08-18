@@ -38,16 +38,8 @@ const previousFinding: FindingProjection = {
 };
 
 describe("nested manual observations", () => {
-  const findingRepository = {
-    list: vi.fn(),
-    getByID: vi.fn(),
-    getByFingerprint: vi.fn(),
-    create: vi.fn(),
-    updateByID: vi.fn(),
-    deleteByID: vi.fn(),
-    countBy: vi.fn(),
-  };
   const findingPersistenceRepository = {
+    createManual: vi.fn(),
     listProjected: vi.fn(),
     getProjectedByID: vi.fn(),
     updateByID: vi.fn(),
@@ -60,6 +52,13 @@ describe("nested manual observations", () => {
     deleteAndTouchFinding: vi.fn(),
     moveAndTouchFindings: vi.fn(),
   };
+  const findingVulnerabilityRepository = {
+    listByFindingID: vi.fn(),
+    create: vi.fn(),
+    delete: vi.fn(),
+    linkAndTouchFinding: vi.fn(),
+    unlinkAndTouchFinding: vi.fn(),
+  };
   const domainEvents = createDomainEventCollector();
 
   beforeEach(() => {
@@ -71,8 +70,8 @@ describe("nested manual observations", () => {
 
   function createService() {
     return createFindingService({
-      findingRepository,
       findingPersistenceRepository,
+      findingVulnerabilityRepository,
       observationRepository,
       assetService: { getByID: vi.fn() },
       userProfileService: { getByID: vi.fn() },
