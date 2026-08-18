@@ -23,9 +23,12 @@ import type {
   CreateManualFinding,
   FindingProjection,
   FindingStatistics,
-  ManualObservationInput,
 } from "@exposurenexus/types/model/finding";
-import type { Observation, UpdateObservation } from "@exposurenexus/types/model/observation";
+import type {
+  ManualObservationInput,
+  Observation,
+  UpdateObservation,
+} from "@exposurenexus/types/model/observation";
 
 const fetchMock = vi.fn<typeof fetch>();
 

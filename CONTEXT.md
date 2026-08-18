@@ -134,16 +134,16 @@ The affected-resource type `asset` means the weakness affirmatively applies to
 the asset as a whole. `unspecified` means that a narrower affected resource is
 not known. These meanings are not interchangeable.
 
-Findings own canonical affected-resource data. Observations may additionally
-preserve source-snapshot context that is not part of long-lived finding
-identity.
+Findings own structured affected-resource data. Shared schemas validate field
+shape but do not normalize values or enforce semantic relationships.
+Observations may additionally preserve source-snapshot context that is not part
+of long-lived finding identity.
 
 ### Finding
 
 A **finding** is the human-facing workflow case for one weakness affecting one
-asset and one canonical affected resource. It owns its title, severity, status,
-assignee, due date, mitigation, normalized weakness, and canonical affected
-resource.
+asset and one structured affected resource. It owns its title, severity, status,
+assignee, due date, mitigation, normalized weakness, and affected resource.
 
 Findings are the things users triage, assign, accept, mitigate, close, and see in
 finding-based counts. A finding may link to zero or more vulnerability catalog

@@ -1,7 +1,4 @@
-import {
-  createVulnerabilitySchema,
-  updateVulnerabilitySchema,
-} from "@exposurenexus/types/model/vulnerability";
+import { vulnerabilityInputSchema } from "@exposurenexus/types/model/vulnerability";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod/v4";
@@ -33,7 +30,7 @@ export function createVulnerabilityRoute(
   vulnerability.post(
     "/",
     requireDomainPermission("vulnerability", "write"),
-    zValidator("json", createVulnerabilitySchema),
+    zValidator("json", vulnerabilityInputSchema),
     async (c) => {
       const user = c.get("user");
       if (!user) {
@@ -69,7 +66,7 @@ export function createVulnerabilityRoute(
     "/:id",
     requireDomainPermission("vulnerability", "write"),
     idParamValidator,
-    zValidator("json", updateVulnerabilitySchema),
+    zValidator("json", vulnerabilityInputSchema),
     async (c) => {
       const user = c.get("user");
       if (!user) {

@@ -14,8 +14,12 @@ import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { FindingObservationsSection } from "@/components/finding-observations-section.tsx";
 
 import type { ObservationAffectedResourceInput as ObservationResource } from "@exposurenexus/types/model/affected-resource";
-import type { FindingProjection, ManualObservationInput } from "@exposurenexus/types/model/finding";
-import type { Observation } from "@exposurenexus/types/model/observation";
+import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type {
+  ManualObservationInput,
+  Observation,
+  UpdateObservation,
+} from "@exposurenexus/types/model/observation";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type Scenario = "populated" | "single" | "empty" | "loading" | "error";
@@ -252,7 +256,7 @@ function StoryShell({ scenario }: StoryArgs) {
       }
       if (init?.method === "PUT") {
         const observationId = url.slice(`${observationsPath}/`.length);
-        const payload = JSON.parse(await new Response(init.body).text()) as Partial<Observation>;
+        const payload = JSON.parse(await new Response(init.body).text()) as UpdateObservation;
         const current = records.current.find((record) => record.id === observationId);
         if (!current) return objectResponse({ message: "Not found" }, 404);
         const updated: Observation = {

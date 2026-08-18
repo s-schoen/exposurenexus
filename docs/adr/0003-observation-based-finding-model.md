@@ -26,15 +26,16 @@ detection events attached to findings. A vulnerability is a reusable catalog
 entry that can enrich a finding, but it does not define finding identity.
 
 The finding identity is centered on one asset, a normalized weakness, and a
-normalized affected resource. Observations carry source-reported weakness and
+structured affected resource. Observations carry source-reported weakness and
 affected-resource data. Importers resolve source records to existing assets and
 findings, attach observations, and add catalog enrichment only when existing
 catalog entries can be matched.
 
 Affected resources are represented as a discriminated union. Every affected
 resource has a required `type`, and each type defines its allowed fields and
-normalization rules. Findings store canonical affected-resource data suitable for
-workflow and matching. Observations use the same type family, but may contain
+primitive value types. Shared schemas do not normalize affected-resource values
+or enforce relationships between fields. Findings store structured resource data
+for workflow and matching. Observations use the same type family, but may contain
 partial and source-snapshot data that is not copied into the finding.
 
 ## Data Structures
@@ -129,9 +130,7 @@ Manual workflows may use `unspecified`. Automated imports may not use
 
 #### Web Endpoint Resource
 
-`webEndpoint` represents an HTTP-like endpoint. Canonical finding data uses
-parsed fields as the authoritative representation rather than storing a second,
-potentially conflicting URL string.
+`webEndpoint` represents an HTTP-like endpoint using optional structured fields.
 
 ```json
 {
@@ -163,8 +162,7 @@ request or response:
 
 Supported initial component kinds are `endpoint`, `queryParameter`,
 `pathParameter`, `header`, `cookie`, `bodyField`, and `response`. `name` is
-required for `queryParameter`, `pathParameter`, `header`, `cookie`, and
-`bodyField`. `name` is not allowed for `endpoint` or `response`.
+optional; consumers may interpret it according to the selected kind.
 
 An observation may additionally preserve the URL exactly as reported by its
 source:
@@ -198,13 +196,8 @@ endpoint.
 }
 ```
 
-`transport` is initially `tcp` or `udp`. `protocol` is an optional normalized
-application-protocol name.
-
-Supplied ports are integers from 1 through 65535. Web endpoint schemes are
-initially `http` or `https`; methods use normalized uppercase HTTP tokens.
-Ecosystem, provider, and normalized protocol values use lowercase canonical
-strings but remain extensible vocabularies.
+`transport` and `protocol` are optional strings. The schema does not restrict
+their vocabulary or normalize their case.
 
 #### Source Code Resource
 
@@ -228,13 +221,9 @@ more specific occurrence.
 }
 ```
 
-Line and column numbers are one-based in the ExposureNexus domain model.
-Importers convert source-specific indexing conventions before persistence.
-`file` is repository-relative and uses `/` as the path separator.
-
-When `location` is present, `startLine` is required. `startColumn`, `endLine`,
-and `endColumn` may only appear with their preceding coordinates. All location
-values are positive integers, and an end position may not precede the start.
+When `location` is present, `startLine` is required. Coordinates are numeric,
+but the schema does not enforce indexing conventions, ordering, or range
+relationships. Repository and file values are preserved as supplied.
 
 An observation may additionally identify the source snapshot:
 
@@ -340,8 +329,7 @@ finding.
 Findings and observations use the same affected-resource type family with
 different validation projections:
 
-- A finding contains canonical, normalized resource data suitable for workflow
-  and matching.
+- A finding contains structured resource data suitable for workflow and matching.
 - Observation-only fields preserve what the source saw. They are not copied into
   the finding through automatic enrichment.
 - A concrete `type` is part of affected-resource identity. Automatic enrichment
@@ -354,72 +342,29 @@ A disagreement between concrete types is an identity conflict. Whether an
 observation may still attach is decided by the observation-to-finding matching
 policy and must be logged when attachment proceeds.
 
-#### Normalization
+#### Semantic Interpretation
 
-Affected-resource normalization is type-specific and versioned. Importers
-normalize source data before using it for finding matching or initializing a
-finding.
+Affected-resource schemas validate only the discriminator, allowed fields, and
+primitive value types. They preserve supplied strings and numbers without
+normalization, default inference, format checks, or cross-field validation.
 
-For `webEndpoint` and `networkService` resources:
-
-- DNS names are lowercased, IDNA-normalized, and stored without a trailing dot.
-- IP addresses use a canonical textual representation.
-- Schemes, transports, methods, and normalized protocol names use a consistent
-  case.
-- For HTTP and HTTPS endpoints, default ports are materialized as `80` and `443`.
-- Web paths resolve dot segments, default to `/`, and preserve path case.
-- URL fragments do not participate in resource identity.
-- Arbitrary query values do not participate in resource identity. A
-  parameter-specific issue identifies the parameter through `component`.
-
-For `sourceCode` resources:
-
-- Repository identifiers use the same product-owned canonical `server/path`
-  representation as asset VCS repository identifiers. Equivalent HTTP, HTTPS,
-  SSH, SCP, trailing `.git`, and trailing-slash forms normalize to that value.
-- Equivalent repository URL forms are normalized consistently, including an
-  optional trailing `.git` suffix and trailing slash.
-- File paths are repository-relative, use `/`, and may not escape the repository
-  root.
-- Source-provided or importer-derived location fingerprints are stored with a
-  namespace or algorithm prefix.
-
-For `package` resources:
-
-- Ecosystem names use a canonical lowercase value.
-- Package names use an extensible normalizer registry. Registered ecosystems
-  apply ecosystem-specific rules; otherwise names are trimmed and preserve case.
-  The initial registry includes npm.
-- Installation paths use the same normalized path conventions as the owning
-  asset type.
-
-For `containerImage` and `cloudResource` resources:
-
-- Registry names and provider names use canonical lowercase values where their
-  external identity rules are case-insensitive.
-- Image digests retain their algorithm prefix.
-- Provider-native resource identifiers are preserved according to provider
-  canonicalization rules rather than normalized as display text.
-
-Changing normalization behavior requires a versioned migration or rematching
-strategy because it can change finding identity and matching outcomes.
-Normalization implementations declare an application normalization version.
-The initial model does not persist a normalization version on each finding or
-observation.
+Importers, matching policies, and workflow logic may interpret these values for
+their own decisions. Such policy is kept outside the shared schema so new source
+formats and imperfect data do not require expanding schema-level validation.
 
 #### Validation
 
 Every affected resource must contain `type`. Empty affected-resource objects are
 not valid.
 
-Validation is contextual:
+Additional workflow policy is contextual and belongs outside the schema:
 
 - Manual findings and manual observations may use `asset`, `unspecified`, or a
   partially populated concrete type.
-- Automated observations must use `asset` or a concrete type and must contain
-  enough type-specific identity data for matching.
-- Findings created by an automated importer must contain `asset` or a normalized
-  concrete type with sufficient identity.
+- Automated observations may require enough type-specific data for a particular
+  matching policy.
+- Findings created by an automated importer may apply stricter service-level
+  requirements.
 - Unknown types and fields that do not belong to the selected type are rejected.
 - Observation-only source-snapshot fields are rejected on canonical finding
   resources.
@@ -431,8 +376,8 @@ observation-to-finding matching policy and are not decided in this ADR.
 
 A finding is the human-facing workflow case. It belongs to exactly one asset and
 may link to zero or more vulnerability catalog entries through a mapping table.
-It owns the normalized weakness and affected-resource identity used for workflow
-and matching.
+It owns the normalized weakness and structured affected-resource data used for
+workflow and matching.
 
 ```json
 {
@@ -730,13 +675,13 @@ For each source record, the importer:
 1. Parses source-specific data into an observation shape.
 2. Derives required observation fields such as title, severity, weakness,
    affected-resource type and fields, source, and observed time.
-3. Normalizes affected-resource fields according to their type while preserving
-   source-snapshot fields on the observation.
+3. Preserves affected-resource fields and source-snapshot values on the
+   observation.
 4. Resolves the record to an existing asset by asset name.
 5. Resolves the observation to an existing finding or creates a new finding when
    the asset match is confident and the weakness/resource identity is sufficient.
 6. Attaches the observation to the finding.
-7. Adds missing weakness or canonical affected-resource fields to the finding
+7. Adds missing weakness or affected-resource fields to the finding
    only when the update is additive, non-overwriting, and within the same concrete
    affected-resource type.
 8. Adds exact-match catalog enrichment links to the finding when existing catalog
@@ -761,7 +706,7 @@ valid grouping record when all of its source records are skipped or erroneous.
 ### Attaching Observations To Existing Findings
 
 When a new observation attaches to an existing finding, it may enrich the finding
-with missing weakness identifiers or canonical affected-resource fields. This
+with missing weakness identifiers or affected-resource fields. This
 enrichment is additive only. Existing finding identity fields are not removed or
 overwritten by new observations.
 
@@ -1053,7 +998,7 @@ single `affectedResource` field across findings and observations. It prevents
 invalid combinations such as source-code line numbers on network services and
 makes new resource types an intentional domain-model change.
 
-Separating canonical finding fields from observation-only source-snapshot fields
+Separating finding fields from observation-only source-snapshot fields
 prevents mutable values such as Git
 revisions, package versions, image tags, and reported URL strings from silently
 changing long-lived finding identity.
@@ -1064,7 +1009,7 @@ identifier registries may be useful later, but using asset name keeps this chang
 smaller.
 
 Using additive-only enrichment avoids accidental data loss. Observations can add
-missing context to finding weakness, canonical affected resource, or catalog
+missing context to finding weakness, affected resource, or catalog
 links, but conflicts and affected-resource type changes require explicit
 correction instead of silent overwrites.
 
@@ -1076,7 +1021,7 @@ finding-owned `evidence`, stored `firstSeen` and `lastSeen`, and exact
 fingerprint-based deduplication. Those assumptions will need to change when this
 ADR is implemented.
 
-Affected-resource storage, validation, serialization, import normalization,
+Affected-resource storage, validation, serialization, import translation,
 matching, and UI rendering must become type-aware. Existing `category: "web"`
 resources migrate to `type: "webEndpoint"`; existing `category: "code"`
 resources migrate to `type: "sourceCode"`; and empty affected-resource objects
@@ -1104,5 +1049,5 @@ The following decisions are intentionally deferred:
 - The exact minimum and identity-bearing fields for automated matching within
   each affected-resource type.
 - Whether a separate fingerprint envelope exists or whether matching uses
-  `assetId`, `weakness`, and normalized `affectedResource` fields directly.
+  `assetId`, `weakness`, and `affectedResource` fields directly.
 - Vulnerability source mapping matching semantics.

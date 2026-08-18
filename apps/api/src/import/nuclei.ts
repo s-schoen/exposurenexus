@@ -1,22 +1,19 @@
 import {
   AffectedResourceType,
-  normalizeObservationAffectedResource,
+  observationAffectedResourceSchema,
 } from "@exposurenexus/types/model/affected-resource";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
-import { normalizeWeakness } from "@exposurenexus/types/model/weakness";
+import { weaknessSchema } from "@exposurenexus/types/model/weakness";
 import { z } from "zod/v4";
 
 import type { NormalizedObservationDraft } from "./observation.js";
 
 const nucleiClassificationSchema = z
-  .union([
-    z.object({
-      "cve-id": z.union([z.string(), z.array(z.string()), z.null()]).optional(),
-      "cwe-id": z.union([z.string(), z.array(z.string()), z.null()]).optional(),
-    }),
-    z.null(),
-  ])
-  .optional();
+  .object({
+    "cve-id": z.union([z.string(), z.array(z.string())]).nullish(),
+    "cwe-id": z.union([z.string(), z.array(z.string())]).nullish(),
+  })
+  .nullish();
 
 const nucleiRecordSchema = z.object({
   "template-id": z.string().trim().min(1),
@@ -56,8 +53,6 @@ export interface TranslatedNucleiResult {
 }
 
 export type NucleiTranslationResult = UnsupportedNucleiResult | TranslatedNucleiResult;
-
-export type NucleiObservationDraft = NormalizedObservationDraft;
 
 const supportedProtocols = new Set(["http", "https"]);
 
@@ -190,7 +185,7 @@ function translateRecord(record: NucleiRecord, ingestionTime: Date): NucleiTrans
   }
 
   const classification = record.info.classification;
-  const weakness = normalizeWeakness({
+  const weakness = weaknessSchema.parse({
     identifiers: {
       nuclei: [record["template-id"]],
       ...(classification === undefined || classification === null
@@ -201,7 +196,7 @@ function translateRecord(record: NucleiRecord, ingestionTime: Date): NucleiTrans
           }),
     },
   });
-  const affectedResource = normalizeObservationAffectedResource(parseEndpoint(record));
+  const affectedResource = observationAffectedResourceSchema.parse(parseEndpoint(record));
   const evidence = parseEvidence(record);
   const title = record.info.name?.trim() || record["template-id"];
 

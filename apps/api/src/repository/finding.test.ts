@@ -100,10 +100,9 @@ describe("observation-based persistence repositories", () => {
     expect(finding.weakness).toEqual({ identifiers: { cve: ["CVE-2026-0001"] } });
     expect(finding.affectedResource).toEqual({
       type: AffectedResourceType.WebEndpoint,
-      scheme: "https",
-      host: "example.com",
-      path: "/login",
-      port: 443,
+      scheme: "HTTPS",
+      host: "EXAMPLE.com",
+      path: "/admin/../login",
     });
     await expect(findingRepository.getByID(finding.id)).resolves.toEqual(finding);
 
@@ -198,7 +197,6 @@ describe("observation-based persistence repositories", () => {
 
     expect(importedObservation.affectedResource).toMatchObject({
       reportedUrl: "https://EXAMPLE.com:443/login",
-      port: 443,
     });
     await expect(observationRepository.listByFindingID(finding.id)).resolves.toEqual([
       tiedObservation,

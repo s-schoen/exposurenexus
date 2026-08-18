@@ -35,6 +35,7 @@ import { usePageMeta } from "@/context/page.tsx";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 import { formatLocalDateTimeInput, formatUtcDateOnly } from "@/lib/date-input.ts";
 import { formatFindingStatus } from "@/lib/format.ts";
+import { formatWeaknessText, parseWeaknessText } from "@/lib/weakness-text.ts";
 
 import type { FindingAffectedResource } from "@exposurenexus/types/model/affected-resource";
 import type { CreateManualFinding } from "@exposurenexus/types/model/finding";
@@ -108,7 +109,7 @@ function formatResourceType(type: AffectedResourceType) {
 }
 
 function emptyResource(type: AffectedResourceType): FindingAffectedResource {
-  return { type } as FindingAffectedResource;
+  return { type };
 }
 
 function resourceValue(resource: FindingAffectedResource, key: string): string {
@@ -148,34 +149,6 @@ function updateResourceLocation(
   }
 
   return next as FindingAffectedResource;
-}
-
-function weaknessText(weakness: CreateManualFinding["weakness"]) {
-  return Object.entries(weakness.identifiers)
-    .map(([namespace, identifiers]) => `${namespace}=${identifiers.join(",")}`)
-    .join("; ");
-}
-
-function parseWeaknessText(value: string): CreateManualFinding["weakness"] {
-  const identifiers: Record<string, Array<string>> = {};
-
-  for (const entry of value.split(";")) {
-    const separator = entry.indexOf("=");
-    if (separator < 1) continue;
-
-    const namespace = entry.slice(0, separator).trim();
-    const values = entry
-      .slice(separator + 1)
-      .split(",")
-      .map((identifier) => identifier.trim())
-      .filter(Boolean);
-
-    if (namespace && values.length > 0) {
-      identifiers[namespace] = values;
-    }
-  }
-
-  return { identifiers };
 }
 
 function renderResourceInput(
@@ -557,10 +530,14 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                     <Input
                       id={field.name}
                       name={field.name}
-                      value={weaknessText(field.state.value)}
+                      value={formatWeaknessText(field.state.value)}
                       onBlur={field.handleBlur}
                       onChange={(event) =>
-                        field.handleChange(parseWeaknessText(event.target.value))
+                        field.handleChange(
+                          parseWeaknessText(event.target.value, { ignoreMalformed: true }) ?? {
+                            identifiers: {},
+                          },
+                        )
                       }
                       placeholder="cwe=CWE-200; nuclei=admin-panel"
                     />

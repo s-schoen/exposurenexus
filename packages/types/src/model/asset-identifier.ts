@@ -16,8 +16,6 @@ export {
   ipAddressValueSchema,
   normalizeAssetIdentifier,
   ociImageNameValueSchema,
-  ociRegistryValueSchema,
-  ociRepositoryPathValueSchema,
   updateAssetIdentifierSchema,
   validateAssetIdentifier,
   vcsRepositoryValueSchema,

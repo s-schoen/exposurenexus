@@ -262,7 +262,7 @@ describe("nested manual observations", () => {
     const previousObservation = {
       id: observationId,
       findingId,
-      ingestionId: null,
+      ingestionId: "40b71ac1-b003-46b4-a1fc-8e8d384dd140",
       source: ObservationSource.Nuclei,
       title: "Source title",
       description: null,

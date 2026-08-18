@@ -17,10 +17,13 @@ import type {
   CreateManualFinding,
   FindingProjection,
   FindingStatistics,
-  ManualObservationInput,
   UpdateFinding,
 } from "@exposurenexus/types/model/finding";
-import type { Observation, UpdateObservation } from "@exposurenexus/types/model/observation";
+import type {
+  ManualObservationInput,
+  Observation,
+  UpdateObservation,
+} from "@exposurenexus/types/model/observation";
 
 async function listFindings(): Promise<Array<FindingProjection>> {
   const response = await apiRequest("/api/findings", {

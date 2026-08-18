@@ -79,9 +79,8 @@ describe("manual finding creation schema", () => {
     expect(parsed.observation?.affectedResource).toMatchObject({
       type: AffectedResourceType.WebEndpoint,
       reportedUrl: "https://EXAMPLE.com:443/admin",
-      scheme: "https",
-      host: "example.com",
-      port: 443,
+      scheme: "HTTPS",
+      host: "EXAMPLE.com",
       path: "/admin",
     });
   });
@@ -121,7 +120,7 @@ describe("finding correction schema", () => {
       weakness: { identifiers: { cwe: ["CWE-89"] } },
       affectedResource: {
         type: AffectedResourceType.SourceCode,
-        repository: "github.com/example/repository",
+        repository: "https://github.com/example/repository.git",
         file: "src/query.ts",
       },
     });
