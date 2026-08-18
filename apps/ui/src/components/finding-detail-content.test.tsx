@@ -239,6 +239,18 @@ describe("FindingDetailContent", () => {
     expect(screen.getAllByText("Not available").length).toBeGreaterThan(0);
   });
 
+  it("renders due dates as UTC calendar dates", () => {
+    mocks.findingQuery = {
+      data: { ...finding, dueDate: new Date("2026-05-06T00:00:00.000Z") },
+      isPending: false,
+      isSuccess: true,
+    };
+
+    render(<FindingDetailContent findingId={finding.id} />);
+
+    expect(screen.getByText("2026-05-06")).toBeTruthy();
+  });
+
   it("renders a missing finding boundary while the query is pending", () => {
     mocks.findingQuery = { isPending: true, isSuccess: false };
 
@@ -326,5 +338,25 @@ describe("FindingDetailContent", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Unable to save correction. Try again.");
     expect(screen.getByRole("dialog", { name: "Correct finding" })).toBeTruthy();
+  });
+
+  it("preserves the correction draft when the finding query rerenders", async () => {
+    const actor = userEvent.setup();
+    const view = render(<FindingDetailContent findingId={finding.id} />);
+
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+    const title = screen.getByLabelText("Title");
+    await actor.clear(title);
+    await actor.type(title, "Unsaved correction");
+
+    mocks.findingQuery = {
+      data: { ...finding, updatedAt: new Date("2026-01-06T00:00:00.000Z") },
+      isPending: false,
+      isSuccess: true,
+    };
+    view.rerender(<FindingDetailContent findingId={finding.id} />);
+
+    expect(screen.getByRole("dialog", { name: "Correct finding" })).toBeTruthy();
+    expect(screen.getByLabelText("Title")).toHaveValue("Unsaved correction");
   });
 });

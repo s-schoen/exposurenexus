@@ -60,6 +60,7 @@ import {
   getUserProfileDisplayName,
 } from "@/components/user-label.tsx";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
+import { formatUtcDateOnly } from "@/lib/date-input.ts";
 import { capitalizeFirstLetter, formatFindingStatus, formatSeverity } from "@/lib/format.ts";
 
 import type { FindingAffectedResource } from "@exposurenexus/types/model/affected-resource";
@@ -735,6 +736,10 @@ function formatDateTime(value: Date | null) {
   return value ? value.toLocaleString() : "Not available";
 }
 
+function formatDueDate(value: Date | null) {
+  return value ? formatUtcDateOnly(value) : "Not available";
+}
+
 function formatResourceType(type: AffectedResourceType) {
   switch (type) {
     case AffectedResourceType.Asset:
@@ -1042,6 +1047,153 @@ function FindingVulnerabilitiesCard({ finding }: { finding: FindingProjection })
   );
 }
 
+function ResponsibleOwnerLabel({
+  pending,
+  ownerId,
+  owner,
+}: {
+  pending: boolean;
+  ownerId: string | null | undefined;
+  owner: UserProfile | null;
+}) {
+  if (pending) {
+    return <Skeleton className="inline-flex h-4 w-24" />;
+  }
+
+  return (
+    <UserLabel userId={ownerId} user={owner} emptyLabel="No Owner" unknownLabel="Unknown Owner" />
+  );
+}
+
+function FindingOverviewCard({
+  findingData,
+  titleAction,
+  users,
+  assetDisplayName,
+  assetType,
+}: {
+  findingData: FindingProjection;
+  titleAction?: ReactNode;
+  users: Array<UserProfile>;
+  assetDisplayName?: string;
+  assetType?: string;
+}) {
+  return (
+    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+      <CardHeader className="gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {titleAction}
+            <FindingCorrectionDialog finding={findingData} users={users} />
+          </div>
+          <div className="flex items-center gap-2">
+            <SeverityBadge severity={findingData.severity} className="h-6 px-2.5 text-xs" />
+            <FindingStatusBadge status={findingData.status} className="h-6 px-2.5 text-xs" />
+          </div>
+        </div>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <CardTitle className="text-2xl font-semibold tracking-tight">
+              {findingData.title}
+            </CardTitle>
+            <CardDescription className="max-w-3xl text-sm leading-6">
+              Human workflow case for one weakness affecting one asset and canonical resource.
+            </CardDescription>
+          </div>
+          <div className="grid gap-3 xl:grid-cols-5">
+            <DetailHighlightCard
+              label="Affected asset"
+              value={assetDisplayName ?? "Unknown asset"}
+              description={capitalizeFirstLetter(assetType ?? "Unclassified")}
+            />
+            <DetailHighlightCard
+              label="Observations"
+              value={String(findingData.observationCount)}
+              description="Supporting source reports"
+            />
+            <DetailHighlightCard
+              label="Observing sources"
+              value={findingData.observingSources.join(", ") || "None observed"}
+              description="Lexically ordered source summary"
+            />
+            <DetailHighlightCard
+              label="First seen"
+              value={formatDateTime(findingData.firstSeen)}
+              description="Earliest observation time"
+            />
+            <DetailHighlightCard
+              label="Last seen"
+              value={formatDateTime(findingData.lastSeen)}
+              description="Most recent observation time"
+            />
+          </div>
+        </div>
+      </CardHeader>
+    </Card>
+  );
+}
+
+function FindingSidebar({
+  findingData,
+  assetDisplayName,
+  assetPending,
+  ownerId,
+  owner,
+  assignee,
+}: {
+  findingData: FindingProjection;
+  assetDisplayName?: string;
+  assetPending: boolean;
+  ownerId: string | null | undefined;
+  owner: UserProfile | null;
+  assignee: UserProfile | null;
+}) {
+  return (
+    <MetadataSidebar title="Assessment" icon={ShieldAlert}>
+      <div className="space-y-4">
+        <MetadataDetailRow
+          label="Severity"
+          value={<SeverityBadge severity={findingData.severity} className="h-7 px-3 text-sm" />}
+        />
+        <MetadataDetailRow
+          label="Status"
+          value={<FindingStatusBadge status={findingData.status} className="h-7 px-3 text-sm" />}
+        />
+        <MetadataDetailRow label="Due date" value={formatDueDate(findingData.dueDate)} />
+        <MetadataDetailRow
+          label="Assignee"
+          value={
+            <UserLabel
+              userId={findingData.assigneeId}
+              user={assignee}
+              emptyLabel="Unassigned"
+              unknownLabel="Unknown Assignee"
+            />
+          }
+        />
+      </div>
+      <Separator />
+      <div className="space-y-3">
+        <MetadataDetailRow
+          label="Created by"
+          value={<UserLabel userId={findingData.createdBy} />}
+        />
+        <MetadataDetailRow
+          label="Updated by"
+          value={<UserLabel userId={findingData.updatedBy} />}
+        />
+        <MetadataDetailRow label="Asset" value={assetDisplayName ?? "Unknown asset"} />
+        <MetadataDetailRow
+          label="Asset owner"
+          value={<ResponsibleOwnerLabel pending={assetPending} ownerId={ownerId} owner={owner} />}
+        />
+        <MetadataDetailRow label="Created" value={formatDateTime(findingData.createdAt)} />
+        <MetadataDetailRow label="Updated" value={formatDateTime(findingData.updatedAt)} />
+      </div>
+    </MetadataSidebar>
+  );
+}
+
 export function FindingDetailContent({ findingId, titleAction }: FindingDetailContentProps) {
   const finding = useQuery(createFindingByIDQueryOptions(findingId));
   const users = useQuery(createListUsersQueryOptions());
@@ -1050,125 +1202,6 @@ export function FindingDetailContent({ findingId, titleAction }: FindingDetailCo
     enabled: Boolean(finding.data?.assetId),
   });
   const userProfileById = createUserProfileById(users.data);
-
-  function ResponsibleOwnerLabel() {
-    if (asset.isPending) {
-      return <Skeleton className="inline-flex h-4 w-24" />;
-    }
-
-    return (
-      <UserLabel
-        userId={asset.data?.ownerId}
-        user={asset.data?.ownerId ? (userProfileById.get(asset.data.ownerId) ?? null) : null}
-        emptyLabel="No Owner"
-        unknownLabel="Unknown Owner"
-      />
-    );
-  }
-
-  function FindingOverviewCard({ findingData }: { findingData: FindingProjection }) {
-    return (
-      <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
-        <CardHeader className="gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex min-w-0 flex-1 items-center gap-2">
-              {titleAction}
-              <FindingCorrectionDialog finding={findingData} users={users.data ?? []} />
-            </div>
-            <div className="flex items-center gap-2">
-              <SeverityBadge severity={findingData.severity} className="h-6 px-2.5 text-xs" />
-              <FindingStatusBadge status={findingData.status} className="h-6 px-2.5 text-xs" />
-            </div>
-          </div>
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <CardTitle className="text-2xl font-semibold tracking-tight">
-                {findingData.title}
-              </CardTitle>
-              <CardDescription className="max-w-3xl text-sm leading-6">
-                Human workflow case for one weakness affecting one asset and canonical resource.
-              </CardDescription>
-            </div>
-            <div className="grid gap-3 xl:grid-cols-5">
-              <DetailHighlightCard
-                label="Affected asset"
-                value={asset.data?.displayName ?? "Unknown asset"}
-                description={capitalizeFirstLetter(asset.data?.type ?? "Unclassified")}
-              />
-              <DetailHighlightCard
-                label="Observations"
-                value={String(findingData.observationCount)}
-                description="Supporting source reports"
-              />
-              <DetailHighlightCard
-                label="Observing sources"
-                value={findingData.observingSources.join(", ") || "None observed"}
-                description="Lexically ordered source summary"
-              />
-              <DetailHighlightCard
-                label="First seen"
-                value={formatDateTime(findingData.firstSeen)}
-                description="Earliest observation time"
-              />
-              <DetailHighlightCard
-                label="Last seen"
-                value={formatDateTime(findingData.lastSeen)}
-                description="Most recent observation time"
-              />
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  function FindingSidebar({ findingData }: { findingData: FindingProjection }) {
-    return (
-      <MetadataSidebar title="Assessment" icon={ShieldAlert}>
-        <div className="space-y-4">
-          <MetadataDetailRow
-            label="Severity"
-            value={<SeverityBadge severity={findingData.severity} className="h-7 px-3 text-sm" />}
-          />
-          <MetadataDetailRow
-            label="Status"
-            value={<FindingStatusBadge status={findingData.status} className="h-7 px-3 text-sm" />}
-          />
-          <MetadataDetailRow label="Due date" value={formatDateTime(findingData.dueDate)} />
-          <MetadataDetailRow
-            label="Assignee"
-            value={
-              <UserLabel
-                userId={findingData.assigneeId}
-                user={
-                  findingData.assigneeId
-                    ? (userProfileById.get(findingData.assigneeId) ?? null)
-                    : null
-                }
-                emptyLabel="Unassigned"
-                unknownLabel="Unknown Assignee"
-              />
-            }
-          />
-        </div>
-        <Separator />
-        <div className="space-y-3">
-          <MetadataDetailRow
-            label="Created by"
-            value={<UserLabel userId={findingData.createdBy} />}
-          />
-          <MetadataDetailRow
-            label="Updated by"
-            value={<UserLabel userId={findingData.updatedBy} />}
-          />
-          <MetadataDetailRow label="Asset" value={asset.data?.displayName ?? "Unknown asset"} />
-          <MetadataDetailRow label="Asset owner" value={<ResponsibleOwnerLabel />} />
-          <MetadataDetailRow label="Created" value={formatDateTime(findingData.createdAt)} />
-          <MetadataDetailRow label="Updated" value={formatDateTime(findingData.updatedAt)} />
-        </div>
-      </MetadataSidebar>
-    );
-  }
 
   return (
     <DetailQueryBoundary
@@ -1181,7 +1214,13 @@ export function FindingDetailContent({ findingId, titleAction }: FindingDetailCo
       {(findingData) => (
         <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="flex min-w-0 flex-col gap-4">
-            <FindingOverviewCard findingData={findingData} />
+            <FindingOverviewCard
+              findingData={findingData}
+              titleAction={titleAction}
+              users={users.data ?? []}
+              assetDisplayName={asset.data?.displayName}
+              assetType={asset.data?.type}
+            />
             <AssetInfoItem assetId={findingData.assetId} />
             <FindingWeaknessCard finding={findingData} />
             <FindingResourceCard finding={findingData} />
@@ -1201,7 +1240,16 @@ export function FindingDetailContent({ findingId, titleAction }: FindingDetailCo
               </CardContent>
             </Card>
           </div>
-          <FindingSidebar findingData={findingData} />
+          <FindingSidebar
+            findingData={findingData}
+            assetDisplayName={asset.data?.displayName}
+            assetPending={asset.isPending}
+            ownerId={asset.data?.ownerId}
+            owner={asset.data?.ownerId ? (userProfileById.get(asset.data.ownerId) ?? null) : null}
+            assignee={
+              findingData.assigneeId ? (userProfileById.get(findingData.assigneeId) ?? null) : null
+            }
+          />
         </div>
       )}
     </DetailQueryBoundary>
