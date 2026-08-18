@@ -11,21 +11,21 @@ import type { DataTableColumnDef, GroupingOption } from "@/components/data-table
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { UseQueryResult } from "@tanstack/react-query";
 
-type StoryFindingStatus = "active" | "review" | "mitigated";
-type StoryFindingSource = "scanner" | "manual" | "vendor-feed";
+type StoryItemStatus = "active" | "review" | "complete";
+type StoryItemCategory = "platform" | "product" | "operations";
 
-interface StoryFinding {
+interface StoryItem {
   id: string;
   title: string;
-  status: StoryFindingStatus;
-  source: StoryFindingSource;
+  status: StoryItemStatus;
+  category: StoryItemCategory;
   owner: string;
   score: number;
   updatedAt: string;
 }
 
 interface DataTableStoryArgs {
-  rows: Array<StoryFinding>;
+  rows: Array<StoryItem>;
   pending?: boolean;
   embedded?: boolean;
   initialGrouping?: Array<string>;
@@ -34,79 +34,79 @@ interface DataTableStoryArgs {
   onExport?: () => void;
 }
 
-const statusLabel: Record<StoryFindingStatus, string> = {
+const statusLabel: Record<StoryItemStatus, string> = {
   active: "Active",
   review: "In Review",
-  mitigated: "Mitigated",
+  complete: "Complete",
 };
 
-const statusClassName: Record<StoryFindingStatus, string> = {
+const statusClassName: Record<StoryItemStatus, string> = {
   active:
     "rounded-full border-[oklch(0.74_0.11_32)] bg-[oklch(0.94_0.05_28)] text-[oklch(0.44_0.16_28)]",
   review:
     "rounded-full border-[oklch(0.8_0.085_72)] bg-[oklch(0.96_0.03_72)] text-[oklch(0.46_0.115_66)]",
-  mitigated:
+  complete:
     "rounded-full border-[oklch(0.85_0.036_102)] bg-[oklch(0.975_0.012_102)] text-[oklch(0.45_0.045_102)]",
 };
 
-const sourceLabel: Record<StoryFindingSource, string> = {
-  scanner: "Scanner",
-  manual: "Manual",
-  "vendor-feed": "Vendor Feed",
+const categoryLabel: Record<StoryItemCategory, string> = {
+  platform: "Platform",
+  product: "Product",
+  operations: "Operations",
 };
 
-const defaultRows: Array<StoryFinding> = [
+const defaultRows: Array<StoryItem> = [
   {
-    id: "finding-001",
-    title: "Exposed admin interface",
+    id: "item-001",
+    title: "Prepare quarterly roadmap",
     status: "active",
-    source: "scanner",
-    owner: "Platform",
+    category: "product",
+    owner: "Strategy",
     score: 9,
     updatedAt: "2026-04-16T08:45:00.000Z",
   },
   {
-    id: "finding-002",
-    title: "Outdated dependency in API worker",
+    id: "item-002",
+    title: "Review service capacity plan",
     status: "review",
-    source: "vendor-feed",
-    owner: "Backend",
+    category: "platform",
+    owner: "Infrastructure",
     score: 7,
     updatedAt: "2026-04-15T14:20:00.000Z",
   },
   {
-    id: "finding-003",
-    title: "Missing MFA enforcement for staging",
+    id: "item-003",
+    title: "Refresh support rotation",
     status: "active",
-    source: "manual",
-    owner: "Identity",
+    category: "operations",
+    owner: "Customer Care",
     score: 8,
     updatedAt: "2026-04-14T10:05:00.000Z",
   },
   {
-    id: "finding-004",
-    title: "Public S3 bucket policy drift",
-    status: "mitigated",
-    source: "scanner",
-    owner: "Cloud",
+    id: "item-004",
+    title: "Publish design system release",
+    status: "complete",
+    category: "product",
+    owner: "Design",
     score: 4,
     updatedAt: "2026-04-12T17:30:00.000Z",
   },
   {
-    id: "finding-005",
-    title: "Leaked test credential in CI log",
+    id: "item-005",
+    title: "Audit vendor renewals",
     status: "review",
-    source: "manual",
-    owner: "DevOps",
+    category: "operations",
+    owner: "Finance",
     score: 6,
     updatedAt: "2026-04-11T09:15:00.000Z",
   },
   {
-    id: "finding-006",
-    title: "Legacy endpoint missing rate limiting",
+    id: "item-006",
+    title: "Migrate build cache",
     status: "active",
-    source: "vendor-feed",
-    owner: "Edge",
+    category: "platform",
+    owner: "Developer Tools",
     score: 7,
     updatedAt: "2026-04-10T12:00:00.000Z",
   },
@@ -116,19 +116,19 @@ const groupingOptions: Array<GroupingOption> = [
   {
     id: "status",
     label: "Status",
-    formatValue: (value) => statusLabel[value as StoryFindingStatus],
+    formatValue: (value) => statusLabel[value as StoryItemStatus],
   },
   {
-    id: "source",
-    label: "Source",
-    formatValue: (value) => sourceLabel[value as StoryFindingSource],
+    id: "category",
+    label: "Category",
+    formatValue: (value) => categoryLabel[value as StoryItemCategory],
   },
 ];
 
-const columns: Array<DataTableColumnDef<StoryFinding>> = [
+const columns: Array<DataTableColumnDef<StoryItem>> = [
   {
     accessorKey: "title",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Finding" />,
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Item" />,
     cell: ({ row }) => (
       <div className="min-w-0 py-0.5">
         <div className="truncate font-medium text-foreground">{row.original.title}</div>
@@ -139,7 +139,7 @@ const columns: Array<DataTableColumnDef<StoryFinding>> = [
     accessorKey: "status",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
     cell: ({ row }) => {
-      const status = row.getValue<StoryFindingStatus>("status");
+      const status = row.getValue<StoryItemStatus>("status");
 
       return (
         <Badge variant="outline" className={statusClassName[status]}>
@@ -160,19 +160,19 @@ const columns: Array<DataTableColumnDef<StoryFinding>> = [
       options: [
         { label: "Active", value: "active" },
         { label: "In Review", value: "review" },
-        { label: "Mitigated", value: "mitigated" },
+        { label: "Complete", value: "complete" },
       ],
     },
   },
   {
-    accessorKey: "source",
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Source" />,
+    accessorKey: "category",
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Category" />,
     cell: ({ row }) => {
-      const source = row.getValue<StoryFindingSource>("source");
+      const category = row.getValue<StoryItemCategory>("category");
 
       return (
         <span className="inline-flex rounded-full border border-border/70 bg-muted/35 px-2.5 py-1 text-xs font-medium text-muted-foreground">
-          {sourceLabel[source]}
+          {categoryLabel[category]}
         </span>
       );
     },
@@ -388,13 +388,13 @@ export const WithToolbarControls: Story = {
 };
 
 export const ActiveRow: Story = {
-  render: () => <DataTableStoryShell {...meta.args} activeRowId="finding-003" />,
+  render: () => <DataTableStoryShell {...meta.args} activeRowId="item-003" />,
 };
 
 export const DarkSurface: Story = {
   render: () => (
     <div className="dark rounded-2xl bg-background p-6">
-      <DataTableStoryShell {...meta.args} showToolbarControls={true} activeRowId="finding-003" />
+      <DataTableStoryShell {...meta.args} showToolbarControls={true} activeRowId="item-003" />
     </div>
   ),
 };

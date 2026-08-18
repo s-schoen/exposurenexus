@@ -58,9 +58,10 @@ Do NOT commit any changes to git unless you are explicitly asked.
 - Cross-resource invalidation belongs in the lifecycle hook for the mutation being performed. Hooks may import other
   resources' query option factories to invalidate affected reads, but should not call other lifecycle hooks just to reuse
   invalidation.
-- Resource mutations include findings, assets and asset ownership, asset custom field definitions/assignments/values,
-  vulnerabilities and vulnerability source mappings, users, roles, imports, and reclassification flows when they affect
-  resource reads.
+- Resource mutations include findings, observations, finding-to-vulnerability catalog links, assets and asset ownership,
+  asset custom field definitions/assignments/values, vulnerabilities, users, and roles.
+- Automated finding import is work in progress and currently returns `501 Not Implemented`; do not model import mutation
+  behavior in the UI until an API contract is implemented.
 - Exceptions include auth/session cache clearing, pure local UI state, form validation and draft state, clipboard actions,
   dialogs, filters, search params, tests, and stories. Test and Storybook harnesses may seed or update query caches to
   simulate API-backed state without going through lifecycle hooks.
