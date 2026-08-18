@@ -1,15 +1,7 @@
-import { createHash } from "node:crypto";
-
 import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { AssetType } from "@exposurenexus/types/model/asset";
-import {
-  FindingSource,
-  FindingStatus,
-  type FindingInternal,
-  type FindingProjection,
-} from "@exposurenexus/types/model/finding";
+import { FindingStatus, type FindingProjection } from "@exposurenexus/types/model/finding";
 import { ObservationSource } from "@exposurenexus/types/model/observation";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -23,16 +15,8 @@ describe("finding service", () => {
   const user = createTestUser();
   const assigneeId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
   const logger = pino({ enabled: false });
-  const findingRepository = {
-    list: vi.fn(),
-    getByID: vi.fn(),
-    getByFingerprint: vi.fn(),
-    create: vi.fn(),
-    updateByID: vi.fn(),
-    deleteByID: vi.fn(),
-    countBy: vi.fn(),
-  };
   const findingPersistenceRepository = {
+    createManual: vi.fn(),
     listProjected: vi.fn(),
     getProjectedByID: vi.fn(),
     updateByID: vi.fn(),
@@ -45,59 +29,33 @@ describe("finding service", () => {
     linkAndTouchFinding: vi.fn(),
     unlinkAndTouchFinding: vi.fn(),
   };
-  const vulnerabilityService = {
-    getByID: vi.fn(),
+  const observationRepository = {
+    listByFindingID: vi.fn(),
+    createAndTouchFinding: vi.fn(),
+    updateAndTouchFinding: vi.fn(),
+    deleteAndTouchFinding: vi.fn(),
+    moveAndTouchFindings: vi.fn(),
   };
-  const assetService = {
-    getByID: vi.fn(),
-  };
-  const userProfileService = {
-    getByID: vi.fn(),
-  };
+  const vulnerabilityService = { getByID: vi.fn() };
+  const assetService = { getByID: vi.fn() };
+  const userProfileService = { getByID: vi.fn() };
   const domainEvents = createDomainEventCollector();
   const vulnerability = {
     id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+    type: VulnerabilityType.Custom,
+    identifier: "exposed-admin-endpoint",
     title: "Exposed Admin Endpoint",
     severity: VulnerabilitySeverity.High,
     description: "Administrative interface is reachable externally",
-    cwe: 284,
-    cve: null,
+    metadata: { cwe: 284 },
     createdBy: user.id,
     updatedBy: user.id,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
   };
-  const createPayload = {
-    vulnerabilityId: vulnerability.id,
-    severity: VulnerabilitySeverity.High,
-    status: FindingStatus.Active,
-    source: FindingSource.Manual,
-    evidence: "Observed exposed admin endpoint",
-    mitigation: "Restrict access to internal networks",
-    assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-  };
-  const asset = {
-    id: createPayload.assetId,
-    displayName: "api.exposurenexus.local",
-    type: AssetType.Host,
-    ownerId: null,
-  };
-  const baseFinding: FindingInternal = {
-    id: "2713d833-eb13-4517-ac7c-7761545ed42a",
-    ...createPayload,
-    assigneeId: null,
-    dueDate: null,
-    fingerprint: "abc123",
-    firstSeen: new Date("2026-01-02T00:00:00.000Z"),
-    lastSeen: new Date("2026-01-02T00:00:00.000Z"),
-    createdBy: user.id,
-    updatedBy: user.id,
-    createdAt: new Date("2026-01-02T00:00:00.000Z"),
-    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
-  };
   const baseProjection: FindingProjection = {
-    id: baseFinding.id,
-    assetId: baseFinding.assetId,
+    id: "2713d833-eb13-4517-ac7c-7761545ed42a",
+    assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
     title: "Exposed admin endpoint",
     severity: VulnerabilitySeverity.High,
     status: FindingStatus.Active,
@@ -112,28 +70,22 @@ describe("finding service", () => {
       port: 443,
       path: "/admin",
     },
-    vulnerabilities: [],
+    vulnerabilities: [vulnerability],
     observationCount: 2,
     observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
     firstSeen: new Date("2026-01-02T00:00:00.000Z"),
     lastSeen: new Date("2026-01-03T00:00:00.000Z"),
-    createdAt: baseFinding.createdAt,
-    updatedAt: baseFinding.updatedAt,
-    createdBy: baseFinding.createdBy,
-    updatedBy: baseFinding.updatedBy,
+    createdAt: new Date("2026-01-02T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: user.id,
+    updatedBy: user.id,
   };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.useRealTimers();
-    assetService.getByID.mockResolvedValue(asset);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-    domainEvents.clear();
-  });
 
   function createService() {
     return createFindingService({
-      findingRepository,
+      findingPersistenceRepository,
+      findingVulnerabilityRepository,
+      observationRepository,
       assetService,
       userProfileService,
       vulnerabilityService,
@@ -142,443 +94,38 @@ describe("finding service", () => {
     });
   }
 
-  it("lists findings enriched with their vulnerability", async () => {
-    const service = createService();
-
-    findingRepository.list.mockResolvedValue([baseFinding]);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-
-    await expect(service.listAll()).resolves.toEqual([
-      {
-        ...baseFinding,
-        vulnerability,
-      },
-    ]);
-    expect(vulnerabilityService.getByID).toHaveBeenCalledWith(baseFinding.vulnerabilityId);
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useRealTimers();
+    domainEvents.clear();
   });
 
-  it("lists the final projection without per-finding catalog lookups", async () => {
-    const service = createFindingService({
-      findingRepository,
-      findingPersistenceRepository,
-      assetService,
-      userProfileService,
-      vulnerabilityService,
-      domainEventEmitter: domainEvents.emitter,
-      logger,
-    });
-    const projection = {
-      id: baseFinding.id,
-      assetId: baseFinding.assetId,
-      title: "Exposed admin endpoint",
-      severity: VulnerabilitySeverity.High,
-      status: FindingStatus.Active,
-      assigneeId: null,
-      dueDate: null,
-      mitigation: "Restrict access to trusted networks",
-      weakness: { identifiers: { cwe: ["CWE-200"] } },
-      affectedResource: { type: AffectedResourceType.Unspecified },
-      vulnerabilities: [],
-      observationCount: 0,
-      observingSources: [],
-      firstSeen: null,
-      lastSeen: null,
-      createdAt: baseFinding.createdAt,
-      updatedAt: baseFinding.updatedAt,
-      createdBy: baseFinding.createdBy,
-      updatedBy: baseFinding.updatedBy,
-    } satisfies FindingProjection;
+  it("lists final finding projections without catalog lookups", async () => {
+    findingPersistenceRepository.listProjected.mockResolvedValue([baseProjection]);
 
-    findingPersistenceRepository.listProjected.mockResolvedValue([projection]);
-
-    await expect(service.listAll()).resolves.toEqual([projection]);
+    await expect(createService().listAll()).resolves.toEqual([baseProjection]);
     expect(findingPersistenceRepository.listProjected).toHaveBeenCalledOnce();
     expect(vulnerabilityService.getByID).not.toHaveBeenCalled();
   });
 
-  it("rejects lists containing findings with missing vulnerabilities", async () => {
-    const service = createService();
+  it("gets a final finding projection by id", async () => {
+    findingPersistenceRepository.getProjectedByID.mockResolvedValue(baseProjection);
 
-    findingRepository.list.mockResolvedValue([baseFinding]);
-    vulnerabilityService.getByID.mockResolvedValue(null);
-
-    await expect(service.listAll()).rejects.toMatchObject({
-      code: "finding.list_failed",
-      kind: "unexpected",
-    } satisfies Partial<ApplicationError>);
+    await expect(createService().getByID(baseProjection.id)).resolves.toBe(baseProjection);
+    expect(findingPersistenceRepository.getProjectedByID).toHaveBeenCalledWith(baseProjection.id);
   });
 
-  it("rejects findings that cannot be enriched with their vulnerability", async () => {
-    const service = createService();
+  it("maps projection lookup failures to an application error", async () => {
+    findingPersistenceRepository.getProjectedByID.mockRejectedValue(new Error("db offline"));
 
-    findingRepository.getByID.mockResolvedValue(baseFinding);
-    vulnerabilityService.getByID.mockResolvedValue(null);
-
-    await expect(service.getByID(baseFinding.id)).rejects.toMatchObject({
+    await expect(createService().getByID(baseProjection.id)).rejects.toMatchObject({
       code: "finding.get_failed",
       kind: "unexpected",
-      details: { findingId: baseFinding.id },
+      details: { findingId: baseProjection.id },
     } satisfies Partial<ApplicationError>);
-  });
-
-  it("returns null when a finding does not exist", async () => {
-    const service = createService();
-
-    findingRepository.getByID.mockResolvedValue(null);
-
-    await expect(service.getByID(baseFinding.id)).resolves.toBeNull();
-    expect(vulnerabilityService.getByID).not.toHaveBeenCalled();
-  });
-
-  it("maps repository get failures to an application error", async () => {
-    const service = createService();
-
-    findingRepository.getByID.mockRejectedValue(new Error("db offline"));
-
-    await expect(service.getByID(baseFinding.id)).rejects.toMatchObject({
-      code: "finding.get_failed",
-      kind: "unexpected",
-      details: { findingId: baseFinding.id },
-    } satisfies Partial<ApplicationError>);
-  });
-
-  it("creates findings with audit fields, timestamps, and a fingerprint", async () => {
-    const service = createService();
-    const now = new Date("2026-02-03T04:05:06.000Z");
-    const fingerprint = createHash("sha256")
-      .update(createPayload.vulnerabilityId)
-      .update(createPayload.assetId)
-      .update(JSON.stringify({ port: "443", path: "/admin" }))
-      .digest("hex");
-    const createdFinding = {
-      id: baseFinding.id,
-      ...createPayload,
-      assigneeId: null,
-      dueDate: null,
-      fingerprint,
-      firstSeen: now,
-      lastSeen: now,
-      createdBy: user.id,
-      updatedBy: user.id,
-      createdAt: now,
-      updatedAt: now,
-      vulnerability,
-    };
-
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
-
-    findingRepository.create.mockImplementation(async (input) => ({
-      id: baseFinding.id,
-      ...input,
-    }));
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-
-    await expect(
-      service.create({
-        finding: createPayload,
-        user,
-        fingerprintOptions: { port: "443", path: "/admin" },
-        eventContext: {
-          actor: user.id,
-          correlationId: "findings-create-request",
-        },
-      }),
-    ).resolves.toEqual(createdFinding);
-
-    expect(findingRepository.create).toHaveBeenCalledWith({
-      ...createPayload,
-      assigneeId: null,
-      dueDate: null,
-      fingerprint,
-      firstSeen: now,
-      lastSeen: now,
-      createdBy: user.id,
-      updatedBy: user.id,
-      createdAt: now,
-      updatedAt: now,
-    });
-    expect(userProfileService.getByID).not.toHaveBeenCalled();
-    expect(domainEvents.subjects()).toEqual(["finding.created"]);
-    expect(domainEvents.events[0]).toMatchObject({
-      subject: "finding.created",
-      source: "finding",
-      actor: user.id,
-      correlationId: "findings-create-request",
-      data: {
-        finding: createdFinding,
-      },
-    });
-  });
-
-  it("creates findings with an explicit null assignee", async () => {
-    const service = createService();
-    const now = new Date("2026-02-03T04:05:06.000Z");
-
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
-
-    findingRepository.create.mockImplementation(async (input) => ({
-      id: baseFinding.id,
-      ...input,
-    }));
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-
-    await service.create({
-      finding: {
-        ...createPayload,
-        assigneeId: null,
-      },
-      user,
-    });
-
-    expect(userProfileService.getByID).not.toHaveBeenCalled();
-    expect(findingRepository.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        assigneeId: null,
-      }),
-    );
-  });
-
-  it("normalizes finding due dates during creation", async () => {
-    const service = createService();
-    const dueDate = new Date("2026-05-06T18:30:00.000Z");
-    const normalizedDueDate = new Date("2026-05-06T00:00:00.000Z");
-
-    findingRepository.create.mockImplementation(async (input) => ({
-      id: baseFinding.id,
-      ...input,
-    }));
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-
-    await service.create({
-      finding: {
-        ...createPayload,
-        dueDate,
-      },
-      user,
-    });
-
-    expect(findingRepository.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        dueDate: normalizedDueDate,
-      }),
-    );
-  });
-
-  it("creates findings with an existing enabled assignee", async () => {
-    const service = createService();
-
-    userProfileService.getByID.mockResolvedValue({
-      id: assigneeId,
-      username: "assignee",
-      displayName: "Assigned User",
-      email: "assignee@example.com",
-      enabled: true,
-      roleIds: [],
-    });
-    findingRepository.create.mockImplementation(async (input) => ({
-      id: baseFinding.id,
-      ...input,
-    }));
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-
-    await service.create({
-      finding: {
-        ...createPayload,
-        assigneeId,
-      },
-      user,
-    });
-
-    expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId);
-    expect(findingRepository.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        assigneeId,
-      }),
-    );
-  });
-
-  it("creates findings with an existing disabled assignee", async () => {
-    const service = createService();
-
-    userProfileService.getByID.mockResolvedValue({
-      id: assigneeId,
-      username: "disabled-assignee",
-      displayName: "Disabled Assignee",
-      email: "disabled-assignee@example.com",
-      enabled: false,
-      roleIds: [],
-    });
-    findingRepository.create.mockImplementation(async (input) => ({
-      id: baseFinding.id,
-      ...input,
-    }));
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-
-    await service.create({
-      finding: {
-        ...createPayload,
-        assigneeId,
-      },
-      user,
-    });
-
-    expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId);
-    expect(findingRepository.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        assigneeId,
-      }),
-    );
-  });
-
-  it("rejects unknown finding assignees before creating findings", async () => {
-    const service = createService();
-
-    userProfileService.getByID.mockResolvedValue(null);
-
-    await expect(
-      service.create({
-        finding: {
-          ...createPayload,
-          assigneeId,
-        },
-        user,
-      }),
-    ).rejects.toMatchObject({
-      code: "finding.assignee_unknown",
-      kind: "validation",
-      details: { assigneeId },
-    } satisfies Partial<ApplicationError>);
-    expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId);
-    expect(findingRepository.create).not.toHaveBeenCalled();
-  });
-
-  it("rejects unknown finding assets before creating findings", async () => {
-    const service = createService();
-
-    assetService.getByID.mockResolvedValue(null);
-
-    await expect(
-      service.create({
-        finding: createPayload,
-        user,
-      }),
-    ).rejects.toMatchObject({
-      code: "finding.asset_unknown",
-      kind: "validation",
-      details: { assetId: createPayload.assetId },
-    } satisfies Partial<ApplicationError>);
-    expect(assetService.getByID).toHaveBeenCalledWith(createPayload.assetId);
-    expect(findingRepository.create).not.toHaveBeenCalled();
-  });
-
-  it("rejects unknown finding vulnerabilities before creating findings", async () => {
-    const service = createService();
-
-    vulnerabilityService.getByID.mockResolvedValue(null);
-
-    await expect(
-      service.create({
-        finding: createPayload,
-        user,
-      }),
-    ).rejects.toMatchObject({
-      code: "finding.vulnerability_unknown",
-      kind: "validation",
-      details: { vulnerabilityId: createPayload.vulnerabilityId },
-    } satisfies Partial<ApplicationError>);
-    expect(vulnerabilityService.getByID).toHaveBeenCalledWith(createPayload.vulnerabilityId);
-    expect(findingRepository.create).not.toHaveBeenCalled();
-  });
-
-  it("maps create foreign key failures to an application error", async () => {
-    const service = createService();
-
-    findingRepository.create.mockRejectedValue(
-      Object.assign(new Error("violates foreign key constraint"), {
-        code: "23503",
-      }),
-    );
-
-    await expect(
-      service.create({
-        finding: createPayload,
-        user,
-      }),
-    ).rejects.toMatchObject({
-      code: "finding.related_resource_unknown",
-      kind: "validation",
-      details: {
-        assetId: createPayload.assetId,
-        vulnerabilityId: createPayload.vulnerabilityId,
-        assigneeId: null,
-      },
-    } satisfies Partial<ApplicationError>);
-    expect(domainEvents.subjects()).toEqual([]);
-  });
-
-  it("maps repository create failures to an application error", async () => {
-    const service = createService();
-
-    findingRepository.create.mockRejectedValue(new Error("db offline"));
-
-    await expect(
-      service.create({
-        finding: createPayload,
-        user,
-      }),
-    ).rejects.toMatchObject({
-      code: "finding.create_failed",
-      kind: "unexpected",
-      details: {
-        assetId: createPayload.assetId,
-        vulnerabilityId: createPayload.vulnerabilityId,
-      },
-    } satisfies Partial<ApplicationError>);
-    expect(domainEvents.subjects()).toEqual([]);
-  });
-
-  it("uses a provided firstSeen value during creation", async () => {
-    const service = createService();
-    const now = new Date("2026-02-03T04:05:06.000Z");
-    const firstSeen = new Date("2026-01-15T00:00:00.000Z");
-
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
-
-    findingRepository.create.mockImplementation(async (input) => ({
-      id: baseFinding.id,
-      ...input,
-    }));
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-
-    await service.create({
-      finding: createPayload,
-      user,
-      firstSeen,
-    });
-
-    expect(findingRepository.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        firstSeen,
-        lastSeen: firstSeen,
-        createdAt: now,
-        updatedAt: now,
-      }),
-    );
   });
 
   it("corrects finding-owned fields and emits complete projection snapshots", async () => {
-    const service = createFindingService({
-      findingRepository,
-      findingPersistenceRepository,
-      assetService,
-      userProfileService,
-      vulnerabilityService,
-      domainEventEmitter: domainEvents.emitter,
-      logger,
-    });
     const now = new Date("2026-03-04T05:06:07.000Z");
     const correction = {
       title: "Corrected admin endpoint",
@@ -589,29 +136,16 @@ describe("finding service", () => {
         file: "src/query.ts",
       },
     };
-    const current = {
-      ...baseProjection,
-      ...correction,
-      updatedAt: now,
-      updatedBy: user.id,
-    };
-
+    const current = { ...baseProjection, ...correction, updatedAt: now, updatedBy: user.id };
     vi.useFakeTimers();
     vi.setSystemTime(now);
     findingPersistenceRepository.getProjectedByID
       .mockResolvedValueOnce(baseProjection)
       .mockResolvedValueOnce(current);
-    findingPersistenceRepository.updateByID.mockResolvedValue({
-      ...current,
-      vulnerabilities: undefined,
-      observationCount: undefined,
-      observingSources: undefined,
-      firstSeen: undefined,
-      lastSeen: undefined,
-    });
+    findingPersistenceRepository.updateByID.mockResolvedValue({ id: baseProjection.id });
 
     await expect(
-      service.updateByID({
+      createService().updateByID({
         id: baseProjection.id,
         finding: correction,
         user,
@@ -632,549 +166,103 @@ describe("finding service", () => {
     });
   });
 
-  it("normalizes due dates from partial updates", async () => {
-    const service = createFindingService({
-      findingRepository,
-      findingPersistenceRepository,
-      assetService,
-      userProfileService,
-      vulnerabilityService,
-      domainEventEmitter: domainEvents.emitter,
-      logger,
-    });
+  it("normalizes and clears due dates from partial updates", async () => {
     const dueDate = new Date("2026-05-06T18:30:00.000Z");
     const normalizedDueDate = new Date("2026-05-06T00:00:00.000Z");
-    const current = { ...baseProjection, dueDate: normalizedDueDate };
-
+    const dated = { ...baseProjection, dueDate: normalizedDueDate };
+    const cleared = { ...baseProjection, dueDate: null };
     findingPersistenceRepository.getProjectedByID
       .mockResolvedValueOnce(baseProjection)
-      .mockResolvedValueOnce(current);
-    findingPersistenceRepository.updateByID.mockResolvedValue(current);
+      .mockResolvedValueOnce(dated)
+      .mockResolvedValueOnce(dated)
+      .mockResolvedValueOnce(cleared);
+    findingPersistenceRepository.updateByID.mockResolvedValue({ id: baseProjection.id });
 
     await expect(
-      service.updateByID({ id: baseProjection.id, finding: { dueDate }, user }),
-    ).resolves.toEqual(current);
-    expect(findingPersistenceRepository.updateByID).toHaveBeenCalledWith(
+      createService().updateByID({ id: baseProjection.id, finding: { dueDate }, user }),
+    ).resolves.toEqual(dated);
+    expect(findingPersistenceRepository.updateByID).toHaveBeenLastCalledWith(
       baseProjection.id,
       expect.objectContaining({ dueDate: normalizedDueDate }),
     );
-  });
-
-  it("clears due dates from partial updates", async () => {
-    const service = createFindingService({
-      findingRepository,
-      findingPersistenceRepository,
-      assetService,
-      userProfileService,
-      vulnerabilityService,
-      domainEventEmitter: domainEvents.emitter,
-      logger,
-    });
-    const previous = {
-      ...baseProjection,
-      dueDate: new Date("2026-05-06T00:00:00.000Z"),
-    };
-    const current = { ...previous, dueDate: null };
-
-    findingPersistenceRepository.getProjectedByID
-      .mockResolvedValueOnce(previous)
-      .mockResolvedValueOnce(current);
-    findingPersistenceRepository.updateByID.mockResolvedValue(current);
 
     await expect(
-      service.updateByID({ id: baseProjection.id, finding: { dueDate: null }, user }),
-    ).resolves.toEqual(current);
-    expect(findingPersistenceRepository.updateByID).toHaveBeenCalledWith(
+      createService().updateByID({ id: baseProjection.id, finding: { dueDate: null }, user }),
+    ).resolves.toEqual(cleared);
+    expect(findingPersistenceRepository.updateByID).toHaveBeenLastCalledWith(
       baseProjection.id,
       expect.objectContaining({ dueDate: null }),
     );
   });
 
-  it("accepts an existing assignee from a partial update", async () => {
-    const service = createFindingService({
-      findingRepository,
-      findingPersistenceRepository,
-      assetService,
-      userProfileService,
-      vulnerabilityService,
-      domainEventEmitter: domainEvents.emitter,
-      logger,
-    });
-    const current = { ...baseProjection, assigneeId };
-
-    findingPersistenceRepository.getProjectedByID
-      .mockResolvedValueOnce(baseProjection)
-      .mockResolvedValueOnce(current);
-    findingPersistenceRepository.updateByID.mockResolvedValue(current);
-    userProfileService.getByID.mockResolvedValue({
-      id: assigneeId,
-      username: "assignee",
-      displayName: "Assigned User",
-      email: "assignee@example.com",
-      enabled: true,
-      roleIds: [],
-    });
-
-    await expect(
-      service.updateByID({ id: baseProjection.id, finding: { assigneeId }, user }),
-    ).resolves.toEqual(current);
-    expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId);
-    expect(findingPersistenceRepository.updateByID).toHaveBeenCalledWith(
-      baseProjection.id,
-      expect.objectContaining({ assigneeId }),
-    );
-  });
-
   it("rejects an unknown assignee before persisting", async () => {
-    const service = createFindingService({
-      findingRepository,
-      findingPersistenceRepository,
-      assetService,
-      userProfileService,
-      vulnerabilityService,
-      domainEventEmitter: domainEvents.emitter,
-      logger,
-    });
-
     findingPersistenceRepository.getProjectedByID.mockResolvedValue(baseProjection);
     userProfileService.getByID.mockResolvedValue(null);
 
     await expect(
-      service.updateByID({ id: baseProjection.id, finding: { assigneeId }, user }),
+      createService().updateByID({
+        id: baseProjection.id,
+        finding: { assigneeId },
+        user,
+      }),
     ).rejects.toMatchObject({
       code: "finding.assignee_unknown",
       kind: "validation",
       details: { assigneeId, findingId: baseProjection.id },
     } satisfies Partial<ApplicationError>);
     expect(findingPersistenceRepository.updateByID).not.toHaveBeenCalled();
-    expect(domainEvents.subjects()).toEqual([]);
   });
 
-  it("returns null without persisting or emitting when the finding is missing", async () => {
-    const service = createFindingService({
-      findingRepository,
-      findingPersistenceRepository,
-      assetService,
-      userProfileService,
-      vulnerabilityService,
-      domainEventEmitter: domainEvents.emitter,
-      logger,
-    });
-
-    findingPersistenceRepository.getProjectedByID.mockResolvedValue(null);
-
-    await expect(
-      service.updateByID({
-        id: baseProjection.id,
-        finding: { status: FindingStatus.Mitigated },
-        user,
-      }),
-    ).resolves.toBeNull();
-    expect(findingPersistenceRepository.updateByID).not.toHaveBeenCalled();
-    expect(domainEvents.subjects()).toEqual([]);
-  });
-
-  it("maps persistence update failures to finding.update_failed", async () => {
-    const service = createFindingService({
-      findingRepository,
-      findingPersistenceRepository,
-      assetService,
-      userProfileService,
-      vulnerabilityService,
-      domainEventEmitter: domainEvents.emitter,
-      logger,
-    });
-
+  it("links and unlinks catalog vulnerabilities", async () => {
+    const link = { findingId: baseProjection.id, vulnerabilityId: vulnerability.id };
     findingPersistenceRepository.getProjectedByID.mockResolvedValue(baseProjection);
-    findingPersistenceRepository.updateByID.mockRejectedValue(new Error("db offline"));
-
-    await expect(
-      service.updateByID({
-        id: baseProjection.id,
-        finding: { status: FindingStatus.Mitigated },
-        user,
-      }),
-    ).rejects.toMatchObject({
-      code: "finding.update_failed",
-      kind: "unexpected",
-      details: { findingId: baseProjection.id },
-    } satisfies Partial<ApplicationError>);
-    expect(domainEvents.subjects()).toEqual([]);
-  });
-
-  it("updates lastSeen instead of creating when the fingerprint already exists", async () => {
-    const service = createService();
-    const now = new Date("2026-04-05T06:07:08.000Z");
-    const existingFinding = {
-      ...baseFinding,
-      lastSeen: new Date("2026-01-20T00:00:00.000Z"),
-    };
-    const updatedFinding = {
-      ...existingFinding,
-      lastSeen: now,
-    };
-    const previousEventFinding = {
-      ...existingFinding,
-      vulnerability,
-    };
-    const currentEventFinding = {
-      ...updatedFinding,
-      vulnerability,
-    };
-    const fingerprint = createHash("sha256")
-      .update(createPayload.vulnerabilityId)
-      .update(createPayload.assetId)
-      .update(JSON.stringify({ port: "443" }))
-      .digest("hex");
-
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
-
-    findingRepository.getByFingerprint.mockResolvedValue(existingFinding);
-    findingRepository.updateByID.mockResolvedValue(updatedFinding);
     vulnerabilityService.getByID.mockResolvedValue(vulnerability);
+    findingVulnerabilityRepository.linkAndTouchFinding.mockResolvedValue({ link, changed: true });
+    findingVulnerabilityRepository.unlinkAndTouchFinding.mockResolvedValue({ link, changed: true });
 
     await expect(
-      service.createOrUpdate({
-        finding: createPayload,
-        user,
-        fingerprintOptions: { port: "443" },
-        eventContext: {
-          actor: user.id,
-          correlationId: "findings-import-request",
-        },
-      }),
-    ).resolves.toEqual({
-      finding: currentEventFinding,
-      created: false,
-    });
-
-    expect(findingRepository.getByFingerprint).toHaveBeenCalledWith(fingerprint);
-    expect(findingRepository.updateByID).toHaveBeenCalledWith(existingFinding.id, {
-      ...existingFinding,
-      lastSeen: now,
-    });
-    expect(findingRepository.create).not.toHaveBeenCalled();
-    expect(domainEvents.subjects()).toEqual(["finding.updated"]);
-    expect(domainEvents.events[0]).toMatchObject({
-      subject: "finding.updated",
-      source: "finding",
-      actor: user.id,
-      correlationId: "findings-import-request",
-      data: {
-        previous: previousEventFinding,
-        current: currentEventFinding,
-      },
-    });
-  });
-
-  it("preserves existing assignment and due date when an imported finding dedupes", async () => {
-    const service = createService();
-    const now = new Date("2026-04-05T06:07:08.000Z");
-    const dueDate = new Date("2026-05-06T00:00:00.000Z");
-    const existingFinding = {
-      ...baseFinding,
-      assigneeId,
-      dueDate,
-      source: FindingSource.Nuclei,
-      lastSeen: new Date("2026-01-20T00:00:00.000Z"),
-    };
-    const updatedFinding = {
-      ...existingFinding,
-      lastSeen: now,
-    };
-
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
-
-    findingRepository.getByFingerprint.mockResolvedValue(existingFinding);
-    findingRepository.updateByID.mockResolvedValue(updatedFinding);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-
-    await expect(
-      service.createOrUpdate({
-        finding: {
-          ...createPayload,
-          source: FindingSource.Nuclei,
-          assigneeId: null,
-          dueDate: null,
-        },
-        user,
-      }),
-    ).resolves.toEqual({
-      finding: {
-        ...updatedFinding,
-        vulnerability,
-      },
-      created: false,
-    });
-
-    expect(findingRepository.updateByID).toHaveBeenCalledWith(existingFinding.id, {
-      ...existingFinding,
-      lastSeen: now,
-    });
-    expect(findingRepository.updateByID.mock.calls[0]?.[1]).toMatchObject({
-      assigneeId,
-      dueDate,
-      source: FindingSource.Nuclei,
-      lastSeen: now,
-    });
-    expect(userProfileService.getByID).not.toHaveBeenCalled();
-    expect(findingRepository.create).not.toHaveBeenCalled();
-  });
-
-  it("reopens inactive imported findings while preserving their due date", async () => {
-    const service = createService();
-    const now = new Date("2026-04-05T06:07:08.000Z");
-    const dueDate = new Date("2026-05-06T00:00:00.000Z");
-    const existingFinding = {
-      ...baseFinding,
-      dueDate,
-      status: FindingStatus.Inactive,
-      source: FindingSource.Nuclei,
-      lastSeen: new Date("2026-01-20T00:00:00.000Z"),
-    };
-    const updatedFinding = {
-      ...existingFinding,
-      status: FindingStatus.Active,
-      lastSeen: now,
-    };
-
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
-
-    findingRepository.getByFingerprint.mockResolvedValue(existingFinding);
-    findingRepository.updateByID.mockResolvedValue(updatedFinding);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-
-    await expect(
-      service.createOrUpdate({
-        finding: {
-          ...createPayload,
-          source: FindingSource.Nuclei,
-          status: FindingStatus.Active,
-          assigneeId: null,
-          dueDate: null,
-        },
-        user,
-      }),
-    ).resolves.toEqual({
-      finding: {
-        ...updatedFinding,
-        vulnerability,
-      },
-      created: false,
-    });
-
-    expect(findingRepository.updateByID).toHaveBeenCalledWith(existingFinding.id, {
-      ...existingFinding,
-      status: FindingStatus.Active,
-      lastSeen: now,
-    });
-    expect(findingRepository.updateByID.mock.calls[0]?.[1]).toMatchObject({
-      dueDate,
-      status: FindingStatus.Active,
-      lastSeen: now,
-    });
-    expect(findingRepository.create).not.toHaveBeenCalled();
-  });
-
-  it("creates undated imported findings when the fingerprint does not exist", async () => {
-    const service = createService();
-    const now = new Date("2026-04-05T06:07:08.000Z");
-
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
-
-    findingRepository.getByFingerprint.mockResolvedValue(null);
-    findingRepository.create.mockImplementation(async (input) => ({
-      id: baseFinding.id,
-      ...input,
-    }));
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-
-    await expect(
-      service.createOrUpdate({
-        finding: {
-          ...createPayload,
-          source: FindingSource.Nuclei,
-          assigneeId: null,
-          dueDate: null,
-        },
-        user,
-      }),
-    ).resolves.toEqual({
-      finding: {
-        id: baseFinding.id,
-        ...createPayload,
-        source: FindingSource.Nuclei,
-        assigneeId: null,
-        dueDate: null,
-        fingerprint: createHash("sha256")
-          .update(createPayload.vulnerabilityId)
-          .update(createPayload.assetId)
-          .digest("hex"),
-        firstSeen: now,
-        lastSeen: now,
-        createdBy: user.id,
-        updatedBy: user.id,
-        createdAt: now,
-        updatedAt: now,
-        vulnerability,
-      },
-      created: true,
-    });
-
-    expect(findingRepository.create.mock.calls[0]?.[0]).toMatchObject({
-      source: FindingSource.Nuclei,
-      assigneeId: null,
-      dueDate: null,
-    });
-  });
-
-  it("maps import dedupe lookup failures to an application error", async () => {
-    const service = createService();
-
-    findingRepository.getByFingerprint.mockRejectedValue(new Error("db offline"));
-
-    await expect(
-      service.createOrUpdate({
-        finding: createPayload,
-        user,
-      }),
-    ).rejects.toMatchObject({
-      code: "finding.create_or_update_failed",
-      kind: "unexpected",
-      details: {
-        assetId: createPayload.assetId,
-        vulnerabilityId: createPayload.vulnerabilityId,
-      },
-    } satisfies Partial<ApplicationError>);
-  });
-
-  it("links and unlinks catalog entries without changing finding-owned fields", async () => {
-    const service = createFindingService({
-      findingRepository,
-      findingPersistenceRepository,
-      findingVulnerabilityRepository,
-      assetService,
-      userProfileService,
-      vulnerabilityService,
-      domainEventEmitter: domainEvents.emitter,
-      logger,
-    });
-    const projection = {
-      id: baseFinding.id,
-      assetId: baseFinding.assetId,
-      title: "Exposed admin endpoint",
-      severity: VulnerabilitySeverity.High,
-      status: FindingStatus.Active,
-      assigneeId: null,
-      dueDate: null,
-      mitigation: baseFinding.mitigation,
-      weakness: { identifiers: { cwe: ["CWE-200"] } },
-      affectedResource: { type: AffectedResourceType.Unspecified },
-      vulnerabilities: [],
-      observationCount: 0,
-      observingSources: [],
-      firstSeen: null,
-      lastSeen: null,
-      createdAt: baseFinding.createdAt,
-      updatedAt: baseFinding.updatedAt,
-      createdBy: baseFinding.createdBy,
-      updatedBy: baseFinding.updatedBy,
-    } satisfies FindingProjection;
-    const link = { findingId: baseFinding.id, vulnerabilityId: vulnerability.id };
-    findingPersistenceRepository.getProjectedByID.mockResolvedValue(projection);
-    findingVulnerabilityRepository.linkAndTouchFinding.mockResolvedValue({
-      link,
-      changed: true,
-    });
-    findingVulnerabilityRepository.unlinkAndTouchFinding.mockResolvedValue({
-      link,
-      changed: true,
-    });
-
-    await expect(
-      service.linkVulnerability({
-        findingId: baseFinding.id,
+      createService().linkVulnerability({
+        findingId: baseProjection.id,
         vulnerabilityId: vulnerability.id,
         user,
-        eventContext: { actor: user.id, correlationId: "finding-link" },
       }),
-    ).resolves.toMatchObject({ finding: projection, changed: true });
-    expect(findingVulnerabilityRepository.linkAndTouchFinding).toHaveBeenCalledWith(
-      baseFinding.id,
-      vulnerability.id,
-      expect.objectContaining({ updatedBy: user.id }),
-    );
+    ).resolves.toEqual({ finding: baseProjection, changed: true });
     expect(domainEvents.subjects()).toEqual(["finding.vulnerability.linked"]);
 
     domainEvents.clear();
     await expect(
-      service.unlinkVulnerability({
-        findingId: baseFinding.id,
+      createService().unlinkVulnerability({
+        findingId: baseProjection.id,
         vulnerabilityId: vulnerability.id,
         user,
-        eventContext: { actor: user.id, correlationId: "finding-unlink" },
       }),
-    ).resolves.toMatchObject({ finding: projection, changed: true });
-    expect(findingVulnerabilityRepository.unlinkAndTouchFinding).toHaveBeenCalledWith(
-      baseFinding.id,
-      vulnerability.id,
-      expect.objectContaining({ updatedBy: user.id }),
-    );
+    ).resolves.toEqual({ finding: baseProjection, changed: true });
     expect(domainEvents.subjects()).toEqual(["finding.vulnerability.unlinked"]);
   });
 
-  it("deletes a finding and returns it enriched with its vulnerability", async () => {
-    const service = createService();
-
-    findingRepository.deleteByID.mockResolvedValue(baseFinding);
-    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
+  it("deletes a projected finding and emits its final snapshot", async () => {
+    findingPersistenceRepository.getProjectedByID.mockResolvedValue(baseProjection);
+    findingPersistenceRepository.deleteByID.mockResolvedValue({ id: baseProjection.id });
 
     await expect(
-      service.deleteByID(baseFinding.id, {
+      createService().deleteByID(baseProjection.id, {
         actor: user.id,
         correlationId: "findings-delete-request",
       }),
-    ).resolves.toEqual({
-      ...baseFinding,
-      vulnerability,
-    });
-    expect(domainEvents.subjects()).toEqual(["finding.deleted"]);
+    ).resolves.toBe(baseProjection);
     expect(domainEvents.events[0]).toMatchObject({
       subject: "finding.deleted",
-      source: "finding",
       actor: user.id,
       correlationId: "findings-delete-request",
-      data: {
-        finding: {
-          ...baseFinding,
-          vulnerability,
-        },
-      },
+      data: { finding: baseProjection },
     });
   });
 
-  it("returns null when deleting a missing finding", async () => {
-    const service = createService();
+  it("does not delete when the projected finding is missing", async () => {
+    findingPersistenceRepository.getProjectedByID.mockResolvedValue(null);
 
-    findingRepository.deleteByID.mockResolvedValue(null);
-
-    await expect(service.deleteByID(baseFinding.id)).resolves.toBeNull();
+    await expect(createService().deleteByID(baseProjection.id)).resolves.toBeNull();
+    expect(findingPersistenceRepository.deleteByID).not.toHaveBeenCalled();
     expect(domainEvents.subjects()).toEqual([]);
-  });
-
-  it("maps repository delete failures to an application error", async () => {
-    const service = createService();
-
-    findingRepository.deleteByID.mockRejectedValue(new Error("db offline"));
-
-    await expect(service.deleteByID(baseFinding.id)).rejects.toMatchObject({
-      code: "finding.delete_failed",
-      kind: "unexpected",
-      details: { findingId: baseFinding.id },
-    } satisfies Partial<ApplicationError>);
   });
 });

@@ -1,14 +1,14 @@
-import type { Finding, FindingProjection } from "@exposurenexus/types/model/finding";
+import type { FindingProjection } from "@exposurenexus/types/model/finding";
 import type { FindingVulnerabilityLink } from "@exposurenexus/types/model/finding-vulnerability";
 import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerability";
 
 export type FindingEventPayloads = {
   "finding.created": {
-    finding: Finding | FindingProjection;
+    finding: FindingProjection;
   };
   "finding.updated": {
-    previous: Finding | FindingProjection;
-    current: Finding | FindingProjection;
+    previous: FindingProjection;
+    current: FindingProjection;
   };
   "finding.deleted": {
     finding: FindingProjection;

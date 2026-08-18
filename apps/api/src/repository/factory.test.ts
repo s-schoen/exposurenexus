@@ -9,7 +9,7 @@ vi.mock("../db/index.js", () => ({
 
 import {
   createAssetRepository,
-  createFindingRepository,
+  createFindingPersistenceRepository,
   createRoleRepository,
   createUserRoleRepository,
   createVulnerabilityPersistenceRepository,
@@ -45,19 +45,20 @@ describe("repository factories", () => {
     expect(execute).toHaveBeenCalledTimes(2);
   });
 
-  it("creates a finding repository bound to the injected db", async () => {
-    const executeTakeFirst = vi.fn().mockResolvedValue(null);
-    const where = vi.fn().mockReturnValue({ executeTakeFirst });
-    const selectAll = vi.fn().mockReturnValue({ where });
-    const selectFrom = vi.fn().mockReturnValue({ selectAll });
-    const db = { selectFrom };
-
-    const repository = createFindingRepository(db as never);
-
-    await repository.getByFingerprint("hash");
-
-    expect(selectFrom).toHaveBeenCalledWith("finding");
-    expect(where).toHaveBeenCalledWith("fingerprint", "=", "hash");
+  it("creates the final finding persistence repository surface", () => {
+    expect(Object.keys(createFindingPersistenceRepository({} as never)).sort()).toEqual(
+      [
+        "countBy",
+        "create",
+        "createManual",
+        "deleteByID",
+        "getByID",
+        "getProjectedByID",
+        "list",
+        "listProjected",
+        "updateByID",
+      ].sort(),
+    );
   });
 
   it("creates a vulnerability catalog repository bound to the injected db", async () => {

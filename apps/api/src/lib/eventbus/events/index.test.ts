@@ -136,23 +136,24 @@ describe("createDomainEventPayload", () => {
     };
     const finding = {
       id: "2713d833-eb13-4517-ac7c-7761545ed42a",
-      source: "manual",
       status: "active",
-      vulnerabilityId: vulnerability.id,
       assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
+      title: "Exposed Admin Endpoint",
       severity: vulnerability.severity,
-      evidence: "Observed exposed admin endpoint",
       mitigation: "Restrict access to internal networks",
       assigneeId: null,
       dueDate: null,
-      fingerprint: "abc123",
+      weakness: { identifiers: {} },
+      affectedResource: { type: "unspecified" },
+      vulnerabilities: [],
+      observationCount: 1,
+      observingSources: ["manual"],
       firstSeen: new Date("2026-05-07T09:10:00.000Z"),
       lastSeen: new Date("2026-05-07T09:10:00.000Z"),
       createdBy: user.id,
       updatedBy: user.id,
       createdAt: new Date("2026-05-07T09:10:00.000Z"),
       updatedAt: new Date("2026-05-07T09:10:00.000Z"),
-      vulnerability,
     } as FindingEventPayloads["finding.created"]["finding"];
 
     const event = createEventPayload({

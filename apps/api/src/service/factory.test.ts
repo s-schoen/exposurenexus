@@ -1,5 +1,3 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
-import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
 import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { pino } from "pino";
@@ -17,16 +15,6 @@ vi.mock("../repository/asset.js", () => ({
   getByDisplayName: vi.fn(),
   create: vi.fn(),
   deleteByID: vi.fn(),
-}));
-
-vi.mock("../repository/finding.js", () => ({
-  list: vi.fn(),
-  getByID: vi.fn(),
-  getByFingerprint: vi.fn(),
-  create: vi.fn(),
-  updateByID: vi.fn(),
-  deleteByID: vi.fn(),
-  countBy: vi.fn(),
 }));
 
 vi.mock("./vulnerability.js", async () => {
@@ -217,79 +205,49 @@ describe("service factories", () => {
   });
 
   it("creates a finding service bound to injected dependencies", async () => {
-    const now = new Date("2026-02-03T04:05:06.000Z");
-    const findingRepository = {
-      list: vi.fn(),
-      getByID: vi.fn(),
-      getByFingerprint: vi.fn(),
-      create: vi.fn().mockImplementation(async (input) => ({
-        id: "2713d833-eb13-4517-ac7c-7761545ed42a",
-        ...input,
-      })),
+    const findingPersistenceRepository = {
+      listProjected: vi.fn().mockResolvedValue([]),
+      getProjectedByID: vi.fn().mockResolvedValue({ id: "finding-id" }),
+      createManual: vi.fn(),
       updateByID: vi.fn(),
       deleteByID: vi.fn(),
-      countBy: vi.fn(),
     };
-    const vulnerabilityService = {
-      getByID: vi.fn().mockResolvedValue({
-        id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-        title: "Exposed Admin Endpoint",
-        severity: VulnerabilitySeverity.High,
-        description: "Administrative interface is reachable externally",
-        cwe: 284,
-        cve: null,
-        createdBy: user.id,
-        updatedBy: user.id,
-        createdAt: new Date("2026-01-01T00:00:00.000Z"),
-        updatedAt: new Date("2026-01-01T00:00:00.000Z"),
-      }),
+    const findingVulnerabilityRepository = {
+      listByFindingID: vi.fn(),
+      create: vi.fn(),
+      delete: vi.fn(),
+      linkAndTouchFinding: vi.fn(),
+      unlinkAndTouchFinding: vi.fn(),
     };
-    const assetService = {
-      getByID: vi.fn().mockResolvedValue({
-        id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-        displayName: "api.exposurenexus.local",
-        type: AssetType.Host,
-        environment: AssetEnvironment.Production,
-        lifecycleState: AssetLifecycleState.Active,
-        ownerId: null,
-        createdAt: new Date("2026-01-01T00:00:00.000Z"),
-        updatedAt: new Date("2026-01-02T00:00:00.000Z"),
-        createdBy: user.id,
-        updatedBy: user.id,
-      }),
+    const observationRepository = {
+      listByFindingID: vi.fn().mockResolvedValue([]),
+      createAndTouchFinding: vi.fn(),
+      updateAndTouchFinding: vi.fn(),
+      deleteAndTouchFinding: vi.fn(),
+      moveAndTouchFindings: vi.fn(),
     };
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
 
     const service = createFindingService({
-      findingRepository,
-      assetService,
+      findingPersistenceRepository,
+      findingVulnerabilityRepository,
+      observationRepository,
+      assetService: { getByID: vi.fn() },
       userProfileService: {
         getByID: vi.fn(),
       },
-      vulnerabilityService,
+      vulnerabilityService: { getByID: vi.fn() },
       domainEventEmitter: {
         emit: vi.fn(),
       },
       logger,
     });
 
-    await service.create({
-      user,
-      finding: {
-        vulnerabilityId: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-        severity: VulnerabilitySeverity.High,
-        status: FindingStatus.Active,
-        source: FindingSource.Manual,
-        evidence: "Observed exposed admin endpoint",
-        mitigation: "Restrict access to internal networks",
-        assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
-      },
-    });
+    await service.listAll();
+    await service.listObservations("finding-id");
 
-    expect(findingRepository.create).toHaveBeenCalledOnce();
-    expect(vulnerabilityService.getByID).toHaveBeenCalledWith(
-      "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
-    );
+    expect(findingPersistenceRepository.listProjected).toHaveBeenCalledOnce();
+    expect(findingPersistenceRepository.getProjectedByID).toHaveBeenCalledWith("finding-id");
+    expect(observationRepository.listByFindingID).toHaveBeenCalledWith("finding-id");
+    expect(findingVulnerabilityRepository).toHaveProperty("linkAndTouchFinding");
   });
 });

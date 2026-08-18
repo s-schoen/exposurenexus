@@ -16,19 +16,6 @@ export type FindingApplicationErrorCatalog = {
     kind: "validation";
     details: { assigneeId: string; findingId?: string };
   };
-  "finding.related_resource_unknown": {
-    kind: "validation";
-    details: {
-      assetId: string;
-      vulnerabilityId: string;
-      assigneeId: string | null;
-    };
-  };
-  "finding.create_failed": {
-    kind: "unexpected";
-    details: { assetId: string; vulnerabilityId: string };
-  };
-  "finding.manual_create_unavailable": { kind: "unexpected" };
   "finding.manual_create_failed": {
     kind: "unexpected";
     details: { assetId: string };
@@ -36,10 +23,6 @@ export type FindingApplicationErrorCatalog = {
   "finding.update_failed": {
     kind: "unexpected";
     details: { findingId: string };
-  };
-  "finding.create_or_update_failed": {
-    kind: "unexpected";
-    details: { assetId: string; vulnerabilityId: string };
   };
   "finding.delete_failed": {
     kind: "unexpected";

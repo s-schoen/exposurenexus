@@ -1,14 +1,7 @@
-import { createHash } from "node:crypto";
-
 import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date";
 import {
-  FindingStatus,
-  type CreateFinding,
   type CreateManualFinding,
-  type Finding,
-  type FindingInternal,
   type FindingProjection,
-  type LegacyCreateFinding,
   type UpdateFinding,
 } from "@exposurenexus/types/model/finding";
 import {
@@ -32,7 +25,6 @@ import { isForeignKeyError } from "./errors.js";
 
 import type { FindingPersistenceRepository } from "../repository/finding-persistence.js";
 import type { FindingVulnerabilityRepository } from "../repository/finding-vulnerability.js";
-import type { FindingRepository } from "../repository/finding.js";
 import type { ObservationRepository } from "../repository/observation.js";
 import type { Asset } from "@exposurenexus/types/model/asset";
 import type { UserProfile } from "@exposurenexus/types/model/user";
@@ -52,14 +44,12 @@ interface UserProfileLookupService {
 }
 
 interface FindingServiceDependencies {
-  findingRepository: FindingRepository;
-  findingPersistenceRepository?: Pick<
+  findingPersistenceRepository: Pick<
     FindingPersistenceRepository,
-    "getProjectedByID" | "listProjected" | "updateByID" | "deleteByID"
+    "createManual" | "getProjectedByID" | "listProjected" | "updateByID" | "deleteByID"
   >;
-  manualFindingRepository?: Pick<FindingPersistenceRepository, "createManual" | "getProjectedByID">;
-  findingVulnerabilityRepository?: FindingVulnerabilityRepository;
-  observationRepository?: Pick<
+  findingVulnerabilityRepository: FindingVulnerabilityRepository;
+  observationRepository: Pick<
     ObservationRepository,
     | "listByFindingID"
     | "createAndTouchFinding"
@@ -74,41 +64,8 @@ interface FindingServiceDependencies {
   logger: Logger;
 }
 
-function calculateFingerprint(
-  assetId: string,
-  vulnerabilityId: string,
-  fingerprintOpt?: Record<string, string>,
-): string {
-  const hash = createHash("sha256");
-  hash.update(vulnerabilityId);
-  hash.update(assetId);
-  if (fingerprintOpt) {
-    hash.update(JSON.stringify(fingerprintOpt));
-  }
-  return hash.digest("hex");
-}
-
 function normalizeOptionalDueDate(dueDate: Date | null | undefined) {
   return dueDate ? normalizeDateToUtcStart(dueDate) : null;
-}
-
-function resolveImportedFindingStatus(
-  existingStatus: FindingInternal["status"],
-  importedStatus: CreateFinding["status"],
-) {
-  if (existingStatus === FindingStatus.Inactive) {
-    return importedStatus;
-  }
-
-  return existingStatus;
-}
-
-export interface CreateFindingOptions {
-  finding: LegacyCreateFinding;
-  user: UserProfile;
-  firstSeen?: Date;
-  fingerprintOptions?: Record<string, string>;
-  eventContext?: DomainEventContext;
 }
 
 export interface CreateManualFindingOptions {
@@ -181,15 +138,9 @@ export interface MoveObservationResult {
   targetFinding: FindingProjection;
 }
 
-export interface CreateOrUpdateFindingResult {
-  finding: Finding;
-  created: boolean;
-}
-
 export interface FindingService {
   listAll(): Promise<FindingProjection[]>;
   getByID(id: string): Promise<FindingProjection | null>;
-  create(opts: CreateFindingOptions): Promise<Finding>;
   createManual(opts: CreateManualFindingOptions): Promise<FindingProjection>;
   listObservations(findingId: string): Promise<Observation[] | null>;
   createManualObservation(
@@ -199,7 +150,6 @@ export interface FindingService {
   deleteObservation(opts: DeleteObservationOptions): Promise<ObservationMutationResult | null>;
   moveObservation(opts: MoveObservationOptions): Promise<MoveObservationResult | null>;
   updateByID(opts: UpdateFindingOptions): Promise<FindingProjection | null>;
-  createOrUpdate(opts: CreateFindingOptions): Promise<CreateOrUpdateFindingResult>;
   deleteByID(id: string, eventContext?: DomainEventContext): Promise<FindingProjection | null>;
   linkVulnerability(
     opts: FindingVulnerabilityOptions,
@@ -210,9 +160,7 @@ export interface FindingService {
 }
 
 export function createFindingService({
-  findingRepository,
   findingPersistenceRepository,
-  manualFindingRepository,
   findingVulnerabilityRepository,
   observationRepository,
   assetService,
@@ -230,41 +178,10 @@ export function createFindingService({
     "observation",
   );
 
-  async function extendWithVulnerability(
-    intFinding: FindingInternal,
-    knownVulnerability?: Finding["vulnerability"],
-  ): Promise<Finding> {
-    const vuln = (knownVulnerability ??
-      (await vulnerabilityService.getByID(intFinding.vulnerabilityId))) as
-      | Finding["vulnerability"]
-      | null;
-    if (!vuln) {
-      logger.error(
-        `finding ${intFinding.id} references unknown vulnerability ${intFinding.vulnerabilityId}`,
-      );
-      throw new Error(
-        `finding ${intFinding.id} references unknown vulnerability ${intFinding.vulnerabilityId}`,
-      );
-    }
-    return {
-      ...intFinding,
-      vulnerability: vuln,
-    };
-  }
-
   async function mutateVulnerabilityLink(
     opts: FindingVulnerabilityOptions,
     operation: "link" | "unlink",
   ): Promise<FindingVulnerabilityMutationResult | null> {
-    if (!findingPersistenceRepository || !findingVulnerabilityRepository) {
-      throw new ApplicationError({
-        code: "finding.vulnerability_link_failed",
-        kind: "unexpected",
-        message: "finding vulnerability links are unavailable",
-        details: { findingId: opts.findingId, vulnerabilityId: opts.vulnerabilityId },
-      });
-    }
-
     const [finding, vulnerability] = await Promise.all([
       findingPersistenceRepository.getProjectedByID(opts.findingId),
       vulnerabilityService.getByID(opts.vulnerabilityId),
@@ -328,110 +245,6 @@ export function createFindingService({
     };
   }
 
-  async function validateCreateFindingRelations(
-    finding: LegacyCreateFinding,
-  ): Promise<Finding["vulnerability"]> {
-    const [asset, vulnerability] = await Promise.all([
-      assetService.getByID(finding.assetId),
-      vulnerabilityService.getByID(finding.vulnerabilityId),
-    ]);
-
-    if (!asset) {
-      throw new ApplicationError({
-        code: "finding.asset_unknown",
-        kind: "validation",
-        message: "finding asset does not exist",
-        details: { assetId: finding.assetId },
-      });
-    }
-
-    if (!vulnerability) {
-      throw new ApplicationError({
-        code: "finding.vulnerability_unknown",
-        kind: "validation",
-        message: "finding vulnerability does not exist",
-        details: { vulnerabilityId: finding.vulnerabilityId },
-      });
-    }
-
-    const assigneeId = finding.assigneeId ?? null;
-    if (assigneeId) {
-      const assignee = await userProfileService.getByID(assigneeId);
-
-      if (!assignee) {
-        throw new ApplicationError({
-          code: "finding.assignee_unknown",
-          kind: "validation",
-          message: "finding assignee does not exist",
-          details: { assigneeId },
-        });
-      }
-    }
-
-    return vulnerability as Finding["vulnerability"];
-  }
-
-  async function createFinding(opts: CreateFindingOptions): Promise<Finding> {
-    try {
-      const now = new Date();
-      const assigneeId = opts.finding.assigneeId ?? null;
-      const dueDate = normalizeOptionalDueDate(opts.finding.dueDate);
-      const vulnerability = await validateCreateFindingRelations(opts.finding);
-
-      const created = await findingRepository.create({
-        ...opts.finding,
-        createdAt: now,
-        updatedAt: now,
-        createdBy: opts.user.id,
-        updatedBy: opts.user.id,
-        assigneeId,
-        dueDate,
-        firstSeen: opts.firstSeen ?? now,
-        lastSeen: opts.firstSeen ?? now,
-        fingerprint: calculateFingerprint(
-          opts.finding.assetId,
-          opts.finding.vulnerabilityId,
-          opts.fingerprintOptions,
-        ),
-      });
-
-      const createdFinding = await extendWithVulnerability(created, vulnerability);
-      emitFindingEvent("finding.created", { finding: createdFinding }, opts.eventContext);
-      return createdFinding;
-    } catch (error) {
-      if (isApplicationError(error)) {
-        throw error;
-      }
-
-      if (isForeignKeyError(error)) {
-        logger.debug(error, "finding create foreign key invalid relation");
-        throw new ApplicationError({
-          code: "finding.related_resource_unknown",
-          kind: "validation",
-          message: "finding references an unknown related resource",
-          cause: error,
-          details: {
-            assetId: opts.finding.assetId,
-            vulnerabilityId: opts.finding.vulnerabilityId,
-            assigneeId: opts.finding.assigneeId ?? null,
-          },
-        });
-      }
-
-      logger.error(error, `failed to create new finding for ${opts.finding.vulnerabilityId}`);
-      throw new ApplicationError({
-        code: "finding.create_failed",
-        kind: "unexpected",
-        message: "failed to create finding",
-        cause: error,
-        details: {
-          assetId: opts.finding.assetId,
-          vulnerabilityId: opts.finding.vulnerabilityId,
-        },
-      });
-    }
-  }
-
   async function validateManualFindingRelations(finding: CreateManualFinding): Promise<void> {
     const [asset, vulnerabilities] = await Promise.all([
       assetService.getByID(finding.assetId),
@@ -473,14 +286,6 @@ export function createFindingService({
   }
 
   async function createManualFinding(opts: CreateManualFindingOptions): Promise<FindingProjection> {
-    if (!manualFindingRepository) {
-      throw new ApplicationError({
-        code: "finding.manual_create_unavailable",
-        kind: "unexpected",
-        message: "manual finding creation is unavailable",
-      });
-    }
-
     try {
       await validateManualFindingRelations(opts.finding);
 
@@ -498,7 +303,7 @@ export function createFindingService({
       };
       const observation: ManualObservationInput = observationInput ?? {};
 
-      const created = await manualFindingRepository.createManual({
+      const created = await findingPersistenceRepository.createManual({
         finding,
         observation: {
           ingestionId: null,
@@ -519,7 +324,9 @@ export function createFindingService({
         vulnerabilityIds,
       });
 
-      const createdFinding = await manualFindingRepository.getProjectedByID(created.finding.id);
+      const createdFinding = await findingPersistenceRepository.getProjectedByID(
+        created.finding.id,
+      );
       if (!createdFinding) {
         throw new Error("manual finding was not available after creation");
       }
@@ -545,17 +352,7 @@ export function createFindingService({
   return {
     async listAll(): Promise<FindingProjection[]> {
       try {
-        if (findingPersistenceRepository) {
-          return await findingPersistenceRepository.listProjected();
-        }
-
-        const findingsRaw = await findingRepository.list();
-        const findings: Array<Finding> = [];
-
-        for (const finding of findingsRaw) {
-          findings.push(await extendWithVulnerability(finding));
-        }
-        return findings as unknown as FindingProjection[];
+        return await findingPersistenceRepository.listProjected();
       } catch (error) {
         logger.error(error, "failed to list findings");
         throw new ApplicationError({
@@ -569,17 +366,7 @@ export function createFindingService({
 
     async getByID(id: string): Promise<FindingProjection | null> {
       try {
-        if (findingPersistenceRepository) {
-          return await findingPersistenceRepository.getProjectedByID(id);
-        }
-
-        const finding = await findingRepository.getByID(id);
-        if (!finding) {
-          logger.debug(`finding with id ${id} not found`);
-          return null;
-        }
-
-        return (await extendWithVulnerability(finding)) as unknown as FindingProjection;
+        return await findingPersistenceRepository.getProjectedByID(id);
       } catch (error) {
         logger.error(error, `failed to get finding with id ${id}`);
         throw new ApplicationError({
@@ -592,24 +379,11 @@ export function createFindingService({
       }
     },
 
-    async create(opts: CreateFindingOptions): Promise<Finding> {
-      return await createFinding(opts);
-    },
-
     async createManual(opts: CreateManualFindingOptions): Promise<FindingProjection> {
       return await createManualFinding(opts);
     },
 
     async listObservations(findingId: string): Promise<Observation[] | null> {
-      if (!findingPersistenceRepository || !observationRepository) {
-        throw new ApplicationError({
-          code: "observation.list_failed",
-          kind: "unexpected",
-          message: "finding observations are unavailable",
-          details: { findingId },
-        });
-      }
-
       try {
         const finding = await findingPersistenceRepository.getProjectedByID(findingId);
         return finding ? await observationRepository.listByFindingID(findingId) : null;
@@ -628,15 +402,6 @@ export function createFindingService({
     async createManualObservation(
       opts: CreateManualObservationOptions,
     ): Promise<CreateManualObservationResult | null> {
-      if (!observationRepository) {
-        throw new ApplicationError({
-          code: "observation.create_failed",
-          kind: "unexpected",
-          message: "manual observation creation is unavailable",
-          details: { findingId: opts.findingId },
-        });
-      }
-
       try {
         const input = opts.observation;
         const mutation = await observationRepository.createAndTouchFinding({
@@ -692,15 +457,6 @@ export function createFindingService({
     async updateObservation(
       opts: UpdateObservationOptions,
     ): Promise<ObservationMutationResult | null> {
-      if (!observationRepository) {
-        throw new ApplicationError({
-          code: "observation.update_failed",
-          kind: "unexpected",
-          message: "observation correction is unavailable",
-          details: { findingId: opts.findingId, observationId: opts.observationId },
-        });
-      }
-
       try {
         const mutation = await observationRepository.updateAndTouchFinding({
           findingId: opts.findingId,
@@ -748,15 +504,6 @@ export function createFindingService({
     async deleteObservation(
       opts: DeleteObservationOptions,
     ): Promise<ObservationMutationResult | null> {
-      if (!observationRepository) {
-        throw new ApplicationError({
-          code: "observation.delete_failed",
-          kind: "unexpected",
-          message: "observation deletion is unavailable",
-          details: { findingId: opts.findingId, observationId: opts.observationId },
-        });
-      }
-
       try {
         const mutation = await observationRepository.deleteAndTouchFinding({
           findingId: opts.findingId,
@@ -796,19 +543,6 @@ export function createFindingService({
     },
 
     async moveObservation(opts: MoveObservationOptions): Promise<MoveObservationResult | null> {
-      if (!observationRepository) {
-        throw new ApplicationError({
-          code: "observation.move_failed",
-          kind: "unexpected",
-          message: "observation move is unavailable",
-          details: {
-            findingId: opts.findingId,
-            observationId: opts.observationId,
-            targetFindingId: opts.targetFindingId,
-          },
-        });
-      }
-
       if (opts.findingId === opts.targetFindingId) {
         throw new ApplicationError({
           code: "observation.move_same_finding",
@@ -882,15 +616,6 @@ export function createFindingService({
     },
 
     async updateByID(opts: UpdateFindingOptions): Promise<FindingProjection | null> {
-      if (!findingPersistenceRepository) {
-        throw new ApplicationError({
-          code: "finding.update_failed",
-          kind: "unexpected",
-          message: "finding correction is unavailable",
-          details: { findingId: opts.id },
-        });
-      }
-
       try {
         const finding = await findingPersistenceRepository.getProjectedByID(opts.id);
 
@@ -972,99 +697,26 @@ export function createFindingService({
       }
     },
 
-    async createOrUpdate(opts: CreateFindingOptions): Promise<CreateOrUpdateFindingResult> {
-      const fingerprint = calculateFingerprint(
-        opts.finding.assetId,
-        opts.finding.vulnerabilityId,
-        opts.fingerprintOptions,
-      );
-
-      try {
-        const finding = await findingRepository.getByFingerprint(fingerprint);
-        if (finding) {
-          const updatedObservation = {
-            ...finding,
-            status: resolveImportedFindingStatus(finding.status, opts.finding.status),
-            lastSeen: new Date(),
-          };
-          const updatedFinding = await findingRepository.updateByID(finding.id, updatedObservation);
-          const previousFinding = await extendWithVulnerability(finding);
-          const currentFinding = await extendWithVulnerability(updatedFinding);
-          emitFindingEvent(
-            "finding.updated",
-            {
-              previous: previousFinding,
-              current: currentFinding,
-            },
-            opts.eventContext,
-          );
-          return {
-            finding: currentFinding,
-            created: false,
-          };
-        }
-
-        return {
-          finding: await createFinding(opts),
-          created: true,
-        };
-      } catch (error) {
-        if (isApplicationError(error)) {
-          throw error;
-        }
-
-        logger.error(
-          error,
-          `failed to create or update finding for ${opts.finding.vulnerabilityId}`,
-        );
-        throw new ApplicationError({
-          code: "finding.create_or_update_failed",
-          kind: "unexpected",
-          message: "failed to create or update finding",
-          cause: error,
-          details: {
-            assetId: opts.finding.assetId,
-            vulnerabilityId: opts.finding.vulnerabilityId,
-          },
-        });
-      }
-    },
-
     async deleteByID(
       id: string,
       eventContext: DomainEventContext = {},
     ): Promise<FindingProjection | null> {
       try {
-        if (findingPersistenceRepository) {
-          const finding = await findingPersistenceRepository.getProjectedByID(id);
-
-          if (!finding) {
-            logger.debug(`cannot delete finding ${id}: not found`);
-            return null;
-          }
-
-          const deleted = await findingPersistenceRepository.deleteByID(id);
-          if (!deleted) {
-            logger.debug(`cannot delete finding ${id}: not found`);
-            return null;
-          }
-
-          emitFindingEvent("finding.deleted", { finding }, eventContext);
-          return finding;
-        }
-
-        const finding = await findingRepository.deleteByID(id);
+        const finding = await findingPersistenceRepository.getProjectedByID(id);
 
         if (!finding) {
           logger.debug(`cannot delete finding ${id}: not found`);
           return null;
         }
 
-        const deletedFinding = (await extendWithVulnerability(
-          finding,
-        )) as unknown as FindingProjection;
-        emitFindingEvent("finding.deleted", { finding: deletedFinding }, eventContext);
-        return deletedFinding;
+        const deleted = await findingPersistenceRepository.deleteByID(id);
+        if (!deleted) {
+          logger.debug(`cannot delete finding ${id}: not found`);
+          return null;
+        }
+
+        emitFindingEvent("finding.deleted", { finding }, eventContext);
+        return finding;
       } catch (error) {
         logger.error(error, `failed to get finding with id ${id}`);
         throw new ApplicationError({

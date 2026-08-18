@@ -13,7 +13,6 @@ import { createCsrfProtection } from "./middleware/csrf.js";
 import {
   createAssetCustomFieldRepository,
   createAssetRepository,
-  createFindingRepository,
   createFindingPersistenceRepository,
   createFindingVulnerabilityRepository,
   createObservationRepository,
@@ -78,7 +77,6 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const repositories = {
     assetCustomFieldRepository: createAssetCustomFieldRepository(options.db),
     assetRepository: createAssetRepository(options.db),
-    findingRepository: createFindingRepository(options.db),
     findingPersistenceRepository: createFindingPersistenceRepository(options.db),
     findingVulnerabilityRepository: createFindingVulnerabilityRepository(options.db),
     observationRepository: createObservationRepository(options.db),
@@ -130,9 +128,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     logger: loggerFactory("service/vulnerability"),
   });
   const findingService = createFindingService({
-    findingRepository: repositories.findingRepository,
     findingPersistenceRepository: repositories.findingPersistenceRepository,
-    manualFindingRepository: repositories.findingPersistenceRepository,
     findingVulnerabilityRepository: repositories.findingVulnerabilityRepository,
     observationRepository: repositories.observationRepository,
     assetService,

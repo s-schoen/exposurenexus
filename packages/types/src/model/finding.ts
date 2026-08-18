@@ -10,19 +10,10 @@ import {
   ObservationSource,
   type ManualObservationInput,
 } from "./observation.js";
-import {
-  vulnerabilityCatalogSchema,
-  vulnerabilitySchema,
-  VulnerabilitySeverity,
-} from "./vulnerability.js";
+import { vulnerabilityCatalogSchema, VulnerabilitySeverity } from "./vulnerability.js";
 import { findingWeaknessSchema, type Weakness } from "./weakness.js";
 
 const dueDateSchema = utcStartDateSchema as z.ZodType<Date, Date>;
-
-export enum FindingSource {
-  Manual = "manual",
-  Nuclei = "nuclei",
-}
 
 export enum FindingStatus {
   Active = "active",
@@ -34,30 +25,6 @@ export enum FindingStatus {
   OutOfScope = "out_of_scope",
   Mitigated = "mitigated",
 }
-
-export const findingInternalSchema = z.strictObject({
-  id: z.uuidv4(),
-  vulnerabilityId: z.uuidv4(),
-  severity: z.enum(VulnerabilitySeverity),
-  status: z.enum(FindingStatus),
-  source: z.string().nonempty(),
-  evidence: z.string().nullable(),
-  mitigation: z.string().nullable(),
-  assigneeId: z.uuidv4().nullable(),
-  dueDate: dueDateSchema.nullable(),
-  firstSeen: dateSchema,
-  lastSeen: dateSchema,
-  fingerprint: z.string(),
-  assetId: z.uuidv4(),
-  createdBy: z.uuidv4(),
-  updatedBy: z.uuidv4(),
-  createdAt: dateSchema,
-  updatedAt: dateSchema,
-});
-
-export const findingSchema = findingInternalSchema.extend({
-  vulnerability: vulnerabilitySchema,
-});
 
 export const findingPersistenceSchema = z.strictObject({
   id: z.uuidv4(),
@@ -97,31 +64,6 @@ export const findingProjectionSchema = z.strictObject({
   createdBy: z.uuidv4(),
   updatedBy: z.uuidv4(),
 });
-
-export const legacyCreateFindingSchema = findingInternalSchema
-  .omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-    createdBy: true,
-    updatedBy: true,
-    assigneeId: true,
-    dueDate: true,
-    fingerprint: true,
-    firstSeen: true,
-    lastSeen: true,
-  })
-  .extend({
-    assigneeId: findingInternalSchema.shape.assigneeId.optional(),
-    dueDate: findingInternalSchema.shape.dueDate.optional(),
-  });
-
-export const legacyUpdateFindingSchema = legacyCreateFindingSchema
-  .omit({ vulnerabilityId: true, assetId: true, assigneeId: true, dueDate: true })
-  .extend({
-    assigneeId: findingInternalSchema.shape.assigneeId,
-    dueDate: findingInternalSchema.shape.dueDate,
-  });
 
 export const createFindingSchema = z.strictObject({
   assetId: z.uuidv4(),
@@ -177,15 +119,12 @@ export const FindingStatistics = z.strictObject({
   assets: z.record(z.uuidv4(), z.int()),
 });
 
-export type FindingInternal = z.infer<typeof findingInternalSchema>;
-export type Finding = z.infer<typeof findingSchema>;
 export type FindingPersistence = z.infer<typeof findingPersistenceSchema>;
 export type FindingProjection = z.infer<typeof findingProjectionSchema>;
 export type FindingWeakness = Weakness;
 export type FindingResource = FindingAffectedResource;
 export type CreateFinding = z.infer<typeof createFindingSchema>;
 export type CreateManualFinding = CreateFinding;
-export type LegacyCreateFinding = z.infer<typeof legacyCreateFindingSchema>;
 export type UpdateFinding = z.infer<typeof updateFindingSchema>;
 export type FindingStatistics = z.infer<typeof FindingStatistics>;
 export { manualObservationInputSchema };
