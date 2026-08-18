@@ -30,7 +30,7 @@ service emitters, route context helpers, and event handlers.
 - `apps/api/src/lib/eventbus/events/index.ts` defines the common domain event
   shape and combines all event payload maps.
 - `apps/api/src/lib/eventbus/events/*.ts` defines per-domain event payloads,
-  for example auth, user, asset, custom field, finding, role, and
+  for example auth, user, asset, custom field, finding, observation, role, and
   vulnerability events.
 - `apps/api/src/lib/request-event-context.ts` extracts request-scoped event
   context from Hono.
@@ -86,6 +86,7 @@ domain owns its own file:
 - `events/user.ts`
 - `events/asset.ts`
 - `events/finding.ts`
+- `events/observation.ts`
 - `events/role.ts`
 - `events/vulnerability.ts`
 
@@ -179,6 +180,7 @@ The audit logger is the first subscriber. It registers namespace listeners for:
 - `role.*`
 - `user.*`
 - `finding.*`
+- `observation.*`
 - `vulnerability.*`
 
 The audit log message is the event subject. The structured log fields include:
@@ -222,9 +224,10 @@ The API currently emits these event families:
 - Custom fields: registry-level asset custom field definitions created,
   updated, and deleted. These events use the `custom-field.*` subjects and the
   `asset-custom-field` source.
-- Findings: created, updated, deleted, and reclassified.
-- Vulnerabilities: created, updated, deleted, and source mapping created,
-  updated, and deleted.
+- Findings: created, updated, deleted, and vulnerability catalog links added or
+  removed.
+- Observations: created, updated, deleted, and moved between findings.
+- Vulnerabilities: created, updated, and deleted.
 - Roles: updated and deleted.
 
 Update events use `{ previous, current }` where practical. This gives audit

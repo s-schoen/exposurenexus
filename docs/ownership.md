@@ -61,9 +61,8 @@ Ownership can be cleared explicitly by setting `ownerId` to `null`. Clearing
 ownership means responsibility is unknown; it is distinct from assigning an
 invalid or missing user profile.
 
-Imported assets start ownerless unless ownership is set explicitly after
-import. Scanner imports must not infer ownership from source data in the first
-asset ownership model.
+Automated scanner import is currently work in progress and returns `501 Not
+Implemented`. Import-time asset ownership behavior is not defined yet.
 
 ## User Profile Behavior
 
@@ -102,19 +101,17 @@ If an assignee user profile is deleted, findings assigned to that profile
 become unassigned at the data level.
 
 Finding assignment is independent of finding status. Status changes such as
-confirming, accepting risk, mitigating, reactivating, or importing an update do
-not clear or change the assignee.
+confirming, accepting risk, mitigating, or reactivating do not clear or change
+the assignee.
 
-New findings start unassigned, including imported findings and manually created
-findings. Asset ownership can be shown as context, but it is not copied into the
-finding assignment.
+Manually created findings start unassigned by default. Asset ownership can be
+shown as context, but it is not copied into the finding assignment.
 
 Manual finding creation may set an assignee explicitly, but the default is
 unassigned.
 
-Imports that update an existing finding preserve the existing assignment.
-Imports should not assign, clear, or infer finding assignees in the first
-assignment model.
+Assignment behavior for automated imports is not defined while the import
+endpoint remains unavailable.
 
 The first assignment model does not keep dedicated assignment history. The
 normal finding audit fields still show the most recent update metadata, but

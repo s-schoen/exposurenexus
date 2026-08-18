@@ -4,19 +4,20 @@
 [![Test Coverage](https://codecov.io/gh/s-schoen/exposurenexus/branch/master/graph/badge.svg)](https://codecov.io/gh/s-schoen/exposurenexus)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-ExposureNexus is an open-source continuous threat exposure management (CTEM) platform for importing scanner findings,
-normalizing them around assets and vulnerabilities, and tracking triage through remediation.
+ExposureNexus is an open-source continuous threat exposure management (CTEM) platform for organizing security
+observations into asset-centered findings and tracking triage through remediation.
 
 ## Project Status
 
 ExposureNexus is in early development. The current setup is intended for local evaluation and development, not as a
-production deployment guide. The first supported external finding source is Nuclei JSONL.
+production deployment guide. Automated scanner import is work in progress; the import API currently returns `501 Not
+Implemented` without processing uploaded data.
 
 ![ExposureNexus dashboard showing finding severity, status, affected assets, and source breakdowns](docs/assets/readme-dashboard.png)
 
 ## Key Features
 
-- Import Nuclei JSONL findings against managed assets and normalize them into vulnerabilities and findings.
+- Create findings manually and attach manual observations as supporting evidence.
 - Review active findings in a triage queue grouped around affected assets.
 - Track finding status from discovery through confirmation, mitigation, accepted risk, false positive, duplicate, or
   out-of-scope.
@@ -27,14 +28,15 @@ production deployment guide. The first supported external finding source is Nucl
 
 ## How It Works
 
-ExposureNexus models scanner output around three core objects:
+ExposureNexus models exposure-management work around four core objects:
 
 - **Assets** are the systems or components affected by findings.
-- **Vulnerabilities** are catalog entries describing reusable weaknesses.
-- **Findings** are concrete occurrences of vulnerabilities on assets.
+- **Findings** are human-facing workflow cases on assets.
+- **Observations** are manual or scanner detection records attached to findings.
+- **Vulnerabilities** are optional catalog entries linked to findings.
 
-Imports map external scanner records into that model so teams can deduplicate, triage, assign, and track remediation
-over time.
+Teams can currently create and triage findings manually. Automated import into the observation-based model is planned but
+not yet available.
 
 ## Quickstart
 
