@@ -1,6 +1,5 @@
 import {
   findingProjectionSchema,
-  findingSchema,
   FindingStatistics as findingStatisticsSchema,
 } from "@exposurenexus/types/model/finding";
 import { observationSchema } from "@exposurenexus/types/model/observation";
@@ -16,10 +15,8 @@ import {
 
 import type {
   CreateManualFinding,
-  Finding,
   FindingProjection,
   FindingStatistics,
-  LegacyCreateFinding,
   ManualObservationInput,
   UpdateFinding,
 } from "@exposurenexus/types/model/finding";
@@ -178,24 +175,6 @@ export async function moveFindingObservation(
   }
 
   return parseObjectReply(response, observationSchema);
-}
-
-export async function createFinding(f: LegacyCreateFinding): Promise<Finding> {
-  const response = await apiRequest("/api/findings", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(f),
-  });
-
-  if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
-  }
-
-  return parseObjectReply(response, findingSchema);
 }
 
 export async function createManualFinding(f: CreateManualFinding): Promise<FindingProjection> {

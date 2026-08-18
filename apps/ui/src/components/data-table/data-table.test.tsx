@@ -176,8 +176,8 @@ describe("DataTable stories", () => {
     render(<Embedded />);
 
     await waitFor(() => {
-      expect(screen.getByText("Exposed admin interface")).toBeInTheDocument();
-      expect(screen.getByText("Outdated dependency in API worker")).toBeInTheDocument();
+      expect(screen.getByText("Prepare quarterly roadmap")).toBeInTheDocument();
+      expect(screen.getByText("Review service capacity plan")).toBeInTheDocument();
     });
     expect(screen.queryByRole("textbox", { name: /search across visible columns/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /refresh/i })).toBeNull();
@@ -223,7 +223,7 @@ describe("DataTable stories", () => {
       name: /search across visible columns/i,
     });
 
-    await user.type(searchInput, "credential");
+    await user.type(searchInput, "roadmap");
 
     await waitFor(() => {
       expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
@@ -251,7 +251,7 @@ describe("DataTable stories", () => {
 
     await user.click(screen.getByRole("button", { name: /status filter/i }));
 
-    await user.click(await screen.findByRole("option", { name: /mitigated/i }));
+    await user.click(await screen.findByRole("option", { name: /complete/i }));
 
     await waitFor(() => {
       expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
@@ -260,12 +260,12 @@ describe("DataTable stories", () => {
       );
       expect(
         screen.getByRole("button", {
-          name: /clear status filter mitigated/i,
+          name: /clear status filter complete/i,
         }),
       ).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("button", { name: /clear status filter mitigated/i }));
+    await user.click(screen.getByRole("button", { name: /clear status filter complete/i }));
 
     await waitFor(() => {
       expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
@@ -274,7 +274,7 @@ describe("DataTable stories", () => {
       );
       expect(
         screen.queryByRole("button", {
-          name: /clear status filter mitigated/i,
+          name: /clear status filter complete/i,
         }),
       ).not.toBeInTheDocument();
     });
@@ -289,7 +289,7 @@ describe("DataTable stories", () => {
       name: /owner filter/i,
     });
 
-    await user.type(ownerFilter, "identity");
+    await user.type(ownerFilter, "infrastructure");
 
     await waitFor(() => {
       expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
@@ -298,12 +298,12 @@ describe("DataTable stories", () => {
       );
       expect(
         screen.getByRole("button", {
-          name: /clear owner filter identity/i,
+          name: /clear owner filter infrastructure/i,
         }),
       ).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("button", { name: /clear owner filter identity/i }));
+    await user.click(screen.getByRole("button", { name: /clear owner filter infrastructure/i }));
 
     await waitFor(() => {
       expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
@@ -312,7 +312,7 @@ describe("DataTable stories", () => {
       );
       expect(
         screen.queryByRole("button", {
-          name: /clear owner filter identity/i,
+          name: /clear owner filter infrastructure/i,
         }),
       ).not.toBeInTheDocument();
     });

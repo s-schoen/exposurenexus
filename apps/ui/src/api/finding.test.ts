@@ -1,10 +1,9 @@
 import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { FindingSource, FindingStatus } from "@exposurenexus/types/model/finding";
+import { FindingStatus } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  createFinding,
   createFindingObservation,
   createManualFinding,
   createFindingByIDQueryOptions,
@@ -22,8 +21,6 @@ import {
 
 import type {
   CreateManualFinding,
-  LegacyCreateFinding,
-  Finding,
   FindingProjection,
   FindingStatistics,
   ManualObservationInput,
@@ -65,37 +62,6 @@ const userId = "1f9c36d2-1355-49d1-8464-b01ce955d88f";
 const findingId = "2713d833-eb13-4517-ac7c-7761545ed42a";
 const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe";
 const assetId = "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c";
-const findingJson = {
-  id: findingId,
-  vulnerabilityId,
-  severity: VulnerabilitySeverity.High,
-  status: FindingStatus.Active,
-  source: FindingSource.Manual,
-  evidence: "Observed exposed admin endpoint",
-  mitigation: "Restrict access to internal networks",
-  assigneeId: null,
-  dueDate: "2026-05-06T00:00:00.000Z",
-  firstSeen: "2026-01-02T00:00:00.000Z",
-  lastSeen: "2026-01-03T00:00:00.000Z",
-  fingerprint: "abc123",
-  assetId,
-  createdBy: userId,
-  updatedBy: userId,
-  createdAt: "2026-01-02T00:00:00.000Z",
-  updatedAt: "2026-01-03T00:00:00.000Z",
-  vulnerability: {
-    id: vulnerabilityId,
-    title: "Exposed Admin Endpoint",
-    severity: VulnerabilitySeverity.High,
-    description: "Administrative interface is reachable externally",
-    cwe: 284,
-    cve: null,
-    createdBy: userId,
-    updatedBy: userId,
-    createdAt: "2026-01-01T00:00:00.000Z",
-    updatedAt: "2026-01-01T00:00:00.000Z",
-  },
-};
 const findingProjectionJson = {
   id: findingId,
   assetId,
@@ -113,7 +79,21 @@ const findingProjectionJson = {
     port: 443,
     path: "/admin",
   },
-  vulnerabilities: [],
+  vulnerabilities: [
+    {
+      id: vulnerabilityId,
+      type: "cve",
+      identifier: "CVE-2026-0001",
+      title: "Exposed Admin Endpoint",
+      severity: VulnerabilitySeverity.High,
+      description: "Administrative interface is reachable externally",
+      metadata: { cvss: 8.1 },
+      createdBy: userId,
+      updatedBy: userId,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    },
+  ],
   observationCount: 2,
   observingSources: ["manual", "nuclei"],
   firstSeen: "2026-01-02T00:00:00.000Z",
@@ -146,15 +126,6 @@ const observationJson = {
   updatedBy: userId,
   createdAt: "2026-01-03T00:00:00.000Z",
   updatedAt: "2026-01-03T00:00:00.000Z",
-};
-const createFindingPayload: LegacyCreateFinding = {
-  vulnerabilityId,
-  severity: VulnerabilitySeverity.High,
-  status: FindingStatus.Active,
-  source: FindingSource.Manual,
-  evidence: "Observed exposed admin endpoint",
-  mitigation: "Restrict access to internal networks",
-  assetId,
 };
 const createManualFindingPayload: CreateManualFinding = {
   assetId,
@@ -194,18 +165,6 @@ const findingStats: FindingStatistics = {
     [assetId]: 2,
   },
 };
-
-function expectFindingDates(finding: Finding) {
-  expect(finding.dueDate).toBeInstanceOf(Date);
-  expect(finding.firstSeen).toBeInstanceOf(Date);
-  expect(finding.lastSeen).toBeInstanceOf(Date);
-  expect(finding.createdAt).toBeInstanceOf(Date);
-  expect(finding.updatedAt).toBeInstanceOf(Date);
-  expect(finding.vulnerability.createdAt).toBeInstanceOf(Date);
-  expect(finding.vulnerability.updatedAt).toBeInstanceOf(Date);
-  expect(finding.dueDate?.toISOString()).toBe("2026-05-06T00:00:00.000Z");
-  expect(finding.lastSeen.toISOString()).toBe("2026-01-03T00:00:00.000Z");
-}
 
 function expectProjectionDates(finding: FindingProjection) {
   expect(finding.dueDate).toBeInstanceOf(Date);
@@ -383,28 +342,6 @@ describe("finding api", () => {
     expect(requestJsonBody()).toEqual({ targetFindingId });
   });
 
-  it("creates findings with a JSON request body", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        data: findingJson,
-      }),
-    );
-
-    const finding = await createFinding(createFindingPayload);
-
-    expectFindingDates(finding);
-    const headers = requestInit().headers as Headers;
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/findings",
-      expect.objectContaining({
-        credentials: "include",
-        method: "POST",
-      }),
-    );
-    expect(headers.get("Content-Type")).toBe("application/json");
-    expect(requestJsonBody()).toEqual(createFindingPayload);
-  });
-
   it("creates manual findings with nested observation data and parses the projection", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
@@ -415,6 +352,7 @@ describe("finding api", () => {
     const finding = await createManualFinding(createManualFindingPayload);
 
     expectProjectionDates(finding);
+    const headers = requestInit().headers as Headers;
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/findings",
       expect.objectContaining({
@@ -422,6 +360,7 @@ describe("finding api", () => {
         method: "POST",
       }),
     );
+    expect(headers.get("Content-Type")).toBe("application/json");
     expect(requestJsonBody()).toEqual(createManualFindingPayload);
   });
 
