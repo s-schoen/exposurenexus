@@ -127,7 +127,6 @@ const baseFinding: Finding = {
 };
 
 const RESOURCE_VARIANTS: Record<string, FindingAffectedResource> = {
-  Asset: { type: AffectedResourceType.Asset },
   Unspecified: { type: AffectedResourceType.Unspecified },
   WebEndpoint: baseFinding.affectedResource,
   NetworkService: {
@@ -310,9 +309,6 @@ export const EditableCorrection: Story = {
   },
 };
 
-export const AssetResource: Story = {
-  args: { finding: { ...baseFinding, affectedResource: RESOURCE_VARIANTS.Asset } },
-};
 export const UnspecifiedResource: Story = {
   args: { finding: { ...baseFinding, affectedResource: RESOURCE_VARIANTS.Unspecified } },
 };

@@ -54,7 +54,7 @@ describe("observation resolver contract", () => {
           severity: observation.severity,
           weakness: observation.weakness,
           affectedResource: findingAffectedResourceSchema.parse({
-            type: AffectedResourceType.Asset,
+            type: AffectedResourceType.Unspecified,
           }),
         },
       }),
@@ -65,7 +65,7 @@ describe("observation resolver contract", () => {
     ).resolves.toMatchObject({
       kind: "create",
       canonicalFinding: {
-        affectedResource: { type: AffectedResourceType.Asset },
+        affectedResource: { type: AffectedResourceType.Unspecified },
       },
     });
   });

@@ -92,7 +92,6 @@ The initial type family is:
 
 ```ts
 type AffectedResource =
-  | AssetAffectedResource
   | UnspecifiedAffectedResource
   | WebEndpointAffectedResource
   | NetworkServiceAffectedResource
@@ -105,10 +104,10 @@ type AffectedResource =
 The type family is extensible through an explicit schema and domain-model change.
 There is no generic `custom` affected-resource type in the initial model.
 
-Affected-resource data may repeat information that also appears on the asset,
-such as a host name, repository, cloud account, or image repository. This is
-acceptable because the asset identifies the owning inventory object while the
-affected resource identifies the part of that asset involved in the finding.
+The owning `assetId` already identifies the asset. Affected-resource data may
+repeat asset information such as a host name, repository, cloud account, or image
+repository because it identifies a narrower part of that asset, or records that
+the narrower identity is unspecified.
 
 #### Unspecified Resources
 
@@ -121,9 +120,9 @@ recorded:
 }
 ```
 
-These values are not equivalent. `asset` is an affirmative identity statement;
-`unspecified` is the absence of narrower resource identity. Neither type accepts
-additional fields.
+This is the absence of narrower resource identity and accepts no additional
+fields. It does not duplicate the owning asset identity already carried by
+`assetId`.
 
 Manual workflows may use `unspecified`. Automated imports may not use
 `unspecified` to resolve or create findings.
@@ -359,8 +358,8 @@ not valid.
 
 Additional workflow policy is contextual and belongs outside the schema:
 
-- Manual findings and manual observations may use `asset`, `unspecified`, or a
-  partially populated concrete type.
+- Manual findings and manual observations may use `unspecified` or a partially
+  populated concrete type.
 - Automated observations may require enough type-specific data for a particular
   matching policy.
 - Findings created by an automated importer may apply stricter service-level
@@ -1025,8 +1024,8 @@ Affected-resource storage, validation, serialization, import translation,
 matching, and UI rendering must become type-aware. Existing `category: "web"`
 resources migrate to `type: "webEndpoint"`; existing `category: "code"`
 resources migrate to `type: "sourceCode"`; and empty affected-resource objects
-migrate to `type: "unspecified"` unless existing data establishes deliberate
-whole-asset scope.
+migrate to `type: "unspecified"`. The owning `assetId` continues to identify the
+asset; affected resources only identify a narrower resource or its absence.
 
 Existing URL strings must be parsed into canonical web-endpoint fields where
 possible. Source-reported URL strings belong on observations as `reportedUrl`.

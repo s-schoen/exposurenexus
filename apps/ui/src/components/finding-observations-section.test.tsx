@@ -20,7 +20,6 @@ describe("FindingObservationsSection", () => {
     expect(screen.getByText("Restrict access to trusted networks.")).toBeVisible();
     expect(screen.getByText(/CWE-200/)).toBeVisible();
     for (const value of [
-      "Asset-wide observation",
       "Unspecified resource",
       "Observed network service",
       "9a0f8c1",
@@ -78,11 +77,7 @@ describe("FindingObservationsSection", () => {
     await actor.click(screen.getByRole("button", { name: "Add observation" }));
     dialog = screen.getByRole("dialog", { name: "Add manual observation" });
     await actor.click(within(dialog).getByLabelText("Affected resource type"));
-    await actor.click(screen.getByRole("option", { name: "Asset" }));
-    await actor.click(within(dialog).getByRole("button", { name: "Cancel" }));
-    await actor.click(screen.getByRole("button", { name: "Add observation" }));
-    dialog = screen.getByRole("dialog", { name: "Add manual observation" });
-    await actor.click(within(dialog).getByLabelText("Affected resource type"));
+    expect(screen.queryByRole("option", { name: "Asset" })).toBeNull();
     await actor.click(screen.getByRole("option", { name: "Unspecified resource" }));
   });
 
@@ -108,7 +103,7 @@ describe("FindingObservationsSection", () => {
     render(<Populated />);
 
     await actor.click(
-      await screen.findByRole("button", { name: "Edit observation Asset-wide observation" }),
+      await screen.findByRole("button", { name: "Edit observation Unspecified resource" }),
     );
     const dialog = screen.getByRole("dialog", { name: "Correct observation" });
     await actor.clear(within(dialog).getByLabelText("Title"));
@@ -129,7 +124,7 @@ describe("FindingObservationsSection", () => {
     render(<Populated />);
 
     await actor.click(
-      await screen.findByRole("button", { name: "Edit observation Asset-wide observation" }),
+      await screen.findByRole("button", { name: "Edit observation Unspecified resource" }),
     );
     const dialog = screen.getByRole("dialog", { name: "Correct observation" });
     await actor.clear(within(dialog).getByLabelText("Title"));
@@ -144,15 +139,15 @@ describe("FindingObservationsSection", () => {
     render(<DeleteFinalObservation />);
 
     await actor.click(
-      await screen.findByRole("button", { name: "Delete observation Asset-wide observation" }),
+      await screen.findByRole("button", { name: "Delete observation Unspecified resource" }),
     );
     let dialog = screen.getByRole("dialog", { name: "Delete observation" });
     expect(dialog).toHaveTextContent("The finding remains, even if this is its final observation.");
     await actor.click(within(dialog).getByRole("button", { name: "Keep observation" }));
-    expect(screen.getByText("Asset-wide observation")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Unspecified resource" })).toBeVisible();
 
     await actor.click(
-      screen.getByRole("button", { name: "Delete observation Asset-wide observation" }),
+      screen.getByRole("button", { name: "Delete observation Unspecified resource" }),
     );
     dialog = screen.getByRole("dialog", { name: "Delete observation" });
     await actor.click(within(dialog).getByRole("button", { name: "Delete observation" }));
@@ -165,7 +160,7 @@ describe("FindingObservationsSection", () => {
     render(<Populated />);
 
     await actor.click(
-      await screen.findByRole("button", { name: "Move observation Asset-wide observation" }),
+      await screen.findByRole("button", { name: "Move observation Unspecified resource" }),
     );
     const dialog = screen.getByRole("dialog", { name: "Move observation" });
     expect(within(dialog).getByLabelText("Target finding")).toBeVisible();
@@ -173,7 +168,7 @@ describe("FindingObservationsSection", () => {
     await actor.click(await screen.findByRole("option", { name: /Target finding/ }));
     await actor.click(within(dialog).getByRole("button", { name: "Move observation" }));
 
-    await waitFor(() => expect(screen.queryByText("Asset-wide observation")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("Unspecified resource")).toBeNull());
     expect(screen.queryByRole("dialog", { name: "Move observation" })).toBeNull();
   });
 });

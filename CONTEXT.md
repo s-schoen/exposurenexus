@@ -127,12 +127,10 @@ Observations preserve the weakness data reported by their source.
 
 ### Affected Resource
 
-An **affected resource** is the specific part of an asset affected by a
-weakness. It has an explicit type whose schema defines its allowed fields.
-
-The affected-resource type `asset` means the weakness affirmatively applies to
-the asset as a whole. `unspecified` means that a narrower affected resource is
-not known. These meanings are not interchangeable.
+An **affected resource** is a specific part of an asset affected by a weakness,
+or an explicit record that no narrower resource is known. It has a type whose
+schema defines its allowed fields. The owning `assetId` already identifies the
+asset; `unspecified` represents the absence of narrower resource identity.
 
 Findings own structured affected-resource data. Shared schemas validate field
 shape but do not normalize values or enforce semantic relationships.

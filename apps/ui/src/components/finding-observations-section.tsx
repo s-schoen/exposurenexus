@@ -175,7 +175,6 @@ function ObservationResourceFields({
   onChange: (resource: ObservationResource) => void;
 }) {
   switch (resource.type) {
-    case AffectedResourceType.Asset:
     case AffectedResourceType.Unspecified:
       return null;
     case AffectedResourceType.WebEndpoint: {

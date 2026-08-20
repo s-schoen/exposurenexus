@@ -99,8 +99,6 @@ function formatResourceType(type: AffectedResourceType) {
       return "Container image";
     case AffectedResourceType.CloudResource:
       return "Cloud resource";
-    case AffectedResourceType.Asset:
-      return "Whole asset";
     case AffectedResourceType.Unspecified:
       return "Unspecified resource";
     case AffectedResourceType.Package:
@@ -178,7 +176,6 @@ function renderResourceFields(
   onChange: (resource: FindingAffectedResource) => void,
 ) {
   switch (resource.type) {
-    case AffectedResourceType.Asset:
     case AffectedResourceType.Unspecified:
       return null;
     case AffectedResourceType.WebEndpoint:
@@ -580,8 +577,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         </SelectContent>
                       </Select>
                       <FieldDescription>
-                        Unspecified keeps the finding at asset scope until a narrower resource is
-                        known.
+                        Unspecified means that no narrower affected resource is known.
                       </FieldDescription>
                       {renderResourceFields(field.state.value, (resource) =>
                         field.handleChange(resource),
