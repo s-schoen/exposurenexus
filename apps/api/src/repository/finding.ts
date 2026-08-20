@@ -11,13 +11,13 @@ import {
 import { observationSchema, type Observation } from "@exposurenexus/types/model/observation";
 import { weaknessSchema, type Weakness } from "@exposurenexus/types/model/weakness";
 import {
-  sql,
   type Kysely,
   type Insertable,
   type Selectable,
   type Transaction,
   type Updateable,
 } from "kysely";
+import { jsonArrayFrom } from "kysely/helpers/postgres";
 
 import type { Database } from "../db/index.js";
 import type { FindingTable } from "../db/schema/finding.js";
@@ -102,41 +102,43 @@ const findingProjectionGroupColumns = [
 ] as const;
 
 function projectionQuery(database: DatabaseExecutor) {
+  // Aggregate observation history without dropping findings that have no observations.
   return database
     .selectFrom("finding")
     .leftJoin("observation", "observation.findingId", "finding.id")
     .selectAll("finding")
-    .select([
-      sql<number>`count(distinct ${sql.ref("observation.id")})::integer`.as("observationCount"),
-      sql<Date | null>`min(${sql.ref("observation.observedAt")})`.as("firstSeen"),
-      sql<Date | null>`max(${sql.ref("observation.observedAt")})`.as("lastSeen"),
-      sql<unknown[]>`
-        coalesce(
-          (
-            select jsonb_agg(
-              jsonb_build_object(
-                'id', "projection_vulnerability"."id",
-                'type', "projection_vulnerability"."type",
-                'identifier', "projection_vulnerability"."identifier",
-                'title', "projection_vulnerability"."title",
-                'description', "projection_vulnerability"."description",
-                'severity', "projection_vulnerability"."severity",
-                'metadata', "projection_vulnerability"."metadata",
-                'createdAt', "projection_vulnerability"."createdAt",
-                'updatedAt', "projection_vulnerability"."updatedAt",
-                'createdBy', "projection_vulnerability"."createdBy",
-                'updatedBy', "projection_vulnerability"."updatedBy"
-              )
-              order by "projection_vulnerability"."type", "projection_vulnerability"."identifier"
-            )
-            from "finding_vulnerability" as "projection_link"
-            inner join "vulnerability" as "projection_vulnerability"
-              on "projection_vulnerability"."id" = "projection_link"."vulnerabilityId"
-            where "projection_link"."findingId" = "finding"."id"
-          ),
-          '[]'::jsonb
-        )
-      `.as("vulnerabilities"),
+    .select((expression) => [
+      expression
+        .cast<number>(expression.fn.count("observation.id").distinct(), "integer")
+        .as("observationCount"),
+      expression.fn.min("observation.observedAt").as("firstSeen"),
+      expression.fn.max("observation.observedAt").as("lastSeen"),
+      // Correlate each finding with an ordered, API-shaped array of its catalog entries.
+      jsonArrayFrom(
+        expression
+          .selectFrom("finding_vulnerability as projection_link")
+          .innerJoin(
+            "vulnerability as projection_vulnerability",
+            "projection_vulnerability.id",
+            "projection_link.vulnerabilityId",
+          )
+          .select([
+            "projection_vulnerability.id",
+            "projection_vulnerability.type",
+            "projection_vulnerability.identifier",
+            "projection_vulnerability.title",
+            "projection_vulnerability.description",
+            "projection_vulnerability.severity",
+            "projection_vulnerability.metadata",
+            "projection_vulnerability.createdAt",
+            "projection_vulnerability.updatedAt",
+            "projection_vulnerability.createdBy",
+            "projection_vulnerability.updatedBy",
+          ])
+          .whereRef("projection_link.findingId", "=", "finding.id")
+          .orderBy("projection_vulnerability.type")
+          .orderBy("projection_vulnerability.identifier"),
+      ).as("vulnerabilities"),
     ])
     .groupBy(findingProjectionGroupColumns)
     .orderBy("finding.updatedAt", "desc");
