@@ -1,7 +1,6 @@
 export { createAssetRepository } from "./asset.js";
 export { createAssetCustomFieldRepository } from "./asset-custom-field.js";
 export { createFindingRepository } from "./finding.js";
-export { createFindingVulnerabilityRepository } from "./finding-vulnerability.js";
 export { createIngestionRepository } from "./ingestion.js";
 export { createObservationRepository } from "./observation.js";
 export { createRoleRepository } from "./role.js";

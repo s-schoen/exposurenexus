@@ -20,13 +20,8 @@ describe("finding service", () => {
     getProjectedByID: vi.fn(),
     updateByID: vi.fn(),
     deleteByID: vi.fn(),
-  };
-  const findingVulnerabilityRepository = {
-    listByFindingID: vi.fn(),
-    create: vi.fn(),
-    delete: vi.fn(),
-    linkAndTouchFinding: vi.fn(),
-    unlinkAndTouchFinding: vi.fn(),
+    linkVulnerability: vi.fn(),
+    unlinkVulnerability: vi.fn(),
   };
   const observationRepository = {
     listByFindingID: vi.fn(),
@@ -82,7 +77,6 @@ describe("finding service", () => {
   function createService() {
     return createFindingService({
       findingRepository,
-      findingVulnerabilityRepository,
       observationRepository,
       assetService,
       userProfileService,
@@ -215,8 +209,8 @@ describe("finding service", () => {
     const link = { findingId: baseFinding.id, vulnerabilityId: vulnerability.id };
     findingRepository.getProjectedByID.mockResolvedValue(baseFinding);
     vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-    findingVulnerabilityRepository.linkAndTouchFinding.mockResolvedValue({ link, changed: true });
-    findingVulnerabilityRepository.unlinkAndTouchFinding.mockResolvedValue({ link, changed: true });
+    findingRepository.linkVulnerability.mockResolvedValue({ link, changed: true });
+    findingRepository.unlinkVulnerability.mockResolvedValue({ link, changed: true });
 
     await expect(
       createService().linkVulnerability({

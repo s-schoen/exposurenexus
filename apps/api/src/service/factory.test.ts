@@ -211,13 +211,8 @@ describe("service factories", () => {
       createManual: vi.fn(),
       updateByID: vi.fn(),
       deleteByID: vi.fn(),
-    };
-    const findingVulnerabilityRepository = {
-      listByFindingID: vi.fn(),
-      create: vi.fn(),
-      delete: vi.fn(),
-      linkAndTouchFinding: vi.fn(),
-      unlinkAndTouchFinding: vi.fn(),
+      linkVulnerability: vi.fn(),
+      unlinkVulnerability: vi.fn(),
     };
     const observationRepository = {
       listByFindingID: vi.fn().mockResolvedValue([]),
@@ -229,7 +224,6 @@ describe("service factories", () => {
 
     const service = createFindingService({
       findingRepository,
-      findingVulnerabilityRepository,
       observationRepository,
       assetService: { getByID: vi.fn() },
       userProfileService: {
@@ -248,6 +242,6 @@ describe("service factories", () => {
     expect(findingRepository.listProjected).toHaveBeenCalledOnce();
     expect(findingRepository.getProjectedByID).toHaveBeenCalledWith("finding-id");
     expect(observationRepository.listByFindingID).toHaveBeenCalledWith("finding-id");
-    expect(findingVulnerabilityRepository).toHaveProperty("linkAndTouchFinding");
+    expect(findingRepository).toHaveProperty("linkVulnerability");
   });
 });

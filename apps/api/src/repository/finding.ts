@@ -8,6 +8,10 @@ import {
   findingSchema,
   type Finding,
 } from "@exposurenexus/types/model/finding";
+import {
+  findingVulnerabilityLinkSchema,
+  type FindingVulnerabilityLink,
+} from "@exposurenexus/types/model/finding-vulnerability";
 import { observationSchema, type Observation } from "@exposurenexus/types/model/observation";
 import { weaknessSchema, type Weakness } from "@exposurenexus/types/model/weakness";
 import {
@@ -22,7 +26,6 @@ import { jsonArrayFrom } from "kysely/helpers/postgres";
 import type { Database } from "../db/index.js";
 import type { FindingTable } from "../db/schema/finding.js";
 import type { ObservationTable } from "../db/schema/observation.js";
-import type { FindingVulnerabilityRecord } from "./finding-vulnerability.js";
 import type { CreateObservationRecord } from "./observation.js";
 
 export type FindingRecord = Selectable<FindingTable>;
@@ -58,8 +61,20 @@ export interface CreateManualFindingInput {
 export interface CreateManualFindingResult {
   finding: FindingRecord;
   observation: Observation;
-  links: FindingVulnerabilityRecord[];
+  links: FindingVulnerabilityLink[];
   projection: Finding;
+}
+
+export interface FindingVulnerabilityMutationInput {
+  findingId: string;
+  vulnerabilityId: string;
+  updatedAt: Date;
+  updatedBy: string;
+}
+
+export interface FindingVulnerabilityMutation {
+  link: FindingVulnerabilityLink | null;
+  changed: boolean;
 }
 
 export interface FindingRepository {
@@ -68,6 +83,12 @@ export interface FindingRepository {
   listProjected(): Promise<Finding[]>;
   getProjectedByID(id: string): Promise<Finding | null>;
   createManual(input: CreateManualFindingInput): Promise<CreateManualFindingResult>;
+  linkVulnerability(
+    input: FindingVulnerabilityMutationInput,
+  ): Promise<FindingVulnerabilityMutation>;
+  unlinkVulnerability(
+    input: FindingVulnerabilityMutationInput,
+  ): Promise<FindingVulnerabilityMutation>;
   create(finding: CreateFindingRecord): Promise<FindingRecord>;
   updateByID(id: string, finding: UpdateFindingRecord): Promise<FindingRecord | null>;
   deleteByID(id: string): Promise<FindingRecord | null>;
@@ -258,8 +279,83 @@ export function createFindingRepository(database: Kysely<Database>): FindingRepo
         return {
           finding: normalizeFinding(createdFinding),
           observation: normalizeObservation(createdObservation),
-          links: links as FindingVulnerabilityRecord[],
+          links: links.map((link) => findingVulnerabilityLinkSchema.parse(link)),
           projection,
+        };
+      });
+    },
+
+    async linkVulnerability(
+      input: FindingVulnerabilityMutationInput,
+    ): Promise<FindingVulnerabilityMutation> {
+      return await database.transaction().execute(async (transaction) => {
+        const inserted = await transaction
+          .insertInto("finding_vulnerability")
+          .values({ findingId: input.findingId, vulnerabilityId: input.vulnerabilityId })
+          .onConflict((conflict) => conflict.columns(["findingId", "vulnerabilityId"]).doNothing())
+          .returningAll()
+          .executeTakeFirst();
+
+        if (!inserted) {
+          const existing = await transaction
+            .selectFrom("finding_vulnerability")
+            .selectAll()
+            .where("findingId", "=", input.findingId)
+            .where("vulnerabilityId", "=", input.vulnerabilityId)
+            .executeTakeFirstOrThrow();
+
+          return {
+            link: findingVulnerabilityLinkSchema.parse(existing),
+            changed: false,
+          };
+        }
+
+        await transaction
+          .updateTable("finding")
+          .set({
+            updatedAt: input.updatedAt,
+            updatedBy: input.updatedBy,
+          })
+          .where("id", "=", input.findingId)
+          .executeTakeFirstOrThrow();
+
+        return {
+          link: findingVulnerabilityLinkSchema.parse(inserted),
+          changed: true,
+        };
+      });
+    },
+
+    async unlinkVulnerability(
+      input: FindingVulnerabilityMutationInput,
+    ): Promise<FindingVulnerabilityMutation> {
+      return await database.transaction().execute(async (transaction) => {
+        const deleted = await transaction
+          .deleteFrom("finding_vulnerability")
+          .where("findingId", "=", input.findingId)
+          .where("vulnerabilityId", "=", input.vulnerabilityId)
+          .returningAll()
+          .executeTakeFirst();
+
+        if (!deleted) {
+          return {
+            link: null,
+            changed: false,
+          };
+        }
+
+        await transaction
+          .updateTable("finding")
+          .set({
+            updatedAt: input.updatedAt,
+            updatedBy: input.updatedBy,
+          })
+          .where("id", "=", input.findingId)
+          .executeTakeFirstOrThrow();
+
+        return {
+          link: findingVulnerabilityLinkSchema.parse(deleted),
+          changed: true,
         };
       });
     },
