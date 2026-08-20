@@ -55,11 +55,11 @@ import { capitalizeFirstLetter, formatSeverity } from "@/lib/format.ts";
 import { formatWeaknessText, parseWeaknessText } from "@/lib/weakness-text.ts";
 
 import type { ObservationAffectedResourceInput as ObservationResource } from "@exposurenexus/types/model/affected-resource";
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 import type { ManualObservationInput, Observation } from "@exposurenexus/types/model/observation";
 
 interface FindingObservationsSectionProps {
-  finding: FindingProjection;
+  finding: Finding;
 }
 
 type ObservationDraft = Omit<ManualObservationInput, "affectedResource"> & {
@@ -982,7 +982,7 @@ function ObservationCard({ observation }: { observation: Observation }) {
   );
 }
 
-function AddObservationDialog({ finding }: { finding: FindingProjection }) {
+function AddObservationDialog({ finding }: { finding: Finding }) {
   const lifecycle = useObservationLifecycle();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<ObservationDraft>({});

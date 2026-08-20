@@ -7,11 +7,11 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 import type { ReactElement } from "react";
 
 interface FindingContextMenuProps {
-  findingsRef: React.RefObject<Array<FindingProjection>>;
+  findingsRef: React.RefObject<Array<Finding>>;
   onDelete: () => void;
   children: ReactElement;
 }

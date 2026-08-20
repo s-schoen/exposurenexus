@@ -4,7 +4,7 @@ import {
   type AssetCustomFieldDefinition,
   AssetCustomFieldType,
 } from "@exposurenexus/types/model/asset-custom-field";
-import { FindingStatus, type FindingProjection } from "@exposurenexus/types/model/finding";
+import { FindingStatus, type Finding } from "@exposurenexus/types/model/finding";
 import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
@@ -74,7 +74,7 @@ describe("registerAuditLogger", () => {
     updatedBy: user.id,
     createdAt: new Date("2026-05-07T09:10:00.000Z"),
     updatedAt: new Date("2026-05-07T09:10:00.000Z"),
-  } satisfies FindingProjection;
+  } satisfies Finding;
   const asset = {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
     displayName: "api.exposurenexus.local",
@@ -246,7 +246,7 @@ describe("registerAuditLogger", () => {
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
-  it("logs final finding projections at info", async () => {
+  it("logs final findings at info", async () => {
     const eventBus = new EventBus<DomainEvent>();
     const logger = createLogger();
     const eventTime = new Date("2026-05-07T10:15:00.000Z");

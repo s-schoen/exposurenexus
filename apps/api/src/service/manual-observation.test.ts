@@ -1,5 +1,5 @@
 import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { FindingStatus, type FindingProjection } from "@exposurenexus/types/model/finding";
+import { FindingStatus, type Finding } from "@exposurenexus/types/model/finding";
 import { ObservationSource, type Observation } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { pino } from "pino";
@@ -15,7 +15,7 @@ const observationId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe";
 const oldTime = new Date("2026-08-16T10:00:00.000Z");
 const now = new Date("2026-08-17T10:00:00.000Z");
 
-const previousFinding: FindingProjection = {
+const previousFinding: Finding = {
   id: findingId,
   assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
   title: "Canonical title",
@@ -38,7 +38,7 @@ const previousFinding: FindingProjection = {
 };
 
 describe("nested manual observations", () => {
-  const findingPersistenceRepository = {
+  const findingRepository = {
     createManual: vi.fn(),
     listProjected: vi.fn(),
     getProjectedByID: vi.fn(),
@@ -65,12 +65,12 @@ describe("nested manual observations", () => {
     vi.clearAllMocks();
     domainEvents.clear();
     vi.useRealTimers();
-    findingPersistenceRepository.getProjectedByID.mockResolvedValue(previousFinding);
+    findingRepository.getProjectedByID.mockResolvedValue(previousFinding);
   });
 
   function createService() {
     return createFindingService({
-      findingPersistenceRepository,
+      findingRepository,
       findingVulnerabilityRepository,
       observationRepository,
       assetService: { getByID: vi.fn() },
@@ -88,7 +88,7 @@ describe("nested manual observations", () => {
     await expect(createService().listObservations(findingId)).resolves.toBe(observations);
     expect(observationRepository.listByFindingID).toHaveBeenCalledWith(findingId);
 
-    findingPersistenceRepository.getProjectedByID.mockResolvedValueOnce(null);
+    findingRepository.getProjectedByID.mockResolvedValueOnce(null);
     await expect(createService().listObservations(findingId)).resolves.toBeNull();
     expect(observationRepository.listByFindingID).toHaveBeenCalledOnce();
   });
@@ -120,12 +120,12 @@ describe("nested manual observations", () => {
       observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
       lastSeen: now,
       updatedAt: now,
-    } satisfies FindingProjection;
+    } satisfies Finding;
     const lockedPreviousFinding = {
       ...previousFinding,
       title: "Locked canonical title",
       severity: VulnerabilitySeverity.Medium,
-    } satisfies FindingProjection;
+    } satisfies Finding;
     const createdFromLockedFinding = {
       ...createdObservation,
       title: lockedPreviousFinding.title,
@@ -150,7 +150,7 @@ describe("nested manual observations", () => {
       findingId,
       buildObservation: expect.any(Function),
     });
-    expect(findingPersistenceRepository.getProjectedByID).not.toHaveBeenCalled();
+    expect(findingRepository.getProjectedByID).not.toHaveBeenCalled();
     expect(domainEvents.subjects()).toEqual(["observation.created", "finding.updated"]);
     expect(domainEvents.events).toMatchObject([
       {
@@ -191,7 +191,7 @@ describe("nested manual observations", () => {
 
     const input = observationRepository.createAndTouchFinding.mock.calls[0]?.[0];
     expect(input?.buildObservation(previousFinding)).toMatchObject(supplied);
-    expect(findingPersistenceRepository.updateByID).not.toHaveBeenCalled();
+    expect(findingRepository.updateByID).not.toHaveBeenCalled();
   });
 
   it("returns null when the transaction reports that the locked parent does not exist", async () => {
@@ -201,7 +201,7 @@ describe("nested manual observations", () => {
       createService().createManualObservation({ findingId, observation: {}, user }),
     ).resolves.toBeNull();
     expect(observationRepository.createAndTouchFinding).toHaveBeenCalledOnce();
-    expect(findingPersistenceRepository.getProjectedByID).not.toHaveBeenCalled();
+    expect(findingRepository.getProjectedByID).not.toHaveBeenCalled();
     expect(domainEvents.subjects()).toEqual([]);
   });
 
@@ -292,7 +292,7 @@ describe("nested manual observations", () => {
       updatedAt: now,
       updatedBy: user.id,
       lastSeen: now,
-    } satisfies FindingProjection;
+    } satisfies Finding;
     observationRepository.updateAndTouchFinding.mockResolvedValue({
       previousObservation,
       observation: currentObservation,
@@ -371,7 +371,7 @@ describe("nested manual observations", () => {
       lastSeen: null,
       updatedAt: now,
       updatedBy: user.id,
-    } satisfies FindingProjection;
+    } satisfies Finding;
     observationRepository.deleteAndTouchFinding.mockResolvedValue({
       observation: deletedObservation,
       previous: previousFinding,
@@ -433,7 +433,7 @@ describe("nested manual observations", () => {
       observingSources: [],
       firstSeen: null,
       lastSeen: null,
-    } satisfies FindingProjection;
+    } satisfies Finding;
     const movedObservation = {
       id: observationId,
       findingId: targetFindingId,
@@ -460,7 +460,7 @@ describe("nested manual observations", () => {
       lastSeen: null,
       updatedAt: now,
       updatedBy: user.id,
-    } satisfies FindingProjection;
+    } satisfies Finding;
     const targetCurrent = {
       ...targetFinding,
       observationCount: 1,
@@ -469,7 +469,7 @@ describe("nested manual observations", () => {
       lastSeen: now,
       updatedAt: now,
       updatedBy: user.id,
-    } satisfies FindingProjection;
+    } satisfies Finding;
     let resolveTransaction!: () => void;
     observationRepository.moveAndTouchFindings.mockReturnValue(
       new Promise((resolve) => {

@@ -5,11 +5,11 @@ import {
 import { observationSchema, type Observation } from "@exposurenexus/types/model/observation";
 import { weaknessSchema, type Weakness } from "@exposurenexus/types/model/weakness";
 
-import { getFindingProjectionByID } from "./finding-persistence.js";
+import { getFindingProjectionByID } from "./finding.js";
 
 import type { Database } from "../db/index.js";
 import type { ObservationTable } from "../db/schema/observation.js";
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 import type { Kysely, Insertable, Selectable, Updateable } from "kysely";
 
 type ObservationRecord = Observation;
@@ -44,13 +44,13 @@ export type UpdateObservationRecord = Omit<
 
 export interface CreateObservationAndTouchFindingInput {
   findingId: string;
-  buildObservation: (previous: FindingProjection) => CreateObservationRecord;
+  buildObservation: (previous: Finding) => CreateObservationRecord;
 }
 
 export interface CreateObservationAndTouchFindingResult {
   observation: ObservationRecord;
-  previous: FindingProjection;
-  current: FindingProjection;
+  previous: Finding;
+  current: Finding;
 }
 
 export interface UpdateObservationAndTouchFindingInput {
@@ -62,8 +62,8 @@ export interface UpdateObservationAndTouchFindingInput {
 export interface UpdateObservationAndTouchFindingResult {
   previousObservation: ObservationRecord;
   observation: ObservationRecord;
-  previous: FindingProjection;
-  current: FindingProjection;
+  previous: Finding;
+  current: Finding;
 }
 
 export interface DeleteObservationAndTouchFindingInput {
@@ -75,8 +75,8 @@ export interface DeleteObservationAndTouchFindingInput {
 
 export interface DeleteObservationAndTouchFindingResult {
   observation: ObservationRecord;
-  previous: FindingProjection;
-  current: FindingProjection;
+  previous: Finding;
+  current: Finding;
 }
 
 export interface MoveObservationAndTouchFindingsInput {
@@ -90,10 +90,10 @@ export interface MoveObservationAndTouchFindingsInput {
 export interface MoveObservationAndTouchFindingsResult {
   previousObservation: ObservationRecord;
   observation: ObservationRecord;
-  sourcePrevious: FindingProjection;
-  sourceCurrent: FindingProjection;
-  targetPrevious: FindingProjection;
-  targetCurrent: FindingProjection;
+  sourcePrevious: Finding;
+  sourceCurrent: Finding;
+  targetPrevious: Finding;
+  targetCurrent: Finding;
 }
 
 export interface ObservationRepository {

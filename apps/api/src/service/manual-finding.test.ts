@@ -2,7 +2,7 @@ import { AffectedResourceType } from "@exposurenexus/types/model/affected-resour
 import {
   FindingStatus,
   type CreateManualFinding,
-  type FindingProjection,
+  type Finding,
 } from "@exposurenexus/types/model/finding";
 import { ObservationSource, type Observation } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
@@ -19,7 +19,7 @@ const findingId = "2713d833-eb13-4517-ac7c-7761545ed42a";
 const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe";
 
 describe("manual finding creation", () => {
-  const findingPersistenceRepository = {
+  const findingRepository = {
     createManual: vi.fn(),
     listProjected: vi.fn(),
     getProjectedByID: vi.fn(),
@@ -63,7 +63,7 @@ describe("manual finding creation", () => {
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
   };
-  const projection: FindingProjection = {
+  const projection: Finding = {
     id: findingId,
     assetId,
     title: "Exposed admin panel",
@@ -109,7 +109,7 @@ describe("manual finding creation", () => {
     assetService.getByID.mockResolvedValue({ id: assetId });
     userProfileService.getByID.mockResolvedValue(null);
     vulnerabilityService.getByID.mockResolvedValue(vulnerability);
-    findingPersistenceRepository.createManual.mockResolvedValue({
+    findingRepository.createManual.mockResolvedValue({
       finding: projection,
       observation: initialObservation,
       links: [],
@@ -119,7 +119,7 @@ describe("manual finding creation", () => {
 
   function createService() {
     return createFindingService({
-      findingPersistenceRepository,
+      findingRepository,
       findingVulnerabilityRepository,
       observationRepository,
       assetService,
@@ -160,7 +160,7 @@ describe("manual finding creation", () => {
       }),
     ).resolves.toBe(projection);
 
-    expect(findingPersistenceRepository.createManual).toHaveBeenCalledWith({
+    expect(findingRepository.createManual).toHaveBeenCalledWith({
       finding: {
         assetId,
         title: finding.title,
@@ -207,13 +207,11 @@ describe("manual finding creation", () => {
       correlationId: "manual-create-request",
       data: { observation: initialObservation },
     });
-    expect(findingPersistenceRepository.getProjectedByID).not.toHaveBeenCalled();
+    expect(findingRepository.getProjectedByID).not.toHaveBeenCalled();
   });
 
   it("does not emit an event when the atomic persistence operation fails", async () => {
-    findingPersistenceRepository.createManual.mockRejectedValue(
-      new Error("observation write failed"),
-    );
+    findingRepository.createManual.mockRejectedValue(new Error("observation write failed"));
 
     await expect(
       createService().createManual({

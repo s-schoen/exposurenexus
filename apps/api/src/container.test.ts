@@ -148,15 +148,15 @@ vi.mock("./repository/index.js", () => ({
     kind: "asset-custom-field-repo",
   })),
   createAssetRepository: vi.fn(() => ({ kind: "asset-repo" })),
-  createFindingPersistenceRepository: vi.fn(() => ({ kind: "finding-persistence-repo" })),
+  createFindingRepository: vi.fn(() => ({ kind: "finding-repo" })),
   createFindingVulnerabilityRepository: vi.fn(() => ({ kind: "finding-vulnerability-repo" })),
   createObservationRepository: createObservationRepositoryMock,
   createRoleRepository: vi.fn(() => roleRepositoryMock),
   createUserRoleRepository: vi.fn(() => userRoleRepositoryMock),
   createUserProfileRepository: vi.fn(() => ({ kind: "user-profile-repo" })),
   createUserSessionRepository: vi.fn(() => ({ kind: "user-session-repo" })),
-  createVulnerabilityPersistenceRepository: vi.fn(() => ({
-    kind: "vulnerability-persistence-repo",
+  createVulnerabilityRepository: vi.fn(() => ({
+    kind: "vulnerability-repo",
   })),
 }));
 
@@ -271,7 +271,7 @@ describe("app container", () => {
     );
     expect(createFindingServiceMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        findingPersistenceRepository: { kind: "finding-persistence-repo" },
+        findingRepository: { kind: "finding-repo" },
         findingVulnerabilityRepository: { kind: "finding-vulnerability-repo" },
         observationRepository: { kind: "observation-repo" },
         domainEventEmitter: expect.objectContaining({
@@ -281,7 +281,7 @@ describe("app container", () => {
     );
     expect(createStatsServiceMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        findingRepository: { kind: "finding-persistence-repo" },
+        findingRepository: { kind: "finding-repo" },
       }),
     );
     expect(createVulnerabilityServiceMock).toHaveBeenCalledWith(

@@ -9,11 +9,11 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";
 import { createAssetRepository } from "./asset.js";
-import { createFindingPersistenceRepository } from "./finding-persistence.js";
 import { createFindingVulnerabilityRepository } from "./finding-vulnerability.js";
+import { createFindingRepository } from "./finding.js";
 import { createIngestionRepository } from "./ingestion.js";
 import { createObservationRepository } from "./observation.js";
-import { createVulnerabilityPersistenceRepository } from "./vulnerability-persistence.js";
+import { createVulnerabilityRepository } from "./vulnerability.js";
 
 vi.mock("../db/index.js", () => ({
   db: {},
@@ -69,10 +69,10 @@ describe("observation-based persistence repositories", () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
     );
-    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const ingestionRepository = createIngestionRepository(testDb.db);
-    const vulnerabilityRepository = createVulnerabilityPersistenceRepository(testDb.db);
+    const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const linkRepository = createFindingVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
 
@@ -214,7 +214,7 @@ describe("observation-based persistence repositories", () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
     );
-    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const originalTime = new Date("2026-08-16T10:00:00.000Z");
     const updateTime = new Date("2026-08-17T10:00:00.000Z");
@@ -325,7 +325,7 @@ describe("observation-based persistence repositories", () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
     );
-    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const originalTime = new Date("2026-08-16T10:00:00.000Z");
     const updateTime = new Date("2026-08-17T10:00:00.000Z");
@@ -457,7 +457,7 @@ describe("observation-based persistence repositories", () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
     );
-    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const originalTime = new Date("2026-08-16T10:00:00.000Z");
     const updateTime = new Date("2026-08-17T10:00:00.000Z");
@@ -574,7 +574,7 @@ describe("observation-based persistence repositories", () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
     );
-    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const timestamp = new Date("2026-08-16T10:00:00.000Z");
     const sourceFinding = await findingRepository.create({
@@ -632,7 +632,7 @@ describe("observation-based persistence repositories", () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
     );
-    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const originalTime = new Date("2026-08-16T10:00:00.000Z");
     const updateTime = new Date("2026-08-17T10:00:00.000Z");
@@ -732,10 +732,10 @@ describe("observation-based persistence repositories", () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
     );
-    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const ingestionRepository = createIngestionRepository(testDb.db);
-    const vulnerabilityRepository = createVulnerabilityPersistenceRepository(testDb.db);
+    const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const linkRepository = createFindingVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
     const finding = await findingRepository.create({
@@ -883,7 +883,7 @@ describe("observation-based persistence repositories", () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
     );
-    const repository = createFindingPersistenceRepository(testDb.db);
+    const repository = createFindingRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
     const finding = await repository.create({
       assetId: asset.id,
@@ -916,9 +916,9 @@ describe("observation-based persistence repositories", () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
     );
-    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
-    const vulnerabilityRepository = createVulnerabilityPersistenceRepository(testDb.db);
+    const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const linkRepository = createFindingVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
     const finding = await findingRepository.create({
@@ -981,8 +981,8 @@ describe("observation-based persistence repositories", () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
     );
-    const findingRepository = createFindingPersistenceRepository(testDb.db);
-    const vulnerabilityRepository = createVulnerabilityPersistenceRepository(testDb.db);
+    const findingRepository = createFindingRepository(testDb.db);
+    const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
     const vulnerability = await vulnerabilityRepository.create({
       type: VulnerabilityType.Custom,
@@ -1062,7 +1062,7 @@ describe("observation-based persistence repositories", () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
     );
-    const findingRepository = createFindingPersistenceRepository(testDb.db);
+    const findingRepository = createFindingRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
 
     await expect(

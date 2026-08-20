@@ -18,14 +18,14 @@ import { routeTree } from "@/routeTree.gen.ts";
 
 import type { FindingAffectedResource } from "@exposurenexus/types/model/affected-resource";
 import type { Asset } from "@exposurenexus/types/model/asset";
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type FindingDetailScenario = "success" | "undated" | "empty" | "loading";
 
 type FindingDetailStoryArgs = {
-  finding: FindingProjection;
+  finding: Finding;
   asset: Asset;
   users: Array<UserProfile>;
   scenario: FindingDetailScenario;
@@ -64,7 +64,7 @@ const ASSET: Asset = {
   updatedBy: USERS[1].id,
 };
 
-const baseFinding: FindingProjection = {
+const baseFinding: Finding = {
   id: "2713d833-eb13-4517-ac7c-7761545ed42a",
   assetId: ASSET.id,
   title: "Exposed Admin Endpoint",
@@ -243,9 +243,7 @@ function FindingDetailContentStoryShell({
       if (requestUrl.endsWith(`/api/findings/${effectiveFinding.id}`)) {
         if (scenario === "loading") return await new Promise<Response>(() => {});
         if (init?.method === "PUT") {
-          const update = JSON.parse(
-            await new Response(init.body).text(),
-          ) as Partial<FindingProjection>;
+          const update = JSON.parse(await new Response(init.body).text()) as Partial<Finding>;
           findingRef.current = { ...findingRef.current, ...update };
           queryClient.setQueryData(["findings", effectiveFinding.id], findingRef.current);
         }

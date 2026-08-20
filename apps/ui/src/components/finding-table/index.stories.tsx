@@ -14,14 +14,14 @@ import { createLoginRedirects } from "@/lib/login-redirect.ts";
 import { routeTree } from "@/routeTree.gen.ts";
 
 import type { Asset } from "@exposurenexus/types/model/asset";
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type FindingTableScenario = "default" | "loading" | "empty" | "grouped";
 
 type FindingTableStoryArgs = {
-  findings: Array<FindingProjection>;
+  findings: Array<Finding>;
   assets: Array<Asset>;
   users: Array<UserProfile>;
   scenario: FindingTableScenario;
@@ -130,7 +130,7 @@ function createFinding({
   dueDate: Date | null;
   firstSeenOffset: number;
   lastSeenOffset: number;
-}): FindingProjection {
+}): Finding {
   return {
     id,
     title,
@@ -159,7 +159,7 @@ function createFinding({
   };
 }
 
-const FINDINGS: Array<FindingProjection> = [
+const FINDINGS: Array<Finding> = [
   createFinding({
     id: "2713d833-eb13-4517-ac7c-7761545ed42a",
     title: "Exposed Admin Endpoint",

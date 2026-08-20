@@ -65,7 +65,7 @@ import { capitalizeFirstLetter, formatFindingStatus, formatSeverity } from "@/li
 import { formatWeaknessText, parseWeaknessText } from "@/lib/weakness-text.ts";
 
 import type { FindingAffectedResource } from "@exposurenexus/types/model/affected-resource";
-import type { FindingProjection, UpdateFinding } from "@exposurenexus/types/model/finding";
+import type { Finding, UpdateFinding } from "@exposurenexus/types/model/finding";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerability";
 import type { ReactNode } from "react";
@@ -442,7 +442,7 @@ function FindingCorrectionDialog({
   finding,
   users,
 }: {
-  finding: FindingProjection;
+  finding: Finding;
   users: Array<UserProfile>;
 }) {
   const findingLifecycle = useFindingLifecycle();
@@ -818,7 +818,7 @@ function getResourceDetails(resource: FindingAffectedResource): Array<[string, s
   }
 }
 
-function FindingResourceCard({ finding }: { finding: FindingProjection }) {
+function FindingResourceCard({ finding }: { finding: Finding }) {
   const details = getResourceDetails(finding.affectedResource);
 
   return (
@@ -857,7 +857,7 @@ function FindingResourceCard({ finding }: { finding: FindingProjection }) {
   );
 }
 
-function FindingWeaknessCard({ finding }: { finding: FindingProjection }) {
+function FindingWeaknessCard({ finding }: { finding: Finding }) {
   const identifiers = Object.entries(finding.weakness.identifiers);
 
   return (
@@ -884,7 +884,7 @@ function FindingWeaknessCard({ finding }: { finding: FindingProjection }) {
   );
 }
 
-function FindingVulnerabilitiesCard({ finding }: { finding: FindingProjection }) {
+function FindingVulnerabilitiesCard({ finding }: { finding: Finding }) {
   const vulnerabilityQuery = useQuery(createListVulnerabilitiesQueryOptions());
   const findingLifecycle = useFindingLifecycle();
   const [selectedVulnerabilityId, setSelectedVulnerabilityId] = useState("");
@@ -1046,7 +1046,7 @@ function FindingOverviewCard({
   assetDisplayName,
   assetType,
 }: {
-  findingData: FindingProjection;
+  findingData: Finding;
   titleAction?: ReactNode;
   users: Array<UserProfile>;
   assetDisplayName?: string;
@@ -1115,7 +1115,7 @@ function FindingSidebar({
   owner,
   assignee,
 }: {
-  findingData: FindingProjection;
+  findingData: Finding;
   assetDisplayName?: string;
   assetPending: boolean;
   ownerId: string | null | undefined;

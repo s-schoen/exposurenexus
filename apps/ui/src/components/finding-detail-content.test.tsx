@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx";
 
 import type { Asset } from "@exposurenexus/types/model/asset";
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { ReactNode } from "react";
 
@@ -46,7 +46,7 @@ const user: UserProfile = {
   roleIds: [],
 };
 
-const finding: FindingProjection = {
+const finding: Finding = {
   id: ids.finding,
   assetId: ids.asset,
   title: "Exposed Admin Endpoint",
@@ -105,7 +105,7 @@ const finding: FindingProjection = {
 const mocks = vi.hoisted(() => ({
   correctFinding: vi.fn(),
   findingQuery: undefined as
-    | { data?: FindingProjection; isPending: boolean; isSuccess: boolean; error?: Error }
+    | { data?: Finding; isPending: boolean; isSuccess: boolean; error?: Error }
     | undefined,
 }));
 
@@ -172,7 +172,7 @@ vi.mock("@/components/detail-query-boundary.tsx", () => ({
     query,
     title,
   }: {
-    children: (value: FindingProjection) => ReactNode;
+    children: (value: Finding) => ReactNode;
     query: typeof mocks.findingQuery;
     title: string;
   }) => (query?.data ? <>{children(query.data)}</> : <div>{title}</div>),

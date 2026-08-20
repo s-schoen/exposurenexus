@@ -205,7 +205,7 @@ describe("service factories", () => {
   });
 
   it("creates a finding service bound to injected dependencies", async () => {
-    const findingPersistenceRepository = {
+    const findingRepository = {
       listProjected: vi.fn().mockResolvedValue([]),
       getProjectedByID: vi.fn().mockResolvedValue({ id: "finding-id" }),
       createManual: vi.fn(),
@@ -228,7 +228,7 @@ describe("service factories", () => {
     };
 
     const service = createFindingService({
-      findingPersistenceRepository,
+      findingRepository,
       findingVulnerabilityRepository,
       observationRepository,
       assetService: { getByID: vi.fn() },
@@ -245,8 +245,8 @@ describe("service factories", () => {
     await service.listAll();
     await service.listObservations("finding-id");
 
-    expect(findingPersistenceRepository.listProjected).toHaveBeenCalledOnce();
-    expect(findingPersistenceRepository.getProjectedByID).toHaveBeenCalledWith("finding-id");
+    expect(findingRepository.listProjected).toHaveBeenCalledOnce();
+    expect(findingRepository.getProjectedByID).toHaveBeenCalledWith("finding-id");
     expect(observationRepository.listByFindingID).toHaveBeenCalledWith("finding-id");
     expect(findingVulnerabilityRepository).toHaveProperty("linkAndTouchFinding");
   });

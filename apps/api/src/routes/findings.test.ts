@@ -1,5 +1,5 @@
 import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { FindingStatus, type FindingProjection } from "@exposurenexus/types/model/finding";
+import { FindingStatus, type Finding } from "@exposurenexus/types/model/finding";
 import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -74,7 +74,7 @@ describe("finding routes", () => {
     affectedResource: { type: AffectedResourceType.Unspecified as const },
     vulnerabilityIds: [vulnerabilityId],
   };
-  const findingProjection: FindingProjection = {
+  const finding: Finding = {
     id: findingId,
     assetId,
     title: createPayload.title,
@@ -405,7 +405,7 @@ describe("finding routes", () => {
 
   it("returns all findings for authenticated requests", async () => {
     const requestId = "findings-list-request";
-    const findings = [findingProjection];
+    const findings = [finding];
 
     findingService.listAll.mockResolvedValue(findings);
 
@@ -483,9 +483,7 @@ describe("finding routes", () => {
 
   it("returns a finding by id", async () => {
     const requestId = "findings-get-by-id-request";
-    const findingRecord = findingProjection;
-
-    findingService.getByID.mockResolvedValue(findingRecord);
+    findingService.getByID.mockResolvedValue(finding);
 
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
@@ -504,7 +502,7 @@ describe("finding routes", () => {
     expect(body).toEqual({
       correlationId: requestId,
       data: {
-        ...findingRecord,
+        ...finding,
         ...findingJsonDates,
         vulnerabilities: [
           {
@@ -615,9 +613,9 @@ describe("finding routes", () => {
 
   it("links a catalog entry with finding write permission", async () => {
     const requestId = "finding-link-request";
-    const findingProjection = { id: findingId, vulnerabilities: [vulnerability] };
+    const linkedFinding = { id: findingId, vulnerabilities: [vulnerability] };
     findingService.linkVulnerability.mockResolvedValue({
-      finding: findingProjection,
+      finding: linkedFinding,
       changed: true,
     });
 
@@ -647,9 +645,9 @@ describe("finding routes", () => {
   });
 
   it("returns 200 without duplicating an existing catalog link", async () => {
-    const findingProjection = { id: findingId, vulnerabilities: [vulnerability] };
+    const unchangedFinding = { id: findingId, vulnerabilities: [vulnerability] };
     findingService.linkVulnerability.mockResolvedValue({
-      finding: findingProjection,
+      finding: unchangedFinding,
       changed: false,
     });
 
@@ -664,9 +662,9 @@ describe("finding routes", () => {
   });
 
   it("unlinks a catalog entry with finding write permission", async () => {
-    const findingProjection = { id: findingId, vulnerabilities: [] };
+    const unlinkedFinding = { id: findingId, vulnerabilities: [] };
     findingService.unlinkVulnerability.mockResolvedValue({
-      finding: findingProjection,
+      finding: unlinkedFinding,
       changed: true,
     });
 
@@ -681,7 +679,7 @@ describe("finding routes", () => {
 
     expect(response.status).toBe(200);
     expect(findingService.unlinkVulnerability).toHaveBeenCalledOnce();
-    expect(await response.json()).toMatchObject({ data: findingProjection });
+    expect(await response.json()).toMatchObject({ data: unlinkedFinding });
   });
 
   it("rejects catalog links without finding write permission", async () => {
@@ -920,7 +918,7 @@ describe("finding routes", () => {
 
   it("deletes a finding by id", async () => {
     const requestId = "findings-delete-request";
-    const deletedFinding = findingProjection;
+    const deletedFinding = finding;
 
     findingService.deleteByID.mockResolvedValue(deletedFinding);
 
