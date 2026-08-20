@@ -294,18 +294,6 @@ export function createFindingColumns(
       cell: ({ row }) => <span>{row.original.observationCount}</span>,
     },
     {
-      id: "observingSources",
-      accessorFn: (finding) => finding.observingSources.join(", "),
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Observing sources" />,
-      cell: ({ row }) => (
-        <span className="inline-flex rounded-full border border-border/70 bg-muted/35 px-2.5 py-1 text-xs font-medium text-muted-foreground">
-          {row.original.observingSources.length > 0
-            ? row.original.observingSources.join(", ")
-            : "None observed"}
-        </span>
-      ),
-    },
-    {
       accessorKey: "firstSeen",
       header: ({ column }) => <DataTableColumnHeader column={column} title="First Seen" />,
       sortFn: (rowA, rowB) => compareDateValues(rowA.original.firstSeen, rowB.original.firstSeen),

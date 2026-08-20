@@ -5,7 +5,6 @@ import {
 } from "@exposurenexus/types/model/affected-resource";
 import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
@@ -117,7 +116,6 @@ const baseFinding: Finding = {
     },
   ],
   observationCount: 4,
-  observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
   firstSeen: new Date("2026-05-01T09:15:00.000Z"),
   lastSeen: new Date("2026-05-05T16:20:00.000Z"),
   createdBy: USERS[0].id,
@@ -181,14 +179,12 @@ function FindingDetailContentStoryShell({
             firstSeen: null,
             lastSeen: null,
             observationCount: 0,
-            observingSources: [],
           }
         : scenario === "empty"
           ? {
               ...finding,
               vulnerabilities: [],
               observationCount: 0,
-              observingSources: [],
               firstSeen: null,
               lastSeen: null,
             }

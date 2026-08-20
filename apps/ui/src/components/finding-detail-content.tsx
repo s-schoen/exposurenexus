@@ -1068,7 +1068,7 @@ function FindingOverviewCard({
               Human workflow case for one weakness affecting one asset and canonical resource.
             </CardDescription>
           </div>
-          <div className="grid gap-3 xl:grid-cols-5">
+          <div className="grid gap-3 xl:grid-cols-4">
             <DetailHighlightCard
               label="Affected asset"
               value={assetDisplayName ?? "Unknown asset"}
@@ -1078,11 +1078,6 @@ function FindingOverviewCard({
               label="Observations"
               value={String(findingData.observationCount)}
               description="Supporting source reports"
-            />
-            <DetailHighlightCard
-              label="Observing sources"
-              value={findingData.observingSources.join(", ") || "None observed"}
-              description="Lexically ordered source summary"
             />
             <DetailHighlightCard
               label="First seen"

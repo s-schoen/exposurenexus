@@ -8,7 +8,6 @@ import { FindingsPage } from "@/features/findings/components/findings-page.tsx";
 import type { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import type { Asset } from "@exposurenexus/types/model/asset";
 import type { Finding } from "@exposurenexus/types/model/finding";
-import type { ObservationSource } from "@exposurenexus/types/model/observation";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { ReactNode } from "react";
 
@@ -70,10 +69,6 @@ const mocks = vi.hoisted(() => {
       affectedResource: { type: "unspecified" as AffectedResourceType.Unspecified },
       vulnerabilities: [],
       observationCount: 2,
-      observingSources: [
-        "manual" as ObservationSource.Manual,
-        "nuclei" as ObservationSource.Nuclei,
-      ],
       firstSeen: new Date("2026-01-02T00:00:00.000Z"),
       lastSeen: new Date("2026-01-03T00:00:00.000Z"),
       createdBy: users[0].id,
@@ -94,7 +89,6 @@ const mocks = vi.hoisted(() => {
       affectedResource: { type: "unspecified" as AffectedResourceType.Unspecified },
       vulnerabilities: [],
       observationCount: 0,
-      observingSources: [],
       firstSeen: null,
       lastSeen: null,
       createdBy: users[0].id,

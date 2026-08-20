@@ -29,7 +29,6 @@ export type FindingRecord = Selectable<FindingTable>;
 type FindingProjectionRow = FindingRecord & {
   vulnerabilities: unknown;
   observationCount: number;
-  observingSources: unknown;
   firstSeen: Date | null;
   lastSeen: Date | null;
 };
@@ -109,13 +108,6 @@ function projectionQuery(database: DatabaseExecutor) {
     .selectAll("finding")
     .select([
       sql<number>`count(distinct ${sql.ref("observation.id")})::integer`.as("observationCount"),
-      sql<unknown>`
-        coalesce(
-          to_jsonb(array_agg(distinct ${sql.ref("observation.source")}::text order by ${sql.ref("observation.source")}::text)
-            filter (where ${sql.ref("observation.id")} is not null)),
-          '[]'::jsonb
-        )
-      `.as("observingSources"),
       sql<Date | null>`min(${sql.ref("observation.observedAt")})`.as("firstSeen"),
       sql<Date | null>`max(${sql.ref("observation.observedAt")})`.as("lastSeen"),
       sql<unknown[]>`

@@ -4,7 +4,6 @@ import {
 } from "@exposurenexus/types/model/affected-resource";
 import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -93,7 +92,6 @@ const finding: Finding = {
     },
   ],
   observationCount: 4,
-  observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
   firstSeen: new Date("2026-01-02T00:00:00.000Z"),
   lastSeen: new Date("2026-01-05T00:00:00.000Z"),
   createdBy: ids.user,
@@ -210,7 +208,6 @@ describe("FindingDetailContent", () => {
     expect(screen.getByText("admin-panel")).toBeTruthy();
     expect(screen.getByText("Web endpoint")).toBeTruthy();
     expect(screen.getByText("https")).toBeTruthy();
-    expect(screen.getByText("manual, nuclei")).toBeTruthy();
     expect(screen.getByText("4")).toBeTruthy();
     expect(screen.getByText("Example endpoint exposure")).toBeTruthy();
     expect(screen.getByText("Exposure of Sensitive Information")).toBeTruthy();
@@ -224,7 +221,6 @@ describe("FindingDetailContent", () => {
         ...finding,
         vulnerabilities: [],
         observationCount: 0,
-        observingSources: [],
         firstSeen: null,
         lastSeen: null,
       },
@@ -234,7 +230,6 @@ describe("FindingDetailContent", () => {
 
     render(<FindingDetailContent findingId={finding.id} />);
 
-    expect(screen.getAllByText("None observed").length).toBeGreaterThan(0);
     expect(screen.getByText("No catalog entries are linked.")).toBeTruthy();
     expect(screen.getAllByText("Not available").length).toBeGreaterThan(0);
   });

@@ -1,6 +1,5 @@
 import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { FindingStatus, type Finding } from "@exposurenexus/types/model/finding";
-import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -72,7 +71,6 @@ describe("finding service", () => {
     },
     vulnerabilities: [vulnerability],
     observationCount: 2,
-    observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
     firstSeen: new Date("2026-01-02T00:00:00.000Z"),
     lastSeen: new Date("2026-01-03T00:00:00.000Z"),
     createdAt: new Date("2026-01-02T00:00:00.000Z"),

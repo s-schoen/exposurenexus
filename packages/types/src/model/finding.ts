@@ -2,7 +2,7 @@ import { z } from "zod/v4";
 
 import { findingAffectedResourceSchema } from "./affected-resource.js";
 import { dateSchema, utcStartDateSchema } from "./date.js";
-import { manualObservationInputSchema, ObservationSource } from "./observation.js";
+import { manualObservationInputSchema } from "./observation.js";
 import { vulnerabilityCatalogSchema, VulnerabilitySeverity } from "./vulnerability.js";
 import { weaknessSchema } from "./weakness.js";
 
@@ -39,7 +39,6 @@ export const findingRecordSchema = z.strictObject({
 export const findingSchema = findingRecordSchema.extend({
   vulnerabilities: z.array(vulnerabilityCatalogSchema),
   observationCount: z.int().min(0),
-  observingSources: z.array(z.enum(ObservationSource)),
   firstSeen: dateSchema.nullable(),
   lastSeen: dateSchema.nullable(),
 });

@@ -45,7 +45,6 @@ const mocks = vi.hoisted(() => {
     affectedResource: { type: "unspecified" as AffectedResourceType.Unspecified },
     vulnerabilities: [],
     observationCount: 0,
-    observingSources: [],
     firstSeen: null,
     lastSeen: null,
     createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
