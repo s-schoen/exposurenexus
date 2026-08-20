@@ -178,7 +178,7 @@ describe("nested manual observations", () => {
       title: "Source title",
       severity: VulnerabilitySeverity.Low,
       weakness: { identifiers: { custom: ["manual-check"] } },
-      affectedResource: { type: AffectedResourceType.Asset as const },
+      affectedResource: { type: AffectedResourceType.Unspecified as const },
       observedAt: oldTime,
     };
     observationRepository.createAndTouchFinding.mockImplementation(async (input) => ({
@@ -445,7 +445,7 @@ describe("nested manual observations", () => {
       remediation: null,
       severity: VulnerabilitySeverity.High,
       weakness: { identifiers: {} },
-      affectedResource: { type: AffectedResourceType.Asset },
+      affectedResource: { type: AffectedResourceType.Unspecified },
       observedAt: now,
       createdAt: oldTime,
       updatedAt: now,

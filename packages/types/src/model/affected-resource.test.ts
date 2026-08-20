@@ -13,7 +13,6 @@ const observationResource = (resource: unknown) =>
 describe("affected-resource schemas", () => {
   it("preserves values without applying semantic normalization", () => {
     const resources = [
-      { type: AffectedResourceType.Asset },
       { type: AffectedResourceType.Unspecified },
       {
         type: AffectedResourceType.WebEndpoint,
@@ -110,7 +109,8 @@ describe("affected-resource schemas", () => {
 
   it("still validates discriminators, field ownership, and primitive types", () => {
     expect(() => findingResource({ type: "unknown" })).toThrow();
-    expect(() => findingResource({ type: "asset", host: "example.com" })).toThrow();
+    expect(() => findingResource({ type: "asset" })).toThrow();
+    expect(() => observationResource({ type: "asset" })).toThrow();
     expect(() => findingResource({ type: "webEndpoint", protocol: "http" })).toThrow();
     expect(() => findingResource({ type: "webEndpoint", port: "443" })).toThrow();
     expect(() => findingResource({ type: "sourceCode", location: { startLine: "1" } })).toThrow();

@@ -168,6 +168,7 @@ describe("CreateFindingPage", () => {
     expect(screen.getByLabelText(/status/i).textContent).toMatch(/active/i);
     fireEvent.click(screen.getByRole("tab", { name: /identity/i }));
     expect(screen.getByLabelText(/affected resource/i).textContent).toMatch(/unspecified/i);
+    expect(screen.queryByRole("button", { name: /whole asset/i })).toBeNull();
   });
 
   it("submits a finding with its initial manual observation defaults", async () => {

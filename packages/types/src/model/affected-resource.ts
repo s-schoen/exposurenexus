@@ -1,7 +1,6 @@
 import { z } from "zod/v4";
 
 export enum AffectedResourceType {
-  Asset = "asset",
   Unspecified = "unspecified",
   WebEndpoint = "webEndpoint",
   NetworkService = "networkService",
@@ -108,15 +107,11 @@ const observationCloudResourceSchema = findingCloudResourceSchema.extend({
   displayName: z.string().optional(),
 });
 
-const assetSchema = z.strictObject({
-  type: z.literal(AffectedResourceType.Asset),
-});
 const unspecifiedSchema = z.strictObject({
   type: z.literal(AffectedResourceType.Unspecified),
 });
 
 export const findingAffectedResourceSchema = z.discriminatedUnion("type", [
-  assetSchema,
   unspecifiedSchema,
   findingWebEndpointSchema,
   networkServiceSchema,
@@ -127,7 +122,6 @@ export const findingAffectedResourceSchema = z.discriminatedUnion("type", [
 ]);
 
 export const observationAffectedResourceSchema = z.discriminatedUnion("type", [
-  assetSchema,
   unspecifiedSchema,
   observationWebEndpointSchema,
   networkServiceSchema,

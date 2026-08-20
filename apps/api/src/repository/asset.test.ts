@@ -604,7 +604,7 @@ describe("asset repository", () => {
         assigneeId: null,
         dueDate: null,
         weakness: { identifiers: {} },
-        affectedResource: { type: AffectedResourceType.Asset },
+        affectedResource: { type: AffectedResourceType.Unspecified },
         createdAt: new Date("2026-01-03T00:00:00.000Z"),
         updatedAt: new Date("2026-01-03T00:00:00.000Z"),
         createdBy,

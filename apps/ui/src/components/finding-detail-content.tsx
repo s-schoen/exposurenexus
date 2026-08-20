@@ -174,7 +174,6 @@ function ResourceFields({
   onChange: (resource: FindingAffectedResource) => void;
 }) {
   switch (resource.type) {
-    case AffectedResourceType.Asset:
     case AffectedResourceType.Unspecified:
       return null;
     case AffectedResourceType.WebEndpoint: {
@@ -716,8 +715,6 @@ function formatDueDate(value: Date | null) {
 
 function formatResourceType(type: AffectedResourceType) {
   switch (type) {
-    case AffectedResourceType.Asset:
-      return "Asset";
     case AffectedResourceType.Unspecified:
       return "Unspecified resource";
     case AffectedResourceType.WebEndpoint:
@@ -768,7 +765,6 @@ function formatResourceDetails(entries: Array<[string, unknown]>): Array<[string
 
 function getResourceDetails(resource: FindingAffectedResource): Array<[string, string]> {
   switch (resource.type) {
-    case AffectedResourceType.Asset:
     case AffectedResourceType.Unspecified:
       return [];
     case AffectedResourceType.WebEndpoint:
@@ -847,9 +843,7 @@ function FindingResourceCard({ finding }: { finding: Finding }) {
           </dl>
         ) : (
           <p className="text-sm text-muted-foreground">
-            {finding.affectedResource.type === AffectedResourceType.Asset
-              ? "The weakness applies to the asset as a whole."
-              : "A narrower affected resource has not been recorded."}
+            A narrower affected resource has not been recorded.
           </p>
         )}
       </CardContent>

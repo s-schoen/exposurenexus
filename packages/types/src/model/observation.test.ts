@@ -21,7 +21,7 @@ const observation = {
   remediation: null,
   severity: VulnerabilitySeverity.Medium,
   weakness: { identifiers: {} },
-  affectedResource: { type: AffectedResourceType.Asset },
+  affectedResource: { type: AffectedResourceType.Unspecified },
   observedAt: new Date("2026-08-17T10:00:00.000Z"),
   createdAt: new Date("2026-08-17T10:00:00.000Z"),
   updatedAt: new Date("2026-08-17T10:00:00.000Z"),
@@ -72,7 +72,7 @@ describe("manual observation input schema", () => {
       remediation: "Require authentication",
       severity: VulnerabilitySeverity.Medium,
       weakness: { identifiers: { cwe: ["cwe-200"] } },
-      affectedResource: { type: AffectedResourceType.Asset },
+      affectedResource: { type: AffectedResourceType.Unspecified },
       observedAt: new Date("2026-08-17T10:00:00.000Z"),
     };
 

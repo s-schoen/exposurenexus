@@ -218,7 +218,7 @@ const FINDINGS: Array<Finding> = [
   {
     ...createFinding({
       id: "fcf52a02-7cce-4822-8c9f-4ed636ce1b44",
-      title: "Unconfirmed Whole-Asset Weakness",
+      title: "Unconfirmed Endpoint Weakness",
       assetId: ASSETS[2].id,
       severity: VulnerabilitySeverity.Info,
       status: FindingStatus.Active,

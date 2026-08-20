@@ -52,7 +52,7 @@ const finding: Finding = {
     path: "/admin",
   },
   vulnerabilities: [],
-  observationCount: 8,
+  observationCount: 7,
   observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
   firstSeen: new Date("2026-06-01T09:00:00.000Z"),
   lastSeen: new Date("2026-06-08T09:00:00.000Z"),
@@ -73,7 +73,6 @@ const targetFinding: Finding = {
 };
 
 const resources: Array<[string, ObservationResource]> = [
-  ["Asset-wide observation", { type: AffectedResourceType.Asset }],
   ["Unspecified resource", { type: AffectedResourceType.Unspecified }],
   [
     "Reported endpoint URL",
@@ -147,7 +146,6 @@ const resources: Array<[string, ObservationResource]> = [
 const observations = resources.map(([title, affectedResource], index) =>
   observationSchema.parse({
     id: [
-      "f39a0c31-33b9-4f10-a128-35158dee4a26",
       "9e361a0f-b8c2-47e6-af9a-9262782ac31b",
       "197083f7-91c2-4c36-9a20-7ff90fd45e91",
       "3201c54b-01aa-46f1-895c-4c9718f87113",
@@ -157,16 +155,16 @@ const observations = resources.map(([title, affectedResource], index) =>
       "cdef95d7-0344-4580-9f96-4c75ec44fe1c",
     ][index],
     findingId: finding.id,
-    ingestionId: index === 2 ? "16c25531-28e5-43d7-bbfd-8709ae8e907c" : null,
-    source: index === 2 ? ObservationSource.Nuclei : ObservationSource.Manual,
+    ingestionId: index === 1 ? "16c25531-28e5-43d7-bbfd-8709ae8e907c" : null,
+    source: index === 1 ? ObservationSource.Nuclei : ObservationSource.Manual,
     title,
-    description: index === 2 ? "The endpoint exposed administrative controls." : null,
-    evidence: index === 2 ? "`GET /admin?debug=true` returned **200**." : null,
-    remediation: index === 2 ? "Restrict access to trusted networks." : null,
-    severity: index === 2 ? VulnerabilitySeverity.Critical : VulnerabilitySeverity.High,
-    weakness: { identifiers: index === 2 ? { cwe: ["CWE-200"] } : {} },
+    description: index === 1 ? "The endpoint exposed administrative controls." : null,
+    evidence: index === 1 ? "`GET /admin?debug=true` returned **200**." : null,
+    remediation: index === 1 ? "Restrict access to trusted networks." : null,
+    severity: index === 1 ? VulnerabilitySeverity.Critical : VulnerabilitySeverity.High,
+    weakness: { identifiers: index === 1 ? { cwe: ["CWE-200"] } : {} },
     affectedResource,
-    observedAt: new Date(`2026-06-${String(8 - index).padStart(2, "0")}T09:00:00.000Z`),
+    observedAt: new Date(`2026-06-${String(7 - index).padStart(2, "0")}T09:00:00.000Z`),
     createdAt: new Date("2026-06-08T09:00:00.000Z"),
     updatedAt: new Date("2026-06-08T09:00:00.000Z"),
     createdBy: ids.user,
@@ -327,15 +325,15 @@ export const EditObservation: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(
-      await canvas.findByRole("button", { name: "Edit observation Asset-wide observation" }),
+      await canvas.findByRole("button", { name: "Edit observation Unspecified resource" }),
     );
     const dialog = within(canvasElement.ownerDocument.body).getByRole("dialog", {
       name: "Correct observation",
     });
     await userEvent.clear(within(dialog).getByLabelText("Title"));
-    await userEvent.type(within(dialog).getByLabelText("Title"), "Corrected asset observation");
+    await userEvent.type(within(dialog).getByLabelText("Title"), "Corrected observation");
     await userEvent.click(within(dialog).getByRole("button", { name: "Save correction" }));
-    await expect(canvas.getByText("Corrected asset observation")).toBeVisible();
+    await expect(canvas.getByText("Corrected observation")).toBeVisible();
   },
 };
 export const DeleteFinalObservation: Story = {
@@ -343,7 +341,7 @@ export const DeleteFinalObservation: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(
-      await canvas.findByRole("button", { name: "Delete observation Asset-wide observation" }),
+      await canvas.findByRole("button", { name: "Delete observation Unspecified resource" }),
     );
     const dialog = within(canvasElement.ownerDocument.body).getByRole("dialog", {
       name: "Delete observation",
@@ -360,7 +358,7 @@ export const MoveObservation: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(
-      await canvas.findByRole("button", { name: "Move observation Asset-wide observation" }),
+      await canvas.findByRole("button", { name: "Move observation Unspecified resource" }),
     );
     const dialog = within(canvasElement.ownerDocument.body).getByRole("dialog", {
       name: "Move observation",
@@ -372,8 +370,6 @@ export const MoveObservation: Story = {
       }),
     );
     await userEvent.click(within(dialog).getByRole("button", { name: "Move observation" }));
-    await waitFor(() =>
-      expect(canvas.queryByText("Asset-wide observation")).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(canvas.queryByText("Unspecified resource")).not.toBeInTheDocument());
   },
 };
