@@ -53,7 +53,6 @@ const finding: Finding = {
   },
   vulnerabilities: [],
   observationCount: 7,
-  observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
   firstSeen: new Date("2026-06-01T09:00:00.000Z"),
   lastSeen: new Date("2026-06-08T09:00:00.000Z"),
   createdAt: new Date("2026-06-01T09:00:00.000Z"),
@@ -67,7 +66,6 @@ const targetFinding: Finding = {
   id: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
   title: "Target finding",
   observationCount: 0,
-  observingSources: [],
   firstSeen: null,
   lastSeen: null,
 };

@@ -147,7 +147,6 @@ describe("createDomainEventPayload", () => {
       affectedResource: { type: "unspecified" },
       vulnerabilities: [],
       observationCount: 1,
-      observingSources: ["manual"],
       firstSeen: new Date("2026-05-07T09:10:00.000Z"),
       lastSeen: new Date("2026-05-07T09:10:00.000Z"),
       createdBy: user.id,

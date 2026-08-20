@@ -1,6 +1,5 @@
 import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook } from "@testing-library/react";
@@ -78,7 +77,6 @@ function createFindingFixture(overrides: Partial<Finding> = {}): Finding {
     affectedResource: { type: AffectedResourceType.Unspecified },
     vulnerabilities: [],
     observationCount: 1,
-    observingSources: [ObservationSource.Manual],
     firstSeen: createdAt,
     lastSeen: updatedAt,
     createdBy: userId,

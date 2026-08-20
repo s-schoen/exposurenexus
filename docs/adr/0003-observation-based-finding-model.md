@@ -416,15 +416,13 @@ Finding responses may include observation-derived summaries:
 ```json
 {
   "observationCount": 4,
-  "observingSources": ["manual", "nuclei"],
   "firstSeen": "2026-06-01T10:15:00.000Z",
   "lastSeen": "2026-06-20T08:30:00.000Z"
 }
 ```
 
-For a finding without observations, `observationCount` is `0`,
-`observingSources` is empty, and `firstSeen` and `lastSeen` are `null`.
-`observingSources` are returned in lexical order.
+For a finding without observations, `observationCount` is `0`, and `firstSeen`
+and `lastSeen` are `null`.
 
 Findings do not own source evidence and do not get a separate description or
 notes field in the initial model. Source explanations belong to observations;
@@ -846,15 +844,14 @@ finding-owned fields, it always includes:
 {
   "vulnerabilities": [],
   "observationCount": 0,
-  "observingSources": [],
   "firstSeen": null,
   "lastSeen": null
 }
 ```
 
 Linked vulnerabilities are embedded as complete catalog entries and ordered by
-type and identifier. Observation sources are ordered lexically. Summary dates
-are nullable so empty findings remain representable.
+type and identifier. Summary dates are nullable so empty findings remain
+representable.
 
 Finding update requests are partial and require at least one mutable field. A
 supplied weakness or affected resource replaces that complete JSON value rather
@@ -957,8 +954,8 @@ its matching semantics are decided.
 
 ### Initial UI
 
-The finding table uses finding title, retains a compact observing-sources column,
-removes source grouping, and defaults to `updatedAt` descending. Finding detail
+The finding table uses finding title, removes source grouping, and defaults to
+`updatedAt` descending. Finding detail
 shows canonical weakness, a type-aware affected-resource view, zero or more
 equal catalog links, finding mitigation, derived summaries, and nested
 observations.

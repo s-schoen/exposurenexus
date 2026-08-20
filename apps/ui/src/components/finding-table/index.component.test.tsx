@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import type { Finding, FindingStatus } from "@exposurenexus/types/model/finding";
-import type { ObservationSource } from "@exposurenexus/types/model/observation";
 import type { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import type { ReactElement, ReactNode, RefObject } from "react";
 
@@ -21,7 +20,6 @@ const mocks = vi.hoisted(() => {
     affectedResource: { type: "unspecified" as AffectedResourceType.Unspecified },
     vulnerabilities: [],
     observationCount: 1,
-    observingSources: ["manual" as ObservationSource.Manual],
     firstSeen: new Date("2026-01-02T00:00:00.000Z"),
     lastSeen: new Date("2026-01-03T00:00:00.000Z"),
     createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",

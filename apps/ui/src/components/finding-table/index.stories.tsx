@@ -1,7 +1,6 @@
 import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
@@ -148,7 +147,6 @@ function createFinding({
     },
     vulnerabilities: [],
     observationCount: 2,
-    observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
     firstSeen: utcDateOffset(firstSeenOffset),
     lastSeen: utcDateOffset(lastSeenOffset),
     assetId,
@@ -228,7 +226,6 @@ const FINDINGS: Array<Finding> = [
       lastSeenOffset: -30,
     }),
     observationCount: 0,
-    observingSources: [],
     firstSeen: null,
     lastSeen: null,
     updatedAt: utcDateOffset(1),

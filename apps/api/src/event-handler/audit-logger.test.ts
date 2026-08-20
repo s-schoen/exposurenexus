@@ -5,7 +5,6 @@ import {
   AssetCustomFieldType,
 } from "@exposurenexus/types/model/asset-custom-field";
 import { FindingStatus, type Finding } from "@exposurenexus/types/model/finding";
-import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { describe, expect, it, vi } from "vitest";
@@ -67,7 +66,6 @@ describe("registerAuditLogger", () => {
     affectedResource: { type: AffectedResourceType.Unspecified },
     vulnerabilities: [catalogVulnerability],
     observationCount: 1,
-    observingSources: [ObservationSource.Nuclei],
     firstSeen: new Date("2026-05-07T09:10:00.000Z"),
     lastSeen: new Date("2026-05-07T09:10:00.000Z"),
     createdBy: user.id,

@@ -1,6 +1,5 @@
 import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -50,7 +49,6 @@ describe("manual finding creation route", () => {
       affectedResource: { type: AffectedResourceType.Unspecified },
       vulnerabilities: [],
       observationCount: 1,
-      observingSources: [ObservationSource.Manual],
       firstSeen: new Date("2026-02-03T04:05:06.000Z"),
       lastSeen: new Date("2026-02-03T04:05:06.000Z"),
       createdAt: new Date("2026-02-03T04:05:06.000Z"),

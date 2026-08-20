@@ -28,7 +28,6 @@ const previousFinding: Finding = {
   affectedResource: { type: AffectedResourceType.Unspecified },
   vulnerabilities: [],
   observationCount: 1,
-  observingSources: [ObservationSource.Nuclei],
   firstSeen: oldTime,
   lastSeen: oldTime,
   createdAt: oldTime,
@@ -117,7 +116,6 @@ describe("nested manual observations", () => {
     const currentFinding = {
       ...previousFinding,
       observationCount: 2,
-      observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
       lastSeen: now,
       updatedAt: now,
     } satisfies Finding;
@@ -366,7 +364,6 @@ describe("nested manual observations", () => {
     const emptyFinding = {
       ...previousFinding,
       observationCount: 0,
-      observingSources: [],
       firstSeen: null,
       lastSeen: null,
       updatedAt: now,
@@ -430,7 +427,6 @@ describe("nested manual observations", () => {
       id: targetFindingId,
       title: "Target finding",
       observationCount: 0,
-      observingSources: [],
       firstSeen: null,
       lastSeen: null,
     } satisfies Finding;
@@ -455,7 +451,6 @@ describe("nested manual observations", () => {
     const sourceCurrent = {
       ...previousFinding,
       observationCount: 0,
-      observingSources: [],
       firstSeen: null,
       lastSeen: null,
       updatedAt: now,
@@ -464,7 +459,6 @@ describe("nested manual observations", () => {
     const targetCurrent = {
       ...targetFinding,
       observationCount: 1,
-      observingSources: [ObservationSource.Manual],
       firstSeen: now,
       lastSeen: now,
       updatedAt: now,

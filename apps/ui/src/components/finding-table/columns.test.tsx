@@ -1,7 +1,6 @@
 import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -63,7 +62,6 @@ const finding: Finding = {
   affectedResource: { type: AffectedResourceType.Unspecified },
   vulnerabilities: [],
   observationCount: 2,
-  observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
   firstSeen: new Date("2026-01-02T00:00:00.000Z"),
   lastSeen: new Date("2026-01-03T00:00:00.000Z"),
   createdBy: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
@@ -130,7 +128,6 @@ function createRow(original: Finding): RowStub {
       if (columnId === "updatedAt") return original.updatedAt;
       if (columnId === "assetId") return original.assetId;
       if (columnId === "observationCount") return original.observationCount;
-      if (columnId === "observingSources") return original.observingSources.join(", ");
       return undefined;
     },
     original,
@@ -183,7 +180,7 @@ describe("createFindingColumns", () => {
     cleanup();
   });
 
-  it("renders title, severity, status, asset, source summaries, and date cells", async () => {
+  it("renders title, severity, status, asset, observation count, and date cells", async () => {
     const columns = await createColumns();
 
     renderCell(findColumn(columns, "title"));
@@ -218,20 +215,19 @@ describe("createFindingColumns", () => {
     expect(screen.getByText("2026-05-06")).toBeTruthy();
     cleanup();
 
-    renderCell(findColumn(columns, "observingSources"));
-    expect(screen.getByText("manual, nuclei")).toBeTruthy();
+    renderCell(findColumn(columns, "observationCount"));
+    expect(screen.getByText("2")).toBeTruthy();
     cleanup();
 
     renderCell(findColumn(columns, "firstSeen"));
     expect(screen.getByText(finding.firstSeen!.toLocaleString())).toBeTruthy();
   });
 
-  it("renders fallback labels for unresolved assets, empty source summaries, and missing due date", async () => {
+  it("renders fallback labels for unresolved assets and missing dates", async () => {
     const columns = await createColumns(new Map(), new Map(), new Map());
     const fallbackFinding = {
       ...finding,
       dueDate: null,
-      observingSources: [],
       firstSeen: null,
       lastSeen: null,
     };
@@ -242,10 +238,6 @@ describe("createFindingColumns", () => {
 
     renderCell(findColumn(columns, "responsibleOwner"), fallbackFinding);
     expect(screen.getByText("Unknown Asset")).toBeTruthy();
-    cleanup();
-
-    renderCell(findColumn(columns, "observingSources"), fallbackFinding);
-    expect(screen.getByText("None observed")).toBeTruthy();
     cleanup();
 
     renderCell(findColumn(columns, "dueDate"), fallbackFinding);

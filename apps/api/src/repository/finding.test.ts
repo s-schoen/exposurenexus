@@ -404,7 +404,6 @@ describe("observation-based persistence repositories", () => {
       previous: { observationCount: 1, firstSeen: originalTime, lastSeen: originalTime },
       current: {
         observationCount: 1,
-        observingSources: [ObservationSource.Manual],
         firstSeen: updateTime,
         lastSeen: updateTime,
         updatedAt: updateTime,
@@ -423,7 +422,6 @@ describe("observation-based persistence repositories", () => {
       observation: updated?.observation,
       current: {
         observationCount: 0,
-        observingSources: [],
         firstSeen: null,
         lastSeen: null,
         updatedBy: createdBy,
@@ -433,7 +431,6 @@ describe("observation-based persistence repositories", () => {
       status: FindingStatus.Confirmed,
       title: "Canonical title",
       observationCount: 0,
-      observingSources: [],
       firstSeen: null,
       lastSeen: null,
       updatedBy: createdBy,
@@ -530,7 +527,6 @@ describe("observation-based persistence repositories", () => {
         id: sourceFinding.id,
         title: "Source finding",
         observationCount: 0,
-        observingSources: [],
         firstSeen: null,
         lastSeen: null,
         updatedAt: updateTime,
@@ -541,7 +537,6 @@ describe("observation-based persistence repositories", () => {
         id: targetFinding.id,
         title: "Target finding",
         observationCount: 1,
-        observingSources: [ObservationSource.Manual],
         firstSeen: observation.observedAt,
         lastSeen: observation.observedAt,
         updatedAt: updateTime,
@@ -855,7 +850,6 @@ describe("observation-based persistence repositories", () => {
       id: finding.id,
       title: finding.title,
       observationCount: 2,
-      observingSources: [ObservationSource.Manual, ObservationSource.Nuclei],
       firstSeen: new Date("2026-01-04T00:00:00.000Z"),
       lastSeen: new Date("2026-01-05T00:00:00.000Z"),
     });
@@ -868,7 +862,6 @@ describe("observation-based persistence repositories", () => {
     expect(projectedEmptyFinding).toMatchObject({
       id: emptyFinding.id,
       observationCount: 0,
-      observingSources: [],
       firstSeen: null,
       lastSeen: null,
       vulnerabilities: [],

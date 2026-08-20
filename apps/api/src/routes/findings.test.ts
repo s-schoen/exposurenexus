@@ -1,6 +1,5 @@
 import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { FindingStatus, type Finding } from "@exposurenexus/types/model/finding";
-import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -87,7 +86,6 @@ describe("finding routes", () => {
     affectedResource: createPayload.affectedResource,
     vulnerabilities: [vulnerability],
     observationCount: 1,
-    observingSources: [ObservationSource.Manual],
     ...findingDates,
     createdBy: user.id,
     updatedBy: user.id,
