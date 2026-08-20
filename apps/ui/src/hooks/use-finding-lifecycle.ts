@@ -16,7 +16,7 @@ import { formatFindingCount } from "@/lib/format.ts";
 
 import type {
   CreateManualFinding,
-  FindingProjection,
+  Finding,
   UpdateFinding,
 } from "@exposurenexus/types/model/finding";
 
@@ -33,30 +33,30 @@ export type FindingEditableField =
 export type FindingBulkEditableField = "severity" | "status";
 
 export interface FindingLifecycleFailure {
-  finding: FindingProjection | FindingReference;
+  finding: Finding | FindingReference;
   error: unknown;
 }
 
 export interface FindingLifecycleBatchResult {
-  successful: Array<FindingProjection>;
+  successful: Array<Finding>;
   failed: Array<FindingLifecycleFailure>;
 }
 
-export type FindingReference = Pick<FindingProjection, "id">;
+export type FindingReference = Pick<Finding, "id">;
 
 export type FindingDeleteBatchResult = FindingLifecycleBatchResult;
 
-type FindingCacheValue = FindingProjection;
+type FindingCacheValue = Finding;
 
 export interface FindingLifecycleActions {
   /**
    * Creates a finding, shows default success/failure toasts, and invalidates
    * finding list and stats queries.
    *
-   * Returns the created finding projection on success. Returns null for handled API
+   * Returns the created finding on success. Returns null for handled API
    * failures; callers do not need to catch to show errors.
    */
-  createFinding: (value: CreateManualFinding) => Promise<FindingProjection | null>;
+  createFinding: (value: CreateManualFinding) => Promise<Finding | null>;
 
   /**
    * Updates one mutable finding field with optimistic list/detail cache updates.
@@ -65,15 +65,12 @@ export interface FindingLifecycleActions {
    * failures after rolling optimistic cache writes back.
    */
   updateFindingField: <TKey extends FindingEditableField>(
-    finding: FindingProjection,
+    finding: Finding,
     key: TKey,
-    value: FindingProjection[TKey],
-  ) => Promise<FindingProjection | null>;
+    value: Finding[TKey],
+  ) => Promise<Finding | null>;
 
-  correctFinding: (
-    finding: FindingProjection,
-    update: UpdateFinding,
-  ) => Promise<FindingProjection | null>;
+  correctFinding: (finding: Finding, update: UpdateFinding) => Promise<Finding | null>;
 
   /**
    * Updates one bulk-editable field for many findings, shows default summary
@@ -82,9 +79,9 @@ export interface FindingLifecycleActions {
    * API failures are represented in the returned result instead of thrown.
    */
   bulkUpdateFindingField: <TKey extends FindingBulkEditableField>(
-    findings: Array<FindingProjection>,
+    findings: Array<Finding>,
     key: TKey,
-    value: FindingProjection[TKey],
+    value: Finding[TKey],
   ) => Promise<FindingLifecycleBatchResult>;
 
   /**
@@ -95,14 +92,8 @@ export interface FindingLifecycleActions {
    * returned result instead of thrown.
    */
   deleteFindings: (findings: Array<FindingReference>) => Promise<FindingDeleteBatchResult>;
-  linkVulnerability: (
-    findingId: string,
-    vulnerabilityId: string,
-  ) => Promise<FindingProjection | null>;
-  unlinkVulnerability: (
-    findingId: string,
-    vulnerabilityId: string,
-  ) => Promise<FindingProjection | null>;
+  linkVulnerability: (findingId: string, vulnerabilityId: string) => Promise<Finding | null>;
+  unlinkVulnerability: (findingId: string, vulnerabilityId: string) => Promise<Finding | null>;
 }
 
 interface FindingCacheSnapshot {
@@ -125,10 +116,10 @@ function replaceFindingInList(
 }
 
 function findingWithField<TKey extends FindingEditableField>(
-  finding: FindingProjection,
+  finding: Finding,
   key: TKey,
-  value: FindingProjection[TKey],
-): FindingProjection {
+  value: Finding[TKey],
+): Finding {
   return {
     ...finding,
     [key]: value,
@@ -136,8 +127,8 @@ function findingWithField<TKey extends FindingEditableField>(
 }
 
 function createBatchResult(
-  findings: Array<FindingProjection>,
-  results: Array<PromiseSettledResult<FindingProjection>>,
+  findings: Array<Finding>,
+  results: Array<PromiseSettledResult<Finding>>,
 ): FindingLifecycleBatchResult {
   return results.reduce<FindingLifecycleBatchResult>(
     (result, settled, index) => {

@@ -2,13 +2,13 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import type { FindingProjection, FindingStatus } from "@exposurenexus/types/model/finding";
+import type { Finding, FindingStatus } from "@exposurenexus/types/model/finding";
 import type { ObservationSource } from "@exposurenexus/types/model/observation";
 import type { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import type { ReactElement, ReactNode, RefObject } from "react";
 
 const mocks = vi.hoisted(() => {
-  const finding: FindingProjection = {
+  const finding: Finding = {
     id: "2713d833-eb13-4517-ac7c-7761545ed42a",
     assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
     title: "Exposed Admin Endpoint",
@@ -179,23 +179,17 @@ vi.mock("@/components/data-table/data-table.tsx", () => ({
     mocks.dataTableProps = props;
 
     const contextMenu = props.contextMenu as
-      | ((
-          rowsRef: RefObject<Array<FindingProjection>>,
-          children: ReactElement,
-          key: string,
-        ) => ReactNode)
+      | ((rowsRef: RefObject<Array<Finding>>, children: ReactElement, key: string) => ReactNode)
       | undefined;
-    const isRowActive = props.isRowActive as ((finding: FindingProjection) => boolean) | undefined;
+    const isRowActive = props.isRowActive as ((finding: Finding) => boolean) | undefined;
     const onFilterStateChange = props.onFilterStateChange as ((state: unknown) => void) | undefined;
-    const onRowClick = props.onRowClick as ((finding: FindingProjection) => void) | undefined;
+    const onRowClick = props.onRowClick as ((finding: Finding) => void) | undefined;
     const onRowDelete = props.onRowDelete as
-      | ((findings: Array<FindingProjection>) => Promise<void>)
+      | ((findings: Array<Finding>) => Promise<void>)
       | undefined;
-    const onRowDoubleClick = props.onRowDoubleClick as
-      | ((finding: FindingProjection) => void)
-      | undefined;
+    const onRowDoubleClick = props.onRowDoubleClick as ((finding: Finding) => void) | undefined;
     const toolbarControls = props.toolbarControls as
-      | ((selectedRows: Array<FindingProjection>) => ReactNode)
+      | ((selectedRows: Array<Finding>) => ReactNode)
       | undefined;
 
     return (
@@ -380,7 +374,7 @@ describe("FindingTable workflow wiring", () => {
     });
   });
 
-  it("keeps workflow mutation controls out of the projection table", async () => {
+  it("keeps workflow mutation controls out of the finding table", async () => {
     const { FindingTable } = await import("@/components/finding-table/index.tsx");
 
     render(<FindingTable />);

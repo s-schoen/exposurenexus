@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { FindingContextMenu } from "@/components/finding-table/context-menu.tsx";
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 import type { ReactElement, ReactNode, RefObject } from "react";
 
 vi.mock("@/components/ui/context-menu", () => ({
@@ -19,7 +19,7 @@ vi.mock("@/components/ui/context-menu", () => ({
   ContextMenuTrigger: ({ render: trigger }: { render: ReactElement }) => trigger,
 }));
 
-const finding: FindingProjection = {
+const finding: Finding = {
   id: "2713d833-eb13-4517-ac7c-7761545ed42a",
   assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
   title: "Exposed Admin Endpoint",
@@ -43,10 +43,10 @@ const finding: FindingProjection = {
 
 function renderContextMenu(
   Component: typeof FindingContextMenu,
-  findings: Array<FindingProjection>,
+  findings: Array<Finding>,
   onDelete = vi.fn(),
 ) {
-  const findingsRef = { current: findings } as RefObject<Array<FindingProjection>>;
+  const findingsRef = { current: findings } as RefObject<Array<Finding>>;
 
   return render(
     <Component findingsRef={findingsRef} onDelete={onDelete}>

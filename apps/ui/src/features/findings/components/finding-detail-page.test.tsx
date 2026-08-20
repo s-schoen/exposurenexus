@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import type { Asset } from "@exposurenexus/types/model/asset";
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 import type { ReactNode } from "react";
 
 interface QueryState<TData> {
@@ -32,12 +32,12 @@ const mocks = vi.hoisted(() => {
     createdBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
     updatedBy: "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f",
   };
-  const finding: FindingProjection = {
+  const finding: Finding = {
     id: "3703bd68-5d5e-4209-90dc-365bc7030f67",
     assetId: "61303e6e-9aa5-49cc-a863-bc1bd6eb45ac",
     title: "Missing MFA enforcement",
-    severity: "high" as FindingProjection["severity"],
-    status: "confirmed" as FindingProjection["status"],
+    severity: "high" as Finding["severity"],
+    status: "confirmed" as Finding["status"],
     mitigation: null,
     assigneeId: null,
     dueDate: null,
@@ -58,7 +58,7 @@ const mocks = vi.hoisted(() => {
     isPending: false,
     isSuccess: true,
   };
-  const findingQuery: QueryState<FindingProjection> = {
+  const findingQuery: QueryState<Finding> = {
     data: finding,
     isPending: false,
     isSuccess: true,

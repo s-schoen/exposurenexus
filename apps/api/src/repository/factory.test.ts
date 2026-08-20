@@ -9,10 +9,10 @@ vi.mock("../db/index.js", () => ({
 
 import {
   createAssetRepository,
-  createFindingPersistenceRepository,
+  createFindingRepository,
   createRoleRepository,
   createUserRoleRepository,
-  createVulnerabilityPersistenceRepository,
+  createVulnerabilityRepository,
 } from "./index.js";
 
 describe("repository factories", () => {
@@ -45,8 +45,8 @@ describe("repository factories", () => {
     expect(execute).toHaveBeenCalledTimes(2);
   });
 
-  it("creates the final finding persistence repository surface", () => {
-    expect(Object.keys(createFindingPersistenceRepository({} as never)).sort()).toEqual(
+  it("creates the final finding repository surface", () => {
+    expect(Object.keys(createFindingRepository({} as never)).sort()).toEqual(
       [
         "countBy",
         "create",
@@ -67,7 +67,7 @@ describe("repository factories", () => {
     const selectFrom = vi.fn().mockReturnValue({ selectAll });
     const db = { selectFrom };
 
-    const repository = createVulnerabilityPersistenceRepository(db as never);
+    const repository = createVulnerabilityRepository(db as never);
 
     await repository.list();
 

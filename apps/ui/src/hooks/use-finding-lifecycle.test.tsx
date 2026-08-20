@@ -15,7 +15,7 @@ import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 
 import type * as FindingApi from "@/api/finding.ts";
 import type { FindingLifecycleBatchResult } from "@/hooks/use-finding-lifecycle.ts";
-import type { CreateManualFinding, FindingProjection } from "@exposurenexus/types/model/finding";
+import type { CreateManualFinding, Finding } from "@exposurenexus/types/model/finding";
 import type { ReactNode } from "react";
 
 const {
@@ -60,7 +60,7 @@ vi.mock("@/api/finding.ts", async (importOriginal) => {
 });
 
 const userId = "1f9c36d2-1355-49d1-8464-b01ce955d88f";
-function createFindingFixture(overrides: Partial<FindingProjection> = {}): FindingProjection {
+function createFindingFixture(overrides: Partial<Finding> = {}): Finding {
   const id = overrides.id ?? "2713d833-eb13-4517-ac7c-7761545ed42a";
   const createdAt = new Date("2026-01-02T00:00:00.000Z");
   const updatedAt = new Date("2026-01-03T00:00:00.000Z");
@@ -141,27 +141,24 @@ afterEach(() => {
 describe("useFindingLifecycle", () => {
   it("optimistically corrects and rolls back real list and detail caches", async () => {
     const finding = createFindingFixture();
-    const update = createDeferred<FindingProjection>();
+    const update = createDeferred<Finding>();
     updateFindingRequestMock.mockReturnValueOnce(update.promise);
     const { queryClient, result } = renderLifecycleHook();
 
     queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [finding]);
     queryClient.setQueryData(createFindingByIDQueryOptions(finding.id).queryKey, finding);
 
-    let operation!: Promise<FindingProjection | null>;
+    let operation!: Promise<Finding | null>;
     act(() => {
       operation = result.current.correctFinding(finding, { title: "Unsaved correction" });
     });
 
     expect(
-      queryClient.getQueryData<FindingProjection>(
-        createFindingByIDQueryOptions(finding.id).queryKey,
-      )?.title,
+      queryClient.getQueryData<Finding>(createFindingByIDQueryOptions(finding.id).queryKey)?.title,
     ).toBe("Unsaved correction");
     expect(
-      queryClient.getQueryData<Array<FindingProjection>>(
-        createListFindingsQueryOptions().queryKey,
-      )?.[0].title,
+      queryClient.getQueryData<Array<Finding>>(createListFindingsQueryOptions().queryKey)?.[0]
+        .title,
     ).toBe("Unsaved correction");
 
     await act(async () => {
@@ -170,12 +167,10 @@ describe("useFindingLifecycle", () => {
     });
 
     expect(
-      queryClient.getQueryData<FindingProjection>(
-        createFindingByIDQueryOptions(finding.id).queryKey,
-      ),
+      queryClient.getQueryData<Finding>(createFindingByIDQueryOptions(finding.id).queryKey),
     ).toEqual(finding);
     expect(
-      queryClient.getQueryData<Array<FindingProjection>>(createListFindingsQueryOptions().queryKey),
+      queryClient.getQueryData<Array<Finding>>(createListFindingsQueryOptions().queryKey),
     ).toEqual([finding]);
   });
 
@@ -186,27 +181,24 @@ describe("useFindingLifecycle", () => {
       status: FindingStatus.Confirmed,
       updatedAt: new Date("2026-01-04T00:00:00.000Z"),
     };
-    const update = createDeferred<FindingProjection>();
+    const update = createDeferred<Finding>();
     updateFindingRequestMock.mockReturnValueOnce(update.promise);
     const { queryClient, result } = renderLifecycleHook();
 
     queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [finding]);
     queryClient.setQueryData(createFindingByIDQueryOptions(finding.id).queryKey, finding);
 
-    let operation!: Promise<FindingProjection | null>;
+    let operation!: Promise<Finding | null>;
     act(() => {
       operation = result.current.updateFindingField(finding, "status", FindingStatus.Confirmed);
     });
 
     expect(
-      queryClient.getQueryData<FindingProjection>(
-        createFindingByIDQueryOptions(finding.id).queryKey,
-      )?.status,
+      queryClient.getQueryData<Finding>(createFindingByIDQueryOptions(finding.id).queryKey)?.status,
     ).toBe(FindingStatus.Confirmed);
     expect(
-      queryClient.getQueryData<Array<FindingProjection>>(
-        createListFindingsQueryOptions().queryKey,
-      )?.[0].status,
+      queryClient.getQueryData<Array<Finding>>(createListFindingsQueryOptions().queryKey)?.[0]
+        .status,
     ).toBe(FindingStatus.Confirmed);
 
     await act(async () => {
@@ -215,22 +207,21 @@ describe("useFindingLifecycle", () => {
     });
 
     expect(
-      queryClient.getQueryData<FindingProjection>(
-        createFindingByIDQueryOptions(finding.id).queryKey,
-      )?.updatedAt,
+      queryClient.getQueryData<Finding>(createFindingByIDQueryOptions(finding.id).queryKey)
+        ?.updatedAt,
     ).toEqual(updatedFinding.updatedAt);
   });
 
   it("rolls list and detail caches back when a single-field update fails", async () => {
     const finding = createFindingFixture();
-    const update = createDeferred<FindingProjection>();
+    const update = createDeferred<Finding>();
     updateFindingRequestMock.mockReturnValueOnce(update.promise);
     const { queryClient, result } = renderLifecycleHook();
 
     queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [finding]);
     queryClient.setQueryData(createFindingByIDQueryOptions(finding.id).queryKey, finding);
 
-    let operation!: Promise<FindingProjection | null>;
+    let operation!: Promise<Finding | null>;
     act(() => {
       operation = result.current.updateFindingField(finding, "status", FindingStatus.Confirmed);
     });
@@ -241,12 +232,10 @@ describe("useFindingLifecycle", () => {
     });
 
     expect(
-      queryClient.getQueryData<FindingProjection>(
-        createFindingByIDQueryOptions(finding.id).queryKey,
-      ),
+      queryClient.getQueryData<Finding>(createFindingByIDQueryOptions(finding.id).queryKey),
     ).toEqual(finding);
     expect(
-      queryClient.getQueryData<Array<FindingProjection>>(createListFindingsQueryOptions().queryKey),
+      queryClient.getQueryData<Array<Finding>>(createListFindingsQueryOptions().queryKey),
     ).toEqual([finding]);
     expect(toastErrorMock).toHaveBeenCalledWith("Failed to update finding");
   });
@@ -254,27 +243,25 @@ describe("useFindingLifecycle", () => {
   it("rolls assignee cache changes back and reports errors when assignment fails", async () => {
     const finding = createFindingFixture();
     const assigneeId = "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12";
-    const update = createDeferred<FindingProjection>();
+    const update = createDeferred<Finding>();
     updateFindingRequestMock.mockReturnValueOnce(update.promise);
     const { queryClient, result } = renderLifecycleHook();
 
     queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [finding]);
     queryClient.setQueryData(createFindingByIDQueryOptions(finding.id).queryKey, finding);
 
-    let operation!: Promise<FindingProjection | null>;
+    let operation!: Promise<Finding | null>;
     act(() => {
       operation = result.current.updateFindingField(finding, "assigneeId", assigneeId);
     });
 
     expect(
-      queryClient.getQueryData<FindingProjection>(
-        createFindingByIDQueryOptions(finding.id).queryKey,
-      )?.assigneeId,
+      queryClient.getQueryData<Finding>(createFindingByIDQueryOptions(finding.id).queryKey)
+        ?.assigneeId,
     ).toBe(assigneeId);
     expect(
-      queryClient.getQueryData<Array<FindingProjection>>(
-        createListFindingsQueryOptions().queryKey,
-      )?.[0].assigneeId,
+      queryClient.getQueryData<Array<Finding>>(createListFindingsQueryOptions().queryKey)?.[0]
+        .assigneeId,
     ).toBe(assigneeId);
 
     await act(async () => {
@@ -283,12 +270,10 @@ describe("useFindingLifecycle", () => {
     });
 
     expect(
-      queryClient.getQueryData<FindingProjection>(
-        createFindingByIDQueryOptions(finding.id).queryKey,
-      ),
+      queryClient.getQueryData<Finding>(createFindingByIDQueryOptions(finding.id).queryKey),
     ).toEqual(finding);
     expect(
-      queryClient.getQueryData<Array<FindingProjection>>(createListFindingsQueryOptions().queryKey),
+      queryClient.getQueryData<Array<Finding>>(createListFindingsQueryOptions().queryKey),
     ).toEqual([finding]);
     expect(toastErrorMock).toHaveBeenCalledWith("Failed to update finding");
   });
@@ -365,9 +350,8 @@ describe("useFindingLifecycle", () => {
       update: { dueDate },
     });
     expect(
-      queryClient.getQueryData<FindingProjection>(
-        createFindingByIDQueryOptions(finding.id).queryKey,
-      )?.dueDate,
+      queryClient.getQueryData<Finding>(createFindingByIDQueryOptions(finding.id).queryKey)
+        ?.dueDate,
     ).toEqual(dueDate);
   });
 
@@ -442,12 +426,10 @@ describe("useFindingLifecycle", () => {
       failed: [{ finding: second }],
     });
     expect(
-      queryClient.getQueryData<Array<FindingProjection>>(createListFindingsQueryOptions().queryKey),
+      queryClient.getQueryData<Array<Finding>>(createListFindingsQueryOptions().queryKey),
     ).toEqual([updatedFirst, second]);
     expect(
-      queryClient.getQueryData<FindingProjection>(
-        createFindingByIDQueryOptions(second.id).queryKey,
-      ),
+      queryClient.getQueryData<Finding>(createFindingByIDQueryOptions(second.id).queryKey),
     ).toEqual(second);
     expect(toastErrorMock).toHaveBeenCalledWith("Updated 1 finding; failed 1 finding");
   });
@@ -482,7 +464,7 @@ describe("useFindingLifecycle", () => {
       update: { status: FindingStatus.Confirmed },
     });
     expect(
-      queryClient.getQueryData<Array<FindingProjection>>(createListFindingsQueryOptions().queryKey),
+      queryClient.getQueryData<Array<Finding>>(createListFindingsQueryOptions().queryKey),
     ).toEqual([updatedFinding]);
     expect(toastSuccessMock).toHaveBeenCalledWith("Updated 1 finding");
   });

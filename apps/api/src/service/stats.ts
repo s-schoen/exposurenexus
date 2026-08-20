@@ -3,10 +3,10 @@ import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability"
 
 import { ApplicationError } from "./application-error.js";
 
-import type { FindingPersistenceRepository } from "../repository/finding-persistence.js";
+import type { FindingRepository } from "../repository/finding.js";
 import type { Logger } from "pino";
 
-type FindingStatsRepository = Pick<FindingPersistenceRepository, "countBy">;
+type FindingStatsRepository = Pick<FindingRepository, "countBy">;
 
 interface StatsServiceDependencies {
   findingRepository: FindingStatsRepository;

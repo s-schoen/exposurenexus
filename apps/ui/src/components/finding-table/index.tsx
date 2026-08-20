@@ -19,14 +19,14 @@ import { createUserProfileById } from "@/components/user-label.tsx";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 
 interface FindingTableProps {
   initialGrouping?: Array<string>;
   filterState?: DataTableFilterState;
   onFilterStateChange?: (state: DataTableFilterState) => void;
   selectedFindingId?: string;
-  onSelectFinding?: (finding: FindingProjection) => void;
+  onSelectFinding?: (finding: Finding) => void;
 }
 
 export function FindingTable({
@@ -91,7 +91,7 @@ export function FindingTable({
     [assetNamesById, userProfileById],
   );
 
-  const handleOpenFinding = async (finding: FindingProjection) => {
+  const handleOpenFinding = async (finding: Finding) => {
     await navigate({
       to: "/findings/$id",
       params: {
@@ -100,7 +100,7 @@ export function FindingTable({
     });
   };
 
-  const handleDeleteFindings = async (findings: Array<FindingProjection>) => {
+  const handleDeleteFindings = async (findings: Array<Finding>) => {
     const confirmed = await ConfirmDialog.call({
       title: "Delete Findings",
       description: "This action cannot be undone",

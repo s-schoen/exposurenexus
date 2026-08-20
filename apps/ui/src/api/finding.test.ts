@@ -21,7 +21,7 @@ import {
 
 import type {
   CreateManualFinding,
-  FindingProjection,
+  Finding,
   FindingStatistics,
 } from "@exposurenexus/types/model/finding";
 import type {
@@ -65,7 +65,7 @@ const userId = "1f9c36d2-1355-49d1-8464-b01ce955d88f";
 const findingId = "2713d833-eb13-4517-ac7c-7761545ed42a";
 const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe";
 const assetId = "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c";
-const findingProjectionJson = {
+const findingJson = {
   id: findingId,
   assetId,
   title: "Exposed Admin Endpoint",
@@ -169,7 +169,7 @@ const findingStats: FindingStatistics = {
   },
 };
 
-function expectProjectionDates(finding: FindingProjection) {
+function expectFindingDates(finding: Finding) {
   expect(finding.dueDate).toBeInstanceOf(Date);
   expect(finding.firstSeen).toBeInstanceOf(Date);
   expect(finding.lastSeen).toBeInstanceOf(Date);
@@ -196,17 +196,17 @@ describe("finding api", () => {
       jsonResponse({
         correlationId: "finding-list-test",
         data: {
-          items: [findingProjectionJson],
+          items: [findingJson],
         },
       }),
     );
 
     const queryOptions = createListFindingsQueryOptions();
-    const findings = await runQuery<Array<FindingProjection>>(queryOptions);
+    const findings = await runQuery<Array<Finding>>(queryOptions);
 
     expect(queryOptions.queryKey).toEqual(["findings"]);
     expect(findings).toHaveLength(1);
-    expectProjectionDates(findings[0]);
+    expectFindingDates(findings[0]);
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/findings",
       expect.objectContaining({
@@ -220,15 +220,15 @@ describe("finding api", () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         correlationId: "finding-detail-test",
-        data: findingProjectionJson,
+        data: findingJson,
       }),
     );
 
     const queryOptions = createFindingByIDQueryOptions(findingId);
-    const finding = await runQuery<FindingProjection>(queryOptions);
+    const finding = await runQuery<Finding>(queryOptions);
 
     expect(queryOptions.queryKey).toEqual(["findings", findingId]);
-    expectProjectionDates(finding);
+    expectFindingDates(finding);
     expect(fetchMock).toHaveBeenCalledWith(
       `/api/findings/${findingId}`,
       expect.objectContaining({
@@ -345,16 +345,16 @@ describe("finding api", () => {
     expect(requestJsonBody()).toEqual({ targetFindingId });
   });
 
-  it("creates manual findings with nested observation data and parses the projection", async () => {
+  it("creates manual findings with nested observation data and parses the response", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
-        data: findingProjectionJson,
+        data: findingJson,
       }),
     );
 
     const finding = await createManualFinding(createManualFindingPayload);
 
-    expectProjectionDates(finding);
+    expectFindingDates(finding);
     const headers = requestInit().headers as Headers;
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/findings",
@@ -375,7 +375,7 @@ describe("finding api", () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         data: {
-          ...findingProjectionJson,
+          ...findingJson,
           ...update,
         },
       }),
@@ -402,13 +402,13 @@ describe("finding api", () => {
   it("deletes findings", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
-        data: findingProjectionJson,
+        data: findingJson,
       }),
     );
 
     const deletedFinding = await deleteFinding(findingId);
 
-    expectProjectionDates(deletedFinding);
+    expectFindingDates(deletedFinding);
     expect(fetchMock).toHaveBeenCalledWith(
       `/api/findings/${findingId}`,
       expect.objectContaining({
@@ -421,13 +421,13 @@ describe("finding api", () => {
   it("links catalog entries to findings with a PUT request", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
-        data: findingProjectionJson,
+        data: findingJson,
       }),
     );
 
     const linkedFinding = await linkFindingVulnerability(findingId, vulnerabilityId);
 
-    expectProjectionDates(linkedFinding);
+    expectFindingDates(linkedFinding);
     expect(fetchMock).toHaveBeenCalledWith(
       `/api/findings/${findingId}/vulnerabilities/${vulnerabilityId}`,
       expect.objectContaining({
@@ -440,13 +440,13 @@ describe("finding api", () => {
   it("unlinks catalog entries from findings with a DELETE request", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
-        data: findingProjectionJson,
+        data: findingJson,
       }),
     );
 
     const unlinkedFinding = await unlinkFindingVulnerability(findingId, vulnerabilityId);
 
-    expectProjectionDates(unlinkedFinding);
+    expectFindingDates(unlinkedFinding);
     expect(fetchMock).toHaveBeenCalledWith(
       `/api/findings/${findingId}/vulnerabilities/${vulnerabilityId}`,
       expect.objectContaining({

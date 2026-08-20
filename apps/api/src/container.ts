@@ -13,14 +13,14 @@ import { createCsrfProtection } from "./middleware/csrf.js";
 import {
   createAssetCustomFieldRepository,
   createAssetRepository,
-  createFindingPersistenceRepository,
+  createFindingRepository,
   createFindingVulnerabilityRepository,
   createObservationRepository,
   createRoleRepository,
   createUserProfileRepository,
   createUserRoleRepository,
   createUserSessionRepository,
-  createVulnerabilityPersistenceRepository,
+  createVulnerabilityRepository,
 } from "./repository/index.js";
 import { createAssetRoute } from "./routes/assets.js";
 import { createAuthRoute } from "./routes/auth.js";
@@ -77,14 +77,14 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const repositories = {
     assetCustomFieldRepository: createAssetCustomFieldRepository(options.db),
     assetRepository: createAssetRepository(options.db),
-    findingPersistenceRepository: createFindingPersistenceRepository(options.db),
+    findingRepository: createFindingRepository(options.db),
     findingVulnerabilityRepository: createFindingVulnerabilityRepository(options.db),
     observationRepository: createObservationRepository(options.db),
     roleRepository: createRoleRepository(options.db),
     userRoleRepository: createUserRoleRepository(options.db),
     userProfileRepository: createUserProfileRepository(options.db),
     userSessionRepository: createUserSessionRepository(options.db),
-    vulnerabilityRepository: createVulnerabilityPersistenceRepository(options.db),
+    vulnerabilityRepository: createVulnerabilityRepository(options.db),
   };
 
   const authService = createAuthService({
@@ -128,7 +128,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     logger: loggerFactory("service/vulnerability"),
   });
   const findingService = createFindingService({
-    findingPersistenceRepository: repositories.findingPersistenceRepository,
+    findingRepository: repositories.findingRepository,
     findingVulnerabilityRepository: repositories.findingVulnerabilityRepository,
     observationRepository: repositories.observationRepository,
     assetService,
@@ -138,7 +138,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     logger: loggerFactory("service/finding"),
   });
   const statsService = createStatsService({
-    findingRepository: repositories.findingPersistenceRepository,
+    findingRepository: repositories.findingRepository,
     logger: loggerFactory("service/stats"),
   });
 

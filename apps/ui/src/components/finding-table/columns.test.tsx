@@ -7,7 +7,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Asset } from "@exposurenexus/types/model/asset";
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { ReactNode } from "react";
 
@@ -50,7 +50,7 @@ vi.mock("@/components/user-label.tsx", () => ({
   },
 }));
 
-const finding: FindingProjection = {
+const finding: Finding = {
   id: "2713d833-eb13-4517-ac7c-7761545ed42a",
   assetId: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
   title: "Exposed Admin Endpoint",
@@ -103,14 +103,14 @@ const assignee: UserProfile = {
 
 interface RowStub {
   getValue: (columnId: string) => unknown;
-  original: FindingProjection;
+  original: Finding;
 }
 
 interface TestColumn {
   id?: string;
   accessorKey: string;
-  accessorFn?: (finding: FindingProjection) => unknown;
-  getGroupingValue?: (finding: FindingProjection) => unknown;
+  accessorFn?: (finding: Finding) => unknown;
+  getGroupingValue?: (finding: Finding) => unknown;
   cell?: (context: { row: RowStub }) => ReactNode;
   filterFn?: (row: RowStub, columnId: string, filterValue: Array<string>) => boolean;
   meta?: {
@@ -119,7 +119,7 @@ interface TestColumn {
   sortFn?: (rowA: RowStub, rowB: RowStub, columnId: string) => number;
 }
 
-function createRow(original: FindingProjection): RowStub {
+function createRow(original: Finding): RowStub {
   return {
     getValue: (columnId) => {
       if (columnId === "severity") return original.severity;
@@ -170,7 +170,7 @@ function findColumn(columns: Array<TestColumn>, accessorKey: string) {
   return column;
 }
 
-function renderCell(column: TestColumn, rowFinding: FindingProjection = finding) {
+function renderCell(column: TestColumn, rowFinding: Finding = finding) {
   if (!column.cell) {
     throw new Error(`Column ${column.accessorKey} has no cell renderer`);
   }

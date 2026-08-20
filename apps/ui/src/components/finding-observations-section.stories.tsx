@@ -14,7 +14,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { FindingObservationsSection } from "@/components/finding-observations-section.tsx";
 
 import type { ObservationAffectedResourceInput as ObservationResource } from "@exposurenexus/types/model/affected-resource";
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 import type {
   ManualObservationInput,
   Observation,
@@ -34,7 +34,7 @@ const ids = {
   user: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
 };
 
-const finding: FindingProjection = {
+const finding: Finding = {
   id: ids.finding,
   assetId: ids.asset,
   title: "Exposed Admin Endpoint",
@@ -62,7 +62,7 @@ const finding: FindingProjection = {
   updatedBy: ids.user,
 };
 
-const targetFinding: FindingProjection = {
+const targetFinding: Finding = {
   ...finding,
   id: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
   title: "Target finding",

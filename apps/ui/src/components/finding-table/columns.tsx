@@ -15,7 +15,7 @@ import { formatUtcDateOnly } from "@/lib/date-input.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { Asset } from "@exposurenexus/types/model/asset";
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 
 export const FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE = "__unassigned_assignee__";
@@ -75,10 +75,7 @@ export function formatFindingDueDate(value: Date | null | undefined) {
   return formatUtcDateOnly(value);
 }
 
-export function isFindingOverdue(
-  finding: Pick<FindingProjection, "status" | "dueDate">,
-  today = new Date(),
-) {
+export function isFindingOverdue(finding: Pick<Finding, "status" | "dueDate">, today = new Date()) {
   if (!finding.dueDate || !overdueStatuses.has(finding.status)) {
     return false;
   }
@@ -89,7 +86,7 @@ export function isFindingOverdue(
   return dueDateTime < todayTime;
 }
 
-function FindingDueDateCell({ finding }: { finding: FindingProjection }) {
+function FindingDueDateCell({ finding }: { finding: Finding }) {
   if (!finding.dueDate) {
     return <span className="text-muted-foreground">No due date</span>;
   }
@@ -141,7 +138,7 @@ export function createFindingColumns(
   assetsById: ReadonlyMap<string, Asset> = new Map(),
   userProfileById: Map<string, UserProfile> = new Map(),
   usersLoading = false,
-): Array<DataTableColumnDef<FindingProjection>> {
+): Array<DataTableColumnDef<Finding>> {
   return [
     {
       accessorKey: "title",

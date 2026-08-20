@@ -7,7 +7,7 @@ import { FindingsPage } from "@/features/findings/components/findings-page.tsx";
 
 import type { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import type { Asset } from "@exposurenexus/types/model/asset";
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 import type { ObservationSource } from "@exposurenexus/types/model/observation";
 import type { UserProfile } from "@exposurenexus/types/model/user";
 import type { ReactNode } from "react";
@@ -56,13 +56,13 @@ const mocks = vi.hoisted(() => {
       updatedBy: users[0].id,
     },
   ];
-  const findings: Array<FindingProjection> = [
+  const findings: Array<Finding> = [
     {
       id: "2713d833-eb13-4517-ac7c-7761545ed42a",
       assetId: assets[0].id,
       title: "Exposed Admin Endpoint",
-      severity: "high" as FindingProjection["severity"],
-      status: "active" as FindingProjection["status"],
+      severity: "high" as Finding["severity"],
+      status: "active" as Finding["status"],
       mitigation: "Restrict access to internal networks",
       assigneeId: users[0].id,
       dueDate: null,
@@ -85,8 +85,8 @@ const mocks = vi.hoisted(() => {
       id: "3703bd68-5d5e-4209-90dc-365bc7030f67",
       assetId: assets[0].id,
       title: "Outdated API Dependency",
-      severity: "medium" as FindingProjection["severity"],
-      status: "confirmed" as FindingProjection["status"],
+      severity: "medium" as Finding["severity"],
+      status: "confirmed" as Finding["status"],
       mitigation: null,
       assigneeId: null,
       dueDate: null,

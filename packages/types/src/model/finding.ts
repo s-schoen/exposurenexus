@@ -19,7 +19,7 @@ export enum FindingStatus {
   Mitigated = "mitigated",
 }
 
-export const findingPersistenceSchema = z.strictObject({
+export const findingRecordSchema = z.strictObject({
   id: z.uuidv4(),
   assetId: z.uuidv4(),
   title: z.string().nonempty(),
@@ -36,7 +36,7 @@ export const findingPersistenceSchema = z.strictObject({
   updatedBy: z.uuidv4(),
 });
 
-export const findingProjectionSchema = findingPersistenceSchema.extend({
+export const findingSchema = findingRecordSchema.extend({
   vulnerabilities: z.array(vulnerabilityCatalogSchema),
   observationCount: z.int().min(0),
   observingSources: z.array(z.enum(ObservationSource)),
@@ -61,7 +61,7 @@ export const createFindingSchema = z.strictObject({
   observation: manualObservationInputSchema.optional(),
 });
 
-const mutableFindingSchema = findingPersistenceSchema.pick({
+const mutableFindingSchema = findingRecordSchema.pick({
   title: true,
   severity: true,
   status: true,
@@ -100,7 +100,7 @@ export const FindingStatistics = z.strictObject({
   assets: z.record(z.uuidv4(), z.int()),
 });
 
-export type FindingProjection = z.infer<typeof findingProjectionSchema>;
+export type Finding = z.infer<typeof findingSchema>;
 export type CreateManualFinding = z.infer<typeof createFindingSchema>;
 export type UpdateFinding = z.infer<typeof updateFindingSchema>;
 export type FindingStatistics = z.infer<typeof FindingStatistics>;

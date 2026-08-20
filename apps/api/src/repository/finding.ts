@@ -4,9 +4,9 @@ import {
   observationAffectedResourceSchema,
 } from "@exposurenexus/types/model/affected-resource";
 import {
-  findingPersistenceSchema,
-  findingProjectionSchema,
-  type FindingProjection,
+  findingRecordSchema,
+  findingSchema,
+  type Finding,
 } from "@exposurenexus/types/model/finding";
 import { observationSchema, type Observation } from "@exposurenexus/types/model/observation";
 import { weaknessSchema, type Weakness } from "@exposurenexus/types/model/weakness";
@@ -60,14 +60,14 @@ export interface CreateManualFindingResult {
   finding: FindingRecord;
   observation: Observation;
   links: FindingVulnerabilityRecord[];
-  projection: FindingProjection;
+  projection: Finding;
 }
 
-export interface FindingPersistenceRepository {
+export interface FindingRepository {
   list(): Promise<FindingRecord[]>;
   getByID(id: string): Promise<FindingRecord | null>;
-  listProjected(): Promise<FindingProjection[]>;
-  getProjectedByID(id: string): Promise<FindingProjection | null>;
+  listProjected(): Promise<Finding[]>;
+  getProjectedByID(id: string): Promise<Finding | null>;
   createManual(input: CreateManualFindingInput): Promise<CreateManualFindingResult>;
   create(finding: CreateFindingRecord): Promise<FindingRecord>;
   updateByID(id: string, finding: UpdateFindingRecord): Promise<FindingRecord | null>;
@@ -78,11 +78,11 @@ export interface FindingPersistenceRepository {
 type DatabaseExecutor = Kysely<Database> | Transaction<Database>;
 
 function normalizeFinding(finding: FindingRecord): FindingRecord {
-  return findingPersistenceSchema.parse(finding) as FindingRecord;
+  return findingRecordSchema.parse(finding) as FindingRecord;
 }
 
-function normalizeFindingProjection(finding: FindingProjectionRow): FindingProjection {
-  return findingProjectionSchema.parse(finding);
+function normalizeFindingProjection(finding: FindingProjectionRow): Finding {
+  return findingSchema.parse(finding);
 }
 
 const findingProjectionGroupColumns = [
@@ -153,7 +153,7 @@ function projectionQuery(database: DatabaseExecutor) {
 export async function getFindingProjectionByID(
   database: DatabaseExecutor,
   id: string,
-): Promise<FindingProjection | null> {
+): Promise<Finding | null> {
   const finding = await projectionQuery(database).where("finding.id", "=", id).executeTakeFirst();
 
   return finding ? normalizeFindingProjection(finding) : null;
@@ -197,9 +197,7 @@ function normalizeFindingInput<T extends { weakness?: unknown; affectedResource?
   };
 }
 
-export function createFindingPersistenceRepository(
-  database: Kysely<Database>,
-): FindingPersistenceRepository {
+export function createFindingRepository(database: Kysely<Database>): FindingRepository {
   return {
     async list(): Promise<FindingRecord[]> {
       const findings = await database.selectFrom("finding").selectAll().execute();
@@ -216,12 +214,12 @@ export function createFindingPersistenceRepository(
       return finding ? normalizeFinding(finding) : null;
     },
 
-    async listProjected(): Promise<FindingProjection[]> {
+    async listProjected(): Promise<Finding[]> {
       const findings = await projectionQuery(database).execute();
       return findings.map((finding) => normalizeFindingProjection(finding));
     },
 
-    async getProjectedByID(id: string): Promise<FindingProjection | null> {
+    async getProjectedByID(id: string): Promise<Finding | null> {
       return await getFindingProjectionByID(database, id);
     },
 

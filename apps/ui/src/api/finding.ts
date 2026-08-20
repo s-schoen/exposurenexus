@@ -1,5 +1,5 @@
 import {
-  findingProjectionSchema,
+  findingSchema,
   FindingStatistics as findingStatisticsSchema,
 } from "@exposurenexus/types/model/finding";
 import { observationSchema } from "@exposurenexus/types/model/observation";
@@ -15,7 +15,7 @@ import {
 
 import type {
   CreateManualFinding,
-  FindingProjection,
+  Finding,
   FindingStatistics,
   UpdateFinding,
 } from "@exposurenexus/types/model/finding";
@@ -25,7 +25,7 @@ import type {
   UpdateObservation,
 } from "@exposurenexus/types/model/observation";
 
-async function listFindings(): Promise<Array<FindingProjection>> {
+async function listFindings(): Promise<Array<Finding>> {
   const response = await apiRequest("/api/findings", {
     method: "GET",
   });
@@ -36,10 +36,10 @@ async function listFindings(): Promise<Array<FindingProjection>> {
     throw error;
   }
 
-  return parseArrayReply(response, findingProjectionSchema);
+  return parseArrayReply(response, findingSchema);
 }
 
-export async function deleteFinding(id: string): Promise<FindingProjection> {
+export async function deleteFinding(id: string): Promise<Finding> {
   const response = await apiRequest(`/api/findings/${id}`, {
     method: "DELETE",
   });
@@ -50,10 +50,10 @@ export async function deleteFinding(id: string): Promise<FindingProjection> {
     throw error;
   }
 
-  return parseObjectReply(response, findingProjectionSchema);
+  return parseObjectReply(response, findingSchema);
 }
 
-async function getFindingByID(id: string): Promise<FindingProjection> {
+async function getFindingByID(id: string): Promise<Finding> {
   const response = await apiRequest(`/api/findings/${id}`, {
     method: "GET",
   });
@@ -64,7 +64,7 @@ async function getFindingByID(id: string): Promise<FindingProjection> {
     throw error;
   }
 
-  return parseObjectReply(response, findingProjectionSchema);
+  return parseObjectReply(response, findingSchema);
 }
 
 async function getFindingStats(): Promise<FindingStatistics> {
@@ -180,7 +180,7 @@ export async function moveFindingObservation(
   return parseObjectReply(response, observationSchema);
 }
 
-export async function createManualFinding(f: CreateManualFinding): Promise<FindingProjection> {
+export async function createManualFinding(f: CreateManualFinding): Promise<Finding> {
   const response = await apiRequest("/api/findings", {
     method: "POST",
     headers: {
@@ -195,10 +195,10 @@ export async function createManualFinding(f: CreateManualFinding): Promise<Findi
     throw error;
   }
 
-  return parseObjectReply(response, findingProjectionSchema);
+  return parseObjectReply(response, findingSchema);
 }
 
-export async function updateFinding(id: string, update: UpdateFinding): Promise<FindingProjection> {
+export async function updateFinding(id: string, update: UpdateFinding): Promise<Finding> {
   const response = await apiRequest(`/api/findings/${id}`, {
     method: "PUT",
     headers: {
@@ -213,13 +213,13 @@ export async function updateFinding(id: string, update: UpdateFinding): Promise<
     throw error;
   }
 
-  return parseObjectReply(response, findingProjectionSchema);
+  return parseObjectReply(response, findingSchema);
 }
 
 export async function linkFindingVulnerability(
   findingId: string,
   vulnerabilityId: string,
-): Promise<FindingProjection> {
+): Promise<Finding> {
   const response = await apiRequest(
     `/api/findings/${findingId}/vulnerabilities/${vulnerabilityId}`,
     {
@@ -233,13 +233,13 @@ export async function linkFindingVulnerability(
     throw error;
   }
 
-  return parseObjectReply(response, findingProjectionSchema);
+  return parseObjectReply(response, findingSchema);
 }
 
 export async function unlinkFindingVulnerability(
   findingId: string,
   vulnerabilityId: string,
-): Promise<FindingProjection> {
+): Promise<Finding> {
   const response = await apiRequest(
     `/api/findings/${findingId}/vulnerabilities/${vulnerabilityId}`,
     {
@@ -253,7 +253,7 @@ export async function unlinkFindingVulnerability(
     throw error;
   }
 
-  return parseObjectReply(response, findingProjectionSchema);
+  return parseObjectReply(response, findingSchema);
 }
 
 export function createListFindingsQueryOptions() {

@@ -5,7 +5,7 @@ import { usePageMeta } from "@/context/page.tsx";
 import { useFindingTableSearchState } from "@/hooks/use-finding-table-search-state.ts";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
-import type { FindingProjection } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/types/model/finding";
 
 interface FindingsPageProps {
   search?: Record<string, unknown>;
@@ -17,7 +17,7 @@ export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
     search,
     to: "/findings",
   });
-  const selectedSearch = useSelectedSearchParam<FindingProjection>({
+  const selectedSearch = useSelectedSearchParam<Finding>({
     selectedId: selected,
     to: "/findings",
     replace: true,

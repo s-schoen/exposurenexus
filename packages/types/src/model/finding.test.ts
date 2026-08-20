@@ -126,7 +126,7 @@ describe("finding correction schema", () => {
     });
   });
 
-  it("rejects empty corrections and immutable projection fields", () => {
+  it("rejects empty corrections and immutable finding fields", () => {
     expect(() => updateFindingSchema.parse({})).toThrow();
     expect(() => updateFindingSchema.parse({ assetId })).toThrow();
     expect(() => updateFindingSchema.parse({ observationCount: 0 })).toThrow();
