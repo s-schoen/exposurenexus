@@ -54,8 +54,10 @@ describe("repository factories", () => {
         "deleteByID",
         "getByID",
         "getProjectedByID",
+        "linkVulnerability",
         "list",
         "listProjected",
+        "unlinkVulnerability",
         "updateByID",
       ].sort(),
     );

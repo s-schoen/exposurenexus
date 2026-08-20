@@ -9,7 +9,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";
 import { createAssetRepository } from "./asset.js";
-import { createFindingVulnerabilityRepository } from "./finding-vulnerability.js";
 import { createFindingRepository } from "./finding.js";
 import { createIngestionRepository } from "./ingestion.js";
 import { createObservationRepository } from "./observation.js";
@@ -73,7 +72,6 @@ describe("observation-based persistence repositories", () => {
     const observationRepository = createObservationRepository(testDb.db);
     const ingestionRepository = createIngestionRepository(testDb.db);
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
-    const linkRepository = createFindingVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
 
     const finding = await findingRepository.create({
@@ -119,7 +117,11 @@ describe("observation-based persistence repositories", () => {
       updatedBy: createdBy,
     });
     await expect(
-      linkRepository.create({ findingId: finding.id, vulnerabilityId: vulnerability.id }),
+      testDb.db
+        .insertInto("finding_vulnerability")
+        .values({ findingId: finding.id, vulnerabilityId: vulnerability.id })
+        .returningAll()
+        .executeTakeFirstOrThrow(),
     ).resolves.toEqual({
       findingId: finding.id,
       vulnerabilityId: vulnerability.id,
@@ -731,7 +733,6 @@ describe("observation-based persistence repositories", () => {
     const observationRepository = createObservationRepository(testDb.db);
     const ingestionRepository = createIngestionRepository(testDb.db);
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
-    const linkRepository = createFindingVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
     const finding = await findingRepository.create({
       assetId: asset.id,
@@ -792,8 +793,13 @@ describe("observation-based persistence repositories", () => {
       createdBy,
       updatedBy: createdBy,
     });
-    await linkRepository.create({ findingId: finding.id, vulnerabilityId: cwe.id });
-    await linkRepository.create({ findingId: finding.id, vulnerabilityId: cve.id });
+    await testDb.db
+      .insertInto("finding_vulnerability")
+      .values([
+        { findingId: finding.id, vulnerabilityId: cwe.id },
+        { findingId: finding.id, vulnerabilityId: cve.id },
+      ])
+      .execute();
     const ingestion = await ingestionRepository.create({
       source: IngestionSource.Nuclei,
       scope: { target: "example.com" },
@@ -905,15 +911,16 @@ describe("observation-based persistence repositories", () => {
     });
   });
 
-  it("enforces link uniqueness and cascades observations and links with finding deletion", async () => {
+  it("manages vulnerability links transactionally and cascades them", async () => {
     const asset = await createAssetRepository(testDb.db).create(
       assetRecord("api.exposurenexus.local"),
     );
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
-    const linkRepository = createFindingVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
+    const linkedAt = new Date("2026-01-04T00:00:00.000Z");
+    const unlinkedAt = new Date("2026-01-05T00:00:00.000Z");
     const finding = await findingRepository.create({
       assetId: asset.id,
       title: "Weakness",
@@ -941,10 +948,111 @@ describe("observation-based persistence repositories", () => {
       createdBy,
       updatedBy: createdBy,
     });
-    await linkRepository.create({ findingId: finding.id, vulnerabilityId: vulnerability.id });
     await expect(
-      linkRepository.create({ findingId: finding.id, vulnerabilityId: vulnerability.id }),
+      findingRepository.linkVulnerability({
+        findingId: finding.id,
+        vulnerabilityId: vulnerability.id,
+        updatedAt: linkedAt,
+        updatedBy: createdBy,
+      }),
+    ).resolves.toEqual({
+      link: { findingId: finding.id, vulnerabilityId: vulnerability.id },
+      changed: true,
+    });
+    await expect(
+      findingRepository.linkVulnerability({
+        findingId: finding.id,
+        vulnerabilityId: vulnerability.id,
+        updatedAt: unlinkedAt,
+        updatedBy: createdBy,
+      }),
+    ).resolves.toEqual({
+      link: { findingId: finding.id, vulnerabilityId: vulnerability.id },
+      changed: false,
+    });
+    await expect(findingRepository.getByID(finding.id)).resolves.toMatchObject({
+      updatedAt: linkedAt,
+      updatedBy: createdBy,
+    });
+    await expect(
+      findingRepository.unlinkVulnerability({
+        findingId: finding.id,
+        vulnerabilityId: vulnerability.id,
+        updatedAt: unlinkedAt,
+        updatedBy: createdBy,
+      }),
+    ).resolves.toEqual({
+      link: { findingId: finding.id, vulnerabilityId: vulnerability.id },
+      changed: true,
+    });
+    await expect(
+      findingRepository.unlinkVulnerability({
+        findingId: finding.id,
+        vulnerabilityId: vulnerability.id,
+        updatedAt: new Date("2026-01-06T00:00:00.000Z"),
+        updatedBy: createdBy,
+      }),
+    ).resolves.toEqual({ link: null, changed: false });
+    await expect(findingRepository.getByID(finding.id)).resolves.toMatchObject({
+      updatedAt: unlinkedAt,
+      updatedBy: createdBy,
+    });
+
+    await sql`
+      create function fail_link_finding_update() returns trigger as $$
+      begin
+        raise exception 'finding update failed';
+      end;
+      $$ language plpgsql
+    `.execute(testDb.db);
+    await sql`
+      create trigger fail_link_finding_update
+      before update on finding
+      for each row execute function fail_link_finding_update()
+    `.execute(testDb.db);
+
+    try {
+      await expect(
+        findingRepository.linkVulnerability({
+          findingId: finding.id,
+          vulnerabilityId: vulnerability.id,
+          updatedAt: new Date("2026-01-06T00:00:00.000Z"),
+          updatedBy: createdBy,
+        }),
+      ).rejects.toThrow("finding update failed");
+      await expect(
+        testDb.db
+          .selectFrom("finding_vulnerability")
+          .selectAll()
+          .where("findingId", "=", finding.id)
+          .execute(),
+      ).resolves.toEqual([]);
+    } finally {
+      await sql`drop trigger fail_link_finding_update on finding`.execute(testDb.db);
+      await sql`drop function fail_link_finding_update()`.execute(testDb.db);
+    }
+
+    await findingRepository.linkVulnerability({
+      findingId: finding.id,
+      vulnerabilityId: vulnerability.id,
+      updatedAt: new Date("2026-01-06T00:00:00.000Z"),
+      updatedBy: createdBy,
+    });
+    await expect(
+      findingRepository.unlinkVulnerability({
+        findingId: finding.id,
+        vulnerabilityId: vulnerability.id,
+        updatedAt: new Date("2026-01-07T00:00:00.000Z"),
+        updatedBy: vulnerability.id,
+      }),
     ).rejects.toThrow();
+    await expect(
+      testDb.db
+        .selectFrom("finding_vulnerability")
+        .selectAll()
+        .where("findingId", "=", finding.id)
+        .execute(),
+    ).resolves.toEqual([{ findingId: finding.id, vulnerabilityId: vulnerability.id }]);
     await observationRepository.create({
       findingId: finding.id,
       ingestionId: null,
@@ -966,7 +1074,13 @@ describe("observation-based persistence repositories", () => {
     await findingRepository.deleteByID(finding.id);
 
     await expect(observationRepository.listByFindingID(finding.id)).resolves.toEqual([]);
-    await expect(linkRepository.listByFindingID(finding.id)).resolves.toEqual([]);
+    await expect(
+      testDb.db
+        .selectFrom("finding_vulnerability")
+        .selectAll()
+        .where("findingId", "=", finding.id)
+        .execute(),
+    ).resolves.toEqual([]);
     await expect(vulnerabilityRepository.getByID(vulnerability.id)).resolves.toEqual(vulnerability);
   });
 

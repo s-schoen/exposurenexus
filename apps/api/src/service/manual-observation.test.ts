@@ -43,6 +43,8 @@ describe("nested manual observations", () => {
     getProjectedByID: vi.fn(),
     updateByID: vi.fn(),
     deleteByID: vi.fn(),
+    linkVulnerability: vi.fn(),
+    unlinkVulnerability: vi.fn(),
   };
   const observationRepository = {
     listByFindingID: vi.fn(),
@@ -50,13 +52,6 @@ describe("nested manual observations", () => {
     updateAndTouchFinding: vi.fn(),
     deleteAndTouchFinding: vi.fn(),
     moveAndTouchFindings: vi.fn(),
-  };
-  const findingVulnerabilityRepository = {
-    listByFindingID: vi.fn(),
-    create: vi.fn(),
-    delete: vi.fn(),
-    linkAndTouchFinding: vi.fn(),
-    unlinkAndTouchFinding: vi.fn(),
   };
   const domainEvents = createDomainEventCollector();
 
@@ -70,7 +65,6 @@ describe("nested manual observations", () => {
   function createService() {
     return createFindingService({
       findingRepository,
-      findingVulnerabilityRepository,
       observationRepository,
       assetService: { getByID: vi.fn() },
       userProfileService: { getByID: vi.fn() },

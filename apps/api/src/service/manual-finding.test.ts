@@ -25,13 +25,8 @@ describe("manual finding creation", () => {
     getProjectedByID: vi.fn(),
     updateByID: vi.fn(),
     deleteByID: vi.fn(),
-  };
-  const findingVulnerabilityRepository = {
-    listByFindingID: vi.fn(),
-    create: vi.fn(),
-    delete: vi.fn(),
-    linkAndTouchFinding: vi.fn(),
-    unlinkAndTouchFinding: vi.fn(),
+    linkVulnerability: vi.fn(),
+    unlinkVulnerability: vi.fn(),
   };
   const observationRepository = {
     listByFindingID: vi.fn(),
@@ -119,7 +114,6 @@ describe("manual finding creation", () => {
   function createService() {
     return createFindingService({
       findingRepository,
-      findingVulnerabilityRepository,
       observationRepository,
       assetService,
       userProfileService,

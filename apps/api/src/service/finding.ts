@@ -23,7 +23,6 @@ import {
 import { ApplicationError, isApplicationError } from "./application-error.js";
 import { isForeignKeyError } from "./errors.js";
 
-import type { FindingVulnerabilityRepository } from "../repository/finding-vulnerability.js";
 import type { FindingRepository } from "../repository/finding.js";
 import type { ObservationRepository } from "../repository/observation.js";
 import type { Asset } from "@exposurenexus/types/model/asset";
@@ -46,9 +45,14 @@ interface UserProfileLookupService {
 interface FindingServiceDependencies {
   findingRepository: Pick<
     FindingRepository,
-    "createManual" | "getProjectedByID" | "listProjected" | "updateByID" | "deleteByID"
+    | "createManual"
+    | "getProjectedByID"
+    | "listProjected"
+    | "updateByID"
+    | "deleteByID"
+    | "linkVulnerability"
+    | "unlinkVulnerability"
   >;
-  findingVulnerabilityRepository: FindingVulnerabilityRepository;
   observationRepository: Pick<
     ObservationRepository,
     | "listByFindingID"
@@ -161,7 +165,6 @@ export interface FindingService {
 
 export function createFindingService({
   findingRepository,
-  findingVulnerabilityRepository,
   observationRepository,
   assetService,
   userProfileService,
@@ -206,16 +209,16 @@ export function createFindingService({
     };
     const mutation =
       operation === "link"
-        ? await findingVulnerabilityRepository.linkAndTouchFinding(
-            opts.findingId,
-            opts.vulnerabilityId,
-            audit,
-          )
-        : await findingVulnerabilityRepository.unlinkAndTouchFinding(
-            opts.findingId,
-            opts.vulnerabilityId,
-            audit,
-          );
+        ? await findingRepository.linkVulnerability({
+            findingId: opts.findingId,
+            vulnerabilityId: opts.vulnerabilityId,
+            ...audit,
+          })
+        : await findingRepository.unlinkVulnerability({
+            findingId: opts.findingId,
+            vulnerabilityId: opts.vulnerabilityId,
+            ...audit,
+          });
     const current = await findingRepository.getProjectedByID(opts.findingId);
 
     if (!current) {
