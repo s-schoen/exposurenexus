@@ -84,57 +84,33 @@ function parseObservedAt(value: string | undefined, ingestionTime: Date): Date {
   return observedAt;
 }
 
-function parsePort(value: string | number | undefined): number | undefined {
-  if (value === undefined || (typeof value === "string" && value.trim().length === 0)) {
-    return undefined;
-  }
-
-  return typeof value === "number" ? value : Number(value);
-}
-
-function parseHost(value: string | undefined): { host?: string; port?: number } {
-  if (value === undefined || value.trim().length === 0) {
-    return {};
-  }
-
-  const rawHost = value.trim();
-  try {
-    const parsed = new URL(rawHost.includes("://") ? rawHost : `http://${rawHost}`);
-    const host = parsed.hostname.replace(/^\[|\]$/gu, "");
-    return {
-      host,
-      ...(parsed.port.length > 0 ? { port: Number(parsed.port) } : {}),
-    };
-  } catch {
-    return {
-      host: rawHost,
-    };
-  }
-}
-
 function parseEndpoint(record: NucleiRecord) {
-  let parsedUrl: URL | undefined;
-  if (record.url !== undefined && record.url.length > 0) {
-    try {
-      parsedUrl = new URL(record.url);
-    } catch {
-      parsedUrl = undefined;
-    }
+  if (record.url === undefined && record.host !== undefined && /[\s/?#@\\]/u.test(record.host)) {
+    throw new Error("Nuclei endpoint host must be a valid host.");
   }
 
-  const parsedHost = parseHost(record.host);
-  const scheme = parsedUrl?.protocol.slice(0, -1) || record.scheme || record.type;
-  const host = parsedUrl?.hostname.replace(/^\[|\]$/gu, "") || parsedHost.host;
-  const explicitPort = parsePort(record.port);
-  const port = explicitPort ?? (parsedUrl?.port ? Number(parsedUrl.port) : parsedHost.port);
-  const path = parsedUrl?.pathname || record.path;
+  if (
+    record.url === undefined &&
+    typeof record.port === "string" &&
+    record.port.length > 0 &&
+    !/^\d+$/u.test(record.port)
+  ) {
+    throw new Error("Nuclei endpoint port must be numeric.");
+  }
+
+  const endpoint =
+    record.url ??
+    `${record.scheme ?? record.type}://${record.host ?? ""}${
+      record.port === undefined ? "" : `:${record.port}`
+    }${record.path ?? ""}`;
+  const parsedUrl = new URL(endpoint);
 
   return {
     type: AffectedResourceType.WebEndpoint,
-    ...(scheme === undefined ? {} : { scheme }),
-    ...(host === undefined ? {} : { host }),
-    ...(port === undefined ? {} : { port }),
-    ...(path === undefined ? {} : { path }),
+    scheme: parsedUrl.protocol.slice(0, -1),
+    host: parsedUrl.hostname,
+    ...(parsedUrl.port.length === 0 ? {} : { port: Number(parsedUrl.port) }),
+    path: parsedUrl.pathname,
     ...(record.method === undefined ? {} : { method: record.method }),
     ...(record.url === undefined ? {} : { reportedUrl: record.url }),
   };

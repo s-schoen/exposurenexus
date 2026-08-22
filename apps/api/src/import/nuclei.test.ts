@@ -25,6 +25,7 @@ const httpRecord = {
   host: "EXAMPLE.com:443",
   scheme: "https",
   url: "https://EXAMPLE.com:443/admin?debug=true#fragment",
+  port: 8443,
   path: "/ignored-by-the-reported-url",
   method: "get",
   request: "GET /admin HTTP/1.1",
@@ -34,7 +35,7 @@ const httpRecord = {
 };
 
 describe("nuclei translator", () => {
-  it("translates HTTP records into normalized observation drafts", () => {
+  it("uses a reported URL as the endpoint source", () => {
     const result = translateNucleiRecord(httpRecord, ingestionTime);
 
     expect(result).toEqual({
@@ -57,7 +58,6 @@ describe("nuclei translator", () => {
           reportedUrl: "https://EXAMPLE.com:443/admin?debug=true#fragment",
           scheme: "https",
           host: "example.com",
-          port: 443,
           path: "/admin",
           method: "get",
         },
@@ -72,7 +72,7 @@ describe("nuclei translator", () => {
     }
   });
 
-  it("supports HTTPS records and falls back missing values", () => {
+  it("constructs an endpoint from standard HTTPS fields", () => {
     const result = translateNucleiRecord(
       {
         "template-id": "missing-security-header",
@@ -82,6 +82,7 @@ describe("nuclei translator", () => {
         },
         type: "https",
         host: "api.example.com",
+        port: "8443",
         path: "/headers",
       },
       ingestionTime,
@@ -102,6 +103,7 @@ describe("nuclei translator", () => {
           type: AffectedResourceType.WebEndpoint,
           scheme: "https",
           host: "api.example.com",
+          port: 8443,
           path: "/headers",
         },
         observedAt: ingestionTime,
@@ -146,6 +148,20 @@ describe("nuclei translator", () => {
     });
     expect(JSON.stringify(results[0])).not.toContain('"template-id"');
     expect(JSON.stringify(results[0])).not.toContain('"request"');
+  });
+
+  it("rejects invalid endpoint URLs, hosts, and ports", () => {
+    const invalidRecords = [
+      { ...httpRecord, url: "not-a-url" },
+      { ...httpRecord, url: undefined, host: "not a valid host" },
+      { ...httpRecord, url: undefined, host: "https://example.com", port: undefined },
+      { ...httpRecord, url: undefined, host: "api.example.com", port: "not-a-port" },
+      { ...httpRecord, url: undefined, host: "api.example.com", port: "443/path" },
+    ];
+
+    for (const record of invalidRecords) {
+      expect(() => translateNucleiRecord(record, ingestionTime)).toThrow();
+    }
   });
 
   it("rejects malformed records and invalid ingestion times", () => {
