@@ -20,33 +20,15 @@ import type {
   UpdateFinding,
 } from "@exposurenexus/types/model/finding";
 
-export type FindingEditableField =
-  | "title"
-  | "severity"
-  | "status"
-  | "mitigation"
-  | "assigneeId"
-  | "dueDate"
-  | "weakness"
-  | "affectedResource";
-
-export type FindingBulkEditableField = "severity" | "status";
-
-export interface FindingLifecycleFailure {
-  finding: Finding | FindingReference;
+export interface FindingDeleteFailure {
+  finding: Finding;
   error: unknown;
 }
 
-export interface FindingLifecycleBatchResult {
+export interface FindingDeleteBatchResult {
   successful: Array<Finding>;
-  failed: Array<FindingLifecycleFailure>;
+  failed: Array<FindingDeleteFailure>;
 }
-
-export type FindingReference = Pick<Finding, "id">;
-
-export type FindingDeleteBatchResult = FindingLifecycleBatchResult;
-
-type FindingCacheValue = Finding;
 
 export interface FindingLifecycleActions {
   /**
@@ -58,31 +40,7 @@ export interface FindingLifecycleActions {
    */
   createFinding: (value: CreateManualFinding) => Promise<Finding | null>;
 
-  /**
-   * Updates one mutable finding field with optimistic list/detail cache updates.
-   *
-   * Returns the updated finding on success. Returns null for handled API
-   * failures after rolling optimistic cache writes back.
-   */
-  updateFindingField: <TKey extends FindingEditableField>(
-    finding: Finding,
-    key: TKey,
-    value: Finding[TKey],
-  ) => Promise<Finding | null>;
-
-  correctFinding: (finding: Finding, update: UpdateFinding) => Promise<Finding | null>;
-
-  /**
-   * Updates one bulk-editable field for many findings, shows default summary
-   * toasts, and returns per-finding success/failure details.
-   *
-   * API failures are represented in the returned result instead of thrown.
-   */
-  bulkUpdateFindingField: <TKey extends FindingBulkEditableField>(
-    findings: Array<Finding>,
-    key: TKey,
-    value: Finding[TKey],
-  ) => Promise<FindingLifecycleBatchResult>;
+  correctFinding: (findingId: string, update: UpdateFinding) => Promise<Finding | null>;
 
   /**
    * Deletes many findings, shows default summary toasts, and returns per-finding
@@ -91,14 +49,9 @@ export interface FindingLifecycleActions {
    * Confirmation stays with the caller. API failures are represented in the
    * returned result instead of thrown.
    */
-  deleteFindings: (findings: Array<FindingReference>) => Promise<FindingDeleteBatchResult>;
+  deleteFindings: (findings: Array<Finding>) => Promise<FindingDeleteBatchResult>;
   linkVulnerability: (findingId: string, vulnerabilityId: string) => Promise<Finding | null>;
   unlinkVulnerability: (findingId: string, vulnerabilityId: string) => Promise<Finding | null>;
-}
-
-interface FindingCacheSnapshot {
-  list: Array<FindingCacheValue> | undefined;
-  details: Map<string, FindingCacheValue | undefined>;
 }
 
 const listQueryKey = createListFindingsQueryOptions().queryKey;
@@ -108,67 +61,25 @@ function detailQueryKey(findingId: string) {
   return createFindingByIDQueryOptions(findingId).queryKey;
 }
 
-function replaceFindingInList(
-  findings: Array<FindingCacheValue> | undefined,
-  nextFinding: FindingCacheValue,
-) {
+function replaceFindingInList(findings: Array<Finding> | undefined, nextFinding: Finding) {
   return findings?.map((finding) => (finding.id === nextFinding.id ? nextFinding : finding));
 }
 
-function findingWithField<TKey extends FindingEditableField>(
-  finding: Finding,
-  key: TKey,
-  value: Finding[TKey],
-): Finding {
-  return {
-    ...finding,
-    [key]: value,
-  };
-}
-
-function createBatchResult(
-  findings: Array<Finding>,
-  results: Array<PromiseSettledResult<Finding>>,
-): FindingLifecycleBatchResult {
-  return results.reduce<FindingLifecycleBatchResult>(
-    (result, settled, index) => {
-      if (settled.status === "fulfilled") {
-        result.successful.push(settled.value);
-      } else {
-        result.failed.push({
-          finding: findings[index],
-          error: settled.reason,
-        });
-      }
-
-      return result;
-    },
-    {
-      successful: [],
-      failed: [],
-    },
-  );
-}
-
-function toastBatchSummary(
-  result: { successful: Array<unknown>; failed: Array<unknown> },
-  action: "Deleted" | "Updated",
-  failureVerb: "delete" | "update",
-) {
+function toastDeleteSummary(result: FindingDeleteBatchResult) {
   const total = result.successful.length + result.failed.length;
 
   if (result.failed.length === 0) {
-    toast.success(`${action} ${formatFindingCount(result.successful.length)}`);
+    toast.success(`Deleted ${formatFindingCount(result.successful.length)}`);
     return;
   }
 
   if (result.successful.length === 0) {
-    toast.error(`Failed to ${failureVerb} ${formatFindingCount(total)}`);
+    toast.error(`Failed to delete ${formatFindingCount(total)}`);
     return;
   }
 
   toast.error(
-    `${action} ${formatFindingCount(result.successful.length)}; failed ${formatFindingCount(result.failed.length)}`,
+    `Deleted ${formatFindingCount(result.successful.length)}; failed ${formatFindingCount(result.failed.length)}`,
   );
 }
 
@@ -180,49 +91,10 @@ export function useFindingLifecycle(): FindingLifecycleActions {
   const findingVulnerabilityLink = useLinkFindingVulnerabilityMutation();
   const findingVulnerabilityUnlink = useUnlinkFindingVulnerabilityMutation();
 
-  function snapshotFindings(findingIds: Array<string>): FindingCacheSnapshot {
-    return {
-      list: queryClient.getQueryData<Array<FindingCacheValue>>(listQueryKey),
-      details: new Map(
-        findingIds.map((id) => [
-          id,
-          queryClient.getQueryData<FindingCacheValue>(detailQueryKey(id)),
-        ]),
-      ),
-    };
-  }
-
-  function writeFindingToCaches(finding: FindingCacheValue) {
+  function writeFindingToCaches(finding: Finding) {
     queryClient.setQueryData(detailQueryKey(finding.id), finding);
-    queryClient.setQueryData<Array<FindingCacheValue>>(listQueryKey, (current) =>
-      replaceFindingInList(current, finding),
-    );
-  }
-
-  function restoreFindingFromSnapshot(snapshot: FindingCacheSnapshot, findingId: string) {
-    const previousDetail = snapshot.details.get(findingId);
-
-    if (previousDetail) {
-      queryClient.setQueryData(detailQueryKey(findingId), previousDetail);
-    } else {
-      queryClient.removeQueries({
-        queryKey: detailQueryKey(findingId),
-        exact: true,
-      });
-    }
-
-    queryClient.setQueryData<Array<FindingCacheValue>>(listQueryKey, (current) => {
-      if (!current || !snapshot.list) {
-        return current;
-      }
-
-      const previousFinding = snapshot.list.find((finding) => finding.id === findingId);
-
-      if (!previousFinding) {
-        return current;
-      }
-
-      return replaceFindingInList(current, previousFinding);
+    queryClient.setQueryData<Array<Finding>>(listQueryKey, (current) => {
+      return replaceFindingInList(current, finding);
     });
   }
 
@@ -270,98 +142,17 @@ export function useFindingLifecycle(): FindingLifecycleActions {
       }
     },
 
-    async updateFindingField(finding, key, value) {
-      if (finding[key] === value) {
-        return finding;
-      }
-
-      const nextFinding = findingWithField(finding, key, value);
-      const snapshot = snapshotFindings([finding.id]);
-
+    async correctFinding(findingId, update) {
       try {
-        // Keep split list/detail views in sync while the edit is pending; the
-        // server response refreshes authoritative audit fields before refetch.
-        writeFindingToCaches(nextFinding);
-
-        const updatedFinding = await findingUpdate.mutateAsync({
-          id: finding.id,
-          update: { [key]: value },
-        });
-
+        const updatedFinding = await findingUpdate.mutateAsync({ id: findingId, update });
         writeFindingToCaches(updatedFinding);
-        await invalidateFindingReads([finding.id]);
-
+        await invalidateFindingReads([findingId]);
         return updatedFinding;
       } catch (error) {
-        // Restore both caches so a failed inline edit cannot leave the list and
-        // detail panes showing different lifecycle state.
-        restoreFindingFromSnapshot(snapshot, finding.id);
         toastActionError(error, "Failed to update finding");
         console.error(error);
         return null;
       }
-    },
-
-    async correctFinding(finding, update) {
-      const nextFinding = { ...finding, ...update };
-      const snapshot = snapshotFindings([finding.id]);
-
-      try {
-        writeFindingToCaches(nextFinding);
-        const updatedFinding = await findingUpdate.mutateAsync({ id: finding.id, update });
-        writeFindingToCaches(updatedFinding);
-        await invalidateFindingReads([finding.id]);
-        return updatedFinding;
-      } catch (error) {
-        restoreFindingFromSnapshot(snapshot, finding.id);
-        toastActionError(error, "Failed to update finding");
-        console.error(error);
-        return null;
-      }
-    },
-
-    async bulkUpdateFindingField(findings, key, value) {
-      if (findings.length === 0) {
-        return {
-          successful: [],
-          failed: [],
-        };
-      }
-
-      const snapshot = snapshotFindings(findings.map((finding) => finding.id));
-      const nextFindings = findings.map((finding) => findingWithField(finding, key, value));
-
-      // Apply the batch optimistically to every visible cache entry, then let
-      // each settled request either canonicalize or restore its own row.
-      for (const nextFinding of nextFindings) {
-        writeFindingToCaches(nextFinding);
-      }
-
-      const result = createBatchResult(
-        findings,
-        await Promise.allSettled(
-          nextFindings.map((nextFinding) =>
-            findingUpdate.mutateAsync({
-              id: nextFinding.id,
-              update: { [key]: value },
-            }),
-          ),
-        ),
-      );
-
-      for (const successfulFinding of result.successful) {
-        writeFindingToCaches(successfulFinding);
-      }
-
-      for (const failure of result.failed) {
-        restoreFindingFromSnapshot(snapshot, failure.finding.id);
-        console.error(failure.error);
-      }
-
-      await invalidateFindingReads(findings.map((finding) => finding.id));
-      toastBatchSummary(result, "Updated", "update");
-
-      return result;
     },
 
     async deleteFindings(findings) {
@@ -399,7 +190,7 @@ export function useFindingLifecycle(): FindingLifecycleActions {
       }
 
       await invalidateFindingReads(findings.map((finding) => finding.id));
-      toastBatchSummary(result, "Deleted", "delete");
+      toastDeleteSummary(result);
 
       return result;
     },

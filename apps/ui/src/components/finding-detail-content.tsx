@@ -503,7 +503,7 @@ function FindingCorrectionDialog({
 
     setError(null);
     setSubmitting(true);
-    const corrected = await findingLifecycle.correctFinding(finding, result.data);
+    const corrected = await findingLifecycle.correctFinding(finding.id, result.data);
     setSubmitting(false);
     if (!corrected) {
       setError("Unable to save correction. Try again.");
