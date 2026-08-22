@@ -24,7 +24,8 @@
     "test:contracts": "pnpm --filter @exposurenexus/contracts build && pnpm --filter @exposurenexus/contracts typecheck:test && pnpm --filter @exposurenexus/contracts test",
     "test:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test",
     "test:ui:unit": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test:unit",
-    "verify:container": "sh scripts/verify-container-build.sh"
+    "verify:container": "sh scripts/verify-container-build.sh",
+    "worktree": "bash scripts/worktree.sh"
   },
   "devDependencies": {
     "oxfmt": "0.63.0",
