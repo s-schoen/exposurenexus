@@ -1,9 +1,10 @@
 # ExposureNexus Context
 
 ExposureNexus is an open-source continuous threat exposure management (CTEM)
-platform. It collects observations from manual entry and external scanners,
-organizes them into findings on assets, and gives users workflows for triage,
-mitigation tracking, asset metadata, and access control.
+platform. It collects observations from manual entry and is designed to ingest
+external scanner observations, organizes them into findings on assets, and gives
+users workflows for triage, mitigation tracking, asset metadata, and access
+control.
 
 Exposure is the product and category framing. Keep the core domain terms below
 precise: a vulnerability is a catalog item, a finding is a human-facing case,
@@ -239,7 +240,8 @@ An **observation source** identifies the scanner or reporting family that
 reported an observation. Current sources are:
 
 - `manual`: recorded directly by a user.
-- `nuclei`: imported from a Nuclei JSONL export.
+- `nuclei`: the source represented by the pure Nuclei JSONL translator and
+  reserved for future persisted imports.
 
 One finding may have observations from multiple sources. Source is not a
 finding-owned identity or lifecycle field.
@@ -324,27 +326,33 @@ changes emit complete previous and current asset snapshots after commit.
 
 ### Import
 
-An **import** ingests external observations into ExposureNexus. The current
-importer supports Nuclei JSONL files.
+An **import** is intended to ingest external observations into ExposureNexus.
+The import endpoint is currently unavailable: the pure Nuclei JSONL translator
+is implemented, but automated persistence and observation-to-finding matching
+are not.
 
-Imports resolve source records against user-managed assets and findings. They do
-not create assets or vulnerability catalog entries. A record whose target cannot
-be resolved to one asset does not become an observation.
+When enabled, imports will resolve source records against user-managed assets and
+findings. They will not create assets or vulnerability catalog entries. A record
+whose target cannot be resolved to one asset will not become an observation.
 
 ### Ingestion
 
 An **ingestion** groups observations created from one imported source file or
-source dataset. It records the source, scope, actor, creation time, and a summary
-of processed, created, skipped, and erroneous records. Manual observations do
-not belong to ingestions.
+source dataset. The initial persisted record retains only its identity, source,
+creation actor, and creation time so imported observations can retain
+provenance. Ingestion scope and processed, created, skipped, and erroneous
+record accounting are deferred until synchronous import persistence exists.
+Manual observations do not belong to ingestions.
 
 ### Vulnerability Source Mapping
 
 A **vulnerability source mapping** links structured source-reported weakness
 data to a vulnerability catalog entry for enrichment. A source-specific
-weakness may map to more than one catalog entry.
+weakness may eventually map to more than one catalog entry. The concept is
+retained for future import enrichment, but its persistence shape, matching
+semantics, and consuming workflow are not currently defined.
 
-Use this term when discussing how imported scanner output maps onto the
+Use this term when discussing how future imported scanner output may map onto the
 vulnerability catalog. Source mappings add optional enrichment and do not define
 finding identity or automatically rewrite existing findings.
 
@@ -408,7 +416,8 @@ high exposure, affected assets, and mitigation rate.
   used by both API and UI.
 - Asset custom fields currently apply only to assets, not findings,
   vulnerabilities, users, or roles.
-- The only implemented external observation source is Nuclei JSONL.
+- The API includes a pure Nuclei JSONL observation translator; automated scanner
+  import persistence is not currently enabled.
 
 ## Vocabulary Rules
 
