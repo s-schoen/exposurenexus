@@ -33,17 +33,6 @@ async function addJsonObjectConstraint(
   `.execute(db);
 }
 
-async function addNonNegativeConstraint(
-  db: Kysely<object>,
-  column: "processed" | "createdObservations" | "skipped" | "errors",
-): Promise<void> {
-  await sql`
-    alter table "ingestion"
-      add constraint ${sql.id(`ingestion_${column}_nonnegative_check`)}
-      check (${sql.id(column)} >= 0)
-  `.execute(db);
-}
-
 async function createFinalTables(db: Kysely<object>): Promise<void> {
   await db.schema
     .createType("vulnerability_type")
@@ -93,20 +82,11 @@ async function createFinalTables(db: Kysely<object>): Promise<void> {
         .defaultTo(sql`gen_random_uuid()`),
     )
     .addColumn("source", sql`ingestion_source`, (col) => col.notNull())
-    .addColumn("scope", "jsonb", (col) => col.notNull().defaultTo(sql`'{}'::jsonb`))
     .addColumn("createdAt", "timestamptz", (col) => col.notNull())
     .addColumn("createdBy", "uuid", (col) =>
       col.notNull().references("user_profile.id").onDelete("restrict"),
     )
-    .addColumn("processed", "integer", (col) => col.notNull().defaultTo(0))
-    .addColumn("createdObservations", "integer", (col) => col.notNull().defaultTo(0))
-    .addColumn("skipped", "integer", (col) => col.notNull().defaultTo(0))
-    .addColumn("errors", "integer", (col) => col.notNull().defaultTo(0))
     .execute();
-  await addJsonObjectConstraint(db, "ingestion", "scope");
-  for (const column of ["processed", "createdObservations", "skipped", "errors"] as const) {
-    await addNonNegativeConstraint(db, column);
-  }
 
   await db.schema
     .createTable("finding")
@@ -196,27 +176,6 @@ async function createFinalTables(db: Kysely<object>): Promise<void> {
     .createIndex("observation_finding_observedAt_idx")
     .on("observation")
     .columns(["findingId", "observedAt", "id"])
-    .execute();
-
-  await db.schema
-    .createTable("vulnerability_source_mapping")
-    .addColumn("id", "uuid", (col) =>
-      col
-        .primaryKey()
-        .notNull()
-        .defaultTo(sql`gen_random_uuid()`),
-    )
-    .addColumn("weakness", "jsonb", (col) => col.notNull())
-    .addColumn("vulnerabilityId", "uuid", (col) =>
-      col.notNull().references("vulnerability.id").onDelete("cascade"),
-    )
-    .execute();
-  await addJsonObjectConstraint(db, "vulnerability_source_mapping", "weakness");
-  await db.schema
-    .createIndex("vulnerability_source_mapping_weakness_vulnerability_unique")
-    .on("vulnerability_source_mapping")
-    .columns(["weakness", "vulnerabilityId"])
-    .unique()
     .execute();
 }
 

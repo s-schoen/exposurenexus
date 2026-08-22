@@ -20,10 +20,7 @@ import type {
   RoleTable,
   UserRoleAssignmentTable,
 } from "./schema/rbac.js";
-import type {
-  VulnerabilitySourceMappingTable,
-  VulnerabilityTable,
-} from "./schema/vulnerability.js";
+import type { VulnerabilityTable } from "./schema/vulnerability.js";
 
 export interface Database {
   user_profile: UserProfileTable;
@@ -40,7 +37,6 @@ export interface Database {
   finding: FindingTable;
   finding_vulnerability: FindingVulnerabilityTable;
   vulnerability: VulnerabilityTable;
-  vulnerability_source_mapping: VulnerabilitySourceMappingTable;
   observation: ObservationTable;
   ingestion: IngestionTable;
 }

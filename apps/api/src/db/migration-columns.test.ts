@@ -789,25 +789,6 @@ describe("db migration columns", () => {
     );
   });
 
-  it("adds a unique structured vulnerability source mapping identity index", async () => {
-    const indexes = await sql<{
-      indexname: string;
-      indexdef: string;
-    }>`
-      select indexname, indexdef
-      from pg_indexes
-      where tablename = 'vulnerability_source_mapping'
-        and indexname = 'vulnerability_source_mapping_weakness_vulnerability_unique'
-    `.execute(testDb.db);
-
-    expect(indexes.rows).toEqual([
-      expect.objectContaining({
-        indexname: "vulnerability_source_mapping_weakness_vulnerability_unique",
-        indexdef: expect.stringContaining("UNIQUE"),
-      }),
-    ]);
-  });
-
   it("cascades vulnerability links when a vulnerability is deleted", async () => {
     const findingVulnerabilityForeignKeys = await sql<{
       constraint_name: string;
@@ -939,8 +920,9 @@ describe("db migration columns", () => {
         }),
         expect.objectContaining({
           table_name: "ingestion",
-          column_name: "createdObservations",
-          data_type: "integer",
+          column_name: "source",
+          data_type: "USER-DEFINED",
+          udt_name: "ingestion_source",
           is_nullable: "NO",
         }),
         expect.objectContaining({
@@ -962,14 +944,17 @@ describe("db migration columns", () => {
           data_type: "jsonb",
           is_nullable: "YES",
         }),
-        expect.objectContaining({
-          table_name: "vulnerability_source_mapping",
-          column_name: "weakness",
-          data_type: "jsonb",
-          is_nullable: "NO",
-        }),
       ]),
     );
+
+    expect(
+      columns.rows
+        .filter((column) => column.table_name === "ingestion")
+        .map((column) => column.column_name),
+    ).toEqual(["id", "source", "createdAt", "createdBy"]);
+    expect(
+      columns.rows.some((column) => column.table_name === "vulnerability_source_mapping"),
+    ).toBe(false);
 
     for (const legacyColumn of [
       "vulnerabilityId",
@@ -1083,13 +1068,10 @@ describe("db migration columns", () => {
           target_table: "ingestion",
           delete_rule: "RESTRICT",
         },
-        {
-          source_table: "vulnerability_source_mapping",
-          source_column: "vulnerabilityId",
-          target_table: "vulnerability",
-          delete_rule: "CASCADE",
-        },
       ]),
     );
+    expect(
+      foreignKeys.rows.some((row) => row.source_table === "vulnerability_source_mapping"),
+    ).toBe(false);
   });
 });
