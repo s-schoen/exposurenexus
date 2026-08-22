@@ -9,7 +9,6 @@ vi.mock("../db/index.js", () => ({
 
 import {
   createAssetRepository,
-  createFindingRepository,
   createRoleRepository,
   createUserRoleRepository,
   createVulnerabilityRepository,
@@ -43,24 +42,6 @@ describe("repository factories", () => {
     expect(query.where).toHaveBeenNthCalledWith(1, "displayName", "=", "api.exposurenexus.local");
     expect(query.where).toHaveBeenNthCalledWith(2, "type", "=", AssetType.Host);
     expect(execute).toHaveBeenCalledTimes(2);
-  });
-
-  it("creates the final finding repository surface", () => {
-    expect(Object.keys(createFindingRepository({} as never)).sort()).toEqual(
-      [
-        "countBy",
-        "create",
-        "createManual",
-        "deleteByID",
-        "getByID",
-        "getProjectedByID",
-        "linkVulnerability",
-        "list",
-        "listProjected",
-        "unlinkVulnerability",
-        "updateByID",
-      ].sort(),
-    );
   });
 
   it("creates a vulnerability catalog repository bound to the injected db", async () => {

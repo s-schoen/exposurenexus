@@ -70,6 +70,26 @@ describe("vulnerability catalog routes", () => {
     });
   });
 
+  it("returns a catalog entry by id and 404 for a missing entry", async () => {
+    vulnerabilityService.getByID
+      .mockResolvedValueOnce(vulnerabilityRecord)
+      .mockResolvedValueOnce(null);
+
+    const found = await createApp().request(`/api/vulnerabilities/${vulnerabilityId}`);
+    const missing = await createApp().request(`/api/vulnerabilities/${vulnerabilityId}`);
+
+    expect(found.status).toBe(200);
+    expect(await found.json()).toMatchObject({ data: { id: vulnerabilityId } });
+    expect(missing.status).toBe(404);
+  });
+
+  it("rejects invalid catalog ids before calling the service", async () => {
+    const response = await createApp().request("/api/vulnerabilities/not-a-uuid");
+
+    expect(response.status).toBe(400);
+    expect(vulnerabilityService.getByID).not.toHaveBeenCalled();
+  });
+
   it("creates catalog entries with the authenticated actor", async () => {
     const payload = {
       type: VulnerabilityType.Cve,
@@ -114,8 +134,7 @@ describe("vulnerability catalog routes", () => {
     expect(vulnerabilityService.create).not.toHaveBeenCalled();
   });
 
-  it("returns and updates a catalog entry without changing its id", async () => {
-    vulnerabilityService.getByID.mockResolvedValue(vulnerabilityRecord);
+  it("updates a catalog entry without changing its id", async () => {
     vulnerabilityService.updateByID.mockResolvedValue({
       ...vulnerabilityRecord,
       type: VulnerabilityType.Custom,
@@ -151,6 +170,61 @@ describe("vulnerability catalog routes", () => {
     });
   });
 
+  it("returns 404 when updating a missing catalog entry", async () => {
+    vulnerabilityService.updateByID.mockResolvedValue(null);
+    const response = await createApp().request(`/api/vulnerabilities/${vulnerabilityId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: VulnerabilityType.Cve,
+        identifier: "CVE-2026-0001",
+        title: "Example",
+        severity: VulnerabilitySeverity.High,
+      }),
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it("rejects invalid update input before calling the service", async () => {
+    const response = await createApp().request(`/api/vulnerabilities/${vulnerabilityId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: VulnerabilityType.Cve,
+        identifier: "not-a-cve",
+        title: "Example",
+        severity: VulnerabilitySeverity.High,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(vulnerabilityService.updateByID).not.toHaveBeenCalled();
+  });
+
+  it("maps update identity conflicts to 409", async () => {
+    vulnerabilityService.updateByID.mockRejectedValue(
+      new ApplicationError({
+        code: "vulnerability.identity_conflict",
+        kind: "conflict",
+        message: "duplicate catalog identity",
+        details: { type: VulnerabilityType.Cve, identifier: "CVE-2026-0001" },
+      }),
+    );
+    const response = await createApp().request(`/api/vulnerabilities/${vulnerabilityId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: VulnerabilityType.Cve,
+        identifier: "CVE-2026-0001",
+        title: "Example",
+        severity: VulnerabilitySeverity.High,
+      }),
+    });
+
+    expect(response.status).toBe(409);
+  });
+
   it("deletes catalog entries without checking for linked findings", async () => {
     vulnerabilityService.deleteByID.mockResolvedValue(vulnerabilityRecord);
 
@@ -165,7 +239,17 @@ describe("vulnerability catalog routes", () => {
     );
   });
 
-  it("maps catalog identity conflicts to 409", async () => {
+  it("returns 404 when deleting a missing catalog entry", async () => {
+    vulnerabilityService.deleteByID.mockResolvedValue(null);
+
+    const response = await createApp().request(`/api/vulnerabilities/${vulnerabilityId}`, {
+      method: "DELETE",
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it("maps create identity conflicts to 409", async () => {
     vulnerabilityService.create.mockRejectedValue(
       new ApplicationError({
         code: "vulnerability.identity_conflict",
@@ -189,17 +273,31 @@ describe("vulnerability catalog routes", () => {
     expect(response.status).toBe(409);
   });
 
-  it("uses the vulnerability permission resource for catalog CRUD", async () => {
-    userHasPermission.mockResolvedValue(false);
+  it("requires authentication", async () => {
+    const app = createTestApp({
+      requireAuth: requireAuthenticatedUser,
+      vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService, routeDependencies),
+    });
 
-    const response = await createApp().request(`/api/vulnerabilities/${vulnerabilityId}`, {
-      method: "DELETE",
+    expect((await app.request("/api/vulnerabilities")).status).toBe(401);
+  });
+
+  it.each([
+    ["read", "GET", "/api/vulnerabilities"],
+    ["write", "POST", "/api/vulnerabilities"],
+    ["write", "PUT", `/api/vulnerabilities/${vulnerabilityId}`],
+    ["delete", "DELETE", `/api/vulnerabilities/${vulnerabilityId}`],
+  ] as const)("wires %s permission for %s %s", async (permission, method, url) => {
+    userHasPermission.mockResolvedValue(false);
+    const response = await createApp().request(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: method === "POST" || method === "PUT" ? "{}" : undefined,
     });
 
     expect(response.status).toBe(403);
     expect(userHasPermission).toHaveBeenCalledWith(user.id, {
-      vulnerability: ["delete"],
+      vulnerability: [permission],
     });
-    expect(vulnerabilityService.deleteByID).not.toHaveBeenCalled();
   });
 });

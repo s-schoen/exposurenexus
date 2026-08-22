@@ -166,8 +166,43 @@ describe("nuclei translator", () => {
 
   it("rejects malformed records and invalid ingestion times", () => {
     expect(() => translateNucleiRecord({ type: "http", info: {} }, ingestionTime)).toThrow();
+    expect(() =>
+      translateNucleiRecord({ ...httpRecord, timestamp: "not-a-timestamp" }, ingestionTime),
+    ).toThrow("observation timestamp must be a valid date");
     expect(() => translateNucleiRecord(httpRecord, new Date(Number.NaN))).toThrow(
       "ingestion time must be a valid date",
     );
+  });
+
+  it("omits missing optional evidence sections instead of rendering undefined", () => {
+    const result = translateNucleiRecord(
+      { ...httpRecord, response: undefined, "curl-command": undefined },
+      ingestionTime,
+    );
+
+    expect(result).toMatchObject({ status: "translated" });
+    if (result.status === "translated") {
+      expect(result.draft.evidence).toContain("GET /admin HTTP/1.1");
+      expect(result.draft.evidence).not.toContain("undefined");
+      expect(result.draft.evidence).not.toContain("<summary>Response</summary>");
+      expect(result.draft.evidence).not.toContain("<summary>cURL Command</summary>");
+    }
+  });
+
+  it.each([
+    [{ request: undefined, response: "HTTP/1.1 200 OK", "curl-command": undefined }, "Response"],
+    [
+      { request: undefined, response: undefined, "curl-command": "curl https://example.com" },
+      "cURL Command",
+    ],
+  ])("retains an available evidence section when the request is missing", (evidence, summary) => {
+    const result = translateNucleiRecord({ ...httpRecord, ...evidence }, ingestionTime);
+
+    expect(result).toMatchObject({ status: "translated" });
+    if (result.status === "translated") {
+      expect(result.draft.evidence).toContain(`<summary>${summary}</summary>`);
+      expect(result.draft.evidence).not.toContain("undefined");
+      expect(result.draft.evidence).not.toContain("<summary>Request</summary>");
+    }
   });
 });

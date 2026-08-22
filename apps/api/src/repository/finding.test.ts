@@ -1539,6 +1539,16 @@ describe("observation-based persistence repositories", () => {
       observationCount: 1,
       vulnerabilities: [{ id: vulnerability.id }],
     });
+
+    const { id: _findingId, ...findingInput } = created.finding;
+    const { id: _observationId, findingId: _parentId, ...observationInput } = created.observation;
+    const withoutVulnerabilities = await findingRepository.createManual({
+      finding: { ...findingInput, title: "Manual finding without catalog links" },
+      observation: observationInput,
+      vulnerabilityIds: [],
+    });
+    expect(withoutVulnerabilities.links).toEqual([]);
+    expect(withoutVulnerabilities.projection.vulnerabilities).toEqual([]);
   });
 
   it("rolls back the finding and observation when a catalog link fails", async () => {

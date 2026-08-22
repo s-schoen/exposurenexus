@@ -5,6 +5,7 @@ import {
   AssetCustomFieldType,
 } from "@exposurenexus/types/model/asset-custom-field";
 import { FindingStatus, type Finding } from "@exposurenexus/types/model/finding";
+import { ObservationSource, type Observation } from "@exposurenexus/types/model/observation";
 import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { describe, expect, it, vi } from "vitest";
@@ -73,6 +74,24 @@ describe("registerAuditLogger", () => {
     createdAt: new Date("2026-05-07T09:10:00.000Z"),
     updatedAt: new Date("2026-05-07T09:10:00.000Z"),
   } satisfies Finding;
+  const sourceObservation: Observation = {
+    id: "f39a0c31-33b9-4f10-a128-35158dee4a26",
+    findingId: finding.id,
+    ingestionId: "40b71ac1-b003-46b4-a1fc-8e8d384dd140",
+    source: ObservationSource.Nuclei,
+    title: finding.title,
+    description: null,
+    evidence: "GET /admin returned 200",
+    remediation: null,
+    severity: VulnerabilitySeverity.High,
+    weakness: { identifiers: { nuclei: ["admin-panel"] } },
+    affectedResource: { type: AffectedResourceType.WebEndpoint, path: "/admin" },
+    observedAt: finding.firstSeen,
+    createdAt: finding.createdAt,
+    updatedAt: finding.updatedAt,
+    createdBy: user.id,
+    updatedBy: user.id,
+  };
   const asset = {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
     displayName: "api.exposurenexus.local",
@@ -310,6 +329,41 @@ describe("registerAuditLogger", () => {
       "vulnerability.created",
     );
     expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it("logs moved source observations with previous and current payloads", async () => {
+    const eventBus = new EventBus<DomainEvent>();
+    const logger = createLogger();
+    const eventTime = new Date("2026-05-07T10:22:00.000Z");
+    const current = {
+      ...sourceObservation,
+      findingId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+      updatedAt: eventTime,
+    };
+    registerAuditLogger({ eventBus, logger });
+
+    await eventBus.emit(
+      createEventPayload({
+        id: "event-observation-moved",
+        time: eventTime,
+        subject: "observation.moved",
+        source: "observation",
+        actor: user.id,
+        data: { previous: sourceObservation, current },
+      }),
+    );
+
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventSubject: "observation.moved",
+        eventSource: "observation",
+        data: {
+          previous: { ...sourceObservation, evidence: REDACTED_EVENT_LOG_VALUE },
+          current: { ...current, evidence: REDACTED_EVENT_LOG_VALUE },
+        },
+      }),
+      "observation.moved",
+    );
   });
 
   it("logs asset events at info with serialized fields", async () => {

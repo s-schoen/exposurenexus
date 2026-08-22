@@ -414,6 +414,34 @@ describe("nested manual observations", () => {
     expect(domainEvents.subjects()).toEqual([]);
   });
 
+  it.each(["update", "delete"] as const)(
+    "returns null and emits no events when an observation %s cannot find its target",
+    async (operation) => {
+      observationRepository[`${operation}AndTouchFinding`].mockResolvedValue(null);
+      const result =
+        operation === "update"
+          ? createService().updateObservation({
+              findingId,
+              observationId,
+              observation: { title: "Correction" },
+              user,
+            })
+          : createService().deleteObservation({ findingId, observationId, user });
+
+      await expect(result).resolves.toBeNull();
+      expect(domainEvents.subjects()).toEqual([]);
+    },
+  );
+
+  it("maps delete transaction failures and emits no events", async () => {
+    observationRepository.deleteAndTouchFinding.mockRejectedValue(new Error("transaction failed"));
+
+    await expect(
+      createService().deleteObservation({ findingId, observationId, user }),
+    ).rejects.toMatchObject({ code: "observation.delete_failed", kind: "unexpected" });
+    expect(domainEvents.subjects()).toEqual([]);
+  });
+
   it("moves an observation and emits source, target, and moved events after the transaction", async () => {
     const targetFindingId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
     const targetFinding = {
@@ -549,5 +577,28 @@ describe("nested manual observations", () => {
     ).rejects.toMatchObject({ code: "observation.move_failed" });
 
     expect(domainEvents.subjects()).toEqual([]);
+  });
+
+  it("returns null and emits no events when a move cannot find its target", async () => {
+    observationRepository.moveAndTouchFindings.mockResolvedValue(null);
+
+    await expect(
+      createService().moveObservation({
+        findingId,
+        observationId,
+        targetFindingId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+        user,
+      }),
+    ).resolves.toBeNull();
+    expect(domainEvents.subjects()).toEqual([]);
+  });
+
+  it("maps observation listing failures", async () => {
+    findingRepository.getProjectedByID.mockRejectedValue(new Error("database offline"));
+
+    await expect(createService().listObservations(findingId)).rejects.toMatchObject({
+      code: "observation.list_failed",
+      kind: "unexpected",
+    });
   });
 });

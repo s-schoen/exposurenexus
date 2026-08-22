@@ -48,16 +48,26 @@ describe("20260816 observation model cutover migration", () => {
     }
   });
 
-  it(
-    "rejects populated legacy finding data before changing the schema",
+  it.each([
+    [
+      "finding",
+      sql`insert into "finding" ("id", "vulnerabilityId") values ('2713d833-eb13-4517-ac7c-7761545ed42a', '76b1885f-2d28-4b7d-93da-2751ff385aa3')`,
+    ],
+    [
+      "vulnerability",
+      sql`insert into "vulnerability" ("id") values ('76b1885f-2d28-4b7d-93da-2751ff385aa3')`,
+    ],
+    [
+      "source mapping",
+      sql`insert into "vulnerability_source_mapping" ("id") values ('9d7acdd0-fad1-46c9-8218-1793f421f0fe')`,
+    ],
+  ])(
+    "rejects populated legacy %s data before changing the schema",
     { timeout: 15_000 },
-    async () => {
+    async (name, insert) => {
       const database = await startDatabase();
       await createLegacyDomainTables(database);
-      await sql`
-        insert into "vulnerability" ("id")
-        values ('76b1885f-2d28-4b7d-93da-2751ff385aa3')
-      `.execute(database);
+      await insert.execute(database);
 
       await expect(cutover.up(database)).rejects.toThrow(
         "observation model cutover does not backfill existing finding or vulnerability data",
@@ -72,39 +82,10 @@ describe("20260816 observation model cutover migration", () => {
        `.execute(database),
       ).resolves.toMatchObject({ rows: [{ column_name: "id" }] });
       await expect(
-        sql<{ id: string }>`
-         select id
-         from "vulnerability"
-       `.execute(database),
-      ).resolves.toMatchObject({
-        rows: [{ id: "76b1885f-2d28-4b7d-93da-2751ff385aa3" }],
-      });
-    },
-  );
-
-  it(
-    "rejects populated legacy source mapping data before changing the schema",
-    { timeout: 15_000 },
-    async () => {
-      const database = await startDatabase();
-      await createLegacyDomainTables(database);
-      await sql`
-        insert into "vulnerability_source_mapping" ("id")
-        values ('76b1885f-2d28-4b7d-93da-2751ff385aa3')
-      `.execute(database);
-
-      await expect(cutover.up(database)).rejects.toThrow(
-        "observation model cutover does not backfill existing finding or vulnerability data",
-      );
-
-      await expect(
-        sql<{ id: string }>`
-          select id
-          from "vulnerability_source_mapping"
-        `.execute(database),
-      ).resolves.toMatchObject({
-        rows: [{ id: "76b1885f-2d28-4b7d-93da-2751ff385aa3" }],
-      });
+        sql`select 1 from ${sql.table(name === "source mapping" ? "vulnerability_source_mapping" : name)}`.execute(
+          database,
+        ),
+      ).resolves.toMatchObject({ rows: [expect.anything()] });
     },
   );
 

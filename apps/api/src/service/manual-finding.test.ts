@@ -219,21 +219,9 @@ describe("manual finding creation", () => {
     expect(findingRepository.getProjectedByID).not.toHaveBeenCalled();
   });
 
-  it("validates manual finding relations in asset, vulnerability, and assignee order", async () => {
+  it("supports assigning a manual finding to a disabled user", async () => {
     const assigneeId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
-    const calls: string[] = [];
-    assetService.getByID.mockImplementation(async (id: string) => {
-      calls.push(`asset:${id}`);
-      return { id };
-    });
-    vulnerabilityService.getByID.mockImplementation(async (id: string) => {
-      calls.push(`vulnerability:${id}`);
-      return vulnerability;
-    });
-    userProfileService.getByID.mockImplementation(async (id: string) => {
-      calls.push(`assignee:${id}`);
-      return { id };
-    });
+    userProfileService.getByID.mockResolvedValue({ id: assigneeId, enabled: false });
 
     await expect(
       createService().createManual({
@@ -242,11 +230,52 @@ describe("manual finding creation", () => {
       }),
     ).resolves.toBe(projection);
 
-    expect(calls).toEqual([
-      `asset:${assetId}`,
-      `vulnerability:${vulnerabilityId}`,
-      `assignee:${assigneeId}`,
-    ]);
+    expect(assetService.getByID).toHaveBeenCalledWith(assetId);
+    expect(vulnerabilityService.getByID).toHaveBeenCalledWith(vulnerabilityId);
+    expect(userProfileService.getByID).toHaveBeenCalledWith(assigneeId);
+    expect(findingRepository.createManual).toHaveBeenCalledWith(
+      expect.objectContaining({ finding: expect.objectContaining({ assigneeId }) }),
+    );
+  });
+
+  it("creates without catalog vulnerabilities and skips catalog lookups", async () => {
+    await expect(
+      createService().createManual({
+        finding: createManualFinding({ vulnerabilityIds: [] }),
+        user,
+      }),
+    ).resolves.toBe(projection);
+
+    expect(vulnerabilityService.getByID).not.toHaveBeenCalled();
+    expect(findingRepository.createManual).toHaveBeenCalledWith(
+      expect.objectContaining({ vulnerabilityIds: [] }),
+    );
+  });
+
+  it("normalizes a due date and preserves complete observation overrides", async () => {
+    const dueDate = new Date("2026-05-06T18:30:00.000Z");
+    const observedAt = new Date("2026-05-01T12:00:00.000Z");
+    const observation = {
+      title: "Override title",
+      description: "Override description",
+      evidence: "Override evidence",
+      remediation: "Override remediation",
+      severity: VulnerabilitySeverity.Low,
+      weakness: { identifiers: { cwe: ["CWE-89"] } },
+      affectedResource: { type: AffectedResourceType.SourceCode as const, file: "src/query.ts" },
+      observedAt,
+    };
+
+    await createService().createManual({
+      finding: createManualFinding({ dueDate, observation }),
+      user,
+    });
+
+    expect(findingRepository.createManual).toHaveBeenCalledWith({
+      finding: expect.objectContaining({ dueDate: new Date("2026-05-06T00:00:00.000Z") }),
+      observation: expect.objectContaining(observation),
+      vulnerabilityIds: [vulnerabilityId],
+    });
   });
 
   it("reports a missing asset before looking up other manual finding relations", async () => {
