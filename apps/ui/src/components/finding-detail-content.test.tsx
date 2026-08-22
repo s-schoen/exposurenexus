@@ -297,7 +297,7 @@ describe("FindingDetailContent", () => {
     await actor.type(title, "Corrected admin endpoint");
     await actor.click(screen.getByRole("button", { name: "Save correction" }));
 
-    expect(mocks.correctFinding).toHaveBeenCalledWith(finding, {
+    expect(mocks.correctFinding).toHaveBeenCalledWith(finding.id, {
       title: "Corrected admin endpoint",
       severity: finding.severity,
       status: finding.status,

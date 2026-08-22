@@ -100,7 +100,6 @@ const mocks = vi.hoisted(() => {
 
   return {
     assets,
-    bulkUpdateFindingField: vi.fn(),
     confirmDelete: vi.fn(),
     deleteFindings: vi.fn(),
     findings,
@@ -172,7 +171,6 @@ vi.mock("@/api/user.ts", () => ({
 
 vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
   useFindingLifecycle: () => ({
-    bulkUpdateFindingField: mocks.bulkUpdateFindingField,
     deleteFindings: mocks.deleteFindings,
   }),
 }));
@@ -281,7 +279,6 @@ function renderFindingsRoute({
 
 describe("FindingsPage", () => {
   beforeEach(() => {
-    mocks.bulkUpdateFindingField.mockReset();
     mocks.confirmDelete.mockReset();
     mocks.confirmDelete.mockResolvedValue(true);
     mocks.deleteFindings.mockReset();

@@ -29,7 +29,6 @@ const mocks = vi.hoisted(() => {
   };
 
   return {
-    bulkUpdateFindingField: vi.fn(),
     confirmDialogCall: vi.fn(),
     dataTableProps: undefined as undefined | Record<string, unknown>,
     deleteFindings: vi.fn(),
@@ -132,7 +131,6 @@ vi.mock("@/components/user-label.tsx", () => ({
 
 vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
   useFindingLifecycle: () => ({
-    bulkUpdateFindingField: mocks.bulkUpdateFindingField,
     deleteFindings: mocks.deleteFindings,
   }),
 }));
@@ -236,7 +234,6 @@ async function flushPromises() {
 
 describe("FindingTable workflow wiring", () => {
   beforeEach(() => {
-    mocks.bulkUpdateFindingField.mockReset();
     mocks.confirmDialogCall.mockReset();
     mocks.dataTableProps = undefined;
     mocks.deleteFindings.mockReset();
