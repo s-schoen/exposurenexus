@@ -576,63 +576,33 @@ Finding workflow cases remain.
 ### Ingestion
 
 An ingestion groups observations created from one imported source file or source
-dataset. Manual observations do not belong to ingestions.
+dataset. Manual observations do not belong to ingestions. The initial persisted
+record retains only the identity and provenance needed by imported observations:
 
 ```json
 {
   "id": "ingestion-uuid",
   "source": "nuclei",
   "createdAt": "2026-06-20T08:35:00.000Z",
-  "createdBy": "user-profile-uuid",
-  "scope": {
-    "target": "example.com"
-  },
-  "summary": {
-    "processed": 120,
-    "createdObservations": 80,
-    "skipped": 5,
-    "errors": 0
-  }
+  "createdBy": "user-profile-uuid"
 }
 ```
 
-Ingestions are backend grouping and summary records for now. User-facing ingestion
-history or detail workflows are out of scope.
-
-Skipped source records are logged server-side and counted in the summary, but
-they are not stored as observations or separate database records.
+Ingestion scope, processed/created/skipped/error accounting, skipped-record
+logging, API summary projections, and user-facing ingestion history are deferred
+until synchronous import persistence and its contract are implemented.
 
 ### Vulnerability Source Mapping
 
-Vulnerability source mappings map source-reported weakness data to catalog
-entries for enrichment. They do not define finding identity.
+Vulnerability source mappings remain a named future domain concept for mapping
+source-reported weakness data to catalog entries as optional enrichment. They do
+not define finding identity. Their matching semantics, consuming workflow, and
+replacement persistence shape are deferred until a consumer and matching policy
+are defined.
 
-```json
-{
-  "id": "mapping-uuid",
-  "weakness": {
-    "identifiers": {
-      "nuclei": ["admin-panel"]
-    }
-  },
-  "vulnerabilityId": "vulnerability-uuid"
-}
-```
-
-A mapping weakness must contain at least one identifier. A separate source field
-is not stored because source-specific namespace keys such as `nuclei` and
-`semgrep` identify source rule families. The same canonical weakness may map to
-multiple catalog entries, but the same canonical weakness-to-vulnerability pair
-is unique.
-
-Exact catalog identifiers such as CVEs may link directly by catalog identity.
-Scanner rules or other source-specific weakness data may require mappings because
-the relationship to catalog entries can be heuristic or source-specific. A
-source-specific weakness may map to multiple catalog entries; conceptually this
-is many-to-many, represented as one mapping row per source-to-catalog-entry link.
-
-The matching semantics for source mappings are intentionally not decided in this
-ADR.
+Exact catalog identifiers such as CVEs may link directly by catalog identity
+through the separate finding-to-vulnerability link. That link is not a source
+mapping and remains part of the current catalog model.
 
 ## Process Changes
 
@@ -665,6 +635,10 @@ resource. Users correct those finding-owned fields explicitly.
 
 ### Scanner Import
 
+The following describes the intended scanner-import boundary once automated
+persistence and observation-to-finding matching are implemented. The current
+import endpoint remains unavailable.
+
 Imports ingest external observations, not findings directly.
 
 For each source record, the importer:
@@ -687,18 +661,12 @@ For each source record, the importer:
 Automated importers do not create findings with `affectedResource.type` set to
 `unspecified`.
 
-Imports do not create assets. Records that cannot be confidently matched to an
-existing asset are skipped and logged server-side. Imports do not create
-vulnerability catalog entries.
-
-Ingestions may partially succeed. Skipped records do not block successfully
-resolved observations from being imported.
-
-For JSONL imports, each nonblank record line counts as processed. A valid record
-that cannot be resolved or lacks sufficient identity counts as skipped. A
-malformed record or a record that fails processing counts as an error. Only a
-committed observation increments `createdObservations`. An ingestion remains a
-valid grouping record when all of its source records are skipped or erroneous.
+When enabled, imports will not create assets or vulnerability catalog entries.
+Records that cannot be confidently matched to an existing asset will produce a
+structured skip outcome rather than an observation. The resolver's attach,
+create, and skip outcomes are part of the source-independent contract, but
+partial-success behavior and JSONL processed/created/skipped/error accounting
+are deferred until synchronous import persistence is implemented.
 
 ### Attaching Observations To Existing Findings
 
@@ -722,9 +690,10 @@ status, assignee, due date, or mitigation.
 
 ### Catalog Enrichment
 
-Observation weakness identifiers may add finding-to-vulnerability links when they
-exactly match existing catalog entries. For example, `CVE-2026-34256` can link to
-a vulnerability with `type: "cve"` and `identifier: "CVE-2026-34256"`.
+Once automated import is enabled, observation weakness identifiers may add
+finding-to-vulnerability links when they exactly match existing catalog entries.
+For example, `CVE-2026-34256` can link to a vulnerability with `type: "cve"` and
+`identifier: "CVE-2026-34256"`.
 
 Exact CVE, CWE, GHSA, advisory, and similar identifiers may all enrich findings.
 Broad identifiers such as CWE are enrichment only and do not define finding
@@ -772,13 +741,13 @@ Deleting an asset remains blocked while any finding references that asset.
 ### Lifecycle And Status
 
 Finding status remains human workflow state. Observation presence or absence may
-inform future suggestions, but imports do not automatically close or reopen
-findings without an explicit lifecycle policy.
+inform future suggestions, but automated imports do not automatically close or
+reopen findings without an explicit lifecycle policy.
 
-Ingestions make future lifecycle reasoning possible by recording comparable
-source ingestions. A missing observation only has lifecycle meaning when it is
-missing from a comparable ingestion that covered the same relevant scope. No
-automation is included in this ADR.
+Comparable-ingestion lifecycle reasoning is future work. A missing observation
+can have lifecycle meaning only after a later ingestion-scope contract defines
+which ingestions covered the same relevant scope. No such scope or automation is
+included in the current contract.
 
 The `duplicate` finding status remains, but its meaning narrows to human cleanup:
 a finding was created separately and later determined to represent the same
@@ -815,14 +784,14 @@ not retained as aliases.
 
 Weakness and affected-resource values are stored as validated PostgreSQL `jsonb`.
 The application validates these cohesive values through the shared strict
-schemas before persistence and after reads. Observations, ingestions,
-finding-to-vulnerability links, and vulnerability source mappings remain
-relational entities rather than being embedded in finding JSON.
+schemas before persistence and after reads. Observations, minimal ingestions, and
+finding-to-vulnerability links remain relational entities rather than being
+embedded in finding JSON. Vulnerability source mappings are not part of the
+initial persisted contract.
 
-Vulnerability metadata and ingestion scope are JSON objects stored as `jsonb`.
-Ingestion summary values are nonnegative integer columns named `processed`,
-`createdObservations`, `skipped`, and `errors`; API projections group them under
-`summary`.
+Vulnerability metadata remains a JSON object stored as `jsonb`. Ingestion scope,
+summary counters, and their API projection are deferred until synchronous import
+persistence is implemented.
 
 Catalog type and observation source follow the existing type pattern: closed
 TypeScript and Zod enums backed by PostgreSQL enum columns. Extending either enum
@@ -942,15 +911,15 @@ preserves request/response/cURL evidence, and stores the source URL as
 `reportedUrl` while parsing canonical endpoint fields. Other Nuclei protocol
 families return a typed unsupported result rather than an assumed resource type.
 
-The ingestion persistence model is included even though automated persistence is
-disabled. Once enabled, synchronous imports return ingestion ID and finalized
-summary with HTTP 200, including partial successes. Unsupported source and
-file-level failures are rejected before ingestion creation. An all-skipped or
-all-error dataset still leaves its ingestion grouping record.
+When automated persistence is eventually enabled, an ingestion will retain only
+its identity, source, creation actor, and creation time so imported observations
+can retain provenance. Ingestion scope, processed/created/skipped/error
+accounting, partial-success summary semantics, and the synchronous import API
+response shape are deferred until import persistence is implemented.
 
-Vulnerability source mappings are represented in persistence, but the old raw
-mapping API and UI are removed. No source mapping is applied during import until
-its matching semantics are decided.
+Vulnerability source mappings remain a named future concept. The old raw mapping
+API and UI are removed, but no replacement persistence or import consumer is
+defined until matching semantics and a consuming workflow are decided.
 
 ### Initial UI
 
@@ -1011,11 +980,10 @@ correction instead of silent overwrites.
 
 ## Consequences
 
-This is a core domain model migration, not an importer-only change. The current
-code assumes findings have a required `vulnerabilityId`, a single `source`,
-finding-owned `evidence`, stored `firstSeen` and `lastSeen`, and exact
-fingerprint-based deduplication. Those assumptions will need to change when this
-ADR is implemented.
+This is a core domain model migration, not an importer-only change. The completed
+observation cutover replaces the former assumptions that findings have a required
+`vulnerabilityId`, a single `source`, finding-owned `evidence`, stored `firstSeen`
+and `lastSeen`, and exact fingerprint-based deduplication.
 
 Affected-resource storage, validation, serialization, import translation,
 matching, and UI rendering must become type-aware. Existing `category: "web"`
@@ -1029,9 +997,10 @@ possible. Source-reported URL strings belong on observations as `reportedUrl`.
 Existing source-code `line` values migrate to `location.startLine` using the
 one-based domain convention.
 
-The finding table, observation table, finding API responses, import flow, manual
-finding creation, vulnerability catalog model, source mapping model, and finding
-UI will all need to reflect the new boundaries.
+The finding table, observation table, finding API responses, manual finding
+creation, vulnerability catalog model, and finding UI reflect the new boundaries.
+The pure source translator remains available, while automated import persistence,
+matching, and source-mapping persistence remain future work.
 
 The initial UI scope stays intentionally small. Users should still primarily work
 with findings. Observations add supporting context and correction workflows, but
@@ -1046,4 +1015,9 @@ The following decisions are intentionally deferred:
   each affected-resource type.
 - Whether a separate fingerprint envelope exists or whether matching uses
   `assetId`, `weakness`, and `affectedResource` fields directly.
-- Vulnerability source mapping matching semantics.
+- Ingestion scope, comparable-ingestion rules, and the meaning of an ingestion's
+  coverage.
+- Synchronous import accounting, partial-success summary semantics, and the
+  eventual ingestion API response shape.
+- Vulnerability source-mapping matching semantics, consuming workflow, and
+  replacement persistence shape.
