@@ -1,7 +1,6 @@
 import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { IngestionSource } from "@exposurenexus/types/model/ingestion";
 import { ObservationSource } from "@exposurenexus/types/model/observation";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
 import { sql } from "kysely";
@@ -10,7 +9,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";
 import { createAssetRepository } from "./asset.js";
 import { createFindingRepository } from "./finding.js";
-import { createIngestionRepository } from "./ingestion.js";
 import { createObservationRepository } from "./observation.js";
 import { createVulnerabilityRepository } from "./vulnerability.js";
 
@@ -70,7 +68,6 @@ describe("observation-based persistence repositories", () => {
     );
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
-    const ingestionRepository = createIngestionRepository(testDb.db);
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
 
@@ -127,16 +124,11 @@ describe("observation-based persistence repositories", () => {
       vulnerabilityId: vulnerability.id,
     });
 
-    const ingestion = await ingestionRepository.create({
-      source: IngestionSource.Nuclei,
-      scope: { target: "example.com" },
-      createdAt: timestamp,
-      createdBy,
-      processed: 1,
-      createdObservations: 1,
-      skipped: 0,
-      errors: 0,
-    });
+    const ingestion = await testDb.db
+      .insertInto("ingestion")
+      .values({ source: "nuclei", createdAt: timestamp, createdBy })
+      .returningAll()
+      .executeTakeFirstOrThrow();
     const importedObservation = await observationRepository.create({
       findingId: finding.id,
       ingestionId: ingestion.id,
@@ -205,11 +197,6 @@ describe("observation-based persistence repositories", () => {
       manualObservation,
       importedObservation,
     ]);
-    await expect(ingestionRepository.getByID(ingestion.id)).resolves.toMatchObject({
-      source: IngestionSource.Nuclei,
-      scope: { target: "example.com" },
-      createdObservations: 1,
-    });
   });
 
   it("creates an observation and touches its parent finding atomically", async () => {
@@ -731,7 +718,6 @@ describe("observation-based persistence repositories", () => {
     );
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
-    const ingestionRepository = createIngestionRepository(testDb.db);
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
     const finding = await findingRepository.create({
@@ -800,12 +786,11 @@ describe("observation-based persistence repositories", () => {
         { findingId: finding.id, vulnerabilityId: cve.id },
       ])
       .execute();
-    const ingestion = await ingestionRepository.create({
-      source: IngestionSource.Nuclei,
-      scope: { target: "example.com" },
-      createdAt: timestamp,
-      createdBy,
-    });
+    const ingestion = await testDb.db
+      .insertInto("ingestion")
+      .values({ source: "nuclei", createdAt: timestamp, createdBy })
+      .returningAll()
+      .executeTakeFirstOrThrow();
     await observationRepository.create({
       findingId: finding.id,
       ingestionId: ingestion.id,

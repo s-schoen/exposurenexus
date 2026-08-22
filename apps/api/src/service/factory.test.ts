@@ -149,9 +149,6 @@ describe("service factories", () => {
       })),
       updateByID: vi.fn(),
       deleteByID: vi.fn(),
-      listMappings: vi.fn(),
-      listMappingsByVulnerabilityID: vi.fn(),
-      createMapping: vi.fn(),
     };
     vi.useFakeTimers();
     vi.setSystemTime(now);
