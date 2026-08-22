@@ -89,6 +89,14 @@ const namedComponentKinds = new Set<WebEndpointComponentKind>([
   WebEndpointComponentKind.BodyField,
 ]);
 
+function isAffectedResourceType(value: string): value is AffectedResourceType {
+  return resourceTypes.some((type) => type === value);
+}
+
+function isWebEndpointComponentKind(value: string): value is WebEndpointComponentKind {
+  return componentKinds.some((kind) => kind === value);
+}
+
 function formatDateInputValue(value: Date | null) {
   return value ? normalizeDateToUtcStart(value).toISOString().slice(0, 10) : "";
 }
@@ -101,55 +109,59 @@ function emptyResource(type: AffectedResourceType): FindingAffectedResource {
   return { type };
 }
 
-function resourceValue(resource: FindingAffectedResource, key: string) {
-  const value = (resource as unknown as Record<string, unknown>)[key];
-  return typeof value === "string" || typeof value === "number" ? String(value) : "";
+function optionalStringValue(value: string) {
+  const trimmed = value.trim();
+  return trimmed || undefined;
 }
 
-function updateResourceValue(
-  resource: FindingAffectedResource,
-  key: string,
-  rawValue: string,
-  numeric = false,
-): FindingAffectedResource {
-  const next = { ...resource } as unknown as Record<string, unknown>;
-  const value = rawValue.trim();
-  if (value) next[key] = numeric ? Number(value) : value;
-  else delete next[key];
-  return next as unknown as FindingAffectedResource;
+function optionalNumberValue(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? Number(trimmed) : undefined;
 }
 
+type SourceCodeResource = Extract<
+  FindingAffectedResource,
+  { type: AffectedResourceType.SourceCode }
+>;
 type SourceLocationKey = "startLine" | "startColumn" | "endLine" | "endColumn";
 
 function updateResourceLocation(
-  resource: Extract<FindingAffectedResource, { type: AffectedResourceType.SourceCode }>,
+  resource: SourceCodeResource,
   key: SourceLocationKey,
   rawValue: string,
-): FindingAffectedResource {
-  const location = { ...resource.location } as Partial<Record<SourceLocationKey, number>>;
-  if (rawValue.trim()) location[key] = Number(rawValue);
-  else delete location[key];
-
+): SourceCodeResource {
+  const value = optionalNumberValue(rawValue);
+  const startLine = key === "startLine" ? value : resource.location?.startLine;
+  const startColumn = key === "startColumn" ? value : resource.location?.startColumn;
+  const endLine = key === "endLine" ? value : resource.location?.endLine;
+  const endColumn = key === "endColumn" ? value : resource.location?.endColumn;
   return {
     ...resource,
-    ...(Object.keys(location).length > 0 ? { location } : { location: undefined }),
-  } as FindingAffectedResource;
+    location:
+      startLine === undefined
+        ? undefined
+        : {
+            startLine,
+            ...(startColumn === undefined ? {} : { startColumn }),
+            ...(endLine === undefined ? {} : { endLine }),
+            ...(endColumn === undefined ? {} : { endColumn }),
+          },
+  };
 }
 
 function ResourceInput({
-  resource,
-  resourceKey,
+  id,
+  value,
   label,
   numeric = false,
   onChange,
 }: {
-  resource: FindingAffectedResource;
-  resourceKey: string;
+  id: string;
+  value: string | number | undefined;
   label: string;
   numeric?: boolean;
-  onChange: (resource: FindingAffectedResource) => void;
+  onChange: (value: string) => void;
 }) {
-  const id = `correction-resource-${resourceKey}`;
   return (
     <Field>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
@@ -157,10 +169,8 @@ function ResourceInput({
         id={id}
         type={numeric ? "number" : "text"}
         min={numeric ? 1 : undefined}
-        value={resourceValue(resource, resourceKey)}
-        onChange={(event) =>
-          onChange(updateResourceValue(resource, resourceKey, event.target.value, numeric))
-        }
+        value={value?.toString() ?? ""}
+        onChange={(event) => onChange(event.target.value)}
       />
     </Field>
   );
@@ -186,7 +196,7 @@ function ResourceFields({
             <Select
               value={resource.scheme ?? ""}
               onValueChange={(value) =>
-                onChange(updateResourceValue(resource, "scheme", value ?? ""))
+                onChange({ ...resource, scheme: optionalStringValue(value ?? "") })
               }
             >
               <SelectTrigger id="correction-resource-scheme" className="w-full">
@@ -198,20 +208,30 @@ function ResourceFields({
               </SelectContent>
             </Select>
           </Field>
-          <ResourceInput resource={resource} resourceKey="host" label="Host" onChange={onChange} />
           <ResourceInput
-            resource={resource}
-            resourceKey="port"
+            id="correction-resource-host"
+            value={resource.host}
+            label="Host"
+            onChange={(value) => onChange({ ...resource, host: optionalStringValue(value) })}
+          />
+          <ResourceInput
+            id="correction-resource-port"
+            value={resource.port}
             label="Port"
             numeric
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, port: optionalNumberValue(value) })}
           />
-          <ResourceInput resource={resource} resourceKey="path" label="Path" onChange={onChange} />
           <ResourceInput
-            resource={resource}
-            resourceKey="method"
+            id="correction-resource-path"
+            value={resource.path}
+            label="Path"
+            onChange={(value) => onChange({ ...resource, path: optionalStringValue(value) })}
+          />
+          <ResourceInput
+            id="correction-resource-method"
+            value={resource.method}
             label="Method"
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, method: optionalStringValue(value) })}
           />
           <Field>
             <FieldLabel htmlFor="correction-resource-component-kind">Component kind</FieldLabel>
@@ -220,14 +240,14 @@ function ResourceFields({
               onValueChange={(value) => {
                 if (!value) return;
                 if (value === noComponentValue) {
-                  const { component: _, ...next } = resource;
-                  onChange(next);
+                  onChange({ ...resource, component: undefined });
                   return;
                 }
-                const kind = value as WebEndpointComponentKind;
+                if (!isWebEndpointComponentKind(value)) return;
+                const kind = value;
                 onChange({
                   ...resource,
-                  component: namedComponentKinds.has(kind) ? { kind, name: "" } : { kind },
+                  component: namedComponentKinds.has(kind) ? { kind, name: undefined } : { kind },
                 });
               }}
             >
@@ -255,11 +275,14 @@ function ResourceFields({
               <FieldLabel htmlFor="correction-resource-component-name">Component name</FieldLabel>
               <Input
                 id="correction-resource-component-name"
-                value={"name" in component ? component.name : ""}
+                value={component.name ?? ""}
                 onChange={(event) =>
                   onChange({
                     ...resource,
-                    component: { kind: component.kind, name: event.target.value },
+                    component: {
+                      kind: component.kind,
+                      name: optionalStringValue(event.target.value),
+                    },
                   })
                 }
               />
@@ -271,20 +294,25 @@ function ResourceFields({
     case AffectedResourceType.NetworkService:
       return (
         <div className="grid gap-4 sm:grid-cols-2">
-          <ResourceInput resource={resource} resourceKey="host" label="Host" onChange={onChange} />
           <ResourceInput
-            resource={resource}
-            resourceKey="port"
+            id="correction-resource-host"
+            value={resource.host}
+            label="Host"
+            onChange={(value) => onChange({ ...resource, host: optionalStringValue(value) })}
+          />
+          <ResourceInput
+            id="correction-resource-port"
+            value={resource.port}
             label="Port"
             numeric
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, port: optionalNumberValue(value) })}
           />
           <Field>
             <FieldLabel htmlFor="correction-resource-transport">Transport</FieldLabel>
             <Select
               value={resource.transport ?? ""}
               onValueChange={(value) =>
-                onChange(updateResourceValue(resource, "transport", value ?? ""))
+                onChange({ ...resource, transport: optionalStringValue(value ?? "") })
               }
             >
               <SelectTrigger id="correction-resource-transport" className="w-full">
@@ -300,10 +328,10 @@ function ResourceFields({
             </Select>
           </Field>
           <ResourceInput
-            resource={resource}
-            resourceKey="protocol"
+            id="correction-resource-protocol"
+            value={resource.protocol}
             label="Protocol"
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, protocol: optionalStringValue(value) })}
           />
         </div>
       );
@@ -311,45 +339,58 @@ function ResourceFields({
       return (
         <div className="grid gap-4 sm:grid-cols-2">
           <ResourceInput
-            resource={resource}
-            resourceKey="repository"
+            id="correction-resource-repository"
+            value={resource.repository}
             label="Repository"
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, repository: optionalStringValue(value) })}
           />
-          <ResourceInput resource={resource} resourceKey="file" label="File" onChange={onChange} />
-          {(["startLine", "startColumn", "endLine", "endColumn"] as const).map((key) => (
-            <Field key={key}>
-              <FieldLabel htmlFor={`correction-resource-${key}`}>
-                {key === "startLine"
-                  ? "Start line"
-                  : key === "startColumn"
-                    ? "Start column"
-                    : key === "endLine"
-                      ? "End line"
-                      : "End column"}
-              </FieldLabel>
-              <Input
-                id={`correction-resource-${key}`}
-                type="number"
-                min={1}
-                value={resource.location?.[key]?.toString() ?? ""}
-                onChange={(event) =>
-                  onChange(updateResourceLocation(resource, key, event.target.value))
-                }
-              />
-            </Field>
-          ))}
           <ResourceInput
-            resource={resource}
-            resourceKey="symbol"
+            id="correction-resource-file"
+            value={resource.file}
+            label="File"
+            onChange={(value) => onChange({ ...resource, file: optionalStringValue(value) })}
+          />
+          <ResourceInput
+            id="correction-resource-startLine"
+            value={resource.location?.startLine}
+            label="Start line"
+            numeric
+            onChange={(value) => onChange(updateResourceLocation(resource, "startLine", value))}
+          />
+          <ResourceInput
+            id="correction-resource-startColumn"
+            value={resource.location?.startColumn}
+            label="Start column"
+            numeric
+            onChange={(value) => onChange(updateResourceLocation(resource, "startColumn", value))}
+          />
+          <ResourceInput
+            id="correction-resource-endLine"
+            value={resource.location?.endLine}
+            label="End line"
+            numeric
+            onChange={(value) => onChange(updateResourceLocation(resource, "endLine", value))}
+          />
+          <ResourceInput
+            id="correction-resource-endColumn"
+            value={resource.location?.endColumn}
+            label="End column"
+            numeric
+            onChange={(value) => onChange(updateResourceLocation(resource, "endColumn", value))}
+          />
+          <ResourceInput
+            id="correction-resource-symbol"
+            value={resource.symbol}
             label="Symbol"
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, symbol: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="locationFingerprint"
+            id="correction-resource-locationFingerprint"
+            value={resource.locationFingerprint}
             label="Location fingerprint"
-            onChange={onChange}
+            onChange={(value) =>
+              onChange({ ...resource, locationFingerprint: optionalStringValue(value) })
+            }
           />
         </div>
       );
@@ -357,22 +398,24 @@ function ResourceFields({
       return (
         <div className="grid gap-4 sm:grid-cols-2">
           <ResourceInput
-            resource={resource}
-            resourceKey="ecosystem"
+            id="correction-resource-ecosystem"
+            value={resource.ecosystem}
             label="Ecosystem"
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, ecosystem: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="name"
+            id="correction-resource-name"
+            value={resource.name}
             label="Package name"
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, name: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="installationPath"
+            id="correction-resource-installationPath"
+            value={resource.installationPath}
             label="Installation path"
-            onChange={onChange}
+            onChange={(value) =>
+              onChange({ ...resource, installationPath: optionalStringValue(value) })
+            }
           />
         </div>
       );
@@ -380,22 +423,22 @@ function ResourceFields({
       return (
         <div className="grid gap-4 sm:grid-cols-2">
           <ResourceInput
-            resource={resource}
-            resourceKey="registry"
+            id="correction-resource-registry"
+            value={resource.registry}
             label="Registry"
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, registry: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="repository"
+            id="correction-resource-repository"
+            value={resource.repository}
             label="Repository"
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, repository: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="digest"
+            id="correction-resource-digest"
+            value={resource.digest}
             label="Digest"
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, digest: optionalStringValue(value) })}
           />
         </div>
       );
@@ -403,34 +446,36 @@ function ResourceFields({
       return (
         <div className="grid gap-4 sm:grid-cols-2">
           <ResourceInput
-            resource={resource}
-            resourceKey="provider"
+            id="correction-resource-provider"
+            value={resource.provider}
             label="Provider"
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, provider: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="providerAccount"
+            id="correction-resource-providerAccount"
+            value={resource.providerAccount}
             label="Provider account"
-            onChange={onChange}
+            onChange={(value) =>
+              onChange({ ...resource, providerAccount: optionalStringValue(value) })
+            }
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="region"
+            id="correction-resource-region"
+            value={resource.region}
             label="Region"
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, region: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="resourceId"
+            id="correction-resource-resourceId"
+            value={resource.resourceId}
             label="Resource ID"
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, resourceId: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="subresource"
+            id="correction-resource-subresource"
+            value={resource.subresource}
             label="Subresource"
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, subresource: optionalStringValue(value) })}
           />
         </div>
       );
@@ -653,17 +698,21 @@ function FindingCorrectionDialog({
               <FieldLabel htmlFor="correction-resource-type">Affected resource type</FieldLabel>
               <Select
                 value={draft.affectedResource?.type}
-                onValueChange={(value) =>
-                  value &&
+                onValueChange={(value) => {
+                  if (!value || !isAffectedResourceType(value)) return;
                   setDraft({
                     ...draft,
                     affectedResource: emptyResource(value),
-                  })
-                }
+                  });
+                }}
               >
                 <SelectTrigger id="correction-resource-type" className="w-full">
                   <SelectValue>
-                    {(value) => formatResourceType(value as AffectedResourceType)}
+                    {(value) =>
+                      typeof value === "string" && isAffectedResourceType(value)
+                        ? formatResourceType(value)
+                        : null
+                    }
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
