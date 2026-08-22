@@ -248,6 +248,31 @@ export function createFindingService({
     };
   }
 
+  async function safelyMutateVulnerabilityLink(
+    opts: FindingVulnerabilityOptions,
+    operation: "link" | "unlink",
+  ): Promise<FindingVulnerabilityMutationResult | null> {
+    try {
+      return await mutateVulnerabilityLink(opts, operation);
+    } catch (error) {
+      if (isApplicationError(error)) {
+        throw error;
+      }
+
+      logger.error(
+        error,
+        `failed to ${operation} vulnerability ${opts.vulnerabilityId} for finding ${opts.findingId}`,
+      );
+      throw new ApplicationError({
+        code: "finding.vulnerability_link_failed",
+        kind: "unexpected",
+        message: `failed to ${operation} finding vulnerability`,
+        cause: error,
+        details: { findingId: opts.findingId, vulnerabilityId: opts.vulnerabilityId },
+      });
+    }
+  }
+
   async function validateManualFindingRelations(finding: CreateManualFinding): Promise<void> {
     const asset = await assetService.getByID(finding.assetId);
 
@@ -724,13 +749,13 @@ export function createFindingService({
     async linkVulnerability(
       opts: FindingVulnerabilityOptions,
     ): Promise<FindingVulnerabilityMutationResult | null> {
-      return await mutateVulnerabilityLink(opts, "link");
+      return await safelyMutateVulnerabilityLink(opts, "link");
     },
 
     async unlinkVulnerability(
       opts: FindingVulnerabilityOptions,
     ): Promise<FindingVulnerabilityMutationResult | null> {
-      return await mutateVulnerabilityLink(opts, "unlink");
+      return await safelyMutateVulnerabilityLink(opts, "unlink");
     },
   };
 }

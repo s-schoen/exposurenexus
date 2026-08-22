@@ -232,6 +232,109 @@ describe("finding service", () => {
     expect(domainEvents.subjects()).toEqual(["finding.vulnerability.unlinked"]);
   });
 
+  it.each(["link", "unlink"] as const)(
+    "rejects a missing catalog target before attempting to %s it",
+    async (operation) => {
+      findingRepository.getProjectedByID.mockResolvedValue(baseFinding);
+      vulnerabilityService.getByID.mockResolvedValue(null);
+
+      await expect(
+        createService()[`${operation}Vulnerability`]({
+          findingId: baseFinding.id,
+          vulnerabilityId: vulnerability.id,
+          user,
+        }),
+      ).rejects.toMatchObject({
+        code: "finding.vulnerability_link_target_missing",
+        kind: "missing",
+      });
+      expect(findingRepository[`${operation}Vulnerability`]).not.toHaveBeenCalled();
+      expect(domainEvents.subjects()).toEqual([]);
+    },
+  );
+
+  it.each(["link", "unlink"] as const)(
+    "returns null and emits no event when the finding to %s is missing",
+    async (operation) => {
+      findingRepository.getProjectedByID.mockResolvedValue(null);
+      vulnerabilityService.getByID.mockResolvedValue(vulnerability);
+
+      await expect(
+        createService()[`${operation}Vulnerability`]({
+          findingId: baseFinding.id,
+          vulnerabilityId: vulnerability.id,
+          user,
+        }),
+      ).resolves.toBeNull();
+      expect(domainEvents.subjects()).toEqual([]);
+    },
+  );
+
+  it.each(["link", "unlink"] as const)(
+    "emits no event when a vulnerability %s is unchanged",
+    async (operation) => {
+      findingRepository.getProjectedByID.mockResolvedValue(baseFinding);
+      vulnerabilityService.getByID.mockResolvedValue(vulnerability);
+      findingRepository[`${operation}Vulnerability`].mockResolvedValue({
+        link:
+          operation === "link"
+            ? { findingId: baseFinding.id, vulnerabilityId: vulnerability.id }
+            : null,
+        changed: false,
+      });
+
+      await expect(
+        createService()[`${operation}Vulnerability`]({
+          findingId: baseFinding.id,
+          vulnerabilityId: vulnerability.id,
+          user,
+        }),
+      ).resolves.toEqual({ finding: baseFinding, changed: false });
+      expect(domainEvents.subjects()).toEqual([]);
+    },
+  );
+
+  it.each(["link", "unlink"] as const)(
+    "maps %s persistence failures without emitting events",
+    async (operation) => {
+      findingRepository.getProjectedByID.mockResolvedValueOnce(baseFinding);
+      vulnerabilityService.getByID.mockResolvedValue(vulnerability);
+      findingRepository[`${operation}Vulnerability`].mockRejectedValueOnce(
+        new Error("database offline"),
+      );
+
+      await expect(
+        createService()[`${operation}Vulnerability`]({
+          findingId: baseFinding.id,
+          vulnerabilityId: vulnerability.id,
+          user,
+        }),
+      ).rejects.toMatchObject({ code: "finding.vulnerability_link_failed", kind: "unexpected" });
+      expect(domainEvents.subjects()).toEqual([]);
+    },
+  );
+
+  it("maps a missing post-link projection without emitting events", async () => {
+    vulnerabilityService.getByID.mockResolvedValue(vulnerability);
+
+    findingRepository.getProjectedByID.mockReset();
+    findingRepository.getProjectedByID
+      .mockResolvedValueOnce(baseFinding)
+      .mockResolvedValueOnce(null);
+    findingRepository.linkVulnerability.mockResolvedValue({
+      link: { findingId: baseFinding.id, vulnerabilityId: vulnerability.id },
+      changed: true,
+    });
+    await expect(
+      createService().linkVulnerability({
+        findingId: baseFinding.id,
+        vulnerabilityId: vulnerability.id,
+        user,
+      }),
+    ).rejects.toMatchObject({ code: "finding.vulnerability_link_failed" });
+    expect(domainEvents.subjects()).toEqual([]);
+  });
+
   it("deletes a finding and emits its final snapshot", async () => {
     findingRepository.getProjectedByID.mockResolvedValue(baseFinding);
     findingRepository.deleteByID.mockResolvedValue({ id: baseFinding.id });
@@ -255,6 +358,33 @@ describe("finding service", () => {
 
     await expect(createService().deleteByID(baseFinding.id)).resolves.toBeNull();
     expect(findingRepository.deleteByID).not.toHaveBeenCalled();
+    expect(domainEvents.subjects()).toEqual([]);
+  });
+
+  it("returns null when an update or delete loses a race and emits no event", async () => {
+    findingRepository.getProjectedByID.mockResolvedValue(baseFinding);
+    findingRepository.updateByID.mockResolvedValue(null);
+    findingRepository.deleteByID.mockResolvedValue(null);
+
+    await expect(
+      createService().updateByID({ id: baseFinding.id, finding: { title: "Correction" }, user }),
+    ).resolves.toBeNull();
+    await expect(createService().deleteByID(baseFinding.id)).resolves.toBeNull();
+    expect(domainEvents.subjects()).toEqual([]);
+  });
+
+  it("maps update and delete failures and emits no events", async () => {
+    findingRepository.getProjectedByID.mockResolvedValue(baseFinding);
+    findingRepository.updateByID.mockRejectedValueOnce(new Error("update failed"));
+    await expect(
+      createService().updateByID({ id: baseFinding.id, finding: { title: "Correction" }, user }),
+    ).rejects.toMatchObject({ code: "finding.update_failed", kind: "unexpected" });
+
+    findingRepository.deleteByID.mockRejectedValueOnce(new Error("delete failed"));
+    await expect(createService().deleteByID(baseFinding.id)).rejects.toMatchObject({
+      code: "finding.delete_failed",
+      kind: "unexpected",
+    });
     expect(domainEvents.subjects()).toEqual([]);
   });
 });

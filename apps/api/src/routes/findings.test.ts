@@ -138,6 +138,29 @@ describe("finding routes", () => {
     expect((await response.json()).data).toEqual(observation);
   });
 
+  it.each([
+    ["POST", `/api/findings/${findingId}/observations`, { severity: "critical-ish" }],
+    [
+      "PUT",
+      `/api/findings/${findingId}/observations/${observationId}`,
+      { observedAt: "yesterday" },
+    ],
+  ] as const)("validates nested observation input for %s", async (method, url, body) => {
+    const response = await createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    }).request(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    expect(response.status).toBe(400);
+    expect(findingService.createManualObservation).not.toHaveBeenCalled();
+    expect(findingService.updateObservation).not.toHaveBeenCalled();
+  });
+
   it("denies nested observation listing without finding read permission", async () => {
     userHasPermission.mockResolvedValue(false);
     const app = createTestApp({
@@ -520,6 +543,18 @@ describe("finding routes", () => {
     });
   });
 
+  it("returns 404 when getting a missing finding", async () => {
+    findingService.getByID.mockResolvedValue(null);
+
+    const response = await createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    }).request(`/api/findings/${findingId}`);
+
+    expect(response.status).toBe(404);
+  });
+
   it("returns 403 when creating a finding without write permission", async () => {
     userHasPermission.mockResolvedValue(false);
 
@@ -602,13 +637,10 @@ describe("finding routes", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        assetId,
+        ...createPayload,
         vulnerabilityId,
         source: "manual",
         evidence: "legacy evidence",
-        severity: VulnerabilitySeverity.High,
-        status: FindingStatus.Active,
-        mitigation: null,
       }),
     });
 
@@ -664,6 +696,50 @@ describe("finding routes", () => {
 
     expect(response.status).toBe(200);
     expect(findingService.linkVulnerability).toHaveBeenCalledOnce();
+  });
+
+  it("maps a missing catalog link target to 404", async () => {
+    findingService.linkVulnerability.mockRejectedValue(
+      new ApplicationError({
+        code: "finding.vulnerability_link_target_missing",
+        kind: "missing",
+        message: `vulnerability with id ${vulnerabilityId} does not exist`,
+        details: { vulnerabilityId },
+      }),
+    );
+
+    const response = await createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    }).request(`/api/findings/${findingId}/vulnerabilities/${vulnerabilityId}`, {
+      method: "PUT",
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it("maps observation move validation errors to 400", async () => {
+    findingService.moveObservation.mockRejectedValue(
+      new ApplicationError({
+        code: "observation.move_same_finding",
+        kind: "validation",
+        message: "observation already belongs to the target finding",
+        details: { findingId, observationId, targetFindingId: findingId },
+      }),
+    );
+
+    const response = await createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    }).request(`/api/findings/${findingId}/observations/${observationId}/move`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetFindingId: findingId }),
+    });
+
+    expect(response.status).toBe(400);
   });
 
   it("unlinks a catalog entry with finding write permission", async () => {

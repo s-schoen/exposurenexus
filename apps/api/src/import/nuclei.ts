@@ -117,35 +117,36 @@ function parseEndpoint(record: NucleiRecord) {
 }
 
 function parseEvidence(record: NucleiRecord): string | undefined {
-  if (!record.request) {
-    return undefined;
-  }
-
-  return `
-  <details><summary>Request</summary>
+  const sections: Array<string> = [];
+  if (record.request) {
+    sections.push(`<details><summary>Request</summary>
   
   \`\`\`
   ${record.request}
   \`\`\`
   
-  </details>
-  
-  <details><summary>Response</summary>
-  
+  </details>`);
+  }
+  if (record.response) {
+    sections.push(`<details><summary>Response</summary>
+
   \`\`\`
   ${record.response}
   \`\`\`
-  
-  </details>
-  
-  <details><summary>cURL Command</summary>
-    
+
+  </details>`);
+  }
+  if (record["curl-command"]) {
+    sections.push(`<details><summary>cURL Command</summary>
+
   \`\`\`shell
   ${record["curl-command"]}
   \`\`\`
-  
-  </details>
-  `;
+
+  </details>`);
+  }
+
+  return sections.length === 0 ? undefined : sections.join("\n\n");
 }
 
 function translateRecord(record: NucleiRecord, ingestionTime: Date): NucleiTranslationResult {
