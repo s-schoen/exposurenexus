@@ -14,12 +14,9 @@ describe("weakness text", () => {
     expect(parseWeaknessText("  ")).toEqual({ identifiers: {} });
   });
 
-  it("can reject or ignore malformed entries", () => {
+  it("rejects malformed entries", () => {
     const value = "invalid; cwe=CWE-89";
 
     expect(parseWeaknessText(value)).toBeNull();
-    expect(parseWeaknessText(value, { ignoreMalformed: true })).toEqual({
-      identifiers: { cwe: ["CWE-89"] },
-    });
   });
 });

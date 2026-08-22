@@ -10,10 +10,7 @@ export function formatWeaknessText(weakness: Weakness): string {
     .join("; ");
 }
 
-export function parseWeaknessText(
-  value: string,
-  { ignoreMalformed = false }: { ignoreMalformed?: boolean } = {},
-): WeaknessTextInput | null {
+export function parseWeaknessText(value: string): WeaknessTextInput | null {
   const identifiers: Record<string, Array<string>> = {};
 
   for (const entry of value.split(";")) {
@@ -30,9 +27,6 @@ export function parseWeaknessText(
       .filter(Boolean);
 
     if (separator < 1 || !namespace || values.length === 0) {
-      if (ignoreMalformed) {
-        continue;
-      }
       return null;
     }
 

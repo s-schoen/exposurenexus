@@ -4,6 +4,7 @@ import { FindingStatus, createFindingSchema } from "@exposurenexus/types/model/f
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
 import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { createListUsersQueryOptions } from "@/api/user.ts";
 import { AssetCombobox } from "@/components/asset-combobox.tsx";
@@ -60,6 +61,7 @@ const defaultFindingValues: CreateManualFinding = {
   vulnerabilityIds: [],
   observation: {},
 };
+const { weakness: defaultWeakness, ...defaultFormValues } = defaultFindingValues;
 
 function formatDateInputValue(value: Date | null | undefined) {
   if (!value) return "";
@@ -404,12 +406,28 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
 
   const findingLifecycle = useFindingLifecycle();
   const users = useQuery(createListUsersQueryOptions());
+  const [weaknessDraft, setWeaknessDraft] = useState(() => formatWeaknessText(defaultWeakness));
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const form = useForm({
-    defaultValues: defaultFindingValues,
-    validators: { onSubmit: createFindingSchema as never },
+    defaultValues: defaultFormValues,
     onSubmit: async ({ value }) => {
-      const createdFinding = await findingLifecycle.createFinding(value);
+      const weakness = parseWeaknessText(weaknessDraft);
+      if (!weakness) {
+        setSubmissionError("Weakness identifiers must use namespace=identifier entries.");
+        return;
+      }
+
+      const result = createFindingSchema.safeParse({ ...value, weakness });
+      if (!result.success) {
+        const issue = result.error.issues[0];
+        const location = issue.path.length > 0 ? `${issue.path.join(".")}: ` : "";
+        setSubmissionError(`Unable to create finding. ${location}${issue.message}`);
+        return;
+      }
+
+      setSubmissionError(null);
+      const createdFinding = await findingLifecycle.createFinding(result.data);
 
       if (createdFinding) {
         onClose();
@@ -425,6 +443,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
           event.preventDefault();
           void form.handleSubmit();
         }}
+        onChange={() => setSubmissionError(null)}
         className="flex flex-col gap-4"
       >
         <FieldGroup>
@@ -636,31 +655,19 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
               />
             </TabsContent>
             <TabsContent value="identity" className="flex flex-col gap-4">
-              <form.Field
-                name="weakness"
-                children={(field) => (
-                  <Field>
-                    <FieldLabel htmlFor={field.name}>Weakness identifiers</FieldLabel>
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      value={formatWeaknessText(field.state.value)}
-                      onBlur={field.handleBlur}
-                      onChange={(event) =>
-                        field.handleChange(
-                          parseWeaknessText(event.target.value, { ignoreMalformed: true }) ?? {
-                            identifiers: {},
-                          },
-                        )
-                      }
-                      placeholder="cwe=CWE-200; nuclei=admin-panel"
-                    />
-                    <FieldDescription>
-                      Separate namespaces with semicolons and identifiers with commas.
-                    </FieldDescription>
-                  </Field>
-                )}
-              />
+              <Field>
+                <FieldLabel htmlFor="weakness">Weakness identifiers</FieldLabel>
+                <Input
+                  id="weakness"
+                  name="weakness"
+                  value={weaknessDraft}
+                  onChange={(event) => setWeaknessDraft(event.target.value)}
+                  placeholder="cwe=CWE-200; nuclei=admin-panel"
+                />
+                <FieldDescription>
+                  Separate namespaces with semicolons and identifiers with commas.
+                </FieldDescription>
+              </Field>
               <form.Field
                 name="affectedResource"
                 children={(field) => {
@@ -809,6 +816,11 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
             </TabsContent>
           </Tabs>
         </FieldGroup>
+        {submissionError ? (
+          <p role="alert" className="text-sm font-medium text-destructive">
+            {submissionError}
+          </p>
+        ) : null}
         <div className="flex justify-end gap-2">
           <Button variant="outline" type="button" onClick={onClose}>
             Cancel

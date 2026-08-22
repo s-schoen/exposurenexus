@@ -171,6 +171,44 @@ describe("CreateFindingPage", () => {
     expect(screen.queryByRole("button", { name: /whole asset/i })).toBeNull();
   });
 
+  it("keeps incomplete weakness text visible while typing", () => {
+    renderCreateFindingPage();
+
+    fireEvent.click(screen.getByRole("tab", { name: /identity/i }));
+    const weakness = screen.getByLabelText(/weakness identifiers/i);
+    fireEvent.change(weakness, { target: { value: "cwe=" } });
+
+    expect(weakness).toHaveValue("cwe=");
+  });
+
+  it("shows a syntax error without creating a finding", async () => {
+    renderCreateFindingPage();
+    fillRequiredFields();
+    fireEvent.click(screen.getByRole("tab", { name: /identity/i }));
+    fireEvent.change(screen.getByLabelText(/weakness identifiers/i), {
+      target: { value: "invalid" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Weakness identifiers must use namespace=identifier entries.",
+    );
+    expect(mocks.createFinding).not.toHaveBeenCalled();
+    expect(mocks.historyBack).not.toHaveBeenCalled();
+  });
+
+  it("shows the first schema error without creating a finding", async () => {
+    renderCreateFindingPage();
+    fireEvent.click(screen.getByRole("button", { name: /select asset/i }));
+    fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /unable to create finding\. title:/i,
+    );
+    expect(mocks.createFinding).not.toHaveBeenCalled();
+    expect(mocks.historyBack).not.toHaveBeenCalled();
+  });
+
   it("submits a finding with its initial manual observation defaults", async () => {
     renderCreateFindingPage();
     mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
@@ -223,6 +261,32 @@ describe("CreateFindingPage", () => {
         }),
       );
     });
+  });
+
+  it("submits the schema-parsed weakness value", async () => {
+    renderCreateFindingPage();
+    mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+    fillRequiredFields();
+
+    fireEvent.click(screen.getByRole("tab", { name: /identity/i }));
+    fireEvent.change(screen.getByLabelText(/weakness identifiers/i), {
+      target: { value: "cwe=cwe-89; nuclei=admin-panel" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
+
+    await waitFor(() => {
+      expect(mocks.createFinding).toHaveBeenCalledWith(
+        expect.objectContaining({
+          weakness: {
+            identifiers: {
+              cwe: ["CWE-89"],
+              nuclei: ["admin-panel"],
+            },
+          },
+        }),
+      );
+    });
+    expect(mocks.historyBack).toHaveBeenCalledTimes(1);
   });
 
   it("supports severity, status, due date, and assignment", async () => {
