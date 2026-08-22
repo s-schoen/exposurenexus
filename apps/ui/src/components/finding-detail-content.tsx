@@ -98,7 +98,7 @@ function isWebEndpointComponentKind(value: string): value is WebEndpointComponen
 }
 
 function formatDateInputValue(value: Date | null) {
-  return value ? normalizeDateToUtcStart(value).toISOString().slice(0, 10) : "";
+  return value ? formatUtcDateOnly(value) : "";
 }
 
 function parseDateInputValue(value: string) {
