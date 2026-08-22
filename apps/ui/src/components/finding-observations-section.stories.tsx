@@ -12,7 +12,6 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { FindingObservationsSection } from "@/components/finding-observations-section.tsx";
 
-import type { ObservationAffectedResource as ObservationResource } from "@exposurenexus/types/model/affected-resource";
 import type { Finding } from "@exposurenexus/types/model/finding";
 import type {
   ManualObservationInput,
@@ -69,105 +68,185 @@ const targetFinding: Finding = {
   lastSeen: null,
 };
 
-const resources: Array<[string, ObservationResource]> = [
-  ["Unspecified resource", { type: AffectedResourceType.Unspecified }],
-  [
-    "Reported endpoint URL",
-    {
-      type: AffectedResourceType.WebEndpoint,
-      scheme: "https",
-      host: "example.com",
-      port: 443,
-      path: "/admin",
-      method: "GET",
-      component: { kind: WebEndpointComponentKind.QueryParameter, name: "debug" },
-      reportedUrl: "https://example.com/admin?debug=true",
-    },
-  ],
-  [
-    "Observed network service",
-    {
-      type: AffectedResourceType.NetworkService,
-      host: "db.example.com",
-      port: 5432,
-      transport: "tcp",
-      protocol: "postgresql",
-    },
-  ],
-  [
-    "Source revision snapshot",
-    {
-      type: AffectedResourceType.SourceCode,
-      repository: "github.com/example/service",
-      revision: "9a0f8c1",
-      file: "src/admin.ts",
-      location: { startLine: 42, startColumn: 5, endLine: 44, endColumn: 12 },
-      symbol: "adminHandler",
-      locationFingerprint: "sha256:abcd",
-    },
-  ],
-  [
-    "Package version snapshot",
-    {
-      type: AffectedResourceType.Package,
-      ecosystem: "npm",
-      name: "example-package",
-      version: "1.2.3",
-      installationPath: "package-lock.json",
-    },
-  ],
-  [
-    "Container tag snapshot",
-    {
-      type: AffectedResourceType.ContainerImage,
-      registry: "registry.example.com",
-      repository: "platform/admin",
-      digest: "sha256:abcd",
-      tag: "release-2026-06",
-    },
-  ],
-  [
-    "Cloud display name snapshot",
-    {
-      type: AffectedResourceType.CloudResource,
-      provider: "aws",
-      providerAccount: "123456789012",
-      region: "eu-central-1",
-      resourceId: "arn:aws:s3:::public-admin-data",
-      subresource: "bucket-policy",
-      displayName: "Public admin exports",
-    },
-  ],
-];
+const unspecifiedObservation = observationSchema.parse({
+  id: "9e361a0f-b8c2-47e6-af9a-9262782ac31b",
+  findingId: finding.id,
+  ingestionId: null,
+  source: ObservationSource.Manual,
+  title: "Unspecified resource",
+  description: null,
+  evidence: null,
+  remediation: null,
+  severity: VulnerabilitySeverity.High,
+  weakness: { identifiers: {} },
+  affectedResource: { type: AffectedResourceType.Unspecified },
+  observedAt: new Date("2026-06-07T09:00:00.000Z"),
+  createdAt: new Date("2026-06-08T09:00:00.000Z"),
+  updatedAt: new Date("2026-06-08T09:00:00.000Z"),
+  createdBy: ids.user,
+  updatedBy: ids.user,
+});
+const reportedEndpointObservation = observationSchema.parse({
+  id: "197083f7-91c2-4c36-9a20-7ff90fd45e91",
+  findingId: finding.id,
+  ingestionId: "16c25531-28e5-43d7-bbfd-8709ae8e907c",
+  source: ObservationSource.Nuclei,
+  title: "Reported endpoint URL",
+  description: "The endpoint exposed administrative controls.",
+  evidence: "`GET /admin?debug=true` returned **200**.",
+  remediation: "Restrict access to trusted networks.",
+  severity: VulnerabilitySeverity.Critical,
+  weakness: { identifiers: { cwe: ["CWE-200"] } },
+  affectedResource: {
+    type: AffectedResourceType.WebEndpoint,
+    scheme: "https",
+    host: "example.com",
+    port: 443,
+    path: "/admin",
+    method: "GET",
+    component: { kind: WebEndpointComponentKind.QueryParameter, name: "debug" },
+    reportedUrl: "https://example.com/admin?debug=true",
+  },
+  observedAt: new Date("2026-06-06T09:00:00.000Z"),
+  createdAt: new Date("2026-06-08T09:00:00.000Z"),
+  updatedAt: new Date("2026-06-08T09:00:00.000Z"),
+  createdBy: ids.user,
+  updatedBy: ids.user,
+});
+const networkServiceObservation = observationSchema.parse({
+  id: "3201c54b-01aa-46f1-895c-4c9718f87113",
+  findingId: finding.id,
+  ingestionId: null,
+  source: ObservationSource.Manual,
+  title: "Observed network service",
+  description: null,
+  evidence: null,
+  remediation: null,
+  severity: VulnerabilitySeverity.High,
+  weakness: { identifiers: {} },
+  affectedResource: {
+    type: AffectedResourceType.NetworkService,
+    host: "db.example.com",
+    port: 5432,
+    transport: "tcp",
+    protocol: "postgresql",
+  },
+  observedAt: new Date("2026-06-05T09:00:00.000Z"),
+  createdAt: new Date("2026-06-08T09:00:00.000Z"),
+  updatedAt: new Date("2026-06-08T09:00:00.000Z"),
+  createdBy: ids.user,
+  updatedBy: ids.user,
+});
+const sourceCodeObservation = observationSchema.parse({
+  id: "1431897b-8d86-47f1-94f4-ac955cd120cf",
+  findingId: finding.id,
+  ingestionId: null,
+  source: ObservationSource.Manual,
+  title: "Source revision snapshot",
+  description: null,
+  evidence: null,
+  remediation: null,
+  severity: VulnerabilitySeverity.High,
+  weakness: { identifiers: {} },
+  affectedResource: {
+    type: AffectedResourceType.SourceCode,
+    repository: "github.com/example/service",
+    revision: "9a0f8c1",
+    file: "src/admin.ts",
+    location: { startLine: 42, startColumn: 5, endLine: 44, endColumn: 12 },
+    symbol: "adminHandler",
+    locationFingerprint: "sha256:abcd",
+  },
+  observedAt: new Date("2026-06-04T09:00:00.000Z"),
+  createdAt: new Date("2026-06-08T09:00:00.000Z"),
+  updatedAt: new Date("2026-06-08T09:00:00.000Z"),
+  createdBy: ids.user,
+  updatedBy: ids.user,
+});
+const packageObservation = observationSchema.parse({
+  id: "db85c61c-e66b-41a5-ab46-0d133b84e443",
+  findingId: finding.id,
+  ingestionId: null,
+  source: ObservationSource.Manual,
+  title: "Package version snapshot",
+  description: null,
+  evidence: null,
+  remediation: null,
+  severity: VulnerabilitySeverity.High,
+  weakness: { identifiers: {} },
+  affectedResource: {
+    type: AffectedResourceType.Package,
+    ecosystem: "npm",
+    name: "example-package",
+    version: "1.2.3",
+    installationPath: "package-lock.json",
+  },
+  observedAt: new Date("2026-06-03T09:00:00.000Z"),
+  createdAt: new Date("2026-06-08T09:00:00.000Z"),
+  updatedAt: new Date("2026-06-08T09:00:00.000Z"),
+  createdBy: ids.user,
+  updatedBy: ids.user,
+});
+const containerImageObservation = observationSchema.parse({
+  id: "c41e64a0-ddc3-4ae7-b7f0-2d73d40768ce",
+  findingId: finding.id,
+  ingestionId: null,
+  source: ObservationSource.Manual,
+  title: "Container tag snapshot",
+  description: null,
+  evidence: null,
+  remediation: null,
+  severity: VulnerabilitySeverity.High,
+  weakness: { identifiers: {} },
+  affectedResource: {
+    type: AffectedResourceType.ContainerImage,
+    registry: "registry.example.com",
+    repository: "platform/admin",
+    digest: "sha256:abcd",
+    tag: "release-2026-06",
+  },
+  observedAt: new Date("2026-06-02T09:00:00.000Z"),
+  createdAt: new Date("2026-06-08T09:00:00.000Z"),
+  updatedAt: new Date("2026-06-08T09:00:00.000Z"),
+  createdBy: ids.user,
+  updatedBy: ids.user,
+});
+const cloudResourceObservation = observationSchema.parse({
+  id: "cdef95d7-0344-4580-9f96-4c75ec44fe1c",
+  findingId: finding.id,
+  ingestionId: null,
+  source: ObservationSource.Manual,
+  title: "Cloud display name snapshot",
+  description: null,
+  evidence: null,
+  remediation: null,
+  severity: VulnerabilitySeverity.High,
+  weakness: { identifiers: {} },
+  affectedResource: {
+    type: AffectedResourceType.CloudResource,
+    provider: "aws",
+    providerAccount: "123456789012",
+    region: "eu-central-1",
+    resourceId: "arn:aws:s3:::public-admin-data",
+    subresource: "bucket-policy",
+    displayName: "Public admin exports",
+  },
+  observedAt: new Date("2026-06-01T09:00:00.000Z"),
+  createdAt: new Date("2026-06-08T09:00:00.000Z"),
+  updatedAt: new Date("2026-06-08T09:00:00.000Z"),
+  createdBy: ids.user,
+  updatedBy: ids.user,
+});
 
-const observations = resources.map(([title, affectedResource], index) =>
-  observationSchema.parse({
-    id: [
-      "9e361a0f-b8c2-47e6-af9a-9262782ac31b",
-      "197083f7-91c2-4c36-9a20-7ff90fd45e91",
-      "3201c54b-01aa-46f1-895c-4c9718f87113",
-      "1431897b-8d86-47f1-94f4-ac955cd120cf",
-      "db85c61c-e66b-41a5-ab46-0d133b84e443",
-      "c41e64a0-ddc3-4ae7-b7f0-2d73d40768ce",
-      "cdef95d7-0344-4580-9f96-4c75ec44fe1c",
-    ][index],
-    findingId: finding.id,
-    ingestionId: index === 1 ? "16c25531-28e5-43d7-bbfd-8709ae8e907c" : null,
-    source: index === 1 ? ObservationSource.Nuclei : ObservationSource.Manual,
-    title,
-    description: index === 1 ? "The endpoint exposed administrative controls." : null,
-    evidence: index === 1 ? "`GET /admin?debug=true` returned **200**." : null,
-    remediation: index === 1 ? "Restrict access to trusted networks." : null,
-    severity: index === 1 ? VulnerabilitySeverity.Critical : VulnerabilitySeverity.High,
-    weakness: { identifiers: index === 1 ? { cwe: ["CWE-200"] } : {} },
-    affectedResource,
-    observedAt: new Date(`2026-06-${String(7 - index).padStart(2, "0")}T09:00:00.000Z`),
-    createdAt: new Date("2026-06-08T09:00:00.000Z"),
-    updatedAt: new Date("2026-06-08T09:00:00.000Z"),
-    createdBy: ids.user,
-    updatedBy: ids.user,
-  }),
-);
+const observations: Array<Observation> = [
+  unspecifiedObservation,
+  reportedEndpointObservation,
+  networkServiceObservation,
+  sourceCodeObservation,
+  packageObservation,
+  containerImageObservation,
+  cloudResourceObservation,
+];
 
 function objectResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify({ data }), {
@@ -180,9 +259,13 @@ function listResponse(data: Array<unknown>) {
   return objectResponse({ items: data });
 }
 
+function readRequestBody<T>(init: RequestInit | undefined): Promise<T> {
+  return new Response(init?.body).json() as Promise<T>;
+}
+
 function StoryShell({ scenario }: StoryArgs) {
   const records = useRef(
-    scenario === "populated" ? observations : scenario === "single" ? [observations[0]] : [],
+    scenario === "populated" ? observations : scenario === "single" ? [unspecifiedObservation] : [],
   );
   const [ready, setReady] = useState(false);
   const queryClient = useMemo(
@@ -195,85 +278,107 @@ function StoryShell({ scenario }: StoryArgs) {
 
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
+    const findingsPath = "/api/findings";
+    const observationsPath = `${findingsPath}/${finding.id}/observations`;
+    const observationPaths = {
+      collection: observationsPath,
+      update: (observationId: string) => `${observationsPath}/${observationId}`,
+      move: (observationId: string) => `${observationsPath}/${observationId}/move`,
+    };
+
+    async function createObservation(init: RequestInit | undefined) {
+      const payload = await readRequestBody<ManualObservationInput>(init);
+      const now = new Date("2026-06-09T09:00:00.000Z");
+      const created: Observation = {
+        id: "b933179c-6d4d-47a8-853e-e921a388309f",
+        findingId: finding.id,
+        ingestionId: null,
+        source: ObservationSource.Manual,
+        title: payload.title ?? finding.title,
+        description: payload.description ?? null,
+        evidence: payload.evidence ?? null,
+        remediation: payload.remediation ?? null,
+        severity: payload.severity ?? finding.severity,
+        weakness: payload.weakness ?? finding.weakness,
+        affectedResource: payload.affectedResource ?? finding.affectedResource,
+        observedAt: payload.observedAt ?? now,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: ids.user,
+        updatedBy: ids.user,
+      };
+      records.current = [created, ...records.current];
+      return objectResponse(created);
+    }
+
+    async function updateObservation(observation: Observation, init: RequestInit | undefined) {
+      const payload = await readRequestBody<UpdateObservation>(init);
+      const updated: Observation = {
+        ...observation,
+        ...payload,
+        observedAt: payload.observedAt ? new Date(payload.observedAt) : observation.observedAt,
+        updatedAt: new Date("2026-06-09T09:00:00.000Z"),
+        updatedBy: ids.user,
+      };
+      records.current = records.current.map((record) =>
+        record.id === observation.id ? updated : record,
+      );
+      return objectResponse(updated);
+    }
+
+    function deleteObservation(observation: Observation) {
+      records.current = records.current.filter((record) => record.id !== observation.id);
+      return objectResponse(observation);
+    }
+
+    async function moveObservation(observation: Observation, init: RequestInit | undefined) {
+      const payload = await readRequestBody<{ targetFindingId: string }>(init);
+      const moved: Observation = {
+        ...observation,
+        findingId: payload.targetFindingId,
+        updatedAt: new Date("2026-06-09T09:00:00.000Z"),
+        updatedBy: ids.user,
+      };
+      records.current = records.current.filter((record) => record.id !== observation.id);
+      return objectResponse(moved);
+    }
+
     globalThis.fetch = async (input, init) => {
       const requestUrl = input instanceof Request ? input.url : String(input);
       const url = new URL(requestUrl, "http://localhost").pathname;
-      const findingsPath = "/api/findings";
-      const observationsPath = `/api/findings/${finding.id}/observations`;
-      if (url === findingsPath && init?.method !== "POST") {
+      const method = (init?.method ?? "GET").toUpperCase();
+
+      // Fetch interception keeps Storybook interactions exercising the real API and lifecycle boundary.
+      if (url === findingsPath && method === "GET") {
         return listResponse([finding, targetFinding]);
       }
-      if (url !== observationsPath && !url.startsWith(`${observationsPath}/`)) {
-        return originalFetch(input);
+      if (url === observationPaths.collection && method === "GET") {
+        if (scenario === "loading") return await new Promise<Response>(() => {});
+        if (scenario === "error") return objectResponse({ message: "Failed" }, 500);
+        return listResponse(records.current);
       }
-      if (scenario === "loading") return await new Promise<Response>(() => {});
-      if (scenario === "error") return objectResponse({ message: "Failed" }, 500);
-      if (init?.method === "POST" && url.endsWith("/move")) {
-        const movePath = url.slice(`${observationsPath}/`.length);
-        const observationId = movePath.slice(0, -"/move".length);
-        const payload = JSON.parse(await new Response(init.body).text()) as {
-          targetFindingId: string;
-        };
-        const current = records.current.find((record) => record.id === observationId);
-        if (!current) return objectResponse({ message: "Not found" }, 404);
-        const moved: Observation = {
-          ...current,
-          findingId: payload.targetFindingId,
-          updatedAt: new Date("2026-06-09T09:00:00.000Z"),
-          updatedBy: ids.user,
-        };
-        records.current = records.current.filter((record) => record.id !== observationId);
-        return objectResponse(moved);
+      if (url === observationPaths.collection && method === "POST") {
+        return createObservation(init);
       }
-      if (init?.method === "POST") {
-        const payload = JSON.parse(await new Response(init.body).text()) as ManualObservationInput;
-        const now = new Date("2026-06-09T09:00:00.000Z");
-        const created: Observation = {
-          id: "b933179c-6d4d-47a8-853e-e921a388309f",
-          findingId: finding.id,
-          ingestionId: null,
-          source: ObservationSource.Manual,
-          title: payload.title ?? finding.title,
-          description: payload.description ?? null,
-          evidence: payload.evidence ?? null,
-          remediation: payload.remediation ?? null,
-          severity: payload.severity ?? finding.severity,
-          weakness: payload.weakness ?? finding.weakness,
-          affectedResource: payload.affectedResource ?? finding.affectedResource,
-          observedAt: payload.observedAt ?? now,
-          createdAt: now,
-          updatedAt: now,
-          createdBy: ids.user,
-          updatedBy: ids.user,
-        };
-        records.current = [created, ...records.current];
-        return objectResponse(created);
+
+      const observationToMove = records.current.find(
+        (observation) => url === observationPaths.move(observation.id),
+      );
+      if (observationToMove && method === "POST") {
+        return moveObservation(observationToMove, init);
       }
-      if (init?.method === "PUT") {
-        const observationId = url.slice(`${observationsPath}/`.length);
-        const payload = JSON.parse(await new Response(init.body).text()) as UpdateObservation;
-        const current = records.current.find((record) => record.id === observationId);
-        if (!current) return objectResponse({ message: "Not found" }, 404);
-        const updated: Observation = {
-          ...current,
-          ...payload,
-          observedAt: payload.observedAt ? new Date(payload.observedAt) : current.observedAt,
-          updatedAt: new Date("2026-06-09T09:00:00.000Z"),
-          updatedBy: ids.user,
-        };
-        records.current = records.current.map((record) =>
-          record.id === observationId ? updated : record,
-        );
-        return objectResponse(updated);
+
+      const observationById = records.current.find(
+        (observation) => url === observationPaths.update(observation.id),
+      );
+      if (observationById && method === "PUT") {
+        return updateObservation(observationById, init);
       }
-      if (init?.method === "DELETE") {
-        const observationId = url.slice(`${observationsPath}/`.length);
-        const deleted = records.current.find((record) => record.id === observationId);
-        if (!deleted) return objectResponse({ message: "Not found" }, 404);
-        records.current = records.current.filter((record) => record.id !== observationId);
-        return objectResponse(deleted);
+      if (observationById && method === "DELETE") {
+        return deleteObservation(observationById);
       }
-      return listResponse(records.current);
+
+      return originalFetch(input, init);
     };
     setReady(true);
     return () => {
