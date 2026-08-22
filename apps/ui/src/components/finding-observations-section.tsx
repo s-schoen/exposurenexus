@@ -1,12 +1,12 @@
 import {
   AffectedResourceType,
   WebEndpointComponentKind,
-} from "@exposurenexus/types/model/affected-resource";
+} from "@exposurenexus/contracts/model/affected-resource";
 import {
   manualObservationInputSchema,
   updateObservationSchema,
-} from "@exposurenexus/types/model/observation";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+} from "@exposurenexus/contracts/model/observation";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRightLeft, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -53,9 +53,12 @@ import { formatLocalDateTimeInput } from "@/lib/date-input.ts";
 import { capitalizeFirstLetter, formatSeverity } from "@/lib/format.ts";
 import { formatWeaknessText, parseWeaknessText } from "@/lib/weakness-text.ts";
 
-import type { ObservationAffectedResource as ObservationResource } from "@exposurenexus/types/model/affected-resource";
-import type { Finding } from "@exposurenexus/types/model/finding";
-import type { ManualObservationInput, Observation } from "@exposurenexus/types/model/observation";
+import type { ObservationAffectedResource as ObservationResource } from "@exposurenexus/contracts/model/affected-resource";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
+import type {
+  ManualObservationInput,
+  Observation,
+} from "@exposurenexus/contracts/model/observation";
 
 interface FindingObservationsSectionProps {
   finding: Finding;

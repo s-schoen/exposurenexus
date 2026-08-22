@@ -1,4 +1,4 @@
-import { userProfileSchema } from "@exposurenexus/types/model/user";
+import { userProfileSchema } from "@exposurenexus/contracts/model/user";
 import { keepPreviousData, queryOptions, useMutation } from "@tanstack/react-query";
 
 import {
@@ -13,7 +13,7 @@ import type {
   CreateUserProfile,
   UpdateUserProfile,
   UserProfile,
-} from "@exposurenexus/types/model/user";
+} from "@exposurenexus/contracts/model/user";
 
 async function listUsers(): Promise<Array<UserProfile>> {
   const response = await apiRequest("/api/users", {

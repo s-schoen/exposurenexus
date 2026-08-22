@@ -1,4 +1,4 @@
-import { createArrayReply, createObjectReply } from "@exposurenexus/types/api";
+import { createArrayReply, createObjectReply } from "@exposurenexus/contracts/api";
 
 import type { Context } from "hono";
 

@@ -2,11 +2,11 @@ import {
   assetIdentifierRecordSchema,
   assetSchema,
   assetWithCustomFieldsSchema,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import {
   assetCustomFieldDefinitionSchema,
   assetCustomFieldValueSchema,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 import { keepPreviousData, queryOptions, useMutation } from "@tanstack/react-query";
 
 import {
@@ -28,13 +28,13 @@ import type {
   AssetWithCustomFields,
   UpdateAsset,
   UpdateAssetIdentifier,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
   UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 
 export interface AssetListOptions {
   filter?: string;

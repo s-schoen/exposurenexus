@@ -1,8 +1,12 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/contracts/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 import { composeStories } from "@storybook/react-vite";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -15,7 +19,7 @@ import {
 } from "@/components/asset-detail-content.tsx";
 import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts";
 
-import type { AssetCustomFieldValue } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldValue } from "@exposurenexus/contracts/model/asset-custom-field";
 
 const mocks = vi.hoisted(() => ({
   toastActionError: vi.fn(),

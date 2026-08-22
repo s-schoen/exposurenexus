@@ -5,7 +5,7 @@ import { columns } from "@/components/role-table/columns.tsx";
 import { Button } from "@/components/ui/button.tsx";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
-import type { Role } from "@exposurenexus/types/model/rbac";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { UseQueryResult } from "@tanstack/react-query";
 
 const groupingOptions: Array<GroupingOption> = [

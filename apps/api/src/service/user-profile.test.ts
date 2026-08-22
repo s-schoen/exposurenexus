@@ -1,8 +1,8 @@
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac";
+import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { UpdateUserProfile } from "@exposurenexus/types/model/user";
+import type { UpdateUserProfile } from "@exposurenexus/contracts/model/user";
 
 const { hashPlaintextPasswordMock } = vi.hoisted(() => ({
   hashPlaintextPasswordMock: vi.fn(),

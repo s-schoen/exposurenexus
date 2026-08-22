@@ -3,7 +3,7 @@ import {
   AssetLifecycleState,
   AssetType,
   createAssetSchema,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { createCallable } from "react-call";
@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select.tsx";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
-import type { CreateAsset } from "@exposurenexus/types/model/asset";
+import type { CreateAsset } from "@exposurenexus/contracts/model/asset";
 import type { PropsWithCall } from "react-call";
 
 type AssetDialogProps = object;

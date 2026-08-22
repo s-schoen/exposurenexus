@@ -1,4 +1,4 @@
-import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { useMemo } from "react";
 
 import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx";

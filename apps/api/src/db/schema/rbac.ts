@@ -1,4 +1,4 @@
-import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
+import { PermissionResource, PermissionVerb } from "@exposurenexus/contracts/model/rbac";
 
 import type { Generated } from "kysely";
 

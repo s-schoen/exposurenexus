@@ -1,5 +1,5 @@
-import { type FindingStatistics, FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { type FindingStatistics, FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
 import { ApplicationError } from "./application-error.js";
 

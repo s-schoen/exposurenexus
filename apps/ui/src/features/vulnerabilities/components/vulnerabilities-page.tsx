@@ -9,7 +9,7 @@ import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 import { useVulnerabilityLifecycle } from "@/hooks/use-vulnerability-lifecycle.ts";
 import { useVulnerabilityTableSearchState } from "@/hooks/use-vulnerability-table-search-state.ts";
 
-import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerability";
+import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
 
 interface VulnerabilitiesPageProps {
   search?: Record<string, unknown>;

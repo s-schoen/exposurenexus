@@ -1,5 +1,5 @@
-import { dateSchema } from "@exposurenexus/types/model/date";
-import { userProfileSchema } from "@exposurenexus/types/model/user";
+import { dateSchema } from "@exposurenexus/contracts/model/date";
+import { userProfileSchema } from "@exposurenexus/contracts/model/user";
 import { queryOptions } from "@tanstack/react-query";
 import { z } from "zod/v4";
 
@@ -9,8 +9,8 @@ import {
   shouldRetryAuthAwareQuery,
 } from "@/lib/auth-session-expiry.ts";
 
-import type { AuthSessionDataReply } from "@exposurenexus/types/api";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { AuthSessionDataReply } from "@exposurenexus/contracts/api";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
 export const AUTH_SESSION_QUERY_KEY = ["auth", "session"] as const;
 const authSessionReplySchema = z.strictObject({

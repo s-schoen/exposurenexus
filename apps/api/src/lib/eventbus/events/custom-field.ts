@@ -1,4 +1,4 @@
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 
 export type CustomFieldEventPayloads = {
   "custom-field.created": {

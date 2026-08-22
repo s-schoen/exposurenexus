@@ -1,5 +1,5 @@
 import type { Database } from "../db/index.js";
-import type { UserSession } from "@exposurenexus/types/model/user";
+import type { UserSession } from "@exposurenexus/contracts/model/user";
 import type { Kysely } from "kysely";
 
 export interface UserSessionRepository {

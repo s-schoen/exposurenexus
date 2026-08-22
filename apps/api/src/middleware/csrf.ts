@@ -6,7 +6,7 @@ import { forbidden, isApiError } from "../lib/api-error.js";
 import { DEFAULT_AUTH_COOKIE_POLICY, cookieOptions, type AuthCookiePolicy } from "./auth.js";
 
 import type { ContextVariables } from "../lib/hono-schema.js";
-import type { UserSession } from "@exposurenexus/types/model/user";
+import type { UserSession } from "@exposurenexus/contracts/model/user";
 import type { Context, MiddlewareHandler } from "hono";
 import type { CookieOptions } from "hono/utils/cookie";
 

@@ -1,10 +1,17 @@
 import {
   AffectedResourceType,
   WebEndpointComponentKind,
-} from "@exposurenexus/types/model/affected-resource";
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
-import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
+} from "@exposurenexus/contracts/model/affected-resource";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/contracts/model/asset";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import {
+  VulnerabilitySeverity,
+  VulnerabilityType,
+} from "@exposurenexus/contracts/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -15,10 +22,10 @@ import { STORY_VULNERABILITIES } from "@/components/storybook-fixtures.ts";
 import { createLoginRedirects } from "@/lib/login-redirect.ts";
 import { routeTree } from "@/routeTree.gen.ts";
 
-import type { FindingAffectedResource } from "@exposurenexus/types/model/affected-resource";
-import type { Asset } from "@exposurenexus/types/model/asset";
-import type { Finding } from "@exposurenexus/types/model/finding";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type FindingDetailScenario = "success" | "undated" | "empty" | "loading";

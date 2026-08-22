@@ -10,7 +10,7 @@ import {
 } from "@/components/storybook-utils.tsx";
 import { UserTable } from "@/components/user-table";
 
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type UserTableStoryArgs = {

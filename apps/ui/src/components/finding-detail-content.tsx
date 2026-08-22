@@ -1,10 +1,10 @@
 import {
   AffectedResourceType,
   WebEndpointComponentKind,
-} from "@exposurenexus/types/model/affected-resource";
-import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date";
-import { FindingStatus, updateFindingSchema } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+} from "@exposurenexus/contracts/model/affected-resource";
+import { normalizeDateToUtcStart } from "@exposurenexus/contracts/model/date";
+import { FindingStatus, updateFindingSchema } from "@exposurenexus/contracts/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ExternalLink, Pencil, ShieldAlert } from "lucide-react";
@@ -63,10 +63,10 @@ import { formatUtcDateOnly } from "@/lib/date-input.ts";
 import { capitalizeFirstLetter, formatFindingStatus, formatSeverity } from "@/lib/format.ts";
 import { formatWeaknessText, parseWeaknessText } from "@/lib/weakness-text.ts";
 
-import type { FindingAffectedResource } from "@exposurenexus/types/model/affected-resource";
-import type { Finding, UpdateFinding } from "@exposurenexus/types/model/finding";
-import type { UserProfile } from "@exposurenexus/types/model/user";
-import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerability";
+import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
+import type { Finding, UpdateFinding } from "@exposurenexus/contracts/model/finding";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
+import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
 import type { ReactNode } from "react";
 
 interface FindingDetailContentProps {

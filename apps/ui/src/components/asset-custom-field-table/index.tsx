@@ -5,7 +5,7 @@ import { DataTable } from "@/components/data-table/data-table.tsx";
 import { Button } from "@/components/ui/button.tsx";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 import type { UseQueryResult } from "@tanstack/react-query";
 
 const groupingOptions: Array<GroupingOption> = [

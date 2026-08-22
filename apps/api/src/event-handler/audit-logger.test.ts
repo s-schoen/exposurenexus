@@ -1,13 +1,20 @@
-import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/contracts/model/asset";
 import {
   type AssetCustomFieldDefinition,
   AssetCustomFieldType,
-} from "@exposurenexus/types/model/asset-custom-field";
-import { FindingStatus, type Finding } from "@exposurenexus/types/model/finding";
-import { ObservationSource, type Observation } from "@exposurenexus/types/model/observation";
-import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
-import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
+} from "@exposurenexus/contracts/model/asset-custom-field";
+import { FindingStatus, type Finding } from "@exposurenexus/contracts/model/finding";
+import { ObservationSource, type Observation } from "@exposurenexus/contracts/model/observation";
+import { PermissionResource, PermissionVerb } from "@exposurenexus/contracts/model/rbac";
+import {
+  VulnerabilitySeverity,
+  VulnerabilityType,
+} from "@exposurenexus/contracts/model/vulnerability";
 import { describe, expect, it, vi } from "vitest";
 
 import { EventBus } from "../lib/eventbus/eventbus.js";

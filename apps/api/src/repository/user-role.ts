@@ -1,5 +1,5 @@
 import type { Database } from "../db/index.js";
-import type { Permission } from "@exposurenexus/types/model/rbac";
+import type { Permission } from "@exposurenexus/contracts/model/rbac";
 import type { Kysely } from "kysely";
 
 export interface UserRoleRepository {

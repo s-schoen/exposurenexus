@@ -16,12 +16,12 @@ import type {
   Permission,
   PermissionResource,
   PermissionVerb,
-} from "@exposurenexus/types/model/rbac";
+} from "@exposurenexus/contracts/model/rbac";
 import type {
   UserProfile,
   UserProfileInternalWithRoles,
   UserSession,
-} from "@exposurenexus/types/model/user";
+} from "@exposurenexus/contracts/model/user";
 import type { Logger } from "pino";
 
 const DUMMY_PASSWORD_HASH =

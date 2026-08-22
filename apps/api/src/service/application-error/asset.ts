@@ -2,7 +2,7 @@ import type {
   AssetIdentifierValidationIssue,
   AssetIdentifierType,
   AssetType,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 
 export type AssetApplicationErrorCatalog = {
   "asset.list_failed": { kind: "unexpected" };

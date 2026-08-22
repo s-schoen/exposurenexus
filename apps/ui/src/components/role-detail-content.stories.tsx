@@ -4,7 +4,7 @@ import { useLayoutEffect, useMemo, useState } from "react";
 import { RoleDetailContent } from "@/components/role-detail-content";
 import { BUILT_IN_ADMIN_ROLE, CUSTOM_AUDITOR_ROLE } from "@/components/role-fixtures.ts";
 
-import type { Role } from "@exposurenexus/types/model/rbac";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type RoleDetailStoryArgs = {

@@ -1,6 +1,6 @@
-import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { ObservationSource, type Observation } from "@exposurenexus/types/model/observation";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import { ObservationSource, type Observation } from "@exposurenexus/contracts/model/observation";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { expect, expectTypeOf, it } from "vitest";
 
 import { createEventPayload, type DomainEventPayloadBase } from "./index.js";

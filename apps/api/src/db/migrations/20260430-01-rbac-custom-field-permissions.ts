@@ -1,4 +1,4 @@
-import { PermissionResource } from "@exposurenexus/types/model/rbac";
+import { PermissionResource } from "@exposurenexus/contracts/model/rbac";
 import { sql, type Kysely } from "kysely";
 
 // oxlint-disable-next-line typescript/no-explicit-any

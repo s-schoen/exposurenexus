@@ -1,4 +1,4 @@
-import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { useLayoutEffect, useMemo, useState } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar.tsx";

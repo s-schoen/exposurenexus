@@ -1,10 +1,10 @@
-import { AssetIdentifierType } from "@exposurenexus/types/model/asset";
+import { AssetIdentifierType } from "@exposurenexus/contracts/model/asset";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AssetIdentifierTable } from "@/components/asset-identifier-table.tsx";
 
-import type { AssetIdentifierRecord } from "@exposurenexus/types/model/asset";
+import type { AssetIdentifierRecord } from "@exposurenexus/contracts/model/asset";
 
 const confirmMock = vi.hoisted(() => vi.fn());
 

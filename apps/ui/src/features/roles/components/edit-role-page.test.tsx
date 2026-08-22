@@ -1,11 +1,11 @@
-import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
+import { PermissionResource, PermissionVerb } from "@exposurenexus/contracts/model/rbac";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EditRolePage } from "@/features/roles/components/edit-role-page.tsx";
 
 import type { RoleFormValues } from "@/components/role-form.tsx";
-import type { Role } from "@exposurenexus/types/model/rbac";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
 
 interface QueryState<TData> {
   data?: TData;

@@ -1,11 +1,15 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/contracts/model/asset";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
 import { getAssetCustomFieldColumnId } from "@/components/asset-table/columns.tsx";
 
-import type { AssetWithCustomFields } from "@exposurenexus/types/model/asset";
+import type { AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
 import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => {

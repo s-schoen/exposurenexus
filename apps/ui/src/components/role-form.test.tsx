@@ -1,4 +1,4 @@
-import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
+import { PermissionResource, PermissionVerb } from "@exposurenexus/contracts/model/rbac";
 import { composeStories } from "@storybook/react-vite";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -15,7 +15,7 @@ import {
 } from "@/components/role-form";
 import * as stories from "@/components/role-form.stories";
 
-import type { Permission, Role } from "@exposurenexus/types/model/rbac";
+import type { Permission, Role } from "@exposurenexus/contracts/model/rbac";
 
 const { Create, EditPrefilled } = composeStories(stories);
 

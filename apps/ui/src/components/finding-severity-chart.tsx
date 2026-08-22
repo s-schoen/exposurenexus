@@ -1,4 +1,4 @@
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useMemo } from "react";
 
 import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx";

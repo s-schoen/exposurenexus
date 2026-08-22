@@ -1,11 +1,11 @@
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac";
+import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CreateUserPage } from "@/features/users/components/create-user-page.tsx";
 
 import type { UserFormValues } from "@/components/user-form.tsx";
-import type { Role } from "@exposurenexus/types/model/rbac";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
 
 interface QueryState<TData> {
   data?: TData;

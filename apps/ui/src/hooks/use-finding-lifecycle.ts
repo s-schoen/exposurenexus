@@ -18,7 +18,7 @@ import type {
   CreateManualFinding,
   Finding,
   UpdateFinding,
-} from "@exposurenexus/types/model/finding";
+} from "@exposurenexus/contracts/model/finding";
 
 export interface FindingDeleteFailure {
   finding: Finding;

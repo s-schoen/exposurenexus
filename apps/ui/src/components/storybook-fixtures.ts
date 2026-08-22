@@ -3,20 +3,23 @@ import {
   AssetIdentifierType,
   AssetLifecycleState,
   AssetType,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
-} from "@exposurenexus/types/model/asset-custom-field";
-import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
+} from "@exposurenexus/contracts/model/asset-custom-field";
+import {
+  VulnerabilitySeverity,
+  VulnerabilityType,
+} from "@exposurenexus/contracts/model/vulnerability";
 
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
 import { ROLE_FIXTURES } from "@/components/role-fixtures.ts";
 
-import type { AuthSessionDataReply } from "@exposurenexus/types/api";
-import type { Asset, AssetWithCustomFields } from "@exposurenexus/types/model/asset";
-import type { UserProfile } from "@exposurenexus/types/model/user";
-import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerability";
+import type { AuthSessionDataReply } from "@exposurenexus/contracts/api";
+import type { Asset, AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
+import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
 
 const STORY_ENVIRONMENT_OPTIONS = [
   {

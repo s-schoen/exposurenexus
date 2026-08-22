@@ -1,7 +1,11 @@
-import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
-import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/contracts/model/asset";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -12,9 +16,9 @@ import { Toaster } from "@/components/ui/sonner.tsx";
 import { createLoginRedirects } from "@/lib/login-redirect.ts";
 import { routeTree } from "@/routeTree.gen.ts";
 
-import type { Asset } from "@exposurenexus/types/model/asset";
-import type { Finding } from "@exposurenexus/types/model/finding";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type FindingTableScenario = "default" | "loading" | "empty" | "grouped";

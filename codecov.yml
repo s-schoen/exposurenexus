@@ -49,10 +49,10 @@ component_management:
       name: UI
       paths:
         - apps/ui/src/
-    - component_id: shared-types
-      name: Shared Types
+    - component_id: shared-contracts
+      name: Shared Contracts
       paths:
-        - packages/types/src/
+        - packages/contracts/src/
 
 comment:
   layout: "diff, flags, components"

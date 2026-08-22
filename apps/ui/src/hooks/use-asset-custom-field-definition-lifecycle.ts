@@ -14,7 +14,7 @@ import type {
   AssetCustomFieldDefinition,
   CreateAssetCustomFieldDefinition,
   UpdateAssetCustomFieldDefinition,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 
 export interface AssetCustomFieldDefinitionLifecycleFailure {
   definition: AssetCustomFieldDefinition;

@@ -5,7 +5,7 @@ import { ROLE_FIXTURES } from "@/components/role-fixtures.ts";
 import { RoleTable } from "@/components/role-table";
 
 import type { DataTableFilterState } from "@/components/data-table/types.ts";
-import type { Role } from "@exposurenexus/types/model/rbac";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { UseQueryResult } from "@tanstack/react-query";
 

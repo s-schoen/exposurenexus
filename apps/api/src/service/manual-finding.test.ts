@@ -1,11 +1,14 @@
-import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import {
   FindingStatus,
   type CreateManualFinding,
   type Finding,
-} from "@exposurenexus/types/model/finding";
-import { ObservationSource, type Observation } from "@exposurenexus/types/model/observation";
-import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
+} from "@exposurenexus/contracts/model/finding";
+import { ObservationSource, type Observation } from "@exposurenexus/contracts/model/observation";
+import {
+  VulnerabilitySeverity,
+  VulnerabilityType,
+} from "@exposurenexus/contracts/model/vulnerability";
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

@@ -1,6 +1,6 @@
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
 
-import type { AssetCustomFieldValue } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldValue } from "@exposurenexus/contracts/model/asset-custom-field";
 
 export function formatAssetCustomFieldValue(field: AssetCustomFieldValue | undefined): string {
   if (!field || field.value === null) {

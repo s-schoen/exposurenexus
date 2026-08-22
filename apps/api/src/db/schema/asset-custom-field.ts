@@ -1,4 +1,4 @@
-import type { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
 import type { Generated } from "kysely";
 
 export type AssetCustomFieldStoredValue = string | number;

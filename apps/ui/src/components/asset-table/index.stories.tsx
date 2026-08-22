@@ -1,4 +1,4 @@
-import { AssetEnvironment, AssetLifecycleState } from "@exposurenexus/types/model/asset";
+import { AssetEnvironment, AssetLifecycleState } from "@exposurenexus/contracts/model/asset";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
@@ -18,7 +18,11 @@ import {
 } from "@/components/storybook-utils.tsx";
 import { Toaster } from "@/components/ui/sonner.tsx";
 
-import type { Asset, AssetWithCustomFields, CreateAsset } from "@exposurenexus/types/model/asset";
+import type {
+  Asset,
+  AssetWithCustomFields,
+  CreateAsset,
+} from "@exposurenexus/contracts/model/asset";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type AssetTableStoryArgs = {

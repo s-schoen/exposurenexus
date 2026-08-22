@@ -19,7 +19,7 @@ import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type {
   AssetIdentifierRecord,
   CreateAssetIdentifier,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 
 type IdentifierDialogState = { mode: "add" } | { mode: "edit"; identifier: AssetIdentifierRecord };
 

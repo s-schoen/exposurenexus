@@ -1,6 +1,6 @@
-import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -23,12 +23,12 @@ import type {
   CreateManualFinding,
   Finding,
   FindingStatistics,
-} from "@exposurenexus/types/model/finding";
+} from "@exposurenexus/contracts/model/finding";
 import type {
   ManualObservationInput,
   Observation,
   UpdateObservation,
-} from "@exposurenexus/types/model/observation";
+} from "@exposurenexus/contracts/model/observation";
 
 const fetchMock = vi.fn<typeof fetch>();
 

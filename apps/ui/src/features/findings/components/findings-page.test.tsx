@@ -5,10 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FindingsPage } from "@/features/findings/components/findings-page.tsx";
 
-import type { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import type { Asset } from "@exposurenexus/types/model/asset";
-import type { Finding } from "@exposurenexus/types/model/finding";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { ReactNode } from "react";
 
 type NavigateCall = {

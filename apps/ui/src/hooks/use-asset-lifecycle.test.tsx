@@ -3,11 +3,11 @@ import {
   AssetIdentifierType,
   AssetLifecycleState,
   AssetType,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -23,11 +23,11 @@ import { useAssetLifecycle } from "@/hooks/use-asset-lifecycle.ts";
 
 import type * as AssetApi from "@/api/asset.ts";
 import type { AssetLifecycleBatchResult } from "@/hooks/use-asset-lifecycle.ts";
-import type { Asset, CreateAsset } from "@exposurenexus/types/model/asset";
+import type { Asset, CreateAsset } from "@exposurenexus/contracts/model/asset";
 import type {
   AssetCustomFieldValue,
   UpdateAssetCustomFieldValue,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 import type { ReactNode } from "react";
 
 const {

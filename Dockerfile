@@ -12,10 +12,10 @@ FROM pnpm-base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/ui/package.json apps/ui/package.json
-COPY packages/types/package.json packages/types/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
 RUN pnpm install --frozen-lockfile
 
-# Compile shared types, UI assets, and API output using the cached dependencies.
+# Compile shared contracts, UI assets, and API output using the cached dependencies.
 FROM deps AS build
 COPY . .
 RUN pnpm build
@@ -24,9 +24,9 @@ RUN pnpm build
 FROM pnpm-base AS prod-deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
-COPY packages/types/package.json packages/types/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
 RUN pnpm install --frozen-lockfile --prod --filter @exposurenexus/api... \
-  && rm -rf node_modules/.pnpm/typescript@* node_modules/typescript apps/api/node_modules/typescript packages/types/node_modules/typescript
+  && rm -rf node_modules/.pnpm/typescript@* node_modules/typescript apps/api/node_modules/typescript packages/contracts/node_modules/typescript
 
 # Minimal non-root runtime containing only built artifacts and production deps.
 FROM gcr.io/distroless/nodejs24-debian13:nonroot AS production
@@ -40,11 +40,11 @@ WORKDIR /app/apps/api
 
 COPY --from=prod-deps --chown=65532:65532 /workspace/node_modules /app/node_modules
 COPY --from=prod-deps --chown=65532:65532 /workspace/apps/api/node_modules /app/apps/api/node_modules
-COPY --from=prod-deps --chown=65532:65532 /workspace/packages/types/node_modules /app/packages/types/node_modules
+COPY --from=prod-deps --chown=65532:65532 /workspace/packages/contracts/node_modules /app/packages/contracts/node_modules
 COPY --from=build --chown=65532:65532 /workspace/apps/api/package.json /app/apps/api/package.json
-COPY --from=build --chown=65532:65532 /workspace/packages/types/package.json /app/packages/types/package.json
+COPY --from=build --chown=65532:65532 /workspace/packages/contracts/package.json /app/packages/contracts/package.json
 COPY --from=build --chown=65532:65532 /workspace/apps/api/dist /app/apps/api/dist
-COPY --from=build --chown=65532:65532 /workspace/packages/types/dist /app/packages/types/dist
+COPY --from=build --chown=65532:65532 /workspace/packages/contracts/dist /app/packages/contracts/dist
 COPY --from=build --chown=65532:65532 /workspace/apps/ui/dist /app/public
 
 EXPOSE 3001

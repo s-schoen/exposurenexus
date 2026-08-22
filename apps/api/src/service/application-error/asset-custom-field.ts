@@ -1,4 +1,4 @@
-import type { AssetCustomFieldRuleViolation } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldRuleViolation } from "@exposurenexus/contracts/model/asset-custom-field";
 
 export type AssetCustomFieldApplicationErrorCatalog = {
   "asset_custom_field.definition.list_failed": { kind: "unexpected" };

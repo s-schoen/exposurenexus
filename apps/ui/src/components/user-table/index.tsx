@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { createColumns } from "@/components/user-table/columns.tsx";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
 const groupingOptions: Array<GroupingOption> = [
   {

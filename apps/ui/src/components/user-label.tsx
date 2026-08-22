@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { cn } from "@/lib/utils";
 
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
 export const USER_LABEL_EMPTY_LABEL = "No User";
 export const USER_LABEL_UNKNOWN_LABEL = "Unknown User";

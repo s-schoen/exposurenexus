@@ -3,7 +3,7 @@ import { fn } from "storybook/test";
 
 import { AssetIdentifierEditor } from "@/components/asset-identifier-editor.tsx";
 
-import type { CreateAssetIdentifier } from "@exposurenexus/types/model/asset";
+import type { CreateAssetIdentifier } from "@exposurenexus/contracts/model/asset";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 function CreateEditorStory() {

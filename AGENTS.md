@@ -8,7 +8,7 @@ sources.
 - `pnpm` Monorepo
   - `apps/api`: API Server based on Hono
   - `apps/ui`: React frontend
-  - `packages/types`: Types common to both apps
+  - `packages/contracts`: Shared API contracts common to both apps
 
 ## Commands
 

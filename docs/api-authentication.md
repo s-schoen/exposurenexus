@@ -39,7 +39,7 @@ repository layers.
   `repository/user-role.ts` persist users, sessions, role assignments, and
   permissions.
 
-Shared user and session shapes live in `packages/types`, so route replies and
+Shared user and session shapes live in `packages/contracts`, so route replies and
 service boundaries use the same domain concepts.
 
 ## Data Model

@@ -6,7 +6,7 @@ import { AssetCombobox } from "@/components/asset-combobox.tsx";
 import { STORY_ASSETS } from "@/components/storybook-fixtures.ts";
 import { createArrayResponse, createStoryQueryClient } from "@/components/storybook-utils.tsx";
 
-import type { Asset } from "@exposurenexus/types/model/asset";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type AssetComboboxStoryArgs = {

@@ -1,4 +1,4 @@
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
 import { FindingSeverityChart } from "@/components/finding-severity-chart";
 

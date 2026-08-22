@@ -1,7 +1,7 @@
-import type { ObservationAffectedResource } from "@exposurenexus/types/model/affected-resource";
-import type { ObservationSource } from "@exposurenexus/types/model/observation";
-import type { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
-import type { Weakness } from "@exposurenexus/types/model/weakness";
+import type { ObservationAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
+import type { ObservationSource } from "@exposurenexus/contracts/model/observation";
+import type { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
+import type { Weakness } from "@exposurenexus/contracts/model/weakness";
 import type { Generated } from "kysely";
 
 export interface ObservationTable {

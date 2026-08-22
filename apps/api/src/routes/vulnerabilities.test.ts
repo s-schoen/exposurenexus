@@ -2,7 +2,7 @@ import {
   VulnerabilitySeverity,
   VulnerabilityType,
   type VulnerabilityCatalog,
-} from "@exposurenexus/types/model/vulnerability";
+} from "@exposurenexus/contracts/model/vulnerability";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createRequireDomainPermission } from "../middleware/auth.js";

@@ -8,7 +8,7 @@ import { usePageMeta } from "@/context/page.tsx";
 import { useAssetTableSearchState } from "@/hooks/use-asset-table-search-state.ts";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
-import type { Asset } from "@exposurenexus/types/model/asset";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
 
 interface AssetsPageProps {
   search?: Record<string, unknown>;

@@ -3,7 +3,7 @@ import { severityBadgeClass } from "@/lib/colors.ts";
 import { formatSeverity } from "@/lib/format.ts";
 import { cn } from "@/lib/utils.ts";
 
-import type { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import type { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
 interface SeverityBadgeProps {
   severity: VulnerabilitySeverity;

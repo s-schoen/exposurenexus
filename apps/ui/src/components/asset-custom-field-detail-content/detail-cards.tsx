@@ -1,4 +1,4 @@
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
 import { ListChecks } from "lucide-react";
 
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card.tsx";
 
 import type { CustomFieldSummary } from "@/components/asset-custom-field-detail-content/helpers.ts";
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 import type { ReactNode } from "react";
 
 const DETAIL_CARD_CLASS = "border-border/60 bg-shell-panel shadow-(--shell-shadow)";

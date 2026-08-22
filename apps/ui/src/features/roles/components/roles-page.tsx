@@ -13,7 +13,7 @@ import { useRoleTableSearchState } from "@/hooks/use-role-table-search-state.ts"
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 import { isBuiltInRoleId } from "@/lib/role.ts";
 
-import type { Role } from "@exposurenexus/types/model/rbac";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
 
 interface RolesPageProps {
   search?: Record<string, unknown>;

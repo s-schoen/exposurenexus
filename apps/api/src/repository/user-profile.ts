@@ -2,7 +2,7 @@ import type { Database } from "../db/index.js";
 import type {
   UserProfileInternal,
   UserProfileInternalWithRoles,
-} from "@exposurenexus/types/model/user";
+} from "@exposurenexus/contracts/model/user";
 import type { Kysely, Transaction } from "kysely";
 
 type DatabaseExecutor = Kysely<Database> | Transaction<Database>;

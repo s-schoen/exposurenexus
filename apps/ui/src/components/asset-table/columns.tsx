@@ -1,5 +1,9 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/contracts/model/asset";
+import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
 
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx";
 import { UserLabel, formatUserProfileReference } from "@/components/user-label.tsx";
@@ -7,9 +11,9 @@ import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
-import type { AssetWithCustomFields } from "@exposurenexus/types/model/asset";
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
 const emptyCustomFieldFilterValue = "__empty__";
 

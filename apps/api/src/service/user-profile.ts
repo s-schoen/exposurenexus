@@ -15,7 +15,7 @@ import type {
   UserProfile,
   UserProfileInternalWithRoles,
   UpdateUserProfile,
-} from "@exposurenexus/types/model/user";
+} from "@exposurenexus/contracts/model/user";
 import type { Logger } from "pino";
 
 interface UserProfileServiceDependencies {

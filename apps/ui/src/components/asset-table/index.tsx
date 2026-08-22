@@ -20,9 +20,9 @@ import { createAssetListOptions } from "@/hooks/use-asset-table-search-state.ts"
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
-import type { Asset, AssetWithCustomFields } from "@exposurenexus/types/model/asset";
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { Asset, AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
 export function createAssetTableGroupingOptions(
   customFieldDefinitions: Array<AssetCustomFieldDefinition>,

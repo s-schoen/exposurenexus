@@ -1,11 +1,11 @@
-import { AssetType } from "@exposurenexus/types/model/asset";
+import { AssetType } from "@exposurenexus/contracts/model/asset";
 import {
   ASSET_CUSTOM_FIELD_RESERVED_KEYS,
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
   type UpdateAssetCustomFieldDefinition,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -13,7 +13,7 @@ import { createDomainEventCollector } from "../test/eventbus.js";
 import { createAssetCustomFieldService } from "./asset-custom-field.js";
 
 import type { ApplicationError } from "./application-error.js";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
 describe("asset custom field service", () => {
   const domainEvents = createDomainEventCollector();

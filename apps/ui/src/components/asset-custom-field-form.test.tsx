@@ -1,7 +1,7 @@
 import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 import { composeStories } from "@storybook/react-vite";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac";
+import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 
 import { hashPlaintextPassword } from "./argon2.js";
 

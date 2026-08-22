@@ -3,11 +3,11 @@ import {
   AssetIdentifierType,
   AssetLifecycleState,
   AssetType,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 import { describe, expect, it } from "vitest";
 
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
@@ -23,8 +23,8 @@ import {
 } from "@/hooks/use-asset-table-search-state.ts";
 
 import type { DataTableAccessorFnColumnDef } from "@/components/data-table/types.ts";
-import type { AssetWithCustomFields } from "@exposurenexus/types/model/asset";
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 
 function getColumnFilterFn(column: { filterFn?: unknown } | undefined) {
   if (!column || typeof column.filterFn !== "function") {

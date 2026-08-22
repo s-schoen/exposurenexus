@@ -1,4 +1,4 @@
-import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
+import { PermissionResource, PermissionVerb } from "@exposurenexus/contracts/model/rbac";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,7 +8,7 @@ import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts";
 
 import type * as RoleApi from "@/api/role.ts";
 import type { RoleLifecycleBatchResult } from "@/hooks/use-role-lifecycle.ts";
-import type { CreateRole, Role, UpdateRole } from "@exposurenexus/types/model/rbac";
+import type { CreateRole, Role, UpdateRole } from "@exposurenexus/contracts/model/rbac";
 import type { ReactNode } from "react";
 
 const {

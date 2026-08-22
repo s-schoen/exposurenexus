@@ -1,4 +1,4 @@
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac";
+import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
@@ -6,7 +6,7 @@ import type {
   Permission,
   PermissionResource,
   PermissionVerb,
-} from "@exposurenexus/types/model/rbac";
+} from "@exposurenexus/contracts/model/rbac";
 
 const builtInRoleIdSet = new Set<string>(Object.values(builtInRoleIds));
 

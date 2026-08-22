@@ -13,7 +13,7 @@ import type {
   CreateUserProfile,
   UpdateUserProfile,
   UserProfile,
-} from "@exposurenexus/types/model/user";
+} from "@exposurenexus/contracts/model/user";
 
 export interface UserLifecycleActions {
   createUser: (value: CreateUserProfile) => Promise<UserProfile | null>;

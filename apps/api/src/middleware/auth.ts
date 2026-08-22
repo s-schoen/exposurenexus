@@ -12,8 +12,8 @@ import type {
   Permission,
   PermissionResource,
   PermissionVerb,
-} from "@exposurenexus/types/model/rbac";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+} from "@exposurenexus/contracts/model/rbac";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { MiddlewareHandler } from "hono";
 import type { CookieOptions } from "hono/utils/cookie";
 

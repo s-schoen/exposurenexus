@@ -1,4 +1,4 @@
-import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 
 import { FindingStatusBadge } from "@/components/finding-status-badge.tsx";
 

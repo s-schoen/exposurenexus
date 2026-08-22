@@ -1,5 +1,8 @@
-import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
-import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
+import { PermissionResource, PermissionVerb } from "@exposurenexus/contracts/model/rbac";
+import {
+  VulnerabilitySeverity,
+  VulnerabilityType,
+} from "@exposurenexus/contracts/model/vulnerability";
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

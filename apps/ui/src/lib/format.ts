@@ -1,6 +1,6 @@
-import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 
-import type { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import type { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
 export function capitalizeFirstLetter(val: string) {
   return String(val).charAt(0).toUpperCase() + String(val).slice(1);

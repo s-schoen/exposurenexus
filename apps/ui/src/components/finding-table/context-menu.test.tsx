@@ -1,11 +1,11 @@
-import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { FindingContextMenu } from "@/components/finding-table/context-menu.tsx";
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
 import type { ReactElement, ReactNode, RefObject } from "react";
 
 vi.mock("@/components/ui/context-menu", () => ({

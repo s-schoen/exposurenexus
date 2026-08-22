@@ -1,4 +1,4 @@
-import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/types/model/asset-custom-field";
+import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/contracts/model/asset-custom-field";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { ApplicationError, type ApplicationErrorInput } from "./application-error.js";

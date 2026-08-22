@@ -4,7 +4,7 @@ import {
   PermissionVerb,
   builtInRoleIds,
   type Role,
-} from "@exposurenexus/types/model/rbac";
+} from "@exposurenexus/contracts/model/rbac";
 import { pino } from "pino";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 

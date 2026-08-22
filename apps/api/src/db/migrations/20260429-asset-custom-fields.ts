@@ -1,4 +1,4 @@
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
 import { Kysely, sql } from "kysely";
 
 // oxlint-disable-next-line typescript/no-explicit-any
