@@ -79,6 +79,14 @@ const namedComponentKinds = new Set<WebEndpointComponentKind>([
   WebEndpointComponentKind.BodyField,
 ]);
 
+function isAffectedResourceType(value: string): value is AffectedResourceType {
+  return resourceTypes.some((type) => type === value);
+}
+
+function isWebEndpointComponentKind(value: string): value is WebEndpointComponentKind {
+  return componentKinds.some((kind) => kind === value);
+}
+
 function formatResourceType(type: AffectedResourceType) {
   return type === AffectedResourceType.WebEndpoint
     ? "Web endpoint"
@@ -99,40 +107,29 @@ function emptyResource(type: AffectedResourceType): ObservationResource {
   return { type };
 }
 
-function resourceValue(resource: ObservationResource, key: string) {
-  const value = (resource as unknown as Record<string, unknown>)[key];
-  return typeof value === "string" || typeof value === "number" ? String(value) : "";
+function optionalStringValue(value: string) {
+  const trimmed = value.trim();
+  return trimmed || undefined;
 }
 
-function updateResourceValue(
-  resource: ObservationResource,
-  key: string,
-  rawValue: string,
-  numeric = false,
-): ObservationResource {
-  const next = { ...resource } as unknown as Record<string, unknown>;
-  const value = rawValue.trim();
-  if (value) next[key] = numeric ? Number(value) : value;
-  else delete next[key];
-  return next as unknown as ObservationResource;
+function optionalNumberValue(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? Number(trimmed) : undefined;
 }
 
 function ResourceInput({
-  resource,
-  resourceKey,
+  id,
+  value,
   label,
   numeric = false,
-  idPrefix = "observation-resource",
   onChange,
 }: {
-  resource: ObservationResource;
-  resourceKey: string;
+  id: string;
+  value: string | number | undefined;
   label: string;
   numeric?: boolean;
-  idPrefix?: string;
-  onChange: (resource: ObservationResource) => void;
+  onChange: (value: string) => void;
 }) {
-  const id = `${idPrefix}-${resourceKey}`;
   return (
     <Field>
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
@@ -140,29 +137,39 @@ function ResourceInput({
         id={id}
         type={numeric ? "number" : "text"}
         min={numeric ? 1 : undefined}
-        value={resourceValue(resource, resourceKey)}
-        onChange={(event) =>
-          onChange(updateResourceValue(resource, resourceKey, event.target.value, numeric))
-        }
+        value={value?.toString() ?? ""}
+        onChange={(event) => onChange(event.target.value)}
       />
     </Field>
   );
 }
 
+type SourceCodeResource = Extract<ObservationResource, { type: AffectedResourceType.SourceCode }>;
 type LocationKey = "startLine" | "startColumn" | "endLine" | "endColumn";
 
 function updateLocation(
-  resource: Extract<ObservationResource, { type: AffectedResourceType.SourceCode }>,
+  resource: SourceCodeResource,
   key: LocationKey,
   rawValue: string,
-): ObservationResource {
-  const location = { ...resource.location } as Partial<Record<LocationKey, number>>;
-  if (rawValue.trim()) location[key] = Number(rawValue);
-  else delete location[key];
+): SourceCodeResource {
+  const value = optionalNumberValue(rawValue);
+  const startLine = key === "startLine" ? value : resource.location?.startLine;
+  const startColumn = key === "startColumn" ? value : resource.location?.startColumn;
+  const endLine = key === "endLine" ? value : resource.location?.endLine;
+  const endColumn = key === "endColumn" ? value : resource.location?.endColumn;
+
   return {
     ...resource,
-    ...(Object.keys(location).length ? { location } : { location: undefined }),
-  } as ObservationResource;
+    location:
+      startLine === undefined
+        ? undefined
+        : {
+            startLine,
+            ...(startColumn === undefined ? {} : { startColumn }),
+            ...(endLine === undefined ? {} : { endLine }),
+            ...(endColumn === undefined ? {} : { endColumn }),
+          },
+  };
 }
 
 function ObservationResourceFields({
@@ -186,7 +193,7 @@ function ObservationResourceFields({
             <Select
               value={resource.scheme ?? ""}
               onValueChange={(value) =>
-                onChange(updateResourceValue(resource, "scheme", value ?? ""))
+                onChange({ ...resource, scheme: optionalStringValue(value ?? "") })
               }
             >
               <SelectTrigger id={`${idPrefix}-scheme`} className="w-full">
@@ -199,40 +206,35 @@ function ObservationResourceFields({
             </Select>
           </Field>
           <ResourceInput
-            resource={resource}
-            resourceKey="host"
+            id={`${idPrefix}-host`}
+            value={resource.host}
             label="Host"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, host: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="port"
+            id={`${idPrefix}-port`}
+            value={resource.port}
             label="Port"
             numeric
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, port: optionalNumberValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="path"
+            id={`${idPrefix}-path`}
+            value={resource.path}
             label="Path"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, path: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="method"
+            id={`${idPrefix}-method`}
+            value={resource.method}
             label="Method"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, method: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="reportedUrl"
+            id={`${idPrefix}-reportedUrl`}
+            value={resource.reportedUrl}
             label="Reported URL"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, reportedUrl: optionalStringValue(value) })}
           />
           <Field>
             <FieldLabel htmlFor={`${idPrefix}-component`}>Component kind</FieldLabel>
@@ -241,14 +243,14 @@ function ObservationResourceFields({
               onValueChange={(value) => {
                 if (!value) return;
                 if (value === noComponentValue) {
-                  const { component: _, ...next } = resource;
-                  onChange(next);
+                  onChange({ ...resource, component: undefined });
                   return;
                 }
-                const kind = value as WebEndpointComponentKind;
+                if (!isWebEndpointComponentKind(value)) return;
+                const kind = value;
                 onChange({
                   ...resource,
-                  component: namedComponentKinds.has(kind) ? { kind, name: "" } : { kind },
+                  component: namedComponentKinds.has(kind) ? { kind, name: undefined } : { kind },
                 });
               }}
             >
@@ -276,11 +278,14 @@ function ObservationResourceFields({
               <FieldLabel htmlFor={`${idPrefix}-component-name`}>Component name</FieldLabel>
               <Input
                 id={`${idPrefix}-component-name`}
-                value={"name" in component ? component.name : ""}
+                value={component.name ?? ""}
                 onChange={(event) =>
                   onChange({
                     ...resource,
-                    component: { kind: component.kind, name: event.target.value },
+                    component: {
+                      kind: component.kind,
+                      name: optionalStringValue(event.target.value),
+                    },
                   })
                 }
               />
@@ -293,26 +298,24 @@ function ObservationResourceFields({
       return (
         <div className="grid gap-4 sm:grid-cols-2">
           <ResourceInput
-            resource={resource}
-            resourceKey="host"
+            id={`${idPrefix}-host`}
+            value={resource.host}
             label="Host"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, host: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="port"
+            id={`${idPrefix}-port`}
+            value={resource.port}
             label="Port"
             numeric
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, port: optionalNumberValue(value) })}
           />
           <Field>
             <FieldLabel htmlFor={`${idPrefix}-transport`}>Transport</FieldLabel>
             <Select
               value={resource.transport ?? ""}
               onValueChange={(value) =>
-                onChange(updateResourceValue(resource, "transport", value ?? ""))
+                onChange({ ...resource, transport: optionalStringValue(value ?? "") })
               }
             >
               <SelectTrigger id={`${idPrefix}-transport`} className="w-full">
@@ -328,11 +331,10 @@ function ObservationResourceFields({
             </Select>
           </Field>
           <ResourceInput
-            resource={resource}
-            resourceKey="protocol"
+            id={`${idPrefix}-protocol`}
+            value={resource.protocol}
             label="Protocol"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, protocol: optionalStringValue(value) })}
           />
         </div>
       );
@@ -340,53 +342,64 @@ function ObservationResourceFields({
       return (
         <div className="grid gap-4 sm:grid-cols-2">
           <ResourceInput
-            resource={resource}
-            resourceKey="repository"
+            id={`${idPrefix}-repository`}
+            value={resource.repository}
             label="Repository"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, repository: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="revision"
+            id={`${idPrefix}-revision`}
+            value={resource.revision}
             label="Revision"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, revision: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="file"
+            id={`${idPrefix}-file`}
+            value={resource.file}
             label="File"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, file: optionalStringValue(value) })}
           />
-          {(["startLine", "startColumn", "endLine", "endColumn"] as const).map((key) => (
-            <Field key={key}>
-              <FieldLabel htmlFor={`${idPrefix}-${key}`}>
-                {key.replace(/([A-Z])/g, " $1")}
-              </FieldLabel>
-              <Input
-                id={`${idPrefix}-${key}`}
-                type="number"
-                min={1}
-                value={resource.location?.[key]?.toString() ?? ""}
-                onChange={(event) => onChange(updateLocation(resource, key, event.target.value))}
-              />
-            </Field>
-          ))}
           <ResourceInput
-            resource={resource}
-            resourceKey="symbol"
+            id={`${idPrefix}-startLine`}
+            value={resource.location?.startLine}
+            label="Start line"
+            numeric
+            onChange={(value) => onChange(updateLocation(resource, "startLine", value))}
+          />
+          <ResourceInput
+            id={`${idPrefix}-startColumn`}
+            value={resource.location?.startColumn}
+            label="Start column"
+            numeric
+            onChange={(value) => onChange(updateLocation(resource, "startColumn", value))}
+          />
+          <ResourceInput
+            id={`${idPrefix}-endLine`}
+            value={resource.location?.endLine}
+            label="End line"
+            numeric
+            onChange={(value) => onChange(updateLocation(resource, "endLine", value))}
+          />
+          <ResourceInput
+            id={`${idPrefix}-endColumn`}
+            value={resource.location?.endColumn}
+            label="End column"
+            numeric
+            onChange={(value) => onChange(updateLocation(resource, "endColumn", value))}
+          />
+          <ResourceInput
+            id={`${idPrefix}-symbol`}
+            value={resource.symbol}
             label="Symbol"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, symbol: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="locationFingerprint"
+            id={`${idPrefix}-locationFingerprint`}
+            value={resource.locationFingerprint}
             label="Location fingerprint"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) =>
+              onChange({ ...resource, locationFingerprint: optionalStringValue(value) })
+            }
           />
         </div>
       );
@@ -394,32 +407,30 @@ function ObservationResourceFields({
       return (
         <div className="grid gap-4 sm:grid-cols-2">
           <ResourceInput
-            resource={resource}
-            resourceKey="ecosystem"
+            id={`${idPrefix}-ecosystem`}
+            value={resource.ecosystem}
             label="Ecosystem"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, ecosystem: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="name"
+            id={`${idPrefix}-name`}
+            value={resource.name}
             label="Package name"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, name: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="version"
+            id={`${idPrefix}-version`}
+            value={resource.version}
             label="Version"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, version: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="installationPath"
+            id={`${idPrefix}-installationPath`}
+            value={resource.installationPath}
             label="Installation path"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) =>
+              onChange({ ...resource, installationPath: optionalStringValue(value) })
+            }
           />
         </div>
       );
@@ -427,32 +438,28 @@ function ObservationResourceFields({
       return (
         <div className="grid gap-4 sm:grid-cols-2">
           <ResourceInput
-            resource={resource}
-            resourceKey="registry"
+            id={`${idPrefix}-registry`}
+            value={resource.registry}
             label="Registry"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, registry: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="repository"
+            id={`${idPrefix}-repository`}
+            value={resource.repository}
             label="Repository"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, repository: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="digest"
+            id={`${idPrefix}-digest`}
+            value={resource.digest}
             label="Digest"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, digest: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="tag"
+            id={`${idPrefix}-tag`}
+            value={resource.tag}
             label="Tag"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, tag: optionalStringValue(value) })}
           />
         </div>
       );
@@ -460,66 +467,134 @@ function ObservationResourceFields({
       return (
         <div className="grid gap-4 sm:grid-cols-2">
           <ResourceInput
-            resource={resource}
-            resourceKey="provider"
+            id={`${idPrefix}-provider`}
+            value={resource.provider}
             label="Provider"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, provider: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="providerAccount"
+            id={`${idPrefix}-providerAccount`}
+            value={resource.providerAccount}
             label="Provider account"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) =>
+              onChange({ ...resource, providerAccount: optionalStringValue(value) })
+            }
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="region"
+            id={`${idPrefix}-region`}
+            value={resource.region}
             label="Region"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, region: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="resourceId"
+            id={`${idPrefix}-resourceId`}
+            value={resource.resourceId}
             label="Resource ID"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, resourceId: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="subresource"
+            id={`${idPrefix}-subresource`}
+            value={resource.subresource}
             label="Subresource"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, subresource: optionalStringValue(value) })}
           />
           <ResourceInput
-            resource={resource}
-            resourceKey="displayName"
+            id={`${idPrefix}-displayName`}
+            value={resource.displayName}
             label="Display name"
-            idPrefix={idPrefix}
-            onChange={onChange}
+            onChange={(value) => onChange({ ...resource, displayName: optionalStringValue(value) })}
           />
         </div>
       );
   }
 }
 
-function resourceDetails(resource: ObservationResource): Array<[string, string]> {
-  const raw = { ...resource } as Record<string, unknown>;
-  delete raw.type;
-  if ("location" in raw && raw.location) raw.location = JSON.stringify(raw.location);
-  if ("component" in raw && raw.component) {
-    const component = raw.component as { kind: string; name?: string };
-    raw.component = component.name ? `${component.kind}: ${component.name}` : component.kind;
+type ResourceDetailValue =
+  | string
+  | number
+  | { kind: WebEndpointComponentKind; name?: string }
+  | undefined;
+
+function formatResourceValue(value: ResourceDetailValue) {
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
   }
-  return Object.entries(raw)
-    .filter(([, value]) => value !== undefined)
-    .map(([key, value]) => [
-      key.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase()),
-      String(value),
-    ]);
+
+  if (value) {
+    return value.name ? `${value.kind}: ${value.name}` : value.kind;
+  }
+
+  return "Not recorded";
+}
+
+function formatResourceDetails(
+  entries: Array<[string, ResourceDetailValue]>,
+): Array<[string, string]> {
+  const details: Array<[string, string]> = [];
+
+  for (const [label, value] of entries) {
+    if (value !== undefined) {
+      details.push([label, formatResourceValue(value)]);
+    }
+  }
+
+  return details;
+}
+
+function resourceDetails(resource: ObservationResource): Array<[string, string]> {
+  switch (resource.type) {
+    case AffectedResourceType.Unspecified:
+      return [];
+    case AffectedResourceType.WebEndpoint:
+      return formatResourceDetails([
+        ["Scheme", resource.scheme],
+        ["Host", resource.host],
+        ["Port", resource.port],
+        ["Path", resource.path],
+        ["Method", resource.method],
+        ["Component", resource.component],
+        ["Reported URL", resource.reportedUrl],
+      ]);
+    case AffectedResourceType.NetworkService:
+      return formatResourceDetails([
+        ["Host", resource.host],
+        ["Port", resource.port],
+        ["Transport", resource.transport],
+        ["Protocol", resource.protocol],
+      ]);
+    case AffectedResourceType.SourceCode:
+      return formatResourceDetails([
+        ["Repository", resource.repository],
+        ["Revision", resource.revision],
+        ["File", resource.file],
+        ["Location", resource.location ? JSON.stringify(resource.location) : undefined],
+        ["Symbol", resource.symbol],
+        ["Location fingerprint", resource.locationFingerprint],
+      ]);
+    case AffectedResourceType.Package:
+      return formatResourceDetails([
+        ["Ecosystem", resource.ecosystem],
+        ["Package", resource.name],
+        ["Version", resource.version],
+        ["Installation path", resource.installationPath],
+      ]);
+    case AffectedResourceType.ContainerImage:
+      return formatResourceDetails([
+        ["Registry", resource.registry],
+        ["Repository", resource.repository],
+        ["Digest", resource.digest],
+        ["Tag", resource.tag],
+      ]);
+    case AffectedResourceType.CloudResource:
+      return formatResourceDetails([
+        ["Provider", resource.provider],
+        ["Provider account", resource.providerAccount],
+        ["Region", resource.region],
+        ["Resource ID", resource.resourceId],
+        ["Subresource", resource.subresource],
+        ["Display name", resource.displayName],
+      ]);
+  }
 }
 
 function observationDraft(observation: Observation): ObservationDraft {
@@ -693,17 +768,21 @@ function EditObservationDialog({ observation }: { observation: Observation }) {
               <FieldLabel htmlFor={`${formId}-resource-type`}>Affected resource type</FieldLabel>
               <Select
                 value={draft.affectedResource?.type ?? AffectedResourceType.Unspecified}
-                onValueChange={(value) =>
-                  value &&
+                onValueChange={(value) => {
+                  if (!value || !isAffectedResourceType(value)) return;
                   setDraft({
                     ...draft,
                     affectedResource: emptyResource(value),
-                  })
-                }
+                  });
+                }}
               >
                 <SelectTrigger id={`${formId}-resource-type`} className="w-full">
                   <SelectValue>
-                    {(value) => formatResourceType(value as AffectedResourceType)}
+                    {(value) =>
+                      typeof value === "string" && isAffectedResourceType(value)
+                        ? formatResourceType(value)
+                        : null
+                    }
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -1144,24 +1223,30 @@ function AddObservationDialog({ finding }: { finding: Finding }) {
             <FieldLabel htmlFor="observation-resource-type">Affected resource type</FieldLabel>
             <Select
               value={draft.affectedResource?.type ?? inheritedValue}
-              onValueChange={(value) =>
-                value &&
-                setDraft({
-                  ...draft,
-                  affectedResource:
-                    value === inheritedValue
-                      ? undefined
-                      : emptyResource(value as AffectedResourceType),
-                })
-              }
+              onValueChange={(value) => {
+                if (!value) return;
+                if (value === inheritedValue) {
+                  setDraft({ ...draft, affectedResource: undefined });
+                  return;
+                }
+                if (isAffectedResourceType(value)) {
+                  setDraft({
+                    ...draft,
+                    affectedResource: emptyResource(value),
+                  });
+                }
+              }}
             >
               <SelectTrigger id="observation-resource-type" className="w-full">
                 <SelectValue>
-                  {(value) =>
-                    value === inheritedValue
-                      ? `Use finding resource (${formatResourceType(finding.affectedResource.type)})`
-                      : formatResourceType(value as AffectedResourceType)
-                  }
+                  {(value) => {
+                    if (value === inheritedValue) {
+                      return `Use finding resource (${formatResourceType(finding.affectedResource.type)})`;
+                    }
+                    return typeof value === "string" && isAffectedResourceType(value)
+                      ? formatResourceType(value)
+                      : null;
+                  }}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>

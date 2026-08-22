@@ -108,62 +108,68 @@ function emptyResource(type: AffectedResourceType): FindingAffectedResource {
   return { type };
 }
 
-function resourceValue(resource: FindingAffectedResource, key: string): string {
-  const value = (resource as Record<string, unknown>)[key];
-  return typeof value === "string" || typeof value === "number" ? String(value) : "";
+function optionalStringValue(value: string) {
+  const trimmed = value.trim();
+  return trimmed || undefined;
 }
 
-function updateResourceValue(
-  resource: FindingAffectedResource,
-  key: string,
-  rawValue: string,
-  numeric = false,
-): FindingAffectedResource {
-  const next = { ...resource } as Record<string, unknown>;
-  const value = rawValue.trim();
-
-  if (!value) {
-    delete next[key];
-  } else {
-    next[key] = numeric ? Number(value) : value;
-  }
-
-  return next as FindingAffectedResource;
+function optionalNumberValue(value: string) {
+  const trimmed = value.trim();
+  return trimmed ? Number(trimmed) : undefined;
 }
+
+type SourceCodeResource = Extract<
+  FindingAffectedResource,
+  { type: AffectedResourceType.SourceCode }
+>;
+type SourceLocationKey = "startLine" | "startColumn" | "endLine" | "endColumn";
 
 function updateResourceLocation(
-  resource: FindingAffectedResource,
+  resource: SourceCodeResource,
+  key: SourceLocationKey,
   rawValue: string,
-): FindingAffectedResource {
-  const value = rawValue.trim();
-  const next = { ...resource } as Record<string, unknown>;
+): SourceCodeResource {
+  const value = optionalNumberValue(rawValue);
+  const startLine = key === "startLine" ? value : resource.location?.startLine;
+  const startColumn = key === "startColumn" ? value : resource.location?.startColumn;
+  const endLine = key === "endLine" ? value : resource.location?.endLine;
+  const endColumn = key === "endColumn" ? value : resource.location?.endColumn;
 
-  if (!value) {
-    delete next.location;
-  } else {
-    next.location = { startLine: Number(value) };
-  }
-
-  return next as FindingAffectedResource;
+  return {
+    ...resource,
+    location:
+      startLine === undefined
+        ? undefined
+        : {
+            startLine,
+            ...(startColumn === undefined ? {} : { startColumn }),
+            ...(endLine === undefined ? {} : { endLine }),
+            ...(endColumn === undefined ? {} : { endColumn }),
+          },
+  };
 }
 
-function renderResourceInput(
-  resource: FindingAffectedResource,
-  onChange: (resource: FindingAffectedResource) => void,
-  key: string,
-  label: string,
+function renderResourceInput({
+  id,
+  value,
+  label,
   numeric = false,
-) {
+  onChange,
+}: {
+  id: string;
+  value: string | number | undefined;
+  label: string;
+  numeric?: boolean;
+  onChange: (value: string) => void;
+}) {
   return (
-    <Field key={key}>
-      <FieldLabel htmlFor={`affected-resource-${key}`}>{label}</FieldLabel>
+    <Field>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <Input
-        id={`affected-resource-${key}`}
+        id={id}
         type={numeric ? "number" : "text"}
-        value={resourceValue(resource, key)}
-        onChange={(event) =>
-          onChange(updateResourceValue(resource, key, event.target.value, numeric))
-        }
+        value={value?.toString() ?? ""}
+        onChange={(event) => onChange(event.target.value)}
       />
     </Field>
   );
@@ -184,7 +190,7 @@ function renderResourceFields(
             <Select
               value={resource.scheme ?? ""}
               onValueChange={(value) =>
-                onChange(updateResourceValue(resource, "scheme", value ?? ""))
+                onChange({ ...resource, scheme: optionalStringValue(value ?? "") })
               }
             >
               <SelectTrigger id="affected-resource-scheme" className="w-full">
@@ -196,23 +202,55 @@ function renderResourceFields(
               </SelectContent>
             </Select>
           </Field>
-          {renderResourceInput(resource, onChange, "host", "Host")}
-          {renderResourceInput(resource, onChange, "port", "Port", true)}
-          {renderResourceInput(resource, onChange, "path", "Path")}
-          {renderResourceInput(resource, onChange, "method", "Method")}
+          {renderResourceInput({
+            id: "affected-resource-host",
+            value: resource.host,
+            label: "Host",
+            onChange: (value) => onChange({ ...resource, host: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-port",
+            value: resource.port,
+            label: "Port",
+            numeric: true,
+            onChange: (value) => onChange({ ...resource, port: optionalNumberValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-path",
+            value: resource.path,
+            label: "Path",
+            onChange: (value) => onChange({ ...resource, path: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-method",
+            value: resource.method,
+            label: "Method",
+            onChange: (value) => onChange({ ...resource, method: optionalStringValue(value) }),
+          })}
         </div>
       );
     case AffectedResourceType.NetworkService:
       return (
         <div className="grid gap-2 md:grid-cols-2">
-          {renderResourceInput(resource, onChange, "host", "Host")}
-          {renderResourceInput(resource, onChange, "port", "Port", true)}
+          {renderResourceInput({
+            id: "affected-resource-host",
+            value: resource.host,
+            label: "Host",
+            onChange: (value) => onChange({ ...resource, host: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-port",
+            value: resource.port,
+            label: "Port",
+            numeric: true,
+            onChange: (value) => onChange({ ...resource, port: optionalNumberValue(value) }),
+          })}
           <Field>
             <FieldLabel htmlFor="affected-resource-transport">Transport</FieldLabel>
             <Select
               value={resource.transport ?? ""}
               onValueChange={(value) =>
-                onChange(updateResourceValue(resource, "transport", value ?? ""))
+                onChange({ ...resource, transport: optionalStringValue(value ?? "") })
               }
             >
               <SelectTrigger id="affected-resource-transport" className="w-full">
@@ -227,51 +265,132 @@ function renderResourceFields(
               </SelectContent>
             </Select>
           </Field>
-          {renderResourceInput(resource, onChange, "protocol", "Protocol")}
+          {renderResourceInput({
+            id: "affected-resource-protocol",
+            value: resource.protocol,
+            label: "Protocol",
+            onChange: (value) => onChange({ ...resource, protocol: optionalStringValue(value) }),
+          })}
         </div>
       );
     case AffectedResourceType.SourceCode:
       return (
         <div className="grid gap-2 md:grid-cols-2">
-          {renderResourceInput(resource, onChange, "repository", "Repository")}
-          {renderResourceInput(resource, onChange, "file", "File")}
-          <Field>
-            <FieldLabel htmlFor="affected-resource-start-line">Start line</FieldLabel>
-            <Input
-              id="affected-resource-start-line"
-              type="number"
-              value={resource.location?.startLine.toString() ?? ""}
-              onChange={(event) => onChange(updateResourceLocation(resource, event.target.value))}
-            />
-          </Field>
-          {renderResourceInput(resource, onChange, "symbol", "Symbol")}
-          {renderResourceInput(resource, onChange, "locationFingerprint", "Location fingerprint")}
+          {renderResourceInput({
+            id: "affected-resource-repository",
+            value: resource.repository,
+            label: "Repository",
+            onChange: (value) => onChange({ ...resource, repository: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-file",
+            value: resource.file,
+            label: "File",
+            onChange: (value) => onChange({ ...resource, file: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-start-line",
+            value: resource.location?.startLine,
+            label: "Start line",
+            numeric: true,
+            onChange: (value) => onChange(updateResourceLocation(resource, "startLine", value)),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-symbol",
+            value: resource.symbol,
+            label: "Symbol",
+            onChange: (value) => onChange({ ...resource, symbol: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-locationFingerprint",
+            value: resource.locationFingerprint,
+            label: "Location fingerprint",
+            onChange: (value) =>
+              onChange({ ...resource, locationFingerprint: optionalStringValue(value) }),
+          })}
         </div>
       );
     case AffectedResourceType.Package:
       return (
         <div className="grid gap-2 md:grid-cols-2">
-          {renderResourceInput(resource, onChange, "ecosystem", "Ecosystem")}
-          {renderResourceInput(resource, onChange, "name", "Package name")}
-          {renderResourceInput(resource, onChange, "installationPath", "Installation path")}
+          {renderResourceInput({
+            id: "affected-resource-ecosystem",
+            value: resource.ecosystem,
+            label: "Ecosystem",
+            onChange: (value) => onChange({ ...resource, ecosystem: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-name",
+            value: resource.name,
+            label: "Package name",
+            onChange: (value) => onChange({ ...resource, name: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-installationPath",
+            value: resource.installationPath,
+            label: "Installation path",
+            onChange: (value) =>
+              onChange({ ...resource, installationPath: optionalStringValue(value) }),
+          })}
         </div>
       );
     case AffectedResourceType.ContainerImage:
       return (
         <div className="grid gap-2 md:grid-cols-2">
-          {renderResourceInput(resource, onChange, "registry", "Registry")}
-          {renderResourceInput(resource, onChange, "repository", "Repository")}
-          {renderResourceInput(resource, onChange, "digest", "Digest")}
+          {renderResourceInput({
+            id: "affected-resource-registry",
+            value: resource.registry,
+            label: "Registry",
+            onChange: (value) => onChange({ ...resource, registry: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-repository",
+            value: resource.repository,
+            label: "Repository",
+            onChange: (value) => onChange({ ...resource, repository: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-digest",
+            value: resource.digest,
+            label: "Digest",
+            onChange: (value) => onChange({ ...resource, digest: optionalStringValue(value) }),
+          })}
         </div>
       );
     case AffectedResourceType.CloudResource:
       return (
         <div className="grid gap-2 md:grid-cols-2">
-          {renderResourceInput(resource, onChange, "provider", "Provider")}
-          {renderResourceInput(resource, onChange, "providerAccount", "Provider account")}
-          {renderResourceInput(resource, onChange, "region", "Region")}
-          {renderResourceInput(resource, onChange, "resourceId", "Resource ID")}
-          {renderResourceInput(resource, onChange, "subresource", "Subresource")}
+          {renderResourceInput({
+            id: "affected-resource-provider",
+            value: resource.provider,
+            label: "Provider",
+            onChange: (value) => onChange({ ...resource, provider: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-providerAccount",
+            value: resource.providerAccount,
+            label: "Provider account",
+            onChange: (value) =>
+              onChange({ ...resource, providerAccount: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-region",
+            value: resource.region,
+            label: "Region",
+            onChange: (value) => onChange({ ...resource, region: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-resourceId",
+            value: resource.resourceId,
+            label: "Resource ID",
+            onChange: (value) => onChange({ ...resource, resourceId: optionalStringValue(value) }),
+          })}
+          {renderResourceInput({
+            id: "affected-resource-subresource",
+            value: resource.subresource,
+            label: "Subresource",
+            onChange: (value) => onChange({ ...resource, subresource: optionalStringValue(value) }),
+          })}
         </div>
       );
   }
