@@ -128,6 +128,9 @@ jobs:
       - name: Run API coverage
         run: pnpm coverage:api
 
+      - name: Run shared types coverage
+        run: pnpm coverage:types
+
       - name: Install Playwright Chromium
         run: pnpm --filter @exposurenexus/ui exec playwright install --with-deps chromium
 
@@ -152,6 +155,16 @@ jobs:
           disable_search: true
           files: apps/ui/coverage/lcov.info
           flags: ui
+          fail_ci_if_error: false
+
+      - name: Upload shared types coverage
+        if: ${{ env.ACT != 'true' }}
+        uses: codecov/codecov-action@v7
+        with:
+          use_oidc: true
+          disable_search: true
+          files: packages/types/coverage/lcov.info
+          flags: types
           fail_ci_if_error: false
 
   publish-container:

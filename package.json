@@ -9,6 +9,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "coverage:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api test:coverage",
+    "coverage:types": "pnpm --filter @exposurenexus/types^... build && pnpm --filter @exposurenexus/types test:coverage",
     "coverage:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test:coverage",
     "dev:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api dev",
     "dev:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui dev",
