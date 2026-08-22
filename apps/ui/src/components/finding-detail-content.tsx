@@ -1,6 +1,5 @@
 import {
   AffectedResourceType,
-  NetworkTransport,
   WebEndpointComponentKind,
 } from "@exposurenexus/types/model/affected-resource";
 import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date";
@@ -81,6 +80,7 @@ const findingStatuses = Object.values(FindingStatus);
 const vulnerabilitySeverities = Object.values(VulnerabilitySeverity);
 const resourceTypes = Object.values(AffectedResourceType);
 const componentKinds = Object.values(WebEndpointComponentKind);
+const networkTransportOptions = ["tcp", "udp"];
 const namedComponentKinds = new Set<WebEndpointComponentKind>([
   WebEndpointComponentKind.QueryParameter,
   WebEndpointComponentKind.PathParameter,
@@ -291,7 +291,7 @@ function ResourceFields({
                 <SelectValue placeholder="Select transport" />
               </SelectTrigger>
               <SelectContent>
-                {Object.values(NetworkTransport).map((transport) => (
+                {networkTransportOptions.map((transport) => (
                   <SelectItem key={transport} value={transport}>
                     {transport.toUpperCase()}
                   </SelectItem>

@@ -1,7 +1,4 @@
-import {
-  AffectedResourceType,
-  NetworkTransport,
-} from "@exposurenexus/types/model/affected-resource";
+import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
 import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date";
 import { FindingStatus, createFindingSchema } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
@@ -48,6 +45,7 @@ const unassignedAssigneeValue = "__unassigned__";
 const findingStatuses = Object.values(FindingStatus);
 const vulnerabilitySeverities = Object.values(VulnerabilitySeverity);
 const resourceTypes = Object.values(AffectedResourceType);
+const networkTransportOptions = ["tcp", "udp"];
 
 const defaultFindingValues: CreateManualFinding = {
   assetId: "",
@@ -221,7 +219,7 @@ function renderResourceFields(
                 <SelectValue placeholder="Select transport" />
               </SelectTrigger>
               <SelectContent>
-                {Object.values(NetworkTransport).map((transport) => (
+                {networkTransportOptions.map((transport) => (
                   <SelectItem key={transport} value={transport}>
                     {transport.toUpperCase()}
                   </SelectItem>

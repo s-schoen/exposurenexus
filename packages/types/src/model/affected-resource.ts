@@ -20,11 +20,6 @@ export enum WebEndpointComponentKind {
   Response = "response",
 }
 
-export enum NetworkTransport {
-  Tcp = "tcp",
-  Udp = "udp",
-}
-
 const webEndpointComponentSchema = z.strictObject({
   kind: z.enum(WebEndpointComponentKind),
   name: z.string().optional(),
@@ -133,4 +128,3 @@ export const observationAffectedResourceSchema = z.discriminatedUnion("type", [
 
 export type FindingAffectedResource = z.output<typeof findingAffectedResourceSchema>;
 export type ObservationAffectedResource = z.output<typeof observationAffectedResourceSchema>;
-export type ObservationAffectedResourceInput = z.input<typeof observationAffectedResourceSchema>;
