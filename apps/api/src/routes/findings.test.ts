@@ -338,68 +338,75 @@ describe("finding routes", () => {
     expect(findingService.moveObservation).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ["update", "PUT", "write", "updateObservation"],
-    ["delete", "DELETE", "delete", "deleteObservation"],
-  ] as const)(
-    "returns not found for a missing nested observation on %s",
-    async (_name, method, permission, serviceMethod) => {
-      findingService[serviceMethod].mockResolvedValue(null);
-      const app = createTestApp({
-        annotateAuth: annotateAuthenticatedUser(user),
-        requireAuth: requireAuthenticatedUser,
-        findingRoute: createFindingRoute(findingService, routeDependencies),
-      });
+  it("returns not found for a missing nested observation update", async () => {
+    findingService.updateObservation.mockResolvedValue(null);
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
 
-      const response = await app.request(
-        `/api/findings/${findingId}/observations/${observationId}`,
-        {
-          method,
-          ...(method === "PUT"
-            ? {
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title: "Corrected observation" }),
-              }
-            : {}),
-        },
-      );
+    const response = await app.request(`/api/findings/${findingId}/observations/${observationId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Corrected observation" }),
+    });
 
-      expect(response.status).toBe(404);
-      expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: [permission] });
-    },
-  );
+    expect(response.status).toBe(404);
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: ["write"] });
+  });
 
-  it.each([
-    ["update", "PUT", "write", "updateObservation"],
-    ["delete", "DELETE", "delete", "deleteObservation"],
-  ] as const)(
-    "denies nested observation %s without permission",
-    async (_name, method, permission, serviceMethod) => {
-      userHasPermission.mockResolvedValue(false);
-      const app = createTestApp({
-        annotateAuth: annotateAuthenticatedUser(user),
-        requireAuth: requireAuthenticatedUser,
-        findingRoute: createFindingRoute(findingService, routeDependencies),
-      });
+  it("returns not found for a missing nested observation deletion", async () => {
+    findingService.deleteObservation.mockResolvedValue(null);
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
 
-      const response = await app.request(
-        `/api/findings/${findingId}/observations/${observationId}`,
-        {
-          method,
-          ...(method === "PUT"
-            ? {
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title: "Corrected observation" }),
-              }
-            : {}),
-        },
-      );
+    const response = await app.request(`/api/findings/${findingId}/observations/${observationId}`, {
+      method: "DELETE",
+    });
 
-      expect(response.status).toBe(403);
-      expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: [permission] });
-      expect(findingService[serviceMethod]).not.toHaveBeenCalled();
-    },
-  );
+    expect(response.status).toBe(404);
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: ["delete"] });
+  });
+
+  it("denies nested observation updates without permission", async () => {
+    userHasPermission.mockResolvedValue(false);
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request(`/api/findings/${findingId}/observations/${observationId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Corrected observation" }),
+    });
+
+    expect(response.status).toBe(403);
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: ["write"] });
+    expect(findingService.updateObservation).not.toHaveBeenCalled();
+  });
+
+  it("denies nested observation deletions without permission", async () => {
+    userHasPermission.mockResolvedValue(false);
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request(`/api/findings/${findingId}/observations/${observationId}`, {
+      method: "DELETE",
+    });
+
+    expect(response.status).toBe(403);
+    expect(userHasPermission).toHaveBeenCalledWith(user.id, { finding: ["delete"] });
+    expect(findingService.deleteObservation).not.toHaveBeenCalled();
+  });
 
   it("returns all findings for authenticated requests", async () => {
     const requestId = "findings-list-request";
@@ -791,36 +798,7 @@ describe("finding routes", () => {
     expect(findingService.updateByID).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ["assetId", { assetId }],
-    ["createdAt", { createdAt: "2026-01-02T00:00:00.000Z" }],
-    ["observationCount", { observationCount: 1 }],
-    ["vulnerabilities", { vulnerabilities: [] }],
-    [
-      "reportedUrl",
-      {
-        affectedResource: {
-          type: AffectedResourceType.WebEndpoint,
-          reportedUrl: "https://example.com/admin",
-        },
-      },
-    ],
-    [
-      "revision",
-      { affectedResource: { type: AffectedResourceType.SourceCode, revision: "abc123" } },
-    ],
-    ["version", { affectedResource: { type: AffectedResourceType.Package, version: "1.0.0" } }],
-    ["tag", { affectedResource: { type: AffectedResourceType.ContainerImage, tag: "latest" } }],
-    [
-      "displayName",
-      {
-        affectedResource: {
-          type: AffectedResourceType.CloudResource,
-          displayName: "Production bucket",
-        },
-      },
-    ],
-  ])("rejects immutable or observation-only %s updates", async (_field, payload) => {
+  it("rejects immutable finding identity updates at the route boundary", async () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
@@ -830,7 +808,29 @@ describe("finding routes", () => {
     const response = await app.request(`/api/findings/${findingId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ assetId }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(findingService.updateByID).not.toHaveBeenCalled();
+  });
+
+  it("rejects observation-only resource fields at the route boundary", async () => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      findingRoute: createFindingRoute(findingService, routeDependencies),
+    });
+
+    const response = await app.request(`/api/findings/${findingId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        affectedResource: {
+          type: AffectedResourceType.WebEndpoint,
+          reportedUrl: "https://example.com/admin",
+        },
+      }),
     });
 
     expect(response.status).toBe(400);

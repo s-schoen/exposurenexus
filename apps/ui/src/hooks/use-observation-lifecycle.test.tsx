@@ -151,50 +151,60 @@ describe("useObservationLifecycle", () => {
     expect(console.error).toHaveBeenCalledWith(error);
   });
 
-  it.each([
-    ["updates", "updateObservation", updateObservationRequestMock, "Observation updated"],
-    ["deletes", "deleteObservation", deleteObservationRequestMock, "Observation deleted"],
-  ] as const)(
-    "%s an observation and invalidates every exact affected read",
-    async (_label, action, requestMock, toast) => {
-      requestMock.mockResolvedValueOnce(observation);
-      const { queryClient, result } = renderLifecycleHook();
-      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+  it("updates an observation and invalidates every exact affected read", async () => {
+    updateObservationRequestMock.mockResolvedValueOnce(observation);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
-      let changed: Observation | null = null;
-      await act(async () => {
-        changed =
-          action === "updateObservation"
-            ? await result.current.updateObservation(findingId, observation.id, {
-                title: "Corrected observation",
-              })
-            : await result.current.deleteObservation(findingId, observation.id);
+    let changed: Observation | null = null;
+    await act(async () => {
+      changed = await result.current.updateObservation(findingId, observation.id, {
+        title: "Corrected observation",
       });
+    });
 
-      expect(changed).toEqual(observation);
-      if (action === "updateObservation") {
-        expect(updateObservationRequestMock).toHaveBeenCalledWith({
-          findingId,
-          observationId: observation.id,
-          update: { title: "Corrected observation" },
-        });
-      } else {
-        expect(deleteObservationRequestMock).toHaveBeenCalledWith({
-          findingId,
-          observationId: observation.id,
-        });
-      }
-      for (const queryKey of [
-        createFindingObservationsQueryOptions(findingId).queryKey,
-        createFindingByIDQueryOptions(findingId).queryKey,
-        createListFindingsQueryOptions().queryKey,
-        createFindingStatsQueryOptions().queryKey,
-      ]) {
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey, exact: true });
-      }
-      expect(toastSuccessMock).toHaveBeenCalledWith(toast);
-    },
-  );
+    expect(changed).toEqual(observation);
+    expect(updateObservationRequestMock).toHaveBeenCalledWith({
+      findingId,
+      observationId: observation.id,
+      update: { title: "Corrected observation" },
+    });
+    for (const queryKey of [
+      createFindingObservationsQueryOptions(findingId).queryKey,
+      createFindingByIDQueryOptions(findingId).queryKey,
+      createListFindingsQueryOptions().queryKey,
+      createFindingStatsQueryOptions().queryKey,
+    ]) {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey, exact: true });
+    }
+    expect(toastSuccessMock).toHaveBeenCalledWith("Observation updated");
+  });
+
+  it("deletes an observation and invalidates every exact affected read", async () => {
+    deleteObservationRequestMock.mockResolvedValueOnce(observation);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+
+    let changed: Observation | null = null;
+    await act(async () => {
+      changed = await result.current.deleteObservation(findingId, observation.id);
+    });
+
+    expect(changed).toEqual(observation);
+    expect(deleteObservationRequestMock).toHaveBeenCalledWith({
+      findingId,
+      observationId: observation.id,
+    });
+    for (const queryKey of [
+      createFindingObservationsQueryOptions(findingId).queryKey,
+      createFindingByIDQueryOptions(findingId).queryKey,
+      createListFindingsQueryOptions().queryKey,
+      createFindingStatsQueryOptions().queryKey,
+    ]) {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey, exact: true });
+    }
+    expect(toastSuccessMock).toHaveBeenCalledWith("Observation deleted");
+  });
 
   it("moves an observation and invalidates both parent subtrees plus lists and stats", async () => {
     const targetFindingId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
@@ -250,31 +260,43 @@ describe("useObservationLifecycle", () => {
     expect(console.error).toHaveBeenCalledWith(error);
   });
 
-  it.each([
-    ["updateObservation", updateObservationRequestMock, "Failed to update observation"],
-    ["deleteObservation", deleteObservationRequestMock, "Failed to delete observation"],
-  ] as const)(
-    "handles %s failures without invalidating caches",
-    async (action, requestMock, message) => {
-      const error = new Error("Request failed");
-      requestMock.mockRejectedValueOnce(error);
-      const { queryClient, result } = renderLifecycleHook();
-      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+  it("handles observation update failures without invalidating caches", async () => {
+    const error = new Error("Request failed");
+    updateObservationRequestMock.mockRejectedValueOnce(error);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
-      let changed: Observation | null = observation;
-      await act(async () => {
-        changed =
-          action === "updateObservation"
-            ? await result.current.updateObservation(findingId, observation.id, {
-                title: "Corrected",
-              })
-            : await result.current.deleteObservation(findingId, observation.id);
+    let changed: Observation | null = observation;
+    await act(async () => {
+      changed = await result.current.updateObservation(findingId, observation.id, {
+        title: "Corrected",
       });
+    });
 
-      expect(changed).toBeNull();
-      expect(invalidateSpy).not.toHaveBeenCalled();
-      expect(toastErrorMock).toHaveBeenCalledWith(`${message}: Error: Request failed`);
-      expect(console.error).toHaveBeenCalledWith(error);
-    },
-  );
+    expect(changed).toBeNull();
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(toastErrorMock).toHaveBeenCalledWith(
+      "Failed to update observation: Error: Request failed",
+    );
+    expect(console.error).toHaveBeenCalledWith(error);
+  });
+
+  it("handles observation deletion failures without invalidating caches", async () => {
+    const error = new Error("Request failed");
+    deleteObservationRequestMock.mockRejectedValueOnce(error);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+
+    let changed: Observation | null = observation;
+    await act(async () => {
+      changed = await result.current.deleteObservation(findingId, observation.id);
+    });
+
+    expect(changed).toBeNull();
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(toastErrorMock).toHaveBeenCalledWith(
+      "Failed to delete observation: Error: Request failed",
+    );
+    expect(console.error).toHaveBeenCalledWith(error);
+  });
 });

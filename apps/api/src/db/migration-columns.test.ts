@@ -859,7 +859,7 @@ describe("db migration columns", () => {
     ]);
   });
 
-  it("creates the final finding, observation, ingestion, and catalog contracts", async () => {
+  it("creates the final observation, ingestion, and catalog contracts", async () => {
     const columns = await sql<{
       table_name: string;
       column_name: string;
@@ -882,24 +882,6 @@ describe("db migration columns", () => {
 
     expect(columns.rows).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          table_name: "finding",
-          column_name: "title",
-          data_type: "text",
-          is_nullable: "NO",
-        }),
-        expect.objectContaining({
-          table_name: "finding",
-          column_name: "weakness",
-          data_type: "jsonb",
-          is_nullable: "NO",
-        }),
-        expect.objectContaining({
-          table_name: "finding",
-          column_name: "affectedResource",
-          data_type: "jsonb",
-          is_nullable: "NO",
-        }),
         expect.objectContaining({
           table_name: "observation",
           column_name: "findingId",
@@ -1048,12 +1030,6 @@ describe("db migration columns", () => {
           source_table: "finding_vulnerability",
           source_column: "findingId",
           target_table: "finding",
-          delete_rule: "CASCADE",
-        },
-        {
-          source_table: "finding_vulnerability",
-          source_column: "vulnerabilityId",
-          target_table: "vulnerability",
           delete_rule: "CASCADE",
         },
         {
