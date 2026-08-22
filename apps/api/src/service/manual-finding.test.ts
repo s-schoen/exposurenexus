@@ -123,6 +123,22 @@ describe("manual finding creation", () => {
     });
   }
 
+  function createManualFinding(overrides: Partial<CreateManualFinding> = {}): CreateManualFinding {
+    return {
+      assetId,
+      title: "Exposed admin panel",
+      severity: VulnerabilitySeverity.High,
+      status: FindingStatus.Active,
+      assigneeId: null,
+      dueDate: null,
+      mitigation: null,
+      weakness: { identifiers: {} },
+      affectedResource: { type: AffectedResourceType.Unspecified },
+      vulnerabilityIds: [vulnerabilityId],
+      ...overrides,
+    };
+  }
+
   it("creates the finding, initial manual observation, and catalog links with one audit timestamp", async () => {
     const now = new Date("2026-02-03T04:05:06.000Z");
     vi.useFakeTimers();
@@ -201,6 +217,86 @@ describe("manual finding creation", () => {
       data: { observation: initialObservation },
     });
     expect(findingRepository.getProjectedByID).not.toHaveBeenCalled();
+  });
+
+  it("validates manual finding relations in asset, vulnerability, and assignee order", async () => {
+    const assigneeId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
+    const calls: string[] = [];
+    assetService.getByID.mockImplementation(async (id: string) => {
+      calls.push(`asset:${id}`);
+      return { id };
+    });
+    vulnerabilityService.getByID.mockImplementation(async (id: string) => {
+      calls.push(`vulnerability:${id}`);
+      return vulnerability;
+    });
+    userProfileService.getByID.mockImplementation(async (id: string) => {
+      calls.push(`assignee:${id}`);
+      return { id };
+    });
+
+    await expect(
+      createService().createManual({
+        finding: createManualFinding({ assigneeId }),
+        user,
+      }),
+    ).resolves.toBe(projection);
+
+    expect(calls).toEqual([
+      `asset:${assetId}`,
+      `vulnerability:${vulnerabilityId}`,
+      `assignee:${assigneeId}`,
+    ]);
+  });
+
+  it("reports a missing asset before looking up other manual finding relations", async () => {
+    assetService.getByID.mockResolvedValue(null);
+
+    await expect(
+      createService().createManual({
+        finding: createManualFinding(),
+        user,
+      }),
+    ).rejects.toMatchObject({
+      code: "finding.asset_unknown",
+      details: { assetId },
+    });
+    expect(vulnerabilityService.getByID).not.toHaveBeenCalled();
+    expect(userProfileService.getByID).not.toHaveBeenCalled();
+    expect(findingRepository.createManual).not.toHaveBeenCalled();
+  });
+
+  it("reports the missing vulnerability ID during manual relation validation", async () => {
+    const missingVulnerabilityId = "b6ecf6ba-bc67-45c7-8d55-cd62c8ff5070";
+    vulnerabilityService.getByID.mockResolvedValue(null);
+
+    await expect(
+      createService().createManual({
+        finding: createManualFinding({ vulnerabilityIds: [missingVulnerabilityId] }),
+        user,
+      }),
+    ).rejects.toMatchObject({
+      code: "finding.vulnerability_unknown",
+      details: { vulnerabilityId: missingVulnerabilityId },
+    });
+    expect(findingRepository.createManual).not.toHaveBeenCalled();
+  });
+
+  it("reports the missing assignee ID after validating other manual relations", async () => {
+    const missingAssigneeId = "1a4be0e5-cb01-42af-a2cc-f40c81ac2b06";
+
+    await expect(
+      createService().createManual({
+        finding: createManualFinding({ assigneeId: missingAssigneeId }),
+        user,
+      }),
+    ).rejects.toMatchObject({
+      code: "finding.assignee_unknown",
+      details: { assigneeId: missingAssigneeId },
+    });
+    expect(vulnerabilityService.getByID).toHaveBeenCalledWith(vulnerabilityId);
+    expect(userProfileService.getByID).toHaveBeenCalledWith(missingAssigneeId);
+    expect(findingRepository.createManual).not.toHaveBeenCalled();
   });
 
   it("does not emit an event when the atomic persistence operation fails", async () => {

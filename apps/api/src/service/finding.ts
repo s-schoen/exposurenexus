@@ -31,7 +31,7 @@ import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerabil
 import type { Logger } from "pino";
 
 interface VulnerabilityLookupService {
-  getByID(id: string): Promise<unknown>;
+  getByID(id: string): Promise<VulnerabilityCatalog | null>;
 }
 
 interface AssetLookupService {
@@ -235,7 +235,7 @@ export function createFindingService({
         operation === "link" ? "finding.vulnerability.linked" : "finding.vulnerability.unlinked",
         {
           finding: current,
-          vulnerability: vulnerability as VulnerabilityCatalog,
+          vulnerability,
           link: mutation.link,
         },
         opts.eventContext,
@@ -249,10 +249,7 @@ export function createFindingService({
   }
 
   async function validateManualFindingRelations(finding: CreateManualFinding): Promise<void> {
-    const [asset, vulnerabilities] = await Promise.all([
-      assetService.getByID(finding.assetId),
-      Promise.all(finding.vulnerabilityIds.map((id) => vulnerabilityService.getByID(id))),
-    ]);
+    const asset = await assetService.getByID(finding.assetId);
 
     if (!asset) {
       throw new ApplicationError({
@@ -263,9 +260,9 @@ export function createFindingService({
       });
     }
 
-    for (const [index, vulnerability] of vulnerabilities.entries()) {
+    for (const vulnerabilityId of finding.vulnerabilityIds) {
+      const vulnerability = await vulnerabilityService.getByID(vulnerabilityId);
       if (!vulnerability) {
-        const vulnerabilityId = finding.vulnerabilityIds[index];
         throw new ApplicationError({
           code: "finding.vulnerability_unknown",
           kind: "validation",

@@ -331,6 +331,7 @@ export function createObservationRepository(database: Kysely<Database>): Observa
       }
 
       return await database.transaction().execute(async (transaction) => {
+        // Stable lock order prevents concurrent moves from deadlocking.
         const parentIds = [input.findingId, input.targetFindingId].sort();
         const parents = await transaction
           .selectFrom("finding")
