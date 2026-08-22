@@ -1174,15 +1174,7 @@ function AddObservationDialog({ finding }: { finding: Finding }) {
               <Input
                 id="observation-time"
                 type="datetime-local"
-                value={
-                  draft.observedAt
-                    ? new Date(
-                        draft.observedAt.getTime() - draft.observedAt.getTimezoneOffset() * 60_000,
-                      )
-                        .toISOString()
-                        .slice(0, 16)
-                    : ""
-                }
+                value={draft.observedAt ? formatLocalDateTimeInput(draft.observedAt) : ""}
                 onChange={(event) =>
                   setDraft({
                     ...draft,
