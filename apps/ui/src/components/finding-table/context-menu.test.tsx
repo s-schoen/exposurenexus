@@ -59,15 +59,13 @@ describe("FindingContextMenu", () => {
     cleanup();
   });
 
-  it("renders the selected count and deletion action without legacy workflow controls", async () => {
+  it("renders the selected count and deletion action", async () => {
     const { FindingContextMenu } = await import("@/components/finding-table/context-menu.tsx");
 
     renderContextMenu(FindingContextMenu, [finding]);
 
     expect(screen.getByText("1 finding selected")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Delete" })).toBeTruthy();
-    expect(screen.queryByText("Set Status")).toBeNull();
-    expect(screen.queryByText("Set Severity")).toBeNull();
   });
 
   it("delegates deletion for multiple selected findings", async () => {

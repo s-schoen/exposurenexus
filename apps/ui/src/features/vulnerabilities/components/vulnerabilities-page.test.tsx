@@ -96,6 +96,7 @@ vi.mock("@/components/vulnerability-table", () => ({
             globalFilter: "remote code",
             selectFilters: {
               severity: ["critical"],
+              type: ["cve"],
             },
           })
         }
@@ -159,7 +160,11 @@ describe("VulnerabilitiesPage", () => {
     const { VulnerabilitiesPage } =
       await import("@/features/vulnerabilities/components/vulnerabilities-page.tsx");
 
-    render(<VulnerabilitiesPage search={{ filter: "openssl", severity: "critical,high" }} />);
+    render(
+      <VulnerabilitiesPage
+        search={{ filter: "openssl", severity: "critical,high", type: "cve,ghsa" }}
+      />,
+    );
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "Vulnerabilities",
@@ -176,6 +181,7 @@ describe("VulnerabilitiesPage", () => {
       globalFilter: "openssl",
       selectFilters: {
         severity: ["critical", "high"],
+        type: ["cve", "ghsa"],
       },
     });
     expect(screen.getByTestId("full-page-href").textContent).toBe("");
@@ -203,6 +209,7 @@ describe("VulnerabilitiesPage", () => {
       page: "2",
       selected: "vulnerability-1",
       severity: "critical",
+      type: "cve",
     });
   });
 

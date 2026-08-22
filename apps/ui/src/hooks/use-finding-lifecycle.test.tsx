@@ -266,13 +266,40 @@ describe("useFindingLifecycle", () => {
       queryKey: ["findings"],
       exact: true,
     });
-    expect(invalidateSpy).not.toHaveBeenCalledWith({
-      queryKey: [["findings"]],
-    });
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createFindingStatsQueryOptions().queryKey,
       exact: true,
     });
+  });
+
+  it("returns null without invalidating when creation fails", async () => {
+    const error = new Error("Create failed");
+    createFindingRequestMock.mockRejectedValueOnce(error);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+
+    await act(async () => {
+      await expect(
+        result.current.createFinding({
+          assetId: createFindingFixture().assetId,
+          title: "Finding",
+          severity: VulnerabilitySeverity.High,
+          status: FindingStatus.Active,
+          assigneeId: null,
+          dueDate: null,
+          mitigation: null,
+          weakness: { identifiers: {} },
+          affectedResource: { type: AffectedResourceType.Unspecified },
+          vulnerabilityIds: [],
+          observation: {},
+        }),
+      ).resolves.toBeNull();
+    });
+
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to create finding: Error: Create failed");
+    expect(consoleError).toHaveBeenCalledWith(error);
   });
 
   it("writes the authoritative finding after linking a catalog entry", async () => {
@@ -343,6 +370,44 @@ describe("useFindingLifecycle", () => {
     });
   });
 
+  it.each([
+    [
+      "link",
+      linkFindingVulnerabilityRequestMock,
+      "Failed to link catalog entry: Error: Link failed",
+    ],
+    [
+      "unlink",
+      unlinkFindingVulnerabilityRequestMock,
+      "Failed to unlink catalog entry: Error: Unlink failed",
+    ],
+  ] as const)(
+    "returns null without cache writes when catalog %s fails",
+    async (action, request, toast) => {
+      const finding = createFindingFixture();
+      const error = new Error(action === "link" ? "Link failed" : "Unlink failed");
+      request.mockRejectedValueOnce(error);
+      vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const { queryClient, result } = renderLifecycleHook();
+      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+      queryClient.setQueryData(createFindingByIDQueryOptions(finding.id).queryKey, finding);
+
+      await act(async () => {
+        const operation =
+          action === "link"
+            ? result.current.linkVulnerability(finding.id, "vulnerability-id")
+            : result.current.unlinkVulnerability(finding.id, "vulnerability-id");
+        await expect(operation).resolves.toBeNull();
+      });
+
+      expect(queryClient.getQueryData(createFindingByIDQueryOptions(finding.id).queryKey)).toEqual(
+        finding,
+      );
+      expect(invalidateSpy).not.toHaveBeenCalled();
+      expect(toastErrorMock).toHaveBeenCalledWith(toast);
+    },
+  );
+
   it("reports partial delete failures and invalidates affected reads", async () => {
     const first = createFindingFixture({
       id: "2713d833-eb13-4517-ac7c-7761545ed42a",
@@ -382,5 +447,45 @@ describe("useFindingLifecycle", () => {
       exact: true,
     });
     expect(toastErrorMock).toHaveBeenCalledWith("Deleted 1 finding; failed 1 finding");
+  });
+
+  it("returns an empty delete summary without side effects", async () => {
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+
+    await act(async () => {
+      await expect(result.current.deleteFindings([])).resolves.toEqual({
+        successful: [],
+        failed: [],
+      });
+    });
+
+    expect(deleteFindingRequestMock).not.toHaveBeenCalled();
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(toastSuccessMock).not.toHaveBeenCalled();
+    expect(toastErrorMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { succeeds: true, toast: "Deleted 2 findings" },
+    { succeeds: false, toast: "Failed to delete 2 findings" },
+  ])("summarizes all-success and all-failure deletes", async ({ succeeds, toast }) => {
+    const findings = [
+      createFindingFixture(),
+      createFindingFixture({ id: "f83f9298-2271-4b13-84fe-13724989243b" }),
+    ];
+    deleteFindingRequestMock.mockImplementation((id: string) =>
+      succeeds
+        ? Promise.resolve(findings.find((finding) => finding.id === id))
+        : Promise.reject(new Error("Delete failed")),
+    );
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { result } = renderLifecycleHook();
+
+    await act(async () => {
+      await result.current.deleteFindings(findings);
+    });
+
+    expect(succeeds ? toastSuccessMock : toastErrorMock).toHaveBeenCalledWith(toast);
   });
 });

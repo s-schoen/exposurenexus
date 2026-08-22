@@ -11,6 +11,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx";
+import { STORY_VULNERABILITIES } from "@/components/storybook-fixtures.ts";
 import { createLoginRedirects } from "@/lib/login-redirect.ts";
 import { routeTree } from "@/routeTree.gen.ts";
 
@@ -202,6 +203,7 @@ function FindingDetailContentStoryShell({
       client.setQueryData(["findings", effectiveFinding.id], effectiveFinding);
       client.setQueryData(["assets", asset.id], asset);
       client.setQueryData(["users"], users);
+      client.setQueryData(["vulnerabilities"], STORY_VULNERABILITIES);
     }
 
     return client;
@@ -245,7 +247,10 @@ function FindingDetailContentStoryShell({
       }
       if (requestUrl.endsWith(`/api/assets/${asset.id}`)) return createObjectResponse(asset);
       if (requestUrl.endsWith("/api/users")) return createArrayResponse(users);
-      return originalFetch(input);
+      if (requestUrl.endsWith("/api/vulnerabilities")) {
+        return createArrayResponse(STORY_VULNERABILITIES);
+      }
+      return originalFetch(input, init);
     };
 
     setReady(true);
