@@ -1,6 +1,5 @@
 import {
   AffectedResourceType,
-  NetworkTransport,
   WebEndpointComponentKind,
 } from "@exposurenexus/types/model/affected-resource";
 import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
@@ -131,7 +130,7 @@ const RESOURCE_VARIANTS: Record<string, FindingAffectedResource> = {
     type: AffectedResourceType.NetworkService,
     host: "db.example.com",
     port: 5432,
-    transport: NetworkTransport.Tcp,
+    transport: "tcp",
     protocol: "postgresql",
   },
   SourceCode: {

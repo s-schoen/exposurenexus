@@ -1,6 +1,5 @@
 import {
   AffectedResourceType,
-  NetworkTransport,
   WebEndpointComponentKind,
 } from "@exposurenexus/types/model/affected-resource";
 import {
@@ -54,7 +53,7 @@ import { formatLocalDateTimeInput } from "@/lib/date-input.ts";
 import { capitalizeFirstLetter, formatSeverity } from "@/lib/format.ts";
 import { formatWeaknessText, parseWeaknessText } from "@/lib/weakness-text.ts";
 
-import type { ObservationAffectedResourceInput as ObservationResource } from "@exposurenexus/types/model/affected-resource";
+import type { ObservationAffectedResource as ObservationResource } from "@exposurenexus/types/model/affected-resource";
 import type { Finding } from "@exposurenexus/types/model/finding";
 import type { ManualObservationInput, Observation } from "@exposurenexus/types/model/observation";
 
@@ -71,6 +70,7 @@ const noComponentValue = "__none__";
 const resourceTypes = Object.values(AffectedResourceType);
 const severities = Object.values(VulnerabilitySeverity);
 const componentKinds = Object.values(WebEndpointComponentKind);
+const networkTransportOptions = ["tcp", "udp"];
 const namedComponentKinds = new Set<WebEndpointComponentKind>([
   WebEndpointComponentKind.QueryParameter,
   WebEndpointComponentKind.PathParameter,
@@ -319,7 +319,7 @@ function ObservationResourceFields({
                 <SelectValue placeholder="Select transport" />
               </SelectTrigger>
               <SelectContent>
-                {Object.values(NetworkTransport).map((value) => (
+                {networkTransportOptions.map((value) => (
                   <SelectItem key={value} value={value}>
                     {value.toUpperCase()}
                   </SelectItem>

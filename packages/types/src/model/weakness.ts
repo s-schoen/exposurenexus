@@ -35,6 +35,7 @@ const weaknessIdentifiersSchema = z
         continue;
       }
 
+      // Deduplication and sorting make canonical identifiers stable for matching and JSON equality.
       const values = new Set<string>();
       for (const [index, identifier] of identifiersForNamespace.entries()) {
         try {

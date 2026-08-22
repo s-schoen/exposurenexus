@@ -1,6 +1,5 @@
 import {
   AffectedResourceType,
-  NetworkTransport,
   WebEndpointComponentKind,
 } from "@exposurenexus/types/model/affected-resource";
 import { FindingStatus } from "@exposurenexus/types/model/finding";
@@ -13,7 +12,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { FindingObservationsSection } from "@/components/finding-observations-section.tsx";
 
-import type { ObservationAffectedResourceInput as ObservationResource } from "@exposurenexus/types/model/affected-resource";
+import type { ObservationAffectedResource as ObservationResource } from "@exposurenexus/types/model/affected-resource";
 import type { Finding } from "@exposurenexus/types/model/finding";
 import type {
   ManualObservationInput,
@@ -91,7 +90,7 @@ const resources: Array<[string, ObservationResource]> = [
       type: AffectedResourceType.NetworkService,
       host: "db.example.com",
       port: 5432,
-      transport: NetworkTransport.Tcp,
+      transport: "tcp",
       protocol: "postgresql",
     },
   ],
