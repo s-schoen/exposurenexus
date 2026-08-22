@@ -48,6 +48,7 @@ export default defineConfig({
       reporter: ["text", "html", "lcov"],
       include: ["src/**/*.{ts,tsx}"],
       exclude: [
+        "src/test/**",
         "src/**/*.test.{ts,tsx}",
         "src/**/*.stories.{ts,tsx}",
         "src/**/*.d.ts",

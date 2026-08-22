@@ -821,12 +821,19 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
             {submissionError}
           </p>
         ) : null}
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" type="button" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit">Create finding</Button>
-        </div>
+        <form.Subscribe
+          selector={(state) => state.isSubmitting}
+          children={(isSubmitting) => (
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                Create finding
+              </Button>
+            </div>
+          )}
+        />
       </form>
     </div>
   );

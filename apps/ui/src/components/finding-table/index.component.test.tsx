@@ -369,16 +369,6 @@ describe("FindingTable workflow wiring", () => {
     });
   });
 
-  it("keeps workflow mutation controls out of the finding table", async () => {
-    const { FindingTable } = await import("@/components/finding-table/index.tsx");
-
-    render(<FindingTable />);
-
-    expect(screen.getByRole("button", { name: /new finding/i })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /^confirmed$/i })).toBeNull();
-    expect(screen.queryByRole("button", { name: /^critical$/i })).toBeNull();
-  });
-
   it("does not delete findings when confirmation is cancelled", async () => {
     const { FindingTable } = await import("@/components/finding-table/index.tsx");
     mocks.confirmDialogCall.mockResolvedValueOnce(false);

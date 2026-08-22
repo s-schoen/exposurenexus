@@ -435,7 +435,7 @@ export const EditObservation: Story = {
     await userEvent.clear(within(dialog).getByLabelText("Title"));
     await userEvent.type(within(dialog).getByLabelText("Title"), "Corrected observation");
     await userEvent.click(within(dialog).getByRole("button", { name: "Save correction" }));
-    await expect(canvas.getByText("Corrected observation")).toBeVisible();
+    await expect(await canvas.findByText("Corrected observation")).toBeVisible();
   },
 };
 export const DeleteFinalObservation: Story = {

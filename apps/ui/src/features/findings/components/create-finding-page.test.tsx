@@ -263,6 +263,129 @@ describe("CreateFindingPage", () => {
     });
   });
 
+  it.each([
+    [
+      "Network service",
+      "Host",
+      "db.example.com",
+      { type: AffectedResourceType.NetworkService, host: "db.example.com" },
+    ],
+    [
+      "Package",
+      "Package name",
+      "example-package",
+      { type: AffectedResourceType.Package, name: "example-package" },
+    ],
+    [
+      "Cloud resource",
+      "Resource ID",
+      "arn:aws:s3:::example",
+      { type: AffectedResourceType.CloudResource, resourceId: "arn:aws:s3:::example" },
+    ],
+  ] as const)(
+    "submits %s affected-resource fields",
+    async (type, label, value, affectedResource) => {
+      mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+      renderCreateFindingPage();
+      fillRequiredFields();
+      fireEvent.click(screen.getByRole("tab", { name: /identity/i }));
+      fireEvent.click(screen.getByRole("button", { name: type }));
+      fireEvent.change(screen.getByLabelText(label), { target: { value } });
+      fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
+
+      await waitFor(() => {
+        expect(mocks.createFinding).toHaveBeenCalledWith(
+          expect.objectContaining({ affectedResource }),
+        );
+      });
+    },
+  );
+
+  it("drops stale resource fields when switching types", async () => {
+    mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+    renderCreateFindingPage();
+    fillRequiredFields();
+    fireEvent.click(screen.getByRole("tab", { name: /identity/i }));
+    fireEvent.click(screen.getByRole("button", { name: /web endpoint/i }));
+    fireEvent.change(screen.getByLabelText("Host"), { target: { value: "stale.example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /cloud resource/i }));
+    fireEvent.change(screen.getByLabelText("Provider"), { target: { value: "aws" } });
+    fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
+
+    await waitFor(() => {
+      expect(mocks.createFinding).toHaveBeenCalledWith(
+        expect.objectContaining({
+          affectedResource: { type: AffectedResourceType.CloudResource, provider: "aws" },
+        }),
+      );
+    });
+  });
+
+  it("submits all editable initial-observation fields", async () => {
+    mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+    renderCreateFindingPage();
+    fillRequiredFields();
+    fireEvent.click(screen.getByRole("tab", { name: /observation/i }));
+    for (const [label, value] of [
+      ["Observation title", "Manual verification"],
+      ["Description", "Observed externally"],
+      ["Evidence", "GET /admin returned 200"],
+      ["Observation remediation", "Restrict access"],
+      ["Observed at", "2026-05-01T13:45"],
+    ]) {
+      fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    }
+    fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
+
+    await waitFor(() => {
+      expect(mocks.createFinding).toHaveBeenCalledWith(
+        expect.objectContaining({
+          observation: {
+            title: "Manual verification",
+            description: "Observed externally",
+            evidence: "GET /admin returned 200",
+            remediation: "Restrict access",
+            observedAt: new Date("2026-05-01T13:45"),
+          },
+        }),
+      );
+    });
+  });
+
+  it("deduplicates valid catalog IDs and rejects invalid IDs", async () => {
+    mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+    renderCreateFindingPage();
+    fillRequiredFields();
+    fireEvent.click(screen.getByRole("tab", { name: /identity/i }));
+    const ids = screen.getByLabelText(/catalog entry ids/i);
+    fireEvent.change(ids, {
+      target: {
+        value: "9d7acdd0-fad1-46c9-8218-1793f421f0fe, 9d7acdd0-fad1-46c9-8218-1793f421f0fe",
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
+    await waitFor(() =>
+      expect(mocks.createFinding).toHaveBeenCalledWith(
+        expect.objectContaining({
+          vulnerabilityIds: ["9d7acdd0-fad1-46c9-8218-1793f421f0fe"],
+        }),
+      ),
+    );
+
+    cleanup();
+    mocks.createFinding.mockReset();
+    renderCreateFindingPage();
+    fillRequiredFields();
+    fireEvent.click(screen.getByRole("tab", { name: /identity/i }));
+    fireEvent.change(screen.getByLabelText(/catalog entry ids/i), {
+      target: { value: "not-a-uuid" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/vulnerabilityIds/i);
+    expect(mocks.createFinding).not.toHaveBeenCalled();
+  });
+
   it("submits the schema-parsed weakness value", async () => {
     renderCreateFindingPage();
     mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
@@ -344,5 +467,27 @@ describe("CreateFindingPage", () => {
 
     await waitFor(() => expect(mocks.createFinding).toHaveBeenCalledTimes(1));
     expect(mocks.historyBack).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/^title$/i)).toHaveValue("Exposed admin panel");
+  });
+
+  it("disables actions and prevents duplicate submission while creation is pending", async () => {
+    let resolve!: (value: { id: string }) => void;
+    mocks.createFinding.mockReturnValueOnce(
+      new Promise((promiseResolve) => {
+        resolve = promiseResolve;
+      }),
+    );
+    renderCreateFindingPage();
+    fillRequiredFields();
+    const submit = screen.getByRole("button", { name: /create finding/i });
+    fireEvent.click(submit);
+
+    await waitFor(() => expect(submit).toBeDisabled());
+    fireEvent.click(submit);
+    expect(mocks.createFinding).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: /cancel/i })).toBeDisabled();
+
+    resolve({ id: "finding-id" });
+    await waitFor(() => expect(mocks.historyBack).toHaveBeenCalledOnce());
   });
 });

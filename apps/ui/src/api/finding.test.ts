@@ -366,6 +366,30 @@ describe("finding api", () => {
     expect(requestJsonBody()).toEqual(createManualFindingPayload);
   });
 
+  it("serializes non-null finding due dates and observation timestamps", async () => {
+    const dueDate = new Date("2026-05-06T00:00:00.000Z");
+    const observedAt = new Date("2026-05-01T13:45:00.000Z");
+    fetchMock.mockResolvedValueOnce(jsonResponse({ data: findingJson }));
+
+    await createManualFinding({
+      ...createManualFindingPayload,
+      dueDate,
+      observation: {
+        ...createManualFindingPayload.observation,
+        observedAt,
+      },
+    });
+
+    expect(requestJsonBody()).toEqual({
+      ...createManualFindingPayload,
+      dueDate: dueDate.toISOString(),
+      observation: {
+        ...createManualFindingPayload.observation,
+        observedAt: observedAt.toISOString(),
+      },
+    });
+  });
+
   it("updates findings with a mapped JSON request body", async () => {
     const update = {
       status: FindingStatus.Confirmed,

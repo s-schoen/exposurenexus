@@ -5,7 +5,7 @@ import {
 import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
 import { FindingStatus } from "@exposurenexus/types/model/finding";
 import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -20,6 +20,8 @@ const ids = {
   asset: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
   user: "1f9c36d2-1355-49d1-8464-b01ce955d88f",
   finding: "2713d833-eb13-4517-ac7c-7761545ed42a",
+  disabledUser: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+  availableVulnerability: "79c335ea-7004-4c96-aefa-4b72375b5668",
 };
 
 const asset: Asset = {
@@ -43,6 +45,15 @@ const user: UserProfile = {
   email: "robin@example.com",
   enabled: true,
   roleIds: [],
+};
+
+const disabledUser: UserProfile = {
+  ...user,
+  id: ids.disabledUser,
+  username: "casey",
+  displayName: "Casey Disabled",
+  email: "casey@example.com",
+  enabled: false,
 };
 
 const finding: Finding = {
@@ -102,6 +113,9 @@ const finding: Finding = {
 
 const mocks = vi.hoisted(() => ({
   correctFinding: vi.fn(),
+  linkVulnerability: vi.fn(),
+  unlinkVulnerability: vi.fn(),
+  confirm: vi.fn(),
   findingQuery: undefined as
     | { data?: Finding; isPending: boolean; isSuccess: boolean; error?: Error }
     | undefined,
@@ -119,9 +133,21 @@ vi.mock("@tanstack/react-query", () => ({
       return { data: asset, isPending: false, isSuccess: true };
     }
     if (options.queryKey?.[0] === "vulnerabilities") {
-      return { data: finding.vulnerabilities, isPending: false, isSuccess: true };
+      return {
+        data: [
+          ...finding.vulnerabilities,
+          {
+            ...finding.vulnerabilities[0],
+            id: ids.availableVulnerability,
+            identifier: "CVE-2026-0002",
+            title: "Available catalog entry",
+          },
+        ],
+        isPending: false,
+        isSuccess: true,
+      };
     }
-    return { data: [user], isPending: false, isSuccess: true };
+    return { data: [user, disabledUser], isPending: false, isSuccess: true };
   },
 }));
 
@@ -151,9 +177,13 @@ vi.mock("@/api/user.ts", () => ({
 vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
   useFindingLifecycle: () => ({
     correctFinding: mocks.correctFinding,
-    linkVulnerability: vi.fn(),
-    unlinkVulnerability: vi.fn(),
+    linkVulnerability: mocks.linkVulnerability,
+    unlinkVulnerability: mocks.unlinkVulnerability,
   }),
+}));
+
+vi.mock("@/components/confirm-dialog.tsx", () => ({
+  ConfirmDialog: { call: mocks.confirm },
 }));
 
 vi.mock("@/hooks/use-observation-lifecycle.ts", () => ({
@@ -181,18 +211,28 @@ vi.mock("@/components/user-label.tsx", () => ({
     new Map((users ?? []).map((profile) => [profile.id, profile])),
   getUserProfileDisplayName: (profile: UserProfile) => profile.displayName,
   UserLabel: ({
+    userId,
     user: profile,
     emptyLabel = "No User",
+    unknownLabel = "Unknown User",
   }: {
+    userId?: string | null;
     user?: UserProfile | null;
     emptyLabel?: string;
-  }) => <span>{profile?.displayName ?? emptyLabel}</span>,
+    unknownLabel?: string;
+  }) => <span>{profile?.displayName ?? (userId ? unknownLabel : emptyLabel)}</span>,
 }));
 
 describe("FindingDetailContent", () => {
   beforeEach(() => {
     mocks.correctFinding.mockReset();
     mocks.correctFinding.mockResolvedValue(finding);
+    mocks.linkVulnerability.mockReset();
+    mocks.linkVulnerability.mockResolvedValue(finding);
+    mocks.unlinkVulnerability.mockReset();
+    mocks.unlinkVulnerability.mockResolvedValue(finding);
+    mocks.confirm.mockReset();
+    mocks.confirm.mockResolvedValue(true);
     mocks.findingQuery = { data: finding, isPending: false, isSuccess: true };
   });
 
@@ -310,6 +350,109 @@ describe("FindingDetailContent", () => {
     expect(screen.queryByRole("dialog", { name: "Correct finding" })).toBeNull();
   });
 
+  it("submits a complete correction and supports disabled assignees and due-date changes", async () => {
+    const actor = userEvent.setup();
+    render(<FindingDetailContent findingId={finding.id} />);
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+    await actor.clear(screen.getByLabelText("Title"));
+    await actor.type(screen.getByLabelText("Title"), "Corrected endpoint");
+    await actor.click(screen.getByLabelText("Severity"));
+    await actor.click(screen.getByRole("option", { name: "Critical" }));
+    await actor.click(screen.getByLabelText("Status"));
+    await actor.click(screen.getByRole("option", { name: "Mitigated" }));
+    await actor.click(screen.getByLabelText("Assignee"));
+    await actor.click(screen.getByRole("option", { name: "Casey Disabled" }));
+    await actor.type(screen.getByLabelText("Due date"), "2026-06-30");
+    await actor.clear(screen.getByLabelText("Mitigation"));
+    await actor.type(screen.getByLabelText("Mitigation"), "Deploy the corrected policy.");
+    await actor.clear(screen.getByLabelText("Weakness identifiers"));
+    await actor.type(screen.getByLabelText("Weakness identifiers"), "cwe=CWE-284");
+    await actor.click(screen.getByLabelText("Affected resource type"));
+    await actor.click(screen.getByRole("option", { name: "Cloud resource" }));
+    await actor.type(screen.getByLabelText("Provider"), "aws");
+    await actor.type(screen.getByLabelText("Resource ID"), "arn:aws:s3:::admin-data");
+    await actor.click(screen.getByRole("button", { name: "Save correction" }));
+
+    expect(mocks.correctFinding).toHaveBeenCalledWith(finding.id, {
+      title: "Corrected endpoint",
+      severity: VulnerabilitySeverity.Critical,
+      status: FindingStatus.Mitigated,
+      assigneeId: ids.disabledUser,
+      dueDate: new Date("2026-06-30T00:00:00.000Z"),
+      mitigation: "Deploy the corrected policy.",
+      weakness: { identifiers: { cwe: ["CWE-284"] } },
+      affectedResource: {
+        type: AffectedResourceType.CloudResource,
+        provider: "aws",
+        resourceId: "arn:aws:s3:::admin-data",
+      },
+    });
+  });
+
+  it("resets cancelled corrections and supports clearing assignment and due date", async () => {
+    mocks.findingQuery = {
+      data: {
+        ...finding,
+        assigneeId: ids.disabledUser,
+        dueDate: new Date("2026-06-30T00:00:00.000Z"),
+      },
+      isPending: false,
+      isSuccess: true,
+    };
+    const actor = userEvent.setup();
+    render(<FindingDetailContent findingId={finding.id} />);
+    expect(screen.getByText("Casey Disabled")).toBeTruthy();
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+    await actor.clear(screen.getByLabelText("Title"));
+    await actor.type(screen.getByLabelText("Title"), "Discarded title");
+    await actor.click(screen.getByRole("button", { name: "Cancel" }));
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+    expect(screen.getByLabelText("Title")).toHaveValue(finding.title);
+    await actor.click(screen.getByLabelText("Assignee"));
+    await actor.click(screen.getByRole("option", { name: "Unassigned" }));
+    await actor.clear(screen.getByLabelText("Due date"));
+    await actor.click(screen.getByRole("button", { name: "Save correction" }));
+
+    expect(mocks.correctFinding).toHaveBeenCalledWith(
+      finding.id,
+      expect.objectContaining({ assigneeId: null, dueDate: null }),
+    );
+  });
+
+  it("shows unknown assignees without losing the edit path", async () => {
+    mocks.findingQuery = {
+      data: { ...finding, assigneeId: "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12" },
+      isPending: false,
+      isSuccess: true,
+    };
+    const actor = userEvent.setup();
+    render(<FindingDetailContent findingId={finding.id} />);
+
+    expect(screen.getByText("Unknown Assignee")).toBeTruthy();
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+    expect(screen.getByRole("dialog", { name: "Correct finding" })).toBeTruthy();
+  });
+
+  it("links and unlinks catalog entries with confirmation and retained selection on failure", async () => {
+    mocks.linkVulnerability.mockResolvedValueOnce(null).mockResolvedValueOnce(finding);
+    const actor = userEvent.setup();
+    render(<FindingDetailContent findingId={finding.id} />);
+    await actor.click(screen.getByLabelText("Link catalog entry"));
+    await actor.click(await screen.findByRole("option", { name: /CVE: CVE-2026-0002/ }));
+    await actor.click(screen.getByRole("button", { name: "Link entry" }));
+    expect(mocks.linkVulnerability).toHaveBeenCalledWith(finding.id, ids.availableVulnerability);
+    expect(screen.getByLabelText("Link catalog entry")).toHaveTextContent("CVE-2026-0002");
+    await actor.click(screen.getByRole("button", { name: "Link entry" }));
+    expect(mocks.linkVulnerability).toHaveBeenCalledTimes(2);
+
+    await actor.click(screen.getAllByRole("button", { name: "Unlink" })[0]);
+    expect(mocks.confirm).toHaveBeenCalledWith(expect.objectContaining({ confirmText: "Unlink" }));
+    expect(mocks.unlinkVulnerability).toHaveBeenCalledWith(
+      finding.id,
+      finding.vulnerabilities[0].id,
+    );
+  });
+
   it("shows validation errors and keeps the correction open", async () => {
     const actor = userEvent.setup();
     render(<FindingDetailContent findingId={finding.id} />);
@@ -333,6 +476,42 @@ describe("FindingDetailContent", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Unable to save correction. Try again.");
     expect(screen.getByRole("dialog", { name: "Correct finding" })).toBeTruthy();
+  });
+
+  it("prevents cancellation and duplicate correction while submission is pending", async () => {
+    let resolve!: (value: Finding) => void;
+    mocks.correctFinding.mockReturnValueOnce(
+      new Promise((promiseResolve) => {
+        resolve = promiseResolve;
+      }),
+    );
+    const actor = userEvent.setup();
+    render(<FindingDetailContent findingId={finding.id} />);
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+    const submit = screen.getByRole("button", { name: "Save correction" });
+    await actor.click(submit);
+
+    expect(submit).toBeDisabled();
+    await actor.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("dialog", { name: "Correct finding" })).toBeTruthy();
+    await actor.click(submit);
+    expect(mocks.correctFinding).toHaveBeenCalledTimes(1);
+
+    resolve(finding);
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Correct finding" })).toBeNull(),
+    );
+  });
+
+  it("does not unlink when confirmation is cancelled", async () => {
+    mocks.confirm.mockResolvedValueOnce(false);
+    const actor = userEvent.setup();
+    render(<FindingDetailContent findingId={finding.id} />);
+
+    await actor.click(screen.getAllByRole("button", { name: "Unlink" })[0]);
+
+    expect(mocks.confirm).toHaveBeenCalledOnce();
+    expect(mocks.unlinkVulnerability).not.toHaveBeenCalled();
   });
 
   it("preserves the correction draft when the finding query rerenders", async () => {

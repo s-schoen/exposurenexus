@@ -1,7 +1,9 @@
-import { QueryClient, QueryClientProvider, queryOptions } from "@tanstack/react-query";
+import { QueryClientProvider, queryOptions } from "@tanstack/react-query";
 import { expect, fn, mocked } from "storybook/test";
 
 import { createListUsersQueryOptions } from "@/api/user.ts";
+import { STORY_ASSETS } from "@/components/storybook-fixtures.ts";
+import { createStoryQueryClient } from "@/components/storybook-utils.tsx";
 import { PageProvider } from "@/context/page.tsx";
 import { CreateFindingPage } from "@/features/findings/components/create-finding-page.tsx";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
@@ -30,11 +32,8 @@ const meta = {
   },
   decorators: [
     (Story) => {
-      const queryClient = new QueryClient({
-        defaultOptions: {
-          queries: { retry: false },
-        },
-      });
+      const queryClient = createStoryQueryClient();
+      queryClient.setQueryData(["assets"], STORY_ASSETS);
 
       return (
         <QueryClientProvider client={queryClient}>
