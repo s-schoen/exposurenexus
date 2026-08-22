@@ -93,6 +93,9 @@ jobs:
       - name: Run shared contract tests
         run: pnpm test:contracts
 
+      - name: Run backend jobs tests
+        run: pnpm test:jobs
+
       - name: Run API unit tests
         run: pnpm test:api
 
@@ -131,6 +134,9 @@ jobs:
       - name: Run shared contracts coverage
         run: pnpm coverage:contracts
 
+      - name: Run backend jobs coverage
+        run: pnpm coverage:jobs
+
       - name: Install Playwright Chromium
         run: pnpm --filter @exposurenexus/ui exec playwright install --with-deps chromium
 
@@ -165,6 +171,16 @@ jobs:
           disable_search: true
           files: packages/contracts/coverage/lcov.info
           flags: contracts
+          fail_ci_if_error: false
+
+      - name: Upload backend jobs coverage
+        if: ${{ env.ACT != 'true' }}
+        uses: codecov/codecov-action@v7
+        with:
+          use_oidc: true
+          disable_search: true
+          files: packages/jobs/coverage/lcov.info
+          flags: jobs
           fail_ci_if_error: false
 
   publish-container:
