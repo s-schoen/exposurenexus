@@ -107,4 +107,40 @@ describe("20260816 observation model cutover migration", () => {
       });
     },
   );
+
+  it(
+    "rejects rollback without changing the observation-model schema",
+    { timeout: 15_000 },
+    async () => {
+      const database = await startDatabase();
+      await sql`
+        create type "observation_source" as enum ('manual', 'nuclei')
+      `.execute(database);
+      await sql`
+        create table "observation" (
+          "id" uuid primary key
+        )
+      `.execute(database);
+
+      await expect(cutover.down(database)).rejects.toThrow(
+        "observation model cutover is irreversible",
+      );
+
+      await expect(
+        sql<{ column_name: string }>`
+          select column_name
+          from information_schema.columns
+          where table_name = 'observation'
+          order by ordinal_position asc
+        `.execute(database),
+      ).resolves.toMatchObject({ rows: [{ column_name: "id" }] });
+      await expect(
+        sql<{ typname: string }>`
+          select typname
+          from pg_type
+          where typname = 'observation_source'
+        `.execute(database),
+      ).resolves.toMatchObject({ rows: [{ typname: "observation_source" }] });
+    },
+  );
 });
