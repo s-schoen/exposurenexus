@@ -85,8 +85,8 @@ describe("FindingObservationsSection", () => {
     const dialog = screen.getByRole("dialog", { name: "Add manual observation" });
 
     await actor.click(within(dialog).getByLabelText("Affected resource type"));
-    await actor.click(screen.getByRole("option", { name: type }));
-    expect(within(dialog).getByLabelText(snapshotLabel)).toBeVisible();
+    await actor.click(await screen.findByRole("option", { name: type }));
+    expect(await within(dialog).findByLabelText(snapshotLabel)).toBeVisible();
   });
 
   it("uses server defaults for omitted identity fields without changing the parent finding", async () => {
