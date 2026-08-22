@@ -12,12 +12,12 @@ async function countRows(db: Kysely<object>, table: (typeof legacyDomainTables)[
 }
 
 async function assertLegacyDomainIsEmpty(db: Kysely<object>): Promise<void> {
-  const counts = await Promise.all(legacyDomainTables.map((table) => countRows(db, table)));
-
-  if (counts.some((count) => count > 0)) {
-    throw new Error(
-      "observation model cutover does not backfill existing finding or vulnerability data",
-    );
+  for (const table of legacyDomainTables) {
+    if ((await countRows(db, table)) > 0) {
+      throw new Error(
+        "observation model cutover does not backfill existing finding or vulnerability data",
+      );
+    }
   }
 }
 
@@ -179,89 +179,8 @@ async function createFinalTables(db: Kysely<object>): Promise<void> {
     .execute();
 }
 
-async function createLegacyTables(db: Kysely<object>): Promise<void> {
-  await db.schema
-    .createTable("vulnerability")
-    .addColumn("id", "uuid", (col) =>
-      col
-        .primaryKey()
-        .notNull()
-        .defaultTo(sql`gen_random_uuid()`),
-    )
-    .addColumn("title", "text", (col) => col.notNull())
-    .addColumn("description", "text")
-    .addColumn("severity", sql`vuln_severity`, (col) => col.notNull())
-    .addColumn("cve", "varchar(255)")
-    .addColumn("cwe", "integer")
-    .addColumn("createdAt", "timestamptz", (col) => col.notNull())
-    .addColumn("updatedAt", "timestamptz", (col) => col.notNull())
-    .addColumn("createdBy", "uuid", (col) =>
-      col.notNull().references("user_profile.id").onDelete("restrict"),
-    )
-    .addColumn("updatedBy", "uuid", (col) =>
-      col.notNull().references("user_profile.id").onDelete("restrict"),
-    )
-    .execute();
-
-  await db.schema
-    .createTable("vulnerability_source_mapping")
-    .addColumn("id", "uuid", (col) =>
-      col
-        .primaryKey()
-        .notNull()
-        .defaultTo(sql`gen_random_uuid()`),
-    )
-    .addColumn("source", "text", (col) => col.notNull())
-    .addColumn("matchQuery", "text", (col) => col.notNull())
-    .addColumn("vulnerabilityId", "uuid", (col) =>
-      col.notNull().references("vulnerability.id").onDelete("cascade"),
-    )
-    .execute();
-  await db.schema
-    .createIndex("vulnerability_source_mapping_source_matchQuery_unique")
-    .on("vulnerability_source_mapping")
-    .columns(["source", "matchQuery"])
-    .unique()
-    .execute();
-
-  await db.schema
-    .createTable("finding")
-    .addColumn("id", "uuid", (col) =>
-      col
-        .primaryKey()
-        .notNull()
-        .defaultTo(sql`gen_random_uuid()`),
-    )
-    .addColumn("assetId", "uuid", (col) =>
-      col.notNull().references("asset.id").onDelete("restrict"),
-    )
-    .addColumn("vulnerabilityId", "uuid", (col) =>
-      col.notNull().references("vulnerability.id").onDelete("restrict"),
-    )
-    .addColumn("severity", sql`vuln_severity`, (col) => col.notNull())
-    .addColumn("status", sql`finding_status`, (col) => col.notNull().defaultTo("active"))
-    .addColumn("evidence", "text")
-    .addColumn("source", "text", (col) => col.notNull())
-    .addColumn("mitigation", "text")
-    .addColumn("firstSeen", "timestamptz", (col) => col.notNull())
-    .addColumn("lastSeen", "timestamptz", (col) => col.notNull())
-    .addColumn("fingerprint", "text", (col) => col.notNull())
-    .addColumn("assigneeId", "uuid", (col) =>
-      col.references("user_profile.id").onDelete("set null"),
-    )
-    .addColumn("dueDate", "timestamptz")
-    .addColumn("createdAt", "timestamptz", (col) => col.notNull())
-    .addColumn("updatedAt", "timestamptz", (col) => col.notNull())
-    .addColumn("createdBy", "uuid", (col) =>
-      col.notNull().references("user_profile.id").onDelete("restrict"),
-    )
-    .addColumn("updatedBy", "uuid", (col) =>
-      col.notNull().references("user_profile.id").onDelete("restrict"),
-    )
-    .execute();
-}
-
 export async function up(db: Kysely<object>): Promise<void> {
+  // This destructive cutover is forward-only for empty 0.x databases.
   await assertLegacyDomainIsEmpty(db);
 
   await db.schema.dropTable("vulnerability_source_mapping").ifExists().execute();
@@ -271,17 +190,6 @@ export async function up(db: Kysely<object>): Promise<void> {
   await createFinalTables(db);
 }
 
-export async function down(db: Kysely<object>): Promise<void> {
-  await db.schema.dropTable("vulnerability_source_mapping").ifExists().execute();
-  await db.schema.dropTable("observation").ifExists().execute();
-  await db.schema.dropTable("finding_vulnerability").ifExists().execute();
-  await db.schema.dropTable("finding").ifExists().execute();
-  await db.schema.dropTable("ingestion").ifExists().execute();
-  await db.schema.dropTable("vulnerability").ifExists().execute();
-
-  await db.schema.dropType("ingestion_source").ifExists().execute();
-  await db.schema.dropType("observation_source").ifExists().execute();
-  await db.schema.dropType("vulnerability_type").ifExists().execute();
-
-  await createLegacyTables(db);
+export async function down(_db: Kysely<object>): Promise<void> {
+  throw new Error("observation model cutover is irreversible");
 }
