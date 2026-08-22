@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AssetsPage } from "@/features/assets/components/assets-page.tsx";
 
-import type { AssetWithCustomFields, CreateAsset } from "@exposurenexus/types/model/asset";
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { AssetWithCustomFields, CreateAsset } from "@exposurenexus/contracts/model/asset";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { ReactNode } from "react";
 
 type NavigateCall = {

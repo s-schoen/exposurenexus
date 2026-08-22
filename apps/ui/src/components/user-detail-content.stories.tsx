@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button.tsx";
 import { UserDetailContent } from "@/components/user-detail-content.tsx";
 
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type UserDetailContentStoryArgs = {

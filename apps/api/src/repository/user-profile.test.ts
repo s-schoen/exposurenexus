@@ -1,4 +1,4 @@
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac";
+import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";

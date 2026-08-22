@@ -6,7 +6,7 @@ import { unauthorized } from "../lib/api-error.js";
 import health from "../routes/health.js";
 
 import type { ContextVariables } from "../lib/hono-schema.js";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { MiddlewareHandler } from "hono";
 
 interface CreateTestAppOptions {

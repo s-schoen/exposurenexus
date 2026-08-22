@@ -1,18 +1,18 @@
 import {
   findingAffectedResourceSchema,
   observationAffectedResourceSchema,
-} from "@exposurenexus/types/model/affected-resource";
+} from "@exposurenexus/contracts/model/affected-resource";
 import {
   findingRecordSchema,
   findingSchema,
   type Finding,
-} from "@exposurenexus/types/model/finding";
+} from "@exposurenexus/contracts/model/finding";
 import {
   findingVulnerabilityLinkSchema,
   type FindingVulnerabilityLink,
-} from "@exposurenexus/types/model/finding-vulnerability";
-import { observationSchema, type Observation } from "@exposurenexus/types/model/observation";
-import { weaknessSchema } from "@exposurenexus/types/model/weakness";
+} from "@exposurenexus/contracts/model/finding-vulnerability";
+import { observationSchema, type Observation } from "@exposurenexus/contracts/model/observation";
+import { weaknessSchema } from "@exposurenexus/contracts/model/weakness";
 import {
   type Kysely,
   type Insertable,

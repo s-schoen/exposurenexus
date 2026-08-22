@@ -1,4 +1,4 @@
-import type { Weakness } from "@exposurenexus/types/model/weakness";
+import type { Weakness } from "@exposurenexus/contracts/model/weakness";
 
 interface WeaknessTextInput {
   identifiers: Record<string, Array<string>>;

@@ -1,4 +1,4 @@
-import { AssetIdentifierType, validateAssetIdentifier } from "@exposurenexus/types/model/asset";
+import { AssetIdentifierType, validateAssetIdentifier } from "@exposurenexus/contracts/model/asset";
 import { Check, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 
@@ -17,7 +17,7 @@ import { Spinner } from "@/components/ui/spinner.tsx";
 import type {
   AssetIdentifierRecord,
   CreateAssetIdentifier,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import type { FormEvent, ReactNode } from "react";
 
 export interface AssetIdentifierDraft {

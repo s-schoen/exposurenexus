@@ -3,7 +3,7 @@ import { findingStatusBadgeClass } from "@/lib/colors.ts";
 import { formatFindingStatus } from "@/lib/format.ts";
 import { cn } from "@/lib/utils.ts";
 
-import type { FindingStatus } from "@exposurenexus/types/model/finding";
+import type { FindingStatus } from "@exposurenexus/contracts/model/finding";
 
 interface FindingStatusBadgeProps {
   status: FindingStatus;

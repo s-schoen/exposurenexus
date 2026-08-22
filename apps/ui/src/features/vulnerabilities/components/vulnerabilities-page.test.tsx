@@ -5,7 +5,7 @@ import type {
   VulnerabilityCatalog,
   VulnerabilitySeverity,
   VulnerabilityType,
-} from "@exposurenexus/types/model/vulnerability";
+} from "@exposurenexus/contracts/model/vulnerability";
 import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => {

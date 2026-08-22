@@ -1,4 +1,4 @@
-import type { Observation } from "@exposurenexus/types/model/observation";
+import type { Observation } from "@exposurenexus/contracts/model/observation";
 
 export type ObservationEventPayloads = {
   "observation.created": {

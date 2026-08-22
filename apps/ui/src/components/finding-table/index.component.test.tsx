@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import type { Finding, FindingStatus } from "@exposurenexus/types/model/finding";
-import type { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import type { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import type { Finding, FindingStatus } from "@exposurenexus/contracts/model/finding";
+import type { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import type { ReactElement, ReactNode, RefObject } from "react";
 
 const mocks = vi.hoisted(() => {

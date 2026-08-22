@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge.tsx";
 import { formatPermissionLabel, getRoleKindLabel, getUniqueRoleResources } from "@/lib/role.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
-import type { Role } from "@exposurenexus/types/model/rbac";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
 
 export const columns: Array<DataTableColumnDef<Role>> = [
   {

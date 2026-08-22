@@ -5,7 +5,7 @@ import {
   AssetEnvironment,
   AssetLifecycleState,
   AssetType,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import { sql, type Kysely, type Selectable, type Transaction } from "kysely";
 
 import { type Database } from "../db/index.js";

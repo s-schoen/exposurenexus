@@ -1,4 +1,4 @@
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -15,7 +15,7 @@ import { APIError } from "@/api/common.ts";
 import type {
   AssetCustomFieldDefinition,
   UpdateAssetCustomFieldDefinition,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 
 const fetchMock = vi.fn<typeof fetch>();
 

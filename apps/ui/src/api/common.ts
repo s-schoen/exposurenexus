@@ -4,7 +4,7 @@ import type {
   APIArrayDataReply,
   APIErrorReply,
   APISingleDataReply,
-} from "@exposurenexus/types/api";
+} from "@exposurenexus/contracts/api";
 import type { z } from "zod/v4";
 
 export const DEFAULT_QUERY_STALE_TIME = 1000 * 60 * 5;

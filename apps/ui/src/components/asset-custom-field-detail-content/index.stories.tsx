@@ -1,11 +1,11 @@
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useLayoutEffect, useMemo, useState } from "react";
 
 import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content";
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
 
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type AssetCustomFieldDetailStoryArgs = {

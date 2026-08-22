@@ -1,4 +1,4 @@
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac";
+import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { CircleAlert } from "lucide-react";

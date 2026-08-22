@@ -2,7 +2,7 @@ import {
   PermissionResource,
   PermissionVerb,
   builtInRoleIds,
-} from "@exposurenexus/types/model/rbac";
+} from "@exposurenexus/contracts/model/rbac";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -13,7 +13,7 @@ import {
   updateRole,
 } from "@/api/role.ts";
 
-import type { CreateRole, Role, UpdateRole } from "@exposurenexus/types/model/rbac";
+import type { CreateRole, Role, UpdateRole } from "@exposurenexus/contracts/model/rbac";
 
 const fetchMock = vi.fn<typeof fetch>();
 

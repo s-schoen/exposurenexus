@@ -25,12 +25,12 @@ import type {
   CreateAssetIdentifier,
   UpdateAsset,
   UpdateAssetIdentifier,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import type {
   AssetCustomFieldValue,
   UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 
 export interface AssetLifecycleFailure {
   asset: Asset;

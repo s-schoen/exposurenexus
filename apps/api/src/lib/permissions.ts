@@ -2,7 +2,7 @@ import {
   PermissionResource,
   type Permission,
   PermissionVerb,
-} from "@exposurenexus/types/model/rbac";
+} from "@exposurenexus/contracts/model/rbac";
 
 // assignment of verbs to resources
 export type ResourcePermissionVerbAssignment = Partial<

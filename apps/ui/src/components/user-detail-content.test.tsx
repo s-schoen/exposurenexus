@@ -1,9 +1,9 @@
-import { BuiltInRoleName, builtInRoleIds } from "@exposurenexus/types/model/rbac";
+import { BuiltInRoleName, builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Role } from "@exposurenexus/types/model/rbac";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { ReactNode } from "react";
 
 interface QueryState<TData> {

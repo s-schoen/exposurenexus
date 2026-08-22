@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Role } from "@exposurenexus/types/model/rbac";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => {

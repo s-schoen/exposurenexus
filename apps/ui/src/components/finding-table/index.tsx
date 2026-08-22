@@ -19,7 +19,7 @@ import { createUserProfileById } from "@/components/user-label.tsx";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
 
 interface FindingTableProps {
   initialGrouping?: Array<string>;

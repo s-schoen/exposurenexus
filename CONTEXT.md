@@ -412,7 +412,7 @@ high exposure, affected assets, and mitigation rate.
   application behavior, and repositories adapt persistence.
 - The UI owns the authenticated React workflows for dashboard, assets,
   findings, vulnerabilities, users, roles, custom fields, and imports.
-- `packages/types` owns shared Zod schemas, enum values, and TypeScript types
+- `packages/contracts` owns shared Zod schemas, enum values, and TypeScript types
   used by both API and UI.
 - Asset custom fields currently apply only to assets, not findings,
   vulnerabilities, users, or roles.

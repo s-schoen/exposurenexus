@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { UsersPage } from "@/features/users/components/users-page.tsx";
 
-import type { Role } from "@exposurenexus/types/model/rbac";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { ReactNode } from "react";
 
 type NavigateCall = {

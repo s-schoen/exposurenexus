@@ -1,7 +1,7 @@
-import type { FindingAffectedResource } from "@exposurenexus/types/model/affected-resource";
-import type { FindingStatus } from "@exposurenexus/types/model/finding";
-import type { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
-import type { Weakness } from "@exposurenexus/types/model/weakness";
+import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
+import type { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import type { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
+import type { Weakness } from "@exposurenexus/contracts/model/weakness";
 import type { Generated } from "kysely";
 
 export interface FindingTable {

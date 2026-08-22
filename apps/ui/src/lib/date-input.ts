@@ -1,4 +1,4 @@
-import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date";
+import { normalizeDateToUtcStart } from "@exposurenexus/contracts/model/date";
 
 export function formatUtcDateOnly(value: Date): string {
   return normalizeDateToUtcStart(value).toISOString().slice(0, 10);

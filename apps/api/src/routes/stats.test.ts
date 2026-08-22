@@ -1,5 +1,5 @@
-import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createRequireDomainPermission } from "../middleware/auth.js";

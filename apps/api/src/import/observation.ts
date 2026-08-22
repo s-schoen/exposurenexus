@@ -1,9 +1,9 @@
 import type {
   FindingAffectedResource,
   ObservationAffectedResource,
-} from "@exposurenexus/types/model/affected-resource";
-import type { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
-import type { Weakness } from "@exposurenexus/types/model/weakness";
+} from "@exposurenexus/contracts/model/affected-resource";
+import type { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
+import type { Weakness } from "@exposurenexus/contracts/model/weakness";
 
 export interface NormalizedObservationDraft {
   source: string;

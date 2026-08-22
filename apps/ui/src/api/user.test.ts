@@ -1,4 +1,4 @@
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac";
+import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -12,7 +12,7 @@ import type {
   CreateUserProfile,
   UpdateUserProfile,
   UserProfile,
-} from "@exposurenexus/types/model/user";
+} from "@exposurenexus/contracts/model/user";
 
 const fetchMock = vi.fn<typeof fetch>();
 

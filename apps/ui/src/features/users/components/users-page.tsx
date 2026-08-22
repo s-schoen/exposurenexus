@@ -7,7 +7,7 @@ import { usePageMeta } from "@/context/page.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 import { useUserTableSearchState } from "@/hooks/use-user-table-search-state.ts";
 
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
 interface UsersPageProps {
   search?: Record<string, unknown>;

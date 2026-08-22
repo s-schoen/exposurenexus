@@ -1,4 +1,4 @@
-import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
+import { PermissionResource, PermissionVerb } from "@exposurenexus/contracts/model/rbac";
 import { describe, expect, it } from "vitest";
 
 import { domainPermission, groupPermission, toPermissionStatements } from "./permissions.js";

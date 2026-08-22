@@ -1,9 +1,9 @@
 import {
   AffectedResourceType,
   observationAffectedResourceSchema,
-} from "@exposurenexus/types/model/affected-resource";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
-import { weaknessSchema } from "@exposurenexus/types/model/weakness";
+} from "@exposurenexus/contracts/model/affected-resource";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
+import { weaknessSchema } from "@exposurenexus/contracts/model/weakness";
 import { z } from "zod/v4";
 
 import type { NormalizedObservationDraft } from "./observation.js";

@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { cn } from "@/lib/utils.ts";
 
-import type { Asset } from "@exposurenexus/types/model/asset";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
 
 interface AssetComboboxProps {
   id?: string;

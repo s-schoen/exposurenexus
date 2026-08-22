@@ -1,4 +1,4 @@
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac";
+import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,7 +10,7 @@ import {
   signOut,
 } from "@/lib/auth.ts";
 
-import type { AuthSessionDataReply } from "@exposurenexus/types/api";
+import type { AuthSessionDataReply } from "@exposurenexus/contracts/api";
 
 const fetchMock = vi.fn<typeof fetch>();
 

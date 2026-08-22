@@ -90,8 +90,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run shared type tests
-        run: pnpm test:types
+      - name: Run shared contract tests
+        run: pnpm test:contracts
 
       - name: Run API unit tests
         run: pnpm test:api
@@ -128,8 +128,8 @@ jobs:
       - name: Run API coverage
         run: pnpm coverage:api
 
-      - name: Run shared types coverage
-        run: pnpm coverage:types
+      - name: Run shared contracts coverage
+        run: pnpm coverage:contracts
 
       - name: Install Playwright Chromium
         run: pnpm --filter @exposurenexus/ui exec playwright install --with-deps chromium
@@ -157,14 +157,14 @@ jobs:
           flags: ui
           fail_ci_if_error: false
 
-      - name: Upload shared types coverage
+      - name: Upload shared contracts coverage
         if: ${{ env.ACT != 'true' }}
         uses: codecov/codecov-action@v7
         with:
           use_oidc: true
           disable_search: true
-          files: packages/types/coverage/lcov.info
-          flags: types
+          files: packages/contracts/coverage/lcov.info
+          flags: contracts
           fail_ci_if_error: false
 
   publish-container:

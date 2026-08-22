@@ -1,6 +1,6 @@
-import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date";
-import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { normalizeDateToUtcStart } from "@exposurenexus/contracts/model/date";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx";
 import { FindingStatusBadge } from "@/components/finding-status-badge.tsx";
@@ -14,9 +14,9 @@ import {
 import { formatUtcDateOnly } from "@/lib/date-input.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
-import type { Asset } from "@exposurenexus/types/model/asset";
-import type { Finding } from "@exposurenexus/types/model/finding";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
 export const FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE = "__unassigned_assignee__";
 

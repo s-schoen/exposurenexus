@@ -3,7 +3,7 @@ import {
   PermissionResource,
   PermissionVerb,
   builtInRoleIds,
-} from "@exposurenexus/types/model/rbac";
+} from "@exposurenexus/contracts/model/rbac";
 import { sql } from "kysely";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 

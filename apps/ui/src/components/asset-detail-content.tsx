@@ -1,8 +1,12 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/contracts/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Plus, RotateCcw, Server, X } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -44,12 +48,12 @@ import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 import { cn } from "@/lib/utils.ts";
 
-import type { Asset, UpdateAsset } from "@exposurenexus/types/model/asset";
+import type { Asset, UpdateAsset } from "@exposurenexus/contracts/model/asset";
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
   AssetCustomFieldValueLiteral,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 import type { ReactNode } from "react";
 
 interface AssetDetailContentProps {

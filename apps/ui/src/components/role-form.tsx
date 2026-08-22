@@ -2,7 +2,7 @@ import {
   PermissionResource,
   PermissionVerb,
   createRoleSchema,
-} from "@exposurenexus/types/model/rbac";
+} from "@exposurenexus/contracts/model/rbac";
 import { useForm } from "@tanstack/react-form";
 import { useMemo } from "react";
 
@@ -28,7 +28,7 @@ import { Input } from "@/components/ui/input.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { formatPermissionLabel, isBuiltInRoleId } from "@/lib/role.ts";
 
-import type { CreateRole, Permission, Role, UpdateRole } from "@exposurenexus/types/model/rbac";
+import type { CreateRole, Permission, Role, UpdateRole } from "@exposurenexus/contracts/model/rbac";
 
 export type RoleFormMode = "create" | "edit";
 

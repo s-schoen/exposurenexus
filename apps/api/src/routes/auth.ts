@@ -17,8 +17,8 @@ import {
 import type { ContextVariables } from "../lib/hono-schema.js";
 import type { CsrfProtection } from "../middleware/csrf.js";
 import type { AuthService } from "../service/auth.js";
-import type { AuthSessionDataReply, AuthSessionReply } from "@exposurenexus/types/api";
-import type { UserSession } from "@exposurenexus/types/model/user";
+import type { AuthSessionDataReply, AuthSessionReply } from "@exposurenexus/contracts/api";
+import type { UserSession } from "@exposurenexus/contracts/model/user";
 
 const loginSchema = z.strictObject({
   username: z.string().trim().min(1),

@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 
 import { UserLabel } from "@/components/user-label";
 
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentProps } from "react";
 

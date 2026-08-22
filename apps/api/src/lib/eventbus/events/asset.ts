@@ -1,4 +1,4 @@
-import type { AssetWithCustomFields } from "@exposurenexus/types/model/asset";
+import type { AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
 
 export type AssetEventPayloads = {
   "asset.created": {

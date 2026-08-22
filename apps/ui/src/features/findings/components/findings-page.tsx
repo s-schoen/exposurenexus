@@ -5,7 +5,7 @@ import { usePageMeta } from "@/context/page.tsx";
 import { useFindingTableSearchState } from "@/hooks/use-finding-table-search-state.ts";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
 
 interface FindingsPageProps {
   search?: Record<string, unknown>;

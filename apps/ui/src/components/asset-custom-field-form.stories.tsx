@@ -1,4 +1,4 @@
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
 import { useState } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 

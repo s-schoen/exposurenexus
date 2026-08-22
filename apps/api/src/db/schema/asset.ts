@@ -3,7 +3,7 @@ import type {
   AssetEnvironment,
   AssetLifecycleState,
   AssetType,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import type { Generated } from "kysely";
 
 export interface AssetTable {

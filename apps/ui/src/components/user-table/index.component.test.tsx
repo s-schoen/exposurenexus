@@ -1,9 +1,9 @@
-import { builtInRoleIds } from "@exposurenexus/types/model/rbac";
+import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Role } from "@exposurenexus/types/model/rbac";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => {

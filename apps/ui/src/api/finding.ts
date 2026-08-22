@@ -1,8 +1,8 @@
 import {
   findingSchema,
   FindingStatistics as findingStatisticsSchema,
-} from "@exposurenexus/types/model/finding";
-import { observationSchema } from "@exposurenexus/types/model/observation";
+} from "@exposurenexus/contracts/model/finding";
+import { observationSchema } from "@exposurenexus/contracts/model/observation";
 import { keepPreviousData, queryOptions, useMutation } from "@tanstack/react-query";
 
 import {
@@ -18,12 +18,12 @@ import type {
   Finding,
   FindingStatistics,
   UpdateFinding,
-} from "@exposurenexus/types/model/finding";
+} from "@exposurenexus/contracts/model/finding";
 import type {
   ManualObservationInput,
   Observation,
   UpdateObservation,
-} from "@exposurenexus/types/model/observation";
+} from "@exposurenexus/contracts/model/observation";
 
 async function listFindings(): Promise<Array<Finding>> {
   const response = await apiRequest("/api/findings", {

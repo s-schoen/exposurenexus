@@ -25,9 +25,9 @@ authorization model. It is not an endpoint reference.
 Asset custom fields are split across shared types, migrations, repositories,
 services, and route layers.
 
-- `packages/types/src/model/asset-custom-field.ts` defines the supported field
+- `packages/contracts/src/model/asset-custom-field.ts` defines the supported field
   types, definition shapes, value shapes, and request validation schemas.
-- `packages/types/src/model/asset.ts` keeps the core asset shapes and the
+- `packages/contracts/src/model/asset.ts` keeps the core asset shapes and the
   `AssetWithCustomFields` projection.
 - `apps/api/src/db/migrations/20260429-asset-custom-fields.ts` creates the
   custom field tables and the database enum for field types.
@@ -54,7 +54,7 @@ services, and route layers.
 - `apps/api/src/routes/assets.ts` exposes asset-specific custom field read,
   assignment, and value operations.
 
-Shared custom field shapes live in `packages/types`, so the API, UI, and tests
+Shared custom field shapes live in `packages/contracts`, so the API, UI, and tests
 use the same domain model.
 
 ## Field Types

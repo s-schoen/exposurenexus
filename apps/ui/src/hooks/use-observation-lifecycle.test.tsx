@@ -1,6 +1,6 @@
-import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { ObservationSource } from "@exposurenexus/types/model/observation";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import { ObservationSource } from "@exposurenexus/contracts/model/observation";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,7 +14,7 @@ import {
 import { useObservationLifecycle } from "@/hooks/use-observation-lifecycle.ts";
 
 import type * as FindingApi from "@/api/finding.ts";
-import type { Observation } from "@exposurenexus/types/model/observation";
+import type { Observation } from "@exposurenexus/contracts/model/observation";
 import type { ReactNode } from "react";
 
 const {

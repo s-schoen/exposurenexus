@@ -1,11 +1,11 @@
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EditCustomFieldPage } from "@/features/custom-fields/components/edit-custom-field-page.tsx";
 
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 
 interface QueryState<TData> {
   data?: TData;

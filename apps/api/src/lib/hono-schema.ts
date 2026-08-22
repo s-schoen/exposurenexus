@@ -1,4 +1,4 @@
-import type { UserProfile, UserSession } from "@exposurenexus/types/model/user";
+import type { UserProfile, UserSession } from "@exposurenexus/contracts/model/user";
 
 export interface ContextVariables {
   requestId: string;

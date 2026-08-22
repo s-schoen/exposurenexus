@@ -1,4 +1,4 @@
-import { AssetIdentifierType } from "@exposurenexus/types/model/asset";
+import { AssetIdentifierType } from "@exposurenexus/contracts/model/asset";
 import { useState } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 
@@ -7,7 +7,7 @@ import { AssetIdentifierTable } from "@/components/asset-identifier-table.tsx";
 import type {
   AssetIdentifierRecord,
   CreateAssetIdentifier,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const IDENTIFIERS: Array<AssetIdentifierRecord> = [

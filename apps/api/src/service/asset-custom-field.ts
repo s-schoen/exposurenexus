@@ -9,7 +9,7 @@ import {
   type UpdateAssetCustomFieldDefinition,
   type UpdateAssetCustomFieldValue,
   validateAssetCustomFieldDefinitionRules,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 
 import {
   createDomainEventEmitter,
@@ -23,8 +23,8 @@ import { ApplicationError, isApplicationError } from "./application-error.js";
 import { isConflictError } from "./errors.js";
 
 import type { AssetCustomFieldRepository } from "../repository/asset-custom-field.js";
-import type { Asset, AssetWithCustomFields } from "@exposurenexus/types/model/asset";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { Asset, AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Logger } from "pino";
 
 interface AssetLookupRepository {

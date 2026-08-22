@@ -3,11 +3,11 @@ import {
   AssetIdentifierType,
   AssetLifecycleState,
   AssetType,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -29,13 +29,17 @@ import {
   updateAsset,
 } from "@/api/asset.ts";
 
-import type { Asset, AssetWithCustomFields, CreateAsset } from "@exposurenexus/types/model/asset";
+import type {
+  Asset,
+  AssetWithCustomFields,
+  CreateAsset,
+} from "@exposurenexus/contracts/model/asset";
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
   UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 
 const fetchMock = vi.fn<typeof fetch>();
 

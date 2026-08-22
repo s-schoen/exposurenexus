@@ -1,5 +1,5 @@
 import type { Database } from "../db/index.js";
-import type { CreateRole, Role, UpdateRole } from "@exposurenexus/types/model/rbac";
+import type { CreateRole, Role, UpdateRole } from "@exposurenexus/contracts/model/rbac";
 import type { Kysely, Transaction } from "kysely";
 
 type DatabaseExecutor = Kysely<Database> | Transaction<Database>;

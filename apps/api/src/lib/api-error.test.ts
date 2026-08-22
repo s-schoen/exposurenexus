@@ -1,4 +1,4 @@
-import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/types/model/asset-custom-field";
+import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/contracts/model/asset-custom-field";
 import { HTTPException } from "hono/http-exception";
 import { describe, expect, it } from "vitest";
 

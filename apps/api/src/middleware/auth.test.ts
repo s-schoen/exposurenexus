@@ -2,7 +2,7 @@ import {
   type Permission,
   PermissionResource,
   PermissionVerb,
-} from "@exposurenexus/types/model/rbac";
+} from "@exposurenexus/contracts/model/rbac";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 

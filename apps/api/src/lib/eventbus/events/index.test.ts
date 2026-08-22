@@ -1,5 +1,12 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
-import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/contracts/model/asset";
+import {
+  VulnerabilitySeverity,
+  VulnerabilityType,
+} from "@exposurenexus/contracts/model/vulnerability";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { createTestUser } from "../../../test/app.js";

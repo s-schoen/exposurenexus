@@ -1,4 +1,4 @@
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
 export type UserEventPayloads = {
   "user.created": {

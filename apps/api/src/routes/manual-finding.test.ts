@@ -1,6 +1,6 @@
-import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createRequireDomainPermission } from "../middleware/auth.js";

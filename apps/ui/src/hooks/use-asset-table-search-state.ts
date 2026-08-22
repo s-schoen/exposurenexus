@@ -1,4 +1,4 @@
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 
@@ -14,7 +14,7 @@ import {
 
 import type { AssetListOptions } from "@/api/asset.ts";
 import type { DataTableFilterState } from "@/components/data-table/types.ts";
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 
 export interface AssetCustomFieldFilterSearchState {
   select: Record<string, Array<string>>;

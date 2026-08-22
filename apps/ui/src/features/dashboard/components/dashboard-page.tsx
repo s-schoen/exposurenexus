@@ -1,4 +1,4 @@
-import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Activity, Bug, CircleCheckBig, Radar, Server, ShieldAlert } from "lucide-react";

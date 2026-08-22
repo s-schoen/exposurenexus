@@ -1,12 +1,12 @@
-import { observationAffectedResourceSchema } from "@exposurenexus/types/model/affected-resource";
-import { observationSchema, type Observation } from "@exposurenexus/types/model/observation";
-import { weaknessSchema } from "@exposurenexus/types/model/weakness";
+import { observationAffectedResourceSchema } from "@exposurenexus/contracts/model/affected-resource";
+import { observationSchema, type Observation } from "@exposurenexus/contracts/model/observation";
+import { weaknessSchema } from "@exposurenexus/contracts/model/weakness";
 
 import { getFindingProjectionByID } from "./finding.js";
 
 import type { Database } from "../db/index.js";
 import type { ObservationTable } from "../db/schema/observation.js";
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
 import type { Kysely, Insertable, Selectable } from "kysely";
 
 type ObservationRecord = Observation;

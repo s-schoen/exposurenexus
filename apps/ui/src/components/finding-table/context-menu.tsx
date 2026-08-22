@@ -7,7 +7,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
 import type { ReactElement } from "react";
 
 interface FindingContextMenuProps {

@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Asset } from "@exposurenexus/types/model/asset";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type { ReactNode } from "react";
 
 interface QueryState<TData> {

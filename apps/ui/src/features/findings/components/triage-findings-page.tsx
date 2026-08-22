@@ -1,4 +1,4 @@
-import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx";
@@ -7,7 +7,7 @@ import { usePageMeta } from "@/context/page.tsx";
 import { useFindingTableSearchState } from "@/hooks/use-finding-table-search-state.ts";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
 
 interface TriageFindingsPageProps {
   search?: Record<string, unknown>;

@@ -1,10 +1,10 @@
-import { AssetCustomFieldType } from "@exposurenexus/types/model/asset-custom-field";
+import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
 
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 
 function formatTypeLabel(type: AssetCustomFieldType): string {
   switch (type) {

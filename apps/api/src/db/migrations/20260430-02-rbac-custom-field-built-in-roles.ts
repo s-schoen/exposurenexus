@@ -2,7 +2,7 @@ import {
   PermissionResource,
   PermissionVerb,
   builtInRoleIds,
-} from "@exposurenexus/types/model/rbac";
+} from "@exposurenexus/contracts/model/rbac";
 import { type Kysely } from "kysely";
 
 const customFieldBuiltInPermissions = [

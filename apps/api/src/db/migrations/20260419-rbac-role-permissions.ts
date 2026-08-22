@@ -3,7 +3,7 @@ import {
   PermissionResource,
   PermissionVerb,
   builtInRoleIds,
-} from "@exposurenexus/types/model/rbac";
+} from "@exposurenexus/contracts/model/rbac";
 import { Kysely, sql } from "kysely";
 
 const seededRoles = [

@@ -1,6 +1,6 @@
-import type { Finding } from "@exposurenexus/types/model/finding";
-import type { FindingVulnerabilityLink } from "@exposurenexus/types/model/finding-vulnerability";
-import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerability";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
+import type { FindingVulnerabilityLink } from "@exposurenexus/contracts/model/finding-vulnerability";
+import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
 
 export type FindingEventPayloads = {
   "finding.created": {

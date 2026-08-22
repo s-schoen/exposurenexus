@@ -8,7 +8,7 @@ import {
 } from "../service/application-error.js";
 
 import type { ContextVariables } from "./hono-schema.js";
-import type { APIErrorReply } from "@exposurenexus/types/api";
+import type { APIErrorReply } from "@exposurenexus/contracts/api";
 import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 

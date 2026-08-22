@@ -1,12 +1,15 @@
-import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import {
   AssetEnvironment,
   AssetIdentifierType,
   AssetLifecycleState,
   AssetType,
-} from "@exposurenexus/types/model/asset";
-import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity, VulnerabilityType } from "@exposurenexus/types/model/vulnerability";
+} from "@exposurenexus/contracts/model/asset";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import {
+  VulnerabilitySeverity,
+  VulnerabilityType,
+} from "@exposurenexus/contracts/model/vulnerability";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";

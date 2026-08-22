@@ -3,7 +3,7 @@ import {
   type CreateRole,
   type Role,
   type UpdateRole,
-} from "@exposurenexus/types/model/rbac";
+} from "@exposurenexus/contracts/model/rbac";
 
 import {
   createDomainEventEmitter,

@@ -1,4 +1,4 @@
-import { assetCustomFieldDefinitionSchema } from "@exposurenexus/types/model/asset-custom-field";
+import { assetCustomFieldDefinitionSchema } from "@exposurenexus/contracts/model/asset-custom-field";
 import { keepPreviousData, queryOptions, useMutation } from "@tanstack/react-query";
 
 import {
@@ -13,7 +13,7 @@ import type {
   AssetCustomFieldDefinition,
   CreateAssetCustomFieldDefinition,
   UpdateAssetCustomFieldDefinition,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 
 export async function listAssetCustomFieldDefinitions(): Promise<
   Array<AssetCustomFieldDefinition>

@@ -1,6 +1,6 @@
-import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,7 +14,7 @@ import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 
 import type * as FindingApi from "@/api/finding.ts";
 import type { FindingDeleteBatchResult } from "@/hooks/use-finding-lifecycle.ts";
-import type { CreateManualFinding, Finding } from "@exposurenexus/types/model/finding";
+import type { CreateManualFinding, Finding } from "@exposurenexus/contracts/model/finding";
 import type { ReactNode } from "react";
 
 const {

@@ -1,6 +1,10 @@
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
-import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/contracts/model/asset";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useMemo } from "react";
 
 import { RouterStoryProvider, createStoryQueryClient } from "@/components/storybook-utils.tsx";

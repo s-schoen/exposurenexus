@@ -1,13 +1,17 @@
-import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { AssetEnvironment, AssetLifecycleState, AssetType } from "@exposurenexus/types/model/asset";
-import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/contracts/model/asset";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { Asset } from "@exposurenexus/types/model/asset";
-import type { Finding } from "@exposurenexus/types/model/finding";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { ReactNode } from "react";
 
 vi.mock("@/components/data-table/column-header.tsx", () => ({

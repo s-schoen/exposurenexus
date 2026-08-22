@@ -7,7 +7,7 @@ import {
   AssetCustomFieldType,
   type UpdateAssetCustomFieldDefinition,
   type UpdateAssetCustomFieldValue,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 import { sql, type Kysely, type RawBuilder, type Selectable, type Transaction } from "kysely";
 
 import { type Database } from "../db/index.js";

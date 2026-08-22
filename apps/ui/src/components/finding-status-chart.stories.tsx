@@ -1,4 +1,4 @@
-import { FindingStatus } from "@exposurenexus/types/model/finding";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 
 import { FindingStatusChart } from "@/components/finding-status-chart";
 

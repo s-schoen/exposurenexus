@@ -1,16 +1,16 @@
-import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date";
+import { normalizeDateToUtcStart } from "@exposurenexus/contracts/model/date";
 import {
   type CreateManualFinding,
   type Finding,
   type UpdateFinding,
-} from "@exposurenexus/types/model/finding";
+} from "@exposurenexus/contracts/model/finding";
 import {
   type MoveObservationInput,
   ObservationSource,
   type ManualObservationInput,
   type Observation,
   type UpdateObservation,
-} from "@exposurenexus/types/model/observation";
+} from "@exposurenexus/contracts/model/observation";
 
 import {
   createDomainEventEmitter,
@@ -25,9 +25,9 @@ import { isForeignKeyError } from "./errors.js";
 
 import type { FindingRepository } from "../repository/finding.js";
 import type { ObservationRepository } from "../repository/observation.js";
-import type { Asset } from "@exposurenexus/types/model/asset";
-import type { UserProfile } from "@exposurenexus/types/model/user";
-import type { VulnerabilityCatalog } from "@exposurenexus/types/model/vulnerability";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
+import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
 import type { Logger } from "pino";
 
 interface VulnerabilityLookupService {

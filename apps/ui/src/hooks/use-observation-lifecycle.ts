@@ -17,7 +17,7 @@ import type {
   ManualObservationInput,
   Observation,
   UpdateObservation,
-} from "@exposurenexus/types/model/observation";
+} from "@exposurenexus/contracts/model/observation";
 
 export interface ObservationLifecycleActions {
   addObservation: (findingId: string, value: ManualObservationInput) => Promise<Observation | null>;

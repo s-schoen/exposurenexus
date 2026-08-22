@@ -1,4 +1,7 @@
-import { createUserProfileSchema, updateUserProfileSchema } from "@exposurenexus/types/model/user";
+import {
+  createUserProfileSchema,
+  updateUserProfileSchema,
+} from "@exposurenexus/contracts/model/user";
 import { useForm } from "@tanstack/react-form";
 import { Check, ChevronsUpDownIcon } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -32,8 +35,8 @@ import { Input } from "@/components/ui/input.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 
-import type { Role } from "@exposurenexus/types/model/rbac";
-import type { CreateUserProfile, UpdateUserProfile } from "@exposurenexus/types/model/user";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
+import type { CreateUserProfile, UpdateUserProfile } from "@exposurenexus/contracts/model/user";
 
 export type UserFormMode = "create" | "edit";
 

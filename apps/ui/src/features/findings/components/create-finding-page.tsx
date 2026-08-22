@@ -1,7 +1,7 @@
-import { AffectedResourceType } from "@exposurenexus/types/model/affected-resource";
-import { normalizeDateToUtcStart } from "@exposurenexus/types/model/date";
-import { FindingStatus, createFindingSchema } from "@exposurenexus/types/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import { normalizeDateToUtcStart } from "@exposurenexus/contracts/model/date";
+import { FindingStatus, createFindingSchema } from "@exposurenexus/contracts/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -35,8 +35,8 @@ import { formatLocalDateTimeInput, formatUtcDateOnly } from "@/lib/date-input.ts
 import { formatFindingStatus } from "@/lib/format.ts";
 import { formatWeaknessText, parseWeaknessText } from "@/lib/weakness-text.ts";
 
-import type { FindingAffectedResource } from "@exposurenexus/types/model/affected-resource";
-import type { CreateManualFinding } from "@exposurenexus/types/model/finding";
+import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
+import type { CreateManualFinding } from "@exposurenexus/contracts/model/finding";
 
 interface CreateFindingPageProps {
   onClose: () => void;

@@ -10,7 +10,7 @@ import type {
   CreateUserProfile,
   UpdateUserProfile,
   UserProfile,
-} from "@exposurenexus/types/model/user";
+} from "@exposurenexus/contracts/model/user";
 import type { ReactNode } from "react";
 
 const { createUserRequestMock, toastErrorMock, toastSuccessMock, updateUserRequestMock } =

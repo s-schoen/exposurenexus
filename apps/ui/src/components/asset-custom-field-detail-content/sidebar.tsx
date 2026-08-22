@@ -5,7 +5,7 @@ import { MetadataSidebar } from "@/components/metadata-sidebar";
 import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
 
 import type { CustomFieldSummary } from "@/components/asset-custom-field-detail-content/helpers.ts";
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 
 export function CustomFieldSidebar({
   field,

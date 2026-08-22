@@ -5,7 +5,7 @@ import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fix
 import { AssetCustomFieldTable } from "@/components/asset-custom-field-table";
 
 import type { DataTableFilterState } from "@/components/data-table/types.ts";
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { UseQueryResult } from "@tanstack/react-query";
 

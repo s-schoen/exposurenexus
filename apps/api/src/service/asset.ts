@@ -11,8 +11,8 @@ import {
   type UpdateAsset,
   type UpdateAssetIdentifier,
   validateAssetIdentifier,
-} from "@exposurenexus/types/model/asset";
-import { type AssetCustomFieldValue } from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset";
+import { type AssetCustomFieldValue } from "@exposurenexus/contracts/model/asset-custom-field";
 
 import {
   createDomainEventEmitter,
@@ -25,7 +25,7 @@ import { ApplicationError, isApplicationError } from "./application-error.js";
 import { isConflictError, isForeignKeyError } from "./errors.js";
 
 import type { AssetListOptions, AssetRepository } from "../repository/asset.js";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Logger } from "pino";
 
 interface AssetCustomFieldProjectionReader {

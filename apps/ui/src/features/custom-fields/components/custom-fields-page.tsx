@@ -11,7 +11,7 @@ import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom
 import { useCustomFieldTableSearchState } from "@/hooks/use-custom-field-table-search-state.ts";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
-import type { AssetCustomFieldDefinition } from "@exposurenexus/types/model/asset-custom-field";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 
 interface CustomFieldsPageProps {
   search?: Record<string, unknown>;

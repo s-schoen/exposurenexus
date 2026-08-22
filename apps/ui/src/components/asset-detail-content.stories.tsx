@@ -3,24 +3,24 @@ import {
   AssetIdentifierType,
   AssetLifecycleState,
   AssetType,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { AssetDetailContent } from "@/components/asset-detail-content.tsx";
 
-import type { Asset } from "@exposurenexus/types/model/asset";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type {
   AssetCustomFieldDefinition,
   AssetCustomFieldValue,
   UpdateAssetCustomFieldAssociations,
   UpdateAssetCustomFieldValues,
-} from "@exposurenexus/types/model/asset-custom-field";
-import type { UserProfile } from "@exposurenexus/types/model/user";
+} from "@exposurenexus/contracts/model/asset-custom-field";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type AssetDetailStoryArgs = {

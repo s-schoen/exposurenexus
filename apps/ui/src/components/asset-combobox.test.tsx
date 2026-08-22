@@ -2,7 +2,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Asset } from "@exposurenexus/types/model/asset";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
 
 class ResizeObserverMock {
   observe() {}

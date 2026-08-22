@@ -10,7 +10,7 @@ import {
 } from "@/api/role.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 
-import type { CreateRole, Role, UpdateRole } from "@exposurenexus/types/model/rbac";
+import type { CreateRole, Role, UpdateRole } from "@exposurenexus/contracts/model/rbac";
 
 export interface RoleLifecycleFailure {
   role: Role;

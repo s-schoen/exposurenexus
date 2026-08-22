@@ -1,10 +1,10 @@
 import {
   AffectedResourceType,
   WebEndpointComponentKind,
-} from "@exposurenexus/types/model/affected-resource";
-import { FindingStatus } from "@exposurenexus/types/model/finding";
-import { observationSchema, ObservationSource } from "@exposurenexus/types/model/observation";
-import { VulnerabilitySeverity } from "@exposurenexus/types/model/vulnerability";
+} from "@exposurenexus/contracts/model/affected-resource";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { observationSchema, ObservationSource } from "@exposurenexus/contracts/model/observation";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
@@ -12,12 +12,12 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { FindingObservationsSection } from "@/components/finding-observations-section.tsx";
 
-import type { Finding } from "@exposurenexus/types/model/finding";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
 import type {
   ManualObservationInput,
   Observation,
   UpdateObservation,
-} from "@exposurenexus/types/model/observation";
+} from "@exposurenexus/contracts/model/observation";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 type Scenario = "populated" | "single" | "empty" | "loading" | "error";

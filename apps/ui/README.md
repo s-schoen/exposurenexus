@@ -20,4 +20,4 @@ pnpm build-storybook
 - Routing uses TanStack Router file-based routes in `src/routes`.
 - Server state uses TanStack Query.
 - App-owned components live under `src/components`.
-- Shared API/domain types come from `@exposurenexus/types`.
+- Shared API/domain contracts come from `@exposurenexus/contracts`.

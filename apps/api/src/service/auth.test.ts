@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 
-import { PermissionResource, PermissionVerb } from "@exposurenexus/types/model/rbac";
+import { PermissionResource, PermissionVerb } from "@exposurenexus/contracts/model/rbac";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Logger } from "pino";

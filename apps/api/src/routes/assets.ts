@@ -6,11 +6,11 @@ import {
   createAssetSchema,
   updateAssetIdentifierSchema,
   updateAssetSchema,
-} from "@exposurenexus/types/model/asset";
+} from "@exposurenexus/contracts/model/asset";
 import {
   updateAssetCustomFieldAssociationsSchema,
   updateAssetCustomFieldValuesSchema,
-} from "@exposurenexus/types/model/asset-custom-field";
+} from "@exposurenexus/contracts/model/asset-custom-field";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod/v4";

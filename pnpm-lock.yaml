@@ -27,9 +27,9 @@ importers:
 
   apps/api:
     dependencies:
-      '@exposurenexus/types':
+      '@exposurenexus/contracts':
         specifier: workspace:*
-        version: link:../../packages/types
+        version: link:../../packages/contracts
       '@hono/node-server':
         specifier: ^2.1.1
         version: 2.1.1(hono@4.13.2)
@@ -85,9 +85,9 @@ importers:
       '@base-ui/react':
         specifier: ^1.7.0
         version: 1.7.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@exposurenexus/types':
+      '@exposurenexus/contracts':
         specifier: workspace:*
-        version: link:../../packages/types
+        version: link:../../packages/contracts
       '@t3-oss/env-core':
         specifier: ^0.13.11
         version: 0.13.11(typescript@7.0.2)(valibot@1.4.0(typescript@7.0.2))(zod@4.4.3)
@@ -258,7 +258,7 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@24.13.3)(@vitest/browser-playwright@4.1.10)(@vitest/coverage-v8@4.1.10)(jsdom@30.0.1(@noble/hashes@1.8.0))(msw@2.13.4(@types/node@24.13.3)(typescript@7.0.2))(vite@8.2.1(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
 
-  packages/types:
+  packages/contracts:
     dependencies:
       zod:
         specifier: ^4.4.3

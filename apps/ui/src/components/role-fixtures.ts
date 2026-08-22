@@ -3,9 +3,9 @@ import {
   PermissionResource,
   PermissionVerb,
   builtInRoleIds,
-} from "@exposurenexus/types/model/rbac";
+} from "@exposurenexus/contracts/model/rbac";
 
-import type { Role } from "@exposurenexus/types/model/rbac";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
 
 export const ROLE_FIXTURES: Array<Role> = [
   {

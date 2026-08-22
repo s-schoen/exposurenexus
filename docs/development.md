@@ -99,16 +99,16 @@ pnpm build
 with type-aware checks. `pnpm format:check` verifies the root Oxfmt configuration.
 Use `pnpm format` to apply formatting changes.
 
-`@exposurenexus/types` exports its built `dist` files. `pnpm build` uses pnpm's
+`@exposurenexus/contracts` exports its built `dist` files. `pnpm build` uses pnpm's
 recursive workspace execution, which runs dependencies before dependents.
 Focused root scripts use pnpm's dependency filter, such as
 `@exposurenexus/api^...`, to build workspace dependencies before running the
 package-local command.
 
 Run focused checks through the root scripts below. Direct package commands such
-as `pnpm --filter @exposurenexus/api test` assume `packages/types/dist` already
-exists. When editing shared types while a dev server is already running, rebuild
-the package with `pnpm --filter @exposurenexus/types build` before restarting
+as `pnpm --filter @exposurenexus/api test` assume `packages/contracts/dist` already
+exists. When editing shared contracts while a dev server is already running, rebuild
+the package with `pnpm --filter @exposurenexus/contracts build` before restarting
 the dependent API or UI process.
 
 Useful workspace commands:
@@ -127,7 +127,7 @@ ExposureNexus is implemented as a `pnpm` monorepo with three main workspaces:
 
 - `apps/api` owns persistence, authentication, imports, and domain services.
 - `apps/ui` provides the authenticated dashboard, assets, findings, vulnerabilities, triage, import, user, role, and custom field workflows.
-- `packages/types` contains shared domain schemas and API contracts for assets, vulnerabilities, findings, users, roles, and permissions.
+- `packages/contracts` contains shared domain schemas and API contracts for assets, vulnerabilities, findings, users, roles, and permissions.
 
 The current stack uses Hono for the API, PostgreSQL for storage, opaque server-side session authentication, and a React/Vite frontend with TanStack Router and TanStack Query.
 

@@ -1,4 +1,4 @@
-import { roleSchema } from "@exposurenexus/types/model/rbac";
+import { roleSchema } from "@exposurenexus/contracts/model/rbac";
 import { keepPreviousData, queryOptions, useMutation } from "@tanstack/react-query";
 
 import {
@@ -9,7 +9,7 @@ import {
   parseObjectReply,
 } from "@/api/common.ts";
 
-import type { CreateRole, Role, UpdateRole } from "@exposurenexus/types/model/rbac";
+import type { CreateRole, Role, UpdateRole } from "@exposurenexus/contracts/model/rbac";
 
 async function listRoles(): Promise<Array<Role>> {
   const response = await apiRequest("/api/roles", {
