@@ -400,6 +400,27 @@ describe("observation-based persistence repositories", () => {
       },
     });
 
+    const preserved = await observationRepository.updateAndTouchFinding({
+      findingId: finding.id,
+      observationId: observation.id,
+      observation: {
+        title: "Preserved observation details",
+        updatedAt: new Date("2026-08-17T11:00:00.000Z"),
+        updatedBy: createdBy,
+      },
+    });
+
+    expect(preserved?.observation).toMatchObject({
+      title: "Preserved observation details",
+      description: null,
+      evidence: "Corrected evidence",
+      remediation: null,
+      severity: VulnerabilitySeverity.Medium,
+      weakness: { identifiers: { cwe: ["CWE-89"] } },
+      affectedResource: { type: AffectedResourceType.SourceCode, file: "src/query.ts" },
+      observedAt: updateTime,
+    });
+
     const deleted = await observationRepository.deleteAndTouchFinding({
       findingId: finding.id,
       observationId: observation.id,
@@ -408,7 +429,7 @@ describe("observation-based persistence repositories", () => {
     });
 
     expect(deleted).toMatchObject({
-      observation: updated?.observation,
+      observation: preserved?.observation,
       current: {
         observationCount: 0,
         firstSeen: null,

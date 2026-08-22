@@ -1,46 +1,30 @@
-import {
-  observationAffectedResourceSchema,
-  type ObservationAffectedResource,
-} from "@exposurenexus/types/model/affected-resource";
+import { observationAffectedResourceSchema } from "@exposurenexus/types/model/affected-resource";
 import { observationSchema, type Observation } from "@exposurenexus/types/model/observation";
-import { weaknessSchema, type Weakness } from "@exposurenexus/types/model/weakness";
+import { weaknessSchema } from "@exposurenexus/types/model/weakness";
 
 import { getFindingProjectionByID } from "./finding.js";
 
 import type { Database } from "../db/index.js";
 import type { ObservationTable } from "../db/schema/observation.js";
 import type { Finding } from "@exposurenexus/types/model/finding";
-import type { Kysely, Insertable, Selectable, Updateable } from "kysely";
+import type { Kysely, Insertable, Selectable } from "kysely";
 
 type ObservationRecord = Observation;
-export type CreateObservationRecord = Omit<
-  Insertable<ObservationTable>,
-  "weakness" | "affectedResource"
-> & {
-  weakness: unknown;
-  affectedResource: unknown;
-};
-export type UpdateObservationRecord = Omit<
-  Partial<
-    Pick<
-      ObservationTable,
-      | "title"
-      | "description"
-      | "evidence"
-      | "remediation"
-      | "severity"
-      | "observedAt"
-      | "updatedAt"
-      | "updatedBy"
-    >
-  >,
-  "weakness" | "affectedResource"
-> & {
-  weakness?: unknown;
-  affectedResource?: unknown;
-  updatedAt: Date;
-  updatedBy: string;
-};
+export type CreateObservationRecord = Insertable<ObservationTable>;
+export type UpdateObservationRecord = Partial<
+  Pick<
+    ObservationTable,
+    | "title"
+    | "description"
+    | "evidence"
+    | "remediation"
+    | "severity"
+    | "weakness"
+    | "affectedResource"
+    | "observedAt"
+  >
+> &
+  Pick<ObservationTable, "updatedAt" | "updatedBy">;
 
 export interface CreateObservationAndTouchFindingInput {
   findingId: string;
@@ -118,24 +102,6 @@ function normalizeObservation(observation: Selectable<ObservationTable>): Observ
   return observationSchema.parse(observation);
 }
 
-function normalizeObservationInput<T extends { weakness?: unknown; affectedResource?: unknown }>(
-  observation: T,
-): T {
-  return {
-    ...observation,
-    ...(observation.weakness === undefined
-      ? {}
-      : { weakness: weaknessSchema.parse(observation.weakness) as Weakness }),
-    ...(observation.affectedResource === undefined
-      ? {}
-      : {
-          affectedResource: observationAffectedResourceSchema.parse(
-            observation.affectedResource,
-          ) as ObservationAffectedResource,
-        }),
-  };
-}
-
 export function createObservationRepository(database: Kysely<Database>): ObservationRepository {
   return {
     async listByFindingID(findingId: string): Promise<ObservationRecord[]> {
@@ -163,7 +129,11 @@ export function createObservationRepository(database: Kysely<Database>): Observa
     async create(observation: CreateObservationRecord): Promise<ObservationRecord> {
       const created = await database
         .insertInto("observation")
-        .values(normalizeObservationInput(observation) as Insertable<ObservationTable>)
+        .values({
+          ...observation,
+          weakness: weaknessSchema.parse(observation.weakness),
+          affectedResource: observationAffectedResourceSchema.parse(observation.affectedResource),
+        })
         .returningAll()
         .executeTakeFirstOrThrow();
 
@@ -195,7 +165,13 @@ export function createObservationRepository(database: Kysely<Database>): Observa
         }
         const created = await transaction
           .insertInto("observation")
-          .values(normalizeObservationInput(observationInput) as Insertable<ObservationTable>)
+          .values({
+            ...observationInput,
+            weakness: weaknessSchema.parse(observationInput.weakness),
+            affectedResource: observationAffectedResourceSchema.parse(
+              observationInput.affectedResource,
+            ),
+          })
           .returningAll()
           .executeTakeFirstOrThrow();
 
@@ -252,7 +228,19 @@ export function createObservationRepository(database: Kysely<Database>): Observa
 
         const updatedObservation = await transaction
           .updateTable("observation")
-          .set(normalizeObservationInput(input.observation) as Updateable<ObservationTable>)
+          .set({
+            ...input.observation,
+            ...(input.observation.weakness === undefined
+              ? {}
+              : { weakness: weaknessSchema.parse(input.observation.weakness) }),
+            ...(input.observation.affectedResource === undefined
+              ? {}
+              : {
+                  affectedResource: observationAffectedResourceSchema.parse(
+                    input.observation.affectedResource,
+                  ),
+                }),
+          })
           .where("id", "=", input.observationId)
           .where("findingId", "=", input.findingId)
           .returningAll()

@@ -1,6 +1,5 @@
 import {
   findingAffectedResourceSchema,
-  type FindingAffectedResource,
   observationAffectedResourceSchema,
 } from "@exposurenexus/types/model/affected-resource";
 import {
@@ -13,7 +12,7 @@ import {
   type FindingVulnerabilityLink,
 } from "@exposurenexus/types/model/finding-vulnerability";
 import { observationSchema, type Observation } from "@exposurenexus/types/model/observation";
-import { weaknessSchema, type Weakness } from "@exposurenexus/types/model/weakness";
+import { weaknessSchema } from "@exposurenexus/types/model/weakness";
 import {
   type Kysely,
   type Insertable,
@@ -35,20 +34,8 @@ type FindingProjectionRow = FindingRecord & {
   firstSeen: Date | null;
   lastSeen: Date | null;
 };
-export type CreateFindingRecord = Omit<
-  Insertable<FindingTable>,
-  "weakness" | "affectedResource"
-> & {
-  weakness: unknown;
-  affectedResource: unknown;
-};
-export type UpdateFindingRecord = Omit<
-  Updateable<FindingTable>,
-  "weakness" | "affectedResource"
-> & {
-  weakness?: unknown;
-  affectedResource?: unknown;
-};
+export type CreateFindingRecord = Insertable<FindingTable>;
+export type UpdateFindingRecord = Updateable<FindingTable>;
 export type FindingCountField = "severity" | "status" | "assetId";
 export type CreateManualFindingObservation = Omit<CreateObservationRecord, "findingId">;
 
@@ -174,42 +161,8 @@ export async function getFindingProjectionByID(
   return finding ? normalizeFindingProjection(finding) : null;
 }
 
-function normalizeObservationInput<T extends { weakness?: unknown; affectedResource?: unknown }>(
-  observation: T,
-): T {
-  return {
-    ...observation,
-    ...(observation.weakness === undefined
-      ? {}
-      : { weakness: weaknessSchema.parse(observation.weakness) }),
-    ...(observation.affectedResource === undefined
-      ? {}
-      : {
-          affectedResource: observationAffectedResourceSchema.parse(observation.affectedResource),
-        }),
-  };
-}
-
 function normalizeObservation(observation: Selectable<ObservationTable>): Observation {
   return observationSchema.parse(observation);
-}
-
-function normalizeFindingInput<T extends { weakness?: unknown; affectedResource?: unknown }>(
-  finding: T,
-): T {
-  return {
-    ...finding,
-    ...(finding.weakness === undefined
-      ? {}
-      : { weakness: weaknessSchema.parse(finding.weakness) as Weakness }),
-    ...(finding.affectedResource === undefined
-      ? {}
-      : {
-          affectedResource: findingAffectedResourceSchema.parse(
-            finding.affectedResource,
-          ) as FindingAffectedResource,
-        }),
-  };
 }
 
 export function createFindingRepository(database: Kysely<Database>): FindingRepository {
@@ -242,18 +195,24 @@ export function createFindingRepository(database: Kysely<Database>): FindingRepo
       return await database.transaction().execute(async (transaction) => {
         const createdFinding = await transaction
           .insertInto("finding")
-          .values(normalizeFindingInput(input.finding) as Insertable<FindingTable>)
+          .values({
+            ...input.finding,
+            weakness: weaknessSchema.parse(input.finding.weakness),
+            affectedResource: findingAffectedResourceSchema.parse(input.finding.affectedResource),
+          })
           .returningAll()
           .executeTakeFirstOrThrow();
 
         const createdObservation = await transaction
           .insertInto("observation")
-          .values(
-            normalizeObservationInput({
-              ...input.observation,
-              findingId: createdFinding.id,
-            }) as Insertable<ObservationTable>,
-          )
+          .values({
+            ...input.observation,
+            findingId: createdFinding.id,
+            weakness: weaknessSchema.parse(input.observation.weakness),
+            affectedResource: observationAffectedResourceSchema.parse(
+              input.observation.affectedResource,
+            ),
+          })
           .returningAll()
           .executeTakeFirstOrThrow();
 
@@ -363,7 +322,11 @@ export function createFindingRepository(database: Kysely<Database>): FindingRepo
     async create(finding: CreateFindingRecord): Promise<FindingRecord> {
       const created = await database
         .insertInto("finding")
-        .values(normalizeFindingInput(finding) as Insertable<FindingTable>)
+        .values({
+          ...finding,
+          weakness: weaknessSchema.parse(finding.weakness),
+          affectedResource: findingAffectedResourceSchema.parse(finding.affectedResource),
+        })
         .returningAll()
         .executeTakeFirstOrThrow();
 
@@ -373,7 +336,17 @@ export function createFindingRepository(database: Kysely<Database>): FindingRepo
     async updateByID(id: string, finding: UpdateFindingRecord): Promise<FindingRecord | null> {
       const updated = await database
         .updateTable("finding")
-        .set(normalizeFindingInput(finding) as Updateable<FindingTable>)
+        .set({
+          ...finding,
+          ...(finding.weakness === undefined
+            ? {}
+            : { weakness: weaknessSchema.parse(finding.weakness) }),
+          ...(finding.affectedResource === undefined
+            ? {}
+            : {
+                affectedResource: findingAffectedResourceSchema.parse(finding.affectedResource),
+              }),
+        })
         .where("id", "=", id)
         .returningAll()
         .executeTakeFirst();
