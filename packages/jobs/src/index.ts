@@ -5,11 +5,7 @@ export {
   generateEventID,
 } from "./contracts/events.js";
 
-export type {
-  Event,
-  EventAttributes,
-  EventOptions,
-} from "./contracts/events.js";
+export type { Event, EventAttributes, EventOptions } from "./contracts/events.js";
 
 export {
   JobType,
