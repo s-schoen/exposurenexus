@@ -97,18 +97,30 @@ function createOptions(logger: Logger): JobConsumerOptions {
   };
 }
 
-function createMessage(event: ReturnType<typeof createJobEvent>, deliveryTag = 1): ConsumeMessage {
+function createRawMessage(
+  content: string,
+  deliveryTag: number,
+  routingKey: string,
+  properties: Record<string, unknown> = {},
+): ConsumeMessage {
   return {
-    content: Buffer.from(JSON.stringify(event), "utf8"),
+    content: Buffer.from(content, "utf8"),
     fields: {
       consumerTag: "consumer-tag",
       deliveryTag,
       exchange: "EXPOSURENEXUS_JOBS",
       redelivered: false,
-      routingKey: event.type,
+      routingKey,
     },
-    properties: {},
+    properties: properties as unknown as ConsumeMessage["properties"],
   } as ConsumeMessage;
+}
+
+function createMessage(event: ReturnType<typeof createJobEvent>, deliveryTag = 1): ConsumeMessage {
+  return createRawMessage(JSON.stringify(event), deliveryTag, event.type, {
+    messageId: event.id,
+    type: event.type,
+  });
 }
 
 async function flush(): Promise<void> {
@@ -239,6 +251,126 @@ describe("createJobConsumer", () => {
     expect(channel.ack.mock.invocationCallOrder[0]).toBeLessThan(
       channel.ack.mock.invocationCallOrder[1],
     );
+
+    await consumer.stop();
+    await running;
+  });
+
+  it("rejects every processing failure for broker-managed retry and logs its context", async () => {
+    const consumer = await createJobConsumer(options);
+    const handlerError = new Error("handler failed");
+    const handler = vi.fn(async () => {
+      throw handlerError;
+    });
+    consumer.registerJobHandler(JobType.INGESTION, handler);
+    const running = consumer.start();
+    await flush();
+
+    const malformed = createRawMessage("{not-json", 1, "exposurenexus.jobs.ingest");
+    const invalidEvent = {
+      ...createJobEvent({ type: JobType.INGESTION, data: ingestionData }),
+      data: { ...ingestionData, unexpected: true },
+    };
+    const invalid = createRawMessage(JSON.stringify(invalidEvent), 2, JobType.INGESTION, {
+      messageId: invalidEvent.id,
+      type: JobType.INGESTION,
+    });
+    const unknownType = "exposurenexus.jobs.unknown";
+    const unknownEvent = {
+      ...createJobEvent({ type: JobType.INGESTION, data: ingestionData }),
+      type: unknownType,
+    };
+    const unknown = createRawMessage(JSON.stringify(unknownEvent), 3, unknownType, {
+      messageId: unknownEvent.id,
+      type: unknownType,
+    });
+    const failedEvent = createJobEvent({ type: JobType.INGESTION, data: ingestionData });
+    const failed = createMessage(failedEvent, 4);
+
+    channel.emitMessage(malformed);
+    channel.emitMessage(invalid);
+    channel.emitMessage(unknown);
+    channel.emitMessage(failed);
+
+    await vi.waitFor(() => expect(channel.reject).toHaveBeenCalledTimes(4));
+    expect(channel.reject).toHaveBeenNthCalledWith(1, malformed, true);
+    expect(channel.reject).toHaveBeenNthCalledWith(2, invalid, true);
+    expect(channel.reject).toHaveBeenNthCalledWith(3, unknown, true);
+    expect(channel.reject).toHaveBeenNthCalledWith(4, failed, true);
+    expect(channel.nack).not.toHaveBeenCalled();
+    expect(handler).toHaveBeenCalledOnce();
+
+    expect(childLogger.error).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        consumerTag: "consumer-tag",
+        deliveryTag: 1,
+        exchange: "EXPOSURENEXUS_JOBS",
+        queue: QUEUE_NAME,
+        redelivered: false,
+        routingKey: "exposurenexus.jobs.ingest",
+      }),
+      "failed to process job",
+    );
+    expect(childLogger.error).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        jobId: invalidEvent.id,
+        routingKey: JobType.INGESTION,
+        type: JobType.INGESTION,
+      }),
+      "failed to process job",
+    );
+    expect(childLogger.error).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        jobId: unknownEvent.id,
+        routingKey: unknownType,
+        type: unknownType,
+      }),
+      "failed to process job",
+    );
+    expect(childLogger.error).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        err: handlerError,
+        jobId: failedEvent.id,
+        routingKey: failedEvent.type,
+        type: failedEvent.type,
+      }),
+      "failed to process job",
+    );
+
+    await consumer.stop();
+    await running;
+  });
+
+  it("leaves an in-flight delivery unacknowledged after connection loss", async () => {
+    vi.useFakeTimers();
+    const consumer = await createJobConsumer(options);
+    let resolveHandler: (() => void) | undefined;
+    const handler = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveHandler = resolve;
+        }),
+    );
+    consumer.registerJobHandler(JobType.INGESTION, handler);
+    const running = consumer.start();
+    await vi.advanceTimersByTimeAsync(0);
+    await flush();
+
+    channel.emitMessage(
+      createMessage(createJobEvent({ type: JobType.INGESTION, data: ingestionData })),
+    );
+    await flush();
+    connection.emit("close", new Error("disconnected"));
+    await flush();
+
+    resolveHandler?.();
+    await flush();
+    expect(channel.ack).not.toHaveBeenCalled();
+    expect(channel.reject).not.toHaveBeenCalled();
 
     await consumer.stop();
     await running;

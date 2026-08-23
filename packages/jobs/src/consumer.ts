@@ -17,6 +17,11 @@ interface JobSubscription {
   consumerTag: string;
 }
 
+/**
+ * Configure RabbitMQ's consumer timeout above the longest expected handler
+ * duration. This package does not send application heartbeats or acknowledge
+ * a delivery before its handler settles.
+ */
 export interface JobConsumerOptions {
   connectionOptions: string | Options.Connect;
   queueName: string;
@@ -24,6 +29,10 @@ export interface JobConsumerOptions {
   socketOptions?: SocketOptions;
 }
 
+/**
+ * Handlers must be idempotent because a connection loss before acknowledgement
+ * can cause RabbitMQ to deliver the job again.
+ */
 export type JobHandler<TType extends JobEventType = JobEventType> = (
   event: JobEventFor<TType>,
 ) => void | Promise<void>;
@@ -91,15 +100,59 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
     }
   }
 
-  function messageFields(message: ConsumeMessage, event?: JobEvent): Record<string, unknown> {
+  function stringProperty(value: unknown, property: string): string | undefined {
+    if (typeof value !== "object" || value === null) {
+      return undefined;
+    }
+
+    const propertyValue = (value as Record<string, unknown>)[property];
+    return typeof propertyValue === "string" ? propertyValue : undefined;
+  }
+
+  function messageFields(
+    message: ConsumeMessage,
+    event?: JobEvent,
+    payload?: unknown,
+  ): Record<string, unknown> {
+    const payloadJobId = stringProperty(payload, "id");
+    const payloadType = stringProperty(payload, "type");
+    const messageJobId =
+      typeof message.properties.messageId === "string" ? message.properties.messageId : undefined;
+    const messageType =
+      typeof message.properties.type === "string" ? message.properties.type : undefined;
+
     return {
+      consumerTag: message.fields.consumerTag,
       deliveryTag: message.fields.deliveryTag,
-      jobId: event?.id,
+      exchange: message.fields.exchange,
+      jobId: event?.id ?? payloadJobId ?? messageJobId,
       queue: options.queueName,
       redelivered: message.fields.redelivered,
       routingKey: message.fields.routingKey,
-      type: event?.type,
+      type: event?.type ?? payloadType ?? messageType,
     };
+  }
+
+  function rejectFailedMessage(
+    channelForMessage: Channel,
+    message: ConsumeMessage,
+    error: unknown,
+    event?: JobEvent,
+    payload?: unknown,
+  ): void {
+    const processingError = toError(error, "job processing failed");
+    const fields = messageFields(message, event, payload);
+    logger.error({ ...fields, err: processingError }, "failed to process job");
+
+    if (channel !== channelForMessage) {
+      return;
+    }
+
+    try {
+      channelForMessage.reject(message, true);
+    } catch (rejectError) {
+      logger.error({ ...fields, err: rejectError }, "failed to reject job");
+    }
   }
 
   function handleConnectionError(connectionWithError: ChannelModel, error: Error): void {
@@ -236,9 +289,10 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
     message: ConsumeMessage,
   ): Promise<void> {
     let event: JobEvent | undefined;
+    let payload: unknown;
 
     try {
-      const payload = JSON.parse(message.content.toString("utf8")) as unknown;
+      payload = JSON.parse(message.content.toString("utf8")) as unknown;
       const parsedEvent = jobEventSchema.parse(payload);
       event = parsedEvent;
 
@@ -271,22 +325,7 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
 
       logger.info(messageFields(message, event), "job completed");
     } catch (error) {
-      const processingError = toError(error, "job processing failed");
-      logger.error(
-        { ...messageFields(message, event), err: processingError },
-        "failed to process job",
-      );
-
-      if (channel === channelForMessage) {
-        try {
-          channelForMessage.reject(message, true);
-        } catch (rejectError) {
-          logger.error(
-            { ...messageFields(message, event), err: rejectError },
-            "failed to reject job",
-          );
-        }
-      }
+      rejectFailedMessage(channelForMessage, message, error, event, payload);
     }
   }
 
