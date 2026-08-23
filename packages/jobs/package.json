@@ -17,6 +17,10 @@
     "./producer": {
       "types": "./dist/producer.d.ts",
       "import": "./dist/producer.js"
+    },
+    "./consumer": {
+      "types": "./dist/consumer.d.ts",
+      "import": "./dist/consumer.js"
     }
   },
   "scripts": {
