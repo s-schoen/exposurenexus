@@ -21,6 +21,9 @@
     "test:coverage": "vitest run --coverage",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit"
   },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
   "devDependencies": {
     "@types/node": "^24.13.3",
     "@vitest/coverage-v8": "^4.1.10",
