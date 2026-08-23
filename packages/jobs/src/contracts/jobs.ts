@@ -17,7 +17,7 @@ export const jobEventSchema = z.discriminatedUnion("type", [
   eventAttributesSchema.extend({
     type: z.literal(JobType.INGESTION),
     data: ingestionJobDataSchema,
-  })
+  }),
 ]);
 
 export type JobEvent = z.output<typeof jobEventSchema>;

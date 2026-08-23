@@ -13,6 +13,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./producer": {
+      "types": "./dist/producer.d.ts",
+      "import": "./dist/producer.js"
     }
   },
   "scripts": {
@@ -22,6 +26,8 @@
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
+    "amqplib": "2.0.1",
+    "pino": "10.3.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
