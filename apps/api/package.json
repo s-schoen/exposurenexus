@@ -6,7 +6,7 @@
     "dev": "tsx watch --env-file=.env src/index.ts | pino-pretty",
     "start": "node dist/src/index.js",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --reporter=default --reporter=junit --outputFile=coverage/test-results.junit.xml",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:all": "pnpm typecheck && pnpm typecheck:test",
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit"

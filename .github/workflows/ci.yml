@@ -129,19 +129,34 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run API coverage
+        if: ${{ !cancelled() }}
         run: pnpm coverage:api
 
       - name: Run shared contracts coverage
+        if: ${{ !cancelled() }}
         run: pnpm coverage:contracts
 
       - name: Run backend jobs coverage
+        if: ${{ !cancelled() }}
         run: pnpm coverage:jobs
 
       - name: Install Playwright Chromium
+        if: ${{ !cancelled() }}
         run: pnpm --filter @exposurenexus/ui exec playwright install --with-deps chromium
 
       - name: Run UI coverage
+        if: ${{ !cancelled() }}
         run: pnpm coverage:ui
+
+      - name: Upload test results
+        if: ${{ !cancelled() && env.ACT != 'true' }}
+        uses: codecov/codecov-action@v7
+        with:
+          use_oidc: true
+          disable_search: true
+          files: apps/api/coverage/test-results.junit.xml,apps/ui/coverage/test-results.junit.xml,packages/contracts/coverage/test-results.junit.xml,packages/jobs/coverage/test-results.junit.xml
+          report_type: test_results
+          fail_ci_if_error: false
 
       - name: Upload API coverage
         if: ${{ env.ACT != 'true' }}
