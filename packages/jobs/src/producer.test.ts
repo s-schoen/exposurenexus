@@ -6,7 +6,7 @@ import * as contracts from "./index.js";
 import { JobType } from "./index.js";
 import { createJobProducer } from "./producer.js";
 
-import type { JobEventFor } from "./index.js";
+import type { JobEvent } from "./index.js";
 import type { JobProducerOptions } from "./producer.js";
 import type { Logger } from "pino";
 
@@ -24,6 +24,17 @@ const ingestionData = {
   userid: "550e8400-e29b-41d4-a716-446655440000",
   ingestdataurl: "https://example.com/ingest.json",
   format: "json",
+};
+
+const ingestionEvent: JobEvent = {
+  specversion: "1.0",
+  id: "550e8400-e29b-41d4-a716-446655440001",
+  source: "/services/api",
+  type: JobType.INGESTION,
+  time: "2026-08-27T12:00:00.000Z",
+  datacontenttype: "application/json",
+  subject: "ingestion/550e8400-e29b-41d4-a716-446655440000",
+  data: ingestionData,
 };
 
 type FakeChannel = EventEmitter & {
@@ -98,17 +109,21 @@ describe("createJobProducer", () => {
     expect(contracts).not.toHaveProperty("JobProducerOptions");
   });
 
-  it("keeps the job type and payload types correlated", async () => {
+  it("accepts complete job events and returns void", async () => {
     const producer = await createJobProducer(options);
-    const event = producer.enqueue(JobType.INGESTION, ingestionData);
+    const publication = producer.publish(ingestionEvent);
 
-    expectTypeOf(event).resolves.toEqualTypeOf<JobEventFor<JobType.INGESTION>>();
+    expectTypeOf(publication).toEqualTypeOf<Promise<void>>();
+    await expect(publication).resolves.toBeUndefined();
 
     const assertRejectedTypes = () => {
-      // @ts-expect-error the format field is required by the public payload type
-      void producer.enqueue(JobType.INGESTION, {
-        userid: ingestionData.userid,
-        ingestdataurl: ingestionData.ingestdataurl,
+      void producer.publish({
+        ...ingestionEvent,
+        // @ts-expect-error the format field is required by the public event type
+        data: {
+          userid: ingestionData.userid,
+          ingestdataurl: ingestionData.ingestdataurl,
+        },
       });
     };
 
@@ -128,7 +143,7 @@ describe("createJobProducer", () => {
     await producer.close();
   });
 
-  it("publishes a persistent, mandatory CloudEvent and waits for confirmation", async () => {
+  it("publishes the supplied persistent, mandatory CloudEvent and waits for confirmation", async () => {
     let confirm: ((error: Error | null) => void) | undefined;
     channel.publish = vi
       .fn()
@@ -138,7 +153,7 @@ describe("createJobProducer", () => {
       });
     const producer = await createJobProducer(options);
 
-    const pendingEvent = producer.enqueue(JobType.INGESTION, ingestionData);
+    const publication = producer.publish(ingestionEvent);
     await Promise.resolve();
     expect(confirm).toBeDefined();
 
@@ -149,28 +164,42 @@ describe("createJobProducer", () => {
       Record<string, unknown>,
     ];
     expect(exchange).toBe(EXCHANGE_NAME);
-    expect(routingKey).toBe(JobType.INGESTION);
-
-    const event = JSON.parse(content.toString()) as JobEventFor<JobType.INGESTION>;
-    expect(event.data).toEqual(ingestionData);
+    expect(routingKey).toBe(ingestionEvent.type);
+    expect(JSON.parse(content.toString())).toEqual(ingestionEvent);
     expect(publishOptions).toEqual({
-      contentType: "application/json",
+      contentType: ingestionEvent.datacontenttype,
       mandatory: true,
-      messageId: event.id,
+      messageId: ingestionEvent.id,
       persistent: true,
-      timestamp: Date.parse(event.time),
-      type: JobType.INGESTION,
+      timestamp: Date.parse(ingestionEvent.time),
+      type: ingestionEvent.type,
     });
 
     let settled = false;
-    void pendingEvent.then(() => {
+    void publication.then(() => {
       settled = true;
     });
     await Promise.resolve();
     expect(settled).toBe(false);
 
     confirm?.(null);
-    await expect(pendingEvent).resolves.toEqual(event);
+    await expect(publication).resolves.toBeUndefined();
+    await producer.close();
+  });
+
+  it("reuses the supplied event identity across publication attempts", async () => {
+    const producer = await createJobProducer(options);
+
+    await Promise.all([producer.publish(ingestionEvent), producer.publish(ingestionEvent)]);
+
+    expect(channel.publish).toHaveBeenCalledTimes(2);
+    expect(channel.publish.mock.calls.map((call) => call[3].messageId)).toEqual([
+      ingestionEvent.id,
+      ingestionEvent.id,
+    ]);
+    expect(
+      channel.publish.mock.calls.map((call) => JSON.parse((call[2] as Buffer).toString())),
+    ).toEqual([ingestionEvent, ingestionEvent]);
     await producer.close();
   });
 
@@ -184,11 +213,11 @@ describe("createJobProducer", () => {
       });
     const producer = await createJobProducer(options);
 
-    const negativeConfirmation = producer.enqueue(JobType.INGESTION, ingestionData);
+    const negativeConfirmation = producer.publish(ingestionEvent);
     confirm?.(new Error("nack"));
     await expect(negativeConfirmation).rejects.toThrow("nack");
 
-    const returned = producer.enqueue(JobType.INGESTION, ingestionData);
+    const returned = producer.publish(ingestionEvent);
     const secondPublish = channel.publish.mock.calls[1] as [
       string,
       string,
@@ -206,17 +235,18 @@ describe("createJobProducer", () => {
     await producer.close();
   });
 
-  it("rejects invalid job data before publishing", async () => {
+  it("rejects invalid job events before publishing", async () => {
     const producer = await createJobProducer(options);
-    const invalidData = { ...ingestionData, extra: true };
+    const invalidEvent = {
+      ...ingestionEvent,
+      data: { ...ingestionData, extra: true },
+    } as JobEvent;
 
-    await expect(
-      producer.enqueue(JobType.INGESTION, invalidData as typeof ingestionData),
-    ).rejects.toThrow();
+    await expect(producer.publish(invalidEvent)).rejects.toThrow();
     expect(channel.publish).not.toHaveBeenCalled();
     expect(childLogger.error).toHaveBeenCalledWith(
-      expect.objectContaining({ type: JobType.INGESTION }),
-      "failed to enqueue job",
+      expect.objectContaining({ err: expect.anything() }),
+      "failed to publish job",
     );
 
     await producer.close();
@@ -245,9 +275,7 @@ describe("createJobProducer", () => {
     const producer = await createJobProducer(options);
 
     connection.emit("close", new Error("disconnected"));
-    await expect(producer.enqueue(JobType.INGESTION, ingestionData)).rejects.toThrow(
-      "not connected",
-    );
+    await expect(producer.publish(ingestionEvent)).rejects.toThrow("not connected");
 
     await vi.advanceTimersByTimeAsync(100);
     expect(connectMock).toHaveBeenCalledTimes(2);
@@ -286,7 +314,7 @@ describe("createJobProducer", () => {
     );
     const producer = await createJobProducer(options);
 
-    const pendingEvent = producer.enqueue(JobType.INGESTION, ingestionData);
+    const pendingEvent = producer.publish(ingestionEvent);
     connection.emit("close", new Error("disconnected"));
     await expect(pendingEvent).rejects.toThrow("disconnected");
     await producer.close();
@@ -300,14 +328,12 @@ describe("createJobProducer", () => {
     });
     const producer = await createJobProducer(options);
 
-    const firstEvent = producer.enqueue(JobType.INGESTION, ingestionData);
-    await expect(producer.enqueue(JobType.INGESTION, ingestionData)).rejects.toThrow(
-      "buffer is full",
-    );
+    const firstPublication = producer.publish(ingestionEvent);
+    await expect(producer.publish(ingestionEvent)).rejects.toThrow("buffer is full");
 
     channel.emit("drain");
     confirm?.();
-    await expect(firstEvent).resolves.toMatchObject({ type: JobType.INGESTION });
+    await expect(firstPublication).resolves.toBeUndefined();
     await producer.close();
   });
 
