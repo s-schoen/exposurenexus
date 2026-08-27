@@ -75,7 +75,7 @@ export function UserTable({
       onRowClick={onSelectUser}
       onRowDoubleClick={handleOpenUser}
       isRowActive={(user) => user.id === selectedUserId}
-      toolbarControls={onCreateUser ? <ToolbarElements /> : undefined}
+      toolbarControls={onCreateUser ? ToolbarElements() : undefined}
     />
   );
 }
