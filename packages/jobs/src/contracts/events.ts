@@ -32,7 +32,7 @@ export enum EventSource {
 }
 
 export interface EventOptions<TType extends string, TData extends object> {
-  source?: EventSource;
+  source?: string;
   subject?: string;
   type: TType;
   data: TData;

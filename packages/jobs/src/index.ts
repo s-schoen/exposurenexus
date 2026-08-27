@@ -16,9 +16,12 @@ export {
 
 export type {
   IngestionJobData,
+  Job,
   JobDataFor,
   JobEvent,
   JobEventFor,
   JobEventOptions,
   JobEventType,
+  JobExecutionState,
+  JobPublicationState,
 } from "./contracts/jobs.js";

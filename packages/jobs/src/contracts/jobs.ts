@@ -23,6 +23,26 @@ export const jobEventSchema = z.discriminatedUnion("type", [
 export type JobEvent = z.output<typeof jobEventSchema>;
 export type JobEventType = JobEvent["type"];
 
+export type JobPublicationState = "pending" | "published" | "failed" | "abandoned";
+export type JobExecutionState = "pending" | "running" | "succeeded" | "failed";
+
+export interface Job {
+  id: string;
+  event: JobEvent;
+  publicationState: JobPublicationState;
+  publicationAttempts: number;
+  nextPublicationAttemptAt: Date | null;
+  lastPublicationError: string | null;
+  publishedAt: Date | null;
+  abandonedAt: Date | null;
+  executionState: JobExecutionState;
+  executionStartedAt: Date | null;
+  executionFinishedAt: Date | null;
+  executionError: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export type JobEventFor<TType extends JobEventType> = Extract<JobEvent, { type: TType }>;
 export type JobDataFor<TType extends JobEventType> = JobEventFor<TType>["data"];
 export type JobEventOptions<TType extends JobEventType = JobEventType> = {
