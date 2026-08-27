@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import type { Finding, FindingStatus } from "@exposurenexus/contracts/model/finding";
 import type { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
-import type { ReactElement, ReactNode, RefObject } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 const mocks = vi.hoisted(() => {
   const finding: Finding = {
@@ -144,12 +144,14 @@ vi.mock("@/components/confirm-dialog.tsx", () => ({
 vi.mock("@/components/finding-table/context-menu.tsx", () => ({
   FindingContextMenu: ({
     children,
+    findings,
     onDelete,
   }: {
     children: ReactElement;
+    findings: Array<Finding>;
     onDelete: () => void;
   }) => (
-    <div>
+    <div data-finding-count={findings.length}>
       {children}
       <button type="button" onClick={onDelete}>
         context delete
@@ -175,7 +177,7 @@ vi.mock("@/components/data-table/data-table.tsx", () => ({
     mocks.dataTableProps = props;
 
     const contextMenu = props.contextMenu as
-      | ((rowsRef: RefObject<Array<Finding>>, children: ReactElement, key: string) => ReactNode)
+      | ((rows: Array<Finding>, children: ReactElement, key: string) => ReactNode)
       | undefined;
     const isRowActive = props.isRowActive as ((finding: Finding) => boolean) | undefined;
     const onFilterStateChange = props.onFilterStateChange as ((state: unknown) => void) | undefined;
@@ -218,7 +220,7 @@ vi.mock("@/components/data-table/data-table.tsx", () => ({
         </button>
         <div data-testid="context-menu">
           {contextMenu?.(
-            { current: [mocks.finding] },
+            [mocks.finding],
             <button type="button">context child</button>,
             "finding-context",
           )}

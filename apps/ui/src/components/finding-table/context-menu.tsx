@@ -1,5 +1,3 @@
-import * as React from "react";
-
 import {
   ContextMenu,
   ContextMenuContent,
@@ -11,14 +9,12 @@ import type { Finding } from "@exposurenexus/contracts/model/finding";
 import type { ReactElement } from "react";
 
 interface FindingContextMenuProps {
-  findingsRef: React.RefObject<Array<Finding>>;
+  findings: Array<Finding>;
   onDelete: () => void;
   children: ReactElement;
 }
 
-export function FindingContextMenu({ findingsRef, onDelete, children }: FindingContextMenuProps) {
-  const findings = findingsRef.current;
-
+export function FindingContextMenu({ findings, onDelete, children }: FindingContextMenuProps) {
   return (
     <ContextMenu>
       <ContextMenuTrigger render={children} />

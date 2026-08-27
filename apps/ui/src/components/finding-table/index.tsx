@@ -150,11 +150,11 @@ export function FindingTable({
       isRowActive={(finding) => finding.id === selectedFindingId}
       onRowDelete={handleDeleteFindings}
       toolbarControls={ToolbarElements}
-      contextMenu={(findingsRef, children, key) => (
+      contextMenu={(findings, children, key) => (
         <FindingContextMenu
           key={key}
-          findingsRef={findingsRef}
-          onDelete={() => handleDeleteFindings(findingsRef.current)}
+          findings={findings}
+          onDelete={() => handleDeleteFindings(findings)}
         >
           {children}
         </FindingContextMenu>

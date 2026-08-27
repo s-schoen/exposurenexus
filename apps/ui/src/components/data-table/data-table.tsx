@@ -2,7 +2,7 @@
 
 import { flexRender, functionalUpdate, useTable } from "@tanstack/react-table";
 import { ChevronDown, ChevronRight, DatabaseZap } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { DataTablePagination } from "@/components/data-table/pagination-control.tsx";
 import { DataTableToolbar } from "@/components/data-table/toolbar.tsx";
@@ -34,7 +34,7 @@ import type {
   SortingState,
   ColumnVisibilityState,
 } from "@tanstack/react-table";
-import type { MouseEvent, ReactElement, ReactNode, RefObject } from "react";
+import type { MouseEvent, ReactElement, ReactNode } from "react";
 
 const defaultInitialColumnVisibility: ColumnVisibilityState = {};
 type FilterVariant = "number" | "select" | "text";
@@ -142,11 +142,7 @@ interface DataTableProps<TData extends RowData> {
   toolbarControls?: ReactElement | ((selectedRows: Array<TData>) => ReactNode);
   filterState?: DataTableFilterState;
   onFilterStateChange?: (state: DataTableFilterState) => void;
-  contextMenu?: (
-    rowsRef: RefObject<Array<TData>>,
-    children: ReactElement,
-    key: string,
-  ) => ReactNode;
+  contextMenu?: (rows: Array<TData>, children: ReactElement, key: string) => ReactNode;
 }
 
 export function DataTable<TData extends RowData>({
@@ -173,7 +169,7 @@ export function DataTable<TData extends RowData>({
   const [grouping, setGrouping] = useState<GroupingState>(initialGrouping);
   const [expanded, setExpanded] = useState<ExpandedState>(true);
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
-  const [columnVisibility, setColumnVisibility] =
+  const [columnVisibilityState, setColumnVisibilityState] =
     useState<ColumnVisibilityState>(initialColumnVisibility);
   const [localFilterState, setLocalFilterState] = useState<DataTableFilterState>({
     globalFilter: "",
@@ -196,13 +192,10 @@ export function DataTable<TData extends RowData>({
       }, new Map()),
     [columns],
   );
-
-  useEffect(() => {
-    setColumnVisibility((currentVisibility) => ({
-      ...initialColumnVisibility,
-      ...currentVisibility,
-    }));
-  }, [initialColumnVisibility]);
+  const resolvedColumnVisibility = {
+    ...initialColumnVisibility,
+    ...columnVisibilityState,
+  };
 
   const columnFilters = useMemo<ColumnFiltersState>(
     () => dataTableFilterStateToColumnFilters(resolvedFilterState),
@@ -252,14 +245,21 @@ export function DataTable<TData extends RowData>({
       grouping,
       expanded,
       sorting,
-      columnVisibility,
+      columnVisibility: resolvedColumnVisibility,
       globalFilter: resolvedFilterState.globalFilter,
       columnFilters,
     },
     onGroupingChange: setGrouping,
     onExpandedChange: setExpanded,
     onSortingChange: setSorting,
-    onColumnVisibilityChange: setColumnVisibility,
+    onColumnVisibilityChange: (updater) => {
+      setColumnVisibilityState((currentVisibility) =>
+        functionalUpdate(updater, {
+          ...initialColumnVisibility,
+          ...currentVisibility,
+        }),
+      );
+    },
     onGlobalFilterChange: (updater) => {
       updateFilterState((currentState) => {
         const nextValue = functionalUpdate(updater, currentState.globalFilter || undefined);
@@ -287,7 +287,7 @@ export function DataTable<TData extends RowData>({
     globalFilterFn: "includesString",
   });
 
-  const contextMenuTargetsRef = useRef<Array<TData>>([]);
+  const [contextMenuTargets, setContextMenuTargets] = useState<Array<TData>>([]);
   const selectedRows = table.getFilteredSelectedRowModel().rows.map((row) => row.original);
   const resolvedToolbarControls =
     typeof toolbarControls === "function" ? toolbarControls(selectedRows) : toolbarControls;
@@ -323,14 +323,14 @@ export function DataTable<TData extends RowData>({
   };
 
   const handleOnRowContextMenu = (row: DataTableRow<TData>) => {
+    const targetRows = row.getIsSelected()
+      ? table.getFilteredSelectedRowModel().rows.map(({ original }) => original)
+      : [row.original];
+    setContextMenuTargets(targetRows);
+
     if (!row.getIsSelected()) {
       table.resetRowSelection();
       row.toggleSelected(true);
-      contextMenuTargetsRef.current = [row.original];
-    } else {
-      contextMenuTargetsRef.current = table
-        .getFilteredSelectedRowModel()
-        .rows.map((r) => r.original);
     }
   };
 
@@ -343,7 +343,7 @@ export function DataTable<TData extends RowData>({
     }));
   };
 
-  function NoDataPlaceholder() {
+  function renderNoDataPlaceholder() {
     return (
       <TableRow>
         <TableCell colSpan={table.getAllColumns().length} className="h-56 p-0">
@@ -368,97 +368,95 @@ export function DataTable<TData extends RowData>({
     );
   }
 
-  function DataRows() {
+  function renderDataRows() {
     const visibleRows = embedded ? table.getPrePaginatedRowModel().rows : table.getRowModel().rows;
 
     return (
       <TableBody key="data-table-body-data">
-        {visibleRows.length ? (
-          visibleRows.map((row) => {
-            const groupingColumnId = row.groupingColumnId;
+        {visibleRows.length
+          ? visibleRows.map((row) => {
+              const groupingColumnId = row.groupingColumnId;
 
-            if (groupingColumnId) {
-              const groupingOption = groupingOptions.find(
-                (option) => option.id === groupingColumnId,
-              );
-              const groupingLabel =
-                groupingOption?.label ??
-                table.getColumn(groupingColumnId)?.columnDef.meta?.label ??
-                groupingColumnId;
-              const groupingValue = row.getValue(groupingColumnId);
-              const formattedGroupingValue = groupingOption?.formatValue
-                ? groupingOption.formatValue(groupingValue)
-                : String(groupingValue);
+              if (groupingColumnId) {
+                const groupingOption = groupingOptions.find(
+                  (option) => option.id === groupingColumnId,
+                );
+                const groupingLabel =
+                  groupingOption?.label ??
+                  table.getColumn(groupingColumnId)?.columnDef.meta?.label ??
+                  groupingColumnId;
+                const groupingValue = row.getValue(groupingColumnId);
+                const formattedGroupingValue = groupingOption?.formatValue
+                  ? groupingOption.formatValue(groupingValue)
+                  : String(groupingValue);
 
-              return (
+                return (
+                  <TableRow
+                    key={row.id}
+                    className="border-b border-border/60 bg-muted/25 hover:bg-muted/30"
+                  >
+                    <TableCell colSpan={row.getVisibleCells().length} className="px-4 py-3">
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-3 text-left"
+                        onClick={() => row.toggleExpanded()}
+                      >
+                        <span className="flex size-7 items-center justify-center rounded-lg border border-border/70 bg-background text-muted-foreground">
+                          {row.getIsExpanded() ? (
+                            <ChevronDown className="size-4" />
+                          ) : (
+                            <ChevronRight className="size-4" />
+                          )}
+                        </span>
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <span className="text-sm font-semibold text-foreground">
+                            {groupingLabel}
+                          </span>
+                          <span className="truncate text-sm text-muted-foreground">
+                            {formattedGroupingValue}
+                          </span>
+                        </div>
+                        <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                          {row.getLeafRows().length} item
+                          {row.getLeafRows().length === 1 ? "" : "s"}
+                        </span>
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                );
+              }
+
+              const rowEl = (
                 <TableRow
                   key={row.id}
-                  className="border-b border-border/60 bg-muted/25 hover:bg-muted/30"
+                  data-state={row.getIsSelected() && "selected"}
+                  data-active={isRowActive?.(row.original) || undefined}
+                  data-testid={isRowActive?.(row.original) ? "data-table-active-row" : undefined}
+                  className={`${onRowClick ? "cursor-pointer " : ""}select-none border-b border-border/60 transition-colors hover:bg-muted/40 data-[active=true]:bg-accent/60 data-[state=selected]:bg-primary/6`}
+                  onClick={onRowClick ? (event) => handleOnRowClick(event, row) : undefined}
+                  onDoubleClick={onRowDoubleClick ? () => handleOnRowDoubleClick(row) : undefined}
+                  onContextMenu={contextMenu ? () => handleOnRowContextMenu(row) : undefined}
                 >
-                  <TableCell colSpan={row.getVisibleCells().length} className="px-4 py-3">
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-3 text-left"
-                      onClick={() => row.toggleExpanded()}
-                    >
-                      <span className="flex size-7 items-center justify-center rounded-lg border border-border/70 bg-background text-muted-foreground">
-                        {row.getIsExpanded() ? (
-                          <ChevronDown className="size-4" />
-                        ) : (
-                          <ChevronRight className="size-4" />
-                        )}
-                      </span>
-                      <div className="flex min-w-0 flex-1 items-center gap-2">
-                        <span className="text-sm font-semibold text-foreground">
-                          {groupingLabel}
-                        </span>
-                        <span className="truncate text-sm text-muted-foreground">
-                          {formattedGroupingValue}
-                        </span>
-                      </div>
-                      <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                        {row.getLeafRows().length} item
-                        {row.getLeafRows().length === 1 ? "" : "s"}
-                      </span>
-                    </button>
-                  </TableCell>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
                 </TableRow>
               );
-            }
 
-            const rowEl = (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && "selected"}
-                data-active={isRowActive?.(row.original) || undefined}
-                data-testid={isRowActive?.(row.original) ? "data-table-active-row" : undefined}
-                className={`${onRowClick ? "cursor-pointer " : ""}select-none border-b border-border/60 transition-colors hover:bg-muted/40 data-[active=true]:bg-accent/60 data-[state=selected]:bg-primary/6`}
-                onClick={onRowClick ? (event) => handleOnRowClick(event, row) : undefined}
-                onDoubleClick={onRowDoubleClick ? () => handleOnRowDoubleClick(row) : undefined}
-                onContextMenu={contextMenu ? () => handleOnRowContextMenu(row) : undefined}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            );
+              if (contextMenu) {
+                return contextMenu(contextMenuTargets, rowEl, row.id);
+              }
 
-            if (contextMenu) {
-              return contextMenu(contextMenuTargetsRef, rowEl, row.id);
-            }
-
-            return rowEl;
-          })
-        ) : (
-          <NoDataPlaceholder />
-        )}
+              return rowEl;
+            })
+          : renderNoDataPlaceholder()}
       </TableBody>
     );
   }
 
-  function SkeletonRows() {
+  function renderSkeletonRows() {
     return (
       <TableBody key="data-table-body-skel">
         {[1, 2, 3].map((i) => (
@@ -522,7 +520,7 @@ export function DataTable<TData extends RowData>({
               </TableRow>
             ))}
           </TableHeader>
-          {isPending ? <SkeletonRows /> : <DataRows />}
+          {isPending ? renderSkeletonRows() : renderDataRows()}
         </Table>
         {!embedded ? (
           <div className="border-t border-border/60 bg-muted/15 px-4 py-3">

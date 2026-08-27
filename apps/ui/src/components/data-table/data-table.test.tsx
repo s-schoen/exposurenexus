@@ -1,5 +1,5 @@
 import { composeStories } from "@storybook/react-vite";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -8,6 +8,7 @@ import * as stories from "@/components/data-table/data-table.stories";
 
 import type { DataTableColumnDef } from "@/components/data-table/types";
 import type { UseQueryResult } from "@tanstack/react-query";
+import type { ReactElement } from "react";
 
 const { ActiveRow, Default, Empty, Embedded, GroupedByStatus, Loading, WithToolbarControls } =
   composeStories(stories);
@@ -345,6 +346,79 @@ describe("DataTable stories", () => {
         "6",
       );
       expect(screen.queryByTestId("data-table-active-filters-indicator")).not.toBeInTheDocument();
+    });
+  });
+  it("merges new column defaults without resetting visibility or pagination", async () => {
+    const user = userEvent.setup();
+    const rows = Array.from({ length: 25 }, (_, index) => ({
+      id: `row-${index + 1}`,
+      name: `Name ${index + 1}`,
+    }));
+    const idColumn: DataTableColumnDef<TestRow> = {
+      accessorKey: "id",
+      header: "ID",
+      cell: ({ row }) => row.original.id,
+    };
+    const lateColumn: DataTableColumnDef<TestRow> = {
+      id: "late",
+      header: "Late",
+      cell: ({ row }) => `Late ${row.original.id.slice(4)}`,
+    };
+    const { rerender } = render(<DataTable columns={[idColumn, ...directColumns]} rows={rows} />);
+
+    await user.click(screen.getByRole("button", { name: /go to next page/i }));
+    expect(screen.getByText("row-11")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /columns/i }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "name" }));
+    expect(screen.queryByText("Name 11")).not.toBeInTheDocument();
+
+    rerender(
+      <DataTable
+        columns={[idColumn, ...directColumns, lateColumn]}
+        rows={rows}
+        initialColumnVisibility={{ late: false }}
+      />,
+    );
+
+    expect(screen.getByText("row-11")).toBeInTheDocument();
+    expect(screen.queryByText("Name 11")).not.toBeInTheDocument();
+    expect(screen.queryByText("Late 11")).not.toBeInTheDocument();
+  });
+
+  it("snapshots context menu targets from the filtered selection", async () => {
+    const user = userEvent.setup();
+    const rows = [
+      { id: "row-1", name: "Alpha" },
+      { id: "row-2", name: "Bravo" },
+      { id: "row-3", name: "Charlie" },
+    ];
+    const snapshots: Array<Array<TestRow>> = [];
+    const contextMenu = (targets: Array<TestRow>, children: ReactElement) => {
+      snapshots.push(targets);
+      return children;
+    };
+
+    render(<DataTable columns={directColumns} rows={rows} contextMenu={contextMenu} />);
+
+    fireEvent.contextMenu(screen.getByRole("cell", { name: "Alpha" }).closest("tr")!);
+    await waitFor(() => {
+      expect(snapshots.at(-1)).toEqual([rows[0]]);
+    });
+
+    await user.click(screen.getAllByLabelText("Select row")[1]);
+    fireEvent.contextMenu(screen.getByRole("cell", { name: "Alpha" }).closest("tr")!);
+    await waitFor(() => {
+      expect(snapshots.at(-1)).toEqual([rows[0], rows[1]]);
+    });
+
+    await user.type(
+      screen.getByRole("textbox", { name: /search across visible columns/i }),
+      "Alpha",
+    );
+    fireEvent.contextMenu(screen.getByRole("cell", { name: "Alpha" }).closest("tr")!);
+    await waitFor(() => {
+      expect(snapshots.at(-1)).toEqual([rows[0]]);
     });
   });
 });
