@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo } from "react";
 
 import { RoleDetailContent } from "@/components/role-detail-content";
 import { BUILT_IN_ADMIN_ROLE, CUSTOM_AUDITOR_ROLE } from "@/components/role-fixtures.ts";
@@ -30,11 +30,9 @@ function RoleDetailContentStoryShell({ roleId, role, scenario }: RoleDetailStory
 
     return client;
   }, [role, roleId, scenario]);
-  const [ready, setReady] = useState(scenario !== "loading" && scenario !== "error");
 
   useLayoutEffect(() => {
     if (scenario === "success") {
-      setReady(true);
       return;
     }
 
@@ -59,16 +57,10 @@ function RoleDetailContentStoryShell({ roleId, role, scenario }: RoleDetailStory
       });
     };
 
-    setReady(true);
-
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, [roleId, scenario]);
-
-  if (!ready) {
-    return null;
-  }
 
   return (
     <QueryClientProvider client={queryClient}>

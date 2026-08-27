@@ -14,7 +14,7 @@ import {
 } from "@exposurenexus/contracts/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { expect, userEvent, within } from "storybook/test";
 
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx";
@@ -232,7 +232,6 @@ function FindingDetailContentStoryShell({
       }),
     [effectiveFinding.id, queryClient],
   );
-  const [ready, setReady] = useState(scenario !== "loading");
 
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
@@ -259,14 +258,10 @@ function FindingDetailContentStoryShell({
       }
       return originalFetch(input, init);
     };
-
-    setReady(true);
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, [asset, effectiveFinding, scenario, users]);
-
-  if (!ready) return null;
 
   return (
     <RouterContextProvider router={router}>

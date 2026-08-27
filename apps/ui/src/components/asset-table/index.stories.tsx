@@ -1,5 +1,5 @@
 import { AssetEnvironment, AssetLifecycleState } from "@exposurenexus/contracts/model/asset";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
 import { AssetDialog } from "@/components/asset-dialog.tsx";
@@ -61,7 +61,6 @@ function AssetTableStoryShell({ scenario, selectedAssetId }: AssetTableStoryArgs
 
     return client;
   }, [initialAssets, scenario]);
-  const [ready, setReady] = useState(scenario !== "loading");
 
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
@@ -158,16 +157,10 @@ function AssetTableStoryShell({ scenario, selectedAssetId }: AssetTableStoryArgs
       return originalFetch(input, init);
     };
 
-    setReady(true);
-
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, [initialAssets, queryClient, scenario]);
-
-  if (!ready) {
-    return null;
-  }
 
   return (
     <RouterStoryProvider queryClient={queryClient} initialPath="/assets">

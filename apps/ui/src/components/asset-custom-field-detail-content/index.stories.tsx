@@ -1,6 +1,6 @@
 import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo } from "react";
 
 import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content";
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
@@ -49,11 +49,9 @@ function AssetCustomFieldDetailContentStoryShell({
 
     return client;
   }, [customField, customFieldId, scenario]);
-  const [ready, setReady] = useState(scenario !== "loading" && scenario !== "error");
 
   useLayoutEffect(() => {
     if (scenario === "success") {
-      setReady(true);
       return;
     }
 
@@ -78,16 +76,10 @@ function AssetCustomFieldDetailContentStoryShell({
       });
     };
 
-    setReady(true);
-
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, [customFieldId, scenario]);
-
-  if (!ready) {
-    return null;
-  }
 
   return (
     <QueryClientProvider client={queryClient}>

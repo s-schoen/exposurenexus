@@ -8,7 +8,7 @@ import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { FindingTable } from "@/components/finding-table/index.tsx";
@@ -273,7 +273,6 @@ function FindingTableStoryShell({ findings, assets, users, scenario }: FindingTa
       }),
     [queryClient],
   );
-  const [ready, setReady] = useState(scenario !== "loading");
 
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
@@ -344,16 +343,10 @@ function FindingTableStoryShell({ findings, assets, users, scenario }: FindingTa
       return originalFetch(input, init);
     };
 
-    setReady(true);
-
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, [assets, effectiveFindings, queryClient, scenario, users]);
-
-  if (!ready) {
-    return null;
-  }
 
   return (
     <RouterContextProvider router={router}>

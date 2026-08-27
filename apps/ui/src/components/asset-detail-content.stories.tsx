@@ -9,7 +9,7 @@ import {
   AssetCustomFieldValueSource,
 } from "@exposurenexus/contracts/model/asset-custom-field";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 
 import { AssetDetailContent } from "@/components/asset-detail-content.tsx";
 
@@ -176,9 +176,6 @@ function AssetDetailContentStoryShell({
 
     return client;
   }, [asset, availableCustomFields, customFields, effectiveInitialCustomFields, scenario]);
-  const [ready, setReady] = useState(
-    scenario !== "loading-custom-fields" && scenario !== "error-custom-fields",
-  );
 
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
@@ -302,16 +299,10 @@ function AssetDetailContentStoryShell({
       return createAssetCustomFieldValuesResponse(customFieldsRef.current);
     };
 
-    setReady(true);
-
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, [asset.id, availableCustomFields, customFields, effectiveInitialCustomFields, scenario]);
-
-  if (!ready) {
-    return null;
-  }
 
   return (
     <QueryClientProvider client={queryClient}>

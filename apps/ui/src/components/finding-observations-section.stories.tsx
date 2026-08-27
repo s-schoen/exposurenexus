@@ -6,7 +6,7 @@ import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { observationSchema, ObservationSource } from "@exposurenexus/contracts/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
@@ -267,7 +267,7 @@ function StoryShell({ scenario }: StoryArgs) {
   const records = useRef(
     scenario === "populated" ? observations : scenario === "single" ? [unspecifiedObservation] : [],
   );
-  const [ready, setReady] = useState(false);
+
   const queryClient = useMemo(
     () =>
       new QueryClient({
@@ -380,13 +380,11 @@ function StoryShell({ scenario }: StoryArgs) {
 
       return originalFetch(input, init);
     };
-    setReady(true);
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, [scenario]);
 
-  if (!ready) return null;
   return (
     <QueryClientProvider client={queryClient}>
       <FindingObservationsSection finding={finding} />

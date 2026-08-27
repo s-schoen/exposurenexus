@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 
 import { AssetCombobox } from "@/components/asset-combobox.tsx";
@@ -25,7 +25,6 @@ function AssetComboboxStoryShell({ scenario, onChange }: AssetComboboxStoryArgs)
 
     return client;
   }, [assets, scenario]);
-  const [ready, setReady] = useState(scenario !== "loading");
 
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
@@ -44,16 +43,10 @@ function AssetComboboxStoryShell({ scenario, onChange }: AssetComboboxStoryArgs)
       return originalFetch(input, init);
     };
 
-    setReady(true);
-
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, [assets, scenario]);
-
-  if (!ready) {
-    return null;
-  }
 
   return (
     <QueryClientProvider client={queryClient}>

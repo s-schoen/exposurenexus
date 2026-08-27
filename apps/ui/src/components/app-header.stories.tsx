@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo } from "react";
 
 import AppHeader from "@/components/app-header.tsx";
 import { STORY_AUTH_SESSION } from "@/components/storybook-fixtures.ts";
@@ -19,7 +19,6 @@ function AppHeaderStoryShell() {
 
     return client;
   }, []);
-  const [ready, setReady] = useState(false);
 
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
@@ -41,16 +40,10 @@ function AppHeaderStoryShell() {
       return originalFetch(input, init);
     };
 
-    setReady(true);
-
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, []);
-
-  if (!ready) {
-    return null;
-  }
 
   return (
     <RouterStoryProvider queryClient={queryClient} initialPath="/">

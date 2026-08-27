@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo } from "react";
 
 import { AssetInfoItem } from "@/components/asset-info-item.tsx";
 import { STORY_ASSETS } from "@/components/storybook-fixtures.ts";
@@ -26,7 +26,6 @@ function AssetInfoItemStoryShell({ assetId, scenario }: AssetInfoItemStoryArgs) 
 
     return client;
   }, [asset, assetId, scenario]);
-  const [ready, setReady] = useState(scenario !== "loading");
 
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
@@ -45,16 +44,10 @@ function AssetInfoItemStoryShell({ assetId, scenario }: AssetInfoItemStoryArgs) 
       return originalFetch(input, init);
     };
 
-    setReady(true);
-
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, [asset, assetId, scenario]);
-
-  if (!ready) {
-    return null;
-  }
 
   return (
     <RouterStoryProvider queryClient={queryClient} initialPath="/findings">

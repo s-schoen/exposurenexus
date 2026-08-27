@@ -1,5 +1,5 @@
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar.tsx";
 import {
@@ -41,7 +41,6 @@ function AppSidebarStoryShell({
 
     return client;
   }, [stats]);
-  const [ready, setReady] = useState(false);
 
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
@@ -56,16 +55,10 @@ function AppSidebarStoryShell({
       return originalFetch(input, init);
     };
 
-    setReady(true);
-
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, [stats]);
-
-  if (!ready) {
-    return null;
-  }
 
   return (
     <RouterStoryProvider queryClient={queryClient} initialPath={initialPath}>

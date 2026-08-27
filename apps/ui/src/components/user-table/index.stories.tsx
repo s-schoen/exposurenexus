@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo } from "react";
 import { fn } from "storybook/test";
 
 import { ROLE_FIXTURES } from "@/components/role-fixtures.ts";
@@ -42,7 +42,6 @@ function UserTableStoryShell({
 
     return client;
   }, [effectiveUsers, scenario]);
-  const [ready, setReady] = useState(scenario !== "loading" && scenario !== "roles-loading");
 
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
@@ -69,16 +68,10 @@ function UserTableStoryShell({
       return originalFetch(input, init);
     };
 
-    setReady(true);
-
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, [effectiveUsers, scenario]);
-
-  if (!ready) {
-    return null;
-  }
 
   return (
     <RouterStoryProvider queryClient={queryClient} initialPath="/users">
