@@ -25,6 +25,10 @@
     "./service": {
       "types": "./dist/service.d.ts",
       "import": "./dist/service.js"
+    },
+    "./postgres": {
+      "types": "./dist/postgres.d.ts",
+      "import": "./dist/postgres.js"
     }
   },
   "scripts": {
@@ -35,6 +39,7 @@
   },
   "dependencies": {
     "amqplib": "2.0.1",
+    "kysely": "^0.29.5",
     "pino": "10.3.1",
     "zod": "^4.4.3"
   },
