@@ -107,13 +107,13 @@ describe("createEvent", () => {
     const subject = "e\u0301/finding-1";
 
     const event = createEvent({
-      source: EventSource.EVENT_SOURCE_API,
+      source: "/services/worker",
       subject,
       type: "exposurenexus.test.updated",
       data: { changed: true },
     });
 
-    expect(event.source).toBe(EventSource.EVENT_SOURCE_API);
+    expect(event.source).toBe("/services/worker");
     expect(event.subject).toBe("é/finding-1");
     expect(event.subject).not.toBe(subject);
   });
@@ -143,13 +143,6 @@ describe("createEvent", () => {
 
   it("rejects unsupported createEvent option types at compile time", () => {
     const assertRejectedTypes = () => {
-      createEvent({
-        // @ts-expect-error event source is restricted to known sources
-        source: "/services/worker",
-        type: "exposurenexus.test.created",
-        data: { findingId: "finding-1" },
-      });
-
       createEvent({
         type: "exposurenexus.test.created",
         // @ts-expect-error event data must be an object

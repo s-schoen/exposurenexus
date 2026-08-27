@@ -21,6 +21,10 @@
     "./consumer": {
       "types": "./dist/consumer.d.ts",
       "import": "./dist/consumer.js"
+    },
+    "./service": {
+      "types": "./dist/service.d.ts",
+      "import": "./dist/service.js"
     }
   },
   "scripts": {
