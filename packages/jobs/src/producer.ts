@@ -296,6 +296,11 @@ export async function createJobProducer(options: JobProducerOptions): Promise<Jo
         return;
       }
 
+      if (connection !== recoveryConnection) {
+        await closeQuietly(nextChannel);
+        throw new Error("job producer connection closed during recovery");
+      }
+
       channel = nextChannel;
       ready = true;
       recoveryDelay = INITIAL_RECOVERY_DELAY_MS;
@@ -352,7 +357,12 @@ export async function createJobProducer(options: JobProducerOptions): Promise<Jo
   watchConnection(initialConnection);
 
   try {
-    channel = await createCheckedChannel(initialConnection);
+    const nextChannel = await createCheckedChannel(initialConnection);
+    if (connection !== initialConnection) {
+      await closeQuietly(nextChannel);
+      throw new Error("job producer connection closed during setup");
+    }
+    channel = nextChannel;
     ready = true;
     established = true;
   } catch (error) {
