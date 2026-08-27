@@ -12,7 +12,7 @@ the application starts.
 ```ts
 import pino from "pino";
 
-import { JobType } from "@exposurenexus/jobs";
+import { createJobEvent, JobType } from "@exposurenexus/jobs";
 import { createJobProducer } from "@exposurenexus/jobs/producer";
 
 const connectionOptions = process.env.AMQP_URL;
@@ -26,27 +26,33 @@ const producer = await createJobProducer({
   logger: pino(),
 });
 
-try {
-  const event = await producer.enqueue(JobType.INGESTION, {
+const event = createJobEvent({
+  type: JobType.INGESTION,
+  data: {
     userid: "550e8400-e29b-41d4-a716-446655440000",
     ingestdataurl: "https://example.com/ingest.json",
     format: "json",
-  });
+  },
+});
 
-  console.log(`Enqueued ${event.type} as ${event.id}`);
+try {
+  await producer.publish(event);
+  console.log(`Published ${event.type} as ${event.id}`);
 } finally {
   await producer.close();
 }
 ```
 
-`enqueue` constructs and validates the CloudEvent, publishes JSON using the
-job type as the routing key, and resolves only after a positive publisher
-confirmation. Messages are persistent and use mandatory routing. An
-unroutable return, negative confirmation, connection loss, or other publish
-failure rejects the call; the producer does not buffer jobs while disconnected.
-After an established connection is interrupted, the producer reconnects with
-bounded exponential backoff and passively checks the exchange again. Calls made
-while recovery is in progress fail instead of being held in process memory.
+`publish` validates and serializes the complete supplied CloudEvent without
+changing its identity, uses the event type as the routing key, and resolves only
+after a positive publisher confirmation. Repeating publication of an event
+therefore reuses its event ID as the AMQP message ID. Messages are persistent
+and use mandatory routing. An unroutable return, negative confirmation,
+connection loss, or other publish failure rejects the call; the producer does
+not buffer jobs while disconnected. After an established connection is
+interrupted, the producer reconnects with bounded exponential backoff and
+passively checks the exchange again. Calls made while recovery is in progress
+fail instead of being held in process memory.
 
 ## Consumer
 

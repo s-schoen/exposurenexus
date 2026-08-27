@@ -1,8 +1,8 @@
 import { connect } from "amqplib";
 
-import { createJobEvent } from "./contracts/jobs.js";
+import { jobEventSchema } from "./contracts/jobs.js";
 
-import type { JobDataFor, JobEvent, JobEventFor, JobEventType } from "./contracts/jobs.js";
+import type { JobEvent } from "./contracts/jobs.js";
 import type { ChannelModel, ConfirmChannel, Message, Options, SocketOptions } from "amqplib";
 import type { Logger } from "pino";
 
@@ -24,10 +24,7 @@ export interface JobProducerOptions {
 }
 
 export interface JobProducer {
-  enqueue<TType extends JobEventType>(
-    type: TType,
-    data: JobDataFor<TType>,
-  ): Promise<JobEventFor<TType>>;
+  publish(event: JobEvent): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -41,7 +38,7 @@ function toError(error: unknown, fallbackMessage: string): Error {
 
 export async function createJobProducer(options: JobProducerOptions): Promise<JobProducer> {
   const logger = options.logger.child({ component: "job-producer" });
-  const pendingPublishes = new Map<string, PendingPublish>();
+  const pendingPublishes = new Map<symbol, PendingPublish>();
 
   let channel: ConfirmChannel | undefined;
   let connection: ChannelModel | undefined;
@@ -67,16 +64,16 @@ export async function createJobProducer(options: JobProducerOptions): Promise<Jo
     }
   }
 
-  function settlePublish(jobID: string, error?: unknown): void {
-    const pending = pendingPublishes.get(jobID);
+  function settlePublish(attemptID: symbol, error?: unknown): void {
+    const pending = pendingPublishes.get(attemptID);
     if (!pending) {
       return;
     }
 
-    pendingPublishes.delete(jobID);
+    pendingPublishes.delete(attemptID);
 
     if (error) {
-      const publishError = toError(error, `job ${jobID} could not be published`);
+      const publishError = toError(error, `job ${pending.event.id} could not be published`);
       logger.error(
         {
           err: publishError,
@@ -84,7 +81,7 @@ export async function createJobProducer(options: JobProducerOptions): Promise<Jo
           jobId: pending.event.id,
           type: pending.event.type,
         },
-        "failed to enqueue job",
+        "failed to publish job",
       );
       pending.reject(publishError);
       return;
@@ -96,15 +93,15 @@ export async function createJobProducer(options: JobProducerOptions): Promise<Jo
         jobId: pending.event.id,
         type: pending.event.type,
       },
-      "job enqueued",
+      "job published",
     );
     pending.resolve();
   }
 
   function rejectPendingPublishes(error: unknown, pendingChannel?: ConfirmChannel): void {
-    for (const [jobID, pending] of pendingPublishes) {
+    for (const [attemptID, pending] of pendingPublishes) {
       if (!pendingChannel || pending.channel === pendingChannel) {
-        settlePublish(jobID, error);
+        settlePublish(attemptID, error);
       }
     }
   }
@@ -187,28 +184,27 @@ export async function createJobProducer(options: JobProducerOptions): Promise<Jo
   }
 
   function handleReturnedMessage(channelThatReturned: ConfirmChannel, message: Message): void {
-    let pending: PendingPublish | undefined;
     const messageID = message.properties?.messageId;
+    let returnedAttempt: [symbol, PendingPublish] | undefined;
 
     if (typeof messageID === "string") {
-      const matchingPending = pendingPublishes.get(messageID);
-      if (matchingPending?.channel === channelThatReturned) {
-        pending = matchingPending;
-      }
-    }
-
-    if (!pending) {
-      pending = [...pendingPublishes.values()].find(
-        (candidate) => candidate.channel === channelThatReturned,
+      returnedAttempt = [...pendingPublishes].find(
+        ([, candidate]) =>
+          candidate.channel === channelThatReturned && candidate.event.id === messageID,
       );
     }
 
-    if (!pending) {
+    returnedAttempt ??= [...pendingPublishes].find(
+      ([, candidate]) => candidate.channel === channelThatReturned,
+    );
+
+    if (!returnedAttempt) {
       return;
     }
 
+    const [attemptID, pending] = returnedAttempt;
     settlePublish(
-      pending.event.id,
+      attemptID,
       new Error(`job ${pending.event.id} was returned because it was not routed`),
     );
   }
@@ -365,61 +361,65 @@ export async function createJobProducer(options: JobProducerOptions): Promise<Jo
     throw error;
   }
 
-  async function enqueue<TType extends JobEventType>(
-    type: TType,
-    data: JobDataFor<TType>,
-  ): Promise<JobEventFor<TType>> {
-    let event: JobEventFor<TType>;
+  async function publish(event: JobEvent): Promise<void> {
+    let validatedEvent: JobEvent;
 
     try {
-      event = createJobEvent({ type, data });
+      validatedEvent = jobEventSchema.parse(event);
     } catch (error) {
-      logger.error({ err: error, type }, "failed to enqueue job");
+      logger.error({ err: error }, "failed to publish job");
       throw error;
     }
 
     const publishChannel = channel;
     if (!ready || !publishChannel) {
       const error = new Error("job producer is not connected");
-      logger.error({ err: error, jobId: event.id, type: event.type }, "failed to enqueue job");
+      logger.error(
+        { err: error, jobId: validatedEvent.id, type: validatedEvent.type },
+        "failed to publish job",
+      );
       throw error;
     }
 
     if (backpressuredChannel === publishChannel) {
       const error = new Error("job producer publish buffer is full");
-      logger.error({ err: error, jobId: event.id, type: event.type }, "failed to enqueue job");
+      logger.error(
+        { err: error, jobId: validatedEvent.id, type: validatedEvent.type },
+        "failed to publish job",
+      );
       throw error;
     }
 
-    const content = Buffer.from(JSON.stringify(event), "utf8");
+    const content = Buffer.from(JSON.stringify(validatedEvent), "utf8");
     const publishOptions: Options.Publish = {
-      contentType: event.datacontenttype,
+      contentType: validatedEvent.datacontenttype,
       mandatory: true,
-      messageId: event.id,
+      messageId: validatedEvent.id,
       persistent: true,
-      timestamp: Date.parse(event.time),
-      type: event.type,
+      timestamp: Date.parse(validatedEvent.time),
+      type: validatedEvent.type,
     };
+    const attemptID = Symbol(validatedEvent.id);
 
-    return new Promise<JobEventFor<TType>>((resolve, reject) => {
-      pendingPublishes.set(event.id, {
+    return new Promise<void>((resolve, reject) => {
+      pendingPublishes.set(attemptID, {
         channel: publishChannel,
-        event,
+        event: validatedEvent,
         reject,
-        resolve: () => resolve(event),
+        resolve,
       });
 
       try {
         const writable = publishChannel.publish(
           options.exchangeName,
-          event.type,
+          validatedEvent.type,
           content,
           publishOptions,
           (error) => {
             if (error) {
-              settlePublish(event.id, error);
+              settlePublish(attemptID, error);
             } else {
-              settlePublish(event.id);
+              settlePublish(attemptID);
             }
           },
         );
@@ -427,7 +427,7 @@ export async function createJobProducer(options: JobProducerOptions): Promise<Jo
           backpressuredChannel = publishChannel;
         }
       } catch (error) {
-        settlePublish(event.id, error);
+        settlePublish(attemptID, error);
       }
     });
   }
@@ -463,9 +463,9 @@ export async function createJobProducer(options: JobProducerOptions): Promise<Jo
       if (activeChannel) {
         try {
           await activeChannel.waitForConfirms();
-          for (const [jobID, pending] of pendingPublishes) {
+          for (const [attemptID, pending] of pendingPublishes) {
             if (pending.channel === activeChannel) {
-              settlePublish(jobID);
+              settlePublish(attemptID);
             }
           }
         } catch (error) {
@@ -482,5 +482,5 @@ export async function createJobProducer(options: JobProducerOptions): Promise<Jo
     return closePromise;
   }
 
-  return { close, enqueue };
+  return { close, publish };
 }
