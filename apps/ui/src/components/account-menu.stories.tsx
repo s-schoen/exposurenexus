@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo } from "react";
 
 import { AccountMenu } from "@/components/account-menu.tsx";
 import { STORY_AUTH_SESSION, STORY_USERS } from "@/components/storybook-fixtures.ts";
@@ -38,7 +38,6 @@ function AccountMenuStoryShell({ scenario }: AccountMenuStoryArgs) {
 
     return client;
   }, [scenario, session]);
-  const [ready, setReady] = useState(scenario !== "pending");
 
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
@@ -64,16 +63,10 @@ function AccountMenuStoryShell({ scenario }: AccountMenuStoryArgs) {
       return originalFetch(input, init);
     };
 
-    setReady(true);
-
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, [scenario, session]);
-
-  if (!ready) {
-    return null;
-  }
 
   return (
     <RouterStoryProvider queryClient={queryClient} initialPath="/">

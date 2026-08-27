@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { UserRoundPen } from "lucide-react";
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo } from "react";
 
 import { ROLE_FIXTURES } from "@/components/role-fixtures.ts";
 import { STORY_USERS } from "@/components/storybook-fixtures.ts";
@@ -46,9 +46,6 @@ function UserDetailContentStoryShell({ scenario, user }: UserDetailContentStoryA
 
     return client;
   }, [effectiveUser, scenario]);
-  const [ready, setReady] = useState(
-    scenario !== "loading" && scenario !== "error" && scenario !== "roles-loading",
-  );
 
   useLayoutEffect(() => {
     const originalFetch = globalThis.fetch;
@@ -84,16 +81,10 @@ function UserDetailContentStoryShell({ scenario, user }: UserDetailContentStoryA
       return originalFetch(input, init);
     };
 
-    setReady(true);
-
     return () => {
       globalThis.fetch = originalFetch;
     };
   }, [effectiveUser, scenario]);
-
-  if (!ready) {
-    return null;
-  }
 
   return (
     <QueryClientProvider client={queryClient}>

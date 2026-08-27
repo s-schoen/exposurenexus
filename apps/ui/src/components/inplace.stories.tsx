@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 
 import { Inplace } from "@/components/inplace.tsx";
@@ -16,11 +16,11 @@ type InplaceStoryArgs = {
 };
 
 function InplaceStoryShell(args: InplaceStoryArgs) {
-  const [value, setValue] = useState(args.value);
+  return <InplaceStoryEditor key={args.value} {...args} />;
+}
 
-  useEffect(() => {
-    setValue(args.value);
-  }, [args.value]);
+function InplaceStoryEditor(args: InplaceStoryArgs) {
+  const [value, setValue] = useState(args.value);
 
   const editElement =
     args.mode === "select"
