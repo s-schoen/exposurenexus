@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --reporter=default --reporter=junit --outputFile=coverage/test-results.junit.xml",
     "test:unit": "vitest run --project unit"
   },
   "dependencies": {
