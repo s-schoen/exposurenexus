@@ -67,35 +67,27 @@ export function UserLabel({
   });
   const effectiveUser = typeof user === "undefined" ? resolvedUser.data : user;
 
-  function TextLabel({ children, fallback = false }: { children: string; fallback?: boolean }) {
+  function renderLabel(children: string, fallback = false) {
+    if (variant === "chip") {
+      return (
+        <Badge
+          variant="outline"
+          className={cn(
+            "max-w-full rounded-md font-normal",
+            fallback && "border-dashed text-muted-foreground",
+            className,
+          )}
+        >
+          <span className="truncate">{children}</span>
+        </Badge>
+      );
+    }
+
     return <span className={cn(fallback && "text-muted-foreground", className)}>{children}</span>;
   }
 
-  function ChipLabel({ children, fallback = false }: { children: string; fallback?: boolean }) {
-    return (
-      <Badge
-        variant="outline"
-        className={cn(
-          "max-w-full rounded-md font-normal",
-          fallback && "border-dashed text-muted-foreground",
-          className,
-        )}
-      >
-        <span className="truncate">{children}</span>
-      </Badge>
-    );
-  }
-
-  function Label({ children, fallback = false }: { children: string; fallback?: boolean }) {
-    return variant === "chip" ? (
-      <ChipLabel fallback={fallback}>{children}</ChipLabel>
-    ) : (
-      <TextLabel fallback={fallback}>{children}</TextLabel>
-    );
-  }
-
   if (!userId && !effectiveUser) {
-    return <Label fallback>{emptyLabel}</Label>;
+    return renderLabel(emptyLabel, true);
   }
 
   if (shouldResolveUser && resolvedUser.isPending) {
@@ -103,8 +95,8 @@ export function UserLabel({
   }
 
   if (!effectiveUser) {
-    return <Label fallback>{unknownLabel}</Label>;
+    return renderLabel(unknownLabel, true);
   }
 
-  return <Label>{getUserProfileDisplayName(effectiveUser)}</Label>;
+  return renderLabel(getUserProfileDisplayName(effectiveUser));
 }

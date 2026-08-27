@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo } from "react";
 
 import { UserLabel } from "@/components/user-label";
 
@@ -58,11 +58,9 @@ function UserLabelStoryShell({
 
     return client;
   }, [scenario, users]);
-  const [ready, setReady] = useState(scenario !== "loading");
 
   useLayoutEffect(() => {
     if (scenario !== "loading") {
-      setReady(true);
       return;
     }
 
@@ -77,8 +75,6 @@ function UserLabelStoryShell({
 
       return await new Promise<Response>(() => {});
     };
-
-    setReady(true);
 
     return () => {
       globalThis.fetch = originalFetch;
@@ -96,10 +92,6 @@ function UserLabelStoryShell({
       queryClient.setQueryData(["users"], []);
     }
   }, [queryClient, scenario, users]);
-
-  if (!ready) {
-    return null;
-  }
 
   return (
     <QueryClientProvider client={queryClient}>
