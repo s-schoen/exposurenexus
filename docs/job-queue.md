@@ -1,9 +1,47 @@
 # Job Queue
 
-The `@exposurenexus/jobs` package provides the application-side contract,
-producer, and consumer for ExposureNexus jobs.
+The `@exposurenexus/jobs` package provides the durable job model and service,
+PostgreSQL repository, single-publisher relay, and RabbitMQ producer and
+consumer.
 
-## Producer
+## Transactional Outbox
+
+Application code creates jobs through `JobService`, using a repository bound to
+the same Kysely transaction as the associated business mutation. The complete
+CloudEvent and its publication state are committed in PostgreSQL atomically
+with that mutation. Application callers do not publish directly to RabbitMQ.
+
+The polling relay is a separate boundary. It reads the oldest eligible pending
+row, publishes its stored event through the confirm-channel producer, records
+the observed result, and immediately looks for more work. It handles only one
+job at a time and supports only one relay instance; it has no row claims,
+leases, advisory locks, leader election, batching, or concurrent publication.
+
+Publication is at least once. A positive RabbitMQ confirmation can be followed
+by a PostgreSQL update failure. The live relay retries only that state update,
+but a process exit inside this window leaves the row pending, so a restarted
+relay publishes it again. The CloudEvent `id` and AMQP `messageId` remain stable
+across attempts. Consumers must therefore make business effects idempotent.
+
+Automatic publication retry is fixed-delay and finite: the defaults are five
+attempts and five seconds between attempts. An exhausted job remains in
+publication state `failed` until an operator explicitly retries it (resetting
+the attempt count), abandons it, or performs a permitted deletion. Database
+infrastructure recovery uses the same fixed delay but does not consume a
+publication attempt.
+
+Publication state (`pending`, `published`, `failed`, or `abandoned`) describes
+delivery to RabbitMQ. Execution state (`pending`, `running`, `succeeded`, or
+`failed`) independently describes the worker's logical processing result. A
+publication failure is not an execution failure, and RabbitMQ redelivery is
+not a new publication attempt.
+
+Runtime application wiring and dead-letter-queue reconciliation are outside
+the package's current implementation. Deployments must compose and supervise
+the producer and relay, guarantee the single-relay restriction, and separately
+operate the RabbitMQ topology described below.
+
+## Confirm-channel Producer
 
 The producer owns its AMQP connection and confirm channel. It passively checks
 that the configured exchange already exists, so it must be provisioned before
@@ -43,7 +81,8 @@ try {
 }
 ```
 
-`publish` validates and serializes the complete supplied CloudEvent without
+`publish` is the low-level operation used by the outbox relay. It validates and
+serializes the complete supplied CloudEvent without
 changing its identity, uses the event type as the routing key, and resolves only
 after a positive publisher confirmation. Repeating publication of an event
 therefore reuses its event ID as the AMQP message ID. Messages are persistent
