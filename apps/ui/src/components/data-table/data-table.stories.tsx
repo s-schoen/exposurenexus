@@ -1,5 +1,5 @@
 import { DatabaseBackup } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { fn } from "storybook/test";
 
 import { DataTableColumnHeader } from "@/components/data-table/column-header";
@@ -266,7 +266,11 @@ function createQueryResult<TData>({
   } as unknown as UseQueryResult<Array<TData>, Error>;
 }
 
-function DataTableStoryShell({
+function DataTableStoryShell(args: DataTableStoryArgs) {
+  return <DataTableStoryContent key={JSON.stringify(args.rows)} {...args} />;
+}
+
+function DataTableStoryContent({
   rows,
   pending = false,
   embedded = false,
@@ -277,10 +281,6 @@ function DataTableStoryShell({
 }: DataTableStoryArgs) {
   const [currentRows, setCurrentRows] = useState(rows);
   const [isFetching, setIsFetching] = useState(false);
-
-  useEffect(() => {
-    setCurrentRows(rows);
-  }, [rows]);
 
   const handleRefresh = async () => {
     if (pending) {

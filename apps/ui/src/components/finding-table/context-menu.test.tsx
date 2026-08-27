@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { FindingContextMenu } from "@/components/finding-table/context-menu.tsx";
 import type { Finding } from "@exposurenexus/contracts/model/finding";
-import type { ReactElement, ReactNode, RefObject } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 vi.mock("@/components/ui/context-menu", () => ({
   ContextMenu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -43,12 +43,10 @@ const finding: Finding = {
 function renderContextMenu(
   Component: typeof FindingContextMenu,
   findings: Array<Finding>,
-  onDelete = vi.fn(),
+  onDelete: () => void = vi.fn(),
 ) {
-  const findingsRef = { current: findings } as RefObject<Array<Finding>>;
-
   return render(
-    <Component findingsRef={findingsRef} onDelete={onDelete}>
+    <Component findings={findings} onDelete={onDelete}>
       <button type="button">Selected row</button>
     </Component>,
   );
@@ -71,14 +69,12 @@ describe("FindingContextMenu", () => {
   it("delegates deletion for multiple selected findings", async () => {
     const { FindingContextMenu } = await import("@/components/finding-table/context-menu.tsx");
     const onDelete = vi.fn();
+    const selectedFindings = [finding, { ...finding, id: "73e8f746-a620-4996-909b-60b99f52e9a2" }];
 
-    renderContextMenu(
-      FindingContextMenu,
-      [finding, { ...finding, id: "73e8f746-a620-4996-909b-60b99f52e9a2" }],
-      onDelete,
-    );
+    renderContextMenu(FindingContextMenu, selectedFindings, () => onDelete(selectedFindings));
+    expect(screen.getByText("2 findings selected")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 
-    expect(onDelete).toHaveBeenCalledOnce();
+    expect(onDelete).toHaveBeenCalledWith(selectedFindings);
   });
 });
