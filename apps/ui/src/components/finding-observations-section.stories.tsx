@@ -450,7 +450,7 @@ export const DeleteFinalObservation: Story = {
       "The finding remains, even if this is its final observation.",
     );
     await userEvent.click(within(dialog).getByRole("button", { name: "Delete observation" }));
-    await expect(canvas.getByText("No observations recorded")).toBeVisible();
+    await expect(await canvas.findByText("No observations recorded")).toBeVisible();
   },
 };
 export const MoveObservation: Story = {
