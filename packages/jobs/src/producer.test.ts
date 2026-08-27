@@ -267,6 +267,24 @@ describe("createJobProducer", () => {
     expect(missingExchangeConnection.close).toHaveBeenCalledOnce();
   });
 
+  it("rejects a channel whose connection closes during setup", async () => {
+    let resolveExchangeCheck: (() => void) | undefined;
+    channel.checkExchange.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveExchangeCheck = resolve;
+        }),
+    );
+
+    const creating = createJobProducer(options);
+    await vi.waitFor(() => expect(channel.checkExchange).toHaveBeenCalledWith(EXCHANGE_NAME));
+    connection.emit("close", new Error("disconnected during setup"));
+    resolveExchangeCheck?.();
+
+    await expect(creating).rejects.toThrow("connection closed during setup");
+    expect(channel.close).toHaveBeenCalledOnce();
+  });
+
   it("rejects calls while disconnected and recovers after an established connection closes", async () => {
     vi.useFakeTimers();
     const recoveredChannel = createFakeChannel();
@@ -280,6 +298,42 @@ describe("createJobProducer", () => {
     await vi.advanceTimersByTimeAsync(100);
     expect(connectMock).toHaveBeenCalledTimes(2);
     expect(recoveredChannel.checkExchange).toHaveBeenCalledWith(EXCHANGE_NAME);
+
+    await producer.close();
+  });
+
+  it("retries when a replacement connection closes during its exchange check", async () => {
+    vi.useFakeTimers();
+    let resolveExchangeCheck: (() => void) | undefined;
+    const staleChannel = createFakeChannel();
+    staleChannel.checkExchange.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveExchangeCheck = resolve;
+        }),
+    );
+    const staleConnection = createFakeConnection(staleChannel);
+    const restoredChannel = createFakeChannel();
+    const restoredConnection = createFakeConnection(restoredChannel);
+    connectMock
+      .mockResolvedValueOnce(connection)
+      .mockResolvedValueOnce(staleConnection)
+      .mockResolvedValueOnce(restoredConnection);
+    const producer = await createJobProducer(options);
+
+    connection.emit("close", new Error("initial connection lost"));
+    await vi.advanceTimersByTimeAsync(100);
+    expect(staleChannel.checkExchange).toHaveBeenCalledWith(EXCHANGE_NAME);
+
+    staleConnection.emit("close", new Error("replacement connection lost"));
+    resolveExchangeCheck?.();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(staleChannel.close).toHaveBeenCalledOnce();
+
+    await vi.advanceTimersByTimeAsync(200);
+    expect(connectMock).toHaveBeenCalledTimes(3);
+    expect(restoredChannel.checkExchange).toHaveBeenCalledWith(EXCHANGE_NAME);
+    await expect(producer.publish(ingestionEvent)).resolves.toBeUndefined();
 
     await producer.close();
   });

@@ -434,6 +434,33 @@ describe("createJobConsumer", () => {
     await running;
   });
 
+  it("does not dispatch deliveries after shutdown begins", async () => {
+    let resolveCancel: (() => void) | undefined;
+    channel.cancel.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveCancel = resolve;
+        }),
+    );
+    const consumer = await createJobConsumer(options);
+    const handler = vi.fn();
+    consumer.registerJobHandler(JobType.INGESTION, handler);
+    const running = consumer.start();
+    await flush();
+
+    const stopping = consumer.stop();
+    await flush();
+    channel.emitMessage(
+      createMessage(createJobEvent({ type: JobType.INGESTION, data: ingestionData })),
+    );
+    await flush();
+
+    expect(handler).not.toHaveBeenCalled();
+    resolveCancel?.();
+    await stopping;
+    await running;
+  });
+
   it("cancels, waits for the active handler, and closes cleanly", async () => {
     const consumer = await createJobConsumer(options);
     let resolveHandler: (() => void) | undefined;

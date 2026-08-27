@@ -257,7 +257,6 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
       recoveryTimer = undefined;
       startRecovery();
     }, delay);
-    recoveryTimer.unref?.();
   }
 
   async function createCheckedChannel(connectionToUse: ChannelModel): Promise<Channel> {
@@ -351,7 +350,9 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
             return;
           }
 
-          queueMessage(nextChannel, message);
+          if (!closed) {
+            queueMessage(nextChannel, message);
+          }
         },
         { noAck: false },
       );
