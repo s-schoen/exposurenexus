@@ -24,6 +24,9 @@ importers:
       oxlint-tsgolint:
         specifier: 7.0.2001
         version: 7.0.2001
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
 
   apps/api:
     dependencies:

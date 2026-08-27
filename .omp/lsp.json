@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "typescript-language-server": {
+      "disabled": false
+    },
+    "typescript-native": {
+      "command": "tsc",
+      "args": ["--lsp", "--stdio"],
+      "fileTypes": [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"],
+      "rootMarkers": ["package.json", "tsconfig.json", "jsconfig.json"]
+    }
+  }
+}
