@@ -28,6 +28,7 @@ const expectedMigrationNames = [
   "20260511-asset-model-cutover",
   "20260512-asset-identifiers",
   "20260816-observation-model-cutover",
+  "20260827-job-outbox",
 ];
 
 // Forward-only migration history prevents renaming this already-applied file set.

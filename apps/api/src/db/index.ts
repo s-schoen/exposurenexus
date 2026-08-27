@@ -21,8 +21,10 @@ import type {
   UserRoleAssignmentTable,
 } from "./schema/rbac.js";
 import type { VulnerabilityTable } from "./schema/vulnerability.js";
+import type { JobTable } from "@exposurenexus/jobs/postgres";
 
 export interface Database {
+  job: JobTable;
   user_profile: UserProfileTable;
   role: RoleTable;
   role_permission_assignment: RolePermissionAssignmentTable;
