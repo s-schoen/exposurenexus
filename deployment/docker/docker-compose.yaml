@@ -1,0 +1,143 @@
+name: exposurenexus
+services:
+  #  exposurenexus:
+  #    container_name: exposurenexus
+  #    image: ghcr.io/s-schoen/exposurenexus:latest
+  #    ports:
+  #      - "3000:3000" # UI
+  #      - "3001:3001" # API
+  #    depends_on:
+  #      db:
+  #        condition: service_healthy
+  #    env_file:
+  #      - ../../.env
+  nats:
+    container_name: nats
+    image: nats:2-alpine
+    ports:
+      - "4222:4222"
+    command:
+      - "-js" # enable JetStream
+      - "-sd"
+      - "/data"
+      - "-m" # enable monitoring
+      - "8222"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    volumes:
+      - nats-data:/data
+  s3:
+    container_name: versitygw
+    image: ghcr.io/versity/versitygw:latest
+    ports:
+      - "7070:7070" # S3 API
+    environment:
+      ROOT_ACCESS_KEY: s3access # TODO: change
+      ROOT_SECRET_KEY: s3secret # TODO: change
+      VGW_PORT: ":7070"
+      VGW_BACKEND: posix
+      VGW_BACKEND_ARGS: /data/s3
+      VGW_HEALTH: /health
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:7070/health >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    volumes:
+      - s3-data:/data/s3
+      - s3-versioning:/data/versioning
+  db:
+    container_name: db
+    image: postgres:18-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: exposurenexus
+      POSTGRES_PASSWORD: exposurenexus # TODO: change
+      POSTGRES_DB: exposurenexus
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  # Init Containers
+  init-s3:
+    container_name: init-s3
+    image: public.ecr.aws/aws-cli/aws-cli:latest
+    restart: no
+    environment:
+      AWS_ACCESS_KEY_ID: s3access # TODO: change
+      AWS_SECRET_ACCESS_KEY: s3secret # TODO: change
+      AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: exposurenexus
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if aws \
+          --endpoint-url http://s3:7070 \
+          s3api head-bucket \
+          --bucket "$${S3_BUCKET}" \
+          >/dev/null 2>&1
+        then
+          echo "Bucket '$${S3_BUCKET}' already exists"
+        else
+          echo "Creating bucket '$${S3_BUCKET}'"
+
+          aws \
+            --endpoint-url http://s3:7070 \
+            s3api create-bucket \
+            --bucket "$${S3_BUCKET}"
+          fi
+    depends_on:
+      s3:
+        condition: service_healthy
+  init-nats:
+    container_name: init-nats
+    image: natsio/nats-box:latest
+    restart: no
+    environment:
+      NATS_SERVER: nats://nats:4222
+      JOB_QUEUE_NAME: JOBS
+      JOB_QUEUE_CONSUMER_NAME: workers
+      JOB_QUEUE_SUBJECT: jobs.*
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      # Wait until NATS is available
+      until nats --server $${NATS_SERVER} account info >/dev/null 2>&1; do
+        sleep 1
+      done
+
+      # Create stream if it doesn't exist
+      nats --server $${NATS_SERVER} stream info $${JOB_QUEUE_NAME} >/dev/null 2>&1 || \
+        nats --server $${NATS_SERVER} stream add $${JOB_QUEUE_NAME} \
+          --subjects "$${JOB_QUEUE_SUBJECT}" \
+          --storage file \
+          --retention work \
+          --replicas 1 \
+          --defaults
+
+      # Create consumer if it doesn't exist
+      nats --server nats://nats:4222 consumer info $${JOB_QUEUE_NAME} $${JOB_QUEUE_CONSUMER_NAME} >/dev/null 2>&1 || \
+        nats --server nats://nats:4222 consumer add $${JOB_QUEUE_NAME} $${JOB_QUEUE_CONSUMER_NAME} \
+          --filter "$${JOB_QUEUE_SUBJECT}" \
+          --ack explicit \
+          --pull \
+          --deliver all \
+          --max-deliver 5
+    depends_on:
+      nats:
+        condition: service_healthy
+volumes:
+  db-data:
+  s3-data:
+  s3-versioning:
+  nats-data:
