@@ -56,7 +56,7 @@ export function RoleTable({
       onRowDoubleClick={onOpenRole}
       onRowDelete={onDeleteRoles}
       isRowActive={(role) => role.id === selectedRoleId}
-      toolbarControls={onCreateRole ? <ToolbarElements /> : undefined}
+      toolbarControls={onCreateRole ? ToolbarElements() : undefined}
     />
   );
 }

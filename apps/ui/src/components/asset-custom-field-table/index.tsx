@@ -60,7 +60,7 @@ export function AssetCustomFieldTable({
       onRowDoubleClick={onOpenCustomField}
       onRowDelete={onDeleteCustomFields}
       isRowActive={(field) => field.id === selectedCustomFieldId}
-      toolbarControls={onCreateCustomField ? <ToolbarElements /> : undefined}
+      toolbarControls={onCreateCustomField ? ToolbarElements() : undefined}
     />
   );
 }
