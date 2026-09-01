@@ -1,0 +1,10 @@
+import{a as e,n as t}from"./chunk-DnJy8xQt.js";import{a as n}from"./iframe-DOanChD-.js";import{t as r}from"./jsx-runtime-BX9360Lk.js";import{c as i,d as a}from"./format-DghQRabq.js";import{a as o,i as s,r as c,t as l}from"./storybook-utils-ByWtnJxJ.js";import{a as u,i as d,n as f,t as p}from"./app-sidebar-8kIJ7Jrg.js";function m({activeFindings:e,confirmedFindings:t,initialPath:n}){let r=(0,h.useMemo)(()=>({total:e+t,status:{[i.Active]:e,[i.Confirmed]:t},severity:{},source:{},assets:{}}),[e,t]),a=(0,h.useMemo)(()=>{let e=s();return e.setQueryData([`findings`,`stats`],r),e},[r]),[o,u]=(0,h.useState)(!1);return(0,h.useLayoutEffect)(()=>{let e=globalThis.fetch;return globalThis.fetch=async(t,n)=>(t instanceof Request?t.url:String(t)).endsWith(`/api/findings/stats`)?c(r):e(t,n),u(!0),()=>{globalThis.fetch=e}},[r]),o?(0,g.jsx)(l,{queryClient:a,initialPath:n,children:(0,g.jsx)(d,{children:(0,g.jsx)(p,{})})}):null}var h,g,_,v,y,b,x;t((()=>{h=e(n(),1),a(),f(),u(),o(),g=r(),_={title:`App/Shell/Sidebar`,component:m,parameters:{layout:`fullscreen`},args:{initialPath:`/findings/triage`,activeFindings:7,confirmedFindings:3},render:e=>(0,g.jsx)(m,{...e})},v={},y={args:{initialPath:`/assets/447b53a7-c3ce-4a0c-b96a-099f5e5dc71c`}},b={args:{activeFindings:0,confirmedFindings:0}},v.parameters={...v.parameters,docs:{...v.parameters?.docs,source:{originalSource:`{}`,...v.parameters?.docs?.source}}},y.parameters={...y.parameters,docs:{...y.parameters?.docs,source:{originalSource:`{
+  args: {
+    initialPath: "/assets/447b53a7-c3ce-4a0c-b96a-099f5e5dc71c"
+  }
+}`,...y.parameters?.docs?.source}}},b.parameters={...b.parameters,docs:{...b.parameters?.docs,source:{originalSource:`{
+  args: {
+    activeFindings: 0,
+    confirmedFindings: 0
+  }
+}`,...b.parameters?.docs?.source}}},x=[`TriageActive`,`AssetsActive`,`WithoutBadges`]}))();export{y as AssetsActive,v as TriageActive,b as WithoutBadges,x as __namedExportsOrder,_ as default};

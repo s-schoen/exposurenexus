@@ -1,0 +1,1 @@
+import{n as e}from"./chunk-DnJy8xQt.js";import{i as t,t as n}from"./common-YwcRYf10.js";import{n as r,r as i}from"./dist-ygh7wmfd.js";function a(e){return e instanceof n&&e.statusCode===403}function o(e,t){return a(e)?c:t}function s(e,t){i.error(o(e,t))}var c,l=e((()=>{r(),t(),c=`You are not allowed to do that.`}));export{l as n,s as r,o as t};
