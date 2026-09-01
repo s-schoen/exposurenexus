@@ -10,7 +10,7 @@ import {
   listAssetCustomFieldDefinitions,
   updateAssetCustomFieldDefinition,
 } from "@/api/asset-custom-field.ts";
-import { APIError } from "@/api/common.ts";
+import { APIError } from "@/lib/api-client.ts";
 
 import type {
   AssetCustomFieldDefinition,

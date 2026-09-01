@@ -8,7 +8,7 @@ import {
   parseArrayReply,
   parseErrorReply,
   parseObjectReply,
-} from "@/api/common.ts";
+} from "@/lib/api-client.ts";
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -42,7 +42,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("api common helpers", () => {
+describe("generic API client", () => {
   it("sends GET requests with browser credentials and no csrf header", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: { ok: true } }));
 
@@ -180,6 +180,9 @@ describe("api common helpers", () => {
         jsonResponse({
           correlationId: "api-test-request",
           data: {
+            currentItemCount: 1,
+            startIndex: 0,
+            totalItems: 1,
             items: [{ ok: true }],
           },
         }),
@@ -206,10 +209,49 @@ describe("api common helpers", () => {
         jsonResponse({
           correlationId: "api-test-request",
           data: {
+            currentItemCount: 1,
+            startIndex: 0,
+            totalItems: 1,
             items: [{ ok: "yes" }],
           },
         }),
         z.strictObject({ ok: z.boolean() }),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("rejects malformed success and error envelopes", async () => {
+    await expect(
+      parseObjectReply(
+        jsonResponse({
+          result: { ok: true },
+        }),
+        z.strictObject({ ok: z.boolean() }),
+      ),
+    ).rejects.toThrow();
+
+    await expect(
+      parseArrayReply(
+        jsonResponse({
+          correlationId: "api-test-request",
+          data: {
+            entries: [{ ok: true }],
+          },
+        }),
+        z.strictObject({ ok: z.boolean() }),
+      ),
+    ).rejects.toThrow();
+
+    await expect(
+      parseErrorReply(
+        jsonResponse(
+          {
+            correlationId: "api-test-request",
+            status: 403,
+            error: 403,
+          },
+          { status: 403 },
+        ),
       ),
     ).rejects.toThrow();
   });

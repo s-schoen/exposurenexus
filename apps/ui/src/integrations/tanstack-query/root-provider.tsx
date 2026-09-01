@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 
-import { createAppQueryClient } from "@/lib/auth-session-expiry.ts";
+import { createAppQueryClient } from "@/lib/query-client.ts";
 
 import type { QueryClient } from "@tanstack/react-query";
 

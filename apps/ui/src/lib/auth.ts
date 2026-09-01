@@ -3,11 +3,8 @@ import { userProfileSchema } from "@exposurenexus/contracts/model/user";
 import { queryOptions } from "@tanstack/react-query";
 import { z } from "zod/v4";
 
-import { APIError, apiRequest, parseErrorReply, parseObjectReply } from "@/api/common.ts";
-import {
-  SKIP_AUTH_SESSION_EXPIRY_META,
-  shouldRetryAuthAwareQuery,
-} from "@/lib/auth-session-expiry.ts";
+import { APIError, apiRequest, parseErrorReply, parseObjectReply } from "@/lib/api-client.ts";
+import { SKIP_UNAUTHORIZED_ERROR_META } from "@/lib/query-client.ts";
 
 import type { AuthSessionDataReply } from "@exposurenexus/contracts/api";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
@@ -121,8 +118,7 @@ export function createAuthSessionQueryOptions() {
   return queryOptions({
     queryKey: AUTH_SESSION_QUERY_KEY,
     queryFn: loadAuthSession,
-    meta: SKIP_AUTH_SESSION_EXPIRY_META,
-    retry: shouldRetryAuthAwareQuery,
+    meta: SKIP_UNAUTHORIZED_ERROR_META,
   });
 }
 
