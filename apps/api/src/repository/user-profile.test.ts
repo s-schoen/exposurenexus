@@ -1,14 +1,8 @@
 import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";
 import { createUserProfileRepository } from "./user-profile.js";
-
-vi.mock("../db/index.js", () => ({
-  db: {},
-  logger: {},
-  pool: {},
-}));
 
 describe("user profile repository", () => {
   const testDb = createTestDatabase();

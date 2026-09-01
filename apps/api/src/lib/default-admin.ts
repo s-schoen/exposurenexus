@@ -4,7 +4,7 @@ import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 
 import { hashPlaintextPassword } from "./argon2.js";
 
-import type { Database } from "../db/index.js";
+import type { Database } from "@exposurenexus/backend/database";
 import type { Kysely } from "kysely";
 import type { Logger } from "pino";
 

@@ -1,13 +1,7 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";
 import { createUserSessionRepository } from "./user-session.js";
-
-vi.mock("../db/index.js", () => ({
-  db: {},
-  logger: {},
-  pool: {},
-}));
 
 describe("user session repository", () => {
   const testDb = createTestDatabase();

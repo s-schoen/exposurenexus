@@ -18,36 +18,30 @@ export function createMigrationProvider(): FileMigrationProvider {
   });
 }
 
-export async function migrateToLatest(targetDb?: Kysely<Database>, targetLogger?: Logger) {
-  if (!targetDb || !targetLogger) {
-    const defaultDb = await import("./index.js");
-    targetDb ??= defaultDb.db;
-    targetLogger ??= defaultDb.logger;
-  }
-
+export async function migrateToLatest(database: Kysely<Database>, logger: Logger): Promise<void> {
   const migrator = new Migrator({
-    db: targetDb,
+    db: database,
     provider: createMigrationProvider(),
   });
 
-  targetLogger.info("migrating database");
+  logger.info("migrating database");
   const { error, results } = await migrator.migrateToLatest();
 
   if (results && results.length === 0) {
-    targetLogger.info("no migrations to apply");
+    logger.info("no migrations to apply");
   }
 
   results?.forEach((it) => {
     if (it.status === "Success") {
-      targetLogger.info(`migration "${it.migrationName}" applied successfully`);
+      logger.info(`migration "${it.migrationName}" applied successfully`);
     } else if (it.status === "Error") {
-      targetLogger.error(`failed to apply migration "${it.migrationName}"`);
+      logger.error(`failed to apply migration "${it.migrationName}"`);
     }
   });
 
   if (error) {
-    targetLogger.error("failed to migrate");
-    targetLogger.error(error);
-    process.exit(1);
+    logger.error("failed to migrate");
+    logger.error(error);
+    throw error;
   }
 }

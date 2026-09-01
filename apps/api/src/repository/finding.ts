@@ -22,10 +22,10 @@ import {
 } from "kysely";
 import { jsonArrayFrom } from "kysely/helpers/postgres";
 
-import type { Database } from "../db/index.js";
-import type { FindingTable } from "../db/schema/finding.js";
-import type { ObservationTable } from "../db/schema/observation.js";
 import type { CreateObservationRecord } from "./observation.js";
+import type { Database } from "@exposurenexus/backend/database";
+import type { FindingTable } from "@exposurenexus/backend/database";
+import type { ObservationTable } from "@exposurenexus/backend/database";
 
 export type FindingRecord = Selectable<FindingTable>;
 type FindingProjectionRow = FindingRecord & {

@@ -2,16 +2,18 @@ import { PGlite } from "@electric-sql/pglite";
 import { JobType } from "@exposurenexus/jobs";
 import { createJobRepository } from "@exposurenexus/jobs/postgres";
 import { JobStateConflictError } from "@exposurenexus/jobs/service";
-import { Kysely, PGliteDialect, sql } from "kysely";
+import { PGliteDialect, sql } from "kysely";
 import { Migrator } from "kysely/migration";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
+import { createDatabase } from "./factory.js";
 import { createMigrationProvider } from "./migration.js";
 
 import type { Database } from "./index.js";
 import type { Job, JobEvent, JobExecutionState, JobPublicationState } from "@exposurenexus/jobs";
 import type { JobRepository } from "@exposurenexus/jobs/postgres";
 import type { JobStateConflictOperation } from "@exposurenexus/jobs/service";
+import type { Kysely } from "kysely";
 
 const initialTime = new Date("2026-08-27T10:00:00.000Z");
 let nextID = 1;
@@ -82,7 +84,7 @@ describe("20260827 job outbox migration", () => {
     async () => {
       const pgLite = new PGlite("memory://");
       await pgLite.waitReady;
-      const database = new Kysely<Database>({ dialect: new PGliteDialect({ pglite: pgLite }) });
+      const database = createDatabase(new PGliteDialect({ pglite: pgLite }));
 
       try {
         const migrator = await migrate(database);
@@ -135,7 +137,7 @@ describe("PostgreSQL job repository", () => {
   beforeAll(async () => {
     pgLite = new PGlite("memory://");
     await pgLite.waitReady;
-    database = new Kysely<Database>({ dialect: new PGliteDialect({ pglite: pgLite }) });
+    database = createDatabase(new PGliteDialect({ pglite: pgLite }));
     await migrate(database);
     repository = createJobRepository(database);
   }, 30_000);

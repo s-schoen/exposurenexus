@@ -8,14 +8,12 @@ import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { ObservationSource } from "@exposurenexus/contracts/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { sql } from "kysely";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";
 import { createAssetRepository } from "./asset.js";
 import { createFindingRepository } from "./finding.js";
 import { createObservationRepository } from "./observation.js";
-
-vi.mock("../db/index.js", () => ({ db: {}, logger: {}, pool: {} }));
 
 describe("observation repository transactions", () => {
   const testDb = createTestDatabase();

@@ -5,22 +5,9 @@ import {
   builtInRoleIds,
 } from "@exposurenexus/contracts/model/rbac";
 import { sql } from "kysely";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-vi.mock("../env.js", () => ({
-  env: {
-    PORT: 3001,
-    LOG_LEVEL: "info",
-    APP_ORIGIN: "http://localhost:3000",
-    AUTH_SESSION_LIFETIME: 12,
-    AUTH_COOKIE_SECURE: true,
-    AUTH_SECRET: "012345678901234567890123456789012345678901234567890123456789",
-    DATABASE_URL: "postgres://exposurenexus:exposurenexus@localhost:5432/exposurenexus",
-    API_TIMEOUT_MS: 5000,
-  },
-}));
-
-const { createTestDatabase } = await import("../test/db.js");
+import { createTestDatabase } from "./test/database.js";
 
 describe("db migration columns", () => {
   const testDb = createTestDatabase();

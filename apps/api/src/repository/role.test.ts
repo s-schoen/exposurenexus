@@ -4,16 +4,10 @@ import {
   PermissionVerb,
   builtInRoleIds,
 } from "@exposurenexus/contracts/model/rbac";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";
 import { createRoleRepository } from "./role.js";
-
-vi.mock("../db/index.js", () => ({
-  db: {},
-  logger: {},
-  pool: {},
-}));
 
 describe("role repository", () => {
   const testDb = createTestDatabase();

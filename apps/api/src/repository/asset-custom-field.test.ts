@@ -8,17 +8,11 @@ import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
 } from "@exposurenexus/contracts/model/asset-custom-field";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";
 import { createAssetCustomFieldRepository } from "./asset-custom-field.js";
 import { createAssetRepository } from "./asset.js";
-
-vi.mock("../db/index.js", () => ({
-  db: {},
-  logger: {},
-  pool: {},
-}));
 
 function expectSelectDefinition(
   definition: AssetCustomFieldDefinition | null,
