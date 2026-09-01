@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { APIError } from "@/api/common.ts";
 import {
   FORBIDDEN_ACTION_MESSAGE,
   actionErrorMessage,
   isForbiddenAPIError,
   toastActionError,
 } from "@/lib/action-error-toast.ts";
+import { APIError } from "@/lib/api-client.ts";
 
 const { toastErrorMock } = vi.hoisted(() => ({
   toastErrorMock: vi.fn(),

@@ -1,13 +1,7 @@
-import { env } from "@/env.ts";
+import { z } from "zod/v4";
 
-import type {
-  APIArrayDataReply,
-  APIErrorReply,
-  APISingleDataReply,
-} from "@exposurenexus/contracts/api";
-import type { z } from "zod/v4";
+import { env } from "@/lib/env.ts";
 
-export const DEFAULT_QUERY_STALE_TIME = 1000 * 60 * 5;
 export const CSRF_COOKIE = "__Host-exposurenexus-csrf";
 export const CSRF_HEADER = "X-CSRF-Token";
 
@@ -99,24 +93,40 @@ export async function apiRequest(
 }
 
 export async function parseErrorReply(r: Response): Promise<Error> {
-  const errorJson = (await r.json()) as APIErrorReply;
-  return new APIError(r.status, errorJson.error, errorJson.reason);
+  const errorReply = z
+    .object({
+      error: z.string(),
+      reason: z.string().optional(),
+    })
+    .parse(await r.json());
+
+  return new APIError(r.status, errorReply.error, errorReply.reason);
 }
 
 export async function parseArrayReply<T extends object>(
   r: Response,
   schema: z.ZodType<T>,
 ): Promise<Array<T>> {
-  const parsed = (await r.json()) as APIArrayDataReply<T>;
+  const reply = z
+    .object({
+      data: z.object({
+        items: z.array(schema),
+      }),
+    })
+    .parse(await r.json());
 
-  return parsed.data.items.map((item) => schema.parse(item));
+  return reply.data.items;
 }
 
 export async function parseObjectReply<T extends object>(
   r: Response,
   schema: z.ZodType<T>,
 ): Promise<T> {
-  const parsed = (await r.json()) as APISingleDataReply<T>;
+  const reply = z
+    .object({
+      data: schema,
+    })
+    .parse(await r.json());
 
-  return schema.parse(parsed.data);
+  return reply.data;
 }

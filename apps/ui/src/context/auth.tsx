@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { createContext, useCallback, useContext } from "react";
 
-import { SKIP_AUTH_SESSION_EXPIRY_META } from "@/lib/auth-session-expiry.ts";
 import {
   AUTH_SESSION_QUERY_KEY,
   createAuthSessionQueryOptions,
   signIn,
   signOut,
 } from "@/lib/auth.ts";
+import { SKIP_UNAUTHORIZED_ERROR_META } from "@/lib/query-client.ts";
 
 import type { AuthSessionQueryData, User } from "@/lib/auth.ts";
 
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [queryClient]);
 
   const loginMutation = useMutation({
-    meta: SKIP_AUTH_SESSION_EXPIRY_META,
+    meta: SKIP_UNAUTHORIZED_ERROR_META,
     mutationFn: async ({ username, password }: { username: string; password: string }) =>
       (await signIn.username({ username, password })).data,
     onSuccess: (session) => {
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   const logoutMutation = useMutation({
-    meta: SKIP_AUTH_SESSION_EXPIRY_META,
+    meta: SKIP_UNAUTHORIZED_ERROR_META,
     mutationFn: async () => {
       await signOut();
     },

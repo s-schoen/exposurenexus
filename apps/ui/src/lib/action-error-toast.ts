@@ -1,6 +1,6 @@
 import { toast } from "sonner";
 
-import { APIError } from "@/api/common.ts";
+import { APIError } from "@/lib/api-client.ts";
 
 export const FORBIDDEN_ACTION_MESSAGE = "You are not allowed to do that.";
 

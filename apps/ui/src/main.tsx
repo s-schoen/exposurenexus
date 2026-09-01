@@ -7,11 +7,9 @@ import { PageProvider, usePage } from "@/context/page.tsx";
 
 import "@/styles.css";
 import * as TanStackQueryProvider from "@/integrations/tanstack-query/root-provider.tsx";
-import {
-  createUserSessionExpiredRedirectHandler,
-  subscribeUserSessionExpired,
-} from "@/lib/auth-session-expiry.ts";
+import { createUserSessionExpiredRedirectHandler } from "@/lib/auth-session-expiry.ts";
 import { createRouterLoginRedirects } from "@/lib/login-redirect.ts";
+import { subscribeUnauthorizedAPIError } from "@/lib/query-client.ts";
 // Import the generated route tree
 import { routeTree } from "@/routeTree.gen.ts";
 
@@ -60,7 +58,7 @@ function InnerApp() {
 
   useEffect(
     () =>
-      subscribeUserSessionExpired(
+      subscribeUnauthorizedAPIError(
         createUserSessionExpiredRedirectHandler({
           clearSession: auth.clearSession,
           getLocation: () => router.state.location,
