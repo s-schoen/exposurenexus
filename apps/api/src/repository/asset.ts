@@ -1,3 +1,4 @@
+import { type Database } from "@exposurenexus/backend/database";
 import {
   type Asset,
   type AssetIdentifier,
@@ -7,8 +8,6 @@ import {
   AssetType,
 } from "@exposurenexus/contracts/model/asset";
 import { sql, type Kysely, type Selectable, type Transaction } from "kysely";
-
-import { type Database } from "../db/index.js";
 
 type DatabaseExecutor = Kysely<Database> | Transaction<Database>;
 type AssetRow = Selectable<Database["asset"]>;

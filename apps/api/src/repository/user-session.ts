@@ -1,4 +1,4 @@
-import type { Database } from "../db/index.js";
+import type { Database } from "@exposurenexus/backend/database";
 import type { UserSession } from "@exposurenexus/contracts/model/user";
 import type { Kysely } from "kysely";
 

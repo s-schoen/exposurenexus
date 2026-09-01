@@ -1,10 +1,10 @@
 import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
-import { Kysely, PGliteDialect, sql } from "kysely";
+import { createDatabase, migrateToLatest } from "@exposurenexus/backend/database";
+import { PGliteDialect, sql } from "kysely";
 
-import { migrateToLatest } from "../db/migration.js";
-
-import type { Database } from "../db/index.js";
+import type { Database } from "@exposurenexus/backend/database";
+import type { Kysely } from "kysely";
 
 export interface TestDatabase {
   db: Kysely<Database>;
@@ -33,9 +33,7 @@ export function createTestDatabase(): TestDatabase {
       });
       await pgLite.waitReady;
 
-      db = new Kysely<Database>({
-        dialect: new PGliteDialect({ pglite: pgLite }),
-      });
+      db = createDatabase(new PGliteDialect({ pglite: pgLite }));
 
       await db.executeQuery(sql`CREATE EXTENSION IF NOT EXISTS pgcrypto`.compile(db));
       await migrateToLatest(db, {

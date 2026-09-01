@@ -41,8 +41,8 @@ import {
   createVulnerabilityService,
 } from "./service/index.js";
 
-import type { Database } from "./db/index.js";
 import type { DomainEvent } from "./lib/eventbus/events/index.js";
+import type { Database } from "@exposurenexus/backend/database";
 import type { Kysely } from "kysely";
 import type { Logger } from "pino";
 

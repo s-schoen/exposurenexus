@@ -1,3 +1,4 @@
+import { type Database } from "@exposurenexus/backend/database";
 import {
   type AssetCustomFieldDefinition,
   type AssetCustomFieldOption,
@@ -10,10 +11,9 @@ import {
 } from "@exposurenexus/contracts/model/asset-custom-field";
 import { sql, type Kysely, type RawBuilder, type Selectable, type Transaction } from "kysely";
 
-import { type Database } from "../db/index.js";
 import { updateAssetAudit, type AssetAuditRecord } from "./asset.js";
 
-import type { AssetCustomFieldStoredValue } from "../db/schema/asset-custom-field.js";
+import type { AssetCustomFieldStoredValue } from "@exposurenexus/backend/database";
 
 type DatabaseExecutor = Kysely<Database> | Transaction<Database>;
 type AssetCustomFieldRow = Selectable<Database["asset_custom_field"]>;

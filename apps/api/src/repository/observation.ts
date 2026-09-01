@@ -4,8 +4,8 @@ import { weaknessSchema } from "@exposurenexus/contracts/model/weakness";
 
 import { getFindingProjectionByID } from "./finding.js";
 
-import type { Database } from "../db/index.js";
-import type { ObservationTable } from "../db/schema/observation.js";
+import type { Database } from "@exposurenexus/backend/database";
+import type { ObservationTable } from "@exposurenexus/backend/database";
 import type { Finding } from "@exposurenexus/contracts/model/finding";
 import type { Kysely, Insertable, Selectable } from "kysely";
 

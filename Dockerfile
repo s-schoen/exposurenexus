@@ -14,6 +14,7 @@ COPY apps/api/package.json apps/api/package.json
 COPY apps/ui/package.json apps/ui/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
 COPY packages/jobs/package.json packages/jobs/package.json
+COPY packages/backend/package.json packages/backend/package.json
 RUN pnpm install --frozen-lockfile
 
 # Compile shared contracts, UI assets, and API output using the cached dependencies.
@@ -25,10 +26,11 @@ RUN pnpm build
 FROM pnpm-base AS prod-deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
+COPY packages/backend/package.json packages/backend/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
 COPY packages/jobs/package.json packages/jobs/package.json
 RUN pnpm install --frozen-lockfile --prod --filter @exposurenexus/api... \
-  && rm -rf node_modules/.pnpm/typescript@* node_modules/typescript apps/api/node_modules/typescript packages/contracts/node_modules/typescript packages/jobs/node_modules/typescript
+  && rm -rf node_modules/.pnpm/typescript@* node_modules/typescript apps/api/node_modules/typescript packages/backend/node_modules/typescript packages/contracts/node_modules/typescript packages/jobs/node_modules/typescript
 
 # Minimal non-root runtime containing only built artifacts and production deps.
 FROM gcr.io/distroless/nodejs24-debian13:nonroot AS production
@@ -42,12 +44,15 @@ WORKDIR /app/apps/api
 
 COPY --from=prod-deps --chown=65532:65532 /workspace/node_modules /app/node_modules
 COPY --from=prod-deps --chown=65532:65532 /workspace/apps/api/node_modules /app/apps/api/node_modules
+COPY --from=prod-deps --chown=65532:65532 /workspace/packages/backend/node_modules /app/packages/backend/node_modules
 COPY --from=prod-deps --chown=65532:65532 /workspace/packages/contracts/node_modules /app/packages/contracts/node_modules
 COPY --from=prod-deps --chown=65532:65532 /workspace/packages/jobs/node_modules /app/packages/jobs/node_modules
 COPY --from=build --chown=65532:65532 /workspace/apps/api/package.json /app/apps/api/package.json
+COPY --from=build --chown=65532:65532 /workspace/packages/backend/package.json /app/packages/backend/package.json
 COPY --from=build --chown=65532:65532 /workspace/packages/contracts/package.json /app/packages/contracts/package.json
 COPY --from=build --chown=65532:65532 /workspace/packages/jobs/package.json /app/packages/jobs/package.json
 COPY --from=build --chown=65532:65532 /workspace/apps/api/dist /app/apps/api/dist
+COPY --from=build --chown=65532:65532 /workspace/packages/backend/dist /app/packages/backend/dist
 COPY --from=build --chown=65532:65532 /workspace/packages/contracts/dist /app/packages/contracts/dist
 COPY --from=build --chown=65532:65532 /workspace/packages/jobs/dist /app/packages/jobs/dist
 COPY --from=build --chown=65532:65532 /workspace/apps/ui/dist /app/public

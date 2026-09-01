@@ -1,9 +1,3 @@
-import { Kysely } from "kysely";
-import { Pool } from "pg";
-
-import { env } from "../env.js";
-import { createDatabase } from "./factory.js";
-
 import type {
   AssetCustomFieldAssignmentTable,
   AssetCustomFieldOptionTable,
@@ -22,6 +16,28 @@ import type {
 } from "./schema/rbac.js";
 import type { VulnerabilityTable } from "./schema/vulnerability.js";
 import type { JobTable } from "@exposurenexus/jobs/postgres";
+
+export { createDatabase, createPostgresDatabase, createPostgresPool } from "./factory.js";
+export { migrateToLatest } from "./migration.js";
+
+export type {
+  AssetCustomFieldAssignmentTable,
+  AssetCustomFieldOptionTable,
+  AssetCustomFieldStoredValue,
+  AssetCustomFieldTable,
+  AssetCustomFieldValueTable,
+} from "./schema/asset-custom-field.js";
+export type { AssetIdentifierTable, AssetTable } from "./schema/asset.js";
+export type { UserProfileTable, UserSessionTable } from "./schema/auth.js";
+export type { FindingTable, FindingVulnerabilityTable } from "./schema/finding.js";
+export type { IngestionTable } from "./schema/ingestion.js";
+export type { ObservationTable } from "./schema/observation.js";
+export type {
+  RolePermissionAssignmentTable,
+  RoleTable,
+  UserRoleAssignmentTable,
+} from "./schema/rbac.js";
+export type { VulnerabilityTable } from "./schema/vulnerability.js";
 
 export interface Database {
   job: JobTable;
@@ -42,9 +58,3 @@ export interface Database {
   observation: ObservationTable;
   ingestion: IngestionTable;
 }
-
-const database = createDatabase(env.DATABASE_URL);
-
-export const logger = database.logger;
-export const pool: Pool = database.pool;
-export const db: Kysely<Database> = database.db;

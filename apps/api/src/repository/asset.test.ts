@@ -10,18 +10,12 @@ import {
   VulnerabilitySeverity,
   VulnerabilityType,
 } from "@exposurenexus/contracts/model/vulnerability";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";
 import { createAssetRepository } from "./asset.js";
 
 import type { CreateAssetRecord } from "./asset.js";
-
-vi.mock("../db/index.js", () => ({
-  db: {},
-  logger: {},
-  pool: {},
-}));
 
 describe("asset repository", () => {
   const testDb = createTestDatabase();
