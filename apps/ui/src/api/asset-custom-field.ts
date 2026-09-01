@@ -2,12 +2,12 @@ import { assetCustomFieldDefinitionSchema } from "@exposurenexus/contracts/model
 import { keepPreviousData, queryOptions, useMutation } from "@tanstack/react-query";
 
 import {
-  DEFAULT_QUERY_STALE_TIME,
   apiRequest,
   parseArrayReply,
   parseErrorReply,
   parseObjectReply,
-} from "@/api/common.ts";
+} from "@/lib/api-client.ts";
+import { DEFAULT_QUERY_STALE_TIME } from "@/lib/query-client.ts";
 
 import type {
   AssetCustomFieldDefinition,
