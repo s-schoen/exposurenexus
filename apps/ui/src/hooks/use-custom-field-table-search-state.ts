@@ -5,7 +5,7 @@ import {
   createDataTableListFilterSearchParams,
   createDataTableListFilterState,
   validateDataTableListFilterSearch,
-} from "@/lib/data-table-search-state.ts";
+} from "@/components/data-table/search-state.ts";
 
 import type { DataTableFilterState } from "@/components/data-table/types.ts";
 

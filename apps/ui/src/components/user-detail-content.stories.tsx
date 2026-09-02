@@ -2,15 +2,14 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { UserRoundPen } from "lucide-react";
 import { useLayoutEffect, useMemo } from "react";
 
-import { ROLE_FIXTURES } from "@/components/role-fixtures.ts";
-import { STORY_USERS } from "@/components/storybook-fixtures.ts";
+import { Button } from "@/components/ui/button.tsx";
+import { UserDetailContent } from "@/components/user-detail-content.tsx";
+import { ROLE_FIXTURES, STORY_USERS } from "@/test/fixtures.ts";
 import {
   createArrayResponse,
   createObjectResponse,
   createStoryQueryClient,
-} from "@/components/storybook-utils.tsx";
-import { Button } from "@/components/ui/button.tsx";
-import { UserDetailContent } from "@/components/user-detail-content.tsx";
+} from "@/test/storybook.tsx";
 
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Meta, StoryObj } from "@storybook/react-vite";

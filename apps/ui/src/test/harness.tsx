@@ -4,11 +4,11 @@ import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
 import { AuthProvider } from "@/context/auth.tsx";
-import { PageProvider } from "@/context/page.tsx";
+import { PageProvider } from "@/hooks/use-page-meta.tsx";
 import { AUTH_SESSION_QUERY_KEY } from "@/lib/auth.ts";
 
 import type { AuthState, AuthStatus } from "@/context/auth.tsx";
-import type { PageState } from "@/context/page.tsx";
+import type { PageState } from "@/hooks/use-page-meta.tsx";
 import type { AuthSessionQueryData, Session, User } from "@/lib/auth.ts";
 import type { LoginRedirects } from "@/lib/login-redirect.ts";
 import type { QueryClientConfig, QueryKey } from "@tanstack/react-query";

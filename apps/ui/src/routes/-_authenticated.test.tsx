@@ -62,7 +62,7 @@ vi.mock("@/components/ui/sidebar.tsx", () => ({
   SidebarProvider: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock("@/context/page.tsx", () => ({
+vi.mock("@/hooks/use-page-meta.tsx", () => ({
   usePage: () => mocks.page,
 }));
 

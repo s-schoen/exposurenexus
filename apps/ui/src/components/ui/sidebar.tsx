@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/components/ui/use-mobile";
 import { cn } from "@/lib/utils";
 
 import type { VariantProps } from "class-variance-authority";

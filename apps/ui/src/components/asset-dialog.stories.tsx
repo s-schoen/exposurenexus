@@ -3,8 +3,8 @@ import { useMemo } from "react";
 import { fn } from "storybook/test";
 
 import { AssetDialog } from "@/components/asset-dialog.tsx";
-import { STORY_USERS } from "@/components/storybook-fixtures.ts";
-import { createStoryQueryClient } from "@/components/storybook-utils.tsx";
+import { STORY_USERS } from "@/test/fixtures.ts";
+import { createStoryQueryClient } from "@/test/storybook.tsx";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 

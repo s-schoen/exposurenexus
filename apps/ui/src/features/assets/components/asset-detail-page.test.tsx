@@ -57,7 +57,7 @@ vi.mock("@/api/asset.ts", () => ({
   }),
 }));
 
-vi.mock("@/context/page.tsx", () => ({
+vi.mock("@/hooks/use-page-meta.tsx", () => ({
   usePageMeta: mocks.usePageMeta,
 }));
 

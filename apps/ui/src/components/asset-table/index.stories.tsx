@@ -1,22 +1,22 @@
 import { AssetEnvironment, AssetLifecycleState } from "@exposurenexus/contracts/model/asset";
 import { useLayoutEffect, useMemo, useRef } from "react";
 
-import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
 import { AssetDialog } from "@/components/asset-dialog.tsx";
 import { AssetTable } from "@/components/asset-table";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
+import { Toaster } from "@/components/ui/sonner.tsx";
 import {
+  ASSET_CUSTOM_FIELD_FIXTURES,
   STORY_ASSETS,
   STORY_ASSETS_WITH_CUSTOM_FIELDS,
   STORY_USERS,
-} from "@/components/storybook-fixtures.ts";
+} from "@/test/fixtures.ts";
 import {
   RouterStoryProvider,
   createArrayResponse,
   createObjectResponse,
   createStoryQueryClient,
-} from "@/components/storybook-utils.tsx";
-import { Toaster } from "@/components/ui/sonner.tsx";
+} from "@/test/storybook.tsx";
 
 import type {
   Asset,

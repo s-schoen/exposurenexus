@@ -4,8 +4,8 @@ import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/api/asset-c
 import { AssetDetailContent } from "@/components/asset-detail-content.tsx";
 import { AssetTable } from "@/components/asset-table";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
-import { usePageMeta } from "@/context/page.tsx";
 import { useAssetTableSearchState } from "@/hooks/use-asset-table-search-state.ts";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
 import type { Asset } from "@exposurenexus/contracts/model/asset";

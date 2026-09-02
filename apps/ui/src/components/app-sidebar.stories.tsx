@@ -2,12 +2,12 @@ import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { useLayoutEffect, useMemo } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar.tsx";
+import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import {
   RouterStoryProvider,
   createObjectResponse,
   createStoryQueryClient,
-} from "@/components/storybook-utils.tsx";
-import { SidebarProvider } from "@/components/ui/sidebar.tsx";
+} from "@/test/storybook.tsx";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 

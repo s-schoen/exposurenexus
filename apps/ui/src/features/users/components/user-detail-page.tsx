@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { createUserByIDQueryOptions } from "@/api/user.ts";
 import { buttonVariants } from "@/components/ui/button.tsx";
 import { UserDetailContent } from "@/components/user-detail-content.tsx";
-import { usePageMeta } from "@/context/page.tsx";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { cn } from "@/lib/utils.ts";
 
 interface UserDetailPageProps {

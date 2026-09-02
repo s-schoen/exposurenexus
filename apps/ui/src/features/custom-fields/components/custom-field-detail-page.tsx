@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts";
 import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content";
 import { buttonVariants } from "@/components/ui/button.tsx";
-import { usePageMeta } from "@/context/page.tsx";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { cn } from "@/lib/utils.ts";
 
 interface CustomFieldDetailPageProps {

@@ -6,9 +6,9 @@ import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-d
 import { AssetCustomFieldTable } from "@/components/asset-custom-field-table";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
-import { usePageMeta } from "@/context/page.tsx";
 import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts";
 import { useCustomFieldTableSearchState } from "@/hooks/use-custom-field-table-search-state.ts";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";

@@ -1,14 +1,13 @@
 import { useLayoutEffect, useMemo } from "react";
 import { fn } from "storybook/test";
 
-import { ROLE_FIXTURES } from "@/components/role-fixtures.ts";
-import { STORY_USERS } from "@/components/storybook-fixtures.ts";
+import { UserTable } from "@/components/user-table";
+import { ROLE_FIXTURES, STORY_USERS } from "@/test/fixtures.ts";
 import {
   RouterStoryProvider,
   createArrayResponse,
   createStoryQueryClient,
-} from "@/components/storybook-utils.tsx";
-import { UserTable } from "@/components/user-table";
+} from "@/test/storybook.tsx";
 
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Meta, StoryObj } from "@storybook/react-vite";

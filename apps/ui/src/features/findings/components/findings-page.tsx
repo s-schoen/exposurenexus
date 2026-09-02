@@ -1,8 +1,8 @@
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx";
 import { FindingTable } from "@/components/finding-table";
-import { usePageMeta } from "@/context/page.tsx";
 import { useFindingTableSearchState } from "@/hooks/use-finding-table-search-state.ts";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
 import type { Finding } from "@exposurenexus/contracts/model/finding";

@@ -1,44 +1,14 @@
-import {
-  BuiltInRoleName,
-  PermissionResource,
-  PermissionVerb,
-  builtInRoleIds,
-} from "@exposurenexus/contracts/model/rbac";
+import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { useState } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 
 import { UserForm } from "@/components/user-form";
+import { USER_FORM_ROLE_FIXTURES } from "@/test/fixtures.ts";
 
-import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentProps } from "react";
 
 type UserFormStoryArgs = ComponentProps<typeof UserForm>;
-
-export const ROLE_FIXTURES: Array<Role> = [
-  {
-    id: builtInRoleIds.viewer,
-    name: BuiltInRoleName.Viewer,
-    permissions: [{ resource: PermissionResource.User, verb: PermissionVerb.Read }],
-  },
-  {
-    id: builtInRoleIds.editor,
-    name: BuiltInRoleName.Editor,
-    permissions: [
-      { resource: PermissionResource.User, verb: PermissionVerb.Read },
-      { resource: PermissionResource.User, verb: PermissionVerb.Write },
-    ],
-  },
-  {
-    id: builtInRoleIds.admin,
-    name: BuiltInRoleName.Admin,
-    permissions: [
-      { resource: PermissionResource.User, verb: PermissionVerb.Read },
-      { resource: PermissionResource.User, verb: PermissionVerb.Write },
-      { resource: PermissionResource.User, verb: PermissionVerb.Delete },
-    ],
-  },
-];
 
 function UserFormStoryShell(args: UserFormStoryArgs) {
   const [lastSubmittedValues, setLastSubmittedValues] =
@@ -72,7 +42,7 @@ const meta = {
   },
   args: {
     mode: "create",
-    roles: ROLE_FIXTURES,
+    roles: USER_FORM_ROLE_FIXTURES,
     defaultValues: {
       roleIds: [builtInRoleIds.viewer],
     },

@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { createRoleByIDQueryOptions } from "@/api/role.ts";
 import { RoleDetailContent } from "@/components/role-detail-content.tsx";
 import { buttonVariants } from "@/components/ui/button.tsx";
-import { usePageMeta } from "@/context/page.tsx";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { isBuiltInRoleId } from "@/lib/role.ts";
 import { cn } from "@/lib/utils.ts";
 

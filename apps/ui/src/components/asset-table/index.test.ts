@@ -10,7 +10,6 @@ import {
 } from "@exposurenexus/contracts/model/asset-custom-field";
 import { describe, expect, it } from "vitest";
 
-import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
 import {
   createAssetTableColumns,
   getAssetCustomFieldColumnId,
@@ -21,6 +20,7 @@ import {
   createClearedAssetCustomFieldSearchParams,
   parseAssetCustomFieldFiltersFromSearch,
 } from "@/hooks/use-asset-table-search-state.ts";
+import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/test/fixtures.ts";
 
 import type { DataTableAccessorFnColumnDef } from "@/components/data-table/types.ts";
 import type { AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";

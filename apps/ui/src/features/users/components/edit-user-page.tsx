@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { UserForm, mapUpdateUserFormValues } from "@/components/user-form.tsx";
-import { usePageMeta } from "@/context/page.tsx";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useUserLifecycle } from "@/hooks/use-user-lifecycle.ts";
 
 interface EditUserPageProps {

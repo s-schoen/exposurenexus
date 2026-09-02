@@ -18,9 +18,9 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import { expect, userEvent, within } from "storybook/test";
 
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx";
-import { STORY_VULNERABILITIES } from "@/components/storybook-fixtures.ts";
 import { createLoginRedirects } from "@/lib/login-redirect.ts";
 import { routeTree } from "@/routeTree.gen.ts";
+import { STORY_VULNERABILITIES } from "@/test/fixtures.ts";
 
 import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
 import type { Asset } from "@exposurenexus/contracts/model/asset";

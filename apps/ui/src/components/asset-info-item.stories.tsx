@@ -1,12 +1,12 @@
 import { useLayoutEffect, useMemo } from "react";
 
 import { AssetInfoItem } from "@/components/asset-info-item.tsx";
-import { STORY_ASSETS } from "@/components/storybook-fixtures.ts";
+import { STORY_ASSETS } from "@/test/fixtures.ts";
 import {
   RouterStoryProvider,
   createObjectResponse,
   createStoryQueryClient,
-} from "@/components/storybook-utils.tsx";
+} from "@/test/storybook.tsx";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 

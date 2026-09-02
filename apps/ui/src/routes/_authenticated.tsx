@@ -7,7 +7,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { Toaster } from "@/components/ui/sonner.tsx";
-import { usePage } from "@/context/page.tsx";
+import { usePage } from "@/hooks/use-page-meta.tsx";
 import { cn } from "@/lib/utils.ts";
 
 function Layout() {

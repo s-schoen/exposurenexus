@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { expect, fn, userEvent } from "storybook/test";
 
-import { ROLE_FIXTURES } from "@/components/role-fixtures.ts";
 import { RoleTable } from "@/components/role-table";
+import { ROLE_FIXTURES } from "@/test/fixtures.ts";
 
 import type { DataTableFilterState } from "@/components/data-table/types.ts";
 import type { Role } from "@exposurenexus/contracts/model/rbac";

@@ -5,7 +5,7 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import TanStackQueryDevtools from "@/integrations/tanstack-query/devtools";
 
 import type { AuthState } from "@/context/auth.tsx";
-import type { PageState } from "@/context/page.tsx";
+import type { PageState } from "@/hooks/use-page-meta.tsx";
 import type { LoginRedirects } from "@/lib/login-redirect.ts";
 import type { QueryClient } from "@tanstack/react-query";
 

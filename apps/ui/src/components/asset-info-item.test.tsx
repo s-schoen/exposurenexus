@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import * as stories from "@/components/asset-info-item.stories";
-import { STORY_ASSETS } from "@/components/storybook-fixtures.ts";
+import { STORY_ASSETS } from "@/test/fixtures.ts";
 
 const { Loaded, Loading } = composeStories(stories);
 const primaryAsset = STORY_ASSETS[0];

@@ -1,7 +1,7 @@
 import { expect } from "storybook/test";
 
-import { PageProvider } from "@/context/page.tsx";
 import { ImportFindingsPage } from "@/features/findings/components/import-findings-page.tsx";
+import { PageProvider } from "@/hooks/use-page-meta.tsx";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 

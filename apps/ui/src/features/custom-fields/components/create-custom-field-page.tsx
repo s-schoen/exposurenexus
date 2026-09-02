@@ -4,8 +4,8 @@ import {
   AssetCustomFieldForm,
   mapAssetCustomFieldFormValues,
 } from "@/components/asset-custom-field-form.tsx";
-import { usePageMeta } from "@/context/page.tsx";
 import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 
 export function CreateCustomFieldPage() {
   const navigate = useNavigate();
