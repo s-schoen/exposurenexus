@@ -1,3 +1,5 @@
+import { ApplicationError, isConflictError, isForeignKeyError } from "@exposurenexus/backend";
+
 import { hashPlaintextPassword } from "../lib/argon2.js";
 import {
   createDomainEventEmitter,
@@ -6,8 +8,6 @@ import {
   type EventSubjects,
   type UserEventPayloads,
 } from "../lib/eventbus/events/index.js";
-import { ApplicationError } from "./application-error.js";
-import { isConflictError, isForeignKeyError } from "./errors.js";
 
 import type { UserProfileRepository } from "../repository/user-profile.js";
 import type {

@@ -1,4 +1,10 @@
 import {
+  ApplicationError,
+  isApplicationError,
+  isConflictError,
+  isForeignKeyError,
+} from "@exposurenexus/backend";
+import {
   type Asset,
   type AssetIdentifier,
   type AssetIdentifierRecord,
@@ -21,8 +27,6 @@ import {
   type DomainEventEmitter,
   type EventSubjects,
 } from "../lib/eventbus/events/index.js";
-import { ApplicationError, isApplicationError } from "./application-error.js";
-import { isConflictError, isForeignKeyError } from "./errors.js";
 
 import type { AssetListOptions, AssetRepository } from "../repository/asset.js";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";

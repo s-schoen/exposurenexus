@@ -1,7 +1,7 @@
+import { ApplicationError } from "@exposurenexus/backend";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AUTH_SESSION_COOKIE } from "../middleware/auth.js";
-import { ApplicationError } from "../service/application-error.js";
 import { createTestApp, createTestUser } from "../test/app.js";
 import { createAuthRoute } from "./auth.js";
 

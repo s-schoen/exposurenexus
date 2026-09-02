@@ -1,3 +1,4 @@
+import { ApplicationError } from "@exposurenexus/backend";
 import {
   AssetEnvironment,
   AssetIdentifierType,
@@ -12,7 +13,6 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createRequireDomainPermission } from "../middleware/auth.js";
-import { ApplicationError } from "../service/application-error.js";
 import {
   annotateAuthenticatedUser,
   createTestApp,

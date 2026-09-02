@@ -15,7 +15,7 @@ vi.mock("../lib/argon2.js", () => ({
 import { createDomainEventCollector } from "../test/eventbus.js";
 import { createUserProfileService } from "./user-profile.js";
 
-import type { ApplicationError } from "./application-error.js";
+import type { ApplicationError } from "@exposurenexus/backend";
 
 describe("user profile service", () => {
   const userProfileRepository = {

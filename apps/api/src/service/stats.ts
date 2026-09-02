@@ -1,7 +1,6 @@
+import { ApplicationError } from "@exposurenexus/backend";
 import { type FindingStatistics, FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
-
-import { ApplicationError } from "./application-error.js";
 
 import type { FindingRepository } from "../repository/finding.js";
 import type { Logger } from "pino";

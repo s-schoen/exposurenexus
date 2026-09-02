@@ -1,6 +1,6 @@
+import { isApplicationError } from "@exposurenexus/backend";
 import { HTTPException } from "hono/http-exception";
 
-import { isApplicationError } from "../service/application-error.js";
 import { internalServerError, isApiError, replyError } from "./api-error.js";
 
 import type { ContextVariables } from "./hono-schema.js";

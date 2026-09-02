@@ -1,7 +1,7 @@
 import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/contracts/model/asset-custom-field";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
-import { ApplicationError, type ApplicationErrorInput } from "./application-error.js";
+import { ApplicationError, isApplicationError, type ApplicationErrorInput } from "./index.js";
 
 function assertApplicationErrorInputTypes() {
   const validInput = {
@@ -83,6 +83,8 @@ describe("application errors", () => {
     });
 
     expect(error).toBeInstanceOf(Error);
+    expect(error).toBeInstanceOf(ApplicationError);
+    expect(isApplicationError(error)).toBe(true);
     expect(error).toMatchObject({
       name: "ApplicationError",
       code: "role.unknown_ids",
@@ -90,6 +92,10 @@ describe("application errors", () => {
       details: { roleIds: ["viewer"] },
     });
     expect(error.cause).toBe(cause);
+  });
+
+  it("rejects errors from other runtime identities", () => {
+    expect(isApplicationError(new Error("other failure"))).toBe(false);
   });
 
   it("supports no-detail error inputs", () => {

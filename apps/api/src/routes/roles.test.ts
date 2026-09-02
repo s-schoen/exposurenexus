@@ -1,3 +1,4 @@
+import { ApplicationError } from "@exposurenexus/backend";
 import {
   BuiltInRoleName,
   PermissionResource,
@@ -8,7 +9,6 @@ import { createRoleSchema, updateRoleSchema } from "@exposurenexus/contracts/mod
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createRequireDomainPermission } from "../middleware/auth.js";
-import { ApplicationError } from "../service/application-error.js";
 import {
   annotateAuthenticatedUser,
   createTestApp,

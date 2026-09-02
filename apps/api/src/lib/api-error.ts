@@ -1,11 +1,10 @@
-import { HTTPException } from "hono/http-exception";
-
 import {
   isApplicationError,
   type ApplicationError,
   type ApplicationErrorCode,
   type ApplicationErrorKind,
-} from "../service/application-error.js";
+} from "@exposurenexus/backend";
+import { HTTPException } from "hono/http-exception";
 
 import type { ContextVariables } from "./hono-schema.js";
 import type { APIErrorReply } from "@exposurenexus/contracts/api";

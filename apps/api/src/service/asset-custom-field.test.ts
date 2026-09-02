@@ -12,7 +12,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDomainEventCollector } from "../test/eventbus.js";
 import { createAssetCustomFieldService } from "./asset-custom-field.js";
 
-import type { ApplicationError } from "./application-error.js";
+import type { ApplicationError } from "@exposurenexus/backend";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
 describe("asset custom field service", () => {
