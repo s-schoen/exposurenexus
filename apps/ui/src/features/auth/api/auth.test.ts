@@ -1,20 +1,13 @@
 import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
-import { QueryClient } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  AUTH_SESSION_QUERY_KEY,
-  createAuthSessionQueryOptions,
-  getSession,
-  signIn,
-  signOut,
-} from "@/lib/auth.ts";
+import { getSession, signIn, signOut } from "@/features/auth/api/auth.ts";
 
 import type { AuthSessionDataReply } from "@exposurenexus/contracts/api";
 
 const fetchMock = vi.fn<typeof fetch>();
 
-const authSession = {
+const authSession: AuthSessionDataReply = {
   user: {
     id: "7b413aba-5164-456b-8ffd-88fb6b99bbed",
     username: "alice",
@@ -31,7 +24,7 @@ const authSession = {
     createdAt: new Date("2026-04-26T08:00:00.000Z"),
     expiresAt: new Date("2026-04-26T20:00:00.000Z"),
   },
-} as unknown as AuthSessionDataReply;
+};
 
 function jsonResponse(body: object, init?: ResponseInit): Response {
   return new Response(JSON.stringify(body), {
@@ -81,13 +74,13 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("custom auth client", () => {
-  it("logs in with username credentials and includes browser credentials", async () => {
+describe("auth API", () => {
+  it("normalizes username credentials and includes browser credentials", async () => {
     fetchMock.mockResolvedValueOnce(authSessionResponse());
 
     await expect(
       signIn.username({
-        username: "alice",
+        username: " alice ",
         password: "correct-horse-battery-staple",
       }),
     ).resolves.toEqual({ data: authSession });
@@ -160,34 +153,5 @@ describe("custom auth client", () => {
     );
     expect(headers.get("X-CSRF-Token")).toBe("csrf-token");
     expect(onSuccess).toHaveBeenCalledOnce();
-  });
-
-  it("creates auth session query options backed by the current session request", async () => {
-    fetchMock.mockResolvedValueOnce(authSessionResponse());
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          retry: false,
-        },
-      },
-    });
-    const queryConfig = createAuthSessionQueryOptions();
-
-    await expect(queryClient.fetchQuery(queryConfig)).resolves.toEqual(authSession);
-
-    expect(queryConfig.queryKey).toEqual(AUTH_SESSION_QUERY_KEY);
-  });
-
-  it("maps unauthenticated auth session query reads to null", async () => {
-    fetchMock.mockResolvedValueOnce(errorResponse(401, "Unauthorized"));
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: {
-          retry: false,
-        },
-      },
-    });
-
-    await expect(queryClient.fetchQuery(createAuthSessionQueryOptions())).resolves.toBeNull();
   });
 });

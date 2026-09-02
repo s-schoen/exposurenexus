@@ -2,15 +2,23 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { useMemo } from "react";
 
-import { createLoginRedirects } from "@/lib/login-redirect.ts";
+import { createRouterLoginRedirects } from "@/features/auth/index.ts";
 import { routeTree } from "@/routeTree.gen.ts";
 
 import type { ReactNode } from "react";
 
-const storyRedirects = createLoginRedirects({
-  origin: "http://localhost",
-  isKnownRoutePath: () => true,
-});
+export function createStoryLoginRedirects() {
+  return createRouterLoginRedirects(
+    {
+      getMatchedRoutes: () => [[], {}, routeTree],
+    },
+    {
+      origin: "http://localhost",
+    },
+  );
+}
+
+const storyRedirects = createStoryLoginRedirects();
 
 export function createStoryQueryClient() {
   return new QueryClient({

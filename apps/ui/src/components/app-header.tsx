@@ -1,4 +1,4 @@
-import { AccountMenu } from "@/components/account-menu";
+import { AccountMenu } from "@/features/auth/index.ts";
 
 export default function AppHeader() {
   return (

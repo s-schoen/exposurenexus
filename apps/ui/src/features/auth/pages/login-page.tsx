@@ -1,6 +1,6 @@
+import { authLoginSchema } from "@exposurenexus/contracts/api";
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
-import { z } from "zod/v4";
 
 import { Button } from "@/components/ui/button.tsx";
 import {
@@ -14,8 +14,8 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 
-import type { AuthState } from "@/context/auth.tsx";
-import type { LoginRedirects } from "@/lib/login-redirect.ts";
+import type { AuthState } from "@/features/auth/providers/auth-provider.tsx";
+import type { LoginRedirects } from "@/features/auth/routing/login-redirect.ts";
 
 interface LoginPageProps {
   auth: Pick<AuthState, "login">;
@@ -23,11 +23,6 @@ interface LoginPageProps {
   redirect: string;
   navigate: (options: { href: string }) => Promise<void>;
 }
-
-const formSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
-});
 
 export function LoginPage({ auth, redirects, redirect, navigate }: LoginPageProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +33,7 @@ export function LoginPage({ auth, redirects, redirect, navigate }: LoginPageProp
       username: "",
       password: "",
     },
-    validators: { onSubmit: formSchema },
+    validators: { onSubmit: authLoginSchema },
     onSubmit: async ({ value }) => {
       setIsLoading(true);
       setLoginFailed(false);

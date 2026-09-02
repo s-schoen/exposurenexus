@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/components/account-menu", () => ({
+vi.mock("@/features/auth/index.ts", () => ({
   AccountMenu: () => <div>Account menu slot</div>,
 }));
 
