@@ -1,0 +1,186 @@
+{
+  "file_hash": "c6c71c2d145d6cb02493627371f472bac28bbc5db041bdae3f29b72ee5316d7f",
+  "config_hash": "0f0c33021fbc07a85a0cf2f49344d5bf38668092f677fe312b1e95f9fe948ec2",
+  "rules_hash": "e6f1b66c5ddabf9f346b6ec4c54f992615e656c91353d3798df8e6251597240c",
+  "version": "0.2.57",
+  "warnings": [
+    {
+      "message": "List marker '*' does not match expected style '-'",
+      "line": 32,
+      "column": 1,
+      "end_line": 32,
+      "end_column": 2,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 1097,
+          "end": 1098
+        },
+        "replacement": "-"
+      },
+      "rule_name": "MD004"
+    },
+    {
+      "message": "List marker '*' does not match expected style '-'",
+      "line": 33,
+      "column": 1,
+      "end_line": 33,
+      "end_column": 2,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 1117,
+          "end": 1118
+        },
+        "replacement": "-"
+      },
+      "rule_name": "MD004"
+    },
+    {
+      "message": "List marker '*' does not match expected style '-'",
+      "line": 34,
+      "column": 1,
+      "end_line": 34,
+      "end_column": 2,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 1141,
+          "end": 1142
+        },
+        "replacement": "-"
+      },
+      "rule_name": "MD004"
+    },
+    {
+      "message": "List marker '*' does not match expected style '-'",
+      "line": 35,
+      "column": 1,
+      "end_line": 35,
+      "end_column": 2,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 1151,
+          "end": 1152
+        },
+        "replacement": "-"
+      },
+      "rule_name": "MD004"
+    },
+    {
+      "message": "List marker '*' does not match expected style '-'",
+      "line": 36,
+      "column": 1,
+      "end_line": 36,
+      "end_column": 2,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 1174,
+          "end": 1175
+        },
+        "replacement": "-"
+      },
+      "rule_name": "MD004"
+    },
+    {
+      "message": "List marker '*' does not match expected style '-'",
+      "line": 72,
+      "column": 1,
+      "end_line": 72,
+      "end_column": 2,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 1934,
+          "end": 1935
+        },
+        "replacement": "-"
+      },
+      "rule_name": "MD004"
+    },
+    {
+      "message": "List marker '*' does not match expected style '-'",
+      "line": 73,
+      "column": 1,
+      "end_line": 73,
+      "end_column": 2,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 1963,
+          "end": 1964
+        },
+        "replacement": "-"
+      },
+      "rule_name": "MD004"
+    },
+    {
+      "message": "List marker '*' does not match expected style '-'",
+      "line": 74,
+      "column": 1,
+      "end_line": 74,
+      "end_column": 2,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 1979,
+          "end": 1980
+        },
+        "replacement": "-"
+      },
+      "rule_name": "MD004"
+    },
+    {
+      "message": "List marker '*' does not match expected style '-'",
+      "line": 75,
+      "column": 1,
+      "end_line": 75,
+      "end_column": 2,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 2014,
+          "end": 2015
+        },
+        "replacement": "-"
+      },
+      "rule_name": "MD004"
+    },
+    {
+      "message": "List marker '*' does not match expected style '-'",
+      "line": 76,
+      "column": 1,
+      "end_line": 76,
+      "end_column": 2,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 2032,
+          "end": 2033
+        },
+        "replacement": "-"
+      },
+      "rule_name": "MD004"
+    },
+    {
+      "message": "List marker '*' does not match expected style '-'",
+      "line": 77,
+      "column": 1,
+      "end_line": 77,
+      "end_column": 2,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 2052,
+          "end": 2053
+        },
+        "replacement": "-"
+      },
+      "rule_name": "MD004"
+    }
+  ],
+  "dependency_fingerprint": "8a4e967d8f4f38d64b4bbe3551c0ae69a6eb75a991ffcd7e9ff8b6bba91d0a4c",
+  "timestamp": 1788098821
+}
