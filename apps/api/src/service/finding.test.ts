@@ -11,7 +11,7 @@ import { createTestUser } from "../test/app.js";
 import { createDomainEventCollector } from "../test/eventbus.js";
 import { createFindingService } from "./finding.js";
 
-import type { ApplicationError } from "./application-error.js";
+import type { ApplicationError } from "@exposurenexus/backend";
 
 describe("finding service", () => {
   const user = createTestUser();

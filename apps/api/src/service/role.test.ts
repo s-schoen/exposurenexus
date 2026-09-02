@@ -11,7 +11,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { createDomainEventCollector } from "../test/eventbus.js";
 import { createRoleService } from "./role.js";
 
-import type { ApplicationError } from "./application-error.js";
+import type { ApplicationError } from "@exposurenexus/backend";
 
 describe("role service", () => {
   const domainEvents = createDomainEventCollector();

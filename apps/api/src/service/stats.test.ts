@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createStatsService } from "./stats.js";
 
-import type { ApplicationError } from "./application-error.js";
+import type { ApplicationError } from "@exposurenexus/backend";
 
 describe("stats service", () => {
   const findingRepository = {

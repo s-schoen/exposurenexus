@@ -1,3 +1,4 @@
+import { ApplicationError } from "@exposurenexus/backend";
 import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import { FindingStatus, type Finding } from "@exposurenexus/contracts/model/finding";
 import {
@@ -7,7 +8,6 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createRequireDomainPermission } from "../middleware/auth.js";
-import { ApplicationError } from "../service/application-error.js";
 import {
   annotateAuthenticatedUser,
   createTestApp,

@@ -1,3 +1,4 @@
+import { ApplicationError, isApplicationError, isConflictError } from "@exposurenexus/backend";
 import {
   type AssetCustomFieldDefinition,
   type AssetCustomFieldRuleViolation,
@@ -19,8 +20,6 @@ import {
   type DomainEventEmitter,
   type EventSubjects,
 } from "../lib/eventbus/events/index.js";
-import { ApplicationError, isApplicationError } from "./application-error.js";
-import { isConflictError } from "./errors.js";
 
 import type { AssetCustomFieldRepository } from "../repository/asset-custom-field.js";
 import type { Asset, AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";

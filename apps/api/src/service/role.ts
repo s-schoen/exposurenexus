@@ -1,3 +1,4 @@
+import { ApplicationError, isApplicationError, isConflictError } from "@exposurenexus/backend";
 import {
   builtInRoleIds,
   type CreateRole,
@@ -12,8 +13,6 @@ import {
   type EventSubjects,
   type RoleEventPayloads,
 } from "../lib/eventbus/events/index.js";
-import { ApplicationError, isApplicationError } from "./application-error.js";
-import { isConflictError } from "./errors.js";
 
 import type { RoleRepository } from "../repository/role.js";
 import type { Logger } from "pino";

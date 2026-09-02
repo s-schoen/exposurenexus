@@ -17,7 +17,7 @@ import { serializeDomainEventForLog } from "../event-handler/log-event.js";
 import { createDomainEventCollector } from "../test/eventbus.js";
 import { createAuthService } from "./auth.js";
 
-import type { ApplicationError } from "./application-error.js";
+import type { ApplicationError } from "@exposurenexus/backend";
 
 describe("auth service", () => {
   const userProfileRepository = {

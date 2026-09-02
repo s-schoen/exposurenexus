@@ -1,8 +1,8 @@
+import { ApplicationError } from "@exposurenexus/backend";
 import { AssetCustomFieldRuleViolationReason } from "@exposurenexus/contracts/model/asset-custom-field";
 import { HTTPException } from "hono/http-exception";
 import { describe, expect, it } from "vitest";
 
-import { ApplicationError } from "../service/application-error.js";
 import {
   badRequest,
   conflict,

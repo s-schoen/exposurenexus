@@ -1,3 +1,4 @@
+import { ApplicationError, isApplicationError, isForeignKeyError } from "@exposurenexus/backend";
 import { normalizeDateToUtcStart } from "@exposurenexus/contracts/model/date";
 import {
   type CreateManualFinding,
@@ -20,8 +21,6 @@ import {
   type FindingEventPayloads,
   type ObservationEventPayloads,
 } from "../lib/eventbus/events/index.js";
-import { ApplicationError, isApplicationError } from "./application-error.js";
-import { isForeignKeyError } from "./errors.js";
 
 import type { FindingRepository } from "../repository/finding.js";
 import type { ObservationRepository } from "../repository/observation.js";

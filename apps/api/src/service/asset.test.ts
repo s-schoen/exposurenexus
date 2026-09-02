@@ -1,3 +1,4 @@
+import { ApplicationError } from "@exposurenexus/backend";
 import {
   AssetEnvironment,
   AssetIdentifierType,
@@ -13,7 +14,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestUser } from "../test/app.js";
 import { createDomainEventCollector } from "../test/eventbus.js";
-import { ApplicationError } from "./application-error.js";
 import { createAssetService } from "./asset.js";
 
 describe("asset service", () => {

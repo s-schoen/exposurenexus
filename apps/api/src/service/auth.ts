@@ -1,5 +1,7 @@
 import { createHmac, randomBytes } from "node:crypto";
 
+import { ApplicationError } from "@exposurenexus/backend";
+
 import { verifyPasswordHash } from "../lib/argon2.js";
 import {
   createDomainEventEmitter,
@@ -7,7 +9,6 @@ import {
   type DomainEventEmitter,
   type EventSubjects,
 } from "../lib/eventbus/events/index.js";
-import { ApplicationError } from "./application-error.js";
 
 import type { UserProfileRepository } from "../repository/user-profile.js";
 import type { UserRoleRepository } from "../repository/user-role.js";

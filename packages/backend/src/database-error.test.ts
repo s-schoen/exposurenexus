@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { isConflictError, isForeignKeyError } from "./errors.js";
+import { isConflictError, isForeignKeyError } from "./index.js";
 
-describe("service errors", () => {
+describe("database error classifiers", () => {
   it("detects conflict-shaped errors", () => {
     expect(isConflictError(new Error("role already exists"))).toBe(true);
     expect(isConflictError(new Error("duplicate key value"))).toBe(true);
