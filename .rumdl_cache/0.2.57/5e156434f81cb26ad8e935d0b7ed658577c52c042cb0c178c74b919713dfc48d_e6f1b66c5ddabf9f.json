@@ -1,0 +1,58 @@
+{
+  "file_hash": "5e156434f81cb26ad8e935d0b7ed658577c52c042cb0c178c74b919713dfc48d",
+  "config_hash": "0f0c33021fbc07a85a0cf2f49344d5bf38668092f677fe312b1e95f9fe948ec2",
+  "rules_hash": "e6f1b66c5ddabf9f346b6ec4c54f992615e656c91353d3798df8e6251597240c",
+  "version": "0.2.57",
+  "warnings": [
+    {
+      "message": "Paragraph should have one sentence per line (found 2 sentences across 3 lines)",
+      "line": 39,
+      "column": 1,
+      "end_line": 41,
+      "end_column": 19,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 1284,
+          "end": 1532
+        },
+        "replacement": "Routes own the URL contract, including parameter names, search-parameter validation, and navigation behavior.\nA feature may export a reusable schema or query definition, but the route decides how it is represented in the URL and when it is loaded.\n"
+      },
+      "rule_name": "MD013"
+    },
+    {
+      "message": "Paragraph should have one sentence per line (found 2 sentences across 2 lines)",
+      "line": 117,
+      "column": 1,
+      "end_line": 118,
+      "end_column": 30,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 4340,
+          "end": 4493
+        },
+        "replacement": "- The generic API client in `lib` remains contract-agnostic.\n  It must not import feature code or domain model subpaths from `@exposurenexus/contracts`.\n"
+      },
+      "rule_name": "MD013"
+    },
+    {
+      "message": "Paragraph should have one sentence per line (found 2 sentences across 3 lines)",
+      "line": 224,
+      "column": 1,
+      "end_line": 226,
+      "end_column": 94,
+      "severity": "warning",
+      "fix": {
+        "range": {
+          "start": 7192,
+          "end": 7399
+        },
+        "replacement": "`lib` must not import from routes, features, components, or domain model subpaths in `@exposurenexus/contracts`.\nAsset, finding, authentication, or other business-specific logic must not be placed in `lib`.\n"
+      },
+      "rule_name": "MD013"
+    }
+  ],
+  "dependency_fingerprint": "8a4e967d8f4f38d64b4bbe3551c0ae69a6eb75a991ffcd7e9ff8b6bba91d0a4c",
+  "timestamp": 1788100214
+}
