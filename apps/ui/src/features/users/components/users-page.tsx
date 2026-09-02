@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
 import { UserDetailContent } from "@/components/user-detail-content.tsx";
 import { UserTable } from "@/components/user-table";
-import { usePageMeta } from "@/context/page.tsx";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 import { useUserTableSearchState } from "@/hooks/use-user-table-search-state.ts";
 

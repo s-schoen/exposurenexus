@@ -3,8 +3,8 @@ import { useLayoutEffect, useMemo } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 
 import { AssetCombobox } from "@/components/asset-combobox.tsx";
-import { STORY_ASSETS } from "@/components/storybook-fixtures.ts";
-import { createArrayResponse, createStoryQueryClient } from "@/components/storybook-utils.tsx";
+import { STORY_ASSETS } from "@/test/fixtures.ts";
+import { createArrayResponse, createStoryQueryClient } from "@/test/storybook.tsx";
 
 import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type { Meta, StoryObj } from "@storybook/react-vite";

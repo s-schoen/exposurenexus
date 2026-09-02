@@ -6,7 +6,7 @@ import { createAssetByIDQueryOptions } from "@/api/asset.ts";
 import { createFindingByIDQueryOptions } from "@/api/finding.ts";
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx";
 import { buttonVariants } from "@/components/ui/button.tsx";
-import { usePageMeta } from "@/context/page.tsx";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { formatFindingStatus } from "@/lib/format.ts";
 import { cn } from "@/lib/utils.ts";
 

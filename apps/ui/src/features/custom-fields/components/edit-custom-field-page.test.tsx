@@ -65,7 +65,7 @@ vi.mock("@/hooks/use-asset-custom-field-definition-lifecycle.ts", () => ({
   }),
 }));
 
-vi.mock("@/context/page.tsx", () => ({
+vi.mock("@/hooks/use-page-meta.tsx", () => ({
   usePageMeta: mocks.usePageMeta,
 }));
 

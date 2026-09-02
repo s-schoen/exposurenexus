@@ -1,7 +1,6 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
 import { getAssetCustomFieldColumnId } from "@/components/asset-table/columns.tsx";
 import {
   createAssetTableFilterState,
@@ -10,6 +9,7 @@ import {
   useAssetTableSearchState,
   validateAssetTableSearch,
 } from "@/hooks/use-asset-table-search-state.ts";
+import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/test/fixtures.ts";
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),

@@ -9,17 +9,171 @@ import {
   AssetCustomFieldValueSource,
 } from "@exposurenexus/contracts/model/asset-custom-field";
 import {
+  BuiltInRoleName,
+  PermissionResource,
+  PermissionVerb,
+  builtInRoleIds,
+} from "@exposurenexus/contracts/model/rbac";
+import {
   VulnerabilitySeverity,
   VulnerabilityType,
 } from "@exposurenexus/contracts/model/vulnerability";
 
-import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
-import { ROLE_FIXTURES } from "@/components/role-fixtures.ts";
-
 import type { AuthSessionDataReply } from "@exposurenexus/contracts/api";
 import type { Asset, AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
+
+export const ROLE_FIXTURES: Array<Role> = [
+  {
+    id: builtInRoleIds.viewer,
+    name: BuiltInRoleName.Viewer,
+    permissions: [
+      { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Read },
+      { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
+      { resource: PermissionResource.Vulnerability, verb: PermissionVerb.Read },
+      { resource: PermissionResource.Stats, verb: PermissionVerb.Read },
+    ],
+  },
+  {
+    id: builtInRoleIds.editor,
+    name: BuiltInRoleName.Editor,
+    permissions: [
+      { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+      { resource: PermissionResource.Asset, verb: PermissionVerb.Write },
+      { resource: PermissionResource.Asset, verb: PermissionVerb.Delete },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Read },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Write },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Delete },
+      { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
+      { resource: PermissionResource.Finding, verb: PermissionVerb.Write },
+      { resource: PermissionResource.Finding, verb: PermissionVerb.Delete },
+      { resource: PermissionResource.Vulnerability, verb: PermissionVerb.Read },
+      {
+        resource: PermissionResource.Vulnerability,
+        verb: PermissionVerb.Write,
+      },
+      {
+        resource: PermissionResource.Vulnerability,
+        verb: PermissionVerb.Delete,
+      },
+      { resource: PermissionResource.Import, verb: PermissionVerb.Write },
+      { resource: PermissionResource.Stats, verb: PermissionVerb.Read },
+    ],
+  },
+  {
+    id: builtInRoleIds.admin,
+    name: BuiltInRoleName.Admin,
+    permissions: [
+      { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+      { resource: PermissionResource.Asset, verb: PermissionVerb.Write },
+      { resource: PermissionResource.Asset, verb: PermissionVerb.Delete },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Read },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Write },
+      { resource: PermissionResource.CustomField, verb: PermissionVerb.Delete },
+      { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
+      { resource: PermissionResource.Finding, verb: PermissionVerb.Write },
+      { resource: PermissionResource.Finding, verb: PermissionVerb.Delete },
+      { resource: PermissionResource.Vulnerability, verb: PermissionVerb.Read },
+      {
+        resource: PermissionResource.Vulnerability,
+        verb: PermissionVerb.Write,
+      },
+      {
+        resource: PermissionResource.Vulnerability,
+        verb: PermissionVerb.Delete,
+      },
+      { resource: PermissionResource.Import, verb: PermissionVerb.Write },
+      { resource: PermissionResource.Stats, verb: PermissionVerb.Read },
+      { resource: PermissionResource.User, verb: PermissionVerb.Read },
+      { resource: PermissionResource.User, verb: PermissionVerb.Write },
+      { resource: PermissionResource.User, verb: PermissionVerb.Delete },
+    ],
+  },
+  {
+    id: "8f74bc56-0ac3-47ef-b7e6-8df2c42fb3c0",
+    name: "security-auditor",
+    permissions: [
+      { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+      { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
+      { resource: PermissionResource.Vulnerability, verb: PermissionVerb.Read },
+      { resource: PermissionResource.User, verb: PermissionVerb.Read },
+      { resource: PermissionResource.Stats, verb: PermissionVerb.Read },
+    ],
+  },
+];
+
+export const BUILT_IN_ADMIN_ROLE = ROLE_FIXTURES[2];
+export const CUSTOM_AUDITOR_ROLE = ROLE_FIXTURES[3];
+
+export const USER_FORM_ROLE_FIXTURES: Array<Role> = [
+  {
+    id: builtInRoleIds.viewer,
+    name: BuiltInRoleName.Viewer,
+    permissions: [{ resource: PermissionResource.User, verb: PermissionVerb.Read }],
+  },
+  {
+    id: builtInRoleIds.editor,
+    name: BuiltInRoleName.Editor,
+    permissions: [
+      { resource: PermissionResource.User, verb: PermissionVerb.Read },
+      { resource: PermissionResource.User, verb: PermissionVerb.Write },
+    ],
+  },
+  {
+    id: builtInRoleIds.admin,
+    name: BuiltInRoleName.Admin,
+    permissions: [
+      { resource: PermissionResource.User, verb: PermissionVerb.Read },
+      { resource: PermissionResource.User, verb: PermissionVerb.Write },
+      { resource: PermissionResource.User, verb: PermissionVerb.Delete },
+    ],
+  },
+];
+
+export const ASSET_CUSTOM_FIELD_FIXTURES: Array<AssetCustomFieldDefinition> = [
+  {
+    id: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
+    key: "category",
+    name: "Category",
+    required: false,
+    type: AssetCustomFieldType.Text,
+    defaultValue: null,
+  },
+  {
+    id: "2808e68c-9a48-4b50-9a2d-d1df4c83ff06",
+    key: "priority",
+    name: "Priority",
+    required: true,
+    type: AssetCustomFieldType.Number,
+    defaultValue: 3,
+  },
+  {
+    id: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+    key: "deployment_tier",
+    name: "Deployment tier",
+    required: true,
+    type: AssetCustomFieldType.Select,
+    defaultValue: "production",
+    options: [
+      {
+        id: "6b567696-6808-45be-ab67-a8683d98a138",
+        fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+        value: "production",
+        label: "Production",
+      },
+      {
+        id: "1dec1f7b-0650-4e64-bdfa-1d4228a99e87",
+        fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+        value: "staging",
+        label: "Staging",
+      },
+    ],
+  },
+];
 
 const STORY_ENVIRONMENT_OPTIONS = [
   {

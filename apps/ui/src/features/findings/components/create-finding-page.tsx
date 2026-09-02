@@ -28,8 +28,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { getUserProfileDisplayName } from "@/components/user-label.tsx";
-import { usePageMeta } from "@/context/page.tsx";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { formatLocalDateTimeInput, formatUtcDateOnly } from "@/lib/date-input.ts";
 import { formatFindingStatus } from "@/lib/format.ts";
 import { normalizeDateToUtcStart } from "@/lib/utc-date";

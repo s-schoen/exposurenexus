@@ -5,8 +5,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { UserForm, mapCreateUserFormValues, mapUpdateUserFormValues } from "@/components/user-form";
-import { ROLE_FIXTURES } from "@/components/user-form.stories";
 import * as stories from "@/components/user-form.stories";
+import { USER_FORM_ROLE_FIXTURES } from "@/test/fixtures.ts";
 
 import type { UserFormValues } from "@/components/user-form";
 
@@ -100,7 +100,7 @@ describe("UserForm", () => {
     render(
       <UserForm
         mode="create"
-        roles={ROLE_FIXTURES}
+        roles={USER_FORM_ROLE_FIXTURES}
         defaultValues={{ roleIds: [builtInRoleIds.viewer] }}
         onSubmit={onSubmit}
         onCancel={onCancel}
@@ -130,7 +130,14 @@ describe("UserForm", () => {
   it("filters and clears role selections", async () => {
     const user = userEvent.setup();
 
-    render(<UserForm mode="create" roles={ROLE_FIXTURES} onSubmit={vi.fn()} onCancel={vi.fn()} />);
+    render(
+      <UserForm
+        mode="create"
+        roles={USER_FORM_ROLE_FIXTURES}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
 
     const rolesCombobox = screen.getByRole("combobox", { name: /roles/i });
 
@@ -153,7 +160,7 @@ describe("UserForm", () => {
     render(
       <UserForm
         mode="create"
-        roles={ROLE_FIXTURES}
+        roles={USER_FORM_ROLE_FIXTURES}
         defaultValues={{ roleIds: [builtInRoleIds.viewer] }}
         onSubmit={onSubmit}
         onCancel={onCancel}

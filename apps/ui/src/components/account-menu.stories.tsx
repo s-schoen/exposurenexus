@@ -1,13 +1,13 @@
 import { useLayoutEffect, useMemo } from "react";
 
 import { AccountMenu } from "@/components/account-menu.tsx";
-import { STORY_AUTH_SESSION, STORY_USERS } from "@/components/storybook-fixtures.ts";
+import { AuthProvider } from "@/context/auth.tsx";
+import { STORY_AUTH_SESSION, STORY_USERS } from "@/test/fixtures.ts";
 import {
   RouterStoryProvider,
   createObjectResponse,
   createStoryQueryClient,
-} from "@/components/storybook-utils.tsx";
-import { AuthProvider } from "@/context/auth.tsx";
+} from "@/test/storybook.tsx";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
