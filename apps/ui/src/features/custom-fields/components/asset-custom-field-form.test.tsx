@@ -12,12 +12,12 @@ import {
   mapAssetCustomFieldDefinitionToFormValues,
   mapAssetCustomFieldFormValues,
   mapUpdateAssetCustomFieldFormValues,
-} from "@/components/asset-custom-field-form";
-import * as stories from "@/components/asset-custom-field-form.stories";
-import { validateAssetCustomFieldFormRuleValues } from "@/components/asset-custom-field-rule-validation.ts";
+} from "@/features/custom-fields/components/asset-custom-field-form";
+import * as stories from "@/features/custom-fields/components/asset-custom-field-form.stories";
+import { validateAssetCustomFieldFormRuleValues } from "@/features/custom-fields/components/asset-custom-field-rule-validation.ts";
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/test/fixtures.ts";
 
-import type { AssetCustomFieldFormValues } from "@/components/asset-custom-field-form";
+import type { AssetCustomFieldFormValues } from "@/features/custom-fields/components/asset-custom-field-form";
 
 const { CreateNumber, CreateSelect, CreateText, EditSelect } = composeStories(stories);
 

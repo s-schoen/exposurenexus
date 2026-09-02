@@ -3,14 +3,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { useAssetCustomFieldDefinitionLifecycle } from "@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts";
 import {
   createAssetCustomFieldDefinitionByIDQueryOptions,
   createListAssetCustomFieldDefinitionsQueryOptions,
-} from "@/api/asset-custom-field.ts";
-import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts";
+} from "@/features/custom-fields/queries/definitions.ts";
 
-import type * as AssetCustomFieldApi from "@/api/asset-custom-field.ts";
-import type { AssetCustomFieldDefinitionLifecycleBatchResult } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts";
+import type { AssetCustomFieldDefinitionLifecycleBatchResult } from "@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts";
 import type {
   AssetCustomFieldDefinition,
   CreateAssetCustomFieldDefinition,
@@ -39,25 +38,17 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/api/asset-custom-field.ts", async (importOriginal) => {
-  const actual = await importOriginal<typeof AssetCustomFieldApi>();
-
-  return {
-    ...actual,
-    createAssetCustomFieldDefinition: createDefinitionRequestMock,
-    deleteAssetCustomFieldDefinition: deleteDefinitionRequestMock,
-    updateAssetCustomFieldDefinition: updateDefinitionRequestMock,
-    useCreateAssetCustomFieldDefinitionMutation: () => ({
-      mutateAsync: createDefinitionRequestMock,
-    }),
-    useDeleteAssetCustomFieldDefinitionMutation: () => ({
-      mutateAsync: deleteDefinitionRequestMock,
-    }),
-    useUpdateAssetCustomFieldDefinitionMutation: () => ({
-      mutateAsync: updateDefinitionRequestMock,
-    }),
-  };
-});
+vi.mock("@/features/custom-fields/mutations/definitions.ts", () => ({
+  useCreateAssetCustomFieldDefinitionMutation: () => ({
+    mutateAsync: createDefinitionRequestMock,
+  }),
+  useDeleteAssetCustomFieldDefinitionMutation: () => ({
+    mutateAsync: deleteDefinitionRequestMock,
+  }),
+  useUpdateAssetCustomFieldDefinitionMutation: () => ({
+    mutateAsync: updateDefinitionRequestMock,
+  }),
+}));
 
 function createDefinitionFixture(
   overrides: Partial<AssetCustomFieldDefinition> = {},

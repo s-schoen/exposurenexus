@@ -2,7 +2,7 @@ import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custo
 import { useState } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 
-import { AssetCustomFieldForm } from "@/components/asset-custom-field-form.tsx";
+import { AssetCustomFieldForm } from "@/features/custom-fields/components/asset-custom-field-form.tsx";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentProps } from "react";

@@ -146,7 +146,7 @@ vi.mock("@/api/asset.ts", () => ({
   },
 }));
 
-vi.mock("@/api/asset-custom-field.ts", () => ({
+vi.mock("@/features/custom-fields/index.ts", () => ({
   createListAssetCustomFieldDefinitionsQueryOptions: () => ({
     queryKey: ["asset-custom-fields"],
   }),

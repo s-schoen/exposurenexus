@@ -2,12 +2,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import {
-  createAssetCustomFieldDefinitionByIDQueryOptions,
-  createListAssetCustomFieldDefinitionsQueryOptions,
   useCreateAssetCustomFieldDefinitionMutation,
   useDeleteAssetCustomFieldDefinitionMutation,
   useUpdateAssetCustomFieldDefinitionMutation,
-} from "@/api/asset-custom-field.ts";
+} from "@/features/custom-fields/mutations/definitions.ts";
+import {
+  createAssetCustomFieldDefinitionByIDQueryOptions,
+  createListAssetCustomFieldDefinitionsQueryOptions,
+} from "@/features/custom-fields/queries/definitions.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 
 import type {

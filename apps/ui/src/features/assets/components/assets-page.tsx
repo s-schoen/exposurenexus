@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/api/asset-custom-field.ts";
 import { AssetDetailContent } from "@/components/asset-detail-content.tsx";
 import { AssetTable } from "@/components/asset-table";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
+import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields/index.ts";
 import { useAssetTableSearchState } from "@/hooks/use-asset-table-search-state.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";

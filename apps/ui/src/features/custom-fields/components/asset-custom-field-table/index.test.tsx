@@ -2,7 +2,7 @@ import { composeStories } from "@storybook/react-vite";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import * as stories from "@/components/asset-custom-field-table/index.stories";
+import * as stories from "@/features/custom-fields/components/asset-custom-field-table/index.stories";
 
 const { ActiveRow, Creatable, Default, Empty, Loading } = composeStories(stories);
 

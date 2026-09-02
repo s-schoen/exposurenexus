@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { EditCustomFieldPage } from "@/features/custom-fields/components/edit-custom-field-page.tsx";
+import { EditCustomFieldPage } from "@/features/custom-fields/pages/edit-custom-field-page.tsx";
 
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 
@@ -53,13 +53,13 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate,
 }));
 
-vi.mock("@/api/asset-custom-field.ts", () => ({
+vi.mock("@/features/custom-fields/queries/definitions.ts", () => ({
   createAssetCustomFieldDefinitionByIDQueryOptions: (id: string) => ({
     queryKey: ["asset-custom-fields", id],
   }),
 }));
 
-vi.mock("@/hooks/use-asset-custom-field-definition-lifecycle.ts", () => ({
+vi.mock("@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts", () => ({
   useAssetCustomFieldDefinitionLifecycle: () => ({
     updateDefinition: mocks.updateDefinition,
   }),

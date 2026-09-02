@@ -2,7 +2,7 @@ import { composeStories } from "@storybook/react-vite";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import * as stories from "@/components/asset-custom-field-detail-content/index.stories";
+import * as stories from "@/features/custom-fields/components/asset-custom-field-detail-content/index.stories";
 
 const { ErrorState, Loading, SelectField, TextField } = composeStories(stories);
 

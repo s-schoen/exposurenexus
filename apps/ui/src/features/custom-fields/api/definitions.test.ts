@@ -3,13 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createAssetCustomFieldDefinition,
-  createAssetCustomFieldDefinitionByIDQueryOptions,
-  createListAssetCustomFieldDefinitionsQueryOptions,
   deleteAssetCustomFieldDefinition,
   getAssetCustomFieldDefinitionByID,
   listAssetCustomFieldDefinitions,
   updateAssetCustomFieldDefinition,
-} from "@/api/asset-custom-field.ts";
+} from "@/features/custom-fields/api/definitions.ts";
 import { APIError } from "@/lib/api-client.ts";
 
 import type {
@@ -219,15 +217,5 @@ describe("asset custom field api", () => {
         message: "asset custom field definition already exists",
       });
     }
-  });
-
-  it("creates query options for custom field definitions", () => {
-    expect(createListAssetCustomFieldDefinitionsQueryOptions().queryKey).toEqual([
-      "asset-custom-fields",
-    ]);
-    expect(createAssetCustomFieldDefinitionByIDQueryOptions(definition.id).queryKey).toEqual([
-      "asset-custom-fields",
-      definition.id,
-    ]);
   });
 });

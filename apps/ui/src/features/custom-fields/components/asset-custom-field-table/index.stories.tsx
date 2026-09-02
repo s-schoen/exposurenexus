@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { expect, fn, userEvent } from "storybook/test";
 
-import { AssetCustomFieldTable } from "@/components/asset-custom-field-table";
+import { AssetCustomFieldTable } from "@/features/custom-fields/components/asset-custom-field-table";
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/test/fixtures.ts";
 
 import type { DataTableFilterState } from "@/components/data-table/types.ts";
