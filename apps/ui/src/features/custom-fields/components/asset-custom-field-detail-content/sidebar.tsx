@@ -1,10 +1,10 @@
 import { ListChecks } from "lucide-react";
 
-import { CustomFieldRequiredBadge } from "@/components/asset-custom-field-detail-content/detail-cards.tsx";
 import { MetadataSidebar } from "@/components/metadata-sidebar";
 import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
+import { CustomFieldRequiredBadge } from "@/features/custom-fields/components/asset-custom-field-detail-content/detail-cards.tsx";
 
-import type { CustomFieldSummary } from "@/components/asset-custom-field-detail-content/helpers.ts";
+import type { CustomFieldSummary } from "@/features/custom-fields/components/asset-custom-field-detail-content/helpers.ts";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 
 export function CustomFieldSidebar({

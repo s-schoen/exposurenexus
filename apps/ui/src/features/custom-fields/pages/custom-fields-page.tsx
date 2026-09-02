@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
-import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/api/asset-custom-field.ts";
-import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content";
-import { AssetCustomFieldTable } from "@/components/asset-custom-field-table";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
-import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts";
-import { useCustomFieldTableSearchState } from "@/hooks/use-custom-field-table-search-state.ts";
+import { AssetCustomFieldDetailContent } from "@/features/custom-fields/components/asset-custom-field-detail-content";
+import { AssetCustomFieldTable } from "@/features/custom-fields/components/asset-custom-field-table";
+import { useAssetCustomFieldDefinitionLifecycle } from "@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts";
+import { useCustomFieldTableSearchState } from "@/features/custom-fields/hooks/use-custom-field-table-search-state.ts";
+import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields/queries/definitions.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 

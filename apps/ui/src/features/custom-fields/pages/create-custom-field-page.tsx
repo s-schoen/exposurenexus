@@ -3,8 +3,8 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   AssetCustomFieldForm,
   mapAssetCustomFieldFormValues,
-} from "@/components/asset-custom-field-form.tsx";
-import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts";
+} from "@/features/custom-fields/components/asset-custom-field-form.tsx";
+import { useAssetCustomFieldDefinitionLifecycle } from "@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 
 export function CreateCustomFieldPage() {

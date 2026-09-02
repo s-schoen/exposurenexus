@@ -3,7 +3,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useMemo } from "react";
 
-import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/api/asset-custom-field.ts";
 import { createListAssetsWithCustomFieldsQueryOptions } from "@/api/asset.ts";
 import { createListUsersQueryOptions } from "@/api/user.ts";
 import { AssetDialog } from "@/components/asset-dialog.tsx";
@@ -15,6 +14,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DataTable } from "@/components/data-table/data-table.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { createUserProfileById, formatUserProfileReference } from "@/components/user-label.tsx";
+import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields/index.ts";
 import { useAssetLifecycle } from "@/hooks/use-asset-lifecycle.ts";
 import { createAssetListOptions } from "@/hooks/use-asset-table-search-state.ts";
 import { capitalizeFirstLetter } from "@/lib/format.ts";

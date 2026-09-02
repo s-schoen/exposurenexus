@@ -6,11 +6,6 @@ import { useForm } from "@tanstack/react-form";
 import { Plus, Trash2 } from "lucide-react";
 import { z } from "zod/v4";
 
-import {
-  createAssetCustomFieldDefinitionPayloadFromFormValues,
-  updateAssetCustomFieldDefinitionPayloadFromFormValues,
-  validateAssetCustomFieldFormRuleValues,
-} from "@/components/asset-custom-field-rule-validation.ts";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Card,
@@ -30,6 +25,11 @@ import {
 import { Input } from "@/components/ui/input.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
+import {
+  createAssetCustomFieldDefinitionPayloadFromFormValues,
+  updateAssetCustomFieldDefinitionPayloadFromFormValues,
+  validateAssetCustomFieldFormRuleValues,
+} from "@/features/custom-fields/components/asset-custom-field-rule-validation.ts";
 
 import type {
   AssetCustomFieldDefinition,

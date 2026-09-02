@@ -1,8 +1,8 @@
 import { Plus } from "lucide-react";
 
-import { columns } from "@/components/asset-custom-field-table/columns.tsx";
 import { DataTable } from "@/components/data-table/data-table.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import { columns } from "@/features/custom-fields/components/asset-custom-field-table/columns.tsx";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";

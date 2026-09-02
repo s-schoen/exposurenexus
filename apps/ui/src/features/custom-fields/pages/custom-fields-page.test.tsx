@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { CustomFieldsPage } from "@/features/custom-fields/components/custom-fields-page.tsx";
+import { CustomFieldsPage } from "@/features/custom-fields/pages/custom-fields-page.tsx";
 
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 import type { ReactNode } from "react";
@@ -84,13 +84,13 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate,
 }));
 
-vi.mock("@/api/asset-custom-field.ts", () => ({
+vi.mock("@/features/custom-fields/queries/definitions.ts", () => ({
   createListAssetCustomFieldDefinitionsQueryOptions: () => ({
     queryKey: ["asset-custom-fields"],
   }),
 }));
 
-vi.mock("@/hooks/use-asset-custom-field-definition-lifecycle.ts", () => ({
+vi.mock("@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts", () => ({
   useAssetCustomFieldDefinitionLifecycle: () => ({
     deleteDefinitions: mocks.deleteDefinitions,
   }),
@@ -134,7 +134,7 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
     ) : null,
 }));
 
-vi.mock("@/components/asset-custom-field-detail-content", () => ({
+vi.mock("@/features/custom-fields/components/asset-custom-field-detail-content", () => ({
   AssetCustomFieldDetailContent: ({ customFieldId }: { customFieldId: string }) => (
     <section>Detail for custom field {customFieldId}</section>
   ),
