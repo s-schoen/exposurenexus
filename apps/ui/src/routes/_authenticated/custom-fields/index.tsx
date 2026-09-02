@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { CustomFieldsPage } from "@/features/custom-fields/components/custom-fields-page.tsx";
-import { validateCustomFieldTableSearch } from "@/hooks/use-custom-field-table-search-state.ts";
+import {
+  CustomFieldsPage,
+  validateCustomFieldTableSearch,
+} from "@/features/custom-fields/index.ts";
 import { validateSelectedSearch } from "@/hooks/use-selected-search-param.ts";
 
 export const Route = createFileRoute("/_authenticated/custom-fields/")({

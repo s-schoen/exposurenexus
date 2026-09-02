@@ -2,7 +2,7 @@ import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custo
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useLayoutEffect, useMemo } from "react";
 
-import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content";
+import { AssetCustomFieldDetailContent } from "@/features/custom-fields/components/asset-custom-field-detail-content";
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/test/fixtures.ts";
 
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";

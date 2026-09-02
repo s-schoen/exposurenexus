@@ -1,15 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts";
+import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import {
   CustomFieldDefinitionCard,
   CustomFieldOverviewCard,
   SelectOptionsCard,
-} from "@/components/asset-custom-field-detail-content/detail-cards.tsx";
-import { summarizeCustomField } from "@/components/asset-custom-field-detail-content/helpers.ts";
-import { CustomFieldSidebar } from "@/components/asset-custom-field-detail-content/sidebar.tsx";
-import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
+} from "@/features/custom-fields/components/asset-custom-field-detail-content/detail-cards.tsx";
+import { summarizeCustomField } from "@/features/custom-fields/components/asset-custom-field-detail-content/helpers.ts";
+import { CustomFieldSidebar } from "@/features/custom-fields/components/asset-custom-field-detail-content/sidebar.tsx";
+import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/features/custom-fields/queries/definitions.ts";
 
 import type { ReactNode } from "react";
 

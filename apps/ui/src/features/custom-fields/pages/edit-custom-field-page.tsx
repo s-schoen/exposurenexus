@@ -2,12 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { CircleAlert } from "lucide-react";
 
-import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts";
-import {
-  AssetCustomFieldForm,
-  mapAssetCustomFieldDefinitionToFormValues,
-  mapUpdateAssetCustomFieldFormValues,
-} from "@/components/asset-custom-field-form.tsx";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import {
   Card,
@@ -17,7 +11,13 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts";
+import {
+  AssetCustomFieldForm,
+  mapAssetCustomFieldDefinitionToFormValues,
+  mapUpdateAssetCustomFieldFormValues,
+} from "@/features/custom-fields/components/asset-custom-field-form.tsx";
+import { useAssetCustomFieldDefinitionLifecycle } from "@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts";
+import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/features/custom-fields/queries/definitions.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 
 interface EditCustomFieldPageProps {

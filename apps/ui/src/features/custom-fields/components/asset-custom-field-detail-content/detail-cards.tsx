@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 
-import type { CustomFieldSummary } from "@/components/asset-custom-field-detail-content/helpers.ts";
+import type { CustomFieldSummary } from "@/features/custom-fields/components/asset-custom-field-detail-content/helpers.ts";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 import type { ReactNode } from "react";
 

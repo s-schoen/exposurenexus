@@ -6,7 +6,7 @@ import {
   createCustomFieldTableSearchParams,
   useCustomFieldTableSearchState,
   validateCustomFieldTableSearch,
-} from "@/hooks/use-custom-field-table-search-state.ts";
+} from "@/features/custom-fields/hooks/use-custom-field-table-search-state.ts";
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),

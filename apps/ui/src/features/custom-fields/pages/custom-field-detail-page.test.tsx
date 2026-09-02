@@ -61,7 +61,7 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: () => mocks.customFieldQuery,
 }));
 
-vi.mock("@/api/asset-custom-field.ts", () => ({
+vi.mock("@/features/custom-fields/queries/definitions.ts", () => ({
   createAssetCustomFieldDefinitionByIDQueryOptions: (id: string) => ({
     queryKey: ["asset-custom-fields", id],
   }),
@@ -71,7 +71,7 @@ vi.mock("@/hooks/use-page-meta.tsx", () => ({
   usePageMeta: mocks.usePageMeta,
 }));
 
-vi.mock("@/components/asset-custom-field-detail-content", () => ({
+vi.mock("@/features/custom-fields/components/asset-custom-field-detail-content", () => ({
   AssetCustomFieldDetailContent: ({
     customFieldId: renderedCustomFieldId,
     titleAction,
@@ -103,7 +103,7 @@ describe("CustomFieldDetailPage", () => {
 
   it("uses loaded custom field data for page metadata and renders the back link", async () => {
     const { CustomFieldDetailPage } =
-      await import("@/features/custom-fields/components/custom-field-detail-page.tsx");
+      await import("@/features/custom-fields/pages/custom-field-detail-page.tsx");
 
     render(<CustomFieldDetailPage customFieldId={customFieldId} />);
 
@@ -133,7 +133,7 @@ describe("CustomFieldDetailPage", () => {
 
   it("uses fallback page metadata before custom field data is available", async () => {
     const { CustomFieldDetailPage } =
-      await import("@/features/custom-fields/components/custom-field-detail-page.tsx");
+      await import("@/features/custom-fields/pages/custom-field-detail-page.tsx");
     mocks.customFieldQuery = {
       isPending: true,
       isSuccess: false,

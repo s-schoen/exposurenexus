@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, useMatchRoute } from "@tanstack/react-router";
 
-import { CustomFieldDetailPage } from "@/features/custom-fields/components/custom-field-detail-page.tsx";
+import { CustomFieldDetailPage } from "@/features/custom-fields/index.ts";
 
 export const Route = createFileRoute("/_authenticated/custom-fields/$id")({
   component: RouteComponent,

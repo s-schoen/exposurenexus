@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { CreateCustomFieldPage } from "@/features/custom-fields/components/create-custom-field-page.tsx";
+import { CreateCustomFieldPage } from "@/features/custom-fields/pages/create-custom-field-page.tsx";
 
 const mocks = vi.hoisted(() => ({
   createDefinition: vi.fn(),
@@ -23,7 +23,7 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate,
 }));
 
-vi.mock("@/hooks/use-asset-custom-field-definition-lifecycle.ts", () => ({
+vi.mock("@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts", () => ({
   useAssetCustomFieldDefinitionLifecycle: () => ({
     createDefinition: mocks.createDefinition,
   }),

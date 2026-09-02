@@ -3,9 +3,9 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { useMemo } from "react";
 
-import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/api/asset-custom-field.ts";
-import { AssetCustomFieldDetailContent } from "@/components/asset-custom-field-detail-content";
 import { buttonVariants } from "@/components/ui/button.tsx";
+import { AssetCustomFieldDetailContent } from "@/features/custom-fields/components/asset-custom-field-detail-content";
+import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/features/custom-fields/queries/definitions.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { cn } from "@/lib/utils.ts";
 

@@ -1,5 +1,4 @@
 import { assetCustomFieldDefinitionSchema } from "@exposurenexus/contracts/model/asset-custom-field";
-import { keepPreviousData, queryOptions, useMutation } from "@tanstack/react-query";
 
 import {
   apiRequest,
@@ -7,7 +6,6 @@ import {
   parseErrorReply,
   parseObjectReply,
 } from "@/lib/api-client.ts";
-import { DEFAULT_QUERY_STALE_TIME } from "@/lib/query-client.ts";
 
 import type {
   AssetCustomFieldDefinition,
@@ -102,45 +100,4 @@ export async function deleteAssetCustomFieldDefinition(
   }
 
   return parseObjectReply(response, assetCustomFieldDefinitionSchema);
-}
-
-export function createListAssetCustomFieldDefinitionsQueryOptions() {
-  return queryOptions({
-    queryKey: ["asset-custom-fields"],
-    queryFn: () => listAssetCustomFieldDefinitions(),
-    placeholderData: keepPreviousData,
-    staleTime: DEFAULT_QUERY_STALE_TIME,
-  });
-}
-
-export function createAssetCustomFieldDefinitionByIDQueryOptions(id: string) {
-  return queryOptions({
-    queryKey: ["asset-custom-fields", id],
-    queryFn: () => getAssetCustomFieldDefinitionByID(id),
-  });
-}
-
-export function useCreateAssetCustomFieldDefinitionMutation() {
-  return useMutation({
-    mutationFn: (definition: CreateAssetCustomFieldDefinition) =>
-      createAssetCustomFieldDefinition(definition),
-  });
-}
-
-export function useUpdateAssetCustomFieldDefinitionMutation() {
-  return useMutation({
-    mutationFn: ({
-      id,
-      definition,
-    }: {
-      id: string;
-      definition: UpdateAssetCustomFieldDefinition;
-    }) => updateAssetCustomFieldDefinition(id, definition),
-  });
-}
-
-export function useDeleteAssetCustomFieldDefinitionMutation() {
-  return useMutation({
-    mutationFn: (id: string) => deleteAssetCustomFieldDefinition(id),
-  });
 }
