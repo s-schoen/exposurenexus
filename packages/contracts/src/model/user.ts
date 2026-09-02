@@ -21,17 +21,6 @@ export const updateUserProfileSchema = userProfileSchema.omit({ id: true, userna
   password: z.string().nonempty().optional(),
 });
 
-export const userSessionSchema = z.strictObject({
-  id: z.uuidv4().nonempty(),
-  sessionId: z.string().nonempty(),
-  userId: z.uuidv4().nonempty(),
-  sourceIp: z.string().nullable(),
-  userAgent: z.string().nullable(),
-  createdAt: z.date(),
-  expiresAt: z.date(),
-});
-
 export type UserProfile = z.infer<typeof userProfileSchema>;
 export type CreateUserProfile = z.infer<typeof createUserProfileSchema>;
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
-export type UserSession = z.infer<typeof userSessionSchema>;

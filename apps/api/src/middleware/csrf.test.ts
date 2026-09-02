@@ -19,7 +19,6 @@ describe("csrf protection", () => {
   const user = createTestUser();
   const session = {
     id: "a2ca50c9-1e4d-4533-97bc-e060f58b6747",
-    sessionId: "stored-session-id-digest",
     userId: user.id,
     sourceIp: "203.0.113.10",
     userAgent: "Mozilla/5.0",
@@ -31,7 +30,6 @@ describe("csrf protection", () => {
     createSession: vi.fn(),
     validateSession: vi.fn(),
     revokeSession: vi.fn(),
-    userHasPermission: vi.fn(),
   };
 
   beforeEach(() => {

@@ -2,6 +2,14 @@ import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
+  const rawAuthentication = { kind: "raw-authentication" };
+  const authentication = {
+    kind: "authentication",
+    validateSession: vi.fn(),
+    createSessionForCredentials: vi.fn(),
+    createSession: vi.fn(),
+    revokeSession: vi.fn(),
+  };
   const rawIdentity = { kind: "raw-identity" };
   const identity = {
     users: { kind: "identity-users", getByID: vi.fn() },
@@ -10,6 +18,10 @@ const mocks = vi.hoisted(() => {
   };
 
   return {
+    rawAuthentication,
+    authentication,
+    createAuthentication: vi.fn(() => rawAuthentication),
+    decorateAuthenticationWithEvents: vi.fn(() => authentication),
     rawIdentity,
     identity,
     createIdentity: vi.fn(() => rawIdentity),
@@ -30,12 +42,6 @@ const mocks = vi.hoisted(() => {
     createFindingRoute: vi.fn(() => ({ route: "findings" })),
     createImportRoute: vi.fn(() => ({ route: "import" })),
     registerEventHandlers: vi.fn(),
-    createAuthService: vi.fn(() => ({
-      kind: "auth-service",
-      validateSession: vi.fn(),
-      createSessionForCredentials: vi.fn(),
-      revokeSession: vi.fn(),
-    })),
     createAssetCustomFieldService: vi.fn(() => ({
       kind: "asset-custom-field-service",
     })),
@@ -44,12 +50,17 @@ const mocks = vi.hoisted(() => {
     createStatsService: vi.fn(() => ({ kind: "stats-service" })),
     createObservationRepository: vi.fn(() => ({ kind: "observation-repo" })),
     createVulnerabilityService: vi.fn(() => ({ kind: "vulnerability-service" })),
-    createAuthUserRepository: vi.fn(() => ({ kind: "auth-user-repo" })),
   };
 });
 
 vi.mock("@exposurenexus/backend/identity", () => ({
   createIdentity: mocks.createIdentity,
+}));
+vi.mock("@exposurenexus/backend/authentication", () => ({
+  createAuthentication: mocks.createAuthentication,
+}));
+vi.mock("./lib/authentication-events.js", () => ({
+  decorateAuthenticationWithEvents: mocks.decorateAuthenticationWithEvents,
 }));
 vi.mock("./lib/identity-events.js", () => ({
   decorateIdentityWithEvents: mocks.decorateIdentityWithEvents,
@@ -86,15 +97,12 @@ vi.mock("./routes/import.js", () => ({ createImportRoute: mocks.createImportRout
 vi.mock("./repository/index.js", () => ({
   createAssetCustomFieldRepository: vi.fn(() => ({ kind: "asset-custom-field-repo" })),
   createAssetRepository: vi.fn(() => ({ kind: "asset-repo" })),
-  createAuthUserRepository: mocks.createAuthUserRepository,
   createFindingRepository: vi.fn(() => ({ kind: "finding-repo" })),
   createObservationRepository: mocks.createObservationRepository,
-  createUserSessionRepository: vi.fn(() => ({ kind: "user-session-repo" })),
   createVulnerabilityRepository: vi.fn(() => ({ kind: "vulnerability-repo" })),
 }));
 vi.mock("./service/index.js", () => ({
   createAssetCustomFieldService: mocks.createAssetCustomFieldService,
-  createAuthService: mocks.createAuthService,
   createAssetService: mocks.createAssetService,
   createFindingService: mocks.createFindingService,
   createStatsService: mocks.createStatsService,
@@ -131,24 +139,22 @@ describe("app container", () => {
     vi.clearAllMocks();
   });
 
-  it("composes identity once and uses its nested interfaces", async () => {
+  it("composes authentication and identity through backend capabilities", async () => {
     const options = createContainerOptions();
     const container = createAppContainer(options);
 
+    expect(mocks.createAuthentication).toHaveBeenCalledWith(expect.any(Object), {
+      sessionLifetimeHours: options.authSessionLifetimeHours,
+      sessionHmacSecret: options.authSessionHmacSecret,
+    });
+    expect(mocks.decorateAuthenticationWithEvents).toHaveBeenCalledWith(
+      mocks.rawAuthentication,
+      expect.objectContaining({ emit: expect.any(Function) }),
+    );
     expect(mocks.createIdentity).toHaveBeenCalledOnce();
     expect(mocks.decorateIdentityWithEvents).toHaveBeenCalledWith(
       mocks.rawIdentity,
       expect.objectContaining({ emit: expect.any(Function) }),
-    );
-    expect(mocks.createAuthUserRepository).toHaveBeenCalledWith(options.db);
-    expect(mocks.createAuthService).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userProfileRepository: { kind: "auth-user-repo" },
-        domainEventEmitter: expect.objectContaining({ emit: expect.any(Function) }),
-      }),
-    );
-    expect((mocks.createAuthService.mock.calls as unknown[][])[0]?.[0]).not.toHaveProperty(
-      "userRoleRepository",
     );
     expect(mocks.createRequireDomainPermission).toHaveBeenCalledWith(expect.any(Function));
     expect(mocks.createUserRoute).toHaveBeenCalledWith(mocks.identity.users, {
@@ -164,6 +170,7 @@ describe("app container", () => {
       expect.objectContaining({ userProfileService: mocks.identity.users }),
     );
     expect(container.services.identity).toBe(mocks.identity);
+    expect(container.services.authentication).toBe(mocks.authentication);
 
     await container.createDefaultAdmin();
     expect(mocks.createDefaultAdmin).toHaveBeenCalledWith({

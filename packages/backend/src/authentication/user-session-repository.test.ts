@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createTestDatabase, resetTestDatabase } from "../test/db.js";
-import { createUserSessionRepository } from "./user-session.js";
+import { createTestDatabase, resetTestDatabase } from "../database/test/database.js";
+import { createUserSessionRepository } from "./user-session-repository.js";
 
 describe("user session repository", () => {
   const testDb = createTestDatabase();
@@ -13,9 +13,9 @@ describe("user session repository", () => {
     enabled: true,
     passwordHash: "hash-alice",
   };
-  const firstSessionIdDigest = "session-digest-first";
-  const secondSessionIdDigest = "session-digest-second";
-  const thirdSessionIdDigest = "session-digest-third";
+  const firstSessionDigest = "session-digest-first";
+  const secondSessionDigest = "session-digest-second";
+  const thirdSessionDigest = "session-digest-third";
 
   beforeAll(async () => {
     await testDb.start();
@@ -29,10 +29,10 @@ describe("user session repository", () => {
     await resetTestDatabase(testDb.db);
   });
 
-  it("creates, lists, loads, and deletes user sessions", async () => {
+  it("creates, lists, loads, and deletes user sessions by digest", async () => {
     const repository = createUserSessionRepository(testDb.db);
     const firstSession = {
-      sessionId: firstSessionIdDigest,
+      sessionId: firstSessionDigest,
       userId: userProfile.id,
       sourceIp: "203.0.113.10",
       userAgent: "Mozilla/5.0",
@@ -40,7 +40,7 @@ describe("user session repository", () => {
       expiresAt: new Date("2026-04-23T10:00:00.000Z"),
     };
     const secondSession = {
-      sessionId: secondSessionIdDigest,
+      sessionId: secondSessionDigest,
       userId: userProfile.id,
       sourceIp: null,
       userAgent: null,
@@ -53,44 +53,36 @@ describe("user session repository", () => {
     const createdFirstSession = await repository.create(firstSession);
     const createdSecondSession = await repository.create(secondSession);
 
-    expect(createdFirstSession).toEqual({
-      id: expect.any(String),
-      ...firstSession,
-    });
-    expect(createdSecondSession).toEqual({
-      id: expect.any(String),
-      ...secondSession,
-    });
-
-    await expect(repository.getBySessionID(firstSession.sessionId)).resolves.toEqual(
+    expect(createdFirstSession).toEqual({ id: expect.any(String), ...firstSession });
+    expect(createdSecondSession).toEqual({ id: expect.any(String), ...secondSession });
+    await expect(repository.getBySessionDigest(firstSessionDigest)).resolves.toEqual(
       createdFirstSession,
     );
+    await expect(repository.list()).resolves.toEqual(
+      expect.arrayContaining([createdFirstSession, createdSecondSession]),
+    );
+    await expect(repository.list()).resolves.toHaveLength(2);
 
-    const sessions = await repository.list();
-
-    expect(sessions).toHaveLength(2);
-    expect(sessions).toEqual(expect.arrayContaining([createdFirstSession, createdSecondSession]));
-
-    await expect(repository.deleteBySessionID(firstSession.sessionId)).resolves.toEqual(
+    await expect(repository.deleteBySessionDigest(firstSessionDigest)).resolves.toEqual(
       createdFirstSession,
     );
-    await expect(repository.getBySessionID(firstSession.sessionId)).resolves.toBeNull();
+    await expect(repository.getBySessionDigest(firstSessionDigest)).resolves.toBeNull();
     await expect(repository.list()).resolves.toEqual([createdSecondSession]);
   });
 
   it("returns null when a user session does not exist", async () => {
     const repository = createUserSessionRepository(testDb.db);
 
-    await expect(repository.getBySessionID("missing-session-digest")).resolves.toBeNull();
-    await expect(repository.deleteBySessionID("missing-session-digest")).resolves.toBeNull();
+    await expect(repository.getBySessionDigest("missing-session-digest")).resolves.toBeNull();
+    await expect(repository.deleteBySessionDigest("missing-session-digest")).resolves.toBeNull();
   });
 
-  it("rejects duplicate session ids", async () => {
+  it("rejects duplicate session digests", async () => {
     const repository = createUserSessionRepository(testDb.db);
 
     await testDb.db.insertInto("user_profile").values(userProfile).execute();
     await repository.create({
-      sessionId: firstSessionIdDigest,
+      sessionId: firstSessionDigest,
       userId: userProfile.id,
       sourceIp: "203.0.113.10",
       userAgent: "Mozilla/5.0",
@@ -100,7 +92,7 @@ describe("user session repository", () => {
 
     await expect(
       repository.create({
-        sessionId: firstSessionIdDigest,
+        sessionId: firstSessionDigest,
         userId: userProfile.id,
         sourceIp: "203.0.113.11",
         userAgent: "curl/8.0.1",
@@ -115,7 +107,7 @@ describe("user session repository", () => {
 
     await testDb.db.insertInto("user_profile").values(userProfile).execute();
     await repository.create({
-      sessionId: firstSessionIdDigest,
+      sessionId: firstSessionDigest,
       userId: userProfile.id,
       sourceIp: "203.0.113.10",
       userAgent: "Mozilla/5.0",
@@ -125,7 +117,7 @@ describe("user session repository", () => {
 
     await testDb.db.deleteFrom("user_profile").where("id", "=", userProfile.id).execute();
 
-    await expect(repository.getBySessionID(firstSessionIdDigest)).resolves.toBeNull();
+    await expect(repository.getBySessionDigest(firstSessionDigest)).resolves.toBeNull();
     await expect(repository.list()).resolves.toEqual([]);
   });
 
@@ -136,7 +128,7 @@ describe("user session repository", () => {
     await testDb.db.insertInto("user_profile").values(userProfile).execute();
 
     const expiredSession = await repository.create({
-      sessionId: firstSessionIdDigest,
+      sessionId: firstSessionDigest,
       userId: userProfile.id,
       sourceIp: "203.0.113.10",
       userAgent: "Mozilla/5.0",
@@ -144,7 +136,7 @@ describe("user session repository", () => {
       expiresAt: new Date("2026-04-23T09:59:59.000Z"),
     });
     const boundarySession = await repository.create({
-      sessionId: secondSessionIdDigest,
+      sessionId: secondSessionDigest,
       userId: userProfile.id,
       sourceIp: null,
       userAgent: null,
@@ -152,7 +144,7 @@ describe("user session repository", () => {
       expiresAt: now,
     });
     const activeSession = await repository.create({
-      sessionId: thirdSessionIdDigest,
+      sessionId: thirdSessionDigest,
       userId: userProfile.id,
       sourceIp: "203.0.113.11",
       userAgent: "curl/8.0.1",
@@ -165,12 +157,10 @@ describe("user session repository", () => {
       expect.arrayContaining([boundarySession, activeSession]),
     );
     await expect(repository.list()).resolves.toHaveLength(2);
-    await expect(repository.getBySessionID(expiredSession.sessionId)).resolves.toBeNull();
-    await expect(repository.getBySessionID(boundarySession.sessionId)).resolves.toEqual(
+    await expect(repository.getBySessionDigest(firstSessionDigest)).resolves.toBeNull();
+    await expect(repository.getBySessionDigest(secondSessionDigest)).resolves.toEqual(
       boundarySession,
     );
-    await expect(repository.getBySessionID(activeSession.sessionId)).resolves.toEqual(
-      activeSession,
-    );
+    await expect(repository.getBySessionDigest(thirdSessionDigest)).resolves.toEqual(activeSession);
   });
 });

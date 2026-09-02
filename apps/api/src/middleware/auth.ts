@@ -7,13 +7,13 @@ import {
   toPermissionStatements,
 } from "../lib/permissions.js";
 
+import type { ApiAuthentication } from "../lib/authentication-events.js";
 import type { ContextVariables } from "../lib/hono-schema.js";
 import type {
   Permission,
   PermissionResource,
   PermissionVerb,
 } from "@exposurenexus/contracts/model/rbac";
-import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { MiddlewareHandler } from "hono";
 import type { CookieOptions } from "hono/utils/cookie";
 
@@ -24,18 +24,6 @@ type PermissionChecker = (
   userId: string,
   permissions: ResourcePermissionVerbAssignment,
 ) => Promise<boolean>;
-
-interface ValidatedSession {
-  user: UserProfile;
-  session: ContextVariables["session"];
-}
-
-interface SessionValidator {
-  validateSession(input: {
-    sessionId: string;
-    correlationId?: string;
-  }): Promise<ValidatedSession | null>;
-}
 
 export interface AuthCookiePolicy {
   secure: true;
@@ -80,7 +68,7 @@ function normalizePermissions(permissions: Permission | Permission[]): readonly 
 }
 
 export function createAuthAnnotate(
-  authService: SessionValidator,
+  authentication: Pick<ApiAuthentication, "validateSession">,
   cookiePolicy: AuthCookiePolicy = DEFAULT_AUTH_COOKIE_POLICY,
 ): AuthMiddleware {
   return async function authNAnnotate(c, next) {
@@ -94,7 +82,7 @@ export function createAuthAnnotate(
     }
 
     const requestId = c.get("requestId") as string | undefined;
-    const validatedSession = await authService.validateSession({
+    const validatedSession = await authentication.validateSession({
       sessionId,
       ...(requestId !== undefined ? { correlationId: requestId } : {}),
     });
