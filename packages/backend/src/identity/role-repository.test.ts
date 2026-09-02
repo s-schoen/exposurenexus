@@ -6,8 +6,8 @@ import {
 } from "@exposurenexus/contracts/model/rbac";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createTestDatabase, resetTestDatabase } from "../test/db.js";
-import { createRoleRepository } from "./role.js";
+import { createTestDatabase, resetTestDatabase } from "../database/test/database.js";
+import { createRoleRepository } from "./role-repository.js";
 
 describe("role repository", () => {
   const testDb = createTestDatabase();

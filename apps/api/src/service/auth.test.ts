@@ -1,6 +1,5 @@
 import { createHmac } from "node:crypto";
 
-import { PermissionResource, PermissionVerb } from "@exposurenexus/contracts/model/rbac";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Logger } from "pino";
@@ -28,9 +27,6 @@ describe("auth service", () => {
     getBySessionID: vi.fn(),
     create: vi.fn(),
     deleteBySessionID: vi.fn(),
-  };
-  const userRoleRepository = {
-    listPermissionsByUserID: vi.fn(),
   };
   const domainEvents = createDomainEventCollector();
   const logger = {
@@ -72,7 +68,6 @@ describe("auth service", () => {
     return createAuthService({
       userProfileRepository,
       userSessionRepository,
-      userRoleRepository,
       domainEventEmitter: domainEvents.emitter,
       sessionLifetimeHours,
       sessionHmacSecret,
@@ -546,78 +541,6 @@ describe("auth service", () => {
     ).rejects.toMatchObject({
       code: "auth.session_revoke_failed",
       kind: "unexpected",
-    } satisfies Partial<ApplicationError>);
-  });
-
-  it("returns true when the user has all requested permissions", async () => {
-    const service = createService();
-
-    userRoleRepository.listPermissionsByUserID.mockResolvedValue([
-      {
-        resource: PermissionResource.Asset,
-        verb: PermissionVerb.Read,
-      },
-      {
-        resource: PermissionResource.Asset,
-        verb: PermissionVerb.Write,
-      },
-      {
-        resource: PermissionResource.Finding,
-        verb: PermissionVerb.Read,
-      },
-    ]);
-
-    await expect(
-      service.userHasPermission(enabledProfile.id, {
-        [PermissionResource.Asset]: [PermissionVerb.Read, PermissionVerb.Write],
-        [PermissionResource.Finding]: [PermissionVerb.Read],
-      }),
-    ).resolves.toBe(true);
-    expect(userRoleRepository.listPermissionsByUserID).toHaveBeenCalledWith(enabledProfile.id);
-  });
-
-  it("returns false when the user lacks any requested permission", async () => {
-    const service = createService();
-
-    userRoleRepository.listPermissionsByUserID.mockResolvedValue([
-      {
-        resource: PermissionResource.Asset,
-        verb: PermissionVerb.Read,
-      },
-    ]);
-
-    await expect(
-      service.userHasPermission(enabledProfile.id, {
-        [PermissionResource.Asset]: [PermissionVerb.Read, PermissionVerb.Write],
-      }),
-    ).resolves.toBe(false);
-  });
-
-  it("returns false when the user has no assigned permissions", async () => {
-    const service = createService();
-
-    userRoleRepository.listPermissionsByUserID.mockResolvedValue([]);
-
-    await expect(
-      service.userHasPermission(enabledProfile.id, {
-        [PermissionResource.Asset]: [PermissionVerb.Read],
-      }),
-    ).resolves.toBe(false);
-  });
-
-  it("maps permission lookup failures to an unexpected ApplicationError", async () => {
-    const service = createService();
-
-    userRoleRepository.listPermissionsByUserID.mockRejectedValue(new Error("db offline"));
-
-    await expect(
-      service.userHasPermission(enabledProfile.id, {
-        [PermissionResource.Asset]: [PermissionVerb.Read],
-      }),
-    ).rejects.toMatchObject({
-      code: "auth.permission_check_failed",
-      kind: "unexpected",
-      details: { userId: enabledProfile.id },
     } satisfies Partial<ApplicationError>);
   });
 });

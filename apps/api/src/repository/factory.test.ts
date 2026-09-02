@@ -1,12 +1,7 @@
 import { AssetType } from "@exposurenexus/contracts/model/asset";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  createAssetRepository,
-  createRoleRepository,
-  createUserRoleRepository,
-  createVulnerabilityRepository,
-} from "./index.js";
+import { createAssetRepository, createVulnerabilityRepository } from "./index.js";
 
 describe("repository factories", () => {
   beforeEach(() => {
@@ -50,21 +45,5 @@ describe("repository factories", () => {
 
     expect(selectFrom).toHaveBeenCalledWith("vulnerability");
     expect(execute).toHaveBeenCalledOnce();
-  });
-
-  it("keeps role persistence and user permission lookup as separate repository surfaces", () => {
-    expect(Object.keys(createRoleRepository({} as never)).sort()).toEqual(
-      [
-        "create",
-        "deleteByID",
-        "getByID",
-        "getByIDs",
-        "getByNames",
-        "hasUsersWithRoleID",
-        "list",
-        "updateByID",
-      ].sort(),
-    );
-    expect(Object.keys(createUserRoleRepository({} as never))).toEqual(["listPermissionsByUserID"]);
   });
 });

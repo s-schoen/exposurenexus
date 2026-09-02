@@ -1,69 +1,45 @@
-import { ApplicationError, isApplicationError, isConflictError } from "@exposurenexus/backend";
-import {
-  builtInRoleIds,
-  type CreateRole,
-  type Role,
-  type UpdateRole,
-} from "@exposurenexus/contracts/model/rbac";
+import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 
-import {
-  createDomainEventEmitter,
-  type DomainEventContext,
-  type DomainEventEmitter,
-  type EventSubjects,
-  type RoleEventPayloads,
-} from "../lib/eventbus/events/index.js";
+import { ApplicationError, isApplicationError } from "../application-error.js";
+import { isConflictError } from "../database-error.js";
 
-import type { RoleRepository } from "../repository/role.js";
+import type {
+  CreateRoleCommand,
+  DeleteRoleByIDCommand,
+  IdentityRoles,
+  RoleCreatedOutcome,
+  RoleDeletedOutcome,
+  RoleUpdatedOutcome,
+  UpdateRoleByIDCommand,
+} from "./identity.js";
+import type { RoleRepository } from "./role-repository.js";
+import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { Logger } from "pino";
 
-const protectedRoleIds = new Set<string>(Object.values(builtInRoleIds));
+const protectedRoleIds: Readonly<Record<string, true>> = {
+  [builtInRoleIds.viewer]: true,
+  [builtInRoleIds.editor]: true,
+  [builtInRoleIds.admin]: true,
+};
 
 function uniqueValues(values: readonly string[]): string[] {
   return [...new Set(values)];
 }
 
 function isProtectedRoleId(id: string): boolean {
-  return protectedRoleIds.has(id);
+  return protectedRoleIds[id] === true;
 }
 
 function roleSnapshotsEqual(previous: Role, current: Role): boolean {
   return JSON.stringify(previous) === JSON.stringify(current);
 }
 
-interface RoleServiceDependencies {
+interface RoleDependencies {
   roleRepository: RoleRepository;
-  domainEventEmitter: DomainEventEmitter;
   logger: Logger;
 }
 
-export interface UpdateRoleOptions {
-  id: string;
-  role: UpdateRole;
-  eventContext?: DomainEventContext;
-}
-
-export interface RoleService {
-  listAll(): Promise<Role[]>;
-  getByID(id: string): Promise<Role | null>;
-  getByNames(names: readonly string[]): Promise<Role[]>;
-  resolveRoleIdsFromNames(names: readonly string[]): Promise<string[]>;
-  requireRoleNamesFromIds(ids: readonly string[]): Promise<string[]>;
-  create(role: CreateRole, eventContext?: DomainEventContext): Promise<Role>;
-  updateByID(opts: UpdateRoleOptions): Promise<Role | null>;
-  deleteByID(id: string, eventContext?: DomainEventContext): Promise<Role | null>;
-}
-
-export function createRoleService({
-  roleRepository,
-  domainEventEmitter,
-  logger,
-}: RoleServiceDependencies): RoleService {
-  const emitRoleEvent = createDomainEventEmitter<EventSubjects<RoleEventPayloads>>(
-    domainEventEmitter,
-    "role",
-  );
-
+export function createRoles({ roleRepository, logger }: RoleDependencies): IdentityRoles {
   return {
     async listAll(): Promise<Role[]> {
       try {
@@ -168,12 +144,12 @@ export function createRoleService({
       }
     },
 
-    async create(roleInput: CreateRole, eventContext?: DomainEventContext): Promise<Role> {
+    async create({ role: roleInput, performedBy }: CreateRoleCommand): Promise<RoleCreatedOutcome> {
       try {
-        const role = await roleRepository.create(roleInput);
-
-        emitRoleEvent("role.created", { role }, eventContext);
-        return role;
+        return {
+          current: await roleRepository.create(roleInput),
+          performedBy,
+        };
       } catch (error) {
         if (isConflictError(error)) {
           logger.debug(error, "role create conflict");
@@ -197,9 +173,11 @@ export function createRoleService({
       }
     },
 
-    async updateByID(opts: UpdateRoleOptions): Promise<Role | null> {
-      const { id, role: roleUpdate, eventContext } = opts;
-
+    async updateByID({
+      id,
+      role: roleUpdate,
+      performedBy,
+    }: UpdateRoleByIDCommand): Promise<RoleUpdatedOutcome | null> {
       if (isProtectedRoleId(id)) {
         throw new ApplicationError({
           code: "role.protected_role",
@@ -233,18 +211,12 @@ export function createRoleService({
           );
         }
 
-        if (!roleSnapshotsEqual(previousRole, updateResult.role)) {
-          emitRoleEvent(
-            "role.updated",
-            {
-              previous: previousRole,
-              current: updateResult.role,
-            },
-            eventContext,
-          );
-        }
-
-        return updateResult.role;
+        return {
+          previous: previousRole,
+          current: updateResult.role,
+          changed: !roleSnapshotsEqual(previousRole, updateResult.role),
+          performedBy,
+        };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;
@@ -272,7 +244,10 @@ export function createRoleService({
       }
     },
 
-    async deleteByID(id: string, eventContext?: DomainEventContext): Promise<Role | null> {
+    async deleteByID({
+      id,
+      performedBy,
+    }: DeleteRoleByIDCommand): Promise<RoleDeletedOutcome | null> {
       if (isProtectedRoleId(id)) {
         throw new ApplicationError({
           code: "role.protected_role",
@@ -304,8 +279,10 @@ export function createRoleService({
           return null;
         }
 
-        emitRoleEvent("role.deleted", { role: deletedRole }, eventContext);
-        return deletedRole;
+        return {
+          previous: deletedRole,
+          performedBy,
+        };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;

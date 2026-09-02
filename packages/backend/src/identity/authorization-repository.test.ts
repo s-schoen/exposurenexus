@@ -5,12 +5,12 @@ import {
 } from "@exposurenexus/contracts/model/rbac";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createTestDatabase, resetTestDatabase } from "../test/db.js";
-import { createUserRoleRepository } from "./user-role.js";
+import { createTestDatabase, resetTestDatabase } from "../database/test/database.js";
+import { createAuthorizationRepository } from "./authorization-repository.js";
 
 import type { Permission } from "@exposurenexus/contracts/model/rbac";
 
-describe("user role repository", () => {
+describe("authorization repository", () => {
   const testDb = createTestDatabase();
 
   beforeAll(async () => {
@@ -56,7 +56,7 @@ describe("user role repository", () => {
   }
 
   it("returns no permissions for users without assigned roles", async () => {
-    const repository = createUserRoleRepository(testDb.db);
+    const repository = createAuthorizationRepository(testDb.db);
     const userId = "ca8be35f-b523-47d1-a9d8-743dc272c0cb";
 
     await createUserWithRoles(userId, []);
@@ -65,7 +65,7 @@ describe("user role repository", () => {
   });
 
   it("returns permissions for a single assigned role", async () => {
-    const repository = createUserRoleRepository(testDb.db);
+    const repository = createAuthorizationRepository(testDb.db);
     const userId = "61b657d7-92b6-4a82-b937-82e38177707a";
 
     await createUserWithRoles(userId, [builtInRoleIds.viewer]);
@@ -89,7 +89,7 @@ describe("user role repository", () => {
   });
 
   it("returns permissions across multiple assigned roles", async () => {
-    const repository = createUserRoleRepository(testDb.db);
+    const repository = createAuthorizationRepository(testDb.db);
     const userId = "0d83ab24-8ff3-4478-95d7-c3dfc4b54431";
 
     await createUserWithRoles(userId, [builtInRoleIds.viewer, builtInRoleIds.editor]);
@@ -113,7 +113,7 @@ describe("user role repository", () => {
   });
 
   it("deduplicates permissions granted through multiple roles", async () => {
-    const repository = createUserRoleRepository(testDb.db);
+    const repository = createAuthorizationRepository(testDb.db);
     const userId = "b3ed7bd7-8f41-461f-b43b-ff54d996d5f0";
 
     await createUserWithRoles(userId, [builtInRoleIds.viewer, builtInRoleIds.editor]);

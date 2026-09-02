@@ -1,44 +1,25 @@
-import { ApplicationError, isConflictError, isForeignKeyError } from "@exposurenexus/backend";
+import { ApplicationError } from "../application-error.js";
+import { isConflictError, isForeignKeyError } from "../database-error.js";
+import { hashPlaintextPassword } from "./password.js";
 
-import { hashPlaintextPassword } from "../lib/argon2.js";
-import {
-  createDomainEventEmitter,
-  type DomainEventContext,
-  type DomainEventEmitter,
-  type EventSubjects,
-  type UserEventPayloads,
-} from "../lib/eventbus/events/index.js";
-
-import type { UserProfileRepository } from "../repository/user-profile.js";
 import type {
-  CreateUserProfile,
-  UserProfile,
-  UserProfileInternalWithRoles,
-  UpdateUserProfile,
-} from "@exposurenexus/contracts/model/user";
+  CreateUserCommand,
+  IdentityUsers,
+  UpdateUserByIDCommand,
+  UserCreatedOutcome,
+  UserUpdatedOutcome,
+} from "./identity.js";
+import type { UserProfileRecordWithRoles } from "./types.js";
+import type { UserProfileRepository } from "./user-profile-repository.js";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Logger } from "pino";
 
-interface UserProfileServiceDependencies {
+interface UserDependencies {
   userProfileRepository: UserProfileRepository;
-  domainEventEmitter: DomainEventEmitter;
   logger: Logger;
 }
 
-export interface UpdateUserProfileByIDOptions {
-  id: string;
-  userProfile: UpdateUserProfile;
-  eventContext?: DomainEventContext;
-}
-
-export interface UserProfileService {
-  listAll(): Promise<UserProfile[]>;
-  getByID(id: string): Promise<UserProfile | null>;
-  getByUsername(username: string): Promise<UserProfile | null>;
-  create(userProfile: CreateUserProfile, eventContext?: DomainEventContext): Promise<UserProfile>;
-  updateByID(options: UpdateUserProfileByIDOptions): Promise<UserProfile | null>;
-}
-
-function toUserProfile(userProfile: UserProfileInternalWithRoles): UserProfile {
+function toUserProfile(userProfile: UserProfileRecordWithRoles): UserProfile {
   return {
     id: userProfile.id,
     username: userProfile.username,
@@ -60,16 +41,7 @@ function sameStringSet(left: readonly string[], right: readonly string[]): boole
   return [...leftSet].every((value) => rightSet.has(value));
 }
 
-export function createUserProfileService({
-  userProfileRepository,
-  domainEventEmitter,
-  logger,
-}: UserProfileServiceDependencies): UserProfileService {
-  const emitUserProfileEvent = createDomainEventEmitter<EventSubjects<UserEventPayloads>>(
-    domainEventEmitter,
-    "user-profile",
-  );
-
+export function createUsers({ userProfileRepository, logger }: UserDependencies): IdentityUsers {
   return {
     async listAll(): Promise<UserProfile[]> {
       try {
@@ -127,10 +99,7 @@ export function createUserProfileService({
       }
     },
 
-    async create(
-      userProfile: CreateUserProfile,
-      eventContext: DomainEventContext = {},
-    ): Promise<UserProfile> {
+    async create({ userProfile, performedBy }: CreateUserCommand): Promise<UserCreatedOutcome> {
       try {
         const { password, roleIds, ...profile } = userProfile;
         const createdProfile = await userProfileRepository.create(
@@ -141,9 +110,10 @@ export function createUserProfileService({
           roleIds,
         );
 
-        const createdUserProfile = toUserProfile(createdProfile);
-        emitUserProfileEvent("user.created", { user: createdUserProfile }, eventContext);
-        return createdUserProfile;
+        return {
+          current: toUserProfile(createdProfile),
+          performedBy,
+        };
       } catch (error) {
         if (isConflictError(error)) {
           logger.debug(error, "user profile create conflict");
@@ -186,8 +156,8 @@ export function createUserProfileService({
     async updateByID({
       id,
       userProfile,
-      eventContext = {},
-    }: UpdateUserProfileByIDOptions): Promise<UserProfile | null> {
+      performedBy,
+    }: UpdateUserByIDCommand): Promise<UserUpdatedOutcome | null> {
       try {
         const existingProfile = await userProfileRepository.getByID(id);
         if (!existingProfile) {
@@ -231,21 +201,15 @@ export function createUserProfileService({
               reasons: sessionRevocationReasons,
               revokedSessionCount,
             },
-            `revoked user sessions after sensitive user profile update`,
+            "revoked user sessions after sensitive user profile update",
           );
         }
 
-        const previousUserProfile = toUserProfile(existingProfile);
-        const updatedUserProfile = toUserProfile(updatedProfile);
-        emitUserProfileEvent(
-          "user.updated",
-          {
-            previous: previousUserProfile,
-            current: updatedUserProfile,
-          },
-          eventContext,
-        );
-        return updatedUserProfile;
+        return {
+          previous: toUserProfile(existingProfile),
+          current: toUserProfile(updatedProfile),
+          performedBy,
+        };
       } catch (error) {
         if (isConflictError(error)) {
           logger.debug(error, "user profile update conflict");
