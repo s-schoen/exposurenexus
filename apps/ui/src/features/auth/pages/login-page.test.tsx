@@ -2,11 +2,11 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { LoginPage } from "@/features/auth/components/login-page.tsx";
+import { LoginPage } from "@/features/auth/pages/login-page.tsx";
 import { createTestAuthState, createTestRedirects } from "@/test/harness.tsx";
 
-import type { AuthState } from "@/context/auth.tsx";
-import type { LoginRedirects } from "@/lib/login-redirect.ts";
+import type { AuthState } from "@/features/auth/providers/auth-provider.tsx";
+import type { LoginRedirects } from "@/features/auth/routing/login-redirect.ts";
 
 function renderLoginPage({
   login = vi.fn<AuthState["login"]>().mockResolvedValue(undefined),

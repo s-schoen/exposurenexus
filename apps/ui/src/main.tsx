@@ -2,13 +2,16 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { StrictMode, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 
-import { AuthProvider, useAuth } from "@/context/auth.tsx";
+import {
+  AuthProvider,
+  createRouterLoginRedirects,
+  createUserSessionExpiredRedirectHandler,
+  useAuth,
+} from "@/features/auth/index.ts";
 import { PageProvider, usePage } from "@/hooks/use-page-meta.tsx";
 
 import "@/styles.css";
 import * as TanStackQueryProvider from "@/integrations/tanstack-query/root-provider.tsx";
-import { createUserSessionExpiredRedirectHandler } from "@/lib/auth-session-expiry.ts";
-import { createRouterLoginRedirects } from "@/lib/login-redirect.ts";
 import { subscribeUnauthorizedAPIError } from "@/lib/query-client.ts";
 // Import the generated route tree
 import { routeTree } from "@/routeTree.gen.ts";

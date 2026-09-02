@@ -13,8 +13,8 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { FindingTable } from "@/components/finding-table/index.tsx";
 import { Toaster } from "@/components/ui/sonner.tsx";
-import { createLoginRedirects } from "@/lib/login-redirect.ts";
 import { routeTree } from "@/routeTree.gen.ts";
+import { createStoryLoginRedirects } from "@/test/storybook.tsx";
 
 import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type { Finding } from "@exposurenexus/contracts/model/finding";
@@ -32,10 +32,7 @@ type FindingTableStoryArgs = {
 
 const dayInMs = 24 * 60 * 60 * 1000;
 
-const storyRedirects = createLoginRedirects({
-  origin: "http://localhost",
-  isKnownRoutePath: () => true,
-});
+const storyRedirects = createStoryLoginRedirects();
 
 function utcDateOffset(days: number) {
   const now = new Date();

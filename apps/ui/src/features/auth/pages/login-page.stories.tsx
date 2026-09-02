@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { fn } from "storybook/test";
 
-import { LoginPage } from "@/features/auth/components/login-page.tsx";
+import { LoginPage } from "@/features/auth/pages/login-page.tsx";
 
-import type { LoginRedirects } from "@/lib/login-redirect.ts";
+import type { LoginRedirects } from "@/features/auth/routing/login-redirect.ts";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 interface LoginPageStoryArgs {

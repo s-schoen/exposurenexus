@@ -2,12 +2,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { AuthProvider } from "@/context/auth.tsx";
-import type { User } from "@/lib/auth.ts";
+import { AuthProvider, useAuth } from "@/features/auth/providers/auth-provider.tsx";
+
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => {
-  const alice: User = {
+  const alice: UserProfile = {
     id: "7b413aba-5164-456b-8ffd-88fb6b99bbed",
     username: "alice",
     displayName: "Alice Example",
@@ -15,7 +16,7 @@ const mocks = vi.hoisted(() => {
     enabled: true,
     roleIds: ["viewer-role-id"],
   };
-  const bob: User = {
+  const bob: UserProfile = {
     id: "47f1c881-03d6-4fdf-a837-33e5eb1678b1",
     username: "bob",
     displayName: "Bob Example",
@@ -33,20 +34,22 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("@/lib/auth.ts", () => ({
-  AUTH_SESSION_QUERY_KEY: ["auth", "session"] as const,
-  createAuthSessionQueryOptions: () => ({
-    queryKey: ["auth", "session"] as const,
-    queryFn: async () => (await mocks.getSession()).data,
-  }),
-  getSession: mocks.getSession,
+vi.mock("@/features/auth/api/auth.ts", () => ({
   signIn: {
     username: mocks.signInUsername,
   },
   signOut: mocks.signOut,
 }));
 
-function sessionReply(user: User) {
+vi.mock("@/features/auth/queries/session.ts", () => ({
+  AUTH_SESSION_QUERY_KEY: ["auth", "session"] as const,
+  createAuthSessionQueryOptions: () => ({
+    queryKey: ["auth", "session"] as const,
+    queryFn: async () => (await mocks.getSession()).data,
+  }),
+}));
+
+function sessionReply(user: UserProfile) {
   return {
     data: {
       user,
@@ -104,7 +107,6 @@ describe("AuthProvider", () => {
   });
 
   it("loads the current session on mount", async () => {
-    const { AuthProvider, useAuth } = await import("@/context/auth.tsx");
     mocks.getSession.mockResolvedValueOnce(sessionReply(mocks.alice));
 
     const { result } = renderHook(() => useAuth(), {
@@ -120,7 +122,6 @@ describe("AuthProvider", () => {
   });
 
   it("exposes unauthenticated state when session loading fails", async () => {
-    const { AuthProvider, useAuth } = await import("@/context/auth.tsx");
     mocks.getSession.mockRejectedValueOnce(new Error("Unauthorized"));
 
     const { result } = renderHook(() => useAuth(), {
@@ -136,7 +137,6 @@ describe("AuthProvider", () => {
   });
 
   it("refreshes auth state through ensureSession", async () => {
-    const { AuthProvider, useAuth } = await import("@/context/auth.tsx");
     mocks.getSession
       .mockRejectedValueOnce(new Error("Unauthorized"))
       .mockResolvedValueOnce(sessionReply(mocks.bob));
@@ -163,7 +163,6 @@ describe("AuthProvider", () => {
   });
 
   it("updates auth state after login and logout", async () => {
-    const { AuthProvider, useAuth } = await import("@/context/auth.tsx");
     const queryClient = createQueryClient();
     mocks.getSession.mockRejectedValueOnce(new Error("Unauthorized"));
     mocks.signInUsername.mockResolvedValueOnce(sessionReply(mocks.alice));
@@ -208,7 +207,6 @@ describe("AuthProvider", () => {
   });
 
   it("clears auth state without calling sign out", async () => {
-    const { AuthProvider, useAuth } = await import("@/context/auth.tsx");
     const queryClient = createQueryClient();
     mocks.getSession.mockResolvedValueOnce(sessionReply(mocks.alice));
 
@@ -236,9 +234,7 @@ describe("AuthProvider", () => {
     expect(result.current.user).toBeNull();
   });
 
-  it("throws when useAuth is used outside the provider", async () => {
-    const { useAuth } = await import("@/context/auth.tsx");
-
+  it("throws when useAuth is used outside the provider", () => {
     expect(() => renderHook(() => useAuth())).toThrow(
       "useAuth must be used within an AuthProvider",
     );
