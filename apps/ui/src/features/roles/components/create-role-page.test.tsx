@@ -107,7 +107,7 @@ vi.mock("@/components/role-form.tsx", async (importOriginal) => {
   });
 });
 
-vi.mock("@/context/page.tsx", () => ({
+vi.mock("@/hooks/use-page-meta.tsx", () => ({
   usePageMeta: mocks.usePageMeta,
 }));
 

@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { createAssetByIDQueryOptions } from "@/api/asset.ts";
 import { AssetDetailContent } from "@/components/asset-detail-content.tsx";
 import { buttonVariants } from "@/components/ui/button.tsx";
-import { usePageMeta } from "@/context/page.tsx";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { cn } from "@/lib/utils.ts";
 
 interface AssetDetailPageProps {

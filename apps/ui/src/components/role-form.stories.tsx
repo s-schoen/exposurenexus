@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 
-import { CUSTOM_AUDITOR_ROLE, ROLE_FIXTURES } from "@/components/role-fixtures.ts";
 import { RoleForm, getAvailableRolePermissions } from "@/components/role-form.tsx";
+import { CUSTOM_AUDITOR_ROLE, ROLE_FIXTURES } from "@/test/fixtures.ts";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ComponentProps } from "react";

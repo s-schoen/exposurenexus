@@ -17,8 +17,8 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { usePageMeta } from "@/context/page.tsx";
 import { useAssetCustomFieldDefinitionLifecycle } from "@/hooks/use-asset-custom-field-definition-lifecycle.ts";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 
 interface EditCustomFieldPageProps {
   customFieldId: string;

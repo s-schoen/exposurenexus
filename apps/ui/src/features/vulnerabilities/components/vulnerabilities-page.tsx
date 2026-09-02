@@ -4,7 +4,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
 import { VulnerabilityDetailContent } from "@/components/vulnerability-detail-content.tsx";
 import { VulnerabilityTable } from "@/components/vulnerability-table";
-import { usePageMeta } from "@/context/page.tsx";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 import { useVulnerabilityLifecycle } from "@/hooks/use-vulnerability-lifecycle.ts";
 import { useVulnerabilityTableSearchState } from "@/hooks/use-vulnerability-table-search-state.ts";

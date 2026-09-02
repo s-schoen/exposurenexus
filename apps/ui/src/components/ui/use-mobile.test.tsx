@@ -1,7 +1,7 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { useIsMobile } from "@/hooks/use-mobile.ts";
+import { useIsMobile } from "@/components/ui/use-mobile.ts";
 
 afterEach(() => {
   cleanup();

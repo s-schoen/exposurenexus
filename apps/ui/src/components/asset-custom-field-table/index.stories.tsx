@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { expect, fn, userEvent } from "storybook/test";
 
-import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
 import { AssetCustomFieldTable } from "@/components/asset-custom-field-table";
+import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/test/fixtures.ts";
 
 import type { DataTableFilterState } from "@/components/data-table/types.ts";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";

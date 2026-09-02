@@ -4,7 +4,6 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { CUSTOM_AUDITOR_ROLE, ROLE_FIXTURES } from "@/components/role-fixtures.ts";
 import {
   RoleForm,
   getAvailableRolePermissions,
@@ -14,6 +13,7 @@ import {
   mapUpdateRoleFormValues,
 } from "@/components/role-form";
 import * as stories from "@/components/role-form.stories";
+import { CUSTOM_AUDITOR_ROLE, ROLE_FIXTURES } from "@/test/fixtures.ts";
 
 import type { Permission, Role } from "@exposurenexus/contracts/model/rbac";
 

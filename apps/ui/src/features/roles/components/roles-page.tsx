@@ -7,7 +7,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
 import { RoleDetailContent } from "@/components/role-detail-content.tsx";
 import { RoleTable } from "@/components/role-table";
-import { usePageMeta } from "@/context/page.tsx";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts";
 import { useRoleTableSearchState } from "@/hooks/use-role-table-search-state.ts";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";

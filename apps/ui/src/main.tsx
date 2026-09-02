@@ -3,7 +3,7 @@ import { StrictMode, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 
 import { AuthProvider, useAuth } from "@/context/auth.tsx";
-import { PageProvider, usePage } from "@/context/page.tsx";
+import { PageProvider, usePage } from "@/hooks/use-page-meta.tsx";
 
 import "@/styles.css";
 import * as TanStackQueryProvider from "@/integrations/tanstack-query/root-provider.tsx";

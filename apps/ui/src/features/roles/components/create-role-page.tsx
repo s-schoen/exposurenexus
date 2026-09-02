@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { usePageMeta } from "@/context/page.tsx";
+import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts";
 
 export function CreateRolePage() {

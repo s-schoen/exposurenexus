@@ -1,10 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 
-import type { FileRouteTypes } from "@/routeTree.gen.ts";
-
-type AppRouteTo = FileRouteTypes["to"];
-
 export function validateSelectedSearch(search: Record<string, unknown>) {
   return {
     selected: typeof search.selected === "string" ? search.selected : undefined,
@@ -18,7 +14,7 @@ export function createSelectedSearch(selected: string | undefined) {
   });
 }
 
-export function useSelectedSearchParam<TItem, TTo extends AppRouteTo = AppRouteTo>({
+export function useSelectedSearchParam<TItem>({
   getId,
   replace,
   selectedId,
@@ -27,14 +23,14 @@ export function useSelectedSearchParam<TItem, TTo extends AppRouteTo = AppRouteT
   getId: (item: TItem) => string;
   replace?: boolean;
   selectedId?: string;
-  to: TTo;
+  to: string;
 }) {
   const navigate = useNavigate();
   const navigateSelected = useCallback(
     (selected: string | undefined) => {
-      // This helper accepts any generated route target. TanStack cannot prove
-      // every target has a compatible `selected` search schema, but callers use
-      // it only on list routes that validate this shared param.
+      // TanStack cannot prove an arbitrary string target has a compatible
+      // `selected` search schema; callers use this only on list routes that
+      // validate this shared parameter.
       return navigate({
         to,
         ...(typeof replace === "boolean" ? { replace } : {}),

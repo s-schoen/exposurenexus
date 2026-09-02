@@ -6,7 +6,6 @@ import { composeStories } from "@storybook/react-vite";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
 import {
   AssetCustomFieldForm,
   assetCustomFieldFormSchema,
@@ -16,6 +15,7 @@ import {
 } from "@/components/asset-custom-field-form";
 import * as stories from "@/components/asset-custom-field-form.stories";
 import { validateAssetCustomFieldFormRuleValues } from "@/components/asset-custom-field-rule-validation.ts";
+import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/test/fixtures.ts";
 
 import type { AssetCustomFieldFormValues } from "@/components/asset-custom-field-form";
 

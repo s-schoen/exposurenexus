@@ -4,7 +4,7 @@ import {
   createSearchParamArray,
   getSearchParamArray,
   getSearchParamArrayOrUndefined,
-} from "@/lib/data-table-search-state.ts";
+} from "@/components/data-table/search-state.ts";
 
 describe("data table search state list filters", () => {
   it("parses comma-delimited search strings", () => {

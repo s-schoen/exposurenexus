@@ -6,8 +6,8 @@ import {
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/components/asset-custom-field-fixtures.ts";
 import { getAssetCustomFieldColumnId } from "@/components/asset-table/columns.tsx";
+import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/test/fixtures.ts";
 
 import type { AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
 import type { ReactNode } from "react";

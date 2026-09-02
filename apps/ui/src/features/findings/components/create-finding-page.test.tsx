@@ -113,7 +113,7 @@ vi.mock("@/components/ui/select.tsx", async () => {
   };
 });
 
-vi.mock("@/context/page.tsx", () => ({
+vi.mock("@/hooks/use-page-meta.tsx", () => ({
   usePageMeta: mocks.usePageMeta,
 }));
 

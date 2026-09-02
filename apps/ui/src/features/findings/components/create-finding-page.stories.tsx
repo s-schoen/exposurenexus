@@ -2,11 +2,11 @@ import { QueryClientProvider, queryOptions } from "@tanstack/react-query";
 import { expect, fn, mocked } from "storybook/test";
 
 import { createListUsersQueryOptions } from "@/api/user.ts";
-import { STORY_ASSETS } from "@/components/storybook-fixtures.ts";
-import { createStoryQueryClient } from "@/components/storybook-utils.tsx";
-import { PageProvider } from "@/context/page.tsx";
 import { CreateFindingPage } from "@/features/findings/components/create-finding-page.tsx";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
+import { PageProvider } from "@/hooks/use-page-meta.tsx";
+import { STORY_ASSETS } from "@/test/fixtures.ts";
+import { createStoryQueryClient } from "@/test/storybook.tsx";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
