@@ -14,11 +14,11 @@ import {
   type AuthCookiePolicy,
 } from "../middleware/auth.js";
 
+import type { ApiAuthentication } from "../lib/authentication-events.js";
 import type { ContextVariables } from "../lib/hono-schema.js";
 import type { CsrfProtection } from "../middleware/csrf.js";
-import type { AuthService } from "../service/auth.js";
+import type { AuthenticationSession } from "@exposurenexus/backend/authentication";
 import type { AuthSessionDataReply, AuthSessionReply } from "@exposurenexus/contracts/api";
-import type { UserSession } from "@exposurenexus/contracts/model/user";
 
 const loginSchema = z.strictObject({
   username: z.string().trim().min(1),
@@ -32,7 +32,7 @@ interface AuthRouteOptions {
   trustedProxies?: readonly string[];
 }
 
-function sessionReply(session: UserSession): AuthSessionReply {
+function sessionReply(session: AuthenticationSession): AuthSessionReply {
   return {
     id: session.id,
     userId: session.userId,
@@ -70,13 +70,13 @@ function requestCorrelation(c: Context<{ Variables: ContextVariables }>): {
   return requestId !== undefined ? { correlationId: requestId } : {};
 }
 
-export function createAuthRoute(authService: AuthService, options: AuthRouteOptions = {}) {
+export function createAuthRoute(authentication: ApiAuthentication, options: AuthRouteOptions = {}) {
   const auth = new Hono<{ Variables: ContextVariables }>();
   const cookiePolicy = options.cookiePolicy ?? DEFAULT_AUTH_COOKIE_POLICY;
   const trustedProxies = options.trustedProxies ?? [];
 
   async function createLoginResponse(c: Context<{ Variables: ContextVariables }>, body: LoginBody) {
-    const createdSession = await authService.createSessionForCredentials({
+    const createdSession = await authentication.createSessionForCredentials({
       username: body.username,
       password: body.password,
       sourceIp: getRequestSourceIp(c, trustedProxies),
@@ -112,7 +112,7 @@ export function createAuthRoute(authService: AuthService, options: AuthRouteOpti
       throw unauthorized();
     }
 
-    const validatedSession = await authService.validateSession({
+    const validatedSession = await authentication.validateSession({
       sessionId,
       ...requestCorrelation(c),
     });
@@ -133,7 +133,7 @@ export function createAuthRoute(authService: AuthService, options: AuthRouteOpti
   auth.delete("/", async (c) => {
     const sessionId = getCookie(c, AUTH_SESSION_COOKIE);
     const revoked = sessionId
-      ? await authService.revokeSession({
+      ? await authentication.revokeSession({
           sessionId,
           ...requestCorrelation(c),
         })

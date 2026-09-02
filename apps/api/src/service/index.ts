@@ -1,4 +1,3 @@
-export { createAuthService } from "./auth.js";
 export { createAssetService } from "./asset.js";
 export { createAssetCustomFieldService } from "./asset-custom-field.js";
 export { createFindingService } from "./finding.js";

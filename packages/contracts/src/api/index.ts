@@ -1,4 +1,4 @@
-import type { UserProfile, UserSession } from "../model/user.js";
+import type { UserProfile } from "../model/user.js";
 
 interface APIReply {
   correlationId: string;
@@ -23,7 +23,14 @@ export interface APIErrorReply extends APIReply {
   reason?: string;
 }
 
-export type AuthSessionReply = Omit<UserSession, "sessionId">;
+export interface AuthSessionReply {
+  id: string;
+  userId: string;
+  sourceIp: string | null;
+  userAgent: string | null;
+  createdAt: Date;
+  expiresAt: Date;
+}
 
 export interface AuthSessionDataReply {
   user: UserProfile;

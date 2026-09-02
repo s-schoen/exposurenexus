@@ -107,7 +107,6 @@ describe("createDomainEventPayload", () => {
     const user = createTestUser();
     const session = {
       id: "48f2e3a5-4560-4a47-85b6-137106940bbb",
-      sessionId: "stored-session-id-digest",
       userId: user.id,
       sourceIp: "203.0.113.10",
       userAgent: "Mozilla/5.0",
@@ -118,7 +117,7 @@ describe("createDomainEventPayload", () => {
     const event = createEventPayload({
       subject: "auth.session.created",
       source: "auth-service",
-      data: { user, session },
+      data: { session },
     });
 
     expectTypeOf(event).toEqualTypeOf<

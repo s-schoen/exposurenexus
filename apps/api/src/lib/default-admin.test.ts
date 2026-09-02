@@ -1,8 +1,10 @@
+import { createBackendRuntime } from "@exposurenexus/backend";
+import { createAuthentication } from "@exposurenexus/backend/authentication";
 import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
+import { pino } from "pino";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDatabase, resetTestDatabase } from "../test/db.js";
-import { verifyPasswordHash } from "./argon2.js";
 import { createDefaultAdmin } from "./default-admin.js";
 
 vi.mock("../env.js", () => ({
@@ -69,7 +71,19 @@ describe("default admin", () => {
         roleId: builtInRoleIds.admin,
       },
     ]);
-    await expect(verifyPasswordHash(password, admin.passwordHash)).resolves.toBe(true);
+    const authentication = createAuthentication(
+      createBackendRuntime({ database: testDb.db, logger: pino({ enabled: false }) }),
+      {
+        sessionLifetimeHours: 12,
+        sessionHmacSecret: "012345678901234567890123456789012345678901234567890123456789",
+      },
+    );
+    await expect(
+      authentication.createSessionForCredentials({
+        username: admin.username,
+        password,
+      }),
+    ).resolves.toMatchObject({ authenticated: true });
   });
 
   it("does not create another admin when a profile already exists", async () => {

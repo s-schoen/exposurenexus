@@ -1,8 +1,10 @@
 import { createBackendRuntime } from "@exposurenexus/backend";
+import { createAuthentication } from "@exposurenexus/backend/authentication";
 import { createIdentity } from "@exposurenexus/backend/identity";
 
 import { createApp } from "./app.js";
 import { registerEventHandlers } from "./event-handler/index.js";
+import { decorateAuthenticationWithEvents } from "./lib/authentication-events.js";
 import { createDefaultAdmin } from "./lib/default-admin.js";
 import { EventBus } from "./lib/eventbus/eventbus.js";
 import { decorateIdentityWithEvents } from "./lib/identity-events.js";
@@ -17,10 +19,8 @@ import { createCsrfProtection } from "./middleware/csrf.js";
 import {
   createAssetCustomFieldRepository,
   createAssetRepository,
-  createAuthUserRepository,
   createFindingRepository,
   createObservationRepository,
-  createUserSessionRepository,
   createVulnerabilityRepository,
 } from "./repository/index.js";
 import { createAssetRoute } from "./routes/assets.js";
@@ -34,7 +34,6 @@ import { createUserRoute } from "./routes/users.js";
 import { createVulnerabilityRoute } from "./routes/vulnerabilities.js";
 import {
   createAssetCustomFieldService,
-  createAuthService,
   createAssetService,
   createFindingService,
   createStatsService,
@@ -77,25 +76,22 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     logger: loggerFactory("backend"),
   });
   const identity = decorateIdentityWithEvents(createIdentity(runtime), eventBus);
+  const authentication = decorateAuthenticationWithEvents(
+    createAuthentication(runtime, {
+      sessionLifetimeHours: options.authSessionLifetimeHours,
+      sessionHmacSecret: options.authSessionHmacSecret,
+    }),
+    eventBus,
+  );
 
   const repositories = {
     assetCustomFieldRepository: createAssetCustomFieldRepository(options.db),
     assetRepository: createAssetRepository(options.db),
-    authUserRepository: createAuthUserRepository(options.db),
     findingRepository: createFindingRepository(options.db),
     observationRepository: createObservationRepository(options.db),
-    userSessionRepository: createUserSessionRepository(options.db),
     vulnerabilityRepository: createVulnerabilityRepository(options.db),
   };
 
-  const authService = createAuthService({
-    userProfileRepository: repositories.authUserRepository,
-    userSessionRepository: repositories.userSessionRepository,
-    domainEventEmitter: eventBus,
-    sessionLifetimeHours: options.authSessionLifetimeHours,
-    sessionHmacSecret: options.authSessionHmacSecret,
-    logger: loggerFactory("service/auth"),
-  });
   const requireDomainPermission = createRequireDomainPermission(
     identity.authorization.userHasPermission.bind(identity.authorization),
   );
@@ -139,7 +135,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
 
   const routes = {
     healthRoute: health,
-    authRoute: createAuthRoute(authService, {
+    authRoute: createAuthRoute(authentication, {
       csrf: csrfProtection,
       cookiePolicy: authCookiePolicy,
       trustedProxies: options.authTrustedProxies,
@@ -164,7 +160,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   };
 
   const middleware = {
-    annotateAuth: createAuthAnnotate(authService, authCookiePolicy),
+    annotateAuth: createAuthAnnotate(authentication, authCookiePolicy),
     csrfProtection: csrfProtection.middleware,
     requireAuth: authNRequire(),
   };
@@ -184,7 +180,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   return {
     repositories,
     services: {
-      authService,
+      authentication,
       assetService,
       assetCustomFieldService,
       identity,

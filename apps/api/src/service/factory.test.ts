@@ -29,7 +29,6 @@ vi.mock("./vulnerability.js", async () => {
 });
 
 import { createAssetService } from "./asset.js";
-import { createAuthService } from "./auth.js";
 import { createFindingService } from "./finding.js";
 import { createStatsService } from "./stats.js";
 import { createVulnerabilityService } from "./vulnerability.js";
@@ -76,28 +75,6 @@ describe("service factories", () => {
     await service.listAll();
 
     expect(repository.list).toHaveBeenCalledOnce();
-  });
-
-  it("creates authentication without an authorization dependency", () => {
-    const service = createAuthService({
-      userProfileRepository: {
-        getByID: vi.fn(),
-        getByUsername: vi.fn(),
-      },
-      userSessionRepository: {
-        getBySessionID: vi.fn(),
-        create: vi.fn(),
-        deleteBySessionID: vi.fn(),
-      },
-      domainEventEmitter: {
-        emit: vi.fn(),
-      },
-      sessionLifetimeHours: 12,
-      sessionHmacSecret: "012345678901234567890123456789012345678901234567890123456789",
-      logger,
-    });
-
-    expect(service).not.toHaveProperty("userHasPermission");
   });
 
   it("creates a vulnerability service bound to the injected repository", async () => {

@@ -6,7 +6,7 @@ import { forbidden, isApiError } from "../lib/api-error.js";
 import { DEFAULT_AUTH_COOKIE_POLICY, cookieOptions, type AuthCookiePolicy } from "./auth.js";
 
 import type { ContextVariables } from "../lib/hono-schema.js";
-import type { UserSession } from "@exposurenexus/contracts/model/user";
+import type { AuthenticationSession } from "@exposurenexus/backend/authentication";
 import type { Context, MiddlewareHandler } from "hono";
 import type { CookieOptions } from "hono/utils/cookie";
 
@@ -23,7 +23,7 @@ type CsrfMiddleware = MiddlewareHandler<{ Variables: ContextVariables }>;
 
 export interface CsrfProtection {
   middleware: CsrfMiddleware;
-  issueToken(c: CsrfContext, session: UserSession): void;
+  issueToken(c: CsrfContext, session: AuthenticationSession): void;
   clearToken(c: CsrfContext): void;
 }
 
@@ -57,14 +57,14 @@ function safeEqual(left: string, right: string): boolean {
   return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
 }
 
-function createToken(session: UserSession, secret: string): string {
+function createToken(session: AuthenticationSession, secret: string): string {
   const nonce = randomBytes(32).toString("base64url");
   const signature = createTokenSignature(session.id, nonce, secret);
 
   return `${nonce}${TOKEN_SEPARATOR}${signature}`;
 }
 
-function verifyToken(token: string, session: UserSession, secret: string): boolean {
+function verifyToken(token: string, session: AuthenticationSession, secret: string): boolean {
   const separatorIndex = token.indexOf(TOKEN_SEPARATOR);
   if (separatorIndex <= 0 || separatorIndex === token.length - 1) {
     return false;
