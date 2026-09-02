@@ -1,22 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { createContext, useCallback, useContext } from "react";
 
+import { signIn, signOut } from "@/features/auth/api/auth.ts";
 import {
   AUTH_SESSION_QUERY_KEY,
   createAuthSessionQueryOptions,
-  signIn,
-  signOut,
-} from "@/lib/auth.ts";
+} from "@/features/auth/queries/session.ts";
 import { SKIP_UNAUTHORIZED_ERROR_META } from "@/lib/query-client.ts";
 
-import type { AuthSessionQueryData, User } from "@/lib/auth.ts";
+import type { AuthSessionQueryData } from "@/features/auth/queries/session.ts";
+import type { AuthLogin } from "@exposurenexus/contracts/api";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
 export interface AuthState {
   status: AuthStatus;
   isAuthenticated: boolean;
-  user: User | null;
+  user: UserProfile | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   ensureSession: () => Promise<boolean>;
@@ -46,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginMutation = useMutation({
     meta: SKIP_UNAUTHORIZED_ERROR_META,
-    mutationFn: async ({ username, password }: { username: string; password: string }) =>
+    mutationFn: async ({ username, password }: AuthLogin) =>
       (await signIn.username({ username, password })).data,
     onSuccess: (session) => {
       queryClient.setQueryData<AuthSessionQueryData>(AUTH_SESSION_QUERY_KEY, session);

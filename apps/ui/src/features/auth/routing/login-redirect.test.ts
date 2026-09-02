@@ -2,7 +2,10 @@ import { QueryClient } from "@tanstack/react-query";
 import { createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_LOGIN_REDIRECT, createRouterLoginRedirects } from "@/lib/login-redirect.ts";
+import {
+  DEFAULT_LOGIN_REDIRECT,
+  createRouterLoginRedirects,
+} from "@/features/auth/routing/login-redirect.ts";
 import { routeTree } from "@/routeTree.gen.ts";
 
 function createRedirects() {

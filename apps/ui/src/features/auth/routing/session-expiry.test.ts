@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createUserSessionExpiredRedirectHandler } from "@/lib/auth-session-expiry.ts";
+import { createUserSessionExpiredRedirectHandler } from "@/features/auth/routing/session-expiry.ts";
 
 describe("auth session expiry handling", () => {
   it("deduplicates redirects from parallel session-expired events", async () => {

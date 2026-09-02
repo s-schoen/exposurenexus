@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AccountMenu } from "@/features/auth/components/account-menu.tsx";
+
 import type { ReactNode } from "react";
 
 interface SessionQuery {
@@ -31,7 +33,7 @@ vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => mocks.navigate,
 }));
 
-vi.mock("@/context/auth", () => ({
+vi.mock("@/features/auth/providers/auth-provider.tsx", () => ({
   useAuth: () => ({
     logout: mocks.logout,
     status: mocks.sessionQuery.status,
@@ -79,7 +81,6 @@ describe("AccountMenu", () => {
   });
 
   it("renders the current user and signs out through auth context", async () => {
-    const { AccountMenu } = await import("@/components/account-menu.tsx");
     mocks.logout.mockResolvedValueOnce(undefined);
 
     render(<AccountMenu />);
@@ -100,7 +101,6 @@ describe("AccountMenu", () => {
   });
 
   it("falls back to email and shows a spinner while the session is pending", async () => {
-    const { AccountMenu } = await import("@/components/account-menu.tsx");
     mocks.sessionQuery = {
       user: {
         displayName: null,

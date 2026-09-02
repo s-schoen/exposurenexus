@@ -3,14 +3,18 @@ import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
-import { AuthProvider } from "@/context/auth.tsx";
+import { AUTH_SESSION_QUERY_KEY, AuthProvider } from "@/features/auth/index.ts";
 import { PageProvider } from "@/hooks/use-page-meta.tsx";
-import { AUTH_SESSION_QUERY_KEY } from "@/lib/auth.ts";
 
-import type { AuthState, AuthStatus } from "@/context/auth.tsx";
+import type {
+  AuthSessionQueryData,
+  AuthState,
+  AuthStatus,
+  LoginRedirects,
+} from "@/features/auth/index.ts";
 import type { PageState } from "@/hooks/use-page-meta.tsx";
-import type { AuthSessionQueryData, Session, User } from "@/lib/auth.ts";
-import type { LoginRedirects } from "@/lib/login-redirect.ts";
+import type { AuthSessionDataReply } from "@exposurenexus/contracts/api";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { QueryClientConfig, QueryKey } from "@tanstack/react-query";
 import type { RenderOptions } from "@testing-library/react";
 import type { ReactElement, ReactNode } from "react";
@@ -55,9 +59,9 @@ export function seedQueryData(queryClient: QueryClient, queryData: Array<QueryDa
 }
 
 export function createTestAuthSession(
-  user: User,
-  session: Partial<Session["session"]> = {},
-): Session {
+  user: UserProfile,
+  session: Partial<AuthSessionDataReply["session"]> = {},
+): AuthSessionDataReply {
   return {
     user,
     session: {

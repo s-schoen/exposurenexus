@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
-import { useAuth } from "@/context/auth";
+import { useAuth } from "@/features/auth/providers/auth-provider.tsx";
 
 export function AccountMenu() {
   const { logout, status, user } = useAuth();

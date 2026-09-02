@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo } from "react";
 
-import { AccountMenu } from "@/components/account-menu.tsx";
-import { AuthProvider } from "@/context/auth.tsx";
+import { AccountMenu } from "@/features/auth/components/account-menu.tsx";
+import { AuthProvider } from "@/features/auth/providers/auth-provider.tsx";
 import { STORY_AUTH_SESSION, STORY_USERS } from "@/test/fixtures.ts";
 import {
   RouterStoryProvider,
