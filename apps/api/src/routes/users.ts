@@ -11,8 +11,8 @@ import { replyArray, replyObject } from "../lib/reply.js";
 import { requestEventContext } from "../lib/request-event-context.js";
 
 import type { ContextVariables } from "../lib/hono-schema.js";
+import type { ApiIdentityUsers } from "../lib/identity-events.js";
 import type { RequireDomainPermission } from "../middleware/auth.js";
-import type { UserProfileService } from "../service/user-profile.js";
 
 interface UserRouteDependencies {
   requireDomainPermission: RequireDomainPermission;
@@ -21,7 +21,7 @@ interface UserRouteDependencies {
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }));
 
 export function createUserRoute(
-  userService: UserProfileService,
+  userService: ApiIdentityUsers,
   { requireDomainPermission }: UserRouteDependencies,
 ) {
   const user = new Hono<{ Variables: ContextVariables }>();

@@ -1,4 +1,3 @@
-import { PermissionResource, PermissionVerb } from "@exposurenexus/contracts/model/rbac";
 import {
   VulnerabilitySeverity,
   VulnerabilityType,
@@ -32,7 +31,6 @@ vi.mock("./vulnerability.js", async () => {
 import { createAssetService } from "./asset.js";
 import { createAuthService } from "./auth.js";
 import { createFindingService } from "./finding.js";
-import { createRoleService } from "./role.js";
 import { createStatsService } from "./stats.js";
 import { createVulnerabilityService } from "./vulnerability.js";
 
@@ -80,15 +78,7 @@ describe("service factories", () => {
     expect(repository.list).toHaveBeenCalledOnce();
   });
 
-  it("creates an auth service bound to the injected permission lookup repository", async () => {
-    const userRoleRepository = {
-      listPermissionsByUserID: vi.fn().mockResolvedValue([
-        {
-          resource: PermissionResource.Asset,
-          verb: PermissionVerb.Read,
-        },
-      ]),
-    };
+  it("creates authentication without an authorization dependency", () => {
     const service = createAuthService({
       userProfileRepository: {
         getByID: vi.fn(),
@@ -99,7 +89,6 @@ describe("service factories", () => {
         create: vi.fn(),
         deleteBySessionID: vi.fn(),
       },
-      userRoleRepository,
       domainEventEmitter: {
         emit: vi.fn(),
       },
@@ -108,37 +97,7 @@ describe("service factories", () => {
       logger,
     });
 
-    await expect(
-      service.userHasPermission(user.id, {
-        [PermissionResource.Asset]: [PermissionVerb.Read],
-      }),
-    ).resolves.toBe(true);
-
-    expect(userRoleRepository.listPermissionsByUserID).toHaveBeenCalledWith(user.id);
-  });
-
-  it("creates a role service bound to the injected repository", async () => {
-    const repository = {
-      list: vi.fn().mockResolvedValue([]),
-      getByID: vi.fn(),
-      getByIDs: vi.fn(),
-      getByNames: vi.fn(),
-      create: vi.fn(),
-      updateByID: vi.fn(),
-      deleteByID: vi.fn(),
-      hasUsersWithRoleID: vi.fn(),
-    };
-    const service = createRoleService({
-      roleRepository: repository,
-      domainEventEmitter: {
-        emit: vi.fn(),
-      },
-      logger,
-    });
-
-    await service.listAll();
-
-    expect(repository.list).toHaveBeenCalledOnce();
+    expect(service).not.toHaveProperty("userHasPermission");
   });
 
   it("creates a vulnerability service bound to the injected repository", async () => {

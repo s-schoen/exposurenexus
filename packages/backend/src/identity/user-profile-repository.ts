@@ -1,32 +1,29 @@
-import type { Database } from "@exposurenexus/backend/database";
-import type {
-  UserProfileInternal,
-  UserProfileInternalWithRoles,
-} from "@exposurenexus/contracts/model/user";
+import type { Database } from "../database/index.js";
+import type { UserProfileRecord, UserProfileRecordWithRoles } from "./types.js";
 import type { Kysely, Transaction } from "kysely";
 
 type DatabaseExecutor = Kysely<Database> | Transaction<Database>;
 
 export interface UpdateUserProfileByIDOptions {
   id: string;
-  userProfile: Omit<UserProfileInternal, "id">;
+  userProfile: Omit<UserProfileRecord, "id">;
   roleIds: readonly string[];
   revokeSessions?: boolean;
 }
 
 export interface UpdateUserProfileByIDResult {
-  userProfile: UserProfileInternalWithRoles;
+  userProfile: UserProfileRecordWithRoles;
   revokedSessionCount: number;
 }
 
 export interface UserProfileRepository {
-  list(): Promise<UserProfileInternalWithRoles[]>;
-  getByID(id: string): Promise<UserProfileInternalWithRoles | null>;
-  getByUsername(username: string): Promise<UserProfileInternalWithRoles | null>;
+  list(): Promise<UserProfileRecordWithRoles[]>;
+  getByID(id: string): Promise<UserProfileRecordWithRoles | null>;
+  getByUsername(username: string): Promise<UserProfileRecordWithRoles | null>;
   create(
-    userProfile: Omit<UserProfileInternal, "id">,
+    userProfile: Omit<UserProfileRecord, "id">,
     roleIds: readonly string[],
-  ): Promise<UserProfileInternalWithRoles>;
+  ): Promise<UserProfileRecordWithRoles>;
   updateByID(options: UpdateUserProfileByIDOptions): Promise<UpdateUserProfileByIDResult | null>;
 }
 
@@ -61,8 +58,8 @@ async function listRoleIdsByUserIDs(
 
 async function attachRoleIds(
   database: DatabaseExecutor,
-  profiles: UserProfileInternal[],
-): Promise<UserProfileInternalWithRoles[]> {
+  profiles: UserProfileRecord[],
+): Promise<UserProfileRecordWithRoles[]> {
   const roleIdsByUserId = await listRoleIdsByUserIDs(
     database,
     profiles.map((profile) => profile.id),
@@ -110,12 +107,12 @@ async function deleteSessionsByUserID(database: DatabaseExecutor, userId: string
 
 export function createUserProfileRepository(database: Kysely<Database>): UserProfileRepository {
   return {
-    async list(): Promise<UserProfileInternalWithRoles[]> {
+    async list(): Promise<UserProfileRecordWithRoles[]> {
       const profiles = await database.selectFrom("user_profile").selectAll().execute();
       return await attachRoleIds(database, profiles);
     },
 
-    async getByID(id: string): Promise<UserProfileInternalWithRoles | null> {
+    async getByID(id: string): Promise<UserProfileRecordWithRoles | null> {
       const profile = await database
         .selectFrom("user_profile")
         .selectAll()
@@ -130,7 +127,7 @@ export function createUserProfileRepository(database: Kysely<Database>): UserPro
       return profileWithRoles!;
     },
 
-    async getByUsername(username: string): Promise<UserProfileInternalWithRoles | null> {
+    async getByUsername(username: string): Promise<UserProfileRecordWithRoles | null> {
       const profile = await database
         .selectFrom("user_profile")
         .selectAll()
@@ -146,9 +143,9 @@ export function createUserProfileRepository(database: Kysely<Database>): UserPro
     },
 
     async create(
-      userProfile: Omit<UserProfileInternal, "id">,
+      userProfile: Omit<UserProfileRecord, "id">,
       roleIds: readonly string[],
-    ): Promise<UserProfileInternalWithRoles> {
+    ): Promise<UserProfileRecordWithRoles> {
       return await database.transaction().execute(async (trx) => {
         const createdProfile = await trx
           .insertInto("user_profile")

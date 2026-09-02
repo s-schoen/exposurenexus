@@ -52,3 +52,19 @@ export function createTestDatabase(): TestDatabase {
     },
   };
 }
+
+export async function resetTestDatabase(db: Kysely<Database>): Promise<void> {
+  await db.deleteFrom("asset_identifier").execute();
+  await db.deleteFrom("asset_custom_field_value").execute();
+  await db.deleteFrom("asset_custom_field_option").execute();
+  await db.deleteFrom("asset_custom_field").execute();
+  await db.deleteFrom("observation").execute();
+  await db.deleteFrom("finding_vulnerability").execute();
+  await db.deleteFrom("ingestion").execute();
+  await db.deleteFrom("finding").execute();
+  await db.deleteFrom("vulnerability").execute();
+  await db.deleteFrom("asset").execute();
+  await db.deleteFrom("user_session").execute();
+  await db.deleteFrom("user_role_assignment").execute();
+  await db.deleteFrom("user_profile").execute();
+}

@@ -8,8 +8,8 @@ import { replyArray, replyObject } from "../lib/reply.js";
 import { requestEventContext } from "../lib/request-event-context.js";
 
 import type { ContextVariables } from "../lib/hono-schema.js";
+import type { ApiIdentityRoles } from "../lib/identity-events.js";
 import type { RequireDomainPermission } from "../middleware/auth.js";
-import type { RoleService } from "../service/role.js";
 
 interface RoleRouteDependencies {
   requireDomainPermission: RequireDomainPermission;
@@ -18,7 +18,7 @@ interface RoleRouteDependencies {
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }));
 
 export function createRoleRoute(
-  roleService: RoleService,
+  roleService: ApiIdentityRoles,
   { requireDomainPermission }: RoleRouteDependencies,
 ) {
   const role = new Hono<{ Variables: ContextVariables }>();
