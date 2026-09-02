@@ -1,0 +1,49 @@
+{
+  "file_hash": "6197a593c73cda0056b838601f304892013d830eadffacafb11138e70c2c9166",
+  "config_hash": "4fdcfa5eadf4998ff3f48d47c17f22fbebaefe9099fd45dbfa67041515871377",
+  "rules_hash": "b564d6385b1cc422d30446bbac8dd8d7efb4e40755fcb5cf8e30d0c8374fd519",
+  "version": "0.2.53",
+  "warnings": [
+    {
+      "message": "Line length 106 exceeds 80 characters",
+      "line": 4,
+      "column": 81,
+      "end_line": 4,
+      "end_column": 107,
+      "severity": "warning",
+      "fix": null,
+      "rule_name": "MD013"
+    },
+    {
+      "message": "Line length 164 exceeds 80 characters",
+      "line": 118,
+      "column": 81,
+      "end_line": 118,
+      "end_column": 165,
+      "severity": "warning",
+      "fix": null,
+      "rule_name": "MD013"
+    },
+    {
+      "message": "Line length 95 exceeds 80 characters",
+      "line": 165,
+      "column": 81,
+      "end_line": 165,
+      "end_column": 96,
+      "severity": "warning",
+      "fix": null,
+      "rule_name": "MD013"
+    },
+    {
+      "message": "Line length 113 exceeds 80 characters",
+      "line": 181,
+      "column": 81,
+      "end_line": 181,
+      "end_column": 114,
+      "severity": "warning",
+      "fix": null,
+      "rule_name": "MD013"
+    }
+  ],
+  "timestamp": 1788098306
+}
