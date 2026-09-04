@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo } from "react";
 
 import AppHeader from "@/components/app-header.tsx";
-import { AuthProvider } from "@/features/auth/index.ts";
+import { AccountMenu, AuthProvider } from "@/features/auth/index.ts";
 import { STORY_AUTH_SESSION } from "@/test/fixtures.ts";
 import {
   RouterStoryProvider,
@@ -48,7 +48,7 @@ function AppHeaderStoryShell() {
   return (
     <RouterStoryProvider queryClient={queryClient} initialPath="/">
       <AuthProvider>
-        <AppHeader />
+        <AppHeader accountMenu={<AccountMenu />} />
       </AuthProvider>
     </RouterStoryProvider>
   );
