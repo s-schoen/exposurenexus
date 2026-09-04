@@ -1,0 +1,418 @@
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/contracts/model/asset";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
+import { useLayoutEffect, useMemo, useRef } from "react";
+
+import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
+import { Toaster } from "@/components/ui/sonner.tsx";
+import { FindingTable } from "@/features/findings/components/finding-table/index.tsx";
+import { routeTree } from "@/routeTree.gen.ts";
+import { createStoryLoginRedirects } from "@/test/storybook.tsx";
+
+import type { Asset } from "@exposurenexus/contracts/model/asset";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
+import type { Meta, StoryObj } from "@storybook/react-vite";
+
+type FindingTableScenario = "default" | "loading" | "empty" | "grouped";
+
+type FindingTableStoryArgs = {
+  findings: Array<Finding>;
+  assets: Array<Asset>;
+  users: Array<UserProfile>;
+  scenario: FindingTableScenario;
+};
+
+const dayInMs = 24 * 60 * 60 * 1000;
+
+const storyRedirects = createStoryLoginRedirects();
+
+function utcDateOffset(days: number) {
+  const now = new Date();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+
+  return new Date(today + days * dayInMs);
+}
+
+const USERS: Array<UserProfile> = [
+  {
+    id: "8f5f4c3b-c369-481d-98f7-cf7148d80d21",
+    username: "robin",
+    displayName: "Robin Owner",
+    email: "robin@example.com",
+    enabled: true,
+    roleIds: [],
+  },
+  {
+    id: "7b2b7d98-6242-4efe-b630-5908727103fb",
+    username: "alex",
+    displayName: "Alex Assignee",
+    email: "alex@example.com",
+    enabled: true,
+    roleIds: [],
+  },
+  {
+    id: "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12",
+    username: "casey",
+    displayName: "Casey Handler",
+    email: "casey@example.com",
+    enabled: true,
+    roleIds: [],
+  },
+];
+
+const ASSETS: Array<Asset> = [
+  {
+    id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
+    displayName: "web-01",
+    type: AssetType.Host,
+    environment: AssetEnvironment.Production,
+    lifecycleState: AssetLifecycleState.Active,
+    ownerId: USERS[0].id,
+    identifiers: [],
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: USERS[0].id,
+    updatedBy: USERS[1].id,
+  },
+  {
+    id: "4eaf1ce4-51f4-4a63-80b4-7b550e91050d",
+    displayName: "api-worker",
+    type: AssetType.Software,
+    environment: AssetEnvironment.Development,
+    lifecycleState: AssetLifecycleState.Active,
+    ownerId: USERS[2].id,
+    identifiers: [],
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: USERS[0].id,
+    updatedBy: USERS[1].id,
+  },
+  {
+    id: "5968e90b-5967-4149-b2a7-c4d42f011ccf",
+    displayName: "container-registry",
+    type: AssetType.ContainerImage,
+    environment: AssetEnvironment.Staging,
+    lifecycleState: AssetLifecycleState.Active,
+    ownerId: null,
+    identifiers: [],
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+    createdBy: USERS[0].id,
+    updatedBy: USERS[1].id,
+  },
+];
+
+function createFinding({
+  id,
+  title,
+  assetId,
+  severity,
+  status,
+  assigneeId,
+  dueDate,
+  firstSeenOffset,
+  lastSeenOffset,
+}: {
+  id: string;
+  title: string;
+  assetId: string;
+  severity: VulnerabilitySeverity;
+  status: FindingStatus;
+  assigneeId: string | null;
+  dueDate: Date | null;
+  firstSeenOffset: number;
+  lastSeenOffset: number;
+}): Finding {
+  return {
+    id,
+    title,
+    severity,
+    status,
+    mitigation: "Apply the recommended mitigation and re-run validation.",
+    assigneeId,
+    dueDate,
+    weakness: { identifiers: { cwe: ["CWE-284"] } },
+    affectedResource: {
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "https",
+      host: "example.com",
+      path: "/admin",
+    },
+    vulnerabilities: [],
+    observationCount: 2,
+    firstSeen: utcDateOffset(firstSeenOffset),
+    lastSeen: utcDateOffset(lastSeenOffset),
+    assetId,
+    createdBy: USERS[0].id,
+    updatedBy: USERS[1].id,
+    createdAt: utcDateOffset(firstSeenOffset),
+    updatedAt: utcDateOffset(lastSeenOffset),
+  };
+}
+
+const FINDINGS: Array<Finding> = [
+  createFinding({
+    id: "2713d833-eb13-4517-ac7c-7761545ed42a",
+    title: "Exposed Admin Endpoint",
+    assetId: ASSETS[0].id,
+    severity: VulnerabilitySeverity.Critical,
+    status: FindingStatus.Active,
+    assigneeId: USERS[1].id,
+    dueDate: utcDateOffset(-2),
+    firstSeenOffset: -8,
+    lastSeenOffset: -1,
+  }),
+  createFinding({
+    id: "9512afc4-d4d3-4fb9-b3be-17ed1529bb45",
+    title: "Outdated API Dependency",
+    assetId: ASSETS[1].id,
+    severity: VulnerabilitySeverity.High,
+    status: FindingStatus.Confirmed,
+    assigneeId: USERS[2].id,
+    dueDate: utcDateOffset(0),
+    firstSeenOffset: -5,
+    lastSeenOffset: -1,
+  }),
+  createFinding({
+    id: "832f8b2c-97c5-4f88-85e8-eec4218b7507",
+    title: "Unsigned Container Image",
+    assetId: ASSETS[2].id,
+    severity: VulnerabilitySeverity.Medium,
+    status: FindingStatus.Active,
+    assigneeId: null,
+    dueDate: utcDateOffset(5),
+    firstSeenOffset: -4,
+    lastSeenOffset: -2,
+  }),
+  createFinding({
+    id: "5fa080ad-d2f1-41ca-a6bb-18c6d3f6080f",
+    title: "Missing MFA Enforcement",
+    assetId: ASSETS[0].id,
+    severity: VulnerabilitySeverity.High,
+    status: FindingStatus.Inactive,
+    assigneeId: USERS[1].id,
+    dueDate: utcDateOffset(-7),
+    firstSeenOffset: -14,
+    lastSeenOffset: -7,
+  }),
+  createFinding({
+    id: "609d1425-66f6-4216-912a-d216c25a06a5",
+    title: "Legacy Endpoint Missing Rate Limiting",
+    assetId: ASSETS[1].id,
+    severity: VulnerabilitySeverity.Low,
+    status: FindingStatus.RiskAccepted,
+    assigneeId: null,
+    dueDate: null,
+    firstSeenOffset: -22,
+    lastSeenOffset: -9,
+  }),
+  {
+    ...createFinding({
+      id: "fcf52a02-7cce-4822-8c9f-4ed636ce1b44",
+      title: "Unconfirmed Endpoint Weakness",
+      assetId: ASSETS[2].id,
+      severity: VulnerabilitySeverity.Info,
+      status: FindingStatus.Active,
+      assigneeId: null,
+      dueDate: null,
+      firstSeenOffset: -30,
+      lastSeenOffset: -30,
+    }),
+    observationCount: 0,
+    firstSeen: null,
+    lastSeen: null,
+    updatedAt: utcDateOffset(1),
+  },
+];
+
+function FindingTableStoryShell({ findings, assets, users, scenario }: FindingTableStoryArgs) {
+  const effectiveFindings = scenario === "empty" ? [] : findings;
+  const findingsRef = useRef(effectiveFindings);
+  const queryClient = useMemo(() => {
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          staleTime: Number.POSITIVE_INFINITY,
+        },
+      },
+    });
+
+    if (scenario !== "loading") {
+      client.setQueryData(["findings"], effectiveFindings);
+      client.setQueryData(["assets"], assets);
+      client.setQueryData(["users"], users);
+    }
+
+    return client;
+  }, [assets, effectiveFindings, scenario, users]);
+  const router = useMemo(
+    () =>
+      createRouter({
+        routeTree,
+        history: createMemoryHistory({
+          initialEntries: ["/findings"],
+        }),
+        context: {
+          auth: undefined!,
+          page: undefined!,
+          redirects: storyRedirects,
+          queryClient,
+        },
+      }),
+    [queryClient],
+  );
+
+  useLayoutEffect(() => {
+    const originalFetch = globalThis.fetch;
+    findingsRef.current = effectiveFindings;
+
+    globalThis.fetch = async (input, init) => {
+      const requestUrl = input instanceof Request ? input.url : String(input);
+      const method = (
+        init?.method ?? (input instanceof Request ? input.method : "GET")
+      ).toUpperCase();
+
+      if (scenario === "loading" && requestUrl.endsWith("/api/findings")) {
+        return await new Promise<Response>(() => {});
+      }
+
+      if (requestUrl.endsWith("/api/findings")) {
+        return createArrayResponse(findingsRef.current);
+      }
+
+      if (requestUrl.endsWith("/api/assets")) {
+        return createArrayResponse(assets);
+      }
+
+      if (requestUrl.endsWith("/api/users")) {
+        return createArrayResponse(users);
+      }
+
+      if (requestUrl.endsWith("/api/findings/stats")) {
+        return createObjectResponse({
+          total: findingsRef.current.length,
+          status: {},
+          severity: {},
+          assets: {},
+        });
+      }
+
+      const findingId = requestUrl.match(/\/api\/findings\/([^/?]+)$/)?.[1];
+
+      if (findingId) {
+        const finding = findingsRef.current.find((item) => item.id === findingId);
+
+        if (!finding) {
+          return new Response(JSON.stringify({ error: "Finding not found" }), {
+            status: 404,
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+        }
+
+        if (method === "DELETE") {
+          findingsRef.current = findingsRef.current.filter((item) => item.id !== findingId);
+          queryClient.setQueryData(["findings"], findingsRef.current);
+
+          return createObjectResponse(finding);
+        }
+
+        if (method === "PUT") {
+          return new Response(JSON.stringify({ error: "Finding updates are unavailable" }), {
+            status: 501,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
+        return createObjectResponse(finding);
+      }
+
+      return originalFetch(input, init);
+    };
+
+    return () => {
+      globalThis.fetch = originalFetch;
+    };
+  }, [assets, effectiveFindings, queryClient, scenario, users]);
+
+  return (
+    <RouterContextProvider router={router}>
+      <QueryClientProvider client={queryClient}>
+        <ConfirmDialog.Root />
+        <Toaster />
+        <div className="w-full">
+          <FindingTable
+            initialGrouping={scenario === "grouped" ? ["status"] : []}
+            selectedFindingId={effectiveFindings[0]?.id}
+          />
+        </div>
+      </QueryClientProvider>
+    </RouterContextProvider>
+  );
+}
+
+function createObjectResponse(data: unknown): Response {
+  return new Response(JSON.stringify({ data }), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+function createArrayResponse(data: Array<unknown>): Response {
+  return new Response(JSON.stringify({ data: { items: data } }), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+const meta = {
+  title: "Resources/Findings/Table",
+  component: FindingTableStoryShell,
+  tags: ["!test"],
+  parameters: {
+    layout: "padded",
+  },
+  args: {
+    findings: FINDINGS,
+    assets: ASSETS,
+    users: USERS,
+    scenario: "default",
+  },
+  render: (args) => <FindingTableStoryShell {...args} />,
+} satisfies Meta<typeof FindingTableStoryShell>;
+
+export default meta;
+
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {};
+
+export const GroupedByStatus: Story = {
+  args: {
+    scenario: "grouped",
+  },
+};
+
+export const Empty: Story = {
+  args: {
+    scenario: "empty",
+  },
+};
+
+export const Loading: Story = {
+  args: {
+    scenario: "loading",
+  },
+};
