@@ -17,7 +17,6 @@ import {
 } from "@/api/finding.ts";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { SafeMarkdown } from "@/components/safe-markdown.tsx";
-import { SeverityBadge } from "@/components/severity-badge.tsx";
 import { Timestamp } from "@/components/timestamp.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
@@ -48,9 +47,10 @@ import { Separator } from "@/components/ui/separator.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
+import { SeverityBadge, formatSeverity } from "@/features/vulnerabilities";
 import { useObservationLifecycle } from "@/hooks/use-observation-lifecycle.ts";
 import { formatLocalDateTimeInput } from "@/lib/date-input.ts";
-import { capitalizeFirstLetter, formatSeverity } from "@/lib/format.ts";
+import { capitalizeFirstLetter } from "@/lib/format.ts";
 import { formatWeaknessText, parseWeaknessText } from "@/lib/weakness-text.ts";
 
 import type { ObservationAffectedResource as ObservationResource } from "@exposurenexus/contracts/model/affected-resource";

@@ -1,13 +1,7 @@
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { describe, expect, it } from "vitest";
 
-import {
-  findingStatusBadgeClass,
-  findingStatusChartColor,
-  severityBadgeClass,
-  severityChartColor,
-} from "@/lib/colors.ts";
+import { findingStatusBadgeClass, findingStatusChartColor } from "@/lib/colors.ts";
 
 function expectBadgeClasses(classes: string) {
   expect(classes).toContain("border-");
@@ -20,17 +14,6 @@ function expectChartColor(color: string) {
 }
 
 describe("presentation colors", () => {
-  it("provides badge and chart tokens for every severity", () => {
-    const chartColors = Object.values(VulnerabilitySeverity).map((severity) => {
-      expectBadgeClasses(severityBadgeClass(severity));
-      expectChartColor(severityChartColor(severity));
-
-      return severityChartColor(severity);
-    });
-
-    expect(new Set(chartColors).size).toBe(Object.values(VulnerabilitySeverity).length);
-  });
-
   it("provides badge and chart tokens for every finding status", () => {
     const chartColors = Object.values(FindingStatus).map((status) => {
       expectBadgeClasses(findingStatusBadgeClass(status));
