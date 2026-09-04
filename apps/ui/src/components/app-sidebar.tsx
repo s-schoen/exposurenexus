@@ -1,4 +1,3 @@
-import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
@@ -13,7 +12,6 @@ import {
   Users,
 } from "lucide-react";
 
-import { createFindingStatsQueryOptions } from "@/api/finding.ts";
 import {
   Sidebar,
   SidebarContent,
@@ -25,6 +23,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
+import { createFindingStatsQueryOptions, getFindingNavigationCounts } from "@/features/findings";
 import { cn } from "@/lib/utils";
 
 interface SidebarItem {
@@ -39,8 +38,7 @@ interface SidebarItem {
 export function AppSidebar() {
   const location = useLocation();
   const findingStats = useQuery(createFindingStatsQueryOptions());
-  const triageCount = findingStats.data?.status[FindingStatus.Active] ?? 0;
-  const mitigationCount = findingStats.data?.status[FindingStatus.Confirmed] ?? 0;
+  const { triageCount, mitigationCount } = getFindingNavigationCounts(findingStats.data);
 
   const isItemActive = (item: SidebarItem) => {
     if (item.activeMatch) {
