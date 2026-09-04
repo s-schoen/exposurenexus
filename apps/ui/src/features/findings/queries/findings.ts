@@ -7,6 +7,7 @@ import {
   listFindingObservations,
   listFindings,
 } from "@/features/findings/api/findings.ts";
+import { VULNERABILITY_INVALIDATION_TAG } from "@/features/vulnerabilities";
 import { DEFAULT_QUERY_STALE_TIME } from "@/lib/query-client.ts";
 
 import type { FindingStatistics } from "@exposurenexus/contracts/model/finding";
@@ -18,6 +19,7 @@ export function createListFindingsQueryOptions() {
       queryFn: () => listFindings(),
       placeholderData: keepPreviousData,
       staleTime: DEFAULT_QUERY_STALE_TIME,
+      meta: { invalidationTags: [VULNERABILITY_INVALIDATION_TAG] },
     }),
     queryKey: ["findings"],
   };
@@ -28,6 +30,7 @@ export function createFindingByIDQueryOptions(id: string) {
     ...queryOptions({
       queryKey: ["findings", id],
       queryFn: () => getFindingByID(id),
+      meta: { invalidationTags: [VULNERABILITY_INVALIDATION_TAG] },
     }),
     queryKey: ["findings", id],
   };
