@@ -2,6 +2,8 @@ import { ApplicationError } from "../application-error.js";
 import { isConflictError, isForeignKeyError } from "../database-error.js";
 import { hashPlaintextPassword } from "./password.js";
 
+import type { DatabaseExecutor } from "../database/executor.js";
+import type { Database } from "../database/index.js";
 import type {
   CreateUserCommand,
   IdentityUsers,
@@ -10,12 +12,46 @@ import type {
   UserUpdatedOutcome,
 } from "./identity.js";
 import type { UserProfileRecordWithRoles } from "./types.js";
-import type { UserProfileRepository } from "./user-profile-repository.js";
+import type { UserProfileRecord } from "./types.js";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
+import type { Kysely } from "kysely";
 import type { Logger } from "pino";
 
+interface UserProfilePersistence {
+  listUserProfiles(database: DatabaseExecutor): Promise<UserProfileRecordWithRoles[]>;
+  getUserProfileByID(
+    database: DatabaseExecutor,
+    id: string,
+  ): Promise<UserProfileRecordWithRoles | null>;
+  getUserProfileByUsername(
+    database: DatabaseExecutor,
+    username: string,
+  ): Promise<UserProfileRecordWithRoles | null>;
+  insertUserProfile(
+    database: DatabaseExecutor,
+    options: {
+      userProfile: Omit<UserProfileRecord, "id">;
+      roleIds: readonly string[];
+    },
+  ): Promise<UserProfileRecordWithRoles>;
+  updateUserProfile(
+    database: DatabaseExecutor,
+    options: {
+      id: string;
+      userProfile: Omit<UserProfileRecord, "id">;
+      roleIds: readonly string[];
+    },
+  ): Promise<UserProfileRecordWithRoles | null>;
+}
+
+interface SessionPersistence {
+  deleteSessionsByUserID(database: DatabaseExecutor, userId: string): Promise<number>;
+}
+
 interface UserDependencies {
-  userProfileRepository: UserProfileRepository;
+  database: Kysely<Database>;
+  userProfilePersistence: UserProfilePersistence;
+  sessionPersistence: SessionPersistence;
   logger: Logger;
 }
 
@@ -41,11 +77,16 @@ function sameStringSet(left: readonly string[], right: readonly string[]): boole
   return [...leftSet].every((value) => rightSet.has(value));
 }
 
-export function createUsers({ userProfileRepository, logger }: UserDependencies): IdentityUsers {
+export function createUsers({
+  database,
+  userProfilePersistence,
+  sessionPersistence,
+  logger,
+}: UserDependencies): IdentityUsers {
   return {
     async listAll(): Promise<UserProfile[]> {
       try {
-        return (await userProfileRepository.list()).map(toUserProfile);
+        return (await userProfilePersistence.listUserProfiles(database)).map(toUserProfile);
       } catch (error) {
         logger.error(error, "failed to list user profiles");
         throw new ApplicationError({
@@ -59,7 +100,7 @@ export function createUsers({ userProfileRepository, logger }: UserDependencies)
 
     async getByID(id: string): Promise<UserProfile | null> {
       try {
-        const userProfile = await userProfileRepository.getByID(id);
+        const userProfile = await userProfilePersistence.getUserProfileByID(database, id);
         if (!userProfile) {
           logger.debug(`user profile with id ${id} not found`);
           return null;
@@ -80,7 +121,10 @@ export function createUsers({ userProfileRepository, logger }: UserDependencies)
 
     async getByUsername(username: string): Promise<UserProfile | null> {
       try {
-        const userProfile = await userProfileRepository.getByUsername(username);
+        const userProfile = await userProfilePersistence.getUserProfileByUsername(
+          database,
+          username,
+        );
         if (!userProfile) {
           logger.debug(`user profile with username ${username} not found`);
           return null;
@@ -102,13 +146,15 @@ export function createUsers({ userProfileRepository, logger }: UserDependencies)
     async create({ userProfile, performedBy }: CreateUserCommand): Promise<UserCreatedOutcome> {
       try {
         const { password, roleIds, ...profile } = userProfile;
-        const createdProfile = await userProfileRepository.create(
-          {
-            ...profile,
-            passwordHash: await hashPlaintextPassword(password),
-          },
-          roleIds,
-        );
+        const createdProfile = await database.transaction().execute(async (trx) => {
+          return await userProfilePersistence.insertUserProfile(trx, {
+            userProfile: {
+              ...profile,
+              passwordHash: await hashPlaintextPassword(password),
+            },
+            roleIds,
+          });
+        });
 
         return {
           current: toUserProfile(createdProfile),
@@ -159,32 +205,50 @@ export function createUsers({ userProfileRepository, logger }: UserDependencies)
       performedBy,
     }: UpdateUserByIDCommand): Promise<UserUpdatedOutcome | null> {
       try {
-        const existingProfile = await userProfileRepository.getByID(id);
-        if (!existingProfile) {
-          logger.debug(`cannot update user profile ${id}: not found`);
-          return null;
-        }
-
         const { password, roleIds, ...profile } = userProfile;
-        const sessionRevocationReasons = [
-          ...(password === undefined ? [] : ["password_changed"]),
-          ...(existingProfile.enabled && profile.enabled === false ? ["user_disabled"] : []),
-          ...(sameStringSet(existingProfile.roleIds, roleIds) ? [] : ["role_assignments_changed"]),
-        ];
-        const updateResult = await userProfileRepository.updateByID({
-          id,
-          userProfile: {
-            username: existingProfile.username,
-            displayName: profile.displayName,
-            email: profile.email,
-            enabled: profile.enabled,
-            passwordHash:
-              password === undefined
-                ? existingProfile.passwordHash
-                : await hashPlaintextPassword(password),
-          },
-          roleIds,
-          revokeSessions: sessionRevocationReasons.length > 0,
+        const updateResult = await database.transaction().execute(async (trx) => {
+          const existingProfile = await userProfilePersistence.getUserProfileByID(trx, id);
+          if (!existingProfile) {
+            return null;
+          }
+
+          const sessionRevocationReasons = [
+            ...(password === undefined ? [] : ["password_changed"]),
+            ...(existingProfile.enabled && profile.enabled === false ? ["user_disabled"] : []),
+            ...(sameStringSet(existingProfile.roleIds, roleIds)
+              ? []
+              : ["role_assignments_changed"]),
+          ];
+          const updatedProfile = await userProfilePersistence.updateUserProfile(trx, {
+            id,
+            userProfile: {
+              username: existingProfile.username,
+              displayName: profile.displayName,
+              email: profile.email,
+              enabled: profile.enabled,
+              passwordHash:
+                password === undefined
+                  ? existingProfile.passwordHash
+                  : await hashPlaintextPassword(password),
+            },
+            roleIds,
+          });
+
+          if (!updatedProfile) {
+            return null;
+          }
+
+          const revokedSessionCount =
+            sessionRevocationReasons.length > 0
+              ? await sessionPersistence.deleteSessionsByUserID(trx, id)
+              : 0;
+
+          return {
+            existingProfile,
+            updatedProfile,
+            sessionRevocationReasons,
+            revokedSessionCount,
+          };
         });
 
         if (!updateResult) {
@@ -192,7 +256,8 @@ export function createUsers({ userProfileRepository, logger }: UserDependencies)
           return null;
         }
 
-        const { userProfile: updatedProfile, revokedSessionCount } = updateResult;
+        const { existingProfile, updatedProfile, sessionRevocationReasons, revokedSessionCount } =
+          updateResult;
 
         if (sessionRevocationReasons.length > 0) {
           logger.info(

@@ -112,21 +112,21 @@ function findDuplicate(values: readonly string[]): string | null {
   return null;
 }
 
-interface UserProfileLookupRepository {
+interface UserProfileLookup {
   getByID(id: string): Promise<object | null>;
 }
 
 interface AssetCustomFieldsDependencies {
   assetCustomFieldRepository: AssetCustomFieldRepository;
   assetRepository: AssetLookupRepository;
-  userProfileRepository: UserProfileLookupRepository;
+  userProfileLookup: UserProfileLookup;
   logger: Logger;
 }
 
 export function createAssetCustomFields({
   assetCustomFieldRepository,
   assetRepository,
-  userProfileRepository,
+  userProfileLookup,
   logger,
 }: AssetCustomFieldsDependencies): AssetCustomFields {
   async function getAssetSnapshot(assetId: string): Promise<AssetWithCustomFields | null> {
@@ -141,7 +141,7 @@ export function createAssetCustomFields({
     };
   }
   async function requireAuditActor(performedBy: string): Promise<void> {
-    if (!(await userProfileRepository.getByID(performedBy))) {
+    if (!(await userProfileLookup.getByID(performedBy))) {
       throw new Error(`asset audit actor ${performedBy} does not exist`);
     }
   }

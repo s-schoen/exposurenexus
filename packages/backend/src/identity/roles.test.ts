@@ -30,33 +30,52 @@ const analystRole: Role = {
   permissions: [{ resource: PermissionResource.Asset, verb: PermissionVerb.Read }],
 };
 
-const roleRepository = {
-  list: vi.fn(),
-  getByID: vi.fn(),
-  getByIDs: vi.fn(),
-  getByNames: vi.fn(),
-  create: vi.fn(),
-  updateByID: vi.fn(),
-  deleteByID: vi.fn(),
+const rolePersistence = {
+  listRoles: vi.fn(),
+  getRoleByID: vi.fn(),
+  getRolesByIDs: vi.fn(),
+  getRolesByNames: vi.fn(),
+  insertRole: vi.fn(),
+  updateRole: vi.fn(),
   hasUsersWithRoleID: vi.fn(),
+  deleteRole: vi.fn(),
+};
+const sessionPersistence = {
+  deleteSessionsByUserIDs: vi.fn(),
+};
+const database = {
+  transaction: vi.fn(),
+};
+const transaction = {
+  execute: vi.fn(),
 };
 const logger = pino({ enabled: false });
 
 function createService() {
-  return createRoles({ roleRepository, logger });
+  return createRoles({
+    database: database as never,
+    rolePersistence,
+    sessionPersistence,
+    logger,
+  });
 }
 
 describe("identity roles", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    roleRepository.hasUsersWithRoleID.mockResolvedValue(false);
+    database.transaction.mockReturnValue(transaction);
+    transaction.execute.mockImplementation(
+      async (callback: (executor: typeof database) => unknown) => await callback(database),
+    );
+    rolePersistence.hasUsersWithRoleID.mockResolvedValue(false);
+    sessionPersistence.deleteSessionsByUserIDs.mockResolvedValue(0);
   });
 
   it("preserves role query and name resolution behavior", async () => {
-    roleRepository.list.mockResolvedValue([adminRole, viewerRole]);
-    roleRepository.getByID.mockResolvedValue(viewerRole);
-    roleRepository.getByNames.mockResolvedValue([viewerRole, adminRole]);
-    roleRepository.getByIDs.mockResolvedValue([adminRole, viewerRole]);
+    rolePersistence.listRoles.mockResolvedValue([adminRole, viewerRole]);
+    rolePersistence.getRoleByID.mockResolvedValue(viewerRole);
+    rolePersistence.getRolesByNames.mockResolvedValue([viewerRole, adminRole]);
+    rolePersistence.getRolesByIDs.mockResolvedValue([adminRole, viewerRole]);
     const roles = createService();
 
     await expect(roles.listAll()).resolves.toEqual([adminRole, viewerRole]);
@@ -77,14 +96,14 @@ describe("identity roles", () => {
   });
 
   it("returns null for an unknown role", async () => {
-    roleRepository.getByID.mockResolvedValue(null);
+    rolePersistence.getRoleByID.mockResolvedValue(null);
 
     await expect(createService().getByID(analystRole.id)).resolves.toBeNull();
   });
 
   it("rejects unknown role ids", async () => {
     const unknownRoleId = "0671d03d-57f1-49c8-8f62-5de6ed0924db";
-    roleRepository.getByIDs.mockResolvedValue([viewerRole]);
+    rolePersistence.getRolesByIDs.mockResolvedValue([viewerRole]);
 
     await expect(
       createService().requireRoleNamesFromIds([builtInRoleIds.viewer, unknownRoleId]),
@@ -96,13 +115,13 @@ describe("identity roles", () => {
   });
 
   it.each([
-    ["listAll", "list", "role.list_failed"],
-    ["getByID", "getByID", "role.get_failed"],
-    ["getByNames", "getByNames", "role.get_by_names_failed"],
-    ["resolveRoleIdsFromNames", "getByNames", "role.resolve_ids_failed"],
-    ["requireRoleNamesFromIds", "getByIDs", "role.resolve_names_failed"],
-  ] as const)("maps %s persistence failures", async (method, repositoryMethod, code) => {
-    roleRepository[repositoryMethod].mockRejectedValue(new Error("db offline"));
+    ["listAll", "listRoles", "role.list_failed"],
+    ["getByID", "getRoleByID", "role.get_failed"],
+    ["getByNames", "getRolesByNames", "role.get_by_names_failed"],
+    ["resolveRoleIdsFromNames", "getRolesByNames", "role.resolve_ids_failed"],
+    ["requireRoleNamesFromIds", "getRolesByIDs", "role.resolve_names_failed"],
+  ] as const)("maps %s persistence failures", async (method, persistenceMethod, code) => {
+    rolePersistence[persistenceMethod].mockRejectedValue(new Error("db offline"));
     const roles = createService();
     const argument = method === "getByID" ? analystRole.id : [analystRole.id];
 
@@ -120,17 +139,17 @@ describe("identity roles", () => {
       permissions: [{ resource: PermissionResource.Asset, verb: PermissionVerb.Read }],
     };
     const createdRole = { ...analystRole, ...role };
-    roleRepository.create.mockResolvedValue(createdRole);
+    rolePersistence.insertRole.mockResolvedValue(createdRole);
 
     await expect(createService().create({ role, performedBy })).resolves.toEqual({
       current: createdRole,
       performedBy,
     });
-    expect(roleRepository.create).toHaveBeenCalledWith(role);
+    expect(rolePersistence.insertRole).toHaveBeenCalledWith(expect.anything(), role);
   });
 
   it("maps duplicate role creation to a conflict", async () => {
-    roleRepository.create.mockRejectedValue(
+    rolePersistence.insertRole.mockRejectedValue(
       Object.assign(new Error("duplicate key value"), { code: "23505" }),
     );
 
@@ -154,13 +173,13 @@ describe("identity roles", () => {
         { resource: PermissionResource.Asset, verb: PermissionVerb.Write },
       ],
     };
-    roleRepository.getByID.mockResolvedValue(analystRole);
-    roleRepository.updateByID.mockResolvedValue({
+    rolePersistence.updateRole.mockResolvedValue({
+      previous: analystRole,
       role: updatedRole,
       permissionsChanged: true,
-      affectedUserCount: 2,
-      revokedSessionCount: 3,
+      affectedUserIds: ["first-user", "second-user"],
     });
+    sessionPersistence.deleteSessionsByUserIDs.mockResolvedValue(3);
 
     await expect(
       createService().updateByID({
@@ -177,12 +196,11 @@ describe("identity roles", () => {
   });
 
   it("marks an unchanged role update without losing its snapshots", async () => {
-    roleRepository.getByID.mockResolvedValue(analystRole);
-    roleRepository.updateByID.mockResolvedValue({
+    rolePersistence.updateRole.mockResolvedValue({
+      previous: analystRole,
       role: analystRole,
       permissionsChanged: false,
-      affectedUserCount: 0,
-      revokedSessionCount: 0,
+      affectedUserIds: [],
     });
 
     await expect(
@@ -200,8 +218,7 @@ describe("identity roles", () => {
   });
 
   it("returns null when an update target is missing or loses a deletion race", async () => {
-    roleRepository.getByID.mockResolvedValueOnce(null).mockResolvedValueOnce(analystRole);
-    roleRepository.updateByID.mockResolvedValue(null);
+    rolePersistence.updateRole.mockResolvedValue(null);
     const roles = createService();
     const command = {
       id: analystRole.id,
@@ -226,24 +243,27 @@ describe("identity roles", () => {
     await expect(roles.deleteByID({ id: builtInRoleIds.admin, performedBy })).rejects.toMatchObject(
       { code: "role.protected_role", kind: "denied" },
     );
-    expect(roleRepository.updateByID).not.toHaveBeenCalled();
-    expect(roleRepository.deleteByID).not.toHaveBeenCalled();
+    expect(rolePersistence.updateRole).not.toHaveBeenCalled();
+    expect(rolePersistence.deleteRole).not.toHaveBeenCalled();
   });
 
   it("returns a safe deletion outcome", async () => {
-    roleRepository.getByID.mockResolvedValue(analystRole);
-    roleRepository.deleteByID.mockResolvedValue(analystRole);
+    rolePersistence.getRoleByID.mockResolvedValue(analystRole);
+    rolePersistence.deleteRole.mockResolvedValue(analystRole);
 
     await expect(createService().deleteByID({ id: analystRole.id, performedBy })).resolves.toEqual({
       previous: analystRole,
       performedBy,
     });
-    expect(roleRepository.hasUsersWithRoleID).toHaveBeenCalledWith(analystRole.id);
+    expect(rolePersistence.hasUsersWithRoleID).toHaveBeenCalledWith(
+      expect.anything(),
+      analystRole.id,
+    );
   });
 
   it("rejects deleting roles assigned to users", async () => {
-    roleRepository.getByID.mockResolvedValue(analystRole);
-    roleRepository.hasUsersWithRoleID.mockResolvedValue(true);
+    rolePersistence.getRoleByID.mockResolvedValue(analystRole);
+    rolePersistence.hasUsersWithRoleID.mockResolvedValue(true);
 
     await expect(
       createService().deleteByID({ id: analystRole.id, performedBy }),
@@ -252,6 +272,6 @@ describe("identity roles", () => {
       kind: "conflict",
       details: { roleId: analystRole.id, roleName: analystRole.name },
     } satisfies Partial<ApplicationError>);
-    expect(roleRepository.deleteByID).not.toHaveBeenCalled();
+    expect(rolePersistence.deleteRole).not.toHaveBeenCalled();
   });
 });

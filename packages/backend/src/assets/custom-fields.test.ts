@@ -61,7 +61,7 @@ describe("asset custom fields", () => {
   const assetRepository = {
     getByID: vi.fn(),
   };
-  const userProfileRepository = {
+  const userProfileLookup = {
     getByID: vi.fn(),
   };
   const logger = pino({ enabled: false });
@@ -100,7 +100,7 @@ describe("asset custom fields", () => {
     const customFields = createAssetCustomFields({
       assetCustomFieldRepository,
       assetRepository,
-      userProfileRepository,
+      userProfileLookup,
       logger,
     });
 
@@ -210,7 +210,7 @@ describe("asset custom fields", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     domainEvents.clear();
-    userProfileRepository.getByID.mockResolvedValue(user);
+    userProfileLookup.getByID.mockResolvedValue(user);
   });
 
   it("lists custom field definitions from the repository", async () => {

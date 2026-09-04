@@ -1,4 +1,4 @@
-import { createUserProfileRepository } from "../identity/user-profile-repository.js";
+import { getUserProfileByID } from "../identity/user-profile-persistence.js";
 import {
   getOrCreateRuntimeValue,
   getRuntimeDatabase,
@@ -232,11 +232,13 @@ export function createAssets(runtime: BackendRuntime): Assets {
     const logger = getRuntimeLogger(runtime);
     const assetRepository = createAssetRepository(database);
     const assetCustomFieldRepository = createAssetCustomFieldRepository(database);
-    const userProfileRepository = createUserProfileRepository(database);
+    const userProfileLookup = {
+      getByID: (id: string) => getUserProfileByID(database, id),
+    };
     const customFields = createAssetCustomFields({
       assetCustomFieldRepository,
       assetRepository,
-      userProfileRepository,
+      userProfileLookup,
       logger: logger.child({ capability: "assets", component: "custom-fields" }),
     });
 
@@ -244,7 +246,7 @@ export function createAssets(runtime: BackendRuntime): Assets {
       inventory: createAssetInventory({
         assetRepository,
         assetCustomFieldReader: customFields,
-        userProfileRepository,
+        userProfileLookup,
         logger: logger.child({ capability: "assets", component: "inventory" }),
       }),
       customFields,

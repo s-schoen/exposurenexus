@@ -96,14 +96,14 @@ describe("exposure findings", () => {
     moveAndTouchFindings: vi.fn(),
   };
   const assetRepository = { getByID: vi.fn() };
-  const userProfileRepository = { getByID: vi.fn() };
+  const userProfileLookup = { getByID: vi.fn() };
   const vulnerabilityReader = { getByID: vi.fn() };
   const logger = pino({ enabled: false });
 
   beforeEach(() => {
     vi.resetAllMocks();
     assetRepository.getByID.mockResolvedValue({ id: assetId });
-    userProfileRepository.getByID.mockResolvedValue({ id: actorId });
+    userProfileLookup.getByID.mockResolvedValue({ id: actorId });
     vulnerabilityReader.getByID.mockResolvedValue(vulnerability);
   });
 
@@ -112,7 +112,7 @@ describe("exposure findings", () => {
       findingRepository,
       observationRepository,
       assetRepository,
-      userProfileRepository,
+      userProfileLookup,
       vulnerabilityReader,
       logger,
     });
@@ -181,7 +181,7 @@ describe("exposure findings", () => {
       }),
     ).rejects.toMatchObject({ code: "finding.asset_unknown", kind: "validation" });
     expect(vulnerabilityReader.getByID).not.toHaveBeenCalled();
-    expect(userProfileRepository.getByID).not.toHaveBeenCalled();
+    expect(userProfileLookup.getByID).not.toHaveBeenCalled();
     expect(findingRepository.createManual).not.toHaveBeenCalled();
   });
 

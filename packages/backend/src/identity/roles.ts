@@ -3,6 +3,8 @@ import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { ApplicationError, isApplicationError } from "../application-error.js";
 import { isConflictError } from "../database-error.js";
 
+import type { DatabaseExecutor } from "../database/executor.js";
+import type { Database } from "../database/index.js";
 import type {
   CreateRoleCommand,
   DeleteRoleByIDCommand,
@@ -12,8 +14,9 @@ import type {
   RoleUpdatedOutcome,
   UpdateRoleByIDCommand,
 } from "./identity.js";
-import type { RoleRepository } from "./role-repository.js";
+import type { RoleUpdatePersistenceResult } from "./role-persistence.js";
 import type { Role } from "@exposurenexus/contracts/model/rbac";
+import type { Kysely } from "kysely";
 import type { Logger } from "pino";
 
 const protectedRoleIds: Readonly<Record<string, true>> = {
@@ -35,15 +38,46 @@ function roleSnapshotsEqual(previous: Role, current: Role): boolean {
 }
 
 interface RoleDependencies {
-  roleRepository: RoleRepository;
+  database: Kysely<Database>;
+  rolePersistence: RolePersistence;
+  sessionPersistence: SessionPersistence;
   logger: Logger;
 }
 
-export function createRoles({ roleRepository, logger }: RoleDependencies): IdentityRoles {
+interface RolePersistence {
+  listRoles(database: DatabaseExecutor): Promise<Role[]>;
+  getRoleByID(database: DatabaseExecutor, id: string): Promise<Role | null>;
+  getRolesByIDs(database: DatabaseExecutor, ids: readonly string[]): Promise<Role[]>;
+  getRolesByNames(database: DatabaseExecutor, names: readonly string[]): Promise<Role[]>;
+  insertRole(database: DatabaseExecutor, role: CreateRoleCommand["role"]): Promise<Role>;
+  updateRole(
+    database: DatabaseExecutor,
+    options: {
+      id: string;
+      roleUpdate: UpdateRoleByIDCommand["role"];
+    },
+  ): Promise<RoleUpdatePersistenceResult | null>;
+  hasUsersWithRoleID(database: DatabaseExecutor, roleId: string): Promise<boolean>;
+  deleteRole(
+    database: DatabaseExecutor,
+    options: { id: string; previous: Role },
+  ): Promise<Role | null>;
+}
+
+interface SessionPersistence {
+  deleteSessionsByUserIDs(database: DatabaseExecutor, userIds: readonly string[]): Promise<number>;
+}
+
+export function createRoles({
+  database,
+  rolePersistence,
+  sessionPersistence,
+  logger,
+}: RoleDependencies): IdentityRoles {
   return {
     async listAll(): Promise<Role[]> {
       try {
-        return await roleRepository.list();
+        return await rolePersistence.listRoles(database);
       } catch (error) {
         logger.error(error, "failed to list roles");
         throw new ApplicationError({
@@ -57,7 +91,7 @@ export function createRoles({ roleRepository, logger }: RoleDependencies): Ident
 
     async getByID(id: string): Promise<Role | null> {
       try {
-        const role = await roleRepository.getByID(id);
+        const role = await rolePersistence.getRoleByID(database, id);
         if (!role) {
           logger.debug(`role with id ${id} not found`);
         }
@@ -76,7 +110,7 @@ export function createRoles({ roleRepository, logger }: RoleDependencies): Ident
 
     async getByNames(names: readonly string[]): Promise<Role[]> {
       try {
-        return await roleRepository.getByNames(uniqueValues(names));
+        return await rolePersistence.getRolesByNames(database, uniqueValues(names));
       } catch (error) {
         logger.error(error, "failed to get roles by name");
         throw new ApplicationError({
@@ -92,7 +126,7 @@ export function createRoles({ roleRepository, logger }: RoleDependencies): Ident
     async resolveRoleIdsFromNames(names: readonly string[]): Promise<string[]> {
       try {
         const uniqueNames = uniqueValues(names);
-        const roles = await roleRepository.getByNames(uniqueNames);
+        const roles = await rolePersistence.getRolesByNames(database, uniqueNames);
         const roleIdByName = new Map(roles.map((role) => [role.name, role.id]));
 
         return uniqueNames.flatMap((name) => {
@@ -114,7 +148,7 @@ export function createRoles({ roleRepository, logger }: RoleDependencies): Ident
     async requireRoleNamesFromIds(ids: readonly string[]): Promise<string[]> {
       try {
         const uniqueIds = uniqueValues(ids);
-        const roles = await roleRepository.getByIDs(uniqueIds);
+        const roles = await rolePersistence.getRolesByIDs(database, uniqueIds);
         const roleNameById = new Map(roles.map((role) => [role.id, role.name]));
         const missingRoleIds = uniqueIds.filter((id) => !roleNameById.has(id));
 
@@ -146,8 +180,12 @@ export function createRoles({ roleRepository, logger }: RoleDependencies): Ident
 
     async create({ role: roleInput, performedBy }: CreateRoleCommand): Promise<RoleCreatedOutcome> {
       try {
+        const current = await database
+          .transaction()
+          .execute((trx) => rolePersistence.insertRole(trx, roleInput));
+
         return {
-          current: await roleRepository.create(roleInput),
+          current,
           performedBy,
         };
       } catch (error) {
@@ -188,13 +226,19 @@ export function createRoles({ roleRepository, logger }: RoleDependencies): Ident
       }
 
       try {
-        const previousRole = await roleRepository.getByID(id);
-        if (!previousRole) {
-          logger.debug(`role with id ${id} not found`);
-          return null;
-        }
+        const updateResult = await database.transaction().execute(async (trx) => {
+          const result = await rolePersistence.updateRole(trx, { id, roleUpdate });
+          if (!result) {
+            return null;
+          }
 
-        const updateResult = await roleRepository.updateByID(id, roleUpdate);
+          const revokedSessionCount = result.permissionsChanged
+            ? await sessionPersistence.deleteSessionsByUserIDs(trx, result.affectedUserIds)
+            : 0;
+
+          return { ...result, revokedSessionCount };
+        });
+
         if (!updateResult) {
           logger.debug(`role with id ${id} not found`);
           return null;
@@ -204,7 +248,7 @@ export function createRoles({ roleRepository, logger }: RoleDependencies): Ident
           logger.info(
             {
               roleId: id,
-              affectedUserCount: updateResult.affectedUserCount,
+              affectedUserCount: updateResult.affectedUserIds.length,
               revokedSessionCount: updateResult.revokedSessionCount,
             },
             "revoked user sessions after role permission update",
@@ -212,9 +256,9 @@ export function createRoles({ roleRepository, logger }: RoleDependencies): Ident
         }
 
         return {
-          previous: previousRole,
+          previous: updateResult.previous,
           current: updateResult.role,
-          changed: !roleSnapshotsEqual(previousRole, updateResult.role),
+          changed: !roleSnapshotsEqual(updateResult.previous, updateResult.role),
           performedBy,
         };
       } catch (error) {
@@ -258,24 +302,26 @@ export function createRoles({ roleRepository, logger }: RoleDependencies): Ident
       }
 
       try {
-        const existingRole = await roleRepository.getByID(id);
-        if (!existingRole) {
-          logger.debug(`role with id ${id} not found`);
-          return null;
-        }
+        const deletedRole = await database.transaction().execute(async (trx) => {
+          const existingRole = await rolePersistence.getRoleByID(trx, id);
+          if (!existingRole) {
+            return null;
+          }
 
-        if (await roleRepository.hasUsersWithRoleID(existingRole.id)) {
-          throw new ApplicationError({
-            code: "role.assigned_to_users",
-            kind: "conflict",
-            message: `role ${existingRole.name} is still assigned to users`,
-            details: { roleId: existingRole.id, roleName: existingRole.name },
-          });
-        }
+          if (await rolePersistence.hasUsersWithRoleID(trx, existingRole.id)) {
+            throw new ApplicationError({
+              code: "role.assigned_to_users",
+              kind: "conflict",
+              message: `role ${existingRole.name} is still assigned to users`,
+              details: { roleId: existingRole.id, roleName: existingRole.name },
+            });
+          }
 
-        const deletedRole = await roleRepository.deleteByID(id);
+          return await rolePersistence.deleteRole(trx, { id, previous: existingRole });
+        });
+
         if (!deletedRole) {
-          logger.debug(`role with id ${id} not found during delete`);
+          logger.debug(`role with id ${id} not found`);
           return null;
         }
 

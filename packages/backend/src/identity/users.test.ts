@@ -43,17 +43,31 @@ const publicFirstProfile = {
   enabled: firstProfile.enabled,
   roleIds: firstProfile.roleIds,
 };
-const userProfileRepository = {
-  list: vi.fn(),
-  getByID: vi.fn(),
-  getByUsername: vi.fn(),
-  create: vi.fn(),
-  updateByID: vi.fn(),
+const userProfilePersistence = {
+  listUserProfiles: vi.fn(),
+  getUserProfileByID: vi.fn(),
+  getUserProfileByUsername: vi.fn(),
+  insertUserProfile: vi.fn(),
+  updateUserProfile: vi.fn(),
+};
+const sessionPersistence = {
+  deleteSessionsByUserID: vi.fn(),
+};
+const database = {
+  transaction: vi.fn(),
+};
+const transaction = {
+  execute: vi.fn(),
 };
 const logger = pino({ enabled: false });
 
 function createService() {
-  return createUsers({ userProfileRepository, logger });
+  return createUsers({
+    database: database as never,
+    userProfilePersistence,
+    sessionPersistence,
+    logger,
+  });
 }
 
 function updatePayload(overrides: Partial<UpdateUserProfile> = {}): UpdateUserProfile {
@@ -70,12 +84,17 @@ describe("identity users", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hashPlaintextPasswordMock.mockResolvedValue("argon2-password-hash");
+    database.transaction.mockReturnValue(transaction);
+    transaction.execute.mockImplementation(
+      async (callback: (executor: typeof database) => unknown) => await callback(database),
+    );
+    sessionPersistence.deleteSessionsByUserID.mockResolvedValue(0);
   });
 
   it("returns public user profiles without password hashes", async () => {
-    userProfileRepository.list.mockResolvedValue([firstProfile, secondProfile]);
-    userProfileRepository.getByID.mockResolvedValue(firstProfile);
-    userProfileRepository.getByUsername.mockResolvedValue(secondProfile);
+    userProfilePersistence.listUserProfiles.mockResolvedValue([firstProfile, secondProfile]);
+    userProfilePersistence.getUserProfileByID.mockResolvedValue(firstProfile);
+    userProfilePersistence.getUserProfileByUsername.mockResolvedValue(secondProfile);
     const users = createService();
 
     const listed = await users.listAll();
@@ -94,8 +113,8 @@ describe("identity users", () => {
   });
 
   it("returns null for missing ids and usernames", async () => {
-    userProfileRepository.getByID.mockResolvedValue(null);
-    userProfileRepository.getByUsername.mockResolvedValue(null);
+    userProfilePersistence.getUserProfileByID.mockResolvedValue(null);
+    userProfilePersistence.getUserProfileByUsername.mockResolvedValue(null);
     const users = createService();
 
     await expect(users.getByID(firstProfile.id)).resolves.toBeNull();
@@ -103,16 +122,16 @@ describe("identity users", () => {
   });
 
   it.each([
-    ["listAll", "list", "user_profile.list_failed", undefined],
-    ["getByID", "getByID", "user_profile.get_failed", firstProfile.id],
+    ["listAll", "listUserProfiles", "user_profile.list_failed", undefined],
+    ["getByID", "getUserProfileByID", "user_profile.get_failed", firstProfile.id],
     [
       "getByUsername",
-      "getByUsername",
+      "getUserProfileByUsername",
       "user_profile.get_by_username_failed",
       firstProfile.username,
     ],
-  ] as const)("maps %s persistence failures", async (method, repositoryMethod, code, argument) => {
-    userProfileRepository[repositoryMethod].mockRejectedValue(new Error("db offline"));
+  ] as const)("maps %s persistence failures", async (method, persistenceMethod, code, argument) => {
+    userProfilePersistence[persistenceMethod].mockRejectedValue(new Error("db offline"));
     const users = createService();
 
     await expect(
@@ -134,7 +153,7 @@ describe("identity users", () => {
       passwordHash: "argon2-password-hash",
       roleIds: userProfile.roleIds,
     };
-    userProfileRepository.create.mockResolvedValue(createdProfile);
+    userProfilePersistence.insertUserProfile.mockResolvedValue(createdProfile);
 
     const outcome = await createService().create({ userProfile, performedBy });
 
@@ -147,16 +166,16 @@ describe("identity users", () => {
     });
     expect(outcome.current).not.toHaveProperty("passwordHash");
     expect(hashPlaintextPasswordMock).toHaveBeenCalledWith(userProfile.password);
-    expect(userProfileRepository.create).toHaveBeenCalledWith(
-      {
+    expect(userProfilePersistence.insertUserProfile).toHaveBeenCalledWith(expect.anything(), {
+      userProfile: {
         username: userProfile.username,
         displayName: userProfile.displayName,
         email: userProfile.email,
         enabled: userProfile.enabled,
         passwordHash: "argon2-password-hash",
       },
-      userProfile.roleIds,
-    );
+      roleIds: userProfile.roleIds,
+    });
   });
 
   it("maps duplicate profiles and unknown role assignments", async () => {
@@ -170,7 +189,7 @@ describe("identity users", () => {
     };
     const users = createService();
 
-    userProfileRepository.create.mockRejectedValueOnce(
+    userProfilePersistence.insertUserProfile.mockRejectedValueOnce(
       Object.assign(new Error("duplicate key value"), { code: "23505" }),
     );
     await expect(users.create({ userProfile, performedBy })).rejects.toMatchObject({
@@ -179,7 +198,7 @@ describe("identity users", () => {
       details: { username: userProfile.username, email: userProfile.email },
     } satisfies Partial<ApplicationError>);
 
-    userProfileRepository.create.mockRejectedValueOnce(
+    userProfilePersistence.insertUserProfile.mockRejectedValueOnce(
       Object.assign(new Error("violates foreign key constraint"), { code: "23503" }),
     );
     await expect(users.create({ userProfile, performedBy })).rejects.toMatchObject({
@@ -196,11 +215,9 @@ describe("identity users", () => {
       enabled: false,
       roleIds: [builtInRoleIds.admin],
     };
-    userProfileRepository.getByID.mockResolvedValue(firstProfile);
-    userProfileRepository.updateByID.mockResolvedValue({
-      userProfile: updatedProfile,
-      revokedSessionCount: 2,
-    });
+    userProfilePersistence.getUserProfileByID.mockResolvedValue(firstProfile);
+    userProfilePersistence.updateUserProfile.mockResolvedValue(updatedProfile);
+    sessionPersistence.deleteSessionsByUserID.mockResolvedValue(2);
 
     const outcome = await createService().updateByID({
       id: firstProfile.id,
@@ -224,7 +241,7 @@ describe("identity users", () => {
     });
     expect(outcome?.previous).not.toHaveProperty("passwordHash");
     expect(outcome?.current).not.toHaveProperty("passwordHash");
-    expect(userProfileRepository.updateByID).toHaveBeenCalledWith({
+    expect(userProfilePersistence.updateUserProfile).toHaveBeenCalledWith(expect.anything(), {
       id: firstProfile.id,
       userProfile: {
         username: firstProfile.username,
@@ -234,17 +251,14 @@ describe("identity users", () => {
         passwordHash: firstProfile.passwordHash,
       },
       roleIds: updatedProfile.roleIds,
-      revokeSessions: true,
     });
   });
 
   it("hashes replacement passwords and revokes sessions", async () => {
     const updatedProfile = { ...firstProfile, passwordHash: "argon2-password-hash" };
-    userProfileRepository.getByID.mockResolvedValue(firstProfile);
-    userProfileRepository.updateByID.mockResolvedValue({
-      userProfile: updatedProfile,
-      revokedSessionCount: 1,
-    });
+    userProfilePersistence.getUserProfileByID.mockResolvedValue(firstProfile);
+    userProfilePersistence.updateUserProfile.mockResolvedValue(updatedProfile);
+    sessionPersistence.deleteSessionsByUserID.mockResolvedValue(1);
 
     await createService().updateByID({
       id: firstProfile.id,
@@ -253,21 +267,18 @@ describe("identity users", () => {
     });
 
     expect(hashPlaintextPasswordMock).toHaveBeenCalledWith("new-password");
-    expect(userProfileRepository.updateByID).toHaveBeenCalledWith(
+    expect(userProfilePersistence.updateUserProfile).toHaveBeenCalledWith(
+      expect.anything(),
       expect.objectContaining({
         userProfile: expect.objectContaining({ passwordHash: "argon2-password-hash" }),
-        revokeSessions: true,
       }),
     );
   });
 
   it("does not revoke sessions for non-sensitive profile changes", async () => {
     const updatedProfile = { ...firstProfile, displayName: "Alice Updated" };
-    userProfileRepository.getByID.mockResolvedValue(firstProfile);
-    userProfileRepository.updateByID.mockResolvedValue({
-      userProfile: updatedProfile,
-      revokedSessionCount: 0,
-    });
+    userProfilePersistence.getUserProfileByID.mockResolvedValue(firstProfile);
+    userProfilePersistence.updateUserProfile.mockResolvedValue(updatedProfile);
 
     await createService().updateByID({
       id: firstProfile.id,
@@ -275,14 +286,17 @@ describe("identity users", () => {
       performedBy,
     });
 
-    expect(userProfileRepository.updateByID).toHaveBeenCalledWith(
-      expect.objectContaining({ revokeSessions: false }),
+    expect(userProfilePersistence.updateUserProfile).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.not.objectContaining({ revokeSessions: expect.anything() }),
     );
   });
 
   it("returns null when an update target is missing or loses a deletion race", async () => {
-    userProfileRepository.getByID.mockResolvedValueOnce(null).mockResolvedValueOnce(firstProfile);
-    userProfileRepository.updateByID.mockResolvedValue(null);
+    userProfilePersistence.getUserProfileByID
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(firstProfile);
+    userProfilePersistence.updateUserProfile.mockResolvedValue(null);
     const users = createService();
     const command = {
       id: firstProfile.id,
@@ -295,7 +309,7 @@ describe("identity users", () => {
   });
 
   it("preserves update conflict and role assignment errors", async () => {
-    userProfileRepository.getByID.mockResolvedValue(firstProfile);
+    userProfilePersistence.getUserProfileByID.mockResolvedValue(firstProfile);
     const command = {
       id: firstProfile.id,
       userProfile: updatePayload(),
@@ -303,7 +317,7 @@ describe("identity users", () => {
     };
     const users = createService();
 
-    userProfileRepository.updateByID.mockRejectedValueOnce(
+    userProfilePersistence.updateUserProfile.mockRejectedValueOnce(
       Object.assign(new Error("duplicate key value"), { code: "23505" }),
     );
     await expect(users.updateByID(command)).rejects.toMatchObject({
@@ -312,7 +326,7 @@ describe("identity users", () => {
       details: { userProfileId: firstProfile.id },
     } satisfies Partial<ApplicationError>);
 
-    userProfileRepository.updateByID.mockRejectedValueOnce(
+    userProfilePersistence.updateUserProfile.mockRejectedValueOnce(
       Object.assign(new Error("foreign key violation"), { code: "23503" }),
     );
     await expect(users.updateByID(command)).rejects.toMatchObject({

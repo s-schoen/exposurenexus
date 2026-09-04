@@ -7,7 +7,6 @@ import {
 import { ApplicationError, isApplicationError } from "../application-error.js";
 import { isConflictError } from "../database-error.js";
 
-import type { UserProfileRepository } from "../identity/user-profile-repository.js";
 import type { VulnerabilityRepository } from "./vulnerability-repository.js";
 import type { Logger } from "pino";
 
@@ -53,8 +52,12 @@ export interface ExposureVulnerabilities {
 
 interface VulnerabilityDependencies {
   vulnerabilityRepository: VulnerabilityRepository;
-  userProfileRepository: Pick<UserProfileRepository, "getByID">;
+  userProfileLookup: UserProfileLookup;
   logger: Logger;
+}
+
+interface UserProfileLookup {
+  getByID(id: string): Promise<object | null>;
 }
 
 function parseCatalogInput(input: VulnerabilityInput): VulnerabilityInput {
@@ -73,17 +76,17 @@ function parseCatalogInput(input: VulnerabilityInput): VulnerabilityInput {
 }
 
 async function requireAuditActor(
-  userProfileRepository: Pick<UserProfileRepository, "getByID">,
+  userProfileLookup: UserProfileLookup,
   performedBy: string,
 ): Promise<void> {
-  if (!(await userProfileRepository.getByID(performedBy))) {
+  if (!(await userProfileLookup.getByID(performedBy))) {
     throw new Error(`vulnerability audit actor ${performedBy} does not exist`);
   }
 }
 
 export function createVulnerabilities({
   vulnerabilityRepository,
-  userProfileRepository,
+  userProfileLookup,
   logger,
 }: VulnerabilityDependencies): ExposureVulnerabilities {
   return {
@@ -120,7 +123,7 @@ export function createVulnerabilities({
       const vulnerability = parseCatalogInput(command.vulnerability);
 
       try {
-        await requireAuditActor(userProfileRepository, command.performedBy);
+        await requireAuditActor(userProfileLookup, command.performedBy);
         const now = new Date();
         const created = await vulnerabilityRepository.create({
           ...vulnerability,
@@ -174,7 +177,7 @@ export function createVulnerabilities({
           return null;
         }
 
-        await requireAuditActor(userProfileRepository, command.performedBy);
+        await requireAuditActor(userProfileLookup, command.performedBy);
         const current = await vulnerabilityRepository.updateByID(command.id, {
           ...vulnerability,
           updatedAt: new Date(),

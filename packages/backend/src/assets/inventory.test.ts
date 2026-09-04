@@ -74,7 +74,7 @@ describe("asset inventory", () => {
   const assetCustomFieldReader = {
     listEffectiveValuesForAssets: vi.fn(),
   };
-  const userProfileRepository = {
+  const userProfileLookup = {
     getByID: vi.fn(),
   };
   const logger = pino({ enabled: false });
@@ -126,7 +126,7 @@ describe("asset inventory", () => {
     const inventory = createAssetInventory({
       assetRepository,
       assetCustomFieldReader,
-      userProfileRepository,
+      userProfileLookup,
       logger,
     });
 
@@ -239,7 +239,7 @@ describe("asset inventory", () => {
     vi.resetAllMocks();
     domainEvents.clear();
     assetRepository.countFindingsByAssetID.mockResolvedValue(0);
-    userProfileRepository.getByID.mockResolvedValue(user);
+    userProfileLookup.getByID.mockResolvedValue(user);
     assetCustomFieldReader.listEffectiveValuesForAssets.mockImplementation(
       async (assetIds: readonly string[]) => new Map(assetIds.map((assetId) => [assetId, []])),
     );
@@ -529,7 +529,7 @@ describe("asset inventory", () => {
     const assetService = createTestAssetService();
     vi.useFakeTimers();
     vi.setSystemTime(now);
-    userProfileRepository.getByID.mockResolvedValue({ ...user, id: ownerId });
+    userProfileLookup.getByID.mockResolvedValue({ ...user, id: ownerId });
     assetRepository.create.mockResolvedValue(created);
 
     await expect(
@@ -576,7 +576,7 @@ describe("asset inventory", () => {
     const ownerId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";
     const created = createAssetFixture({ ownerId });
     const assetService = createTestAssetService();
-    userProfileRepository.getByID.mockResolvedValue({
+    userProfileLookup.getByID.mockResolvedValue({
       ...user,
       id: ownerId,
       enabled: false,
@@ -589,13 +589,13 @@ describe("asset inventory", () => {
         user,
       }),
     ).resolves.toEqual(created);
-    expect(userProfileRepository.getByID).toHaveBeenCalledWith(ownerId);
+    expect(userProfileLookup.getByID).toHaveBeenCalledWith(ownerId);
   });
 
   it("rejects unknown owners before creating an asset", async () => {
     const ownerId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";
     const assetService = createTestAssetService();
-    userProfileRepository.getByID.mockResolvedValue(null);
+    userProfileLookup.getByID.mockResolvedValue(null);
 
     await expect(
       assetService.create({
@@ -664,7 +664,7 @@ describe("asset inventory", () => {
     const previous = createAssetFixture();
     const current = createAssetFixture({ ownerId, updatedBy: user.id });
     const assetService = createTestAssetService();
-    userProfileRepository.getByID.mockResolvedValue({ ...user, id: ownerId });
+    userProfileLookup.getByID.mockResolvedValue({ ...user, id: ownerId });
     assetRepository.getByID.mockResolvedValueOnce(previous).mockResolvedValueOnce(current);
     assetRepository.updateByID.mockResolvedValue(assetMutation(previous, current));
 
@@ -677,7 +677,7 @@ describe("asset inventory", () => {
       }),
     ).resolves.toEqual(current);
 
-    expect(userProfileRepository.getByID).toHaveBeenCalledWith(ownerId);
+    expect(userProfileLookup.getByID).toHaveBeenCalledWith(ownerId);
     expect(assetRepository.updateByID).toHaveBeenCalledWith(
       previous.id,
       expect.objectContaining({ ownerId, updatedBy: user.id, updatedAt: expect.any(Date) }),
@@ -702,7 +702,7 @@ describe("asset inventory", () => {
       }),
     ).resolves.toEqual(current);
 
-    expect(userProfileRepository.getByID).toHaveBeenCalledWith(user.id);
+    expect(userProfileLookup.getByID).toHaveBeenCalledWith(user.id);
     expect(assetRepository.updateByID).toHaveBeenCalledWith(
       previous.id,
       expect.objectContaining({ ownerId: null }),
@@ -714,7 +714,7 @@ describe("asset inventory", () => {
     const asset = createAssetFixture();
     const assetService = createTestAssetService();
     assetRepository.getByID.mockResolvedValue(asset);
-    userProfileRepository.getByID.mockResolvedValue(null);
+    userProfileLookup.getByID.mockResolvedValue(null);
 
     await expect(
       assetService.updateByID({ id: asset.id, asset: { ownerId }, user }),

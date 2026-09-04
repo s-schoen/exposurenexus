@@ -1,14 +1,15 @@
+import * as sessionPersistence from "../authentication/session-persistence.js";
 import {
   getOrCreateRuntimeValue,
   getRuntimeDatabase,
   getRuntimeLogger,
   type BackendRuntime,
 } from "../runtime.js";
-import { createAuthorizationRepository } from "./authorization-repository.js";
+import * as authorizationPersistence from "./authorization-persistence.js";
 import { createAuthorization } from "./authorization.js";
-import { createRoleRepository } from "./role-repository.js";
+import * as rolePersistence from "./role-persistence.js";
 import { createRoles } from "./roles.js";
-import { createUserProfileRepository } from "./user-profile-repository.js";
+import * as userProfilePersistence from "./user-profile-persistence.js";
 import { createUsers } from "./users.js";
 
 import type {
@@ -124,15 +125,20 @@ export function createIdentity(runtime: BackendRuntime): Identity {
 
     return {
       users: createUsers({
-        userProfileRepository: createUserProfileRepository(database),
+        database,
+        userProfilePersistence,
+        sessionPersistence,
         logger: logger.child({ capability: "identity", component: "users" }),
       }),
       roles: createRoles({
-        roleRepository: createRoleRepository(database),
+        database,
+        rolePersistence,
+        sessionPersistence,
         logger: logger.child({ capability: "identity", component: "roles" }),
       }),
       authorization: createAuthorization({
-        authorizationRepository: createAuthorizationRepository(database),
+        database,
+        authorizationPersistence,
         logger: logger.child({ capability: "identity", component: "authorization" }),
       }),
     } satisfies Identity;
