@@ -1,0 +1,277 @@
+import {
+  VulnerabilitySeverity,
+  VulnerabilityType,
+} from "@exposurenexus/contracts/model/vulnerability";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import {
+  createVulnerability,
+  deleteVulnerability,
+  getVulnerabilityByID,
+  listVulnerabilities,
+  updateVulnerability,
+} from "@/features/vulnerabilities/api/vulnerabilities.ts";
+
+import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
+
+const fetchMock = vi.fn<typeof fetch>();
+
+function jsonResponse(body: object, init?: ResponseInit): Response {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...init,
+  });
+}
+
+function requestHeader(name: string): string | null | undefined {
+  const headers = fetchMock.mock.calls[0]?.[1]?.headers as Headers | undefined;
+  return headers?.get(name);
+}
+
+const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe";
+const userId = "1f9c36d2-1355-49d1-8464-b01ce955d88f";
+const vulnerabilityJson = {
+  id: vulnerabilityId,
+  type: VulnerabilityType.Cve,
+  identifier: "CVE-2026-0001",
+  title: "Exposed Admin Endpoint",
+  severity: VulnerabilitySeverity.High,
+  description: "Administrative interface is reachable externally",
+  metadata: { cwe: 284 },
+  createdBy: userId,
+  updatedBy: userId,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-02T00:00:00.000Z",
+};
+
+function expectVulnerabilityDates(vulnerability: VulnerabilityCatalog) {
+  expect(vulnerability.createdAt).toBeInstanceOf(Date);
+  expect(vulnerability.updatedAt).toBeInstanceOf(Date);
+  expect(vulnerability.createdAt.toISOString()).toBe("2026-01-01T00:00:00.000Z");
+  expect(vulnerability.updatedAt.toISOString()).toBe("2026-01-02T00:00:00.000Z");
+}
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", fetchMock);
+  fetchMock.mockReset();
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+describe("vulnerability api", () => {
+  it("lists and parses vulnerabilities", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          items: [vulnerabilityJson],
+        },
+      }),
+    );
+
+    const vulnerabilities = await listVulnerabilities();
+    expect(vulnerabilities).toHaveLength(1);
+    expect(vulnerabilities[0]).toMatchObject({
+      id: vulnerabilityId,
+      title: "Exposed Admin Endpoint",
+      severity: VulnerabilitySeverity.High,
+    });
+    expectVulnerabilityDates(vulnerabilities[0]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/vulnerabilities",
+      expect.objectContaining({
+        credentials: "include",
+        method: "GET",
+      }),
+    );
+  });
+
+  it("gets and parses vulnerability details", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: vulnerabilityJson,
+      }),
+    );
+
+    const vulnerability = await getVulnerabilityByID(vulnerabilityId);
+
+    expect(vulnerability.id).toBe(vulnerabilityId);
+    expectVulnerabilityDates(vulnerability);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/vulnerabilities/${vulnerabilityId}`,
+      expect.objectContaining({
+        credentials: "include",
+        method: "GET",
+      }),
+    );
+  });
+
+  it("throws API errors from list requests", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: "Vulnerability list failed",
+          reason: "database unavailable",
+        },
+        { status: 503 },
+      ),
+    );
+
+    await expect(listVulnerabilities()).rejects.toThrow("Vulnerability list failed");
+  });
+
+  it("throws API errors from detail requests", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: "Vulnerability not found",
+          reason: "missing record",
+        },
+        { status: 404 },
+      ),
+    );
+
+    await expect(getVulnerabilityByID(vulnerabilityId)).rejects.toThrow("Vulnerability not found");
+  });
+
+  it("creates vulnerabilities with a JSON request body", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: vulnerabilityJson,
+      }),
+    );
+
+    const payload = {
+      type: VulnerabilityType.Cve,
+      identifier: "cve-2026-0001",
+      title: "Exposed Admin Endpoint",
+      severity: VulnerabilitySeverity.High,
+      description: "Administrative interface is reachable externally",
+      metadata: { cwe: 284 },
+    };
+    const created = await createVulnerability(payload);
+
+    expect(created.id).toBe(vulnerabilityId);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/vulnerabilities",
+      expect.objectContaining({
+        credentials: "include",
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    );
+    expect(requestHeader("Content-Type")).toBe("application/json");
+  });
+
+  it("updates vulnerabilities with a JSON request body", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: vulnerabilityJson,
+      }),
+    );
+
+    const payload = {
+      type: VulnerabilityType.Custom,
+      identifier: "exposed-management-endpoint",
+      title: "Exposed Management Endpoint",
+      severity: VulnerabilitySeverity.Critical,
+      description: null,
+      metadata: null,
+    };
+    const updated = await updateVulnerability(vulnerabilityId, payload);
+
+    expect(updated.id).toBe(vulnerabilityId);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/vulnerabilities/${vulnerabilityId}`,
+      expect.objectContaining({
+        credentials: "include",
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }),
+    );
+    expect(requestHeader("Content-Type")).toBe("application/json");
+  });
+
+  it("deletes vulnerabilities", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: vulnerabilityJson,
+      }),
+    );
+
+    const deleted = await deleteVulnerability(vulnerabilityId);
+
+    expect(deleted.id).toBe(vulnerabilityId);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/vulnerabilities/${vulnerabilityId}`,
+      expect.objectContaining({
+        credentials: "include",
+        method: "DELETE",
+      }),
+    );
+  });
+
+  it("throws API errors from create, update, and delete requests", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: "Vulnerability create failed",
+          reason: "invalid payload",
+        },
+        { status: 400 },
+      ),
+    );
+
+    await expect(
+      createVulnerability({
+        type: VulnerabilityType.Custom,
+        identifier: "",
+        title: "",
+        severity: VulnerabilitySeverity.High,
+        description: null,
+        metadata: null,
+      }),
+    ).rejects.toThrow("Vulnerability create failed");
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: "Vulnerability update failed",
+          reason: "missing record",
+        },
+        { status: 404 },
+      ),
+    );
+
+    await expect(
+      updateVulnerability(vulnerabilityId, {
+        type: VulnerabilityType.Custom,
+        identifier: "exposed-admin-endpoint",
+        title: "Exposed Admin Endpoint",
+        severity: VulnerabilitySeverity.High,
+        description: null,
+        metadata: null,
+      }),
+    ).rejects.toThrow("Vulnerability update failed");
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: "Vulnerability delete failed",
+          reason: "delete rejected",
+        },
+        { status: 409 },
+      ),
+    );
+
+    await expect(deleteVulnerability(vulnerabilityId)).rejects.toThrow(
+      "Vulnerability delete failed",
+    );
+  });
+});

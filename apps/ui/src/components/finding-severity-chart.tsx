@@ -3,8 +3,7 @@ import { useMemo } from "react";
 
 import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { severityChartColor } from "@/lib/colors.ts";
-import { formatSeverity } from "@/lib/format.ts";
+import { formatSeverity, severityChartColor } from "@/features/vulnerabilities";
 import { cn } from "@/lib/utils.ts";
 
 import type { ChartConfig } from "@/components/ui/chart.tsx";
