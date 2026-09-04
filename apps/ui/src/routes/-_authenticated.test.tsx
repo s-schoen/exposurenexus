@@ -5,6 +5,14 @@ import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => ({
   actionClick: vi.fn(),
+  findingStats: {
+    data: {
+      status: {
+        active: 7,
+        confirmed: 3,
+      },
+    },
+  },
   page: {
     actions: [] as Array<{
       disabled?: boolean;
@@ -21,6 +29,10 @@ const mocks = vi.hoisted(() => ({
   })),
 }));
 
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: () => mocks.findingStats,
+}));
+
 vi.mock("@tanstack/react-router", async (importOriginal) => {
   const actual = await importOriginal();
 
@@ -34,11 +46,25 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 });
 
 vi.mock("@/components/app-sidebar.tsx", () => ({
-  AppSidebar: () => <aside>Sidebar</aside>,
+  AppSidebar: ({
+    mitigationCount,
+    triageCount,
+  }: {
+    mitigationCount: number;
+    triageCount: number;
+  }) => (
+    <aside>
+      Sidebar {triageCount} {mitigationCount}
+    </aside>
+  ),
 }));
 
 vi.mock("@/components/app-header.tsx", () => ({
-  default: () => <header>Header</header>,
+  default: ({ accountMenu }: { accountMenu: ReactNode }) => <header>Header {accountMenu}</header>,
+}));
+
+vi.mock("@/features/auth/index.ts", () => ({
+  AccountMenu: () => <div>Account menu</div>,
 }));
 
 vi.mock("@/components/confirm-dialog.tsx", () => ({
@@ -51,6 +77,16 @@ vi.mock("@/features/assets", () => ({
   AssetDialog: {
     Root: () => null,
   },
+}));
+
+vi.mock("@/features/findings/index.ts", () => ({
+  createFindingStatsQueryOptions: () => ({
+    queryKey: ["findings", "stats"],
+  }),
+  getFindingNavigationCounts: (stats: { status: { active?: number; confirmed?: number } }) => ({
+    triageCount: stats.status.active ?? 0,
+    mitigationCount: stats.status.confirmed ?? 0,
+  }),
 }));
 
 vi.mock("@/components/ui/sonner.tsx", () => ({
@@ -168,7 +204,8 @@ describe("authenticated route guard", () => {
     });
 
     expect(await screen.findByText("Header")).toBeTruthy();
-    expect(screen.getByText("Sidebar")).toBeTruthy();
+    expect(screen.getByText("Account menu")).toBeTruthy();
+    expect(screen.getByText("Sidebar 7 3")).toBeTruthy();
     expect(screen.getByText("Outlet")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Triage queue" })).toBeTruthy();
     expect(screen.getByText("Review active findings that need analyst attention.")).toBeTruthy();
