@@ -16,7 +16,6 @@ import {
   createAssetCustomFieldValuesQueryOptions,
   createAvailableAssetCustomFieldDefinitionsQueryOptions,
 } from "@/api/asset.ts";
-import { createListUsersQueryOptions } from "@/api/user.ts";
 import { AssetIdentifierTable } from "@/components/asset-identifier-table.tsx";
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
@@ -40,9 +39,10 @@ import { Separator } from "@/components/ui/separator.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import {
   UserLabel,
+  createListUsersQueryOptions,
   createUserProfileById,
   formatUserProfileReference,
-} from "@/components/user-label.tsx";
+} from "@/features/users";
 import { useAssetLifecycle } from "@/hooks/use-asset-lifecycle.ts";
 import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts";
 import { capitalizeFirstLetter } from "@/lib/format.ts";

@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo } from "react";
 import { fn } from "storybook/test";
 
-import { UserTable } from "@/components/user-table";
+import { UserTable } from "@/features/users/components/user-table/index.tsx";
 import { ROLE_FIXTURES, STORY_USERS } from "@/test/fixtures.ts";
 import {
   RouterStoryProvider,

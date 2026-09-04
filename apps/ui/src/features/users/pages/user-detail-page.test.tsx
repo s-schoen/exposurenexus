@@ -48,7 +48,7 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: () => mocks.userQuery,
 }));
 
-vi.mock("@/api/user.ts", () => ({
+vi.mock("@/features/users/queries/users.ts", () => ({
   createUserByIDQueryOptions: (id: string) => ({
     queryKey: ["users", id],
   }),
@@ -58,7 +58,7 @@ vi.mock("@/hooks/use-page-meta.tsx", () => ({
   usePageMeta: mocks.usePageMeta,
 }));
 
-vi.mock("@/components/user-detail-content.tsx", () => ({
+vi.mock("@/features/users/components/user-detail-content.tsx", () => ({
   UserDetailContent: ({
     titleAction,
     userId: renderedUserId,
@@ -89,7 +89,7 @@ describe("UserDetailPage", () => {
   });
 
   it("uses loaded user data for page metadata and renders the back link", async () => {
-    const { UserDetailPage } = await import("@/features/users/components/user-detail-page.tsx");
+    const { UserDetailPage } = await import("@/features/users/pages/user-detail-page.tsx");
 
     render(<UserDetailPage userId={userId} />);
 
@@ -107,7 +107,7 @@ describe("UserDetailPage", () => {
   });
 
   it("uses fallback page metadata before user data is available", async () => {
-    const { UserDetailPage } = await import("@/features/users/components/user-detail-page.tsx");
+    const { UserDetailPage } = await import("@/features/users/pages/user-detail-page.tsx");
     mocks.userQuery = {
       isPending: true,
       isSuccess: false,
@@ -127,7 +127,7 @@ describe("UserDetailPage", () => {
   });
 
   it("navigates to edit from the page action", async () => {
-    const { UserDetailPage } = await import("@/features/users/components/user-detail-page.tsx");
+    const { UserDetailPage } = await import("@/features/users/pages/user-detail-page.tsx");
 
     render(<UserDetailPage userId={userId} />);
 

@@ -6,7 +6,7 @@ import {
   createUserTableSearchParams,
   useUserTableSearchState,
   validateUserTableSearch,
-} from "@/hooks/use-user-table-search-state.ts";
+} from "@/features/users/hooks/use-user-table-search-state.ts";
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),

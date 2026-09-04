@@ -55,10 +55,11 @@ vi.mock("@tanstack/react-query", () => ({
   }),
 }));
 
-vi.mock("@/api/user.ts", () => ({
+vi.mock("@/features/users", () => ({
   createListUsersQueryOptions: () => ({
     queryKey: ["users"],
   }),
+  getUserProfileDisplayName: (user: { displayName: string }) => user.displayName,
 }));
 
 vi.mock("@/components/ui/select.tsx", async () => {

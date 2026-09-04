@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useMemo } from "react";
 
-import { UserLabel } from "@/components/user-label";
+import { UserLabel } from "@/features/users/components/user-label.tsx";
 
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Meta, StoryObj } from "@storybook/react-vite";

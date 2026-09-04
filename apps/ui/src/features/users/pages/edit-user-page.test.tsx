@@ -2,9 +2,9 @@ import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { EditUserPage } from "@/features/users/components/edit-user-page.tsx";
+import { EditUserPage } from "@/features/users/pages/edit-user-page.tsx";
 
-import type { UserFormValues } from "@/components/user-form.tsx";
+import type { UserFormValues } from "@/features/users/components/user-form.tsx";
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
@@ -89,19 +89,19 @@ vi.mock("@/features/roles", () => ({
   }),
 }));
 
-vi.mock("@/api/user.ts", () => ({
+vi.mock("@/features/users/queries/users.ts", () => ({
   createUserByIDQueryOptions: (id: string) => ({
     queryKey: ["users", id],
   }),
 }));
 
-vi.mock("@/hooks/use-user-lifecycle.ts", () => ({
+vi.mock("@/features/users/hooks/use-user-lifecycle.ts", () => ({
   useUserLifecycle: () => ({
     updateUser: mocks.updateUser,
   }),
 }));
 
-vi.mock("@/components/user-form.tsx", async (importOriginal) => {
+vi.mock("@/features/users/components/user-form.tsx", async (importOriginal) => {
   const actual = await importOriginal();
 
   return Object.assign({}, actual, {

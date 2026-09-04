@@ -1,12 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { useCreateUserMutation, useUpdateUserMutation } from "@/features/users/mutations/users.ts";
 import {
   createListUsersQueryOptions,
   createUserByIDQueryOptions,
-  useCreateUserMutation,
-  useUpdateUserMutation,
-} from "@/api/user.ts";
+} from "@/features/users/queries/users.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 
 import type {
