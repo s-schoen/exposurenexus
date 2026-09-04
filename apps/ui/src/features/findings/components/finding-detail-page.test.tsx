@@ -94,7 +94,7 @@ vi.mock("@tanstack/react-query", () => ({
   },
 }));
 
-vi.mock("@/api/asset.ts", () => ({
+vi.mock("@/features/assets", () => ({
   createAssetByIDQueryOptions: (id: string) => ({
     queryKey: ["assets", id],
   }),

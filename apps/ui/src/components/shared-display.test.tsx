@@ -30,6 +30,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
+  keepPreviousData: Symbol("keepPreviousData"),
+  queryOptions: (options: unknown) => options,
   useQuery: () => mocks.assetQuery,
 }));
 
@@ -50,9 +52,15 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-vi.mock("@/api/asset.ts", () => ({
+vi.mock("@/features/assets/queries/assets.ts", () => ({
   createAssetByIDQueryOptions: (id: string) => ({
     queryKey: ["assets", id],
+  }),
+  createListAssetsQueryOptions: () => ({
+    queryKey: ["assets"],
+  }),
+  createListAssetsWithCustomFieldsQueryOptions: () => ({
+    queryKey: ["assets", "with-custom-fields"],
   }),
 }));
 
@@ -126,7 +134,7 @@ describe("shared display components", () => {
   });
 
   it("renders asset info loading and loaded states", async () => {
-    const { AssetInfoItem } = await import("@/components/asset-info-item.tsx");
+    const { AssetInfoItem } = await import("@/features/assets");
     mocks.assetQuery = {
       isLoading: true,
     };
