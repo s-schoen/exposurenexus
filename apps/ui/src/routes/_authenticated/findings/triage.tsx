@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { TriageFindingsPage } from "@/features/findings/components/triage-findings-page.tsx";
-import { validateFindingTableSearch } from "@/hooks/use-finding-table-search-state.ts";
+import { TriageFindingsPage, validateFindingTableSearch } from "@/features/findings";
 import { validateSelectedSearch } from "@/hooks/use-selected-search-param.ts";
 
 export const Route = createFileRoute("/_authenticated/findings/triage")({

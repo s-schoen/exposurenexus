@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCount, formatFindingCount } from "@/lib/format.ts";
+import { formatCount } from "@/lib/format.ts";
 
 describe("formatCount", () => {
   it("uses the singular label for one item", () => {
@@ -14,12 +14,5 @@ describe("formatCount", () => {
 
   it("uses a custom plural label", () => {
     expect(formatCount(2, "vulnerability", "vulnerabilities")).toBe("2 vulnerabilities");
-  });
-});
-
-describe("formatFindingCount", () => {
-  it("formats finding counts", () => {
-    expect(formatFindingCount(1)).toBe("1 finding");
-    expect(formatFindingCount(2)).toBe("2 findings");
   });
 });

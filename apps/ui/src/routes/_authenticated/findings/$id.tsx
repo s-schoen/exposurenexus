@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { FindingDetailPage } from "@/features/findings/components/finding-detail-page.tsx";
+import { FindingDetailPage } from "@/features/findings";
 
 export const Route = createFileRoute("/_authenticated/findings/$id")({
   component: RouteComponent,

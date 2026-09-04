@@ -4,10 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { Activity, Bug, CircleCheckBig, Radar, Server, ShieldAlert } from "lucide-react";
 import { useMemo } from "react";
 
-import { createFindingStatsQueryOptions } from "@/api/finding.ts";
 import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx";
-import { FindingSeverityChart } from "@/components/finding-severity-chart.tsx";
-import { FindingStatusChart } from "@/components/finding-status-chart.tsx";
 import { MetricCard } from "@/components/metric-card.tsx";
 import {
   Card,
@@ -18,6 +15,11 @@ import {
 } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { createListAssetsQueryOptions } from "@/features/assets";
+import {
+  FindingSeverityChart,
+  FindingStatusChart,
+  createFindingStatsQueryOptions,
+} from "@/features/findings";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 
 import type { ChartConfig } from "@/components/ui/chart.tsx";

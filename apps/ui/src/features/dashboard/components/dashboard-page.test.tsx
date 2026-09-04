@@ -74,10 +74,16 @@ vi.mock("@/features/assets", () => ({
   }),
 }));
 
-vi.mock("@/api/finding.ts", () => ({
+vi.mock("@/features/findings", () => ({
   createFindingStatsQueryOptions: () => ({
     queryKey: ["findings", "stats"],
   }),
+  FindingSeverityChart: ({ data }: { data: Record<string, number> }) => (
+    <section>Severity chart {data[VulnerabilitySeverity.Critical]}</section>
+  ),
+  FindingStatusChart: ({ data }: { data: Record<string, number> }) => (
+    <section>Status chart {data[FindingStatus.Active]}</section>
+  ),
 }));
 
 vi.mock("@/hooks/use-page-meta.tsx", () => ({
@@ -99,18 +105,6 @@ vi.mock("@/components/metric-card.tsx", () => ({
       <p>{description}</p>
       <div>{value}</div>
     </article>
-  ),
-}));
-
-vi.mock("@/components/finding-severity-chart.tsx", () => ({
-  FindingSeverityChart: ({ data }: { data: Record<string, number> }) => (
-    <section>Severity chart {data[VulnerabilitySeverity.Critical]}</section>
-  ),
-}));
-
-vi.mock("@/components/finding-status-chart.tsx", () => ({
-  FindingStatusChart: ({ data }: { data: Record<string, number> }) => (
-    <section>Status chart {data[FindingStatus.Active]}</section>
   ),
 }));
 

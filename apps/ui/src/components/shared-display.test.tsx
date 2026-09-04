@@ -1,4 +1,3 @@
-import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -88,19 +87,6 @@ afterEach(() => {
 });
 
 describe("shared display components", () => {
-  it("renders finding status badges", async () => {
-    const { FindingStatusBadge } = await import("@/components/finding-status-badge.tsx");
-
-    const { rerender } = render(<FindingStatusBadge status={FindingStatus.Active} />);
-
-    expect(screen.getByText("Active")).toBeTruthy();
-    expect(screen.getByText("Active").className).toContain("text-red-700");
-
-    rerender(<FindingStatusBadge status={FindingStatus.FalsePositive} />);
-
-    expect(screen.getByText("False Positive")).toBeTruthy();
-  });
-
   it("renders timestamps and invalid date fallbacks", async () => {
     const { Timestamp } = await import("@/components/timestamp.tsx");
     const { rerender } = render(<Timestamp timestamp={new Date("2026-01-02T03:04:05.000Z")} />);

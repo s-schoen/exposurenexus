@@ -26,9 +26,13 @@ vi.mock("@tanstack/react-router", () => ({
   }),
 }));
 
-vi.mock("@/api/finding.ts", () => ({
+vi.mock("@/features/findings", () => ({
   createFindingStatsQueryOptions: () => ({
     queryKey: ["findings", "stats"],
+  }),
+  getFindingNavigationCounts: (stats: { status: { active?: number; confirmed?: number } }) => ({
+    triageCount: stats.status.active ?? 0,
+    mitigationCount: stats.status.confirmed ?? 0,
   }),
 }));
 
