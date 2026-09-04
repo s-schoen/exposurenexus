@@ -3,7 +3,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useMemo } from "react";
 
-import { createListAssetsQueryOptions } from "@/api/asset.ts";
 import { createListFindingsQueryOptions } from "@/api/finding.ts";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DataTable } from "@/components/data-table/data-table.tsx";
@@ -14,6 +13,7 @@ import {
 } from "@/components/finding-table/columns.tsx";
 import { FindingContextMenu } from "@/components/finding-table/context-menu.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import { createListAssetsQueryOptions } from "@/features/assets";
 import { createListUsersQueryOptions, createUserProfileById } from "@/features/users";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 

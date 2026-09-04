@@ -2,11 +2,11 @@ import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 
 import AppHeader from "@/components/app-header.tsx";
 import { AppSidebar } from "@/components/app-sidebar.tsx";
-import { AssetDialog } from "@/components/asset-dialog.tsx";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { Toaster } from "@/components/ui/sonner.tsx";
+import { AssetDialog } from "@/features/assets";
 import { usePage } from "@/hooks/use-page-meta.tsx";
 import { cn } from "@/lib/utils.ts";
 
