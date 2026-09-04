@@ -3,7 +3,7 @@ import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerabil
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DashboardPage } from "@/features/dashboard/components/dashboard-page.tsx";
+import { DashboardPage } from "@/features/dashboard/pages/dashboard-page.tsx";
 
 import type { ReactNode } from "react";
 

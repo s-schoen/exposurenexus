@@ -7,7 +7,7 @@ import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useMemo } from "react";
 
-import { DashboardPage } from "@/features/dashboard/components/dashboard-page.tsx";
+import { DashboardPage } from "@/features/dashboard/pages/dashboard-page.tsx";
 import { PageProvider } from "@/hooks/use-page-meta.tsx";
 import { RouterStoryProvider, createStoryQueryClient } from "@/test/storybook.tsx";
 
