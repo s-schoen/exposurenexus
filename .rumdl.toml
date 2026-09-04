@@ -3,9 +3,9 @@ flavor = "gfm"
 
 # Useful stricter checks that are opt-in.
 extend-enable = [
-    "MD080", # Detect heading-anchor collisions
-    "MD083", # Detect mojibake / encoding corruption
-    "MD087", # Detect unused rumdl-disable comments
+  "MD080", # Detect heading-anchor collisions
+  "MD083", # Detect mojibake / encoding corruption
+  "MD087", # Detect unused rumdl-disable comments
 ]
 
 # Consistent ATX headings: # Heading
