@@ -10,9 +10,13 @@ import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerabil
 import { sql } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createTestDatabase, insertTestAsset, resetTestDatabase } from "../test/db.js";
-import { createFindingRepository } from "./finding.js";
-import { createObservationRepository } from "./observation.js";
+import {
+  createTestDatabase,
+  insertTestAsset,
+  resetTestDatabase,
+} from "../database/test/database.js";
+import { createFindingRepository } from "./finding-repository.js";
+import { createObservationRepository } from "./observation-repository.js";
 
 describe("observation repository transactions", () => {
   const testDb = createTestDatabase();

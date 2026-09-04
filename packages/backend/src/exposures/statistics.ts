@@ -1,19 +1,18 @@
-import { ApplicationError } from "@exposurenexus/backend";
-import { type FindingStatistics, FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { FindingStatus, type FindingStatistics } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
-import type { FindingRepository } from "../repository/finding.js";
+import { ApplicationError } from "../application-error.js";
+
+import type { FindingRepository } from "./finding-repository.js";
 import type { Logger } from "pino";
 
-type FindingStatsRepository = Pick<FindingRepository, "countBy">;
-
-interface StatsServiceDependencies {
-  findingRepository: FindingStatsRepository;
-  logger: Logger;
+export interface ExposureStatistics {
+  getFindingStats(): Promise<FindingStatistics>;
 }
 
-export interface StatsService {
-  getFindingStats(): Promise<FindingStatistics>;
+interface StatisticsDependencies {
+  findingRepository: Pick<FindingRepository, "countBy">;
+  logger: Logger;
 }
 
 function normalizeEnumCounts<E extends string>(
@@ -29,17 +28,17 @@ function normalizeEnumCounts<E extends string>(
   );
 }
 
-export function createStatsService({
+export function createStatistics({
   findingRepository,
   logger,
-}: StatsServiceDependencies): StatsService {
+}: StatisticsDependencies): ExposureStatistics {
   return {
     async getFindingStats(): Promise<FindingStatistics> {
       try {
         const severityCount = await findingRepository.countBy("severity");
         const statusCount = await findingRepository.countBy("status");
         const assetCount = await findingRepository.countBy("assetId");
-        const total = Object.values(severityCount).reduce((acc, v) => acc + v, 0);
+        const total = Object.values(severityCount).reduce((acc, value) => acc + value, 0);
 
         return {
           total,
@@ -48,7 +47,7 @@ export function createStatsService({
           assets: assetCount,
         };
       } catch (error) {
-        logger.error(error, `failed to get finding statistics`);
+        logger.error(error, "failed to get finding statistics");
         throw new ApplicationError({
           code: "stats.get_finding_stats_failed",
           kind: "unexpected",

@@ -1,6 +1,7 @@
 import { createBackendRuntime } from "@exposurenexus/backend";
 import { createAssets } from "@exposurenexus/backend/assets";
 import { createAuthentication } from "@exposurenexus/backend/authentication";
+import { createExposures } from "@exposurenexus/backend/exposures";
 import { createIdentity } from "@exposurenexus/backend/identity";
 
 import { createApp } from "./app.js";
@@ -9,6 +10,7 @@ import { decorateAssetsWithEvents } from "./lib/assets-events.js";
 import { decorateAuthenticationWithEvents } from "./lib/authentication-events.js";
 import { createDefaultAdmin } from "./lib/default-admin.js";
 import { EventBus } from "./lib/eventbus/eventbus.js";
+import { decorateExposuresWithEvents } from "./lib/exposures-events.js";
 import { decorateIdentityWithEvents } from "./lib/identity-events.js";
 import { createLogger } from "./logging.js";
 import {
@@ -18,11 +20,6 @@ import {
   createAuthCookiePolicy,
 } from "./middleware/auth.js";
 import { createCsrfProtection } from "./middleware/csrf.js";
-import {
-  createFindingRepository,
-  createObservationRepository,
-  createVulnerabilityRepository,
-} from "./repository/index.js";
 import { createAssetRoute } from "./routes/assets.js";
 import { createAuthRoute } from "./routes/auth.js";
 import { createFindingRoute } from "./routes/findings.js";
@@ -32,11 +29,6 @@ import { createRoleRoute } from "./routes/roles.js";
 import { createFindingStatsRoute } from "./routes/stats.js";
 import { createUserRoute } from "./routes/users.js";
 import { createVulnerabilityRoute } from "./routes/vulnerabilities.js";
-import {
-  createFindingService,
-  createStatsService,
-  createVulnerabilityService,
-} from "./service/index.js";
 
 import type { DomainEvent } from "./lib/eventbus/events/index.js";
 import type { Database } from "@exposurenexus/backend/database";
@@ -82,35 +74,11 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     eventBus,
   );
   const assets = decorateAssetsWithEvents(createAssets(runtime), eventBus);
-
-  const repositories = {
-    findingRepository: createFindingRepository(options.db),
-    observationRepository: createObservationRepository(options.db),
-    vulnerabilityRepository: createVulnerabilityRepository(options.db),
-  };
+  const exposures = decorateExposuresWithEvents(createExposures(runtime), eventBus);
 
   const requireDomainPermission = createRequireDomainPermission(
     identity.authorization.userHasPermission.bind(identity.authorization),
   );
-  const vulnerabilityService = createVulnerabilityService({
-    vulnerabilityRepository: repositories.vulnerabilityRepository,
-    domainEventEmitter: eventBus,
-    logger: loggerFactory("service/vulnerability"),
-  });
-  const findingService = createFindingService({
-    findingRepository: repositories.findingRepository,
-    observationRepository: repositories.observationRepository,
-    assetService: assets.inventory,
-    userProfileService: identity.users,
-    vulnerabilityService,
-    domainEventEmitter: eventBus,
-    logger: loggerFactory("service/finding"),
-  });
-  const statsService = createStatsService({
-    findingRepository: repositories.findingRepository,
-    logger: loggerFactory("service/stats"),
-  });
-
   const csrfProtection = createCsrfProtection({
     allowedOrigins: [options.appOrigin],
     tokenSecret: options.authSessionHmacSecret,
@@ -129,13 +97,13 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     }),
     roleRoute: createRoleRoute(identity.roles, { requireDomainPermission }),
     userRoute: createUserRoute(identity.users, { requireDomainPermission }),
-    vulnerabilityRoute: createVulnerabilityRoute(vulnerabilityService, {
+    vulnerabilityRoute: createVulnerabilityRoute(exposures.vulnerabilities, {
       requireDomainPermission,
     }),
-    findingStatsRoute: createFindingStatsRoute(statsService, {
+    findingStatsRoute: createFindingStatsRoute(exposures.statistics, {
       requireDomainPermission,
     }),
-    findingRoute: createFindingRoute(findingService, {
+    findingRoute: createFindingRoute(exposures.findings, {
       requireDomainPermission,
     }),
     importerRoute: createImportRoute({
@@ -162,14 +130,11 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   });
 
   return {
-    repositories,
     services: {
       authentication,
       assets,
       identity,
-      vulnerabilityService,
-      findingService,
-      statsService,
+      exposures,
     },
     routes,
     middleware,

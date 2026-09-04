@@ -29,6 +29,10 @@
     "./assets": {
       "types": "./dist/assets/index.d.ts",
       "import": "./dist/assets/index.js"
+    },
+    "./exposures": {
+      "types": "./dist/exposures/index.d.ts",
+      "import": "./dist/exposures/index.js"
     }
   },
   "scripts": {

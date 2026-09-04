@@ -12,9 +12,9 @@ import { notFound, unauthorized } from "../lib/api-error.js";
 import { replyArray, replyObject } from "../lib/reply.js";
 import { requestEventContext } from "../lib/request-event-context.js";
 
+import type { ApiFindingOperations } from "../lib/exposures-events.js";
 import type { ContextVariables } from "../lib/hono-schema.js";
 import type { RequireDomainPermission } from "../middleware/auth.js";
-import type { FindingService } from "../service/finding.js";
 
 interface FindingRouteDependencies {
   requireDomainPermission: RequireDomainPermission;
@@ -31,7 +31,7 @@ const observationParamValidator = zValidator(
   z.object({ findingId: z.uuidv4(), observationId: z.uuidv4() }),
 );
 export function createFindingRoute(
-  findingService: FindingService,
+  findingService: ApiFindingOperations,
   { requireDomainPermission }: FindingRouteDependencies,
 ) {
   const finding = new Hono<{ Variables: ContextVariables }>();
