@@ -4,6 +4,7 @@ import { createDatabase, migrateToLatest } from "@exposurenexus/backend/database
 import { PGliteDialect, sql } from "kysely";
 
 import type { Database } from "@exposurenexus/backend/database";
+import type { Asset, AssetIdentifier } from "@exposurenexus/contracts/model/asset";
 import type { Kysely } from "kysely";
 
 export interface TestDatabase {
@@ -52,6 +53,41 @@ export function createTestDatabase(): TestDatabase {
       }
     },
   };
+}
+export type CreateTestAssetRecord = Omit<Asset, "id" | "identifiers"> & {
+  identifiers?: readonly AssetIdentifier[];
+};
+
+export async function insertTestAsset(
+  db: Kysely<Database>,
+  asset: CreateTestAssetRecord,
+): Promise<Asset> {
+  return await db.transaction().execute(async (trx) => {
+    const { identifiers = [], ...record } = asset;
+    const created = await trx
+      .insertInto("asset")
+      .values(record)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    const identifierRows =
+      identifiers.length === 0
+        ? []
+        : await trx
+            .insertInto("asset_identifier")
+            .values(identifiers.map((identifier) => ({ assetId: created.id, ...identifier })))
+            .returningAll()
+            .execute();
+
+    return {
+      ...created,
+      identifiers: identifierRows.map((identifier) => ({
+        id: identifier.id,
+        type: identifier.type,
+        namespace: identifier.namespace,
+        value: identifier.value,
+      })),
+    };
+  });
 }
 
 export async function resetTestDatabase(db: Kysely<Database>): Promise<void> {

@@ -10,9 +10,9 @@ import { notFound } from "../lib/api-error.js";
 import { replyArray, replyObject } from "../lib/reply.js";
 import { requestEventContext } from "../lib/request-event-context.js";
 
+import type { ApiAssetCustomFields } from "../lib/assets-events.js";
 import type { ContextVariables } from "../lib/hono-schema.js";
 import type { RequireDomainPermission } from "../middleware/auth.js";
-import type { AssetCustomFieldService } from "../service/asset-custom-field.js";
 
 interface AssetCustomFieldRouteDependencies {
   requireDomainPermission: RequireDomainPermission;
@@ -21,7 +21,7 @@ interface AssetCustomFieldRouteDependencies {
 const fieldIdParamValidator = zValidator("param", z.object({ fieldId: z.uuidv4() }));
 
 export function createAssetCustomFieldRoute(
-  assetCustomFieldService: AssetCustomFieldService,
+  assetCustomFieldService: ApiAssetCustomFields,
   { requireDomainPermission }: AssetCustomFieldRouteDependencies,
 ) {
   const customField = new Hono<{ Variables: ContextVariables }>();

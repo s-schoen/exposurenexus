@@ -12,10 +12,10 @@ import {
 } from "@exposurenexus/contracts/model/vulnerability";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createTestDatabase, resetTestDatabase } from "../test/db.js";
-import { createAssetRepository } from "./asset.js";
+import { createTestDatabase, resetTestDatabase } from "../database/test/database.js";
+import { createAssetRepository } from "./asset-repository.js";
 
-import type { CreateAssetRecord } from "./asset.js";
+import type { CreateAssetRecord } from "./asset-repository.js";
 
 describe("asset repository", () => {
   const testDb = createTestDatabase();
@@ -311,12 +311,16 @@ describe("asset repository", () => {
         updatedBy: createdBy,
       }),
     ).resolves.toEqual({
-      ...asset,
-      displayName: "renamed.exposurenexus.local",
-      type: AssetType.CloudResource,
-      environment: AssetEnvironment.Staging,
-      lifecycleState: AssetLifecycleState.Archived,
-      updatedAt,
+      previous: { ...asset, customFields: [] },
+      current: {
+        ...asset,
+        displayName: "renamed.exposurenexus.local",
+        type: AssetType.CloudResource,
+        environment: AssetEnvironment.Staging,
+        lifecycleState: AssetLifecycleState.Archived,
+        updatedAt,
+        customFields: [],
+      },
     });
     await expect(
       repository.updateByID("76b1885f-2d28-4b7d-93da-2751ff385aa3", {
@@ -354,9 +358,13 @@ describe("asset repository", () => {
         updatedBy: createdBy,
       }),
     ).resolves.toEqual({
-      ...asset,
-      displayName: "renamed.exposurenexus.local",
-      updatedAt,
+      previous: { ...asset, customFields: [] },
+      current: {
+        ...asset,
+        displayName: "renamed.exposurenexus.local",
+        updatedAt,
+        customFields: [],
+      },
     });
   });
 
@@ -417,7 +425,20 @@ describe("asset repository", () => {
         },
         { updatedAt, updatedBy: createdBy },
       ),
-    ).resolves.toMatchObject({ id: identifier.id, namespace: "archive" });
+    ).resolves.toMatchObject({
+      identifier: { id: identifier.id, namespace: "archive" },
+      previous: {
+        identifiers: expect.arrayContaining([
+          expect.objectContaining({ id: identifier.id, namespace: null }),
+        ]),
+      },
+      current: {
+        updatedAt,
+        identifiers: expect.arrayContaining([
+          expect.objectContaining({ id: identifier.id, namespace: "archive" }),
+        ]),
+      },
+    });
     await expect(repository.getByID(asset.id)).resolves.toMatchObject({
       updatedAt,
       identifiers: expect.arrayContaining([expect.objectContaining({ id: identifier.id })]),
@@ -448,8 +469,10 @@ describe("asset repository", () => {
     await expect(repository.getAssetIDByIdentifier(identifier)).resolves.toBe(first.id);
 
     await expect(repository.deleteByID(first.id)).resolves.toMatchObject({
-      id: first.id,
-      identifiers: [expect.objectContaining(identifier)],
+      previous: {
+        id: first.id,
+        identifiers: [expect.objectContaining(identifier)],
+      },
     });
     await expect(repository.getAssetIDByIdentifier(identifier)).resolves.toBeNull();
   });
@@ -514,18 +537,29 @@ describe("asset repository", () => {
       updatedAt,
       updatedBy: createdBy,
     });
-    expect(added).toMatchObject(identifier);
+    expect(added).toMatchObject({
+      identifier,
+      previous: { identifiers: [] },
+      current: {
+        updatedAt,
+        identifiers: [expect.objectContaining(identifier)],
+      },
+    });
     await expect(repository.getByID(asset.id)).resolves.toMatchObject({
       updatedAt,
       identifiers: [expect.objectContaining(identifier)],
     });
 
     await expect(
-      repository.deleteIdentifierByID(asset.id, added!.id, {
+      repository.deleteIdentifierByID(asset.id, added!.identifier.id, {
         updatedAt: new Date("2026-01-03T00:00:00.000Z"),
         updatedBy: createdBy,
       }),
-    ).resolves.toMatchObject({ id: added!.id });
+    ).resolves.toMatchObject({
+      identifier: { id: added!.identifier.id },
+      previous: { identifiers: [expect.objectContaining(identifier)] },
+      current: { identifiers: [] },
+    });
     await expect(repository.getByID(asset.id)).resolves.toMatchObject({ identifiers: [] });
   });
 
@@ -554,7 +588,7 @@ describe("asset repository", () => {
     await expect(
       repository.updateIdentifierByID(
         asset.id,
-        added!.id,
+        added!.identifier.id,
         { ...identifier, value: "192.0.2.2" },
         invalidAudit,
       ),
@@ -564,7 +598,7 @@ describe("asset repository", () => {
     });
 
     await expect(
-      repository.deleteIdentifierByID(asset.id, added!.id, invalidAudit),
+      repository.deleteIdentifierByID(asset.id, added!.identifier.id, invalidAudit),
     ).rejects.toThrow();
     await expect(repository.getByID(asset.id)).resolves.toMatchObject({
       identifiers: [expect.objectContaining(identifier)],

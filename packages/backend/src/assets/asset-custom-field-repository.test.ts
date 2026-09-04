@@ -10,9 +10,9 @@ import {
 } from "@exposurenexus/contracts/model/asset-custom-field";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createTestDatabase, resetTestDatabase } from "../test/db.js";
-import { createAssetCustomFieldRepository } from "./asset-custom-field.js";
-import { createAssetRepository } from "./asset.js";
+import { createTestDatabase, resetTestDatabase } from "../database/test/database.js";
+import { createAssetCustomFieldRepository } from "./asset-custom-field-repository.js";
+import { createAssetRepository } from "./asset-repository.js";
 
 function expectSelectDefinition(
   definition: AssetCustomFieldDefinition | null,
@@ -150,15 +150,19 @@ describe("asset custom field repository", () => {
     });
 
     expect(updated).toMatchObject({
-      id: environment.id,
-      key: "environment_tier",
-      name: "Environment tier",
-      required: true,
-      type: AssetCustomFieldType.Select,
-      defaultValue: "stage",
+      previous: environment,
+      current: {
+        id: environment.id,
+        key: "environment_tier",
+        name: "Environment tier",
+        required: true,
+        type: AssetCustomFieldType.Select,
+        defaultValue: "stage",
+      },
     });
-    expectSelectDefinition(updated);
-    expect(updated.options).toEqual([
+    expect(updated).not.toBeNull();
+    expectSelectDefinition(updated!.current);
+    expect(updated!.current.options).toEqual([
       expect.objectContaining({
         fieldId: environment.id,
         value: "prod",
@@ -280,23 +284,25 @@ describe("asset custom field repository", () => {
         [{ fieldId: environment.id, value: null }],
         audit,
       ),
-    ).resolves.toMatchObject([
-      {
-        fieldId: category.id,
-        source: AssetCustomFieldValueSource.Default,
-        value: "platform",
-      },
-      {
-        fieldId: environment.id,
-        source: AssetCustomFieldValueSource.Default,
-        value: "stage",
-      },
-      {
-        fieldId: priority.id,
-        source: AssetCustomFieldValueSource.Empty,
-        value: null,
-      },
-    ]);
+    ).resolves.toMatchObject({
+      values: [
+        {
+          fieldId: category.id,
+          source: AssetCustomFieldValueSource.Default,
+          value: "platform",
+        },
+        {
+          fieldId: environment.id,
+          source: AssetCustomFieldValueSource.Default,
+          value: "stage",
+        },
+        {
+          fieldId: priority.id,
+          source: AssetCustomFieldValueSource.Empty,
+          value: null,
+        },
+      ],
+    });
 
     const valuesByAssetId = await repository.listEffectiveValuesForAssets([
       apiAsset.id,
@@ -465,13 +471,21 @@ describe("asset custom field repository", () => {
 
     await expect(
       repository.replaceAssignmentsForAsset(asset.id, [category.id], noOpAssignmentAudit),
-    ).resolves.toMatchObject([
-      {
-        fieldId: category.id,
-        source: AssetCustomFieldValueSource.Asset,
-        value: "platform",
+    ).resolves.toMatchObject({
+      values: [
+        {
+          fieldId: category.id,
+          source: AssetCustomFieldValueSource.Asset,
+          value: "platform",
+        },
+      ],
+      previous: {
+        customFields: [{ fieldId: category.id, value: "platform" }],
       },
-    ]);
+      current: {
+        customFields: [{ fieldId: category.id, value: "platform" }],
+      },
+    });
     await expect(
       testDb.db
         .selectFrom("asset")

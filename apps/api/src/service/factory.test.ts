@@ -11,14 +11,6 @@ vi.mock("../logging.js", () => ({
   createLogger: vi.fn(() => pino({ enabled: false })),
 }));
 
-vi.mock("../repository/asset.js", () => ({
-  list: vi.fn(),
-  getByID: vi.fn(),
-  getByDisplayName: vi.fn(),
-  create: vi.fn(),
-  deleteByID: vi.fn(),
-}));
-
 vi.mock("./vulnerability.js", async () => {
   const actual = await vi.importActual<typeof import("./vulnerability.js")>("./vulnerability.js");
 
@@ -28,7 +20,6 @@ vi.mock("./vulnerability.js", async () => {
   };
 });
 
-import { createAssetService } from "./asset.js";
 import { createFindingService } from "./finding.js";
 import { createStatsService } from "./stats.js";
 import { createVulnerabilityService } from "./vulnerability.js";
@@ -40,41 +31,6 @@ describe("service factories", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
-  });
-
-  it("creates an asset service bound to the injected repository", async () => {
-    const repository = {
-      list: vi.fn().mockResolvedValue([]),
-      getByID: vi.fn(),
-      getByDisplayName: vi.fn(),
-      listByDisplayName: vi.fn(),
-      getIdentifierByID: vi.fn(),
-      getAssetIDByIdentifier: vi.fn(),
-      create: vi.fn(),
-      updateByID: vi.fn(),
-      addIdentifier: vi.fn(),
-      updateIdentifierByID: vi.fn(),
-      deleteIdentifierByID: vi.fn(),
-      deleteByID: vi.fn(),
-      countFindingsByAssetID: vi.fn(),
-    };
-    const service = createAssetService({
-      assetRepository: repository,
-      assetCustomFieldReader: {
-        listEffectiveValuesForAssets: vi.fn(),
-      },
-      userProfileService: {
-        getByID: vi.fn(),
-      },
-      domainEventEmitter: {
-        emit: vi.fn(),
-      },
-      logger,
-    });
-
-    await service.listAll();
-
-    expect(repository.list).toHaveBeenCalledOnce();
   });
 
   it("creates a vulnerability service bound to the injected repository", async () => {

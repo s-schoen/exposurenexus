@@ -1,36 +1,10 @@
-import { AssetType } from "@exposurenexus/contracts/model/asset";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createAssetRepository, createVulnerabilityRepository } from "./index.js";
+import { createVulnerabilityRepository } from "./index.js";
 
 describe("repository factories", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("creates an asset repository bound to the injected db", async () => {
-    const execute = vi.fn().mockResolvedValue([]);
-    const orderBy = vi.fn();
-    const query = {
-      where: vi.fn(),
-      orderBy,
-      executeTakeFirst: execute,
-      execute,
-    };
-    query.where.mockReturnValue(query);
-    orderBy.mockReturnValue(query);
-    const selectAll = vi.fn().mockReturnValue(query);
-    const selectFrom = vi.fn().mockReturnValue({ selectAll });
-    const db = { selectFrom };
-
-    const repository = createAssetRepository(db as never);
-
-    await repository.getByDisplayName("api.exposurenexus.local", AssetType.Host);
-
-    expect(selectFrom).toHaveBeenCalledWith("asset");
-    expect(query.where).toHaveBeenNthCalledWith(1, "displayName", "=", "api.exposurenexus.local");
-    expect(query.where).toHaveBeenNthCalledWith(2, "type", "=", AssetType.Host);
-    expect(execute).toHaveBeenCalledTimes(2);
   });
 
   it("creates a vulnerability catalog repository bound to the injected db", async () => {

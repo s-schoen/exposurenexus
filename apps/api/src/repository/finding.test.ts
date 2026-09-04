@@ -13,8 +13,7 @@ import {
 import { sql } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createTestDatabase, resetTestDatabase } from "../test/db.js";
-import { createAssetRepository } from "./asset.js";
+import { createTestDatabase, insertTestAsset, resetTestDatabase } from "../test/db.js";
 import { createFindingRepository } from "./finding.js";
 import { createObservationRepository } from "./observation.js";
 import { createVulnerabilityRepository } from "./vulnerability.js";
@@ -64,9 +63,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("round-trips finding and observation JSON values with nullable ingestion", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
@@ -164,9 +161,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("orders observations by observed time and id", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
@@ -227,9 +222,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("creates an observation and touches its parent finding atomically", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const originalTime = new Date("2026-08-16T10:00:00.000Z");
@@ -304,9 +297,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("rolls back an observation when touching its parent projection fails", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const originalTime = new Date("2026-08-16T10:00:00.000Z");
@@ -387,9 +378,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("updates an observation and preserves omitted fields while refreshing the parent", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const originalTime = new Date("2026-08-16T10:00:00.000Z");
@@ -499,9 +488,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("deletes the final observation and refreshes an empty parent projection", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const originalTime = new Date("2026-08-16T10:00:00.000Z");
@@ -583,9 +570,7 @@ describe("observation-based persistence repositories", () => {
         passwordHash: "password-hash",
       })
       .execute();
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const originalTime = new Date("2026-08-16T10:00:00.000Z");
@@ -698,9 +683,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("does not move a missing observation", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const timestamp = new Date("2026-08-16T10:00:00.000Z");
@@ -747,9 +730,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("does not move an observation to a missing target finding", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const timestamp = new Date("2026-08-16T10:00:00.000Z");
@@ -801,9 +782,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("rolls back the observation relationship and both parent audits when a parent update fails", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const originalTime = new Date("2026-08-16T10:00:00.000Z");
@@ -902,9 +881,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("builds ordered finding projections with observations and catalog links", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
@@ -1050,9 +1027,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("counts findings by status", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const repository = createFindingRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
     for (const [id, status] of [
@@ -1084,9 +1059,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("replaces JSON identity values and preserves finding-owned persistence boundaries", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const repository = createFindingRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
     const finding = await repository.create({
@@ -1117,9 +1090,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("links a vulnerability once and makes retries idempotent", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
@@ -1187,9 +1158,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("unlinks a vulnerability once and makes retries idempotent", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
@@ -1262,9 +1231,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("rolls back a vulnerability link when the parent audit update fails", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
@@ -1333,9 +1300,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("rolls back a vulnerability unlink when the audit actor is invalid", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
@@ -1390,9 +1355,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("cascades observations and catalog links when a finding is deleted", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const observationRepository = createObservationRepository(testDb.db);
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
@@ -1462,9 +1425,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("creates a manual finding, observation, and links atomically", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const vulnerabilityRepository = createVulnerabilityRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
@@ -1553,9 +1514,7 @@ describe("observation-based persistence repositories", () => {
   });
 
   it("rolls back the finding and observation when a catalog link fails", async () => {
-    const asset = await createAssetRepository(testDb.db).create(
-      assetRecord("api.exposurenexus.local"),
-    );
+    const asset = await insertTestAsset(testDb.db, assetRecord("api.exposurenexus.local"));
     const findingRepository = createFindingRepository(testDb.db);
     const timestamp = new Date("2026-01-03T00:00:00.000Z");
 

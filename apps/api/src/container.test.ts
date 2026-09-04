@@ -16,6 +16,11 @@ const mocks = vi.hoisted(() => {
     roles: { kind: "identity-roles" },
     authorization: { userHasPermission: vi.fn() },
   };
+  const rawAssets = { kind: "raw-assets" };
+  const assets = {
+    inventory: { kind: "asset-inventory" },
+    customFields: { kind: "asset-custom-fields" },
+  };
 
   return {
     rawAuthentication,
@@ -26,6 +31,10 @@ const mocks = vi.hoisted(() => {
     identity,
     createIdentity: vi.fn(() => rawIdentity),
     decorateIdentityWithEvents: vi.fn(() => identity),
+    rawAssets,
+    assets,
+    createAssets: vi.fn(() => rawAssets),
+    decorateAssetsWithEvents: vi.fn(() => assets),
     createApp: vi.fn(() => ({ fetch: vi.fn() })),
     createAuthRoute: vi.fn(() => ({ route: "auth" })),
     createAuthAnnotate: vi.fn(() => vi.fn()),
@@ -42,10 +51,6 @@ const mocks = vi.hoisted(() => {
     createFindingRoute: vi.fn(() => ({ route: "findings" })),
     createImportRoute: vi.fn(() => ({ route: "import" })),
     registerEventHandlers: vi.fn(),
-    createAssetCustomFieldService: vi.fn(() => ({
-      kind: "asset-custom-field-service",
-    })),
-    createAssetService: vi.fn(() => ({ kind: "asset-service" })),
     createFindingService: vi.fn(() => ({ kind: "finding-service" })),
     createStatsService: vi.fn(() => ({ kind: "stats-service" })),
     createObservationRepository: vi.fn(() => ({ kind: "observation-repo" })),
@@ -59,11 +64,17 @@ vi.mock("@exposurenexus/backend/identity", () => ({
 vi.mock("@exposurenexus/backend/authentication", () => ({
   createAuthentication: mocks.createAuthentication,
 }));
+vi.mock("@exposurenexus/backend/assets", () => ({
+  createAssets: mocks.createAssets,
+}));
 vi.mock("./lib/authentication-events.js", () => ({
   decorateAuthenticationWithEvents: mocks.decorateAuthenticationWithEvents,
 }));
 vi.mock("./lib/identity-events.js", () => ({
   decorateIdentityWithEvents: mocks.decorateIdentityWithEvents,
+}));
+vi.mock("./lib/assets-events.js", () => ({
+  decorateAssetsWithEvents: mocks.decorateAssetsWithEvents,
 }));
 vi.mock("./app.js", () => ({ createApp: mocks.createApp }));
 vi.mock("./logging.js", () => ({
@@ -95,15 +106,11 @@ vi.mock("./routes/stats.js", () => ({
 vi.mock("./routes/findings.js", () => ({ createFindingRoute: mocks.createFindingRoute }));
 vi.mock("./routes/import.js", () => ({ createImportRoute: mocks.createImportRoute }));
 vi.mock("./repository/index.js", () => ({
-  createAssetCustomFieldRepository: vi.fn(() => ({ kind: "asset-custom-field-repo" })),
-  createAssetRepository: vi.fn(() => ({ kind: "asset-repo" })),
   createFindingRepository: vi.fn(() => ({ kind: "finding-repo" })),
   createObservationRepository: mocks.createObservationRepository,
   createVulnerabilityRepository: vi.fn(() => ({ kind: "vulnerability-repo" })),
 }));
 vi.mock("./service/index.js", () => ({
-  createAssetCustomFieldService: mocks.createAssetCustomFieldService,
-  createAssetService: mocks.createAssetService,
   createFindingService: mocks.createFindingService,
   createStatsService: mocks.createStatsService,
   createVulnerabilityService: mocks.createVulnerabilityService,
@@ -156,6 +163,11 @@ describe("app container", () => {
       mocks.rawIdentity,
       expect.objectContaining({ emit: expect.any(Function) }),
     );
+    expect(mocks.createAssets).toHaveBeenCalledOnce();
+    expect(mocks.decorateAssetsWithEvents).toHaveBeenCalledWith(
+      mocks.rawAssets,
+      expect.objectContaining({ emit: expect.any(Function) }),
+    );
     expect(mocks.createRequireDomainPermission).toHaveBeenCalledWith(expect.any(Function));
     expect(mocks.createUserRoute).toHaveBeenCalledWith(mocks.identity.users, {
       requireDomainPermission: expect.any(Function),
@@ -163,14 +175,20 @@ describe("app container", () => {
     expect(mocks.createRoleRoute).toHaveBeenCalledWith(mocks.identity.roles, {
       requireDomainPermission: expect.any(Function),
     });
-    expect(mocks.createAssetService).toHaveBeenCalledWith(
-      expect.objectContaining({ userProfileService: mocks.identity.users }),
+    expect(mocks.createAssetRoute).toHaveBeenCalledWith(
+      mocks.assets.inventory,
+      mocks.assets.customFields,
+      { requireDomainPermission: expect.any(Function) },
     );
     expect(mocks.createFindingService).toHaveBeenCalledWith(
       expect.objectContaining({ userProfileService: mocks.identity.users }),
     );
+    expect(mocks.createFindingService).toHaveBeenCalledWith(
+      expect.objectContaining({ assetService: mocks.assets.inventory }),
+    );
     expect(container.services.identity).toBe(mocks.identity);
     expect(container.services.authentication).toBe(mocks.authentication);
+    expect(container.services.assets).toBe(mocks.assets);
 
     await container.createDefaultAdmin();
     expect(mocks.createDefaultAdmin).toHaveBeenCalledWith({

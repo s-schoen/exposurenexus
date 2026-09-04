@@ -1,35 +1,35 @@
 import {
-  ApplicationError,
-  isApplicationError,
-  isConflictError,
-  isForeignKeyError,
-} from "@exposurenexus/backend";
-import {
   type Asset,
   type AssetIdentifier,
-  type AssetIdentifierRecord,
   type AssetWithCustomFields,
   AssetEnvironment,
   AssetLifecycleState,
   AssetType,
-  type CreateAsset,
-  type CreateAssetIdentifier,
   type UpdateAsset,
-  type UpdateAssetIdentifier,
   validateAssetIdentifier,
 } from "@exposurenexus/contracts/model/asset";
 import { type AssetCustomFieldValue } from "@exposurenexus/contracts/model/asset-custom-field";
 
-import {
-  createDomainEventEmitter,
-  type AssetEventPayloads,
-  type DomainEventContext,
-  type DomainEventEmitter,
-  type EventSubjects,
-} from "../lib/eventbus/events/index.js";
+import { ApplicationError, isApplicationError } from "../application-error.js";
+import { isConflictError, isForeignKeyError } from "../database-error.js";
 
-import type { AssetListOptions, AssetRepository } from "../repository/asset.js";
-import type { UserProfile } from "@exposurenexus/contracts/model/user";
+import type { AssetRepository } from "./asset-repository.js";
+import type {
+  AddAssetIdentifierCommand,
+  AssetCreatedOutcome,
+  AssetDeletedOutcome,
+  AssetIdentifierAddedOutcome,
+  AssetIdentifierDeletedOutcome,
+  AssetIdentifierUpdatedOutcome,
+  AssetInventory,
+  AssetListOptions,
+  AssetUpdatedOutcome,
+  CreateAssetCommand,
+  DeleteAssetByIDCommand,
+  DeleteAssetIdentifierByIDCommand,
+  UpdateAssetByIDCommand,
+  UpdateAssetIdentifierByIDCommand,
+} from "./assets.js";
 import type { Logger } from "pino";
 
 interface AssetCustomFieldProjectionReader {
@@ -43,6 +43,21 @@ function assetSnapshotsEqual(
   current: AssetWithCustomFields,
 ): boolean {
   return JSON.stringify(previous) === JSON.stringify(current);
+}
+function toAsset(snapshot: AssetWithCustomFields): Asset {
+  return {
+    id: snapshot.id,
+    displayName: snapshot.displayName,
+    type: snapshot.type,
+    environment: snapshot.environment,
+    lifecycleState: snapshot.lifecycleState,
+    ownerId: snapshot.ownerId,
+    identifiers: snapshot.identifiers,
+    createdAt: snapshot.createdAt,
+    updatedAt: snapshot.updatedAt,
+    createdBy: snapshot.createdBy,
+    updatedBy: snapshot.updatedBy,
+  };
 }
 
 function normalizeDisplayName(displayName: string): string {
@@ -100,79 +115,23 @@ function normalizeIdentifiers(inputs: readonly unknown[]): AssetIdentifier[] {
   return normalized;
 }
 
-interface UserProfileLookupService {
-  getByID(id: string): Promise<UserProfile | null>;
+interface UserProfileLookupRepository {
+  getByID(id: string): Promise<object | null>;
 }
 
-interface AssetServiceDependencies {
+interface AssetInventoryDependencies {
   assetRepository: AssetRepository;
   assetCustomFieldReader: AssetCustomFieldProjectionReader;
-  userProfileService: UserProfileLookupService;
-  domainEventEmitter: DomainEventEmitter;
+  userProfileRepository: UserProfileLookupRepository;
   logger: Logger;
 }
 
-export interface CreateAssetOptions {
-  asset: CreateAsset;
-  user: UserProfile;
-  eventContext?: DomainEventContext;
-}
-
-export interface UpdateAssetOptions {
-  id: string;
-  asset: UpdateAsset;
-  user: UserProfile;
-  eventContext?: DomainEventContext;
-}
-
-export interface AddAssetIdentifierOptions {
-  assetId: string;
-  identifier: CreateAssetIdentifier;
-  user: UserProfile;
-  eventContext?: DomainEventContext;
-}
-
-export interface UpdateAssetIdentifierOptions {
-  assetId: string;
-  identifierId: string;
-  identifier: UpdateAssetIdentifier;
-  user: UserProfile;
-  eventContext?: DomainEventContext;
-}
-
-export interface DeleteAssetIdentifierOptions {
-  assetId: string;
-  identifierId: string;
-  user: UserProfile;
-  eventContext?: DomainEventContext;
-}
-
-export interface AssetService {
-  listAll(options?: AssetListOptions): Promise<Asset[]>;
-  listAllWithCustomFields(options?: AssetListOptions): Promise<AssetWithCustomFields[]>;
-  getByID(id: string): Promise<Asset | null>;
-  getByDisplayName(displayName: string, type?: AssetType): Promise<Asset | null>;
-  listByDisplayName(displayName: string, type?: AssetType): Promise<Asset[]>;
-  create(opts: CreateAssetOptions): Promise<Asset>;
-  updateByID(opts: UpdateAssetOptions): Promise<Asset | null>;
-  addIdentifier(opts: AddAssetIdentifierOptions): Promise<AssetIdentifierRecord | null>;
-  updateIdentifierByID(opts: UpdateAssetIdentifierOptions): Promise<AssetIdentifierRecord | null>;
-  deleteIdentifierByID(opts: DeleteAssetIdentifierOptions): Promise<AssetIdentifierRecord | null>;
-  deleteByID(id: string, eventContext?: DomainEventContext): Promise<Asset | null>;
-}
-
-export function createAssetService({
+export function createAssetInventory({
   assetRepository,
   assetCustomFieldReader,
-  userProfileService,
-  domainEventEmitter,
+  userProfileRepository,
   logger,
-}: AssetServiceDependencies): AssetService {
-  const emitAssetEvent = createDomainEventEmitter<EventSubjects<AssetEventPayloads>>(
-    domainEventEmitter,
-    "asset",
-  );
-
+}: AssetInventoryDependencies): AssetInventory {
   async function getAssetSnapshot(id: string): Promise<AssetWithCustomFields | null> {
     const asset = await assetRepository.getByID(id);
     if (!asset) {
@@ -201,12 +160,21 @@ export function createAssetService({
     }));
   }
 
-  async function validateOwner(ownerId: string | null | undefined): Promise<void> {
-    if (!ownerId) {
+  async function requireAuditActor(performedBy: string): Promise<void> {
+    if (!(await userProfileRepository.getByID(performedBy))) {
+      throw new Error(`asset audit actor ${performedBy} does not exist`);
+    }
+  }
+
+  async function validateOwner(
+    ownerId: string | null | undefined,
+    knownUserId?: string,
+  ): Promise<void> {
+    if (!ownerId || ownerId === knownUserId) {
       return;
     }
 
-    const owner = await userProfileService.getByID(ownerId);
+    const owner = await userProfileRepository.getByID(ownerId);
     if (!owner) {
       throw new ApplicationError({
         code: "asset.owner_unknown",
@@ -215,18 +183,6 @@ export function createAssetService({
         details: { ownerId },
       });
     }
-  }
-
-  function emitUpdatedAssetEvent(
-    previous: AssetWithCustomFields,
-    current: AssetWithCustomFields,
-    eventContext?: DomainEventContext,
-  ): void {
-    if (assetSnapshotsEqual(previous, current)) {
-      return;
-    }
-
-    emitAssetEvent("asset.updated", { previous, current }, eventContext);
   }
 
   async function identifierConflictError(
@@ -343,11 +299,12 @@ export function createAssetService({
       }
     },
 
-    async create(opts: CreateAssetOptions): Promise<Asset> {
+    async create(opts: CreateAssetCommand): Promise<AssetCreatedOutcome> {
       try {
         const displayName = normalizeDisplayName(opts.asset.displayName);
         const identifiers = normalizeIdentifiers(opts.asset.identifiers ?? []);
-        await validateOwner(opts.asset.ownerId);
+        await validateOwner(opts.asset.ownerId, opts.performedBy);
+        await requireAuditActor(opts.performedBy);
 
         const now = new Date();
         const created = await assetRepository.create({
@@ -359,13 +316,15 @@ export function createAssetService({
           identifiers,
           createdAt: now,
           updatedAt: now,
-          createdBy: opts.user.id,
-          updatedBy: opts.user.id,
+          createdBy: opts.performedBy,
+          updatedBy: opts.performedBy,
         });
 
-        const createdSnapshot = await hydrateAsset(created);
-        emitAssetEvent("asset.created", { asset: createdSnapshot }, opts.eventContext);
-        return created;
+        return {
+          asset: created,
+          current: { ...created, customFields: [] },
+          performedBy: opts.performedBy,
+        };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;
@@ -393,7 +352,7 @@ export function createAssetService({
       }
     },
 
-    async updateByID(opts: UpdateAssetOptions): Promise<Asset | null> {
+    async updateByID(opts: UpdateAssetByIDCommand): Promise<AssetUpdatedOutcome | null> {
       try {
         if (Object.keys(opts.asset).length === 0) {
           throw new ApplicationError({
@@ -416,31 +375,39 @@ export function createAssetService({
           return null;
         }
 
-        await validateOwner(asset.ownerId);
-
+        await validateOwner(asset.ownerId, opts.performedBy);
+        await requireAuditActor(opts.performedBy);
+        const previous = await hydrateAsset(previousAsset);
         const hasChanges = Object.entries(asset).some(
           ([key, value]) => previousAsset[key as keyof UpdateAsset] !== value,
         );
         if (!hasChanges) {
-          return previousAsset;
+          return {
+            asset: previousAsset,
+            previous,
+            current: previous,
+            changed: false,
+            performedBy: opts.performedBy,
+          };
         }
 
         const updated = await assetRepository.updateByID(opts.id, {
           ...asset,
           updatedAt: new Date(),
-          updatedBy: opts.user.id,
+          updatedBy: opts.performedBy,
         });
         if (!updated) {
           logger.debug(`cannot update asset ${opts.id}: not found`);
           return null;
         }
 
-        const previous = await hydrateAsset(previousAsset);
-        const current = await getAssetSnapshot(opts.id);
-        if (current) {
-          emitUpdatedAssetEvent(previous, current, opts.eventContext);
-        }
-        return updated;
+        return {
+          asset: toAsset(updated.current),
+          previous: updated.previous,
+          current: updated.current,
+          changed: !assetSnapshotsEqual(updated.previous, updated.current),
+          performedBy: opts.performedBy,
+        };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;
@@ -457,29 +424,32 @@ export function createAssetService({
       }
     },
 
-    async addIdentifier(opts: AddAssetIdentifierOptions): Promise<AssetIdentifierRecord | null> {
+    async addIdentifier(
+      opts: AddAssetIdentifierCommand,
+    ): Promise<AssetIdentifierAddedOutcome | null> {
       try {
-        const previous = await getAssetSnapshot(opts.assetId);
-        if (!previous) {
+        if (!(await assetRepository.getByID(opts.assetId))) {
           logger.debug(`cannot add identifier to asset ${opts.assetId}: not found`);
           return null;
         }
 
         const identifier = normalizeIdentifier(opts.identifier);
+        await requireAuditActor(opts.performedBy);
         const created = await assetRepository.addIdentifier(opts.assetId, identifier, {
           updatedAt: new Date(),
-          updatedBy: opts.user.id,
+          updatedBy: opts.performedBy,
         });
         if (!created) {
           logger.debug(`cannot add identifier to asset ${opts.assetId}: not found`);
           return null;
         }
 
-        const current = await getAssetSnapshot(opts.assetId);
-        if (current) {
-          emitUpdatedAssetEvent(previous, current, opts.eventContext);
-        }
-        return created;
+        return {
+          identifier: created.identifier,
+          previous: created.previous,
+          current: created.current,
+          performedBy: opts.performedBy,
+        };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;
@@ -505,8 +475,8 @@ export function createAssetService({
     },
 
     async updateIdentifierByID(
-      opts: UpdateAssetIdentifierOptions,
-    ): Promise<AssetIdentifierRecord | null> {
+      opts: UpdateAssetIdentifierByIDCommand,
+    ): Promise<AssetIdentifierUpdatedOutcome | null> {
       try {
         const previous = await getAssetSnapshot(opts.assetId);
         if (!previous) {
@@ -524,16 +494,23 @@ export function createAssetService({
 
         const identifier = normalizeIdentifier(opts.identifier);
         if (identifierKey(currentIdentifier) === identifierKey(identifier)) {
-          return currentIdentifier;
+          return {
+            identifier: currentIdentifier,
+            previous,
+            current: previous,
+            changed: false,
+            performedBy: opts.performedBy,
+          };
         }
 
+        await requireAuditActor(opts.performedBy);
         const updated = await assetRepository.updateIdentifierByID(
           opts.assetId,
           opts.identifierId,
           identifier,
           {
             updatedAt: new Date(),
-            updatedBy: opts.user.id,
+            updatedBy: opts.performedBy,
           },
         );
         if (!updated) {
@@ -541,11 +518,13 @@ export function createAssetService({
           return null;
         }
 
-        const current = await getAssetSnapshot(opts.assetId);
-        if (current) {
-          emitUpdatedAssetEvent(previous, current, opts.eventContext);
-        }
-        return updated;
+        return {
+          identifier: updated.identifier,
+          previous: updated.previous,
+          current: updated.current,
+          changed: !assetSnapshotsEqual(updated.previous, updated.current),
+          performedBy: opts.performedBy,
+        };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;
@@ -574,21 +553,21 @@ export function createAssetService({
     },
 
     async deleteIdentifierByID(
-      opts: DeleteAssetIdentifierOptions,
-    ): Promise<AssetIdentifierRecord | null> {
+      opts: DeleteAssetIdentifierByIDCommand,
+    ): Promise<AssetIdentifierDeletedOutcome | null> {
       try {
-        const previous = await getAssetSnapshot(opts.assetId);
-        if (!previous) {
+        if (!(await assetRepository.getByID(opts.assetId))) {
           logger.debug(`cannot delete identifier ${opts.identifierId}: asset not found`);
           return null;
         }
 
+        await requireAuditActor(opts.performedBy);
         const deleted = await assetRepository.deleteIdentifierByID(
           opts.assetId,
           opts.identifierId,
           {
             updatedAt: new Date(),
-            updatedBy: opts.user.id,
+            updatedBy: opts.performedBy,
           },
         );
         if (!deleted) {
@@ -596,11 +575,12 @@ export function createAssetService({
           return null;
         }
 
-        const current = await getAssetSnapshot(opts.assetId);
-        if (current) {
-          emitUpdatedAssetEvent(previous, current, opts.eventContext);
-        }
-        return deleted;
+        return {
+          identifier: deleted.identifier,
+          previous: deleted.previous,
+          current: deleted.current,
+          performedBy: opts.performedBy,
+        };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;
@@ -617,10 +597,11 @@ export function createAssetService({
       }
     },
 
-    async deleteByID(id: string, eventContext?: DomainEventContext): Promise<Asset | null> {
+    async deleteByID(opts: DeleteAssetByIDCommand): Promise<AssetDeletedOutcome | null> {
+      const { id, performedBy } = opts;
+
       try {
-        const deletedSnapshot = await getAssetSnapshot(id);
-        if (!deletedSnapshot) {
+        if (!(await assetRepository.getByID(id))) {
           logger.debug(`cannot delete asset ${id}: not found`);
           return null;
         }
@@ -635,13 +616,13 @@ export function createAssetService({
           });
         }
 
-        const asset = await assetRepository.deleteByID(id);
-        if (!asset) {
+        const deleted = await assetRepository.deleteByID(id);
+        if (!deleted) {
           logger.debug(`cannot delete asset ${id}: not found`);
           return null;
         }
-        emitAssetEvent("asset.deleted", { asset: deletedSnapshot }, eventContext);
-        return asset;
+
+        return { asset: toAsset(deleted.previous), previous: deleted.previous, performedBy };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;

@@ -10,8 +10,7 @@ import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerabil
 import { sql } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createTestDatabase, resetTestDatabase } from "../test/db.js";
-import { createAssetRepository } from "./asset.js";
+import { createTestDatabase, insertTestAsset, resetTestDatabase } from "../test/db.js";
 import { createFindingRepository } from "./finding.js";
 import { createObservationRepository } from "./observation.js";
 
@@ -39,7 +38,7 @@ describe("observation repository transactions", () => {
   });
 
   async function createParents() {
-    const asset = await createAssetRepository(testDb.db).create({
+    const asset = await insertTestAsset(testDb.db, {
       displayName: "api.exposurenexus.local",
       type: AssetType.Host,
       environment: AssetEnvironment.Production,

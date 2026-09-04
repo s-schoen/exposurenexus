@@ -20,10 +20,9 @@ import { replyArray, replyObject } from "../lib/reply.js";
 import { requestEventContext } from "../lib/request-event-context.js";
 import { createAssetCustomFieldRoute } from "./asset-custom-fields.js";
 
+import type { ApiAssetCustomFields, ApiAssetInventory } from "../lib/assets-events.js";
 import type { ContextVariables } from "../lib/hono-schema.js";
 import type { RequireDomainPermission } from "../middleware/auth.js";
-import type { AssetCustomFieldService } from "../service/asset-custom-field.js";
-import type { AssetService } from "../service/asset.js";
 
 interface AssetRouteDependencies {
   requireDomainPermission: RequireDomainPermission;
@@ -88,8 +87,8 @@ function toAssetListOptions(query: {
 }
 
 export function createAssetRoute(
-  assetService: AssetService,
-  assetCustomFieldService: AssetCustomFieldService,
+  assetService: ApiAssetInventory,
+  assetCustomFieldService: ApiAssetCustomFields,
   { requireDomainPermission }: AssetRouteDependencies,
 ) {
   const asset = new Hono<{ Variables: ContextVariables }>();

@@ -1,4 +1,3 @@
-import { type Database } from "@exposurenexus/backend/database";
 import {
   type AssetCustomFieldDefinition,
   type AssetCustomFieldOption,
@@ -11,15 +10,28 @@ import {
 } from "@exposurenexus/contracts/model/asset-custom-field";
 import { sql, type Kysely, type RawBuilder, type Selectable, type Transaction } from "kysely";
 
-import { updateAssetAudit, type AssetAuditRecord } from "./asset.js";
+import { type Database } from "../database/index.js";
+import { updateAssetAudit, type AssetAuditRecord } from "./asset-audit.js";
+import { getAssetByID } from "./asset-records.js";
 
-import type { AssetCustomFieldStoredValue } from "@exposurenexus/backend/database";
+import type { AssetCustomFieldStoredValue } from "../database/index.js";
+import type { AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
 
 type DatabaseExecutor = Kysely<Database> | Transaction<Database>;
 type AssetCustomFieldRow = Selectable<Database["asset_custom_field"]>;
 type AssetCustomFieldAssignmentDefinitionRow = AssetCustomFieldRow & {
   assetId: string;
 };
+export interface AssetCustomFieldUpdatePersistenceResult {
+  previous: AssetCustomFieldDefinition;
+  current: AssetCustomFieldDefinition;
+}
+
+export interface AssetCustomFieldAssetMutationPersistenceResult {
+  values: AssetCustomFieldValue[];
+  previous: AssetWithCustomFields;
+  current: AssetWithCustomFields;
+}
 
 export interface AssetCustomFieldRepository {
   listDefinitions(): Promise<AssetCustomFieldDefinition[]>;
@@ -30,7 +42,7 @@ export interface AssetCustomFieldRepository {
   updateDefinitionByID(
     id: string,
     definition: UpdateAssetCustomFieldDefinition,
-  ): Promise<AssetCustomFieldDefinition | null>;
+  ): Promise<AssetCustomFieldUpdatePersistenceResult | null>;
   deleteDefinitionByID(id: string): Promise<AssetCustomFieldDefinition | null>;
   listEffectiveValuesForAsset(assetId: string): Promise<AssetCustomFieldValue[]>;
   listEffectiveValuesForAssets(
@@ -41,12 +53,12 @@ export interface AssetCustomFieldRepository {
     assetId: string,
     fieldIds: readonly string[],
     audit: AssetAuditRecord,
-  ): Promise<AssetCustomFieldValue[]>;
+  ): Promise<AssetCustomFieldAssetMutationPersistenceResult>;
   replaceValuesForAsset(
     assetId: string,
     values: readonly UpdateAssetCustomFieldValue[],
     audit: AssetAuditRecord,
-  ): Promise<AssetCustomFieldValue[]>;
+  ): Promise<AssetCustomFieldAssetMutationPersistenceResult>;
 }
 
 function toJsonbValue(value: AssetCustomFieldStoredValue): RawBuilder<AssetCustomFieldStoredValue> {
@@ -292,6 +304,20 @@ async function listEffectiveValuesForAsset(
     toCustomFieldValue(definition, overridesByFieldId.get(definition.id)),
   );
 }
+export async function getAssetSnapshot(
+  database: DatabaseExecutor,
+  assetId: string,
+): Promise<AssetWithCustomFields | null> {
+  const asset = await getAssetByID(database, assetId);
+  if (!asset) {
+    return null;
+  }
+
+  return {
+    ...asset,
+    customFields: await listEffectiveValuesForAsset(database, assetId),
+  };
+}
 
 async function listEffectiveValuesForAssets(
   database: DatabaseExecutor,
@@ -366,33 +392,52 @@ async function replaceAssignmentsForAsset(
   assetId: string,
   fieldIds: readonly string[],
   audit: AssetAuditRecord,
-): Promise<AssetCustomFieldValue[]> {
-  return await database.transaction().execute(async (trx) => {
-    const previousValues = await listEffectiveValuesForAsset(trx, assetId);
-    const valueDelete = trx.deleteFrom("asset_custom_field_value").where("assetId", "=", assetId);
+): Promise<AssetCustomFieldAssetMutationPersistenceResult> {
+  return await database
+    .transaction()
+    .setIsolationLevel("repeatable read")
+    .execute(async (trx) => {
+      const previous = await getAssetSnapshot(trx, assetId);
+      if (!previous) {
+        throw new Error(`asset ${assetId} does not exist`);
+      }
 
-    if (fieldIds.length === 0) {
-      await valueDelete.execute();
-    } else {
-      await valueDelete.where("fieldId", "not in", [...fieldIds]).execute();
-    }
+      const valueDelete = trx.deleteFrom("asset_custom_field_value").where("assetId", "=", assetId);
 
-    await trx.deleteFrom("asset_custom_field_assignment").where("assetId", "=", assetId).execute();
+      if (fieldIds.length === 0) {
+        await valueDelete.execute();
+      } else {
+        await valueDelete.where("fieldId", "not in", [...fieldIds]).execute();
+      }
 
-    if (fieldIds.length > 0) {
       await trx
-        .insertInto("asset_custom_field_assignment")
-        .values(fieldIds.map((fieldId) => ({ assetId, fieldId })))
+        .deleteFrom("asset_custom_field_assignment")
+        .where("assetId", "=", assetId)
         .execute();
-    }
 
-    const currentValues = await listEffectiveValuesForAsset(trx, assetId);
-    if (JSON.stringify(previousValues) !== JSON.stringify(currentValues)) {
-      await updateAssetAudit(trx, assetId, audit);
-    }
+      if (fieldIds.length > 0) {
+        await trx
+          .insertInto("asset_custom_field_assignment")
+          .values(fieldIds.map((fieldId) => ({ assetId, fieldId })))
+          .execute();
+      }
 
-    return currentValues;
-  });
+      const currentValues = await listEffectiveValuesForAsset(trx, assetId);
+      if (JSON.stringify(previous.customFields) !== JSON.stringify(currentValues)) {
+        await updateAssetAudit(trx, assetId, audit);
+      }
+
+      const currentAsset = await getAssetByID(trx, assetId);
+      if (!currentAsset) {
+        throw new Error(`updated asset ${assetId} could not be loaded`);
+      }
+
+      return {
+        values: currentValues,
+        previous,
+        current: { ...currentAsset, customFields: currentValues },
+      };
+    });
 }
 
 async function replaceValuesForAsset(
@@ -400,38 +445,54 @@ async function replaceValuesForAsset(
   assetId: string,
   values: readonly UpdateAssetCustomFieldValue[],
   audit: AssetAuditRecord,
-): Promise<AssetCustomFieldValue[]> {
-  return await database.transaction().execute(async (trx) => {
-    const previousValues = await listEffectiveValuesForAsset(trx, assetId);
-    await trx.deleteFrom("asset_custom_field_value").where("assetId", "=", assetId).execute();
-
-    for (const value of values) {
-      if (value.value === null) {
-        continue;
+): Promise<AssetCustomFieldAssetMutationPersistenceResult> {
+  return await database
+    .transaction()
+    .setIsolationLevel("repeatable read")
+    .execute(async (trx) => {
+      const previous = await getAssetSnapshot(trx, assetId);
+      if (!previous) {
+        throw new Error(`asset ${assetId} does not exist`);
       }
 
-      await trx
-        .insertInto("asset_custom_field_value")
-        .values({
-          assetId,
-          fieldId: value.fieldId,
-          value: toJsonbValue(value.value),
-        })
-        .onConflict((oc) =>
-          oc.columns(["assetId", "fieldId"]).doUpdateSet({
-            value: toJsonbValue(value.value!),
-          }),
-        )
-        .execute();
-    }
+      await trx.deleteFrom("asset_custom_field_value").where("assetId", "=", assetId).execute();
 
-    const currentValues = await listEffectiveValuesForAsset(trx, assetId);
-    if (JSON.stringify(previousValues) !== JSON.stringify(currentValues)) {
-      await updateAssetAudit(trx, assetId, audit);
-    }
+      for (const value of values) {
+        if (value.value === null) {
+          continue;
+        }
 
-    return currentValues;
-  });
+        await trx
+          .insertInto("asset_custom_field_value")
+          .values({
+            assetId,
+            fieldId: value.fieldId,
+            value: toJsonbValue(value.value),
+          })
+          .onConflict((oc) =>
+            oc.columns(["assetId", "fieldId"]).doUpdateSet({
+              value: toJsonbValue(value.value!),
+            }),
+          )
+          .execute();
+      }
+
+      const currentValues = await listEffectiveValuesForAsset(trx, assetId);
+      if (JSON.stringify(previous.customFields) !== JSON.stringify(currentValues)) {
+        await updateAssetAudit(trx, assetId, audit);
+      }
+
+      const currentAsset = await getAssetByID(trx, assetId);
+      if (!currentAsset) {
+        throw new Error(`updated asset ${assetId} could not be loaded`);
+      }
+
+      return {
+        values: currentValues,
+        previous,
+        current: { ...currentAsset, customFields: currentValues },
+      };
+    });
 }
 
 async function insertCustomFieldOptions(
@@ -470,66 +531,84 @@ export function createAssetCustomFieldRepository(
     async createDefinition(
       definition: CreateAssetCustomFieldDefinition,
     ): Promise<AssetCustomFieldDefinition> {
-      return await database.transaction().execute(async (trx) => {
-        const createdField = await trx
-          .insertInto("asset_custom_field")
-          .values({
-            key: definition.key,
-            name: definition.name,
-            type: definition.type,
-            required: definition.required,
-            defaultValue: toNullableJsonbValue(definition.defaultValue),
-          })
-          .returningAll()
-          .executeTakeFirst();
+      return await database
+        .transaction()
+        .setIsolationLevel("repeatable read")
+        .execute(async (trx) => {
+          const createdField = await trx
+            .insertInto("asset_custom_field")
+            .values({
+              key: definition.key,
+              name: definition.name,
+              type: definition.type,
+              required: definition.required,
+              defaultValue: toNullableJsonbValue(definition.defaultValue),
+            })
+            .returningAll()
+            .executeTakeFirst();
 
-        await insertCustomFieldOptions(trx, createdField!.id, definition);
+          await insertCustomFieldOptions(trx, createdField!.id, definition);
 
-        return (await getDefinitionByID(trx, createdField!.id))!;
-      });
+          return (await getDefinitionByID(trx, createdField!.id))!;
+        });
     },
 
     async updateDefinitionByID(
       id: string,
       definition: UpdateAssetCustomFieldDefinition,
-    ): Promise<AssetCustomFieldDefinition | null> {
-      return await database.transaction().execute(async (trx) => {
-        const updatedField = await trx
-          .updateTable("asset_custom_field")
-          .set({
-            key: definition.key,
-            name: definition.name,
-            type: definition.type,
-            required: definition.required,
-            defaultValue: toNullableJsonbValue(definition.defaultValue),
-          })
-          .where("id", "=", id)
-          .returningAll()
-          .executeTakeFirst();
+    ): Promise<AssetCustomFieldUpdatePersistenceResult | null> {
+      return await database
+        .transaction()
+        .setIsolationLevel("repeatable read")
+        .execute(async (trx) => {
+          const previous = await getDefinitionByID(trx, id);
+          if (!previous) {
+            return null;
+          }
 
-        if (!updatedField) {
-          return null;
-        }
+          const updatedField = await trx
+            .updateTable("asset_custom_field")
+            .set({
+              key: definition.key,
+              name: definition.name,
+              type: definition.type,
+              required: definition.required,
+              defaultValue: toNullableJsonbValue(definition.defaultValue),
+            })
+            .where("id", "=", id)
+            .returning("id")
+            .executeTakeFirst();
 
-        await trx.deleteFrom("asset_custom_field_option").where("fieldId", "=", id).execute();
-        await insertCustomFieldOptions(trx, id, definition);
+          if (!updatedField) {
+            return null;
+          }
 
-        return await getDefinitionByID(trx, id);
-      });
+          await trx.deleteFrom("asset_custom_field_option").where("fieldId", "=", id).execute();
+          await insertCustomFieldOptions(trx, id, definition);
+
+          const current = await getDefinitionByID(trx, id);
+          if (!current) {
+            throw new Error(`updated asset custom field ${id} could not be loaded`);
+          }
+          return { previous, current };
+        });
     },
 
     async deleteDefinitionByID(id: string): Promise<AssetCustomFieldDefinition | null> {
-      return await database.transaction().execute(async (trx) => {
-        const existingField = await getDefinitionByID(trx, id);
+      return await database
+        .transaction()
+        .setIsolationLevel("repeatable read")
+        .execute(async (trx) => {
+          const existingField = await getDefinitionByID(trx, id);
 
-        if (!existingField) {
-          return null;
-        }
+          if (!existingField) {
+            return null;
+          }
 
-        await trx.deleteFrom("asset_custom_field").where("id", "=", id).execute();
+          await trx.deleteFrom("asset_custom_field").where("id", "=", id).execute();
 
-        return existingField;
-      });
+          return existingField;
+        });
     },
 
     async listEffectiveValuesForAsset(assetId: string): Promise<AssetCustomFieldValue[]> {
@@ -550,7 +629,7 @@ export function createAssetCustomFieldRepository(
       assetId: string,
       fieldIds: readonly string[],
       audit: AssetAuditRecord,
-    ): Promise<AssetCustomFieldValue[]> {
+    ): Promise<AssetCustomFieldAssetMutationPersistenceResult> {
       return await replaceAssignmentsForAsset(database, assetId, fieldIds, audit);
     },
 
@@ -558,7 +637,7 @@ export function createAssetCustomFieldRepository(
       assetId: string,
       values: readonly UpdateAssetCustomFieldValue[],
       audit: AssetAuditRecord,
-    ): Promise<AssetCustomFieldValue[]> {
+    ): Promise<AssetCustomFieldAssetMutationPersistenceResult> {
       return await replaceValuesForAsset(database, assetId, values, audit);
     },
   };
