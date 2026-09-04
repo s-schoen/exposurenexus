@@ -1,9 +1,5 @@
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-
-vi.mock("@/features/auth/index.ts", () => ({
-  AccountMenu: () => <div>Account menu slot</div>,
-}));
+import { afterEach, describe, expect, it } from "vitest";
 
 describe("AppHeader", () => {
   afterEach(() => {
@@ -13,7 +9,7 @@ describe("AppHeader", () => {
   it("renders the product brand and account menu slot", async () => {
     const { default: AppHeader } = await import("@/components/app-header.tsx");
 
-    render(<AppHeader />);
+    render(<AppHeader accountMenu={<div>Account menu slot</div>} />);
 
     expect(screen.getByText("ExposureNexus")).toBeTruthy();
     expect(screen.getByAltText("ExposureNexus Logo")).toBeTruthy();
