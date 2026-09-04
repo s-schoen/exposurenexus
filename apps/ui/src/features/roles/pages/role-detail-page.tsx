@@ -3,11 +3,11 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { useMemo } from "react";
 
-import { createRoleByIDQueryOptions } from "@/api/role.ts";
-import { RoleDetailContent } from "@/components/role-detail-content.tsx";
 import { buttonVariants } from "@/components/ui/button.tsx";
+import { RoleDetailContent } from "@/features/roles/components/role-detail-content.tsx";
+import { isBuiltInRoleId } from "@/features/roles/lib/role.ts";
+import { createRoleByIDQueryOptions } from "@/features/roles/queries/roles.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
-import { isBuiltInRoleId } from "@/lib/role.ts";
 import { cn } from "@/lib/utils.ts";
 
 interface RoleDetailPageProps {

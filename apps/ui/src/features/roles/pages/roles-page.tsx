@@ -2,16 +2,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 
-import { createListRolesQueryOptions } from "@/api/role.ts";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
-import { RoleDetailContent } from "@/components/role-detail-content.tsx";
-import { RoleTable } from "@/components/role-table";
+import { RoleDetailContent } from "@/features/roles/components/role-detail-content.tsx";
+import { RoleTable } from "@/features/roles/components/role-table";
+import { useRoleLifecycle } from "@/features/roles/hooks/use-role-lifecycle.ts";
+import { useRoleTableSearchState } from "@/features/roles/hooks/use-role-table-search-state.ts";
+import { isBuiltInRoleId } from "@/features/roles/lib/role.ts";
+import { createListRolesQueryOptions } from "@/features/roles/queries/roles.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
-import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts";
-import { useRoleTableSearchState } from "@/hooks/use-role-table-search-state.ts";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
-import { isBuiltInRoleId } from "@/lib/role.ts";
 
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 

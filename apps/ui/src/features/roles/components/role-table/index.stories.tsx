@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { expect, fn, userEvent } from "storybook/test";
 
-import { RoleTable } from "@/components/role-table";
+import { RoleTable } from "@/features/roles/components/role-table";
 import { ROLE_FIXTURES } from "@/test/fixtures.ts";
 
 import type { DataTableFilterState } from "@/components/data-table/types.ts";

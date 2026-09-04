@@ -53,7 +53,7 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: () => mocks.roleQuery,
 }));
 
-vi.mock("@/api/role.ts", () => ({
+vi.mock("@/features/roles/queries/roles.ts", () => ({
   createRoleByIDQueryOptions: (id: string) => ({
     queryKey: ["roles", id],
   }),
@@ -63,7 +63,7 @@ vi.mock("@/hooks/use-page-meta.tsx", () => ({
   usePageMeta: mocks.usePageMeta,
 }));
 
-vi.mock("@/components/role-detail-content.tsx", () => ({
+vi.mock("@/features/roles/components/role-detail-content.tsx", () => ({
   RoleDetailContent: ({
     roleId: renderedRoleId,
     titleAction,
@@ -94,7 +94,7 @@ describe("RoleDetailPage", () => {
   });
 
   it("adds an edit action for custom roles", async () => {
-    const { RoleDetailPage } = await import("@/features/roles/components/role-detail-page.tsx");
+    const { RoleDetailPage } = await import("@/features/roles/pages/role-detail-page.tsx");
 
     render(<RoleDetailPage roleId={roleId} />);
 
@@ -121,7 +121,7 @@ describe("RoleDetailPage", () => {
   });
 
   it("does not add an edit action for built-in roles", async () => {
-    const { RoleDetailPage } = await import("@/features/roles/components/role-detail-page.tsx");
+    const { RoleDetailPage } = await import("@/features/roles/pages/role-detail-page.tsx");
     mocks.roleQuery = {
       data: {
         id: builtInRoleIds.viewer,
@@ -143,7 +143,7 @@ describe("RoleDetailPage", () => {
   });
 
   it("uses fallback metadata before role data is available", async () => {
-    const { RoleDetailPage } = await import("@/features/roles/components/role-detail-page.tsx");
+    const { RoleDetailPage } = await import("@/features/roles/pages/role-detail-page.tsx");
     mocks.roleQuery = {
       isPending: true,
       isSuccess: false,

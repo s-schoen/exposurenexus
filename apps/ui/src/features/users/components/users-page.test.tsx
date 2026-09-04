@@ -105,7 +105,7 @@ vi.mock("@/api/user.ts", () => ({
   }),
 }));
 
-vi.mock("@/api/role.ts", () => ({
+vi.mock("@/features/roles", () => ({
   createListRolesQueryOptions: () => ({
     queryKey: ["roles"],
   }),

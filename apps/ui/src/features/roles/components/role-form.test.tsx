@@ -11,8 +11,8 @@ import {
   mapCreateRoleFormValues,
   mapRoleToFormValues,
   mapUpdateRoleFormValues,
-} from "@/components/role-form";
-import * as stories from "@/components/role-form.stories";
+} from "@/features/roles/components/role-form";
+import * as stories from "@/features/roles/components/role-form.stories";
 import { CUSTOM_AUDITOR_ROLE, ROLE_FIXTURES } from "@/test/fixtures.ts";
 
 import type { Permission, Role } from "@exposurenexus/contracts/model/rbac";

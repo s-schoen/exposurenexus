@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useLayoutEffect, useMemo } from "react";
 
-import { RoleDetailContent } from "@/components/role-detail-content";
+import { RoleDetailContent } from "@/features/roles/components/role-detail-content";
 import { BUILT_IN_ADMIN_ROLE, CUSTOM_AUDITOR_ROLE } from "@/test/fixtures.ts";
 
 import type { Role } from "@exposurenexus/contracts/model/rbac";

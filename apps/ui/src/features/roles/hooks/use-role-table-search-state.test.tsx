@@ -6,7 +6,7 @@ import {
   createRoleTableSearchParams,
   useRoleTableSearchState,
   validateRoleTableSearch,
-} from "@/hooks/use-role-table-search-state.ts";
+} from "@/features/roles/hooks/use-role-table-search-state.ts";
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),

@@ -3,11 +3,11 @@ import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useMemo } from "react";
 
-import { createListRolesQueryOptions } from "@/api/role.ts";
 import { createListUsersQueryOptions } from "@/api/user.ts";
 import { DataTable } from "@/components/data-table/data-table.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { createColumns } from "@/components/user-table/columns.tsx";
+import { createListRolesQueryOptions } from "@/features/roles";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";

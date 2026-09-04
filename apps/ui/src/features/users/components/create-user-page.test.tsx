@@ -59,7 +59,7 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: () => mocks.rolesQuery,
 }));
 
-vi.mock("@/api/role.ts", () => ({
+vi.mock("@/features/roles", () => ({
   createListRolesQueryOptions: () => ({
     queryKey: ["roles"],
   }),

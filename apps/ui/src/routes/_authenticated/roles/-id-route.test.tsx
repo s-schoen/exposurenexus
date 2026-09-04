@@ -22,7 +22,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   });
 });
 
-vi.mock("@/features/roles/components/role-detail-page.tsx", () => ({
+vi.mock("@/features/roles", () => ({
   RoleDetailPage: ({ roleId }: { roleId: string }) => <div>Role detail for {roleId}</div>,
 }));
 
