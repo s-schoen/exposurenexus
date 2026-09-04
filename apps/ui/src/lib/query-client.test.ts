@@ -105,6 +105,7 @@ describe("query client infrastructure", () => {
     const activeQueryFn = vi.fn().mockResolvedValue("active");
     const inactiveQueryFn = vi.fn().mockResolvedValue("inactive");
     const similarQueryFn = vi.fn().mockResolvedValue("similar");
+    const untaggedQueryFn = vi.fn().mockResolvedValue("untagged");
     const activeOptions = {
       queryKey: ["active-tagged"] as const,
       queryFn: activeQueryFn,
@@ -125,6 +126,11 @@ describe("query client infrastructure", () => {
       meta: { invalidationTags: ["vulnerability-detail"] },
       staleTime: Infinity,
     });
+    await queryClient.fetchQuery({
+      queryKey: ["untagged"],
+      queryFn: untaggedQueryFn,
+      staleTime: Infinity,
+    });
 
     const observer = new QueryObserver(queryClient, activeOptions);
     const unsubscribe = observer.subscribe(() => undefined);
@@ -136,6 +142,8 @@ describe("query client infrastructure", () => {
     expect(queryClient.getQueryState(["inactive-tagged"])?.isInvalidated).toBe(true);
     expect(similarQueryFn).toHaveBeenCalledOnce();
     expect(queryClient.getQueryState(["similar-tag"])?.isInvalidated).toBe(false);
+    expect(untaggedQueryFn).toHaveBeenCalledOnce();
+    expect(queryClient.getQueryState(["untagged"])?.isInvalidated).toBe(false);
     unsubscribe();
   });
 });

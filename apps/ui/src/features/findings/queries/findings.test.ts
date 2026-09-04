@@ -9,6 +9,7 @@ import {
   createListFindingsQueryOptions,
   getFindingNavigationCounts,
 } from "@/features/findings/queries/findings.ts";
+import { VULNERABILITY_INVALIDATION_TAG } from "@/features/vulnerabilities";
 import { DEFAULT_QUERY_STALE_TIME } from "@/lib/query-client.ts";
 
 describe("finding queries", () => {
@@ -18,6 +19,7 @@ describe("finding queries", () => {
     expect(options.queryKey).toEqual(["findings"]);
     expect(options.placeholderData).toBe(keepPreviousData);
     expect(options.staleTime).toBe(DEFAULT_QUERY_STALE_TIME);
+    expect(options.meta).toEqual({ invalidationTags: [VULNERABILITY_INVALIDATION_TAG] });
   });
 
   it("creates finding detail and observation query options", () => {
@@ -31,6 +33,9 @@ describe("finding queries", () => {
     ]);
     expect(createFindingByIDQueryOptions(findingId).placeholderData).toBeUndefined();
     expect(createFindingObservationsQueryOptions(findingId).placeholderData).toBeUndefined();
+    expect(createFindingByIDQueryOptions(findingId).meta).toEqual({
+      invalidationTags: [VULNERABILITY_INVALIDATION_TAG],
+    });
   });
 
   it("creates stats query options with the established cache policy", () => {
