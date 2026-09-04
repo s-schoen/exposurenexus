@@ -15,7 +15,6 @@ import { ApplicationError, isApplicationError } from "../application-error.js";
 import { isForeignKeyError } from "../database-error.js";
 
 import type { AssetRepository } from "../assets/asset-repository.js";
-import type { UserProfileRepository } from "../identity/user-profile-repository.js";
 import type { CreateManualFindingInput, FindingRepository } from "./finding-repository.js";
 import type { ObservationRepository } from "./observation-repository.js";
 import type { FindingVulnerabilityLink } from "@exposurenexus/contracts/model/finding-vulnerability";
@@ -24,6 +23,10 @@ import type { Logger } from "pino";
 
 interface VulnerabilityReader {
   getByID(id: string): Promise<VulnerabilityCatalog | null>;
+}
+
+interface UserProfileLookup {
+  getByID(id: string): Promise<object | null>;
 }
 
 export interface CreateManualFindingCommand {
@@ -172,7 +175,7 @@ interface FindingDependencies {
     | "moveAndTouchFindings"
   >;
   assetRepository: Pick<AssetRepository, "getByID">;
-  userProfileRepository: Pick<UserProfileRepository, "getByID">;
+  userProfileLookup: UserProfileLookup;
   vulnerabilityReader: VulnerabilityReader;
   logger: Logger;
 }
@@ -182,10 +185,10 @@ function normalizeOptionalDueDate(dueDate: Date | null | undefined): Date | null
 }
 
 async function requireAuditActor(
-  userProfileRepository: Pick<UserProfileRepository, "getByID">,
+  userProfileLookup: UserProfileLookup,
   performedBy: string,
 ): Promise<void> {
-  if (!(await userProfileRepository.getByID(performedBy))) {
+  if (!(await userProfileLookup.getByID(performedBy))) {
     throw new Error(`finding audit actor ${performedBy} does not exist`);
   }
 }
@@ -194,7 +197,7 @@ export function createFindings({
   findingRepository,
   observationRepository,
   assetRepository,
-  userProfileRepository,
+  userProfileLookup,
   vulnerabilityReader,
   logger,
 }: FindingDependencies): ExposureFindings {
@@ -223,7 +226,7 @@ export function createFindings({
     }
 
     if (finding.assigneeId) {
-      const assignee = await userProfileRepository.getByID(finding.assigneeId);
+      const assignee = await userProfileLookup.getByID(finding.assigneeId);
       if (!assignee) {
         throw new ApplicationError({
           code: "finding.assignee_unknown",
@@ -257,7 +260,7 @@ export function createFindings({
       });
     }
 
-    await requireAuditActor(userProfileRepository, command.performedBy);
+    await requireAuditActor(userProfileLookup, command.performedBy);
     const audit = {
       updatedAt: new Date(),
       updatedBy: command.performedBy,
@@ -352,7 +355,7 @@ export function createFindings({
     async createManual(command: CreateManualFindingCommand): Promise<FindingCreatedOutcome> {
       try {
         await validateManualFindingRelations(command.finding);
-        await requireAuditActor(userProfileRepository, command.performedBy);
+        await requireAuditActor(userProfileLookup, command.performedBy);
 
         const now = new Date();
         const {
@@ -434,7 +437,7 @@ export function createFindings({
       command: CreateManualObservationCommand,
     ): Promise<ObservationCreatedOutcome | null> {
       try {
-        await requireAuditActor(userProfileRepository, command.performedBy);
+        await requireAuditActor(userProfileLookup, command.performedBy);
         const input = command.observation;
         const mutation = await observationRepository.createAndTouchFinding({
           findingId: command.findingId,
@@ -485,7 +488,7 @@ export function createFindings({
       command: UpdateObservationCommand,
     ): Promise<ObservationUpdatedOutcome | null> {
       try {
-        await requireAuditActor(userProfileRepository, command.performedBy);
+        await requireAuditActor(userProfileLookup, command.performedBy);
         const mutation = await observationRepository.updateAndTouchFinding({
           findingId: command.findingId,
           observationId: command.observationId,
@@ -525,7 +528,7 @@ export function createFindings({
       command: DeleteObservationCommand,
     ): Promise<ObservationDeletedOutcome | null> {
       try {
-        await requireAuditActor(userProfileRepository, command.performedBy);
+        await requireAuditActor(userProfileLookup, command.performedBy);
         const mutation = await observationRepository.deleteAndTouchFinding({
           findingId: command.findingId,
           observationId: command.observationId,
@@ -574,7 +577,7 @@ export function createFindings({
       }
 
       try {
-        await requireAuditActor(userProfileRepository, command.performedBy);
+        await requireAuditActor(userProfileLookup, command.performedBy);
         const mutation = await observationRepository.moveAndTouchFindings({
           findingId: command.findingId,
           observationId: command.observationId,
@@ -627,7 +630,7 @@ export function createFindings({
         }
 
         if (command.finding.assigneeId) {
-          const assignee = await userProfileRepository.getByID(command.finding.assigneeId);
+          const assignee = await userProfileLookup.getByID(command.finding.assigneeId);
           if (!assignee) {
             throw new ApplicationError({
               code: "finding.assignee_unknown",
@@ -637,7 +640,7 @@ export function createFindings({
             });
           }
         }
-        await requireAuditActor(userProfileRepository, command.performedBy);
+        await requireAuditActor(userProfileLookup, command.performedBy);
 
         const findingUpdate = {
           ...command.finding,

@@ -40,16 +40,16 @@ describe("exposure vulnerabilities", () => {
     updateByID: vi.fn(),
     deleteByID: vi.fn(),
   };
-  const userProfileRepository = { getByID: vi.fn() };
+  const userProfileLookup = { getByID: vi.fn() };
   const logger = pino({ enabled: false });
 
   beforeEach(() => {
     vi.resetAllMocks();
-    userProfileRepository.getByID.mockResolvedValue({ id: actorId });
+    userProfileLookup.getByID.mockResolvedValue({ id: actorId });
   });
 
   function createCapability() {
-    return createVulnerabilities({ vulnerabilityRepository, userProfileRepository, logger });
+    return createVulnerabilities({ vulnerabilityRepository, userProfileLookup, logger });
   }
 
   it("creates canonical catalog entries and returns a safe outcome", async () => {

@@ -16,11 +16,11 @@ vi.mock("../identity/password.js", () => ({
 }));
 
 describe("authentication behavior", () => {
-  const userProfileRepository = {
+  const userProfileReader = {
     getByID: vi.fn(),
     getByUsername: vi.fn(),
   };
-  const userSessionRepository = {
+  const sessionPersistence = {
     getBySessionDigest: vi.fn(),
     create: vi.fn(),
     deleteBySessionDigest: vi.fn(),
@@ -70,8 +70,8 @@ describe("authentication behavior", () => {
 
   function createAuthentication() {
     return createAuthenticationBehavior({
-      userProfileRepository,
-      userSessionRepository,
+      userProfileReader,
+      sessionPersistence,
       sessionLifetimeHours,
       sessionHmacSecret,
       logger,
@@ -94,8 +94,8 @@ describe("authentication behavior", () => {
 
     vi.useFakeTimers();
     vi.setSystemTime(now);
-    userProfileRepository.getByID.mockResolvedValue(enabledProfile);
-    userSessionRepository.create.mockImplementation(async (session) => ({
+    userProfileReader.getByID.mockResolvedValue(enabledProfile);
+    sessionPersistence.create.mockImplementation(async (session) => ({
       id: storedSession.id,
       ...session,
     }));
@@ -117,7 +117,7 @@ describe("authentication behavior", () => {
     });
     expect(outcome.session).not.toHaveProperty("sessionId");
     expect(outcome.user).toEqual(publicEnabledProfile);
-    expect(userSessionRepository.create).toHaveBeenCalledWith({
+    expect(sessionPersistence.create).toHaveBeenCalledWith({
       sessionId: hmacSessionToken(outcome.sessionToken),
       userId: enabledProfile.id,
       sourceIp: "203.0.113.10",
@@ -133,15 +133,15 @@ describe("authentication behavior", () => {
 
     vi.useFakeTimers();
     vi.setSystemTime(now);
-    userProfileRepository.getByID.mockResolvedValue(enabledProfile);
-    userSessionRepository.create.mockImplementation(async (session) => ({
+    userProfileReader.getByID.mockResolvedValue(enabledProfile);
+    sessionPersistence.create.mockImplementation(async (session) => ({
       id: storedSession.id,
       ...session,
     }));
 
     const outcome = await authentication.createSession({ userId: enabledProfile.id });
 
-    expect(userSessionRepository.create).toHaveBeenCalledWith({
+    expect(sessionPersistence.create).toHaveBeenCalledWith({
       sessionId: hmacSessionToken(outcome.sessionToken),
       userId: enabledProfile.id,
       sourceIp: null,
@@ -157,9 +157,9 @@ describe("authentication behavior", () => {
 
     vi.useFakeTimers();
     vi.setSystemTime(now);
-    userProfileRepository.getByUsername.mockResolvedValue(enabledProfile);
+    userProfileReader.getByUsername.mockResolvedValue(enabledProfile);
     verifyPasswordHashMock.mockResolvedValue(true);
-    userSessionRepository.create.mockImplementation(async (session) => ({
+    sessionPersistence.create.mockImplementation(async (session) => ({
       id: storedSession.id,
       ...session,
     }));
@@ -178,13 +178,13 @@ describe("authentication behavior", () => {
       user: publicEnabledProfile,
     });
     expect(verifyPasswordHashMock).toHaveBeenCalledOnce();
-    expect(userProfileRepository.getByID).not.toHaveBeenCalled();
+    expect(userProfileReader.getByID).not.toHaveBeenCalled();
   });
 
   it("rejects invalid credentials without creating a session", async () => {
     const authentication = createAuthentication();
 
-    userProfileRepository.getByUsername.mockResolvedValue(enabledProfile);
+    userProfileReader.getByUsername.mockResolvedValue(enabledProfile);
     verifyPasswordHashMock.mockResolvedValue(false);
 
     await expect(
@@ -193,13 +193,13 @@ describe("authentication behavior", () => {
         password: "wrong-password",
       }),
     ).resolves.toEqual({ authenticated: false, reason: "invalid-credentials" });
-    expect(userSessionRepository.create).not.toHaveBeenCalled();
+    expect(sessionPersistence.create).not.toHaveBeenCalled();
   });
 
   it("verifies a dummy hash for missing users", async () => {
     const authentication = createAuthentication();
 
-    userProfileRepository.getByUsername.mockResolvedValue(null);
+    userProfileReader.getByUsername.mockResolvedValue(null);
 
     await expect(
       authentication.createSessionForCredentials({
@@ -213,14 +213,14 @@ describe("authentication behavior", () => {
         /^\$argon2id\$v=19\$m=\d+,t=\d+,p=\d+\$[A-Za-z0-9_-]+\$[A-Za-z0-9_-]+$/,
       ),
     );
-    expect(userSessionRepository.create).not.toHaveBeenCalled();
+    expect(sessionPersistence.create).not.toHaveBeenCalled();
   });
 
   it("rejects disabled users after verifying their stored hash", async () => {
     const authentication = createAuthentication();
     const disabledProfile = { ...enabledProfile, enabled: false };
 
-    userProfileRepository.getByUsername.mockResolvedValue(disabledProfile);
+    userProfileReader.getByUsername.mockResolvedValue(disabledProfile);
     verifyPasswordHashMock.mockResolvedValue(true);
 
     await expect(
@@ -233,14 +233,14 @@ describe("authentication behavior", () => {
       "correct-horse-battery-staple",
       disabledProfile.passwordHash,
     );
-    expect(userSessionRepository.create).not.toHaveBeenCalled();
+    expect(sessionPersistence.create).not.toHaveBeenCalled();
   });
 
   it("maps credential lookup and persistence failures to the existing application error", async () => {
     const authentication = createAuthentication();
     const lookupError = new Error("db offline");
 
-    userProfileRepository.getByUsername.mockRejectedValueOnce(lookupError);
+    userProfileReader.getByUsername.mockRejectedValueOnce(lookupError);
 
     await expect(
       authentication.createSessionForCredentials({
@@ -257,9 +257,9 @@ describe("authentication behavior", () => {
       "failed to create session for credentials",
     );
 
-    userProfileRepository.getByUsername.mockResolvedValue(enabledProfile);
+    userProfileReader.getByUsername.mockResolvedValue(enabledProfile);
     verifyPasswordHashMock.mockResolvedValue(true);
-    userSessionRepository.create.mockRejectedValueOnce(new Error("write failed"));
+    sessionPersistence.create.mockRejectedValueOnce(new Error("write failed"));
 
     await expect(
       authentication.createSessionForCredentials({
@@ -272,7 +272,7 @@ describe("authentication behavior", () => {
   it("maps direct session creation failures to the existing application error", async () => {
     const authentication = createAuthentication();
 
-    userSessionRepository.create.mockRejectedValue(new Error("db offline"));
+    sessionPersistence.create.mockRejectedValue(new Error("db offline"));
 
     await expect(authentication.createSession({ userId: enabledProfile.id })).rejects.toMatchObject(
       {
@@ -289,15 +289,15 @@ describe("authentication behavior", () => {
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-26T08:00:00.000Z"));
-    userSessionRepository.getBySessionDigest.mockResolvedValue(storedSession);
-    userProfileRepository.getByID.mockResolvedValue(enabledProfile);
+    sessionPersistence.getBySessionDigest.mockResolvedValue(storedSession);
+    userProfileReader.getByID.mockResolvedValue(enabledProfile);
 
     await expect(authentication.validateSession({ sessionToken })).resolves.toEqual({
       valid: true,
       session: publicSession,
       user: publicEnabledProfile,
     });
-    expect(userSessionRepository.getBySessionDigest).toHaveBeenCalledWith(
+    expect(sessionPersistence.getBySessionDigest).toHaveBeenCalledWith(
       hmacSessionToken(sessionToken),
     );
   });
@@ -336,23 +336,23 @@ describe("authentication behavior", () => {
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-26T08:00:00.000Z"));
-    userSessionRepository.getBySessionDigest.mockResolvedValue(session);
-    userProfileRepository.getByID.mockResolvedValue(user);
+    sessionPersistence.getBySessionDigest.mockResolvedValue(session);
+    userProfileReader.getByID.mockResolvedValue(user);
 
     await expect(
       authentication.validateSession({ sessionToken: "public-session-token" }),
     ).resolves.toEqual({ valid: false, reason });
     if (loadsUser) {
-      expect(userProfileRepository.getByID).toHaveBeenCalledWith(storedSession.userId);
+      expect(userProfileReader.getByID).toHaveBeenCalledWith(storedSession.userId);
     } else {
-      expect(userProfileRepository.getByID).not.toHaveBeenCalled();
+      expect(userProfileReader.getByID).not.toHaveBeenCalled();
     }
   });
 
   it("maps validation lookup failures to the existing application error", async () => {
     const authentication = createAuthentication();
 
-    userSessionRepository.getBySessionDigest.mockRejectedValue(new Error("db offline"));
+    sessionPersistence.getBySessionDigest.mockRejectedValue(new Error("db offline"));
 
     await expect(
       authentication.validateSession({ sessionToken: "public-session-token" }),
@@ -366,13 +366,13 @@ describe("authentication behavior", () => {
     const authentication = createAuthentication();
     const sessionToken = "public-session-token";
 
-    userSessionRepository.deleteBySessionDigest.mockResolvedValue(storedSession);
+    sessionPersistence.deleteBySessionDigest.mockResolvedValue(storedSession);
 
     await expect(authentication.revokeSession({ sessionToken })).resolves.toEqual({
       revoked: true,
       session: publicSession,
     });
-    expect(userSessionRepository.deleteBySessionDigest).toHaveBeenCalledWith(
+    expect(sessionPersistence.deleteBySessionDigest).toHaveBeenCalledWith(
       hmacSessionToken(sessionToken),
     );
   });
@@ -380,7 +380,7 @@ describe("authentication behavior", () => {
   it("returns a neutral outcome when revoking a missing session", async () => {
     const authentication = createAuthentication();
 
-    userSessionRepository.deleteBySessionDigest.mockResolvedValue(null);
+    sessionPersistence.deleteBySessionDigest.mockResolvedValue(null);
 
     await expect(
       authentication.revokeSession({ sessionToken: "missing-session-token" }),
@@ -390,7 +390,7 @@ describe("authentication behavior", () => {
   it("maps session revocation failures to the existing application error", async () => {
     const authentication = createAuthentication();
 
-    userSessionRepository.deleteBySessionDigest.mockRejectedValue(new Error("db offline"));
+    sessionPersistence.deleteBySessionDigest.mockRejectedValue(new Error("db offline"));
 
     await expect(
       authentication.revokeSession({ sessionToken: "public-session-token" }),

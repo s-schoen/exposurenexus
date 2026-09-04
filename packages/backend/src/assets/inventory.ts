@@ -115,21 +115,21 @@ function normalizeIdentifiers(inputs: readonly unknown[]): AssetIdentifier[] {
   return normalized;
 }
 
-interface UserProfileLookupRepository {
+interface UserProfileLookup {
   getByID(id: string): Promise<object | null>;
 }
 
 interface AssetInventoryDependencies {
   assetRepository: AssetRepository;
   assetCustomFieldReader: AssetCustomFieldProjectionReader;
-  userProfileRepository: UserProfileLookupRepository;
+  userProfileLookup: UserProfileLookup;
   logger: Logger;
 }
 
 export function createAssetInventory({
   assetRepository,
   assetCustomFieldReader,
-  userProfileRepository,
+  userProfileLookup,
   logger,
 }: AssetInventoryDependencies): AssetInventory {
   async function getAssetSnapshot(id: string): Promise<AssetWithCustomFields | null> {
@@ -161,7 +161,7 @@ export function createAssetInventory({
   }
 
   async function requireAuditActor(performedBy: string): Promise<void> {
-    if (!(await userProfileRepository.getByID(performedBy))) {
+    if (!(await userProfileLookup.getByID(performedBy))) {
       throw new Error(`asset audit actor ${performedBy} does not exist`);
     }
   }
@@ -174,7 +174,7 @@ export function createAssetInventory({
       return;
     }
 
-    const owner = await userProfileRepository.getByID(ownerId);
+    const owner = await userProfileLookup.getByID(ownerId);
     if (!owner) {
       throw new ApplicationError({
         code: "asset.owner_unknown",

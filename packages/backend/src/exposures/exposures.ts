@@ -1,5 +1,5 @@
 import { createAssetRepository } from "../assets/asset-repository.js";
-import { createUserProfileRepository } from "../identity/user-profile-repository.js";
+import { getUserProfileByID } from "../identity/user-profile-persistence.js";
 import {
   getOrCreateRuntimeValue,
   getRuntimeDatabase,
@@ -29,10 +29,12 @@ export function createExposures(runtime: BackendRuntime): Exposures {
     const observationRepository = createObservationRepository(database);
     const vulnerabilityRepository = createVulnerabilityRepository(database);
     const assetRepository = createAssetRepository(database);
-    const userProfileRepository = createUserProfileRepository(database);
+    const userProfileLookup = {
+      getByID: (id: string) => getUserProfileByID(database, id),
+    };
     const vulnerabilities = createVulnerabilities({
       vulnerabilityRepository,
-      userProfileRepository,
+      userProfileLookup,
       logger: logger.child({ capability: "exposures", component: "vulnerabilities" }),
     });
 
@@ -41,7 +43,7 @@ export function createExposures(runtime: BackendRuntime): Exposures {
         findingRepository,
         observationRepository,
         assetRepository,
-        userProfileRepository,
+        userProfileLookup,
         vulnerabilityReader: vulnerabilities,
         logger: logger.child({ capability: "exposures", component: "findings" }),
       }),

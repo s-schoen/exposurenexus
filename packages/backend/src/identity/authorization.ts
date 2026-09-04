@@ -1,17 +1,24 @@
 import { ApplicationError } from "../application-error.js";
 
-import type { AuthorizationRepository } from "./authorization-repository.js";
+import type { DatabaseExecutor } from "../database/executor.js";
+import type { Database } from "../database/index.js";
 import type { IdentityAuthorization, ResourcePermissionVerbAssignment } from "./identity.js";
 import type {
   Permission,
   PermissionResource,
   PermissionVerb,
 } from "@exposurenexus/contracts/model/rbac";
+import type { Kysely } from "kysely";
 import type { Logger } from "pino";
 
 interface AuthorizationDependencies {
-  authorizationRepository: AuthorizationRepository;
+  database: Kysely<Database>;
+  authorizationPersistence: AuthorizationPersistence;
   logger: Logger;
+}
+
+interface AuthorizationPersistence {
+  listPermissionsByUserID(database: DatabaseExecutor, userId: string): Promise<Permission[]>;
 }
 
 function hasRequiredPermissions(
@@ -39,7 +46,8 @@ function hasRequiredPermissions(
 }
 
 export function createAuthorization({
-  authorizationRepository,
+  database,
+  authorizationPersistence,
   logger,
 }: AuthorizationDependencies): IdentityAuthorization {
   return {
@@ -48,7 +56,10 @@ export function createAuthorization({
       permissions: ResourcePermissionVerbAssignment,
     ): Promise<boolean> {
       try {
-        const assignedPermissions = await authorizationRepository.listPermissionsByUserID(userId);
+        const assignedPermissions = await authorizationPersistence.listPermissionsByUserID(
+          database,
+          userId,
+        );
         return hasRequiredPermissions(assignedPermissions, permissions);
       } catch (error) {
         logger.error(error, "failed to check user permissions");

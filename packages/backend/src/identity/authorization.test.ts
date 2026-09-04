@@ -7,15 +7,16 @@ import type { ApplicationError } from "../application-error.js";
 import type { Logger } from "pino";
 
 const userId = "a7d3ef96-d3b4-48bb-8386-681eb3be7b12";
-const authorizationRepository = {
+const authorizationPersistence = {
   listPermissionsByUserID: vi.fn(),
 };
+const database = {} as never;
 const logger = {
   error: vi.fn(),
 } as unknown as Logger;
 
 function createService() {
-  return createAuthorization({ authorizationRepository, logger });
+  return createAuthorization({ database, authorizationPersistence, logger });
 }
 
 describe("identity authorization", () => {
@@ -24,7 +25,7 @@ describe("identity authorization", () => {
   });
 
   it("returns true only when every requested permission is assigned", async () => {
-    authorizationRepository.listPermissionsByUserID.mockResolvedValue([
+    authorizationPersistence.listPermissionsByUserID.mockResolvedValue([
       { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
       { resource: PermissionResource.Asset, verb: PermissionVerb.Write },
       { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
@@ -46,7 +47,7 @@ describe("identity authorization", () => {
   });
 
   it("returns false when the user has no assigned permissions", async () => {
-    authorizationRepository.listPermissionsByUserID.mockResolvedValue([]);
+    authorizationPersistence.listPermissionsByUserID.mockResolvedValue([]);
 
     await expect(
       createService().userHasPermission(userId, {
@@ -56,7 +57,7 @@ describe("identity authorization", () => {
   });
 
   it("preserves permission lookup error identity", async () => {
-    authorizationRepository.listPermissionsByUserID.mockRejectedValue(new Error("db offline"));
+    authorizationPersistence.listPermissionsByUserID.mockRejectedValue(new Error("db offline"));
 
     await expect(
       createService().userHasPermission(userId, {

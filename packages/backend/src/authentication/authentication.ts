@@ -1,6 +1,9 @@
 import { ApplicationError } from "../application-error.js";
 import { verifyPasswordHash } from "../identity/password.js";
-import { createUserProfileRepository } from "../identity/user-profile-repository.js";
+import {
+  getUserProfileByID,
+  getUserProfileByUsername,
+} from "../identity/user-profile-persistence.js";
 import {
   getOrCreateRuntimeValue,
   getRuntimeDatabase,
@@ -8,11 +11,14 @@ import {
   type BackendRuntime,
 } from "../runtime.js";
 import { createSessionDigest, createSessionToken } from "./crypto.js";
-import { createUserSessionRepository } from "./user-session-repository.js";
+import {
+  deleteUserSessionByDigest,
+  getUserSessionByDigest,
+  insertUserSession,
+} from "./session-persistence.js";
 
 import type { UserProfileRecordWithRoles } from "../identity/types.js";
-import type { UserProfileRepository } from "../identity/user-profile-repository.js";
-import type { UserSessionRecord, UserSessionRepository } from "./user-session-repository.js";
+import type { UserSessionRecord } from "./types.js";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Logger } from "pino";
 
@@ -104,12 +110,20 @@ export interface Authentication {
 }
 
 interface AuthenticationDependencies extends AuthenticationConfiguration {
-  userProfileRepository: Pick<UserProfileRepository, "getByID" | "getByUsername">;
-  userSessionRepository: Pick<
-    UserSessionRepository,
-    "getBySessionDigest" | "create" | "deleteBySessionDigest"
-  >;
+  userProfileReader: UserProfileReader;
+  sessionPersistence: SessionPersistence;
   logger: Logger;
+}
+
+interface UserProfileReader {
+  getByID(id: string): Promise<UserProfileRecordWithRoles | null>;
+  getByUsername(username: string): Promise<UserProfileRecordWithRoles | null>;
+}
+
+interface SessionPersistence {
+  getBySessionDigest(sessionDigest: string): Promise<UserSessionRecord | null>;
+  create(session: Omit<UserSessionRecord, "id">): Promise<UserSessionRecord>;
+  deleteBySessionDigest(sessionDigest: string): Promise<UserSessionRecord | null>;
 }
 
 function toUserProfile(userProfile: UserProfileRecordWithRoles): UserProfile {
@@ -135,8 +149,8 @@ function toAuthenticationSession(session: UserSessionRecord): AuthenticationSess
 }
 
 export function createAuthenticationBehavior({
-  userProfileRepository,
-  userSessionRepository,
+  userProfileReader,
+  sessionPersistence,
   sessionLifetimeHours,
   sessionHmacSecret,
   logger,
@@ -145,7 +159,7 @@ export function createAuthenticationBehavior({
     username: string,
     password: string,
   ): Promise<UserProfileRecordWithRoles | null> {
-    const userProfile = await userProfileRepository.getByUsername(username);
+    const userProfile = await userProfileReader.getByUsername(username);
     const passwordHash = userProfile?.passwordHash ?? DUMMY_PASSWORD_HASH;
     const passwordMatches = await verifyPasswordHash(password, passwordHash);
 
@@ -163,7 +177,7 @@ export function createAuthenticationBehavior({
     const now = new Date();
     const sessionToken = createSessionToken();
     const sessionDigest = createSessionDigest(sessionToken, sessionHmacSecret);
-    const sessionRecord = await userSessionRepository.create({
+    const sessionRecord = await sessionPersistence.create({
       sessionId: sessionDigest,
       userId: command.userId,
       sourceIp: command.sourceIp || null,
@@ -171,7 +185,7 @@ export function createAuthenticationBehavior({
       createdAt: now,
       expiresAt: new Date(now.getTime() + sessionLifetimeHours * 60 * 60 * 1000),
     });
-    const sessionUserProfile = userProfile ?? (await userProfileRepository.getByID(command.userId));
+    const sessionUserProfile = userProfile ?? (await userProfileReader.getByID(command.userId));
 
     if (!sessionUserProfile) {
       throw new Error("failed to load session user");
@@ -239,7 +253,7 @@ export function createAuthenticationBehavior({
     async validateSession(command: ValidateSessionCommand): Promise<SessionValidationOutcome> {
       try {
         const sessionDigest = createSessionDigest(command.sessionToken, sessionHmacSecret);
-        const sessionRecord = await userSessionRepository.getBySessionDigest(sessionDigest);
+        const sessionRecord = await sessionPersistence.getBySessionDigest(sessionDigest);
 
         if (!sessionRecord) {
           return { valid: false, reason: "invalid-session" };
@@ -249,7 +263,7 @@ export function createAuthenticationBehavior({
           return { valid: false, reason: "session-expired" };
         }
 
-        const userProfile = await userProfileRepository.getByID(sessionRecord.userId);
+        const userProfile = await userProfileReader.getByID(sessionRecord.userId);
         if (!userProfile) {
           return { valid: false, reason: "unknown-user" };
         }
@@ -277,7 +291,7 @@ export function createAuthenticationBehavior({
     async revokeSession(command: RevokeSessionCommand): Promise<SessionRevocationOutcome> {
       try {
         const sessionDigest = createSessionDigest(command.sessionToken, sessionHmacSecret);
-        const revokedSession = await userSessionRepository.deleteBySessionDigest(sessionDigest);
+        const revokedSession = await sessionPersistence.deleteBySessionDigest(sessionDigest);
 
         if (!revokedSession) {
           return { revoked: false };
@@ -312,8 +326,16 @@ export function createAuthentication(
 
     return createAuthenticationBehavior({
       ...configuration,
-      userProfileRepository: createUserProfileRepository(database),
-      userSessionRepository: createUserSessionRepository(database),
+      userProfileReader: {
+        getByID: (id) => getUserProfileByID(database, id),
+        getByUsername: (username) => getUserProfileByUsername(database, username),
+      },
+      sessionPersistence: {
+        getBySessionDigest: (sessionDigest) => getUserSessionByDigest(database, sessionDigest),
+        create: (session) => insertUserSession(database, session),
+        deleteBySessionDigest: (sessionDigest) =>
+          deleteUserSessionByDigest(database, sessionDigest),
+      },
       logger: logger.child({ capability: "authentication" }),
     });
   });
