@@ -70,7 +70,7 @@ vi.mock("@/features/roles", () => ({
   }),
 }));
 
-vi.mock("@/api/user.ts", () => ({
+vi.mock("@/features/users/queries/users.ts", () => ({
   createListUsersQueryOptions: () => ({
     queryKey: ["users"],
   }),
@@ -149,7 +149,7 @@ describe("UserTable workflow wiring", () => {
   });
 
   it("passes route-owned filters, active row state, and row handlers to DataTable", async () => {
-    const { UserTable } = await import("@/components/user-table/index.tsx");
+    const { UserTable } = await import("@/features/users/components/user-table/index.tsx");
     const onSelectUser = vi.fn();
     const filterState = {
       globalFilter: "alice",
@@ -185,7 +185,7 @@ describe("UserTable workflow wiring", () => {
   });
 
   it("forwards table filter changes", async () => {
-    const { UserTable } = await import("@/components/user-table/index.tsx");
+    const { UserTable } = await import("@/features/users/components/user-table/index.tsx");
     const onFilterStateChange = vi.fn();
 
     render(<UserTable onFilterStateChange={onFilterStateChange} />);
@@ -207,7 +207,7 @@ describe("UserTable workflow wiring", () => {
   });
 
   it("renders the create-user toolbar action when provided", async () => {
-    const { UserTable } = await import("@/components/user-table/index.tsx");
+    const { UserTable } = await import("@/features/users/components/user-table/index.tsx");
     const onCreateUser = vi.fn();
 
     render(<UserTable onCreateUser={onCreateUser} />);
@@ -217,7 +217,7 @@ describe("UserTable workflow wiring", () => {
   });
 
   it("does not create filter state without route-owned filters", async () => {
-    const { UserTable } = await import("@/components/user-table/index.tsx");
+    const { UserTable } = await import("@/features/users/components/user-table/index.tsx");
 
     render(<UserTable />);
 
@@ -231,7 +231,7 @@ describe("user table role columns", () => {
   });
 
   it("renders unresolved role counts while role data is unavailable", async () => {
-    const { createColumns } = await import("@/components/user-table/columns.tsx");
+    const { createColumns } = await import("@/features/users/components/user-table/columns.tsx");
     const rolesColumn = createColumns(new Map(), false).find(
       (column) => "id" in column && column.id === "roles",
     );
@@ -245,7 +245,7 @@ describe("user table role columns", () => {
   });
 
   it("renders resolved role labels, unknown counts, and empty roles", async () => {
-    const { createColumns } = await import("@/components/user-table/columns.tsx");
+    const { createColumns } = await import("@/features/users/components/user-table/columns.tsx");
     const rolesColumn = createColumns(
       new Map([
         [builtInRoleIds.viewer, "viewer"],
@@ -285,7 +285,7 @@ describe("user table role columns", () => {
   });
 
   it("filters enabled rows from string filter values", async () => {
-    const { createColumns } = await import("@/components/user-table/columns.tsx");
+    const { createColumns } = await import("@/features/users/components/user-table/columns.tsx");
     const enabledColumn = createColumns(new Map(), false).find(
       (column) => "accessorKey" in column && column.accessorKey === "enabled",
     );

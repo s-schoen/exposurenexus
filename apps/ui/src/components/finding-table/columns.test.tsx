@@ -18,7 +18,7 @@ vi.mock("@/components/data-table/column-header.tsx", () => ({
   DataTableColumnHeader: ({ title }: { title: string }) => <span>{title}</span>,
 }));
 
-vi.mock("@/components/user-label.tsx", () => ({
+vi.mock("@/features/users", () => ({
   formatUserProfileReference: (
     userId: string | null | undefined,
     usersById: Map<string, UserProfile>,

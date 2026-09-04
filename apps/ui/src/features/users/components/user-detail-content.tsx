@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Mail, User as UserIcon } from "lucide-react";
 
-import { createUserByIDQueryOptions } from "@/api/user.ts";
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import { MetadataSidebar } from "@/components/metadata-sidebar";
@@ -15,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { createListRolesQueryOptions } from "@/features/roles";
+import { createUserByIDQueryOptions } from "@/features/users/queries/users.ts";
 
 import type { ReactNode } from "react";
 

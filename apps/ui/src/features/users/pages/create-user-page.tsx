@@ -12,10 +12,10 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { UserForm, mapCreateUserFormValues } from "@/components/user-form.tsx";
 import { createListRolesQueryOptions } from "@/features/roles";
+import { UserForm, mapCreateUserFormValues } from "@/features/users/components/user-form.tsx";
+import { useUserLifecycle } from "@/features/users/hooks/use-user-lifecycle.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
-import { useUserLifecycle } from "@/hooks/use-user-lifecycle.ts";
 
 export function CreateUserPage() {
   const navigate = useNavigate();

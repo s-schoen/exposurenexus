@@ -3,9 +3,9 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { useMemo } from "react";
 
-import { createUserByIDQueryOptions } from "@/api/user.ts";
 import { buttonVariants } from "@/components/ui/button.tsx";
-import { UserDetailContent } from "@/components/user-detail-content.tsx";
+import { UserDetailContent } from "@/features/users/components/user-detail-content.tsx";
+import { createUserByIDQueryOptions } from "@/features/users/queries/users.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { cn } from "@/lib/utils.ts";
 

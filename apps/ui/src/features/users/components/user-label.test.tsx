@@ -2,7 +2,7 @@ import { composeStories } from "@storybook/react-vite";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import * as stories from "@/components/user-label.stories";
+import * as stories from "@/features/users/components/user-label.stories.tsx";
 
 const { Chip, Default, DisabledUser, Loading, NoUser, ResolvedProfile, UnknownUser } =
   composeStories(stories);

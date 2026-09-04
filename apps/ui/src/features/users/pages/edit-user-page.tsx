@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { CircleAlert } from "lucide-react";
 
-import { createUserByIDQueryOptions } from "@/api/user.ts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import {
   Card,
@@ -12,10 +11,11 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { UserForm, mapUpdateUserFormValues } from "@/components/user-form.tsx";
 import { createListRolesQueryOptions } from "@/features/roles";
+import { UserForm, mapUpdateUserFormValues } from "@/features/users/components/user-form.tsx";
+import { useUserLifecycle } from "@/features/users/hooks/use-user-lifecycle.ts";
+import { createUserByIDQueryOptions } from "@/features/users/queries/users.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
-import { useUserLifecycle } from "@/hooks/use-user-lifecycle.ts";
 
 interface EditUserPageProps {
   userId: string;

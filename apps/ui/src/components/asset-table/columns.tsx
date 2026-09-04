@@ -6,7 +6,7 @@ import {
 import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
 
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx";
-import { UserLabel, formatUserProfileReference } from "@/components/user-label.tsx";
+import { UserLabel, formatUserProfileReference } from "@/features/users";
 import { formatAssetCustomFieldValue } from "@/lib/asset-custom-fields.ts";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 

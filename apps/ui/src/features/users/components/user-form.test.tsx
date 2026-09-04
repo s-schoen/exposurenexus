@@ -4,11 +4,15 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { UserForm, mapCreateUserFormValues, mapUpdateUserFormValues } from "@/components/user-form";
-import * as stories from "@/components/user-form.stories";
+import * as stories from "@/features/users/components/user-form.stories.tsx";
+import {
+  UserForm,
+  mapCreateUserFormValues,
+  mapUpdateUserFormValues,
+} from "@/features/users/components/user-form.tsx";
 import { USER_FORM_ROLE_FIXTURES } from "@/test/fixtures.ts";
 
-import type { UserFormValues } from "@/components/user-form";
+import type { UserFormValues } from "@/features/users/components/user-form.tsx";
 
 const { Create, CustomSubmitLabel, EditPrefilled } = composeStories(stories);
 
