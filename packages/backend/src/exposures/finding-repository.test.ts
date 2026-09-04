@@ -13,10 +13,14 @@ import {
 import { sql } from "kysely";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createTestDatabase, insertTestAsset, resetTestDatabase } from "../test/db.js";
-import { createFindingRepository } from "./finding.js";
-import { createObservationRepository } from "./observation.js";
-import { createVulnerabilityRepository } from "./vulnerability.js";
+import {
+  createTestDatabase,
+  insertTestAsset,
+  resetTestDatabase,
+} from "../database/test/database.js";
+import { createFindingRepository } from "./finding-repository.js";
+import { createObservationRepository } from "./observation-repository.js";
+import { createVulnerabilityRepository } from "./vulnerability-repository.js";
 
 describe("observation-based persistence repositories", () => {
   const testDb = createTestDatabase();

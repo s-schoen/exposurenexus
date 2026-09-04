@@ -1,50 +1,63 @@
-import { ApplicationError, isApplicationError, isConflictError } from "@exposurenexus/backend";
 import {
   vulnerabilityInputSchema,
-  type VulnerabilityInput,
   type VulnerabilityCatalog,
+  type VulnerabilityInput,
 } from "@exposurenexus/contracts/model/vulnerability";
 
-import {
-  createDomainEventEmitter,
-  type DomainEventContext,
-  type DomainEventEmitter,
-  type EventSubjects,
-  type VulnerabilityEventPayloads,
-} from "../lib/eventbus/events/index.js";
+import { ApplicationError, isApplicationError } from "../application-error.js";
+import { isConflictError } from "../database-error.js";
 
-import type { VulnerabilityRepository } from "../repository/vulnerability.js";
-import type { UserProfile } from "@exposurenexus/contracts/model/user";
+import type { UserProfileRepository } from "../identity/user-profile-repository.js";
+import type { VulnerabilityRepository } from "./vulnerability-repository.js";
 import type { Logger } from "pino";
 
-interface VulnerabilityServiceDependencies {
+export interface CreateVulnerabilityCommand {
+  vulnerability: VulnerabilityInput;
+  performedBy: string;
+}
+
+export interface UpdateVulnerabilityByIDCommand {
+  id: string;
+  vulnerability: VulnerabilityInput;
+  performedBy: string;
+}
+
+export interface DeleteVulnerabilityByIDCommand {
+  id: string;
+  performedBy: string;
+}
+
+export interface VulnerabilityCreatedOutcome {
+  current: VulnerabilityCatalog;
+  performedBy: string;
+}
+
+export interface VulnerabilityUpdatedOutcome {
+  previous: VulnerabilityCatalog;
+  current: VulnerabilityCatalog;
+  performedBy: string;
+}
+
+export interface VulnerabilityDeletedOutcome {
+  previous: VulnerabilityCatalog;
+  performedBy: string;
+}
+
+export interface ExposureVulnerabilities {
+  listAll(): Promise<VulnerabilityCatalog[]>;
+  getByID(id: string): Promise<VulnerabilityCatalog | null>;
+  create(command: CreateVulnerabilityCommand): Promise<VulnerabilityCreatedOutcome>;
+  updateByID(command: UpdateVulnerabilityByIDCommand): Promise<VulnerabilityUpdatedOutcome | null>;
+  deleteByID(command: DeleteVulnerabilityByIDCommand): Promise<VulnerabilityDeletedOutcome | null>;
+}
+
+interface VulnerabilityDependencies {
   vulnerabilityRepository: VulnerabilityRepository;
-  domainEventEmitter: DomainEventEmitter;
+  userProfileRepository: Pick<UserProfileRepository, "getByID">;
   logger: Logger;
 }
 
-export interface CreateVulnerabilityOptions {
-  vulnerability: VulnerabilityInput;
-  user: UserProfile;
-  eventContext?: DomainEventContext;
-}
-
-export interface UpdateVulnerabilityOptions {
-  id: string;
-  vulnerability: VulnerabilityInput;
-  user: UserProfile;
-  eventContext?: DomainEventContext;
-}
-
-export interface VulnerabilityService {
-  listAll(): Promise<VulnerabilityCatalog[]>;
-  getByID(id: string): Promise<VulnerabilityCatalog | null>;
-  create(opts: CreateVulnerabilityOptions): Promise<VulnerabilityCatalog>;
-  updateByID(opts: UpdateVulnerabilityOptions): Promise<VulnerabilityCatalog | null>;
-  deleteByID(id: string, eventContext?: DomainEventContext): Promise<VulnerabilityCatalog | null>;
-}
-
-function parseCatalogInput(input: VulnerabilityInput) {
+function parseCatalogInput(input: VulnerabilityInput): VulnerabilityInput {
   const result = vulnerabilityInputSchema.safeParse(input);
   if (result.success) {
     return result.data;
@@ -59,15 +72,20 @@ function parseCatalogInput(input: VulnerabilityInput) {
   });
 }
 
-export function createVulnerabilityService({
-  vulnerabilityRepository,
-  domainEventEmitter,
-  logger,
-}: VulnerabilityServiceDependencies): VulnerabilityService {
-  const emitVulnerabilityEvent = createDomainEventEmitter<
-    EventSubjects<VulnerabilityEventPayloads>
-  >(domainEventEmitter, "vulnerability");
+async function requireAuditActor(
+  userProfileRepository: Pick<UserProfileRepository, "getByID">,
+  performedBy: string,
+): Promise<void> {
+  if (!(await userProfileRepository.getByID(performedBy))) {
+    throw new Error(`vulnerability audit actor ${performedBy} does not exist`);
+  }
+}
 
+export function createVulnerabilities({
+  vulnerabilityRepository,
+  userProfileRepository,
+  logger,
+}: VulnerabilityDependencies): ExposureVulnerabilities {
   return {
     async listAll(): Promise<VulnerabilityCatalog[]> {
       try {
@@ -98,25 +116,21 @@ export function createVulnerabilityService({
       }
     },
 
-    async create(opts: CreateVulnerabilityOptions): Promise<VulnerabilityCatalog> {
-      const vulnerability = parseCatalogInput(opts.vulnerability);
+    async create(command: CreateVulnerabilityCommand): Promise<VulnerabilityCreatedOutcome> {
+      const vulnerability = parseCatalogInput(command.vulnerability);
 
       try {
+        await requireAuditActor(userProfileRepository, command.performedBy);
         const now = new Date();
         const created = await vulnerabilityRepository.create({
           ...vulnerability,
           createdAt: now,
           updatedAt: now,
-          createdBy: opts.user.id,
-          updatedBy: opts.user.id,
+          createdBy: command.performedBy,
+          updatedBy: command.performedBy,
         });
 
-        emitVulnerabilityEvent(
-          "vulnerability.created",
-          { vulnerability: created },
-          opts.eventContext,
-        );
-        return created;
+        return { current: created, performedBy: command.performedBy };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;
@@ -149,26 +163,28 @@ export function createVulnerabilityService({
       }
     },
 
-    async updateByID(opts: UpdateVulnerabilityOptions): Promise<VulnerabilityCatalog | null> {
-      const vulnerability = parseCatalogInput(opts.vulnerability);
+    async updateByID(
+      command: UpdateVulnerabilityByIDCommand,
+    ): Promise<VulnerabilityUpdatedOutcome | null> {
+      const vulnerability = parseCatalogInput(command.vulnerability);
 
       try {
-        const previous = await vulnerabilityRepository.getByID(opts.id);
+        const previous = await vulnerabilityRepository.getByID(command.id);
         if (!previous) {
           return null;
         }
 
-        const current = await vulnerabilityRepository.updateByID(opts.id, {
+        await requireAuditActor(userProfileRepository, command.performedBy);
+        const current = await vulnerabilityRepository.updateByID(command.id, {
           ...vulnerability,
           updatedAt: new Date(),
-          updatedBy: opts.user.id,
+          updatedBy: command.performedBy,
         });
         if (!current) {
           return null;
         }
 
-        emitVulnerabilityEvent("vulnerability.updated", { previous, current }, opts.eventContext);
-        return current;
+        return { previous, current, performedBy: command.performedBy };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;
@@ -187,37 +203,35 @@ export function createVulnerabilityService({
           });
         }
 
-        logger.error(error, `failed to update vulnerability with id ${opts.id}`);
+        logger.error(error, `failed to update vulnerability with id ${command.id}`);
         throw new ApplicationError({
           code: "vulnerability.update_failed",
           kind: "unexpected",
           message: "failed to update vulnerability",
           cause: error,
-          details: { vulnerabilityId: opts.id },
+          details: { vulnerabilityId: command.id },
         });
       }
     },
 
     async deleteByID(
-      id: string,
-      eventContext?: DomainEventContext,
-    ): Promise<VulnerabilityCatalog | null> {
+      command: DeleteVulnerabilityByIDCommand,
+    ): Promise<VulnerabilityDeletedOutcome | null> {
       try {
-        const deleted = await vulnerabilityRepository.deleteByID(id);
+        const deleted = await vulnerabilityRepository.deleteByID(command.id);
         if (!deleted) {
           return null;
         }
 
-        emitVulnerabilityEvent("vulnerability.deleted", { vulnerability: deleted }, eventContext);
-        return deleted;
+        return { previous: deleted, performedBy: command.performedBy };
       } catch (error) {
-        logger.error(error, `failed to delete vulnerability with id ${id}`);
+        logger.error(error, `failed to delete vulnerability with id ${command.id}`);
         throw new ApplicationError({
           code: "vulnerability.delete_failed",
           kind: "unexpected",
           message: "failed to delete vulnerability",
           cause: error,
-          details: { vulnerabilityId: id },
+          details: { vulnerabilityId: command.id },
         });
       }
     },

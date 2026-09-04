@@ -7,9 +7,9 @@ import { notFound, unauthorized } from "../lib/api-error.js";
 import { replyArray, replyObject } from "../lib/reply.js";
 import { requestEventContext } from "../lib/request-event-context.js";
 
+import type { ApiVulnerabilityOperations } from "../lib/exposures-events.js";
 import type { ContextVariables } from "../lib/hono-schema.js";
 import type { RequireDomainPermission } from "../middleware/auth.js";
-import type { VulnerabilityService } from "../service/vulnerability.js";
 
 interface VulnerabilityRouteDependencies {
   requireDomainPermission: RequireDomainPermission;
@@ -18,7 +18,7 @@ interface VulnerabilityRouteDependencies {
 const idParamValidator = zValidator("param", z.object({ id: z.uuidv4() }));
 
 export function createVulnerabilityRoute(
-  vulnerabilityService: VulnerabilityService,
+  vulnerabilityService: ApiVulnerabilityOperations,
   { requireDomainPermission }: VulnerabilityRouteDependencies,
 ) {
   const vulnerability = new Hono<{ Variables: ContextVariables }>();

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createVulnerabilityRepository } from "./index.js";
+import { createVulnerabilityRepository } from "./vulnerability-repository.js";
 
 describe("repository factories", () => {
   beforeEach(() => {

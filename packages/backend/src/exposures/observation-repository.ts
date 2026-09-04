@@ -2,10 +2,10 @@ import { observationAffectedResourceSchema } from "@exposurenexus/contracts/mode
 import { observationSchema, type Observation } from "@exposurenexus/contracts/model/observation";
 import { weaknessSchema } from "@exposurenexus/contracts/model/weakness";
 
-import { getFindingProjectionByID } from "./finding.js";
+import { getFindingProjectionByID } from "./finding-repository.js";
 
-import type { Database } from "@exposurenexus/backend/database";
-import type { ObservationTable } from "@exposurenexus/backend/database";
+import type { Database } from "../database/index.js";
+import type { ObservationTable } from "../database/index.js";
 import type { Finding } from "@exposurenexus/contracts/model/finding";
 import type { Kysely, Insertable, Selectable } from "kysely";
 
@@ -337,6 +337,7 @@ export function createObservationRepository(database: Kysely<Database>): Observa
           .selectFrom("finding")
           .select("id")
           .where("id", "in", parentIds)
+          .orderBy("id", "asc")
           .forUpdate()
           .execute();
         if (parents.length !== parentIds.length) {
