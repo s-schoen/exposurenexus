@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { createListUsersQueryOptions } from "@/api/user.ts";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { createListUsersQueryOptions } from "@/features/users/queries/users.ts";
 import { cn } from "@/lib/utils";
 
 import type { UserProfile } from "@exposurenexus/contracts/model/user";

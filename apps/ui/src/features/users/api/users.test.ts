@@ -1,12 +1,7 @@
 import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  createListUsersQueryOptions,
-  createUser,
-  createUserByIDQueryOptions,
-  updateUser,
-} from "@/api/user.ts";
+import { createUser, getUserByID, listUsers, updateUser } from "@/features/users/api/users.ts";
 
 import type {
   CreateUserProfile,
@@ -39,12 +34,6 @@ function requestJsonBody(): unknown {
   return JSON.parse(requestInit().body as string);
 }
 
-function runQuery<T>(queryOptions: { queryFn?: unknown }): Promise<T> {
-  const queryFn = queryOptions.queryFn as () => Promise<T>;
-
-  return queryFn();
-}
-
 const userId = "1f9c36d2-1355-49d1-8464-b01ce955d88f";
 const user: UserProfile = {
   id: userId,
@@ -67,7 +56,7 @@ afterEach(() => {
 });
 
 describe("user api", () => {
-  it("creates list query options and parses user lists", async () => {
+  it("lists and parses users", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         data: {
@@ -76,10 +65,8 @@ describe("user api", () => {
       }),
     );
 
-    const queryOptions = createListUsersQueryOptions();
-    const users = await runQuery<Array<UserProfile>>(queryOptions);
+    const users = await listUsers();
 
-    expect(queryOptions.queryKey).toEqual(["users"]);
     expect(users).toEqual([user]);
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/users",
@@ -104,20 +91,18 @@ describe("user api", () => {
       }),
     );
 
-    await expect(runQuery<Array<UserProfile>>(createListUsersQueryOptions())).rejects.toThrow();
+    await expect(listUsers()).rejects.toThrow();
   });
 
-  it("creates detail query options and parses user detail replies", async () => {
+  it("gets and parses user details", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         data: user,
       }),
     );
 
-    const queryOptions = createUserByIDQueryOptions(userId);
-    const result = await runQuery<UserProfile>(queryOptions);
+    const result = await getUserByID(userId);
 
-    expect(queryOptions.queryKey).toEqual(["users", userId]);
     expect(result).toEqual(user);
     expect(fetchMock).toHaveBeenCalledWith(
       `/api/users/${userId}`,
@@ -200,8 +185,6 @@ describe("user api", () => {
       ),
     );
 
-    await expect(runQuery<Array<UserProfile>>(createListUsersQueryOptions())).rejects.toThrow(
-      "User request failed",
-    );
+    await expect(listUsers()).rejects.toThrow("User request failed");
   });
 });

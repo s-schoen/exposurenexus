@@ -12,7 +12,6 @@ import { useState } from "react";
 
 import { createAssetByIDQueryOptions } from "@/api/asset.ts";
 import { createFindingByIDQueryOptions } from "@/api/finding.ts";
-import { createListUsersQueryOptions } from "@/api/user.ts";
 import { createListVulnerabilitiesQueryOptions } from "@/api/vulnerability.ts";
 import { AssetInfoItem } from "@/components/asset-info-item.tsx";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
@@ -55,9 +54,10 @@ import { Spinner } from "@/components/ui/spinner.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import {
   UserLabel,
+  createListUsersQueryOptions,
   createUserProfileById,
   getUserProfileDisplayName,
-} from "@/components/user-label.tsx";
+} from "@/features/users";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 import { formatUtcDateOnly } from "@/lib/date-input.ts";
 import { capitalizeFirstLetter, formatFindingStatus, formatSeverity } from "@/lib/format.ts";

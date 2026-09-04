@@ -2,10 +2,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createListUsersQueryOptions, createUserByIDQueryOptions } from "@/api/user.ts";
-import { useUserLifecycle } from "@/hooks/use-user-lifecycle.ts";
+import { useUserLifecycle } from "@/features/users/hooks/use-user-lifecycle.ts";
+import {
+  createListUsersQueryOptions,
+  createUserByIDQueryOptions,
+} from "@/features/users/queries/users.ts";
 
-import type * as UserApi from "@/api/user.ts";
 import type {
   CreateUserProfile,
   UpdateUserProfile,
@@ -28,21 +30,14 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/api/user.ts", async (importOriginal) => {
-  const actual = await importOriginal<typeof UserApi>();
-
-  return {
-    ...actual,
-    createUser: createUserRequestMock,
-    updateUser: updateUserRequestMock,
-    useCreateUserMutation: () => ({
-      mutateAsync: createUserRequestMock,
-    }),
-    useUpdateUserMutation: () => ({
-      mutateAsync: updateUserRequestMock,
-    }),
-  };
-});
+vi.mock("@/features/users/mutations/users.ts", () => ({
+  useCreateUserMutation: () => ({
+    mutateAsync: createUserRequestMock,
+  }),
+  useUpdateUserMutation: () => ({
+    mutateAsync: updateUserRequestMock,
+  }),
+}));
 
 function createUserFixture(overrides: Partial<UserProfile> = {}): UserProfile {
   return {

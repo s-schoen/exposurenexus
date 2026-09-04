@@ -103,13 +103,10 @@ vi.mock("@/api/finding.ts", () => ({
   }),
 }));
 
-vi.mock("@/api/user.ts", () => ({
+vi.mock("@/features/users", () => ({
   createListUsersQueryOptions: () => ({
     queryKey: ["users"],
   }),
-}));
-
-vi.mock("@/components/user-label.tsx", () => ({
   createUserProfileById: (users: Array<{ displayName: string; id: string }> | undefined) =>
     new Map((users ?? []).map((user) => [user.id, user])),
   formatUserProfileReference: (

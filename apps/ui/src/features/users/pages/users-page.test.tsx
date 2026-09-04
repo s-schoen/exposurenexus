@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { UsersPage } from "@/features/users/components/users-page.tsx";
+import { UsersPage } from "@/features/users/pages/users-page.tsx";
 
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
@@ -99,7 +99,7 @@ vi.mock("@tanstack/react-query", () => ({
   },
 }));
 
-vi.mock("@/api/user.ts", () => ({
+vi.mock("@/features/users/queries/users.ts", () => ({
   createListUsersQueryOptions: () => ({
     queryKey: ["users"],
   }),
@@ -143,7 +143,7 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
     ) : null,
 }));
 
-vi.mock("@/components/user-detail-content.tsx", () => ({
+vi.mock("@/features/users/components/user-detail-content.tsx", () => ({
   UserDetailContent: ({ userId }: { userId: string }) => <div>User detail for {userId}</div>,
 }));
 

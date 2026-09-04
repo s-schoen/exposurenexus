@@ -177,8 +177,22 @@ vi.mock("@/api/finding.ts", () => ({
   useUnlinkFindingVulnerabilityMutation: () => ({ mutateAsync: vi.fn() }),
 }));
 
-vi.mock("@/api/user.ts", () => ({
+vi.mock("@/features/users", () => ({
   createListUsersQueryOptions: () => ({ queryKey: ["users"] }),
+  createUserProfileById: (users: Array<UserProfile> | undefined) =>
+    new Map((users ?? []).map((profile) => [profile.id, profile])),
+  getUserProfileDisplayName: (profile: UserProfile) => profile.displayName,
+  UserLabel: ({
+    userId,
+    user: profile,
+    emptyLabel = "No User",
+    unknownLabel = "Unknown User",
+  }: {
+    userId?: string | null;
+    user?: UserProfile | null;
+    emptyLabel?: string;
+    unknownLabel?: string;
+  }) => <span>{profile?.displayName ?? (userId ? unknownLabel : emptyLabel)}</span>,
 }));
 
 vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
@@ -211,23 +225,6 @@ vi.mock("@/components/detail-query-boundary.tsx", () => ({
     query: typeof mocks.findingQuery;
     title: string;
   }) => (query?.data ? <>{children(query.data)}</> : <div>{title}</div>),
-}));
-
-vi.mock("@/components/user-label.tsx", () => ({
-  createUserProfileById: (users: Array<UserProfile> | undefined) =>
-    new Map((users ?? []).map((profile) => [profile.id, profile])),
-  getUserProfileDisplayName: (profile: UserProfile) => profile.displayName,
-  UserLabel: ({
-    userId,
-    user: profile,
-    emptyLabel = "No User",
-    unknownLabel = "Unknown User",
-  }: {
-    userId?: string | null;
-    user?: UserProfile | null;
-    emptyLabel?: string;
-    unknownLabel?: string;
-  }) => <span>{profile?.displayName ?? (userId ? unknownLabel : emptyLabel)}</span>,
 }));
 
 describe("FindingDetailContent", () => {

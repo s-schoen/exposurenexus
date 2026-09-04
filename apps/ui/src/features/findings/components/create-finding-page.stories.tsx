@@ -1,8 +1,8 @@
 import { QueryClientProvider, queryOptions } from "@tanstack/react-query";
 import { expect, fn, mocked } from "storybook/test";
 
-import { createListUsersQueryOptions } from "@/api/user.ts";
 import { CreateFindingPage } from "@/features/findings/components/create-finding-page.tsx";
+import { createListUsersQueryOptions } from "@/features/users";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 import { PageProvider } from "@/hooks/use-page-meta.tsx";
 import { STORY_ASSETS } from "@/test/fixtures.ts";

@@ -163,10 +163,27 @@ vi.mock("@/api/finding.ts", () => ({
   }),
 }));
 
-vi.mock("@/api/user.ts", () => ({
+vi.mock("@/features/users", () => ({
   createListUsersQueryOptions: () => ({
     queryKey: ["users"],
   }),
+  createUserProfileById: (users: Array<UserProfile> | undefined) =>
+    new Map((users ?? []).map((user) => [user.id, user])),
+  formatUserProfileReference: (
+    userId: string | null | undefined,
+    usersById: Map<string, UserProfile>,
+    {
+      emptyLabel = "No User",
+      unknownLabel = "Unknown User",
+    }: {
+      emptyLabel?: string;
+      unknownLabel?: string;
+    } = {},
+  ) => (!userId ? emptyLabel : (usersById.get(userId)?.displayName ?? unknownLabel)),
+  getUserProfileDisplayName: (user: UserProfile) => user.displayName,
+  UserLabel: ({ user }: { user?: UserProfile | null }) => (
+    <span>{user?.displayName ?? "No User"}</span>
+  ),
 }));
 
 vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({

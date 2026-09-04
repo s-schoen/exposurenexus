@@ -69,7 +69,7 @@ vi.mock("@/features/roles", () => ({
   }),
 }));
 
-vi.mock("@/api/user.ts", () => ({
+vi.mock("@/features/users/queries/users.ts", () => ({
   createUserByIDQueryOptions: (id: string) => ({
     queryKey: ["users", id],
   }),
@@ -105,7 +105,8 @@ describe("UserDetailContent", () => {
   });
 
   it("renders a placeholder while the user is pending", async () => {
-    const { UserDetailContent } = await import("@/components/user-detail-content.tsx");
+    const { UserDetailContent } =
+      await import("@/features/users/components/user-detail-content.tsx");
     mocks.userQuery = {
       isPending: true,
       isSuccess: false,
@@ -118,7 +119,8 @@ describe("UserDetailContent", () => {
   });
 
   it("renders the user error state when no data is returned", async () => {
-    const { UserDetailContent } = await import("@/components/user-detail-content.tsx");
+    const { UserDetailContent } =
+      await import("@/features/users/components/user-detail-content.tsx");
     mocks.userQuery = {
       error: new Error("User request failed"),
       isPending: false,
@@ -132,7 +134,8 @@ describe("UserDetailContent", () => {
   });
 
   it("renders enabled and disabled status badges", async () => {
-    const { UserDetailContent } = await import("@/components/user-detail-content.tsx");
+    const { UserDetailContent } =
+      await import("@/features/users/components/user-detail-content.tsx");
     const { rerender } = render(<UserDetailContent userId={mocks.user.id} />);
 
     expect(screen.getAllByText("Enabled").length).toBeGreaterThan(0);
@@ -151,7 +154,8 @@ describe("UserDetailContent", () => {
   });
 
   it("renders no-role and loading-role fallbacks", async () => {
-    const { UserDetailContent } = await import("@/components/user-detail-content.tsx");
+    const { UserDetailContent } =
+      await import("@/features/users/components/user-detail-content.tsx");
     mocks.userQuery = {
       data: {
         ...mocks.user,
@@ -182,7 +186,8 @@ describe("UserDetailContent", () => {
   });
 
   it("renders unresolved role counts when role data is unavailable", async () => {
-    const { UserDetailContent } = await import("@/components/user-detail-content.tsx");
+    const { UserDetailContent } =
+      await import("@/features/users/components/user-detail-content.tsx");
     mocks.userQuery = {
       data: {
         ...mocks.user,
@@ -203,7 +208,8 @@ describe("UserDetailContent", () => {
   });
 
   it("renders resolved role badges and unknown role counts", async () => {
-    const { UserDetailContent } = await import("@/components/user-detail-content.tsx");
+    const { UserDetailContent } =
+      await import("@/features/users/components/user-detail-content.tsx");
     mocks.userQuery = {
       data: {
         ...mocks.user,

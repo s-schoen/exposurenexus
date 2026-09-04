@@ -4,7 +4,6 @@ import { Plus } from "lucide-react";
 import { useMemo } from "react";
 
 import { createListAssetsWithCustomFieldsQueryOptions } from "@/api/asset.ts";
-import { createListUsersQueryOptions } from "@/api/user.ts";
 import { AssetDialog } from "@/components/asset-dialog.tsx";
 import {
   createAssetTableColumns,
@@ -13,8 +12,12 @@ import {
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DataTable } from "@/components/data-table/data-table.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { createUserProfileById, formatUserProfileReference } from "@/components/user-label.tsx";
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields/index.ts";
+import {
+  createListUsersQueryOptions,
+  createUserProfileById,
+  formatUserProfileReference,
+} from "@/features/users";
 import { useAssetLifecycle } from "@/hooks/use-asset-lifecycle.ts";
 import { createAssetListOptions } from "@/hooks/use-asset-table-search-state.ts";
 import { capitalizeFirstLetter } from "@/lib/format.ts";

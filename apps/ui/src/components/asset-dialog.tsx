@@ -8,7 +8,6 @@ import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { createCallable } from "react-call";
 
-import { createListUsersQueryOptions } from "@/api/user.ts";
 import { AssetIdentifierEditor } from "@/components/asset-identifier-editor.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
@@ -29,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.tsx";
+import { createListUsersQueryOptions } from "@/features/users";
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
 import type { CreateAsset } from "@exposurenexus/contracts/model/asset";

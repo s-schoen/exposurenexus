@@ -4,7 +4,7 @@ import type { Preview } from "@storybook/react-vite";
 
 import "../src/styles.css";
 
-sb.mock(import("../src/api/user.ts"), { spy: true });
+sb.mock(import("../src/features/users/queries/users.ts"), { spy: true });
 sb.mock(import("../src/hooks/use-finding-lifecycle.ts"), { spy: true });
 
 const preview: Preview = {

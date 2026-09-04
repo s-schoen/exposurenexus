@@ -2,9 +2,9 @@ import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { CreateUserPage } from "@/features/users/components/create-user-page.tsx";
+import { CreateUserPage } from "@/features/users/pages/create-user-page.tsx";
 
-import type { UserFormValues } from "@/components/user-form.tsx";
+import type { UserFormValues } from "@/features/users/components/user-form.tsx";
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 
 interface QueryState<TData> {
@@ -65,13 +65,13 @@ vi.mock("@/features/roles", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-user-lifecycle.ts", () => ({
+vi.mock("@/features/users/hooks/use-user-lifecycle.ts", () => ({
   useUserLifecycle: () => ({
     createUser: mocks.createUser,
   }),
 }));
 
-vi.mock("@/components/user-form.tsx", async (importOriginal) => {
+vi.mock("@/features/users/components/user-form.tsx", async (importOriginal) => {
   const actual = await importOriginal();
 
   return Object.assign({}, actual, {

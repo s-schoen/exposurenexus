@@ -3,7 +3,7 @@ import { UserRoundPen } from "lucide-react";
 import { useLayoutEffect, useMemo } from "react";
 
 import { Button } from "@/components/ui/button.tsx";
-import { UserDetailContent } from "@/components/user-detail-content.tsx";
+import { UserDetailContent } from "@/features/users/components/user-detail-content.tsx";
 import { ROLE_FIXTURES, STORY_USERS } from "@/test/fixtures.ts";
 import {
   createArrayResponse,

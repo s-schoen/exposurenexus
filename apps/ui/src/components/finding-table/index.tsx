@@ -5,7 +5,6 @@ import { useMemo } from "react";
 
 import { createListAssetsQueryOptions } from "@/api/asset.ts";
 import { createListFindingsQueryOptions } from "@/api/finding.ts";
-import { createListUsersQueryOptions } from "@/api/user.ts";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DataTable } from "@/components/data-table/data-table.tsx";
 import {
@@ -15,7 +14,7 @@ import {
 } from "@/components/finding-table/columns.tsx";
 import { FindingContextMenu } from "@/components/finding-table/context-menu.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { createUserProfileById } from "@/components/user-label.tsx";
+import { createListUsersQueryOptions, createUserProfileById } from "@/features/users";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";

@@ -6,7 +6,6 @@ import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { createListUsersQueryOptions } from "@/api/user.ts";
 import { AssetCombobox } from "@/components/asset-combobox.tsx";
 import { SeverityBadge } from "@/components/severity-badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -28,7 +27,7 @@ import {
 } from "@/components/ui/select.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea.tsx";
-import { getUserProfileDisplayName } from "@/components/user-label.tsx";
+import { createListUsersQueryOptions, getUserProfileDisplayName } from "@/features/users";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { formatLocalDateTimeInput, formatUtcDateOnly } from "@/lib/date-input.ts";

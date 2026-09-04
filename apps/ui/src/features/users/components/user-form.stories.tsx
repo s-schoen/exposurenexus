@@ -2,7 +2,7 @@ import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { useState } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 
-import { UserForm } from "@/components/user-form";
+import { UserForm } from "@/features/users/components/user-form.tsx";
 import { USER_FORM_ROLE_FIXTURES } from "@/test/fixtures.ts";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";
