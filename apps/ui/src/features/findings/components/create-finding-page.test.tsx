@@ -32,7 +32,7 @@ const mocks = vi.hoisted(() => ({
   ],
 }));
 
-vi.mock("@/components/asset-combobox.tsx", () => ({
+vi.mock("@/features/assets", () => ({
   AssetCombobox: ({ onChange }: { onChange?: (asset: { id: string }) => void }) => (
     <button
       type="button"

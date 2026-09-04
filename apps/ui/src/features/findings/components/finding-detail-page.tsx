@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 
-import { createAssetByIDQueryOptions } from "@/api/asset.ts";
 import { createFindingByIDQueryOptions } from "@/api/finding.ts";
 import { FindingDetailContent } from "@/components/finding-detail-content.tsx";
 import { buttonVariants } from "@/components/ui/button.tsx";
+import { createAssetByIDQueryOptions } from "@/features/assets";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { formatFindingStatus } from "@/lib/format.ts";
 import { cn } from "@/lib/utils.ts";

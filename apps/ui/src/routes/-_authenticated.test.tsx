@@ -47,7 +47,7 @@ vi.mock("@/components/confirm-dialog.tsx", () => ({
   },
 }));
 
-vi.mock("@/components/asset-dialog.tsx", () => ({
+vi.mock("@/features/assets", () => ({
   AssetDialog: {
     Root: () => null,
   },

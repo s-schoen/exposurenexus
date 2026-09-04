@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { AssetsPage } from "@/features/assets/components/assets-page.tsx";
-import { validateAssetTableSearch } from "@/hooks/use-asset-table-search-state.ts";
+import { AssetsPage, validateAssetTableSearch } from "@/features/assets";
 import { validateSelectedSearch } from "@/hooks/use-selected-search-param.ts";
 
 export const Route = createFileRoute("/_authenticated/assets/")({

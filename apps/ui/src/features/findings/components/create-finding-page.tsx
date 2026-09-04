@@ -6,7 +6,6 @@ import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { AssetCombobox } from "@/components/asset-combobox.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Field,
@@ -26,6 +25,7 @@ import {
 } from "@/components/ui/select.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea.tsx";
+import { AssetCombobox } from "@/features/assets";
 import { createListUsersQueryOptions, getUserProfileDisplayName } from "@/features/users";
 import { SeverityBadge } from "@/features/vulnerabilities";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";

@@ -3,11 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { FindingsPage } from "@/features/findings/components/findings-page.tsx";
+import { AssetsPage } from "@/features/assets/pages/assets-page.tsx";
 
-import type { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
-import type { Asset } from "@exposurenexus/contracts/model/asset";
-import type { Finding } from "@exposurenexus/contracts/model/finding";
+import type { AssetWithCustomFields, CreateAsset } from "@exposurenexus/contracts/model/asset";
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { ReactNode } from "react";
 
@@ -32,78 +31,64 @@ interface QueryOptionsLike {
 const mocks = vi.hoisted(() => {
   const users: Array<UserProfile> = [
     {
-      id: "1fab3f6c-4b82-4a52-a5d0-59d9c33f8206",
-      username: "alex",
-      displayName: "Alex Assignee",
-      email: "alex@example.com",
+      id: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+      username: "robin",
+      displayName: "Robin Owner",
+      email: "robin@example.com",
       enabled: true,
       roleIds: [],
     },
   ];
-  const assets: Array<Asset> = [
+  const assets: Array<AssetWithCustomFields> = [
     {
       id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
       displayName: "api-01",
-      type: "host" as Asset["type"],
-      environment: "production" as Asset["environment"],
-      lifecycleState: "active" as Asset["lifecycleState"],
+      type: "host" as AssetWithCustomFields["type"],
+      environment: "production" as AssetWithCustomFields["environment"],
+      lifecycleState: "active" as AssetWithCustomFields["lifecycleState"],
       ownerId: users[0].id,
       identifiers: [],
       createdAt: new Date("2026-01-01T00:00:00.000Z"),
       updatedAt: new Date("2026-01-02T00:00:00.000Z"),
       createdBy: users[0].id,
       updatedBy: users[0].id,
-    },
-  ];
-  const findings: Array<Finding> = [
-    {
-      id: "2713d833-eb13-4517-ac7c-7761545ed42a",
-      assetId: assets[0].id,
-      title: "Exposed Admin Endpoint",
-      severity: "high" as Finding["severity"],
-      status: "active" as Finding["status"],
-      mitigation: "Restrict access to internal networks",
-      assigneeId: users[0].id,
-      dueDate: null,
-      weakness: { identifiers: { cwe: ["CWE-200"] } },
-      affectedResource: { type: "unspecified" as AffectedResourceType.Unspecified },
-      vulnerabilities: [],
-      observationCount: 2,
-      firstSeen: new Date("2026-01-02T00:00:00.000Z"),
-      lastSeen: new Date("2026-01-03T00:00:00.000Z"),
-      createdBy: users[0].id,
-      updatedBy: users[0].id,
-      createdAt: new Date("2026-01-02T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-03T00:00:00.000Z"),
+      customFields: [],
     },
     {
-      id: "3703bd68-5d5e-4209-90dc-365bc7030f67",
-      assetId: assets[0].id,
-      title: "Outdated API Dependency",
-      severity: "medium" as Finding["severity"],
-      status: "confirmed" as Finding["status"],
-      mitigation: null,
-      assigneeId: null,
-      dueDate: null,
-      weakness: { identifiers: {} },
-      affectedResource: { type: "unspecified" as AffectedResourceType.Unspecified },
-      vulnerabilities: [],
-      observationCount: 0,
-      firstSeen: null,
-      lastSeen: null,
+      id: "0bb9b410-7763-4e7a-9942-b752367fd63d",
+      displayName: "worker-02",
+      type: "software" as AssetWithCustomFields["type"],
+      environment: "unknown" as AssetWithCustomFields["environment"],
+      lifecycleState: "active" as AssetWithCustomFields["lifecycleState"],
+      ownerId: null,
+      identifiers: [],
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-02T00:00:00.000Z"),
       createdBy: users[0].id,
       updatedBy: users[0].id,
-      createdAt: new Date("2026-01-04T00:00:00.000Z"),
-      updatedAt: new Date("2026-01-05T00:00:00.000Z"),
+      customFields: [],
     },
   ];
+  const createdAsset: CreateAsset = {
+    displayName: "queue-01",
+    type: "host" as CreateAsset["type"],
+    environment: "unknown" as NonNullable<CreateAsset["environment"]>,
+    lifecycleState: "active" as NonNullable<CreateAsset["lifecycleState"]>,
+    ownerId: null,
+    identifiers: [],
+  };
+  const assetListOptions: unknown = undefined;
 
   return {
+    assetDialogCall: vi.fn(),
+    assetListOptions,
     assets,
     confirmDelete: vi.fn(),
-    deleteFindings: vi.fn(),
-    findings,
+    createAsset: vi.fn(),
+    customFieldDefinitions: [] as Array<AssetCustomFieldDefinition>,
+    deleteAssets: vi.fn(),
     navigate: vi.fn(),
+    createdAsset,
     users,
     usePageMeta: vi.fn(),
   };
@@ -117,9 +102,9 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: QueryOptionsLike) => {
     const queryKey = options.queryKey.join("/");
 
-    if (queryKey === "findings") {
+    if (queryKey === "assets/with-custom-fields") {
       return {
-        data: mocks.findings,
+        data: mocks.assets,
         isFetching: false,
         isPending: false,
         isSuccess: true,
@@ -127,9 +112,9 @@ vi.mock("@tanstack/react-query", () => ({
       };
     }
 
-    if (queryKey === "assets") {
+    if (queryKey === "asset-custom-fields") {
       return {
-        data: mocks.assets,
+        data: mocks.customFieldDefinitions,
         isFetching: false,
         isPending: false,
         isSuccess: true,
@@ -151,15 +136,19 @@ vi.mock("@tanstack/react-query", () => ({
   },
 }));
 
-vi.mock("@/features/assets", () => ({
-  createListAssetsQueryOptions: () => ({
-    queryKey: ["assets"],
-  }),
+vi.mock("@/features/assets/queries/assets.ts", () => ({
+  createListAssetsWithCustomFieldsQueryOptions: (options?: unknown) => {
+    mocks.assetListOptions = options;
+
+    return {
+      queryKey: ["assets", "with-custom-fields"],
+    };
+  },
 }));
 
-vi.mock("@/api/finding.ts", () => ({
-  createListFindingsQueryOptions: () => ({
-    queryKey: ["findings"],
+vi.mock("@/features/custom-fields", () => ({
+  createListAssetCustomFieldDefinitionsQueryOptions: () => ({
+    queryKey: ["asset-custom-fields"],
   }),
 }));
 
@@ -180,16 +169,22 @@ vi.mock("@/features/users", () => ({
       unknownLabel?: string;
     } = {},
   ) => (!userId ? emptyLabel : (usersById.get(userId)?.displayName ?? unknownLabel)),
-  getUserProfileDisplayName: (user: UserProfile) => user.displayName,
   UserLabel: ({ user }: { user?: UserProfile | null }) => (
     <span>{user?.displayName ?? "No User"}</span>
   ),
 }));
 
-vi.mock("@/hooks/use-finding-lifecycle.ts", () => ({
-  useFindingLifecycle: () => ({
-    deleteFindings: mocks.deleteFindings,
+vi.mock("@/features/assets/hooks/use-asset-lifecycle.ts", () => ({
+  useAssetLifecycle: () => ({
+    createAsset: mocks.createAsset,
+    deleteAssets: mocks.deleteAssets,
   }),
+}));
+
+vi.mock("@/features/assets/components/asset-dialog.tsx", () => ({
+  AssetDialog: {
+    call: mocks.assetDialogCall,
+  },
 }));
 
 vi.mock("@/components/confirm-dialog.tsx", () => ({
@@ -230,10 +225,8 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
     ) : null,
 }));
 
-vi.mock("@/components/finding-detail-content.tsx", () => ({
-  FindingDetailContent: ({ findingId }: { findingId: string }) => (
-    <div>Finding detail for {findingId}</div>
-  ),
+vi.mock("@/features/assets/components/asset-detail-content.tsx", () => ({
+  AssetDetailContent: ({ assetId }: { assetId: string }) => <div>Asset detail for {assetId}</div>,
 }));
 
 class ResizeObserverMock {
@@ -247,7 +240,7 @@ class ResizeObserverMock {
 globalThis.ResizeObserver = ResizeObserverMock;
 HTMLElement.prototype.scrollIntoView = vi.fn();
 
-function StatefulFindingsPage({
+function StatefulAssetsRoute({
   initialSearch = {},
   initialSelected,
 }: {
@@ -260,7 +253,7 @@ function StatefulFindingsPage({
   });
 
   mocks.navigate.mockImplementation((options: NavigateCall) => {
-    if (options.to !== "/findings" || typeof options.search !== "function") {
+    if (options.to !== "/assets" || typeof options.search !== "function") {
       return;
     }
 
@@ -279,10 +272,10 @@ function StatefulFindingsPage({
     });
   });
 
-  return <FindingsPage search={routeState.search} selected={routeState.selected} />;
+  return <AssetsPage search={routeState.search} selected={routeState.selected} />;
 }
 
-function renderFindingsRoute({
+function renderAssetsRoute({
   initialSearch,
   initialSelected,
 }: {
@@ -290,19 +283,20 @@ function renderFindingsRoute({
   initialSelected?: string;
 } = {}) {
   return render(
-    <StatefulFindingsPage initialSearch={initialSearch} initialSelected={initialSelected} />,
+    <StatefulAssetsRoute initialSearch={initialSearch} initialSelected={initialSelected} />,
   );
 }
 
-describe("FindingsPage", () => {
+describe("AssetsPage", () => {
   beforeEach(() => {
+    mocks.assetDialogCall.mockReset();
+    mocks.assetListOptions = undefined;
+    mocks.assetDialogCall.mockResolvedValue(mocks.createdAsset);
     mocks.confirmDelete.mockReset();
     mocks.confirmDelete.mockResolvedValue(true);
-    mocks.deleteFindings.mockReset();
-    mocks.deleteFindings.mockResolvedValue({
-      successful: mocks.findings,
-      failed: [],
-    });
+    mocks.createAsset.mockReset();
+    mocks.deleteAssets.mockReset();
+    mocks.deleteAssets.mockResolvedValue({ successful: mocks.assets, failed: [] });
     mocks.navigate.mockReset();
     mocks.usePageMeta.mockReset();
   });
@@ -311,29 +305,28 @@ describe("FindingsPage", () => {
     cleanup();
   });
 
-  it("opens and closes the selected finding preview", async () => {
+  it("opens and closes the selected asset preview", async () => {
     const user = userEvent.setup();
 
-    renderFindingsRoute();
+    renderAssetsRoute();
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
-      title: "Findings",
-      description:
-        "Track active findings, assignment, severity, and mitigation status across assets.",
+      title: "Assets",
+      description: "View systems in scope.",
     });
 
-    const findingRow = screen.getByText("Exposed Admin Endpoint").closest("tr");
+    const assetRow = screen.getByText("api-01").closest("tr");
 
-    if (!findingRow) {
-      throw new Error("Expected finding row");
+    if (!assetRow) {
+      throw new Error("Expected asset row");
     }
 
-    fireEvent.click(findingRow);
+    fireEvent.click(assetRow);
 
-    expect(await screen.findByText(`Finding detail for ${mocks.findings[0].id}`)).toBeVisible();
+    expect(await screen.findByText(`Asset detail for ${mocks.assets[0].id}`)).toBeVisible();
     expect(screen.getByRole("link", { name: /open full page/i })).toHaveAttribute(
       "href",
-      `/findings/${mocks.findings[0].id}`,
+      `/assets/${mocks.assets[0].id}`,
     );
 
     await user.click(screen.getByRole("button", { name: /close/i }));
@@ -344,13 +337,13 @@ describe("FindingsPage", () => {
     });
   });
 
-  it("updates visible finding results from route-owned search state", async () => {
+  it("updates visible asset results from route-owned search state", async () => {
     const user = userEvent.setup();
 
-    renderFindingsRoute();
+    renderAssetsRoute();
     await user.type(
       screen.getByRole("textbox", { name: /search across visible columns/i }),
-      "dependency",
+      "worker",
     );
 
     await waitFor(() => {
@@ -358,19 +351,41 @@ describe("FindingsPage", () => {
         "data-filtered-rows",
         "1",
       );
-      expect(screen.getByText("Outdated API Dependency")).toBeVisible();
-      expect(screen.queryByText("Exposed Admin Endpoint")).not.toBeInTheDocument();
+      expect(screen.getByText("worker-02")).toBeVisible();
+      expect(screen.queryByText("api-01")).not.toBeInTheDocument();
     });
   });
 
-  it("navigates to new finding and deletes selected findings", async () => {
+  it("sends route-owned core search and filters to the asset query", () => {
+    renderAssetsRoute({
+      initialSearch: {
+        filter: "api.example.com",
+        assetType: "host",
+        assetEnvironment: "production",
+        assetLifecycleState: "archived",
+        assetOwnerId: "none",
+      },
+    });
+
+    expect(mocks.assetListOptions).toEqual({
+      filter: "api.example.com",
+      assetType: ["host"],
+      assetEnvironment: ["production"],
+      assetLifecycleState: ["archived"],
+      assetOwnerId: ["none"],
+    });
+  });
+
+  it("creates and deletes assets through the table actions", async () => {
     const user = userEvent.setup();
 
-    renderFindingsRoute();
+    renderAssetsRoute();
 
-    await user.click(screen.getByRole("button", { name: /new finding/i }));
-    expect(mocks.navigate).toHaveBeenCalledWith({
-      to: "/findings/new",
+    await user.click(screen.getByRole("button", { name: /new asset/i }));
+
+    await waitFor(() => {
+      expect(mocks.assetDialogCall).toHaveBeenCalledWith({});
+      expect(mocks.createAsset).toHaveBeenCalledWith(mocks.createdAsset);
     });
 
     await user.click(screen.getByLabelText("Select all"));
@@ -381,12 +396,12 @@ describe("FindingsPage", () => {
 
     await waitFor(() => {
       expect(mocks.confirmDelete).toHaveBeenCalledWith({
-        title: "Delete Findings",
+        title: "Delete Assets",
         description: "This action cannot be undone",
-        message: "Are you sure you want to delete 2 findings(s)?",
+        message: "Are you sure you want to delete 2 asset(s)?",
         confirmVariant: "destructive",
       });
-      expect(mocks.deleteFindings).toHaveBeenCalledWith(mocks.findings);
+      expect(mocks.deleteAssets).toHaveBeenCalledWith(mocks.assets);
     });
   });
 });

@@ -162,8 +162,9 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
 }));
 
-vi.mock("@/api/asset.ts", () => ({
+vi.mock("@/features/assets", () => ({
   createAssetByIDQueryOptions: (id: string) => ({ queryKey: ["assets", id] }),
+  AssetInfoItem: () => <div>Asset information</div>,
 }));
 
 vi.mock("@/api/finding.ts", () => ({
@@ -209,10 +210,6 @@ vi.mock("@/components/confirm-dialog.tsx", () => ({
 
 vi.mock("@/hooks/use-observation-lifecycle.ts", () => ({
   useObservationLifecycle: () => ({ addObservation: vi.fn() }),
-}));
-
-vi.mock("@/components/asset-info-item.tsx", () => ({
-  AssetInfoItem: () => <div>Asset information</div>,
 }));
 
 vi.mock("@/components/detail-query-boundary.tsx", () => ({

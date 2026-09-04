@@ -10,9 +10,7 @@ import { Link } from "@tanstack/react-router";
 import { ExternalLink, Pencil, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 
-import { createAssetByIDQueryOptions } from "@/api/asset.ts";
 import { createFindingByIDQueryOptions } from "@/api/finding.ts";
-import { AssetInfoItem } from "@/components/asset-info-item.tsx";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
@@ -50,6 +48,7 @@ import { Separator } from "@/components/ui/separator.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
+import { AssetInfoItem, createAssetByIDQueryOptions } from "@/features/assets";
 import {
   UserLabel,
   createListUsersQueryOptions,
