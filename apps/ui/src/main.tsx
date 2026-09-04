@@ -2,6 +2,8 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { StrictMode, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 
+import { RouteErrorState } from "@/components/route-error-state.tsx";
+import { RoutePendingState } from "@/components/route-pending-state.tsx";
 import {
   AuthProvider,
   createRouterLoginRedirects,
@@ -29,6 +31,8 @@ const router = createRouter({
     redirects: undefined!,
   },
   defaultPreload: "intent",
+  defaultErrorComponent: RouteErrorState,
+  defaultPendingComponent: RoutePendingState,
   scrollRestoration: true,
   defaultStructuralSharing: true,
   defaultPreloadStaleTime: 0,
