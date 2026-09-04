@@ -2,12 +2,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import {
-  createListRolesQueryOptions,
-  createRoleByIDQueryOptions,
   useCreateRoleMutation,
   useDeleteRoleMutation,
   useUpdateRoleMutation,
-} from "@/api/role.ts";
+} from "@/features/roles/mutations/roles.ts";
+import {
+  createListRolesQueryOptions,
+  createRoleByIDQueryOptions,
+} from "@/features/roles/queries/roles.ts";
 import { formatActionError, toastActionError } from "@/lib/action-error-toast.ts";
 
 import type { CreateRole, Role, UpdateRole } from "@exposurenexus/contracts/model/rbac";

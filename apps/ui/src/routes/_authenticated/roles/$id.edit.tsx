@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { EditRolePage } from "@/features/roles/components/edit-role-page.tsx";
+import { EditRolePage } from "@/features/roles";
 
 export const Route = createFileRoute("/_authenticated/roles/$id/edit")({
   component: RouteComponent,

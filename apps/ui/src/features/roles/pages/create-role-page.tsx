@@ -2,12 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { CircleAlert } from "lucide-react";
 
-import { createListRolesQueryOptions } from "@/api/role.ts";
-import {
-  RoleForm,
-  getAvailableRolePermissions,
-  mapCreateRoleFormValues,
-} from "@/components/role-form.tsx";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import {
   Card,
@@ -17,8 +11,14 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
+import {
+  RoleForm,
+  getAvailableRolePermissions,
+  mapCreateRoleFormValues,
+} from "@/features/roles/components/role-form.tsx";
+import { useRoleLifecycle } from "@/features/roles/hooks/use-role-lifecycle.ts";
+import { createListRolesQueryOptions } from "@/features/roles/queries/roles.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
-import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts";
 
 export function CreateRolePage() {
   const navigate = useNavigate();

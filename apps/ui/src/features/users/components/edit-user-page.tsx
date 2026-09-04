@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { CircleAlert } from "lucide-react";
 
-import { createListRolesQueryOptions } from "@/api/role.ts";
 import { createUserByIDQueryOptions } from "@/api/user.ts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import {
@@ -14,6 +13,7 @@ import {
 } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { UserForm, mapUpdateUserFormValues } from "@/components/user-form.tsx";
+import { createListRolesQueryOptions } from "@/features/roles";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useUserLifecycle } from "@/hooks/use-user-lifecycle.ts";
 

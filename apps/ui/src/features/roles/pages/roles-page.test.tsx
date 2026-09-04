@@ -49,13 +49,13 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/api/role.ts", () => ({
+vi.mock("@/features/roles/queries/roles.ts", () => ({
   createListRolesQueryOptions: () => ({
     queryKey: ["roles"],
   }),
 }));
 
-vi.mock("@/hooks/use-role-lifecycle.ts", () => ({
+vi.mock("@/features/roles/hooks/use-role-lifecycle.ts", () => ({
   useRoleLifecycle: () => ({
     deleteRoles: mocks.deleteRoles,
   }),
@@ -93,11 +93,11 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
   },
 }));
 
-vi.mock("@/components/role-detail-content.tsx", () => ({
+vi.mock("@/features/roles/components/role-detail-content.tsx", () => ({
   RoleDetailContent: ({ roleId }: { roleId: string }) => <div>Detail for role {roleId}</div>,
 }));
 
-vi.mock("@/components/role-table", () => ({
+vi.mock("@/features/roles/components/role-table", () => ({
   RoleTable: ({
     filterState,
     onCreateRole,
@@ -204,7 +204,7 @@ describe("RolesPage", () => {
   });
 
   it("navigates to the create route from the table toolbar", async () => {
-    const { RolesPage } = await import("@/features/roles/components/roles-page.tsx");
+    const { RolesPage } = await import("@/features/roles/pages/roles-page.tsx");
 
     render(<RolesPage />);
 
@@ -214,7 +214,7 @@ describe("RolesPage", () => {
   });
 
   it("passes route-owned filters and selected preview metadata to the table", async () => {
-    const { RolesPage } = await import("@/features/roles/components/roles-page.tsx");
+    const { RolesPage } = await import("@/features/roles/pages/roles-page.tsx");
 
     render(
       <RolesPage
@@ -236,7 +236,7 @@ describe("RolesPage", () => {
   });
 
   it("updates route-owned filters and preserves unrelated search params", async () => {
-    const { RolesPage } = await import("@/features/roles/components/roles-page.tsx");
+    const { RolesPage } = await import("@/features/roles/pages/roles-page.tsx");
 
     render(<RolesPage />);
     fireEvent.click(screen.getByRole("button", { name: /change filters/i }));
@@ -260,7 +260,7 @@ describe("RolesPage", () => {
   });
 
   it("selects and opens roles from the table", async () => {
-    const { RolesPage } = await import("@/features/roles/components/roles-page.tsx");
+    const { RolesPage } = await import("@/features/roles/pages/roles-page.tsx");
 
     render(<RolesPage />);
     fireEvent.click(screen.getByRole("button", { name: /select role/i }));
@@ -292,7 +292,7 @@ describe("RolesPage", () => {
   });
 
   it("skips built-in-only delete selections without calling the API", async () => {
-    const { RolesPage } = await import("@/features/roles/components/roles-page.tsx");
+    const { RolesPage } = await import("@/features/roles/pages/roles-page.tsx");
 
     render(<RolesPage />);
 
@@ -306,7 +306,7 @@ describe("RolesPage", () => {
   });
 
   it("confirms mixed selections and deletes only custom roles", async () => {
-    const { RolesPage } = await import("@/features/roles/components/roles-page.tsx");
+    const { RolesPage } = await import("@/features/roles/pages/roles-page.tsx");
 
     render(<RolesPage />);
 
@@ -329,7 +329,7 @@ describe("RolesPage", () => {
         },
       ],
     });
-    const { RolesPage } = await import("@/features/roles/components/roles-page.tsx");
+    const { RolesPage } = await import("@/features/roles/pages/roles-page.tsx");
 
     render(<RolesPage selected={mocks.failingRole.id} />);
 
@@ -342,7 +342,7 @@ describe("RolesPage", () => {
   });
 
   it("closes the selected role preview after deleting that role", async () => {
-    const { RolesPage } = await import("@/features/roles/components/roles-page.tsx");
+    const { RolesPage } = await import("@/features/roles/pages/roles-page.tsx");
 
     render(<RolesPage selected={mocks.customRole.id} />);
 

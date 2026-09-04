@@ -2,7 +2,7 @@ import { composeStories } from "@storybook/react-vite";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import * as stories from "@/components/role-detail-content.stories";
+import * as stories from "@/features/roles/components/role-detail-content.stories";
 
 const { BuiltInAdmin, CustomRole, ErrorState, Loading } = composeStories(stories);
 

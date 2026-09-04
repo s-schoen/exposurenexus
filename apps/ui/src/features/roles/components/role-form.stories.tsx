@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { expect, fn, userEvent, within } from "storybook/test";
 
-import { RoleForm, getAvailableRolePermissions } from "@/components/role-form.tsx";
+import { RoleForm, getAvailableRolePermissions } from "@/features/roles/components/role-form.tsx";
 import { CUSTOM_AUDITOR_ROLE, ROLE_FIXTURES } from "@/test/fixtures.ts";
 
 import type { Meta, StoryObj } from "@storybook/react-vite";

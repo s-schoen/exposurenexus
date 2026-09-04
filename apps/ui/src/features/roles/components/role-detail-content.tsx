@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { KeyRound } from "lucide-react";
 
-import { createRoleByIDQueryOptions } from "@/api/role.ts";
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import { MetadataSidebar } from "@/components/metadata-sidebar/index.tsx";
@@ -20,7 +19,8 @@ import {
   getUniqueRoleResources,
   groupRolePermissionsByResource,
   isBuiltInRoleId,
-} from "@/lib/role.ts";
+} from "@/features/roles/lib/role.ts";
+import { createRoleByIDQueryOptions } from "@/features/roles/queries/roles.ts";
 
 import type { ReactNode } from "react";
 
