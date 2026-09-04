@@ -1,4 +1,3 @@
-import { ApplicationError, isApplicationError, isConflictError } from "@exposurenexus/backend";
 import {
   type AssetCustomFieldDefinition,
   type AssetCustomFieldRuleViolation,
@@ -8,22 +7,27 @@ import {
   AssetCustomFieldType,
   type CreateAssetCustomFieldDefinition,
   type UpdateAssetCustomFieldDefinition,
-  type UpdateAssetCustomFieldValue,
   validateAssetCustomFieldDefinitionRules,
 } from "@exposurenexus/contracts/model/asset-custom-field";
 
-import {
-  createDomainEventEmitter,
-  type AssetEventPayloads,
-  type CustomFieldEventPayloads,
-  type DomainEventContext,
-  type DomainEventEmitter,
-  type EventSubjects,
-} from "../lib/eventbus/events/index.js";
+import { ApplicationError, isApplicationError } from "../application-error.js";
+import { isConflictError } from "../database-error.js";
 
-import type { AssetCustomFieldRepository } from "../repository/asset-custom-field.js";
+import type { AssetCustomFieldRepository } from "./asset-custom-field-repository.js";
+import type {
+  AssetCustomFieldAssignmentsReplacedOutcome,
+  AssetCustomFieldDefinitionCreatedOutcome,
+  AssetCustomFieldDefinitionDeletedOutcome,
+  AssetCustomFieldDefinitionUpdatedOutcome,
+  AssetCustomFields,
+  AssetCustomFieldValuesReplacedOutcome,
+  CreateAssetCustomFieldDefinitionCommand,
+  DeleteAssetCustomFieldDefinitionByIDCommand,
+  ReplaceAssetCustomFieldAssignmentsCommand,
+  ReplaceAssetCustomFieldValuesCommand,
+  UpdateAssetCustomFieldDefinitionByIDCommand,
+} from "./assets.js";
 import type { Asset, AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
-import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Logger } from "pino";
 
 interface AssetLookupRepository {
@@ -108,75 +112,23 @@ function findDuplicate(values: readonly string[]): string | null {
   return null;
 }
 
-interface AssetCustomFieldServiceDependencies {
+interface UserProfileLookupRepository {
+  getByID(id: string): Promise<object | null>;
+}
+
+interface AssetCustomFieldsDependencies {
   assetCustomFieldRepository: AssetCustomFieldRepository;
   assetRepository: AssetLookupRepository;
-  domainEventEmitter: DomainEventEmitter;
+  userProfileRepository: UserProfileLookupRepository;
   logger: Logger;
 }
 
-export interface UpdateAssetCustomFieldDefinitionOptions {
-  id: string;
-  definition: UpdateAssetCustomFieldDefinition;
-  eventContext?: DomainEventContext;
-}
-
-export interface ReplaceAssetCustomFieldAssignmentsOptions {
-  assetId: string;
-  fieldIds: string[];
-  user: UserProfile;
-  eventContext?: DomainEventContext;
-}
-
-export interface ReplaceAssetCustomFieldValuesOptions {
-  assetId: string;
-  values: UpdateAssetCustomFieldValue[];
-  user: UserProfile;
-  eventContext?: DomainEventContext;
-}
-
-export interface AssetCustomFieldService {
-  listDefinitions(): Promise<AssetCustomFieldDefinition[]>;
-  getDefinitionByID(id: string): Promise<AssetCustomFieldDefinition | null>;
-  createDefinition(
-    definition: CreateAssetCustomFieldDefinition,
-    eventContext?: DomainEventContext,
-  ): Promise<AssetCustomFieldDefinition>;
-  updateDefinitionByID(
-    opts: UpdateAssetCustomFieldDefinitionOptions,
-  ): Promise<AssetCustomFieldDefinition | null>;
-  deleteDefinitionByID(
-    id: string,
-    eventContext?: DomainEventContext,
-  ): Promise<AssetCustomFieldDefinition | null>;
-  listEffectiveValuesForAsset(assetId: string): Promise<AssetCustomFieldValue[] | null>;
-  listEffectiveValuesForAssets(
-    assetIds: readonly string[],
-  ): Promise<Map<string, AssetCustomFieldValue[]>>;
-  listAvailableDefinitionsForAsset(assetId: string): Promise<AssetCustomFieldDefinition[] | null>;
-  replaceAssignmentsForAsset(
-    opts: ReplaceAssetCustomFieldAssignmentsOptions,
-  ): Promise<AssetCustomFieldValue[] | null>;
-  replaceValuesForAsset(
-    opts: ReplaceAssetCustomFieldValuesOptions,
-  ): Promise<AssetCustomFieldValue[] | null>;
-}
-
-export function createAssetCustomFieldService({
+export function createAssetCustomFields({
   assetCustomFieldRepository,
   assetRepository,
-  domainEventEmitter,
+  userProfileRepository,
   logger,
-}: AssetCustomFieldServiceDependencies): AssetCustomFieldService {
-  const emitCustomFieldEvent = createDomainEventEmitter<EventSubjects<CustomFieldEventPayloads>>(
-    domainEventEmitter,
-    "asset-custom-field",
-  );
-  const emitAssetEvent = createDomainEventEmitter<EventSubjects<AssetEventPayloads>>(
-    domainEventEmitter,
-    "asset",
-  );
-
+}: AssetCustomFieldsDependencies): AssetCustomFields {
   async function getAssetSnapshot(assetId: string): Promise<AssetWithCustomFields | null> {
     const asset = await assetRepository.getByID(assetId);
     if (!asset) {
@@ -188,17 +140,10 @@ export function createAssetCustomFieldService({
       customFields: await assetCustomFieldRepository.listEffectiveValuesForAsset(assetId),
     };
   }
-
-  function emitUpdatedAssetEvent(
-    previous: AssetWithCustomFields,
-    current: AssetWithCustomFields,
-    eventContext?: DomainEventContext,
-  ): void {
-    if (assetSnapshotsEqual(previous, current)) {
-      return;
+  async function requireAuditActor(performedBy: string): Promise<void> {
+    if (!(await userProfileRepository.getByID(performedBy))) {
+      throw new Error(`asset audit actor ${performedBy} does not exist`);
     }
-
-    emitAssetEvent("asset.updated", { previous, current }, eventContext);
   }
 
   return {
@@ -236,19 +181,14 @@ export function createAssetCustomFieldService({
     },
 
     async createDefinition(
-      definition: CreateAssetCustomFieldDefinition,
-      eventContext?: DomainEventContext,
-    ): Promise<AssetCustomFieldDefinition> {
+      opts: CreateAssetCustomFieldDefinitionCommand,
+    ): Promise<AssetCustomFieldDefinitionCreatedOutcome> {
+      const { definition, performedBy } = opts;
       validateCustomFieldDefinition(definition);
 
       try {
         const created = await assetCustomFieldRepository.createDefinition(definition);
-        emitCustomFieldEvent(
-          "custom-field.created",
-          { customFieldDefinition: created },
-          eventContext,
-        );
-        return created;
+        return { current: created, performedBy };
       } catch (error) {
         if (isConflictError(error)) {
           logger.debug(error, "asset custom field definition create conflict");
@@ -273,32 +213,24 @@ export function createAssetCustomFieldService({
     },
 
     async updateDefinitionByID(
-      opts: UpdateAssetCustomFieldDefinitionOptions,
-    ): Promise<AssetCustomFieldDefinition | null> {
-      const { id, definition, eventContext } = opts;
+      opts: UpdateAssetCustomFieldDefinitionByIDCommand,
+    ): Promise<AssetCustomFieldDefinitionUpdatedOutcome | null> {
+      const { id, definition, performedBy } = opts;
       validateCustomFieldDefinition(definition);
 
       try {
-        const previous = await assetCustomFieldRepository.getDefinitionByID(id);
-        if (!previous) {
-          logger.debug(`asset custom field definition with id ${id} not found`);
-          return null;
-        }
-
         const updated = await assetCustomFieldRepository.updateDefinitionByID(id, definition);
         if (!updated) {
           logger.debug(`asset custom field definition with id ${id} not found`);
           return null;
         }
 
-        if (!customFieldDefinitionsEqual(previous, updated)) {
-          emitCustomFieldEvent(
-            "custom-field.updated",
-            { previous, current: updated },
-            eventContext,
-          );
-        }
-        return updated;
+        return {
+          previous: updated.previous,
+          current: updated.current,
+          changed: !customFieldDefinitionsEqual(updated.previous, updated.current),
+          performedBy,
+        };
       } catch (error) {
         if (isConflictError(error)) {
           logger.debug(error, "asset custom field definition update conflict");
@@ -323,21 +255,17 @@ export function createAssetCustomFieldService({
     },
 
     async deleteDefinitionByID(
-      id: string,
-      eventContext?: DomainEventContext,
-    ): Promise<AssetCustomFieldDefinition | null> {
+      opts: DeleteAssetCustomFieldDefinitionByIDCommand,
+    ): Promise<AssetCustomFieldDefinitionDeletedOutcome | null> {
+      const { id, performedBy } = opts;
+
       try {
         const deleted = await assetCustomFieldRepository.deleteDefinitionByID(id);
         if (!deleted) {
           logger.debug(`asset custom field definition with id ${id} not found`);
           return null;
         }
-        emitCustomFieldEvent(
-          "custom-field.deleted",
-          { customFieldDefinition: deleted },
-          eventContext,
-        );
-        return deleted;
+        return { previous: deleted, performedBy };
       } catch (error) {
         logger.error(error, `failed to delete asset custom field definition with id ${id}`);
         throw new ApplicationError({
@@ -412,13 +340,12 @@ export function createAssetCustomFieldService({
     },
 
     async replaceAssignmentsForAsset(
-      opts: ReplaceAssetCustomFieldAssignmentsOptions,
-    ): Promise<AssetCustomFieldValue[] | null> {
-      const { assetId, fieldIds, user, eventContext } = opts;
+      opts: ReplaceAssetCustomFieldAssignmentsCommand,
+    ): Promise<AssetCustomFieldAssignmentsReplacedOutcome | null> {
+      const { assetId, fieldIds, performedBy } = opts;
 
       try {
-        const previous = await getAssetSnapshot(assetId);
-        if (!previous) {
+        if (!(await assetRepository.getByID(assetId))) {
           logger.debug(`asset with id ${assetId} not found`);
           return null;
         }
@@ -447,16 +374,20 @@ export function createAssetCustomFieldService({
           }
         }
 
-        const values = await assetCustomFieldRepository.replaceAssignmentsForAsset(
+        await requireAuditActor(performedBy);
+        const updated = await assetCustomFieldRepository.replaceAssignmentsForAsset(
           assetId,
           fieldIds,
-          { updatedAt: new Date(), updatedBy: user.id },
+          { updatedAt: new Date(), updatedBy: performedBy },
         );
-        const current = await getAssetSnapshot(assetId);
-        if (current) {
-          emitUpdatedAssetEvent(previous, current, eventContext);
-        }
-        return values;
+
+        return {
+          values: updated.values,
+          previous: updated.previous,
+          current: updated.current,
+          changed: !assetSnapshotsEqual(updated.previous, updated.current),
+          performedBy,
+        };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;
@@ -477,9 +408,9 @@ export function createAssetCustomFieldService({
     },
 
     async replaceValuesForAsset(
-      opts: ReplaceAssetCustomFieldValuesOptions,
-    ): Promise<AssetCustomFieldValue[] | null> {
-      const { assetId, values, user, eventContext } = opts;
+      opts: ReplaceAssetCustomFieldValuesCommand,
+    ): Promise<AssetCustomFieldValuesReplacedOutcome | null> {
+      const { assetId, values, performedBy } = opts;
 
       try {
         const previous = await getAssetSnapshot(assetId);
@@ -538,16 +469,19 @@ export function createAssetCustomFieldService({
           }
         }
 
-        const updatedValues = await assetCustomFieldRepository.replaceValuesForAsset(
-          assetId,
-          values,
-          { updatedAt: new Date(), updatedBy: user.id },
-        );
-        const current = await getAssetSnapshot(assetId);
-        if (current) {
-          emitUpdatedAssetEvent(previous, current, eventContext);
-        }
-        return updatedValues;
+        await requireAuditActor(performedBy);
+        const updated = await assetCustomFieldRepository.replaceValuesForAsset(assetId, values, {
+          updatedAt: new Date(),
+          updatedBy: performedBy,
+        });
+
+        return {
+          values: updated.values,
+          previous: updated.previous,
+          current: updated.current,
+          changed: !assetSnapshotsEqual(updated.previous, updated.current),
+          performedBy,
+        };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;

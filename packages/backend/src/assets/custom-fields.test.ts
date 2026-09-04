@@ -4,19 +4,48 @@ import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
+  type CreateAssetCustomFieldDefinition,
   type UpdateAssetCustomFieldDefinition,
+  type UpdateAssetCustomFieldValue,
 } from "@exposurenexus/contracts/model/asset-custom-field";
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createDomainEventCollector } from "../test/eventbus.js";
-import { createAssetCustomFieldService } from "./asset-custom-field.js";
+import { createAssetCustomFields } from "./custom-fields.js";
 
-import type { ApplicationError } from "@exposurenexus/backend";
+import type { ApplicationError } from "../application-error.js";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
-describe("asset custom field service", () => {
-  const domainEvents = createDomainEventCollector();
+interface TestEventContext {
+  actor?: string;
+  correlationId?: string;
+}
+
+interface TestEvent {
+  subject: string;
+  source: string;
+  actor?: string;
+  correlationId?: string;
+  data: unknown;
+}
+
+const domainEvents = (() => {
+  const events: TestEvent[] = [];
+
+  return {
+    record(subject: string, source: string, data: unknown, context?: TestEventContext) {
+      events.push({ subject, source, data, ...context });
+    },
+    clear() {
+      events.length = 0;
+    },
+    eventsFor(subject: string) {
+      return events.filter((event) => event.subject === subject);
+    },
+  };
+})();
+
+describe("asset custom fields", () => {
   const assetCustomFieldRepository = {
     listDefinitions: vi.fn(),
     getDefinitionByID: vi.fn(),
@@ -32,25 +61,156 @@ describe("asset custom field service", () => {
   const assetRepository = {
     getByID: vi.fn(),
   };
+  const userProfileRepository = {
+    getByID: vi.fn(),
+  };
   const logger = pino({ enabled: false });
   const eventContext = {
     actor: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
     correlationId: "asset-custom-field-service-request",
   };
-  const user = { id: eventContext.actor } as UserProfile;
+  const user = {
+    id: eventContext.actor,
+    username: "custom-field-test-user",
+    displayName: "Custom Field Test User",
+    email: "custom-field-test@example.com",
+    enabled: true,
+    roleIds: [],
+  } satisfies UserProfile;
+
+  function assetCustomFieldMutation<T>(
+    values: T[],
+    previousAsset: object,
+    previousValues: unknown[],
+    currentAsset: object = previousAsset,
+    currentValues: unknown[] = values,
+  ) {
+    return {
+      values,
+      previous: { ...previousAsset, customFields: previousValues },
+      current: { ...currentAsset, customFields: currentValues },
+    };
+  }
+
+  function definitionMutation<TPrevious, TCurrent>(previous: TPrevious, current: TCurrent) {
+    return { previous, current };
+  }
 
   function createTestAssetCustomFieldService() {
-    return createAssetCustomFieldService({
+    const customFields = createAssetCustomFields({
       assetCustomFieldRepository,
       assetRepository,
-      domainEventEmitter: domainEvents.emitter,
+      userProfileRepository,
       logger,
     });
+
+    return {
+      listDefinitions: customFields.listDefinitions.bind(customFields),
+      getDefinitionByID: customFields.getDefinitionByID.bind(customFields),
+      listEffectiveValuesForAsset: customFields.listEffectiveValuesForAsset.bind(customFields),
+      listEffectiveValuesForAssets: customFields.listEffectiveValuesForAssets.bind(customFields),
+      listAvailableDefinitionsForAsset:
+        customFields.listAvailableDefinitionsForAsset.bind(customFields),
+      async createDefinition(
+        definition: CreateAssetCustomFieldDefinition,
+        context?: TestEventContext,
+      ) {
+        const outcome = await customFields.createDefinition({
+          definition,
+          performedBy: context?.actor ?? user.id,
+        });
+        domainEvents.record(
+          "custom-field.created",
+          "asset-custom-field",
+          { customFieldDefinition: outcome.current },
+          context,
+        );
+        return outcome.current;
+      },
+      async updateDefinitionByID(opts: {
+        id: string;
+        definition: UpdateAssetCustomFieldDefinition;
+        eventContext?: TestEventContext;
+      }) {
+        const outcome = await customFields.updateDefinitionByID({
+          id: opts.id,
+          definition: opts.definition,
+          performedBy: opts.eventContext?.actor ?? user.id,
+        });
+        if (outcome?.changed) {
+          domainEvents.record(
+            "custom-field.updated",
+            "asset-custom-field",
+            { previous: outcome.previous, current: outcome.current },
+            opts.eventContext,
+          );
+        }
+        return outcome?.current ?? null;
+      },
+      async deleteDefinitionByID(id: string, context?: TestEventContext) {
+        const outcome = await customFields.deleteDefinitionByID({
+          id,
+          performedBy: context?.actor ?? user.id,
+        });
+        if (outcome) {
+          domainEvents.record(
+            "custom-field.deleted",
+            "asset-custom-field",
+            { customFieldDefinition: outcome.previous },
+            context,
+          );
+        }
+        return outcome?.previous ?? null;
+      },
+      async replaceAssignmentsForAsset(opts: {
+        assetId: string;
+        fieldIds: string[];
+        user: UserProfile;
+        eventContext?: TestEventContext;
+      }) {
+        const outcome = await customFields.replaceAssignmentsForAsset({
+          assetId: opts.assetId,
+          fieldIds: opts.fieldIds,
+          performedBy: opts.user.id,
+        });
+        if (outcome?.changed) {
+          domainEvents.record(
+            "asset.updated",
+            "asset",
+            { previous: outcome.previous, current: outcome.current },
+            opts.eventContext,
+          );
+        }
+        return outcome?.values ?? null;
+      },
+      async replaceValuesForAsset(opts: {
+        assetId: string;
+        values: UpdateAssetCustomFieldValue[];
+        user: UserProfile;
+        eventContext?: TestEventContext;
+      }) {
+        const outcome = await customFields.replaceValuesForAsset({
+          assetId: opts.assetId,
+          values: opts.values,
+          performedBy: opts.user.id,
+        });
+        if (outcome?.changed) {
+          domainEvents.record(
+            "asset.updated",
+            "asset",
+            { previous: outcome.previous, current: outcome.current },
+            opts.eventContext,
+          );
+        }
+        return outcome?.values ?? null;
+      },
+    };
   }
 
   beforeEach(() => {
     vi.resetAllMocks();
     domainEvents.clear();
+    userProfileRepository.getByID.mockResolvedValue(user);
   });
 
   it("lists custom field definitions from the repository", async () => {
@@ -301,7 +461,9 @@ describe("asset custom field service", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce(values);
     assetCustomFieldRepository.listDefinitions.mockResolvedValue([definition]);
-    assetCustomFieldRepository.replaceAssignmentsForAsset.mockResolvedValue(values);
+    assetCustomFieldRepository.replaceAssignmentsForAsset.mockResolvedValue(
+      assetCustomFieldMutation(values, asset, [], asset, values),
+    );
 
     await expect(
       service.replaceAssignmentsForAsset({
@@ -431,7 +593,9 @@ describe("asset custom field service", () => {
     assetRepository.getByID.mockResolvedValue(asset);
     assetCustomFieldRepository.listEffectiveValuesForAsset.mockResolvedValue(values);
     assetCustomFieldRepository.listDefinitions.mockResolvedValue([definition]);
-    assetCustomFieldRepository.replaceAssignmentsForAsset.mockResolvedValue(values);
+    assetCustomFieldRepository.replaceAssignmentsForAsset.mockResolvedValue(
+      assetCustomFieldMutation(values, asset, values),
+    );
 
     await expect(
       service.replaceAssignmentsForAsset({
@@ -775,7 +939,9 @@ describe("asset custom field service", () => {
     assetCustomFieldRepository.listEffectiveValuesForAsset
       .mockResolvedValueOnce(previousValues)
       .mockResolvedValueOnce(values);
-    assetCustomFieldRepository.replaceValuesForAsset.mockResolvedValue(values);
+    assetCustomFieldRepository.replaceValuesForAsset.mockResolvedValue(
+      assetCustomFieldMutation(values, asset, previousValues, asset, values),
+    );
 
     await expect(
       service.replaceValuesForAsset({
@@ -849,7 +1015,9 @@ describe("asset custom field service", () => {
     assetCustomFieldRepository.listEffectiveValuesForAsset
       .mockResolvedValueOnce([definition])
       .mockResolvedValueOnce([updatedValue]);
-    assetCustomFieldRepository.replaceValuesForAsset.mockResolvedValue([updatedValue]);
+    assetCustomFieldRepository.replaceValuesForAsset.mockResolvedValue(
+      assetCustomFieldMutation([updatedValue], previous, [definition], current, [updatedValue]),
+    );
 
     await expect(
       service.replaceValuesForAsset({
@@ -904,7 +1072,9 @@ describe("asset custom field service", () => {
 
     assetRepository.getByID.mockResolvedValue(asset);
     assetCustomFieldRepository.listEffectiveValuesForAsset.mockResolvedValue(values);
-    assetCustomFieldRepository.replaceValuesForAsset.mockResolvedValue(values);
+    assetCustomFieldRepository.replaceValuesForAsset.mockResolvedValue(
+      assetCustomFieldMutation(values, asset, values),
+    );
 
     await expect(
       service.replaceValuesForAsset({
@@ -963,7 +1133,9 @@ describe("asset custom field service", () => {
     assetCustomFieldRepository.listEffectiveValuesForAsset
       .mockResolvedValueOnce(previousValues)
       .mockResolvedValueOnce(values);
-    assetCustomFieldRepository.replaceValuesForAsset.mockResolvedValue(values);
+    assetCustomFieldRepository.replaceValuesForAsset.mockResolvedValue(
+      assetCustomFieldMutation(values, asset, previousValues, asset, values),
+    );
 
     await expect(
       service.replaceValuesForAsset({
@@ -1304,7 +1476,9 @@ describe("asset custom field service", () => {
     const service = createTestAssetCustomFieldService();
 
     assetCustomFieldRepository.getDefinitionByID.mockResolvedValue(previous);
-    assetCustomFieldRepository.updateDefinitionByID.mockResolvedValue(updated);
+    assetCustomFieldRepository.updateDefinitionByID.mockResolvedValue(
+      definitionMutation(previous, updated),
+    );
 
     await expect(
       service.updateDefinitionByID({
@@ -1342,7 +1516,9 @@ describe("asset custom field service", () => {
     const service = createTestAssetCustomFieldService();
 
     assetCustomFieldRepository.getDefinitionByID.mockResolvedValue(definition);
-    assetCustomFieldRepository.updateDefinitionByID.mockResolvedValue(definition);
+    assetCustomFieldRepository.updateDefinitionByID.mockResolvedValue(
+      definitionMutation(definition, definition),
+    );
 
     await expect(
       service.updateDefinitionByID({
@@ -1357,7 +1533,7 @@ describe("asset custom field service", () => {
   it("returns null when updating a missing custom field definition", async () => {
     const service = createTestAssetCustomFieldService();
 
-    assetCustomFieldRepository.getDefinitionByID.mockResolvedValue(null);
+    assetCustomFieldRepository.updateDefinitionByID.mockResolvedValue(null);
 
     await expect(
       service.updateDefinitionByID({
@@ -1371,7 +1547,7 @@ describe("asset custom field service", () => {
         },
       }),
     ).resolves.toBeNull();
-    expect(assetCustomFieldRepository.updateDefinitionByID).not.toHaveBeenCalled();
+    expect(assetCustomFieldRepository.updateDefinitionByID).toHaveBeenCalledOnce();
   });
 
   it("maps custom field definition update conflicts to a conflict application error", async () => {

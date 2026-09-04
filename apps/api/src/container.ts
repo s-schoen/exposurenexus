@@ -1,9 +1,11 @@
 import { createBackendRuntime } from "@exposurenexus/backend";
+import { createAssets } from "@exposurenexus/backend/assets";
 import { createAuthentication } from "@exposurenexus/backend/authentication";
 import { createIdentity } from "@exposurenexus/backend/identity";
 
 import { createApp } from "./app.js";
 import { registerEventHandlers } from "./event-handler/index.js";
+import { decorateAssetsWithEvents } from "./lib/assets-events.js";
 import { decorateAuthenticationWithEvents } from "./lib/authentication-events.js";
 import { createDefaultAdmin } from "./lib/default-admin.js";
 import { EventBus } from "./lib/eventbus/eventbus.js";
@@ -17,8 +19,6 @@ import {
 } from "./middleware/auth.js";
 import { createCsrfProtection } from "./middleware/csrf.js";
 import {
-  createAssetCustomFieldRepository,
-  createAssetRepository,
   createFindingRepository,
   createObservationRepository,
   createVulnerabilityRepository,
@@ -33,8 +33,6 @@ import { createFindingStatsRoute } from "./routes/stats.js";
 import { createUserRoute } from "./routes/users.js";
 import { createVulnerabilityRoute } from "./routes/vulnerabilities.js";
 import {
-  createAssetCustomFieldService,
-  createAssetService,
   createFindingService,
   createStatsService,
   createVulnerabilityService,
@@ -83,10 +81,9 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     }),
     eventBus,
   );
+  const assets = decorateAssetsWithEvents(createAssets(runtime), eventBus);
 
   const repositories = {
-    assetCustomFieldRepository: createAssetCustomFieldRepository(options.db),
-    assetRepository: createAssetRepository(options.db),
     findingRepository: createFindingRepository(options.db),
     observationRepository: createObservationRepository(options.db),
     vulnerabilityRepository: createVulnerabilityRepository(options.db),
@@ -95,19 +92,6 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const requireDomainPermission = createRequireDomainPermission(
     identity.authorization.userHasPermission.bind(identity.authorization),
   );
-  const assetCustomFieldService = createAssetCustomFieldService({
-    assetCustomFieldRepository: repositories.assetCustomFieldRepository,
-    assetRepository: repositories.assetRepository,
-    domainEventEmitter: eventBus,
-    logger: loggerFactory("service/asset-custom-field"),
-  });
-  const assetService = createAssetService({
-    assetRepository: repositories.assetRepository,
-    assetCustomFieldReader: assetCustomFieldService,
-    userProfileService: identity.users,
-    domainEventEmitter: eventBus,
-    logger: loggerFactory("service/asset"),
-  });
   const vulnerabilityService = createVulnerabilityService({
     vulnerabilityRepository: repositories.vulnerabilityRepository,
     domainEventEmitter: eventBus,
@@ -116,7 +100,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
   const findingService = createFindingService({
     findingRepository: repositories.findingRepository,
     observationRepository: repositories.observationRepository,
-    assetService,
+    assetService: assets.inventory,
     userProfileService: identity.users,
     vulnerabilityService,
     domainEventEmitter: eventBus,
@@ -140,7 +124,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
       cookiePolicy: authCookiePolicy,
       trustedProxies: options.authTrustedProxies,
     }),
-    assetRoute: createAssetRoute(assetService, assetCustomFieldService, {
+    assetRoute: createAssetRoute(assets.inventory, assets.customFields, {
       requireDomainPermission,
     }),
     roleRoute: createRoleRoute(identity.roles, { requireDomainPermission }),
@@ -181,8 +165,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     repositories,
     services: {
       authentication,
-      assetService,
-      assetCustomFieldService,
+      assets,
       identity,
       vulnerabilityService,
       findingService,
