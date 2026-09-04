@@ -1,6 +1,10 @@
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
-import { formatPermissionLabel, getRoleKindLabel, getUniqueRoleResources } from "@/lib/role.ts";
+import {
+  formatPermissionLabel,
+  getRoleKindLabel,
+  getUniqueRoleResources,
+} from "@/features/roles/lib/role.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { Role } from "@exposurenexus/contracts/model/rbac";

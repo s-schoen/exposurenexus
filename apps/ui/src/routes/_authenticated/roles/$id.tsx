@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, useMatchRoute } from "@tanstack/react-router";
 
-import { RoleDetailPage } from "@/features/roles/components/role-detail-page.tsx";
+import { RoleDetailPage } from "@/features/roles";
 
 export const Route = createFileRoute("/_authenticated/roles/$id")({
   component: RouteComponent,

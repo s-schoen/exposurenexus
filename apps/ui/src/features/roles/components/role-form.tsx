@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/field.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
-import { formatPermissionLabel, isBuiltInRoleId } from "@/lib/role.ts";
+import { formatPermissionLabel, isBuiltInRoleId } from "@/features/roles/lib/role.ts";
 
 import type { CreateRole, Permission, Role, UpdateRole } from "@exposurenexus/contracts/model/rbac";
 

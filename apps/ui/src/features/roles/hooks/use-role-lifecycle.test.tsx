@@ -3,11 +3,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createListRolesQueryOptions, createRoleByIDQueryOptions } from "@/api/role.ts";
-import { useRoleLifecycle } from "@/hooks/use-role-lifecycle.ts";
+import { useRoleLifecycle } from "@/features/roles/hooks/use-role-lifecycle.ts";
+import {
+  createListRolesQueryOptions,
+  createRoleByIDQueryOptions,
+} from "@/features/roles/queries/roles.ts";
 
-import type * as RoleApi from "@/api/role.ts";
-import type { RoleLifecycleBatchResult } from "@/hooks/use-role-lifecycle.ts";
+import type { RoleLifecycleBatchResult } from "@/features/roles/hooks/use-role-lifecycle.ts";
+import type * as RoleMutations from "@/features/roles/mutations/roles.ts";
 import type { CreateRole, Role, UpdateRole } from "@exposurenexus/contracts/model/rbac";
 import type { ReactNode } from "react";
 
@@ -32,14 +35,11 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/api/role.ts", async (importOriginal) => {
-  const actual = await importOriginal<typeof RoleApi>();
+vi.mock("@/features/roles/mutations/roles.ts", async (importOriginal) => {
+  const actual = await importOriginal<typeof RoleMutations>();
 
   return {
     ...actual,
-    createRole: createRoleRequestMock,
-    deleteRole: deleteRoleRequestMock,
-    updateRole: updateRoleRequestMock,
     useCreateRoleMutation: () => ({
       mutateAsync: createRoleRequestMock,
     }),

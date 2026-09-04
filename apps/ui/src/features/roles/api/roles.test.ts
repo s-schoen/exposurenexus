@@ -6,12 +6,12 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-  createListRolesQueryOptions,
   createRole,
-  createRoleByIDQueryOptions,
   deleteRole,
+  getRoleByID,
+  listRoles,
   updateRole,
-} from "@/api/role.ts";
+} from "@/features/roles/api/roles.ts";
 
 import type { CreateRole, Role, UpdateRole } from "@exposurenexus/contracts/model/rbac";
 
@@ -36,16 +36,6 @@ function requestInit(): RequestInit {
   return init;
 }
 
-function requestJsonBody(): unknown {
-  return JSON.parse(requestInit().body as string);
-}
-
-function runQuery<T>(queryOptions: { queryFn?: unknown }): Promise<T> {
-  const queryFn = queryOptions.queryFn as () => Promise<T>;
-
-  return queryFn();
-}
-
 const roleId = builtInRoleIds.editor;
 const role: Role = {
   id: roleId,
@@ -68,7 +58,7 @@ afterEach(() => {
 });
 
 describe("role api", () => {
-  it("creates list query options and parses role lists", async () => {
+  it("lists roles", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         data: {
@@ -77,11 +67,7 @@ describe("role api", () => {
       }),
     );
 
-    const queryOptions = createListRolesQueryOptions();
-    const roles = await runQuery<Array<Role>>(queryOptions);
-
-    expect(queryOptions.queryKey).toEqual(["roles"]);
-    expect(roles).toEqual([role]);
+    await expect(listRoles()).resolves.toEqual([role]);
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/roles",
       expect.objectContaining({
@@ -110,21 +96,17 @@ describe("role api", () => {
       }),
     );
 
-    await expect(runQuery<Array<Role>>(createListRolesQueryOptions())).rejects.toThrow();
+    await expect(listRoles()).rejects.toThrow();
   });
 
-  it("creates detail query options and parses role detail replies", async () => {
+  it("gets a role by id", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         data: role,
       }),
     );
 
-    const queryOptions = createRoleByIDQueryOptions(roleId);
-    const result = await runQuery<Role>(queryOptions);
-
-    expect(queryOptions.queryKey).toEqual(["roles", roleId]);
-    expect(result).toEqual(role);
+    await expect(getRoleByID(roleId)).resolves.toEqual(role);
     expect(fetchMock).toHaveBeenCalledWith(
       `/api/roles/${roleId}`,
       expect.objectContaining({
@@ -160,7 +142,7 @@ describe("role api", () => {
       }),
     );
     expect(headers.get("Content-Type")).toBe("application/json");
-    expect(requestJsonBody()).toEqual(payload);
+    expect(JSON.parse(requestInit().body as string)).toEqual(payload);
   });
 
   it("updates roles with a JSON request body", async () => {
@@ -189,7 +171,7 @@ describe("role api", () => {
       }),
     );
     expect(headers.get("Content-Type")).toBe("application/json");
-    expect(requestJsonBody()).toEqual(payload);
+    expect(JSON.parse(requestInit().body as string)).toEqual(payload);
   });
 
   it("deletes roles", async () => {

@@ -1,8 +1,8 @@
 import { Plus } from "lucide-react";
 
 import { DataTable } from "@/components/data-table/data-table.tsx";
-import { columns } from "@/components/role-table/columns.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import { columns } from "@/features/roles/components/role-table/columns.tsx";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
 import type { Role } from "@exposurenexus/contracts/model/rbac";

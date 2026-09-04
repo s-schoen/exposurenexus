@@ -2,9 +2,9 @@ import { PermissionResource, PermissionVerb } from "@exposurenexus/contracts/mod
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { EditRolePage } from "@/features/roles/components/edit-role-page.tsx";
+import { EditRolePage } from "@/features/roles/pages/edit-role-page.tsx";
 
-import type { RoleFormValues } from "@/components/role-form.tsx";
+import type { RoleFormValues } from "@/features/roles/components/role-form.tsx";
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 
 interface QueryState<TData> {
@@ -88,7 +88,7 @@ vi.mock("@tanstack/react-query", () => ({
   },
 }));
 
-vi.mock("@/api/role.ts", () => ({
+vi.mock("@/features/roles/queries/roles.ts", () => ({
   createListRolesQueryOptions: () => ({
     queryKey: ["roles"],
   }),
@@ -97,13 +97,13 @@ vi.mock("@/api/role.ts", () => ({
   }),
 }));
 
-vi.mock("@/hooks/use-role-lifecycle.ts", () => ({
+vi.mock("@/features/roles/hooks/use-role-lifecycle.ts", () => ({
   useRoleLifecycle: () => ({
     updateRole: mocks.updateRole,
   }),
 }));
 
-vi.mock("@/components/role-form.tsx", async (importOriginal) => {
+vi.mock("@/features/roles/components/role-form.tsx", async (importOriginal) => {
   const actual = await importOriginal();
 
   return Object.assign({}, actual, {
