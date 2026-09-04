@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { VulnerabilitiesPage } from "@/features/vulnerabilities/components/vulnerabilities-page.tsx";
+import { VulnerabilitiesPage, validateVulnerabilityTableSearch } from "@/features/vulnerabilities";
 import { validateSelectedSearch } from "@/hooks/use-selected-search-param.ts";
-import { validateVulnerabilityTableSearch } from "@/hooks/use-vulnerability-table-search-state.ts";
 
 export const Route = createFileRoute("/_authenticated/vulnerabilities/")({
   validateSearch: (search: Record<string, unknown>) => ({

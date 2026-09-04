@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute, useMatchRoute } from "@tanstack/react-router";
 
-import { VulnerabilityDetailPage } from "@/features/vulnerabilities/components/vulnerability-detail-page.tsx";
+import { VulnerabilityDetailPage } from "@/features/vulnerabilities";
 
 export const Route = createFileRoute("/_authenticated/vulnerabilities/$id")({
   component: RouteComponent,

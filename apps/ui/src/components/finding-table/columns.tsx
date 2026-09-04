@@ -5,8 +5,8 @@ import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerabil
 import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx";
 import { FindingStatusBadge } from "@/components/finding-status-badge.tsx";
 import { SEVERITY_ORDER } from "@/components/finding-table/constants.ts";
-import { SeverityBadge } from "@/components/severity-badge.tsx";
 import { UserLabel, formatUserProfileReference, getUserProfileDisplayName } from "@/features/users";
+import { SeverityBadge } from "@/features/vulnerabilities";
 import { formatUtcDateOnly } from "@/lib/date-input.ts";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";

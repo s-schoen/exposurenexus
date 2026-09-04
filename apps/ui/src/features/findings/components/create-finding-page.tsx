@@ -7,7 +7,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { AssetCombobox } from "@/components/asset-combobox.tsx";
-import { SeverityBadge } from "@/components/severity-badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Field,
@@ -28,6 +27,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { createListUsersQueryOptions, getUserProfileDisplayName } from "@/features/users";
+import { SeverityBadge } from "@/features/vulnerabilities";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { formatLocalDateTimeInput, formatUtcDateOnly } from "@/lib/date-input.ts";

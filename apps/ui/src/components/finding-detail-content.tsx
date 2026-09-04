@@ -12,7 +12,6 @@ import { useState } from "react";
 
 import { createAssetByIDQueryOptions } from "@/api/asset.ts";
 import { createFindingByIDQueryOptions } from "@/api/finding.ts";
-import { createListVulnerabilitiesQueryOptions } from "@/api/vulnerability.ts";
 import { AssetInfoItem } from "@/components/asset-info-item.tsx";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
@@ -22,7 +21,6 @@ import { FindingStatusBadge } from "@/components/finding-status-badge.tsx";
 import { MetadataSidebar } from "@/components/metadata-sidebar";
 import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
 import { SafeMarkdown } from "@/components/safe-markdown.tsx";
-import { SeverityBadge } from "@/components/severity-badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Card,
@@ -58,9 +56,14 @@ import {
   createUserProfileById,
   getUserProfileDisplayName,
 } from "@/features/users";
+import {
+  SeverityBadge,
+  createListVulnerabilitiesQueryOptions,
+  formatSeverity,
+} from "@/features/vulnerabilities";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 import { formatUtcDateOnly } from "@/lib/date-input.ts";
-import { capitalizeFirstLetter, formatFindingStatus, formatSeverity } from "@/lib/format.ts";
+import { capitalizeFirstLetter, formatFindingStatus } from "@/lib/format.ts";
 import { formatWeaknessText, parseWeaknessText } from "@/lib/weakness-text.ts";
 
 import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
