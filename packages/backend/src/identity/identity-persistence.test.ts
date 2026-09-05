@@ -94,6 +94,77 @@ describe("identity persistence", () => {
     return createBackendRuntime({ database: testDb.db, logger });
   }
 
+  it("resolves empty and mixed role lookups without inventing missing roles", async () => {
+    const roles = createIdentity(createRuntime()).roles;
+    await expect(roles.getByNames([])).resolves.toEqual([]);
+    await expect(roles.requireRoleNamesFromIds([])).resolves.toEqual([]);
+    await expect(roles.resolveRoleIdsFromNames(["viewer", "missing", "viewer"])).resolves.toEqual([
+      builtInRoleIds.viewer,
+    ]);
+    await expect(
+      roles.updateByID({
+        id: invalidRoleId,
+        role: { name: "missing", permissions: [] },
+        performedBy: firstUserId,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it("keeps empty roles and treats reordered duplicate permissions as the same permission set", async () => {
+    const identity = createIdentity(createRuntime());
+    const created = await identity.roles.create({
+      role: { name: "empty", permissions: [] },
+      performedBy: firstUserId,
+    });
+    await expect(identity.roles.getByID(created.current.id)).resolves.toEqual(created.current);
+    const read = { resource: PermissionResource.Asset, verb: PermissionVerb.Read };
+    const write = { resource: PermissionResource.Asset, verb: PermissionVerb.Write };
+    await identity.roles.updateByID({
+      id: created.current.id,
+      role: { name: "reader-writer", permissions: [read, write, read] },
+      performedBy: firstUserId,
+    });
+    await insertUser(firstUserId, "alice", [created.current.id]);
+    await insertSession(firstUserId, "retained-session");
+    const renamed = await identity.roles.updateByID({
+      id: created.current.id,
+      role: { name: "renamed", permissions: [write, read] },
+      performedBy: firstUserId,
+    });
+    expect(renamed!.current.permissions).toHaveLength(2);
+    expect(renamed!.current.permissions).toEqual(expect.arrayContaining([read, write]));
+    await expect(
+      testDb.db.selectFrom("user_session").select("sessionId").execute(),
+    ).resolves.toEqual([{ sessionId: "retained-session" }]);
+    const cleared = await identity.roles.updateByID({
+      id: created.current.id,
+      role: { name: "renamed", permissions: [] },
+      performedBy: firstUserId,
+    });
+    expect(cleared!.current.permissions).toEqual([]);
+    await expect(
+      identity.authorization.userHasPermission(firstUserId, {
+        [PermissionResource.Asset]: [PermissionVerb.Read],
+      }),
+    ).resolves.toBe(false);
+    await expect(
+      testDb.db.selectFrom("user_session").select("sessionId").execute(),
+    ).resolves.toEqual([]);
+  });
+
+  it("clears all user role assignments and reports an unknown username as missing", async () => {
+    await insertUser(firstUserId, "alice", [builtInRoleIds.viewer]);
+    const users = createIdentity(createRuntime()).users;
+    const result = await users.updateByID({
+      id: firstUserId,
+      userProfile: { displayName: "Alice", email: "alice@example.com", enabled: true, roleIds: [] },
+      performedBy: firstUserId,
+    });
+    expect(result!.current.roleIds).toEqual([]);
+    await expect(users.getByUsername("alice")).resolves.toEqual(result!.current);
+    await expect(users.getByUsername("missing")).resolves.toBeNull();
+  });
+
   it("updates user assignments and revokes sessions in one capability operation", async () => {
     await insertUser(firstUserId, "alice", [builtInRoleIds.viewer]);
     await insertUser(secondUserId, "bob", [builtInRoleIds.editor]);
