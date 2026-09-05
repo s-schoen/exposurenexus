@@ -17,7 +17,7 @@ import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanst
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { expect, userEvent, within } from "storybook/test";
 
-import { FindingDetailContent } from "@/features/findings/components/finding-detail-content.tsx";
+import { FindingPreview } from "@/features/findings/components/finding-preview.tsx";
 import { routeTree } from "@/routeTree.gen.ts";
 import { STORY_VULNERABILITIES } from "@/test/fixtures.ts";
 import { createStoryLoginRedirects } from "@/test/storybook.tsx";
@@ -28,7 +28,14 @@ import type { Finding } from "@exposurenexus/contracts/model/finding";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-type FindingDetailScenario = "success" | "undated" | "empty" | "loading";
+type FindingDetailScenario =
+  | "success"
+  | "undated"
+  | "empty"
+  | "loading"
+  | "finding-error"
+  | "asset-error"
+  | "observation-error";
 
 type FindingDetailStoryArgs = {
   finding: Finding;
@@ -206,9 +213,9 @@ function FindingDetailContentStoryShell({
       },
     });
 
-    if (scenario !== "loading") {
+    if (scenario !== "loading" && scenario !== "finding-error") {
       client.setQueryData(["findings", effectiveFinding.id], effectiveFinding);
-      client.setQueryData(["assets", asset.id], asset);
+      if (scenario !== "asset-error") client.setQueryData(["assets", asset.id], asset);
       client.setQueryData(["users"], users);
       client.setQueryData(["vulnerabilities"], STORY_VULNERABILITIES);
     }
@@ -237,9 +244,13 @@ function FindingDetailContentStoryShell({
     globalThis.fetch = async (input, init) => {
       const requestUrl = input instanceof Request ? input.url : String(input);
       if (requestUrl.endsWith(`/api/findings/${effectiveFinding.id}/observations`)) {
+        if (scenario === "observation-error")
+          return new Response(JSON.stringify({ error: "Observations failed" }), { status: 500 });
         return createArrayResponse([]);
       }
       if (requestUrl.endsWith(`/api/findings/${effectiveFinding.id}`)) {
+        if (scenario === "finding-error")
+          return new Response(JSON.stringify({ error: "Finding failed" }), { status: 500 });
         if (scenario === "loading") return await new Promise<Response>(() => {});
         if (init?.method === "PUT") {
           const update = JSON.parse(await new Response(init.body).text()) as Partial<Finding>;
@@ -248,7 +259,11 @@ function FindingDetailContentStoryShell({
         }
         return createObjectResponse(findingRef.current);
       }
-      if (requestUrl.endsWith(`/api/assets/${asset.id}`)) return createObjectResponse(asset);
+      if (requestUrl.endsWith(`/api/assets/${asset.id}`)) {
+        if (scenario === "asset-error")
+          return new Response(JSON.stringify({ error: "Asset failed" }), { status: 500 });
+        return createObjectResponse(asset);
+      }
       if (requestUrl.endsWith("/api/users")) return createArrayResponse(users);
       if (requestUrl.endsWith("/api/vulnerabilities")) {
         return createArrayResponse(STORY_VULNERABILITIES);
@@ -264,7 +279,7 @@ function FindingDetailContentStoryShell({
     <RouterContextProvider router={router}>
       <QueryClientProvider client={queryClient}>
         <div className="w-full max-w-7xl">
-          <FindingDetailContent findingId={effectiveFinding.id} />
+          <FindingPreview findingId={effectiveFinding.id} />
         </div>
       </QueryClientProvider>
     </RouterContextProvider>

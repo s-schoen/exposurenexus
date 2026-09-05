@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useMemo } from "react";
@@ -37,16 +37,16 @@ export function FindingTable({
 }: FindingTableProps) {
   const navigate = useNavigate();
   const findingLifecycle = useFindingLifecycle();
-  const findingsQuery = useQuery(createListFindingsQueryOptions());
-  const assetsQuery = useQuery(createListAssetsQueryOptions());
-  const usersQuery = useQuery(createListUsersQueryOptions());
+  const findingsQuery = useSuspenseQuery(createListFindingsQueryOptions());
+  const assetsQuery = useSuspenseQuery(createListAssetsQueryOptions());
+  const usersQuery = useSuspenseQuery(createListUsersQueryOptions());
 
   const assetsById = useMemo(
-    () => new Map((assetsQuery.data ?? []).map((asset) => [asset.id, asset])),
+    () => new Map(assetsQuery.data.map((asset) => [asset.id, asset])),
     [assetsQuery.data],
   );
   const assetNamesById = useMemo(
-    () => new Map((assetsQuery.data ?? []).map((asset) => [asset.id, asset.displayName])),
+    () => new Map(assetsQuery.data.map((asset) => [asset.id, asset.displayName])),
     [assetsQuery.data],
   );
   const userProfileById = useMemo(() => createUserProfileById(usersQuery.data), [usersQuery.data]);

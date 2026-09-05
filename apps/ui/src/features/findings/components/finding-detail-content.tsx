@@ -12,7 +12,6 @@ import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
-import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import { MetadataSidebar } from "@/components/metadata-sidebar";
 import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
 import { SafeMarkdown } from "@/components/safe-markdown.tsx";
@@ -45,14 +44,13 @@ import { Separator } from "@/components/ui/separator.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
-import { AssetInfoItem, createAssetByIDQueryOptions } from "@/features/assets";
+import { AssetInfoItem } from "@/features/assets";
 import { FindingObservationsSection } from "@/features/findings/components/finding-observations-section.tsx";
 import { FindingStatusBadge } from "@/features/findings/components/finding-status-badge.tsx";
 import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifecycle.ts";
 import { formatUtcDateOnly } from "@/features/findings/lib/date-input.ts";
 import { formatFindingStatus } from "@/features/findings/lib/format.ts";
 import { formatWeaknessText, parseWeaknessText } from "@/features/findings/lib/weakness-text.ts";
-import { createFindingByIDQueryOptions } from "@/features/findings/queries/findings.ts";
 import {
   UserLabel,
   createListUsersQueryOptions,
@@ -67,13 +65,15 @@ import {
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
 import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type { Finding, UpdateFinding } from "@exposurenexus/contracts/model/finding";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
 import type { ReactNode } from "react";
 
 interface FindingDetailContentProps {
-  findingId: string;
+  finding: Finding;
+  asset: Asset;
   titleAction?: ReactNode;
 }
 
@@ -1209,64 +1209,53 @@ function FindingSidebar({
   );
 }
 
-export function FindingDetailContent({ findingId, titleAction }: FindingDetailContentProps) {
-  const finding = useQuery(createFindingByIDQueryOptions(findingId));
+export function FindingDetailContent({
+  finding: findingData,
+  asset,
+  titleAction,
+}: FindingDetailContentProps) {
   const users = useQuery(createListUsersQueryOptions());
-  const asset = useQuery({
-    ...createAssetByIDQueryOptions(finding.data?.assetId ?? ""),
-    enabled: Boolean(finding.data?.assetId),
-  });
   const userProfileById = createUserProfileById(users.data);
 
   return (
-    <DetailQueryBoundary
-      query={finding}
-      title="Finding details"
-      errorTitle="Unable to load finding"
-      errorDescription="The selected finding could not be loaded."
-      missingMessage="The API did not return a finding record."
-    >
-      {(findingData) => (
-        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
-          <div className="flex min-w-0 flex-col gap-4">
-            <FindingOverviewCard
-              findingData={findingData}
-              titleAction={titleAction}
-              users={users.data ?? []}
-              assetDisplayName={asset.data?.displayName}
-              assetType={asset.data?.type}
-            />
-            <AssetInfoItem assetId={findingData.assetId} />
-            <FindingWeaknessCard finding={findingData} />
-            <FindingResourceCard finding={findingData} />
-            <FindingObservationsSection finding={findingData} />
-            <FindingVulnerabilitiesCard finding={findingData} />
-            <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold">Mitigation</CardTitle>
-                <CardDescription>Finding-owned handling guidance.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {findingData.mitigation ? (
-                  <SafeMarkdown>{findingData.mitigation}</SafeMarkdown>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No mitigation guidance recorded.</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          <FindingSidebar
-            findingData={findingData}
-            assetDisplayName={asset.data?.displayName}
-            assetPending={asset.isPending}
-            ownerId={asset.data?.ownerId}
-            owner={asset.data?.ownerId ? (userProfileById.get(asset.data.ownerId) ?? null) : null}
-            assignee={
-              findingData.assigneeId ? (userProfileById.get(findingData.assigneeId) ?? null) : null
-            }
-          />
-        </div>
-      )}
-    </DetailQueryBoundary>
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="flex min-w-0 flex-col gap-4">
+        <FindingOverviewCard
+          findingData={findingData}
+          titleAction={titleAction}
+          users={users.data ?? []}
+          assetDisplayName={asset.displayName}
+          assetType={asset.type}
+        />
+        <AssetInfoItem assetId={findingData.assetId} />
+        <FindingWeaknessCard finding={findingData} />
+        <FindingResourceCard finding={findingData} />
+        <FindingObservationsSection finding={findingData} />
+        <FindingVulnerabilitiesCard finding={findingData} />
+        <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold">Mitigation</CardTitle>
+            <CardDescription>Finding-owned handling guidance.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {findingData.mitigation ? (
+              <SafeMarkdown>{findingData.mitigation}</SafeMarkdown>
+            ) : (
+              <p className="text-sm text-muted-foreground">No mitigation guidance recorded.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      <FindingSidebar
+        findingData={findingData}
+        assetDisplayName={asset.displayName}
+        assetPending={false}
+        ownerId={asset.ownerId}
+        owner={asset.ownerId ? (userProfileById.get(asset.ownerId) ?? null) : null}
+        assignee={
+          findingData.assigneeId ? (userProfileById.get(findingData.assigneeId) ?? null) : null
+        }
+      />
+    </div>
   );
 }

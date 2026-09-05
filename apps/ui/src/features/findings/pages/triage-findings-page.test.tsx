@@ -72,8 +72,8 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
   ),
 }));
 
-vi.mock("@/features/findings/components/finding-detail-content.tsx", () => ({
-  FindingDetailContent: ({ findingId }: { findingId: string }) => (
+vi.mock("@/features/findings/components/finding-preview.tsx", () => ({
+  FindingPreview: ({ findingId }: { findingId: string }) => (
     <div>Finding detail for {findingId}</div>
   ),
 }));

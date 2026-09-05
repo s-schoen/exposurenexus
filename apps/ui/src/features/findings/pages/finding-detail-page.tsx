@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 
@@ -15,23 +15,18 @@ interface FindingDetailPageProps {
 }
 
 export function FindingDetailPage({ findingId }: FindingDetailPageProps) {
-  const finding = useQuery(createFindingByIDQueryOptions(findingId));
-  const asset = useQuery({
-    ...createAssetByIDQueryOptions(finding.data?.assetId ?? ""),
-    enabled: Boolean(finding.data?.assetId),
-  });
+  const finding = useSuspenseQuery(createFindingByIDQueryOptions(findingId));
+  const asset = useSuspenseQuery(createAssetByIDQueryOptions(finding.data.assetId));
 
   usePageMeta({
-    title: finding.data?.title ?? "Finding",
-    description:
-      asset.data?.displayName && finding.data
-        ? `${formatFindingStatus(finding.data.status)} finding on ${asset.data.displayName}`
-        : "Inspect, update, and triage a specific finding.",
+    title: finding.data.title,
+    description: `${formatFindingStatus(finding.data.status)} finding on ${asset.data.displayName}`,
   });
 
   return (
     <FindingDetailContent
-      findingId={findingId}
+      finding={finding.data}
+      asset={asset.data}
       titleAction={
         <Link
           to="/findings"

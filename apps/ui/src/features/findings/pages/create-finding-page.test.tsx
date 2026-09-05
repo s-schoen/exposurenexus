@@ -48,7 +48,7 @@ vi.mock("@/features/assets", () => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => ({
+  useSuspenseQuery: () => ({
     data: mocks.users,
     isPending: false,
     isSuccess: true,

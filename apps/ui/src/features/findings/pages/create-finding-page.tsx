@@ -3,7 +3,7 @@ import { normalizeDateToUtcStart } from "@exposurenexus/contracts/model/date";
 import { FindingStatus, createFindingSchema } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useForm } from "@tanstack/react-form";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button.tsx";
@@ -404,7 +404,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
   });
 
   const findingLifecycle = useFindingLifecycle();
-  const users = useQuery(createListUsersQueryOptions());
+  const users = useSuspenseQuery(createListUsersQueryOptions());
   const [weaknessDraft, setWeaknessDraft] = useState(() => formatWeaknessText(defaultWeakness));
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
@@ -573,9 +573,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
               <form.Field
                 name="assigneeId"
                 children={(field) => {
-                  const selectedAssignee = users.data?.find(
-                    (user) => user.id === field.state.value,
-                  );
+                  const selectedAssignee = users.data.find((user) => user.id === field.state.value);
 
                   return (
                     <Field>
@@ -600,7 +598,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                         <SelectContent>
                           <SelectGroup>
                             <SelectItem value={unassignedAssigneeValue}>Unassigned</SelectItem>
-                            {users.data?.map((user) => (
+                            {users.data.map((user) => (
                               <SelectItem key={user.id} value={user.id}>
                                 {getUserProfileDisplayName(user)}
                               </SelectItem>
