@@ -58,7 +58,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.customFieldQuery,
+  useSuspenseQuery: () => mocks.customFieldQuery,
 }));
 
 vi.mock("@/features/custom-fields/queries/definitions.ts", () => ({
@@ -73,15 +73,15 @@ vi.mock("@/hooks/use-page-meta.tsx", () => ({
 
 vi.mock("@/features/custom-fields/components/asset-custom-field-detail-content", () => ({
   AssetCustomFieldDetailContent: ({
-    customFieldId: renderedCustomFieldId,
+    field,
     titleAction,
   }: {
-    customFieldId: string;
+    field: AssetCustomFieldDefinition;
     titleAction?: ReactNode;
   }) => (
     <div>
       {titleAction}
-      <div>Custom field detail for {renderedCustomFieldId}</div>
+      <div>Custom field detail for {field.id}</div>
     </div>
   ),
 }));
@@ -129,22 +129,5 @@ describe("CustomFieldDetailPage", () => {
       "/custom-fields",
     );
     expect(screen.getByText(`Custom field detail for ${customFieldId}`)).toBeVisible();
-  });
-
-  it("uses fallback page metadata before custom field data is available", async () => {
-    const { CustomFieldDetailPage } =
-      await import("@/features/custom-fields/pages/custom-field-detail-page.tsx");
-    mocks.customFieldQuery = {
-      isPending: true,
-      isSuccess: false,
-    };
-
-    render(<CustomFieldDetailPage customFieldId={customFieldId} />);
-
-    expect(mocks.usePageMeta).toHaveBeenCalledWith({
-      title: "Custom Field",
-      description: "Review asset custom field settings and allowed values.",
-      actions: [],
-    });
   });
 });

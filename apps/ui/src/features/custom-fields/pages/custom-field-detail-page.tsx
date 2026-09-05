@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { useMemo } from "react";
@@ -15,12 +15,10 @@ interface CustomFieldDetailPageProps {
 
 export function CustomFieldDetailPage({ customFieldId }: CustomFieldDetailPageProps) {
   const navigate = useNavigate();
-  const customField = useQuery(createAssetCustomFieldDefinitionByIDQueryOptions(customFieldId));
+  const customField = useSuspenseQuery(
+    createAssetCustomFieldDefinitionByIDQueryOptions(customFieldId),
+  );
   const actions = useMemo(() => {
-    if (!customField.data) {
-      return [];
-    }
-
     return [
       {
         label: "Edit custom field",
@@ -33,17 +31,17 @@ export function CustomFieldDetailPage({ customFieldId }: CustomFieldDetailPagePr
         },
       },
     ];
-  }, [customField.data, customFieldId, navigate]);
+  }, [customFieldId, navigate]);
 
   usePageMeta({
-    title: customField.data?.name ?? "Custom Field",
+    title: customField.data.name,
     description: "Review asset custom field settings and allowed values.",
     actions,
   });
 
   return (
     <AssetCustomFieldDetailContent
-      customFieldId={customFieldId}
+      field={customField.data}
       titleAction={
         <Link
           to="/custom-fields"

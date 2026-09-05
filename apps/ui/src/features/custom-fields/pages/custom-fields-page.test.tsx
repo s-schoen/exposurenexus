@@ -72,12 +72,12 @@ const mocks = vi.hoisted(() => {
     navigate: vi.fn(),
     refetchCustomFields: vi.fn(),
     usePageMeta: vi.fn(),
-    useQuery: vi.fn(),
+    useSuspenseQuery: vi.fn(),
   };
 });
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: mocks.useQuery,
+  useSuspenseQuery: mocks.useSuspenseQuery,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -134,8 +134,8 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
     ) : null,
 }));
 
-vi.mock("@/features/custom-fields/components/asset-custom-field-detail-content", () => ({
-  AssetCustomFieldDetailContent: ({ customFieldId }: { customFieldId: string }) => (
+vi.mock("@/features/custom-fields/components/custom-field-preview.tsx", () => ({
+  CustomFieldPreview: ({ customFieldId }: { customFieldId: string }) => (
     <section>Detail for custom field {customFieldId}</section>
   ),
 }));
@@ -224,8 +224,8 @@ describe("CustomFieldsPage", () => {
     mocks.navigate.mockReset();
     mocks.refetchCustomFields.mockReset();
     mocks.usePageMeta.mockReset();
-    mocks.useQuery.mockReset();
-    mocks.useQuery.mockReturnValue({
+    mocks.useSuspenseQuery.mockReset();
+    mocks.useSuspenseQuery.mockReturnValue({
       data: mocks.customFields,
       isFetching: false,
       isPending: false,
