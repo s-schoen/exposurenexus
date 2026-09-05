@@ -114,7 +114,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: (options: QueryOptionsLike) => {
+  useSuspenseQuery: (options: QueryOptionsLike) => {
     const queryKey = options.queryKey.join("/");
 
     if (queryKey === "findings") {
@@ -230,8 +230,8 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
     ) : null,
 }));
 
-vi.mock("@/features/findings/components/finding-detail-content.tsx", () => ({
-  FindingDetailContent: ({ findingId }: { findingId: string }) => (
+vi.mock("@/features/findings/components/finding-preview.tsx", () => ({
+  FindingPreview: ({ findingId }: { findingId: string }) => (
     <div>Finding detail for {findingId}</div>
   ),
 }));
