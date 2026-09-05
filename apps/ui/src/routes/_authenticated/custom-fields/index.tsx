@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import {
   CustomFieldsPage,
+  createListAssetCustomFieldDefinitionsQueryOptions,
   validateCustomFieldTableSearch,
-} from "@/features/custom-fields/index.ts";
+} from "@/features/custom-fields";
 import { validateSelectedSearch } from "@/hooks/use-selected-search-param.ts";
 
 export const Route = createFileRoute("/_authenticated/custom-fields/")({
@@ -12,6 +13,8 @@ export const Route = createFileRoute("/_authenticated/custom-fields/")({
     ...validateSelectedSearch(search),
     ...validateCustomFieldTableSearch(search),
   }),
+  loader: ({ context: { queryClient } }) =>
+    queryClient.ensureQueryData(createListAssetCustomFieldDefinitionsQueryOptions()),
   component: RouteComponent,
 });
 

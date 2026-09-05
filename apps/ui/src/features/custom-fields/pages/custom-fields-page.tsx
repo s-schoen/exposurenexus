@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
-import { AssetCustomFieldDetailContent } from "@/features/custom-fields/components/asset-custom-field-detail-content";
 import { AssetCustomFieldTable } from "@/features/custom-fields/components/asset-custom-field-table";
 import { useAssetCustomFieldDefinitionLifecycle } from "@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts";
 import { useCustomFieldTableSearchState } from "@/features/custom-fields/hooks/use-custom-field-table-search-state.ts";
@@ -12,6 +12,12 @@ import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
+
+const CustomFieldPreview = lazy(() =>
+  import("@/features/custom-fields/components/custom-field-preview.tsx").then((module) => ({
+    default: module.CustomFieldPreview,
+  })),
+);
 
 interface CustomFieldsPageProps {
   search?: Record<string, unknown>;
@@ -30,7 +36,7 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
     replace: true,
     getId: (field) => field.id,
   });
-  const customFieldsQuery = useQuery(createListAssetCustomFieldDefinitionsQueryOptions());
+  const customFieldsQuery = useSuspenseQuery(createListAssetCustomFieldDefinitionsQueryOptions());
 
   usePageMeta({
     title: "Custom Fields",
@@ -91,7 +97,11 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
           void selectedSearch.clearSelected();
         }}
       >
-        {selected ? <AssetCustomFieldDetailContent customFieldId={selected} /> : null}
+        {selected ? (
+          <Suspense fallback={null}>
+            <CustomFieldPreview customFieldId={selected} />
+          </Suspense>
+        ) : null}
       </DetailPreviewDialog>
     </>
   );

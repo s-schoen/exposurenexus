@@ -1,8 +1,13 @@
 import { Outlet, createFileRoute, useMatchRoute } from "@tanstack/react-router";
 
-import { CustomFieldDetailPage } from "@/features/custom-fields/index.ts";
+import {
+  CustomFieldDetailPage,
+  createAssetCustomFieldDefinitionByIDQueryOptions,
+} from "@/features/custom-fields";
 
 export const Route = createFileRoute("/_authenticated/custom-fields/$id")({
+  loader: ({ context: { queryClient }, params: { id } }) =>
+    queryClient.ensureQueryData(createAssetCustomFieldDefinitionByIDQueryOptions(id)),
   component: RouteComponent,
 });
 

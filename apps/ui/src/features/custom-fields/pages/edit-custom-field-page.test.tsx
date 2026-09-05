@@ -41,12 +41,12 @@ const mocks = vi.hoisted(() => {
     navigate: vi.fn(),
     updateDefinition: vi.fn(),
     usePageMeta: vi.fn(),
-    useQuery: vi.fn(),
+    useSuspenseQuery: vi.fn(),
   };
 });
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: mocks.useQuery,
+  useSuspenseQuery: mocks.useSuspenseQuery,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -91,8 +91,8 @@ describe("EditCustomFieldPage", () => {
     mocks.updateDefinition.mockReset();
     mocks.updateDefinition.mockResolvedValue(mocks.customField);
     mocks.usePageMeta.mockReset();
-    mocks.useQuery.mockReset();
-    mocks.useQuery.mockReturnValue(mocks.customFieldQuery);
+    mocks.useSuspenseQuery.mockReset();
+    mocks.useSuspenseQuery.mockReturnValue(mocks.customFieldQuery);
   });
 
   afterEach(() => {
@@ -165,24 +165,5 @@ describe("EditCustomFieldPage", () => {
     });
     expect(mocks.navigate).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: /save changes/i })).toBeEnabled();
-  });
-
-  it("renders loading and missing-data states", () => {
-    mocks.useQuery.mockReturnValueOnce({
-      error: null,
-      isPending: true,
-    });
-    const { rerender } = render(<EditCustomFieldPage customFieldId={customFieldId} />);
-
-    expect(screen.getByText("Loading custom field details.")).toBeVisible();
-
-    mocks.useQuery.mockReturnValueOnce({
-      error: new Error("Custom field request failed"),
-      isPending: false,
-    });
-    rerender(<EditCustomFieldPage customFieldId={customFieldId} />);
-
-    expect(screen.getByText("Unable to load edit form")).toBeVisible();
-    expect(screen.getByText("Custom field request failed")).toBeVisible();
   });
 });
