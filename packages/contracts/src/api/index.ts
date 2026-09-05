@@ -36,25 +36,3 @@ export interface AuthSessionDataReply {
   user: UserProfile;
   session: AuthSessionReply;
 }
-
-export function createObjectReply<T extends object>(
-  correlationId: string,
-  data: T,
-): APISingleDataReply<T> {
-  return { correlationId, data };
-}
-
-export function createArrayReply<T extends object>(
-  correlationId: string,
-  data: T[],
-): APIArrayDataReply<T> {
-  return {
-    correlationId,
-    data: {
-      items: data,
-      totalItems: data.length,
-      startIndex: 0,
-      currentItemCount: data.length,
-    },
-  };
-}

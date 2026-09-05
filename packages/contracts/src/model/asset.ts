@@ -26,7 +26,7 @@ export enum AssetLifecycleState {
 
 export const assetSchema = z.strictObject({
   id: z.uuidv4(),
-  displayName: z.string().trim().min(1).max(255),
+  displayName: z.string().min(1).max(255),
   type: z.enum(AssetType),
   environment: z.enum(AssetEnvironment),
   lifecycleState: z.enum(AssetLifecycleState),
@@ -91,10 +91,8 @@ export {
   createAssetIdentifierSchema,
   dnsNameValueSchema,
   ipAddressValueSchema,
-  normalizeAssetIdentifier,
   ociImageNameValueSchema,
   updateAssetIdentifierSchema,
-  validateAssetIdentifier,
   vcsRepositoryValueSchema,
 } from "./asset-identifier.js";
 export type {
@@ -104,10 +102,8 @@ export type {
   CreateAssetIdentifier,
   UpdateAssetIdentifier,
   AssetIdentifierValidationIssue,
-  AssetIdentifierValidationResult,
 } from "./asset-identifier.js";
 export {
-  ASSET_CUSTOM_FIELD_RESERVED_KEYS,
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -134,7 +130,6 @@ export {
   updateNumberAssetCustomFieldDefinitionSchema,
   updateSelectAssetCustomFieldDefinitionSchema,
   updateTextAssetCustomFieldDefinitionSchema,
-  validateAssetCustomFieldDefinitionRules,
 } from "./asset-custom-field.js";
 export type {
   AssetCustomFieldDefinition,

@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  ASSET_CUSTOM_FIELD_RESERVED_KEYS,
-  AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
   assetCustomFieldDefinitionSchema,
@@ -28,10 +26,7 @@ import {
   updateNumberAssetCustomFieldDefinitionSchema,
   updateSelectAssetCustomFieldDefinitionSchema,
   updateTextAssetCustomFieldDefinitionSchema,
-  validateAssetCustomFieldDefinitionRules,
 } from "./asset-custom-field.js";
-
-import type { CreateAssetCustomFieldDefinition } from "./asset-custom-field.js";
 
 const FIELD_ID = "5bde818a-bb4f-4a0f-a5eb-a190d5142a25";
 const SECOND_FIELD_ID = "76b1885f-2d28-4b7d-93da-2751ff385aa3";
@@ -141,15 +136,9 @@ const selectValue = {
   options: selectDefinition.options,
 };
 
-function violationReasons(
-  definition: CreateAssetCustomFieldDefinition,
-): AssetCustomFieldRuleViolationReason[] {
-  return validateAssetCustomFieldDefinitionRules(definition).map((violation) => violation.reason);
-}
-
 describe("asset custom field key schema", () => {
-  it("trims valid keys and accepts the supported length boundaries", () => {
-    expect(assetCustomFieldKeySchema.parse("  deployment_tier  ")).toBe("deployment_tier");
+  it("preserves valid keys and accepts the supported length boundaries", () => {
+    expect(assetCustomFieldKeySchema.parse("deployment_tier")).toBe("deployment_tier");
     expect(assetCustomFieldKeySchema.parse("a")).toBe("a");
     expect(assetCustomFieldKeySchema.parse("a".repeat(64))).toHaveLength(64);
   });
@@ -390,8 +379,8 @@ describe("asset custom field value schemas", () => {
     expect(() => assetCustomFieldValueSchema.parse({ ...textValue, extra: true })).toThrow();
   });
 
-  it("trims effective value keys through the shared key schema", () => {
-    expect(assetCustomFieldValueSchema.parse({ ...textValue, key: "  category  " })).toMatchObject({
+  it("preserves effective value keys through the shared key schema", () => {
+    expect(assetCustomFieldValueSchema.parse({ ...textValue, key: "category" })).toMatchObject({
       key: "category",
     });
   });
@@ -479,232 +468,5 @@ describe("asset custom field mutation schemas", () => {
     expect(() =>
       updateAssetCustomFieldAssociationsSchema.parse({ fieldIds: [FIELD_ID], extra: true }),
     ).toThrow();
-  });
-});
-
-describe("asset custom field definition rules", () => {
-  it("accepts valid text, number, and select definitions", () => {
-    expect(
-      validateAssetCustomFieldDefinitionRules({
-        key: "category",
-        name: "Category",
-        required: false,
-        type: AssetCustomFieldType.Text,
-      }),
-    ).toEqual([]);
-    expect(
-      validateAssetCustomFieldDefinitionRules({
-        key: "priority",
-        name: "Priority",
-        required: true,
-        type: AssetCustomFieldType.Number,
-        defaultValue: 0,
-      }),
-    ).toEqual([]);
-    expect(
-      validateAssetCustomFieldDefinitionRules({
-        key: "deployment_tier",
-        name: "Deployment tier",
-        required: true,
-        type: AssetCustomFieldType.Select,
-        defaultValue: "prod",
-        options: [
-          { value: "prod", label: "Production" },
-          { value: "stage", label: "Staging" },
-        ],
-      }),
-    ).toEqual([]);
-  });
-
-  it.each([undefined, null])(
-    "treats an omitted or null default as missing for required fields",
-    (defaultValue) => {
-      const definition = {
-        key: "category",
-        name: "Category",
-        required: true,
-        type: AssetCustomFieldType.Text,
-        ...(defaultValue === undefined ? {} : { defaultValue }),
-      } as CreateAssetCustomFieldDefinition;
-
-      expect(validateAssetCustomFieldDefinitionRules(definition)).toEqual([
-        {
-          reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
-          path: ["defaultValue"],
-        },
-      ]);
-    },
-  );
-
-  it("reports typed default violations at the default value path", () => {
-    expect(
-      validateAssetCustomFieldDefinitionRules({
-        key: "category",
-        name: "Category",
-        required: false,
-        type: AssetCustomFieldType.Text,
-        defaultValue: 5 as never,
-      }),
-    ).toEqual([
-      {
-        reason: AssetCustomFieldRuleViolationReason.TextDefaultMustBeString,
-        path: ["defaultValue"],
-      },
-    ]);
-    expect(
-      validateAssetCustomFieldDefinitionRules({
-        key: "priority",
-        name: "Priority",
-        required: false,
-        type: AssetCustomFieldType.Number,
-        defaultValue: "high" as never,
-      }),
-    ).toEqual([
-      {
-        reason: AssetCustomFieldRuleViolationReason.NumberDefaultMustBeNumber,
-        path: ["defaultValue"],
-      },
-    ]);
-    expect(
-      validateAssetCustomFieldDefinitionRules({
-        key: "deployment_tier",
-        name: "Deployment tier",
-        required: false,
-        type: AssetCustomFieldType.Select,
-        defaultValue: 5 as never,
-        options: [{ value: "prod", label: "Production" }],
-      }),
-    ).toEqual([
-      {
-        reason: AssetCustomFieldRuleViolationReason.SelectDefaultMustBeString,
-        path: ["defaultValue"],
-      },
-    ]);
-  });
-
-  it("requires select defaults to match an option value", () => {
-    expect(
-      validateAssetCustomFieldDefinitionRules({
-        key: "deployment_tier",
-        name: "Deployment tier",
-        required: false,
-        type: AssetCustomFieldType.Select,
-        defaultValue: "dev",
-        options: [{ value: "prod", label: "Production" }],
-      }),
-    ).toEqual([
-      {
-        reason: AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption,
-        path: ["defaultValue"],
-      },
-    ]);
-  });
-
-  it("rejects every core asset metadata key", () => {
-    for (const key of ASSET_CUSTOM_FIELD_RESERVED_KEYS) {
-      expect(
-        validateAssetCustomFieldDefinitionRules({
-          key,
-          name: "Core metadata",
-          required: false,
-          type: AssetCustomFieldType.Text,
-          defaultValue: null,
-        }),
-      ).toEqual([
-        {
-          reason: AssetCustomFieldRuleViolationReason.ReservedKey,
-          path: ["key"],
-        },
-      ]);
-    }
-  });
-
-  it("short-circuits reserved-key and required-default violations", () => {
-    expect(
-      validateAssetCustomFieldDefinitionRules({
-        key: "type",
-        name: "Type",
-        required: true,
-        type: AssetCustomFieldType.Text,
-        defaultValue: 5 as never,
-      }),
-    ).toEqual([
-      {
-        reason: AssetCustomFieldRuleViolationReason.ReservedKey,
-        path: ["key"],
-      },
-    ]);
-
-    expect(
-      validateAssetCustomFieldDefinitionRules({
-        key: "deployment_tier",
-        name: "Deployment tier",
-        required: true,
-        type: AssetCustomFieldType.Select,
-        options: [
-          { value: "prod", label: "Production" },
-          { value: "prod", label: "Prod" },
-        ],
-      }),
-    ).toEqual([
-      {
-        reason: AssetCustomFieldRuleViolationReason.RequiredDefaultMissing,
-        path: ["defaultValue"],
-      },
-    ]);
-  });
-
-  it("reports select option violations in stable order", () => {
-    expect(
-      violationReasons({
-        key: "deployment_tier",
-        name: "Deployment tier",
-        required: false,
-        type: AssetCustomFieldType.Select,
-        defaultValue: 5 as never,
-        options: [
-          { value: "prod", label: "Production" },
-          { value: "prod", label: "Prod" },
-        ],
-      }),
-    ).toEqual([
-      AssetCustomFieldRuleViolationReason.SelectOptionValuesMustBeUnique,
-      AssetCustomFieldRuleViolationReason.SelectDefaultMustBeString,
-    ]);
-
-    expect(
-      violationReasons({
-        key: "deployment_tier",
-        name: "Deployment tier",
-        required: false,
-        type: AssetCustomFieldType.Select,
-        defaultValue: "dev",
-        options: [
-          { value: "prod", label: "Production" },
-          { value: "prod", label: "Prod" },
-        ],
-      }),
-    ).toEqual([
-      AssetCustomFieldRuleViolationReason.SelectOptionValuesMustBeUnique,
-      AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption,
-    ]);
-  });
-
-  it("validates reserved keys after schema normalization", () => {
-    const parsed = createAssetCustomFieldDefinitionSchema.parse({
-      key: "  environment  ",
-      name: "Environment",
-      required: false,
-      type: AssetCustomFieldType.Text,
-      defaultValue: null,
-    });
-
-    expect(parsed.key).toBe("environment");
-    expect(validateAssetCustomFieldDefinitionRules(parsed)).toEqual([
-      {
-        reason: AssetCustomFieldRuleViolationReason.ReservedKey,
-        path: ["key"],
-      },
-    ]);
   });
 });

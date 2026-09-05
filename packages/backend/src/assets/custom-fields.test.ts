@@ -1,6 +1,5 @@
 import { AssetType } from "@exposurenexus/contracts/model/asset";
 import {
-  ASSET_CUSTOM_FIELD_RESERVED_KEYS,
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
@@ -11,6 +10,7 @@ import {
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ASSET_CUSTOM_FIELD_RESERVED_KEYS } from "./custom-field-rules.js";
 import { createAssetCustomFields } from "./custom-fields.js";
 
 import type { ApplicationError } from "../application-error.js";
@@ -1312,7 +1312,7 @@ describe("asset custom fields", () => {
   it("rejects reserved core asset metadata keys on create and update", async () => {
     const service = createTestAssetCustomFieldService();
 
-    for (const key of ASSET_CUSTOM_FIELD_RESERVED_KEYS) {
+    for (const key of [...ASSET_CUSTOM_FIELD_RESERVED_KEYS, "  environment  "]) {
       const definition = {
         key,
         name: "Core metadata",

@@ -1,4 +1,4 @@
-import { AssetIdentifierType, validateAssetIdentifier } from "@exposurenexus/contracts/model/asset";
+import { AssetIdentifierType } from "@exposurenexus/contracts/model/asset";
 import { Check, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 
@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
+import { validateAssetIdentifier } from "@/lib/asset-identifier/schema";
 
 import type {
   AssetIdentifierRecord,

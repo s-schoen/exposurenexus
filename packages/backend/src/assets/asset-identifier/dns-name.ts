@@ -1,3 +1,5 @@
+import { AssetIdentifierValidationReason } from "@exposurenexus/contracts/model/asset-identifier";
+
 import { parseIPv4 } from "./ip-address.js";
 import {
   failure,
@@ -7,7 +9,6 @@ import {
   schemePattern,
   type NormalizationResult,
 } from "./normalization-result.js";
-import { AssetIdentifierValidationReason } from "./types.js";
 
 export function normalizeDnsName(value: string): NormalizationResult {
   if (value.length === 0) {

@@ -1,4 +1,5 @@
 export type ObservationApplicationErrorCatalog = {
+  "observation.invalid_input": { kind: "validation" };
   "observation.list_failed": {
     kind: "unexpected";
     details: { findingId: string };

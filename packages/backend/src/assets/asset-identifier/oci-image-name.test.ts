@@ -1,11 +1,10 @@
-import { describe, expect, it } from "vitest";
-
 import {
   AssetIdentifierType,
   AssetIdentifierValidationReason,
-  ociImageNameValueSchema,
-  validateAssetIdentifier,
-} from "../asset-identifier.js";
+} from "@exposurenexus/contracts/model/asset-identifier";
+import { describe, expect, it } from "vitest";
+
+import { ociImageNameValueSchema, validateAssetIdentifier } from "./schema.js";
 
 function validationResult(value: string) {
   return validateAssetIdentifier({

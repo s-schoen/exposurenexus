@@ -1,12 +1,12 @@
+import { AssetIdentifierType } from "@exposurenexus/contracts/model/asset-identifier";
 import { describe, expect, it } from "vitest";
 
 import {
-  AssetIdentifierType,
   assetIdentifierRecordSchema,
   assetIdentifierSchema,
   normalizeAssetIdentifier,
   validateAssetIdentifier,
-} from "./asset-identifier.js";
+} from "./asset-identifier/schema.js";
 
 function identifier(type: AssetIdentifierType, value: string, namespace?: string | null) {
   return normalizeAssetIdentifier({

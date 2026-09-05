@@ -1,3 +1,5 @@
+import { AssetIdentifierValidationReason } from "@exposurenexus/contracts/model/asset-identifier";
+
 import {
   failure,
   finishValue,
@@ -5,7 +7,6 @@ import {
   invalidFormat,
   type NormalizationResult,
 } from "./normalization-result.js";
-import { AssetIdentifierValidationReason } from "./types.js";
 
 export function parseIPv4(value: string): number[] | null {
   const parts = value.split(".");

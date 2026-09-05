@@ -1,14 +1,16 @@
-import { normalizeDnsName } from "./dns-name.js";
-import { normalizeIpAddress, parseIPv4 } from "./ip-address.js";
+import { AssetIdentifierValidationReason } from "@exposurenexus/contracts/model/asset-identifier";
+
+import { normalizeDnsName } from "@/lib/asset-identifier/dns-name";
+import { normalizeIpAddress, parseIPv4 } from "@/lib/asset-identifier/ip-address";
 import {
   failure,
   finishValue,
   invalidControlOrWhitespacePattern,
   invalidFormat,
   schemePattern,
-  type NormalizationResult,
-} from "./normalization-result.js";
-import { AssetIdentifierValidationReason } from "./types.js";
+} from "@/lib/asset-identifier/normalization-result";
+
+import type { NormalizationResult } from "@/lib/asset-identifier/normalization-result";
 
 function normalizeVcsServer(
   hostname: string,

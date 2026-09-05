@@ -179,6 +179,75 @@ describe("exposure findings", () => {
     );
   });
 
+  it("canonicalizes direct caller input before creating either record", async () => {
+    findingPersistence.insertFinding.mockResolvedValue(finding);
+    observationPersistence.insertObservation.mockResolvedValue(observation);
+    findingVulnerabilityPersistence.insertLinks.mockResolvedValue([]);
+    findingProjection.getFindingProjectionByID.mockResolvedValue(finding);
+
+    await createCapability().createManual({
+      finding: {
+        assetId,
+        title: "  Exposed endpoint  ",
+        severity: finding.severity,
+        status: finding.status,
+        assigneeId: null,
+        dueDate: new Date("2026-08-01T14:35:00Z"),
+        mitigation: null,
+        weakness: { identifiers: { CWE: ["89", "cwe-89"] } },
+        affectedResource: finding.affectedResource,
+        vulnerabilityIds: [vulnerabilityId, vulnerabilityId],
+        observation: { weakness: { identifiers: { cve: ["cve-2026-0001"] } } },
+      },
+      performedBy: actorId,
+    });
+
+    expect(findingPersistence.insertFinding).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        title: "Exposed endpoint",
+        dueDate: new Date("2026-08-01T00:00:00Z"),
+        weakness: { identifiers: { cwe: ["CWE-89"] } },
+      }),
+    );
+    expect(observationPersistence.insertObservation).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        weakness: { identifiers: { cve: ["CVE-2026-0001"] } },
+      }),
+    );
+    expect(findingVulnerabilityPersistence.insertLinks).toHaveBeenCalledWith(
+      expect.anything(),
+      findingId,
+      [vulnerabilityId],
+    );
+  });
+
+  it("rejects invalid weakness meaning at every direct mutation entry point", async () => {
+    const weakness = { identifiers: { cve: ["not-a-cve"] } };
+    await expect(
+      createCapability().updateByID({ id: findingId, finding: { weakness }, performedBy: actorId }),
+    ).rejects.toMatchObject({ code: "finding.invalid_input", kind: "validation" });
+    await expect(
+      createCapability().createManualObservation({
+        findingId,
+        observation: { weakness },
+        performedBy: actorId,
+      }),
+    ).rejects.toMatchObject({ code: "observation.invalid_input", kind: "validation" });
+    await expect(
+      createCapability().updateObservation({
+        findingId,
+        observationId,
+        observation: { weakness },
+        performedBy: actorId,
+      }),
+    ).rejects.toMatchObject({ code: "observation.invalid_input", kind: "validation" });
+    expect(findingPersistence.updateFinding).not.toHaveBeenCalled();
+    expect(observationPersistence.createObservationAndTouchFinding).not.toHaveBeenCalled();
+    expect(observationPersistence.updateObservationAndTouchFinding).not.toHaveBeenCalled();
+  });
+
   it("validates the asset before vulnerabilities and assignee", async () => {
     assetInventory.getByID.mockResolvedValue(null);
 

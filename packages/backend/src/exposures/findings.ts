@@ -1,4 +1,3 @@
-import { normalizeDateToUtcStart } from "@exposurenexus/contracts/model/date";
 import {
   type CreateManualFinding,
   type Finding,
@@ -13,6 +12,9 @@ import {
 
 import { ApplicationError, isApplicationError } from "../application-error.js";
 import { isForeignKeyError } from "../database-error.js";
+import { normalizeDateToUtcStart } from "./date.js";
+import { createFindingSchema, updateFindingSchema } from "./finding-rules.js";
+import { manualObservationInputSchema, updateObservationSchema } from "./observation-rules.js";
 
 import type { AssetInventory } from "../assets/assets.js";
 import type { DatabaseExecutor } from "../database/executor.js";
@@ -42,6 +44,7 @@ import type { FindingVulnerabilityLink } from "@exposurenexus/contracts/model/fi
 import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
 import type { Kysely } from "kysely";
 import type { Logger } from "pino";
+import type { z } from "zod/v4";
 
 interface FindingProjection {
   listFindingProjections(database: DatabaseExecutor): Promise<Finding[]>;
@@ -254,6 +257,19 @@ interface CreateManualFindingPersistenceInput {
   finding: CreateFindingRecord;
   observation: CreateManualObservationRecord;
   vulnerabilityIds: readonly string[];
+}
+
+function parseInput<T>(schema: z.ZodType<T>, input: unknown, domain: "finding" | "observation"): T {
+  const result = schema.safeParse(input);
+  if (!result.success) {
+    throw new ApplicationError({
+      code: `${domain}.invalid_input`,
+      kind: "validation",
+      message: "invalid input",
+      cause: result.error,
+    });
+  }
+  return result.data;
 }
 
 function normalizeOptionalDueDate(dueDate: Date | null | undefined): Date | null {
@@ -470,6 +486,10 @@ export function createFindings({
 
     async createManual(command: CreateManualFindingCommand): Promise<FindingCreatedOutcome> {
       try {
+        command = {
+          ...command,
+          finding: parseInput(createFindingSchema, command.finding, "finding"),
+        };
         await validateManualFindingRelations(command.finding);
 
         const now = new Date();
@@ -579,7 +599,7 @@ export function createFindings({
       command: CreateManualObservationCommand,
     ): Promise<ObservationCreatedOutcome | null> {
       try {
-        const input = command.observation;
+        const input = parseInput(manualObservationInputSchema, command.observation, "observation");
         const mutation = await database.transaction().execute(async (transaction) => {
           await requireAuditActor(userProfileLookup, transaction, command.performedBy);
           return await observationPersistence.createObservationAndTouchFinding(transaction, {
@@ -617,6 +637,9 @@ export function createFindings({
           performedBy: command.performedBy,
         };
       } catch (error) {
+        if (isApplicationError(error)) {
+          throw error;
+        }
         logger.error(error, `failed to create observation for finding ${command.findingId}`);
         throw new ApplicationError({
           code: "observation.create_failed",
@@ -631,6 +654,10 @@ export function createFindings({
     async updateObservation(
       command: UpdateObservationCommand,
     ): Promise<ObservationUpdatedOutcome | null> {
+      command = {
+        ...command,
+        observation: parseInput(updateObservationSchema, command.observation, "observation"),
+      };
       try {
         const mutation = await database.transaction().execute(async (transaction) => {
           await requireAuditActor(userProfileLookup, transaction, command.performedBy);
@@ -772,6 +799,10 @@ export function createFindings({
     },
 
     async updateByID(command: UpdateFindingByIDCommand): Promise<FindingUpdatedOutcome | null> {
+      command = {
+        ...command,
+        finding: parseInput(updateFindingSchema, command.finding, "finding"),
+      };
       try {
         const updated = await database.transaction().execute(async (transaction) => {
           const lockedFinding = await findingPersistence.lockFinding(transaction, command.id);

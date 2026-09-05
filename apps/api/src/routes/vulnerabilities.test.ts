@@ -112,7 +112,7 @@ describe("vulnerability catalog routes", () => {
 
     expect(response.status).toBe(201);
     expect(vulnerabilityService.create).toHaveBeenCalledWith({
-      vulnerability: { ...payload, identifier: "CVE-2026-0001" },
+      vulnerability: payload,
       user,
       eventContext: { actor: user.id, correlationId: "catalog-create-request" },
     });
@@ -124,7 +124,7 @@ describe("vulnerability catalog routes", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: VulnerabilityType.Cve,
-        identifier: "not-a-cve",
+        identifier: 42,
         title: "Example",
         severity: VulnerabilitySeverity.High,
       }),
@@ -160,7 +160,7 @@ describe("vulnerability catalog routes", () => {
         id: vulnerabilityId,
         vulnerability: expect.objectContaining({
           type: VulnerabilityType.Custom,
-          identifier: "exposed-admin-panel",
+          identifier: "Exposed-Admin-Panel",
         }),
         user,
       }),
@@ -192,7 +192,7 @@ describe("vulnerability catalog routes", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: VulnerabilityType.Cve,
-        identifier: "not-a-cve",
+        identifier: 42,
         title: "Example",
         severity: VulnerabilitySeverity.High,
       }),

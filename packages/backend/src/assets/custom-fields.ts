@@ -8,11 +8,11 @@ import {
   type CreateAssetCustomFieldDefinition,
   type UpdateAssetCustomFieldDefinition,
   type UpdateAssetCustomFieldValue,
-  validateAssetCustomFieldDefinitionRules,
 } from "@exposurenexus/contracts/model/asset-custom-field";
 
 import { ApplicationError, isApplicationError } from "../application-error.js";
 import { isConflictError } from "../database-error.js";
+import { validateAssetCustomFieldDefinitionRules } from "./custom-field-rules.js";
 
 import type { DatabaseExecutor } from "../database/executor.js";
 import type { Database } from "../database/index.js";
@@ -238,7 +238,8 @@ export function createAssetCustomFields({
     async createDefinition(
       opts: CreateAssetCustomFieldDefinitionCommand,
     ): Promise<AssetCustomFieldDefinitionCreatedOutcome> {
-      const { definition, performedBy } = opts;
+      const { performedBy } = opts;
+      const definition = { ...opts.definition, key: opts.definition.key.trim() };
       validateCustomFieldDefinition(definition);
 
       try {
@@ -273,7 +274,8 @@ export function createAssetCustomFields({
     async updateDefinitionByID(
       opts: UpdateAssetCustomFieldDefinitionByIDCommand,
     ): Promise<AssetCustomFieldDefinitionUpdatedOutcome | null> {
-      const { id, definition, performedBy } = opts;
+      const { id, performedBy } = opts;
+      const definition = { ...opts.definition, key: opts.definition.key.trim() };
       validateCustomFieldDefinition(definition);
 
       try {

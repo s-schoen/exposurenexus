@@ -1,8 +1,9 @@
 import {
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
-  validateAssetCustomFieldDefinitionRules,
 } from "@exposurenexus/contracts/model/asset-custom-field";
+
+import { validateAssetCustomFieldDefinitionRules } from "@/lib/custom-field-rules";
 
 import type {
   CreateAssetCustomFieldDefinition,

@@ -36,9 +36,8 @@ export const permissionSchema = z.strictObject({
 
 export const roleNameSchema = z
   .string()
-  .trim()
   .min(1)
-  .regex(/^[a-zA-Z0-9_-]+$/);
+  .regex(/^\s*[a-zA-Z0-9_-]+\s*$/);
 
 export const roleSchema = z.strictObject({
   id: z.uuidv4(),

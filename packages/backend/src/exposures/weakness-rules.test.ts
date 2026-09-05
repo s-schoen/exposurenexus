@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { nonEmptyWeaknessSchema, weaknessSchema } from "./weakness.js";
+import { nonEmptyWeaknessSchema, weaknessSchema } from "./weakness-rules.js";
 
 describe("weakness schemas", () => {
   it("normalizes known identifiers and preserves opaque source identifiers", () => {
