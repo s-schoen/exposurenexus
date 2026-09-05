@@ -8,10 +8,12 @@ import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
 } from "@exposurenexus/contracts/model/asset-custom-field";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { useLayoutEffect, useMemo, useRef } from "react";
 
+import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import { AssetDetailContent } from "@/features/assets/components/asset-detail-content.tsx";
+import { createAssetByIDQueryOptions } from "@/features/assets/queries/assets.ts";
 
 import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type {
@@ -307,9 +309,25 @@ function AssetDetailContentStoryShell({
   return (
     <QueryClientProvider client={queryClient}>
       <div className="w-full max-w-6xl">
-        <AssetDetailContent assetId={asset.id} />
+        <AssetDetailPreviewStory assetId={asset.id} />
       </div>
     </QueryClientProvider>
+  );
+}
+
+function AssetDetailPreviewStory({ assetId }: { assetId: string }) {
+  const asset = useQuery(createAssetByIDQueryOptions(assetId));
+
+  return (
+    <DetailQueryBoundary
+      query={asset}
+      title="Asset details"
+      errorTitle="Unable to load asset"
+      errorDescription="The selected asset could not be loaded."
+      missingMessage="The API did not return an asset record."
+    >
+      {(assetData) => <AssetDetailContent asset={assetData} />}
+    </DetailQueryBoundary>
   );
 }
 

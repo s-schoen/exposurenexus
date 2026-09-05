@@ -1,9 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
+import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import { AssetDetailContent } from "@/features/assets/components/asset-detail-content.tsx";
 import { AssetTable } from "@/features/assets/components/asset-table/index.tsx";
-import { useAssetTableSearchState } from "@/features/assets/hooks/use-asset-table-search-state.ts";
+import {
+  createAssetListOptionsFromSearch,
+  useAssetTableSearchState,
+} from "@/features/assets/hooks/use-asset-table-search-state.ts";
+import { createAssetByIDQueryOptions } from "@/features/assets/queries/assets.ts";
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
@@ -16,10 +21,14 @@ interface AssetsPageProps {
 }
 
 export function AssetsPage({ search = {}, selected }: AssetsPageProps) {
-  const customFieldDefinitionsQuery = useQuery(createListAssetCustomFieldDefinitionsQueryOptions());
+  const customFieldDefinitionsQuery = useSuspenseQuery(
+    createListAssetCustomFieldDefinitionsQueryOptions(),
+  );
+  const customFieldDefinitions = customFieldDefinitionsQuery.data;
+  const assetListOptions = createAssetListOptionsFromSearch(search, customFieldDefinitions);
   const { filterState, onFilterStateChange } = useAssetTableSearchState({
     search,
-    customFieldDefinitions: customFieldDefinitionsQuery.data ?? [],
+    customFieldDefinitions,
   });
   const selectedSearch = useSelectedSearchParam<Asset>({
     selectedId: selected,
@@ -35,6 +44,7 @@ export function AssetsPage({ search = {}, selected }: AssetsPageProps) {
   return (
     <>
       <AssetTable
+        assetListOptions={assetListOptions}
         filterState={filterState}
         onFilterStateChange={onFilterStateChange}
         selectedAssetId={selectedSearch.selectedId}
@@ -51,8 +61,24 @@ export function AssetsPage({ search = {}, selected }: AssetsPageProps) {
         description="Review the selected asset without leaving the asset table."
         fullPageHref={selected ? `/assets/${selected}` : undefined}
       >
-        {selected && <AssetDetailContent assetId={selected} />}
+        {selected && <AssetDetailPreview assetId={selected} />}
       </DetailPreviewDialog>
     </>
+  );
+}
+
+function AssetDetailPreview({ assetId }: { assetId: string }) {
+  const asset = useQuery(createAssetByIDQueryOptions(assetId));
+
+  return (
+    <DetailQueryBoundary
+      query={asset}
+      title="Asset details"
+      errorTitle="Unable to load asset"
+      errorDescription="The selected asset could not be loaded."
+      missingMessage="The API did not return an asset record."
+    >
+      {(assetData) => <AssetDetailContent asset={assetData} />}
+    </DetailQueryBoundary>
   );
 }
