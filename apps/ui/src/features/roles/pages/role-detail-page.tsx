@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { useMemo } from "react";
@@ -16,9 +16,9 @@ interface RoleDetailPageProps {
 
 export function RoleDetailPage({ roleId }: RoleDetailPageProps) {
   const navigate = useNavigate();
-  const role = useQuery(createRoleByIDQueryOptions(roleId));
+  const role = useSuspenseQuery(createRoleByIDQueryOptions(roleId));
   const actions = useMemo(() => {
-    if (!role.data || isBuiltInRoleId(role.data.id)) {
+    if (isBuiltInRoleId(role.data.id)) {
       return [];
     }
 
@@ -37,7 +37,7 @@ export function RoleDetailPage({ roleId }: RoleDetailPageProps) {
   }, [navigate, role.data, roleId]);
 
   usePageMeta({
-    title: role.data?.name ?? "Role",
+    title: role.data.name,
     description:
       "Inspect the selected role and review how its permissions map to protected resources.",
     actions,
@@ -45,7 +45,7 @@ export function RoleDetailPage({ roleId }: RoleDetailPageProps) {
 
   return (
     <RoleDetailContent
-      roleId={roleId}
+      role={role.data}
       titleAction={
         <Link
           to="/roles"

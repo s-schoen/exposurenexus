@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { RolesPage, validateRoleTableSearch } from "@/features/roles";
+import { RolesPage, validateRoleTableSearch, createListRolesQueryOptions } from "@/features/roles";
 import { validateSelectedSearch } from "@/hooks/use-selected-search-param.ts";
 
 export const Route = createFileRoute("/_authenticated/roles/")({
@@ -9,6 +9,7 @@ export const Route = createFileRoute("/_authenticated/roles/")({
     ...validateSelectedSearch(search),
     ...validateRoleTableSearch(search),
   }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(createListRolesQueryOptions()),
   component: RouteComponent,
 });
 

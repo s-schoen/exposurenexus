@@ -31,12 +31,12 @@ const mocks = vi.hoisted(() => {
     navigate: vi.fn(),
     toastError: vi.fn(),
     usePageMeta: vi.fn(),
-    useQuery: vi.fn(),
+    useSuspenseQuery: vi.fn(),
   };
 });
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: mocks.useQuery,
+  useSuspenseQuery: mocks.useSuspenseQuery,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -93,8 +93,8 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
   },
 }));
 
-vi.mock("@/features/roles/components/role-detail-content.tsx", () => ({
-  RoleDetailContent: ({ roleId }: { roleId: string }) => <div>Detail for role {roleId}</div>,
+vi.mock("@/features/roles/components/role-preview.tsx", () => ({
+  RolePreview: ({ roleId }: { roleId: string }) => <div>Detail for role {roleId}</div>,
 }));
 
 vi.mock("@/features/roles/components/role-table", () => ({
@@ -188,8 +188,8 @@ describe("RolesPage", () => {
     mocks.navigate.mockReset();
     mocks.toastError.mockReset();
     mocks.usePageMeta.mockReset();
-    mocks.useQuery.mockReset();
-    mocks.useQuery.mockReturnValue({
+    mocks.useSuspenseQuery.mockReset();
+    mocks.useSuspenseQuery.mockReturnValue({
       data: [mocks.builtInRole, mocks.customRole],
       isFetching: false,
       isPending: false,
@@ -232,7 +232,7 @@ describe("RolesPage", () => {
     expect(screen.getByTestId("table-selected-role").textContent).toBe(mocks.customRole.id);
     expect(screen.getByTestId("selected-role").textContent).toBe(mocks.customRole.id);
     expect(screen.getByTestId("full-page-href").textContent).toBe(`/roles/${mocks.customRole.id}`);
-    expect(screen.getByText(`Detail for role ${mocks.customRole.id}`)).toBeTruthy();
+    expect(await screen.findByText(`Detail for role ${mocks.customRole.id}`)).toBeTruthy();
   });
 
   it("updates route-owned filters and preserves unrelated search params", async () => {

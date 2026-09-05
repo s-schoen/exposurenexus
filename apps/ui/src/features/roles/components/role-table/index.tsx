@@ -6,7 +6,7 @@ import { columns } from "@/features/roles/components/role-table/columns.tsx";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
 import type { Role } from "@exposurenexus/contracts/model/rbac";
-import type { UseQueryResult } from "@tanstack/react-query";
+import type { UseQueryResult, UseSuspenseQueryResult } from "@tanstack/react-query";
 
 const groupingOptions: Array<GroupingOption> = [
   {
@@ -16,7 +16,7 @@ const groupingOptions: Array<GroupingOption> = [
 ];
 
 interface RoleTableProps {
-  query: UseQueryResult<Array<Role>, Error>;
+  query: UseQueryResult<Array<Role>, Error> | UseSuspenseQueryResult<Array<Role>, Error>;
   selectedRoleId?: string;
   onSelectRole?: (role: Role) => void;
   onOpenRole?: (role: Role) => void;

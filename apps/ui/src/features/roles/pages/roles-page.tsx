@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
-import { RoleDetailContent } from "@/features/roles/components/role-detail-content.tsx";
 import { RoleTable } from "@/features/roles/components/role-table";
 import { useRoleLifecycle } from "@/features/roles/hooks/use-role-lifecycle.ts";
 import { useRoleTableSearchState } from "@/features/roles/hooks/use-role-table-search-state.ts";
@@ -14,6 +14,12 @@ import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
 import type { Role } from "@exposurenexus/contracts/model/rbac";
+
+const RolePreview = lazy(() =>
+  import("@/features/roles/components/role-preview.tsx").then((module) => ({
+    default: module.RolePreview,
+  })),
+);
 
 interface RolesPageProps {
   search?: Record<string, unknown>;
@@ -32,7 +38,7 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
     replace: true,
     getId: (role) => role.id,
   });
-  const rolesQuery = useQuery(createListRolesQueryOptions());
+  const rolesQuery = useSuspenseQuery(createListRolesQueryOptions());
 
   usePageMeta({
     title: "Roles",
@@ -102,7 +108,11 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
         description="Review the selected role without leaving the roles table."
         fullPageHref={selected ? `/roles/${selected}` : undefined}
       >
-        {selected && <RoleDetailContent roleId={selected} />}
+        {selected && (
+          <Suspense fallback={null}>
+            <RolePreview roleId={selected} />
+          </Suspense>
+        )}
       </DetailPreviewDialog>
     </>
   );

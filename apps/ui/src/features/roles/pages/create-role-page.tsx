@@ -1,16 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { CircleAlert } from "lucide-react";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card.tsx";
-import { Skeleton } from "@/components/ui/skeleton.tsx";
 import {
   RoleForm,
   getAvailableRolePermissions,
@@ -23,7 +13,7 @@ import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 export function CreateRolePage() {
   const navigate = useNavigate();
   const roleLifecycle = useRoleLifecycle();
-  const roles = useQuery(createListRolesQueryOptions());
+  const roles = useSuspenseQuery(createListRolesQueryOptions());
 
   usePageMeta({
     title: "Create Role",
@@ -52,39 +42,6 @@ export function CreateRolePage() {
       });
     }
   };
-
-  if (roles.isPending) {
-    return (
-      <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
-        <CardHeader>
-          <CardTitle>Create role</CardTitle>
-          <CardDescription>Loading available permissions.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-20 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!roles.data) {
-    return (
-      <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
-        <CardHeader>
-          <CardTitle>Create role</CardTitle>
-          <CardDescription>Available permissions could not be loaded.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <CircleAlert />
-            <AlertTitle>Unable to load permissions</AlertTitle>
-            <AlertDescription>{roles.error.message}</AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <RoleForm
