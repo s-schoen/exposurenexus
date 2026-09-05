@@ -1,12 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { Suspense } from "react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { createListRolesQueryOptions } from "@/features/roles";
-import { listRoles } from "@/features/roles/api/roles.ts";
 import { createListUsersQueryOptions, createUserByIDQueryOptions } from "@/features/users";
-import { getUserByID, listUsers } from "@/features/users/api/users.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/users/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/users/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/users/index.tsx";
@@ -14,6 +12,23 @@ import { Route as NewRoute } from "@/routes/_authenticated/users/new.tsx";
 import { ROLE_FIXTURES, STORY_USERS } from "@/test/fixtures.ts";
 
 import type { ComponentType } from "react";
+
+const listRoles = vi.fn<(...args: Array<string>) => Promise<unknown>>();
+const getUserByID = vi.fn<(...args: Array<string>) => Promise<unknown>>();
+const listUsers = vi.fn<(...args: Array<string>) => Promise<unknown>>();
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: string) => {
+      if (input === "/api/roles") return Response.json({ data: { items: await listRoles() } });
+      if (input.startsWith("/api/users/"))
+        return Response.json({ data: await getUserByID(input.split("/").at(-1)!) });
+      if (input === "/api/users") return Response.json({ data: { items: await listUsers() } });
+      throw new Error(`Unexpected request: ${input}`);
+    }),
+  );
+});
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -25,9 +40,6 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
   useNavigate: () => vi.fn(),
 }));
 vi.mock("@/hooks/use-page-meta.tsx", () => ({ usePageMeta: vi.fn() }));
-vi.mock("@/features/users/hooks/use-user-lifecycle.ts", () => ({ useUserLifecycle: () => ({}) }));
-vi.mock("@/features/roles/api/roles.ts", () => ({ listRoles: vi.fn() }));
-vi.mock("@/features/users/api/users.ts", () => ({ getUserByID: vi.fn(), listUsers: vi.fn() }));
 vi.mock("@/components/detail-preview-dialog.tsx", () => ({ DetailPreviewDialog: () => null }));
 
 class ResizeObserverMock {
@@ -39,6 +51,7 @@ vi.stubGlobal("ResizeObserver", ResizeObserverMock);
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
   vi.clearAllMocks();
 });

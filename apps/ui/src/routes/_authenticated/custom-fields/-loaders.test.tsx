@@ -1,13 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, cleanup } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import {
+  EditCustomFieldPage,
   createAssetCustomFieldDefinitionByIDQueryOptions,
   createListAssetCustomFieldDefinitionsQueryOptions,
 } from "@/features/custom-fields";
-import { getAssetCustomFieldDefinitionByID } from "@/features/custom-fields/api/definitions.ts";
-import { EditCustomFieldPage } from "@/features/custom-fields/pages/edit-custom-field-page.tsx";
 import { Route as EditRoute } from "@/routes/_authenticated/custom-fields/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/custom-fields/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/custom-fields/index.tsx";
@@ -20,19 +19,21 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
   useNavigate: () => vi.fn(),
 }));
 vi.mock("@/hooks/use-page-meta.tsx", () => ({ usePageMeta: vi.fn() }));
-vi.mock("@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts", () => ({
-  useAssetCustomFieldDefinitionLifecycle: () => ({}),
-}));
-vi.mock("@/features/custom-fields/components/asset-custom-field-form.tsx", () => ({
-  mapAssetCustomFieldDefinitionToFormValues: (field: { name: string }) => field,
-  AssetCustomFieldForm: ({ defaultValues }: { defaultValues: { name: string } }) => (
-    <div>{defaultValues.name}</div>
-  ),
-}));
-vi.mock("@/features/custom-fields/api/definitions.ts", () => ({
-  getAssetCustomFieldDefinitionByID: vi.fn(),
-}));
-afterEach(cleanup);
+const getAssetCustomFieldDefinitionByID = vi.fn<(...args: Array<string>) => Promise<unknown>>();
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: string) =>
+      Response.json({
+        data: await getAssetCustomFieldDefinitionByID(input.split("/").at(-1)!),
+      }),
+    ),
+  );
+});
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 type Loader = (args: {
   context: { queryClient: QueryClient };
   params: { id: string };
@@ -74,7 +75,7 @@ it("ensures exactly the requested definition and lets nested edit reuse the pare
       <EditCustomFieldPage customFieldId={field.id} />
     </QueryClientProvider>,
   );
-  expect(screen.getByText(field.name)).toBeVisible();
+  expect(screen.getByDisplayValue(field.name)).toBeVisible();
   expect(client.isFetching()).toBe(0);
   expect(getAssetCustomFieldDefinitionByID).toHaveBeenCalledExactlyOnceWith(field.id);
 });
