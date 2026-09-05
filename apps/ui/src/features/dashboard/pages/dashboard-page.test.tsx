@@ -43,7 +43,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: (options: QueryOptionsLike) => {
+  useSuspenseQuery: (options: QueryOptionsLike) => {
     const queryKey = options.queryKey.join("/");
 
     if (queryKey === "findings/stats") {
