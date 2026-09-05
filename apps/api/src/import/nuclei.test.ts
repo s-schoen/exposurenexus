@@ -48,8 +48,8 @@ describe("nuclei translator", () => {
         severity: VulnerabilitySeverity.High,
         weakness: {
           identifiers: {
-            cve: ["CVE-2026-34256"],
-            cwe: ["CWE-200"],
+            cve: ["cve-2026-34256"],
+            cwe: ["cwe-200"],
             nuclei: ["admin-panel"],
           },
         },

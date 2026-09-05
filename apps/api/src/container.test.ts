@@ -1,341 +1,235 @@
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const {
-  createAppMock,
-  createAuthRouteMock,
-  createAuthAnnotateMock,
-  createAuthCookiePolicyMock,
-  createCsrfProtectionMock,
-  authNRequireMock,
-  createRequireDomainPermissionMock,
-  createDefaultAdminMock,
-  createAssetRouteMock,
-  createRoleRouteMock,
-  createUserRouteMock,
-  createVulnerabilityRouteMock,
-  createFindingStatsRouteMock,
-  createFindingRouteMock,
-  createImportRouteMock,
-  registerEventHandlersMock,
-  createAuthServiceMock,
-  createAssetCustomFieldServiceMock,
-  createAssetServiceMock,
-  createRoleServiceMock,
-  createUserProfileServiceMock,
-  createFindingServiceMock,
-  createStatsServiceMock,
-  createObservationRepositoryMock,
-  createVulnerabilityServiceMock,
-  roleRepositoryMock,
-  userRoleRepositoryMock,
-} = vi.hoisted(() => ({
-  createAppMock: vi.fn(() => ({ fetch: vi.fn() })),
-  createAuthRouteMock: vi.fn(() => ({ route: "auth" })),
-  createAuthAnnotateMock: vi.fn(() => vi.fn()),
-  createAuthCookiePolicyMock: vi.fn(() => ({ secure: true })),
-  createCsrfProtectionMock: vi.fn(() => ({
-    middleware: vi.fn(),
-    issueToken: vi.fn(),
-    clearToken: vi.fn(),
-  })),
-  authNRequireMock: vi.fn(() => vi.fn()),
-  createRequireDomainPermissionMock: vi.fn(() => vi.fn(() => vi.fn())),
-  createDefaultAdminMock: vi.fn(),
-  createAssetRouteMock: vi.fn(() => ({ route: "assets" })),
-  createRoleRouteMock: vi.fn(() => ({ route: "roles" })),
-  createUserRouteMock: vi.fn(() => ({ route: "users" })),
-  createVulnerabilityRouteMock: vi.fn(() => ({ route: "vulnerabilities" })),
-  createFindingStatsRouteMock: vi.fn(() => ({ route: "stats" })),
-  createFindingRouteMock: vi.fn(() => ({ route: "findings" })),
-  createImportRouteMock: vi.fn(() => ({ route: "import" })),
-  registerEventHandlersMock: vi.fn(),
-  createAuthServiceMock: vi.fn(() => ({
-    kind: "auth-service",
-    userHasPermission: vi.fn(),
+const mocks = vi.hoisted(() => {
+  const rawAuthentication = { kind: "raw-authentication" };
+  const authentication = {
+    kind: "authentication",
     validateSession: vi.fn(),
     createSessionForCredentials: vi.fn(),
+    createSession: vi.fn(),
     revokeSession: vi.fn(),
-  })),
-  createAssetCustomFieldServiceMock: vi.fn(() => ({
-    kind: "asset-custom-field-service",
-  })),
-  createAssetServiceMock: vi.fn(() => ({ kind: "asset-service" })),
-  createRoleServiceMock: vi.fn(() => ({ kind: "role-service" })),
-  createUserProfileServiceMock: vi.fn(() => ({ kind: "user-profile-service" })),
-  createFindingServiceMock: vi.fn(() => ({ kind: "finding-service" })),
-  createStatsServiceMock: vi.fn(() => ({ kind: "stats-service" })),
-  createObservationRepositoryMock: vi.fn(() => ({ kind: "observation-repo" })),
-  createVulnerabilityServiceMock: vi.fn(() => ({
-    kind: "vulnerability-service",
-  })),
-  roleRepositoryMock: {
-    list: vi.fn(),
-    getByID: vi.fn(),
-    getByIDs: vi.fn(),
-    getByNames: vi.fn(),
-    create: vi.fn(),
-    updateByID: vi.fn(),
-    deleteByID: vi.fn(),
-    hasUsersWithRoleID: vi.fn(),
-  },
-  userRoleRepositoryMock: {
-    listPermissionsByUserID: vi.fn(),
-  },
-}));
+  };
+  const rawIdentity = { kind: "raw-identity", users: { createInitialAdmin: vi.fn() } };
+  const identity = {
+    users: { kind: "identity-users", getByID: vi.fn() },
+    roles: { kind: "identity-roles" },
+    authorization: { userHasPermission: vi.fn() },
+  };
+  const rawAssets = { kind: "raw-assets" };
+  const assets = {
+    inventory: { kind: "asset-inventory" },
+    customFields: { kind: "asset-custom-fields" },
+  };
+  const rawExposures = { kind: "raw-exposures" };
+  const exposures = {
+    findings: { kind: "exposure-findings" },
+    vulnerabilities: { kind: "exposure-vulnerabilities" },
+    statistics: { kind: "exposure-statistics" },
+  };
 
-vi.mock("./app.js", () => ({
-  createApp: createAppMock,
-}));
+  return {
+    createBackendRuntime: vi.fn(() => ({})),
+    rawAuthentication,
+    authentication,
+    createAuthentication: vi.fn(() => rawAuthentication),
+    decorateAuthenticationWithEvents: vi.fn(() => authentication),
+    rawIdentity,
+    identity,
+    createIdentity: vi.fn(() => rawIdentity),
+    decorateIdentityWithEvents: vi.fn(() => identity),
+    rawAssets,
+    assets,
+    createAssets: vi.fn(() => rawAssets),
+    decorateAssetsWithEvents: vi.fn(() => assets),
+    rawExposures,
+    exposures,
+    createExposures: vi.fn(() => rawExposures),
+    decorateExposuresWithEvents: vi.fn(() => exposures),
+    createApp: vi.fn(() => ({ fetch: vi.fn() })),
+    createAuthRoute: vi.fn(() => ({ route: "auth" })),
+    createAuthAnnotate: vi.fn(() => vi.fn()),
+    createAuthCookiePolicy: vi.fn(() => ({ secure: true })),
+    createCsrfProtection: vi.fn(() => ({ middleware: vi.fn() })),
+    authNRequire: vi.fn(() => vi.fn()),
+    createRequireDomainPermission: vi.fn(() => vi.fn(() => vi.fn())),
+    createDefaultAdmin: vi.fn(),
+    createAssetRoute: vi.fn(() => ({ route: "assets" })),
+    createRoleRoute: vi.fn(() => ({ route: "roles" })),
+    createUserRoute: vi.fn(() => ({ route: "users" })),
+    createVulnerabilityRoute: vi.fn(() => ({ route: "vulnerabilities" })),
+    createFindingStatsRoute: vi.fn(() => ({ route: "stats" })),
+    createFindingRoute: vi.fn(() => ({ route: "findings" })),
+    createImportRoute: vi.fn(() => ({ route: "import" })),
+    registerEventHandlers: vi.fn(),
+  };
+});
 
+vi.mock("@exposurenexus/backend", () => ({ createBackendRuntime: mocks.createBackendRuntime }));
+
+vi.mock("@exposurenexus/backend/identity", () => ({
+  createIdentity: mocks.createIdentity,
+}));
+vi.mock("@exposurenexus/backend/authentication", () => ({
+  createAuthentication: mocks.createAuthentication,
+}));
+vi.mock("@exposurenexus/backend/assets", () => ({
+  createAssets: mocks.createAssets,
+}));
+vi.mock("@exposurenexus/backend/exposures", () => ({
+  createExposures: mocks.createExposures,
+}));
+vi.mock("./lib/authentication-events.js", () => ({
+  decorateAuthenticationWithEvents: mocks.decorateAuthenticationWithEvents,
+}));
+vi.mock("./lib/identity-events.js", () => ({
+  decorateIdentityWithEvents: mocks.decorateIdentityWithEvents,
+}));
+vi.mock("./lib/assets-events.js", () => ({
+  decorateAssetsWithEvents: mocks.decorateAssetsWithEvents,
+}));
+vi.mock("./lib/exposures-events.js", () => ({
+  decorateExposuresWithEvents: mocks.decorateExposuresWithEvents,
+}));
+vi.mock("./app.js", () => ({ createApp: mocks.createApp }));
 vi.mock("./logging.js", () => ({
   createLogger: vi.fn(() => pino({ enabled: false })),
 }));
-
 vi.mock("./lib/default-admin.js", () => ({
-  createDefaultAdmin: createDefaultAdminMock,
+  createDefaultAdmin: mocks.createDefaultAdmin,
 }));
-
 vi.mock("./middleware/auth.js", () => ({
-  createAuthAnnotate: createAuthAnnotateMock,
-  createAuthCookiePolicy: createAuthCookiePolicyMock,
-  authNRequire: authNRequireMock,
-  createRequireDomainPermission: createRequireDomainPermissionMock,
+  createAuthAnnotate: mocks.createAuthAnnotate,
+  createAuthCookiePolicy: mocks.createAuthCookiePolicy,
+  authNRequire: mocks.authNRequire,
+  createRequireDomainPermission: mocks.createRequireDomainPermission,
 }));
-
 vi.mock("./middleware/csrf.js", () => ({
-  createCsrfProtection: createCsrfProtectionMock,
+  createCsrfProtection: mocks.createCsrfProtection,
 }));
-
-vi.mock("./routes/health.js", () => ({
-  default: { route: "health" },
-}));
-
-vi.mock("./routes/auth.js", () => ({
-  createAuthRoute: createAuthRouteMock,
-}));
-
-vi.mock("./routes/assets.js", () => ({
-  createAssetRoute: createAssetRouteMock,
-}));
-
-vi.mock("./routes/roles.js", () => ({
-  createRoleRoute: createRoleRouteMock,
-}));
-
-vi.mock("./routes/users.js", () => ({
-  createUserRoute: createUserRouteMock,
-}));
-
+vi.mock("./routes/health.js", () => ({ default: { route: "health" } }));
+vi.mock("./routes/auth.js", () => ({ createAuthRoute: mocks.createAuthRoute }));
+vi.mock("./routes/assets.js", () => ({ createAssetRoute: mocks.createAssetRoute }));
+vi.mock("./routes/roles.js", () => ({ createRoleRoute: mocks.createRoleRoute }));
+vi.mock("./routes/users.js", () => ({ createUserRoute: mocks.createUserRoute }));
 vi.mock("./routes/vulnerabilities.js", () => ({
-  createVulnerabilityRoute: createVulnerabilityRouteMock,
+  createVulnerabilityRoute: mocks.createVulnerabilityRoute,
 }));
-
 vi.mock("./routes/stats.js", () => ({
-  createFindingStatsRoute: createFindingStatsRouteMock,
+  createFindingStatsRoute: mocks.createFindingStatsRoute,
 }));
-
-vi.mock("./routes/findings.js", () => ({
-  createFindingRoute: createFindingRouteMock,
-}));
-
-vi.mock("./routes/import.js", () => ({
-  createImportRoute: createImportRouteMock,
-}));
-
-vi.mock("./repository/index.js", () => ({
-  createAssetCustomFieldRepository: vi.fn(() => ({
-    kind: "asset-custom-field-repo",
-  })),
-  createAssetRepository: vi.fn(() => ({ kind: "asset-repo" })),
-  createFindingRepository: vi.fn(() => ({ kind: "finding-repo" })),
-  createObservationRepository: createObservationRepositoryMock,
-  createRoleRepository: vi.fn(() => roleRepositoryMock),
-  createUserRoleRepository: vi.fn(() => userRoleRepositoryMock),
-  createUserProfileRepository: vi.fn(() => ({ kind: "user-profile-repo" })),
-  createUserSessionRepository: vi.fn(() => ({ kind: "user-session-repo" })),
-  createVulnerabilityRepository: vi.fn(() => ({
-    kind: "vulnerability-repo",
-  })),
-}));
-
-vi.mock("./service/index.js", () => ({
-  createAssetCustomFieldService: createAssetCustomFieldServiceMock,
-  createAuthService: createAuthServiceMock,
-  createAssetService: createAssetServiceMock,
-  createFindingService: createFindingServiceMock,
-  createRoleService: createRoleServiceMock,
-  createStatsService: createStatsServiceMock,
-  createUserProfileService: createUserProfileServiceMock,
-  createVulnerabilityService: createVulnerabilityServiceMock,
-}));
-
+vi.mock("./routes/findings.js", () => ({ createFindingRoute: mocks.createFindingRoute }));
+vi.mock("./routes/import.js", () => ({ createImportRoute: mocks.createImportRoute }));
 vi.mock("./event-handler/index.js", () => ({
-  registerEventHandlers: registerEventHandlersMock,
+  registerEventHandlers: mocks.registerEventHandlers,
 }));
 
 import { createAppContainer } from "./container.js";
+
+const authSessionHmacSecret = "012345678901234567890123456789012345678901234567890123456789";
+
+function createContainerOptions() {
+  const logger = pino({ enabled: false });
+  return {
+    db: {} as never,
+    appOrigin: "http://localhost:3000",
+    staticDir: "/app/public",
+    authSessionLifetimeHours: 12,
+    authSessionHmacSecret,
+    authCookieSecure: true,
+    authTrustedProxies: ["127.0.0.1"],
+    apiTimeoutMs: 5000,
+    logger,
+    accessLogger: logger,
+    dbLogger: logger,
+    loggerFactory: () => logger,
+  };
+}
 
 describe("app container", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("wires custom auth services and routes", async () => {
-    const logger = pino({ enabled: false });
+  it("composes authentication and identity through backend capabilities", async () => {
+    const options = createContainerOptions();
+    const container = createAppContainer(options);
 
-    const container = createAppContainer({
-      db: {} as never,
-      appOrigin: "http://localhost:3000",
-      staticDir: "/app/public",
-      authSessionLifetimeHours: 12,
-      authSessionHmacSecret: "012345678901234567890123456789012345678901234567890123456789",
-      authCookieSecure: true,
-      authTrustedProxies: ["127.0.0.1"],
-      apiTimeoutMs: 5000,
-      logger,
-      accessLogger: logger,
-      dbLogger: logger,
-      loggerFactory: () => logger,
+    expect(mocks.createBackendRuntime).toHaveBeenCalledExactlyOnceWith({
+      database: options.db,
+      logger: options.logger,
     });
-
-    expect(createAuthCookiePolicyMock).toHaveBeenCalledWith({
-      secure: true,
+    const runtime = mocks.createBackendRuntime.mock.results[0]!.value;
+    expect(mocks.createIdentity).toHaveBeenCalledExactlyOnceWith(runtime);
+    expect(mocks.createAssets).toHaveBeenCalledExactlyOnceWith(runtime);
+    expect(mocks.createExposures).toHaveBeenCalledExactlyOnceWith(runtime);
+    expect(mocks.createAuthentication).toHaveBeenCalledWith(runtime, {
+      sessionLifetimeHours: options.authSessionLifetimeHours,
+      sessionHmacSecret: options.authSessionHmacSecret,
     });
-    expect(createCsrfProtectionMock).toHaveBeenCalledWith({
-      allowedOrigins: ["http://localhost:3000"],
-      tokenSecret: "012345678901234567890123456789012345678901234567890123456789",
-      cookiePolicy: createAuthCookiePolicyMock.mock.results[0]?.value,
-    });
-    expect(createAuthServiceMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userRoleRepository: userRoleRepositoryMock,
-        domainEventEmitter: expect.objectContaining({
-          emit: expect.any(Function),
-        }),
-      }),
+    expect(mocks.decorateAuthenticationWithEvents).toHaveBeenCalledWith(
+      mocks.rawAuthentication,
+      expect.objectContaining({ emit: expect.any(Function) }),
     );
-    expect(registerEventHandlersMock).toHaveBeenCalledWith({
-      eventBus: expect.objectContaining({
-        emit: expect.any(Function),
-        on: expect.any(Function),
-      }),
-      loggerFactory: expect.any(Function),
-    });
-    expect(createAuthRouteMock).toHaveBeenCalledWith(createAuthServiceMock.mock.results[0]?.value, {
-      csrf: createCsrfProtectionMock.mock.results[0]?.value,
-      cookiePolicy: createAuthCookiePolicyMock.mock.results[0]?.value,
-      trustedProxies: ["127.0.0.1"],
-    });
-    expect(createAuthAnnotateMock).toHaveBeenCalledWith(
-      createAuthServiceMock.mock.results[0]?.value,
-      createAuthCookiePolicyMock.mock.results[0]?.value,
+    expect(mocks.createIdentity).toHaveBeenCalledOnce();
+    expect(mocks.decorateIdentityWithEvents).toHaveBeenCalledWith(
+      mocks.rawIdentity,
+      expect.objectContaining({ emit: expect.any(Function) }),
     );
-    expect(createRequireDomainPermissionMock).toHaveBeenCalledWith(expect.any(Function));
-    expect(createUserProfileServiceMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        domainEventEmitter: expect.objectContaining({
-          emit: expect.any(Function),
-        }),
-      }),
+    expect(mocks.createAssets).toHaveBeenCalledOnce();
+    expect(mocks.decorateAssetsWithEvents).toHaveBeenCalledWith(
+      mocks.rawAssets,
+      expect.objectContaining({ emit: expect.any(Function) }),
     );
-    expect(createAssetServiceMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        assetCustomFieldReader: createAssetCustomFieldServiceMock.mock.results[0]?.value,
-        domainEventEmitter: expect.objectContaining({
-          emit: expect.any(Function),
-        }),
-      }),
+    expect(mocks.createExposures).toHaveBeenCalledOnce();
+    expect(mocks.decorateExposuresWithEvents).toHaveBeenCalledWith(
+      mocks.rawExposures,
+      expect.objectContaining({ emit: expect.any(Function) }),
     );
-    expect(createAssetCustomFieldServiceMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        assetRepository: { kind: "asset-repo" },
-        domainEventEmitter: expect.objectContaining({
-          emit: expect.any(Function),
-        }),
-      }),
-    );
-    expect(createAssetRouteMock).toHaveBeenCalledWith(
-      createAssetServiceMock.mock.results[0]?.value,
-      createAssetCustomFieldServiceMock.mock.results[0]?.value,
-      { requireDomainPermission: expect.any(Function) },
-    );
-    expect(createRoleServiceMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        roleRepository: roleRepositoryMock,
-        domainEventEmitter: expect.objectContaining({
-          emit: expect.any(Function),
-        }),
-      }),
-    );
-    expect(createFindingServiceMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        findingRepository: { kind: "finding-repo" },
-        observationRepository: { kind: "observation-repo" },
-        domainEventEmitter: expect.objectContaining({
-          emit: expect.any(Function),
-        }),
-      }),
-    );
-    expect(createStatsServiceMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        findingRepository: { kind: "finding-repo" },
-      }),
-    );
-    expect(createVulnerabilityServiceMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        domainEventEmitter: expect.objectContaining({
-          emit: expect.any(Function),
-        }),
-      }),
-    );
-    expect(createImportRouteMock).toHaveBeenCalledWith({
+    expect(mocks.createRequireDomainPermission).toHaveBeenCalledWith(expect.any(Function));
+    expect(mocks.createUserRoute).toHaveBeenCalledWith(mocks.identity.users, {
       requireDomainPermission: expect.any(Function),
     });
-    expect(createRoleRouteMock).toHaveBeenCalledOnce();
-    expect(createUserRouteMock).toHaveBeenCalledWith(
-      { kind: "user-profile-service" },
+    expect(mocks.createRoleRoute).toHaveBeenCalledWith(mocks.identity.roles, {
+      requireDomainPermission: expect.any(Function),
+    });
+    expect(mocks.createAssetRoute).toHaveBeenCalledWith(
+      mocks.assets.inventory,
+      mocks.assets.customFields,
       { requireDomainPermission: expect.any(Function) },
     );
-    expect(createAppMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        appOrigin: "http://localhost:3000",
-        staticDir: "/app/public",
-      }),
-    );
+    expect(container.services.identity).toBe(mocks.identity);
+    expect(container.services.authentication).toBe(mocks.authentication);
+    expect(container.services.assets).toBe(mocks.assets);
+    expect(container.services.exposures).toBe(mocks.exposures);
+    expect(mocks.createVulnerabilityRoute).toHaveBeenCalledWith(mocks.exposures.vulnerabilities, {
+      requireDomainPermission: expect.any(Function),
+    });
+    expect(mocks.createFindingStatsRoute).toHaveBeenCalledWith(mocks.exposures.statistics, {
+      requireDomainPermission: expect.any(Function),
+    });
+    expect(mocks.createFindingRoute).toHaveBeenCalledWith(mocks.exposures.findings, {
+      requireDomainPermission: expect.any(Function),
+    });
 
     await container.createDefaultAdmin();
-
-    expect(createDefaultAdminMock).toHaveBeenCalledWith({
-      db: {},
-      logger,
+    expect(mocks.createDefaultAdmin).toHaveBeenCalledWith({
+      users: mocks.rawIdentity.users,
+      logger: options.dbLogger,
     });
   });
 
   it("fails fast when auth cookies are configured as insecure", () => {
-    const logger = pino({ enabled: false });
-
-    createAuthCookiePolicyMock.mockImplementationOnce(() => {
+    mocks.createAuthCookiePolicy.mockImplementationOnce(() => {
       throw new Error("__Host auth cookies require AUTH_COOKIE_SECURE=true");
     });
 
     expect(() =>
       createAppContainer({
-        db: {} as never,
-        appOrigin: "http://localhost:3000",
-        authSessionLifetimeHours: 12,
-        authSessionHmacSecret: "012345678901234567890123456789012345678901234567890123456789",
+        ...createContainerOptions(),
         authCookieSecure: false,
         authTrustedProxies: [],
-        apiTimeoutMs: 5000,
-        logger,
-        accessLogger: logger,
-        dbLogger: logger,
-        loggerFactory: () => logger,
       }),
     ).toThrow("__Host auth cookies require AUTH_COOKIE_SECURE=true");
-    expect(createAuthCookiePolicyMock).toHaveBeenCalledWith({
-      secure: false,
-    });
   });
 });

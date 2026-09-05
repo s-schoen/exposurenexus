@@ -1,3 +1,4 @@
+import { ApplicationError } from "@exposurenexus/backend";
 import {
   AssetEnvironment,
   AssetIdentifierType,
@@ -12,7 +13,6 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createRequireDomainPermission } from "../middleware/auth.js";
-import { ApplicationError } from "../service/application-error.js";
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -1620,7 +1620,7 @@ describe("asset routes", () => {
     });
   });
 
-  it("creates an asset with canonical identifiers", async () => {
+  it("passes submitted asset identifiers to the capability", async () => {
     const requestId = "assets-create-with-identifiers-request";
     const payload = {
       displayName: "worker.exposurenexus.local",
@@ -1677,7 +1677,7 @@ describe("asset routes", () => {
           {
             type: AssetIdentifierType.DnsName,
             namespace: null,
-            value: "worker.exposurenexus.local",
+            value: "WORKER.ExposureNexus.local.",
           },
         ],
       },
@@ -1717,7 +1717,7 @@ describe("asset routes", () => {
       identifier: {
         type: AssetIdentifierType.DnsName,
         namespace: null,
-        value: "api.example.com",
+        value: "API.Example.com.",
       },
       user,
       eventContext: { actor: user.id, correlationId: "asset-identifier-add" },

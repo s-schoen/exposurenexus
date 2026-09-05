@@ -48,7 +48,6 @@ export function annotateAuthenticatedUser(
     c.set("user", user);
     c.set("session", {
       id: "a2ca50c9-1e4d-4533-97bc-e060f58b6747",
-      sessionId: "test-session-id-digest",
       userId: user.id,
       sourceIp: null,
       userAgent: null,

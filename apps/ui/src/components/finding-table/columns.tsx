@@ -1,4 +1,3 @@
-import { normalizeDateToUtcStart } from "@exposurenexus/contracts/model/date";
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
@@ -12,6 +11,7 @@ import {
   getUserProfileDisplayName,
 } from "@/components/user-label.tsx";
 import { formatUtcDateOnly } from "@/lib/date-input.ts";
+import { normalizeDateToUtcStart } from "@/lib/utc-date";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
 import type { Asset } from "@exposurenexus/contracts/model/asset";

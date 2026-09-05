@@ -1,5 +1,4 @@
 import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
-import { normalizeDateToUtcStart } from "@exposurenexus/contracts/model/date";
 import { FindingStatus, createFindingSchema } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useForm } from "@tanstack/react-form";
@@ -33,6 +32,8 @@ import { usePageMeta } from "@/context/page.tsx";
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 import { formatLocalDateTimeInput, formatUtcDateOnly } from "@/lib/date-input.ts";
 import { formatFindingStatus } from "@/lib/format.ts";
+import { normalizeDateToUtcStart } from "@/lib/utc-date";
+import { weaknessSchema } from "@/lib/weakness-preview";
 import { formatWeaknessText, parseWeaknessText } from "@/lib/weakness-text.ts";
 
 import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
@@ -418,7 +419,16 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
         return;
       }
 
-      const result = createFindingSchema.safeParse({ ...value, weakness });
+      const canonicalWeakness = weaknessSchema.safeParse(weakness);
+      if (!canonicalWeakness.success) {
+        setSubmissionError("Invalid weakness identifiers");
+        return;
+      }
+      const result = createFindingSchema.safeParse({
+        ...value,
+        weakness: canonicalWeakness.data,
+        vulnerabilityIds: [...new Set(value.vulnerabilityIds)],
+      });
       if (!result.success) {
         const issue = result.error.issues[0];
         const location = issue.path.length > 0 ? `${issue.path.join(".")}: ` : "";

@@ -4,7 +4,7 @@ ExposureNexus uses a custom API authentication system built around user profiles
 opaque server-side sessions, and role-based authorization. The design replaces
 the previous better-auth integration for API authentication while keeping the
 authentication state and permission model inside ExposureNexus-owned tables and
-services.
+backend capabilities.
 
 This document describes the architecture, data flow, and security controls. It
 is not an endpoint reference.
@@ -15,32 +15,30 @@ is not an endpoint reference.
 - Avoid storing raw session tokens in the database.
 - Keep user identity, role assignments, and permissions in ExposureNexus-owned
   domain tables.
-- Enforce authorization through service-level permission checks instead of
+- Enforce authorization through API middleware backed by identity permission resolution instead of
   better-auth role conventions.
 - Make sensitive account and RBAC changes invalidate affected sessions.
 - Keep authentication and authorization behavior auditable.
 
 ## Main Components
 
-The authentication system is split across route, middleware, service, and
-repository layers.
+Authentication follows [ADR-0004](adr/0004-shared-backend-capabilities.md).
 
-- `routes/auth.ts` handles login, session reads, and logout behavior. It reads
-  request metadata, sets and clears cookies, and delegates all authentication
-  decisions to the auth service.
-- `service/auth.ts` owns credential checks, session creation, session
-  validation, session revocation, and permission checks.
-- `middleware/auth.ts` annotates each request with the current `UserProfile`
-  and `UserSession` when a valid session cookie is present. It also provides
-  middleware for requiring authentication and domain permissions.
-- `middleware/csrf.ts` protects cookie-authenticated unsafe requests using
-  Fetch Metadata, Origin checks, and a signed CSRF token.
-- `repository/user-profile.ts`, `repository/user-session.ts`, and
-  `repository/user-role.ts` persist users, sessions, role assignments, and
-  permissions.
+- `@exposurenexus/backend/authentication` owns credential verification and
+  session creation, validation, and revocation.
+- `@exposurenexus/backend/identity` owns users, roles, password updates, and
+  `authorization.userHasPermission`. Sensitive identity changes revoke
+  affected sessions inside backend transactions.
+- API auth routes own request metadata, cookies, and response adaptation.
+- API authentication middleware annotates requests with the current user and
+  safe `AuthenticationSession` metadata and enforces authentication and RBAC.
+- API CSRF middleware owns Fetch Metadata, Origin checks, and signed CSRF tokens.
+- API-local authentication event decorators translate backend outcomes into
+  safe audit events. Backend persistence stays private.
 
-Shared user and session shapes live in `packages/contracts`, so route replies and
-service boundaries use the same domain concepts.
+Contracts contain client-safe user and HTTP response shapes. Backend owns
+credential commands and session results; password-bearing records and persisted
+session digests are not shared contracts.
 
 ## Data Model
 
@@ -74,14 +72,14 @@ never persisted directly.
 
 ## Login Flow
 
-Login starts in the auth route and then moves into the auth service.
+Login starts in the auth route and then moves into the authentication capability.
 
 1. The route validates the login payload.
 2. The route resolves request metadata:
    - source IP
    - user agent
 3. The route calls `createSessionForCredentials`.
-4. The auth service loads the user profile by username.
+4. The authentication capability loads the user profile by username.
 5. The submitted password is verified with Argon2 against the stored
    `passwordHash`.
 6. Disabled users and invalid credentials are rejected.
@@ -91,7 +89,7 @@ Login starts in the auth route and then moves into the auth service.
 10. The raw session token is set in the `__Host-exposurenexus-session` cookie.
 11. A signed CSRF token is issued in the `__Host-exposurenexus-csrf` cookie.
 
-The auth service uses a dummy Argon2 hash when a username does not exist. This
+The authentication capability uses a dummy Argon2 hash when a username does not exist. This
 keeps credential checks closer in timing between existing and non-existing
 users and reduces username enumeration risk.
 
@@ -103,13 +101,13 @@ handlers run.
 1. `createAuthAnnotate` reads the `__Host-exposurenexus-session` cookie.
 2. If no cookie exists, the request context receives `user = null` and
    `session = null`.
-3. If a cookie exists, the auth service HMACs the presented token and looks up
+3. If a cookie exists, the authentication capability HMACs the presented token and looks up
    the digest in `user_session`.
-4. The service rejects missing or expired sessions.
-5. The service reloads the user profile and rejects disabled or missing users.
+4. The capability rejects missing or expired sessions.
+5. The capability reloads the user profile and rejects disabled or missing users.
 6. Valid sessions annotate the Hono context with:
    - `user`: the current `UserProfile`
-   - `session`: the current `UserSession`
+   - `session`: the current `AuthenticationSession`
 
 Routes can then require authentication with `authNRequire` or require specific
 permissions with domain permission middleware.
@@ -143,8 +141,8 @@ Authorization is role-based but checked through ExposureNexus's own RBAC model.
 
 1. A route declares the required domain permission.
 2. The permission middleware requires an authenticated user.
-3. The middleware calls `authService.userHasPermission`.
-4. The auth service loads all distinct permissions assigned to the user through
+3. The middleware calls `identity.authorization.userHasPermission`.
+4. The identity capability loads all distinct permissions assigned to the user through
    their roles.
 5. The required resource/verb set must be fully covered by the assigned
    permissions.
@@ -219,13 +217,20 @@ The authentication system logs security-relevant lifecycle events:
 - sensitive user profile updates that revoke sessions
 - role permission updates that revoke affected sessions
 
+API-local decorators emit authentication success only after session creation
+succeeds. Session event payloads contain only safe metadata: row `id`,
+`userId`, source IP, user agent, creation time, and expiry. They exclude both
+raw session tokens and persisted HMAC digests. See [API Event Bus](api-eventbus.md).
+
 Logs include stable identifiers such as user profile IDs, session IDs from the
 database, revocation reasons, affected user counts, and revoked session counts
 where available. Raw session tokens and plaintext passwords are never logged.
 
 ## Configuration
 
-Authentication-related configuration is provided through environment variables.
+The API reads authentication-related environment variables and passes session
+lifetime and HMAC secret explicitly to `createAuthentication(runtime, config)`.
+Cookie, proxy, Origin, and CSRF policy remain API-owned.
 
 - `AUTH_SECRET`: HMAC secret for session digests and CSRF token signatures. It
   must be at least 32 characters.
@@ -271,4 +276,5 @@ The UI is expected to:
 - treat 401 responses as a signal that the session is missing, expired, or
   revoked
 
-The API remains the authority for identity, session validity, and permissions.
+The API enforces access using backend-owned identity, session validity, and
+permission resolution.

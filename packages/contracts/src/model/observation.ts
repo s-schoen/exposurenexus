@@ -41,7 +41,7 @@ export const observationSchema = z.discriminatedUnion("source", [
 ]);
 
 const observationInputSchema = z.strictObject({
-  title: z.string().trim().min(1),
+  title: z.string().min(1),
   description: z.string().nullable(),
   evidence: z.string().nullable(),
   remediation: z.string().nullable(),

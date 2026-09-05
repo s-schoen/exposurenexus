@@ -1,3 +1,4 @@
+import { ApplicationError } from "@exposurenexus/backend";
 import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import { FindingStatus, type Finding } from "@exposurenexus/contracts/model/finding";
 import {
@@ -7,7 +8,6 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createRequireDomainPermission } from "../middleware/auth.js";
-import { ApplicationError } from "../service/application-error.js";
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -779,7 +779,7 @@ describe("finding routes", () => {
     expect(findingService.linkVulnerability).not.toHaveBeenCalled();
   });
 
-  it("normalizes weakness and preserves affected-resource values in a partial update", async () => {
+  it("passes weakness and affected-resource values to the capability for normalization", async () => {
     const requestId = "findings-update-request";
     const payload = {
       title: "Corrected title",
@@ -819,7 +819,7 @@ describe("finding routes", () => {
     expect(response.status).toBe(200);
     expect(findingService.updateByID).toHaveBeenCalledWith({
       id: findingId,
-      finding: normalizedPayload,
+      finding: payload,
       user,
       eventContext: {
         actor: user.id,

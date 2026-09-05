@@ -1,0 +1,63 @@
+{
+  "name": "@exposurenexus/backend",
+  "version": "0.1.0",
+  "description": "Shared server-side capabilities and persistence for ExposureNexus",
+  "keywords": [],
+  "license": "MIT",
+  "author": "",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./database": {
+      "types": "./dist/database/index.d.ts",
+      "import": "./dist/database/index.js"
+    },
+    "./authentication": {
+      "types": "./dist/authentication/index.d.ts",
+      "import": "./dist/authentication/index.js"
+    },
+    "./identity": {
+      "types": "./dist/identity/index.d.ts",
+      "import": "./dist/identity/index.js"
+    },
+    "./assets": {
+      "types": "./dist/assets/index.d.ts",
+      "import": "./dist/assets/index.js"
+    },
+    "./exposures": {
+      "types": "./dist/exposures/index.d.ts",
+      "import": "./dist/exposures/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage --reporter=default --reporter=junit --outputFile=coverage/test-results.junit.xml",
+    "typecheck:test": "tsc -p tsconfig.test.json --noEmit"
+  },
+  "dependencies": {
+    "@exposurenexus/contracts": "workspace:*",
+    "@exposurenexus/jobs": "workspace:*",
+    "kysely": "^0.29.5",
+    "pg": "^8.23.0",
+    "pino": "10.3.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.5",
+    "@types/node": "^24.13.3",
+    "@types/pg": "^8.23.1",
+    "@vitest/coverage-v8": "^4.1.11",
+    "typescript": "7.0.2",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=24.15.0 <25"
+  }
+}

@@ -37,7 +37,6 @@ describe("auth middleware", () => {
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     userId: user.id,
     expiresAt: new Date("2026-12-31T00:00:00.000Z"),
-    sessionId: "test-session-id-digest",
     sourceIp: null,
     userAgent: null,
   };

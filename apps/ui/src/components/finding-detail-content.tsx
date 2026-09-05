@@ -2,7 +2,6 @@ import {
   AffectedResourceType,
   WebEndpointComponentKind,
 } from "@exposurenexus/contracts/model/affected-resource";
-import { normalizeDateToUtcStart } from "@exposurenexus/contracts/model/date";
 import { FindingStatus, updateFindingSchema } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useQuery } from "@tanstack/react-query";
@@ -61,6 +60,7 @@ import {
 import { useFindingLifecycle } from "@/hooks/use-finding-lifecycle.ts";
 import { formatUtcDateOnly } from "@/lib/date-input.ts";
 import { capitalizeFirstLetter, formatFindingStatus, formatSeverity } from "@/lib/format.ts";
+import { normalizeDateToUtcStart } from "@/lib/utc-date";
 import { formatWeaknessText, parseWeaknessText } from "@/lib/weakness-text.ts";
 
 import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
