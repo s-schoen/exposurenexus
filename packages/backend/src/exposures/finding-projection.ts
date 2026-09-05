@@ -2,7 +2,7 @@ import { findingSchema, type Finding } from "@exposurenexus/contracts/model/find
 import { jsonArrayFrom } from "kysely/helpers/postgres";
 
 import type { DatabaseExecutor } from "../database/executor.js";
-import type { FindingTable } from "../database/index.js";
+import type { FindingTable } from "../database/schema/finding.js";
 import type { Selectable } from "kysely";
 
 type FindingProjectionRow = Selectable<FindingTable> & {

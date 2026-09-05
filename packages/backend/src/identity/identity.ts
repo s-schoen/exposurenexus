@@ -52,6 +52,8 @@ export interface UserUpdatedOutcome {
 }
 
 export interface IdentityUsers {
+  /** Startup-only bootstrap; returns null when any user profile already exists. */
+  createInitialAdmin(password: string): Promise<UserProfile | null>;
   listAll(): Promise<UserProfile[]>;
   getByID(id: string): Promise<UserProfile | null>;
   getByUsername(username: string): Promise<UserProfile | null>;

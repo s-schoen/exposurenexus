@@ -36,9 +36,6 @@ importers:
       '@exposurenexus/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@exposurenexus/jobs':
-        specifier: workspace:*
-        version: link:../../packages/jobs
       '@hono/node-server':
         specifier: ^2.1.1
         version: 2.1.1(hono@4.13.3)

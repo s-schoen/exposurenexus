@@ -33,6 +33,24 @@ describe("identity persistence", () => {
     await resetTestDatabase(testDb.db);
   });
 
+  it("bootstraps an admin only when no user profile exists", async () => {
+    const identity = createIdentity(createBackendRuntime({ database: testDb.db, logger }));
+    const admin = await identity.users.createInitialAdmin("initial-password");
+    expect(admin).toMatchObject({ username: "admin", roleIds: [builtInRoleIds.admin] });
+    expect(admin).not.toHaveProperty("passwordHash");
+    await expect(identity.users.createInitialAdmin("replacement-password")).resolves.toBeNull();
+    expect(await identity.users.listAll()).toHaveLength(1);
+  });
+
+  it("does not bootstrap over an existing non-admin profile", async () => {
+    await insertUser(firstUserId, "existing", []);
+    const identity = createIdentity(createBackendRuntime({ database: testDb.db, logger }));
+    await expect(identity.users.createInitialAdmin("initial-password")).resolves.toBeNull();
+    expect(await identity.users.listAll()).toEqual([
+      expect.objectContaining({ id: firstUserId, username: "existing", roleIds: [] }),
+    ]);
+  });
+
   async function insertUser(
     id: string,
     username: string,

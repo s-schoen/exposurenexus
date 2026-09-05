@@ -1,3 +1,5 @@
+import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
+
 import { ApplicationError } from "../application-error.js";
 import { isConflictError, isForeignKeyError } from "../database-error.js";
 import { hashPlaintextPassword } from "./password.js";
@@ -84,6 +86,35 @@ export function createUsers({
   logger,
 }: UserDependencies): IdentityUsers {
   return {
+    async createInitialAdmin(password: string): Promise<UserProfile | null> {
+      try {
+        return await database.transaction().execute(async (trx) => {
+          if ((await userProfilePersistence.listUserProfiles(trx)).length > 0) {
+            return null;
+          }
+          const created = await userProfilePersistence.insertUserProfile(trx, {
+            userProfile: {
+              username: "admin",
+              displayName: "Administrator",
+              email: "admin@localhost.loc",
+              enabled: true,
+              passwordHash: await hashPlaintextPassword(password),
+            },
+            roleIds: [builtInRoleIds.admin],
+          });
+          return toUserProfile(created);
+        });
+      } catch (error) {
+        throw new ApplicationError({
+          code: "user_profile.create_failed",
+          kind: "unexpected",
+          message: "failed to create initial admin",
+          details: { username: "admin", email: "admin@localhost.loc" },
+          cause: error,
+        });
+      }
+    },
+
     async listAll(): Promise<UserProfile[]> {
       try {
         return (await userProfilePersistence.listUserProfiles(database)).map(toUserProfile);
