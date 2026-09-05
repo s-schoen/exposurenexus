@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 
@@ -13,16 +13,16 @@ interface AssetDetailPageProps {
 }
 
 export function AssetDetailPage({ assetId }: AssetDetailPageProps) {
-  const asset = useQuery(createAssetByIDQueryOptions(assetId));
+  const asset = useSuspenseQuery(createAssetByIDQueryOptions(assetId));
 
   usePageMeta({
-    title: asset.data?.displayName ?? "Asset",
+    title: asset.data.displayName,
     description: "Inspect the selected asset and review its core inventory metadata.",
   });
 
   return (
     <AssetDetailContent
-      assetId={assetId}
+      asset={asset.data}
       titleAction={
         <Link
           to="/assets"

@@ -12,7 +12,6 @@ import { AlertCircle, Plus, RotateCcw, Server, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
-import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import { Inplace } from "@/components/inplace.tsx";
 import { MetadataSidebar } from "@/components/metadata-sidebar/index.tsx";
 import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
@@ -35,7 +34,6 @@ import { AssetIdentifierTable } from "@/features/assets/components/asset-identif
 import { useAssetLifecycle } from "@/features/assets/hooks/use-asset-lifecycle.ts";
 import { formatAssetCustomFieldValue } from "@/features/assets/lib/asset-custom-fields.ts";
 import {
-  createAssetByIDQueryOptions,
   createAssetCustomFieldValuesQueryOptions,
   createAvailableAssetCustomFieldDefinitionsQueryOptions,
 } from "@/features/assets/queries/assets.ts";
@@ -57,7 +55,7 @@ import type {
 import type { ReactNode } from "react";
 
 interface AssetDetailContentProps {
-  assetId: string;
+  asset: Asset;
   titleAction?: ReactNode;
 }
 
@@ -95,10 +93,9 @@ function createAssetCustomFieldValueReplacement(
   }));
 }
 
-export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentProps) {
+export function AssetDetailContent({ asset, titleAction }: AssetDetailContentProps) {
+  const assetId = asset.id;
   const assetLifecycle = useAssetLifecycle();
-  const assetQueryOptions = createAssetByIDQueryOptions(assetId);
-  const asset = useQuery(assetQueryOptions);
   const users = useQuery(createListUsersQueryOptions());
   const customFieldValuesQueryOptions = createAssetCustomFieldValuesQueryOptions(assetId);
   const availableCustomFieldDefinitionsQueryOptions =
@@ -281,7 +278,7 @@ export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentP
     );
   }
 
-  function AssetOverviewCard({ assetData }: { assetData: Asset }) {
+  function renderAssetOverviewCard({ assetData }: { assetData: Asset }) {
     return (
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
         <CardHeader className="gap-4">
@@ -325,7 +322,7 @@ export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentP
     );
   }
 
-  function AssetSidebar({ assetData }: { assetData: Asset }) {
+  function renderAssetSidebar({ assetData }: { assetData: Asset }) {
     return (
       <MetadataSidebar title="Asset details" icon={Server}>
         <div className="space-y-3">
@@ -453,28 +450,18 @@ export function AssetDetailContent({ assetId, titleAction }: AssetDetailContentP
   }
 
   return (
-    <DetailQueryBoundary
-      query={asset}
-      title="Asset details"
-      errorTitle="Unable to load asset"
-      errorDescription="The selected asset could not be loaded."
-      missingMessage="The API did not return an asset record."
-    >
-      {(assetData) => (
-        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
-          <div className="flex min-w-0 flex-col gap-4">
-            <AssetOverviewCard assetData={assetData} />
-            <AssetIdentifierTable
-              identifiers={assetData.identifiers}
-              onAdd={handleAddAssetIdentifier}
-              onUpdate={handleUpdateAssetIdentifier}
-              onRemove={handleRemoveAssetIdentifier}
-            />
-          </div>
-          <AssetSidebar assetData={assetData} />
-        </div>
-      )}
-    </DetailQueryBoundary>
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="flex min-w-0 flex-col gap-4">
+        {renderAssetOverviewCard({ assetData: asset })}
+        <AssetIdentifierTable
+          identifiers={asset.identifiers}
+          onAdd={handleAddAssetIdentifier}
+          onUpdate={handleUpdateAssetIdentifier}
+          onRemove={handleRemoveAssetIdentifier}
+        />
+      </div>
+      {renderAssetSidebar({ assetData: asset })}
+    </div>
   );
 }
 

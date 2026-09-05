@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useMemo } from "react";
@@ -12,7 +12,6 @@ import {
   getAssetCustomFieldColumnId,
 } from "@/features/assets/components/asset-table/columns.tsx";
 import { useAssetLifecycle } from "@/features/assets/hooks/use-asset-lifecycle.ts";
-import { createAssetListOptions } from "@/features/assets/hooks/use-asset-table-search-state.ts";
 import { createListAssetsWithCustomFieldsQueryOptions } from "@/features/assets/queries/assets.ts";
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields";
 import {
@@ -23,6 +22,7 @@ import {
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
+import type { AssetListOptions } from "@/features/assets/api/assets.ts";
 import type { Asset, AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
@@ -58,6 +58,7 @@ export function createAssetTableGroupingOptions(
 }
 
 interface AssetTableProps {
+  assetListOptions?: AssetListOptions;
   filterState?: DataTableFilterState;
   onFilterStateChange?: (state: DataTableFilterState) => void;
   selectedAssetId?: string;
@@ -65,6 +66,7 @@ interface AssetTableProps {
 }
 
 export function AssetTable({
+  assetListOptions,
   filterState,
   onFilterStateChange,
   selectedAssetId,
@@ -72,15 +74,14 @@ export function AssetTable({
 }: AssetTableProps = {}) {
   const navigate = useNavigate();
   const assetLifecycle = useAssetLifecycle();
-  const assetsQuery = useQuery(
-    createListAssetsWithCustomFieldsQueryOptions(createAssetListOptions(filterState)),
+  const assetsQuery = useSuspenseQuery(
+    createListAssetsWithCustomFieldsQueryOptions(assetListOptions),
   );
-  const usersQuery = useQuery(createListUsersQueryOptions());
-  const customFieldDefinitionsQuery = useQuery(createListAssetCustomFieldDefinitionsQueryOptions());
-  const customFieldDefinitions = useMemo(
-    () => customFieldDefinitionsQuery.data ?? [],
-    [customFieldDefinitionsQuery.data],
+  const usersQuery = useSuspenseQuery(createListUsersQueryOptions());
+  const customFieldDefinitionsQuery = useSuspenseQuery(
+    createListAssetCustomFieldDefinitionsQueryOptions(),
   );
+  const customFieldDefinitions = customFieldDefinitionsQuery.data;
   const userProfileById = useMemo(() => createUserProfileById(usersQuery.data), [usersQuery.data]);
   const tableColumns = useMemo(
     () => createAssetTableColumns(customFieldDefinitions, userProfileById, usersQuery.isPending),

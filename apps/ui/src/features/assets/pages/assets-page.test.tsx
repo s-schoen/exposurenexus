@@ -90,6 +90,7 @@ const mocks = vi.hoisted(() => {
     navigate: vi.fn(),
     createdAsset,
     users,
+    previewError: undefined as Error | undefined,
     usePageMeta: vi.fn(),
   };
 });
@@ -100,6 +101,22 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: QueryOptionsLike) => {
+    const queryKey = options.queryKey.join("/");
+
+    if (queryKey.startsWith("assets/") && queryKey !== "assets/with-custom-fields") {
+      return {
+        data: mocks.previewError ? undefined : mocks.assets[0],
+        error: mocks.previewError,
+        isFetching: false,
+        isPending: false,
+        isSuccess: true,
+        refetch: vi.fn(),
+      };
+    }
+
+    throw new Error(`Unhandled query key ${queryKey}`);
+  },
+  useSuspenseQuery: (options: QueryOptionsLike) => {
     const queryKey = options.queryKey.join("/");
 
     if (queryKey === "assets/with-custom-fields") {
@@ -137,6 +154,9 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 vi.mock("@/features/assets/queries/assets.ts", () => ({
+  createAssetByIDQueryOptions: (id: string) => ({
+    queryKey: ["assets", id],
+  }),
   createListAssetsWithCustomFieldsQueryOptions: (options?: unknown) => {
     mocks.assetListOptions = options;
 
@@ -226,7 +246,9 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
 }));
 
 vi.mock("@/features/assets/components/asset-detail-content.tsx", () => ({
-  AssetDetailContent: ({ assetId }: { assetId: string }) => <div>Asset detail for {assetId}</div>,
+  AssetDetailContent: ({ asset }: { asset: AssetWithCustomFields }) => (
+    <div>Asset detail for {asset.id}</div>
+  ),
 }));
 
 class ResizeObserverMock {
@@ -298,6 +320,7 @@ describe("AssetsPage", () => {
     mocks.deleteAssets.mockReset();
     mocks.deleteAssets.mockResolvedValue({ successful: mocks.assets, failed: [] });
     mocks.navigate.mockReset();
+    mocks.previewError = undefined;
     mocks.usePageMeta.mockReset();
   });
 
@@ -335,6 +358,16 @@ describe("AssetsPage", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(screen.queryByTestId("data-table-active-row")).not.toBeInTheDocument();
     });
+  });
+
+  it("keeps asset preview failures inside the preview dialog", () => {
+    mocks.previewError = new Error("Asset preview failed");
+
+    renderAssetsRoute({ initialSelected: mocks.assets[0].id });
+
+    expect(screen.getByRole("dialog", { name: "Asset details" })).toBeVisible();
+    expect(screen.getByText("Asset preview failed")).toBeVisible();
+    expect(screen.queryByText("Unable to load this page")).not.toBeInTheDocument();
   });
 
   it("updates visible asset results from route-owned search state", async () => {
