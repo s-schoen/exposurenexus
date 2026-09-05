@@ -74,7 +74,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: (options: { queryKey: Array<string> }) => {
+  useSuspenseQuery: (options: { queryKey: Array<string> }) => {
     if (options.queryKey.join("/") === "roles") {
       return mocks.rolesQuery;
     }
@@ -161,54 +161,6 @@ describe("EditUserPage", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
-  });
-
-  it("renders the loading state while the user is pending", () => {
-    mocks.userQuery = {
-      isPending: true,
-      isSuccess: false,
-    };
-
-    render(<EditUserPage userId={userId} />);
-
-    expect(screen.getAllByText("Loading user details and roles.").length).toBeGreaterThan(0);
-  });
-
-  it("renders the loading state while roles are pending", () => {
-    mocks.rolesQuery = {
-      isPending: true,
-      isSuccess: false,
-    };
-
-    render(<EditUserPage userId={userId} />);
-
-    expect(screen.getAllByText("Loading user details and roles.").length).toBeGreaterThan(0);
-  });
-
-  it("renders the user loading error state", () => {
-    mocks.userQuery = {
-      error: new Error("User request failed"),
-      isPending: false,
-      isSuccess: false,
-    };
-
-    render(<EditUserPage userId={userId} />);
-
-    expect(screen.getByText("Unable to load edit form")).toBeTruthy();
-    expect(screen.getByText("User request failed")).toBeTruthy();
-  });
-
-  it("renders the roles loading error state", () => {
-    mocks.rolesQuery = {
-      error: new Error("Roles request failed"),
-      isPending: false,
-      isSuccess: false,
-    };
-
-    render(<EditUserPage userId={userId} />);
-
-    expect(screen.getByText("Unable to load edit form")).toBeTruthy();
-    expect(screen.getByText("Roles request failed")).toBeTruthy();
   });
 
   it("passes default form values from the loaded user", () => {

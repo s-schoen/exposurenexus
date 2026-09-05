@@ -72,7 +72,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: (options: QueryOptionsLike) => {
+  useSuspenseQuery: (options: QueryOptionsLike) => {
     const queryKey = options.queryKey.join("/");
 
     if (queryKey === "users") {
@@ -143,8 +143,8 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
     ) : null,
 }));
 
-vi.mock("@/features/users/components/user-detail-content.tsx", () => ({
-  UserDetailContent: ({ userId }: { userId: string }) => <div>User detail for {userId}</div>,
+vi.mock("@/features/users/components/user-preview.tsx", () => ({
+  UserPreview: ({ userId }: { userId: string }) => <div>User detail for {userId}</div>,
 }));
 
 class ResizeObserverMock {

@@ -56,7 +56,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.rolesQuery,
+  useSuspenseQuery: () => mocks.rolesQuery,
 }));
 
 vi.mock("@/features/roles", () => ({
@@ -122,30 +122,6 @@ describe("CreateUserPage", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
-  });
-
-  it("renders the loading state while roles are pending", () => {
-    mocks.rolesQuery = {
-      isPending: true,
-      isSuccess: false,
-    };
-
-    render(<CreateUserPage />);
-
-    expect(screen.getAllByText("Loading available roles.").length).toBeGreaterThan(0);
-  });
-
-  it("renders the role loading error state", () => {
-    mocks.rolesQuery = {
-      error: new Error("Roles request failed"),
-      isPending: false,
-      isSuccess: false,
-    };
-
-    render(<CreateUserPage />);
-
-    expect(screen.getByText("Unable to load roles")).toBeTruthy();
-    expect(screen.getByText("Roles request failed")).toBeTruthy();
   });
 
   it("uses the viewer role as the create form default", () => {

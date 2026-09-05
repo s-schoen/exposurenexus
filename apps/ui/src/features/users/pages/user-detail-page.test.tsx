@@ -45,7 +45,8 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.userQuery,
+  useSuspenseQuery: (options: { queryKey: Array<string> }) =>
+    options.queryKey[0] === "roles" ? { data: [] } : mocks.userQuery,
 }));
 
 vi.mock("@/features/users/queries/users.ts", () => ({
@@ -54,21 +55,19 @@ vi.mock("@/features/users/queries/users.ts", () => ({
   }),
 }));
 
+vi.mock("@/features/roles", () => ({
+  createListRolesQueryOptions: () => ({ queryKey: ["roles"] }),
+}));
+
 vi.mock("@/hooks/use-page-meta.tsx", () => ({
   usePageMeta: mocks.usePageMeta,
 }));
 
 vi.mock("@/features/users/components/user-detail-content.tsx", () => ({
-  UserDetailContent: ({
-    titleAction,
-    userId: renderedUserId,
-  }: {
-    titleAction?: ReactNode;
-    userId: string;
-  }) => (
+  UserDetailContent: ({ titleAction, user }: { titleAction?: ReactNode; user: UserProfile }) => (
     <div>
       {titleAction}
-      <div>User detail for {renderedUserId}</div>
+      <div>User detail for {user.id}</div>
     </div>
   ),
 }));
@@ -104,26 +103,6 @@ describe("UserDetailPage", () => {
     });
     expect(screen.getByRole("link", { name: /back to users/i })).toHaveAttribute("href", "/users");
     expect(screen.getByText(`User detail for ${userId}`)).toBeVisible();
-  });
-
-  it("uses fallback page metadata before user data is available", async () => {
-    const { UserDetailPage } = await import("@/features/users/pages/user-detail-page.tsx");
-    mocks.userQuery = {
-      isPending: true,
-      isSuccess: false,
-    };
-
-    render(<UserDetailPage userId={userId} />);
-
-    expect(mocks.usePageMeta).toHaveBeenCalledWith({
-      title: "User",
-      description: "Review account identity fields, status, and role assignments.",
-      actions: [
-        expect.objectContaining({
-          label: "Edit user",
-        }),
-      ],
-    });
   });
 
   it("navigates to edit from the page action", async () => {
