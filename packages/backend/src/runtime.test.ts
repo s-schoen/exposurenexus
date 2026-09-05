@@ -18,6 +18,10 @@ function createRuntime() {
 }
 
 describe("backend runtime", () => {
+  it("rejects a forged runtime instead of accessing unregistered resources", () => {
+    expect(() => getRuntimeDatabase({} as never)).toThrow("invalid backend runtime");
+  });
+
   it("retains its explicit process resources without accessing them during construction", () => {
     const { database, logger, runtime } = createRuntime();
 
