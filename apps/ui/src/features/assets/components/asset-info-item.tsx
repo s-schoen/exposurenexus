@@ -30,13 +30,11 @@ export function AssetInfoItem({ assetId }: AssetInfoItemProps) {
         <ItemTitle className="font-semibold">
           {asset.isLoading ? <Skeleton className="w-32" /> : asset.data?.displayName}
         </ItemTitle>
-        <ItemDescription>
-          {asset.isLoading ? (
-            <Skeleton className="w-32" />
-          ) : (
-            capitalizeFirstLetter(asset.data?.type ?? "")
-          )}
-        </ItemDescription>
+        {asset.isLoading ? (
+          <Skeleton className="w-32" />
+        ) : (
+          <ItemDescription>{capitalizeFirstLetter(asset.data?.type ?? "")}</ItemDescription>
+        )}
       </ItemContent>
       <ItemActions>
         <Link
