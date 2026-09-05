@@ -1,8 +1,13 @@
 import { Outlet, createFileRoute, useMatchRoute } from "@tanstack/react-router";
 
-import { VulnerabilityDetailPage } from "@/features/vulnerabilities";
+import {
+  createVulnerabilityByIDQueryOptions,
+  VulnerabilityDetailPage,
+} from "@/features/vulnerabilities";
 
 export const Route = createFileRoute("/_authenticated/vulnerabilities/$id")({
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(createVulnerabilityByIDQueryOptions(params.id)),
   component: RouteComponent,
 });
 

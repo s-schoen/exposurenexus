@@ -132,8 +132,8 @@ vi.mock("@/components/detail-preview-dialog.tsx", () => ({
   },
 }));
 
-vi.mock("@/features/vulnerabilities/components/vulnerability-detail-content.tsx", () => ({
-  VulnerabilityDetailContent: ({ vulnerabilityId }: { vulnerabilityId: string }) => (
+vi.mock("@/features/vulnerabilities/components/vulnerability-preview.tsx", () => ({
+  VulnerabilityPreview: ({ vulnerabilityId }: { vulnerabilityId: string }) => (
     <div>Detail for {vulnerabilityId}</div>
   ),
 }));
@@ -223,7 +223,7 @@ describe("VulnerabilitiesPage", () => {
     expect(screen.getByTestId("full-page-href").textContent).toBe(
       `/vulnerabilities/${mocks.vulnerability.id}`,
     );
-    expect(screen.getByText(`Detail for ${mocks.vulnerability.id}`)).toBeTruthy();
+    expect(await screen.findByText(`Detail for ${mocks.vulnerability.id}`)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /select vulnerability/i }));
     expect(mocks.navigate).toHaveBeenCalledWith({

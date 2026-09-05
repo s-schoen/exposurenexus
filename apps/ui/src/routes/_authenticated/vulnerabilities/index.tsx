@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { VulnerabilitiesPage, validateVulnerabilityTableSearch } from "@/features/vulnerabilities";
+import {
+  createListVulnerabilitiesQueryOptions,
+  VulnerabilitiesPage,
+  validateVulnerabilityTableSearch,
+} from "@/features/vulnerabilities";
 import { validateSelectedSearch } from "@/hooks/use-selected-search-param.ts";
 
 export const Route = createFileRoute("/_authenticated/vulnerabilities/")({
@@ -9,6 +13,8 @@ export const Route = createFileRoute("/_authenticated/vulnerabilities/")({
     ...validateSelectedSearch(search),
     ...validateVulnerabilityTableSearch(search),
   }),
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(createListVulnerabilitiesQueryOptions()),
   component: RouteComponent,
 });
 
