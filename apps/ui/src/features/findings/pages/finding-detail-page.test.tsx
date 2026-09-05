@@ -81,7 +81,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: (options: QueryOptionsLike) => {
+  useSuspenseQuery: (options: QueryOptionsLike) => {
     if (options.queryKey[0] === "findings") {
       return mocks.findingQuery;
     }
@@ -112,15 +112,15 @@ vi.mock("@/hooks/use-page-meta.tsx", () => ({
 
 vi.mock("@/features/findings/components/finding-detail-content.tsx", () => ({
   FindingDetailContent: ({
-    findingId: renderedFindingId,
+    finding: renderedFinding,
     titleAction,
   }: {
-    findingId: string;
+    finding: Finding;
     titleAction?: ReactNode;
   }) => (
     <div>
       {titleAction}
-      <div>Finding detail for {renderedFindingId}</div>
+      <div>Finding detail for {renderedFinding.id}</div>
     </div>
   ),
 }));
@@ -158,39 +158,5 @@ describe("FindingDetailPage", () => {
       "/findings",
     );
     expect(screen.getByText(`Finding detail for ${findingId}`)).toBeVisible();
-  });
-
-  it("uses fallback page metadata before finding data is available", async () => {
-    const { FindingDetailPage } = await import("@/features/findings/pages/finding-detail-page.tsx");
-    mocks.findingQuery = {
-      isPending: true,
-      isSuccess: false,
-    };
-    mocks.assetQuery = {
-      isPending: true,
-      isSuccess: false,
-    };
-
-    render(<FindingDetailPage findingId={findingId} />);
-
-    expect(mocks.usePageMeta).toHaveBeenCalledWith({
-      title: "Finding",
-      description: "Inspect, update, and triage a specific finding.",
-    });
-  });
-
-  it("uses fallback description while the finding asset is loading", async () => {
-    const { FindingDetailPage } = await import("@/features/findings/pages/finding-detail-page.tsx");
-    mocks.assetQuery = {
-      isPending: true,
-      isSuccess: false,
-    };
-
-    render(<FindingDetailPage findingId={findingId} />);
-
-    expect(mocks.usePageMeta).toHaveBeenCalledWith({
-      title: "Missing MFA enforcement",
-      description: "Inspect, update, and triage a specific finding.",
-    });
   });
 });

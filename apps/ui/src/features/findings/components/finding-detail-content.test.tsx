@@ -222,6 +222,12 @@ vi.mock("@/components/detail-query-boundary.tsx", () => ({
   }) => (query?.data ? <>{children(query.data)}</> : <div>{title}</div>),
 }));
 
+function getFinding() {
+  const data = mocks.findingQuery?.data;
+  if (!data) throw new Error("Missing finding fixture");
+  return data;
+}
+
 describe("FindingDetailContent", () => {
   beforeEach(() => {
     mocks.correctFinding.mockReset();
@@ -240,7 +246,7 @@ describe("FindingDetailContent", () => {
   });
 
   it("renders finding-owned data, summaries, weakness, resource, and equal catalog links", () => {
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
 
     expect(screen.getByText(finding.title)).toBeTruthy();
     expect(screen.getByText("CWE-200")).toBeTruthy();
@@ -267,7 +273,7 @@ describe("FindingDetailContent", () => {
       isSuccess: true,
     };
 
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
 
     expect(screen.getByText("No catalog entries are linked.")).toBeTruthy();
     expect(screen.getAllByText("Not available").length).toBeGreaterThan(0);
@@ -280,22 +286,14 @@ describe("FindingDetailContent", () => {
       isSuccess: true,
     };
 
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
 
     expect(screen.getByText("2026-05-06")).toBeTruthy();
   });
 
-  it("renders a missing finding boundary while the query is pending", () => {
-    mocks.findingQuery = { isPending: true, isSuccess: false };
-
-    render(<FindingDetailContent findingId={finding.id} />);
-
-    expect(screen.getByText("Finding details")).toBeTruthy();
-  });
-
   it("opens and cancels the finding correction flow", async () => {
     const actor = userEvent.setup();
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
 
     await actor.click(screen.getByRole("button", { name: "Edit finding" }));
 
@@ -311,7 +309,7 @@ describe("FindingDetailContent", () => {
 
   it("replaces resource fields when the affected resource type changes", async () => {
     const actor = userEvent.setup();
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
 
     await actor.click(screen.getByRole("button", { name: "Edit finding" }));
     await actor.click(screen.getByLabelText("Affected resource type"));
@@ -328,7 +326,7 @@ describe("FindingDetailContent", () => {
 
   it("submits exactly the finding-owned correction payload", async () => {
     const actor = userEvent.setup();
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
 
     await actor.click(screen.getByRole("button", { name: "Edit finding" }));
     const title = screen.getByLabelText("Title");
@@ -351,7 +349,7 @@ describe("FindingDetailContent", () => {
 
   it("submits a complete correction and supports disabled assignees and due-date changes", async () => {
     const actor = userEvent.setup();
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
     await actor.click(screen.getByRole("button", { name: "Edit finding" }));
     await actor.clear(screen.getByLabelText("Title"));
     await actor.type(screen.getByLabelText("Title"), "Corrected endpoint");
@@ -399,7 +397,7 @@ describe("FindingDetailContent", () => {
       isSuccess: true,
     };
     const actor = userEvent.setup();
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
     expect(screen.getByText("Casey Disabled")).toBeTruthy();
     await actor.click(screen.getByRole("button", { name: "Edit finding" }));
     await actor.clear(screen.getByLabelText("Title"));
@@ -425,7 +423,7 @@ describe("FindingDetailContent", () => {
       isSuccess: true,
     };
     const actor = userEvent.setup();
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
 
     expect(screen.getByText("Unknown Assignee")).toBeTruthy();
     await actor.click(screen.getByRole("button", { name: "Edit finding" }));
@@ -435,7 +433,7 @@ describe("FindingDetailContent", () => {
   it("links and unlinks catalog entries with confirmation and retained selection on failure", async () => {
     mocks.linkVulnerability.mockResolvedValueOnce(null).mockResolvedValueOnce(finding);
     const actor = userEvent.setup();
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
     await actor.click(screen.getByLabelText("Link catalog entry"));
     await actor.click(await screen.findByRole("option", { name: /CVE: CVE-2026-0002/ }));
     await actor.click(screen.getByRole("button", { name: "Link entry" }));
@@ -454,7 +452,7 @@ describe("FindingDetailContent", () => {
 
   it("shows validation errors and keeps the correction open", async () => {
     const actor = userEvent.setup();
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
 
     await actor.click(screen.getByRole("button", { name: "Edit finding" }));
     await actor.clear(screen.getByLabelText("Title"));
@@ -468,7 +466,7 @@ describe("FindingDetailContent", () => {
   it("keeps the correction open when the lifecycle update fails", async () => {
     mocks.correctFinding.mockResolvedValueOnce(null);
     const actor = userEvent.setup();
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
 
     await actor.click(screen.getByRole("button", { name: "Edit finding" }));
     await actor.click(screen.getByRole("button", { name: "Save correction" }));
@@ -485,7 +483,7 @@ describe("FindingDetailContent", () => {
       }),
     );
     const actor = userEvent.setup();
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
     await actor.click(screen.getByRole("button", { name: "Edit finding" }));
     const submit = screen.getByRole("button", { name: "Save correction" });
     await actor.click(submit);
@@ -505,7 +503,7 @@ describe("FindingDetailContent", () => {
   it("does not unlink when confirmation is cancelled", async () => {
     mocks.confirm.mockResolvedValueOnce(false);
     const actor = userEvent.setup();
-    render(<FindingDetailContent findingId={finding.id} />);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
 
     await actor.click(screen.getAllByRole("button", { name: "Unlink" })[0]);
 
@@ -515,7 +513,7 @@ describe("FindingDetailContent", () => {
 
   it("preserves the correction draft when the finding query rerenders", async () => {
     const actor = userEvent.setup();
-    const view = render(<FindingDetailContent findingId={finding.id} />);
+    const view = render(<FindingDetailContent finding={getFinding()} asset={asset} />);
 
     await actor.click(screen.getByRole("button", { name: "Edit finding" }));
     const title = screen.getByLabelText("Title");
@@ -527,7 +525,7 @@ describe("FindingDetailContent", () => {
       isPending: false,
       isSuccess: true,
     };
-    view.rerender(<FindingDetailContent findingId={finding.id} />);
+    view.rerender(<FindingDetailContent finding={getFinding()} asset={asset} />);
 
     expect(screen.getByRole("dialog", { name: "Correct finding" })).toBeTruthy();
     expect(screen.getByLabelText("Title")).toHaveValue("Unsaved correction");

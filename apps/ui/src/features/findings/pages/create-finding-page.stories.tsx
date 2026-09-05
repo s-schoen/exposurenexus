@@ -34,6 +34,7 @@ const meta = {
     (Story) => {
       const queryClient = createStoryQueryClient();
       queryClient.setQueryData(["assets"], STORY_ASSETS);
+      queryClient.setQueryData(createListUsersQueryOptions().queryKey, USERS);
 
       return (
         <QueryClientProvider client={queryClient}>

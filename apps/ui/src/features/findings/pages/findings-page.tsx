@@ -1,5 +1,5 @@
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
-import { FindingDetailContent } from "@/features/findings/components/finding-detail-content.tsx";
+import { FindingPreview } from "@/features/findings/components/finding-preview.tsx";
 import { FindingTable } from "@/features/findings/components/finding-table/index.tsx";
 import { useFindingTableSearchState } from "@/features/findings/hooks/use-finding-table-search-state.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
@@ -49,7 +49,7 @@ export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
         description="Review and update the selected finding without leaving the findings table."
         fullPageHref={selected ? `/findings/${selected}` : undefined}
       >
-        {selected && <FindingDetailContent findingId={selected} />}
+        {selected && <FindingPreview findingId={selected} />}
       </DetailPreviewDialog>
     </>
   );
