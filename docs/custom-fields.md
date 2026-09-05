@@ -22,40 +22,17 @@ authorization model. It is not an endpoint reference.
 
 ## Main Components
 
-Asset custom fields are split across shared types, migrations, repositories,
-services, and route layers.
+Asset custom fields follow [ADR-0004](adr/0004-shared-backend-capabilities.md).
 
-- `packages/contracts/src/model/asset-custom-field.ts` defines the supported field
-  types, definition shapes, value shapes, and request validation schemas.
-- `packages/contracts/src/model/asset.ts` keeps the core asset shapes and the
-  `AssetWithCustomFields` projection.
-- `apps/api/src/db/migrations/20260429-asset-custom-fields.ts` creates the
-  custom field tables and the database enum for field types.
-- `apps/api/src/db/migrations/20260430-03-asset-custom-field-assignments.ts`
-  creates the asset-to-field assignment table and backfills existing assets
-  with existing definitions.
-- `apps/api/src/db/schema/asset-custom-field.ts` owns the custom field table
-  types used by the API database interface.
-- `apps/api/src/repository/asset-custom-field.ts` persists registry-level field
-  definitions, select options, asset assignments, per-asset value overrides,
-  and composes effective field values from assignments, defaults, and
-  asset-specific overrides.
-- `apps/api/src/service/asset-custom-field.ts` validates definition rules,
-  asset-specific assignment commands, and asset-specific value commands; serves
-  registry and asset-specific read projections; emits custom field definition
-  events; and emits `asset.updated` for assignment and value changes with the
-  preserved asset event payload shape.
-- `apps/api/src/repository/asset.ts` persists only core asset rows.
-- `apps/api/src/service/asset.ts` owns core asset behavior. Its
-  `AssetWithCustomFields` reads are a compatibility projection that delegates
-  custom field hydration to the asset custom field service.
-- `apps/api/src/routes/asset-custom-fields.ts` exposes registry-level custom
-  field definition operations through `AssetCustomFieldService`.
-- `apps/api/src/routes/assets.ts` exposes asset-specific custom field read,
-  assignment, and value operations.
-
-Shared custom field shapes live in `packages/contracts`, so the API, UI, and tests
-use the same domain model.
+- Contracts define client-safe field, value, asset projection, and request shapes.
+- Backend owns custom field migrations, table types, private persistence,
+  effective-value projections, business validation, and transaction boundaries.
+- `Assets.customFields` exposes definition, assignment, and value operations;
+  `Assets.inventory` exposes core asset behavior and combined asset reads.
+- API routes validate request shape and enforce permissions through middleware.
+- The API assets event decorator converts backend mutation outcomes into
+  definition events and `asset.updated` events, using transaction-produced
+  snapshots without database rereads.
 
 ## Field Types
 
@@ -124,7 +101,7 @@ assigned to an asset at most once. Assignments are separate from values: an
 asset may have an assigned field without an asset-specific override.
 
 `defaultValue` and `value` are stored as `jsonb`. The database stores the raw
-JSON scalar, while the service layer interprets and validates it according to
+JSON scalar, while the backend capability interprets and validates it according to
 the field definition type. This keeps the schema simple and avoids separate
 columns such as `textValue` and `numberValue`.
 
@@ -134,8 +111,8 @@ Custom field definitions are global to the asset registry.
 
 1. A client sends a custom field definition.
 2. The route validates the request shape with the shared schema.
-3. `AssetCustomFieldService` validates type-specific rules.
-4. `AssetCustomFieldRepository` stores the definition in `asset_custom_field`.
+3. `Assets.customFields` validates type-specific rules.
+4. backend private persistence stores the definition in `asset_custom_field`.
 5. For select fields, the repository stores options in
    `asset_custom_field_option`.
 6. The API returns the saved definition, including generated IDs.
@@ -150,7 +127,7 @@ per-asset values.
 Custom field definitions are global, but assets explicitly choose which fields
 are associated with them.
 
-When a client lists available fields for an asset, `AssetCustomFieldService`
+When a client lists available fields for an asset, `Assets.customFields`
 returns the field definitions that exist globally but are not currently
 assigned to that asset. The route remains under `/api/assets/:id` for
 compatibility and still uses `asset:read`.
@@ -159,7 +136,7 @@ Assigning fields to an asset:
 
 1. The target asset must exist.
 2. Every requested field ID must reference an existing definition.
-3. `AssetCustomFieldRepository` replaces the asset assignment set.
+3. backend private persistence replaces the asset assignment set.
 4. The API returns the effective values for the assigned fields.
 
 Assignment is idempotent. Sending an already assigned field ID does not create a
@@ -171,7 +148,7 @@ definition, and it does not affect other assets.
 
 ## Value Flow
 
-When custom field values are listed for an asset, `AssetCustomFieldService`
+When custom field values are listed for an asset, `Assets.customFields`
 returns one effective value object per assigned field:
 
 - `source = "asset"` when the asset has a stored override.
@@ -180,8 +157,8 @@ returns one effective value object per assigned field:
 - `source = "empty"` when neither an override nor a default value exists.
 
 Writing custom field values only stores per-asset overrides in
-`asset_custom_field_value` through `AssetCustomFieldService` and
-`AssetCustomFieldRepository`. The field must already be assigned to the asset.
+`asset_custom_field_value` through `Assets.customFields` and
+backend private persistence. The field must already be assigned to the asset.
 Sending `null` for a field removes the stored override, so the returned
 effective value falls back to the field default or becomes empty.
 
@@ -189,15 +166,14 @@ Clearing a value also removes the stored override and returns a standard object
 reply indicating that the clear operation was applied.
 
 Combined asset reads, including `GET /api/assets?includeCustomFields=true`,
-keep returning `AssetWithCustomFields`. The core asset service reads the core
-asset rows, then delegates effective custom field value hydration to the asset
-custom field service. Asset lifecycle event snapshots use the same effective
+keep returning `AssetWithCustomFields`. The backend inventory capability composes core
+asset data with effective custom field values through private projections. Asset lifecycle event snapshots use the same effective
 value semantics.
 
 ## Validation
 
 The database keeps the schema intentionally simple. Type-specific rules are
-validated in the service layer.
+validated in the backend capability.
 
 Field definition validation includes:
 
@@ -234,7 +210,7 @@ Assignment and value mutations require an authenticated user profile. A
 successful mutation updates the parent asset's `updatedAt` and `updatedBy` in
 the same transaction as the custom-field rows. No-op replacements leave the
 parent audit metadata unchanged and do not emit an `asset.updated` event.
-Changed replacements emit one post-commit `asset.updated` event with complete
+The API decorator translates changed outcomes into one post-commit `asset.updated` event with complete
 previous and current asset snapshots, including effective custom field values.
 
 ## Authorization
@@ -261,7 +237,7 @@ separately from who may fill in values on individual assets.
 
 ## Failure Behavior
 
-The service layer maps expected validation and persistence failures to domain
+The backend capability maps expected validation and persistence failures to domain
 errors.
 
 - Invalid definitions and invalid values return bad-request responses.
@@ -298,5 +274,5 @@ The API does not currently support:
 - database-level JSON type check constraints for stored values
 - historical tracking of custom field value changes
 
-The API remains the authority for field definitions, effective values,
-validation, and permissions.
+Backend owns field definitions, effective values, and business validation;
+API middleware enforces permissions.

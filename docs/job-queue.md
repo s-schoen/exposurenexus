@@ -4,6 +4,21 @@ The `@exposurenexus/jobs` package provides the durable job model and service,
 PostgreSQL repository, single-publisher relay, and RabbitMQ producer and
 consumer.
 
+## Database And Runtime Ownership
+
+As established by [ADR-0004](adr/0004-shared-backend-capabilities.md),
+`@exposurenexus/backend/database` owns application migrations and the aggregate
+database type. Its narrow dependency on `@exposurenexus/jobs/postgres` supplies
+the jobs table contract; the application migration lives in backend. The API runs backend migrations during
+startup; a future worker will not run them.
+
+Executable apps own connection lifecycle and jobs infrastructure composition.
+Queue producers, consumers, relays, handlers, and delivery policy remain in
+apps and the jobs package. Backend capability callers do not gain repository
+or transaction access through this integration. There is no worker application
+or ingestion handler wired into the API yet; the package examples below
+describe queue primitives, not an implemented ingestion workflow.
+
 ## Transactional Outbox
 
 Application code creates jobs through `JobService`, using a repository bound to

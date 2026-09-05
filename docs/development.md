@@ -51,7 +51,7 @@ asset directory when the API process should also serve the React app.
 
 If you use a different local database, update `DATABASE_URL` accordingly.
 
-On first startup, the API runs database migrations automatically and creates a default admin user if the database is empty. The username is `admin`; the initial password is written to the API logs once.
+On first startup, the API runs backend-owned database migrations automatically and creates a default admin user if the database is empty. The username is `admin`; the initial password is written to the API logs once.
 
 ## Configure The UI
 
@@ -79,10 +79,12 @@ Open `http://localhost:3000`.
 ```text
 .
 ├── apps/
-│   ├── api/      # Hono API server, auth, database, imports
+│   ├── api/      # Hono HTTP adapters and executable composition
 │   └── ui/       # React + Vite frontend
 └── packages/
-    └── types/    # Shared Zod schemas and TypeScript types
+    ├── backend/  # Business capabilities, persistence, migrations
+    ├── contracts/ # Client-safe schemas and API types
+    └── jobs/     # Job model, outbox, relay, and queue transport
 ```
 
 ## Workspace Commands
@@ -106,8 +108,8 @@ Focused root scripts use pnpm's dependency filter, such as
 package-local command.
 
 Run focused checks through the root scripts below. Direct package commands such
-as `pnpm --filter @exposurenexus/api test` assume `packages/contracts/dist` already
-exists. When editing shared contracts while a dev server is already running, rebuild
+as `pnpm --filter @exposurenexus/api test` assume all workspace dependencies
+(including backend, contracts, and jobs) have already been built. When editing shared contracts while a dev server is already running, rebuild
 the package with `pnpm --filter @exposurenexus/contracts build` before restarting
 the dependent API or UI process.
 
@@ -123,13 +125,16 @@ pnpm storybook:ui
 
 ## Technical Notes
 
-ExposureNexus is implemented as a `pnpm` monorepo with three main workspaces:
+ExposureNexus is implemented as a `pnpm` monorepo with these workspaces:
 
-- `apps/api` owns persistence, authentication, imports, and domain services.
+- `apps/api` owns HTTP adaptation, cookies, middleware, API events, and startup.
+- `packages/backend` owns business capabilities, authentication, identity/RBAC,
+  persistence, transactions, and migrations.
+- `packages/jobs` provides the job model, outbox persistence, relay, and queue transport.
 - `apps/ui` provides the authenticated dashboard, assets, findings, vulnerabilities, triage, import, user, role, and custom field workflows.
 - `packages/contracts` contains shared domain schemas and API contracts for assets, vulnerabilities, findings, users, roles, and permissions.
 
 The current stack uses Hono for the API, PostgreSQL for storage, opaque server-side session authentication, and a React/Vite frontend with TanStack Router and TanStack Query.
 
-API route, service, and repository boundary conventions are documented in
+API adapter and shared backend capability conventions are documented in
 [API Architecture](api-architecture.md).
