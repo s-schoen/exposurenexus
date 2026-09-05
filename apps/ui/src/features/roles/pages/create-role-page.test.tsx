@@ -63,7 +63,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.rolesQuery,
+  useSuspenseQuery: () => mocks.rolesQuery,
 }));
 
 vi.mock("@/features/roles/queries/roles.ts", () => ({
@@ -126,30 +126,6 @@ describe("CreateRolePage", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
-  });
-
-  it("renders the loading state while roles are pending", () => {
-    mocks.rolesQuery = {
-      isPending: true,
-      isSuccess: false,
-    };
-
-    render(<CreateRolePage />);
-
-    expect(screen.getAllByText("Loading available permissions.").length).toBeGreaterThan(0);
-  });
-
-  it("renders the role loading error state", () => {
-    mocks.rolesQuery = {
-      error: new Error("Roles request failed"),
-      isPending: false,
-      isSuccess: false,
-    };
-
-    render(<CreateRolePage />);
-
-    expect(screen.getByText("Unable to load permissions")).toBeTruthy();
-    expect(screen.getByText("Roles request failed")).toBeTruthy();
   });
 
   it("renders the role form in create mode", () => {
