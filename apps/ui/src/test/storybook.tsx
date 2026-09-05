@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterContextProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { useMemo } from "react";
 
-import { createRouterLoginRedirects } from "@/features/auth/index.ts";
+import { createRouterLoginRedirects } from "@/features/auth";
 import { routeTree } from "@/routeTree.gen.ts";
 
 import type { ReactNode } from "react";
