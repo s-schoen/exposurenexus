@@ -8,11 +8,8 @@ import { Button } from "@/components/ui/button.tsx";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { Toaster } from "@/components/ui/sonner.tsx";
 import { AssetDialog } from "@/features/assets";
-import { AccountMenu } from "@/features/auth/index.ts";
-import {
-  createFindingStatsQueryOptions,
-  getFindingNavigationCounts,
-} from "@/features/findings/index.ts";
+import { AccountMenu } from "@/features/auth";
+import { createFindingStatsQueryOptions, getFindingNavigationCounts } from "@/features/findings";
 import { usePage } from "@/hooks/use-page-meta.tsx";
 import { cn } from "@/lib/utils.ts";
 

@@ -27,7 +27,10 @@
         "eslint/no-unused-expressions": "off",
         "eslint/sort-imports": [
           "error",
-          { "ignoreDeclarationSort": true, "ignoreMemberSort": true }
+          {
+            "ignoreDeclarationSort": true,
+            "ignoreMemberSort": true
+          }
         ],
         "import/consistent-type-specifier-style": ["error", "prefer-top-level"],
         "import/first": "error",
@@ -48,11 +51,21 @@
             "ts-ignore": "allow-with-description"
           }
         ],
-        "typescript/consistent-type-imports": ["error", { "prefer": "type-imports" }],
+        "typescript/consistent-type-imports": [
+          "error",
+          {
+            "prefer": "type-imports"
+          }
+        ],
         "typescript/method-signature-style": ["error", "property"],
         "typescript/no-empty-object-type": "off",
         "typescript/no-for-in-array": "error",
-        "typescript/no-inferrable-types": ["error", { "ignoreParameters": true }],
+        "typescript/no-inferrable-types": [
+          "error",
+          {
+            "ignoreParameters": true
+          }
+        ],
         "typescript/no-unused-expressions": "off",
         "typescript/no-unnecessary-condition": "error",
         "typescript/no-unnecessary-type-assertion": "error",
@@ -68,10 +81,22 @@
               {
                 "group": ["./*", "../*"],
                 "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
               }
             ]
           }
-        ]
+        ],
+        "import/no-cycle": [
+          "error",
+          {
+            "ignoreExternal": true,
+            "ignoreTypes": true
+          }
+        ],
+        "import/no-self-import": "error"
       }
     },
     {
@@ -88,10 +113,20 @@
         "vitest/require-mock-type-parameters": "off",
         "vitest/require-to-throw-message": "off",
         "jsx-a11y/role-has-required-aria-props": "off",
-        "testing-library/await-async-events": ["error", { "eventModule": "userEvent" }],
+        "testing-library/await-async-events": [
+          "error",
+          {
+            "eventModule": "userEvent"
+          }
+        ],
         "testing-library/await-async-queries": "error",
         "testing-library/await-async-utils": "error",
-        "testing-library/no-await-sync-events": ["error", { "eventModules": ["fire-event"] }],
+        "testing-library/no-await-sync-events": [
+          "error",
+          {
+            "eventModules": ["fire-event"]
+          }
+        ],
         "testing-library/no-await-sync-queries": "error",
         "testing-library/no-dom-import": ["error", "react"],
         "testing-library/no-global-regexp-flag-in-query": "error",
@@ -124,7 +159,9 @@
       "rules": {
         "storybook/no-uninstalled-addons": [
           "error",
-          { "packageJsonLocation": "apps/ui/package.json" }
+          {
+            "packageJsonLocation": "apps/ui/package.json"
+          }
         ]
       }
     },
@@ -140,6 +177,1028 @@
       "files": ["src/components/inplace.tsx"],
       "rules": {
         "jsx-a11y/no-static-element-interactions": "off"
+      }
+    },
+    {
+      "files": [
+        "src/routes/**/*.{ts,tsx}",
+        "src/main.tsx",
+        "src/test/**/*.{ts,tsx}",
+        "src/components/**/*.{ts,tsx}",
+        "src/hooks/**/*.{ts,tsx}",
+        "src/integrations/**/*.{ts,tsx}",
+        "src/lib/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "message": "Consume features through their public root only.",
+                "regex": "^@/features/[^/]+/"
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/routes/**/*.{ts,tsx}", "src/main.tsx"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "message": "Consume features through their public root only.",
+                "regex": "^@/features/[^/]+/"
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/components/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/(?:main(?:\\.tsx)?|routeTree\\.gen(?:\\.ts)?)$",
+                "message": "Application entry points and generated routing must not be dependencies of features or shared layers."
+              },
+              {
+                "message": "Consume features through their public root only.",
+                "regex": "^@/features/[^/]+/"
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "regex": "^@/(?:features|routes|api|context|integrations)(?:/|$)",
+                "message": "Follow the shared-layer dependency direction."
+              },
+              {
+                "regex": "^@exposurenexus/contracts(?:/|$)",
+                "message": "Domain contracts belong in features."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": [
+                  "@/lib/**",
+                  "!@/lib/utils",
+                  "!@/lib/utils.ts",
+                  "!@/lib/format",
+                  "!@/lib/format.ts"
+                ],
+                "message": "Components may only import presentation-safe utilities."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/components/ui/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/(?:main(?:\\.tsx)?|routeTree\\.gen(?:\\.ts)?)$",
+                "message": "Application entry points and generated routing must not be dependencies of features or shared layers."
+              },
+              {
+                "message": "Consume features through their public root only.",
+                "regex": "^@/features/[^/]+/"
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "regex": "^@/(?:features|routes|api|context|integrations|hooks)(?:/|$)",
+                "message": "Follow the shared-layer dependency direction."
+              },
+              {
+                "regex": "^@exposurenexus/contracts(?:/|$)",
+                "message": "Domain contracts belong in features."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": ["@/components/**", "!@/components/ui", "!@/components/ui/**"],
+                "message": "UI primitives may only depend on other UI primitives."
+              },
+              {
+                "group": [
+                  "@/lib/**",
+                  "!@/lib/utils",
+                  "!@/lib/utils.ts",
+                  "!@/lib/format",
+                  "!@/lib/format.ts"
+                ],
+                "message": "Components may only import presentation-safe utilities."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/hooks/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/(?:main(?:\\.tsx)?|routeTree\\.gen(?:\\.ts)?)$",
+                "message": "Application entry points and generated routing must not be dependencies of features or shared layers."
+              },
+              {
+                "message": "Consume features through their public root only.",
+                "regex": "^@/features/[^/]+/"
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "regex": "^@/(?:features|routes|api|context|integrations|components)(?:/|$)",
+                "message": "Follow the shared-layer dependency direction."
+              },
+              {
+                "regex": "^@exposurenexus/contracts(?:/|$)",
+                "message": "Domain contracts belong in features."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/integrations/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/(?:main(?:\\.tsx)?|routeTree\\.gen(?:\\.ts)?)$",
+                "message": "Application entry points and generated routing must not be dependencies of features or shared layers."
+              },
+              {
+                "message": "Consume features through their public root only.",
+                "regex": "^@/features/[^/]+/"
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "regex": "^@/(?:features|routes|api|context|components|hooks)(?:/|$)",
+                "message": "Follow the shared-layer dependency direction."
+              },
+              {
+                "regex": "^@exposurenexus/contracts(?:/|$)",
+                "message": "Domain contracts belong in features."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/lib/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/(?:main(?:\\.tsx)?|routeTree\\.gen(?:\\.ts)?)$",
+                "message": "Application entry points and generated routing must not be dependencies of features or shared layers."
+              },
+              {
+                "message": "Consume features through their public root only.",
+                "regex": "^@/features/[^/]+/"
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "regex": "^@/(?:features|routes|api|context|integrations|components|hooks)(?:/|$)",
+                "message": "Follow the shared-layer dependency direction."
+              },
+              {
+                "regex": "^@exposurenexus/contracts(?:/|$)",
+                "message": "Domain contracts belong in features."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/features/auth/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/(?:main(?:\\.tsx)?|routeTree\\.gen(?:\\.ts)?)$",
+                "message": "Application entry points and generated routing must not be dependencies of features or shared layers."
+              },
+              {
+                "regex": "^@/features/auth(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:roles|custom-fields|users|vulnerabilities|assets|findings|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": ["@/features/**", "!@/features/auth", "!@/features/auth/**"],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/features/auth/**/*.{test,spec,stories}.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/features/auth(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:roles|custom-fields|users|vulnerabilities|assets|findings|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": ["@/features/**", "!@/features/auth", "!@/features/auth/**"],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/features/roles/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/(?:main(?:\\.tsx)?|routeTree\\.gen(?:\\.ts)?)$",
+                "message": "Application entry points and generated routing must not be dependencies of features or shared layers."
+              },
+              {
+                "regex": "^@/features/roles(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|custom-fields|users|vulnerabilities|assets|findings|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": ["@/features/**", "!@/features/roles", "!@/features/roles/**"],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/features/roles/**/*.{test,spec,stories}.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/features/roles(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|custom-fields|users|vulnerabilities|assets|findings|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": ["@/features/**", "!@/features/roles", "!@/features/roles/**"],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/features/custom-fields/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/(?:main(?:\\.tsx)?|routeTree\\.gen(?:\\.ts)?)$",
+                "message": "Application entry points and generated routing must not be dependencies of features or shared layers."
+              },
+              {
+                "regex": "^@/features/custom-fields(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|roles|users|vulnerabilities|assets|findings|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": [
+                  "@/features/**",
+                  "!@/features/custom-fields",
+                  "!@/features/custom-fields/**"
+                ],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/features/custom-fields/**/*.{test,spec,stories}.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/features/custom-fields(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|roles|users|vulnerabilities|assets|findings|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": [
+                  "@/features/**",
+                  "!@/features/custom-fields",
+                  "!@/features/custom-fields/**"
+                ],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/features/users/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/(?:main(?:\\.tsx)?|routeTree\\.gen(?:\\.ts)?)$",
+                "message": "Application entry points and generated routing must not be dependencies of features or shared layers."
+              },
+              {
+                "regex": "^@/features/users(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|roles|custom-fields|vulnerabilities|assets|findings|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": [
+                  "@/features/**",
+                  "!@/features/users",
+                  "!@/features/roles",
+                  "!@/features/users/**",
+                  "!@/features/roles/**"
+                ],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/features/users/**/*.{test,spec,stories}.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/features/users(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|roles|custom-fields|vulnerabilities|assets|findings|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": [
+                  "@/features/**",
+                  "!@/features/users",
+                  "!@/features/roles",
+                  "!@/features/users/**",
+                  "!@/features/roles/**"
+                ],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/features/vulnerabilities/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/(?:main(?:\\.tsx)?|routeTree\\.gen(?:\\.ts)?)$",
+                "message": "Application entry points and generated routing must not be dependencies of features or shared layers."
+              },
+              {
+                "regex": "^@/features/vulnerabilities(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|roles|custom-fields|users|assets|findings|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": [
+                  "@/features/**",
+                  "!@/features/vulnerabilities",
+                  "!@/features/users",
+                  "!@/features/vulnerabilities/**",
+                  "!@/features/users/**"
+                ],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/features/vulnerabilities/**/*.{test,spec,stories}.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/features/vulnerabilities(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|roles|custom-fields|users|assets|findings|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": [
+                  "@/features/**",
+                  "!@/features/vulnerabilities",
+                  "!@/features/users",
+                  "!@/features/vulnerabilities/**",
+                  "!@/features/users/**"
+                ],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/features/assets/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/(?:main(?:\\.tsx)?|routeTree\\.gen(?:\\.ts)?)$",
+                "message": "Application entry points and generated routing must not be dependencies of features or shared layers."
+              },
+              {
+                "regex": "^@/features/assets(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|roles|custom-fields|users|vulnerabilities|findings|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": [
+                  "@/features/**",
+                  "!@/features/assets",
+                  "!@/features/users",
+                  "!@/features/custom-fields",
+                  "!@/features/assets/**",
+                  "!@/features/users/**",
+                  "!@/features/custom-fields/**"
+                ],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/features/assets/**/*.{test,spec,stories}.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/features/assets(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|roles|custom-fields|users|vulnerabilities|findings|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": [
+                  "@/features/**",
+                  "!@/features/assets",
+                  "!@/features/users",
+                  "!@/features/custom-fields",
+                  "!@/features/assets/**",
+                  "!@/features/users/**",
+                  "!@/features/custom-fields/**"
+                ],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/features/findings/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/(?:main(?:\\.tsx)?|routeTree\\.gen(?:\\.ts)?)$",
+                "message": "Application entry points and generated routing must not be dependencies of features or shared layers."
+              },
+              {
+                "regex": "^@/features/findings(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|roles|custom-fields|users|vulnerabilities|assets|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": [
+                  "@/features/**",
+                  "!@/features/findings",
+                  "!@/features/assets",
+                  "!@/features/users",
+                  "!@/features/vulnerabilities",
+                  "!@/features/findings/**",
+                  "!@/features/assets/**",
+                  "!@/features/users/**",
+                  "!@/features/vulnerabilities/**"
+                ],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/features/findings/**/*.{test,spec,stories}.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/features/findings(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|roles|custom-fields|users|vulnerabilities|assets|dashboard)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": [
+                  "@/features/**",
+                  "!@/features/findings",
+                  "!@/features/assets",
+                  "!@/features/users",
+                  "!@/features/vulnerabilities",
+                  "!@/features/findings/**",
+                  "!@/features/assets/**",
+                  "!@/features/users/**",
+                  "!@/features/vulnerabilities/**"
+                ],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/features/dashboard/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/(?:main(?:\\.tsx)?|routeTree\\.gen(?:\\.ts)?)$",
+                "message": "Application entry points and generated routing must not be dependencies of features or shared layers."
+              },
+              {
+                "regex": "^@/features/dashboard(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|roles|custom-fields|users|vulnerabilities|assets|findings)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "message": "Production modules must not import test or story support."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": [
+                  "@/features/**",
+                  "!@/features/dashboard",
+                  "!@/features/assets",
+                  "!@/features/findings",
+                  "!@/features/dashboard/**",
+                  "!@/features/assets/**",
+                  "!@/features/findings/**"
+                ],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
+      },
+      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+    },
+    {
+      "files": ["src/features/dashboard/**/*.{test,spec,stories}.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^@/features/dashboard(?:$|/index(?:\\.ts)?$)",
+                "message": "Use direct implementation paths inside your own feature."
+              },
+              {
+                "message": "Consume peer features through their public root only.",
+                "regex": "^@/features/(?:auth|roles|custom-fields|users|vulnerabilities|assets|findings)/"
+              },
+              {
+                "regex": "^@/(?:routes|integrations|api|context)(?:/|$)",
+                "message": "Features must not depend on routing or integration wiring."
+              },
+              {
+                "group": ["./*", "../*"],
+                "message": "Use the @/ alias for imports in manual UI source files."
+              },
+              {
+                "group": ["@/api", "@/api/**", "@/context", "@/context/**"],
+                "message": "Import domain functionality from its feature public interface."
+              },
+              {
+                "group": [
+                  "@/features/**",
+                  "!@/features/dashboard",
+                  "!@/features/assets",
+                  "!@/features/findings",
+                  "!@/features/dashboard/**",
+                  "!@/features/assets/**",
+                  "!@/features/findings/**"
+                ],
+                "message": "Import only explicitly approved peer features."
+              }
+            ]
+          }
+        ]
       }
     }
   ]
