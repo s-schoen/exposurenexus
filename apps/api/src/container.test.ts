@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => {
     createSession: vi.fn(),
     revokeSession: vi.fn(),
   };
-  const rawIdentity = { kind: "raw-identity" };
+  const rawIdentity = { kind: "raw-identity", users: { createInitialAdmin: vi.fn() } };
   const identity = {
     users: { kind: "identity-users", getByID: vi.fn() },
     roles: { kind: "identity-roles" },
@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => {
   };
 
   return {
+    createBackendRuntime: vi.fn(() => ({})),
     rawAuthentication,
     authentication,
     createAuthentication: vi.fn(() => rawAuthentication),
@@ -63,6 +64,8 @@ const mocks = vi.hoisted(() => {
     registerEventHandlers: vi.fn(),
   };
 });
+
+vi.mock("@exposurenexus/backend", () => ({ createBackendRuntime: mocks.createBackendRuntime }));
 
 vi.mock("@exposurenexus/backend/identity", () => ({
   createIdentity: mocks.createIdentity,
@@ -152,7 +155,15 @@ describe("app container", () => {
     const options = createContainerOptions();
     const container = createAppContainer(options);
 
-    expect(mocks.createAuthentication).toHaveBeenCalledWith(expect.any(Object), {
+    expect(mocks.createBackendRuntime).toHaveBeenCalledExactlyOnceWith({
+      database: options.db,
+      logger: options.logger,
+    });
+    const runtime = mocks.createBackendRuntime.mock.results[0]!.value;
+    expect(mocks.createIdentity).toHaveBeenCalledExactlyOnceWith(runtime);
+    expect(mocks.createAssets).toHaveBeenCalledExactlyOnceWith(runtime);
+    expect(mocks.createExposures).toHaveBeenCalledExactlyOnceWith(runtime);
+    expect(mocks.createAuthentication).toHaveBeenCalledWith(runtime, {
       sessionLifetimeHours: options.authSessionLifetimeHours,
       sessionHmacSecret: options.authSessionHmacSecret,
     });
@@ -203,7 +214,7 @@ describe("app container", () => {
 
     await container.createDefaultAdmin();
     expect(mocks.createDefaultAdmin).toHaveBeenCalledWith({
-      db: options.db,
+      users: mocks.rawIdentity.users,
       logger: options.dbLogger,
     });
   });

@@ -65,7 +65,8 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     database: options.db,
     logger: loggerFactory("backend"),
   });
-  const identity = decorateIdentityWithEvents(createIdentity(runtime), eventBus);
+  const backendIdentity = createIdentity(runtime);
+  const identity = decorateIdentityWithEvents(backendIdentity, eventBus);
   const authentication = decorateAuthenticationWithEvents(
     createAuthentication(runtime, {
       sessionLifetimeHours: options.authSessionLifetimeHours,
@@ -141,7 +142,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     app,
     createDefaultAdmin: () =>
       createDefaultAdmin({
-        db: options.db,
+        users: backendIdentity.users,
         logger: options.dbLogger ?? loggerFactory("db"),
       }),
   };

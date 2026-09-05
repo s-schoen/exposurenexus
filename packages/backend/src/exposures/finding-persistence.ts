@@ -3,7 +3,7 @@ import { findingRecordSchema } from "@exposurenexus/contracts/model/finding";
 import { weaknessSchema } from "@exposurenexus/contracts/model/weakness";
 
 import type { DatabaseExecutor } from "../database/executor.js";
-import type { FindingTable } from "../database/index.js";
+import type { FindingTable } from "../database/schema/finding.js";
 import type { Insertable, Selectable, Updateable } from "kysely";
 
 export type FindingRecord = Selectable<FindingTable>;

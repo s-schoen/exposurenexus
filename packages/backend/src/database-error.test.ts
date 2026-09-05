@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isConflictError, isForeignKeyError } from "./index.js";
+import { isConflictError, isForeignKeyError } from "./database-error.js";
 
 describe("database error classifiers", () => {
   it("detects conflict-shaped errors", () => {

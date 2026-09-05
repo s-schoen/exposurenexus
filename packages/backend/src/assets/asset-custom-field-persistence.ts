@@ -17,7 +17,7 @@ import {
 import { getAssetByID } from "./asset-records.js";
 
 import type { DatabaseExecutor } from "../database/executor.js";
-import type { AssetCustomFieldStoredValue } from "../database/index.js";
+import type { AssetCustomFieldStoredValue } from "../database/schema/asset-custom-field.js";
 import type { AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
 import type { RawBuilder } from "kysely";
 

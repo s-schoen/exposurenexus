@@ -31,6 +31,7 @@ const currentRole = {
 
 const identity = {
   users: {
+    createInitialAdmin: vi.fn(),
     listAll: vi.fn(),
     getByID: vi.fn(),
     getByUsername: vi.fn(),

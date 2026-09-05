@@ -4,7 +4,6 @@ export type {
   ApplicationErrorInput,
   ApplicationErrorKind,
 } from "./application-error.js";
-export { isConflictError, isForeignKeyError } from "./database-error.js";
 
 export { createBackendRuntime } from "./runtime.js";
 export type { BackendRuntime, CreateBackendRuntimeOptions } from "./runtime.js";

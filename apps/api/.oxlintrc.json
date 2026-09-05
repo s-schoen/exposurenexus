@@ -26,6 +26,33 @@
         "vitest/require-mock-type-parameters": "off",
         "vitest/require-to-throw-message": "off"
       }
+    },
+    {
+      "files": [
+        "src/routes/**/*.ts",
+        "src/middleware/**/*.ts",
+        "src/lib/**/*.ts",
+        "src/event-handler/**/*.ts",
+        "src/import/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "kysely",
+                  "pg",
+                  "@exposurenexus/backend/database",
+                  "**/packages/backend/**"
+                ],
+                "message": "API adapters must use backend capabilities; database access belongs in executable composition or test infrastructure."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }
