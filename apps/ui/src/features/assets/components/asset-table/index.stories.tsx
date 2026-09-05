@@ -1,5 +1,5 @@
 import { AssetEnvironment, AssetLifecycleState } from "@exposurenexus/contracts/model/asset";
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { Suspense, useLayoutEffect, useMemo, useRef } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { Toaster } from "@/components/ui/sonner.tsx";
@@ -168,7 +168,9 @@ function AssetTableStoryShell({ scenario, selectedAssetId }: AssetTableStoryArgs
       <AssetDialog.Root />
       <Toaster />
       <div className="w-full max-w-7xl">
-        <AssetTable selectedAssetId={selectedAssetId} />
+        <Suspense fallback={<div>Loading assets...</div>}>
+          <AssetTable selectedAssetId={selectedAssetId} />
+        </Suspense>
       </div>
     </RouterStoryProvider>
   );

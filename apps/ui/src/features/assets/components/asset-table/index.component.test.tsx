@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getAssetCustomFieldColumnId } from "@/features/assets/components/asset-table/columns.tsx";
 import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/test/fixtures.ts";
 
+import type { AssetListOptions } from "@/features/assets/api/assets.ts";
 import type { AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
 import type { ReactNode } from "react";
 
@@ -45,6 +46,7 @@ const mocks = vi.hoisted(() => {
     createAsset: vi.fn(),
     dataTableProps: undefined as undefined | Record<string, unknown>,
     deleteAssets: vi.fn(),
+    assetListOptions: undefined as AssetListOptions | undefined,
     navigate: vi.fn(),
     users,
   };
@@ -57,7 +59,7 @@ vi.mock("@tanstack/react-router", () => ({
 vi.mock("@tanstack/react-query", () => ({
   keepPreviousData: Symbol("keepPreviousData"),
   queryOptions: (options: unknown) => options,
-  useQuery: (options: { queryKey: Array<string> }) => {
+  useSuspenseQuery: (options: { queryKey: Array<string> }) => {
     if (options.queryKey.join("/") === "asset-custom-fields") {
       return {
         data: ASSET_CUSTOM_FIELD_FIXTURES,
@@ -83,9 +85,13 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 vi.mock("@/features/assets/queries/assets.ts", () => ({
-  createListAssetsWithCustomFieldsQueryOptions: () => ({
-    queryKey: ["assets", "with-custom-fields"],
-  }),
+  createListAssetsWithCustomFieldsQueryOptions: (options?: AssetListOptions) => {
+    mocks.assetListOptions = options;
+
+    return {
+      queryKey: ["assets", "with-custom-fields"],
+    };
+  },
 }));
 
 vi.mock("@/features/assets/hooks/use-asset-lifecycle.ts", () => ({
@@ -181,6 +187,7 @@ describe("AssetTable workflow wiring", () => {
     mocks.createAsset.mockReset();
     mocks.dataTableProps = undefined;
     mocks.deleteAssets.mockReset();
+    mocks.assetListOptions = undefined;
     mocks.navigate.mockReset();
   });
 
@@ -192,6 +199,10 @@ describe("AssetTable workflow wiring", () => {
   it("passes route filter state, active row state, and row handlers to DataTable", async () => {
     const { AssetTable } = await import("@/features/assets/components/asset-table/index.tsx");
     const onSelectAsset = vi.fn();
+    const assetListOptions = {
+      filter: "api",
+      assetEnvironment: [AssetEnvironment.Production],
+    };
     const filterState = {
       globalFilter: "api",
       selectFilters: {
@@ -210,6 +221,7 @@ describe("AssetTable workflow wiring", () => {
 
     render(
       <AssetTable
+        assetListOptions={assetListOptions}
         filterState={filterState}
         selectedAssetId={mocks.asset.id}
         onSelectAsset={onSelectAsset}
@@ -217,6 +229,7 @@ describe("AssetTable workflow wiring", () => {
     );
 
     expect(screen.getByTestId("active-row").textContent).toBe("true");
+    expect(mocks.assetListOptions).toEqual(assetListOptions);
     expect(mocks.dataTableProps?.filterState).toBe(filterState);
     expect(mocks.dataTableProps?.initialColumnVisibility).toEqual({
       [getAssetCustomFieldColumnId("8f0365b2-1bbb-46e2-b1f4-06300ade23f3")]: false,

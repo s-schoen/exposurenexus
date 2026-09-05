@@ -48,7 +48,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.assetQuery,
+  useSuspenseQuery: () => mocks.assetQuery,
 }));
 
 vi.mock("@/features/assets/queries/assets.ts", () => ({
@@ -62,16 +62,10 @@ vi.mock("@/hooks/use-page-meta.tsx", () => ({
 }));
 
 vi.mock("@/features/assets/components/asset-detail-content.tsx", () => ({
-  AssetDetailContent: ({
-    assetId: renderedAssetId,
-    titleAction,
-  }: {
-    assetId: string;
-    titleAction?: ReactNode;
-  }) => (
+  AssetDetailContent: ({ asset, titleAction }: { asset: Asset; titleAction?: ReactNode }) => (
     <div>
       {titleAction}
-      <div>Asset detail for {renderedAssetId}</div>
+      <div>Asset detail for {asset.id}</div>
     </div>
   ),
 }));
@@ -104,20 +98,5 @@ describe("AssetDetailPage", () => {
       "/assets",
     );
     expect(screen.getByText(`Asset detail for ${assetId}`)).toBeVisible();
-  });
-
-  it("uses fallback page metadata before asset data is available", async () => {
-    const { AssetDetailPage } = await import("@/features/assets/pages/asset-detail-page.tsx");
-    mocks.assetQuery = {
-      isPending: true,
-      isSuccess: false,
-    };
-
-    render(<AssetDetailPage assetId={assetId} />);
-
-    expect(mocks.usePageMeta).toHaveBeenCalledWith({
-      title: "Asset",
-      description: "Inspect the selected asset and review its core inventory metadata.",
-    });
   });
 });
