@@ -6,12 +6,15 @@ import {
   getRuntimeLogger,
   type BackendRuntime,
 } from "../runtime.js";
-import { createFindingRepository } from "./finding-repository.js";
+import * as findingPersistence from "./finding-persistence.js";
+import * as findingProjection from "./finding-projection.js";
+import * as findingVulnerabilityPersistence from "./finding-vulnerability-persistence.js";
 import { createFindings, type ExposureFindings } from "./findings.js";
-import { createObservationRepository } from "./observation-repository.js";
+import * as observationPersistence from "./observation-persistence.js";
+import * as statisticsPersistence from "./statistics-persistence.js";
 import { createStatistics, type ExposureStatistics } from "./statistics.js";
 import { createVulnerabilities, type ExposureVulnerabilities } from "./vulnerabilities.js";
-import { createVulnerabilityRepository } from "./vulnerability-repository.js";
+import * as vulnerabilityPersistence from "./vulnerability-persistence.js";
 
 export interface Exposures {
   findings: ExposureFindings;
@@ -25,31 +28,34 @@ export function createExposures(runtime: BackendRuntime): Exposures {
   return getOrCreateRuntimeValue(runtime, exposuresRuntimeKey, () => {
     const database = getRuntimeDatabase(runtime);
     const logger = getRuntimeLogger(runtime);
-    const findingRepository = createFindingRepository(database);
-    const observationRepository = createObservationRepository(database);
-    const vulnerabilityRepository = createVulnerabilityRepository(database);
     const assetInventory = createAssets(runtime).inventory;
     const userProfileLookup = {
-      getByID: (id: string) => getUserProfileByID(database, id),
+      getByID: (executor: Parameters<typeof getUserProfileByID>[0], id: string) =>
+        getUserProfileByID(executor, id),
     };
     const vulnerabilities = createVulnerabilities({
-      vulnerabilityRepository,
+      database,
+      vulnerabilityPersistence,
       userProfileLookup,
       logger: logger.child({ capability: "exposures", component: "vulnerabilities" }),
     });
 
     return {
       findings: createFindings({
-        findingRepository,
-        observationRepository,
+        database,
+        findingProjection,
+        findingPersistence,
+        observationPersistence,
+        findingVulnerabilityPersistence,
+        vulnerabilityPersistence,
         assetInventory,
         userProfileLookup,
-        vulnerabilityReader: vulnerabilities,
         logger: logger.child({ capability: "exposures", component: "findings" }),
       }),
       vulnerabilities,
       statistics: createStatistics({
-        findingRepository,
+        database,
+        statisticsPersistence,
         logger: logger.child({ capability: "exposures", component: "statistics" }),
       }),
     } satisfies Exposures;

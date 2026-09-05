@@ -33,15 +33,20 @@ const input = {
 };
 
 describe("exposure vulnerabilities", () => {
-  const vulnerabilityRepository = {
-    list: vi.fn(),
-    getByID: vi.fn(),
-    create: vi.fn(),
-    updateByID: vi.fn(),
-    deleteByID: vi.fn(),
+  const vulnerabilityPersistence = {
+    listVulnerabilities: vi.fn(),
+    getVulnerabilityByID: vi.fn(),
+    insertVulnerability: vi.fn(),
+    updateVulnerability: vi.fn(),
+    deleteVulnerability: vi.fn(),
   };
   const userProfileLookup = { getByID: vi.fn() };
   const logger = pino({ enabled: false });
+  const database = {
+    transaction: () => ({
+      execute: async (callback: (transaction: object) => unknown) => await callback({}),
+    }),
+  };
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -49,14 +54,19 @@ describe("exposure vulnerabilities", () => {
   });
 
   function createCapability() {
-    return createVulnerabilities({ vulnerabilityRepository, userProfileLookup, logger });
+    return createVulnerabilities({
+      database: database as never,
+      vulnerabilityPersistence,
+      userProfileLookup,
+      logger,
+    });
   }
 
   it("creates canonical catalog entries and returns a safe outcome", async () => {
     const now = new Date("2026-02-03T04:05:06.000Z");
     vi.useFakeTimers();
     vi.setSystemTime(now);
-    vulnerabilityRepository.create.mockImplementation(async (record) => ({
+    vulnerabilityPersistence.insertVulnerability.mockImplementation(async (_database, record) => ({
       id: vulnerabilityId,
       ...record,
     }));
@@ -67,7 +77,7 @@ describe("exposure vulnerabilities", () => {
       current: { ...vulnerability, createdAt: now, updatedAt: now },
       performedBy: actorId,
     });
-    expect(vulnerabilityRepository.create).toHaveBeenCalledWith({
+    expect(vulnerabilityPersistence.insertVulnerability).toHaveBeenCalledWith(expect.anything(), {
       ...input,
       identifier: "CVE-2026-0001",
       createdAt: now,
@@ -80,8 +90,8 @@ describe("exposure vulnerabilities", () => {
 
   it("returns before and after catalog snapshots for updates", async () => {
     const current = { ...vulnerability, title: "Updated vulnerability" };
-    vulnerabilityRepository.getByID.mockResolvedValue(vulnerability);
-    vulnerabilityRepository.updateByID.mockResolvedValue(current);
+    vulnerabilityPersistence.getVulnerabilityByID.mockResolvedValue(vulnerability);
+    vulnerabilityPersistence.updateVulnerability.mockResolvedValue(current);
 
     await expect(
       createCapability().updateByID({
@@ -93,12 +103,12 @@ describe("exposure vulnerabilities", () => {
   });
 
   it("returns deleted catalog snapshots without a compensating read", async () => {
-    vulnerabilityRepository.deleteByID.mockResolvedValue(vulnerability);
+    vulnerabilityPersistence.deleteVulnerability.mockResolvedValue(vulnerability);
 
     await expect(
       createCapability().deleteByID({ id: vulnerabilityId, performedBy: actorId }),
     ).resolves.toEqual({ previous: vulnerability, performedBy: actorId });
-    expect(vulnerabilityRepository.getByID).not.toHaveBeenCalled();
+    expect(vulnerabilityPersistence.getVulnerabilityByID).not.toHaveBeenCalled();
   });
 
   it("rejects invalid catalog input before persistence", async () => {
@@ -108,6 +118,6 @@ describe("exposure vulnerabilities", () => {
         performedBy: actorId,
       }),
     ).rejects.toMatchObject({ code: "vulnerability.invalid_input", kind: "validation" });
-    expect(vulnerabilityRepository.create).not.toHaveBeenCalled();
+    expect(vulnerabilityPersistence.insertVulnerability).not.toHaveBeenCalled();
   });
 });
