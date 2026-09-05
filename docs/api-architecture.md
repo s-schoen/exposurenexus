@@ -1,72 +1,113 @@
 # API Architecture
 
-This document records API layer conventions for routes, services, and
-repositories. It is not an endpoint reference.
+The API is an executable adapter over shared backend capabilities, as established
+by [ADR-0004](adr/0004-shared-backend-capabilities.md).
 
-## Layer Responsibilities
+## Ownership
 
-The API follows a hexagonal structure:
+- `@exposurenexus/backend` owns business behavior, canonicalization, business
+  validation, transactions, private persistence, database types, and migrations.
+- The API owns HTTP routes, cookies, authentication and permission middleware,
+  event decorators, error translation, environment configuration, and startup.
+- `@exposurenexus/contracts` owns client-safe serialized shapes, declarative
+  Zod schemas, and primitive constraints. It does not own business invariants,
+  backend commands, database records, password hashes, or session persistence.
 
-- Hono routes adapt HTTP requests, validation, replies, and authorization
-  decisions.
-- Domain services own application behavior, cross-aggregate rules, and domain
-  event emission.
-- Repositories adapt persistence and hide database query details.
+Routes validate serialized request shape and require permissions before calling
+capabilities. Backend capabilities enforce business meaning and invariants for
+every caller. Commands requiring audit attribution receive an explicit user ID
+such as `performedBy`, never Hono context or a generic execution context.
 
-Routes should stay thin. They validate request shape, require permissions, turn
-Hono request context into application context, call services, and translate
-service results into HTTP replies.
+## Runtime And Capability Interfaces
 
-Services should not import Hono context or concrete route helpers. Repositories
-should not own business rules that belong in services.
+Executable composition constructs one opaque runtime around its database and
+logger, then selects capabilities through strict package subpaths:
 
-## Service Contracts
+```ts
+import { createBackendRuntime } from "@exposurenexus/backend";
+import { createAssets } from "@exposurenexus/backend/assets";
+import { createAuthentication } from "@exposurenexus/backend/authentication";
+import { createExposures } from "@exposurenexus/backend/exposures";
+import { createIdentity } from "@exposurenexus/backend/identity";
 
-Routes use the full exported service contract from the owning service module.
-For example, resource routes depend on `UserProfileService`, `FindingService`,
-`RoleService`, `AssetService`, and `VulnerabilityService` instead of declaring
-route-local service interfaces.
+const runtime = createBackendRuntime({ database, logger });
+const identity = createIdentity(runtime);
+const authentication = createAuthentication(runtime, {
+  sessionLifetimeHours,
+  sessionHmacSecret,
+});
+const assets = createAssets(runtime);
+const exposures = createExposures(runtime);
 
-Service modules export their public service interface, and factory functions
-return that interface. This keeps the service boundary explicit without
-coupling routes to repository adapters or service implementation details.
+const outcome = await assets.inventory.create({ asset, performedBy: userId });
+```
 
-Cross-service dependencies may still use narrow ports when the consuming
-service only needs a small lookup capability. This does not contradict the
-route rule: inbound HTTP adapters use full service contracts, while internal
-service dependencies can stay purpose-specific.
+The root exports runtime construction and application errors; it does not
+import or initialize every capability. Each capability subpath owns its factory
+and caller-facing commands, results, and operation-specific mutation outcomes.
+The runtime keeps database access, logging, and per-runtime memoization private.
+Constructing assets or exposures does not require authentication configuration.
 
-## Repository Contracts
+Callers use the nested interfaces:
 
-Repository contracts are persistence ports. Services depend on repository
-interfaces exported by repository modules, not concrete repository factory
-return types.
+| Capability     | Interfaces                                  |
+| -------------- | ------------------------------------------- |
+| Identity       | `users`, `roles`, `authorization`           |
+| Authentication | Credential and session operations           |
+| Assets         | `inventory`, `customFields`                 |
+| Exposures      | `findings`, `vulnerabilities`, `statistics` |
 
-Repository method names use persistence vocabulary:
+The only additional public subpath is `@exposurenexus/backend/database` for
+composition infrastructure. There are no wildcard exports or compatibility
+imports. Repository contracts, dependency objects, lookup ports, persistence
+records, and transaction types stay private. Routes, middleware, event
+decorators, and handlers must not query Kysely or use repositories directly.
+Database access outside backend is limited to executable composition, migration
+invocation, jobs persistence composition, and test infrastructure.
 
-- `list`
-- `getByID`
-- `getByName` or `getByNames`
-- `create`
-- `updateByID`
-- `deleteByID`
+## API Adaptation
 
-Services expose application vocabulary at their boundary. Use `listAll` for a
-service method that returns every resource, even when the underlying repository
-method is named `list`.
+The API container decorates capabilities with API-local event adapters and
+injects the relevant nested interfaces into routes. Decorators consume backend
+mutation outcomes, emit API events, and return route-facing values. They preserve
+transaction-produced before-and-after facts without database rereads.
 
-## Method Names
+Routes pass `requestEventContext(c)` to these decorators for actor and request
+correlation. Event context stays in the API; decorators pass only backend
+commands to capabilities. See [API Event Bus](api-eventbus.md).
 
-Use consistent identity-based names across services and repositories:
+Authentication handles credentials and sessions; identity authorization resolves
+current RBAC permissions. API middleware enforces access and owns request
+annotation. See [API Authentication](api-authentication.md).
 
-- Read by identity: `getByID`
-- Update by identity: `updateByID`
-- Delete by identity: `deleteByID`
+## Application Errors
 
-Use explicit names for behavior that is not a plain create, read, update, or
-delete operation. The automated finding import endpoint is currently work in
-progress and returns `501 Not Implemented`; no import service contract is
-defined yet.
+Backend throws typed `ApplicationError`s from the package root. The API maps
+them according to [ADR-0001](adr/0001-service-application-errors.md):
+`validation` → 400, `missing` → 404, `denied` → 403, `conflict` → 409,
+and `unexpected` → 500. Non-unexpected errors expose their message;
+unexpected errors expose only `internal server error`. Public reasons require
+an explicit API allowlist; internal details are never serialized by default.
+Intentional absence and authentication rejection retain their explicit result
+contracts; adapters preserve existing nullable HTTP-facing behavior.
+
+## Database Lifecycle
+
+`@exposurenexus/backend/database` provides connection construction, the aggregate
+database type, and `migrateToLatest(database, logger)`. Backend owns the migration
+files, including the application migration integrating the jobs table.
+
+Executable apps read environment variables and own database/pool lifecycle.
+The API creates its PostgreSQL resources, runs backend migrations, bootstraps
+the initial admin through identity, then starts serving. It closes the pool on
+startup failure and during shutdown. The runtime does not manage resource
+lifecycle.
+
+There is no worker application or persisted ingestion implementation yet. A future
+worker will use selected undecorated capabilities as a trusted system caller and
+will not run migrations. Future ingestion orchestration belongs in a high-level
+exposures use case. Queue infrastructure remains in apps and the jobs package;
+see [Job Queue](job-queue.md).
 
 ## HTTP Update Semantics
 
@@ -84,59 +125,10 @@ Partial core metadata updates use `PATCH` with a separate schema and explicit
 merge rules. The asset update payload must contain at least one editable field;
 omitted fields remain unchanged and a no-op does not advance audit metadata.
 
-## Call Shapes
-
-Use plain positional parameters for simple methods with one or two arguments:
-
-```ts
-assetService.deleteByID(id, eventContext);
-```
-
-Use an options object when a method carries a domain payload plus actor/request
-context:
-
-```ts
-assetService.create({
-  asset,
-  user,
-  eventContext,
-});
-assetService.updateByID({
-  id,
-  asset,
-  user,
-  eventContext,
-});
-```
-
-Use an options object when a method needs more than two inputs, has multiple
-optional inputs, or carries a domain payload plus actor/request context:
-
-```ts
-findingService.updateByID({
-  id,
-  finding,
-  user,
-  eventContext,
-});
-```
-
-`eventContext` may be the second positional argument for simple methods.
-Richer methods should include it inside the options object.
-
-## Request Context
-
-Routes create `DomainEventContext` with `requestEventContext(c)` and pass it
-into services. Services do not read Hono context directly.
-
-Domain services receive a `DomainEventEmitter` and create source-bound emit
-helpers. They emit events with domain payloads and optional context, leaving
-listener registration to the application container.
-
 ## Tests
 
-Route tests should mock the full service contract used by the route. This
-catches service API drift earlier than a narrow route-local test double.
-
-Changing a service method name or call shape is a boundary change. Update the
-service interface, routes, adapters, and tests in the same slice.
+Backend tests own business behavior, persistence, transactions, and migrations.
+API tests own HTTP adaptation, authorization middleware, cookies, event
+decorators, error translation, and composition. Route doubles should implement
+the full nested interface consumed by the route. Update commands, outcomes,
+decorators, routes, and their tests together when changing a capability boundary.

@@ -2,8 +2,10 @@
 
 Domain services throw typed `ApplicationError`s instead of HTTP errors, and the
 API adapter converts those errors into HTTP replies at the boundary. This keeps
-service behavior independent of Hono and preserves the hexagonal split between
-routes, services, and repositories.
+business behavior independent of Hono.
+[ADR-0004](0004-shared-backend-capabilities.md) places this behavior and typed
+errors in the shared backend, with API adapters owning HTTP translation;
+services and persistence are backend internals.
 
 `ApplicationError` uses a centrally typed, code-keyed catalog. Each code defines
 the error kind and any internal structured details it may carry. Services use

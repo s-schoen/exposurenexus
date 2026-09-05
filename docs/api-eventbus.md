@@ -3,7 +3,7 @@
 ExposureNexus uses an in-process domain event bus inside the API service to publish
 important domain changes and authentication events. The first subscriber is the
 audit logger, but the event system is intentionally generic so other handlers
-can be added without coupling domain services to logging, notifications, or
+can be added without coupling backend capabilities to logging, notifications, or
 future integrations.
 
 This document describes the event system concept and conventions. It is not an
@@ -11,9 +11,9 @@ endpoint reference.
 
 ## Goals
 
-- Keep event publishing explicit at domain service boundaries.
+- Keep event publishing explicit at API-local capability decorator boundaries.
 - Give each event subject its own payload type.
-- Keep services independent from the concrete event bus implementation.
+- Keep backend capabilities independent from the concrete event bus implementation.
 - Preserve request correlation and actor information where an event originates
   from an HTTP request.
 - Support namespace subscribers such as `auth.*` and `asset.*`.
@@ -24,7 +24,7 @@ endpoint reference.
 ## Main Components
 
 The event system is split across generic bus code, domain event definitions,
-service emitters, route context helpers, and event handlers.
+capability decorators, route context helpers, and event handlers.
 
 - `apps/api/src/lib/eventbus/eventbus.ts` contains the generic async event bus.
 - `apps/api/src/lib/eventbus/events/index.ts` defines the common domain event
@@ -34,17 +34,25 @@ service emitters, route context helpers, and event handlers.
   vulnerability events.
 - `apps/api/src/lib/request-event-context.ts` extracts request-scoped event
   context from Hono.
-- Domain services receive only the central `DomainEventEmitter` interface, then
+- API-local capability decorators receive only the central `DomainEventEmitter` interface, then
   create a source-bound emit helper with `createDomainEventEmitter`.
 - `apps/api/src/event-handler/index.ts` is the registration point for event
   handlers.
 - `apps/api/src/event-handler/audit-logger.ts` registers the audit logger
   subscriber.
 
-The application container creates one `EventBus<DomainEvent>` and passes it to
-services as a `DomainEventEmitter`. This preserves hexagonal boundaries:
-services can emit domain events without knowing how listeners are registered or
-executed.
+The application container creates one `EventBus<DomainEvent>` and injects it
+into API-local capability decorators. Backend capabilities never receive an
+event emitter or import API event definitions, as required by
+[ADR-0004](adr/0004-shared-backend-capabilities.md).
+
+Backend mutations return operation-specific, domain-neutral outcomes: safe
+previous/current snapshots, deleted objects, changed flags, and other facts
+produced by the transaction. Decorators translate those facts into event payloads
+after the mutation succeeds, without rereading the database. They return the
+existing route-facing values and suppress events for no-op outcomes where the
+operation defines that behavior. This preserves transaction facts without a
+second read or race window.
 
 ## Event Shape
 
@@ -109,9 +117,9 @@ subject, for example `{ asset }`, would be rejected by TypeScript.
 
 ## Emitting Events
 
-Services should not call `createEventPayload` directly for normal domain
+Decorators should not call `createEventPayload` directly for normal domain
 events. They should create a source-bound helper once and use it for the
-service's supported subject namespace:
+decorator's supported subject namespace:
 
 ```ts
 const emitAssetEvent = createDomainEventEmitter<AssetEventSubject>(domainEventEmitter, "asset");
@@ -127,8 +135,8 @@ emitAssetEvent("asset.created", { asset }, eventContext);
 - creates the event timestamp
 - sends the event to the injected `DomainEventEmitter`
 
-The helper currently fire-and-forgets the underlying async `emit` call. Domain
-service writes must not depend on listener side effects to be correct.
+The helper currently fire-and-forgets the underlying async `emit` call. Backend
+writes must not depend on listener side effects to be correct.
 
 ## Request Context
 
@@ -144,8 +152,8 @@ The helper currently maps:
 - `actor` from `c.get("user")?.id`
 - `correlationId` from `c.get("requestId")`
 
-Routes pass this context into service methods that can emit events. Services do
-not read Hono context directly.
+Routes pass this context into API decorator methods that can emit events. Decorators keep this context
+out of backend commands.
 
 Auth routes have a smaller correlation-only path for unauthenticated actions
 such as login attempts, where there may be no actor yet.
@@ -168,7 +176,7 @@ continues with later listeners. `emit` does not reject because of listener
 failures.
 
 New application handlers should be registered from
-`apps/api/src/event-handler/index.ts`. Domain services should not import
+`apps/api/src/event-handler/index.ts`. Backend capabilities should not import
 handlers directly.
 
 ## Audit Logging
@@ -215,8 +223,8 @@ The API currently emits these event families:
 - User profiles: created, updated, and deleted.
 - Assets: created, updated, and deleted, using `AssetWithCustomFields` so asset
   custom field assignments and values are included in asset lifecycle events.
-  The core asset service emits core asset lifecycle events. Asset custom field
-  assignment and value changes are emitted by the asset custom field service
+  The API assets decorator emits core asset lifecycle events. Asset custom field
+  assignment and value outcomes are translated by that same decorator
   with the `asset` source after the persistence transaction commits. These
   changes update the parent asset audit actor and timestamp in the same
   transaction, include complete previous and current snapshots with effective
@@ -250,11 +258,11 @@ Use these rules when adding or changing events:
 - Keep event subjects stable. Renaming a subject is a breaking change for
   subscribers.
 - Do not emit events for read-only queries.
-- Do not make service correctness depend on listener side effects.
+- Do not make backend correctness depend on listener side effects.
 
 ## Testing
 
-Service tests should use `createDomainEventCollector` from
+API decorator tests should use `createDomainEventCollector` from
 `apps/api/src/test/eventbus.ts`. It provides:
 
 - `emitter`: a `DomainEventEmitter` test double
@@ -267,3 +275,12 @@ Tests that assert audit behavior should serialize events with
 `serializeDomainEventForLog` or exercise the audit logger subscriber directly.
 Security-sensitive tests should assert that secrets such as `passwordHash` and
 `sessionId` are absent or redacted in emitted events and audit log fields.
+
+Authentication session creation and revocation events contain only
+`AuthenticationSession` audit metadata: `id`, `userId`, `sourceIp`,
+`userAgent`, `createdAt`, and `expiresAt`. Neither raw session tokens nor
+persisted HMAC digests enter event payloads. The separate session token returned
+by authentication is used only for HTTP cookie adaptation. `auth.success` and
+`auth.session.created` are emitted only after session persistence succeeds;
+a persistence failure must not produce a success event. Tests must assert that
+both raw tokens and digests are absent from events before log redaction.
