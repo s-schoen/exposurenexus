@@ -1,6 +1,46 @@
-import { describe, expect, it } from "vitest";
+import { Migrator } from "kysely/migration";
+import { pino } from "pino";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createMigrationProvider } from "./migration.js";
+import { createMigrationProvider, migrateToLatest } from "./migration.js";
+
+describe("migration runner", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("reports that an up-to-date database needs no migrations", async () => {
+    vi.spyOn(Migrator.prototype, "migrateToLatest").mockResolvedValue({ results: [] });
+    const logger = pino({ enabled: false });
+    const info = vi.spyOn(logger, "info");
+    await expect(migrateToLatest({} as never, logger)).resolves.toBeUndefined();
+    expect(info).toHaveBeenCalledWith("no migrations to apply");
+  });
+
+  it("reports applied and failed migrations and propagates the original failure", async () => {
+    const error = new Error("migration failed");
+    vi.spyOn(Migrator.prototype, "migrateToLatest").mockResolvedValue({
+      error,
+      results: [
+        { migrationName: "first", direction: "Up", status: "Success" },
+        { migrationName: "second", direction: "Up", status: "Error" },
+        { migrationName: "third", direction: "Up", status: "NotExecuted" },
+      ],
+    });
+    const logger = pino({ enabled: false });
+    const info = vi.spyOn(logger, "info");
+    const logError = vi.spyOn(logger, "error");
+    await expect(migrateToLatest({} as never, logger)).rejects.toBe(error);
+    expect(info).toHaveBeenCalledWith('migration "first" applied successfully');
+    expect(logError).toHaveBeenCalledWith('failed to apply migration "second"');
+    expect(logError).toHaveBeenCalledWith(error);
+    expect(info).not.toHaveBeenCalledWith('migration "third" applied successfully');
+  });
+
+  it("propagates startup failures when no migration results are available", async () => {
+    const error = new Error("database unavailable");
+    vi.spyOn(Migrator.prototype, "migrateToLatest").mockResolvedValue({ error });
+    await expect(migrateToLatest({} as never, pino({ enabled: false }))).rejects.toBe(error);
+  });
+});
 
 const expectedMigrationNames = [
   "20251219-init-better-auth",
