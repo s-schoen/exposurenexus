@@ -1,4 +1,4 @@
-import { createAssetRepository } from "../assets/asset-repository.js";
+import { createAssets } from "../assets/assets.js";
 import { getUserProfileByID } from "../identity/user-profile-persistence.js";
 import {
   getOrCreateRuntimeValue,
@@ -28,7 +28,7 @@ export function createExposures(runtime: BackendRuntime): Exposures {
     const findingRepository = createFindingRepository(database);
     const observationRepository = createObservationRepository(database);
     const vulnerabilityRepository = createVulnerabilityRepository(database);
-    const assetRepository = createAssetRepository(database);
+    const assetInventory = createAssets(runtime).inventory;
     const userProfileLookup = {
       getByID: (id: string) => getUserProfileByID(database, id),
     };
@@ -42,7 +42,7 @@ export function createExposures(runtime: BackendRuntime): Exposures {
       findings: createFindings({
         findingRepository,
         observationRepository,
-        assetRepository,
+        assetInventory,
         userProfileLookup,
         vulnerabilityReader: vulnerabilities,
         logger: logger.child({ capability: "exposures", component: "findings" }),

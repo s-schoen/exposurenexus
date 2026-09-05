@@ -7,13 +7,19 @@ import {
   AssetCustomFieldType,
   type CreateAssetCustomFieldDefinition,
   type UpdateAssetCustomFieldDefinition,
+  type UpdateAssetCustomFieldValue,
   validateAssetCustomFieldDefinitionRules,
 } from "@exposurenexus/contracts/model/asset-custom-field";
 
 import { ApplicationError, isApplicationError } from "../application-error.js";
 import { isConflictError } from "../database-error.js";
 
-import type { AssetCustomFieldRepository } from "./asset-custom-field-repository.js";
+import type { DatabaseExecutor } from "../database/executor.js";
+import type { Database } from "../database/index.js";
+import type {
+  AssetCustomFieldAssetMutationPersistenceResult,
+  AssetCustomFieldUpdatePersistenceResult,
+} from "./asset-custom-field-persistence.js";
 import type {
   AssetCustomFieldAssignmentsReplacedOutcome,
   AssetCustomFieldDefinitionCreatedOutcome,
@@ -27,11 +33,69 @@ import type {
   ReplaceAssetCustomFieldValuesCommand,
   UpdateAssetCustomFieldDefinitionByIDCommand,
 } from "./assets.js";
-import type { Asset, AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
+import type { AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
+import type { Kysely } from "kysely";
 import type { Logger } from "pino";
 
-interface AssetLookupRepository {
-  getByID(id: string): Promise<Asset | null>;
+interface AssetProjection {
+  getAssetSnapshot(
+    database: DatabaseExecutor,
+    assetId: string,
+  ): Promise<AssetWithCustomFields | null>;
+  listEffectiveValuesForAsset(
+    database: DatabaseExecutor,
+    assetId: string,
+  ): Promise<AssetCustomFieldValue[]>;
+  listEffectiveValuesForAssets(
+    database: DatabaseExecutor,
+    assetIds: readonly string[],
+  ): Promise<Map<string, AssetCustomFieldValue[]>>;
+  listAvailableDefinitionsForAsset(
+    database: DatabaseExecutor,
+    assetId: string,
+  ): Promise<AssetCustomFieldDefinition[]>;
+}
+
+interface AssetCustomFieldPersistence {
+  listDefinitions(database: DatabaseExecutor): Promise<AssetCustomFieldDefinition[]>;
+  getDefinitionByID(
+    database: DatabaseExecutor,
+    id: string,
+  ): Promise<AssetCustomFieldDefinition | null>;
+  insertDefinition(
+    database: DatabaseExecutor,
+    definition: CreateAssetCustomFieldDefinition,
+  ): Promise<AssetCustomFieldDefinition>;
+  updateDefinition(
+    database: DatabaseExecutor,
+    options: {
+      id: string;
+      definition: UpdateAssetCustomFieldDefinition;
+      previous: AssetCustomFieldDefinition;
+    },
+  ): Promise<AssetCustomFieldUpdatePersistenceResult | null>;
+  deleteDefinition(
+    database: DatabaseExecutor,
+    id: string,
+  ): Promise<AssetCustomFieldDefinition | null>;
+  replaceAssignments(
+    database: DatabaseExecutor,
+    options: {
+      assetId: string;
+      fieldIds: readonly string[];
+      audit: { updatedAt: Date; updatedBy: string };
+      previous: AssetWithCustomFields;
+    },
+  ): Promise<AssetCustomFieldAssetMutationPersistenceResult>;
+  replaceValues(
+    database: DatabaseExecutor,
+    options: {
+      assetId: string;
+      values: readonly UpdateAssetCustomFieldValue[];
+      audit: { updatedAt: Date; updatedBy: string };
+      previous: AssetWithCustomFields;
+    },
+  ): Promise<AssetCustomFieldAssetMutationPersistenceResult>;
 }
 
 function customFieldRuleViolationMessage(violation: AssetCustomFieldRuleViolation): string {
@@ -113,35 +177,26 @@ function findDuplicate(values: readonly string[]): string | null {
 }
 
 interface UserProfileLookup {
-  getByID(id: string): Promise<object | null>;
+  getByID(database: DatabaseExecutor, id: string): Promise<object | null>;
 }
 
 interface AssetCustomFieldsDependencies {
-  assetCustomFieldRepository: AssetCustomFieldRepository;
-  assetRepository: AssetLookupRepository;
+  database: Kysely<Database>;
+  assetCustomFieldPersistence: AssetCustomFieldPersistence;
+  assetProjection: AssetProjection;
   userProfileLookup: UserProfileLookup;
   logger: Logger;
 }
 
 export function createAssetCustomFields({
-  assetCustomFieldRepository,
-  assetRepository,
+  database,
+  assetCustomFieldPersistence,
+  assetProjection,
   userProfileLookup,
   logger,
 }: AssetCustomFieldsDependencies): AssetCustomFields {
-  async function getAssetSnapshot(assetId: string): Promise<AssetWithCustomFields | null> {
-    const asset = await assetRepository.getByID(assetId);
-    if (!asset) {
-      return null;
-    }
-
-    return {
-      ...asset,
-      customFields: await assetCustomFieldRepository.listEffectiveValuesForAsset(assetId),
-    };
-  }
-  async function requireAuditActor(performedBy: string): Promise<void> {
-    if (!(await userProfileLookup.getByID(performedBy))) {
+  async function requireAuditActor(executor: DatabaseExecutor, performedBy: string): Promise<void> {
+    if (!(await userProfileLookup.getByID(executor, performedBy))) {
       throw new Error(`asset audit actor ${performedBy} does not exist`);
     }
   }
@@ -149,7 +204,7 @@ export function createAssetCustomFields({
   return {
     async listDefinitions(): Promise<AssetCustomFieldDefinition[]> {
       try {
-        return await assetCustomFieldRepository.listDefinitions();
+        return await assetCustomFieldPersistence.listDefinitions(database);
       } catch (error) {
         logger.error(error, "failed to list asset custom field definitions");
         throw new ApplicationError({
@@ -163,7 +218,7 @@ export function createAssetCustomFields({
 
     async getDefinitionByID(id: string): Promise<AssetCustomFieldDefinition | null> {
       try {
-        const definition = await assetCustomFieldRepository.getDefinitionByID(id);
+        const definition = await assetCustomFieldPersistence.getDefinitionByID(database, id);
         if (!definition) {
           logger.debug(`asset custom field definition with id ${id} not found`);
         }
@@ -187,7 +242,10 @@ export function createAssetCustomFields({
       validateCustomFieldDefinition(definition);
 
       try {
-        const created = await assetCustomFieldRepository.createDefinition(definition);
+        const created = await database
+          .transaction()
+          .setIsolationLevel("repeatable read")
+          .execute((trx) => assetCustomFieldPersistence.insertDefinition(trx, definition));
         return { current: created, performedBy };
       } catch (error) {
         if (isConflictError(error)) {
@@ -219,7 +277,21 @@ export function createAssetCustomFields({
       validateCustomFieldDefinition(definition);
 
       try {
-        const updated = await assetCustomFieldRepository.updateDefinitionByID(id, definition);
+        const updated = await database
+          .transaction()
+          .setIsolationLevel("repeatable read")
+          .execute(async (trx) => {
+            const previous = await assetCustomFieldPersistence.getDefinitionByID(trx, id);
+            if (!previous) {
+              return null;
+            }
+
+            return await assetCustomFieldPersistence.updateDefinition(trx, {
+              id,
+              definition,
+              previous,
+            });
+          });
         if (!updated) {
           logger.debug(`asset custom field definition with id ${id} not found`);
           return null;
@@ -260,7 +332,10 @@ export function createAssetCustomFields({
       const { id, performedBy } = opts;
 
       try {
-        const deleted = await assetCustomFieldRepository.deleteDefinitionByID(id);
+        const deleted = await database
+          .transaction()
+          .setIsolationLevel("repeatable read")
+          .execute((trx) => assetCustomFieldPersistence.deleteDefinition(trx, id));
         if (!deleted) {
           logger.debug(`asset custom field definition with id ${id} not found`);
           return null;
@@ -280,13 +355,13 @@ export function createAssetCustomFields({
 
     async listEffectiveValuesForAsset(assetId: string): Promise<AssetCustomFieldValue[] | null> {
       try {
-        const asset = await assetRepository.getByID(assetId);
+        const asset = await assetProjection.getAssetSnapshot(database, assetId);
         if (!asset) {
           logger.debug(`asset with id ${assetId} not found`);
           return null;
         }
 
-        return await assetCustomFieldRepository.listEffectiveValuesForAsset(assetId);
+        return asset.customFields;
       } catch (error) {
         logger.error(error, `failed to list asset custom field values for asset ${assetId}`);
         throw new ApplicationError({
@@ -303,7 +378,7 @@ export function createAssetCustomFields({
       assetIds: readonly string[],
     ): Promise<Map<string, AssetCustomFieldValue[]>> {
       try {
-        return await assetCustomFieldRepository.listEffectiveValuesForAssets(assetIds);
+        return await assetProjection.listEffectiveValuesForAssets(database, assetIds);
       } catch (error) {
         logger.error(error, "failed to hydrate asset custom field values");
         throw new ApplicationError({
@@ -320,13 +395,13 @@ export function createAssetCustomFields({
       assetId: string,
     ): Promise<AssetCustomFieldDefinition[] | null> {
       try {
-        const asset = await assetRepository.getByID(assetId);
+        const asset = await assetProjection.getAssetSnapshot(database, assetId);
         if (!asset) {
           logger.debug(`asset with id ${assetId} not found`);
           return null;
         }
 
-        return await assetCustomFieldRepository.listAvailableDefinitionsForAsset(assetId);
+        return await assetProjection.listAvailableDefinitionsForAsset(database, assetId);
       } catch (error) {
         logger.error(error, `failed to list available asset custom fields for asset ${assetId}`);
         throw new ApplicationError({
@@ -345,41 +420,54 @@ export function createAssetCustomFields({
       const { assetId, fieldIds, performedBy } = opts;
 
       try {
-        if (!(await assetRepository.getByID(assetId))) {
+        const updated = await database
+          .transaction()
+          .setIsolationLevel("repeatable read")
+          .execute(async (trx) => {
+            const previous = await assetProjection.getAssetSnapshot(trx, assetId);
+            if (!previous) {
+              return null;
+            }
+
+            const duplicateFieldId = findDuplicate(fieldIds);
+            if (duplicateFieldId) {
+              throw new ApplicationError({
+                code: "asset_custom_field.assignment.duplicate",
+                kind: "validation",
+                message: "asset custom field assignments contain duplicate fields",
+                details: { assetId, fieldId: duplicateFieldId },
+              });
+            }
+
+            const definitions = await assetCustomFieldPersistence.listDefinitions(trx);
+            const definitionIds = new Set(definitions.map((definition) => definition.id));
+
+            for (const fieldId of fieldIds) {
+              if (definitionIds.has(fieldId)) {
+                continue;
+              }
+
+              throw new ApplicationError({
+                code: "asset_custom_field.definition.unknown",
+                kind: "validation",
+                message: "unknown asset custom field",
+                details: { fieldId },
+              });
+            }
+
+            await requireAuditActor(trx, performedBy);
+            return await assetCustomFieldPersistence.replaceAssignments(trx, {
+              assetId,
+              fieldIds,
+              audit: { updatedAt: new Date(), updatedBy: performedBy },
+              previous,
+            });
+          });
+
+        if (!updated) {
           logger.debug(`asset with id ${assetId} not found`);
           return null;
         }
-
-        const duplicateFieldId = findDuplicate(fieldIds);
-        if (duplicateFieldId) {
-          throw new ApplicationError({
-            code: "asset_custom_field.assignment.duplicate",
-            kind: "validation",
-            message: "asset custom field assignments contain duplicate fields",
-            details: { assetId, fieldId: duplicateFieldId },
-          });
-        }
-
-        const definitions = await assetCustomFieldRepository.listDefinitions();
-        const definitionIds = new Set(definitions.map((definition) => definition.id));
-
-        for (const fieldId of fieldIds) {
-          if (!definitionIds.has(fieldId)) {
-            throw new ApplicationError({
-              code: "asset_custom_field.definition.unknown",
-              kind: "validation",
-              message: "unknown asset custom field",
-              details: { fieldId },
-            });
-          }
-        }
-
-        await requireAuditActor(performedBy);
-        const updated = await assetCustomFieldRepository.replaceAssignmentsForAsset(
-          assetId,
-          fieldIds,
-          { updatedAt: new Date(), updatedBy: performedBy },
-        );
 
         return {
           values: updated.values,
@@ -413,67 +501,85 @@ export function createAssetCustomFields({
       const { assetId, values, performedBy } = opts;
 
       try {
-        const previous = await getAssetSnapshot(assetId);
-        if (!previous) {
+        const updated = await database
+          .transaction()
+          .setIsolationLevel("repeatable read")
+          .execute(async (trx) => {
+            const previous = await assetProjection.getAssetSnapshot(trx, assetId);
+            if (!previous) {
+              return null;
+            }
+
+            const duplicateFieldId = findDuplicate(values.map((value) => value.fieldId));
+            if (duplicateFieldId) {
+              throw new ApplicationError({
+                code: "asset_custom_field.value.duplicate",
+                kind: "validation",
+                message: "asset custom field values contain duplicate fields",
+                details: { assetId, fieldId: duplicateFieldId },
+              });
+            }
+
+            const fieldsById = new Map(
+              previous.customFields.map((field) => [field.fieldId, field]),
+            );
+            const submittedFieldIds = new Set(values.map((value) => value.fieldId));
+
+            for (const assignedFieldId of fieldsById.keys()) {
+              if (submittedFieldIds.has(assignedFieldId)) {
+                continue;
+              }
+
+              throw new ApplicationError({
+                code: "asset_custom_field.value.missing",
+                kind: "validation",
+                message: "asset custom field value replacement is incomplete",
+                details: { assetId, fieldId: assignedFieldId },
+              });
+            }
+
+            for (const valueUpdate of values) {
+              const field = fieldsById.get(valueUpdate.fieldId);
+
+              if (!field) {
+                throw new ApplicationError({
+                  code: "asset_custom_field.value.not_assigned",
+                  kind: "validation",
+                  message: "asset custom field is not assigned to asset",
+                  details: { assetId, fieldId: valueUpdate.fieldId },
+                });
+              }
+
+              if (
+                valueUpdate.value !== null &&
+                !isValidValueForDefinition(field, valueUpdate.value)
+              ) {
+                throw new ApplicationError({
+                  code: "asset_custom_field.value.invalid",
+                  kind: "validation",
+                  message: "invalid asset custom field value",
+                  details: {
+                    assetId,
+                    fieldId: valueUpdate.fieldId,
+                    fieldKey: field.key,
+                  },
+                });
+              }
+            }
+
+            await requireAuditActor(trx, performedBy);
+            return await assetCustomFieldPersistence.replaceValues(trx, {
+              assetId,
+              values,
+              audit: { updatedAt: new Date(), updatedBy: performedBy },
+              previous,
+            });
+          });
+
+        if (!updated) {
           logger.debug(`asset with id ${assetId} not found`);
           return null;
         }
-
-        const duplicateFieldId = findDuplicate(values.map((value) => value.fieldId));
-        if (duplicateFieldId) {
-          throw new ApplicationError({
-            code: "asset_custom_field.value.duplicate",
-            kind: "validation",
-            message: "asset custom field values contain duplicate fields",
-            details: { assetId, fieldId: duplicateFieldId },
-          });
-        }
-
-        const fieldsById = new Map(previous.customFields.map((field) => [field.fieldId, field]));
-        const submittedFieldIds = new Set(values.map((value) => value.fieldId));
-
-        for (const assignedFieldId of fieldsById.keys()) {
-          if (!submittedFieldIds.has(assignedFieldId)) {
-            throw new ApplicationError({
-              code: "asset_custom_field.value.missing",
-              kind: "validation",
-              message: "asset custom field value replacement is incomplete",
-              details: { assetId, fieldId: assignedFieldId },
-            });
-          }
-        }
-
-        for (const valueUpdate of values) {
-          const field = fieldsById.get(valueUpdate.fieldId);
-
-          if (!field) {
-            throw new ApplicationError({
-              code: "asset_custom_field.value.not_assigned",
-              kind: "validation",
-              message: "asset custom field is not assigned to asset",
-              details: { assetId, fieldId: valueUpdate.fieldId },
-            });
-          }
-
-          if (valueUpdate.value !== null && !isValidValueForDefinition(field, valueUpdate.value)) {
-            throw new ApplicationError({
-              code: "asset_custom_field.value.invalid",
-              kind: "validation",
-              message: "invalid asset custom field value",
-              details: {
-                assetId,
-                fieldId: valueUpdate.fieldId,
-                fieldKey: field.key,
-              },
-            });
-          }
-        }
-
-        await requireAuditActor(performedBy);
-        const updated = await assetCustomFieldRepository.replaceValuesForAsset(assetId, values, {
-          updatedAt: new Date(),
-          updatedBy: performedBy,
-        });
 
         return {
           values: updated.values,

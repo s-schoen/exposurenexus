@@ -74,6 +74,13 @@ describe("asset inventory", () => {
   const assetCustomFieldReader = {
     listEffectiveValuesForAssets: vi.fn(),
   };
+  const database = {
+    transaction: vi.fn(),
+  };
+  const transaction = {
+    setIsolationLevel: vi.fn(),
+    execute: vi.fn(),
+  };
   const userProfileLookup = {
     getByID: vi.fn(),
   };
@@ -124,9 +131,43 @@ describe("asset inventory", () => {
 
   function createTestAssetService() {
     const inventory = createAssetInventory({
-      assetRepository,
-      assetCustomFieldReader,
-      userProfileLookup,
+      database: database as never,
+      assetPersistence: {
+        listAssets: (_executor, options) => assetRepository.list(options),
+        getAssetByID: (_executor, id) => assetRepository.getByID(id),
+        getAssetByDisplayName: (_executor, displayName, type) =>
+          assetRepository.getByDisplayName(displayName, type),
+        listAssetsByDisplayName: (_executor, displayName, type) =>
+          assetRepository.listByDisplayName(displayName, type),
+        getAssetIDByIdentifier: (_executor, identifier) =>
+          assetRepository.getAssetIDByIdentifier(identifier),
+        insertAsset: (_executor, asset) => assetRepository.create(asset),
+        updateAsset: (_executor, options) => assetRepository.updateByID(options.id, options.asset),
+        addAssetIdentifier: (_executor, options) =>
+          assetRepository.addIdentifier(options.assetId, options.identifier, options.audit),
+        updateAssetIdentifier: (_executor, options) =>
+          assetRepository.updateIdentifierByID(
+            options.assetId,
+            options.identifierId,
+            options.identifier,
+            options.audit,
+          ),
+        deleteAssetIdentifier: (_executor, options) =>
+          assetRepository.deleteIdentifierByID(
+            options.assetId,
+            options.identifierId,
+            options.audit,
+          ),
+        deleteAsset: (_executor, options) => assetRepository.deleteByID(options.id),
+        countFindingsByAssetID: (_executor, id) => assetRepository.countFindingsByAssetID(id),
+      },
+      assetProjection: {
+        listEffectiveValuesForAssets: (_executor, assetIds) =>
+          assetCustomFieldReader.listEffectiveValuesForAssets(assetIds),
+      },
+      userProfileLookup: {
+        getByID: (_executor, id) => userProfileLookup.getByID(id),
+      },
       logger,
     });
 
@@ -238,6 +279,11 @@ describe("asset inventory", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     domainEvents.clear();
+    database.transaction.mockReturnValue(transaction);
+    transaction.setIsolationLevel.mockReturnValue(transaction);
+    transaction.execute.mockImplementation(
+      async (callback: (executor: typeof database) => unknown) => await callback(database),
+    );
     assetRepository.countFindingsByAssetID.mockResolvedValue(0);
     userProfileLookup.getByID.mockResolvedValue(user);
     assetCustomFieldReader.listEffectiveValuesForAssets.mockImplementation(

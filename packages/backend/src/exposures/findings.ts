@@ -14,7 +14,7 @@ import {
 import { ApplicationError, isApplicationError } from "../application-error.js";
 import { isForeignKeyError } from "../database-error.js";
 
-import type { AssetRepository } from "../assets/asset-repository.js";
+import type { AssetInventory } from "../assets/assets.js";
 import type { CreateManualFindingInput, FindingRepository } from "./finding-repository.js";
 import type { ObservationRepository } from "./observation-repository.js";
 import type { FindingVulnerabilityLink } from "@exposurenexus/contracts/model/finding-vulnerability";
@@ -174,7 +174,7 @@ interface FindingDependencies {
     | "deleteAndTouchFinding"
     | "moveAndTouchFindings"
   >;
-  assetRepository: Pick<AssetRepository, "getByID">;
+  assetInventory: Pick<AssetInventory, "getByID">;
   userProfileLookup: UserProfileLookup;
   vulnerabilityReader: VulnerabilityReader;
   logger: Logger;
@@ -196,13 +196,22 @@ async function requireAuditActor(
 export function createFindings({
   findingRepository,
   observationRepository,
-  assetRepository,
+  assetInventory,
   userProfileLookup,
   vulnerabilityReader,
   logger,
 }: FindingDependencies): ExposureFindings {
   async function validateManualFindingRelations(finding: CreateManualFinding): Promise<void> {
-    const asset = await assetRepository.getByID(finding.assetId);
+    let asset: Awaited<ReturnType<AssetInventory["getByID"]>>;
+    try {
+      asset = await assetInventory.getByID(finding.assetId);
+    } catch (error) {
+      if (isApplicationError(error) && error.code === "asset.get_failed") {
+        throw error.cause instanceof Error ? error.cause : new Error(error.message);
+      }
+
+      throw error;
+    }
 
     if (!asset) {
       throw new ApplicationError({
