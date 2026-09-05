@@ -1,8 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
-import { VulnerabilityDetailContent } from "@/features/vulnerabilities/components/vulnerability-detail-content.tsx";
 import { VulnerabilityTable } from "@/features/vulnerabilities/components/vulnerability-table/index.tsx";
 import { useVulnerabilityLifecycle } from "@/features/vulnerabilities/hooks/use-vulnerability-lifecycle.ts";
 import { useVulnerabilityTableSearchState } from "@/features/vulnerabilities/hooks/use-vulnerability-table-search-state.ts";
@@ -10,6 +10,12 @@ import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
 import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
+
+const VulnerabilityPreview = lazy(() =>
+  import("@/features/vulnerabilities/components/vulnerability-preview.tsx").then((module) => ({
+    default: module.VulnerabilityPreview,
+  })),
+);
 
 interface VulnerabilitiesPageProps {
   search?: Record<string, unknown>;
@@ -80,7 +86,11 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
         description="Review the selected catalog entry without leaving the vulnerability table."
         fullPageHref={selected ? `/vulnerabilities/${selected}` : undefined}
       >
-        {selected && <VulnerabilityDetailContent vulnerabilityId={selected} />}
+        {selected && (
+          <Suspense fallback={null}>
+            <VulnerabilityPreview vulnerabilityId={selected} />
+          </Suspense>
+        )}
       </DetailPreviewDialog>
     </>
   );
