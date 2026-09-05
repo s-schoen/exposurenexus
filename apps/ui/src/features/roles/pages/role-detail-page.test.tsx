@@ -50,7 +50,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.roleQuery,
+  useSuspenseQuery: () => mocks.roleQuery,
 }));
 
 vi.mock("@/features/roles/queries/roles.ts", () => ({
@@ -65,15 +65,15 @@ vi.mock("@/hooks/use-page-meta.tsx", () => ({
 
 vi.mock("@/features/roles/components/role-detail-content.tsx", () => ({
   RoleDetailContent: ({
-    roleId: renderedRoleId,
+    role: renderedRole,
     titleAction,
   }: {
-    roleId: string;
+    role: Role;
     titleAction?: ReactNode;
   }) => (
     <div>
       {titleAction}
-      <div>Detail for {renderedRoleId}</div>
+      <div>Detail for {renderedRole.id}</div>
     </div>
   ),
 }));
@@ -136,23 +136,6 @@ describe("RoleDetailPage", () => {
 
     expect(mocks.usePageMeta).toHaveBeenCalledWith({
       title: "viewer",
-      description:
-        "Inspect the selected role and review how its permissions map to protected resources.",
-      actions: [],
-    });
-  });
-
-  it("uses fallback metadata before role data is available", async () => {
-    const { RoleDetailPage } = await import("@/features/roles/pages/role-detail-page.tsx");
-    mocks.roleQuery = {
-      isPending: true,
-      isSuccess: false,
-    };
-
-    render(<RoleDetailPage roleId={roleId} />);
-
-    expect(mocks.usePageMeta).toHaveBeenCalledWith({
-      title: "Role",
       description:
         "Inspect the selected role and review how its permissions map to protected resources.",
       actions: [],
