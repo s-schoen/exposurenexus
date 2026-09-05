@@ -1,5 +1,5 @@
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Activity, Bug, CircleCheckBig, Radar, Server, ShieldAlert } from "lucide-react";
 import { useMemo } from "react";
@@ -13,7 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card.tsx";
-import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { createListAssetsQueryOptions } from "@/features/assets";
 import {
   FindingSeverityChart,
@@ -38,25 +37,25 @@ export function DashboardPage() {
     description: "Monitor platform activity, finding trends, and current triage workload.",
   });
 
-  const findingStats = useQuery(createFindingStatsQueryOptions());
-  const assets = useQuery(createListAssetsQueryOptions());
+  const findingStats = useSuspenseQuery(createFindingStatsQueryOptions());
+  const assets = useSuspenseQuery(createListAssetsQueryOptions());
 
   const overview = useMemo(() => {
     const stats = findingStats.data;
-    const assetList = assets.data ?? [];
-    const totalFindings = stats?.total ?? 0;
+    const assetList = assets.data;
+    const totalFindings = stats.total;
     const totalAssets = assetList.length;
-    const affectedAssets = Object.values(stats?.assets ?? {}).filter((value) => value > 0).length;
-    const activeFindings = stats?.status[FindingStatus.Active] ?? 0;
-    const confirmedFindings = stats?.status[FindingStatus.Confirmed] ?? 0;
-    const criticalHighFindings = (stats?.severity.critical ?? 0) + (stats?.severity.high ?? 0);
-    const mitigatedFindings = stats?.status[FindingStatus.Mitigated] ?? 0;
+    const affectedAssets = Object.values(stats.assets).filter((value) => value > 0).length;
+    const activeFindings = stats.status[FindingStatus.Active];
+    const confirmedFindings = stats.status[FindingStatus.Confirmed];
+    const criticalHighFindings = stats.severity.critical + stats.severity.high;
+    const mitigatedFindings = stats.status[FindingStatus.Mitigated];
     const mitigatedRate =
       totalFindings > 0 ? Math.round((mitigatedFindings / totalFindings) * 100) : 0;
 
     const assetNamesById = new Map(assetList.map((asset) => [asset.id, asset.displayName]));
 
-    const topAssets = Object.entries(stats?.assets ?? {})
+    const topAssets = Object.entries(stats.assets)
       .filter(([, count]) => count > 0)
       .sort(([, left], [, right]) => right - left)
       .slice(0, 5)
@@ -121,9 +120,6 @@ export function DashboardPage() {
     };
   }, [assets.data, findingStats.data]);
 
-  const chartsLoading = findingStats.isPending;
-  const cardsLoading = findingStats.isPending || assets.isPending;
-
   return (
     <div className="flex flex-col gap-6">
       <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm">
@@ -137,34 +133,24 @@ export function DashboardPage() {
           </div>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          {cardsLoading ? (
-            <>
-              <Skeleton className="h-24 w-full rounded-xl" />
-              <Skeleton className="h-24 w-full rounded-xl" />
-              <Skeleton className="h-24 w-full rounded-xl" />
-              <Skeleton className="h-24 w-full rounded-xl" />
-            </>
-          ) : (
-            overview.priorityItems.map((item) => (
-              <Link
-                key={item.label}
-                to={item.href}
-                className="transition-colors hover:[&>div]:bg-accent/70"
-              >
-                <MetricCard
-                  title={item.label}
-                  description={item.description}
-                  value={formatNumber(item.value)}
-                  loading={cardsLoading}
-                  variant="panel"
-                  className="h-full"
-                  valueClassName={item.tone}
-                  titleClassName="text-xs uppercase tracking-[0.2em] text-muted-foreground"
-                  descriptionClassName="text-sm leading-6 text-muted-foreground"
-                />
-              </Link>
-            ))
-          )}
+          {overview.priorityItems.map((item) => (
+            <Link
+              key={item.label}
+              to={item.href}
+              className="transition-colors hover:[&>div]:bg-accent/70"
+            >
+              <MetricCard
+                title={item.label}
+                description={item.description}
+                value={formatNumber(item.value)}
+                variant="panel"
+                className="h-full"
+                valueClassName={item.tone}
+                titleClassName="text-xs uppercase tracking-[0.2em] text-muted-foreground"
+                descriptionClassName="text-sm leading-6 text-muted-foreground"
+              />
+            </Link>
+          ))}
         </CardContent>
       </Card>
 
@@ -174,21 +160,18 @@ export function DashboardPage() {
           value={overview.totalFindings}
           description="Current human-facing workflow cases"
           icon={Bug}
-          loading={cardsLoading}
         />
         <MetricCard
           title="Active findings"
           value={overview.activeFindings}
           description="Findings awaiting triage"
           icon={Activity}
-          loading={cardsLoading}
         />
         <MetricCard
           title="Critical / high"
           value={overview.criticalHighFindings}
           description="Highest severity exposure right now"
           icon={ShieldAlert}
-          loading={cardsLoading}
           emphasis={overview.criticalHighFindings > 0}
         />
         <MetricCard
@@ -196,14 +179,12 @@ export function DashboardPage() {
           value={overview.totalAssets}
           description="Inventory currently tracked in the platform"
           icon={Server}
-          loading={cardsLoading}
         />
         <MetricCard
           title="Affected assets"
           value={overview.affectedAssets}
           description={`${overview.mitigatedRate}% of findings currently mitigated`}
           icon={Radar}
-          loading={cardsLoading}
         />
       </div>
 
@@ -221,7 +202,6 @@ export function DashboardPage() {
               value={formatNumber(Math.max(overview.totalAssets - overview.affectedAssets, 0))}
               description="Assets without any linked findings"
               icon={CircleCheckBig}
-              loading={cardsLoading}
               variant="panel"
             />
             <MetricCard
@@ -229,7 +209,6 @@ export function DashboardPage() {
               value={`${overview.mitigatedRate}%`}
               description="Share of findings already mitigated"
               icon={ShieldAlert}
-              loading={cardsLoading}
               variant="panel"
             />
           </CardContent>
@@ -238,14 +217,12 @@ export function DashboardPage() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         <FindingSeverityChart
-          data={findingStats.data?.severity || {}}
-          loading={chartsLoading}
+          data={findingStats.data.severity}
           height="24rem"
           className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
         />
         <FindingStatusChart
-          data={findingStats.data?.status || {}}
-          loading={chartsLoading}
+          data={findingStats.data.status}
           height="24rem"
           className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
         />
@@ -257,7 +234,6 @@ export function DashboardPage() {
           description="Assets with the highest current finding volume."
           data={overview.topAssets}
           emptyMessage="No affected assets to display."
-          loading={chartsLoading || assets.isPending}
         />
       </div>
     </div>
@@ -268,13 +244,11 @@ function OverviewChartCard({
   title,
   description,
   data,
-  loading,
   emptyMessage,
 }: {
   title: string;
   description: string;
   data: Array<{ key: string; name: string; value: number }>;
-  loading?: boolean;
   emptyMessage: string;
 }) {
   const chartConfig = useMemo(() => {
@@ -311,9 +285,7 @@ function OverviewChartCard({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <Skeleton className="h-96 w-full rounded-xl" />
-        ) : chartData.length === 0 ? (
+        {chartData.length === 0 ? (
           <div className="flex h-96 items-center justify-center rounded-xl border border-dashed border-border/70 bg-background/60 text-sm text-muted-foreground">
             {emptyMessage}
           </div>
