@@ -8,6 +8,7 @@ node_modules
 apps/*/coverage
 apps/*/dist
 apps/*/node_modules
+apps/*/storybook-static
 packages/*/coverage
 packages/*/dist
 packages/*/node_modules
