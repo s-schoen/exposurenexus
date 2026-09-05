@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createTestDatabase, resetTestDatabase } from "../database/test/database.js";
 import {
   deleteUserSessionByDigest,
+  deleteSessionsByUserIDs,
   expireUserSessions,
   getUserSessionByDigest,
   insertUserSession,
@@ -61,6 +62,7 @@ describe("session persistence", () => {
     await expect(listUserSessions(testDb.db)).resolves.toEqual([session]);
     await expect(deleteUserSessionByDigest(testDb.db, session.sessionId)).resolves.toEqual(session);
     await expect(getUserSessionByDigest(testDb.db, session.sessionId)).resolves.toBeNull();
+    await expect(deleteUserSessionByDigest(testDb.db, session.sessionId)).resolves.toBeNull();
   });
 
   it("expires only sessions older than the threshold", async () => {
@@ -88,6 +90,9 @@ describe("session persistence", () => {
       createdAt: new Date("2026-04-23T09:00:00.000Z"),
       expiresAt: new Date("2026-04-23T10:00:01.000Z"),
     });
+
+    await expect(deleteSessionsByUserIDs(testDb.db, [])).resolves.toBe(0);
+    await expect(listUserSessions(testDb.db)).resolves.toEqual([expired, boundary, unrelated]);
 
     await expect(
       expireUserSessions(testDb.db, new Date("2026-04-23T10:00:00.000Z")),
