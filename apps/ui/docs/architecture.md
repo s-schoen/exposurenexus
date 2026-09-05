@@ -172,6 +172,28 @@ These constraints must be enforced in linting:
 - reject feature dependency cycles
 - keep feature-internal imports distinct from imports through another feature's public interface
 
+The current approved feature dependencies are:
+
+| Feature                    | May import feature roots       |
+| -------------------------- | ------------------------------ |
+| auth, roles, custom-fields | none                           |
+| users                      | roles                          |
+| vulnerabilities            | users                          |
+| assets                     | users, custom-fields           |
+| findings                   | assets, users, vulnerabilities |
+| dashboard                  | assets, findings               |
+
+`apps/ui/.oxlintrc.json` enforces these boundaries for production, tests, and stories,
+including dynamic imports. Cross-feature callers use `@/features/<name>`; feature
+internals use direct implementation paths. Test and story overrides retain the same
+feature dependencies while allowing test support imports. Production shared components
+may use only `lib/utils` and `lib/format` as presentation-safe infrastructure.
+
+When editing the restrictions, keep regex restrictions before glob allowlist exceptions:
+Oxlint stops checking patterns when an import matches a negated glob. Every override of
+`no-restricted-imports` must retain the relative-import and deleted API/context restrictions.
+Cycle detection ignores type-only edges and external packages; self-imports are errors.
+
 ## Shared Components
 
 ### `components/ui`

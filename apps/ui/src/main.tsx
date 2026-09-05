@@ -9,7 +9,7 @@ import {
   createRouterLoginRedirects,
   createUserSessionExpiredRedirectHandler,
   useAuth,
-} from "@/features/auth/index.ts";
+} from "@/features/auth";
 import { PageProvider, usePage } from "@/hooks/use-page-meta.tsx";
 
 import "@/styles.css";

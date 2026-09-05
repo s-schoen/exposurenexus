@@ -63,7 +63,7 @@ vi.mock("@/components/app-header.tsx", () => ({
   default: ({ accountMenu }: { accountMenu: ReactNode }) => <header>Header {accountMenu}</header>,
 }));
 
-vi.mock("@/features/auth/index.ts", () => ({
+vi.mock("@/features/auth", () => ({
   AccountMenu: () => <div>Account menu</div>,
 }));
 
@@ -79,7 +79,7 @@ vi.mock("@/features/assets", () => ({
   },
 }));
 
-vi.mock("@/features/findings/index.ts", () => ({
+vi.mock("@/features/findings", () => ({
   createFindingStatsQueryOptions: () => ({
     queryKey: ["findings", "stats"],
   }),

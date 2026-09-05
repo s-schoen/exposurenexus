@@ -3,15 +3,10 @@ import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
-import { AUTH_SESSION_QUERY_KEY, AuthProvider } from "@/features/auth/index.ts";
+import { AUTH_SESSION_QUERY_KEY, AuthProvider } from "@/features/auth";
 import { PageProvider } from "@/hooks/use-page-meta.tsx";
 
-import type {
-  AuthSessionQueryData,
-  AuthState,
-  AuthStatus,
-  LoginRedirects,
-} from "@/features/auth/index.ts";
+import type { AuthSessionQueryData, AuthState, AuthStatus, LoginRedirects } from "@/features/auth";
 import type { PageState } from "@/hooks/use-page-meta.tsx";
 import type { AuthSessionDataReply } from "@exposurenexus/contracts/api";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
