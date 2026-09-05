@@ -2,7 +2,7 @@ codecov:
   require_ci_to_pass: yes
   notify:
     wait_for_ci: yes
-    after_n_builds: 4
+    after_n_builds: 5
 
 coverage:
   precision: 2
@@ -40,6 +40,10 @@ flags:
     paths:
       - packages/jobs/src/
     carryforward: false
+  backend:
+    paths:
+      - packages/backend/src/
+    carryforward: false
 
 component_management:
   default_rules:
@@ -65,6 +69,10 @@ component_management:
       name: Backend Jobs
       paths:
         - packages/jobs/src/
+    - component_id: backend
+      name: Backend
+      paths:
+        - packages/backend/src/
 
 comment:
   layout: "diff, flags, components"
