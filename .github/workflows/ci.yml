@@ -96,6 +96,9 @@ jobs:
       - name: Run backend jobs tests
         run: pnpm test:jobs
 
+      - name: Run backend tests
+        run: pnpm test:backend
+
       - name: Run API unit tests
         run: pnpm test:api
 
@@ -140,6 +143,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: pnpm coverage:jobs
 
+      - name: Run backend coverage
+        if: ${{ !cancelled() }}
+        run: pnpm coverage:backend
+
       - name: Install Playwright Chromium
         if: ${{ !cancelled() }}
         run: pnpm --filter @exposurenexus/ui exec playwright install --with-deps chromium
@@ -154,7 +161,7 @@ jobs:
         with:
           use_oidc: true
           disable_search: true
-          files: apps/api/coverage/test-results.junit.xml,apps/ui/coverage/test-results.junit.xml,packages/contracts/coverage/test-results.junit.xml,packages/jobs/coverage/test-results.junit.xml
+          files: apps/api/coverage/test-results.junit.xml,apps/ui/coverage/test-results.junit.xml,packages/contracts/coverage/test-results.junit.xml,packages/jobs/coverage/test-results.junit.xml,packages/backend/coverage/test-results.junit.xml
           report_type: test_results
           fail_ci_if_error: false
 
@@ -196,6 +203,16 @@ jobs:
           disable_search: true
           files: packages/jobs/coverage/lcov.info
           flags: jobs
+          fail_ci_if_error: false
+
+      - name: Upload backend coverage
+        if: ${{ env.ACT != 'true' }}
+        uses: codecov/codecov-action@v7
+        with:
+          use_oidc: true
+          disable_search: true
+          files: packages/backend/coverage/lcov.info
+          flags: backend
           fail_ci_if_error: false
 
   publish-container:
