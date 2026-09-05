@@ -1,15 +1,32 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
-import { createListRolesQueryOptions, createRoleByIDQueryOptions } from "@/features/roles";
-import { getRoleByID, listRoles } from "@/features/roles/api/roles.ts";
-import { EditRolePage } from "@/features/roles/pages/edit-role-page.tsx";
+import {
+  createListRolesQueryOptions,
+  createRoleByIDQueryOptions,
+  EditRolePage,
+} from "@/features/roles";
 import { Route as EditRoute } from "@/routes/_authenticated/roles/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/roles/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/roles/index.tsx";
 import { Route as NewRoute } from "@/routes/_authenticated/roles/new.tsx";
 import { CUSTOM_AUDITOR_ROLE } from "@/test/fixtures.ts";
+
+const getRoleByID = vi.fn<(...args: Array<string>) => Promise<unknown>>();
+const listRoles = vi.fn<(...args: Array<string>) => Promise<unknown>>();
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: string) => {
+      if (input.startsWith("/api/roles/"))
+        return Response.json({ data: await getRoleByID(input.split("/").at(-1)!) });
+      if (input === "/api/roles") return Response.json({ data: { items: await listRoles() } });
+      throw new Error(`Unexpected request: ${input}`);
+    }),
+  );
+});
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -17,15 +34,9 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
   useNavigate: () => vi.fn(),
 }));
 vi.mock("@/hooks/use-page-meta.tsx", () => ({ usePageMeta: vi.fn() }));
-vi.mock("@/features/roles/hooks/use-role-lifecycle.ts", () => ({
-  useRoleLifecycle: () => ({}),
-}));
-vi.mock("@/features/roles/api/roles.ts", () => ({
-  getRoleByID: vi.fn(),
-  listRoles: vi.fn(),
-}));
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 type Loader = (args: {

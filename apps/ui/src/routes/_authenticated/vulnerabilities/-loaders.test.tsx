@@ -1,16 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { Suspense } from "react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import {
   createListVulnerabilitiesQueryOptions,
   createVulnerabilityByIDQueryOptions,
 } from "@/features/vulnerabilities";
-import {
-  getVulnerabilityByID,
-  listVulnerabilities,
-} from "@/features/vulnerabilities/api/vulnerabilities.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/vulnerabilities/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/vulnerabilities/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/vulnerabilities/index.tsx";
@@ -18,6 +14,22 @@ import { Route as NewRoute } from "@/routes/_authenticated/vulnerabilities/new.t
 import { STORY_VULNERABILITIES } from "@/test/fixtures.ts";
 
 import type { ComponentType } from "react";
+
+const getVulnerabilityByID = vi.fn<(...args: Array<string>) => Promise<unknown>>();
+const listVulnerabilities = vi.fn<(...args: Array<string>) => Promise<unknown>>();
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: string) => {
+      if (input.startsWith("/api/vulnerabilities/"))
+        return Response.json({ data: await getVulnerabilityByID(input.split("/").at(-1)!) });
+      if (input === "/api/vulnerabilities")
+        return Response.json({ data: { items: await listVulnerabilities() } });
+      throw new Error(`Unexpected request: ${input}`);
+    }),
+  );
+});
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -29,13 +41,6 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
   useNavigate: () => vi.fn(),
 }));
 vi.mock("@/hooks/use-page-meta.tsx", () => ({ usePageMeta: vi.fn() }));
-vi.mock("@/features/vulnerabilities/hooks/use-vulnerability-lifecycle.ts", () => ({
-  useVulnerabilityLifecycle: () => ({}),
-}));
-vi.mock("@/features/vulnerabilities/api/vulnerabilities.ts", () => ({
-  getVulnerabilityByID: vi.fn(),
-  listVulnerabilities: vi.fn(),
-}));
 vi.mock("@/components/detail-preview-dialog.tsx", () => ({ DetailPreviewDialog: () => null }));
 
 class ResizeObserverMock {
@@ -47,6 +52,7 @@ vi.stubGlobal("ResizeObserver", ResizeObserverMock);
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
   vi.clearAllMocks();
 });
