@@ -141,7 +141,9 @@ describe("identity roles", () => {
     const createdRole = { ...analystRole, ...role };
     rolePersistence.insertRole.mockResolvedValue(createdRole);
 
-    await expect(createService().create({ role, performedBy })).resolves.toEqual({
+    await expect(
+      createService().create({ role: { ...role, name: `  ${role.name}  ` }, performedBy }),
+    ).resolves.toEqual({
       current: createdRole,
       performedBy,
     });

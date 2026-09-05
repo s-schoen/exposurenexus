@@ -319,14 +319,18 @@ describe("exposures capability persistence", () => {
     const vulnerability = await createVulnerability("duplicate-link");
     const exposures = createCapability();
 
-    await expect(
-      createFinding(asset.id, "Atomic manual finding", [
-        vulnerability.current.id,
-        vulnerability.current.id,
-      ]),
-    ).rejects.toMatchObject({ code: "finding.manual_create_failed" });
-    await expect(testDb.db.selectFrom("finding").selectAll().execute()).resolves.toEqual([]);
-    await expect(testDb.db.selectFrom("observation").selectAll().execute()).resolves.toEqual([]);
+    await sql`ALTER TABLE observation ADD CONSTRAINT reject_atomic_test CHECK (title <> 'Atomic manual finding')`.execute(
+      testDb.db,
+    );
+    try {
+      await expect(
+        createFinding(asset.id, "Atomic manual finding", [vulnerability.current.id]),
+      ).rejects.toMatchObject({ code: "finding.manual_create_failed" });
+      await expect(testDb.db.selectFrom("finding").selectAll().execute()).resolves.toEqual([]);
+      await expect(testDb.db.selectFrom("observation").selectAll().execute()).resolves.toEqual([]);
+    } finally {
+      await sql`ALTER TABLE observation DROP CONSTRAINT reject_atomic_test`.execute(testDb.db);
+    }
 
     const finding = await createFinding(asset.id, "Rollback finding");
     const observationsBefore = await exposures.findings.listObservations(finding.current.id);

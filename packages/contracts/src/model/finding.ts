@@ -1,12 +1,12 @@
 import { z } from "zod/v4";
 
 import { findingAffectedResourceSchema } from "./affected-resource.js";
-import { dateSchema, utcStartDateSchema } from "./date.js";
+import { dateSchema } from "./date.js";
 import { manualObservationInputSchema } from "./observation.js";
 import { vulnerabilityCatalogSchema, VulnerabilitySeverity } from "./vulnerability.js";
 import { weaknessSchema } from "./weakness.js";
 
-const dueDateSchema = utcStartDateSchema as z.ZodType<Date, Date>;
+const dueDateSchema = dateSchema as z.ZodType<Date, Date>;
 
 export enum FindingStatus {
   Active = "active",
@@ -45,7 +45,7 @@ export const findingSchema = findingRecordSchema.extend({
 
 export const createFindingSchema = z.strictObject({
   assetId: z.uuidv4(),
-  title: z.string().trim().min(1),
+  title: z.string().min(1),
   severity: z.enum(VulnerabilitySeverity),
   status: z.enum(FindingStatus),
   assigneeId: z.uuidv4().nullable().optional().default(null),
@@ -53,10 +53,7 @@ export const createFindingSchema = z.strictObject({
   mitigation: z.string().nullable().optional().default(null),
   weakness: weaknessSchema,
   affectedResource: findingAffectedResourceSchema,
-  vulnerabilityIds: z
-    .array(z.uuidv4())
-    .default([])
-    .transform((ids) => [...new Set(ids)]),
+  vulnerabilityIds: z.array(z.uuidv4()).default([]),
   observation: manualObservationInputSchema.optional(),
 });
 

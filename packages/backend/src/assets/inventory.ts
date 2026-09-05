@@ -6,12 +6,12 @@ import {
   AssetLifecycleState,
   AssetType,
   type UpdateAsset,
-  validateAssetIdentifier,
 } from "@exposurenexus/contracts/model/asset";
 import { type AssetCustomFieldValue } from "@exposurenexus/contracts/model/asset-custom-field";
 
 import { ApplicationError, isApplicationError } from "../application-error.js";
 import { isConflictError, isForeignKeyError } from "../database-error.js";
+import { validateAssetIdentifier } from "./asset-identifier/schema.js";
 
 import type { DatabaseExecutor } from "../database/executor.js";
 import type { Database } from "../database/index.js";

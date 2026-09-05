@@ -1,11 +1,12 @@
 import {
-  ASSET_CUSTOM_FIELD_RESERVED_KEYS,
   AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   type CreateAssetCustomFieldDefinition,
-  validateAssetCustomFieldDefinitionRules,
 } from "@exposurenexus/contracts/model/asset-custom-field";
 import { describe, expect, it } from "vitest";
+
+import { ASSET_CUSTOM_FIELD_RESERVED_KEYS } from "./custom-field-rules.js";
+import { validateAssetCustomFieldDefinitionRules } from "./custom-field-rules.js";
 
 function violationReasons(
   definition: CreateAssetCustomFieldDefinition,

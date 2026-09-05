@@ -1,4 +1,5 @@
 export type FindingApplicationErrorCatalog = {
+  "finding.invalid_input": { kind: "validation" };
   "finding.list_failed": { kind: "unexpected" };
   "finding.get_failed": {
     kind: "unexpected";

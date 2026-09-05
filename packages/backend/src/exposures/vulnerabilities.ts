@@ -1,11 +1,11 @@
 import {
-  vulnerabilityInputSchema,
   type VulnerabilityCatalog,
   type VulnerabilityInput,
 } from "@exposurenexus/contracts/model/vulnerability";
 
 import { ApplicationError, isApplicationError } from "../application-error.js";
 import { isConflictError } from "../database-error.js";
+import { vulnerabilityInputSchema } from "./vulnerability-rules.js";
 
 import type { DatabaseExecutor } from "../database/executor.js";
 import type { Database } from "../database/index.js";

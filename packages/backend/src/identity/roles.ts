@@ -182,7 +182,9 @@ export function createRoles({
       try {
         const current = await database
           .transaction()
-          .execute((trx) => rolePersistence.insertRole(trx, roleInput));
+          .execute((trx) =>
+            rolePersistence.insertRole(trx, { ...roleInput, name: roleInput.name.trim() }),
+          );
 
         return {
           current,
@@ -227,7 +229,10 @@ export function createRoles({
 
       try {
         const updateResult = await database.transaction().execute(async (trx) => {
-          const result = await rolePersistence.updateRole(trx, { id, roleUpdate });
+          const result = await rolePersistence.updateRole(trx, {
+            id,
+            roleUpdate: { ...roleUpdate, name: roleUpdate.name.trim() },
+          });
           if (!result) {
             return null;
           }

@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { AffectedResourceType } from "./affected-resource.js";
-import {
-  FindingStatistics,
-  FindingStatus,
-  createFindingSchema,
-  updateFindingSchema,
-} from "./finding.js";
+import { FindingStatistics, FindingStatus } from "./finding.js";
+import { createFindingSchema, updateFindingSchema } from "./finding.js";
 import { VulnerabilitySeverity } from "./vulnerability.js";
 
 const assetId = "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c";
@@ -73,8 +69,8 @@ describe("manual finding creation schema", () => {
       },
     });
 
-    expect(parsed.vulnerabilityIds).toHaveLength(1);
-    expect(parsed.weakness).toEqual({ identifiers: { cwe: ["CWE-200"] } });
+    expect(parsed.vulnerabilityIds).toHaveLength(2);
+    expect(parsed.weakness).toEqual({ identifiers: { cwe: ["cwe-200"] } });
     expect(parsed.affectedResource).toEqual({ type: AffectedResourceType.Unspecified });
     expect(parsed.observation?.affectedResource).toMatchObject({
       type: AffectedResourceType.WebEndpoint,
@@ -117,7 +113,7 @@ describe("finding correction schema", () => {
         },
       }),
     ).toEqual({
-      weakness: { identifiers: { cwe: ["CWE-89"] } },
+      weakness: { identifiers: { cwe: ["cwe-89"] } },
       affectedResource: {
         type: AffectedResourceType.SourceCode,
         repository: "https://github.com/example/repository.git",

@@ -1,4 +1,7 @@
-import { ASSET_IDENTIFIER_VALUE_MAX_LENGTH, AssetIdentifierValidationReason } from "./types.js";
+import {
+  ASSET_IDENTIFIER_VALUE_MAX_LENGTH,
+  AssetIdentifierValidationReason,
+} from "@exposurenexus/contracts/model/asset-identifier";
 
 export type NormalizationFailure = {
   success: false;

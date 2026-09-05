@@ -1,13 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { AffectedResourceType } from "./affected-resource.js";
-import {
-  manualObservationInputSchema,
-  moveObservationInputSchema,
-  observationSchema,
-  ObservationSource,
-  updateObservationSchema,
-} from "./observation.js";
+import { observationSchema, ObservationSource, moveObservationInputSchema } from "./observation.js";
+import { manualObservationInputSchema, updateObservationSchema } from "./observation.js";
 import { VulnerabilitySeverity } from "./vulnerability.js";
 
 const observation = {
@@ -78,7 +73,7 @@ describe("manual observation input schema", () => {
 
     expect(manualObservationInputSchema.parse(input)).toEqual({
       ...input,
-      weakness: { identifiers: { cwe: ["CWE-200"] } },
+      weakness: { identifiers: { cwe: ["cwe-200"] } },
     });
   });
 
@@ -120,7 +115,7 @@ describe("observation update schema", () => {
       evidence: "Updated evidence",
       remediation: null,
       severity: VulnerabilitySeverity.High,
-      weakness: { identifiers: { cwe: ["CWE-89"] } },
+      weakness: { identifiers: { cwe: ["cwe-89"] } },
       affectedResource: {
         type: AffectedResourceType.SourceCode,
         file: "src/query.ts",

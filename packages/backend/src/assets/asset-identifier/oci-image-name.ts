@@ -1,3 +1,5 @@
+import { AssetIdentifierValidationReason } from "@exposurenexus/contracts/model/asset-identifier";
+
 import { normalizeDnsName } from "./dns-name.js";
 import { normalizeIpAddress, parseIPv4 } from "./ip-address.js";
 import {
@@ -8,7 +10,6 @@ import {
   schemePattern,
   type NormalizationResult,
 } from "./normalization-result.js";
-import { AssetIdentifierValidationReason } from "./types.js";
 
 function normalizeOciPort(port: string): NormalizationResult {
   if (!/^\d{1,5}$/u.test(port)) {
