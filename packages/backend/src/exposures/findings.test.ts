@@ -9,6 +9,7 @@ import {
 import { pino } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ApplicationError } from "../application-error.js";
 import { createFindings } from "./findings.js";
 
 const actorId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f";
@@ -95,14 +96,14 @@ describe("exposure findings", () => {
     deleteAndTouchFinding: vi.fn(),
     moveAndTouchFindings: vi.fn(),
   };
-  const assetRepository = { getByID: vi.fn() };
+  const assetInventory = { getByID: vi.fn() };
   const userProfileLookup = { getByID: vi.fn() };
   const vulnerabilityReader = { getByID: vi.fn() };
   const logger = pino({ enabled: false });
 
   beforeEach(() => {
     vi.resetAllMocks();
-    assetRepository.getByID.mockResolvedValue({ id: assetId });
+    assetInventory.getByID.mockResolvedValue({ id: assetId });
     userProfileLookup.getByID.mockResolvedValue({ id: actorId });
     vulnerabilityReader.getByID.mockResolvedValue(vulnerability);
   });
@@ -111,7 +112,7 @@ describe("exposure findings", () => {
     return createFindings({
       findingRepository,
       observationRepository,
-      assetRepository,
+      assetInventory,
       userProfileLookup,
       vulnerabilityReader,
       logger,
@@ -161,7 +162,7 @@ describe("exposure findings", () => {
   });
 
   it("validates the asset before vulnerabilities and assignee", async () => {
-    assetRepository.getByID.mockResolvedValue(null);
+    assetInventory.getByID.mockResolvedValue(null);
 
     await expect(
       createCapability().createManual({
@@ -183,6 +184,35 @@ describe("exposure findings", () => {
     expect(vulnerabilityReader.getByID).not.toHaveBeenCalled();
     expect(userProfileLookup.getByID).not.toHaveBeenCalled();
     expect(findingRepository.createManual).not.toHaveBeenCalled();
+  });
+
+  it("maps asset inventory read failures to manual finding failures", async () => {
+    assetInventory.getByID.mockRejectedValue(
+      new ApplicationError({
+        code: "asset.get_failed",
+        kind: "unexpected",
+        message: "failed to get asset",
+        details: { assetId },
+      }),
+    );
+
+    await expect(
+      createCapability().createManual({
+        finding: {
+          assetId,
+          title: finding.title,
+          severity: finding.severity,
+          status: finding.status,
+          assigneeId: null,
+          dueDate: null,
+          mitigation: null,
+          weakness: finding.weakness,
+          affectedResource: finding.affectedResource,
+          vulnerabilityIds: [vulnerabilityId],
+        },
+        performedBy: actorId,
+      }),
+    ).rejects.toMatchObject({ code: "finding.manual_create_failed", kind: "unexpected" });
   });
 
   it("lists and gets projected findings and only lists observations for an existing parent", async () => {

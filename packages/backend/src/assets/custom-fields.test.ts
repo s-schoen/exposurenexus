@@ -61,6 +61,13 @@ describe("asset custom fields", () => {
   const assetRepository = {
     getByID: vi.fn(),
   };
+  const database = {
+    transaction: vi.fn(),
+  };
+  const transaction = {
+    setIsolationLevel: vi.fn(),
+    execute: vi.fn(),
+  };
   const userProfileLookup = {
     getByID: vi.fn(),
   };
@@ -98,9 +105,48 @@ describe("asset custom fields", () => {
 
   function createTestAssetCustomFieldService() {
     const customFields = createAssetCustomFields({
-      assetCustomFieldRepository,
-      assetRepository,
-      userProfileLookup,
+      database: database as never,
+      assetCustomFieldPersistence: {
+        listDefinitions: (_executor) => assetCustomFieldRepository.listDefinitions(),
+        getDefinitionByID: (_executor, id) => assetCustomFieldRepository.getDefinitionByID(id),
+        insertDefinition: (_executor, definition) =>
+          assetCustomFieldRepository.createDefinition(definition),
+        updateDefinition: (_executor, options) =>
+          assetCustomFieldRepository.updateDefinitionByID(options.id, options.definition),
+        deleteDefinition: (_executor, id) => assetCustomFieldRepository.deleteDefinitionByID(id),
+        replaceAssignments: (_executor, options) =>
+          assetCustomFieldRepository.replaceAssignmentsForAsset(
+            options.assetId,
+            options.fieldIds,
+            options.audit,
+          ),
+        replaceValues: (_executor, options) =>
+          assetCustomFieldRepository.replaceValuesForAsset(
+            options.assetId,
+            options.values,
+            options.audit,
+          ),
+      },
+      assetProjection: {
+        getAssetSnapshot: async (_executor, id) => {
+          const asset = await assetRepository.getByID(id);
+          if (!asset) {
+            return null;
+          }
+
+          const values = await assetCustomFieldRepository.listEffectiveValuesForAsset(id);
+          return { ...asset, customFields: values ?? [] };
+        },
+        listEffectiveValuesForAsset: (_executor, id) =>
+          assetCustomFieldRepository.listEffectiveValuesForAsset(id),
+        listEffectiveValuesForAssets: (_executor, ids) =>
+          assetCustomFieldRepository.listEffectiveValuesForAssets(ids),
+        listAvailableDefinitionsForAsset: (_executor, id) =>
+          assetCustomFieldRepository.listAvailableDefinitionsForAsset(id),
+      },
+      userProfileLookup: {
+        getByID: (_executor, id) => userProfileLookup.getByID(id),
+      },
       logger,
     });
 
@@ -210,6 +256,11 @@ describe("asset custom fields", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     domainEvents.clear();
+    database.transaction.mockReturnValue(transaction);
+    transaction.setIsolationLevel.mockReturnValue(transaction);
+    transaction.execute.mockImplementation(
+      async (callback: (executor: typeof database) => unknown) => await callback(database),
+    );
     userProfileLookup.getByID.mockResolvedValue(user);
   });
 
@@ -1533,7 +1584,7 @@ describe("asset custom fields", () => {
   it("returns null when updating a missing custom field definition", async () => {
     const service = createTestAssetCustomFieldService();
 
-    assetCustomFieldRepository.updateDefinitionByID.mockResolvedValue(null);
+    assetCustomFieldRepository.getDefinitionByID.mockResolvedValue(null);
 
     await expect(
       service.updateDefinitionByID({
@@ -1547,7 +1598,7 @@ describe("asset custom fields", () => {
         },
       }),
     ).resolves.toBeNull();
-    expect(assetCustomFieldRepository.updateDefinitionByID).toHaveBeenCalledOnce();
+    expect(assetCustomFieldRepository.updateDefinitionByID).not.toHaveBeenCalled();
   });
 
   it("maps custom field definition update conflicts to a conflict application error", async () => {

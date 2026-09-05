@@ -2,11 +2,11 @@ import { sql } from "kysely";
 
 import { type Database } from "../database/index.js";
 
+import type { DatabaseExecutor } from "../database/executor.js";
 import type { Asset, AssetIdentifierRecord } from "@exposurenexus/contracts/model/asset";
-import type { Kysely, Selectable, Transaction } from "kysely";
+import type { Selectable } from "kysely";
 
-export type DatabaseExecutor = Kysely<Database> | Transaction<Database>;
-export type AssetRow = Selectable<Database["asset"]>;
+type AssetRow = Selectable<Database["asset"]>;
 type AssetIdentifierRow = Selectable<Database["asset_identifier"]>;
 
 export function toAssetIdentifier(row: AssetIdentifierRow): AssetIdentifierRecord {

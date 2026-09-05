@@ -5,11 +5,13 @@ import {
   getRuntimeLogger,
   type BackendRuntime,
 } from "../runtime.js";
-import { createAssetCustomFieldRepository } from "./asset-custom-field-repository.js";
-import { createAssetRepository } from "./asset-repository.js";
+import * as assetCustomFieldPersistence from "./asset-custom-field-persistence.js";
+import * as assetInventoryPersistence from "./asset-inventory-persistence.js";
+import * as assetProjection from "./asset-projection.js";
 import { createAssetCustomFields } from "./custom-fields.js";
 import { createAssetInventory } from "./inventory.js";
 
+import type { DatabaseExecutor } from "../database/executor.js";
 import type {
   Asset,
   AssetEnvironment,
@@ -230,22 +232,22 @@ export function createAssets(runtime: BackendRuntime): Assets {
   return getOrCreateRuntimeValue(runtime, assetsRuntimeKey, () => {
     const database = getRuntimeDatabase(runtime);
     const logger = getRuntimeLogger(runtime);
-    const assetRepository = createAssetRepository(database);
-    const assetCustomFieldRepository = createAssetCustomFieldRepository(database);
     const userProfileLookup = {
-      getByID: (id: string) => getUserProfileByID(database, id),
+      getByID: (executor: DatabaseExecutor, id: string) => getUserProfileByID(executor, id),
     };
     const customFields = createAssetCustomFields({
-      assetCustomFieldRepository,
-      assetRepository,
+      database,
+      assetCustomFieldPersistence,
+      assetProjection,
       userProfileLookup,
       logger: logger.child({ capability: "assets", component: "custom-fields" }),
     });
 
     return {
       inventory: createAssetInventory({
-        assetRepository,
-        assetCustomFieldReader: customFields,
+        database,
+        assetPersistence: assetInventoryPersistence,
+        assetProjection,
         userProfileLookup,
         logger: logger.child({ capability: "assets", component: "inventory" }),
       }),

@@ -1,12 +1,10 @@
-import { type Database } from "../database/index.js";
-
+import type { DatabaseExecutor } from "../database/executor.js";
 import type { Asset } from "@exposurenexus/contracts/model/asset";
-import type { Kysely, Transaction } from "kysely";
 
 export type AssetAuditRecord = Pick<Asset, "updatedAt" | "updatedBy">;
 
 export async function updateAssetAudit(
-  database: Kysely<Database> | Transaction<Database>,
+  database: DatabaseExecutor,
   assetId: string,
   audit: AssetAuditRecord,
 ): Promise<void> {
