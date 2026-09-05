@@ -1,9 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { useMemo } from "react";
 
 import { buttonVariants } from "@/components/ui/button.tsx";
+import { createListRolesQueryOptions } from "@/features/roles";
 import { UserDetailContent } from "@/features/users/components/user-detail-content.tsx";
 import { createUserByIDQueryOptions } from "@/features/users/queries/users.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
@@ -15,7 +16,8 @@ interface UserDetailPageProps {
 
 export function UserDetailPage({ userId }: UserDetailPageProps) {
   const navigate = useNavigate();
-  const user = useQuery(createUserByIDQueryOptions(userId));
+  const user = useSuspenseQuery(createUserByIDQueryOptions(userId));
+  const roles = useSuspenseQuery(createListRolesQueryOptions());
   const actions = useMemo(
     () => [
       {
@@ -33,14 +35,15 @@ export function UserDetailPage({ userId }: UserDetailPageProps) {
   );
 
   usePageMeta({
-    title: user.data?.displayName ?? "User",
+    title: user.data.displayName,
     description: "Review account identity fields, status, and role assignments.",
     actions,
   });
 
   return (
     <UserDetailContent
-      userId={userId}
+      user={user.data}
+      roles={roles.data}
       titleAction={
         <Link
           to="/users"

@@ -1,6 +1,7 @@
-import { useLayoutEffect, useMemo } from "react";
+import { Suspense, useLayoutEffect, useMemo } from "react";
 import { fn } from "storybook/test";
 
+import { RoutePendingState } from "@/components/route-pending-state.tsx";
 import { UserTable } from "@/features/users/components/user-table/index.tsx";
 import { ROLE_FIXTURES, STORY_USERS } from "@/test/fixtures.ts";
 import {
@@ -75,11 +76,13 @@ function UserTableStoryShell({
   return (
     <RouterStoryProvider queryClient={queryClient} initialPath="/users">
       <div className="w-full max-w-6xl">
-        <UserTable
-          selectedUserId={selectedUserId}
-          onSelectUser={onSelectUser}
-          onCreateUser={onCreateUser}
-        />
+        <Suspense fallback={<RoutePendingState />}>
+          <UserTable
+            selectedUserId={selectedUserId}
+            onSelectUser={onSelectUser}
+            onCreateUser={onCreateUser}
+          />
+        </Suspense>
       </div>
     </RouterStoryProvider>
   );
