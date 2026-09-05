@@ -3,15 +3,26 @@ import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerabil
 
 import { ApplicationError } from "../application-error.js";
 
-import type { FindingRepository } from "./finding-repository.js";
+import type { DatabaseExecutor } from "../database/executor.js";
+import type { Database } from "../database/index.js";
+import type { FindingCountField } from "./statistics-persistence.js";
+import type { Kysely } from "kysely";
 import type { Logger } from "pino";
+
+interface StatisticsPersistence {
+  countFindingsBy(
+    database: DatabaseExecutor,
+    field: FindingCountField,
+  ): Promise<Record<string, number>>;
+}
 
 export interface ExposureStatistics {
   getFindingStats(): Promise<FindingStatistics>;
 }
 
 interface StatisticsDependencies {
-  findingRepository: Pick<FindingRepository, "countBy">;
+  database: Kysely<Database>;
+  statisticsPersistence: StatisticsPersistence;
   logger: Logger;
 }
 
@@ -29,15 +40,16 @@ function normalizeEnumCounts<E extends string>(
 }
 
 export function createStatistics({
-  findingRepository,
+  database,
+  statisticsPersistence,
   logger,
 }: StatisticsDependencies): ExposureStatistics {
   return {
     async getFindingStats(): Promise<FindingStatistics> {
       try {
-        const severityCount = await findingRepository.countBy("severity");
-        const statusCount = await findingRepository.countBy("status");
-        const assetCount = await findingRepository.countBy("assetId");
+        const severityCount = await statisticsPersistence.countFindingsBy(database, "severity");
+        const statusCount = await statisticsPersistence.countFindingsBy(database, "status");
+        const assetCount = await statisticsPersistence.countFindingsBy(database, "assetId");
         const total = Object.values(severityCount).reduce((acc, value) => acc + value, 0);
 
         return {

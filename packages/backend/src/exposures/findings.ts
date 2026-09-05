@@ -15,18 +15,99 @@ import { ApplicationError, isApplicationError } from "../application-error.js";
 import { isForeignKeyError } from "../database-error.js";
 
 import type { AssetInventory } from "../assets/assets.js";
-import type { CreateManualFindingInput, FindingRepository } from "./finding-repository.js";
-import type { ObservationRepository } from "./observation-repository.js";
+import type { DatabaseExecutor } from "../database/executor.js";
+import type { Database } from "../database/index.js";
+import type {
+  CreateFindingRecord,
+  FindingRecord,
+  UpdateFindingRecord,
+} from "./finding-persistence.js";
+import type {
+  FindingVulnerabilityMutation,
+  FindingVulnerabilityMutationInput,
+} from "./finding-vulnerability-persistence.js";
+import type {
+  CreateObservationAndTouchFindingInput,
+  CreateObservationAndTouchFindingResult,
+  CreateObservationRecord,
+  DeleteObservationAndTouchFindingInput,
+  DeleteObservationAndTouchFindingResult,
+  MoveObservationAndTouchFindingsInput,
+  MoveObservationAndTouchFindingsResult,
+  ObservationRecord,
+  UpdateObservationAndTouchFindingInput,
+  UpdateObservationAndTouchFindingResult,
+} from "./observation-persistence.js";
 import type { FindingVulnerabilityLink } from "@exposurenexus/contracts/model/finding-vulnerability";
 import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
+import type { Kysely } from "kysely";
 import type { Logger } from "pino";
 
-interface VulnerabilityReader {
-  getByID(id: string): Promise<VulnerabilityCatalog | null>;
+interface FindingProjection {
+  listFindingProjections(database: DatabaseExecutor): Promise<Finding[]>;
+  getFindingProjectionByID(database: DatabaseExecutor, id: string): Promise<Finding | null>;
+}
+
+interface FindingPersistence {
+  insertFinding(database: DatabaseExecutor, finding: CreateFindingRecord): Promise<FindingRecord>;
+  lockFinding(database: DatabaseExecutor, id: string): Promise<FindingRecord | null>;
+  updateFinding(
+    database: DatabaseExecutor,
+    id: string,
+    finding: UpdateFindingRecord,
+  ): Promise<FindingRecord | null>;
+  deleteFinding(database: DatabaseExecutor, id: string): Promise<FindingRecord | null>;
+}
+
+interface ObservationPersistence {
+  listObservations(database: DatabaseExecutor, findingId: string): Promise<ObservationRecord[]>;
+  insertObservation(
+    database: DatabaseExecutor,
+    observation: CreateObservationRecord,
+  ): Promise<ObservationRecord>;
+  createObservationAndTouchFinding(
+    database: DatabaseExecutor,
+    input: CreateObservationAndTouchFindingInput,
+  ): Promise<CreateObservationAndTouchFindingResult | null>;
+  updateObservationAndTouchFinding(
+    database: DatabaseExecutor,
+    input: UpdateObservationAndTouchFindingInput,
+  ): Promise<UpdateObservationAndTouchFindingResult | null>;
+  deleteObservationAndTouchFinding(
+    database: DatabaseExecutor,
+    input: DeleteObservationAndTouchFindingInput,
+  ): Promise<DeleteObservationAndTouchFindingResult | null>;
+  moveObservationAndTouchFindings(
+    database: DatabaseExecutor,
+    input: MoveObservationAndTouchFindingsInput,
+  ): Promise<MoveObservationAndTouchFindingsResult | null>;
+}
+
+interface FindingVulnerabilityPersistence {
+  insertLinks(
+    database: DatabaseExecutor,
+    findingId: string,
+    vulnerabilityIds: readonly string[],
+  ): Promise<FindingVulnerabilityLink[]>;
+  linkVulnerability(
+    database: DatabaseExecutor,
+    input: FindingVulnerabilityMutationInput,
+  ): Promise<FindingVulnerabilityMutation>;
+  unlinkVulnerability(
+    database: DatabaseExecutor,
+    input: FindingVulnerabilityMutationInput,
+  ): Promise<FindingVulnerabilityMutation>;
+}
+
+interface VulnerabilityPersistence {
+  getVulnerabilityByID(
+    database: DatabaseExecutor,
+    id: string,
+  ): Promise<VulnerabilityCatalog | null>;
 }
 
 interface UserProfileLookup {
-  getByID(id: string): Promise<object | null>;
+  getByID(database: DatabaseExecutor, id: string): Promise<object | null>;
 }
 
 export interface CreateManualFindingCommand {
@@ -156,28 +237,23 @@ export interface ExposureFindings {
 }
 
 interface FindingDependencies {
-  findingRepository: Pick<
-    FindingRepository,
-    | "createManual"
-    | "getProjectedByID"
-    | "listProjected"
-    | "updateByID"
-    | "deleteByID"
-    | "linkVulnerability"
-    | "unlinkVulnerability"
-  >;
-  observationRepository: Pick<
-    ObservationRepository,
-    | "listByFindingID"
-    | "createAndTouchFinding"
-    | "updateAndTouchFinding"
-    | "deleteAndTouchFinding"
-    | "moveAndTouchFindings"
-  >;
+  database: Kysely<Database>;
+  findingProjection: FindingProjection;
+  findingPersistence: FindingPersistence;
+  observationPersistence: ObservationPersistence;
+  findingVulnerabilityPersistence: FindingVulnerabilityPersistence;
+  vulnerabilityPersistence: VulnerabilityPersistence;
   assetInventory: Pick<AssetInventory, "getByID">;
   userProfileLookup: UserProfileLookup;
-  vulnerabilityReader: VulnerabilityReader;
   logger: Logger;
+}
+
+type CreateManualObservationRecord = Omit<CreateObservationRecord, "findingId">;
+
+interface CreateManualFindingPersistenceInput {
+  finding: CreateFindingRecord;
+  observation: CreateManualObservationRecord;
+  vulnerabilityIds: readonly string[];
 }
 
 function normalizeOptionalDueDate(dueDate: Date | null | undefined): Date | null {
@@ -186,19 +262,41 @@ function normalizeOptionalDueDate(dueDate: Date | null | undefined): Date | null
 
 async function requireAuditActor(
   userProfileLookup: UserProfileLookup,
+  database: DatabaseExecutor,
   performedBy: string,
 ): Promise<void> {
-  if (!(await userProfileLookup.getByID(performedBy))) {
+  if (!(await userProfileLookup.getByID(database, performedBy))) {
     throw new Error(`finding audit actor ${performedBy} does not exist`);
   }
 }
 
+async function getVulnerabilityForFinding(
+  vulnerabilityPersistence: VulnerabilityPersistence,
+  database: DatabaseExecutor,
+  id: string,
+): Promise<VulnerabilityCatalog | null> {
+  try {
+    return await vulnerabilityPersistence.getVulnerabilityByID(database, id);
+  } catch (error) {
+    throw new ApplicationError({
+      code: "vulnerability.get_failed",
+      kind: "unexpected",
+      message: "failed to get vulnerability",
+      cause: error,
+      details: { vulnerabilityId: id },
+    });
+  }
+}
+
 export function createFindings({
-  findingRepository,
-  observationRepository,
+  database,
+  findingProjection,
+  findingPersistence,
+  observationPersistence,
+  findingVulnerabilityPersistence,
+  vulnerabilityPersistence,
   assetInventory,
   userProfileLookup,
-  vulnerabilityReader,
   logger,
 }: FindingDependencies): ExposureFindings {
   async function validateManualFindingRelations(finding: CreateManualFinding): Promise<void> {
@@ -223,7 +321,11 @@ export function createFindings({
     }
 
     for (const vulnerabilityId of finding.vulnerabilityIds) {
-      const vulnerability = await vulnerabilityReader.getByID(vulnerabilityId);
+      const vulnerability = await getVulnerabilityForFinding(
+        vulnerabilityPersistence,
+        database,
+        vulnerabilityId,
+      );
       if (!vulnerability) {
         throw new ApplicationError({
           code: "finding.vulnerability_unknown",
@@ -235,7 +337,7 @@ export function createFindings({
     }
 
     if (finding.assigneeId) {
-      const assignee = await userProfileLookup.getByID(finding.assigneeId);
+      const assignee = await userProfileLookup.getByID(database, finding.assigneeId);
       if (!assignee) {
         throw new ApplicationError({
           code: "finding.assignee_unknown",
@@ -251,59 +353,64 @@ export function createFindings({
     command: FindingVulnerabilityMutationCommand,
     operation: "link" | "unlink",
   ): Promise<FindingVulnerabilityMutationOutcome | null> {
-    const [finding, vulnerability] = await Promise.all([
-      findingRepository.getProjectedByID(command.findingId),
-      vulnerabilityReader.getByID(command.vulnerabilityId),
-    ]);
+    return await database.transaction().execute(async (transaction) => {
+      const [finding, vulnerability] = await Promise.all([
+        findingProjection.getFindingProjectionByID(transaction, command.findingId),
+        getVulnerabilityForFinding(vulnerabilityPersistence, transaction, command.vulnerabilityId),
+      ]);
 
-    if (!finding) {
-      return null;
-    }
+      if (!finding) {
+        return null;
+      }
 
-    if (!vulnerability) {
-      throw new ApplicationError({
-        code: "finding.vulnerability_link_target_missing",
-        kind: "missing",
-        message: `vulnerability with id ${command.vulnerabilityId} does not exist`,
-        details: { vulnerabilityId: command.vulnerabilityId },
-      });
-    }
+      if (!vulnerability) {
+        throw new ApplicationError({
+          code: "finding.vulnerability_link_target_missing",
+          kind: "missing",
+          message: `vulnerability with id ${command.vulnerabilityId} does not exist`,
+          details: { vulnerabilityId: command.vulnerabilityId },
+        });
+      }
 
-    await requireAuditActor(userProfileLookup, command.performedBy);
-    const audit = {
-      updatedAt: new Date(),
-      updatedBy: command.performedBy,
-    };
-    const mutation =
-      operation === "link"
-        ? await findingRepository.linkVulnerability({
-            findingId: command.findingId,
-            vulnerabilityId: command.vulnerabilityId,
-            ...audit,
-          })
-        : await findingRepository.unlinkVulnerability({
-            findingId: command.findingId,
-            vulnerabilityId: command.vulnerabilityId,
-            ...audit,
-          });
-    const current = await findingRepository.getProjectedByID(command.findingId);
+      await requireAuditActor(userProfileLookup, transaction, command.performedBy);
+      const audit = {
+        updatedAt: new Date(),
+        updatedBy: command.performedBy,
+      };
+      const mutation =
+        operation === "link"
+          ? await findingVulnerabilityPersistence.linkVulnerability(transaction, {
+              findingId: command.findingId,
+              vulnerabilityId: command.vulnerabilityId,
+              ...audit,
+            })
+          : await findingVulnerabilityPersistence.unlinkVulnerability(transaction, {
+              findingId: command.findingId,
+              vulnerabilityId: command.vulnerabilityId,
+              ...audit,
+            });
+      const current = await findingProjection.getFindingProjectionByID(
+        transaction,
+        command.findingId,
+      );
 
-    if (!current) {
-      throw new ApplicationError({
-        code: "finding.vulnerability_link_failed",
-        kind: "unexpected",
-        message: "finding disappeared while updating its catalog links",
-        details: { findingId: command.findingId, vulnerabilityId: command.vulnerabilityId },
-      });
-    }
+      if (!current) {
+        throw new ApplicationError({
+          code: "finding.vulnerability_link_failed",
+          kind: "unexpected",
+          message: "finding disappeared while updating its catalog links",
+          details: { findingId: command.findingId, vulnerabilityId: command.vulnerabilityId },
+        });
+      }
 
-    return {
-      finding: current,
-      vulnerability,
-      link: mutation.link,
-      changed: mutation.changed,
-      performedBy: command.performedBy,
-    };
+      return {
+        finding: current,
+        vulnerability,
+        link: mutation.link,
+        changed: mutation.changed,
+        performedBy: command.performedBy,
+      };
+    });
   }
 
   async function safelyMutateVulnerabilityLink(
@@ -334,7 +441,7 @@ export function createFindings({
   return {
     async listAll(): Promise<Finding[]> {
       try {
-        return await findingRepository.listProjected();
+        return await findingProjection.listFindingProjections(database);
       } catch (error) {
         logger.error(error, "failed to list findings");
         throw new ApplicationError({
@@ -348,7 +455,7 @@ export function createFindings({
 
     async getByID(id: string): Promise<Finding | null> {
       try {
-        return await findingRepository.getProjectedByID(id);
+        return await findingProjection.getFindingProjectionByID(database, id);
       } catch (error) {
         logger.error(error, `failed to get finding with id ${id}`);
         throw new ApplicationError({
@@ -364,7 +471,6 @@ export function createFindings({
     async createManual(command: CreateManualFindingCommand): Promise<FindingCreatedOutcome> {
       try {
         await validateManualFindingRelations(command.finding);
-        await requireAuditActor(userProfileLookup, command.performedBy);
 
         const now = new Date();
         const {
@@ -372,7 +478,7 @@ export function createFindings({
           vulnerabilityIds,
           ...findingInput
         } = command.finding;
-        const finding = {
+        const finding: CreateFindingRecord = {
           ...findingInput,
           assigneeId: findingInput.assigneeId ?? null,
           dueDate: normalizeOptionalDueDate(findingInput.dueDate),
@@ -382,28 +488,55 @@ export function createFindings({
           createdBy: command.performedBy,
           updatedBy: command.performedBy,
         };
-        const observation: ManualObservationInput = observationInput ?? {};
-        const input: CreateManualFindingInput = {
+        const observation: CreateManualObservationRecord = {
+          ingestionId: null,
+          source: ObservationSource.Manual,
+          title: observationInput?.title ?? finding.title,
+          description: observationInput?.description ?? null,
+          evidence: observationInput?.evidence ?? null,
+          remediation: observationInput?.remediation ?? null,
+          severity: observationInput?.severity ?? finding.severity,
+          weakness: observationInput?.weakness ?? finding.weakness,
+          affectedResource: observationInput?.affectedResource ?? finding.affectedResource,
+          observedAt: observationInput?.observedAt ?? now,
+          createdAt: now,
+          updatedAt: now,
+          createdBy: command.performedBy,
+          updatedBy: command.performedBy,
+        };
+        const input: CreateManualFindingPersistenceInput = {
           finding,
-          observation: {
-            ingestionId: null,
-            source: ObservationSource.Manual,
-            title: observation.title ?? finding.title,
-            description: observation.description ?? null,
-            evidence: observation.evidence ?? null,
-            remediation: observation.remediation ?? null,
-            severity: observation.severity ?? finding.severity,
-            weakness: observation.weakness ?? finding.weakness,
-            affectedResource: observation.affectedResource ?? finding.affectedResource,
-            observedAt: observation.observedAt ?? now,
-            createdAt: now,
-            updatedAt: now,
-            createdBy: command.performedBy,
-            updatedBy: command.performedBy,
-          },
+          observation,
           vulnerabilityIds,
         };
-        const created = await findingRepository.createManual(input);
+
+        const created = await database.transaction().execute(async (transaction) => {
+          await requireAuditActor(userProfileLookup, transaction, command.performedBy);
+          const createdFinding = await findingPersistence.insertFinding(transaction, input.finding);
+          const createdObservation = await observationPersistence.insertObservation(transaction, {
+            ...input.observation,
+            findingId: createdFinding.id,
+          });
+          const links = await findingVulnerabilityPersistence.insertLinks(
+            transaction,
+            createdFinding.id,
+            input.vulnerabilityIds,
+          );
+          const projection = await findingProjection.getFindingProjectionByID(
+            transaction,
+            createdFinding.id,
+          );
+          if (!projection) {
+            throw new Error("created manual finding was not available as a projection");
+          }
+
+          return {
+            finding: createdFinding,
+            observation: createdObservation,
+            links,
+            projection,
+          };
+        });
 
         return {
           current: created.projection,
@@ -428,8 +561,8 @@ export function createFindings({
 
     async listObservations(findingId: string): Promise<Observation[] | null> {
       try {
-        const finding = await findingRepository.getProjectedByID(findingId);
-        return finding ? await observationRepository.listByFindingID(findingId) : null;
+        const finding = await findingProjection.getFindingProjectionByID(database, findingId);
+        return finding ? await observationPersistence.listObservations(database, findingId) : null;
       } catch (error) {
         logger.error(error, `failed to list observations for finding ${findingId}`);
         throw new ApplicationError({
@@ -446,30 +579,32 @@ export function createFindings({
       command: CreateManualObservationCommand,
     ): Promise<ObservationCreatedOutcome | null> {
       try {
-        await requireAuditActor(userProfileLookup, command.performedBy);
         const input = command.observation;
-        const mutation = await observationRepository.createAndTouchFinding({
-          findingId: command.findingId,
-          buildObservation(previous) {
-            const now = new Date();
-            return {
-              findingId: command.findingId,
-              ingestionId: null,
-              source: ObservationSource.Manual,
-              title: input.title ?? previous.title,
-              description: input.description ?? null,
-              evidence: input.evidence ?? null,
-              remediation: input.remediation ?? null,
-              severity: input.severity ?? previous.severity,
-              weakness: input.weakness ?? previous.weakness,
-              affectedResource: input.affectedResource ?? previous.affectedResource,
-              observedAt: input.observedAt ?? now,
-              createdAt: now,
-              updatedAt: now,
-              createdBy: command.performedBy,
-              updatedBy: command.performedBy,
-            };
-          },
+        const mutation = await database.transaction().execute(async (transaction) => {
+          await requireAuditActor(userProfileLookup, transaction, command.performedBy);
+          return await observationPersistence.createObservationAndTouchFinding(transaction, {
+            findingId: command.findingId,
+            buildObservation(previous) {
+              const now = new Date();
+              return {
+                findingId: command.findingId,
+                ingestionId: null,
+                source: ObservationSource.Manual,
+                title: input.title ?? previous.title,
+                description: input.description ?? null,
+                evidence: input.evidence ?? null,
+                remediation: input.remediation ?? null,
+                severity: input.severity ?? previous.severity,
+                weakness: input.weakness ?? previous.weakness,
+                affectedResource: input.affectedResource ?? previous.affectedResource,
+                observedAt: input.observedAt ?? now,
+                createdAt: now,
+                updatedAt: now,
+                createdBy: command.performedBy,
+                updatedBy: command.performedBy,
+              };
+            },
+          });
         });
         if (!mutation) {
           return null;
@@ -497,15 +632,17 @@ export function createFindings({
       command: UpdateObservationCommand,
     ): Promise<ObservationUpdatedOutcome | null> {
       try {
-        await requireAuditActor(userProfileLookup, command.performedBy);
-        const mutation = await observationRepository.updateAndTouchFinding({
-          findingId: command.findingId,
-          observationId: command.observationId,
-          observation: {
-            ...command.observation,
-            updatedAt: new Date(),
-            updatedBy: command.performedBy,
-          },
+        const mutation = await database.transaction().execute(async (transaction) => {
+          await requireAuditActor(userProfileLookup, transaction, command.performedBy);
+          return await observationPersistence.updateObservationAndTouchFinding(transaction, {
+            findingId: command.findingId,
+            observationId: command.observationId,
+            observation: {
+              ...command.observation,
+              updatedAt: new Date(),
+              updatedBy: command.performedBy,
+            },
+          });
         });
         if (!mutation) {
           return null;
@@ -537,12 +674,14 @@ export function createFindings({
       command: DeleteObservationCommand,
     ): Promise<ObservationDeletedOutcome | null> {
       try {
-        await requireAuditActor(userProfileLookup, command.performedBy);
-        const mutation = await observationRepository.deleteAndTouchFinding({
-          findingId: command.findingId,
-          observationId: command.observationId,
-          updatedAt: new Date(),
-          updatedBy: command.performedBy,
+        const mutation = await database.transaction().execute(async (transaction) => {
+          await requireAuditActor(userProfileLookup, transaction, command.performedBy);
+          return await observationPersistence.deleteObservationAndTouchFinding(transaction, {
+            findingId: command.findingId,
+            observationId: command.observationId,
+            updatedAt: new Date(),
+            updatedBy: command.performedBy,
+          });
         });
         if (!mutation) {
           return null;
@@ -586,13 +725,15 @@ export function createFindings({
       }
 
       try {
-        await requireAuditActor(userProfileLookup, command.performedBy);
-        const mutation = await observationRepository.moveAndTouchFindings({
-          findingId: command.findingId,
-          observationId: command.observationId,
-          targetFindingId: command.targetFindingId,
-          updatedAt: new Date(),
-          updatedBy: command.performedBy,
+        const mutation = await database.transaction().execute(async (transaction) => {
+          await requireAuditActor(userProfileLookup, transaction, command.performedBy);
+          return await observationPersistence.moveObservationAndTouchFindings(transaction, {
+            findingId: command.findingId,
+            observationId: command.observationId,
+            targetFindingId: command.targetFindingId,
+            updatedAt: new Date(),
+            updatedBy: command.performedBy,
+          });
         });
         if (!mutation) {
           return null;
@@ -632,44 +773,66 @@ export function createFindings({
 
     async updateByID(command: UpdateFindingByIDCommand): Promise<FindingUpdatedOutcome | null> {
       try {
-        const previous = await findingRepository.getProjectedByID(command.id);
-        if (!previous) {
+        const updated = await database.transaction().execute(async (transaction) => {
+          const lockedFinding = await findingPersistence.lockFinding(transaction, command.id);
+          if (!lockedFinding) {
+            return null;
+          }
+
+          const previous = await findingProjection.getFindingProjectionByID(
+            transaction,
+            command.id,
+          );
+          if (!previous) {
+            return null;
+          }
+
+          if (command.finding.assigneeId) {
+            const assignee = await userProfileLookup.getByID(
+              transaction,
+              command.finding.assigneeId,
+            );
+            if (!assignee) {
+              throw new ApplicationError({
+                code: "finding.assignee_unknown",
+                kind: "validation",
+                message: "finding assignee does not exist",
+                details: { assigneeId: command.finding.assigneeId, findingId: command.id },
+              });
+            }
+          }
+          await requireAuditActor(userProfileLookup, transaction, command.performedBy);
+
+          const findingUpdate: UpdateFindingRecord = {
+            ...command.finding,
+            updatedAt: new Date(),
+            updatedBy: command.performedBy,
+            ...(command.finding.dueDate === undefined
+              ? {}
+              : { dueDate: normalizeOptionalDueDate(command.finding.dueDate) }),
+          };
+          const updatedFinding = await findingPersistence.updateFinding(
+            transaction,
+            command.id,
+            findingUpdate,
+          );
+          if (!updatedFinding) {
+            return null;
+          }
+
+          const current = await findingProjection.getFindingProjectionByID(transaction, command.id);
+          if (!current) {
+            throw new Error("finding was not available after correction");
+          }
+
+          return { previous, current };
+        });
+        if (!updated) {
           logger.debug(`cannot update finding ${command.id}: not found`);
           return null;
         }
 
-        if (command.finding.assigneeId) {
-          const assignee = await userProfileLookup.getByID(command.finding.assigneeId);
-          if (!assignee) {
-            throw new ApplicationError({
-              code: "finding.assignee_unknown",
-              kind: "validation",
-              message: "finding assignee does not exist",
-              details: { assigneeId: command.finding.assigneeId, findingId: command.id },
-            });
-          }
-        }
-        await requireAuditActor(userProfileLookup, command.performedBy);
-
-        const findingUpdate = {
-          ...command.finding,
-          updatedAt: new Date(),
-          updatedBy: command.performedBy,
-          ...(command.finding.dueDate === undefined
-            ? {}
-            : { dueDate: normalizeOptionalDueDate(command.finding.dueDate) }),
-        };
-        const updated = await findingRepository.updateByID(command.id, findingUpdate);
-        if (!updated) {
-          return null;
-        }
-
-        const current = await findingRepository.getProjectedByID(command.id);
-        if (!current) {
-          throw new Error("finding was not available after correction");
-        }
-
-        return { previous, current, performedBy: command.performedBy };
+        return { ...updated, performedBy: command.performedBy };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;
@@ -699,19 +862,29 @@ export function createFindings({
 
     async deleteByID(command: DeleteFindingByIDCommand): Promise<FindingDeletedOutcome | null> {
       try {
-        const previous = await findingRepository.getProjectedByID(command.id);
-        if (!previous) {
-          logger.debug(`cannot delete finding ${command.id}: not found`);
-          return null;
-        }
+        const deleted = await database.transaction().execute(async (transaction) => {
+          const lockedFinding = await findingPersistence.lockFinding(transaction, command.id);
+          if (!lockedFinding) {
+            return null;
+          }
 
-        const deleted = await findingRepository.deleteByID(command.id);
+          const previous = await findingProjection.getFindingProjectionByID(
+            transaction,
+            command.id,
+          );
+          if (!previous) {
+            return null;
+          }
+
+          const deletedFinding = await findingPersistence.deleteFinding(transaction, command.id);
+          return deletedFinding ? { previous } : null;
+        });
         if (!deleted) {
           logger.debug(`cannot delete finding ${command.id}: not found`);
           return null;
         }
 
-        return { previous, performedBy: command.performedBy };
+        return { previous: deleted.previous, performedBy: command.performedBy };
       } catch (error) {
         logger.error(error, `failed to get finding with id ${command.id}`);
         throw new ApplicationError({

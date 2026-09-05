@@ -80,53 +80,67 @@ const observation: Observation = {
 };
 
 describe("exposure findings", () => {
-  const findingRepository = {
-    createManual: vi.fn(),
-    getProjectedByID: vi.fn(),
-    listProjected: vi.fn(),
-    updateByID: vi.fn(),
-    deleteByID: vi.fn(),
+  const findingProjection = {
+    getFindingProjectionByID: vi.fn(),
+    listFindingProjections: vi.fn(),
+  };
+  const findingPersistence = {
+    insertFinding: vi.fn(),
+    lockFinding: vi.fn(),
+    updateFinding: vi.fn(),
+    deleteFinding: vi.fn(),
+  };
+  const observationPersistence = {
+    listObservations: vi.fn(),
+    insertObservation: vi.fn(),
+    createObservationAndTouchFinding: vi.fn(),
+    updateObservationAndTouchFinding: vi.fn(),
+    deleteObservationAndTouchFinding: vi.fn(),
+    moveObservationAndTouchFindings: vi.fn(),
+  };
+  const findingVulnerabilityPersistence = {
+    insertLinks: vi.fn(),
     linkVulnerability: vi.fn(),
     unlinkVulnerability: vi.fn(),
   };
-  const observationRepository = {
-    listByFindingID: vi.fn(),
-    createAndTouchFinding: vi.fn(),
-    updateAndTouchFinding: vi.fn(),
-    deleteAndTouchFinding: vi.fn(),
-    moveAndTouchFindings: vi.fn(),
-  };
   const assetInventory = { getByID: vi.fn() };
   const userProfileLookup = { getByID: vi.fn() };
-  const vulnerabilityReader = { getByID: vi.fn() };
+  const vulnerabilityPersistence = { getVulnerabilityByID: vi.fn() };
   const logger = pino({ enabled: false });
+  const database = {
+    transaction: () => ({
+      execute: async (callback: (transaction: object) => unknown) => await callback({}),
+    }),
+  };
 
   beforeEach(() => {
     vi.resetAllMocks();
     assetInventory.getByID.mockResolvedValue({ id: assetId });
     userProfileLookup.getByID.mockResolvedValue({ id: actorId });
-    vulnerabilityReader.getByID.mockResolvedValue(vulnerability);
+    vulnerabilityPersistence.getVulnerabilityByID.mockResolvedValue(vulnerability);
+    findingPersistence.lockFinding.mockResolvedValue(finding);
   });
 
   function createCapability() {
     return createFindings({
-      findingRepository,
-      observationRepository,
+      database: database as never,
+      findingProjection,
+      findingPersistence,
+      observationPersistence,
+      findingVulnerabilityPersistence,
+      vulnerabilityPersistence,
       assetInventory,
       userProfileLookup,
-      vulnerabilityReader,
       logger,
     });
   }
 
   it("creates a manual finding and observation with explicit audit attribution", async () => {
     const created = { ...finding, observationCount: 1 };
-    findingRepository.createManual.mockResolvedValue({
-      finding,
-      observation,
-      links: [],
-      projection: created,
-    });
+    findingPersistence.insertFinding.mockResolvedValue(finding);
+    observationPersistence.insertObservation.mockResolvedValue(observation);
+    findingVulnerabilityPersistence.insertLinks.mockResolvedValue([]);
+    findingProjection.getFindingProjectionByID.mockResolvedValue(created);
 
     const result = await createCapability().createManual({
       finding: {
@@ -145,19 +159,23 @@ describe("exposure findings", () => {
     });
 
     expect(result).toEqual({ current: created, observation, performedBy: actorId });
-    expect(findingRepository.createManual).toHaveBeenCalledWith(
+    expect(findingPersistence.insertFinding).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ createdBy: actorId, updatedBy: actorId }),
+    );
+    expect(observationPersistence.insertObservation).toHaveBeenCalledWith(
+      expect.anything(),
       expect.objectContaining({
-        finding: expect.objectContaining({
-          createdBy: actorId,
-          updatedBy: actorId,
-        }),
-        observation: expect.objectContaining({
-          source: ObservationSource.Manual,
-          createdBy: actorId,
-          updatedBy: actorId,
-        }),
-        vulnerabilityIds: [vulnerabilityId],
+        findingId,
+        source: ObservationSource.Manual,
+        createdBy: actorId,
+        updatedBy: actorId,
       }),
+    );
+    expect(findingVulnerabilityPersistence.insertLinks).toHaveBeenCalledWith(
+      expect.anything(),
+      findingId,
+      [vulnerabilityId],
     );
   });
 
@@ -181,9 +199,9 @@ describe("exposure findings", () => {
         performedBy: actorId,
       }),
     ).rejects.toMatchObject({ code: "finding.asset_unknown", kind: "validation" });
-    expect(vulnerabilityReader.getByID).not.toHaveBeenCalled();
+    expect(vulnerabilityPersistence.getVulnerabilityByID).not.toHaveBeenCalled();
     expect(userProfileLookup.getByID).not.toHaveBeenCalled();
-    expect(findingRepository.createManual).not.toHaveBeenCalled();
+    expect(findingPersistence.insertFinding).not.toHaveBeenCalled();
   });
 
   it("maps asset inventory read failures to manual finding failures", async () => {
@@ -216,25 +234,28 @@ describe("exposure findings", () => {
   });
 
   it("lists and gets projected findings and only lists observations for an existing parent", async () => {
-    findingRepository.listProjected.mockResolvedValue([finding]);
-    findingRepository.getProjectedByID.mockResolvedValue(finding);
-    observationRepository.listByFindingID.mockResolvedValue([observation]);
+    findingProjection.listFindingProjections.mockResolvedValue([finding]);
+    findingProjection.getFindingProjectionByID.mockResolvedValue(finding);
+    observationPersistence.listObservations.mockResolvedValue([observation]);
 
     const capability = createCapability();
     await expect(capability.listAll()).resolves.toEqual([finding]);
     await expect(capability.getByID(findingId)).resolves.toBe(finding);
     await expect(capability.listObservations(findingId)).resolves.toEqual([observation]);
-    expect(observationRepository.listByFindingID).toHaveBeenCalledWith(findingId);
+    expect(observationPersistence.listObservations).toHaveBeenCalledWith(
+      expect.anything(),
+      findingId,
+    );
 
-    findingRepository.getProjectedByID.mockResolvedValueOnce(null);
+    findingProjection.getFindingProjectionByID.mockResolvedValueOnce(null);
     await expect(capability.listObservations(findingId)).resolves.toBeNull();
-    expect(observationRepository.listByFindingID).toHaveBeenCalledTimes(1);
+    expect(observationPersistence.listObservations).toHaveBeenCalledTimes(1);
   });
 
   it("defaults manual observations from the locked parent and returns both snapshots", async () => {
     const current = { ...finding, observationCount: 2 };
     const createdObservation = { ...observation, evidence: "manual evidence" };
-    observationRepository.createAndTouchFinding.mockImplementation(async () => ({
+    observationPersistence.createObservationAndTouchFinding.mockImplementation(async () => ({
       observation: createdObservation,
       previous: finding,
       current,
@@ -253,7 +274,7 @@ describe("exposure findings", () => {
       performedBy: actorId,
     });
 
-    const input = observationRepository.createAndTouchFinding.mock.calls[0]?.[0];
+    const input = observationPersistence.createObservationAndTouchFinding.mock.calls[0]?.[1];
     expect(input?.buildObservation(finding)).toMatchObject({
       findingId,
       source: ObservationSource.Manual,
@@ -265,13 +286,13 @@ describe("exposure findings", () => {
       createdBy: actorId,
       updatedBy: actorId,
     });
-    expect(findingRepository.getProjectedByID).not.toHaveBeenCalled();
+    expect(findingProjection.getFindingProjectionByID).not.toHaveBeenCalled();
   });
 
   it("returns observation transition facts without emitting or re-reading", async () => {
     const currentFinding = { ...finding, updatedAt: new Date("2026-01-02T00:00:00.000Z") };
     const updatedObservation = { ...observation, title: "Corrected" };
-    observationRepository.updateAndTouchFinding.mockResolvedValue({
+    observationPersistence.updateObservationAndTouchFinding.mockResolvedValue({
       previousObservation: observation,
       observation: updatedObservation,
       previous: finding,
@@ -292,17 +313,20 @@ describe("exposure findings", () => {
       currentFinding,
       performedBy: actorId,
     });
-    expect(findingRepository.getProjectedByID).not.toHaveBeenCalled();
-    expect(observationRepository.updateAndTouchFinding).toHaveBeenCalledWith({
-      findingId,
-      observationId,
-      observation: expect.objectContaining({ updatedBy: actorId, title: "Corrected" }),
-    });
+    expect(findingProjection.getFindingProjectionByID).not.toHaveBeenCalled();
+    expect(observationPersistence.updateObservationAndTouchFinding).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        findingId,
+        observationId,
+        observation: expect.objectContaining({ updatedBy: actorId, title: "Corrected" }),
+      },
+    );
   });
 
   it("returns source and target facts for a move", async () => {
     const movedObservation = { ...observation, findingId: targetFindingId };
-    observationRepository.moveAndTouchFindings.mockResolvedValue({
+    observationPersistence.moveObservationAndTouchFindings.mockResolvedValue({
       previousObservation: observation,
       observation: movedObservation,
       sourcePrevious: finding,
@@ -326,18 +350,21 @@ describe("exposure findings", () => {
     expect(result?.observation).toBe(movedObservation);
     expect(result?.sourcePrevious).toBe(finding);
     expect(result?.targetPrevious).toBe(targetFinding);
-    expect(observationRepository.moveAndTouchFindings).toHaveBeenCalledWith({
-      findingId,
-      observationId,
-      targetFindingId,
-      updatedAt: expect.any(Date),
-      updatedBy: actorId,
-    });
+    expect(observationPersistence.moveObservationAndTouchFindings).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        findingId,
+        observationId,
+        targetFindingId,
+        updatedAt: expect.any(Date),
+        updatedBy: actorId,
+      },
+    );
   });
 
   it("deletes observations and returns the touched parent snapshot", async () => {
     const current = { ...finding, observationCount: 0, firstSeen: null, lastSeen: null };
-    observationRepository.deleteAndTouchFinding.mockResolvedValue({
+    observationPersistence.deleteObservationAndTouchFinding.mockResolvedValue({
       observation,
       previous: finding,
       current,
@@ -351,21 +378,24 @@ describe("exposure findings", () => {
       currentFinding: current,
       performedBy: actorId,
     });
-    expect(observationRepository.deleteAndTouchFinding).toHaveBeenCalledWith({
-      findingId,
-      observationId,
-      updatedAt: expect.any(Date),
-      updatedBy: actorId,
-    });
+    expect(observationPersistence.deleteObservationAndTouchFinding).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        findingId,
+        observationId,
+        updatedAt: expect.any(Date),
+        updatedBy: actorId,
+      },
+    );
   });
 
   it("normalizes due dates and returns finding update snapshots", async () => {
     const dueDate = new Date("2026-05-06T18:30:00.000Z");
     const current = { ...finding, dueDate: new Date("2026-05-06T00:00:00.000Z") };
-    findingRepository.getProjectedByID
+    findingProjection.getFindingProjectionByID
       .mockResolvedValueOnce(finding)
       .mockResolvedValueOnce(current);
-    findingRepository.updateByID.mockResolvedValue({ id: findingId });
+    findingPersistence.updateFinding.mockResolvedValue({ id: findingId });
 
     await expect(
       createCapability().updateByID({
@@ -374,29 +404,30 @@ describe("exposure findings", () => {
         performedBy: actorId,
       }),
     ).resolves.toEqual({ previous: finding, current, performedBy: actorId });
-    expect(findingRepository.updateByID).toHaveBeenCalledWith(
+    expect(findingPersistence.updateFinding).toHaveBeenCalledWith(
+      expect.anything(),
       findingId,
       expect.objectContaining({ dueDate: new Date("2026-05-06T00:00:00.000Z") }),
     );
   });
 
   it("deletes findings using the pre-delete projection", async () => {
-    findingRepository.getProjectedByID.mockResolvedValue(finding);
-    findingRepository.deleteByID.mockResolvedValue({ id: findingId });
+    findingProjection.getFindingProjectionByID.mockResolvedValue(finding);
+    findingPersistence.deleteFinding.mockResolvedValue({ id: findingId });
 
     await expect(
       createCapability().deleteByID({ id: findingId, performedBy: actorId }),
     ).resolves.toEqual({ previous: finding, performedBy: actorId });
-    expect(findingRepository.deleteByID).toHaveBeenCalledWith(findingId);
+    expect(findingPersistence.deleteFinding).toHaveBeenCalledWith(expect.anything(), findingId);
   });
 
   it("returns catalog link facts and preserves idempotent changes", async () => {
-    findingRepository.getProjectedByID.mockResolvedValue(finding);
-    findingRepository.linkVulnerability.mockResolvedValue({
+    findingProjection.getFindingProjectionByID.mockResolvedValue(finding);
+    findingVulnerabilityPersistence.linkVulnerability.mockResolvedValue({
       link: { findingId, vulnerabilityId },
       changed: true,
     });
-    findingRepository.getProjectedByID
+    findingProjection.getFindingProjectionByID
       .mockResolvedValueOnce(finding)
       .mockResolvedValueOnce(finding);
 
@@ -412,10 +443,13 @@ describe("exposure findings", () => {
   });
 
   it("returns unchanged unlink outcomes without requiring a link event", async () => {
-    findingRepository.getProjectedByID
+    findingProjection.getFindingProjectionByID
       .mockResolvedValueOnce(finding)
       .mockResolvedValueOnce(finding);
-    findingRepository.unlinkVulnerability.mockResolvedValue({ link: null, changed: false });
+    findingVulnerabilityPersistence.unlinkVulnerability.mockResolvedValue({
+      link: null,
+      changed: false,
+    });
 
     await expect(
       createCapability().unlinkVulnerability({ findingId, vulnerabilityId, performedBy: actorId }),
@@ -429,7 +463,7 @@ describe("exposure findings", () => {
   });
 
   it("maps finding read failures to typed application errors", async () => {
-    findingRepository.listProjected.mockRejectedValue(new Error("database offline"));
+    findingProjection.listFindingProjections.mockRejectedValue(new Error("database offline"));
 
     await expect(createCapability().listAll()).rejects.toMatchObject({
       code: "finding.list_failed",

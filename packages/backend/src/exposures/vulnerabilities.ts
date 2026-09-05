@@ -7,8 +7,33 @@ import {
 import { ApplicationError, isApplicationError } from "../application-error.js";
 import { isConflictError } from "../database-error.js";
 
-import type { VulnerabilityRepository } from "./vulnerability-repository.js";
+import type { DatabaseExecutor } from "../database/executor.js";
+import type { Database } from "../database/index.js";
+import type { Kysely } from "kysely";
 import type { Logger } from "pino";
+
+interface VulnerabilityPersistence {
+  listVulnerabilities(database: DatabaseExecutor): Promise<VulnerabilityCatalog[]>;
+  getVulnerabilityByID(
+    database: DatabaseExecutor,
+    id: string,
+  ): Promise<VulnerabilityCatalog | null>;
+  insertVulnerability(
+    database: DatabaseExecutor,
+    vulnerability: VulnerabilityInput & {
+      createdAt: Date;
+      updatedAt: Date;
+      createdBy: string;
+      updatedBy: string;
+    },
+  ): Promise<VulnerabilityCatalog>;
+  updateVulnerability(
+    database: DatabaseExecutor,
+    id: string,
+    vulnerability: VulnerabilityInput & { updatedAt: Date; updatedBy: string },
+  ): Promise<VulnerabilityCatalog | null>;
+  deleteVulnerability(database: DatabaseExecutor, id: string): Promise<VulnerabilityCatalog | null>;
+}
 
 export interface CreateVulnerabilityCommand {
   vulnerability: VulnerabilityInput;
@@ -51,13 +76,14 @@ export interface ExposureVulnerabilities {
 }
 
 interface VulnerabilityDependencies {
-  vulnerabilityRepository: VulnerabilityRepository;
+  database: Kysely<Database>;
+  vulnerabilityPersistence: VulnerabilityPersistence;
   userProfileLookup: UserProfileLookup;
   logger: Logger;
 }
 
 interface UserProfileLookup {
-  getByID(id: string): Promise<object | null>;
+  getByID(database: DatabaseExecutor, id: string): Promise<object | null>;
 }
 
 function parseCatalogInput(input: VulnerabilityInput): VulnerabilityInput {
@@ -77,22 +103,24 @@ function parseCatalogInput(input: VulnerabilityInput): VulnerabilityInput {
 
 async function requireAuditActor(
   userProfileLookup: UserProfileLookup,
+  database: DatabaseExecutor,
   performedBy: string,
 ): Promise<void> {
-  if (!(await userProfileLookup.getByID(performedBy))) {
+  if (!(await userProfileLookup.getByID(database, performedBy))) {
     throw new Error(`vulnerability audit actor ${performedBy} does not exist`);
   }
 }
 
 export function createVulnerabilities({
-  vulnerabilityRepository,
+  database,
+  vulnerabilityPersistence,
   userProfileLookup,
   logger,
 }: VulnerabilityDependencies): ExposureVulnerabilities {
   return {
     async listAll(): Promise<VulnerabilityCatalog[]> {
       try {
-        return await vulnerabilityRepository.list();
+        return await vulnerabilityPersistence.listVulnerabilities(database);
       } catch (error) {
         logger.error(error, "failed to list vulnerabilities");
         throw new ApplicationError({
@@ -106,7 +134,7 @@ export function createVulnerabilities({
 
     async getByID(id: string): Promise<VulnerabilityCatalog | null> {
       try {
-        return await vulnerabilityRepository.getByID(id);
+        return await vulnerabilityPersistence.getVulnerabilityByID(database, id);
       } catch (error) {
         logger.error(error, `failed to get vulnerability with id ${id}`);
         throw new ApplicationError({
@@ -123,14 +151,16 @@ export function createVulnerabilities({
       const vulnerability = parseCatalogInput(command.vulnerability);
 
       try {
-        await requireAuditActor(userProfileLookup, command.performedBy);
         const now = new Date();
-        const created = await vulnerabilityRepository.create({
-          ...vulnerability,
-          createdAt: now,
-          updatedAt: now,
-          createdBy: command.performedBy,
-          updatedBy: command.performedBy,
+        const created = await database.transaction().execute(async (transaction) => {
+          await requireAuditActor(userProfileLookup, transaction, command.performedBy);
+          return await vulnerabilityPersistence.insertVulnerability(transaction, {
+            ...vulnerability,
+            createdAt: now,
+            updatedAt: now,
+            createdBy: command.performedBy,
+            updatedBy: command.performedBy,
+          });
         });
 
         return { current: created, performedBy: command.performedBy };
@@ -172,22 +202,32 @@ export function createVulnerabilities({
       const vulnerability = parseCatalogInput(command.vulnerability);
 
       try {
-        const previous = await vulnerabilityRepository.getByID(command.id);
-        if (!previous) {
-          return null;
-        }
+        const updated = await database.transaction().execute(async (transaction) => {
+          const previous = await vulnerabilityPersistence.getVulnerabilityByID(
+            transaction,
+            command.id,
+          );
+          if (!previous) {
+            return null;
+          }
 
-        await requireAuditActor(userProfileLookup, command.performedBy);
-        const current = await vulnerabilityRepository.updateByID(command.id, {
-          ...vulnerability,
-          updatedAt: new Date(),
-          updatedBy: command.performedBy,
+          await requireAuditActor(userProfileLookup, transaction, command.performedBy);
+          const current = await vulnerabilityPersistence.updateVulnerability(
+            transaction,
+            command.id,
+            {
+              ...vulnerability,
+              updatedAt: new Date(),
+              updatedBy: command.performedBy,
+            },
+          );
+          return current ? { previous, current } : null;
         });
-        if (!current) {
+        if (!updated) {
           return null;
         }
 
-        return { previous, current, performedBy: command.performedBy };
+        return { ...updated, performedBy: command.performedBy };
       } catch (error) {
         if (isApplicationError(error)) {
           throw error;
@@ -221,7 +261,11 @@ export function createVulnerabilities({
       command: DeleteVulnerabilityByIDCommand,
     ): Promise<VulnerabilityDeletedOutcome | null> {
       try {
-        const deleted = await vulnerabilityRepository.deleteByID(command.id);
+        const deleted = await database
+          .transaction()
+          .execute((transaction) =>
+            vulnerabilityPersistence.deleteVulnerability(transaction, command.id),
+          );
         if (!deleted) {
           return null;
         }

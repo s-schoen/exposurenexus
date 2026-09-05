@@ -6,15 +6,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createStatistics } from "./statistics.js";
 
 describe("exposure statistics", () => {
-  const findingRepository = { countBy: vi.fn() };
+  const statisticsPersistence = { countFindingsBy: vi.fn() };
   const logger = pino({ enabled: false });
+  const database = {};
 
   beforeEach(() => {
     vi.resetAllMocks();
   });
 
   it("normalizes sparse finding statistics in query order", async () => {
-    findingRepository.countBy.mockImplementation(async (field: string) => {
+    statisticsPersistence.countFindingsBy.mockImplementation(async (_database, field: string) => {
       switch (field) {
         case "severity":
           return { [VulnerabilitySeverity.High]: 2, [VulnerabilitySeverity.Medium]: 1 };
@@ -25,7 +26,11 @@ describe("exposure statistics", () => {
       }
     });
 
-    const statistics = createStatistics({ findingRepository, logger });
+    const statistics = createStatistics({
+      database: database as never,
+      statisticsPersistence,
+      logger,
+    });
 
     await expect(statistics.getFindingStats()).resolves.toEqual({
       total: 3,
@@ -48,16 +53,20 @@ describe("exposure statistics", () => {
       },
       assets: { "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c": 3 },
     });
-    expect(findingRepository.countBy).toHaveBeenNthCalledWith(1, "severity");
-    expect(findingRepository.countBy).toHaveBeenNthCalledWith(2, "status");
-    expect(findingRepository.countBy).toHaveBeenNthCalledWith(3, "assetId");
+    expect(statisticsPersistence.countFindingsBy).toHaveBeenNthCalledWith(1, database, "severity");
+    expect(statisticsPersistence.countFindingsBy).toHaveBeenNthCalledWith(2, database, "status");
+    expect(statisticsPersistence.countFindingsBy).toHaveBeenNthCalledWith(3, database, "assetId");
   });
 
   it("maps persistence failures to the statistics application error", async () => {
-    findingRepository.countBy.mockRejectedValue(new Error("database offline"));
+    statisticsPersistence.countFindingsBy.mockRejectedValue(new Error("database offline"));
 
     await expect(
-      createStatistics({ findingRepository, logger }).getFindingStats(),
+      createStatistics({
+        database: database as never,
+        statisticsPersistence,
+        logger,
+      }).getFindingStats(),
     ).rejects.toMatchObject({ code: "stats.get_finding_stats_failed", kind: "unexpected" });
   });
 });
