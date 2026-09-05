@@ -6,7 +6,7 @@ import { columns } from "@/features/custom-fields/components/asset-custom-field-
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
-import type { UseQueryResult } from "@tanstack/react-query";
+import type { UseQueryResult, UseSuspenseQueryResult } from "@tanstack/react-query";
 
 const groupingOptions: Array<GroupingOption> = [
   {
@@ -20,7 +20,9 @@ const groupingOptions: Array<GroupingOption> = [
 ];
 
 interface AssetCustomFieldTableProps {
-  query: UseQueryResult<Array<AssetCustomFieldDefinition>, Error>;
+  query:
+    | UseQueryResult<Array<AssetCustomFieldDefinition>, Error>
+    | UseSuspenseQueryResult<Array<AssetCustomFieldDefinition>, Error>;
   selectedCustomFieldId?: string;
   onSelectCustomField?: (field: AssetCustomFieldDefinition) => void;
   onOpenCustomField?: (field: AssetCustomFieldDefinition) => void;
