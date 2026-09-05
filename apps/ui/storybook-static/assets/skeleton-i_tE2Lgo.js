@@ -1,1 +1,0 @@
-import{n as e}from"./chunk-DnJy8xQt.js";import{t}from"./jsx-runtime-BX9360Lk.js";import{n,t as r}from"./utils-B_k98QvR.js";function i({className:e,...t}){return(0,a.jsx)(`div`,{"data-slot":`skeleton`,className:r(`animate-pulse rounded-md bg-muted`,e),...t})}var a,o=e((()=>{n(),a=t(),i.__docgenInfo={description:``,methods:[],displayName:`Skeleton`}}));export{o as n,i as t};
