@@ -51,7 +51,7 @@ export function AssetCombobox({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        nativeButton={false}
+        nativeButton={true}
         render={
           <Button
             id={id}

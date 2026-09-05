@@ -52,7 +52,10 @@ it("does not fetch a preview until selected and keeps the table usable after pre
       <VulnerabilitiesPage selected={STORY_VULNERABILITIES[1].id} />
     </QueryClientProvider>,
   );
-  expect(await screen.findByText("Unable to load catalog entry")).toBeVisible();
+  // The real lazy preview module can take longer to load alongside Chromium stories.
+  expect(
+    await screen.findByText("Unable to load catalog entry", {}, { timeout: 10000 }),
+  ).toBeVisible();
   expect(screen.getByText("Preview request failed")).toBeVisible();
   expect(screen.getByText(STORY_VULNERABILITIES[1].title)).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "New catalog entry" }));
