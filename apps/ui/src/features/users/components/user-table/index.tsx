@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useMemo } from "react";
@@ -36,10 +36,10 @@ export function UserTable({
   onCreateUser,
 }: UserTableProps = {}) {
   const navigate = useNavigate();
-  const usersQuery = useQuery(createListUsersQueryOptions());
-  const rolesQuery = useQuery(createListRolesQueryOptions());
+  const usersQuery = useSuspenseQuery(createListUsersQueryOptions());
+  const rolesQuery = useSuspenseQuery(createListRolesQueryOptions());
   const roleLabelById = useMemo(
-    () => new Map((rolesQuery.data ?? []).map((role) => [role.id, role.name])),
+    () => new Map(rolesQuery.data.map((role) => [role.id, role.name])),
     [rolesQuery.data],
   );
   const columns = useMemo(

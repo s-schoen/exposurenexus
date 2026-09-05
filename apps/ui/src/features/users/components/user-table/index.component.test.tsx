@@ -51,7 +51,7 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@tanstack/react-query", () => ({
-  useQuery: (options: { queryKey: Array<string> }) => {
+  useSuspenseQuery: (options: { queryKey: Array<string> }) => {
     if (options.queryKey.join("/") === "roles") {
       return mocks.rolesQuery;
     }
