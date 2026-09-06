@@ -22,7 +22,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   });
 });
 
-vi.mock("@/features/users/components/user-detail-page.tsx", () => ({
+vi.mock("@/features/users", () => ({
   UserDetailPage: ({ userId }: { userId: string }) => <div>User detail for {userId}</div>,
 }));
 

@@ -1,8 +1,14 @@
 import { Outlet, createFileRoute, useMatchRoute } from "@tanstack/react-router";
 
-import { UserDetailPage } from "@/features/users/components/user-detail-page.tsx";
+import { createListRolesQueryOptions } from "@/features/roles";
+import { UserDetailPage, createUserByIDQueryOptions } from "@/features/users";
 
 export const Route = createFileRoute("/_authenticated/users/$id")({
+  loader: ({ context, params }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(createUserByIDQueryOptions(params.id)),
+      context.queryClient.ensureQueryData(createListRolesQueryOptions()),
+    ]),
   component: RouteComponent,
 });
 

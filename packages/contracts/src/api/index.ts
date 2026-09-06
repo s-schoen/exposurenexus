@@ -1,4 +1,7 @@
-import type { UserProfile, UserSession } from "../model/user.js";
+import { z } from "zod/v4";
+
+import { dateSchema } from "../model/date.js";
+import { userProfileSchema, userSessionSchema } from "../model/user.js";
 
 interface APIReply {
   correlationId: string;
@@ -23,12 +26,29 @@ export interface APIErrorReply extends APIReply {
   reason?: string;
 }
 
-export type AuthSessionReply = Omit<UserSession, "sessionId">;
+export const authLoginSchema = z.strictObject({
+  username: z.string().trim().min(1),
+  password: z.string().min(1),
+});
 
-export interface AuthSessionDataReply {
-  user: UserProfile;
-  session: AuthSessionReply;
-}
+export const authSessionReplySchema = userSessionSchema.omit({ sessionId: true }).extend({
+  createdAt: dateSchema,
+  expiresAt: dateSchema,
+});
+
+export const authSessionDataReplySchema = z.strictObject({
+  user: userProfileSchema,
+  session: authSessionReplySchema,
+});
+
+export const authSignOutDataReplySchema = z.strictObject({
+  revoked: z.boolean(),
+});
+
+export type AuthLogin = z.infer<typeof authLoginSchema>;
+export type AuthSessionReply = z.infer<typeof authSessionReplySchema>;
+export type AuthSessionDataReply = z.infer<typeof authSessionDataReplySchema>;
+export type AuthSignOutDataReply = z.infer<typeof authSignOutDataReplySchema>;
 
 export function createObjectReply<T extends object>(
   correlationId: string,

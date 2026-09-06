@@ -1,16 +1,21 @@
+import { useQuery } from "@tanstack/react-query";
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 
 import AppHeader from "@/components/app-header.tsx";
 import { AppSidebar } from "@/components/app-sidebar.tsx";
-import { AssetDialog } from "@/components/asset-dialog.tsx";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { Toaster } from "@/components/ui/sonner.tsx";
-import { usePage } from "@/context/page.tsx";
+import { AssetDialog } from "@/features/assets";
+import { AccountMenu } from "@/features/auth";
+import { createFindingStatsQueryOptions, getFindingNavigationCounts } from "@/features/findings";
+import { usePage } from "@/hooks/use-page-meta.tsx";
 import { cn } from "@/lib/utils.ts";
 
 function Layout() {
+  const findingStats = useQuery(createFindingStatsQueryOptions());
+  const { triageCount, mitigationCount } = getFindingNavigationCounts(findingStats.data);
   const { title, description, actions } = usePage();
 
   return (
@@ -21,10 +26,10 @@ function Layout() {
       <SidebarProvider className="flex-col">
         <div className="flex h-dvh w-full flex-col overflow-hidden antialiased">
           <header className="shrink-0">
-            <AppHeader />
+            <AppHeader accountMenu={<AccountMenu />} />
           </header>
           <div className="flex flex-1 overflow-hidden">
-            <AppSidebar />
+            <AppSidebar triageCount={triageCount} mitigationCount={mitigationCount} />
             <SidebarInset className="m-0 w-auto min-w-0 overflow-hidden bg-transparent shadow-none md:ml-0 md:rounded-[1.75rem] md:border md:border-shell-border-strong/70 md:bg-(--color-shell-panel) md:shadow-(--shell-shadow)">
               <main className="flex flex-1 flex-col overflow-hidden">
                 <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-5 sm:py-5 lg:px-7">

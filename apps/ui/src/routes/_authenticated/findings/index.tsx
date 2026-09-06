@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { FindingsPage } from "@/features/findings/components/findings-page.tsx";
-import { validateFindingTableSearch } from "@/hooks/use-finding-table-search-state.ts";
+import { createListAssetsQueryOptions } from "@/features/assets";
+import {
+  FindingsPage,
+  createListFindingsQueryOptions,
+  validateFindingTableSearch,
+} from "@/features/findings";
+import { createListUsersQueryOptions } from "@/features/users";
 import { validateSelectedSearch } from "@/hooks/use-selected-search-param.ts";
 
 export const Route = createFileRoute("/_authenticated/findings/")({
@@ -10,6 +15,12 @@ export const Route = createFileRoute("/_authenticated/findings/")({
     ...validateSelectedSearch(search),
     ...validateFindingTableSearch(search),
   }),
+  loader: ({ context: { queryClient } }) =>
+    Promise.all([
+      queryClient.ensureQueryData(createListFindingsQueryOptions()),
+      queryClient.ensureQueryData(createListAssetsQueryOptions()),
+      queryClient.ensureQueryData(createListUsersQueryOptions()),
+    ]),
   component: RouteComponent,
 });
 

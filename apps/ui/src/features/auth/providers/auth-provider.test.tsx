@@ -1,0 +1,305 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { AuthProvider, useAuth } from "@/features/auth/providers/auth-provider.tsx";
+
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
+import type { ReactNode } from "react";
+
+const mocks = vi.hoisted(() => {
+  const alice: UserProfile = {
+    id: "7b413aba-5164-456b-8ffd-88fb6b99bbed",
+    username: "alice",
+    displayName: "Alice Example",
+    email: "alice@example.com",
+    enabled: true,
+    roleIds: ["viewer-role-id"],
+  };
+  const bob: UserProfile = {
+    id: "47f1c881-03d6-4fdf-a837-33e5eb1678b1",
+    username: "bob",
+    displayName: "Bob Example",
+    email: "bob@example.com",
+    enabled: true,
+    roleIds: ["admin-role-id"],
+  };
+
+  return {
+    alice,
+    bob,
+    getSession: vi.fn(),
+    signInUsername: vi.fn(),
+    signOut: vi.fn(),
+  };
+});
+
+vi.mock("@/features/auth/api/auth.ts", () => ({
+  signIn: {
+    username: mocks.signInUsername,
+  },
+  signOut: mocks.signOut,
+}));
+
+vi.mock("@/features/auth/queries/session.ts", () => ({
+  AUTH_SESSION_QUERY_KEY: ["auth", "session"] as const,
+  createAuthSessionQueryOptions: () => ({
+    queryKey: ["auth", "session"] as const,
+    queryFn: async () => (await mocks.getSession()).data,
+  }),
+}));
+
+function sessionReply(user: UserProfile) {
+  return {
+    data: {
+      user,
+    },
+  };
+}
+
+function createQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      mutations: {
+        retry: false,
+      },
+      queries: {
+        retry: false,
+      },
+    },
+  });
+}
+
+function createWrapper(Provider: typeof AuthProvider, queryClient = createQueryClient()) {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Provider>{children}</Provider>
+      </QueryClientProvider>
+    );
+  };
+}
+
+function seedProtectedQueryData(queryClient: QueryClient) {
+  queryClient.setQueryData(["assets"], [{ id: "asset-1" }]);
+  queryClient.setQueryData(["findings"], [{ id: "finding-1" }]);
+  queryClient.setQueryData(["users"], [{ id: "user-1" }]);
+  queryClient.setQueryData(["roles"], [{ id: "role-1" }]);
+}
+
+function expectProtectedQueryDataCleared(queryClient: QueryClient) {
+  expect(queryClient.getQueryData(["assets"])).toBeUndefined();
+  expect(queryClient.getQueryData(["findings"])).toBeUndefined();
+  expect(queryClient.getQueryData(["users"])).toBeUndefined();
+  expect(queryClient.getQueryData(["roles"])).toBeUndefined();
+}
+
+describe("AuthProvider", () => {
+  beforeEach(() => {
+    mocks.getSession.mockReset();
+    mocks.signInUsername.mockReset();
+    mocks.signOut.mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  it("loads the current session on mount", async () => {
+    mocks.getSession.mockResolvedValueOnce(sessionReply(mocks.alice));
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(AuthProvider),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isAuthenticated).toBe(true);
+    });
+    expect(result.current.status).toBe("authenticated");
+    expect(result.current.user).toEqual(mocks.alice);
+    expect(mocks.getSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("exposes unauthenticated state when session loading fails", async () => {
+    mocks.getSession.mockRejectedValueOnce(new Error("Unauthorized"));
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(AuthProvider),
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe("unauthenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
+    expect(mocks.getSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("refreshes auth state through ensureSession", async () => {
+    mocks.getSession
+      .mockRejectedValueOnce(new Error("Unauthorized"))
+      .mockResolvedValueOnce(sessionReply(mocks.bob));
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(AuthProvider),
+    });
+
+    await waitFor(() => {
+      expect(mocks.getSession).toHaveBeenCalledTimes(1);
+    });
+
+    let hasSession!: boolean;
+    await act(async () => {
+      hasSession = await result.current.ensureSession();
+    });
+
+    expect(hasSession).toBe(true);
+    await waitFor(() => {
+      expect(result.current.status).toBe("authenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(true);
+    expect(result.current.user).toEqual(mocks.bob);
+  });
+
+  it("clears prior auth and protected caches when ensureSession finds no session", async () => {
+    const queryClient = createQueryClient();
+    mocks.getSession.mockResolvedValueOnce(sessionReply(mocks.alice));
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(AuthProvider, queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe("authenticated");
+    });
+    seedProtectedQueryData(queryClient);
+    mocks.getSession.mockResolvedValueOnce({ data: null });
+
+    let hasSession = true;
+    await act(async () => {
+      hasSession = await result.current.ensureSession();
+    });
+
+    expect(hasSession).toBe(false);
+    expectProtectedQueryDataCleared(queryClient);
+    expect(queryClient.getQueryData(["auth", "session"])).toBeNull();
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(result.current.status).toBe("unauthenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
+    expect(mocks.getSession).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears prior auth and protected caches when ensureSession rejects", async () => {
+    const queryClient = createQueryClient();
+    const refreshError = new Error("Refresh failed");
+    mocks.getSession.mockResolvedValueOnce(sessionReply(mocks.alice));
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(AuthProvider, queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe("authenticated");
+    });
+    seedProtectedQueryData(queryClient);
+    mocks.getSession.mockRejectedValueOnce(refreshError);
+
+    let hasSession = true;
+    await act(async () => {
+      hasSession = await result.current.ensureSession();
+    });
+
+    expect(hasSession).toBe(false);
+    expectProtectedQueryDataCleared(queryClient);
+    expect(queryClient.getQueryData(["auth", "session"])).toBeNull();
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(result.current.status).toBe("unauthenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
+    expect(mocks.getSession).toHaveBeenCalledTimes(2);
+  });
+
+  it("updates auth state after login and logout", async () => {
+    const queryClient = createQueryClient();
+    mocks.getSession.mockRejectedValueOnce(new Error("Unauthorized"));
+    mocks.signInUsername.mockResolvedValueOnce(sessionReply(mocks.alice));
+    mocks.signOut.mockResolvedValueOnce({ data: { revoked: true } });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(AuthProvider, queryClient),
+    });
+
+    await waitFor(() => {
+      expect(mocks.getSession).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      await result.current.login("alice", "correct-horse-battery-staple");
+    });
+
+    expect(mocks.signInUsername).toHaveBeenCalledWith({
+      username: "alice",
+      password: "correct-horse-battery-staple",
+    });
+    await waitFor(() => {
+      expect(result.current.status).toBe("authenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(true);
+    expect(result.current.user).toEqual(mocks.alice);
+
+    seedProtectedQueryData(queryClient);
+
+    await act(async () => {
+      await result.current.logout();
+    });
+
+    expect(mocks.signOut).toHaveBeenCalledTimes(1);
+    expectProtectedQueryDataCleared(queryClient);
+    expect(queryClient.getQueryData(["auth", "session"])).toBeNull();
+    await waitFor(() => {
+      expect(result.current.status).toBe("unauthenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
+  });
+
+  it("clears auth state without calling sign out", async () => {
+    const queryClient = createQueryClient();
+    mocks.getSession.mockResolvedValueOnce(sessionReply(mocks.alice));
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(AuthProvider, queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe("authenticated");
+    });
+
+    seedProtectedQueryData(queryClient);
+
+    act(() => {
+      result.current.clearSession();
+    });
+
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    expectProtectedQueryDataCleared(queryClient);
+    expect(queryClient.getQueryData(["auth", "session"])).toBeNull();
+    await waitFor(() => {
+      expect(result.current.status).toBe("unauthenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
+  });
+
+  it("throws when useAuth is used outside the provider", () => {
+    expect(() => renderHook(() => useAuth())).toThrow(
+      "useAuth must be used within an AuthProvider",
+    );
+  });
+});

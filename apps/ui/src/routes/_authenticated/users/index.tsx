@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { UsersPage } from "@/features/users/components/users-page.tsx";
+import { createListRolesQueryOptions } from "@/features/roles";
+import { UsersPage, createListUsersQueryOptions, validateUserTableSearch } from "@/features/users";
 import { validateSelectedSearch } from "@/hooks/use-selected-search-param.ts";
-import { validateUserTableSearch } from "@/hooks/use-user-table-search-state.ts";
 
 export const Route = createFileRoute("/_authenticated/users/")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -10,6 +10,11 @@ export const Route = createFileRoute("/_authenticated/users/")({
     ...validateSelectedSearch(search),
     ...validateUserTableSearch(search),
   }),
+  loader: ({ context }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(createListUsersQueryOptions()),
+      context.queryClient.ensureQueryData(createListRolesQueryOptions()),
+    ]),
   component: RouteComponent,
 });
 

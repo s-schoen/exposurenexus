@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCount, formatFindingCount } from "@/lib/format.ts";
+import { formatCount, formatDate } from "@/lib/format.ts";
 
 describe("formatCount", () => {
   it("uses the singular label for one item", () => {
@@ -17,9 +17,10 @@ describe("formatCount", () => {
   });
 });
 
-describe("formatFindingCount", () => {
-  it("formats finding counts", () => {
-    expect(formatFindingCount(1)).toBe("1 finding");
-    expect(formatFindingCount(2)).toBe("2 findings");
+describe("formatDate", () => {
+  it("uses the runtime locale date representation", () => {
+    const date = new Date("2026-06-07T09:00:00.000Z");
+
+    expect(formatDate(date)).toBe(date.toLocaleDateString());
   });
 });

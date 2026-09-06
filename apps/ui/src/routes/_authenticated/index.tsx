@@ -1,8 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { DashboardPage } from "@/features/dashboard/components/dashboard-page.tsx";
+import { createListAssetsQueryOptions } from "@/features/assets";
+import { DashboardPage } from "@/features/dashboard";
+import { createFindingStatsQueryOptions } from "@/features/findings";
 
 export const Route = createFileRoute("/_authenticated/")({
+  loader: ({ context: { queryClient } }) =>
+    Promise.all([
+      queryClient.ensureQueryData(createListAssetsQueryOptions()),
+      queryClient.ensureQueryData(createFindingStatsQueryOptions()),
+    ]),
   component: RouteComponent,
 });
 

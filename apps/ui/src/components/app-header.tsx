@@ -1,6 +1,10 @@
-import { AccountMenu } from "@/components/account-menu";
+import type { ReactNode } from "react";
 
-export default function AppHeader() {
+interface AppHeaderProps {
+  accountMenu: ReactNode;
+}
+
+export default function AppHeader({ accountMenu }: AppHeaderProps) {
   return (
     <div className="border-b border-shell-border-strong/80 bg-shell-panel-strong/90 px-3 py-3 backdrop-blur xl:px-5">
       <div className="flex items-center gap-3">
@@ -17,7 +21,7 @@ export default function AppHeader() {
               </div>
             </div>
           </div>
-          <AccountMenu />
+          {accountMenu}
         </div>
       </div>
     </div>

@@ -1,0 +1,288 @@
+import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import {
+  createAssetCustomFieldDefinition,
+  deleteAssetCustomFieldDefinition,
+  getAssetCustomFieldDefinitionByID,
+  listAssetCustomFieldDefinitions,
+  updateAssetCustomFieldDefinition,
+} from "@/features/custom-fields/api/definitions.ts";
+import { APIError } from "@/lib/api-client.ts";
+
+import type {
+  AssetCustomFieldDefinition,
+  UpdateAssetCustomFieldDefinition,
+} from "@exposurenexus/contracts/model/asset-custom-field";
+
+const fetchMock = vi.fn<typeof fetch>();
+
+function jsonResponse(body: object, init?: ResponseInit): Response {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    ...init,
+  });
+}
+
+function requestInit(): RequestInit {
+  const init = fetchMock.mock.calls[0]?.[1];
+  if (!init) {
+    throw new Error("fetch was not called");
+  }
+
+  return init;
+}
+
+function requestJsonBody(): unknown {
+  return JSON.parse(requestInit().body as string);
+}
+
+function errorResponse(status: number, message: string, reason: string): Response {
+  return jsonResponse({ error: message, reason }, { status });
+}
+
+function expectRequest(path: string, method: string, payload?: unknown) {
+  expect(fetchMock).toHaveBeenCalledWith(
+    path,
+    expect.objectContaining({
+      credentials: "include",
+      method,
+    }),
+  );
+
+  if (payload === undefined) {
+    expect(requestInit().body).toBeUndefined();
+  } else {
+    expect(requestJsonBody()).toEqual(payload);
+  }
+}
+
+const definition: AssetCustomFieldDefinition = {
+  id: "33d63e64-8f2b-4f88-b26f-fb090b4366ff",
+  key: "deployment_tier",
+  name: "Deployment tier",
+  required: false,
+  type: AssetCustomFieldType.Select,
+  defaultValue: "production",
+  options: [
+    {
+      id: "f4b28e50-f8e1-42f8-a610-50b7a7f96d9d",
+      fieldId: "33d63e64-8f2b-4f88-b26f-fb090b4366ff",
+      value: "production",
+      label: "Production",
+    },
+  ],
+};
+
+const payload: UpdateAssetCustomFieldDefinition = {
+  key: "deployment_tier",
+  name: "Deployment tier",
+  required: false,
+  type: AssetCustomFieldType.Select,
+  defaultValue: "production",
+  options: [
+    {
+      value: "production",
+      label: "Production",
+    },
+  ],
+};
+
+const customFieldAPIErrorCases = [
+  {
+    name: "definition list",
+    call: () => listAssetCustomFieldDefinitions(),
+    method: "GET",
+    path: "/api/assets/custom-fields",
+    payload: undefined,
+  },
+  {
+    name: "definition update",
+    call: () => updateAssetCustomFieldDefinition(definition.id, payload),
+    method: "PUT",
+    path: `/api/assets/custom-fields/${definition.id}`,
+    payload,
+  },
+  {
+    name: "definition deletion",
+    call: () => deleteAssetCustomFieldDefinition(definition.id),
+    method: "DELETE",
+    path: `/api/assets/custom-fields/${definition.id}`,
+    payload: undefined,
+  },
+] as const;
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", fetchMock);
+  fetchMock.mockReset();
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+describe("asset custom field api", () => {
+  it("lists custom field definitions", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          items: [definition],
+        },
+      }),
+    );
+
+    await expect(listAssetCustomFieldDefinitions()).resolves.toEqual([definition]);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/assets/custom-fields",
+      expect.objectContaining({
+        method: "GET",
+        credentials: "include",
+      }),
+    );
+  });
+
+  it("rejects malformed custom field definition replies", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: {
+          items: [
+            {
+              ...definition,
+              options: [],
+            },
+          ],
+        },
+      }),
+    );
+
+    await expect(listAssetCustomFieldDefinitions()).rejects.toThrow();
+  });
+
+  it("gets a custom field definition by id", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: definition,
+      }),
+    );
+
+    await expect(getAssetCustomFieldDefinitionByID(definition.id)).resolves.toEqual(definition);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/assets/custom-fields/${definition.id}`,
+      expect.objectContaining({
+        method: "GET",
+      }),
+    );
+  });
+
+  it("creates a custom field definition", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: definition,
+      }),
+    );
+
+    await expect(createAssetCustomFieldDefinition(payload)).resolves.toEqual(definition);
+
+    const headers = requestInit().headers as Headers;
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/assets/custom-fields",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
+    expect(headers.get("Content-Type")).toBe("application/json");
+    expect(requestJsonBody()).toEqual(payload);
+  });
+
+  it("updates a custom field definition", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: definition,
+      }),
+    );
+
+    await expect(updateAssetCustomFieldDefinition(definition.id, payload)).resolves.toEqual(
+      definition,
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/assets/custom-fields/${definition.id}`,
+      expect.objectContaining({
+        method: "PUT",
+      }),
+    );
+    expect(requestJsonBody()).toEqual(payload);
+  });
+
+  it("deletes a custom field definition", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        data: definition,
+      }),
+    );
+
+    await expect(deleteAssetCustomFieldDefinition(definition.id)).resolves.toEqual(definition);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/assets/custom-fields/${definition.id}`,
+      expect.objectContaining({
+        method: "DELETE",
+      }),
+    );
+  });
+
+  it("throws api errors for failed requests", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          correlationId: "asset-custom-field-api-test",
+          status: 409,
+          error: "asset custom field definition already exists",
+        },
+        { status: 409 },
+      ),
+    );
+
+    try {
+      await createAssetCustomFieldDefinition(payload);
+      throw new Error("expected request to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(APIError);
+      expect(error).toMatchObject({
+        statusCode: 409,
+        message: "asset custom field definition already exists",
+      });
+    }
+  });
+
+  it.each(customFieldAPIErrorCases)(
+    "preserves API errors from the $name wrapper",
+    async ({ call, method, path, payload: requestPayload }) => {
+      const requestError = {
+        status: 422,
+        message: "Custom field endpoint rejected the request",
+        reason: "custom-field-api-test-reason",
+      };
+      fetchMock.mockResolvedValueOnce(
+        errorResponse(requestError.status, requestError.message, requestError.reason),
+      );
+
+      const request = call();
+      await expect(request).rejects.toBeInstanceOf(APIError);
+      await expect(request).rejects.toMatchObject({
+        statusCode: requestError.status,
+        message: requestError.message,
+        reason: requestError.reason,
+      });
+      expectRequest(path, method, requestPayload);
+    },
+  );
+});

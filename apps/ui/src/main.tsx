@@ -2,16 +2,19 @@ import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { StrictMode, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 
-import { AuthProvider, useAuth } from "@/context/auth.tsx";
-import { PageProvider, usePage } from "@/context/page.tsx";
+import { RouteErrorState } from "@/components/route-error-state.tsx";
+import { RoutePendingState } from "@/components/route-pending-state.tsx";
+import {
+  AuthProvider,
+  createRouterLoginRedirects,
+  createUserSessionExpiredRedirectHandler,
+  useAuth,
+} from "@/features/auth";
+import { PageProvider, usePage } from "@/hooks/use-page-meta.tsx";
 
 import "@/styles.css";
 import * as TanStackQueryProvider from "@/integrations/tanstack-query/root-provider.tsx";
-import {
-  createUserSessionExpiredRedirectHandler,
-  subscribeUserSessionExpired,
-} from "@/lib/auth-session-expiry.ts";
-import { createRouterLoginRedirects } from "@/lib/login-redirect.ts";
+import { subscribeUnauthorizedAPIError } from "@/lib/query-client.ts";
 // Import the generated route tree
 import { routeTree } from "@/routeTree.gen.ts";
 
@@ -28,6 +31,8 @@ const router = createRouter({
     redirects: undefined!,
   },
   defaultPreload: "intent",
+  defaultErrorComponent: RouteErrorState,
+  defaultPendingComponent: RoutePendingState,
   scrollRestoration: true,
   defaultStructuralSharing: true,
   defaultPreloadStaleTime: 0,
@@ -60,7 +65,7 @@ function InnerApp() {
 
   useEffect(
     () =>
-      subscribeUserSessionExpired(
+      subscribeUnauthorizedAPIError(
         createUserSessionExpiredRedirectHandler({
           clearSession: auth.clearSession,
           getLocation: () => router.state.location,

@@ -25,7 +25,7 @@ import type {
   DataTableRow,
   GroupingOption,
 } from "@/components/data-table/types.ts";
-import type { UseQueryResult } from "@tanstack/react-query";
+import type { UseQueryResult, UseSuspenseQueryResult } from "@tanstack/react-query";
 import type {
   ColumnFiltersState,
   ExpandedState,
@@ -127,7 +127,7 @@ function columnFiltersToDataTableFilterState(
 
 interface DataTableProps<TData extends RowData> {
   columns: Array<DataTableColumnDef<TData>>;
-  query?: UseQueryResult<Array<TData>, Error>;
+  query?: UseQueryResult<Array<TData>, Error> | UseSuspenseQueryResult<Array<TData>, Error>;
   rows?: Array<TData>;
   embedded?: boolean;
   emptyState?: ReactNode;

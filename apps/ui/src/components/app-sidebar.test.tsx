@@ -5,30 +5,12 @@ import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => ({
   locationPathname: "/",
-  statsQuery: {
-    data: {
-      status: {
-        active: 7,
-        confirmed: 3,
-      },
-    },
-  },
-}));
-
-vi.mock("@tanstack/react-query", () => ({
-  useQuery: () => mocks.statsQuery,
 }));
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
   useLocation: () => ({
     pathname: mocks.locationPathname,
-  }),
-}));
-
-vi.mock("@/api/finding.ts", () => ({
-  createFindingStatsQueryOptions: () => ({
-    queryKey: ["findings", "stats"],
   }),
 }));
 
@@ -54,11 +36,11 @@ vi.mock("@/components/ui/sidebar", () => ({
   SidebarSeparator: () => <hr />,
 }));
 
-async function renderSidebar(pathname = "/") {
+async function renderSidebar(pathname = "/", { triageCount = 7, mitigationCount = 3 } = {}) {
   const { AppSidebar } = await import("@/components/app-sidebar.tsx");
   mocks.locationPathname = pathname;
 
-  return render(<AppSidebar />);
+  return render(<AppSidebar triageCount={triageCount} mitigationCount={mitigationCount} />);
 }
 
 function activeItemText() {
@@ -76,14 +58,6 @@ function activeItemText() {
 describe("AppSidebar", () => {
   beforeEach(() => {
     mocks.locationPathname = "/";
-    mocks.statsQuery = {
-      data: {
-        status: {
-          active: 7,
-          confirmed: 3,
-        },
-      },
-    };
   });
 
   afterEach(() => {
@@ -143,16 +117,7 @@ describe("AppSidebar", () => {
   });
 
   it("does not render zero finding statistic badges", async () => {
-    mocks.statsQuery = {
-      data: {
-        status: {
-          active: 0,
-          confirmed: 0,
-        },
-      },
-    };
-
-    await renderSidebar();
+    await renderSidebar("/", { triageCount: 0, mitigationCount: 0 });
 
     expect(screen.queryByText("0")).toBeNull();
   });

@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { CreateRolePage } from "@/features/roles/components/create-role-page.tsx";
+import { CreateRolePage, createListRolesQueryOptions } from "@/features/roles";
 
 export const Route = createFileRoute("/_authenticated/roles/new")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(createListRolesQueryOptions()),
   component: RouteComponent,
 });
 

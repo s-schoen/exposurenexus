@@ -22,7 +22,8 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   });
 });
 
-vi.mock("@/features/custom-fields/components/custom-field-detail-page.tsx", () => ({
+vi.mock("@/features/custom-fields", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
   CustomFieldDetailPage: ({ customFieldId }: { customFieldId: string }) => (
     <div>Custom field detail for {customFieldId}</div>
   ),

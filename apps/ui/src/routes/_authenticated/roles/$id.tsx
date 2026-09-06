@@ -1,8 +1,10 @@
 import { Outlet, createFileRoute, useMatchRoute } from "@tanstack/react-router";
 
-import { RoleDetailPage } from "@/features/roles/components/role-detail-page.tsx";
+import { RoleDetailPage, createRoleByIDQueryOptions } from "@/features/roles";
 
 export const Route = createFileRoute("/_authenticated/roles/$id")({
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(createRoleByIDQueryOptions(params.id)),
   component: RouteComponent,
 });
 

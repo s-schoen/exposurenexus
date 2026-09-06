@@ -1,0 +1,133 @@
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
+import type { ReactNode } from "react";
+
+type SelectAssetCustomFieldDefinition = Extract<
+  AssetCustomFieldDefinition,
+  { options: Array<unknown> }
+>;
+
+interface QueryState<TData> {
+  data?: TData;
+  isPending: boolean;
+  isSuccess: boolean;
+}
+
+const customFieldId = "7f732d2b-8985-4551-b45d-0eaf527a1577";
+
+const mocks = vi.hoisted(() => {
+  const customField: SelectAssetCustomFieldDefinition = {
+    id: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+    key: "deployment_tier",
+    name: "Deployment tier",
+    required: true,
+    type: "select" as SelectAssetCustomFieldDefinition["type"],
+    defaultValue: "production",
+    options: [
+      {
+        id: "6b567696-6808-45be-ab67-a8683d98a138",
+        fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+        value: "production",
+        label: "Production",
+      },
+    ],
+  };
+  const customFieldQuery: QueryState<AssetCustomFieldDefinition> = {
+    data: customField,
+    isPending: false,
+    isSuccess: true,
+  };
+
+  return {
+    customField,
+    customFieldQuery,
+    navigate: vi.fn(),
+    usePageMeta: vi.fn(),
+  };
+});
+
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, className, to }: { children: ReactNode; className?: string; to: string }) => (
+    <a className={className} href={to}>
+      {children}
+    </a>
+  ),
+  useNavigate: () => mocks.navigate,
+}));
+
+vi.mock("@tanstack/react-query", () => ({
+  useSuspenseQuery: () => mocks.customFieldQuery,
+}));
+
+vi.mock("@/features/custom-fields/queries/definitions.ts", () => ({
+  createAssetCustomFieldDefinitionByIDQueryOptions: (id: string) => ({
+    queryKey: ["asset-custom-fields", id],
+  }),
+}));
+
+vi.mock("@/hooks/use-page-meta.tsx", () => ({
+  usePageMeta: mocks.usePageMeta,
+}));
+
+vi.mock("@/features/custom-fields/components/asset-custom-field-detail-content", () => ({
+  AssetCustomFieldDetailContent: ({
+    field,
+    titleAction,
+  }: {
+    field: AssetCustomFieldDefinition;
+    titleAction?: ReactNode;
+  }) => (
+    <div>
+      {titleAction}
+      <div>Custom field detail for {field.id}</div>
+    </div>
+  ),
+}));
+
+describe("CustomFieldDetailPage", () => {
+  beforeEach(() => {
+    mocks.customFieldQuery = {
+      data: mocks.customField,
+      isPending: false,
+      isSuccess: true,
+    };
+    mocks.navigate.mockReset();
+    mocks.usePageMeta.mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("uses loaded custom field data for page metadata and renders the back link", async () => {
+    const { CustomFieldDetailPage } =
+      await import("@/features/custom-fields/pages/custom-field-detail-page.tsx");
+
+    render(<CustomFieldDetailPage customFieldId={customFieldId} />);
+
+    expect(mocks.usePageMeta).toHaveBeenCalledWith({
+      title: "Deployment tier",
+      description: "Review asset custom field settings and allowed values.",
+      actions: [
+        expect.objectContaining({
+          label: "Edit custom field",
+          onClick: expect.any(Function),
+        }),
+      ],
+    });
+    const pageMeta = mocks.usePageMeta.mock.calls[0][0];
+    pageMeta.actions[0].onClick();
+
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/custom-fields/$id/edit",
+      params: { id: customFieldId },
+    });
+    expect(screen.getByRole("link", { name: /back to custom fields/i })).toHaveAttribute(
+      "href",
+      "/custom-fields",
+    );
+    expect(screen.getByText(`Custom field detail for ${customFieldId}`)).toBeVisible();
+  });
+});

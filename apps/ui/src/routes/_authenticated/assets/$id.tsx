@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { AssetDetailPage } from "@/features/assets/components/asset-detail-page.tsx";
+import { AssetDetailPage, createAssetByIDQueryOptions } from "@/features/assets";
 
 export const Route = createFileRoute("/_authenticated/assets/$id")({
+  loader: ({ context: { queryClient }, params: { id } }) =>
+    queryClient.ensureQueryData(createAssetByIDQueryOptions(id)),
   component: RouteComponent,
 });
 

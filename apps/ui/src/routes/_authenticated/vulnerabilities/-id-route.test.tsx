@@ -22,7 +22,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
   });
 });
 
-vi.mock("@/features/vulnerabilities/components/vulnerability-detail-page.tsx", () => ({
+vi.mock("@/features/vulnerabilities", () => ({
   VulnerabilityDetailPage: ({ vulnerabilityId }: { vulnerabilityId: string }) => (
     <div>Vulnerability detail for {vulnerabilityId}</div>
   ),
