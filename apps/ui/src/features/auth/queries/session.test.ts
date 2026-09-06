@@ -58,4 +58,21 @@ describe("auth session query", () => {
       createQueryClient().fetchQuery(createAuthSessionQueryOptions()),
     ).resolves.toBeNull();
   });
+
+  it.each([
+    {
+      name: "a non-401 API error",
+      error: new APIError(403, "Forbidden", "session access denied"),
+    },
+    {
+      name: "an ordinary network error",
+      error: new Error("Network unavailable"),
+    },
+  ])("rejects $name unchanged", async ({ error }) => {
+    mocks.getSession.mockRejectedValueOnce(error);
+
+    const request = createQueryClient().fetchQuery(createAuthSessionQueryOptions());
+
+    await expect(request).rejects.toBe(error);
+  });
 });
