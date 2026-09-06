@@ -18,6 +18,7 @@ import {
   updateFinding,
   updateFindingObservation,
 } from "@/features/findings/api/findings.ts";
+import { APIError } from "@/lib/api-client.ts";
 
 import type { CreateManualFinding, Finding } from "@exposurenexus/contracts/model/finding";
 import type {
@@ -48,6 +49,26 @@ function requestInit(): RequestInit {
 
 function requestJsonBody(): unknown {
   return JSON.parse(requestInit().body as string);
+}
+
+function errorResponse(status: number, message: string, reason: string): Response {
+  return jsonResponse({ error: message, reason }, { status });
+}
+
+function expectRequest(path: string, method: string, payload?: unknown) {
+  expect(fetchMock).toHaveBeenCalledWith(
+    path,
+    expect.objectContaining({
+      credentials: "include",
+      method,
+    }),
+  );
+
+  if (payload === undefined) {
+    expect(requestInit().body).toBeUndefined();
+  } else {
+    expect(requestJsonBody()).toEqual(payload);
+  }
 }
 
 const userId = "1f9c36d2-1355-49d1-8464-b01ce955d88f";
@@ -156,6 +177,83 @@ const createManualFindingPayload: CreateManualFinding = {
     evidence: "GET /admin returned 200",
   },
 };
+const rejectedObservationUpdate: UpdateObservation = {
+  title: "Rejected observation correction",
+  description: null,
+  evidence: "GET /admin returned 401",
+  remediation: null,
+  severity: VulnerabilitySeverity.Medium,
+  weakness: { identifiers: { cwe: ["CWE-89"] } },
+  affectedResource: { type: AffectedResourceType.SourceCode, file: "src/query.ts" },
+  observedAt: new Date("2026-01-04T00:00:00.000Z"),
+};
+const rejectedFindingUpdate = {
+  status: FindingStatus.Confirmed,
+  assigneeId: userId,
+};
+const rejectedTargetFindingId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
+
+const findingAPIErrorCases = [
+  {
+    name: "finding stats",
+    call: () => getFindingStats(),
+    method: "GET",
+    path: "/api/findings/stats",
+    payload: undefined,
+  },
+  {
+    name: "observation update",
+    call: () => updateFindingObservation(findingId, observationJson.id, rejectedObservationUpdate),
+    method: "PUT",
+    path: `/api/findings/${findingId}/observations/${observationJson.id}`,
+    payload: {
+      ...rejectedObservationUpdate,
+      observedAt: rejectedObservationUpdate.observedAt?.toISOString(),
+    },
+  },
+  {
+    name: "observation deletion",
+    call: () => deleteFindingObservation(findingId, observationJson.id),
+    method: "DELETE",
+    path: `/api/findings/${findingId}/observations/${observationJson.id}`,
+    payload: undefined,
+  },
+  {
+    name: "observation move",
+    call: () => moveFindingObservation(findingId, observationJson.id, rejectedTargetFindingId),
+    method: "POST",
+    path: `/api/findings/${findingId}/observations/${observationJson.id}/move`,
+    payload: { targetFindingId: rejectedTargetFindingId },
+  },
+  {
+    name: "finding creation",
+    call: () => createManualFinding(createManualFindingPayload),
+    method: "POST",
+    path: "/api/findings",
+    payload: createManualFindingPayload,
+  },
+  {
+    name: "finding update",
+    call: () => updateFinding(findingId, rejectedFindingUpdate),
+    method: "PUT",
+    path: `/api/findings/${findingId}`,
+    payload: rejectedFindingUpdate,
+  },
+  {
+    name: "catalog link",
+    call: () => linkFindingVulnerability(findingId, vulnerabilityId),
+    method: "PUT",
+    path: `/api/findings/${findingId}/vulnerabilities/${vulnerabilityId}`,
+    payload: undefined,
+  },
+  {
+    name: "catalog unlink",
+    call: () => unlinkFindingVulnerability(findingId, vulnerabilityId),
+    method: "DELETE",
+    path: `/api/findings/${findingId}/vulnerabilities/${vulnerabilityId}`,
+    payload: undefined,
+  },
+] as const;
 function expectFindingDates(finding: Finding) {
   expect(finding.dueDate).toBeInstanceOf(Date);
   expect(finding.firstSeen).toBeInstanceOf(Date);
@@ -492,6 +590,29 @@ describe("finding api", () => {
 
     await expect(getFindingStats()).rejects.toThrow();
   });
+
+  it.each(findingAPIErrorCases)(
+    "preserves API errors from the $name wrapper",
+    async ({ call, method, path, payload }) => {
+      const requestError = {
+        status: 422,
+        message: "Finding endpoint rejected the request",
+        reason: "finding-api-test-reason",
+      };
+      fetchMock.mockResolvedValueOnce(
+        errorResponse(requestError.status, requestError.message, requestError.reason),
+      );
+
+      const request = call();
+      await expect(request).rejects.toBeInstanceOf(APIError);
+      await expect(request).rejects.toMatchObject({
+        statusCode: requestError.status,
+        message: requestError.message,
+        reason: requestError.reason,
+      });
+      expectRequest(path, method, payload);
+    },
+  );
 
   it("throws API errors from finding requests", async () => {
     fetchMock.mockResolvedValueOnce(

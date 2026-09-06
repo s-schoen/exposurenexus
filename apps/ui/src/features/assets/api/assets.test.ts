@@ -25,6 +25,7 @@ import {
   updateAssetIdentifier,
   updateAsset,
 } from "@/features/assets/api/assets.ts";
+import { APIError } from "@/lib/api-client.ts";
 
 import type {
   Asset,
@@ -61,6 +62,26 @@ function requestInit(): RequestInit {
 
 function requestJsonBody(): unknown {
   return JSON.parse(requestInit().body as string);
+}
+
+function errorResponse(status: number, message: string, reason: string): Response {
+  return jsonResponse({ error: message, reason }, { status });
+}
+
+function expectRequest(path: string, method: string, payload?: unknown) {
+  expect(fetchMock).toHaveBeenCalledWith(
+    path,
+    expect.objectContaining({
+      credentials: "include",
+      method,
+    }),
+  );
+
+  if (payload === undefined) {
+    expect(requestInit().body).toBeUndefined();
+  } else {
+    expect(requestJsonBody()).toEqual(payload);
+  }
 }
 
 const assetId = "0bb9b410-7763-4e7a-9942-b752367fd63d";
@@ -122,6 +143,67 @@ const valueUpdates: UpdateAssetCustomFieldValues["values"] = [
     value: "production",
   },
 ];
+const rejectedIdentifierCreate = {
+  type: AssetIdentifierType.DnsName,
+  value: "api.example.com",
+} as const;
+const rejectedIdentifierUpdate = {
+  type: AssetIdentifierType.DnsName,
+  namespace: "private-network",
+  value: "api.internal.example.com",
+} as const;
+
+const assetAPIErrorCases = [
+  {
+    name: "ordinary asset list",
+    call: () => listAssets(),
+    method: "GET",
+    path: "/api/assets",
+    payload: undefined,
+  },
+  {
+    name: "enriched asset list",
+    call: () => listAssetsWithCustomFields(),
+    method: "GET",
+    path: "/api/assets?includeCustomFields=true",
+    payload: undefined,
+  },
+  {
+    name: "custom field association replacement",
+    call: () => replaceAssetCustomFieldAssociations(assetId, associationUpdates),
+    method: "PUT",
+    path: `/api/assets/${assetId}/custom-fields/associations`,
+    payload: { fieldIds: associationUpdates },
+  },
+  {
+    name: "asset creation",
+    call: () => createAsset(createPayload),
+    method: "POST",
+    path: "/api/assets",
+    payload: createPayload,
+  },
+  {
+    name: "identifier creation",
+    call: () => addAssetIdentifier(assetId, rejectedIdentifierCreate),
+    method: "POST",
+    path: `/api/assets/${assetId}/identifiers`,
+    payload: rejectedIdentifierCreate,
+  },
+  {
+    name: "identifier update",
+    call: () => updateAssetIdentifier(assetId, identifier.id, rejectedIdentifierUpdate),
+    method: "PUT",
+    path: `/api/assets/${assetId}/identifiers/${identifier.id}`,
+    payload: rejectedIdentifierUpdate,
+  },
+  {
+    name: "identifier deletion",
+    call: () => deleteAssetIdentifier(assetId, identifier.id),
+    method: "DELETE",
+    path: `/api/assets/${assetId}/identifiers/${identifier.id}`,
+    payload: undefined,
+  },
+] as const;
 
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
@@ -577,4 +659,27 @@ describe("asset custom field value api", () => {
 
     await expect(deleteAsset(assetId)).rejects.toThrow("Asset request failed");
   });
+
+  it.each(assetAPIErrorCases)(
+    "preserves API errors from the $name wrapper",
+    async ({ call, method, path, payload }) => {
+      const requestError = {
+        status: 422,
+        message: "Asset endpoint rejected the request",
+        reason: "asset-api-test-reason",
+      };
+      fetchMock.mockResolvedValueOnce(
+        errorResponse(requestError.status, requestError.message, requestError.reason),
+      );
+
+      const request = call();
+      await expect(request).rejects.toBeInstanceOf(APIError);
+      await expect(request).rejects.toMatchObject({
+        statusCode: requestError.status,
+        message: requestError.message,
+        reason: requestError.reason,
+      });
+      expectRequest(path, method, payload);
+    },
+  );
 });

@@ -12,6 +12,7 @@ import {
   listRoles,
   updateRole,
 } from "@/features/roles/api/roles.ts";
+import { APIError } from "@/lib/api-client.ts";
 
 import type { CreateRole, Role, UpdateRole } from "@exposurenexus/contracts/model/rbac";
 
@@ -36,6 +37,30 @@ function requestInit(): RequestInit {
   return init;
 }
 
+function requestJsonBody(): unknown {
+  return JSON.parse(requestInit().body as string);
+}
+
+function errorResponse(status: number, message: string, reason: string): Response {
+  return jsonResponse({ error: message, reason }, { status });
+}
+
+function expectRequest(path: string, method: string, payload?: unknown) {
+  expect(fetchMock).toHaveBeenCalledWith(
+    path,
+    expect.objectContaining({
+      credentials: "include",
+      method,
+    }),
+  );
+
+  if (payload === undefined) {
+    expect(requestInit().body).toBeUndefined();
+  } else {
+    expect(requestJsonBody()).toEqual(payload);
+  }
+}
+
 const roleId = builtInRoleIds.editor;
 const role: Role = {
   id: roleId,
@@ -45,6 +70,20 @@ const role: Role = {
     { resource: PermissionResource.User, verb: PermissionVerb.Write },
   ],
 };
+const rejectedUpdatePayload: UpdateRole = {
+  name: "security-editor",
+  permissions: [{ resource: PermissionResource.Asset, verb: PermissionVerb.Read }],
+};
+
+const roleAPIErrorCases = [
+  {
+    name: "role update",
+    call: () => updateRole(roleId, rejectedUpdatePayload),
+    method: "PUT",
+    path: `/api/roles/${roleId}`,
+    payload: rejectedUpdatePayload,
+  },
+] as const;
 
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
@@ -223,4 +262,27 @@ describe("role api", () => {
 
     await expect(deleteRole(roleId)).rejects.toThrow("Role request failed");
   });
+
+  it.each(roleAPIErrorCases)(
+    "preserves API errors from the $name wrapper",
+    async ({ call, method, path, payload }) => {
+      const requestError = {
+        status: 422,
+        message: "Role endpoint rejected the request",
+        reason: "role-api-test-reason",
+      };
+      fetchMock.mockResolvedValueOnce(
+        errorResponse(requestError.status, requestError.message, requestError.reason),
+      );
+
+      const request = call();
+      await expect(request).rejects.toBeInstanceOf(APIError);
+      await expect(request).rejects.toMatchObject({
+        statusCode: requestError.status,
+        message: requestError.message,
+        reason: requestError.reason,
+      });
+      expectRequest(path, method, payload);
+    },
+  );
 });
