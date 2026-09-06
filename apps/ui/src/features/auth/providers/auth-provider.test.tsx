@@ -162,6 +162,69 @@ describe("AuthProvider", () => {
     expect(result.current.user).toEqual(mocks.bob);
   });
 
+  it("clears prior auth and protected caches when ensureSession finds no session", async () => {
+    const queryClient = createQueryClient();
+    mocks.getSession.mockResolvedValueOnce(sessionReply(mocks.alice));
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(AuthProvider, queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe("authenticated");
+    });
+    seedProtectedQueryData(queryClient);
+    mocks.getSession.mockResolvedValueOnce({ data: null });
+
+    let hasSession = true;
+    await act(async () => {
+      hasSession = await result.current.ensureSession();
+    });
+
+    expect(hasSession).toBe(false);
+    expectProtectedQueryDataCleared(queryClient);
+    expect(queryClient.getQueryData(["auth", "session"])).toBeNull();
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(result.current.status).toBe("unauthenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
+    expect(mocks.getSession).toHaveBeenCalledTimes(2);
+  });
+
+  it("clears prior auth and protected caches when ensureSession rejects", async () => {
+    const queryClient = createQueryClient();
+    const refreshError = new Error("Refresh failed");
+    mocks.getSession.mockResolvedValueOnce(sessionReply(mocks.alice));
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(AuthProvider, queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe("authenticated");
+    });
+    seedProtectedQueryData(queryClient);
+    mocks.getSession.mockRejectedValueOnce(refreshError);
+
+    let hasSession = true;
+    await act(async () => {
+      hasSession = await result.current.ensureSession();
+    });
+
+    expect(hasSession).toBe(false);
+    expectProtectedQueryDataCleared(queryClient);
+    expect(queryClient.getQueryData(["auth", "session"])).toBeNull();
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(result.current.status).toBe("unauthenticated");
+    });
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
+    expect(mocks.getSession).toHaveBeenCalledTimes(2);
+  });
+
   it("updates auth state after login and logout", async () => {
     const queryClient = createQueryClient();
     mocks.getSession.mockRejectedValueOnce(new Error("Unauthorized"));
