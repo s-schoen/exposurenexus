@@ -222,6 +222,19 @@ describe("UserTable workflow wiring", () => {
     render(<UserTable />);
 
     expect(mocks.dataTableProps?.filterState).toBeUndefined();
+    expect(mocks.dataTableProps?.toolbarControls).toBeUndefined();
+
+    const groupingOptions = mocks.dataTableProps?.groupingOptions as Array<{
+      id: string;
+      label: string;
+      formatValue?: (value: unknown) => string;
+    }>;
+
+    expect(groupingOptions).toHaveLength(1);
+    expect(groupingOptions[0]?.id).toBe("enabled");
+    expect(groupingOptions[0]?.label).toBe("Status");
+    expect(groupingOptions[0]?.formatValue?.(true)).toBe("Enabled");
+    expect(groupingOptions[0]?.formatValue?.(false)).toBe("Disabled");
   });
 });
 
