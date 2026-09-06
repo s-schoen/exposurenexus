@@ -8,6 +8,8 @@ import {
   createListRolesQueryOptions,
   createRoleByIDQueryOptions,
 } from "@/features/roles/queries/roles.ts";
+import { FORBIDDEN_ACTION_MESSAGE } from "@/lib/action-error-toast.ts";
+import { APIError } from "@/lib/api-client.ts";
 
 import type { RoleLifecycleBatchResult } from "@/features/roles/hooks/use-role-lifecycle.ts";
 import type * as RoleMutations from "@/features/roles/mutations/roles.ts";
@@ -147,6 +149,32 @@ describe("useRoleLifecycle", () => {
     expect(consoleError).toHaveBeenCalledWith(error);
   });
 
+  it("returns null and preserves caches when a role update is forbidden", async () => {
+    const role = createRoleFixture();
+    const error = new APIError(403, "Forbidden", "role permission denied");
+    updateRoleRequestMock.mockRejectedValueOnce(error);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+    const listQueryKey = createListRolesQueryOptions().queryKey;
+    const detailQueryKey = createRoleByIDQueryOptions(role.id).queryKey;
+    queryClient.setQueryData(listQueryKey, [role]);
+    queryClient.setQueryData(detailQueryKey, role);
+
+    let updatedRole: Role | null = role;
+    await act(async () => {
+      updatedRole = await result.current.updateRole(role.id, createRolePayload());
+    });
+
+    expect(updatedRole).toBeNull();
+    expect(queryClient.getQueryData(listQueryKey)).toEqual([role]);
+    expect(queryClient.getQueryData(detailQueryKey)).toEqual(role);
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(toastErrorMock).toHaveBeenCalledWith(FORBIDDEN_ACTION_MESSAGE);
+    expect(toastSuccessMock).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(error);
+  });
+
   it("updates roles and invalidates role list plus detail", async () => {
     const role = createRoleFixture({ name: "security-analyst-plus" });
     const payload: UpdateRole = createRolePayload({
@@ -202,6 +230,76 @@ describe("useRoleLifecycle", () => {
       exact: true,
     });
     expect(toastSuccessMock).toHaveBeenCalledWith("Deleted 1 role");
+  });
+
+  it("returns an empty role delete summary without side effects", async () => {
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+
+    await act(async () => {
+      await expect(result.current.deleteRoles([])).resolves.toEqual({
+        successful: [],
+        failed: [],
+      });
+    });
+
+    expect(deleteRoleRequestMock).not.toHaveBeenCalled();
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(toastSuccessMock).not.toHaveBeenCalled();
+    expect(toastErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("associates all role delete failures with their original roles", async () => {
+    const first = createRoleFixture({
+      id: "9f5c0b37-7d1d-42ce-9e1a-51906b9e6830",
+      name: "security-analyst",
+    });
+    const second = createRoleFixture({
+      id: "8f74bc56-0ac3-47ef-b7e6-8df2c42fb3c0",
+      name: "security-reviewer",
+    });
+    const unrelated = createRoleFixture({
+      id: "3c8a8a3e-1f74-4f6b-8f3f-3e154f3a2c79",
+      name: "unrelated",
+    });
+    const firstError = new Error("First delete failed");
+    const secondError = new Error("Second delete failed");
+    deleteRoleRequestMock.mockImplementation((id: string) =>
+      id === first.id ? Promise.reject(firstError) : Promise.reject(secondError),
+    );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const unrelatedDetailKey = createRoleByIDQueryOptions(unrelated.id).queryKey;
+    queryClient.setQueryData(unrelatedDetailKey, unrelated);
+    queryClient.setQueryData(["assets"], [{ id: "unrelated-asset" }]);
+
+    let batchResult: RoleLifecycleBatchResult | undefined;
+    await act(async () => {
+      batchResult = await result.current.deleteRoles([first, second]);
+    });
+
+    expect(batchResult).toEqual({
+      successful: [],
+      failed: [
+        { role: first, error: firstError },
+        { role: second, error: secondError },
+      ],
+    });
+    expect(toastErrorMock).toHaveBeenCalledTimes(1);
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to delete 2 roles");
+    expect(toastSuccessMock).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(firstError);
+    expect(consoleError).toHaveBeenCalledWith(secondError);
+    for (const queryKey of [
+      createListRolesQueryOptions().queryKey,
+      createRoleByIDQueryOptions(first.id).queryKey,
+      createRoleByIDQueryOptions(second.id).queryKey,
+    ]) {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey, exact: true });
+    }
+    expect(queryClient.getQueryState(unrelatedDetailKey)?.isInvalidated).toBe(false);
+    expect(queryClient.getQueryData(["assets"])).toEqual([{ id: "unrelated-asset" }]);
   });
 
   it("reports partial delete failures and invalidates affected reads", async () => {

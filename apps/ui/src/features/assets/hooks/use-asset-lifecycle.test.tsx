@@ -197,6 +197,148 @@ describe("useAssetLifecycle", () => {
     expect(toastSuccessMock).toHaveBeenCalledWith("Created new asset web-01");
   });
 
+  it("returns null and preserves caches when asset creation fails", async () => {
+    const existingAsset = createAssetFixture();
+    const error = new Error("Create failed");
+    createAssetRequestMock.mockRejectedValueOnce(error);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+    const listQueryKey = createListAssetsQueryOptions().queryKey;
+    const detailQueryKey = createAssetByIDQueryOptions(existingAsset.id).queryKey;
+    queryClient.setQueryData(listQueryKey, [existingAsset]);
+    queryClient.setQueryData(detailQueryKey, existingAsset);
+
+    let createdAsset: Asset | null = existingAsset;
+    await act(async () => {
+      createdAsset = await result.current.createAsset(createAssetPayload());
+    });
+
+    expect(createdAsset).toBeNull();
+    expect(queryClient.getQueryData(listQueryKey)).toEqual([existingAsset]);
+    expect(queryClient.getQueryData(detailQueryKey)).toEqual(existingAsset);
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(toastSuccessMock).not.toHaveBeenCalled();
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to create asset: Error: Create failed");
+    expect(consoleError).toHaveBeenCalledWith(error);
+  });
+
+  it("returns an empty delete summary without side effects", async () => {
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+
+    await act(async () => {
+      await expect(result.current.deleteAssets([])).resolves.toEqual({
+        successful: [],
+        failed: [],
+      });
+    });
+
+    expect(deleteAssetRequestMock).not.toHaveBeenCalled();
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(toastSuccessMock).not.toHaveBeenCalled();
+    expect(toastErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("deletes all assets with a plural success summary and scopes invalidation", async () => {
+    const first = createAssetFixture({
+      id: "4b4f4dc9-77d5-4bb5-90a4-0d764a5fbf4b",
+      displayName: "web-01",
+    });
+    const second = createAssetFixture({
+      id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
+      displayName: "api-01",
+    });
+    const unrelated = createAssetFixture({
+      id: "ca6cf4f8-f1b0-45e7-a1f8-f7a4c0bde5a6",
+      displayName: "unrelated",
+    });
+    deleteAssetRequestMock.mockImplementation((id: string) =>
+      id === first.id ? Promise.resolve(first) : Promise.resolve(second),
+    );
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const unrelatedDetailKey = createAssetByIDQueryOptions(unrelated.id).queryKey;
+    queryClient.setQueryData(unrelatedDetailKey, unrelated);
+    queryClient.setQueryData(["roles"], [{ id: "unrelated-role" }]);
+
+    let batchResult: AssetLifecycleBatchResult | undefined;
+    await act(async () => {
+      batchResult = await result.current.deleteAssets([first, second]);
+    });
+
+    expect(batchResult).toEqual({
+      successful: [first, second],
+      failed: [],
+    });
+    expect(toastSuccessMock).toHaveBeenCalledWith("Deleted 2 assets");
+    expect(toastErrorMock).not.toHaveBeenCalled();
+    for (const queryKey of [
+      createListAssetsQueryOptions().queryKey,
+      createListAssetsWithCustomFieldsQueryOptions().queryKey,
+      createAssetByIDQueryOptions(first.id).queryKey,
+      createAssetByIDQueryOptions(second.id).queryKey,
+    ]) {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey, exact: true });
+    }
+    expect(queryClient.getQueryState(unrelatedDetailKey)?.isInvalidated).toBe(false);
+    expect(queryClient.getQueryData(["roles"])).toEqual([{ id: "unrelated-role" }]);
+  });
+
+  it("associates all asset delete failures with their original assets", async () => {
+    const first = createAssetFixture({
+      id: "4b4f4dc9-77d5-4bb5-90a4-0d764a5fbf4b",
+      displayName: "web-01",
+    });
+    const second = createAssetFixture({
+      id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
+      displayName: "api-01",
+    });
+    const unrelated = createAssetFixture({
+      id: "ca6cf4f8-f1b0-45e7-a1f8-f7a4c0bde5a6",
+      displayName: "unrelated",
+    });
+    const firstError = new Error("First delete failed");
+    const secondError = new Error("Second delete failed");
+    deleteAssetRequestMock.mockImplementation((id: string) =>
+      id === first.id ? Promise.reject(firstError) : Promise.reject(secondError),
+    );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const unrelatedDetailKey = createAssetByIDQueryOptions(unrelated.id).queryKey;
+    queryClient.setQueryData(unrelatedDetailKey, unrelated);
+    queryClient.setQueryData(["roles"], [{ id: "unrelated-role" }]);
+
+    let batchResult: AssetLifecycleBatchResult | undefined;
+    await act(async () => {
+      batchResult = await result.current.deleteAssets([first, second]);
+    });
+
+    expect(batchResult).toEqual({
+      successful: [],
+      failed: [
+        { asset: first, error: firstError },
+        { asset: second, error: secondError },
+      ],
+    });
+    expect(toastErrorMock).toHaveBeenCalledTimes(1);
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to delete 2 assets");
+    expect(toastSuccessMock).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(firstError);
+    expect(consoleError).toHaveBeenCalledWith(secondError);
+    for (const queryKey of [
+      createListAssetsQueryOptions().queryKey,
+      createListAssetsWithCustomFieldsQueryOptions().queryKey,
+      createAssetByIDQueryOptions(first.id).queryKey,
+      createAssetByIDQueryOptions(second.id).queryKey,
+    ]) {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey, exact: true });
+    }
+    expect(queryClient.getQueryState(unrelatedDetailKey)?.isInvalidated).toBe(false);
+    expect(queryClient.getQueryData(["roles"])).toEqual([{ id: "unrelated-role" }]);
+  });
+
   it("reports partial delete failures and invalidates affected asset reads", async () => {
     const first = createAssetFixture({
       id: "4b4f4dc9-77d5-4bb5-90a4-0d764a5fbf4b",

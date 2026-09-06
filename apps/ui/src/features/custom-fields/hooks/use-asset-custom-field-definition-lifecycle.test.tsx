@@ -135,6 +135,36 @@ describe("useAssetCustomFieldDefinitionLifecycle", () => {
     expect(toastSuccessMock).toHaveBeenCalledWith("Created custom field Deployment tier");
   });
 
+  it("returns null and preserves caches when definition creation fails", async () => {
+    const existingDefinition = createDefinitionFixture();
+    const error = new Error("Create failed");
+    createDefinitionRequestMock.mockRejectedValueOnce(error);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+    const listQueryKey = createListAssetCustomFieldDefinitionsQueryOptions().queryKey;
+    const detailQueryKey = createAssetCustomFieldDefinitionByIDQueryOptions(
+      existingDefinition.id,
+    ).queryKey;
+    queryClient.setQueryData(listQueryKey, [existingDefinition]);
+    queryClient.setQueryData(detailQueryKey, existingDefinition);
+
+    let createdDefinition: AssetCustomFieldDefinition | null = existingDefinition;
+    await act(async () => {
+      createdDefinition = await result.current.createDefinition(createDefinitionPayload());
+    });
+
+    expect(createdDefinition).toBeNull();
+    expect(queryClient.getQueryData(listQueryKey)).toEqual([existingDefinition]);
+    expect(queryClient.getQueryData(detailQueryKey)).toEqual(existingDefinition);
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(toastSuccessMock).not.toHaveBeenCalled();
+    expect(toastErrorMock).toHaveBeenCalledWith(
+      "Failed to create custom field: Error: Create failed",
+    );
+    expect(consoleError).toHaveBeenCalledWith(error);
+  });
+
   it("updates definition detail cache after successful updates", async () => {
     const definition = createDefinitionFixture();
     const updatedDefinition = createDefinitionFixture({
@@ -234,6 +264,78 @@ describe("useAssetCustomFieldDefinitionLifecycle", () => {
       exact: true,
     });
     expect(toastSuccessMock).toHaveBeenCalledWith("Deleted 1 custom field");
+  });
+
+  it("returns an empty definition delete summary without side effects", async () => {
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+
+    await act(async () => {
+      await expect(result.current.deleteDefinitions([])).resolves.toEqual({
+        successful: [],
+        failed: [],
+      });
+    });
+
+    expect(deleteDefinitionRequestMock).not.toHaveBeenCalled();
+    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(toastSuccessMock).not.toHaveBeenCalled();
+    expect(toastErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("associates all definition delete failures with their original definitions", async () => {
+    const first = createDefinitionFixture({
+      id: "bb4d076a-1ae9-43d7-8cef-69eba82de2af",
+      name: "Deployment tier",
+    });
+    const second = createDefinitionFixture({
+      id: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
+      name: "Priority",
+    });
+    const unrelated = createDefinitionFixture({
+      id: "3c8a8a3e-1f74-4f6b-8f3f-3e154f3a2c79",
+      name: "Unrelated",
+    });
+    const firstError = new Error("First delete failed");
+    const secondError = new Error("Second delete failed");
+    deleteDefinitionRequestMock.mockImplementation((id: string) =>
+      id === first.id ? Promise.reject(firstError) : Promise.reject(secondError),
+    );
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const unrelatedDetailKey = createAssetCustomFieldDefinitionByIDQueryOptions(
+      unrelated.id,
+    ).queryKey;
+    queryClient.setQueryData(unrelatedDetailKey, unrelated);
+    queryClient.setQueryData(["assets"], [{ id: "unrelated-asset" }]);
+
+    let batchResult: AssetCustomFieldDefinitionLifecycleBatchResult | undefined;
+    await act(async () => {
+      batchResult = await result.current.deleteDefinitions([first, second]);
+    });
+
+    expect(batchResult).toEqual({
+      successful: [],
+      failed: [
+        { definition: first, error: firstError },
+        { definition: second, error: secondError },
+      ],
+    });
+    expect(toastErrorMock).toHaveBeenCalledTimes(1);
+    expect(toastErrorMock).toHaveBeenCalledWith("Failed to delete 2 custom fields");
+    expect(toastSuccessMock).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(firstError);
+    expect(consoleError).toHaveBeenCalledWith(secondError);
+    for (const queryKey of [
+      createListAssetCustomFieldDefinitionsQueryOptions().queryKey,
+      createAssetCustomFieldDefinitionByIDQueryOptions(first.id).queryKey,
+      createAssetCustomFieldDefinitionByIDQueryOptions(second.id).queryKey,
+    ]) {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey, exact: true });
+    }
+    expect(queryClient.getQueryState(unrelatedDetailKey)?.isInvalidated).toBe(false);
+    expect(queryClient.getQueryData(["assets"])).toEqual([{ id: "unrelated-asset" }]);
   });
 
   it("reports partial delete failures and invalidates affected reads", async () => {

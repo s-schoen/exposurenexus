@@ -161,7 +161,12 @@ describe("useUserLifecycle", () => {
     const error = new Error("Update failed");
     updateUserRequestMock.mockRejectedValueOnce(error);
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const { result } = renderLifecycleHook();
+    const { queryClient, result } = renderLifecycleHook();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+    const listQueryKey = createListUsersQueryOptions().queryKey;
+    const detailQueryKey = createUserByIDQueryOptions(user.id).queryKey;
+    queryClient.setQueryData(listQueryKey, [user]);
+    queryClient.setQueryData(detailQueryKey, user);
 
     let updatedUser: UserProfile | null = user;
     await act(async () => {
@@ -174,7 +179,11 @@ describe("useUserLifecycle", () => {
     });
 
     expect(updatedUser).toBeNull();
+    expect(queryClient.getQueryData(listQueryKey)).toEqual([user]);
+    expect(queryClient.getQueryData(detailQueryKey)).toEqual(user);
+    expect(invalidateSpy).not.toHaveBeenCalled();
     expect(toastErrorMock).toHaveBeenCalledWith(`Failed to update user: ${error}`);
+    expect(toastSuccessMock).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalledWith(error);
   });
 });
