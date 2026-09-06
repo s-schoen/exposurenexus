@@ -14,13 +14,16 @@ import {
 } from "@exposurenexus/contracts/model/vulnerability";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FindingDetailContent } from "@/features/findings/components/finding-detail-content.tsx";
 
+import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
 import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type { Finding } from "@exposurenexus/contracts/model/finding";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
+import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
 import type { ReactNode } from "react";
 
 const ids = {
@@ -118,6 +121,136 @@ const finding: Finding = {
   updatedAt: new Date("2026-01-05T00:00:00.000Z"),
 };
 
+type ResourceCase = {
+  typeLabel: string;
+  expected: FindingAffectedResource;
+  fields: Array<[string, string]>;
+  selects?: Array<[string, string]>;
+};
+
+const resourceCases: Array<ResourceCase> = [
+  {
+    typeLabel: "Web endpoint",
+    expected: {
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "https",
+      host: "api.example.com",
+      port: 8443,
+      path: "/admin",
+      method: "POST",
+      component: { kind: WebEndpointComponentKind.QueryParameter, name: "debug" },
+    },
+    fields: [
+      ["Host", "api.example.com"],
+      ["Port", "8443"],
+      ["Path", "/admin"],
+      ["Method", "POST"],
+      ["Component name", "debug"],
+    ],
+    selects: [
+      ["Scheme", "HTTPS"],
+      ["Component kind", "QueryParameter"],
+    ],
+  },
+  {
+    typeLabel: "Network service",
+    expected: {
+      type: AffectedResourceType.NetworkService,
+      host: "db.example.com",
+      port: 5432,
+      transport: "tcp",
+      protocol: "postgresql",
+    },
+    fields: [
+      ["Host", "db.example.com"],
+      ["Port", "5432"],
+      ["Protocol", "postgresql"],
+    ],
+    selects: [["Transport", "TCP"]],
+  },
+  {
+    typeLabel: "Source code",
+    expected: {
+      type: AffectedResourceType.SourceCode,
+      repository: "github.com/example/service",
+      file: "src/admin.ts",
+      location: { startLine: 42, startColumn: 5, endLine: 44, endColumn: 12 },
+      symbol: "adminHandler",
+      locationFingerprint: "sha256:abcd",
+    },
+    fields: [
+      ["Repository", "github.com/example/service"],
+      ["File", "src/admin.ts"],
+      ["Start line", "42"],
+      ["Start column", "5"],
+      ["End line", "44"],
+      ["End column", "12"],
+      ["Symbol", "adminHandler"],
+      ["Location fingerprint", "sha256:abcd"],
+    ],
+  },
+  {
+    typeLabel: "Package",
+    expected: {
+      type: AffectedResourceType.Package,
+      ecosystem: "npm",
+      name: "example-package",
+      installationPath: "package-lock.json",
+    },
+    fields: [
+      ["Ecosystem", "npm"],
+      ["Package name", "example-package"],
+      ["Installation path", "package-lock.json"],
+    ],
+  },
+  {
+    typeLabel: "Container image",
+    expected: {
+      type: AffectedResourceType.ContainerImage,
+      registry: "registry.example.com",
+      repository: "platform/admin",
+      digest: "sha256:abcd",
+    },
+    fields: [
+      ["Registry", "registry.example.com"],
+      ["Repository", "platform/admin"],
+      ["Digest", "sha256:abcd"],
+    ],
+  },
+  {
+    typeLabel: "Cloud resource",
+    expected: {
+      type: AffectedResourceType.CloudResource,
+      provider: "aws",
+      providerAccount: "123456789012",
+      region: "eu-central-1",
+      resourceId: "arn:aws:s3:::admin-data",
+      subresource: "bucket-policy",
+    },
+    fields: [
+      ["Provider", "aws"],
+      ["Provider account", "123456789012"],
+      ["Region", "eu-central-1"],
+      ["Resource ID", "arn:aws:s3:::admin-data"],
+      ["Subresource", "bucket-policy"],
+    ],
+  },
+];
+
+type QueryState<TData> = {
+  data?: TData;
+  isPending: boolean;
+  isSuccess: boolean;
+  isError: boolean;
+};
+
+const availableVulnerability: VulnerabilityCatalog = {
+  ...finding.vulnerabilities[0],
+  id: ids.availableVulnerability,
+  identifier: "CVE-2026-0002",
+  title: "Available catalog entry",
+};
+
 const mocks = vi.hoisted(() => ({
   correctFinding: vi.fn(),
   linkVulnerability: vi.fn(),
@@ -126,6 +259,8 @@ const mocks = vi.hoisted(() => ({
   findingQuery: undefined as
     | { data?: Finding; isPending: boolean; isSuccess: boolean; error?: Error }
     | undefined,
+  usersQuery: undefined as QueryState<Array<UserProfile>> | undefined,
+  vulnerabilitiesQuery: undefined as QueryState<Array<VulnerabilityCatalog>> | undefined,
 }));
 
 vi.mock("@tanstack/react-query", () => ({
@@ -140,21 +275,9 @@ vi.mock("@tanstack/react-query", () => ({
       return { data: asset, isPending: false, isSuccess: true };
     }
     if (options.queryKey?.[0] === "vulnerabilities") {
-      return {
-        data: [
-          ...finding.vulnerabilities,
-          {
-            ...finding.vulnerabilities[0],
-            id: ids.availableVulnerability,
-            identifier: "CVE-2026-0002",
-            title: "Available catalog entry",
-          },
-        ],
-        isPending: false,
-        isSuccess: true,
-      };
+      return mocks.vulnerabilitiesQuery;
     }
-    return { data: [user, disabledUser], isPending: false, isSuccess: true };
+    return mocks.usersQuery;
   },
 }));
 
@@ -228,6 +351,31 @@ function getFinding() {
   return data;
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+}
+
+let setRenderedFinding: ((finding: Finding) => void) | undefined;
+
+function StatefulFindingDetail() {
+  const [renderedFinding, setFinding] = useState(getFinding());
+  useEffect(() => {
+    setRenderedFinding = (nextFinding) => setFinding(nextFinding);
+    return () => {
+      setRenderedFinding = undefined;
+    };
+  }, []);
+
+  return <FindingDetailContent finding={renderedFinding} asset={asset} />;
+}
+
 describe("FindingDetailContent", () => {
   beforeEach(() => {
     mocks.correctFinding.mockReset();
@@ -239,10 +387,23 @@ describe("FindingDetailContent", () => {
     mocks.confirm.mockReset();
     mocks.confirm.mockResolvedValue(true);
     mocks.findingQuery = { data: finding, isPending: false, isSuccess: true };
+    mocks.usersQuery = {
+      data: [user, disabledUser],
+      isPending: false,
+      isSuccess: true,
+      isError: false,
+    };
+    mocks.vulnerabilitiesQuery = {
+      data: [...finding.vulnerabilities, availableVulnerability],
+      isPending: false,
+      isSuccess: true,
+      isError: false,
+    };
   });
 
   afterEach(() => {
     cleanup();
+    setRenderedFinding = undefined;
   });
 
   it("renders finding-owned data, summaries, weakness, resource, and equal catalog links", () => {
@@ -322,6 +483,107 @@ describe("FindingDetailContent", () => {
     expect(screen.getByLabelText("Subresource")).toHaveValue("");
     expect(screen.queryByLabelText("Host")).toBeNull();
     expect(screen.queryByLabelText("Method")).toBeNull();
+  });
+
+  it.each(resourceCases)("submits all %s correction resource fields", async (resourceCase) => {
+    const actor = userEvent.setup();
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
+
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+    await actor.click(screen.getByLabelText("Affected resource type"));
+    await actor.click(await screen.findByRole("option", { name: resourceCase.typeLabel }));
+
+    for (const [label, option] of resourceCase.selects ?? []) {
+      await actor.click(screen.getByLabelText(label));
+      await actor.click(await screen.findByRole("option", { name: option }));
+    }
+    for (const [label, value] of resourceCase.fields) {
+      await actor.type(screen.getByLabelText(label), value);
+    }
+
+    await actor.click(screen.getByRole("button", { name: "Save correction" }));
+
+    expect(mocks.correctFinding).toHaveBeenCalledWith(
+      finding.id,
+      expect.objectContaining({ affectedResource: resourceCase.expected }),
+    );
+  });
+
+  it("omits cleared correction resource values and removes the whole source location", async () => {
+    const actor = userEvent.setup();
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
+
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+    await actor.click(screen.getByLabelText("Affected resource type"));
+    await actor.click(await screen.findByRole("option", { name: "Source code" }));
+
+    const source = resourceCases.find(({ typeLabel }) => typeLabel === "Source code");
+    if (!source) throw new Error("Missing source-code resource fixture");
+
+    for (const [label, value] of source.fields) {
+      await actor.type(screen.getByLabelText(label), value);
+    }
+
+    for (const label of ["Start column", "End line", "End column"]) {
+      const input = screen.getByLabelText(label);
+      await actor.clear(input);
+      expect((input as HTMLInputElement).value).toBe("");
+    }
+    const startLine = screen.getByLabelText("Start line");
+    await actor.clear(startLine);
+    expect((startLine as HTMLInputElement).value).toBe("");
+
+    for (const label of ["Repository", "File", "Symbol", "Location fingerprint"]) {
+      await actor.clear(screen.getByLabelText(label));
+    }
+
+    await actor.click(screen.getByRole("button", { name: "Save correction" }));
+
+    expect(mocks.correctFinding).toHaveBeenCalledWith(
+      finding.id,
+      expect.objectContaining({
+        affectedResource: { type: AffectedResourceType.SourceCode },
+      }),
+    );
+  });
+
+  it("removes stale web component names when switching named, unnamed, and no component", async () => {
+    const actor = userEvent.setup();
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
+
+    await actor.click(screen.getByRole("button", { name: "Edit finding" }));
+    await actor.click(screen.getByLabelText("Affected resource type"));
+    await actor.click(await screen.findByRole("option", { name: "Web endpoint" }));
+
+    await actor.click(screen.getByLabelText("Component kind"));
+    await actor.click(await screen.findByRole("option", { name: "QueryParameter" }));
+    await actor.type(screen.getByLabelText("Component name"), "debug");
+
+    await actor.click(screen.getByLabelText("Component kind"));
+    await actor.click(await screen.findByRole("option", { name: "Endpoint" }));
+    expect(screen.queryByLabelText("Component name")).toBeNull();
+
+    await actor.click(screen.getByLabelText("Component kind"));
+    await actor.click(await screen.findByRole("option", { name: "Header" }));
+    expect(screen.getByLabelText("Component name")).toHaveValue("");
+    await actor.type(screen.getByLabelText("Component name"), "X-Debug");
+
+    await actor.click(screen.getByLabelText("Component kind"));
+    await actor.click(await screen.findByRole("option", { name: "Response" }));
+    expect(screen.queryByLabelText("Component name")).toBeNull();
+
+    await actor.click(screen.getByLabelText("Component kind"));
+    await actor.click(await screen.findByRole("option", { name: "No component" }));
+    expect(screen.queryByLabelText("Component name")).toBeNull();
+
+    await actor.click(screen.getByRole("button", { name: "Save correction" }));
+
+    expect(mocks.correctFinding).toHaveBeenCalledWith(
+      finding.id,
+      expect.objectContaining({
+        affectedResource: { type: AffectedResourceType.WebEndpoint },
+      }),
+    );
   });
 
   it("submits exactly the finding-owned correction payload", async () => {
@@ -428,6 +690,24 @@ describe("FindingDetailContent", () => {
     expect(screen.getByText("Unknown Assignee")).toBeTruthy();
     await actor.click(screen.getByRole("button", { name: "Edit finding" }));
     expect(screen.getByRole("dialog", { name: "Correct finding" })).toBeTruthy();
+    expect(screen.getByLabelText("Assignee")).toHaveTextContent("Select assignee");
+  });
+
+  it.each([
+    ["pending", { data: undefined, isPending: true, isSuccess: false, isError: false }],
+    ["failed", { data: undefined, isPending: false, isSuccess: false, isError: true }],
+  ] as const)("uses fallback user labels while the users query is %s", (_state, query) => {
+    mocks.findingQuery = {
+      data: { ...finding, assigneeId: "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12" },
+      isPending: false,
+      isSuccess: true,
+    };
+    mocks.usersQuery = query;
+
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
+
+    expect(screen.getByText("Unknown Assignee")).toBeVisible();
+    expect(screen.getByText("Unknown Owner")).toBeVisible();
   });
 
   it("links and unlinks catalog entries with confirmation and retained selection on failure", async () => {
@@ -448,6 +728,96 @@ describe("FindingDetailContent", () => {
       finding.id,
       finding.vulnerabilities[0].id,
     );
+  });
+
+  it("clears a successful link selection and renders the new catalog entry", async () => {
+    const actor = userEvent.setup();
+    const linkedFinding = {
+      ...finding,
+      vulnerabilities: [...finding.vulnerabilities, availableVulnerability],
+    };
+    mocks.linkVulnerability.mockImplementationOnce(async () => {
+      setRenderedFinding?.(linkedFinding);
+      return linkedFinding;
+    });
+    render(<StatefulFindingDetail />);
+
+    await actor.click(screen.getByLabelText("Link catalog entry"));
+    await actor.click(await screen.findByRole("option", { name: /CVE: CVE-2026-0002/ }));
+    await actor.click(screen.getByRole("button", { name: "Link entry" }));
+
+    expect(await screen.findByText(availableVulnerability.title)).toBeVisible();
+    expect(screen.getByLabelText("Link catalog entry")).toHaveTextContent("Select a catalog entry");
+    expect(screen.getByRole("button", { name: "Link entry" })).toBeDisabled();
+  });
+
+  it.each([
+    ["pending", { data: undefined, isPending: true, isSuccess: false, isError: false }, true],
+    ["failed", { data: undefined, isPending: false, isSuccess: false, isError: true }, false],
+  ] as const)(
+    "disables catalog linking for a %s catalog query",
+    (_state, query, selectDisabled) => {
+      mocks.vulnerabilitiesQuery = query;
+      render(<FindingDetailContent finding={getFinding()} asset={asset} />);
+
+      expect(screen.getByLabelText("Link catalog entry")).toHaveTextContent(
+        "Select a catalog entry",
+      );
+      expect(screen.getByLabelText("Link catalog entry")).toHaveProperty(
+        "disabled",
+        selectDisabled,
+      );
+      expect(screen.getByRole("button", { name: "Link entry" })).toBeDisabled();
+    },
+  );
+
+  it("disables linking when every catalog entry is already linked", async () => {
+    const actor = userEvent.setup();
+    mocks.vulnerabilitiesQuery = {
+      data: finding.vulnerabilities,
+      isPending: false,
+      isSuccess: true,
+      isError: false,
+    };
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
+
+    await actor.click(screen.getByLabelText("Link catalog entry"));
+
+    expect(screen.queryByRole("option", { name: /CVE-2026-0002/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Link entry" })).toBeDisabled();
+  });
+
+  it("prevents duplicate link and unlink actions while each mutation is pending", async () => {
+    const actor = userEvent.setup();
+    const link = createDeferred<Finding>();
+    const unlink = createDeferred<Finding>();
+    mocks.linkVulnerability.mockReturnValueOnce(link.promise);
+    mocks.unlinkVulnerability.mockReturnValueOnce(unlink.promise);
+    render(<FindingDetailContent finding={getFinding()} asset={asset} />);
+
+    await actor.click(screen.getByLabelText("Link catalog entry"));
+    await actor.click(await screen.findByRole("option", { name: /CVE: CVE-2026-0002/ }));
+    const linkButton = screen.getByRole("button", { name: "Link entry" });
+    await actor.click(linkButton);
+    expect(linkButton).toBeDisabled();
+    expect(screen.getByLabelText("Link catalog entry")).toBeDisabled();
+    await actor.click(linkButton);
+    expect(mocks.linkVulnerability).toHaveBeenCalledOnce();
+
+    link.resolve(finding);
+    await waitFor(() => expect(screen.getByLabelText("Link catalog entry")).toBeEnabled());
+
+    const unlinkButtons = screen.getAllByRole("button", { name: "Unlink" });
+    await actor.click(unlinkButtons[0]);
+    await waitFor(() => expect(unlinkButtons[0]).toBeDisabled());
+    for (const button of unlinkButtons) {
+      expect(button).toBeDisabled();
+    }
+    await actor.click(unlinkButtons[1]);
+    expect(mocks.unlinkVulnerability).toHaveBeenCalledOnce();
+
+    unlink.resolve(finding);
+    await waitFor(() => expect(unlinkButtons[0]).toBeEnabled());
   });
 
   it("shows validation errors and keeps the correction open", async () => {
