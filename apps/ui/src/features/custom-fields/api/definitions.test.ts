@@ -40,6 +40,26 @@ function requestJsonBody(): unknown {
   return JSON.parse(requestInit().body as string);
 }
 
+function errorResponse(status: number, message: string, reason: string): Response {
+  return jsonResponse({ error: message, reason }, { status });
+}
+
+function expectRequest(path: string, method: string, payload?: unknown) {
+  expect(fetchMock).toHaveBeenCalledWith(
+    path,
+    expect.objectContaining({
+      credentials: "include",
+      method,
+    }),
+  );
+
+  if (payload === undefined) {
+    expect(requestInit().body).toBeUndefined();
+  } else {
+    expect(requestJsonBody()).toEqual(payload);
+  }
+}
+
 const definition: AssetCustomFieldDefinition = {
   id: "33d63e64-8f2b-4f88-b26f-fb090b4366ff",
   key: "deployment_tier",
@@ -70,6 +90,30 @@ const payload: UpdateAssetCustomFieldDefinition = {
     },
   ],
 };
+
+const customFieldAPIErrorCases = [
+  {
+    name: "definition list",
+    call: () => listAssetCustomFieldDefinitions(),
+    method: "GET",
+    path: "/api/assets/custom-fields",
+    payload: undefined,
+  },
+  {
+    name: "definition update",
+    call: () => updateAssetCustomFieldDefinition(definition.id, payload),
+    method: "PUT",
+    path: `/api/assets/custom-fields/${definition.id}`,
+    payload,
+  },
+  {
+    name: "definition deletion",
+    call: () => deleteAssetCustomFieldDefinition(definition.id),
+    method: "DELETE",
+    path: `/api/assets/custom-fields/${definition.id}`,
+    payload: undefined,
+  },
+] as const;
 
 beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
@@ -218,4 +262,27 @@ describe("asset custom field api", () => {
       });
     }
   });
+
+  it.each(customFieldAPIErrorCases)(
+    "preserves API errors from the $name wrapper",
+    async ({ call, method, path, payload: requestPayload }) => {
+      const requestError = {
+        status: 422,
+        message: "Custom field endpoint rejected the request",
+        reason: "custom-field-api-test-reason",
+      };
+      fetchMock.mockResolvedValueOnce(
+        errorResponse(requestError.status, requestError.message, requestError.reason),
+      );
+
+      const request = call();
+      await expect(request).rejects.toBeInstanceOf(APIError);
+      await expect(request).rejects.toMatchObject({
+        statusCode: requestError.status,
+        message: requestError.message,
+        reason: requestError.reason,
+      });
+      expectRequest(path, method, requestPayload);
+    },
+  );
 });
