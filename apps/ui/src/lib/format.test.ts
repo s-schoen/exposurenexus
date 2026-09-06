@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCount } from "@/lib/format.ts";
+import { formatCount, formatDate } from "@/lib/format.ts";
 
 describe("formatCount", () => {
   it("uses the singular label for one item", () => {
@@ -14,5 +14,13 @@ describe("formatCount", () => {
 
   it("uses a custom plural label", () => {
     expect(formatCount(2, "vulnerability", "vulnerabilities")).toBe("2 vulnerabilities");
+  });
+});
+
+describe("formatDate", () => {
+  it("uses the runtime locale date representation", () => {
+    const date = new Date("2026-06-07T09:00:00.000Z");
+
+    expect(formatDate(date)).toBe(date.toLocaleDateString());
   });
 });

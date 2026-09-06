@@ -58,13 +58,6 @@ function PaginationHarness({ rowCount = 25, filterTerm = "" }) {
 
   return (
     <div>
-      <button
-        type="button"
-        aria-label="increase page size"
-        onClick={() => setPagination((current) => ({ ...current, pageSize: 20 }))}
-      >
-        Increase page size
-      </button>
       <div aria-label="Visible rows" role="list">
         {table.getRowModel().rows.map((row) => (
           <div key={row.id} role="listitem">
@@ -98,6 +91,7 @@ describe("DataTablePagination", () => {
       expect(
         within(screen.getByRole("list", { name: /visible rows/i })).getAllByRole("listitem"),
       ).toHaveLength(10);
+      expect(screen.getByText("Page 1 of 3")).toBeVisible();
       expect(getPaginationButton(/go to first page/i)).toBeDisabled();
       expect(getPaginationButton(/go to previous page/i)).toBeDisabled();
       expect(getPaginationButton(/go to next page/i)).toBeEnabled();
@@ -115,8 +109,19 @@ describe("DataTablePagination", () => {
     await waitFor(() => {
       expect(screen.getByText("Row 11")).toBeInTheDocument();
       expect(screen.queryByText("Row 1")).not.toBeInTheDocument();
+      expect(screen.getByText("Page 2 of 3")).toBeVisible();
       expect(getPaginationButton(/go to previous page/i)).toBeEnabled();
     });
+
+    await user.click(screen.getByRole("button", { name: /go to previous page/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Row 1")).toBeInTheDocument();
+      expect(screen.getByText("Page 1 of 3")).toBeVisible();
+      expect(getPaginationButton(/go to previous page/i)).toBeDisabled();
+    });
+
+    await user.click(screen.getByRole("button", { name: /go to next page/i }));
 
     await user.click(screen.getByRole("button", { name: /go to last page/i }));
 
@@ -125,6 +130,7 @@ describe("DataTablePagination", () => {
         within(screen.getByRole("list", { name: /visible rows/i })).getAllByRole("listitem"),
       ).toHaveLength(5);
       expect(screen.getByText("Row 25")).toBeInTheDocument();
+      expect(screen.getByText("Page 3 of 3")).toBeVisible();
       expect(getPaginationButton(/go to next page/i)).toBeDisabled();
       expect(getPaginationButton(/go to last page/i)).toBeDisabled();
     });
@@ -146,6 +152,7 @@ describe("DataTablePagination", () => {
     await waitFor(() => {
       expect(screen.getByText("Row 1")).toBeInTheDocument();
       expect(screen.queryByText("Row 25")).not.toBeInTheDocument();
+      expect(screen.getByText("Page 1 of 3")).toBeVisible();
       expect(getPaginationButton(/go to first page/i)).toBeDisabled();
     });
   });
@@ -155,7 +162,8 @@ describe("DataTablePagination", () => {
 
     render(<PaginationHarness />);
 
-    await user.click(screen.getByRole("button", { name: /increase page size/i }));
+    await user.click(screen.getByRole("combobox", { name: "Rows per page" }));
+    await user.click(await screen.findByRole("option", { name: "20" }));
 
     await waitFor(() => {
       expect(

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   FORBIDDEN_ACTION_MESSAGE,
   actionErrorMessage,
+  formatActionError,
   isForbiddenAPIError,
   toastActionError,
 } from "@/lib/action-error-toast.ts";
@@ -38,6 +39,16 @@ describe("action error toast helpers", () => {
   it("uses the fallback message for non-forbidden errors", () => {
     expect(actionErrorMessage(new APIError(500, "Server Error"), "Fallback")).toBe("Fallback");
     expect(actionErrorMessage(new Error("Network error"), "Fallback")).toBe("Fallback");
+  });
+
+  it.each([
+    { name: "a plain object", input: { code: "unknown" }, expected: "Unknown error" },
+    { name: "null", input: null, expected: "null" },
+    { name: "undefined", input: undefined, expected: "undefined" },
+    { name: "a string", input: "Request failed", expected: "Request failed" },
+    { name: "a number", input: 503, expected: "503" },
+  ])("formats $name safely", ({ input, expected }) => {
+    expect(formatActionError(input)).toBe(expected);
   });
 
   it("shows a toast with the resolved action error message", () => {
