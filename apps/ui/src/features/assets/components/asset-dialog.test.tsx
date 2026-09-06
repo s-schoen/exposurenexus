@@ -5,7 +5,7 @@ import {
 } from "@exposurenexus/contracts/model/asset";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AssetDialog } from "@/features/assets/components/asset-dialog.tsx";
 
@@ -23,6 +23,8 @@ const queryMocks = vi.hoisted(() => ({
       roleIds: [],
     },
   ],
+  isPending: false,
+  isError: false,
 }));
 
 const selectMocks = vi.hoisted(() => ({
@@ -34,8 +36,9 @@ vi.mock("@tanstack/react-query", () => ({
   queryOptions: (options: unknown) => options,
   useQuery: () => ({
     data: queryMocks.users,
-    isLoading: false,
-    isPending: false,
+    isLoading: queryMocks.isPending,
+    isPending: queryMocks.isPending,
+    isError: queryMocks.isError,
   }),
 }));
 
@@ -83,6 +86,22 @@ vi.mock("@/components/ui/select.tsx", () => ({
 
 afterEach(() => {
   cleanup();
+});
+
+beforeEach(() => {
+  queryMocks.users = [
+    {
+      id: queryMocks.ownerId,
+      username: "owner",
+      displayName: "Asset Owner",
+      email: "owner@example.com",
+      enabled: false,
+      roleIds: [],
+    },
+  ];
+  queryMocks.isPending = false;
+  queryMocks.isError = false;
+  selectMocks.value = undefined;
 });
 
 function renderAssetDialog() {
@@ -224,6 +243,51 @@ describe("AssetDialog", () => {
         environment: AssetEnvironment.Unknown,
         lifecycleState: AssetLifecycleState.Active,
         ownerId: queryMocks.ownerId,
+      });
+    });
+  });
+
+  it("resolves ownerId to null after clearing a selected owner", async () => {
+    const user = userEvent.setup();
+    const { call } = renderAssetDialog();
+
+    await user.type(screen.getByLabelText(/^display name$/i), "api-01");
+    await user.selectOptions(screen.getByLabelText(/^owner$/i), queryMocks.ownerId);
+    await user.selectOptions(screen.getByLabelText(/^owner$/i), "__no_owner__");
+    await user.click(screen.getByRole("button", { name: /^create$/i }));
+
+    await waitFor(() => {
+      expect(call.end).toHaveBeenCalledWith({
+        displayName: "api-01",
+        type: AssetType.Host,
+        environment: AssetEnvironment.Unknown,
+        lifecycleState: AssetLifecycleState.Active,
+        ownerId: null,
+      });
+    });
+  });
+
+  it.each([
+    ["delayed", { isPending: true, isError: false }],
+    ["failed", { isPending: false, isError: true }],
+  ])("keeps the form usable without stale owners when users are %s", async (_state, queryState) => {
+    const user = userEvent.setup();
+    queryMocks.users = [];
+    queryMocks.isPending = queryState.isPending;
+    queryMocks.isError = queryState.isError;
+    const { call } = renderAssetDialog();
+
+    expect(screen.queryByRole("option", { name: "Asset Owner" })).toBeNull();
+    await user.type(screen.getByLabelText(/^display name$/i), "api-01");
+    await user.click(screen.getByRole("button", { name: /^create$/i }));
+
+    await waitFor(() => {
+      expect(call.end).toHaveBeenCalledWith({
+        displayName: "api-01",
+        type: AssetType.Host,
+        environment: AssetEnvironment.Unknown,
+        lifecycleState: AssetLifecycleState.Active,
+        ownerId: null,
       });
     });
   });
