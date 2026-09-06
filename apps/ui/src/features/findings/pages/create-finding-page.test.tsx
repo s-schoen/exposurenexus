@@ -2,10 +2,12 @@ import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-re
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CreateFindingPage } from "@/features/findings/pages/create-finding-page.tsx";
 
+import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
 import type { ReactNode } from "react";
 
 const mocks = vi.hoisted(() => ({
@@ -134,6 +136,114 @@ function fillRequiredFields() {
   });
   fireEvent.click(screen.getByRole("button", { name: /select asset/i }));
 }
+
+type ResourceCase = {
+  typeLabel: string;
+  expected: FindingAffectedResource;
+  fields: Array<[string, string]>;
+  selects?: Array<[string, string]>;
+};
+
+const resourceCases: Array<ResourceCase> = [
+  {
+    typeLabel: "Web endpoint",
+    expected: {
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "https",
+      host: "api.example.com",
+      port: 8443,
+      path: "/admin",
+      method: "POST",
+    },
+    fields: [
+      ["Host", "api.example.com"],
+      ["Port", "8443"],
+      ["Path", "/admin"],
+      ["Method", "POST"],
+    ],
+    selects: [["Scheme", "HTTPS"]],
+  },
+  {
+    typeLabel: "Network service",
+    expected: {
+      type: AffectedResourceType.NetworkService,
+      host: "db.example.com",
+      port: 5432,
+      transport: "tcp",
+      protocol: "postgresql",
+    },
+    fields: [
+      ["Host", "db.example.com"],
+      ["Port", "5432"],
+      ["Protocol", "postgresql"],
+    ],
+    selects: [["Transport", "TCP"]],
+  },
+  {
+    typeLabel: "Source code",
+    expected: {
+      type: AffectedResourceType.SourceCode,
+      repository: "github.com/example/service",
+      file: "src/admin.ts",
+      location: { startLine: 42 },
+      symbol: "adminHandler",
+      locationFingerprint: "sha256:abcd",
+    },
+    fields: [
+      ["Repository", "github.com/example/service"],
+      ["File", "src/admin.ts"],
+      ["Start line", "42"],
+      ["Symbol", "adminHandler"],
+      ["Location fingerprint", "sha256:abcd"],
+    ],
+  },
+  {
+    typeLabel: "Package",
+    expected: {
+      type: AffectedResourceType.Package,
+      ecosystem: "npm",
+      name: "example-package",
+      installationPath: "package-lock.json",
+    },
+    fields: [
+      ["Ecosystem", "npm"],
+      ["Package name", "example-package"],
+      ["Installation path", "package-lock.json"],
+    ],
+  },
+  {
+    typeLabel: "Container image",
+    expected: {
+      type: AffectedResourceType.ContainerImage,
+      registry: "registry.example.com",
+      repository: "platform/admin",
+      digest: "sha256:abcd",
+    },
+    fields: [
+      ["Registry", "registry.example.com"],
+      ["Repository", "platform/admin"],
+      ["Digest", "sha256:abcd"],
+    ],
+  },
+  {
+    typeLabel: "Cloud resource",
+    expected: {
+      type: AffectedResourceType.CloudResource,
+      provider: "aws",
+      providerAccount: "123456789012",
+      region: "eu-central-1",
+      resourceId: "arn:aws:s3:::admin-data",
+      subresource: "bucket-policy",
+    },
+    fields: [
+      ["Provider", "aws"],
+      ["Provider account", "123456789012"],
+      ["Region", "eu-central-1"],
+      ["Resource ID", "arn:aws:s3:::admin-data"],
+      ["Subresource", "bucket-policy"],
+    ],
+  },
+];
 
 describe("CreateFindingPage", () => {
   beforeEach(() => {
@@ -301,6 +411,138 @@ describe("CreateFindingPage", () => {
       });
     },
   );
+
+  it.each(resourceCases)("submits every %s resource field", async (resourceCase) => {
+    const actor = userEvent.setup();
+    mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+    renderCreateFindingPage();
+    fillRequiredFields();
+
+    await actor.click(screen.getByRole("tab", { name: /identity/i }));
+    await actor.click(screen.getByLabelText("Affected resource"));
+    await actor.click(await screen.findByRole("button", { name: resourceCase.typeLabel }));
+    for (const [label, option] of resourceCase.selects ?? []) {
+      await actor.click(screen.getByLabelText(label));
+      await actor.click(screen.getByRole("button", { name: option }));
+    }
+    for (const [label, value] of resourceCase.fields) {
+      await actor.type(screen.getByLabelText(label), value);
+    }
+
+    await actor.click(screen.getByRole("button", { name: /create finding/i }));
+
+    await waitFor(() => {
+      expect(mocks.createFinding).toHaveBeenCalledWith(
+        expect.objectContaining({ affectedResource: resourceCase.expected }),
+      );
+    });
+  });
+
+  it.each(resourceCases)(
+    "omits cleared %s resource fields from the payload",
+    async (resourceCase) => {
+      const actor = userEvent.setup();
+      mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+      renderCreateFindingPage();
+      fillRequiredFields();
+
+      await actor.click(screen.getByRole("tab", { name: /identity/i }));
+      await actor.click(screen.getByLabelText("Affected resource"));
+      await actor.click(await screen.findByRole("button", { name: resourceCase.typeLabel }));
+      for (const [label, value] of resourceCase.fields) {
+        await actor.type(screen.getByLabelText(label), value);
+      }
+      for (const [label] of resourceCase.fields) {
+        await actor.clear(screen.getByLabelText(label));
+      }
+
+      await actor.click(screen.getByRole("button", { name: /create finding/i }));
+
+      await waitFor(() => {
+        expect(mocks.createFinding).toHaveBeenCalledWith(
+          expect.objectContaining({ affectedResource: { type: resourceCase.expected.type } }),
+        );
+      });
+    },
+  );
+
+  it("normalizes the title and weakness in a populated creation payload", async () => {
+    const actor = userEvent.setup();
+    mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+    renderCreateFindingPage();
+    fillRequiredFields();
+
+    await actor.clear(screen.getByLabelText(/^title$/i));
+    await actor.type(screen.getByLabelText(/^title$/i), "  Exposed admin panel  ");
+    await actor.click(screen.getByRole("tab", { name: /identity/i }));
+    await actor.type(screen.getByLabelText(/weakness identifiers/i), "cwe=cwe-89");
+    await actor.click(screen.getByLabelText("Affected resource"));
+    await actor.click(screen.getByRole("button", { name: "Source code" }));
+    await actor.type(screen.getByLabelText("Repository"), "github.com/example/service");
+
+    await actor.click(screen.getByRole("button", { name: /create finding/i }));
+
+    await waitFor(() => {
+      expect(mocks.createFinding).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Exposed admin panel",
+          weakness: { identifiers: { cwe: ["CWE-89"] } },
+          affectedResource: {
+            type: AffectedResourceType.SourceCode,
+            repository: "github.com/example/service",
+          },
+        }),
+      );
+    });
+  });
+
+  it("removes stale creation resource fields when switching back to unspecified", async () => {
+    const actor = userEvent.setup();
+    mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+    renderCreateFindingPage();
+    fillRequiredFields();
+
+    await actor.click(screen.getByRole("tab", { name: /identity/i }));
+    await actor.click(screen.getByLabelText("Affected resource"));
+    await actor.click(screen.getByRole("button", { name: "Web endpoint" }));
+    await actor.type(screen.getByLabelText("Host"), "stale.example.com");
+    await actor.click(screen.getByLabelText("Affected resource"));
+    await actor.click(screen.getByRole("button", { name: "Unspecified resource" }));
+
+    expect(screen.queryByLabelText("Host")).toBeNull();
+    await actor.click(screen.getByRole("button", { name: /create finding/i }));
+
+    await waitFor(() => {
+      expect(mocks.createFinding).toHaveBeenCalledWith(
+        expect.objectContaining({ affectedResource: { type: AffectedResourceType.Unspecified } }),
+      );
+    });
+  });
+
+  it("omits a cleared initial observation date and keeps a cleared due date null", async () => {
+    const actor = userEvent.setup();
+    mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
+    renderCreateFindingPage();
+    fillRequiredFields();
+
+    const dueDate = screen.getByLabelText(/due date/i);
+    fireEvent.change(dueDate, { target: { value: "2026-05-06" } });
+    await actor.clear(dueDate);
+    await actor.click(screen.getByRole("tab", { name: /observation/i }));
+    const observedAt = screen.getByLabelText("Observed at");
+    fireEvent.change(observedAt, { target: { value: "2026-05-01T13:45" } });
+    await actor.clear(observedAt);
+    await actor.click(screen.getByRole("button", { name: /create finding/i }));
+
+    await waitFor(() => expect(mocks.createFinding).toHaveBeenCalledTimes(1));
+    const payload = mocks.createFinding.mock.calls[0][0] as {
+      dueDate: Date | null;
+      observation: Record<string, unknown>;
+    };
+    expect(payload.dueDate).toBeNull();
+    expect(payload.observation.observedAt).toBeUndefined();
+    expect(JSON.parse(JSON.stringify(payload)).observation).toEqual({});
+  });
 
   it("drops stale resource fields when switching types", async () => {
     mocks.createFinding.mockResolvedValueOnce({ id: "finding-id" });
