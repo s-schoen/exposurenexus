@@ -28,7 +28,9 @@ vi.mock("recharts", () => ({
   ),
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   LabelList: () => <div data-testid="label-list" />,
-  XAxis: () => <div data-testid="x-axis" />,
+  XAxis: ({ tickFormatter }: { tickFormatter?: (value: string) => ReactNode }) => (
+    <div data-testid="x-axis">{tickFormatter?.("active")}</div>
+  ),
   YAxis: () => <div data-testid="y-axis" />,
 }));
 
@@ -75,5 +77,24 @@ describe("SimpleBarChart", () => {
 
     expect(chartContainer.style.height).toBe("");
     expect(chartContainer.className).toBe("w-full");
+  });
+
+  it("uses the configured label for the x-axis", async () => {
+    await renderChart();
+
+    expect(screen.getByTestId("x-axis")).toHaveTextContent("Active");
+  });
+
+  it("hides the chart and axes while loading", async () => {
+    const { SimpleBarChart } = await import("@/components/chart/simple-bar-chart.tsx");
+
+    const { container } = render(
+      <SimpleBarChart chartData={chartData} chartConfig={chartConfig} loading={true} />,
+    );
+
+    expect(container.querySelector('[data-slot="skeleton"]')).not.toBeNull();
+    expect(screen.queryByTestId("chart-container")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("bar-chart")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("x-axis")).not.toBeInTheDocument();
   });
 });

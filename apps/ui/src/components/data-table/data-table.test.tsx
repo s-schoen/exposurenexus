@@ -42,18 +42,20 @@ const directColumns: Array<DataTableColumnDef<TestRow>> = [
 
 function createQueryResult(
   rows: Array<TestRow> = directRows,
+  isFetching = false,
+  refetch = vi.fn().mockResolvedValue({ data: rows }),
 ): UseQueryResult<Array<TestRow>, Error> {
   return {
     data: rows,
     error: null,
     isError: false,
-    isFetching: false,
+    isFetching,
     isLoading: false,
     isPending: false,
     isSuccess: true,
     status: "success",
-    fetchStatus: "idle",
-    refetch: vi.fn().mockResolvedValue({ data: rows }),
+    fetchStatus: isFetching ? "fetching" : "idle",
+    refetch,
   } as unknown as UseQueryResult<Array<TestRow>, Error>;
 }
 
@@ -281,6 +283,92 @@ describe("DataTable stories", () => {
     });
   });
 
+  it("toggles multiple select options and removes the final filter", async () => {
+    const user = userEvent.setup();
+
+    render(<Default />);
+
+    await user.click(screen.getByRole("button", { name: /status filter/i }));
+    await user.click(await screen.findByRole("option", { name: "Active" }));
+    await user.click(await screen.findByRole("option", { name: "In Review" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "5",
+      );
+      expect(screen.getByText("2 selected")).toBeVisible();
+    });
+
+    await user.click(screen.getByRole("option", { name: "Active" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "2",
+      );
+      expect(screen.getByText("1 selected")).toBeVisible();
+    });
+
+    await user.click(screen.getByRole("option", { name: "In Review" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "6",
+      );
+      expect(screen.queryByTestId("data-table-active-filters-indicator")).not.toBeInTheDocument();
+    });
+  });
+
+  it("clears select filter chips one at a time", async () => {
+    const user = userEvent.setup();
+
+    render(<Default />);
+
+    await user.click(screen.getByRole("button", { name: /status filter/i }));
+    await user.click(await screen.findByRole("option", { name: "Active" }));
+    await user.click(await screen.findByRole("option", { name: "Complete" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "4",
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: /clear status filter active/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "1",
+      );
+      expect(screen.getByRole("button", { name: /clear status filter complete/i })).toBeVisible();
+    });
+
+    await user.click(screen.getByRole("button", { name: /clear status filter complete/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "6",
+      );
+      expect(screen.queryByTestId("data-table-active-filters-indicator")).not.toBeInTheDocument();
+    });
+  });
+
+  it("shows an empty option state when select options do not match search", async () => {
+    const user = userEvent.setup();
+
+    render(<Default />);
+
+    await user.click(screen.getByRole("button", { name: /status filter/i }));
+    await user.type(screen.getByPlaceholderText("Status"), "does-not-exist");
+
+    expect(screen.getByText("No options available")).toBeVisible();
+  });
+
   it("filters rows from a text filter and clears the active chip", async () => {
     const user = userEvent.setup();
 
@@ -344,6 +432,52 @@ describe("DataTable stories", () => {
       expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
         "data-filtered-rows",
         "6",
+      );
+      expect(screen.queryByTestId("data-table-active-filters-indicator")).not.toBeInTheDocument();
+    });
+  });
+
+  it("clears whitespace text filters and falls back to the column id label", async () => {
+    const user = userEvent.setup();
+    type TeamRow = TestRow & { team: string };
+    const rows: Array<TeamRow> = [
+      { id: "row-1", name: "Alpha", team: "Platform" },
+      { id: "row-2", name: "Bravo", team: "Operations" },
+    ];
+    const columns: Array<DataTableColumnDef<TeamRow>> = [
+      {
+        accessorKey: "name",
+        header: "Name",
+        cell: ({ row }) => row.original.name,
+      },
+      {
+        accessorKey: "team",
+        header: "Team",
+        meta: { filterVariant: "text" },
+      },
+    ];
+
+    render(<DataTable columns={columns} rows={rows} />);
+
+    const teamFilter = screen.getByRole("textbox", { name: "team filter" });
+    await user.type(teamFilter, "platform");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "1",
+      );
+      expect(screen.getByRole("button", { name: /clear team filter platform/i })).toBeVisible();
+    });
+
+    await user.clear(teamFilter);
+    await user.type(teamFilter, "   ");
+
+    await waitFor(() => {
+      expect(teamFilter).toHaveValue("");
+      expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
+        "data-filtered-rows",
+        "2",
       );
       expect(screen.queryByTestId("data-table-active-filters-indicator")).not.toBeInTheDocument();
     });
@@ -420,5 +554,64 @@ describe("DataTable stories", () => {
     await waitFor(() => {
       expect(snapshots.at(-1)).toEqual([rows[0]]);
     });
+  });
+
+  it("changes grouping and returns to flat rows", async () => {
+    const user = userEvent.setup();
+    render(<GroupedByStatus />);
+
+    expect(screen.getByTestId("data-table-active-grouping-indicator")).toHaveAttribute(
+      "data-grouping-id",
+      "status",
+    );
+    await user.click(screen.getByRole("combobox", { name: /group rows/i }));
+    const categoryOption = await screen.findByRole("option", { name: "Category" });
+    fireEvent.pointerDown(categoryOption, { pointerType: "mouse" });
+    fireEvent.pointerUp(categoryOption, { pointerType: "mouse" });
+    fireEvent.click(categoryOption);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("data-table-active-grouping-indicator")).toHaveAttribute(
+        "data-grouping-id",
+        "category",
+      );
+      expect(screen.getByRole("button", { name: /category.*product/i })).toBeVisible();
+    });
+
+    await user.click(screen.getByRole("combobox", { name: /group rows/i }));
+    await user.click(await screen.findByRole("option", { name: "No grouping" }));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("data-table-active-grouping-indicator")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /category.*product/i })).not.toBeInTheDocument();
+      expect(screen.getAllByRole("row")).toHaveLength(7);
+    });
+  });
+
+  it("disables refresh and deletion while the query is fetching", async () => {
+    const user = userEvent.setup();
+    const refetch = vi.fn().mockResolvedValue({ data: directRows });
+    const onRowDelete = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <DataTable
+        columns={directColumns}
+        query={createQueryResult(directRows, true, refetch)}
+        onRowDelete={onRowDelete}
+      />,
+    );
+
+    const refreshButton = screen.getByRole("button", { name: /refresh/i });
+    const deleteButton = screen.getByRole("button", { name: /delete/i });
+    expect(refreshButton).toBeDisabled();
+    expect(deleteButton).toBeDisabled();
+
+    await user.click(screen.getAllByLabelText("Select row")[0]);
+    expect(deleteButton).toBeDisabled();
+    await user.click(refreshButton);
+    await user.click(deleteButton);
+
+    expect(refetch).not.toHaveBeenCalled();
+    expect(onRowDelete).not.toHaveBeenCalled();
   });
 });

@@ -5,6 +5,7 @@ import {
   APIError,
   apiRequest,
   buildApiUrl,
+  csrfHeaders,
   parseArrayReply,
   parseErrorReply,
   parseObjectReply,
@@ -103,6 +104,14 @@ describe("generic API client", () => {
     const headers = requestInit().headers as Headers;
 
     expect(headers.get("X-CSRF-Token")).toBe("csrf-token");
+  });
+
+  it("returns csrf headers directly when a token is present or absent", () => {
+    expect(csrfHeaders()).toEqual({});
+
+    vi.spyOn(document, "cookie", "get").mockReturnValue("__Host-exposurenexus-csrf=csrf-token");
+
+    expect(csrfHeaders()).toEqual({ "X-CSRF-Token": "csrf-token" });
   });
 
   it("does not force content-type for form data uploads", async () => {
