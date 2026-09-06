@@ -142,6 +142,10 @@ afterEach(() => {
 describe("useFindingLifecycle", () => {
   it("writes an authoritative correction after the mutation resolves", async () => {
     const finding = createFindingFixture();
+    const unrelated = createFindingFixture({
+      id: "f83f9298-2271-4b13-84fe-13724989243b",
+      title: "Unrelated finding",
+    });
     const correctedFinding = {
       ...finding,
       title: "Corrected finding",
@@ -152,7 +156,7 @@ describe("useFindingLifecycle", () => {
     const { queryClient, result } = renderLifecycleHook();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
-    queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [finding]);
+    queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [finding, unrelated]);
     queryClient.setQueryData(createFindingByIDQueryOptions(finding.id).queryKey, finding);
 
     let operation!: Promise<Finding | null>;
@@ -182,7 +186,7 @@ describe("useFindingLifecycle", () => {
     ).toEqual(correctedFinding);
     expect(
       queryClient.getQueryData<Array<Finding>>(createListFindingsQueryOptions().queryKey),
-    ).toEqual([correctedFinding]);
+    ).toEqual([correctedFinding, unrelated]);
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createListFindingsQueryOptions().queryKey,
       exact: true,
@@ -295,6 +299,10 @@ describe("useFindingLifecycle", () => {
 
   it("writes the authoritative finding after linking a catalog entry", async () => {
     const finding = createFindingFixture();
+    const unrelated = createFindingFixture({
+      id: "f83f9298-2271-4b13-84fe-13724989243b",
+      title: "Unrelated finding",
+    });
     const linkedFinding = {
       ...finding,
       updatedAt: new Date("2026-01-04T00:00:00.000Z"),
@@ -304,7 +312,7 @@ describe("useFindingLifecycle", () => {
     const { queryClient, result } = renderLifecycleHook();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
-    queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [finding]);
+    queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [finding, unrelated]);
     queryClient.setQueryData(createFindingByIDQueryOptions(finding.id).queryKey, finding);
 
     await act(async () => {
@@ -320,7 +328,7 @@ describe("useFindingLifecycle", () => {
     ).toEqual(linkedFinding);
     expect(
       queryClient.getQueryData<Array<Finding>>(createListFindingsQueryOptions().queryKey),
-    ).toEqual([linkedFinding]);
+    ).toEqual([linkedFinding, unrelated]);
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createFindingByIDQueryOptions(finding.id).queryKey,
       exact: true,
@@ -329,6 +337,10 @@ describe("useFindingLifecycle", () => {
 
   it("writes the authoritative finding after unlinking a catalog entry", async () => {
     const finding = createFindingFixture();
+    const unrelated = createFindingFixture({
+      id: "f83f9298-2271-4b13-84fe-13724989243b",
+      title: "Unrelated finding",
+    });
     const unlinkedFinding = {
       ...finding,
       updatedAt: new Date("2026-01-04T00:00:00.000Z"),
@@ -338,7 +350,7 @@ describe("useFindingLifecycle", () => {
     const { queryClient, result } = renderLifecycleHook();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
 
-    queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [finding]);
+    queryClient.setQueryData(createListFindingsQueryOptions().queryKey, [finding, unrelated]);
     queryClient.setQueryData(createFindingByIDQueryOptions(finding.id).queryKey, finding);
 
     await act(async () => {
@@ -354,12 +366,47 @@ describe("useFindingLifecycle", () => {
     ).toEqual(unlinkedFinding);
     expect(
       queryClient.getQueryData<Array<Finding>>(createListFindingsQueryOptions().queryKey),
-    ).toEqual([unlinkedFinding]);
+    ).toEqual([unlinkedFinding, unrelated]);
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: createFindingByIDQueryOptions(finding.id).queryKey,
       exact: true,
     });
   });
+
+  it.each(["correction", "link", "unlink"] as const)(
+    "updates only the detail cache without inventing a list cache for a %s",
+    async (action) => {
+      const finding = createFindingFixture();
+      const updatedFinding = {
+        ...finding,
+        title: `${action} result`,
+        updatedAt: new Date("2026-01-04T00:00:00.000Z"),
+      };
+      if (action === "correction") updateFindingRequestMock.mockResolvedValueOnce(updatedFinding);
+      if (action === "link")
+        linkFindingVulnerabilityRequestMock.mockResolvedValueOnce(updatedFinding);
+      if (action === "unlink")
+        unlinkFindingVulnerabilityRequestMock.mockResolvedValueOnce(updatedFinding);
+
+      const { queryClient, result } = renderLifecycleHook();
+      queryClient.setQueryData(createFindingByIDQueryOptions(finding.id).queryKey, finding);
+
+      await act(async () => {
+        if (action === "correction") {
+          await result.current.correctFinding(finding.id, { title: updatedFinding.title });
+        } else if (action === "link") {
+          await result.current.linkVulnerability(finding.id, "vulnerability-id");
+        } else {
+          await result.current.unlinkVulnerability(finding.id, "vulnerability-id");
+        }
+      });
+
+      expect(
+        queryClient.getQueryData<Finding>(createFindingByIDQueryOptions(finding.id).queryKey),
+      ).toEqual(updatedFinding);
+      expect(queryClient.getQueryData(createListFindingsQueryOptions().queryKey)).toBeUndefined();
+    },
+  );
 
   it.each([
     [
