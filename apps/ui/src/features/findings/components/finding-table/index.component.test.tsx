@@ -227,10 +227,6 @@ vi.mock("@/components/data-table/data-table.tsx", () => ({
   },
 }));
 
-async function flushPromises() {
-  await new Promise((resolve) => setTimeout(resolve, 0));
-}
-
 describe("FindingTable workflow wiring", () => {
   beforeEach(() => {
     mocks.confirmDialogCall.mockReset();
@@ -279,6 +275,18 @@ describe("FindingTable workflow wiring", () => {
     expect(mocks.dataTableProps?.groupingOptions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          id: "severity",
+          label: "Severity",
+        }),
+        expect.objectContaining({
+          id: "status",
+          label: "Status",
+        }),
+        expect.objectContaining({
+          id: "assetId",
+          label: "Asset",
+        }),
+        expect.objectContaining({
           id: "responsibleOwner",
           label: "Asset Owner",
         }),
@@ -288,6 +296,27 @@ describe("FindingTable workflow wiring", () => {
         }),
       ]),
     );
+    const groupingOptions = mocks.dataTableProps?.groupingOptions as
+      | Array<{
+          id: string;
+          label: string;
+          formatValue?: (value: unknown) => string;
+        }>
+      | undefined;
+    const assetGroupingOption = groupingOptions?.find((option) => option.id === "assetId");
+    expect(assetGroupingOption?.formatValue?.(mocks.finding.assetId)).toBe("api-01");
+    expect(assetGroupingOption?.formatValue?.("missing-asset")).toBe("Unknown asset");
+    expect(
+      groupingOptions?.find((option) => option.id === "severity")?.formatValue?.("critical"),
+    ).toBe("critical");
+    expect(groupingOptions?.find((option) => option.id === "status")?.formatValue?.("active")).toBe(
+      "active",
+    );
+    expect(
+      groupingOptions
+        ?.find((option) => option.id === "responsibleOwner")
+        ?.formatValue?.("No Owner"),
+    ).toBe("No Owner");
     const assigneeGroupingOption = (
       mocks.dataTableProps?.groupingOptions as
         | Array<{
@@ -374,7 +403,7 @@ describe("FindingTable workflow wiring", () => {
 
     render(<FindingTable />);
     fireEvent.click(screen.getByRole("button", { name: /delete finding/i }));
-    await flushPromises();
+    await waitFor(() => expect(mocks.confirmDialogCall).toHaveBeenCalledOnce());
 
     expect(mocks.deleteFindings).not.toHaveBeenCalled();
   });
