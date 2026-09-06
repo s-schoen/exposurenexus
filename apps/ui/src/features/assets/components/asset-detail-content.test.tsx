@@ -8,18 +8,27 @@ import {
   AssetCustomFieldValueSource,
 } from "@exposurenexus/contracts/model/asset-custom-field";
 import { composeStories } from "@storybook/react-vite";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as stories from "@/features/assets/components/asset-detail-content.stories";
 import {
+  AssetDetailContent,
   createAssetCustomFieldValuePayload,
   getAssetCustomFieldDraftValue,
 } from "@/features/assets/components/asset-detail-content.tsx";
 import { formatAssetCustomFieldValue } from "@/features/assets/lib/asset-custom-fields.ts";
+import { createAssetByIDQueryOptions } from "@/features/assets/queries/assets.ts";
+import { STORY_USERS } from "@/test/fixtures.ts";
 
-import type { AssetCustomFieldValue } from "@exposurenexus/contracts/model/asset-custom-field";
+import type { Asset } from "@exposurenexus/contracts/model/asset";
+import type {
+  AssetCustomFieldDefinition,
+  AssetCustomFieldValue,
+} from "@exposurenexus/contracts/model/asset-custom-field";
+import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
 const mocks = vi.hoisted(() => ({
   toastActionError: vi.fn(),
@@ -53,7 +62,12 @@ beforeEach(() => {
   mocks.toastActionError.mockReset();
 });
 
+const fetchRestorers: Array<() => void> = [];
+
 afterEach(() => {
+  while (fetchRestorers.length > 0) {
+    fetchRestorers.pop()?.();
+  }
   cleanup();
 });
 
@@ -73,6 +87,208 @@ const selectValue: AssetCustomFieldValue = {
     },
   ],
 };
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+
+  return { promise, resolve };
+}
+
+interface CapturedRequest {
+  path: string;
+  method: string;
+  body?: unknown;
+}
+
+function getRequestPath(input: RequestInfo | URL): string {
+  const url = input instanceof Request ? input.url : String(input);
+  return new URL(url, window.location.origin).pathname;
+}
+
+function getRequestMethod(input: RequestInfo | URL, init?: RequestInit): string {
+  return (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
+}
+
+function getRequestBody(init?: RequestInit): unknown {
+  return typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
+}
+
+function captureFetchRequests(): Array<CapturedRequest> {
+  const requests: Array<CapturedRequest> = [];
+  const originalFetch = globalThis.fetch;
+  const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+    const method = getRequestMethod(input, init);
+    requests.push({
+      path: getRequestPath(input),
+      method,
+      body: getRequestBody(init),
+    });
+    return originalFetch(input, init);
+  });
+
+  fetchRestorers.push(() => fetchSpy.mockRestore());
+  return requests;
+}
+
+async function waitForRequest(
+  requests: Array<CapturedRequest>,
+  path: string,
+  method: string,
+): Promise<CapturedRequest> {
+  let request: CapturedRequest | undefined;
+
+  await waitFor(() => {
+    request = requests.find((candidate) => candidate.path === path && candidate.method === method);
+    expect(request).toBeDefined();
+  });
+
+  if (!request) {
+    throw new Error(`Expected ${method} ${path} request`);
+  }
+
+  return request;
+}
+
+function jsonResponse(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function assetCustomFieldValuesResponse(values: Array<AssetCustomFieldValue>) {
+  return jsonResponse({ data: { items: values } });
+}
+
+function assetCustomFieldDefinitionsResponse(definitions: Array<AssetCustomFieldDefinition>) {
+  return jsonResponse({ data: { items: definitions } });
+}
+
+function assetResponse(asset: Asset) {
+  return jsonResponse({ data: asset });
+}
+
+interface LocalAssetDetailHarnessOptions {
+  users?: Array<UserProfile> | "pending" | "error";
+  availableCustomFields?: Array<AssetCustomFieldDefinition> | "pending" | "error";
+  ownerUpdates?: Array<"error" | "success">;
+}
+
+function renderWithLocalAssetDetailHarness({
+  users = STORY_USERS,
+  availableCustomFields = [],
+  ownerUpdates = [],
+}: LocalAssetDetailHarnessOptions = {}) {
+  const asset = WithCustomFields.args.asset as Asset;
+  const customFields = WithCustomFields.args.customFields as Array<AssetCustomFieldValue>;
+  const assetRef = { current: asset };
+  const customFieldsRef = { current: customFields };
+  const availableFieldsRef = {
+    current: Array.isArray(availableCustomFields) ? availableCustomFields : [],
+  };
+  const usersDeferred = deferred<Response>();
+  const availableFieldsDeferred = deferred<Response>();
+  const requests: Array<CapturedRequest> = [];
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        staleTime: Number.POSITIVE_INFINITY,
+        refetchOnWindowFocus: false,
+      },
+    },
+  });
+
+  queryClient.setQueryData(createAssetByIDQueryOptions(asset.id).queryKey, asset);
+  queryClient.setQueryData(["assets", asset.id, "custom-fields"], customFields);
+  if (Array.isArray(users)) {
+    queryClient.setQueryData(["users"], users);
+  }
+  if (Array.isArray(availableCustomFields)) {
+    queryClient.setQueryData(
+      ["assets", asset.id, "custom-fields", "available"],
+      availableFieldsRef.current,
+    );
+  }
+
+  const originalFetch = globalThis.fetch;
+  const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+    const path = getRequestPath(input);
+    const method = getRequestMethod(input, init);
+    const body = getRequestBody(init);
+    requests.push({ path, method, body });
+
+    if (path === "/api/users" && method === "GET") {
+      if (users === "pending") {
+        return await usersDeferred.promise;
+      }
+      if (users === "error") {
+        return jsonResponse({ error: "Users failed" }, 500);
+      }
+      return jsonResponse({ data: { items: users } });
+    }
+
+    if (path === `/api/assets/${asset.id}` && method === "GET") {
+      return assetResponse(assetRef.current);
+    }
+
+    if (path === `/api/assets/${asset.id}` && method === "PATCH") {
+      const outcome = ownerUpdates.shift() ?? "success";
+      if (outcome === "error") {
+        return jsonResponse({ error: "Owner update failed" }, 400);
+      }
+
+      assetRef.current = {
+        ...assetRef.current,
+        ...(body as Partial<Asset>),
+      };
+      queryClient.setQueryData(createAssetByIDQueryOptions(asset.id).queryKey, assetRef.current);
+      return assetResponse(assetRef.current);
+    }
+
+    if (path === `/api/assets/${asset.id}/custom-fields` && method === "GET") {
+      return assetCustomFieldValuesResponse(customFieldsRef.current);
+    }
+
+    if (path === `/api/assets/${asset.id}/custom-fields/available` && method === "GET") {
+      if (availableCustomFields === "pending") {
+        return await availableFieldsDeferred.promise;
+      }
+      if (availableCustomFields === "error") {
+        return jsonResponse({ error: "Available custom fields failed" }, 500);
+      }
+      return assetCustomFieldDefinitionsResponse(availableFieldsRef.current);
+    }
+
+    return originalFetch(input, init);
+  });
+
+  fetchRestorers.push(() => fetchSpy.mockRestore());
+
+  function AssetDetailPreview({ assetId }: { assetId: string }) {
+    const assetQuery = useQuery(createAssetByIDQueryOptions(assetId));
+
+    return assetQuery.data ? <AssetDetailContent asset={assetQuery.data} /> : null;
+  }
+
+  const view = render(
+    <QueryClientProvider client={queryClient}>
+      <AssetDetailPreview assetId={asset.id} />
+    </QueryClientProvider>,
+  );
+
+  return {
+    ...view,
+    asset,
+    availableFieldsDeferred,
+    queryClient,
+    requests,
+    usersDeferred,
+  };
+}
 
 describe("asset detail custom field helpers", () => {
   it("formats select values with their option label", () => {
@@ -226,6 +442,88 @@ describe("AssetDetailContent stories", () => {
     });
   });
 
+  it("does not mutate when an owner edit is cancelled", async () => {
+    const user = userEvent.setup();
+    render(<WithCustomFields />);
+
+    await waitFor(() => expect(screen.getAllByText("Robin Owner").length).toBeGreaterThan(0));
+    const requests = captureFetchRequests();
+    const ownerButtons = screen.getAllByRole("button", { name: "Robin Owner" });
+    await user.click(ownerButtons[ownerButtons.length - 1]);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Asset owner" })).toBeVisible());
+
+    await user.click(screen.getByRole("button", { name: "Cancel asset owner edit" }));
+
+    expect(
+      requests.some(
+        (request) =>
+          request.path === `/api/assets/${WithCustomFields.args.asset!.id}` &&
+          request.method === "PATCH",
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps the owner picker disabled until delayed users arrive", async () => {
+    const { usersDeferred } = renderWithLocalAssetDetailHarness({ users: "pending" });
+    const ownerLabel = screen.getByText("Owner", { selector: "span" });
+    const ownerRow = ownerLabel.parentElement;
+
+    if (!ownerRow) {
+      throw new Error("Expected the owner metadata row");
+    }
+
+    fireEvent.click(within(ownerRow).getAllByRole("button")[0]);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Asset owner" })).toBeDisabled());
+
+    usersDeferred.resolve(jsonResponse({ data: { items: STORY_USERS } }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Asset owner" })).toBeEnabled());
+  });
+
+  it("shows the actual owner after a failed inline update is retried successfully", async () => {
+    const user = userEvent.setup();
+    const { requests } = renderWithLocalAssetDetailHarness({
+      ownerUpdates: ["error", "success"],
+    });
+
+    await waitFor(() => expect(screen.getAllByText("Robin Owner").length).toBeGreaterThan(0));
+    const ownerLabel = screen.getByText("Owner", { selector: "span" });
+    const ownerRow = ownerLabel.parentElement;
+
+    if (!ownerRow) {
+      throw new Error("Expected the owner metadata row");
+    }
+
+    const openOwnerPicker = () => {
+      return user
+        .click(within(ownerRow).getByRole("button", { name: /Robin Owner/ }))
+        .then(async () => {
+          const trigger = await screen.findByRole("button", { name: "Asset owner" });
+          await user.click(trigger);
+          return trigger;
+        });
+    };
+
+    await openOwnerPicker();
+    await screen.findAllByText("Morgan Analyst");
+    fireEvent.click(screen.getByRole("option", { name: /Morgan Analyst/ }));
+    await waitFor(() =>
+      expect(requests.filter((request) => request.method === "PATCH")).toHaveLength(1),
+    );
+    expect(within(ownerRow).getByText("Robin Owner")).toBeInTheDocument();
+
+    await openOwnerPicker();
+    await screen.findAllByText("Morgan Analyst");
+    fireEvent.click(screen.getByRole("option", { name: /Morgan Analyst/ }));
+    await waitFor(() => expect(within(ownerRow).getByText("Morgan Analyst")).toBeInTheDocument());
+    expect(
+      requests.filter(
+        (request) =>
+          request.path === `/api/assets/${WithCustomFields.args.asset!.id}` &&
+          request.method === "PATCH",
+      ),
+    ).toHaveLength(2);
+  });
+
   it("shows reset actions only for asset-specific values", async () => {
     render(<WithCustomFields />);
 
@@ -233,6 +531,259 @@ describe("AssetDetailContent stories", () => {
       expect(screen.getByRole("button", { name: "Reset Category" })).toBeTruthy();
       expect(screen.getByRole("button", { name: "Reset Deployment tier" })).toBeTruthy();
       expect(screen.queryByRole("button", { name: "Reset Priority" })).toBeNull();
+    });
+  });
+
+  it("sends a complete replacement when editing a text value", async () => {
+    render(<WithCustomFields />);
+
+    await screen.findByText("Internet-facing");
+    const requests = captureFetchRequests();
+
+    fireEvent.click(screen.getByText("Internet-facing"));
+    fireEvent.change(screen.getByDisplayValue("Internet-facing"), {
+      target: { value: "Internal" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save edit" }));
+
+    await screen.findByText("Internal");
+    const request = await waitForRequest(
+      requests,
+      `/api/assets/${WithCustomFields.args.asset!.id}/custom-fields`,
+      "PUT",
+    );
+
+    expect(request.body).toEqual({
+      values: [
+        {
+          fieldId: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
+          value: "Internal",
+        },
+        {
+          fieldId: "2808e68c-9a48-4b50-9a2d-d1df4c83ff06",
+          value: null,
+        },
+        {
+          fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+          value: "production",
+        },
+        {
+          fieldId: "635ad27e-14c7-4c03-ab2a-81333eabfa4c",
+          value: null,
+        },
+      ],
+    });
+  });
+
+  it("preserves zero and maps a cleared optional number to null", async () => {
+    render(<WithCustomFields />);
+
+    await screen.findByText("3");
+    const requests = captureFetchRequests();
+
+    fireEvent.click(screen.getByText("3"));
+    fireEvent.change(screen.getByDisplayValue("3"), { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save edit" }));
+
+    await screen.findByText("0");
+    const zeroRequest = await waitForRequest(
+      requests,
+      `/api/assets/${WithCustomFields.args.asset!.id}/custom-fields`,
+      "PUT",
+    );
+    expect(zeroRequest.body).toEqual({
+      values: [
+        {
+          fieldId: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
+          value: "Internet-facing",
+        },
+        {
+          fieldId: "2808e68c-9a48-4b50-9a2d-d1df4c83ff06",
+          value: 0,
+        },
+        {
+          fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+          value: "production",
+        },
+        {
+          fieldId: "635ad27e-14c7-4c03-ab2a-81333eabfa4c",
+          value: null,
+        },
+      ],
+    });
+
+    fireEvent.click(screen.getByText("0"));
+    fireEvent.change(screen.getByDisplayValue("0"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save edit" }));
+
+    await screen.findAllByText("None");
+    const clearRequest = requests.filter(
+      (request) =>
+        request.path === `/api/assets/${WithCustomFields.args.asset!.id}/custom-fields` &&
+        request.method === "PUT",
+    )[1];
+    expect(clearRequest.body).toEqual({
+      values: [
+        {
+          fieldId: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
+          value: "Internet-facing",
+        },
+        {
+          fieldId: "2808e68c-9a48-4b50-9a2d-d1df4c83ff06",
+          value: null,
+        },
+        {
+          fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+          value: "production",
+        },
+        {
+          fieldId: "635ad27e-14c7-4c03-ab2a-81333eabfa4c",
+          value: null,
+        },
+      ],
+    });
+  });
+
+  it("sends a complete replacement when editing a select value", async () => {
+    const user = userEvent.setup();
+    render(<WithCustomFields />);
+
+    await waitFor(() => expect(screen.getAllByText("Production").length).toBeGreaterThan(0));
+    const requests = captureFetchRequests();
+    const productionValue = screen.getAllByRole("button", { name: "Production" }).at(-1);
+
+    if (!productionValue) {
+      throw new Error("Expected the asset select value");
+    }
+
+    await user.click(productionValue);
+    await user.click(await screen.findByRole("option", { name: "Staging" }));
+
+    await screen.findAllByText("Staging");
+    const request = await waitForRequest(
+      requests,
+      `/api/assets/${WithCustomFields.args.asset!.id}/custom-fields`,
+      "PUT",
+    );
+
+    expect(request.body).toEqual({
+      values: [
+        {
+          fieldId: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
+          value: "Internet-facing",
+        },
+        {
+          fieldId: "2808e68c-9a48-4b50-9a2d-d1df4c83ff06",
+          value: null,
+        },
+        {
+          fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+          value: "staging",
+        },
+        {
+          fieldId: "635ad27e-14c7-4c03-ab2a-81333eabfa4c",
+          value: null,
+        },
+      ],
+    });
+  });
+
+  it("uses the complete replacement payload for text, number, and select resets", async () => {
+    const customFields = (WithCustomFields.args.customFields as Array<AssetCustomFieldValue>).map(
+      (field) =>
+        field.fieldId === "2808e68c-9a48-4b50-9a2d-d1df4c83ff06"
+          ? { ...field, source: AssetCustomFieldValueSource.Asset }
+          : field,
+    );
+    render(<WithCustomFields customFields={customFields} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Reset Category" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Reset Priority" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Reset Deployment tier" })).toBeInTheDocument();
+    });
+    const requests = captureFetchRequests();
+    const customFieldsPath = `/api/assets/${WithCustomFields.args.asset!.id}/custom-fields`;
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset Category" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Reset Category" })).toBeNull(),
+    );
+    expect((await waitForRequest(requests, customFieldsPath, "PUT")).body).toEqual({
+      values: [
+        {
+          fieldId: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
+          value: null,
+        },
+        {
+          fieldId: "2808e68c-9a48-4b50-9a2d-d1df4c83ff06",
+          value: 3,
+        },
+        {
+          fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+          value: "production",
+        },
+        {
+          fieldId: "635ad27e-14c7-4c03-ab2a-81333eabfa4c",
+          value: null,
+        },
+      ],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset Priority" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Reset Priority" })).toBeNull(),
+    );
+    const resetRequests = requests.filter(
+      (request) => request.path === customFieldsPath && request.method === "PUT",
+    );
+    expect(resetRequests[1]?.body).toEqual({
+      values: [
+        {
+          fieldId: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
+          value: null,
+        },
+        {
+          fieldId: "2808e68c-9a48-4b50-9a2d-d1df4c83ff06",
+          value: null,
+        },
+        {
+          fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+          value: "production",
+        },
+        {
+          fieldId: "635ad27e-14c7-4c03-ab2a-81333eabfa4c",
+          value: null,
+        },
+      ],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset Deployment tier" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Reset Deployment tier" })).toBeNull(),
+    );
+    const finalResetRequests = requests.filter(
+      (request) => request.path === customFieldsPath && request.method === "PUT",
+    );
+    expect(finalResetRequests[2]?.body).toEqual({
+      values: [
+        {
+          fieldId: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
+          value: null,
+        },
+        {
+          fieldId: "2808e68c-9a48-4b50-9a2d-d1df4c83ff06",
+          value: null,
+        },
+        {
+          fieldId: "7f732d2b-8985-4551-b45d-0eaf527a1577",
+          value: null,
+        },
+        {
+          fieldId: "635ad27e-14c7-4c03-ab2a-81333eabfa4c",
+          value: null,
+        },
+      ],
     });
   });
 
@@ -282,6 +833,82 @@ describe("AssetDetailContent stories", () => {
     });
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Remove Lifecycle" })).toBeTruthy();
+    });
+  });
+
+  it("disables custom-field assignment while available fields are loading", async () => {
+    const { availableFieldsDeferred } = renderWithLocalAssetDetailHarness({
+      availableCustomFields: "pending",
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Add custom field" })).toBeDisabled(),
+    );
+
+    availableFieldsDeferred.resolve(
+      assetCustomFieldDefinitionsResponse([
+        {
+          id: "497eab4a-74aa-46e4-8fda-3f160dc91f72",
+          key: "lifecycle",
+          name: "Lifecycle",
+          required: false,
+          type: AssetCustomFieldType.Text,
+          defaultValue: null,
+        },
+      ]),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Add custom field" })).toBeEnabled(),
+    );
+  });
+
+  it.each([
+    ["failed", "error" as const],
+    ["unavailable", [] as Array<AssetCustomFieldDefinition>],
+  ])("keeps assignment disabled when fields are %s", async (_state, availableCustomFields) => {
+    renderWithLocalAssetDetailHarness({ availableCustomFields });
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Add custom field" })).toBeDisabled(),
+    );
+  });
+
+  it("preserves existing associations when assigning and detaching custom fields", async () => {
+    render(<WithCustomFields />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Add custom field" })).toBeEnabled(),
+    );
+    const requests = captureFetchRequests();
+    const associationsPath = `/api/assets/${WithCustomFields.args.asset!.id}/custom-fields/associations`;
+
+    fireEvent.click(screen.getByRole("button", { name: "Add custom field" }));
+    fireEvent.click(await screen.findByText("Lifecycle"));
+    await screen.findByRole("button", { name: "Remove Lifecycle" });
+
+    const assignRequest = await waitForRequest(requests, associationsPath, "PUT");
+    expect(assignRequest.body).toEqual({
+      fieldIds: [
+        "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
+        "2808e68c-9a48-4b50-9a2d-d1df4c83ff06",
+        "7f732d2b-8985-4551-b45d-0eaf527a1577",
+        "635ad27e-14c7-4c03-ab2a-81333eabfa4c",
+        "497eab4a-74aa-46e4-8fda-3f160dc91f72",
+      ],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Team" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Remove Team" })).toBeNull());
+    const associationRequests = requests.filter(
+      (request) => request.path === associationsPath && request.method === "PUT",
+    );
+    expect(associationRequests[1]?.body).toEqual({
+      fieldIds: [
+        "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
+        "2808e68c-9a48-4b50-9a2d-d1df4c83ff06",
+        "7f732d2b-8985-4551-b45d-0eaf527a1577",
+        "497eab4a-74aa-46e4-8fda-3f160dc91f72",
+      ],
     });
   });
 
