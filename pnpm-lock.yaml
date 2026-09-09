@@ -281,7 +281,7 @@ importers:
     devDependencies:
       '@electric-sql/pglite':
         specifier: ^0.5.5
-        version: 0.5.5
+        version: 0.5.8
       '@types/node':
         specifier: ^24.13.3
         version: 24.13.3
