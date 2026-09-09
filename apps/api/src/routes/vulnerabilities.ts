@@ -7,8 +7,8 @@ import { notFound, unauthorized } from "../lib/api-error.js";
 import { replyArray, replyObject } from "../lib/reply.js";
 import { requestEventContext } from "../lib/request-event-context.js";
 
-import type { ApiVulnerabilityOperations } from "../lib/exposures-events.js";
 import type { ContextVariables } from "../lib/hono-schema.js";
+import type { ApiVulnerabilityOperations } from "../lib/vulnerabilities-events.js";
 import type { RequireDomainPermission } from "../middleware/auth.js";
 
 interface VulnerabilityRouteDependencies {

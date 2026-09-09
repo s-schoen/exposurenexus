@@ -3,18 +3,22 @@ import type {
   AssetCustomFieldOptionTable,
   AssetCustomFieldTable,
   AssetCustomFieldValueTable,
-} from "./schema/asset-custom-field.js";
-import type { AssetIdentifierTable, AssetTable } from "./schema/asset.js";
-import type { UserProfileTable, UserSessionTable } from "./schema/auth.js";
-import type { FindingTable, FindingVulnerabilityTable } from "./schema/finding.js";
-import type { IngestionTable } from "./schema/ingestion.js";
-import type { ObservationTable } from "./schema/observation.js";
+} from "../features/assets/custom-fields/asset-custom-field-table.js";
+import type { AssetIdentifierTable, AssetTable } from "../features/assets/inventory/asset-table.js";
+import type { UserSessionTable } from "../features/authentication/session-table.js";
+import type {
+  FindingTable,
+  FindingVulnerabilityTable,
+} from "../features/findings/finding-table.js";
+import type { ObservationTable } from "../features/findings/observation-table.js";
 import type {
   RolePermissionAssignmentTable,
   RoleTable,
   UserRoleAssignmentTable,
-} from "./schema/rbac.js";
-import type { VulnerabilityTable } from "./schema/vulnerability.js";
+} from "../features/identity/roles/rbac-table.js";
+import type { UserProfileTable } from "../features/identity/users/user-table.js";
+import type { VulnerabilityTable } from "../features/vulnerabilities/vulnerability-table.js";
+import type { IngestionTable } from "./schema/ingestion.js";
 import type { JobTable } from "@exposurenexus/jobs/postgres";
 
 export { createDatabase, createPostgresDatabase, createPostgresPool } from "./factory.js";

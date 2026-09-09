@@ -11,7 +11,9 @@ Callers use capability interfaces, never repositories or Kysely queries. The pub
 - `Identity`, with nested `users`, `roles`, and `authorization` interfaces;
 - `Authentication`, for credentials and sessions;
 - `Assets`, with nested `inventory` and `customFields` interfaces;
-- `Exposures`, with nested `findings`, `vulnerabilities`, and `statistics` interfaces.
+- `Findings`, for findings, their observations, and vulnerability links;
+- `Vulnerabilities`, for the vulnerability catalog;
+- `Statistics`, for finding statistics.
 
 Capability construction is explicit and scoped through strict package subpaths:
 
@@ -21,10 +23,22 @@ const runtime = createBackendRuntime({ database, logger });
 const identity = createIdentity(runtime);
 const authentication = createAuthentication(runtime, authConfig);
 const assets = createAssets(runtime);
-const exposures = createExposures(runtime);
+const findings = createFindings(runtime);
+const vulnerabilities = createVulnerabilities(runtime);
+const statistics = createStatistics(runtime);
 ```
 
 Each capability subpath owns its construction code. The opaque runtime owns the shared database and logger plus private per-runtime memoization, so the package root does not import or initialize every capability. Public exports are limited to capability interfaces and factories, caller-facing commands and results, domain-neutral mutation outcomes, configuration, database construction types, and backend errors. Repository contracts, dependency objects, lookup ports, persistence records, and transaction types remain private.
+
+### Feature Organization Refinement
+
+The initial extraction grouped findings, vulnerabilities, and statistics behind an `Exposures` interface. This grouping is replaced by independent `/findings`, `/vulnerabilities`, and `/statistics` entrypoints so callers select the feature they need and the public interfaces match implementation ownership. The old `/exposures` entrypoint and aggregate are removed; the API composes and decorates the features separately. Identity retains its users, roles, and authorization subfeatures, and assets retains inventory and custom fields.
+
+Implementation lives under `src/features/`, colocating feature behavior, private persistence, table types, errors, rules, and tests. Findings retain observations and finding-vulnerability link mutations because they share transactions, projections, and audit updates. Shared asset projections and audit handling stay at the assets level. Existing cross-feature persistence dependencies remain private and transaction-aware; independent entrypoints do not require isolated databases or new repository interfaces.
+
+Database and application-error modules aggregate feature-owned types through type-only imports. Migration history remains centralized and unchanged. Ingestion retains only its existing database table definition until its behavior is implemented. This is an organizational and caller-interface change, not a change to business behavior, HTTP contracts, or persistence semantics.
+
+### Shared Infrastructure And Adapters
 
 `@exposurenexus/backend/database` owns the aggregate database type, connection factory, migrations, and migration runner. Executable apps read environment variables, own the lifecycle of their database and pool, and pass the database handle into the selected capabilities. The API will continue to run migrations during startup for now; the worker will not. The backend package may depend narrowly on `@exposurenexus/jobs/postgres` for the jobs table contract and application migration, but queue producers, consumers, relays, handlers, and delivery policy remain in the executable apps and jobs package.
 
@@ -48,4 +62,4 @@ The API will migrate completely to the backend capability interfaces, after whic
 
 Business, persistence, transaction, and migration tests move with their implementation into the backend package. The API retains tests for HTTP adaptation, authorization middleware, cookies, event decorators, error translation, and composition. Typed `ApplicationError`s remain the shared failure identity, while the API continues to own HTTP status and safe-public-reason mapping as established by ADR-0001.
 
-A future ingestion handler will validate and map its job, then call one high-level ingestion use case in `Exposures`. Matching, orchestration, and persistence will remain in backend rather than being implemented in the worker or through direct database access.
+A future ingestion handler will validate and map its job, then call one high-level backend ingestion use case. Matching, orchestration, and persistence will remain in backend rather than being implemented in the worker or through direct database access. Its interface will be defined with ingestion behavior rather than retaining an otherwise unnecessary `Exposures` aggregate.

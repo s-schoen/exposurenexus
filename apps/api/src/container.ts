@@ -1,8 +1,10 @@
 import { createBackendRuntime } from "@exposurenexus/backend";
 import { createAssets } from "@exposurenexus/backend/assets";
 import { createAuthentication } from "@exposurenexus/backend/authentication";
-import { createExposures } from "@exposurenexus/backend/exposures";
+import { createFindings } from "@exposurenexus/backend/findings";
 import { createIdentity } from "@exposurenexus/backend/identity";
+import { createStatistics } from "@exposurenexus/backend/statistics";
+import { createVulnerabilities } from "@exposurenexus/backend/vulnerabilities";
 
 import { createApp } from "./app.js";
 import { registerEventHandlers } from "./event-handler/index.js";
@@ -10,8 +12,9 @@ import { decorateAssetsWithEvents } from "./lib/assets-events.js";
 import { decorateAuthenticationWithEvents } from "./lib/authentication-events.js";
 import { createDefaultAdmin } from "./lib/default-admin.js";
 import { EventBus } from "./lib/eventbus/eventbus.js";
-import { decorateExposuresWithEvents } from "./lib/exposures-events.js";
+import { decorateFindingsWithEvents } from "./lib/findings-events.js";
 import { decorateIdentityWithEvents } from "./lib/identity-events.js";
+import { decorateVulnerabilitiesWithEvents } from "./lib/vulnerabilities-events.js";
 import { createLogger } from "./logging.js";
 import {
   createAuthAnnotate,
@@ -75,7 +78,12 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     eventBus,
   );
   const assets = decorateAssetsWithEvents(createAssets(runtime), eventBus);
-  const exposures = decorateExposuresWithEvents(createExposures(runtime), eventBus);
+  const findings = decorateFindingsWithEvents(createFindings(runtime), eventBus);
+  const vulnerabilities = decorateVulnerabilitiesWithEvents(
+    createVulnerabilities(runtime),
+    eventBus,
+  );
+  const statistics = createStatistics(runtime);
 
   const requireDomainPermission = createRequireDomainPermission(
     identity.authorization.userHasPermission.bind(identity.authorization),
@@ -98,13 +106,13 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     }),
     roleRoute: createRoleRoute(identity.roles, { requireDomainPermission }),
     userRoute: createUserRoute(identity.users, { requireDomainPermission }),
-    vulnerabilityRoute: createVulnerabilityRoute(exposures.vulnerabilities, {
+    vulnerabilityRoute: createVulnerabilityRoute(vulnerabilities, {
       requireDomainPermission,
     }),
-    findingStatsRoute: createFindingStatsRoute(exposures.statistics, {
+    findingStatsRoute: createFindingStatsRoute(statistics, {
       requireDomainPermission,
     }),
-    findingRoute: createFindingRoute(exposures.findings, {
+    findingRoute: createFindingRoute(findings, {
       requireDomainPermission,
     }),
     importerRoute: createImportRoute({
@@ -135,7 +143,9 @@ export function createAppContainer(options: CreateAppContainerOptions) {
       authentication,
       assets,
       identity,
-      exposures,
+      findings,
+      vulnerabilities,
+      statistics,
     },
     routes,
     middleware,

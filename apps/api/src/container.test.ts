@@ -21,12 +21,11 @@ const mocks = vi.hoisted(() => {
     inventory: { kind: "asset-inventory" },
     customFields: { kind: "asset-custom-fields" },
   };
-  const rawExposures = { kind: "raw-exposures" };
-  const exposures = {
-    findings: { kind: "exposure-findings" },
-    vulnerabilities: { kind: "exposure-vulnerabilities" },
-    statistics: { kind: "exposure-statistics" },
-  };
+  const rawFindings = { kind: "raw-findings" };
+  const findings = { kind: "findings" };
+  const rawVulnerabilities = { kind: "raw-vulnerabilities" };
+  const vulnerabilities = { kind: "vulnerabilities" };
+  const statistics = { kind: "statistics" };
 
   return {
     createBackendRuntime: vi.fn(() => ({})),
@@ -42,10 +41,16 @@ const mocks = vi.hoisted(() => {
     assets,
     createAssets: vi.fn(() => rawAssets),
     decorateAssetsWithEvents: vi.fn(() => assets),
-    rawExposures,
-    exposures,
-    createExposures: vi.fn(() => rawExposures),
-    decorateExposuresWithEvents: vi.fn(() => exposures),
+    rawFindings,
+    findings,
+    createFindings: vi.fn(() => rawFindings),
+    decorateFindingsWithEvents: vi.fn(() => findings),
+    rawVulnerabilities,
+    vulnerabilities,
+    createVulnerabilities: vi.fn(() => rawVulnerabilities),
+    decorateVulnerabilitiesWithEvents: vi.fn(() => vulnerabilities),
+    statistics,
+    createStatistics: vi.fn(() => statistics),
     createApp: vi.fn(() => ({ fetch: vi.fn() })),
     createAuthRoute: vi.fn(() => ({ route: "auth" })),
     createAuthAnnotate: vi.fn(() => vi.fn()),
@@ -76,8 +81,14 @@ vi.mock("@exposurenexus/backend/authentication", () => ({
 vi.mock("@exposurenexus/backend/assets", () => ({
   createAssets: mocks.createAssets,
 }));
-vi.mock("@exposurenexus/backend/exposures", () => ({
-  createExposures: mocks.createExposures,
+vi.mock("@exposurenexus/backend/findings", () => ({
+  createFindings: mocks.createFindings,
+}));
+vi.mock("@exposurenexus/backend/vulnerabilities", () => ({
+  createVulnerabilities: mocks.createVulnerabilities,
+}));
+vi.mock("@exposurenexus/backend/statistics", () => ({
+  createStatistics: mocks.createStatistics,
 }));
 vi.mock("./lib/authentication-events.js", () => ({
   decorateAuthenticationWithEvents: mocks.decorateAuthenticationWithEvents,
@@ -88,8 +99,11 @@ vi.mock("./lib/identity-events.js", () => ({
 vi.mock("./lib/assets-events.js", () => ({
   decorateAssetsWithEvents: mocks.decorateAssetsWithEvents,
 }));
-vi.mock("./lib/exposures-events.js", () => ({
-  decorateExposuresWithEvents: mocks.decorateExposuresWithEvents,
+vi.mock("./lib/findings-events.js", () => ({
+  decorateFindingsWithEvents: mocks.decorateFindingsWithEvents,
+}));
+vi.mock("./lib/vulnerabilities-events.js", () => ({
+  decorateVulnerabilitiesWithEvents: mocks.decorateVulnerabilitiesWithEvents,
 }));
 vi.mock("./app.js", () => ({ createApp: mocks.createApp }));
 vi.mock("./logging.js", () => ({
@@ -162,7 +176,9 @@ describe("app container", () => {
     const runtime = mocks.createBackendRuntime.mock.results[0]!.value;
     expect(mocks.createIdentity).toHaveBeenCalledExactlyOnceWith(runtime);
     expect(mocks.createAssets).toHaveBeenCalledExactlyOnceWith(runtime);
-    expect(mocks.createExposures).toHaveBeenCalledExactlyOnceWith(runtime);
+    expect(mocks.createFindings).toHaveBeenCalledExactlyOnceWith(runtime);
+    expect(mocks.createVulnerabilities).toHaveBeenCalledExactlyOnceWith(runtime);
+    expect(mocks.createStatistics).toHaveBeenCalledExactlyOnceWith(runtime);
     expect(mocks.createAuthentication).toHaveBeenCalledWith(runtime, {
       sessionLifetimeHours: options.authSessionLifetimeHours,
       sessionHmacSecret: options.authSessionHmacSecret,
@@ -181,10 +197,14 @@ describe("app container", () => {
       mocks.rawAssets,
       expect.objectContaining({ emit: expect.any(Function) }),
     );
-    expect(mocks.createExposures).toHaveBeenCalledOnce();
-    expect(mocks.decorateExposuresWithEvents).toHaveBeenCalledWith(
-      mocks.rawExposures,
-      expect.objectContaining({ emit: expect.any(Function) }),
+    const eventBus = expect.objectContaining({ emit: expect.any(Function) });
+    expect(mocks.decorateFindingsWithEvents).toHaveBeenCalledExactlyOnceWith(
+      mocks.rawFindings,
+      eventBus,
+    );
+    expect(mocks.decorateVulnerabilitiesWithEvents).toHaveBeenCalledExactlyOnceWith(
+      mocks.rawVulnerabilities,
+      eventBus,
     );
     expect(mocks.createRequireDomainPermission).toHaveBeenCalledWith(expect.any(Function));
     expect(mocks.createUserRoute).toHaveBeenCalledWith(mocks.identity.users, {
@@ -201,14 +221,17 @@ describe("app container", () => {
     expect(container.services.identity).toBe(mocks.identity);
     expect(container.services.authentication).toBe(mocks.authentication);
     expect(container.services.assets).toBe(mocks.assets);
-    expect(container.services.exposures).toBe(mocks.exposures);
-    expect(mocks.createVulnerabilityRoute).toHaveBeenCalledWith(mocks.exposures.vulnerabilities, {
+    expect(container.services).not.toHaveProperty("exposures");
+    expect(container.services.findings).toBe(mocks.findings);
+    expect(container.services.vulnerabilities).toBe(mocks.vulnerabilities);
+    expect(container.services.statistics).toBe(mocks.statistics);
+    expect(mocks.createVulnerabilityRoute).toHaveBeenCalledWith(mocks.vulnerabilities, {
       requireDomainPermission: expect.any(Function),
     });
-    expect(mocks.createFindingStatsRoute).toHaveBeenCalledWith(mocks.exposures.statistics, {
+    expect(mocks.createFindingStatsRoute).toHaveBeenCalledWith(mocks.statistics, {
       requireDomainPermission: expect.any(Function),
     });
-    expect(mocks.createFindingRoute).toHaveBeenCalledWith(mocks.exposures.findings, {
+    expect(mocks.createFindingRoute).toHaveBeenCalledWith(mocks.findings, {
       requireDomainPermission: expect.any(Function),
     });
 

@@ -6,7 +6,18 @@ import { describe, expect, it } from "vitest";
 describe("backend exports", () => {
   it("rejects deep imports of private implementations", () => {
     const require = createRequire(import.meta.url);
-    for (const subpath of ["runtime", "identity/users", "database/schema/auth", "dist/index.js"]) {
+    for (const subpath of [
+      "exposures",
+      "runtime",
+      "identity/users",
+      "findings/findings",
+      "features/findings/index",
+      "features/findings/finding-persistence",
+      "features/authentication/session-table",
+      "features/identity/users/user-profile-persistence",
+      "database/schema/ingestion",
+      "dist/index.js",
+    ]) {
       expect(() => require.resolve(`@exposurenexus/backend/${subpath}`)).toThrow(
         expect.objectContaining({ code: "ERR_PACKAGE_PATH_NOT_EXPORTED" }),
       );
@@ -32,8 +43,10 @@ describe("backend exports", () => {
       "./assets",
       "./authentication",
       "./database",
-      "./exposures",
+      "./findings",
       "./identity",
+      "./statistics",
+      "./vulnerabilities",
     ]);
     for (const entry of Object.values(manifest.exports)) {
       const source = new URL(
