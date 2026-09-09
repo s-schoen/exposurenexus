@@ -26,13 +26,17 @@ const user = {
 };
 
 describe("auth API schemas", () => {
-  it("trims usernames and requires non-empty credentials", () => {
-    expect(authLoginSchema.parse({ username: " alice ", password: "secret" })).toEqual({
-      username: "alice",
-      password: "secret",
+  it("preserves credentials and requires a non-blank username and non-empty password", () => {
+    expect(authLoginSchema.parse({ username: " alice ", password: " secret " })).toEqual({
+      username: " alice ",
+      password: " secret ",
     });
 
     expect(authLoginSchema.safeParse({ username: "   ", password: "secret" }).success).toBe(false);
+    expect(authLoginSchema.safeParse({ username: "\t\n\u00a0", password: "secret" }).success).toBe(
+      false,
+    );
+    expect(authLoginSchema.safeParse({ username: "", password: "secret" }).success).toBe(false);
     expect(authLoginSchema.safeParse({ username: "alice", password: "" }).success).toBe(false);
   });
 

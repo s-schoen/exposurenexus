@@ -77,7 +77,7 @@ export function createAuthRoute(authentication: ApiAuthentication, options: Auth
 
   async function createLoginResponse(c: Context<{ Variables: ContextVariables }>, body: AuthLogin) {
     const createdSession = await authentication.createSessionForCredentials({
-      username: body.username,
+      username: body.username.trim(),
       password: body.password,
       sourceIp: getRequestSourceIp(c, trustedProxies),
       userAgent: c.req.header("user-agent") ?? undefined,

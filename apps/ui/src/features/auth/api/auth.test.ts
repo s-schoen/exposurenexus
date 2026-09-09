@@ -81,7 +81,7 @@ describe("auth API", () => {
     await expect(
       signIn.username({
         username: " alice ",
-        password: "correct-horse-battery-staple",
+        password: " correct-horse-battery-staple ",
       }),
     ).resolves.toEqual({ data: authSession });
 
@@ -95,13 +95,21 @@ describe("auth API", () => {
         credentials: "include",
         body: JSON.stringify({
           username: "alice",
-          password: "correct-horse-battery-staple",
+          password: " correct-horse-battery-staple ",
         }),
       }),
     );
     expect(headers.get("Content-Type")).toBe("application/json");
     expect(headers.get("X-CSRF-Token")).toBeNull();
   });
+
+  it.each(["", "   ", "\t\n\u00a0"])(
+    "rejects blank username %j before fetching",
+    async (username) => {
+      await expect(signIn.username({ username, password: "secret" })).rejects.toThrow();
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
 
   it("loads the current authenticated session", async () => {
     fetchMock.mockResolvedValueOnce(authSessionResponse());
