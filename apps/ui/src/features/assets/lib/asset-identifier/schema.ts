@@ -5,14 +5,14 @@ import {
 } from "@exposurenexus/contracts/model/asset-identifier";
 import { z } from "zod/v4";
 
-import { normalizeCloudResourceId } from "@/lib/asset-identifier/cloud-resource-id";
-import { normalizeDnsName } from "@/lib/asset-identifier/dns-name";
-import { normalizeIpAddress } from "@/lib/asset-identifier/ip-address";
-import { characterLength } from "@/lib/asset-identifier/normalization-result";
-import { normalizeOciImageName } from "@/lib/asset-identifier/oci-image-name";
-import { normalizeVcsRepository } from "@/lib/asset-identifier/vcs-repository";
+import { normalizeCloudResourceId } from "@/features/assets/lib/asset-identifier/cloud-resource-id";
+import { normalizeDnsName } from "@/features/assets/lib/asset-identifier/dns-name";
+import { normalizeIpAddress } from "@/features/assets/lib/asset-identifier/ip-address";
+import { characterLength } from "@/features/assets/lib/asset-identifier/normalization-result";
+import { normalizeOciImageName } from "@/features/assets/lib/asset-identifier/oci-image-name";
+import { normalizeVcsRepository } from "@/features/assets/lib/asset-identifier/vcs-repository";
 
-import type { NormalizationResult } from "@/lib/asset-identifier/normalization-result";
+import type { NormalizationResult } from "@/features/assets/lib/asset-identifier/normalization-result";
 import type { AssetIdentifierValidationIssue } from "@exposurenexus/contracts/model/asset-identifier";
 
 function createValueSchema(normalize: (value: string) => NormalizationResult) {

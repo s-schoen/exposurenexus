@@ -1,8 +1,12 @@
 import { AssetIdentifierValidationReason } from "@exposurenexus/contracts/model/asset-identifier";
 
-import { failure, finishValue, invalidFormat } from "@/lib/asset-identifier/normalization-result";
+import {
+  failure,
+  finishValue,
+  invalidFormat,
+} from "@/features/assets/lib/asset-identifier/normalization-result";
 
-import type { NormalizationResult } from "@/lib/asset-identifier/normalization-result";
+import type { NormalizationResult } from "@/features/assets/lib/asset-identifier/normalization-result";
 
 export function normalizeCloudResourceId(value: string): NormalizationResult {
   const normalized = value.trim();

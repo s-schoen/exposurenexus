@@ -1,16 +1,16 @@
 import { AssetIdentifierValidationReason } from "@exposurenexus/contracts/model/asset-identifier";
 
-import { normalizeDnsName } from "@/lib/asset-identifier/dns-name";
-import { normalizeIpAddress, parseIPv4 } from "@/lib/asset-identifier/ip-address";
+import { normalizeDnsName } from "@/features/assets/lib/asset-identifier/dns-name";
+import { normalizeIpAddress, parseIPv4 } from "@/features/assets/lib/asset-identifier/ip-address";
 import {
   failure,
   finishValue,
   invalidControlOrWhitespacePattern,
   invalidFormat,
   schemePattern,
-} from "@/lib/asset-identifier/normalization-result";
+} from "@/features/assets/lib/asset-identifier/normalization-result";
 
-import type { NormalizationResult } from "@/lib/asset-identifier/normalization-result";
+import type { NormalizationResult } from "@/features/assets/lib/asset-identifier/normalization-result";
 
 function normalizeVcsServer(
   hostname: string,

@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
-import { validateAssetIdentifier } from "@/lib/asset-identifier/schema";
+import { validateAssetIdentifier } from "@/features/assets/lib/asset-identifier/schema";
 
 import type {
   AssetIdentifierRecord,

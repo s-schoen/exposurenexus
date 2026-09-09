@@ -3,7 +3,7 @@ import {
   AssetCustomFieldType,
 } from "@exposurenexus/contracts/model/asset-custom-field";
 
-import { validateAssetCustomFieldDefinitionRules } from "@/lib/custom-field-rules";
+import { validateAssetCustomFieldDefinitionRules } from "@/features/custom-fields/lib/custom-field-rules";
 
 import type {
   CreateAssetCustomFieldDefinition,
