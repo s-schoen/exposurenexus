@@ -5,9 +5,9 @@ import {
   finishValue,
   invalidControlOrWhitespacePattern,
   invalidFormat,
-} from "@/lib/asset-identifier/normalization-result";
+} from "@/features/assets/lib/asset-identifier/normalization-result";
 
-import type { NormalizationResult } from "@/lib/asset-identifier/normalization-result";
+import type { NormalizationResult } from "@/features/assets/lib/asset-identifier/normalization-result";
 
 export function parseIPv4(value: string): Array<number> | null {
   const parts = value.split(".");

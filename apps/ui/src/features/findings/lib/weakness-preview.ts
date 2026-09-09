@@ -1,7 +1,7 @@
 // Draft preview only; backend independently canonicalizes all mutations.
 import { z } from "zod/v4";
 
-import { canonicalizeKnownSecurityIdentifier } from "@/lib/security-identifier";
+import { canonicalizeKnownSecurityIdentifier } from "@/features/vulnerabilities";
 
 const namespacePattern = /^[a-z][a-z\d._-]*$/u;
 const namespaceSchema = z

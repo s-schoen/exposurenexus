@@ -28,12 +28,12 @@ import { AssetCombobox } from "@/features/assets";
 import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifecycle.ts";
 import { formatLocalDateTimeInput, formatUtcDateOnly } from "@/features/findings/lib/date-input.ts";
 import { formatFindingStatus } from "@/features/findings/lib/format.ts";
+import { weaknessSchema } from "@/features/findings/lib/weakness-preview";
 import { formatWeaknessText, parseWeaknessText } from "@/features/findings/lib/weakness-text.ts";
 import { createListUsersQueryOptions, getUserProfileDisplayName } from "@/features/users";
 import { SeverityBadge } from "@/features/vulnerabilities";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { normalizeDateToUtcStart } from "@/lib/utc-date";
-import { weaknessSchema } from "@/lib/weakness-preview";
 
 import type { FindingAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
 import type { CreateManualFinding } from "@exposurenexus/contracts/model/finding";
@@ -425,6 +425,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
       }
       const result = createFindingSchema.safeParse({
         ...value,
+        title: value.title.trim(),
         weakness: canonicalWeakness.data,
         vulnerabilityIds: [...new Set(value.vulnerabilityIds)],
       });

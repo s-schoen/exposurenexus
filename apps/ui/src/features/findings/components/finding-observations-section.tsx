@@ -1087,7 +1087,11 @@ function AddObservationDialog({ finding }: { finding: Finding }) {
       setError("Weakness identifiers must use namespace=identifier entries.");
       return;
     }
-    const candidate = { ...draft, ...(parsedWeakness ? { weakness: parsedWeakness } : {}) };
+    const candidate = {
+      ...draft,
+      ...(draft.title === undefined ? {} : { title: draft.title.trim() }),
+      ...(parsedWeakness ? { weakness: parsedWeakness } : {}),
+    };
     const result = manualObservationInputSchema.safeParse(candidate);
     if (!result.success) {
       const issue = result.error.issues[0];

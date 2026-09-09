@@ -1,15 +1,15 @@
 import { AssetIdentifierValidationReason } from "@exposurenexus/contracts/model/asset-identifier";
 
-import { parseIPv4 } from "@/lib/asset-identifier/ip-address";
+import { parseIPv4 } from "@/features/assets/lib/asset-identifier/ip-address";
 import {
   failure,
   finishValue,
   invalidControlOrWhitespacePattern,
   invalidFormat,
   schemePattern,
-} from "@/lib/asset-identifier/normalization-result";
+} from "@/features/assets/lib/asset-identifier/normalization-result";
 
-import type { NormalizationResult } from "@/lib/asset-identifier/normalization-result";
+import type { NormalizationResult } from "@/features/assets/lib/asset-identifier/normalization-result";
 
 export function normalizeDnsName(value: string): NormalizationResult {
   if (value.length === 0) {
