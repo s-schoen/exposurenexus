@@ -27,7 +27,7 @@ export interface APIErrorReply extends APIReply {
 }
 
 export const authLoginSchema = z.strictObject({
-  username: z.string().trim().min(1),
+  username: z.string().min(1).regex(/\S/u),
   password: z.string().min(1),
 });
 
@@ -53,25 +53,3 @@ export type AuthLogin = z.infer<typeof authLoginSchema>;
 export type AuthSessionReply = z.infer<typeof authSessionReplySchema>;
 export type AuthSessionDataReply = z.infer<typeof authSessionDataReplySchema>;
 export type AuthSignOutDataReply = z.infer<typeof authSignOutDataReplySchema>;
-
-export function createObjectReply<T extends object>(
-  correlationId: string,
-  data: T,
-): APISingleDataReply<T> {
-  return { correlationId, data };
-}
-
-export function createArrayReply<T extends object>(
-  correlationId: string,
-  data: T[],
-): APIArrayDataReply<T> {
-  return {
-    correlationId,
-    data: {
-      items: data,
-      totalItems: data.length,
-      startIndex: 0,
-      currentItemCount: data.length,
-    },
-  };
-}

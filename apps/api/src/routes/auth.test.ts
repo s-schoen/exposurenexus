@@ -47,8 +47,8 @@ describe("auth routes", () => {
         "X-Request-Id": "auth-login-request",
       },
       body: JSON.stringify({
-        username: "alice",
-        password: "correct-horse-battery-staple",
+        username: " alice ",
+        password: " correct-horse-battery-staple ",
       }),
     });
     const body = await response.json();
@@ -56,7 +56,7 @@ describe("auth routes", () => {
     expect(response.status).toBe(200);
     expect(authService.createSessionForCredentials).toHaveBeenCalledWith({
       username: "alice",
-      password: "correct-horse-battery-staple",
+      password: " correct-horse-battery-staple ",
       sourceIp: "unknown",
       userAgent: "Mozilla/5.0",
       correlationId: "auth-login-request",
@@ -82,6 +82,22 @@ describe("auth routes", () => {
       },
     });
   });
+
+  it.each(["", "   ", "\t\n\u00a0"])(
+    "rejects blank username %j before authentication",
+    async (username) => {
+      const app = createTestApp({ authRoute: createAuthRoute(authService) });
+      const response = await app.request("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password: "secret" }),
+      });
+
+      expect(response.status).toBe(400);
+      expect(authService.createSessionForCredentials).not.toHaveBeenCalled();
+      expect(response.headers.get("set-cookie")).toBeNull();
+    },
+  );
 
   it("rejects invalid credentials without creating a cookie", async () => {
     authService.createSessionForCredentials.mockResolvedValue(null);
