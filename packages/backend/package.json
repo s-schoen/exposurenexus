@@ -19,20 +19,28 @@
       "import": "./dist/database/index.js"
     },
     "./authentication": {
-      "types": "./dist/authentication/index.d.ts",
-      "import": "./dist/authentication/index.js"
+      "types": "./dist/features/authentication/index.d.ts",
+      "import": "./dist/features/authentication/index.js"
     },
     "./identity": {
-      "types": "./dist/identity/index.d.ts",
-      "import": "./dist/identity/index.js"
+      "types": "./dist/features/identity/index.d.ts",
+      "import": "./dist/features/identity/index.js"
     },
     "./assets": {
-      "types": "./dist/assets/index.d.ts",
-      "import": "./dist/assets/index.js"
+      "types": "./dist/features/assets/index.d.ts",
+      "import": "./dist/features/assets/index.js"
     },
-    "./exposures": {
-      "types": "./dist/exposures/index.d.ts",
-      "import": "./dist/exposures/index.js"
+    "./findings": {
+      "types": "./dist/features/findings/index.d.ts",
+      "import": "./dist/features/findings/index.js"
+    },
+    "./vulnerabilities": {
+      "types": "./dist/features/vulnerabilities/index.d.ts",
+      "import": "./dist/features/vulnerabilities/index.js"
+    },
+    "./statistics": {
+      "types": "./dist/features/statistics/index.d.ts",
+      "import": "./dist/features/statistics/index.js"
     }
   },
   "scripts": {

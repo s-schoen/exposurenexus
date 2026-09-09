@@ -27,8 +27,10 @@ logger, then selects capabilities through strict package subpaths:
 import { createBackendRuntime } from "@exposurenexus/backend";
 import { createAssets } from "@exposurenexus/backend/assets";
 import { createAuthentication } from "@exposurenexus/backend/authentication";
-import { createExposures } from "@exposurenexus/backend/exposures";
+import { createFindings } from "@exposurenexus/backend/findings";
 import { createIdentity } from "@exposurenexus/backend/identity";
+import { createStatistics } from "@exposurenexus/backend/statistics";
+import { createVulnerabilities } from "@exposurenexus/backend/vulnerabilities";
 
 const runtime = createBackendRuntime({ database, logger });
 const identity = createIdentity(runtime);
@@ -37,7 +39,9 @@ const authentication = createAuthentication(runtime, {
   sessionHmacSecret,
 });
 const assets = createAssets(runtime);
-const exposures = createExposures(runtime);
+const findings = createFindings(runtime);
+const vulnerabilities = createVulnerabilities(runtime);
+const statistics = createStatistics(runtime);
 
 const outcome = await assets.inventory.create({ asset, performedBy: userId });
 ```
@@ -46,16 +50,20 @@ The root exports runtime construction and application errors; it does not
 import or initialize every capability. Each capability subpath owns its factory
 and caller-facing commands, results, and operation-specific mutation outcomes.
 The runtime keeps database access, logging, and per-runtime memoization private.
-Constructing assets or exposures does not require authentication configuration.
+Constructing assets, findings, vulnerabilities, or statistics does not require
+authentication configuration. Each factory memoizes its capability independently
+within the runtime.
 
-Callers use the nested interfaces:
+Callers use these interfaces:
 
-| Capability     | Interfaces                                  |
-| -------------- | ------------------------------------------- |
-| Identity       | `users`, `roles`, `authorization`           |
-| Authentication | Credential and session operations           |
-| Assets         | `inventory`, `customFields`                 |
-| Exposures      | `findings`, `vulnerabilities`, `statistics` |
+| Capability      | Interfaces                                        |
+| --------------- | ------------------------------------------------- |
+| Identity        | `users`, `roles`, `authorization`                 |
+| Authentication  | Credential and session operations                 |
+| Assets          | `inventory`, `customFields`                       |
+| Findings        | Finding, observation, and catalog-link operations |
+| Vulnerabilities | Vulnerability catalog operations                  |
+| Statistics      | Finding statistics                                |
 
 The only additional public subpath is `@exposurenexus/backend/database` for
 composition infrastructure. There are no wildcard exports or compatibility
@@ -65,10 +73,38 @@ decorators, and handlers must not query Kysely or use repositories directly.
 Database access outside backend is limited to executable composition, migration
 invocation, jobs persistence composition, and test infrastructure.
 
+## Backend Feature Organization
+
+Backend implementation lives under `packages/backend/src/features/`.
+Authentication, identity, assets, findings, vulnerabilities, and statistics are
+top-level features. Identity groups users, roles, and authorization; assets groups
+inventory and custom fields. Each feature colocates its behavior, private
+persistence, table types, error catalogs, rules, and adjacent tests. Commands and
+outcomes belong to the feature or subfeature that implements them.
+
+Findings own observations and finding-vulnerability link mutations because their
+transactions, projections, and audit updates are coupled. Asset projections and
+audit handling stay at the assets level because both subfeatures use them. Shared
+security-identifier canonicalization stays private at package level.
+
+Separate entrypoints do not imply independent persistence: identity changes can
+revoke authentication sessions in the same transaction, and findings can use
+vulnerability persistence internally. These dependencies remain private; apps do
+not orchestrate business transactions through repositories.
+
+Database infrastructure aggregates feature-owned table types through type-only
+imports and retains one chronological migration chain. Ingestion has only a table
+definition under database schema until its behavior is implemented. The root
+`ApplicationError` similarly aggregates feature-owned error catalogs through
+type-only imports. No generic feature framework or separate workspace packages
+are required.
+
 ## API Adaptation
 
-The API container decorates capabilities with API-local event adapters and
-injects the relevant nested interfaces into routes. Decorators consume backend
+The API container decorates mutation capabilities with API-local event adapters
+and injects the relevant interfaces into routes. Findings and vulnerabilities
+have separate decorators; observation events remain in the findings decorator.
+Statistics goes directly to its route without an event decorator. Decorators consume backend
 mutation outcomes, emit API events, and return route-facing values. They preserve
 transaction-produced before-and-after facts without database rereads.
 
@@ -106,7 +142,8 @@ lifecycle.
 There is no worker application or persisted ingestion implementation yet. A future
 worker will use selected undecorated capabilities as a trusted system caller and
 will not run migrations. Future ingestion orchestration belongs in a high-level
-exposures use case. Queue infrastructure remains in apps and the jobs package;
+backend ingestion use case, not in the worker or a recreated exposures aggregate.
+Queue infrastructure remains in apps and the jobs package;
 see [Job Queue](job-queue.md).
 
 ## HTTP Update Semantics
@@ -130,5 +167,5 @@ omitted fields remain unchanged and a no-op does not advance audit metadata.
 Backend tests own business behavior, persistence, transactions, and migrations.
 API tests own HTTP adaptation, authorization middleware, cookies, event
 decorators, error translation, and composition. Route doubles should implement
-the full nested interface consumed by the route. Update commands, outcomes,
+the full interface consumed by the route. Update commands, outcomes,
 decorators, routes, and their tests together when changing a capability boundary.

@@ -1,22 +1,22 @@
-import type { AssetCustomFieldApplicationErrorCatalog } from "./application-error/asset-custom-field.js";
-import type { AssetApplicationErrorCatalog } from "./application-error/asset.js";
-import type { AuthApplicationErrorCatalog } from "./application-error/auth.js";
-import type { FindingApplicationErrorCatalog } from "./application-error/finding.js";
-import type { ObservationApplicationErrorCatalog } from "./application-error/observation.js";
-import type { RoleApplicationErrorCatalog } from "./application-error/role.js";
-import type { StatsApplicationErrorCatalog } from "./application-error/stats.js";
-import type { UserProfileApplicationErrorCatalog } from "./application-error/user-profile.js";
-import type { VulnerabilityApplicationErrorCatalog } from "./application-error/vulnerability.js";
+import type { AssetCustomFieldApplicationErrorCatalog } from "./features/assets/custom-fields/asset-custom-field-error.js";
+import type { AssetApplicationErrorCatalog } from "./features/assets/inventory/asset-error.js";
+import type { AuthApplicationErrorCatalog } from "./features/authentication/auth-error.js";
+import type { FindingApplicationErrorCatalog } from "./features/findings/finding-error.js";
+import type { ObservationApplicationErrorCatalog } from "./features/findings/observation-error.js";
+import type { RoleApplicationErrorCatalog } from "./features/identity/roles/role-error.js";
+import type { UserProfileApplicationErrorCatalog } from "./features/identity/users/user-profile-error.js";
+import type { StatsApplicationErrorCatalog } from "./features/statistics/stats-error.js";
+import type { VulnerabilityApplicationErrorCatalog } from "./features/vulnerabilities/vulnerability-error.js";
 
-export type { AssetCustomFieldApplicationErrorCatalog } from "./application-error/asset-custom-field.js";
-export type { AssetApplicationErrorCatalog } from "./application-error/asset.js";
-export type { AuthApplicationErrorCatalog } from "./application-error/auth.js";
-export type { FindingApplicationErrorCatalog } from "./application-error/finding.js";
-export type { ObservationApplicationErrorCatalog } from "./application-error/observation.js";
-export type { RoleApplicationErrorCatalog } from "./application-error/role.js";
-export type { StatsApplicationErrorCatalog } from "./application-error/stats.js";
-export type { UserProfileApplicationErrorCatalog } from "./application-error/user-profile.js";
-export type { VulnerabilityApplicationErrorCatalog } from "./application-error/vulnerability.js";
+export type { AssetCustomFieldApplicationErrorCatalog } from "./features/assets/custom-fields/asset-custom-field-error.js";
+export type { AssetApplicationErrorCatalog } from "./features/assets/inventory/asset-error.js";
+export type { AuthApplicationErrorCatalog } from "./features/authentication/auth-error.js";
+export type { FindingApplicationErrorCatalog } from "./features/findings/finding-error.js";
+export type { ObservationApplicationErrorCatalog } from "./features/findings/observation-error.js";
+export type { RoleApplicationErrorCatalog } from "./features/identity/roles/role-error.js";
+export type { StatsApplicationErrorCatalog } from "./features/statistics/stats-error.js";
+export type { UserProfileApplicationErrorCatalog } from "./features/identity/users/user-profile-error.js";
+export type { VulnerabilityApplicationErrorCatalog } from "./features/vulnerabilities/vulnerability-error.js";
 
 export type ApplicationErrorCatalog = AssetApplicationErrorCatalog &
   AssetCustomFieldApplicationErrorCatalog &
