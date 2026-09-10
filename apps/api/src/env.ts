@@ -3,6 +3,8 @@ import { z } from "zod/v4";
 
 import { isValidTrustedProxy } from "./lib/source-ip.js";
 
+const milliseconds = z.coerce.number().int().min(1).max(2_147_483_647);
+
 function trustedProxies(value: string): string[] {
   return value
     .split(",")
@@ -29,6 +31,8 @@ export const env = createEnv({
     PORT: z.coerce.number().min(1).max(65535).default(3001),
     LOG_LEVEL: z.string().optional().default("info"),
     API_TIMEOUT_MS: z.coerce.number().min(1).default(5000),
+    SHUTDOWN_TIMEOUT_MS: milliseconds.default(60_000),
+    STARTUP_TIMEOUT_MS: milliseconds.default(30_000),
     APP_ORIGIN: z.url().default("http://localhost:3000"),
     STATIC_DIR: z.string().min(1).optional(),
     CORS_ORIGIN: z.url().optional(),
@@ -57,6 +61,8 @@ export const env = createEnv({
         return proxies;
       }),
     DATABASE_URL: z.url(),
+    RABBITMQ_URL: z.url({ protocol: /^amqps?$/ }),
+    RABBITMQ_EXCHANGE: z.string().trim().min(1),
   },
 
   /**
@@ -82,4 +88,13 @@ export const env = createEnv({
    * explicitly specify this option as true.
    */
   emptyStringAsUndefined: true,
+  onValidationError: (issues) => {
+    // Validation messages can contain credentials; report field names only.
+    const fields = [
+      ...new Set(
+        issues.map((issue) => issue.path?.[0]).filter((field) => typeof field === "string"),
+      ),
+    ];
+    throw new Error(`Invalid API configuration: ${fields.join(", ")}`);
+  },
 });

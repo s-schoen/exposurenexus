@@ -4,7 +4,7 @@ const AUTH_SECRET = "01234567890123456789012345678901234567890123456789012345678
 const DATABASE_URL = "postgres://exposurenexus:exposurenexus@localhost:5432/exposurenexus";
 
 async function loadEnv(
-  overrides: Record<string, string> = {},
+  overrides: Record<string, string | undefined> = {},
 ): Promise<typeof import("./env.js").env> {
   vi.resetModules();
   vi.stubEnv("AUTH_SECRET", AUTH_SECRET);
@@ -12,6 +12,10 @@ async function loadEnv(
   vi.stubEnv("APP_ORIGIN", "");
   vi.stubEnv("CORS_ORIGIN", "");
   vi.stubEnv("STATIC_DIR", "");
+  vi.stubEnv("RABBITMQ_URL", "amqp://api:secret@localhost/jobs");
+  vi.stubEnv("RABBITMQ_EXCHANGE", "jobs");
+  vi.stubEnv("SHUTDOWN_TIMEOUT_MS", "");
+  vi.stubEnv("STARTUP_TIMEOUT_MS", "");
 
   for (const [key, value] of Object.entries(overrides)) {
     vi.stubEnv(key, value);
@@ -22,11 +26,68 @@ async function loadEnv(
 }
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllEnvs();
   vi.resetModules();
 });
 
 describe("api environment", () => {
+  it.each([
+    { RABBITMQ_URL: undefined },
+    { RABBITMQ_URL: "" },
+    { RABBITMQ_URL: "not-a-url" },
+    { RABBITMQ_URL: "https://api:do-not-log@localhost/jobs" },
+    { RABBITMQ_EXCHANGE: "" },
+    { RABBITMQ_EXCHANGE: undefined },
+    { RABBITMQ_EXCHANGE: "   " },
+    { AUTH_SECRET: "do-not-log" },
+    { AUTH_TRUSTED_PROXIES: "do-not-log" },
+    { DATABASE_URL: "do-not-log" },
+  ])("rejects invalid configuration with field-only diagnostics: %j", async (invalid) => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(loadEnv(invalid)).rejects.toEqual(
+      new Error(`Invalid API configuration: ${Object.keys(invalid).join(", ")}`),
+    );
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it.each(["0", "-1", "1.5", "Infinity", "2147483648", "abc", "   "])(
+    "rejects invalid deadlines %s",
+    async (value) => {
+      for (const field of ["SHUTDOWN_TIMEOUT_MS", "STARTUP_TIMEOUT_MS"]) {
+        await expect(loadEnv({ [field]: value })).rejects.toThrow(
+          `Invalid API configuration: ${field}`,
+        );
+      }
+    },
+  );
+
+  it.each([undefined, ""])(
+    "defaults unset or empty deadlines to match the worker: %s",
+    async (value) => {
+      const env = await loadEnv({ SHUTDOWN_TIMEOUT_MS: value, STARTUP_TIMEOUT_MS: value });
+      expect(env.SHUTDOWN_TIMEOUT_MS).toBe(60_000);
+      expect(env.STARTUP_TIMEOUT_MS).toBe(30_000);
+    },
+  );
+
+  it.each(["1", "42", "2147483647"])("accepts bounded integer deadlines %s", async (value) => {
+    const env = await loadEnv({ SHUTDOWN_TIMEOUT_MS: value, STARTUP_TIMEOUT_MS: value });
+    expect(env.SHUTDOWN_TIMEOUT_MS).toBe(Number(value));
+    expect(env.STARTUP_TIMEOUT_MS).toBe(Number(value));
+  });
+
+  it.each(["amqp", "amqps"])(
+    "reads required %s broker settings and trims the exchange",
+    async (protocol) => {
+      const url = `${protocol}://api:secret@localhost/jobs`;
+      const env = await loadEnv({ RABBITMQ_URL: url, RABBITMQ_EXCHANGE: "  jobs  " });
+
+      expect(env.RABBITMQ_URL).toBe(url);
+      expect(env.RABBITMQ_EXCHANGE).toBe("jobs");
+    },
+  );
+
   it("defaults the app origin for local split development", async () => {
     const env = await loadEnv();
 
