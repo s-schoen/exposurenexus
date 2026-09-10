@@ -241,6 +241,164 @@ describe("createJobConsumer", () => {
     await running;
   });
 
+  it("reports initial activation only after consume succeeds without settling the lifetime", async () => {
+    vi.useFakeTimers();
+    const consumer = await createJobConsumer(options);
+    const subscribing = deferred<{ consumerTag: string }>();
+    channel.consume.mockReturnValueOnce(subscribing.promise);
+    consumer.registerJobHandler(JobType.INGESTION, vi.fn());
+    const lifetimeSettled = vi.fn();
+    const running = consumer.start().then(lifetimeSettled);
+    const ready = consumer.waitForInitialActivation();
+    const activated = vi.fn();
+    void ready.then(activated);
+    expect(consumer.waitForInitialActivation()).toBe(ready);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(activated).not.toHaveBeenCalled();
+    subscribing.resolve({ consumerTag: "initial" });
+    await ready;
+    expect(lifetimeSettled).not.toHaveBeenCalled();
+    await consumer.stop();
+    await running;
+    expect(lifetimeSettled).toHaveBeenCalledOnce();
+  });
+
+  it.each(["checkQueue", "prefetch", "consume"] as const)(
+    "reports initial %s failure but preserves lifetime-only recovery",
+    async (phase) => {
+      vi.useFakeTimers();
+      const consumer = await createJobConsumer(options);
+      const restored = createFakeChannel();
+      connection.createChannel.mockResolvedValueOnce(restored);
+      channel[phase].mockRejectedValueOnce(new Error("amqp://user:secret@host"));
+      consumer.registerJobHandler(JobType.INGESTION, vi.fn());
+      const lifetimeSettled = vi.fn();
+      const running = consumer.start().then(lifetimeSettled);
+      await expect(consumer.waitForInitialActivation()).rejects.toThrow(
+        "job consumer initial activation failed",
+      );
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(restored.consume).toHaveBeenCalledOnce();
+      expect(lifetimeSettled).not.toHaveBeenCalled();
+      await expect(consumer.waitForInitialActivation()).rejects.toThrow(
+        "job consumer initial activation failed",
+      );
+      await consumer.stop();
+      await running;
+    },
+  );
+
+  it("reports initial failure before pending failed-channel cleanup completes", async () => {
+    const consumer = await createJobConsumer(options);
+    const closing = deferred();
+    channel.prefetch.mockRejectedValueOnce(new Error("secret"));
+    channel.close.mockReturnValueOnce(closing.promise);
+    consumer.registerJobHandler(JobType.INGESTION, vi.fn());
+    const running = consumer.start();
+    await expect(consumer.waitForInitialActivation()).rejects.toThrow(
+      "job consumer initial activation failed",
+    );
+    const stopping = consumer.stop();
+    closing.resolve();
+    await stopping;
+    await running;
+  });
+
+  it.each(["connect", "createChannel"])(
+    "reports %s failure when activating an unavailable idle consumer",
+    async (phase) => {
+      vi.useFakeTimers();
+      const consumer = await createJobConsumer(options);
+      if (phase === "connect") {
+        connection.emit("close");
+        connectMock.mockRejectedValueOnce(new Error("secret"));
+      } else {
+        channel.emit("close");
+        connection.createChannel.mockRejectedValueOnce(new Error("secret"));
+      }
+      consumer.registerJobHandler(JobType.INGESTION, vi.fn());
+      const running = consumer.start();
+      await expect(consumer.waitForInitialActivation()).rejects.toThrow(
+        "job consumer initial activation failed",
+      );
+      await consumer.stop();
+      await running;
+      expect(channel.consume).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not invalidate successful initial activation during later failed recovery", async () => {
+    vi.useFakeTimers();
+    const consumer = await createJobConsumer(options);
+    consumer.registerJobHandler(JobType.INGESTION, vi.fn());
+    const running = consumer.start();
+    await consumer.waitForInitialActivation();
+    const restored = createFakeChannel();
+    connectMock
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(createFakeConnection([restored]));
+    connection.emit("close");
+    await vi.advanceTimersByTimeAsync(100);
+    await expect(consumer.waitForInitialActivation()).resolves.toBeUndefined();
+    expect(restored.consume).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(restored.consume).toHaveBeenCalledOnce();
+    await consumer.stop();
+    await running;
+  });
+
+  it("rejects readiness on stop without waiting for a pending consume response", async () => {
+    vi.useFakeTimers();
+    const consumer = await createJobConsumer(options);
+    const subscribing = deferred<{ consumerTag: string }>();
+    channel.consume.mockReturnValueOnce(subscribing.promise);
+    consumer.registerJobHandler(JobType.INGESTION, vi.fn());
+    const running = consumer.start();
+    await vi.advanceTimersByTimeAsync(0);
+    const stopping = consumer.stop();
+    await expect(consumer.waitForInitialActivation()).rejects.toThrow(
+      "stopped before initial activation",
+    );
+    subscribing.resolve({ consumerTag: "late" });
+    await stopping;
+    await running;
+    expect(channel.cancel).toHaveBeenCalledWith("late");
+  });
+
+  it.each(["connection", "channel", "cancellation"])(
+    "rejects activation interrupted by %s loss even if consume is pending",
+    async (resource) => {
+      vi.useFakeTimers();
+      const consumer = await createJobConsumer(options);
+      const subscribing = deferred<{ consumerTag: string }>();
+      channel.consume.mockReturnValueOnce(subscribing.promise);
+      consumer.registerJobHandler(JobType.INGESTION, vi.fn());
+      const running = consumer.start();
+      const outcome = consumer.waitForInitialActivation().catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(0);
+      if (resource === "cancellation") channel.emit("cancel");
+      else (resource === "connection" ? connection : channel).emit("close");
+      expect(await outcome).toMatchObject({ message: "job consumer initial activation failed" });
+      const stopping = consumer.stop();
+      subscribing.resolve({ consumerTag: "late" });
+      await stopping;
+      await running;
+    },
+  );
+
+  it("rejects readiness before start without preventing later activation", async () => {
+    const consumer = await createJobConsumer(options);
+    await expect(consumer.waitForInitialActivation()).rejects.toThrow("has not started");
+    await expect(consumer.start()).rejects.toThrow("missing job handlers");
+    await expect(consumer.waitForInitialActivation()).rejects.toThrow("has not started");
+    consumer.registerJobHandler(JobType.INGESTION, vi.fn());
+    const running = consumer.start();
+    await consumer.waitForInitialActivation();
+    await consumer.stop();
+    await running;
+    await expect(consumer.waitForInitialActivation()).resolves.toBeUndefined();
+  });
+
   it.each(["connection", "channel"])(
     "rejects initialization interrupted during queue check by %s loss",
     async (resource) => {
@@ -277,6 +435,7 @@ describe("createJobConsumer", () => {
     await vi.advanceTimersByTimeAsync(1000);
     expect(restored.consume).toHaveBeenCalledOnce();
     expect(restored.prefetch).toHaveBeenCalledWith(1);
+    await expect(consumer.waitForInitialActivation()).resolves.toBeUndefined();
     restored.emitMessage(
       createMessage(createJobEvent({ type: JobType.INGESTION, data: ingestionData })),
     );
