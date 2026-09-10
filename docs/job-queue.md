@@ -250,6 +250,80 @@ once delivery, not exactly-once execution.
 
 ## RabbitMQ Topology
 
+### Reference Initialization
+
+The root `docker-compose.yaml` runs `rabbitmq:4.3.5-management` with persistent
+storage and no published AMQP or management ports. Its `rabbitmq-init` service
+runs the checked-in Node script using the standard `node:24-alpine` image; no
+application image or additional application role is required.
+
+Supply these six environment variables through your deployment's secret
+configuration or a private, untracked Compose `--env-file`:
+
+- `RABBITMQ_PROVISIONER_USER` and `RABBITMQ_PROVISIONER_PASSWORD`
+- `RABBITMQ_API_USER` and `RABBITMQ_API_PASSWORD`
+- `RABBITMQ_WORKER_USER` and `RABBITMQ_WORKER_PASSWORD`
+
+There are no broker credential defaults. Choose three distinct, non-`guest`
+usernames using letters, digits, `_`, `-`, `.`, or `@` (start with a letter,
+digit, `_`, or `-`), and independent strong passwords without control characters.
+With Compose env files, single-quote passwords containing `$` to prevent
+interpolation. Do not commit the env file or print rendered configuration with
+real secrets; use `docker compose config --quiet` for validation.
+
+Initialize independently of the application:
+
+```bash
+docker compose up -d --wait rabbitmq
+docker compose run --rm rabbitmq-init
+```
+
+Both commands also accept Compose's `--env-file` option before the subcommand.
+The init command exits zero only after provisioning and verification succeed.
+Run it again to reconcile application passwords, permissions, and the retry
+policy. Initialization is bounded and failures exit nonzero with sanitized
+diagnostics. Broker health alone does not establish topology readiness.
+
+On **empty broker storage only**, RabbitMQ bootstraps the provisioner as its
+default administrator, with the jobs vhost. On an existing volume, changing
+`RABBITMQ_PROVISIONER_USER` or `RABBITMQ_PROVISIONER_PASSWORD` does **not** rotate
+the stored account. Authenticate with the existing administrator and use normal
+RabbitMQ administration to change it, then update deployment secrets. Never
+remove the volume to repair a credential mismatch. Application accounts are
+created or updated by init, not broker bootstrap. Reconnect application clients
+after password or permission changes; this is not credential-revocation tooling.
+
+The provisioner requires administrator privileges. Application accounts have no
+management tags and permissions only in `exposurenexus`: the API may write to
+`EXPOSURENEXUS_JOBS` using `exposurenexus.jobs.*` routing keys, and the worker may
+read `EXPOSURENEXUS_JOBS_INGEST`. Neither can configure resources. RabbitMQ 4.3.5
+allows these permissions for passive checks. Init removes other-vhost permissions
+and stale topic permissions from these dedicated application accounts; do not
+reuse unrelated broker users.
+
+Init accepts matching declarations, rejects incompatible types, durability,
+flags, or arguments without deleting topology, and verifies the effective source
+queue policy, including operator-policy effects. Partial initialization is not
+transactional; correct the reported conflict and rerun. Existing queues and
+messages are preserved. Additional unrelated topology is not removed.
+
+External deployments can run `node scripts/rabbitmq-init.mjs` with the same
+credentials and `RABBITMQ_MANAGEMENT_URL` pointing at their management endpoint
+(use HTTPS across untrusted networks). Bootstrap the administrator separately.
+The script supports 4.3.5 and later 4.3 patches, and requires enabled
+`quorum_queue`, `stream_queue`, and `rabbitmq_4.3.0` feature flags. Disabled flags
+fail clearly; operators must review and enable them rather than having init
+silently change cluster-wide capabilities. Alternatively provision the equivalent
+topology and policy below, plus the account restrictions above, with your own
+infrastructure tooling. Application connections always remain passive.
+
+Run `pnpm test:infra` for isolated management-API doubles covering provisioning,
+repeatability, conflicts, failures, and secret handling. These tests do not start
+containers or a live broker. Application dependency gates, worker wiring, and
+localhost development port exposure are delivered separately in ticket 06.
+
+### Equivalent Manual Topology
+
 ```bash
 export RABBITMQ_VHOST=exposurenexus
 export JOBS_EXCHANGE=EXPOSURENEXUS_JOBS

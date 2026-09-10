@@ -32,6 +32,46 @@ services:
       retries: 6
       start_period: 20s
 
+  rabbitmq:
+    image: rabbitmq:4.3.5-management
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_PROVISIONER_USER:?Set RABBITMQ_PROVISIONER_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PROVISIONER_PASSWORD:?Set RABBITMQ_PROVISIONER_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: exposurenexus
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: [CMD, rabbitmq-diagnostics, -q, check_running]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  rabbitmq-init:
+    image: node:24-alpine
+    command: [node, /provision/rabbitmq-init.mjs]
+    environment:
+      RABBITMQ_MANAGEMENT_URL: http://rabbitmq:15672
+      RABBITMQ_PROVISIONER_USER: ${RABBITMQ_PROVISIONER_USER:?Set RABBITMQ_PROVISIONER_USER}
+      RABBITMQ_PROVISIONER_PASSWORD: ${RABBITMQ_PROVISIONER_PASSWORD:?Set RABBITMQ_PROVISIONER_PASSWORD}
+      RABBITMQ_API_USER: ${RABBITMQ_API_USER:?Set RABBITMQ_API_USER}
+      RABBITMQ_API_PASSWORD: ${RABBITMQ_API_PASSWORD:?Set RABBITMQ_API_PASSWORD}
+      RABBITMQ_WORKER_USER: ${RABBITMQ_WORKER_USER:?Set RABBITMQ_WORKER_USER}
+      RABBITMQ_WORKER_PASSWORD: ${RABBITMQ_WORKER_PASSWORD:?Set RABBITMQ_WORKER_PASSWORD}
+    volumes:
+      - ./scripts/rabbitmq-init.mjs:/provision/rabbitmq-init.mjs:ro
+    read_only: true
+    user: node
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
   postgres:
     image: postgres:18-alpine
     environment:
@@ -51,3 +91,4 @@ services:
 
 volumes:
   postgres-data:
+  rabbitmq-data:
