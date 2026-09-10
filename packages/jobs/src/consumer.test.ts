@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import { inspect } from "node:util";
 
 import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 
@@ -7,7 +8,7 @@ import * as contracts from "./index.js";
 import { createJobEvent, JobType } from "./index.js";
 
 import type { JobConsumerOptions, JobHandler } from "./consumer.js";
-import type { ConsumeMessage } from "amqplib";
+import type { Channel, ConsumeMessage } from "amqplib";
 import type { Logger } from "pino";
 
 const { connectMock } = vi.hoisted(() => ({
@@ -32,7 +33,7 @@ type FakeChannel = EventEmitter & {
   cancel: ReturnType<typeof vi.fn>;
   checkQueue: ReturnType<typeof vi.fn>;
   close: ReturnType<typeof vi.fn>;
-  consume: ReturnType<typeof vi.fn>;
+  consume: ReturnType<typeof vi.fn<Channel["consume"]>>;
   emitMessage: (message: ConsumeMessage | null) => void;
   nack: ReturnType<typeof vi.fn>;
   prefetch: ReturnType<typeof vi.fn>;
@@ -128,6 +129,14 @@ async function flush(): Promise<void> {
   await Promise.resolve();
 }
 
+function deferred<T = void>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((complete) => {
+    resolve = complete;
+  });
+  return { promise, resolve };
+}
+
 describe("createJobConsumer", () => {
   let channel: FakeChannel;
   let connection: FakeConnection;
@@ -183,6 +192,39 @@ describe("createJobConsumer", () => {
     expect(missingQueueChannel.assertQueue).not.toHaveBeenCalled();
     expect(missingQueueChannel.close).toHaveBeenCalledOnce();
     expect(missingQueueConnection.close).toHaveBeenCalledOnce();
+
+    const channelError = new Error("channel creation failed");
+    connection.createChannel.mockRejectedValueOnce(channelError);
+    await expect(createJobConsumer(options)).rejects.toBe(channelError);
+    expect(connection.close).toHaveBeenCalledOnce();
+  });
+
+  it.each(["connection", "channel"])("recovers an idle %s without consuming", async (resource) => {
+    vi.useFakeTimers();
+    const restored = createFakeChannel();
+    const restoredConnection = createFakeConnection([restored]);
+    const consumer = await createJobConsumer(options);
+    connectMock.mockResolvedValueOnce(restoredConnection);
+    connection.createChannel.mockResolvedValueOnce(restored);
+
+    (resource === "connection" ? connection : channel).emit("close");
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(restored.checkQueue).toHaveBeenCalledWith(QUEUE_NAME);
+    for (const checked of [channel, restored]) {
+      expect(checked.prefetch).not.toHaveBeenCalled();
+      expect(checked.consume).not.toHaveBeenCalled();
+      expect(checked.ack).not.toHaveBeenCalled();
+      expect(checked.reject).not.toHaveBeenCalled();
+    }
+    expect(childLogger.info).toHaveBeenCalledWith(
+      { queue: QUEUE_NAME },
+      "job consumer connection recovered",
+    );
+    await consumer.stop();
+    await consumer.stop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(restored.close).toHaveBeenCalledOnce();
   });
 
   it("correlates handler types with full job events", async () => {
@@ -197,6 +239,55 @@ describe("createJobConsumer", () => {
     await flush();
     await consumer.stop();
     await running;
+  });
+
+  it.each(["connection", "channel"])(
+    "rejects initialization interrupted during queue check by %s loss",
+    async (resource) => {
+      vi.useFakeTimers();
+      const check = deferred();
+      channel.checkQueue.mockReturnValueOnce(check.promise);
+      const creating = createJobConsumer(options);
+      const outcome = creating.catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(0);
+      (resource === "connection" ? connection : channel).emit("close");
+      check.resolve();
+      expect(await outcome).toMatchObject({ message: expect.stringContaining("interrupted") });
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(channel.close).toHaveBeenCalledOnce();
+      expect(connection.close).toHaveBeenCalledOnce();
+      expect(connectMock).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("activates during an idle recovery queue check and preserves the consuming lifetime", async () => {
+    vi.useFakeTimers();
+    const restored = createFakeChannel();
+    const check = deferred();
+    restored.checkQueue.mockReturnValueOnce(check.promise);
+    const consumer = await createJobConsumer(options);
+    connection.createChannel.mockResolvedValueOnce(restored);
+    channel.emit("close");
+    await vi.advanceTimersByTimeAsync(100);
+    const handler = vi.fn();
+    consumer.registerJobHandler(JobType.INGESTION, handler);
+    const settled = vi.fn();
+    const running = consumer.start().then(settled);
+    check.resolve();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(restored.consume).toHaveBeenCalledOnce();
+    expect(restored.prefetch).toHaveBeenCalledWith(1);
+    restored.emitMessage(
+      createMessage(createJobEvent({ type: JobType.INGESTION, data: ingestionData })),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    expect(handler).toHaveBeenCalledOnce();
+    expect(restored.ack).toHaveBeenCalledOnce();
+    expect(settled).not.toHaveBeenCalled();
+    await expect(consumer.start()).rejects.toThrow("already started");
+    await consumer.stop();
+    await running;
+    expect(settled).toHaveBeenCalledOnce();
   });
 
   it("rejects duplicate and late handler registrations and lists missing handlers", async () => {
@@ -216,6 +307,315 @@ describe("createJobConsumer", () => {
     await consumer.stop();
     await running;
   });
+
+  it.each(["connect", "createChannel", "checkQueue", "prefetch", "consume"])(
+    "stops safely during pending %s",
+    async (phase) => {
+      vi.useFakeTimers();
+      const consumer = await createJobConsumer(options);
+      const handling = deferred();
+      const handler = vi.fn(() => handling.promise);
+      consumer.registerJobHandler(JobType.INGESTION, handler);
+      const running = consumer.start();
+      await vi.advanceTimersByTimeAsync(0);
+
+      const restored = createFakeChannel();
+      const restoredConnection = createFakeConnection([restored]);
+      const pending = deferred();
+      connectMock.mockResolvedValueOnce(restoredConnection);
+      if (phase === "connect") {
+        connectMock.mockReset().mockReturnValueOnce(pending.promise.then(() => restoredConnection));
+      } else if (phase === "createChannel") {
+        restoredConnection.createChannel.mockReturnValueOnce(pending.promise.then(() => restored));
+      } else if (phase === "consume") {
+        const consume = restored.consume;
+        restored.consume = vi.fn((...args) => {
+          void consume(...args);
+          return pending.promise.then(() => ({ consumerTag: "consumer-tag" }));
+        });
+      } else {
+        restored[phase as "checkQueue" | "prefetch"].mockReturnValueOnce(pending.promise);
+      }
+      connection.emit("close");
+      await vi.advanceTimersByTimeAsync(100);
+      if (phase === "consume") {
+        restored.emitMessage(
+          createMessage(createJobEvent({ type: JobType.INGESTION, data: ingestionData })),
+        );
+        await vi.advanceTimersByTimeAsync(0);
+        expect(handler).toHaveBeenCalledOnce();
+      }
+
+      const stopping = consumer.stop();
+      const stoppingAgain = consumer.stop();
+      pending.resolve();
+      await vi.advanceTimersByTimeAsync(0);
+      if (phase === "consume") {
+        expect(restored.cancel).toHaveBeenCalledOnce();
+        expect(restored.close).not.toHaveBeenCalled();
+      } else {
+        expect(restored.consume).not.toHaveBeenCalled();
+      }
+      handling.resolve();
+      await Promise.all([stopping, stoppingAgain, running]);
+      expect(restoredConnection.close).toHaveBeenCalledOnce();
+      if (phase !== "connect") {
+        expect(restored.close).toHaveBeenCalledOnce();
+      }
+      if (phase === "consume") {
+        expect(restored.ack).toHaveBeenCalledOnce();
+      }
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(vi.getTimerCount()).toBe(0);
+      await expect(consumer.start()).rejects.toThrow("stopped");
+    },
+  );
+
+  it("does not lose retries when a queue check outlasts a recovery timer", async () => {
+    vi.useFakeTimers();
+    const consumer = await createJobConsumer(options);
+    const interrupted = createFakeChannel();
+    const restored = createFakeChannel();
+    const check = deferred();
+    interrupted.checkQueue.mockReturnValueOnce(check.promise);
+    connection.createChannel.mockResolvedValueOnce(interrupted).mockResolvedValueOnce(restored);
+    channel.emit("close");
+    await vi.advanceTimersByTimeAsync(100);
+    interrupted.emit("close");
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(connection.createChannel).toHaveBeenCalledTimes(2);
+    check.resolve();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(restored.checkQueue).toHaveBeenCalledOnce();
+    expect(restored.consume).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+    await consumer.stop();
+  });
+
+  it("does not overlap or lose recovery when activation coincides with a scheduled retry", async () => {
+    vi.useFakeTimers();
+    const consumer = await createJobConsumer(options);
+    const pending = deferred<FakeConnection>();
+    connectMock.mockReturnValueOnce(pending.promise);
+    connection.emit("close");
+    consumer.registerJobHandler(JobType.INGESTION, vi.fn());
+    const running = consumer.start();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(connectMock).toHaveBeenCalledTimes(2);
+    const failed = createFakeChannel();
+    failed.checkQueue.mockRejectedValueOnce(new Error("queue unavailable"));
+    pending.resolve(createFakeConnection([failed]));
+    const restored = createFakeChannel();
+    connectMock.mockResolvedValueOnce(createFakeConnection([restored]));
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(connectMock).toHaveBeenCalledTimes(3);
+    expect(restored.consume).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+    await consumer.stop();
+    await running;
+  });
+
+  it("does not report idle recovery success after the checked channel is lost", async () => {
+    vi.useFakeTimers();
+    const consumer = await createJobConsumer(options);
+    const interrupted = createFakeChannel();
+    const restored = createFakeChannel();
+    const check = deferred();
+    interrupted.checkQueue.mockReturnValueOnce(check.promise);
+    connection.createChannel.mockResolvedValueOnce(interrupted).mockResolvedValueOnce(restored);
+    channel.emit("close");
+    await vi.advanceTimersByTimeAsync(100);
+    check.resolve();
+    // Loss after createCheckedChannel's validation but before its caller resumes.
+    void Promise.resolve().then(() => interrupted.emit("close"));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(childLogger.info).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(200);
+    expect(restored.checkQueue).toHaveBeenCalledOnce();
+    expect(childLogger.info).toHaveBeenCalledOnce();
+    await consumer.stop();
+  });
+
+  it("keeps retrying idle recovery with capped exponential delays and resets after success", async () => {
+    vi.useFakeTimers();
+    const consumer = await createJobConsumer(options);
+    connectMock.mockRejectedValue(new Error("offline"));
+    connection.emit("close");
+    const delays = [100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 30000, 30000];
+    for (const [index, delay] of delays.entries()) {
+      await vi.advanceTimersByTimeAsync(delay - 1);
+      expect(connectMock).toHaveBeenCalledTimes(index + 1);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(connectMock).toHaveBeenCalledTimes(index + 2);
+    }
+    const restored = createFakeChannel();
+    const restoredConnection = createFakeConnection([restored]);
+    connectMock.mockResolvedValueOnce(restoredConnection);
+    await vi.advanceTimersByTimeAsync(30000);
+    expect(restored.checkQueue).toHaveBeenCalledOnce();
+    expect(restored.consume).not.toHaveBeenCalled();
+    restoredConnection.emit("close");
+    const attempts = connectMock.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(99);
+    expect(connectMock).toHaveBeenCalledTimes(attempts);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(connectMock).toHaveBeenCalledTimes(attempts + 1);
+    await consumer.stop();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(connectMock).toHaveBeenCalledTimes(attempts + 1);
+  });
+
+  it("omits arbitrary broker error contents from structured lifecycle logs", async () => {
+    vi.useFakeTimers();
+    const secret = "private-broker-password";
+    options.connectionOptions = `amqp://private-user:${secret}@broker`;
+    const brokerError = new Error(`login failed for private-user with password ${secret}`, {
+      cause: { password: secret, url: options.connectionOptions },
+    });
+    brokerError.name = secret;
+    connectMock.mockRejectedValueOnce(brokerError);
+    await expect(createJobConsumer(options)).rejects.toBe(brokerError);
+    const consumer = await createJobConsumer(options);
+    connection.emit("error", brokerError);
+    channel.emit("error", brokerError);
+    connection.emit("close", brokerError);
+    connectMock.mockRejectedValueOnce(brokerError);
+    await vi.advanceTimersByTimeAsync(100);
+    const failed = createFakeChannel();
+    const restored = createFakeChannel();
+    const restoredConnection = createFakeConnection([failed, restored]);
+    failed.checkQueue.mockRejectedValueOnce(brokerError);
+    failed.close.mockRejectedValueOnce(brokerError);
+    connectMock.mockResolvedValue(restoredConnection);
+    await vi.advanceTimersByTimeAsync(200);
+    await vi.advanceTimersByTimeAsync(400);
+    consumer.registerJobHandler(JobType.INGESTION, vi.fn());
+    const running = consumer.start();
+    await vi.advanceTimersByTimeAsync(0);
+    restored.cancel.mockRejectedValueOnce(brokerError);
+    restored.close.mockRejectedValueOnce(brokerError);
+    restoredConnection.close.mockRejectedValueOnce(brokerError);
+    await consumer.stop();
+    await running;
+    const logs = inspect(
+      [
+        vi.mocked(childLogger.error).mock.calls,
+        vi.mocked(childLogger.warn).mock.calls,
+        vi.mocked(childLogger.info).mock.calls,
+      ],
+      { depth: null },
+    );
+    expect(logs).not.toContain(secret);
+    expect(logs).not.toContain("private-user");
+    expect(logs).toContain("job consumer connection recovered");
+    expect(logs).toContain("job consumer unavailable; recovery scheduled");
+  });
+
+  it("ignores stale close, error, and cancellation events after resubscribing", async () => {
+    vi.useFakeTimers();
+    const consumer = await createJobConsumer(options);
+    consumer.registerJobHandler(JobType.INGESTION, vi.fn());
+    const running = consumer.start();
+    await vi.advanceTimersByTimeAsync(0);
+    const restored = createFakeChannel();
+    connectMock.mockResolvedValueOnce(createFakeConnection([restored]));
+    connection.emit("close");
+    await vi.advanceTimersByTimeAsync(100);
+    channel.emit("close");
+    channel.emit("error", new Error("stale"));
+    channel.emit("cancel");
+    channel.emitMessage(null);
+    connection.emit("close");
+    connection.emit("error", new Error("stale"));
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(restored.consume).toHaveBeenCalledOnce();
+    await consumer.stop();
+    await running;
+  });
+
+  it("retries cancellation between subscription setup and recovery completion", async () => {
+    vi.useFakeTimers();
+    const consumer = await createJobConsumer(options);
+    const pending = deferred<{ consumerTag: string }>();
+    channel.consume.mockReturnValueOnce(pending.promise);
+    const handler = vi.fn();
+    consumer.registerJobHandler(JobType.INGESTION, handler);
+    const running = consumer.start();
+    await vi.advanceTimersByTimeAsync(0);
+    const callback = channel.consume.mock.calls[0]![1];
+
+    pending.resolve({ consumerTag: "cancelled-tag" });
+    // subscribe() resumes first; cancellation runs before recover() resumes.
+    void Promise.resolve().then(() => callback(null));
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(channel.consume).toHaveBeenCalledTimes(2);
+    expect(childLogger.info).toHaveBeenCalledExactlyOnceWith(
+      { queue: QUEUE_NAME },
+      "job consumer subscribed",
+    );
+    channel.emitMessage(
+      createMessage(createJobEvent({ type: JobType.INGESTION, data: ingestionData })),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    expect(handler).toHaveBeenCalledOnce();
+    expect(channel.ack).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+    await consumer.stop();
+    await running;
+  });
+
+  it("ignores a previous subscription callback when reusing the same channel", async () => {
+    vi.useFakeTimers();
+    const consumer = await createJobConsumer(options);
+    const handler = vi.fn();
+    consumer.registerJobHandler(JobType.INGESTION, handler);
+    const running = consumer.start();
+    await vi.advanceTimersByTimeAsync(0);
+    const oldCallback = channel.consume.mock.calls[0]![1];
+    channel.emit("cancel");
+    await vi.advanceTimersByTimeAsync(100);
+    expect(channel.consume).toHaveBeenCalledTimes(2);
+    oldCallback(null);
+    oldCallback(createMessage(createJobEvent({ type: JobType.INGESTION, data: ingestionData })));
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(channel.consume).toHaveBeenCalledTimes(2);
+    expect(handler).not.toHaveBeenCalled();
+    await consumer.stop();
+    await running;
+  });
+
+  it.each(["connect", "checkQueue"])(
+    "stops an idle pending recovery during %s without subscribing",
+    async (phase) => {
+      vi.useFakeTimers();
+      const consumer = await createJobConsumer(options);
+      const restored = createFakeChannel();
+      const restoredConnection = createFakeConnection([restored]);
+      const pending = deferred();
+      if (phase === "connect") {
+        connectMock.mockReturnValueOnce(pending.promise.then(() => restoredConnection));
+      } else {
+        connectMock.mockResolvedValueOnce(restoredConnection);
+        restored.checkQueue.mockReturnValueOnce(pending.promise);
+      }
+      connection.emit("close");
+      await vi.advanceTimersByTimeAsync(100);
+      const stopping = consumer.stop();
+      const stoppingAgain = consumer.stop();
+      pending.resolve();
+      await Promise.all([stopping, stoppingAgain]);
+      restoredConnection.emit("close");
+      restored.emit("close");
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(connectMock).toHaveBeenCalledTimes(2);
+      expect(restoredConnection.close).toHaveBeenCalledOnce();
+      expect(restored.consume).not.toHaveBeenCalled();
+      expect(restored.prefetch).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    },
+  );
 
   it("validates, dispatches sequentially, and acknowledges after handler completion", async () => {
     const consumer = await createJobConsumer(options);
