@@ -258,11 +258,17 @@ runs the checked-in Node script using the standard `node:24-alpine` image; no
 application image or additional application role is required.
 
 Supply these six environment variables through your deployment's secret
-configuration or a private, untracked Compose `--env-file`:
+configuration or the ignored root `.env` (alternatively a private Compose `--env-file`):
 
 - `RABBITMQ_PROVISIONER_USER` and `RABBITMQ_PROVISIONER_PASSWORD`
 - `RABBITMQ_API_USER` and `RABBITMQ_API_PASSWORD`
 - `RABBITMQ_WORKER_USER` and `RABBITMQ_WORKER_PASSWORD`
+
+Root Compose additionally requires `RABBITMQ_API_URL` and `RABBITMQ_WORKER_URL`:
+full URLs with the respective provisioned credentials, host `rabbitmq`, and vhost
+`exposurenexus`. Percent-encode username/password URL components, not the raw
+credential inputs above. See the [eight-variable example](deployment.md#compose-configuration).
+Local API and worker `.env` URLs use `localhost` and the same distinct accounts.
 
 There are no broker credential defaults. Choose three distinct, non-`guest`
 usernames using letters, digits, `_`, `-`, `.`, or `@` (start with a letter,
@@ -319,8 +325,17 @@ infrastructure tooling. Application connections always remain passive.
 
 Run `pnpm test:infra` for isolated management-API doubles covering provisioning,
 repeatability, conflicts, failures, and secret handling. These tests do not start
-containers or a live broker. Application dependency gates, worker wiring, and
-localhost development port exposure are delivered separately in ticket 06.
+containers or a live broker. The [reference stack](deployment.md) gates both roles
+on healthy infrastructure and successful init, and worker on API health. Worker
+still performs authoritative read-only migration checks, with no ongoing API
+dependency. The [development override](development.md#start-infrastructure) exposes
+PostgreSQL, AMQP, and management on localhost for terminal-based applications.
+
+The worker is intentionally connected but idle until a complete real handler set
+ships, when consumption activates automatically. It has no subscription or health
+endpoint; logs and exit status describe availability, not processing readiness.
+Queued jobs accumulate without consuming delivery retry budgets. Real ingestion,
+execution-state orchestration, and business idempotency remain future work.
 
 ### Equivalent Manual Topology
 

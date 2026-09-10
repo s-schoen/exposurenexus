@@ -42,16 +42,17 @@ not yet available.
 
 ```bash
 pnpm install
-pnpm dev:api
-pnpm dev:ui
 ```
 
-The API and UI need local environment configuration before they can run successfully.
-See [Development](docs/development.md) for PostgreSQL, mandatory RabbitMQ, environment variables, and workspace commands.
+Before running applications, follow [Development](docs/development.md) to configure credentials, start PostgreSQL and
+mandatory RabbitMQ, and verify one-shot initialization. Then run `pnpm dev:api`, `pnpm dev:worker`, and `pnpm dev:ui`
+in separate terminals, waiting for API startup before starting the worker. The worker is initially connected but idle;
+queued jobs accumulate until real ingestion handlers ship.
 
 ## Deployment
 
-See [Deployment](docs/deployment.md) for the Docker Compose example, mandatory external RabbitMQ setup, and single-API deployment constraints. Reference-stack broker wiring is not yet included.
+See [Deployment](docs/deployment.md) for the reference Compose stack with PostgreSQL, RabbitMQ, one-shot provisioning,
+and API/worker roles from one image, including single-API updates, worker scaling, and graceful shutdown.
 
 ## Development
 
