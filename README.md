@@ -47,11 +47,11 @@ pnpm dev:ui
 ```
 
 The API and UI need local environment configuration before they can run successfully.
-See [Development](docs/development.md) for PostgreSQL, environment variables, and workspace commands.
+See [Development](docs/development.md) for PostgreSQL, mandatory RabbitMQ, environment variables, and workspace commands.
 
 ## Deployment
 
-For a Docker Compose example that runs the production app image with PostgreSQL, see [Deployment](docs/deployment.md).
+See [Deployment](docs/deployment.md) for the Docker Compose example, mandatory external RabbitMQ setup, and single-API deployment constraints. Reference-stack broker wiring is not yet included.
 
 ## Development
 

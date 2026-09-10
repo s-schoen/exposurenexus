@@ -10,14 +10,38 @@ As established by [ADR-0004](adr/0004-shared-backend-capabilities.md),
 `@exposurenexus/backend/database` owns application migrations and the aggregate
 database type. Its narrow dependency on `@exposurenexus/jobs/postgres` supplies
 the jobs table contract; the application migration lives in backend. The API runs backend migrations during
-startup; a future worker will not run them.
+startup; the worker only verifies that required migrations have been applied.
 
 Executable apps own connection lifecycle and jobs infrastructure composition.
 Queue producers, consumers, relays, handlers, and delivery policy remain in
 apps and the jobs package. Backend capability callers do not gain repository
-or transaction access through this integration. There is no worker application
-or ingestion handler wired into the API yet; the package examples below
-describe queue primitives, not an implemented ingestion workflow.
+or transaction access through this integration. The API hosts the producer and
+one outbox relay. The worker maintains its consumer connection but remains idle
+without implemented handlers. The package examples below describe queue
+primitives, not an implemented ingestion workflow.
+
+## API Lifecycle And Deployment
+
+RabbitMQ is mandatory. Configure `RABBITMQ_URL` with an `amqp://` or `amqps://`
+connection URL and `RABBITMQ_EXCHANGE` with the provisioned jobs exchange name.
+The API does not provision topology and has no jobs-enable flag. After migrations
+and default-admin initialization, startup connects the confirm-channel producer,
+checks the exchange, starts the relay over the application database, and binds
+HTTP before reporting completion. Initial dependency or bind failure exits
+nonzero after cleanup. `STARTUP_TIMEOUT_MS` defaults to `30000`.
+
+Run **exactly one active API instance**. Upgrades must stop the old API before
+starting its replacement, without even temporary replica overlap. There is no
+relay role, worker-hosted relay, singleton lock, or leader election. Workers may
+scale independently. See [ADR-0005](adr/0005-worker-runtime-and-deployment-topology.md).
+
+`SIGINT` and `SIGTERM` stop new HTTP and relay work and drain both before closing
+the producer and database. Repeated shutdown requests are safe.
+`SHUTDOWN_TIMEOUT_MS` defaults to `60000`; expiry logs and forces a nonzero exit
+even if draining or resource closure is still pending. Allow the supervisor more
+than this deadline before forced termination. Shutdown preserves at-least-once
+publication: a confirmed message whose outcome was not persisted can be published
+again after restart, with the same identity.
 
 ## Transactional Outbox
 
@@ -43,7 +67,10 @@ attempts and five seconds between attempts. An exhausted job remains in
 publication state `failed` until an operator explicitly retries it (resetting
 the attempt count), abandons it, or performs a permitted deletion. Database
 infrastructure recovery uses the same fixed delay but does not consume a
-publication attempt.
+publication attempt. Publishing while disconnected does consume an attempt;
+broker reconnection does not revive exhausted publication failures. Explicit
+retry is available through the existing job service, but there is no operator
+UI or dead-letter reconciliation yet.
 
 Publication state (`pending`, `published`, `failed`, or `abandoned`) describes
 delivery to RabbitMQ. Execution state (`pending`, `running`, `succeeded`, or
@@ -51,10 +78,10 @@ delivery to RabbitMQ. Execution state (`pending`, `running`, `succeeded`, or
 publication failure is not an execution failure, and RabbitMQ redelivery is
 not a new publication attempt.
 
-Runtime application wiring and dead-letter-queue reconciliation are outside
-the package's current implementation. Deployments must compose and supervise
-the producer and relay, guarantee the single-relay restriction, and separately
-operate the RabbitMQ topology described below.
+Deployments must supervise the API-owned producer and relay, guarantee the
+single-relay restriction, and separately operate the RabbitMQ topology described
+below. Automated ingestion submission and dead-letter-queue reconciliation
+remain unimplemented.
 
 ## Confirm-channel Producer
 
