@@ -18,6 +18,22 @@ export function createMigrationProvider(): FileMigrationProvider {
   });
 }
 
+export async function checkDatabaseMigrations(database: Kysely<Database>): Promise<void> {
+  const migrator = new Migrator({
+    db: database,
+    provider: createMigrationProvider(),
+  });
+  // getMigrations only reads history; migration runners also create tables and locks.
+  const migrations = await migrator.getMigrations();
+  const missing = migrations.filter((migration) => !migration.executedAt);
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Database migrations are missing: ${missing.map((migration) => migration.name).join(", ")}. Run the API migrations before starting the worker.`,
+    );
+  }
+}
+
 export async function migrateToLatest(database: Kysely<Database>, logger: Logger): Promise<void> {
   const migrator = new Migrator({
     db: database,
