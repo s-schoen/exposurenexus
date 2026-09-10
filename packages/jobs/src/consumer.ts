@@ -15,6 +15,7 @@ type RegisteredJobHandler = (event: JobEvent) => void | Promise<void>;
 interface JobSubscription {
   channel: Channel;
   consumerTag: string;
+  version: number;
 }
 
 /**
@@ -52,12 +53,15 @@ function toError(error: unknown, fallbackMessage: string): Error {
 }
 
 export async function createJobConsumer(options: JobConsumerOptions): Promise<JobConsumer> {
+  // Broker errors can embed credentials in arbitrary messages, stacks, or causes.
+  // Lifecycle logs use only local reason labels, never raw transport errors.
   const logger = options.logger.child({ component: "job-consumer" });
   const handlers = new Map<JobEventType, RegisteredJobHandler>();
 
   let channel: Channel | undefined;
   let connection: ChannelModel | undefined;
   let subscription: JobSubscription | undefined;
+  let subscriptionVersion = 0;
   let recoveryPromise: Promise<void> | undefined;
   let closePromise: Promise<void> | undefined;
   let lifetimePromise: Promise<void> | undefined;
@@ -68,6 +72,7 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
   let processingTail = Promise.resolve();
   let activeHandler: Promise<void> | undefined;
   let started = false;
+  let initialized = false;
   let closed = false;
 
   async function closeQuietly(resource: { close(): Promise<void> } | undefined): Promise<void> {
@@ -77,22 +82,18 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
 
     try {
       await resource.close();
-    } catch (error) {
-      logger.warn(
-        { err: error, queue: options.queueName },
-        "failed to close job consumer resource",
-      );
+    } catch {
+      logger.warn({ queue: options.queueName }, "failed to close job consumer resource");
     }
   }
 
   async function cancelQuietly(currentSubscription: JobSubscription): Promise<void> {
     try {
       await currentSubscription.channel.cancel(currentSubscription.consumerTag);
-    } catch (error) {
+    } catch {
       logger.warn(
         {
           consumerTag: currentSubscription.consumerTag,
-          err: error,
           queue: options.queueName,
         },
         "failed to cancel job consumer subscription",
@@ -155,15 +156,15 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
     }
   }
 
-  function handleConnectionError(connectionWithError: ChannelModel, error: Error): void {
+  function handleConnectionError(connectionWithError: ChannelModel): void {
     if (connection !== connectionWithError || closed) {
       return;
     }
 
-    logger.error({ err: error, queue: options.queueName }, "job consumer connection error");
+    logger.error({ queue: options.queueName }, "job consumer connection error");
   }
 
-  function handleConnectionClose(connectionThatClosed: ChannelModel, error?: Error): void {
+  function handleConnectionClose(connectionThatClosed: ChannelModel): void {
     if (connection !== connectionThatClosed) {
       return;
     }
@@ -172,18 +173,17 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
     channel = undefined;
     subscription = undefined;
 
-    const reason = toError(error, "job consumer connection closed");
-    if (started && !closed) {
-      scheduleRecovery(reason);
+    if (initialized && !closed) {
+      scheduleRecovery("connection_closed");
     }
   }
 
-  function handleChannelError(channelWithError: Channel, error: Error): void {
+  function handleChannelError(channelWithError: Channel): void {
     if (channel !== channelWithError || closed) {
       return;
     }
 
-    logger.error({ err: error, queue: options.queueName }, "job consumer channel error");
+    logger.error({ queue: options.queueName }, "job consumer channel error");
   }
 
   function handleChannelClose(channelThatClosed: Channel): void {
@@ -196,30 +196,33 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
       subscription = undefined;
     }
 
-    const reason = new Error("job consumer channel closed");
-    if (started && !closed) {
-      scheduleRecovery(reason);
+    if (initialized && !closed) {
+      scheduleRecovery("channel_closed");
     }
   }
 
   function handleSubscriptionCancellation(channelThatWasCancelled: Channel): void {
+    if (channel !== channelThatWasCancelled || closed) {
+      return;
+    }
+
+    subscriptionVersion += 1;
     if (subscription?.channel === channelThatWasCancelled) {
       subscription = undefined;
     }
 
-    const reason = new Error("job consumer subscription cancelled by broker");
     if (started && !closed) {
-      scheduleRecovery(reason);
+      scheduleRecovery("subscription_cancelled");
     }
   }
 
   function watchConnection(connectionToWatch: ChannelModel): void {
-    connectionToWatch.on("error", (error) => handleConnectionError(connectionToWatch, error));
-    connectionToWatch.on("close", (error) => handleConnectionClose(connectionToWatch, error));
+    connectionToWatch.on("error", () => handleConnectionError(connectionToWatch));
+    connectionToWatch.on("close", () => handleConnectionClose(connectionToWatch));
   }
 
   function watchChannel(channelToWatch: Channel): void {
-    channelToWatch.on("error", (error) => handleChannelError(channelToWatch, error));
+    channelToWatch.on("error", () => handleChannelError(channelToWatch));
     channelToWatch.on("close", () => handleChannelClose(channelToWatch));
     channelToWatch.on("cancel", () => handleSubscriptionCancellation(channelToWatch));
   }
@@ -233,21 +236,18 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
       return await connect(options.connectionOptions);
     } catch (error) {
       const connectionError = toError(error, "job consumer connection failed");
-      logger.error(
-        { err: connectionError, queue: options.queueName },
-        "failed to connect job consumer",
-      );
+      logger.error({ queue: options.queueName }, "failed to connect job consumer");
       throw connectionError;
     }
   }
 
-  function scheduleRecovery(error: Error): void {
-    if (closed || !started || recoveryTimer) {
+  function scheduleRecovery(reason: string): void {
+    if (closed || !initialized || recoveryTimer || recoveryInProgress) {
       return;
     }
 
     logger.warn(
-      { err: error, queue: options.queueName },
+      { reason, delayMs: recoveryDelay, queue: options.queueName },
       "job consumer unavailable; recovery scheduled",
     );
 
@@ -262,10 +262,16 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
   async function createCheckedChannel(connectionToUse: ChannelModel): Promise<Channel> {
     const nextChannel = await connectionToUse.createChannel();
     watchChannel(nextChannel);
-    channel = nextChannel;
 
     try {
+      if (closed || connection !== connectionToUse) {
+        throw new Error("job consumer connection setup interrupted");
+      }
+      channel = nextChannel;
       await nextChannel.checkQueue(options.queueName);
+      if (closed || connection !== connectionToUse || channel !== nextChannel) {
+        throw new Error("job consumer queue check interrupted");
+      }
     } catch (error) {
       if (channel === nextChannel) {
         channel = undefined;
@@ -330,38 +336,45 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
 
   async function subscribe(
     connectionToUse: ChannelModel,
-    existingChannel?: Channel,
+    nextChannel: Channel,
   ): Promise<JobSubscription> {
-    const nextChannel = existingChannel ?? (await createCheckedChannel(connectionToUse));
+    const version = ++subscriptionVersion;
     let cancelled = false;
 
     try {
-      if (existingChannel) {
-        await nextChannel.checkQueue(options.queueName);
-      }
+      await nextChannel.checkQueue(options.queueName);
 
+      if (closed || connection !== connectionToUse || channel !== nextChannel) {
+        throw new Error("job consumer subscription setup interrupted");
+      }
       await nextChannel.prefetch(1);
+      if (closed || connection !== connectionToUse || channel !== nextChannel) {
+        throw new Error("job consumer subscription setup interrupted");
+      }
       const result = await nextChannel.consume(
         options.queueName,
         (message) => {
+          if (version !== subscriptionVersion) {
+            return;
+          }
           if (message === null) {
             cancelled = true;
             handleSubscriptionCancellation(nextChannel);
             return;
           }
 
-          if (!closed) {
+          if (!closed && channel === nextChannel) {
             queueMessage(nextChannel, message);
           }
         },
         { noAck: false },
       );
 
-      if (cancelled) {
+      if (cancelled || version !== subscriptionVersion) {
         throw new Error("job consumer subscription was cancelled during setup");
       }
 
-      return { channel: nextChannel, consumerTag: result.consumerTag };
+      return { channel: nextChannel, consumerTag: result.consumerTag, version };
     } catch (error) {
       if (channel === nextChannel) {
         channel = undefined;
@@ -372,7 +385,7 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
   }
 
   async function recover(): Promise<void> {
-    if (closed || !started || subscription || recoveryInProgress) {
+    if (closed || !initialized || (channel && (!started || subscription)) || recoveryInProgress) {
       return;
     }
 
@@ -388,7 +401,7 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
         watchConnection(recoveryConnection);
       }
 
-      if (closed || !started) {
+      if (closed) {
         if (ownsRecoveryConnection) {
           if (connection === recoveryConnection) {
             connection = undefined;
@@ -398,20 +411,37 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
         return;
       }
 
-      const nextSubscription = await subscribe(recoveryConnection, channel);
+      const checkedChannel = channel ?? (await createCheckedChannel(recoveryConnection));
+      if (closed) {
+        return;
+      }
+      if (connection !== recoveryConnection || channel !== checkedChannel) {
+        throw new Error("job consumer recovery interrupted");
+      }
 
-      if (
-        closed ||
-        !started ||
-        connection !== recoveryConnection ||
-        channel !== nextSubscription.channel
-      ) {
+      if (!started) {
+        recoveryDelay = INITIAL_RECOVERY_DELAY_MS;
+        logger.info({ queue: options.queueName }, "job consumer connection recovered");
+        return;
+      }
+
+      const nextSubscription = await subscribe(recoveryConnection, checkedChannel);
+
+      if (connection !== recoveryConnection || channel !== nextSubscription.channel) {
         await cancelQuietly(nextSubscription);
         await closeQuietly(nextSubscription.channel);
         return;
       }
 
+      if (nextSubscription.version !== subscriptionVersion) {
+        return;
+      }
+
       subscription = nextSubscription;
+      if (closed) {
+        // stop() owns cancellation and draining, including deliveries during setup.
+        return;
+      }
       recoveryDelay = INITIAL_RECOVERY_DELAY_MS;
 
       if (recoveryTimer) {
@@ -420,9 +450,10 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
       }
 
       logger.info({ queue: options.queueName }, "job consumer subscribed");
-    } catch (error) {
-      const recoveryError = toError(error, "job consumer recovery failed");
-      logger.warn({ err: recoveryError, queue: options.queueName }, "job consumer recovery failed");
+    } catch {
+      if (!closed) {
+        logger.warn({ queue: options.queueName }, "job consumer recovery failed");
+      }
 
       if (ownsRecoveryConnection && recoveryConnection) {
         if (connection === recoveryConnection) {
@@ -430,8 +461,6 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
         }
         await closeQuietly(recoveryConnection);
       }
-
-      scheduleRecovery(recoveryError);
     } finally {
       recoveryInProgress = false;
     }
@@ -448,6 +477,11 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
       () => {
         if (recoveryPromise === attempt) {
           recoveryPromise = undefined;
+          // Reconcile after the attempt settles: activation or loss may have
+          // happened while it was pending, even after its last availability check.
+          if (!channel || (started && !subscription)) {
+            scheduleRecovery("recovery_incomplete");
+          }
         }
       },
       () => {
@@ -463,7 +497,12 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
   watchConnection(initialConnection);
 
   try {
-    await createCheckedChannel(initialConnection);
+    const initialChannel = await createCheckedChannel(initialConnection);
+    if (connection !== initialConnection || channel !== initialChannel) {
+      await closeQuietly(initialChannel);
+      throw new Error("job consumer initialization interrupted");
+    }
+    initialized = true;
   } catch (error) {
     channel = undefined;
     connection = undefined;
