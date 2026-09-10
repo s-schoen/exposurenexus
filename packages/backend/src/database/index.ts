@@ -22,7 +22,7 @@ import type { IngestionTable } from "./schema/ingestion.js";
 import type { JobTable } from "@exposurenexus/jobs/postgres";
 
 export { createDatabase, createPostgresDatabase, createPostgresPool } from "./factory.js";
-export { migrateToLatest } from "./migration.js";
+export { checkDatabaseMigrations, migrateToLatest } from "./migration.js";
 
 export interface Database {
   job: JobTable;
