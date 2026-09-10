@@ -42,6 +42,37 @@ Before deploying beyond local evaluation, edit `docker-compose.yaml` and replace
 with the PostgreSQL service credentials. Set `APP_ORIGIN` to the browser-facing
 origin users will load in their browser.
 
+## Image Roles
+
+One application image contains the API, bundled UI, and worker. Its default
+command is `api`; omitting the role also selects API. Select a role with a single
+argument after the image name, not an internal JavaScript path:
+
+```bash
+docker run --env-file api.env -p 3001:3001 ghcr.io/s-schoen/exposurenexus:edge
+docker run --env-file api.env -p 3001:3001 ghcr.io/s-schoen/exposurenexus:edge api
+docker run --env-file worker.env ghcr.io/s-schoen/exposurenexus:edge worker
+```
+
+These examples assume reachable PostgreSQL and pre-provisioned RabbitMQ. Supply
+API configuration in `api.env`. The worker requires `DATABASE_URL` and
+`RABBITMQ_URL` (with consumer credentials). `RABBITMQ_QUEUE` optionally overrides
+the default `EXPOSURENEXUS_JOBS_INGEST` queue. It does not require or load API
+authentication, origin, session, or static-serving configuration. See the
+[worker configuration and lifecycle](../apps/worker/README.md). API migrations
+must finish before starting the worker; the worker only checks migration status.
+
+In Compose, use `command: ["api"]` or `command: ["worker"]` with the same image.
+Reference-stack wiring is tracked separately. There is no environment-based role
+selector or relay role. Unknown roles and extra arguments fail before either
+application initializes.
+
+The distroless, nonroot runtime needs no shell or package manager. The selected
+application runs directly in the launcher Node process, receiving signals and
+retaining its exit status. Allow 75 seconds for graceful container shutdown with
+the default application deadline. The worker starts in connected idle mode,
+without consuming jobs or serving HTTP; jobs accumulate until real handlers ship.
+
 ## Image Tags
 
 The CI pipeline publishes `ghcr.io/s-schoen/exposurenexus:edge` from `master`.
