@@ -110,13 +110,27 @@ fail instead of being held in process memory.
 
 ## Consumer
 
-The consumer also owns its connection. It passively checks the existing queue,
-uses manual acknowledgements and prefetch `1`, and processes one delivery at a
-time per worker replica.
+The consumer owns its connection and channel. `createJobConsumer()` connects and
+passively checks the existing queue without subscribing, acknowledging, or
+rejecting deliveries. Initial connection, channel creation, or queue-check
+failure rejects initialization and cleans up acquired resources; interruption
+during initialization is also a failure, not a background retry.
 
-Every worker replica must register every declared job type before calling
-`start()`. Registration is typed to the full event for the selected job type.
-Handlers must be idempotent because a delivery can run more than once.
+After successful initialization, connection maintenance is independent of
+consumption. Connection or channel loss triggers event-driven recovery and a
+fresh passive queue check, even if `start()` has never been called. Idle
+recovery never subscribes or touches queued jobs. Retry delays start at 100 ms,
+double up to 30 seconds, and reset after successful recovery. There is no finite
+recovery-attempt limit and no application polling loop.
+
+Consumption requires explicitly registering a handler for every declared job
+type before calling `start()`. Registration is typed to the full event for the
+selected job type; unknown types, duplicates, and registration after start or
+stop are rejected. An initialized consumer may stay idle without any handlers.
+Starting during idle recovery activates consumption once recovery succeeds.
+Consuming instances use manual acknowledgements and prefetch `1`, processing
+one delivery at a time per worker replica. Handlers must be idempotent because
+a delivery can run more than once.
 
 ```ts
 import pino from "pino";
@@ -149,10 +163,25 @@ await running;
 ```
 
 `start()` rejects if a handler is missing and otherwise represents the
-consumer lifetime. `stop()` cancels the subscription, waits for the active
-handler, and then closes the channel and connection. The consumer reconnects
-and resubscribes after an established connection or channel is interrupted;
-recovery uses bounded exponential backoff.
+consuming lifetime, not subscription readiness. Its promise remains pending
+across recovery and resolves after `stop()` finishes. A failed missing-handler
+validation leaves registration open; repeated starts and starting after stop
+are rejected. Once started, recovery also restores the subscription.
+
+`stop()` is safe before consumption starts and safe to repeat, including during
+recovery. It prevents further recovery and subscription setup, waits for pending
+broker operations, cancels any acquired subscription, drains accepted deliveries,
+and then closes the channel and connection. A subscription acquired by an
+already-pending `consume` call is still cancelled and drained before closing.
+The package does not impose a shutdown deadline on broker operations or handlers;
+the executable app owns process-level shutdown policy.
+
+Structured lifecycle logs identify connection/channel loss, retry reasons and
+delays, failed recovery, successful idle recovery, and subscription activation.
+They omit raw broker errors, including messages, stacks, and nested causes,
+because these can contain credentials outside connection URLs. Initialization
+errors are still returned to the caller; callers must not log them unsanitized.
+Job-processing error context and acknowledgement/rejection policy are unchanged.
 
 ## Processing Semantics
 
