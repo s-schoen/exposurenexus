@@ -27,7 +27,7 @@
     "test:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api test",
     "test:backend": "pnpm --filter @exposurenexus/backend^... build && pnpm --filter @exposurenexus/backend typecheck:test && pnpm --filter @exposurenexus/backend test",
     "test:contracts": "pnpm --filter @exposurenexus/contracts build && pnpm --filter @exposurenexus/contracts typecheck:test && pnpm --filter @exposurenexus/contracts test",
-    "test:infra": "node --test scripts/rabbitmq-init.test.mjs",
+    "test:infra": "node --test scripts/*.test.mjs",
     "test:jobs": "pnpm --filter @exposurenexus/jobs build && pnpm --filter @exposurenexus/jobs typecheck:test && pnpm --filter @exposurenexus/jobs test",
     "test:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test",
     "test:ui:unit": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test:unit",
