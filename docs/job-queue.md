@@ -168,6 +168,22 @@ across recovery and resolves after `stop()` finishes. A failed missing-handler
 validation leaves registration open; repeated starts and starting after stop
 are rejected. Once started, recovery also restores the subscription.
 
+Call `waitForInitialActivation()` after `start()` when startup must confirm a
+subscription. This separate promise resolves only after the first subscription
+has been accepted on the current connection/channel. It rejects on the first
+activation failure (including queue recheck, prefetch, consume, connection loss,
+or cancellation), or if stopped before activation. Calling it before a valid
+`start()` rejects without starting consumption. Its outcome is sticky: later
+recovery neither turns a failure into success nor invalidates a prior success.
+
+Lifetime-only callers can ignore this outcome and retain the existing automatic
+retry behavior, without unhandled rejections. Fail-fast executables must observe
+it, call `stop()` on failure, and keep their startup timeout active while waiting.
+An activation wait does not impose a broker-operation timeout or stop recovery
+itself. The worker also interrupts its readiness wait on shutdown so a pending
+subscription cannot prevent it from calling `stop()`. Subsequent connection loss
+after successful activation continues to use normal recovery.
+
 `stop()` is safe before consumption starts and safe to repeat, including during
 recovery. It prevents further recovery and subscription setup, waits for pending
 broker operations, cancels any acquired subscription, drains accepted deliveries,

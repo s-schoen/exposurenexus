@@ -41,6 +41,8 @@ export type JobHandler<TType extends JobEventType = JobEventType> = (
 export interface JobConsumer {
   registerJobHandler<TType extends JobEventType>(type: TType, handler: JobHandler<TType>): void;
   start(): Promise<void>;
+  /** First activation outcome after start(); later recovery does not change it. */
+  waitForInitialActivation(): Promise<void>;
   stop(): Promise<void>;
 }
 
@@ -66,6 +68,9 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
   let closePromise: Promise<void> | undefined;
   let lifetimePromise: Promise<void> | undefined;
   let resolveLifetime: (() => void) | undefined;
+  let initialActivationPromise: Promise<void> | undefined;
+  let resolveInitialActivation: (() => void) | undefined;
+  let rejectInitialActivation: ((error: Error) => void) | undefined;
   let recoveryTimer: ReturnType<typeof setTimeout> | undefined;
   let recoveryDelay = INITIAL_RECOVERY_DELAY_MS;
   let recoveryInProgress = false;
@@ -74,6 +79,10 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
   let started = false;
   let initialized = false;
   let closed = false;
+
+  function failInitialActivation(message = "job consumer initial activation failed"): void {
+    rejectInitialActivation?.(new Error(message));
+  }
 
   async function closeQuietly(resource: { close(): Promise<void> } | undefined): Promise<void> {
     if (!resource) {
@@ -172,6 +181,7 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
     connection = undefined;
     channel = undefined;
     subscription = undefined;
+    failInitialActivation();
 
     if (initialized && !closed) {
       scheduleRecovery("connection_closed");
@@ -195,6 +205,7 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
     if (subscription?.channel === channelThatClosed) {
       subscription = undefined;
     }
+    failInitialActivation();
 
     if (initialized && !closed) {
       scheduleRecovery("channel_closed");
@@ -207,6 +218,7 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
     }
 
     subscriptionVersion += 1;
+    failInitialActivation();
     if (subscription?.channel === channelThatWasCancelled) {
       subscription = undefined;
     }
@@ -273,6 +285,7 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
         throw new Error("job consumer queue check interrupted");
       }
     } catch (error) {
+      failInitialActivation();
       if (channel === nextChannel) {
         channel = undefined;
       }
@@ -376,6 +389,7 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
 
       return { channel: nextChannel, consumerTag: result.consumerTag, version };
     } catch (error) {
+      failInitialActivation();
       if (channel === nextChannel) {
         channel = undefined;
       }
@@ -428,12 +442,14 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
       const nextSubscription = await subscribe(recoveryConnection, checkedChannel);
 
       if (connection !== recoveryConnection || channel !== nextSubscription.channel) {
+        failInitialActivation();
         await cancelQuietly(nextSubscription);
         await closeQuietly(nextSubscription.channel);
         return;
       }
 
       if (nextSubscription.version !== subscriptionVersion) {
+        failInitialActivation();
         return;
       }
 
@@ -450,7 +466,9 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
       }
 
       logger.info({ queue: options.queueName }, "job consumer subscribed");
+      resolveInitialActivation?.();
     } catch {
+      failInitialActivation();
       if (!closed) {
         logger.warn({ queue: options.queueName }, "job consumer recovery failed");
       }
@@ -556,8 +574,18 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
     lifetimePromise = new Promise<void>((resolve) => {
       resolveLifetime = resolve;
     });
+    initialActivationPromise = new Promise<void>((resolve, reject) => {
+      resolveInitialActivation = resolve;
+      rejectInitialActivation = reject;
+    });
+    // Lifetime-only callers retain recovery without an unobserved rejection.
+    void initialActivationPromise.catch(() => undefined);
     startRecovery();
     return lifetimePromise;
+  }
+
+  function waitForInitialActivation(): Promise<void> {
+    return initialActivationPromise ?? Promise.reject(new Error("job consumer has not started"));
   }
 
   async function stop(): Promise<void> {
@@ -567,6 +595,7 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
 
     closePromise = (async () => {
       closed = true;
+      failInitialActivation("job consumer stopped before initial activation");
 
       if (recoveryTimer) {
         clearTimeout(recoveryTimer);
@@ -600,5 +629,5 @@ export async function createJobConsumer(options: JobConsumerOptions): Promise<Jo
     return closePromise;
   }
 
-  return { registerJobHandler, start, stop };
+  return { registerJobHandler, start, waitForInitialActivation, stop };
 }
