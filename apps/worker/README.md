@@ -61,8 +61,40 @@ After workspace installation and dependency builds, use
 `test:coverage`. `start` runs the compiled entry point; `dev` watches source,
 loads a local ignored `.env`, and pretty-prints logs. Root `pnpm dev:worker`,
 `pnpm test:worker`, and `pnpm coverage:worker` build dependencies first. Worker
-builds, tests, and coverage participate in CI. Container and Compose integration
-are deferred to later worker-runtime tickets.
+builds, tests, and coverage participate in CI.
+
+For local development, follow [infrastructure and environment setup](../../docs/development.md):
+configure all eight root Compose variables, start only PostgreSQL/RabbitMQ, and
+verify the one-shot init exits zero. Configure `apps/worker/.env` with the worker's
+distinct provisioned consumer credentials and a full `RABBITMQ_URL` using
+`localhost`, port `5672`, and vhost `exposurenexus`; percent-encode credentials in
+URLs. Start `pnpm dev:api` first and wait for health and migration completion,
+then run `pnpm dev:worker` in a separate terminal. Never run the container API
+alongside a local API against the same database.
+
+The [reference Compose stack](../../docs/deployment.md) starts `app` with `[api]`
+and `worker` with `[worker]` from the same `APP_IMAGE` (default
+`ghcr.io/s-schoen/exposurenexus:edge`). Both wait for healthy PostgreSQL/RabbitMQ and
+successful init; worker additionally waits for API health. This does not replace
+its read-only migration checks or introduce an ongoing API dependency.
+
+Once the stack is healthy, scale with
+`docker compose up -d --no-deps --scale worker=3 worker`. There are no worker host
+ports, fixed container names, or per-worker relays. Worker has no HTTP endpoint,
+healthcheck command, status file, or Compose healthcheck; logs and exit status
+are its monitoring contract. An available idle process does not mean jobs are
+being processed. Jobs accumulate until real handlers ship; real ingestion,
+execution-state orchestration, and business idempotency remain future work.
+
+Use Ctrl+C in the local terminal or `docker compose stop -t 75 worker` and wait for
+exit. Compose uses `unless-stopped` restart and 75 seconds of stop grace around
+the 60-second application deadline. Stop applications before infrastructure and
+preserve volumes; never use `down -v`. Follow the deployment guide's explicit
+stop-before-start API update procedure to prevent auto-restart and relay overlap.
+Publication retries are finite (five attempts, five-second delay by default): a
+broker outage can leave terminal publication failures requiring explicit retry
+through the job service. Reconnection does not revive them; operator UI and
+dead-letter reconciliation remain deferred.
 
 Unit tests inject handlers only for the existing ingestion job type. Transport
 integration tests run the real jobs consumer against a fake AMQP transport to

@@ -6,7 +6,7 @@ This document covers local development setup for ExposureNexus. The root README 
 
 - Node.js 24 LTS (`>=24.15.0 <25`)
 - `pnpm` 11.21.0
-- PostgreSQL 17, or Docker/Podman for the provided compose file
+- PostgreSQL, or Docker with Compose for the provided PostgreSQL 18 stack
 - RabbitMQ with the [jobs topology](job-queue.md#rabbitmq-topology) provisioned
 
 Always use `pnpm` for workspace commands.
@@ -17,15 +17,35 @@ Always use `pnpm` for workspace commands.
 pnpm install
 ```
 
-## Start PostgreSQL
+## Start Infrastructure
 
-A development compose file is available at `.dev/docker-compose.yaml`:
+Create the ignored root `.env` with all eight variables from
+[deployment configuration](deployment.md#compose-configuration). Compose requires
+the two full application URLs even when selecting infrastructure only. Root URLs
+use host `rabbitmq`; local application URLs use `localhost` instead.
+
+The checked-in `docker-compose.dev.yaml` reuses root infrastructure and binds
+PostgreSQL `5432`, AMQP `5672`, and management `15672` to `127.0.0.1` only.
+No private `.dev` stack is required. Run from the repository root, in order:
 
 ```bash
-docker compose -f .dev/docker-compose.yaml up -d
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml stop -t 75 worker app
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d --wait postgres rabbitmq
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm rabbitmq-init
 ```
 
-The compose file currently starts PostgreSQL 17 on port `5432` with password `postgres` and database `openvlp`.
+Check that the one-shot init command exits **zero** before starting the local API.
+Broker health alone is insufficient. On failure, correct the reported configuration
+or topology problem and rerun init; do not continue or delete volumes.
+
+Only PostgreSQL, RabbitMQ, and init run in containers for local development. Never
+run an unqualified Compose `up` alongside the local API: it starts a second API and
+outbox relay. Explicit `stop` also prevents old `unless-stopped` application
+containers from auto-restarting. Stop any other local API using this database too.
+
+The reference database is `exposurenexus`, user `exposurenexus`, password `change-me`.
+Management is at `http://localhost:15672` using the provisioner account, not an
+application account.
 
 ## Configure The API
 
@@ -40,8 +60,8 @@ STATIC_DIR=
 AUTH_COOKIE_SECURE=true
 AUTH_SECRET=replace-with-a-random-secret-at-least-32-characters
 AUTH_TRUSTED_PROXIES=
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/openvlp
-RABBITMQ_URL=amqp://api-publisher:replace-with-password@localhost:5672/exposurenexus
+DATABASE_URL=postgres://exposurenexus:change-me@localhost:5432/exposurenexus
+RABBITMQ_URL=amqp://api-publisher:replace-with-api-password@localhost:5672/exposurenexus
 RABBITMQ_EXCHANGE=EXPOSURENEXUS_JOBS
 STARTUP_TIMEOUT_MS=30000
 SHUTDOWN_TIMEOUT_MS=60000
@@ -59,13 +79,31 @@ If you use a different local database, update `DATABASE_URL` accordingly.
 On first startup, the API runs backend-owned database migrations automatically and creates a default admin user if the database is empty. The username is `admin`; the initial password is written to the API logs once.
 
 RabbitMQ is required even before automated ingestion is available. Supply your
-broker URL and provision the exchange before starting the API; the development
-Compose file above currently provides only PostgreSQL. Missing broker resources
+broker URL and provision the exchange before starting the API. Missing broker resources
 or an initial connection failure fail API startup. The API continuously runs one
 outbox relay; do not run overlapping API processes against the same database.
 See [API lifecycle and deployment](job-queue.md#api-lifecycle-and-deployment) for
-deadline, shutdown, and finite publication-retry behavior. Reference broker and
-Compose wiring is a separate worker-runtime ticket.
+deadline, shutdown, and finite publication-retry behavior.
+
+## Configure The Worker
+
+Create ignored `apps/worker/.env`:
+
+```env
+DATABASE_URL=postgres://exposurenexus:change-me@localhost:5432/exposurenexus
+RABBITMQ_URL=amqp://worker-consumer:replace-with-worker-password@localhost:5672/exposurenexus
+RABBITMQ_QUEUE=EXPOSURENEXUS_JOBS_INGEST
+LOG_LEVEL=info
+STARTUP_TIMEOUT_MS=30000
+SHUTDOWN_TIMEOUT_MS=60000
+```
+
+Replace these non-secret password placeholders. Each local application's URL must
+match its distinct provisioned account in the root `.env`, not the administrator
+or a shared account. Percent-encode username/password URL components (for example,
+`@` as `%40`), but keep provisioner credential inputs unencoded. Worker needs no
+API authentication or UI configuration. Its migration checks are read-only and
+fail if required migrations are missing, including outside Compose.
 
 ## Configure The UI
 
@@ -79,14 +117,43 @@ VITE_API_URL=http://localhost:3001
 
 ## Run The App
 
-Start the backend and frontend in separate terminals:
+After successful init, start the API in its own terminal:
 
 ```bash
 pnpm dev:api
+```
+
+Wait for API startup and migrations to complete; verify
+`curl --fail http://localhost:3001/api/health` succeeds. Start the worker in a second terminal:
+
+```bash
+pnpm dev:worker
+```
+
+Start the UI in a third terminal:
+
+```bash
 pnpm dev:ui
 ```
 
 Open `http://localhost:3000`.
+
+Worker is intentionally connected but idle without a subscription. Logs and exit
+status describe process availability, not processing readiness. Jobs accumulate
+until a complete real handler set ships and activates consumption automatically.
+Real ingestion, execution-state orchestration, and business idempotency remain future work.
+
+For graceful shutdown, press Ctrl+C in worker and API terminals and wait for cleanup
+and process exit before restarting either. Stop the UI with Ctrl+C too. SIGINT and
+SIGTERM drain within the default 60-second deadline; expiry exits nonzero. Only then
+stop infrastructure:
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml stop postgres rabbitmq
+```
+
+This preserves data; do not use `down -v` or delete volumes. See
+[deployment operations](deployment.md#updates-scaling-and-shutdown) for container updates and replicas.
 
 ## Repository Layout
 
@@ -94,6 +161,7 @@ Open `http://localhost:3000`.
 .
 ├── apps/
 │   ├── api/      # Hono HTTP adapters and executable composition
+│   ├── worker/   # Connected jobs runtime, initially idle
 │   └── ui/       # React + Vite frontend
 └── packages/
     ├── backend/  # Business capabilities, persistence, migrations
@@ -142,6 +210,7 @@ pnpm storybook:ui
 ExposureNexus is implemented as a `pnpm` monorepo with these workspaces:
 
 - `apps/api` owns HTTP adaptation, cookies, middleware, API events, and startup.
+- `apps/worker` owns worker startup, read-only migration checks, and consumer lifecycle.
 - `packages/backend` owns business capabilities, authentication, identity/RBAC,
   persistence, transactions, and migrations.
 - `packages/jobs` provides the job model, outbox persistence, relay, and queue transport.
