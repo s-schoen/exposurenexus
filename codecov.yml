@@ -2,7 +2,7 @@ codecov:
   require_ci_to_pass: yes
   notify:
     wait_for_ci: yes
-    after_n_builds: 5
+    after_n_builds: 6
 
 coverage:
   precision: 2
@@ -24,6 +24,10 @@ coverage:
         if_ci_failed: error
 
 flags:
+  worker:
+    paths:
+      - apps/worker/src/
+    carryforward: false
   api:
     paths:
       - apps/api/src/
@@ -53,6 +57,10 @@ component_management:
         threshold: 2%
         informational: true
   individual_components:
+    - component_id: worker
+      name: Worker
+      paths:
+        - apps/worker/src/
     - component_id: api
       name: API
       paths:
