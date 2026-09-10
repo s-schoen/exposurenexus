@@ -2,6 +2,27 @@
 
 This guide shows setup for local evaluation with docker compose.
 
+## Current Runtime Requirements
+
+The current API requires PostgreSQL and a pre-provisioned RabbitMQ broker. Set
+`RABBITMQ_URL` and `RABBITMQ_EXCHANGE` in the API environment. The checked-in
+Compose example below does not yet wire this mandatory broker; adapt it to an
+external broker until the reference-stack ticket is implemented. Provision the
+[jobs topology](job-queue.md#rabbitmq-topology) before starting the API.
+
+Run **exactly one active API** because it owns the single outbox relay. Use
+stop-before-start upgrades with no replica overlap. There is no separate relay
+role or relay in workers. `SHUTDOWN_TIMEOUT_MS` defaults to 60 seconds; allow a
+longer supervisor grace period (75 seconds with the default). A shutdown deadline
+expiry forces nonzero exit. `STARTUP_TIMEOUT_MS` defaults to 30 seconds and bounds
+required initialization, including migrations and broker setup.
+
+Publication defaults to five attempts with a five-second retry delay. A broker
+outage can exhaust those attempts; reconnecting does not revive failed jobs.
+Explicit retry through the existing job service is required. Operator UI and
+dead-letter reconciliation are not implemented. See the
+[job queue lifecycle](job-queue.md#api-lifecycle-and-deployment) for details.
+
 ## Start The Compose Stack
 
 The repository includes a Docker Compose file that pulls the public image

@@ -7,6 +7,7 @@ This document covers local development setup for ExposureNexus. The root README 
 - Node.js 24 LTS (`>=24.15.0 <25`)
 - `pnpm` 11.21.0
 - PostgreSQL 17, or Docker/Podman for the provided compose file
+- RabbitMQ with the [jobs topology](job-queue.md#rabbitmq-topology) provisioned
 
 Always use `pnpm` for workspace commands.
 
@@ -40,6 +41,10 @@ AUTH_COOKIE_SECURE=true
 AUTH_SECRET=replace-with-a-random-secret-at-least-32-characters
 AUTH_TRUSTED_PROXIES=
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/openvlp
+RABBITMQ_URL=amqp://api-publisher:replace-with-password@localhost:5672/exposurenexus
+RABBITMQ_EXCHANGE=EXPOSURENEXUS_JOBS
+STARTUP_TIMEOUT_MS=30000
+SHUTDOWN_TIMEOUT_MS=60000
 ```
 
 `APP_ORIGIN` is the browser origin allowed by CORS and CSRF Origin checks. Use
@@ -52,6 +57,15 @@ asset directory when the API process should also serve the React app.
 If you use a different local database, update `DATABASE_URL` accordingly.
 
 On first startup, the API runs backend-owned database migrations automatically and creates a default admin user if the database is empty. The username is `admin`; the initial password is written to the API logs once.
+
+RabbitMQ is required even before automated ingestion is available. Supply your
+broker URL and provision the exchange before starting the API; the development
+Compose file above currently provides only PostgreSQL. Missing broker resources
+or an initial connection failure fail API startup. The API continuously runs one
+outbox relay; do not run overlapping API processes against the same database.
+See [API lifecycle and deployment](job-queue.md#api-lifecycle-and-deployment) for
+deadline, shutdown, and finite publication-retry behavior. Reference broker and
+Compose wiring is a separate worker-runtime ticket.
 
 ## Configure The UI
 
