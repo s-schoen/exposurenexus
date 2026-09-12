@@ -313,7 +313,8 @@ queue policy, including operator-policy effects. Partial initialization is not
 transactional; correct the reported conflict and rerun. Existing queues and
 messages are preserved. Additional unrelated topology is not removed.
 
-External deployments can run `node scripts/rabbitmq-init.mjs` with the same
+External deployments can run `bash scripts/rabbitmq-init.sh` (requires Bash, curl,
+jq, and CA certificates for HTTPS) with the same
 credentials and `RABBITMQ_MANAGEMENT_URL` pointing at their management endpoint
 (use HTTPS across untrusted networks). Bootstrap the administrator separately.
 The script supports 4.3.5 and later 4.3 patches, and requires enabled
@@ -323,9 +324,12 @@ silently change cluster-wide capabilities. Alternatively provision the equivalen
 topology and policy below, plus the account restrictions above, with your own
 infrastructure tooling. Application connections always remain passive.
 
-Run `pnpm test:infra` for isolated management-API doubles covering provisioning,
-repeatability, conflicts, failures, and secret handling. These tests do not start
-containers or a live broker. The [reference stack](deployment.md) gates both roles
+Compose uses the official `alpine:3` image and installs these dependencies at
+init-container startup, requiring access to Alpine package repositories. Init runs
+as root with a writable container filesystem for package installation; the script
+is mounted read-only, all capabilities are dropped, and no-new-privileges remains
+enabled. The API and worker retain their nonroot, read-only distroless runtime.
+The [reference stack](deployment.md) gates both roles
 on healthy infrastructure and successful init, and worker on API health. Worker
 still performs authoritative read-only migration checks, with no ongoing API
 dependency. The [development override](development.md#start-infrastructure) exposes

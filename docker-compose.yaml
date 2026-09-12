@@ -3,7 +3,7 @@ name: exposurenexus
 services:
   app:
     image: ${APP_IMAGE:-ghcr.io/s-schoen/exposurenexus:edge}
-    command: [api]
+    command: [/app/apps/api/dist/src/index.js]
     restart: unless-stopped
     stop_grace_period: 75s
     environment:
@@ -43,7 +43,7 @@ services:
 
   worker:
     image: ${APP_IMAGE:-ghcr.io/s-schoen/exposurenexus:edge}
-    command: [worker]
+    command: [/app/apps/worker/dist/src/index.js]
     restart: unless-stopped
     stop_grace_period: 75s
     environment:
@@ -83,8 +83,10 @@ services:
       start_period: 20s
 
   rabbitmq-init:
-    image: node:24-alpine
-    command: [node, /provision/rabbitmq-init.mjs]
+    image: alpine:3
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - apk add --no-cache bash curl jq ca-certificates && exec bash /provision/rabbitmq-init.sh
     environment:
       RABBITMQ_MANAGEMENT_URL: http://rabbitmq:15672
       RABBITMQ_PROVISIONER_USER: ${RABBITMQ_PROVISIONER_USER:?Set RABBITMQ_PROVISIONER_USER}
@@ -94,9 +96,7 @@ services:
       RABBITMQ_WORKER_USER: ${RABBITMQ_WORKER_USER:?Set RABBITMQ_WORKER_USER}
       RABBITMQ_WORKER_PASSWORD: ${RABBITMQ_WORKER_PASSWORD:?Set RABBITMQ_WORKER_PASSWORD}
     volumes:
-      - ./scripts/rabbitmq-init.mjs:/provision/rabbitmq-init.mjs:ro
-    read_only: true
-    user: node
+      - ./scripts/rabbitmq-init.sh:/provision/rabbitmq-init.sh:ro
     cap_drop:
       - ALL
     security_opt:

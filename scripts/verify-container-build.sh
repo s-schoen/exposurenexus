@@ -1,5 +1,5 @@
-#!/usr/bin/env sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 IMAGE_TAG="${IMAGE_TAG:-exposurenexus:container-build-check}"
 DOCKER="${DOCKER:-docker}"

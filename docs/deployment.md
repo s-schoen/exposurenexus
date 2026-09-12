@@ -57,7 +57,7 @@ repeatability, and safe credential rotation on existing volumes.
 
 ## Start The Compose Stack
 
-Both `app` (`command: [api]`) and `worker` (`command: [worker]`) use the same
+Both `app` and `worker` select their application entrypoint paths using the same
 `${APP_IMAGE:-ghcr.io/s-schoen/exposurenexus:edge}` image. Optionally set `APP_IMAGE`
 in root `.env` to a release tag or digest for both roles. Validate without printing
 secrets, then start:
@@ -98,13 +98,13 @@ origin users will load in their browser.
 ## Image Roles
 
 One application image contains the API, bundled UI, and worker. Its default
-command is `api`; omitting the role also selects API. Select a role with a single
-argument after the image name, not an internal JavaScript path:
+command starts the API and bundled UI. To explicitly select an application, pass
+its compiled entrypoint path after the image name:
 
 ```bash
 docker run --env-file api.env -p 3001:3001 ghcr.io/s-schoen/exposurenexus:edge
-docker run --env-file api.env -p 3001:3001 ghcr.io/s-schoen/exposurenexus:edge api
-docker run --env-file worker.env ghcr.io/s-schoen/exposurenexus:edge worker
+docker run --env-file api.env -p 3001:3001 ghcr.io/s-schoen/exposurenexus:edge /app/apps/api/dist/src/index.js
+docker run --env-file worker.env ghcr.io/s-schoen/exposurenexus:edge /app/apps/worker/dist/src/index.js
 ```
 
 These examples assume reachable PostgreSQL and pre-provisioned RabbitMQ. Supply
@@ -115,13 +115,12 @@ authentication, origin, session, or static-serving configuration. See the
 [worker configuration and lifecycle](../apps/worker/README.md). API migrations
 must finish before starting the worker; the worker only checks migration status.
 
-In Compose, `app` uses `command: [api]` and `worker` uses `command: [worker]` with the same image.
-There is no environment-based role
-selector or relay role. Unknown roles and extra arguments fail before either
-application initializes.
+In Compose, `app` uses `command: [/app/apps/api/dist/src/index.js]` and `worker`
+uses `command: [/app/apps/worker/dist/src/index.js]` with the same image.
+There is no role launcher, environment-based role selector, or relay role.
 
-The distroless, nonroot runtime needs no shell or package manager. The selected
-application runs directly in the launcher Node process, receiving signals and
+The distroless, nonroot runtime contains no shell or package manager. Node runs
+the selected application directly as PID 1, receiving signals and
 retaining its exit status. Allow 75 seconds for graceful container shutdown with
 the default application deadline. The worker starts in connected idle mode,
 without consuming jobs or serving HTTP; jobs accumulate until real handlers ship.

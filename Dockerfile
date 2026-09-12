@@ -61,9 +61,8 @@ COPY --from=build --chown=65532:65532 /workspace/packages/backend/dist /app/pack
 COPY --from=build --chown=65532:65532 /workspace/packages/contracts/dist /app/packages/contracts/dist
 COPY --from=build --chown=65532:65532 /workspace/packages/jobs/dist /app/packages/jobs/dist
 COPY --from=build --chown=65532:65532 /workspace/apps/ui/dist /app/public
-COPY --from=build --chown=65532:65532 /workspace/scripts/launch.mjs /app/scripts/launch.mjs
 
 EXPOSE 3001
 USER 65532:65532
-ENTRYPOINT ["/nodejs/bin/node", "/app/scripts/launch.mjs"]
-CMD ["api"]
+ENTRYPOINT ["/nodejs/bin/node"]
+CMD ["/app/apps/api/dist/src/index.js"]
