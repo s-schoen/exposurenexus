@@ -252,8 +252,9 @@ once delivery, not exactly-once execution.
 
 ### Reference Initialization
 
-The root `docker-compose.yaml` runs `rabbitmq:4.3.5-management` with persistent
-storage and no published AMQP or management ports. Its `rabbitmq-init` service
+The consolidated `deployment/docker/docker-compose.yaml` runs `rabbitmq:4.3.5-management`
+with persistent storage and AMQP port `5672` published on `127.0.0.1` only;
+management remains internal. Its `rabbitmq-init` service
 runs the checked-in Node script using the standard `node:24-alpine` image; no
 application image or additional application role is required.
 
@@ -264,7 +265,7 @@ configuration or the ignored root `.env` (alternatively a private Compose `--env
 - `RABBITMQ_API_USER` and `RABBITMQ_API_PASSWORD`
 - `RABBITMQ_WORKER_USER` and `RABBITMQ_WORKER_PASSWORD`
 
-Root Compose additionally requires `RABBITMQ_API_URL` and `RABBITMQ_WORKER_URL`:
+Compose additionally requires `RABBITMQ_API_URL` and `RABBITMQ_WORKER_URL`:
 full URLs with the respective provisioned credentials, host `rabbitmq`, and vhost
 `exposurenexus`. Percent-encode username/password URL components, not the raw
 credential inputs above. See the [eight-variable example](deployment.md#compose-configuration).
@@ -275,13 +276,14 @@ usernames using letters, digits, `_`, `-`, `.`, or `@` (start with a letter,
 digit, `_`, or `-`), and independent strong passwords without control characters.
 With Compose env files, single-quote passwords containing `$` to prevent
 interpolation. Do not commit the env file or print rendered configuration with
-real secrets; use `docker compose config --quiet` for validation.
+real secrets; use `docker compose -f deployment/docker/docker-compose.yaml config --quiet`
+from the repository root for validation.
 
-Initialize independently of the application:
+Initialize independently of the application from the repository root:
 
 ```bash
-docker compose up -d --wait rabbitmq
-docker compose run --rm rabbitmq-init
+docker compose -f deployment/docker/docker-compose.yaml up -d --wait rabbitmq
+docker compose -f deployment/docker/docker-compose.yaml run --rm rabbitmq-init
 ```
 
 Both commands also accept Compose's `--env-file` option before the subcommand.
@@ -332,8 +334,8 @@ enabled. The API and worker retain their nonroot, read-only distroless runtime.
 The [reference stack](deployment.md) gates both roles
 on healthy infrastructure and successful init, and worker on API health. Worker
 still performs authoritative read-only migration checks, with no ongoing API
-dependency. The [development override](development.md#start-infrastructure) exposes
-PostgreSQL, AMQP, and management on localhost for terminal-based applications.
+dependency. The same stack exposes PostgreSQL `5432` and AMQP `5672` on localhost
+for [terminal-based development](development.md#start-infrastructure), without an override.
 
 The worker is intentionally connected but idle until a complete real handler set
 ships, when consumption activates automatically. It has no subscription or health
