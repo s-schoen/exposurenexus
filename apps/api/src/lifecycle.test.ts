@@ -13,6 +13,7 @@ function deferred<T = void>() {
 }
 
 function fixture() {
+  const app = { fetch: vi.fn() };
   const producer = { publish: vi.fn(), close: vi.fn().mockResolvedValue(undefined) };
   const relay = {
     start: vi.fn().mockResolvedValue(undefined),
@@ -23,14 +24,14 @@ function fixture() {
     close: vi.fn().mockResolvedValue(undefined),
   };
   const database = {
-    initialize: vi.fn().mockResolvedValue(undefined),
-    createRelay: vi.fn(() => relay),
-    openHttp: vi.fn((_onError: () => void) => http),
-    close: vi.fn().mockResolvedValue(undefined),
+    destroy: vi.fn().mockResolvedValue(undefined),
   };
   const dependencies = {
-    openDatabase: vi.fn(() => database),
+    openDatabase: vi.fn(() => database as never),
+    initializeApplication: vi.fn().mockResolvedValue(app),
     openProducer: vi.fn().mockResolvedValue(producer),
+    createRelay: vi.fn(() => relay),
+    openHttp: vi.fn((_app: typeof app, _onError: () => void) => http),
     signals: new EventEmitter(),
     exit: vi.fn(),
   };
@@ -38,10 +39,10 @@ function fixture() {
   const start = () =>
     runApi({
       config: { STARTUP_TIMEOUT_MS: 30_000, SHUTDOWN_TIMEOUT_MS: 60_000 },
-      logger: logger as never,
+      logger,
       dependencies,
     });
-  return { producer, relay, http, database, dependencies, logger, start };
+  return { app, producer, relay, http, database, dependencies, logger, start };
 }
 
 afterEach(() => vi.useRealTimers());
@@ -70,7 +71,7 @@ describe("API lifecycle", () => {
     vi.useFakeTimers();
     const f = fixture();
     const pending = new Promise<never>(() => {});
-    if (stage === "initialization") f.database.initialize.mockReturnValue(pending);
+    if (stage === "initialization") f.dependencies.initializeApplication.mockReturnValue(pending);
     if (stage === "producer acquisition") f.dependencies.openProducer.mockReturnValue(pending);
     if (stage === "HTTP bind") {
       f.http.ready = pending;
@@ -78,7 +79,7 @@ describe("API lifecycle", () => {
     }
     if (stage === "relay drain") f.relay.stop.mockReturnValue(pending);
     if (stage === "producer close") f.producer.close.mockReturnValue(pending);
-    if (stage === "database close") f.database.close.mockReturnValue(pending);
+    if (stage === "database close") f.database.destroy.mockReturnValue(pending);
     const api = f.start();
     await vi.advanceTimersByTimeAsync(0);
     if (["initialization", "producer acquisition", "HTTP bind"].includes(stage)) {
@@ -96,7 +97,7 @@ describe("API lifecycle", () => {
     expect(f.logger.fatal).toHaveBeenCalledOnce();
     if (stage === "relay drain") {
       expect(f.producer.close).not.toHaveBeenCalled();
-      expect(f.database.close).not.toHaveBeenCalled();
+      expect(f.database.destroy).not.toHaveBeenCalled();
     }
   });
 
@@ -117,24 +118,27 @@ describe("API lifecycle", () => {
         f.dependencies.openDatabase.mockImplementation(() => {
           throw error;
         });
-      if (stage === "initialization") f.database.initialize.mockRejectedValue(error);
+      if (stage === "initialization") f.dependencies.initializeApplication.mockRejectedValue(error);
       if (stage === "producer") f.dependencies.openProducer.mockRejectedValue(error);
       if (stage === "relay creation")
-        f.database.createRelay.mockImplementation(() => {
+        f.dependencies.createRelay.mockImplementation(() => {
           throw error;
         });
       if (stage === "relay start") f.relay.start.mockRejectedValue(error);
       if (stage === "HTTP creation")
-        f.database.openHttp.mockImplementation(() => {
+        f.dependencies.openHttp.mockImplementation(() => {
           throw error;
         });
       if (stage === "HTTP readiness") {
-        f.database.openHttp.mockImplementation(() => ({ ...f.http, ready: Promise.reject(error) }));
+        f.dependencies.openHttp.mockImplementation(() => ({
+          ...f.http,
+          ready: Promise.reject(error),
+        }));
       }
       const api = f.start();
       expect(await api.ready).toBe(false);
       await api.stopped;
-      expect(f.database.close).toHaveBeenCalledTimes(stage === "database" ? 0 : 1);
+      expect(f.database.destroy).toHaveBeenCalledTimes(stage === "database" ? 0 : 1);
       expect(f.producer.close).toHaveBeenCalledTimes(
         ["database", "initialization", "producer"].includes(stage) ? 0 : 1,
       );
@@ -157,7 +161,7 @@ describe("API lifecycle", () => {
       const api = f.start();
       await vi.waitFor(() =>
         expect(
-          stage === "relay activation" ? f.relay.start : f.database.openHttp,
+          stage === "relay activation" ? f.relay.start : f.dependencies.openHttp,
         ).toHaveBeenCalledOnce(),
       );
       f.dependencies.signals.emit("SIGTERM");
@@ -166,7 +170,7 @@ describe("API lifecycle", () => {
       expect(f.relay.stop).toHaveBeenCalledOnce();
       expect(f.http.close).toHaveBeenCalledTimes(stage === "HTTP readiness" ? 1 : 0);
       expect(f.producer.close).toHaveBeenCalledOnce();
-      expect(f.database.close).toHaveBeenCalledOnce();
+      expect(f.database.destroy).toHaveBeenCalledOnce();
     },
   );
 
@@ -177,11 +181,11 @@ describe("API lifecycle", () => {
     });
     const api = f.start();
     expect(await api.ready).toBe(true);
-    f.database.openHttp.mock.calls[0]![0]();
+    f.dependencies.openHttp.mock.calls[0]![1]();
     await api.stopped;
     expect(f.http.close).toHaveBeenCalledOnce();
     expect(f.producer.close).toHaveBeenCalledOnce();
-    expect(f.database.close).toHaveBeenCalledOnce();
+    expect(f.database.destroy).toHaveBeenCalledOnce();
     expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(1);
   });
 
@@ -200,13 +204,13 @@ describe("API lifecycle", () => {
     await vi.waitFor(() => expect(f.dependencies.openProducer).toHaveBeenCalledOnce());
     f.dependencies.signals.emit("SIGINT");
     expect(await api.ready).toBe(false);
-    expect(f.database.close).not.toHaveBeenCalled();
+    expect(f.database.destroy).not.toHaveBeenCalled();
     acquired.resolve(f.producer);
     await api.stopped;
-    expect(f.database.createRelay).not.toHaveBeenCalled();
-    expect(f.database.openHttp).not.toHaveBeenCalled();
+    expect(f.dependencies.createRelay).not.toHaveBeenCalled();
+    expect(f.dependencies.openHttp).not.toHaveBeenCalled();
     expect(f.producer.close).toHaveBeenCalledOnce();
-    expect(f.database.close).toHaveBeenCalledOnce();
+    expect(f.database.destroy).toHaveBeenCalledOnce();
   });
 
   it("stops HTTP and relay concurrently, retains dependencies until both settle, and cleans up after failures", async () => {
@@ -224,27 +228,31 @@ describe("API lifecycle", () => {
     await vi.waitFor(() => expect(f.relay.stop).toHaveBeenCalledOnce());
     expect(f.http.close).toHaveBeenCalledOnce();
     expect(f.producer.close).not.toHaveBeenCalled();
-    expect(f.database.close).not.toHaveBeenCalled();
+    expect(f.database.destroy).not.toHaveBeenCalled();
     drained.resolve();
     await api.stopped;
     expect(f.producer.close).toHaveBeenCalledOnce();
-    expect(f.database.close).toHaveBeenCalledOnce();
+    expect(f.database.destroy).toHaveBeenCalledOnce();
     expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(1);
     expect(f.dependencies.signals.listenerCount("SIGTERM")).toBe(0);
   });
 
   it("initializes before composing one relay and reporting HTTP readiness", async () => {
     const f = fixture();
-    const initialized = deferred();
+    const initialized = deferred<typeof f.app>();
     const listening = deferred();
-    f.database.initialize.mockReturnValue(initialized.promise);
+    f.dependencies.initializeApplication.mockReturnValue(initialized.promise);
     f.http.ready = listening.promise;
     const api = f.start();
-    await vi.waitFor(() => expect(f.database.initialize).toHaveBeenCalledOnce());
+    await vi.waitFor(() =>
+      expect(f.dependencies.initializeApplication).toHaveBeenCalledExactlyOnceWith(f.database),
+    );
     expect(f.dependencies.openProducer).not.toHaveBeenCalled();
-    initialized.resolve();
-    await vi.waitFor(() => expect(f.database.openHttp).toHaveBeenCalledOnce());
-    expect(f.database.createRelay).toHaveBeenCalledExactlyOnceWith(f.producer);
+    initialized.resolve(f.app);
+    await vi.waitFor(() =>
+      expect(f.dependencies.openHttp).toHaveBeenCalledExactlyOnceWith(f.app, expect.any(Function)),
+    );
+    expect(f.dependencies.createRelay).toHaveBeenCalledExactlyOnceWith(f.database, f.producer);
     expect(f.relay.start).toHaveBeenCalledOnce();
     expect(f.logger.info).not.toHaveBeenCalledWith("API startup completed");
     listening.resolve();
@@ -253,7 +261,7 @@ describe("API lifecycle", () => {
     expect(f.http.close).toHaveBeenCalledOnce();
     expect(f.relay.stop).toHaveBeenCalledOnce();
     expect(f.producer.close).toHaveBeenCalledOnce();
-    expect(f.database.close).toHaveBeenCalledOnce();
+    expect(f.database.destroy).toHaveBeenCalledOnce();
     expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(0);
   });
 });
