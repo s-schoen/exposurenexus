@@ -93,3 +93,4 @@ docs/specs
 docs/agents
 **/.codex
 .scratch/
+.rumdl_cache
