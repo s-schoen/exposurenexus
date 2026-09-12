@@ -4,8 +4,9 @@ This guide shows setup for local evaluation with docker compose.
 
 ## Current Runtime Requirements
 
-Both applications require PostgreSQL and initialized RabbitMQ. Root Compose includes
-`postgres`, `rabbitmq`, one-shot `rabbitmq-init`, `app` (API and UI), and `worker`.
+Both applications require PostgreSQL and initialized RabbitMQ. The consolidated
+`deployment/docker/docker-compose.yaml` includes `postgres`, `rabbitmq`, one-shot
+`rabbitmq-init`, `app` (API and UI), `worker`, `s3`, and one-shot `init-s3`.
 Both roles wait for healthy PostgreSQL and RabbitMQ and successful init completion;
 failed provisioning blocks startup. Worker additionally waits for `app` health after
 API initialization and migrations. This is startup coordination, not an ongoing API
@@ -60,13 +61,13 @@ repeatability, and safe credential rotation on existing volumes.
 Both `app` and `worker` select their application entrypoint paths using the same
 `${APP_IMAGE:-ghcr.io/s-schoen/exposurenexus:edge}` image. Optionally set `APP_IMAGE`
 in root `.env` to a release tag or digest for both roles. Validate without printing
-secrets, then start:
+secrets, then start from the repository root:
 
 ```bash
-docker compose config --quiet
-docker compose up -d --wait
-docker compose ps -a
-docker compose logs rabbitmq-init app worker
+docker compose -f deployment/docker/docker-compose.yaml config --quiet
+docker compose -f deployment/docker/docker-compose.yaml up -d --wait
+docker compose -f deployment/docker/docker-compose.yaml ps -a
+docker compose -f deployment/docker/docker-compose.yaml logs rabbitmq-init app worker
 ```
 
 The image serves the React UI and Hono API from one container. API routes remain
@@ -86,11 +87,10 @@ Both applications use `restart: unless-stopped` for unexpected exits and a
 75-second stop grace period around the default 60-second application deadline.
 Init remains one-shot with `restart: "no"`. Application security hardening retains
 the nonroot image, read-only filesystem, dropped capabilities, and no-new-privileges.
-Base broker ports remain internal; the checked-in
-[development override](development.md#start-infrastructure) publishes infrastructure
-ports on localhost only.
+PostgreSQL `5432` and RabbitMQ AMQP `5672` are published on `127.0.0.1` only for
+[host development](development.md#start-infrastructure); management remains internal.
 
-Before deploying beyond local evaluation, edit `docker-compose.yaml` and replace
+Before deploying beyond local evaluation, edit `deployment/docker/docker-compose.yaml` and replace
 `AUTH_SECRET` and the PostgreSQL password values. Keep `DATABASE_URL` in sync
 with the PostgreSQL service credentials. Set `APP_ORIGIN` to the browser-facing
 origin users will load in their browser.
@@ -131,10 +131,10 @@ Never scale `app` above one or use rolling API updates. For an application-image
 update, set the new `APP_IMAGE` if needed, then run in order:
 
 ```bash
-docker compose pull app worker
-docker compose stop -t 75 worker app
-docker compose up -d --no-deps --wait app
-docker compose up -d --no-deps worker
+docker compose -f deployment/docker/docker-compose.yaml pull app worker
+docker compose -f deployment/docker/docker-compose.yaml stop -t 75 worker app
+docker compose -f deployment/docker/docker-compose.yaml up -d --no-deps --wait app
+docker compose -f deployment/docker/docker-compose.yaml up -d --no-deps worker
 ```
 
 Proceed only if each command succeeds. These commands assume healthy infrastructure
@@ -148,8 +148,8 @@ The new API must become healthy and finish migrations before workers start.
 Once the stack is healthy, scale workers without touching dependencies or the API:
 
 ```bash
-docker compose up -d --no-deps --scale worker=3 worker
-docker compose logs -f worker
+docker compose -f deployment/docker/docker-compose.yaml up -d --no-deps --scale worker=3 worker
+docker compose -f deployment/docker/docker-compose.yaml logs -f worker
 ```
 
 Workers have no fixed container names, published ports, or relay per replica. Use
@@ -160,8 +160,8 @@ provisioning, and API initialization.
 For graceful shutdown, stop applications before their dependencies:
 
 ```bash
-docker compose stop -t 75 worker app
-docker compose stop postgres rabbitmq
+docker compose -f deployment/docker/docker-compose.yaml stop -t 75 worker app
+docker compose -f deployment/docker/docker-compose.yaml stop postgres rabbitmq s3
 ```
 
 SIGTERM (containers) or Ctrl+C/SIGINT (terminals) stops new work and drains active

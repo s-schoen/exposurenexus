@@ -1,35 +1,132 @@
 name: exposurenexus
+
 services:
-  #  exposurenexus:
-  #    container_name: exposurenexus
-  #    image: ghcr.io/s-schoen/exposurenexus:latest
-  #    ports:
-  #      - "3000:3000" # UI
-  #      - "3001:3001" # API
-  #    depends_on:
-  #      db:
-  #        condition: service_healthy
-  #    env_file:
-  #      - ../../.env
-  nats:
-    container_name: nats
-    image: nats:2-alpine
+  app:
+    image: ${APP_IMAGE:-ghcr.io/s-schoen/exposurenexus:edge}
+    command: [/app/apps/api/dist/src/index.js]
+    restart: unless-stopped
+    stop_grace_period: 75s
+    environment:
+      APP_ORIGIN: http://localhost:3001
+      API_TIMEOUT_MS: "5000"
+      AUTH_COOKIE_SECURE: "true"
+      AUTH_SECRET: replace-with-a-random-secret-at-least-32-characters
+      AUTH_TRUSTED_PROXIES: ""
+      DATABASE_URL: postgres://exposurenexus:change-me@postgres:5432/exposurenexus
+      RABBITMQ_URL: ${RABBITMQ_API_URL:?Set RABBITMQ_API_URL with publisher credentials}
+      RABBITMQ_EXCHANGE: EXPOSURENEXUS_JOBS
+      LOG_LEVEL: info
     ports:
-      - "4222:4222"
-    command:
-      - "-js" # enable JetStream
-      - "-sd"
-      - "/data"
-      - "-m" # enable monitoring
-      - "8222"
+      - "3001:3001"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
-      start_period: 5s
+      test:
+        - CMD
+        - /nodejs/bin/node
+        - -e
+        - "fetch('http://127.0.0.1:3001/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  worker:
+    image: ${APP_IMAGE:-ghcr.io/s-schoen/exposurenexus:edge}
+    command: [/app/apps/worker/dist/src/index.js]
+    restart: unless-stopped
+    stop_grace_period: 75s
+    environment:
+      DATABASE_URL: postgres://exposurenexus:change-me@postgres:5432/exposurenexus
+      RABBITMQ_URL: ${RABBITMQ_WORKER_URL:?Set RABBITMQ_WORKER_URL with consumer credentials}
+      RABBITMQ_QUEUE: EXPOSURENEXUS_JOBS_INGEST
+      LOG_LEVEL: info
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+      app:
+        condition: service_healthy
+
+  rabbitmq:
+    image: rabbitmq:4.3.5-management
+    hostname: rabbitmq
+    ports:
+      - "127.0.0.1:5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_PROVISIONER_USER:?Set RABBITMQ_PROVISIONER_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PROVISIONER_PASSWORD:?Set RABBITMQ_PROVISIONER_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: exposurenexus
     volumes:
-      - nats-data:/data
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: [CMD, rabbitmq-diagnostics, -q, check_running]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  rabbitmq-init:
+    image: alpine:3
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - apk add --no-cache bash curl jq ca-certificates && exec bash /provision/rabbitmq-init.sh
+    environment:
+      RABBITMQ_MANAGEMENT_URL: http://rabbitmq:15672
+      RABBITMQ_PROVISIONER_USER: ${RABBITMQ_PROVISIONER_USER:?Set RABBITMQ_PROVISIONER_USER}
+      RABBITMQ_PROVISIONER_PASSWORD: ${RABBITMQ_PROVISIONER_PASSWORD:?Set RABBITMQ_PROVISIONER_PASSWORD}
+      RABBITMQ_API_USER: ${RABBITMQ_API_USER:?Set RABBITMQ_API_USER}
+      RABBITMQ_API_PASSWORD: ${RABBITMQ_API_PASSWORD:?Set RABBITMQ_API_PASSWORD}
+      RABBITMQ_WORKER_USER: ${RABBITMQ_WORKER_USER:?Set RABBITMQ_WORKER_USER}
+      RABBITMQ_WORKER_PASSWORD: ${RABBITMQ_WORKER_PASSWORD:?Set RABBITMQ_WORKER_PASSWORD}
+    volumes:
+      - ../../scripts/rabbitmq-init.sh:/provision/rabbitmq-init.sh:ro
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18-alpine
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_DB: exposurenexus
+      POSTGRES_USER: exposurenexus
+      POSTGRES_PASSWORD: change-me
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U exposurenexus -d exposurenexus
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
   s3:
     container_name: versitygw
     image: ghcr.io/versity/versitygw:latest
@@ -51,25 +148,7 @@ services:
     volumes:
       - s3-data:/data/s3
       - s3-versioning:/data/versioning
-  db:
-    container_name: db
-    image: postgres:18-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: exposurenexus
-      POSTGRES_PASSWORD: exposurenexus # TODO: change
-      POSTGRES_DB: exposurenexus
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
-      interval: 30s
-      timeout: 60s
-      retries: 5
-      start_period: 80s
-    volumes:
-      - db-data:/var/lib/postgresql/data
 
-  # Init Containers
   init-s3:
     container_name: init-s3
     image: public.ecr.aws/aws-cli/aws-cli:latest
@@ -100,44 +179,9 @@ services:
     depends_on:
       s3:
         condition: service_healthy
-  init-nats:
-    container_name: init-nats
-    image: natsio/nats-box:latest
-    restart: no
-    environment:
-      NATS_SERVER: nats://nats:4222
-      JOB_QUEUE_NAME: JOBS
-      JOB_QUEUE_CONSUMER_NAME: workers
-      JOB_QUEUE_SUBJECT: jobs.*
-    entrypoint: ["/bin/sh", "-c"]
-    command: |
-      # Wait until NATS is available
-      until nats --server $${NATS_SERVER} account info >/dev/null 2>&1; do
-        sleep 1
-      done
 
-      # Create stream if it doesn't exist
-      nats --server $${NATS_SERVER} stream info $${JOB_QUEUE_NAME} >/dev/null 2>&1 || \
-        nats --server $${NATS_SERVER} stream add $${JOB_QUEUE_NAME} \
-          --subjects "$${JOB_QUEUE_SUBJECT}" \
-          --storage file \
-          --retention work \
-          --replicas 1 \
-          --defaults
-
-      # Create consumer if it doesn't exist
-      nats --server nats://nats:4222 consumer info $${JOB_QUEUE_NAME} $${JOB_QUEUE_CONSUMER_NAME} >/dev/null 2>&1 || \
-        nats --server nats://nats:4222 consumer add $${JOB_QUEUE_NAME} $${JOB_QUEUE_CONSUMER_NAME} \
-          --filter "$${JOB_QUEUE_SUBJECT}" \
-          --ack explicit \
-          --pull \
-          --deliver all \
-          --max-deliver 5
-    depends_on:
-      nats:
-        condition: service_healthy
 volumes:
-  db-data:
+  postgres-data:
+  rabbitmq-data:
   s3-data:
   s3-versioning:
-  nats-data:

@@ -24,14 +24,14 @@ Create the ignored root `.env` with all eight variables from
 the two full application URLs even when selecting infrastructure only. Root URLs
 use host `rabbitmq`; local application URLs use `localhost` instead.
 
-The checked-in `docker-compose.dev.yaml` reuses root infrastructure and binds
-PostgreSQL `5432`, AMQP `5672`, and management `15672` to `127.0.0.1` only.
-No private `.dev` stack is required. Run from the repository root, in order:
+The consolidated `deployment/docker/docker-compose.yaml` binds PostgreSQL `5432`
+and AMQP `5672` to `127.0.0.1` only. No development override is required.
+Run from the repository root, in order:
 
 ```bash
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml stop -t 75 worker app
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d --wait postgres rabbitmq
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm rabbitmq-init
+docker compose -f deployment/docker/docker-compose.yaml stop -t 75 worker app
+docker compose -f deployment/docker/docker-compose.yaml up -d --wait postgres rabbitmq
+docker compose -f deployment/docker/docker-compose.yaml run --rm rabbitmq-init
 ```
 
 Check that the one-shot init command exits **zero** before starting the local API.
@@ -44,8 +44,7 @@ outbox relay. Explicit `stop` also prevents old `unless-stopped` application
 containers from auto-restarting. Stop any other local API using this database too.
 
 The reference database is `exposurenexus`, user `exposurenexus`, password `change-me`.
-Management is at `http://localhost:15672` using the provisioner account, not an
-application account.
+RabbitMQ management remains internal to the Compose network.
 
 ## Configure The API
 
@@ -149,7 +148,7 @@ SIGTERM drain within the default 60-second deadline; expiry exits nonzero. Only 
 stop infrastructure:
 
 ```bash
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml stop postgres rabbitmq
+docker compose -f deployment/docker/docker-compose.yaml stop postgres rabbitmq
 ```
 
 This preserves data; do not use `down -v` or delete volumes. See
