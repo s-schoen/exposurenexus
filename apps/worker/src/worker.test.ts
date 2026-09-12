@@ -111,7 +111,103 @@ describe("worker lifecycle", () => {
     expect(f.consumer.start).toHaveBeenCalledOnce();
     expect(f.consumer.waitForInitialActivation).toHaveBeenCalledOnce();
     expect(f.order.indexOf("register")).toBeLessThan(f.order.indexOf("start"));
+    await vi.advanceTimersByTimeAsync(f.config.STARTUP_TIMEOUT_MS + 1);
+    expect(f.dependencies.exit).not.toHaveBeenCalled();
     await worker.shutdown();
+  });
+
+  it.each([false, true])(
+    "handles asynchronous activation rejection with hung stop=%s",
+    async (hung) => {
+      const f = setup({ [JobType.INGESTION]: vi.fn() });
+      const activation = deferred();
+      f.consumer.waitForInitialActivation.mockReturnValue(activation.promise);
+      if (hung) f.consumer.stop.mockReturnValue(new Promise(() => {}));
+      const worker = f.run();
+      await vi.advanceTimersByTimeAsync(0);
+      activation.reject(new Error("amqp://user:secret@host"));
+      expect(await worker.ready).toBe(false);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(f.consumer.stop).toHaveBeenCalledOnce();
+      expect(f.log.error).toHaveBeenCalledWith(
+        { stage: "consumer activation" },
+        "worker startup failed",
+      );
+      expect(JSON.stringify(f.log.error.mock.calls)).not.toContain("secret");
+      if (hung) {
+        await vi.advanceTimersByTimeAsync(f.config.SHUTDOWN_TIMEOUT_MS - 1);
+        expect(f.dependencies.exit).not.toHaveBeenCalled();
+        expect(f.database.close).not.toHaveBeenCalled();
+        await vi.advanceTimersByTimeAsync(1);
+      }
+      await worker.stopped;
+      expect(f.database.close).toHaveBeenCalledTimes(hung ? 0 : 1);
+      expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(1);
+      expect(f.log.info).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.stringContaining("startup completed"),
+      );
+    },
+  );
+
+  it("bounds hung activation by startup then shutdown deadlines", async () => {
+    const f = setup({ [JobType.INGESTION]: vi.fn() });
+    f.config.STARTUP_TIMEOUT_MS = 50;
+    f.config.SHUTDOWN_TIMEOUT_MS = 100;
+    f.consumer.waitForInitialActivation.mockReturnValue(new Promise(() => {}));
+    f.consumer.stop.mockReturnValue(new Promise(() => {}));
+    const worker = f.run();
+    const ready = vi.fn();
+    void worker.ready.then(ready);
+    await vi.advanceTimersByTimeAsync(49);
+    expect(ready).not.toHaveBeenCalled();
+    expect(f.consumer.stop).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(f.log.error).toHaveBeenCalledWith(
+      { stage: "consumer activation" },
+      "worker startup deadline expired",
+    );
+    expect(f.consumer.stop).toHaveBeenCalledOnce();
+    expect(await worker.ready).toBe(false);
+    await vi.advanceTimersByTimeAsync(99);
+    expect(f.dependencies.exit).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    await worker.stopped;
+    expect(f.database.close).not.toHaveBeenCalled();
+    expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("stops pending activation on SIGTERM and never reports late readiness", async () => {
+    const f = setup({ [JobType.INGESTION]: vi.fn() });
+    const activation = deferred();
+    const draining = deferred();
+    f.consumer.waitForInitialActivation.mockReturnValue(activation.promise);
+    f.consumer.stop.mockImplementation(() => {
+      f.order.push("consumer.stop");
+      return draining.promise;
+    });
+    const worker = f.run();
+    await vi.advanceTimersByTimeAsync(0);
+    f.signals.emit("SIGTERM");
+    await vi.advanceTimersByTimeAsync(f.config.STARTUP_TIMEOUT_MS + 1);
+    expect(f.consumer.stop).toHaveBeenCalledOnce();
+    expect(await worker.ready).toBe(false);
+    expect(f.database.close).not.toHaveBeenCalled();
+    expect(f.dependencies.exit).not.toHaveBeenCalled();
+    expect(f.log.error).not.toHaveBeenCalled();
+    activation.resolve();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(f.database.close).not.toHaveBeenCalled();
+    expect(f.log.info).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.stringContaining("startup completed"),
+    );
+    draining.resolve();
+    await worker.stopped;
+    expect(f.order.slice(-2)).toEqual(["consumer.stop", "database.close"]);
+    expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it.each([{ [JobType.INGESTION]: undefined }, { unknown: vi.fn() } as WorkerHandlers])(
