@@ -68,7 +68,7 @@ jobs:
       - name: Verify docker image builds
         env:
           IMAGE_TAG: exposurenexus:ci
-        run: sh scripts/verify-container-build.sh
+        run: bash scripts/verify-container-build.sh
 
   test:
     name: Test
