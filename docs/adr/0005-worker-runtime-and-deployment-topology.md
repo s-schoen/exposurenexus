@@ -8,7 +8,7 @@ This decision extends [ADR-0004](0004-shared-backend-capabilities.md), which est
 
 ### Application Roles And Image
 
-One image contains the API, bundled UI, and worker. A Node-based launcher compatible with the existing distroless runtime accepts `api` or `worker` as its role argument. No argument starts the API and bundled UI; unknown arguments fail immediately. Role selection occurs before role-specific configuration or startup modules are loaded.
+One distroless, nonroot image contains the API, bundled UI, and worker. Its entrypoint runs Node directly, with `/app/apps/api/dist/src/index.js` as the default command. The worker overrides the command with `/app/apps/worker/dist/src/index.js`. No launcher or shell is needed, and only the selected application's configuration and startup modules are loaded.
 
 There is no separate relay role. The API owns the producer and outbox relay alongside its existing HTTP and database lifecycle. RabbitMQ is required for both API and worker; there is no optional jobs-enable flag.
 
@@ -58,7 +58,7 @@ Broker ports remain internal in the reference deployment. A checked-in developme
 
 - **A separate relay role.** Rejected to retain only API and worker application roles. Embedding the relay in the API accepts a singleton API and stop-before-start deployments instead of adding coordination now.
 - **A relay in every worker.** Rejected because independent worker replication would violate the relay's singleton contract.
-- **Separate application images or direct internal script-path overrides.** Rejected in favor of one release artifact with a stable role argument, while preserving default API startup and the distroless runtime.
+- **Separate application images.** Rejected in favor of one release artifact with application entrypoint-path overrides, while preserving default API startup and the distroless runtime.
 - **Refuse startup until ingestion exists.** Rejected because the foundation should run and exercise its infrastructure lifecycle before business processing is implemented.
 - **Successful or always-rejecting placeholder handlers.** Rejected because they would respectively discard work or exhaust delivery retries. Connected, non-consuming operation leaves queued work untouched.
 - **Optional RabbitMQ for API-only deployments.** Rejected in favor of one required infrastructure contract for both roles.
