@@ -1,25 +1,19 @@
+import type { createApp } from "./app.js";
+import type { ApiHttp } from "./http.js";
+import type { Database } from "@exposurenexus/backend/database";
+import type { JobProducer } from "@exposurenexus/jobs/producer";
+import type { JobRelay } from "@exposurenexus/jobs/relay";
+import type { Kysely } from "kysely";
 import type { Logger } from "pino";
 
-interface ApiHttp {
-  ready: Promise<void>;
-  close(): Promise<void>;
-}
+type ApiApplication = Pick<ReturnType<typeof createApp>, "fetch">;
 
-interface ApiRelay {
-  start(): Promise<void>;
-  stop(): Promise<void>;
-}
-
-interface ApiDatabase<Producer> {
-  initialize(): Promise<void>;
-  createRelay(producer: Producer): ApiRelay;
-  openHttp(onError: () => void): ApiHttp;
-  close(): Promise<void>;
-}
-
-interface ApiDependencies<Producer> {
-  openDatabase(): ApiDatabase<Producer>;
-  openProducer(): Promise<Producer>;
+export interface ApiDependencies {
+  openDatabase(): Kysely<Database>;
+  initializeApplication(database: Kysely<Database>): Promise<ApiApplication>;
+  openProducer(): Promise<JobProducer>;
+  createRelay(database: Kysely<Database>, producer: JobProducer): JobRelay;
+  openHttp(application: ApiApplication, onError: () => void): ApiHttp;
   signals: {
     on(signal: "SIGINT" | "SIGTERM", listener: () => void): unknown;
     removeListener(signal: "SIGINT" | "SIGTERM", listener: () => void): unknown;
@@ -27,18 +21,18 @@ interface ApiDependencies<Producer> {
   exit(code: number): void;
 }
 
-export function runApi<Producer extends { close(): Promise<void> }>({
+export function runApi({
   config,
   logger,
   dependencies,
 }: {
   config: { STARTUP_TIMEOUT_MS: number; SHUTDOWN_TIMEOUT_MS: number };
-  logger: Logger;
-  dependencies: ApiDependencies<Producer>;
+  logger: Pick<Logger, "info" | "error" | "fatal">;
+  dependencies: ApiDependencies;
 }) {
-  let database: ApiDatabase<Producer> | undefined;
-  let producer: Producer | undefined;
-  let relay: ApiRelay | undefined;
+  let database: Kysely<Database> | undefined;
+  let producer: JobProducer | undefined;
+  let relay: JobRelay | undefined;
   let http: ApiHttp | undefined;
   let stopping = false;
   let finished = false;
@@ -93,7 +87,7 @@ export function runApi<Producer extends { close(): Promise<void> }>({
       if (finished) return;
       await Promise.all([
         close("producer", () => producer?.close()),
-        close("database", () => database?.close()),
+        close("database", () => database?.destroy()),
       ]);
       if (finished) return;
       logger.info({ exitCode }, "API shutdown completed");
@@ -120,18 +114,18 @@ export function runApi<Producer extends { close(): Promise<void> }>({
       database = dependencies.openDatabase();
       if (stopping) return;
       stage = "migrations and initialization";
-      await database.initialize();
+      const application = await dependencies.initializeApplication(database);
       if (stopping) return;
       stage = "broker connection and exchange check";
       producer = await dependencies.openProducer();
       if (stopping) return;
       stage = "relay activation";
-      relay = database.createRelay(producer);
+      relay = dependencies.createRelay(database, producer);
       if (stopping) return;
       await Promise.race([relay.start(), shutdownRequested.promise]);
       if (stopping) return;
       stage = "HTTP bind";
-      http = database.openHttp(() => {
+      http = dependencies.openHttp(application, () => {
         logger.error("API HTTP server failed");
         void shutdown({ reason: "HTTP failure", code: 1 });
       });
