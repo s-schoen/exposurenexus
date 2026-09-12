@@ -192,6 +192,9 @@ describe("createJobConsumer", () => {
     expect(missingQueueChannel.assertQueue).not.toHaveBeenCalled();
     expect(missingQueueChannel.close).toHaveBeenCalledOnce();
     expect(missingQueueConnection.close).toHaveBeenCalledOnce();
+    expect(missingQueueChannel.close.mock.invocationCallOrder[0]).toBeLessThan(
+      missingQueueConnection.close.mock.invocationCallOrder[0],
+    );
 
     const channelError = new Error("channel creation failed");
     connection.createChannel.mockRejectedValueOnce(channelError);
@@ -1020,34 +1023,62 @@ describe("createJobConsumer", () => {
     await running;
   });
 
-  it("cancels, waits for the active handler, and closes cleanly", async () => {
+  it("cancels, drains both accepted deliveries sequentially, and ignores deliveries after stop", async () => {
     const consumer = await createJobConsumer(options);
-    let resolveHandler: (() => void) | undefined;
-    const handler = vi.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          resolveHandler = resolve;
-        }),
-    );
+    const first = deferred();
+    const second = deferred();
+    const handler = vi
+      .fn()
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementationOnce(() => second.promise);
     consumer.registerJobHandler(JobType.INGESTION, handler);
     const running = consumer.start();
-    await flush();
+    await consumer.waitForInitialActivation();
+    expect(channel.prefetch).toHaveBeenCalledExactlyOnceWith(1);
+    expect(channel.consume).toHaveBeenCalledWith(QUEUE_NAME, expect.any(Function), {
+      noAck: false,
+    });
 
     const event = createJobEvent({ type: JobType.INGESTION, data: ingestionData });
     channel.emitMessage(createMessage(event));
+    channel.emitMessage(createMessage(event, 2));
     await flush();
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(channel.ack).not.toHaveBeenCalled();
+    expect(channel.reject).not.toHaveBeenCalled();
 
     const stopping = consumer.stop();
     await flush();
     expect(channel.cancel).toHaveBeenCalledWith("consumer-tag");
     expect(channel.close).not.toHaveBeenCalled();
     expect(connection.close).not.toHaveBeenCalled();
+    channel.emitMessage(createMessage(event, 3));
 
-    resolveHandler?.();
+    first.resolve();
+    await vi.waitFor(() => expect(handler).toHaveBeenCalledTimes(2));
+    expect(channel.ack).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ fields: expect.objectContaining({ deliveryTag: 1 }) }),
+    );
+    expect(channel.reject).not.toHaveBeenCalled();
+    expect(channel.close).not.toHaveBeenCalled();
+    expect(connection.close).not.toHaveBeenCalled();
+    second.resolve();
     await stopping;
     await running;
-    expect(channel.ack).toHaveBeenCalledOnce();
+    expect(handler).toHaveBeenCalledTimes(2);
+    expect(channel.ack).toHaveBeenCalledTimes(2);
+    expect(channel.ack).toHaveBeenLastCalledWith(
+      expect.objectContaining({ fields: expect.objectContaining({ deliveryTag: 2 }) }),
+    );
+    expect(channel.reject).not.toHaveBeenCalled();
     expect(channel.close).toHaveBeenCalledOnce();
     expect(connection.close).toHaveBeenCalledOnce();
+    const order = [
+      channel.cancel.mock.invocationCallOrder[0],
+      ...channel.ack.mock.invocationCallOrder,
+      channel.close.mock.invocationCallOrder[0],
+      connection.close.mock.invocationCallOrder[0],
+    ];
+    expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 });
