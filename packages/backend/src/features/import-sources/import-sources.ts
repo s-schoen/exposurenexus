@@ -50,6 +50,7 @@ export interface ImportSources {
   create(command: CreateImportSourceCommand): Promise<ImportSource>;
   getByID(id: string): Promise<ImportSource | null>;
   readByID(id: string): Promise<Readable>;
+  deleteByID(id: string): Promise<void>;
   close(): void;
 }
 
@@ -269,6 +270,43 @@ export function createImportSources(
           kind: "unexpected",
           message: "Import source could not be read",
           details: { sourceId: id },
+        });
+      }
+    },
+    async deleteByID(id) {
+      const source = await persistence.getRecord(database, id).catch(() => {
+        throw new ApplicationError({
+          code: "import_source.get_failed",
+          kind: "unexpected",
+          message: "Import source metadata could not be read",
+          details: { sourceId: id },
+        });
+      });
+      if (!source)
+        throw new ApplicationError({
+          code: "import_source.not_found",
+          kind: "missing",
+          message: "Import source not found",
+          details: { sourceId: id },
+        });
+      if (source.state === "deleted") return;
+      let removed = false;
+      try {
+        // S3 DeleteObject also succeeds when the key is already absent.
+        await client.send(
+          new DeleteObjectCommand({ Bucket: source.bucket, Key: source.objectKey }),
+        );
+        removed = true;
+        await persistence.recordDeletion(database, id);
+      } catch {
+        throw new ApplicationError({
+          code: "import_source.delete_failed",
+          kind: "unexpected",
+          message: "Import source deletion could not be completed",
+          details: {
+            sourceId: id,
+            reason: removed ? "bookkeeping_failed" : "storage_failed",
+          },
         });
       }
     },

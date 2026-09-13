@@ -16,7 +16,7 @@ const secretAccessKey = process.env.IMPORT_SOURCE_S3_TEST_SECRET_ACCESS_KEY;
 const configured = Boolean(bucket && region && accessKeyId && secretAccessKey);
 
 it.skipIf(!configured)(
-  "real S3 store/read smoke (skipped when IMPORT_SOURCE_S3_TEST_* infrastructure is not configured)",
+  "real S3 store/read/delete smoke (skipped when IMPORT_SOURCE_S3_TEST_* infrastructure is not configured)",
   async () => {
     const testDb = createTestDatabase();
     await testDb.start();
@@ -69,6 +69,35 @@ it.skipIf(!configured)(
       expect(bytes).toEqual(
         Buffer.concat([Buffer.alloc(65536, 0x61), Buffer.alloc(65536, 0x62), Buffer.from("end")]),
       );
+      await sources.deleteByID(source.id);
+      const deleted = await sources.getByID(source.id);
+      expect(deleted).toEqual({
+        ...source,
+        state: "deleted",
+        deletedAt: expect.any(Date),
+        cleanupState: "completed",
+      });
+      await sources.deleteByID(source.id);
+      expect(await sources.getByID(source.id)).toEqual(deleted);
+      await expect(sources.readByID(source.id)).rejects.toMatchObject({
+        code: "import_source.not_available",
+      });
+      const missing = await sources.create({
+        body: Readable.from([]),
+        expectedSize: 0,
+        originalFilename: "s3-smoke-missing.bin",
+        performedBy: actor.id,
+      });
+      const missingRecord = await testDb.db
+        .selectFrom("import_source")
+        .select(["bucket", "objectKey"])
+        .where("id", "=", missing.id)
+        .executeTakeFirstOrThrow();
+      await cleanup.send(
+        new DeleteObjectCommand({ Bucket: missingRecord.bucket, Key: missingRecord.objectKey }),
+      );
+      await sources.deleteByID(missing.id);
+      expect(await sources.getByID(missing.id)).toMatchObject({ state: "deleted" });
     } catch (error) {
       errors.push(error);
     } finally {

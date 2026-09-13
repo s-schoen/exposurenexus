@@ -492,25 +492,199 @@ describe("import sources", () => {
     sources.close();
   });
 
-  it("refuses future deleted states without contacting object storage", async () => {
+  it.each(["temporary", "keep"] as const)(
+    "explicitly deletes %s bytes, preserves provenance, and permits repeated deletion",
+    async (retentionPolicy) => {
+      const sources = capability({ retentionPolicy });
+      const source = await sources.create({
+        body: Readable.from([Buffer.from("abc")]),
+        expectedSize: 3,
+        originalFilename: "scan.jsonl",
+        performedBy: actorId,
+      });
+      await sources.deleteByID(source.id);
+      expect(objects.size).toBe(0);
+      const deleted = await sources.getByID(source.id);
+      expect(deleted).toEqual({
+        ...source,
+        state: "deleted",
+        deletedAt: expect.any(Date),
+        cleanupState: "completed",
+      });
+      await sources.deleteByID(source.id);
+      expect(await sources.getByID(source.id)).toEqual(deleted);
+      send.mockClear();
+      await expect(sources.readByID(source.id)).rejects.toMatchObject({
+        code: "import_source.not_available",
+        kind: "conflict",
+      });
+      expect(send).not.toHaveBeenCalled();
+      sources.close();
+    },
+  );
+
+  it("preserves the first deletion timestamp when deletion calls overlap", async () => {
     const sources = capability();
     const source = await sources.create({
-      body: Readable.from([]),
-      expectedSize: 0,
+      body: Readable.from([Buffer.from("abc")]),
+      expectedSize: 3,
       originalFilename: "scan",
       performedBy: actorId,
     });
-    // Seed the future deletion lifecycle, not a public deletion operation in this ticket.
-    await testDb.db
-      .updateTable("import_source")
-      .set({ state: "deleted", deletedAt: new Date() })
-      .where("id", "=", source.id)
-      .execute();
-    send.mockClear();
-    await expect(sources.readByID(source.id)).rejects.toMatchObject({
-      code: "import_source.not_available",
+    let signalBothDeleting!: () => void;
+    const bothDeleting = new Promise<void>((resolve) => {
+      signalBothDeleting = resolve;
+    });
+    let releaseSecond!: () => void;
+    const secondReleased = new Promise<void>((resolve) => {
+      releaseSecond = resolve;
+    });
+    const storage = send.getMockImplementation()!;
+    let deletions = 0;
+    send.mockImplementation(async (...args) => {
+      if (args[0] instanceof DeleteObjectCommand) {
+        deletions += 1;
+        if (deletions === 1) {
+          await bothDeleting;
+        } else {
+          signalBothDeleting();
+          await secondReleased;
+        }
+      }
+      return storage(...args);
+    });
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-09-13T00:00:00Z"));
+      const first = sources.deleteByID(source.id);
+      const second = sources.deleteByID(source.id);
+      await first;
+      const deleted = await sources.getByID(source.id);
+      expect(deleted?.deletedAt).toEqual(new Date("2026-09-13T00:00:00Z"));
+      vi.setSystemTime(new Date("2026-09-13T00:00:01Z"));
+      releaseSecond();
+      await second;
+      expect(await sources.getByID(source.id)).toEqual(deleted);
+      expect(objects.size).toBe(0);
+    } finally {
+      releaseSecond();
+      vi.useRealTimers();
+      sources.close();
+    }
+  });
+
+  it("distinguishes missing source records from known sources with absent objects", async () => {
+    const sources = capability();
+    await expect(sources.deleteByID(actorId)).rejects.toMatchObject({
+      code: "import_source.not_found",
+      kind: "missing",
+      details: { sourceId: actorId },
+    });
+    await expect(sources.deleteByID("invalid-uuid")).rejects.toMatchObject({
+      code: "import_source.get_failed",
+      kind: "unexpected",
     });
     expect(send).not.toHaveBeenCalled();
+    const source = await sources.create({
+      body: Readable.from([Buffer.from("abc")]),
+      expectedSize: 3,
+      originalFilename: "scan",
+      performedBy: actorId,
+    });
+    objects.clear();
+    await expect(sources.readByID(source.id)).rejects.toMatchObject({
+      code: "import_source.read_failed",
+    });
+    await sources.deleteByID(source.id);
+    expect(await sources.getByID(source.id)).toEqual({
+      ...source,
+      state: "deleted",
+      deletedAt: expect.any(Date),
+      cleanupState: "completed",
+    });
+    sources.close();
+  });
+
+  it.each(["ServiceUnavailable", "AccessDenied", "NoSuchBucket", "bookkeeping"])(
+    "reports %s deletion failure truthfully and permits retry",
+    async (failure) => {
+      const sources = capability();
+      const source = await sources.create({
+        body: Readable.from([Buffer.from("abc")]),
+        expectedSize: 3,
+        originalFilename: "scan",
+        performedBy: actorId,
+      });
+      if (failure === "bookkeeping") {
+        await sql`create function fail_import_source_update() returns trigger language plpgsql as $$
+          begin raise exception 'injected metadata failure'; end;
+        $$`.execute(testDb.db);
+        await sql`create trigger fail_import_source_update before update on import_source
+          for each row execute function fail_import_source_update()`.execute(testDb.db);
+      } else {
+        send.mockRejectedValueOnce(
+          Object.assign(new Error("secret-not-for-results"), { name: failure }),
+        );
+      }
+      const error = await sources.deleteByID(source.id).catch((error: unknown) => error);
+      expect(error).toMatchObject({
+        code: "import_source.delete_failed",
+        kind: "unexpected",
+        details: {
+          sourceId: source.id,
+          reason: failure === "bookkeeping" ? "bookkeeping_failed" : "storage_failed",
+        },
+      });
+      expect(JSON.stringify(error)).not.toContain("secret-not-for-results");
+      expect(await sources.getByID(source.id)).toEqual(source);
+      expect(objects.size).toBe(failure === "bookkeeping" ? 0 : 1);
+      if (failure === "bookkeeping") {
+        await expect(sources.readByID(source.id)).rejects.toMatchObject({
+          code: "import_source.read_failed",
+        });
+        await sql`drop trigger fail_import_source_update on import_source`.execute(testDb.db);
+      } else {
+        expect(await buffer(await sources.readByID(source.id))).toEqual(Buffer.from("abc"));
+      }
+      await sources.deleteByID(source.id);
+      expect(objects.size).toBe(0);
+      expect(await sources.getByID(source.id)).toEqual({
+        ...source,
+        state: "deleted",
+        deletedAt: expect.any(Date),
+        cleanupState: "completed",
+      });
+      sources.close();
+    },
+  );
+
+  it("explicitly cleans failed creation without losing incomplete provenance", async () => {
+    const sources = capability();
+    failPut = true;
+    failDelete = true;
+    const error = await sources
+      .create({
+        body: Readable.from([Buffer.from("abc")]),
+        expectedSize: 3,
+        originalFilename: "scan",
+        performedBy: actorId,
+      })
+      .catch((error: unknown) => error);
+    const { sourceId } = (error as { details: { sourceId: string } }).details;
+    const incomplete = await sources.getByID(sourceId);
+    expect(incomplete).toMatchObject({ state: "incomplete", cleanupState: "failed" });
+    failDelete = false;
+    await sources.deleteByID(sourceId);
+    expect(objects.size).toBe(0);
+    expect(await sources.getByID(sourceId)).toEqual({
+      ...incomplete,
+      state: "deleted",
+      deletedAt: expect.any(Date),
+      cleanupState: "completed",
+    });
+    await expect(sources.readByID(sourceId)).rejects.toMatchObject({
+      code: "import_source.not_available",
+    });
     sources.close();
   });
 });

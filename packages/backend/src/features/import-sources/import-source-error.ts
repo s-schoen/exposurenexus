@@ -14,4 +14,8 @@ export type ImportSourceApplicationErrorCatalog = {
   "import_source.not_available": { kind: "conflict"; details: { sourceId: string } };
   "import_source.not_found": { kind: "missing"; details: { sourceId: string } };
   "import_source.read_failed": { kind: "unexpected"; details: { sourceId: string } };
+  "import_source.delete_failed": {
+    kind: "unexpected";
+    details: { sourceId: string; reason: "storage_failed" | "bookkeeping_failed" };
+  };
 };
