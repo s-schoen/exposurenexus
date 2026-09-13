@@ -7,6 +7,11 @@ Persisted ingestion linkage and lookup are available, but there is no working HT
 import endpoint, ingestion submission workflow, or active worker handler. S3 is
 not a required API or worker startup dependency.
 
+The separate [Object Storage](object-storage.md) module is available, but this
+capability's migration is deferred to ticket 02. The configuration below,
+feature-owned SDK client, and `ImportSources.close()` remain current; no storage
+handle is injected yet.
+
 ## Configuration And Usage
 
 Import `createImportSources` from `@exposurenexus/backend/import-sources`. The

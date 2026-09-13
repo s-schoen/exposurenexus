@@ -9,6 +9,7 @@ import type { ImportSourceApplicationErrorCatalog } from "./features/import-sour
 import type { StatsApplicationErrorCatalog } from "./features/statistics/stats-error.js";
 export type { ImportSourceApplicationErrorCatalog } from "./features/import-sources/import-source-error.js";
 import type { VulnerabilityApplicationErrorCatalog } from "./features/vulnerabilities/vulnerability-error.js";
+import type { ObjectStorageApplicationErrorCatalog } from "./object-storage/object-storage-error.js";
 
 export type { AssetCustomFieldApplicationErrorCatalog } from "./features/assets/custom-fields/asset-custom-field-error.js";
 export type { AssetApplicationErrorCatalog } from "./features/assets/inventory/asset-error.js";
@@ -19,12 +20,14 @@ export type { RoleApplicationErrorCatalog } from "./features/identity/roles/role
 export type { StatsApplicationErrorCatalog } from "./features/statistics/stats-error.js";
 export type { UserProfileApplicationErrorCatalog } from "./features/identity/users/user-profile-error.js";
 export type { VulnerabilityApplicationErrorCatalog } from "./features/vulnerabilities/vulnerability-error.js";
+export type { ObjectStorageApplicationErrorCatalog } from "./object-storage/object-storage-error.js";
 
 export type ApplicationErrorCatalog = AssetApplicationErrorCatalog &
   ImportSourceApplicationErrorCatalog &
   AssetCustomFieldApplicationErrorCatalog &
   AuthApplicationErrorCatalog &
   FindingApplicationErrorCatalog &
+  ObjectStorageApplicationErrorCatalog &
   ObservationApplicationErrorCatalog &
   RoleApplicationErrorCatalog &
   StatsApplicationErrorCatalog &

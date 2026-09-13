@@ -6,7 +6,8 @@ by [ADR-0004](adr/0004-shared-backend-capabilities.md).
 ## Ownership
 
 - `@exposurenexus/backend` owns business behavior, canonicalization, business
-  validation, transactions, private persistence, database types, and migrations.
+  validation, transactions, private persistence, database types, migrations, and
+  reusable object-storage infrastructure.
 - The API owns HTTP routes, cookies, authentication and permission middleware,
   event decorators, error translation, environment configuration, and startup.
 - `@exposurenexus/contracts` owns client-safe serialized shapes, declarative
@@ -51,11 +52,12 @@ import or initialize every capability. Each capability subpath owns its factory
 and caller-facing commands, results, and operation-specific mutation outcomes.
 The runtime keeps database access, logging, and per-runtime memoization private.
 Constructing assets, findings, vulnerabilities, or statistics does not require
-authentication configuration. Each factory memoizes its capability independently
-within the runtime. The library-only `/import-sources` capability instead owns an
+authentication configuration. These factories memoize their capabilities
+independently within the runtime. The library-only `/import-sources` capability currently owns an
 independent S3 client per factory call, with capability-local configuration and
 explicit `close()` after transfers drain. It needs no authentication configuration
-and is not composed by the API or worker yet. See [Import Sources](import-sources.md).
+and is not composed by the API or worker yet. Migration to injected object storage
+is deferred to ticket 02. See [Import Sources](import-sources.md).
 
 Callers use these interfaces:
 
@@ -69,17 +71,24 @@ Callers use these interfaces:
 | Statistics      | Finding statistics                                                                     |
 | Import Sources  | Streamed creation/read, source/ingestion lookup, explicit byte deletion (library only) |
 
-The only additional public subpath is `@exposurenexus/backend/database` for
-composition infrastructure. There are no wildcard exports or compatibility
-imports. Repository contracts, dependency objects, lookup ports, persistence
-records, and transaction types stay private. Routes, middleware, event
-decorators, and handlers must not query Kysely or use repositories directly.
+Shared infrastructure uses the strict `@exposurenexus/backend/database` and
+`@exposurenexus/backend/object-storage` subpaths. `createObjectStorage(config)`
+constructs a bucket-bound handle without a database, backend runtime, environment
+lookup, or startup I/O. The composing caller owns its client lifetime and may
+share the handle across capabilities, closing it only after consumers and read
+streams stop. No runtime registration or required application-startup S3 dependency
+is introduced. See [Object Storage](object-storage.md).
+
+There are no wildcard exports or compatibility imports. Repository contracts,
+dependency objects, lookup ports, persistence records, transaction types, and raw
+S3 SDK clients and commands stay private. Routes, middleware, event decorators,
+and handlers must not query Kysely or use repositories directly.
 Database access outside backend is limited to executable composition, migration
 invocation, jobs persistence composition, and test infrastructure.
 
 ## Backend Feature Organization
 
-Backend implementation lives under `packages/backend/src/features/`.
+Backend feature implementation lives under `packages/backend/src/features/`.
 Authentication, identity, assets, findings, vulnerabilities, statistics, and import sources are
 top-level features. Identity groups users, roles, and authorization; assets groups
 inventory and custom fields. Each feature colocates its behavior, private
@@ -91,6 +100,10 @@ transactions, projections, and audit updates are coupled. Asset projections and
 audit handling stay at the assets level because both subfeatures use them. Shared
 security-identifier canonicalization stays private at package level.
 
+Reusable byte storage lives at `packages/backend/src/object-storage/`, outside
+the import-source feature. It owns object I/O and transfer mechanics, not domain
+metadata, import policy, retention, or compensation decisions.
+
 Separate entrypoints do not imply independent persistence: identity changes can
 revoke authentication sessions in the same transaction, and findings can use
 vulnerability persistence internally. These dependencies remain private; apps do
@@ -101,9 +114,9 @@ imports and retains one chronological migration chain. Ingestion has only a tabl
 definition under database schema until its behavior is implemented. Import sources
 own the optional, unique ingestion reference and expose source metadata lookup by
 ingestion ID without exposing queries or introducing a submission/processing use case. The root
-`ApplicationError` similarly aggregates feature-owned error catalogs through
-type-only imports. No generic feature framework or separate workspace packages
-are required.
+`ApplicationError` similarly aggregates feature- and infrastructure-owned error
+catalogs through type-only imports. No generic feature framework or separate
+workspace packages are required.
 
 ## API Adaptation
 

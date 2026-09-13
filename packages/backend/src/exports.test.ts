@@ -1,7 +1,14 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
+
+import type {
+  ObjectStorage,
+  ObjectStorageConfiguration,
+  ObjectStorageWriteCommand,
+} from "@exposurenexus/backend/object-storage";
+import type { Readable } from "node:stream";
 
 describe("backend exports", () => {
   it("rejects deep imports of private implementations", () => {
@@ -16,6 +23,9 @@ describe("backend exports", () => {
       "features/import-sources/import-source-persistence",
       "features/import-sources/import-source-table",
       "import-sources/import-sources",
+      "object-storage/object-storage",
+      "object-storage/object-storage-error",
+      "object-storage/index",
       "features/authentication/session-table",
       "features/identity/users/user-profile-persistence",
       "database/schema/ingestion",
@@ -49,6 +59,7 @@ describe("backend exports", () => {
       "./findings",
       "./identity",
       "./import-sources",
+      "./object-storage",
       "./statistics",
       "./vulnerabilities",
     ]);
@@ -67,5 +78,26 @@ describe("backend exports", () => {
     expect(Object.keys(await import("./features/import-sources/index.js"))).toEqual([
       "createImportSources",
     ]);
+  });
+
+  it("exports the object-storage factory and caller types without an SDK operational interface", async () => {
+    const entrypoint = await import("./object-storage/index.js");
+    expect(Object.keys(entrypoint)).toEqual(["createObjectStorage"]);
+    expectTypeOf(entrypoint.createObjectStorage)
+      .parameter(0)
+      .toEqualTypeOf<ObjectStorageConfiguration>();
+    expectTypeOf(entrypoint.createObjectStorage).returns.toEqualTypeOf<ObjectStorage>();
+    expectTypeOf<ObjectStorageWriteCommand>().toEqualTypeOf<{
+      key: string;
+      body: Readable;
+      expectedSize: number;
+    }>();
+    expectTypeOf<ObjectStorage>().toEqualTypeOf<{
+      readonly bucket: string;
+      write(command: ObjectStorageWriteCommand): Promise<void>;
+      read(key: string): Promise<Readable>;
+      delete(key: string): Promise<void>;
+      close(): void;
+    }>();
   });
 });

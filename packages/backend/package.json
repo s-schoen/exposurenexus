@@ -18,6 +18,10 @@
       "types": "./dist/database/index.d.ts",
       "import": "./dist/database/index.js"
     },
+    "./object-storage": {
+      "types": "./dist/object-storage/index.d.ts",
+      "import": "./dist/object-storage/index.js"
+    },
     "./authentication": {
       "types": "./dist/features/authentication/index.d.ts",
       "import": "./dist/features/authentication/index.js"

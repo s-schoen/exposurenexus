@@ -1,6 +1,6 @@
 # S3-Backed Import Sources
 
-**Status:** Accepted; storage, explicit deletion, and durable-reference foundation implemented. Submission and processing remain deferred.
+**Status:** Accepted; storage, explicit deletion, and durable-reference foundation implemented. Reusable object storage is also implemented; import-source migration, submission, and processing remain deferred.
 
 Asynchronous ingestion needs input bytes that remain accessible independently of an HTTP request or worker host. Store raw input in private S3 object storage, track each import source in PostgreSQL, and identify an ingestion in its job rather than carrying bytes or an expiring URL. This separates file lifetime from message delivery without introducing the ingestion pipeline itself.
 
@@ -23,13 +23,32 @@ submission/link operation or a placeholder ingestion-processing use case.
 
 ### Storage Interface
 
-Use the official AWS S3 SDK against a configured, preprovisioned private bucket. The capability accepts configuration rather than reading application environment variables or provisioning resources. Storage dependencies remain local to this capability, not part of the general backend runtime. No provider-specific adapters or blanket compatibility guarantee are introduced: an S3-compatible server still needs to support the SDK operations used.
+Use the official AWS S3 SDK against a configured, preprovisioned private bucket. The capability accepts configuration rather than reading application environment variables or provisioning resources. The initial feature-local implementation, still used by import sources, keeps S3 dependencies outside the general backend runtime. No provider-specific adapters or blanket compatibility guarantee are introduced: an S3-compatible server still needs to support the SDK operations used.
 
 Keys are generated internally, independently of original filenames. Write-once is an application convention: there is no replace operation, bucket-versioning requirement, or conditional-write enforcement. An administrator or other holder of write credentials can still alter an object; direct browser uploads must revisit this assumption.
 
 Creation takes a readable stream and declared byte length. The default configurable limit is 100 MiB. Check the declared size before transfer, enforce limits and actual byte count while streaming, and mark a source available only after successful storage of exactly the declared bytes. Unknown-length streams, whole-file buffering, and multipart/resumable uploads are outside this foundation.
 
 Create the source record before writing its object. PostgreSQL and S3 do not share a transaction: a caught failure attempts best-effort object cleanup, while incomplete records identify interrupted work. Do not expose an incomplete or mismatched upload as available.
+
+### Reusable Storage Refinement
+
+Ticket 01 deliberately refines the feature-local storage decision: reusable
+`@exposurenexus/backend/object-storage` now provides bucket-bound streamed writes,
+reads, deletion, and explicit `close()` outside import sources, without database or
+runtime dependencies. This lets capabilities share byte storage without adopting
+import-source metadata or policy. Its composing caller owns client lifetime; the
+module owns exact-length enforcement, backpressure, cancellation, and local
+transfer settlement, but never deletes objects to compensate for failed writes.
+See [Object Storage](../object-storage.md) for the contract and configuration
+continuity requirements.
+
+Import sources have not migrated: they still configure and construct their own
+SDK client, implement transfers and compensation, and expose `ImportSources.close()`.
+Ticket 02 will inject the storage handle, remove feature-owned SDK/client shutdown,
+and add recorded-bucket mismatch checks. Source metadata, key generation, size and
+retention policy, finalization, and compensation decisions remain feature-owned.
+This refinement does not deliver production API/worker composition or startup checks.
 
 ### Retention And Deletion
 
