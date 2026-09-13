@@ -341,8 +341,25 @@ An **ingestion** groups observations created from one imported source file or
 source dataset. The initial persisted record retains only its identity, source,
 creation actor, and creation time so imported observations can retain
 provenance. Ingestion scope and processed, created, skipped, and erroneous
-record accounting are deferred until synchronous import persistence exists.
+record accounting are deferred until automated ingestion is implemented.
 Manual observations do not belong to ingestions.
+
+### Import Source
+
+An **import source** (planned) is the raw input artifact for an ingestion, with
+provenance that remains meaningful after its raw data is removed. An import
+source may exist before ingestion and belongs to at most one ingestion;
+retaining it does not make it a reusable dataset.
+
+### Import Source Retention
+
+An import source's **retention policy** (planned) expresses whether its raw data
+is intended for cleanup after ingestion (`temporary`) or continued retention
+(`keep`). Retention does not prevent explicit deletion or imply immutable
+evidence.
+
+See [S3-Backed Import Sources](docs/adr/0006-s3-backed-import-sources.md) for the
+accepted, not-yet-implemented decision.
 
 ### Vulnerability Source Mapping
 

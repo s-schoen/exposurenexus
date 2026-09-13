@@ -17,6 +17,7 @@ import type {
   UserRoleAssignmentTable,
 } from "../features/identity/roles/rbac-table.js";
 import type { UserProfileTable } from "../features/identity/users/user-table.js";
+import type { ImportSourceTable } from "../features/import-sources/import-source-table.js";
 import type { VulnerabilityTable } from "../features/vulnerabilities/vulnerability-table.js";
 import type { IngestionTable } from "./schema/ingestion.js";
 import type { JobTable } from "@exposurenexus/jobs/postgres";
@@ -25,6 +26,7 @@ export { createDatabase, createPostgresDatabase, createPostgresPool } from "./fa
 export { checkDatabaseMigrations, migrateToLatest } from "./migration.js";
 
 export interface Database {
+  import_source: ImportSourceTable;
   job: JobTable;
   user_profile: UserProfileTable;
   role: RoleTable;

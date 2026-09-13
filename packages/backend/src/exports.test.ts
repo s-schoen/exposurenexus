@@ -13,6 +13,9 @@ describe("backend exports", () => {
       "findings/findings",
       "features/findings/index",
       "features/findings/finding-persistence",
+      "features/import-sources/import-source-persistence",
+      "features/import-sources/import-source-table",
+      "import-sources/import-sources",
       "features/authentication/session-table",
       "features/identity/users/user-profile-persistence",
       "database/schema/ingestion",
@@ -45,6 +48,7 @@ describe("backend exports", () => {
       "./database",
       "./findings",
       "./identity",
+      "./import-sources",
       "./statistics",
       "./vulnerabilities",
     ]);
@@ -57,5 +61,11 @@ describe("backend exports", () => {
         /export\s+\*\s+(?:as\s+\w+\s+)?from\s+["']@exposurenexus\/contracts/u,
       );
     }
+  });
+
+  it("exports only the import-source factory from its feature entrypoint", async () => {
+    expect(Object.keys(await import("./features/import-sources/index.js"))).toEqual([
+      "createImportSources",
+    ]);
   });
 });

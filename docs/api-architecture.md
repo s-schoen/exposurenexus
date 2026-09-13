@@ -52,18 +52,22 @@ and caller-facing commands, results, and operation-specific mutation outcomes.
 The runtime keeps database access, logging, and per-runtime memoization private.
 Constructing assets, findings, vulnerabilities, or statistics does not require
 authentication configuration. Each factory memoizes its capability independently
-within the runtime.
+within the runtime. The library-only `/import-sources` capability instead owns an
+independent S3 client per factory call, with capability-local configuration and
+explicit `close()` after transfers drain. It needs no authentication configuration
+and is not composed by the API or worker yet. See [Import Sources](import-sources.md).
 
 Callers use these interfaces:
 
-| Capability      | Interfaces                                        |
-| --------------- | ------------------------------------------------- |
-| Identity        | `users`, `roles`, `authorization`                 |
-| Authentication  | Credential and session operations                 |
-| Assets          | `inventory`, `customFields`                       |
-| Findings        | Finding, observation, and catalog-link operations |
-| Vulnerabilities | Vulnerability catalog operations                  |
-| Statistics      | Finding statistics                                |
+| Capability      | Interfaces                                                          |
+| --------------- | ------------------------------------------------------------------- |
+| Identity        | `users`, `roles`, `authorization`                                   |
+| Authentication  | Credential and session operations                                   |
+| Assets          | `inventory`, `customFields`                                         |
+| Findings        | Finding, observation, and catalog-link operations                   |
+| Vulnerabilities | Vulnerability catalog operations                                    |
+| Statistics      | Finding statistics                                                  |
+| Import Sources  | Streamed creation, metadata lookup, streamed reading (library only) |
 
 The only additional public subpath is `@exposurenexus/backend/database` for
 composition infrastructure. There are no wildcard exports or compatibility
@@ -76,7 +80,7 @@ invocation, jobs persistence composition, and test infrastructure.
 ## Backend Feature Organization
 
 Backend implementation lives under `packages/backend/src/features/`.
-Authentication, identity, assets, findings, vulnerabilities, and statistics are
+Authentication, identity, assets, findings, vulnerabilities, statistics, and import sources are
 top-level features. Identity groups users, roles, and authorization; assets groups
 inventory and custom fields. Each feature colocates its behavior, private
 persistence, table types, error catalogs, rules, and adjacent tests. Commands and

@@ -5,7 +5,9 @@ import type { FindingApplicationErrorCatalog } from "./features/findings/finding
 import type { ObservationApplicationErrorCatalog } from "./features/findings/observation-error.js";
 import type { RoleApplicationErrorCatalog } from "./features/identity/roles/role-error.js";
 import type { UserProfileApplicationErrorCatalog } from "./features/identity/users/user-profile-error.js";
+import type { ImportSourceApplicationErrorCatalog } from "./features/import-sources/import-source-error.js";
 import type { StatsApplicationErrorCatalog } from "./features/statistics/stats-error.js";
+export type { ImportSourceApplicationErrorCatalog } from "./features/import-sources/import-source-error.js";
 import type { VulnerabilityApplicationErrorCatalog } from "./features/vulnerabilities/vulnerability-error.js";
 
 export type { AssetCustomFieldApplicationErrorCatalog } from "./features/assets/custom-fields/asset-custom-field-error.js";
@@ -19,6 +21,7 @@ export type { UserProfileApplicationErrorCatalog } from "./features/identity/use
 export type { VulnerabilityApplicationErrorCatalog } from "./features/vulnerabilities/vulnerability-error.js";
 
 export type ApplicationErrorCatalog = AssetApplicationErrorCatalog &
+  ImportSourceApplicationErrorCatalog &
   AssetCustomFieldApplicationErrorCatalog &
   AuthApplicationErrorCatalog &
   FindingApplicationErrorCatalog &
