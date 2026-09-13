@@ -68,7 +68,7 @@ describe("object storage", () => {
       storage.write({
         key,
         body: Readable.from([Buffer.from("hello"), new Uint8Array([0, 255])]),
-        expectedSize: 7,
+        expectedSizeBytes: 7,
       }),
     ).resolves.toBeUndefined();
     expect(storage.bucket).toBe("private-objects");
@@ -89,16 +89,23 @@ describe("object storage", () => {
   });
 
   it.each([
-    { label: "short input at EOF", chunks: ["ab"], expectedSize: 3, actualSize: 2 },
-    { label: "empty short input", chunks: [], expectedSize: 1, actualSize: 0 },
-    { label: "long input", chunks: ["abcd"], expectedSize: 3, actualSize: null },
-    { label: "in-flight overrun", chunks: ["ab", "cdef"], expectedSize: 4, actualSize: null },
-    { label: "nonempty input declared empty", chunks: ["a"], expectedSize: 0, actualSize: null },
+    { label: "short input at EOF", chunks: ["ab"], expectedSizeBytes: 3, actualSize: 2 },
+    { label: "empty short input", chunks: [], expectedSizeBytes: 1, actualSize: 0 },
+    { label: "long input", chunks: ["abcd"], expectedSizeBytes: 3, actualSize: null },
+    { label: "in-flight overrun", chunks: ["ab", "cdef"], expectedSizeBytes: 4, actualSize: null },
+    {
+      label: "nonempty input declared empty",
+      chunks: ["a"],
+      expectedSizeBytes: 0,
+      actualSize: null,
+    },
   ])(
     "rejects $label without reporting a partial count as the full size",
-    async ({ chunks, expectedSize, actualSize }) => {
+    async ({ chunks, expectedSizeBytes, actualSize }) => {
       const body = Readable.from(chunks.map((chunk) => Buffer.from(chunk)));
-      await expect(storage.write({ key: "mismatch", body, expectedSize })).rejects.toMatchObject({
+      await expect(
+        storage.write({ key: "mismatch", body, expectedSizeBytes }),
+      ).rejects.toMatchObject({
         code: "object_storage.write_failed",
         kind: "unexpected",
         details: { reason: "size_mismatch", actualSize },
@@ -109,17 +116,17 @@ describe("object storage", () => {
   );
 
   it("accepts an empty object with an exact zero-byte declaration", async () => {
-    await storage.write({ key: "empty", body: Readable.from([]), expectedSize: 0 });
+    await storage.write({ key: "empty", body: Readable.from([]), expectedSizeBytes: 0 });
     expect(await buffer(await storage.read("empty"))).toEqual(Buffer.alloc(0));
   });
 
   it.each([-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, undefined, null, "1"])(
     "rejects invalid declared length %s before transfer and leaves input with the caller",
-    async (expectedSize) => {
+    async (expectedSizeBytes) => {
       const body = Readable.from([Buffer.from("unused")]);
       try {
         await expect(
-          storage.write({ key: "invalid", body, expectedSize: expectedSize as never }),
+          storage.write({ key: "invalid", body, expectedSizeBytes: expectedSizeBytes as never }),
         ).rejects.toMatchObject({ code: "object_storage.invalid_input", kind: "validation" });
         expect(body.readableDidRead).toBe(false);
         expect(body.destroyed).toBe(false);
@@ -134,7 +141,7 @@ describe("object storage", () => {
     "rejects non-readable input %s before contacting storage",
     async (body) => {
       await expect(
-        storage.write({ key: "invalid", body: body as never, expectedSize: 0 }),
+        storage.write({ key: "invalid", body: body as never, expectedSizeBytes: 0 }),
       ).rejects.toMatchObject({ code: "object_storage.invalid_input", kind: "validation" });
       expect(send).not.toHaveBeenCalled();
     },
@@ -146,7 +153,9 @@ describe("object storage", () => {
     const exhausted = Readable.from([]);
     await buffer(exhausted);
     for (const body of [destroyed, exhausted]) {
-      await expect(storage.write({ key: "invalid", body, expectedSize: 0 })).rejects.toMatchObject({
+      await expect(
+        storage.write({ key: "invalid", body, expectedSizeBytes: 0 }),
+      ).rejects.toMatchObject({
         code: "object_storage.invalid_input",
         kind: "validation",
       });
@@ -157,43 +166,37 @@ describe("object storage", () => {
   it.each([
     { bucket: "" },
     { bucket: "  " },
-    { bucket: null },
     { region: "" },
     { region: "  " },
-    { region: undefined },
-    { credentials: undefined },
-    { credentials: null },
-    { credentials: {} },
-    { credentials: "secret-not-for-results" },
+    { credentials: { accessKeyId: "", secretAccessKey: "secret-not-for-results" } },
+    { credentials: { accessKeyId: "  ", secretAccessKey: "secret-not-for-results" } },
     { credentials: { accessKeyId: "test", secretAccessKey: "" } },
+    { credentials: { accessKeyId: "test", secretAccessKey: "  " } },
+    { endpoint: "" },
     { endpoint: "not a URL" },
     { endpoint: "file:///private" },
-    { endpoint: 123 },
-    { forcePathStyle: "true" },
-  ])("rejects invalid configuration %j without contacting storage", (overrides) => {
-    expect(() =>
-      createObjectStorage({ ...configuration, ...overrides } as ObjectStorageConfiguration),
-    ).toThrow(
-      expect.objectContaining({ code: "object_storage.invalid_configuration", kind: "validation" }),
-    );
-    expect(send).not.toHaveBeenCalled();
-  });
+  ] satisfies Partial<ObjectStorageConfiguration>[])(
+    "rejects invalid configuration %j without contacting storage",
+    (overrides) => {
+      expect(() => createObjectStorage({ ...configuration, ...overrides })).toThrow(
+        expect.objectContaining({
+          code: "object_storage.invalid_configuration",
+          kind: "validation",
+        }),
+      );
+      expect(send).not.toHaveBeenCalled();
+    },
+  );
 
-  it("preserves explicit SDK settings and lazy credential providers without a startup request", async () => {
-    const credentials = vi.fn(async () => ({
-      ...configuration.credentials,
-      sessionToken: "token",
-    }));
+  it("preserves explicit SDK settings without a startup request", async () => {
     const config: ObjectStorageConfiguration = {
       ...configuration,
-      credentials,
       endpoint: "http://s3.example.test:7070",
       forcePathStyle: true,
     };
     const handle = createObjectStorage(config);
     try {
       expect(send).not.toHaveBeenCalled();
-      expect(credentials).not.toHaveBeenCalled();
       config.bucket = "different-bucket";
       config.region = "different-region";
       config.endpoint = "https://different-service.example.test";
@@ -203,10 +206,7 @@ describe("object storage", () => {
       await handle.delete("caller-key");
       const client = send.mock.contexts[0] as S3Client;
       expect(await client.config.region()).toBe("us-east-1");
-      expect(await client.config.credentials()).toMatchObject({
-        ...configuration.credentials,
-        sessionToken: "token",
-      });
+      expect(await client.config.credentials()).toMatchObject(configuration.credentials);
       expect(await client.config.endpoint?.()).toMatchObject({
         protocol: "http:",
         hostname: "s3.example.test",
@@ -290,7 +290,7 @@ describe("object storage", () => {
     send.mockImplementationOnce(async () => ({}));
     const body = new Readable({ read() {} });
     const settled = vi.fn();
-    const result = storage.write({ key: "pending-input", body, expectedSize: 3 });
+    const result = storage.write({ key: "pending-input", body, expectedSizeBytes: 3 });
     void result.then(settled, settled);
     body.push(Buffer.from("abc"));
     await setImmediate();
@@ -312,7 +312,7 @@ describe("object storage", () => {
     const result = storage.write({
       key: "pending-upload",
       body: Readable.from([Buffer.from("abc")]),
-      expectedSize: 3,
+      expectedSizeBytes: 3,
     });
     void result.then(settled, settled);
     await consumed.promise;
@@ -342,7 +342,7 @@ describe("object storage", () => {
       }
       return {};
     });
-    const result = storage.write({ key: "large", body, expectedSize: 134217728 });
+    const result = storage.write({ key: "large", body, expectedSizeBytes: 134217728 });
     await setImmediate();
     expect(produced).toBeGreaterThan(0);
     expect(produced).toBeLessThan(2048);
@@ -354,7 +354,7 @@ describe("object storage", () => {
 
   it.each([0, 3])(
     "reports complete size %s on storage failure and leaves compensation to the caller",
-    async (expectedSize) => {
+    async (expectedSizeBytes) => {
       const sdk = send.getMockImplementation()!;
       send.mockImplementationOnce(async (...args) => {
         await Promise.resolve(sdk(...args));
@@ -363,22 +363,22 @@ describe("object storage", () => {
       const error = await storage
         .write({
           key: "ambiguous-write",
-          body: Readable.from([Buffer.alloc(expectedSize, 0x61)]),
-          expectedSize,
+          body: Readable.from([Buffer.alloc(expectedSizeBytes, 0x61)]),
+          expectedSizeBytes,
         })
         .catch((error: unknown) => error);
       expect(error).toBeInstanceOf(ApplicationError);
       expect(error).toMatchObject({
         code: "object_storage.write_failed",
         kind: "unexpected",
-        details: { reason: "transfer_failed", actualSize: expectedSize },
+        details: { reason: "transfer_failed", actualSize: expectedSizeBytes },
         cause: undefined,
       });
       expect(String(error)).not.toContain("secret-not-for-results");
       expect(JSON.stringify(error)).not.toContain("secret-not-for-results");
       expect(send).toHaveBeenCalledTimes(1);
       expect(await buffer(await storage.read("ambiguous-write"))).toEqual(
-        Buffer.alloc(expectedSize, 0x61),
+        Buffer.alloc(expectedSizeBytes, 0x61),
       );
       await storage.delete("ambiguous-write");
     },
@@ -411,7 +411,7 @@ describe("object storage", () => {
     async ({ body: createBody }) => {
       const body = createBody();
       await expect(
-        storage.write({ key: "interrupted", body, expectedSize: 1 }),
+        storage.write({ key: "interrupted", body, expectedSizeBytes: 1 }),
       ).rejects.toMatchObject({
         code: "object_storage.write_failed",
         details: { reason: "transfer_failed", actualSize: null },
@@ -433,7 +433,11 @@ describe("object storage", () => {
     });
     send.mockRejectedValueOnce(new Error("storage failed before reading input"));
     const settled = vi.fn();
-    const result = storage.write({ key: "blocked", body, expectedSize: Number.MAX_SAFE_INTEGER });
+    const result = storage.write({
+      key: "blocked",
+      body,
+      expectedSizeBytes: Number.MAX_SAFE_INTEGER,
+    });
     void result.then(settled, settled);
     await destroying.promise;
     await setImmediate();
@@ -464,7 +468,7 @@ describe("object storage", () => {
     const result = storage.write({
       key: "blocked-upload",
       body: Readable.from([]),
-      expectedSize: 1,
+      expectedSizeBytes: 1,
     });
     void result.then(settled, settled);
     await aborted.promise;
@@ -484,7 +488,7 @@ describe("object storage", () => {
     });
     const body = new Readable({ read() {} });
     await expect(
-      storage.write({ key: "sync-failure", body, expectedSize: 1 }),
+      storage.write({ key: "sync-failure", body, expectedSizeBytes: 1 }),
     ).rejects.toMatchObject({
       code: "object_storage.write_failed",
       details: { reason: "transfer_failed", actualSize: null },
@@ -497,7 +501,7 @@ describe("object storage", () => {
     send.mockRejectedValueOnce(new Error("storage unavailable"));
     const body = new Readable({ read() {}, emitClose: false });
     const settled = vi.fn();
-    const result = storage.write({ key: "no-close-event", body, expectedSize: 1 });
+    const result = storage.write({ key: "no-close-event", body, expectedSizeBytes: 1 });
     void result.then(settled, settled);
     await setImmediate();
     expect(settled).toHaveBeenCalledWith(
@@ -517,7 +521,7 @@ describe("object storage", () => {
       await storage.write({
         key: "retained",
         body: Readable.from([Buffer.from("abc")]),
-        expectedSize: 3,
+        expectedSizeBytes: 3,
       });
       const ownerClient = send.mock.contexts[0];
       await other.delete("unrelated");

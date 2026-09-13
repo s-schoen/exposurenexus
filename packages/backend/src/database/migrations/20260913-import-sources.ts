@@ -9,13 +9,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       c.notNull().references("user_profile.id").onDelete("restrict"),
     )
     .addColumn("originalFilename", "text", (c) => c.notNull())
+    .addColumn("mimeType", "text")
     .addColumn("bucket", "text", (c) => c.notNull())
     .addColumn("objectKey", "text", (c) => c.notNull())
-    .addColumn("expectedSize", "double precision", (c) => c.notNull())
-    .addColumn("actualSize", "double precision")
+    .addColumn("sizeBytes", "double precision", (c) => c.notNull())
     .addColumn("retentionPolicy", "text", (c) => c.notNull())
     .addColumn("state", "text", (c) => c.notNull())
-    .addColumn("cleanupState", "text", (c) => c.notNull())
+    .addColumn("cleanupRequired", "boolean", (c) => c.notNull())
     .addColumn("createdAt", "timestamptz", (c) => c.notNull())
     .addColumn("availableAt", "timestamptz")
     .addColumn("failedAt", "timestamptz")
@@ -30,16 +30,12 @@ export async function up(db: Kysely<any>): Promise<void> {
       sql`state in ('incomplete', 'available', 'deleted')`,
     )
     .addCheckConstraint(
-      "import_source_cleanup_check",
-      sql`"cleanupState" in ('not_needed', 'pending', 'completed', 'failed')`,
-    )
-    .addCheckConstraint(
       "import_source_size_check",
-      sql`"expectedSize" between 0 and 9007199254740991 and "expectedSize" = trunc("expectedSize") and ("actualSize" is null or ("actualSize" between 0 and 9007199254740991 and "actualSize" = trunc("actualSize")))`,
+      sql`"sizeBytes" between 0 and 9007199254740991 and "sizeBytes" = trunc("sizeBytes")`,
     )
     .addCheckConstraint(
       "import_source_available_check",
-      sql`state <> 'available' or ("actualSize" is not null and "actualSize" = "expectedSize" and "availableAt" is not null and "deletedAt" is null and "failedAt" is null and "cleanupState" = 'not_needed')`,
+      sql`state <> 'available' or ("availableAt" is not null and "deletedAt" is null and "failedAt" is null and not "cleanupRequired")`,
     )
     .execute();
 }

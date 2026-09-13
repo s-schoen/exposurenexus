@@ -29,13 +29,13 @@ describe("db migration columns", () => {
       { column_name: "id", is_nullable: "NO" },
       { column_name: "createdBy", is_nullable: "NO" },
       { column_name: "originalFilename", is_nullable: "NO" },
+      { column_name: "mimeType", is_nullable: "YES" },
       { column_name: "bucket", is_nullable: "NO" },
       { column_name: "objectKey", is_nullable: "NO" },
-      { column_name: "expectedSize", is_nullable: "NO" },
-      { column_name: "actualSize", is_nullable: "YES" },
+      { column_name: "sizeBytes", is_nullable: "NO" },
       { column_name: "retentionPolicy", is_nullable: "NO" },
       { column_name: "state", is_nullable: "NO" },
-      { column_name: "cleanupState", is_nullable: "NO" },
+      { column_name: "cleanupRequired", is_nullable: "NO" },
       { column_name: "createdAt", is_nullable: "NO" },
       { column_name: "availableAt", is_nullable: "YES" },
       { column_name: "failedAt", is_nullable: "YES" },
@@ -74,31 +74,35 @@ describe("db migration columns", () => {
         originalFilename: "scan",
         bucket: "private",
         objectKey: "test-owned",
-        expectedSize: 3,
-        actualSize: null,
+        sizeBytes: 3,
         retentionPolicy: "temporary",
         state: "incomplete",
-        cleanupState: "pending",
+        cleanupRequired: true,
         createdAt: new Date(),
         availableAt: null,
         failedAt: null,
         deletedAt: null,
       })
       .execute();
-    for (const expectedSize of [-1, 0.5, Infinity, NaN, Number.MAX_SAFE_INTEGER + 1]) {
+    for (const sizeBytes of [-1, 0.5, Infinity, NaN, Number.MAX_SAFE_INTEGER + 1]) {
       await expect(
-        testDb.db.updateTable("import_source").set({ expectedSize }).where("id", "=", id).execute(),
+        testDb.db.updateTable("import_source").set({ sizeBytes }).where("id", "=", id).execute(),
       ).rejects.toThrow();
     }
-    for (const actualSize of [null, 2, 4]) {
+    for (const invalidAvailability of [
+      { availableAt: null },
+      { failedAt: new Date() },
+      { deletedAt: new Date() },
+      { cleanupRequired: true },
+    ]) {
       await expect(
         testDb.db
           .updateTable("import_source")
           .set({
             state: "available",
-            actualSize,
             availableAt: new Date(),
-            cleanupState: "not_needed",
+            cleanupRequired: false,
+            ...invalidAvailability,
           })
           .where("id", "=", id)
           .execute(),
@@ -111,19 +115,11 @@ describe("db migration columns", () => {
       .updateTable("import_source")
       .set({
         state: "available",
-        actualSize: 3,
         availableAt: new Date(),
-        cleanupState: "not_needed",
+        cleanupRequired: false,
       })
       .where("id", "=", id)
       .execute();
-    await expect(
-      testDb.db
-        .updateTable("import_source")
-        .set({ deletedAt: new Date() })
-        .where("id", "=", id)
-        .execute(),
-    ).rejects.toThrow();
   });
 
   it("allows unattached sources and enforces unique, restricted ingestion references", async () => {
@@ -156,11 +152,10 @@ describe("db migration columns", () => {
           originalFilename: "scan.jsonl",
           bucket: "private",
           objectKey: id,
-          expectedSize: 3,
-          actualSize: null,
+          sizeBytes: 3,
           retentionPolicy: "temporary" as const,
           state: "incomplete" as const,
-          cleanupState: "pending" as const,
+          cleanupRequired: true,
           createdAt: new Date(),
           availableAt: null,
           failedAt: null,

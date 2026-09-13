@@ -14,12 +14,11 @@ interface.
 
 ```ts
 import type { Readable } from "node:stream";
-import type { S3ClientConfig } from "@aws-sdk/client-s3";
 
 interface ObjectStorageConfiguration {
   bucket: string;
   region: string;
-  credentials: NonNullable<S3ClientConfig["credentials"]>;
+  credentials: { accessKeyId: string; secretAccessKey: string };
   endpoint?: string;
   forcePathStyle?: boolean;
 }
@@ -27,7 +26,7 @@ interface ObjectStorageConfiguration {
 interface ObjectStorageWriteCommand {
   key: string;
   body: Readable;
-  expectedSize: number;
+  expectedSizeBytes: number;
 }
 
 interface ObjectStorage {
@@ -43,12 +42,19 @@ declare function createObjectStorage(config: ObjectStorageConfiguration): Object
 
 ## Configuration And Ownership
 
-Supply a preprovisioned private bucket, signing region, and explicit credential
-identity or async provider; credentials are required rather than discovered from
-the application environment. Optional `endpoint` and `forcePathStyle` select the
-service and addressing. The factory validates and snapshots configuration. Its
-read-only `bucket` getter exposes the bound identity; later configuration mutation
-cannot retarget the handle. An async provider may refresh credentials.
+Supply a preprovisioned private bucket, signing region, and static credentials
+containing only `accessKeyId` and `secretAccessKey`. Async credential providers and
+session tokens are not supported; credentials are required rather than discovered
+from the application environment. Optional `endpoint` and `forcePathStyle` select
+the service and addressing. The factory validates and snapshots configuration and
+credentials. Its read-only `bucket` getter exposes the bound identity; later
+configuration mutation cannot retarget the handle.
+
+The factory trusts the TypeScript configuration shape and checks values: bucket,
+region, and both credential strings must be nonblank, and a supplied endpoint must
+be a parseable HTTP(S) URL. Invalid values raise `object_storage.invalid_configuration`.
+Parsing untyped environment or transport input belongs to the composing caller;
+the factory does not repeat runtime type checks or test connectivity.
 
 The composing caller owns the handle and underlying client's lifetime. Multiple
 capabilities may share it without global registration. Stop all consumers, settle
@@ -66,7 +72,7 @@ handles, route keys to historical buckets, or relocate objects.
 ## Streams And Errors
 
 `write` requires a Node `Readable` yielding bytes and a nonnegative safe-integer
-`expectedSize`, including zero. Invalid declarations and non-readable, destroyed,
+`expectedSizeBytes`, including zero. Invalid declarations and non-readable, destroyed,
 or ended inputs are rejected before transfer or consumption; the caller retains
 ownership and must dispose of rejected input. Once a valid write starts, storage
 owns consumption, cancellation, and destruction of the relevant streams.
@@ -129,8 +135,11 @@ Import sources now use `createImportSources(runtime, storage, configuration = {}
 The optional configuration contains only `maxSizeBytes` and `retentionPolicy`;
 SDK settings belong solely to `createObjectStorage`. There is no compatibility
 constructor or `ImportSources.close()`. The feature snapshots the bound bucket,
-generates its own keys, and uses storage's successful-write guarantee and safe
-failure facts without a second byte counter. It reserves metadata before writing,
+generates its own keys, enforces `maxSizeBytes`, and passes the source's `sizeBytes`
+as `expectedSizeBytes`. It uses storage's exact-write guarantee and failure `reason`
+without a second byte counter or persisting the error's observed `actualSize`.
+Source metadata has only `sizeBytes`: declared for incomplete sources and verified
+when availability is established. The feature reserves metadata before writing,
 translates storage errors into its domain contract, and chooses compensation only
 after transfer settlement and, for ambiguous finalization, confirmed durable
 unavailability.

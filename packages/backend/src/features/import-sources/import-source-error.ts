@@ -12,7 +12,7 @@ export type ImportSourceApplicationErrorCatalog = {
     details: {
       sourceId: string;
       reason: "size_mismatch" | "transfer_failed" | "finalization_failed";
-      cleanupState: "pending" | "completed" | "failed";
+      cleanupRequired: boolean;
     };
   };
   "import_source.not_available": { kind: "conflict"; details: { sourceId: string } };

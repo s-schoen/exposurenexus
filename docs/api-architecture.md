@@ -110,7 +110,15 @@ the import-source feature. It owns SDK access, object I/O, exact-byte counting,
 backpressure, cancellation, and upload settlement. Import sources own provenance,
 metadata, key generation, size/retention policy, finalization, and compensation
 decisions; they translate typed storage failures rather than expose SDK or storage
-error details. No second feature-owned byte counter or schema migration is needed.
+error details. `CreateImportSourceCommand`, `ImportSource`, and persisted source
+metadata use one `sizeBytes` field: declared while incomplete and verified when
+availability is established. Import sources enforce `maxSizeBytes` and pass the
+declaration as `ObjectStorageWriteCommand.expectedSizeBytes`, relying on storage's
+exact-write guarantee and failure `reason` without a second feature-owned byte
+counter or observed-size bookkeeping. Storage error `actualSize` remains transient:
+it is known only for fully observed input and is `null` for overruns or interrupted
+input. Import sources do not persist it. The source migration is revised in place;
+the size constraint remains a nonnegative safe integer, with no forward migration.
 
 Import sources reject recorded-bucket mismatches before byte reads or deletes with
 `import_source.bucket_mismatch`, kind `conflict`, and only `{ sourceId: string }`
