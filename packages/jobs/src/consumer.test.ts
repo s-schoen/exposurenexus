@@ -22,9 +22,7 @@ vi.mock("amqplib", () => ({
 const QUEUE_NAME = "EXPOSURENEXUS_JOBS_INGEST";
 const CONNECTION_URL = "amqp://127.0.0.1:5672";
 const ingestionData = {
-  userid: "550e8400-e29b-41d4-a716-446655440000",
-  ingestdataurl: "https://example.com/ingest.json",
-  format: "json",
+  ingestionId: "550e8400-e29b-41d4-a716-446655440000",
 };
 
 type FakeChannel = EventEmitter & {
@@ -234,7 +232,7 @@ describe("createJobConsumer", () => {
     const consumer = await createJobConsumer(options);
     const handler: JobHandler<JobType.INGESTION> = async (event) => {
       expectTypeOf(event).toEqualTypeOf<contracts.JobEventFor<JobType.INGESTION>>();
-      expect(event.data.format).toBe("json");
+      expectTypeOf(event.data).toEqualTypeOf<{ ingestionId: string }>();
     };
 
     consumer.registerJobHandler(JobType.INGESTION, handler);
@@ -785,6 +783,7 @@ describe("createJobConsumer", () => {
     let calls = 0;
     const handler = vi.fn(async (event: contracts.JobEventFor<JobType.INGESTION>) => {
       expect(event.type).toBe(JobType.INGESTION);
+      expect(event.data).toEqual({ ingestionId: "550e8400-e29b-41d4-a716-446655440000" });
       calls += 1;
       if (calls === 1) {
         await new Promise<void>((resolve) => {

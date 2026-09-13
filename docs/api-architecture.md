@@ -59,15 +59,15 @@ and is not composed by the API or worker yet. See [Import Sources](import-source
 
 Callers use these interfaces:
 
-| Capability      | Interfaces                                                          |
-| --------------- | ------------------------------------------------------------------- |
-| Identity        | `users`, `roles`, `authorization`                                   |
-| Authentication  | Credential and session operations                                   |
-| Assets          | `inventory`, `customFields`                                         |
-| Findings        | Finding, observation, and catalog-link operations                   |
-| Vulnerabilities | Vulnerability catalog operations                                    |
-| Statistics      | Finding statistics                                                  |
-| Import Sources  | Streamed creation, metadata lookup, streamed reading (library only) |
+| Capability      | Interfaces                                                                             |
+| --------------- | -------------------------------------------------------------------------------------- |
+| Identity        | `users`, `roles`, `authorization`                                                      |
+| Authentication  | Credential and session operations                                                      |
+| Assets          | `inventory`, `customFields`                                                            |
+| Findings        | Finding, observation, and catalog-link operations                                      |
+| Vulnerabilities | Vulnerability catalog operations                                                       |
+| Statistics      | Finding statistics                                                                     |
+| Import Sources  | Streamed creation/read, source/ingestion lookup, explicit byte deletion (library only) |
 
 The only additional public subpath is `@exposurenexus/backend/database` for
 composition infrastructure. There are no wildcard exports or compatibility
@@ -98,7 +98,9 @@ not orchestrate business transactions through repositories.
 
 Database infrastructure aggregates feature-owned table types through type-only
 imports and retains one chronological migration chain. Ingestion has only a table
-definition under database schema until its behavior is implemented. The root
+definition under database schema until its behavior is implemented. Import sources
+own the optional, unique ingestion reference and expose source metadata lookup by
+ingestion ID without exposing queries or introducing a submission/processing use case. The root
 `ApplicationError` similarly aggregates feature-owned error catalogs through
 type-only imports. No generic feature framework or separate workspace packages
 are required.
@@ -143,10 +145,13 @@ the initial admin through identity, then starts serving. It closes the pool on
 startup failure and during shutdown. The runtime does not manage resource
 lifecycle.
 
-There is no worker application or persisted ingestion implementation yet. A future
-worker will use selected undecorated capabilities as a trusted system caller and
-will not run migrations. Future ingestion orchestration belongs in a high-level
+The worker remains connected but idle with no production ingestion handler. It
+uses an undecorated backend runtime as a trusted system caller and checks required
+migrations without applying them. Source storage and ingestion references do not
+enable submission or processing. Future ingestion orchestration belongs in a high-level
 backend ingestion use case, not in the worker or a recreated exposures aggregate.
+Submission must atomically link the source and ingestion and insert the outbox job;
+execution idempotency and cleanup policy remain deferred.
 Queue infrastructure remains in apps and the jobs package;
 see [Job Queue](job-queue.md).
 

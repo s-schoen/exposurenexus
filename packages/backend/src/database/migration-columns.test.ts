@@ -40,13 +40,16 @@ describe("db migration columns", () => {
       { column_name: "availableAt", is_nullable: "YES" },
       { column_name: "failedAt", is_nullable: "YES" },
       { column_name: "deletedAt", is_nullable: "YES" },
+      { column_name: "ingestionId", is_nullable: "YES" },
     ]);
     const foreignKeys = await sql<{ definition: string }>`
       select pg_get_constraintdef(oid) as definition from pg_constraint
       where conrelid = 'import_source'::regclass and contype = 'f'
+      order by definition
     `.execute(testDb.db);
     expect(foreignKeys.rows).toEqual([
       { definition: 'FOREIGN KEY ("createdBy") REFERENCES user_profile(id) ON DELETE RESTRICT' },
+      { definition: 'FOREIGN KEY ("ingestionId") REFERENCES ingestion(id) ON DELETE RESTRICT' },
     ]);
   });
 
@@ -121,6 +124,86 @@ describe("db migration columns", () => {
         .where("id", "=", id)
         .execute(),
     ).rejects.toThrow();
+  });
+
+  it("allows unattached sources and enforces unique, restricted ingestion references", async () => {
+    const actor = await testDb.db
+      .insertInto("user_profile")
+      .values({
+        username: "source-ingestion",
+        email: "source-ingestion@example.test",
+        displayName: "Source ingestion",
+        enabled: true,
+        passwordHash: "unused",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const ingestion = await testDb.db
+      .insertInto("ingestion")
+      .values({ source: "nuclei", createdAt: new Date(), createdBy: actor.id })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    const sourceIds = [
+      "00000000-0000-4000-8000-000000000002",
+      "00000000-0000-4000-8000-000000000003",
+    ];
+    await testDb.db
+      .insertInto("import_source")
+      .values(
+        sourceIds.map((id) => ({
+          id,
+          createdBy: actor.id,
+          originalFilename: "scan.jsonl",
+          bucket: "private",
+          objectKey: id,
+          expectedSize: 3,
+          actualSize: null,
+          retentionPolicy: "temporary" as const,
+          state: "incomplete" as const,
+          cleanupState: "pending" as const,
+          createdAt: new Date(),
+          availableAt: null,
+          failedAt: null,
+          deletedAt: null,
+        })),
+      )
+      .execute();
+    expect(
+      await testDb.db
+        .selectFrom("import_source")
+        .select("ingestionId")
+        .where("id", "in", sourceIds)
+        .execute(),
+    ).toEqual([{ ingestionId: null }, { ingestionId: null }]);
+    await expect(
+      testDb.db
+        .updateTable("import_source")
+        .set({ ingestionId: "00000000-0000-4000-8000-000000000004" })
+        .where("id", "=", sourceIds[0]!)
+        .execute(),
+    ).rejects.toMatchObject({ code: "23503" });
+    await testDb.db
+      .updateTable("import_source")
+      .set({ ingestionId: ingestion.id })
+      .where("id", "=", sourceIds[0]!)
+      .execute();
+    await expect(
+      testDb.db
+        .updateTable("import_source")
+        .set({ ingestionId: ingestion.id })
+        .where("id", "=", sourceIds[1]!)
+        .execute(),
+    ).rejects.toMatchObject({ code: "23505" });
+    await expect(
+      testDb.db.deleteFrom("ingestion").where("id", "=", ingestion.id).execute(),
+    ).rejects.toMatchObject({ code: "23001" });
+    expect(
+      await testDb.db
+        .selectFrom("ingestion")
+        .selectAll()
+        .where("id", "=", ingestion.id)
+        .executeTakeFirstOrThrow(),
+    ).toEqual(ingestion);
   });
 
   it("drops legacy auth tables and points audit columns at user profiles", async () => {

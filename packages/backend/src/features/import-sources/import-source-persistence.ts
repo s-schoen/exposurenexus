@@ -4,6 +4,7 @@ import type { Kysely } from "kysely";
 
 const metadataColumns = [
   "id",
+  "ingestionId",
   "createdBy",
   "originalFilename",
   "expectedSize",
@@ -41,6 +42,16 @@ export async function getMetadata(database: Kysely<Database>, id: string) {
       .selectFrom("import_source")
       .select(metadataColumns)
       .where("id", "=", id)
+      .executeTakeFirst()) ?? null
+  );
+}
+
+export async function getMetadataByIngestionID(database: Kysely<Database>, ingestionId: string) {
+  return (
+    (await database
+      .selectFrom("import_source")
+      .select(metadataColumns)
+      .where("ingestionId", "=", ingestionId)
       .executeTakeFirst()) ?? null
   );
 }

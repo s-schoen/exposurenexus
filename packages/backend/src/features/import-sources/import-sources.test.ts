@@ -173,6 +173,7 @@ describe("import sources", () => {
     });
     expect(source).toEqual({
       id: expect.any(String),
+      ingestionId: null,
       originalFilename: "../../scan.jsonl",
       createdBy: actorId,
       expectedSize: 11,
@@ -188,6 +189,54 @@ describe("import sources", () => {
     expect(await sources.getByID(source.id)).toEqual(source);
     expect(await buffer(await sources.readByID(source.id))).toEqual(Buffer.from("hello world"));
     expect([...objects.keys()][0]).not.toContain("scan.jsonl");
+    sources.close();
+  });
+
+  it("resolves source provenance by ingestion identity independently of byte availability", async () => {
+    const sources = capability({ retentionPolicy: "keep" });
+    const source = await sources.create({
+      body: Readable.from([Buffer.from("abc")]),
+      expectedSize: 3,
+      originalFilename: "scan.jsonl",
+      performedBy: actorId,
+    });
+    const ingestion = await testDb.db
+      .insertInto("ingestion")
+      .values({ source: "nuclei", createdAt: new Date(), createdBy: actorId })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    expect(await sources.getByIngestionID(ingestion.id)).toBeNull();
+    expect(await sources.getByIngestionID(actorId)).toBeNull();
+    expect(source.ingestionId).toBeNull();
+    // Submission is deferred; arrange the relationship without introducing a public linker.
+    await testDb.db
+      .updateTable("import_source")
+      .set({ ingestionId: ingestion.id })
+      .where("id", "=", source.id)
+      .execute();
+    const linked = await sources.getByIngestionID(ingestion.id);
+    expect(linked).toEqual({ ...source, ingestionId: ingestion.id });
+    expect(await sources.getByID(source.id)).toEqual(linked);
+    expect(await buffer(await sources.readByID(linked!.id))).toEqual(Buffer.from("abc"));
+
+    objects.clear();
+    expect(await sources.getByIngestionID(ingestion.id)).toEqual(linked);
+    await expect(sources.readByID(linked!.id)).rejects.toMatchObject({
+      code: "import_source.read_failed",
+    });
+    await sources.deleteByID(source.id);
+    const deleted = await sources.getByIngestionID(ingestion.id);
+    expect(deleted).toEqual({
+      ...linked,
+      state: "deleted",
+      deletedAt: expect.any(Date),
+      cleanupState: "completed",
+    });
+    await sources.deleteByID(source.id);
+    expect(await sources.getByIngestionID(ingestion.id)).toEqual(deleted);
+    await expect(sources.readByID(deleted!.id)).rejects.toMatchObject({
+      code: "import_source.not_available",
+    });
     sources.close();
   });
 
@@ -421,6 +470,11 @@ describe("import sources", () => {
     expect(body.destroyed).toBe(true);
     await expect(sources.getByID("invalid-uuid")).rejects.toMatchObject({
       code: "import_source.get_failed",
+    });
+    await expect(sources.getByIngestionID("invalid-uuid")).rejects.toMatchObject({
+      code: "import_source.get_by_ingestion_failed",
+      kind: "unexpected",
+      details: { ingestionId: "invalid-uuid" },
     });
     await expect(sources.readByID("invalid-uuid")).rejects.toMatchObject({
       code: "import_source.get_failed",

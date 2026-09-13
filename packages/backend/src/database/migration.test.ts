@@ -1,7 +1,19 @@
+import { PGlite } from "@electric-sql/pglite";
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
+import {
+  AssetEnvironment,
+  AssetLifecycleState,
+  AssetType,
+} from "@exposurenexus/contracts/model/asset";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { ObservationSource } from "@exposurenexus/contracts/model/observation";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
+import { PGliteDialect } from "kysely";
 import { Migrator } from "kysely/migration";
 import { pino } from "pino";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { createDatabase } from "./factory.js";
 import { createMigrationProvider, migrateToLatest } from "./migration.js";
 
 describe("migration runner", () => {
@@ -42,6 +54,117 @@ describe("migration runner", () => {
   });
 });
 
+describe("database migration preservation", () => {
+  it(
+    "preserves ingestion and observation provenance without inventing or linking import sources",
+    { timeout: 30_000 },
+    async () => {
+      const pgLite = new PGlite("memory://");
+      await pgLite.waitReady;
+      const database = createDatabase(new PGliteDialect({ pglite: pgLite }));
+
+      try {
+        const migrator = new Migrator({ db: database, provider: createMigrationProvider() });
+        const migration = await migrator.migrateTo("20260913-import-sources");
+        expect(migration.error).toBeUndefined();
+
+        const actor = await database
+          .insertInto("user_profile")
+          .values({
+            username: "migration-provenance",
+            email: "migration-provenance@example.test",
+            displayName: "Migration provenance",
+            enabled: true,
+            passwordHash: "unused",
+          })
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        const createdAt = new Date("2026-09-12T10:00:00.000Z");
+        const audit = { createdAt, updatedAt: createdAt, createdBy: actor.id, updatedBy: actor.id };
+        const ingestion = await database
+          .insertInto("ingestion")
+          .values({ source: "nuclei", createdAt, createdBy: actor.id })
+          .returningAll()
+          .executeTakeFirstOrThrow();
+        const asset = await database
+          .insertInto("asset")
+          .values({
+            displayName: "Existing host",
+            type: AssetType.Host,
+            environment: AssetEnvironment.Production,
+            lifecycleState: AssetLifecycleState.Active,
+            ...audit,
+          })
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        const finding = await database
+          .insertInto("finding")
+          .values({
+            assetId: asset.id,
+            title: "Existing finding",
+            severity: VulnerabilitySeverity.High,
+            status: FindingStatus.Active,
+            weakness: { identifiers: { nuclei: ["existing-template"] } },
+            affectedResource: { type: AffectedResourceType.Unspecified },
+            ...audit,
+          })
+          .returningAll()
+          .executeTakeFirstOrThrow();
+        const observation = await database
+          .insertInto("observation")
+          .values({
+            findingId: finding.id,
+            ingestionId: ingestion.id,
+            source: ObservationSource.Nuclei,
+            title: "Existing scanner observation",
+            evidence: "Original scanner evidence",
+            severity: VulnerabilitySeverity.High,
+            weakness: finding.weakness,
+            affectedResource: finding.affectedResource,
+            observedAt: new Date("2026-09-12T09:00:00.000Z"),
+            ...audit,
+          })
+          .returningAll()
+          .executeTakeFirstOrThrow();
+        const source = await database
+          .insertInto("import_source")
+          .values({
+            id: "00000000-0000-4000-8000-000000000001",
+            createdBy: actor.id,
+            originalFilename: "unattached.jsonl",
+            bucket: "private-imports",
+            objectKey: "import-sources/unattached",
+            expectedSize: 3,
+            actualSize: 3,
+            retentionPolicy: "keep",
+            state: "available",
+            cleanupState: "not_needed",
+            createdAt,
+            availableAt: createdAt,
+            failedAt: null,
+            deletedAt: null,
+          })
+          .returningAll()
+          .executeTakeFirstOrThrow();
+
+        await migrateToLatest(database, pino({ enabled: false }));
+
+        expect(await database.selectFrom("ingestion").selectAll().execute()).toEqual([ingestion]);
+        expect(await database.selectFrom("finding").selectAll().execute()).toEqual([finding]);
+        expect(await database.selectFrom("observation").selectAll().execute()).toEqual([
+          observation,
+        ]);
+        expect(await database.selectFrom("import_source").selectAll().execute()).toEqual([
+          { ...source, ingestionId: null },
+        ]);
+      } finally {
+        await database.destroy();
+        if (!pgLite.closed) await pgLite.close();
+      }
+    },
+  );
+});
+
 const expectedMigrationNames = [
   "20251219-init-better-auth",
   "20251220-assets",
@@ -70,6 +193,7 @@ const expectedMigrationNames = [
   "20260816-observation-model-cutover",
   "20260827-job-outbox",
   "20260913-import-sources",
+  "20260913-import-sources-ingestion-link",
 ];
 
 // Forward-only migration history prevents renaming this already-applied file set.

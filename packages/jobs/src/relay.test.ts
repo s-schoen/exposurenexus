@@ -20,9 +20,7 @@ function createStoredJob(overrides: Partial<Job> = {}): Job {
     time: initialTime.toISOString(),
     datacontenttype: "application/json",
     data: {
-      userid: "550e8400-e29b-41d4-a716-446655440000",
-      ingestdataurl: "https://example.com/ingest.json",
-      format: "json",
+      ingestionId: "550e8400-e29b-41d4-a716-446655440000",
     },
   });
 
