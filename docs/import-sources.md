@@ -1,7 +1,8 @@
 # Import Sources
 
-The shared backend provides a library-only capability for storing and reading raw
-import input. It is independent of ingestion execution and HTTP authentication.
+The shared backend provides a library-only capability for storing, reading, and
+explicitly deleting raw import input while preserving provenance. It is independent
+of ingestion execution and HTTP authentication.
 There is no working HTTP import endpoint, ingestion submission/linkage, or active
 worker handler in this slice. S3 is not a required API or worker startup dependency.
 
@@ -67,12 +68,12 @@ key are recorded privately, but endpoint credentials remain deployment configura
 Use a preprovisioned private bucket with public access blocked. Credentials need
 `s3:PutObject`, `s3:GetObject`, and `s3:DeleteObject` for the capability's
 `import-sources/` keys. Deletion permission is necessary for failed-write
-compensation even though public explicit deletion is not implemented yet. Bucket
+compensation and explicit deletion. Bucket
 listing, bucket creation, ACL modification, and multipart permissions are not used.
 Encryption and any additional KMS permissions belong to bucket provisioning.
 
 The official `@aws-sdk/client-s3` uses single `PutObject`, streamed `GetObject`,
-and compensating `DeleteObject` requests. Automatic retries are disabled because
+and `DeleteObject` requests for compensation and explicit deletion. Automatic retries are disabled because
 the input stream cannot be replayed. Checksum calculation/validation is configured
 as `WHEN_REQUIRED`, avoiding automatic checksum-trailer framing for arbitrary
 Node stream chunks. The capability checks byte counts, not a cryptographic content
@@ -85,6 +86,9 @@ overwrite operation, conditional write, or versioning requirement. Write-once is
 an application convention, not protection from administrators or other holders of
 write credentials. Browser uploads must revisit that assumption. Avoid bucket
 lifecycle expiration rules that would delete retained or still-needed input.
+Use an unversioned bucket for byte removal: on a versioned bucket, S3's unqualified
+delete only creates a delete marker and retains older bytes. Version cleanup and
+Object Lock bypass are not implemented by this capability.
 
 ## Streams And Lifecycle
 
@@ -113,7 +117,7 @@ PostgreSQL double precision constrained to safe, nonnegative integer values,
 preserving the public numeric shape without driver-specific bigint strings.
 
 Only `available` sources with no deletion timestamp can be read. Incomplete and
-future deleted states are rejected. An unexpectedly absent object is a typed
+deleted states are rejected. An unexpectedly absent object is a typed
 `import_source.read_failed` error, not an empty stream. After `readByID` resolves,
 normal Node stream errors must also be handled while consuming the returned body.
 
@@ -134,8 +138,8 @@ If that update cannot be confirmed, it preserves the object and reports
 the source. Metadata may still be `available` and the valid bytes may remain
 readable despite creation rejecting. It is impossible to guarantee that a rejected
 create is never available while the database outcome is unresolved. Once the
-database is accessible, inspect the reported source ID; there is no automatic
-reconciliation or public cleanup/recovery operation in this slice.
+database is accessible, inspect the reported source ID and explicitly delete it
+if the bytes are no longer needed; there is no automatic reconciliation.
 
 After unavailability is established, `cleanupState` is `completed` only when
 storage deletion succeeded, or `failed` if deletion failed. If recording that
@@ -153,20 +157,54 @@ records for investigation rather than removing the only object reference.
 Retention is snapshotted per creation: `temporary` by default, or deployment-wide
 `keep`. Later factory configuration affects new sources only. Neither policy
 expires or deletes bytes automatically, and there is no per-import override.
-`keep` is intent, not a regulatory lock. Public deletion, ingestion relationships,
-and ingestion-only job contracts are separate tickets, not available behavior here.
+`keep` is intent, not a regulatory lock. Ingestion relationships and ingestion-only
+job contracts remain a separate ticket, not available behavior here.
+
+## Explicit Deletion
+
+`await sources.deleteByID(sourceId)` removes bytes using the stored object
+reference, regardless of whether the source records `temporary` or `keep`.
+The caller decides when input is no longer needed; the capability does not inspect
+ingestion outcomes, schedule deletion/expiry, or activate worker cleanup. Creation
+must have finished or been abandoned before requesting cleanup. Crash-abandoned,
+failed, and never-submitted sources still require explicit cleanup.
+
+Successful deletion resolves without a return value. The source record remains
+inspectable through `getByID`, retaining its identity, actor, filename, expected
+and known actual sizes, retention snapshot, and prior lifecycle timestamps.
+Only `state`, `deletedAt`, and `cleanupState` change to `deleted`, the deletion
+recording time, and `completed`. No record or ingestion relationship is removed.
+Subsequent reads fail with `import_source.not_available`.
+
+Deletion is repeatable: an already-recorded deletion succeeds without changing
+its timestamp, and S3 accepts deletion of an already-absent key. An unknown source
+record instead fails with `import_source.not_found`; metadata lookup failures
+use `import_source.get_failed`. Unexpectedly missing bytes remain read errors
+until explicit deletion records their removal.
+
+Deletion is recorded only after storage reports success. Non-absence errors,
+including permission failures, an unavailable service, or a missing bucket, throw
+`import_source.delete_failed` with `reason: "storage_failed"`; they never mark
+the source deleted. If storage succeeds but database bookkeeping fails, the same
+error code carries `reason: "bookkeeping_failed"`. Retry `deleteByID` with the same
+source ID to finish bookkeeping against the absent object. Until that succeeds,
+metadata may still say `available` even though reads fail. A lost database response
+can also mean deletion was recorded despite the error; lookup and retry are safe.
 
 ## Verification
 
 PGlite-backed public-capability tests cover byte/provenance round trips, retention,
 limits, interruption, failed storage, and finalization/compensation failures,
 including committed finalization with a lost response and unavailable bookkeeping.
-They verify that recovery revokes availability before deleting bytes. The
+They verify that creation recovery revokes availability before deleting bytes,
+and cover explicit deletion under both policies, missing objects, repeated calls,
+storage failures, bookkeeping retry, and preserved provenance. The
 central migration-chain tests cover schema integration, and export tests keep
 storage and persistence internals private.
 
 An opt-in real-S3 smoke test uses an isolated in-memory database and bounded
-streamed input. Configure these variables in the test process, not in production
+streamed input, explicit/repeated deletion, and deletion of an already-absent
+test-owned object. Configure these variables in the test process, not in production
 application composition:
 
 | Variable                                  | Requirement                                        |

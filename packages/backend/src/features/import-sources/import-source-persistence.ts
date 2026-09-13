@@ -65,6 +65,19 @@ export async function recordFailure(
     .executeTakeFirstOrThrow();
 }
 
+export async function recordDeletion(database: Kysely<Database>, id: string) {
+  await database
+    .updateTable("import_source")
+    .set((eb) => ({
+      state: "deleted",
+      deletedAt: eb.fn.coalesce("deletedAt", eb.val(new Date())),
+      cleanupState: "completed",
+    }))
+    .where("id", "=", id)
+    .returning("id")
+    .executeTakeFirstOrThrow();
+}
+
 export async function getRecord(database: Kysely<Database>, id: string) {
   return await database
     .selectFrom("import_source")
