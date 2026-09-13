@@ -24,11 +24,10 @@ it.skipIf(!configured)(
       region: region!,
       endpoint: process.env.IMPORT_SOURCE_S3_TEST_ENDPOINT,
       forcePathStyle: process.env.IMPORT_SOURCE_S3_TEST_FORCE_PATH_STYLE === "true",
-      credentials: async () => ({
+      credentials: {
         accessKeyId: accessKeyId!,
         secretAccessKey: secretAccessKey!,
-        sessionToken: process.env.IMPORT_SOURCE_S3_TEST_SESSION_TOKEN,
-      }),
+      },
     });
     const errors: unknown[] = [];
     try {
@@ -55,13 +54,13 @@ it.skipIf(!configured)(
           Buffer.alloc(65536, 0x62),
           Buffer.from("end"),
         ]),
-        expectedSize: 131075,
+        sizeBytes: 131075,
         originalFilename: "s3-smoke.bin",
         performedBy: actor.id,
       });
       expect(await sources.getByID(source.id)).toMatchObject({
         state: "available",
-        actualSize: 131075,
+        sizeBytes: 131075,
         retentionPolicy: "temporary",
       });
       const bytes = await buffer(await sources.readByID(source.id));
@@ -74,7 +73,7 @@ it.skipIf(!configured)(
         ...source,
         state: "deleted",
         deletedAt: expect.any(Date),
-        cleanupState: "completed",
+        cleanupRequired: false,
       });
       await sources.deleteByID(source.id);
       expect(await sources.getByID(source.id)).toEqual(deleted);
@@ -83,7 +82,7 @@ it.skipIf(!configured)(
       });
       const missing = await sources.create({
         body: Readable.from([]),
-        expectedSize: 0,
+        sizeBytes: 0,
         originalFilename: "s3-smoke-missing.bin",
         performedBy: actor.id,
       });

@@ -349,12 +349,19 @@ observations do not belong to ingestions.
 ### Import Source
 
 An **import source** is the raw input artifact for an ingestion, with its own
-identity, creation actor, original filename, size, retention policy, and lifecycle
-metadata. It may exist before ingestion and belongs to at most one ingestion;
+identity, creation actor, original filename, optional declared MIME type, size,
+retention policy, and lifecycle metadata. Declared MIME type is caller-supplied
+metadata, not verified content or scanner identity. An import source may exist
+before ingestion and belongs to at most one ingestion;
 retaining it does not make it a reusable dataset. Incomplete and deleted sources
 remain identifiable, and deleting raw data preserves provenance and any ingestion
 relationship. Durable source storage and lookup are available; submission and
 automated ingestion processing remain deferred.
+
+An import source's **size** is its single `sizeBytes` value: the declared byte
+length while incomplete, verified when the source becomes available. Failed
+creation and byte deletion preserve that declaration, not a separate observed-size
+diagnostic.
 
 ### Import Source Retention
 

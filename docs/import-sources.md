@@ -37,7 +37,7 @@ const runtime = createBackendRuntime({ database, logger });
 const storage = createObjectStorage({
   bucket: "private-import-input",
   region: "us-east-1",
-  credentials: credentialProvider,
+  credentials: { accessKeyId, secretAccessKey },
   // endpoint: "https://your-s3-service.example",
   // forcePathStyle: true,
 });
@@ -50,8 +50,9 @@ try {
   const { size } = await stat(inputPath);
   const source = await sources.create({
     body: createReadStream(inputPath),
-    expectedSize: size,
+    sizeBytes: size,
     originalFilename: "scan.jsonl",
+    mimeType: "application/x-ndjson",
     performedBy: userProfileId,
   });
   const metadata = await sources.getByID(source.id);
@@ -67,8 +68,8 @@ try {
 Executable composition supplies storage configuration separately from import
 policy; neither module reads application environment variables, provisions
 buckets, or requires auth secrets. `createObjectStorage` requires `bucket`,
-`region`, and `credentials`. Credentials accept the official AWS SDK credential
-identity or async provider, allowing renewable workload credentials. Optional
+`region`, and `credentials`. Credentials contain only a static `accessKeyId` and
+`secretAccessKey`; async providers and session tokens are not supported. Optional
 `endpoint` and `forcePathStyle` select the service's addressing. Use HTTPS outside
 isolated local test infrastructure. Credentials and raw SDK/database errors are
 not included in capability metadata, creation error details, or capability logs.
@@ -135,9 +136,10 @@ Object Lock bypass are not implemented by this capability.
 ## Streams And Lifecycle
 
 Creation requires an unread Node `Readable` yielding bytes and a nonnegative safe
-integer `expectedSize`. Empty input is supported. Unknown-length input, whole-file
-buffering, multipart uploads, and resumable uploads are not supported. The default
-maximum is 100 MiB (`104857600` bytes); `maxSizeBytes` may set a different
+integer `sizeBytes` in `CreateImportSourceCommand`. Empty input is supported.
+Unknown-length input, whole-file buffering, multipart uploads, and resumable uploads
+are not supported. The default maximum is 100 MiB (`104857600` bytes);
+`maxSizeBytes` may set a different
 nonnegative safe integer limit. Storage service single-PUT limits still apply.
 Invalid/oversized declarations are rejected without consuming the stream; the
 caller retains responsibility for disposing of that rejected input. Once a valid
@@ -151,21 +153,29 @@ bookkeeping once its record is reserved.
 
 Storage then owns transfer and counts bytes with backpressure, rejects an overrun
 before forwarding the offending chunk, and requires EOF at exactly the declared
-length. The feature does not maintain a second byte counter: a successful write
-guarantees the declared size, which the feature records during finalization.
-Availability requires both successful storage and database finalization. A file
-changing between `stat` and reading therefore fails rather than becoming truncated
-input.
+length. The feature passes `sizeBytes` as storage's `expectedSizeBytes` without a
+second byte counter: a successful write verifies the reserved size rather than
+adding a separate observed size during finalization. Availability requires both
+successful storage and database finalization. A file changing between `stat` and
+reading therefore fails rather than becoming truncated input.
 
-`getByID` returns `null` for unknown identities. Otherwise metadata includes
-`ingestionId`, `createdBy`, `originalFilename`, `expectedSize`, `actualSize`, the retention
-snapshot, lifecycle state, and creation/availability/failure/deletion timestamps.
-`actualSize` comes from a successful write or storage's safe failure facts. Fully
-observed short input records its size; interrupted or overlong input leaves it
-`null`, not a misleading partial-file total. Actor references
-point to existing user profiles with deletion restricted. Metadata byte counts use
-PostgreSQL double precision constrained to safe, nonnegative integer values,
-preserving the public numeric shape without driver-specific bigint strings.
+`getByID` returns `null` for unknown identities. Otherwise `ImportSource` metadata
+includes `ingestionId`, `createdBy`, `originalFilename`, `mimeType`, `sizeBytes`, the
+retention snapshot, lifecycle state, and creation/availability/failure/deletion
+timestamps. `sizeBytes` is the only size field in the creation command, public
+metadata, and database. For incomplete sources it is the declared byte length;
+successful availability confirms exactly that many bytes were received. Failed
+creation retains the declaration, not an observed size from storage errors, even
+for fully observed short input. Actor references point to existing user profiles
+with deletion restricted. The persisted `sizeBytes` uses PostgreSQL double
+precision constrained to safe, nonnegative integer values, preserving the public
+numeric shape without driver-specific bigint strings.
+
+Creation accepts optional caller-supplied `mimeType`. Metadata returns it as a
+nullable string: omitted or blank declarations become `null`, while nonblank
+declarations are preserved. It is unverified provenance, retained even for failed
+uploads and after byte deletion. The capability does not infer a MIME type from
+filenames or bytes, select a parser, or set S3 `ContentType` from this declaration.
 
 Only `available` sources with no deletion timestamp can be read. Incomplete and
 deleted states are rejected. An unexpectedly absent object is a typed
@@ -209,28 +219,31 @@ cleanup after storage has settled the local upload, provided unavailability is
 established. Storage does not delete failed writes itself; the feature decides
 whether to compensate and records the outcome. It translates typed storage
 failures into `import_source.create_failed` with `sourceId`, `reason`
-(`size_mismatch`, `transfer_failed`, or `finalization_failed`), and `cleanupState`
-(`pending`, `completed`, or `failed`). Callers can inspect the reserved metadata
+(`size_mismatch`, `transfer_failed`, or `finalization_failed`), and `cleanupRequired`
+(`boolean`). Callers can inspect the reserved metadata
 by source ID. No raw external exception or storage error details are attached.
 
 Transfer and length-check failures leave the reserved record `incomplete`.
 Finalization errors are different: PostgreSQL may have committed `available`
 before its response was lost. The capability first durably records
-`incomplete`/`pending` before attempting destructive compensation in that case.
+`state: "incomplete"` and `cleanupRequired: true` before attempting destructive
+compensation in that case.
 If that update cannot be confirmed, it preserves the object and reports
-`cleanupState: "pending"` in the error, with a safe structured log identifying
+`cleanupRequired: true` in the error, with a safe structured log identifying
 the source. Metadata may still be `available` and the valid bytes may remain
 readable despite creation rejecting. It is impossible to guarantee that a rejected
 create is never available while the database outcome is unresolved. Once the
 database is accessible, inspect the reported source ID and explicitly delete it
 if the bytes are no longer needed; there is no automatic reconciliation.
 
-After unavailability is established, `cleanupState` is `completed` only when
-storage deletion succeeded, or `failed` if deletion failed. If recording that
-outcome fails, the record remains unavailable but its cleanup metadata may still
-be `pending`. A pending outcome does not claim that cleanup happened, nor does an
-error's pending outcome establish the current database state. `failedAt`
-distinguishes recorded failures from interrupted or unrecorded attempts.
+`cleanupRequired` is `true` for reserved sources and unresolved or failed cleanup;
+it becomes `false` when creation succeeds without requiring cleanup or storage
+deletion is confirmed. Pending and failed cleanup are deliberately not distinguished.
+If recording successful cleanup fails, the record remains unavailable but the
+stored flag may still be `true`. An error's flag describes the observed recovery
+outcome, not proof of current database state. The flag alone never authorizes
+deletion of an active upload or available source; lifecycle safeguards still apply.
+`failedAt` distinguishes recorded failures from interrupted or unrecorded attempts.
 
 PostgreSQL and S3 do not share a transaction. Process crashes, ambiguous remote
 request outcomes, failed cleanup, and never-submitted sources can leave orphans;
@@ -254,10 +267,10 @@ must have finished or been abandoned before requesting cleanup. Crash-abandoned,
 failed, and never-submitted sources still require explicit cleanup.
 
 Successful deletion resolves without a return value. The source record remains
-inspectable through `getByID`, retaining its identity, actor, filename, expected
-and known actual sizes, retention snapshot, and prior lifecycle timestamps.
-Only `state`, `deletedAt`, and `cleanupState` change to `deleted`, the deletion
-recording time, and `completed`. No record or ingestion relationship is removed.
+inspectable through `getByID`, retaining its identity, actor, filename, MIME type,
+`sizeBytes`, retention snapshot, and prior lifecycle timestamps.
+Only `state`, `deletedAt`, and `cleanupRequired` change to `deleted`, the deletion
+recording time, and `false`. No record or ingestion relationship is removed.
 Subsequent reads fail with `import_source.not_available`.
 
 Deletion is repeatable: an already-recorded deletion succeeds without object I/O
@@ -309,7 +322,6 @@ application composition:
 | `IMPORT_SOURCE_S3_TEST_REGION`            | Required signing region                            |
 | `IMPORT_SOURCE_S3_TEST_ACCESS_KEY_ID`     | Required test credential                           |
 | `IMPORT_SOURCE_S3_TEST_SECRET_ACCESS_KEY` | Required test secret                               |
-| `IMPORT_SOURCE_S3_TEST_SESSION_TOKEN`     | Optional temporary-credential token                |
 | `IMPORT_SOURCE_S3_TEST_ENDPOINT`          | Optional S3-compatible endpoint                    |
 | `IMPORT_SOURCE_S3_TEST_FORCE_PATH_STYLE`  | Set `true` if the service requires path addressing |
 

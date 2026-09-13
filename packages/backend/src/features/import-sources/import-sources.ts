@@ -17,21 +17,22 @@ export interface ImportSource {
   ingestionId: string | null;
   createdBy: string;
   originalFilename: string;
-  expectedSize: number;
-  actualSize: number | null;
+  mimeType: string | null;
+  sizeBytes: number;
   retentionPolicy: "temporary" | "keep";
   state: "incomplete" | "available" | "deleted";
   createdAt: Date;
   availableAt: Date | null;
   failedAt: Date | null;
   deletedAt: Date | null;
-  cleanupState: "not_needed" | "pending" | "completed" | "failed";
+  cleanupRequired: boolean;
 }
 
 export interface CreateImportSourceCommand {
   body: Readable;
-  expectedSize: number;
+  sizeBytes: number;
   originalFilename: string;
+  mimeType?: string;
   performedBy: string;
 }
 
@@ -65,14 +66,14 @@ export function createImportSources(
   }
 
   return {
-    async create({ body, expectedSize, originalFilename, performedBy }) {
+    async create({ body, sizeBytes, originalFilename, mimeType, performedBy }) {
       if (
         !(body instanceof Readable) ||
         body.destroyed ||
         !body.readable ||
-        !Number.isSafeInteger(expectedSize) ||
-        expectedSize < 0 ||
-        expectedSize > maxSizeBytes
+        !Number.isSafeInteger(sizeBytes) ||
+        sizeBytes < 0 ||
+        sizeBytes > maxSizeBytes
       ) {
         throw new ApplicationError({
           code: "import_source.invalid_input",
@@ -98,15 +99,15 @@ export function createImportSources(
           bucket,
           createdBy: performedBy,
           originalFilename,
-          expectedSize,
-          actualSize: null,
+          mimeType: mimeType?.trim() ? mimeType : null,
+          sizeBytes,
           retentionPolicy,
           state: "incomplete",
           createdAt: new Date(),
           availableAt: null,
           failedAt: null,
           deletedAt: null,
-          cleanupState: "pending",
+          cleanupRequired: true,
         });
       } catch {
         body.destroy();
@@ -116,7 +117,6 @@ export function createImportSources(
           message: "Import source metadata could not be reserved",
         });
       }
-      let actualSize: number | null = null;
       let transferred = false;
       try {
         if (inputFailed || body.destroyed || !body.readable) {
@@ -126,11 +126,10 @@ export function createImportSources(
         await storage.write({
           key: objectKey,
           body,
-          expectedSize,
+          expectedSizeBytes: sizeBytes,
         });
         transferred = true;
-        actualSize = expectedSize;
-        return await persistence.finalize(database, id, actualSize);
+        return await persistence.finalize(database, id);
       } catch (error) {
         const failure =
           !transferred &&
@@ -138,20 +137,19 @@ export function createImportSources(
           error.code === "object_storage.write_failed"
             ? (error as ApplicationError<"object_storage.write_failed">).details
             : null;
-        if (failure) actualSize = failure.actualSize;
         // A rejected storage write has already stopped and settled its local transfer.
-        let cleanupState: "pending" | "completed" | "failed" = "pending";
+        let cleanupRequired = true;
         let safeToCleanup = !transferred;
         if (transferred) {
           body.destroy();
           // Finalization may have committed before its response was lost. Revoke
           // availability durably before deleting bytes; preserve them if uncertain.
           try {
-            await persistence.recordFailure(database, id, actualSize, "pending");
+            await persistence.recordFailure(database, id, true);
             safeToCleanup = true;
           } catch {
             logger.error(
-              { sourceId: id, cleanupState },
+              { sourceId: id, cleanupRequired },
               "Import source availability is uncertain; preserving object",
             );
           }
@@ -159,21 +157,21 @@ export function createImportSources(
         if (safeToCleanup) {
           try {
             await storage.delete(objectKey);
-            cleanupState = "completed";
+            cleanupRequired = false;
           } catch {
-            cleanupState = "failed";
+            cleanupRequired = true;
           }
           try {
-            await persistence.recordFailure(database, id, actualSize, cleanupState);
+            await persistence.recordFailure(database, id, cleanupRequired);
           } catch {
             // Availability is already revoked; only the cleanup outcome is uncertain.
             logger.error(
-              { sourceId: id, cleanupState },
+              { sourceId: id, cleanupRequired },
               "Import source failure bookkeeping failed",
             );
           }
         }
-        logger.warn({ sourceId: id, cleanupState }, "Import source creation failed");
+        logger.warn({ sourceId: id, cleanupRequired }, "Import source creation failed");
         throw new ApplicationError({
           code: "import_source.create_failed",
           kind: "unexpected",
@@ -181,7 +179,7 @@ export function createImportSources(
           details: {
             sourceId: id,
             reason: transferred ? "finalization_failed" : (failure?.reason ?? "transfer_failed"),
-            cleanupState,
+            cleanupRequired,
           },
         });
       }

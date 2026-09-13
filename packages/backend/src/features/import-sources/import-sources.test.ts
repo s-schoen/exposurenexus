@@ -61,7 +61,7 @@ describe("import sources", () => {
     failWrite = false;
     failDelete = false;
     storage.close.mockClear();
-    storage.write.mockReset().mockImplementation(async ({ key, body, expectedSize }) => {
+    storage.write.mockReset().mockImplementation(async ({ key, body, expectedSizeBytes }) => {
       if (body.destroyed || !body.readable) {
         throw new ApplicationError({
           code: "object_storage.invalid_input",
@@ -75,7 +75,7 @@ describe("import sources", () => {
           code: "object_storage.write_failed",
           kind: "unexpected",
           message: "private-storage-failure",
-          details: { reason: "transfer_failed", actualSize: expectedSize },
+          details: { reason: "transfer_failed", actualSize: expectedSizeBytes },
         });
       }
     });
@@ -122,7 +122,7 @@ describe("import sources", () => {
       await expect(
         capability().create({
           body: body as never,
-          expectedSize: 0,
+          sizeBytes: 0,
           originalFilename: "scan",
           performedBy: actorId,
         }),
@@ -154,7 +154,7 @@ describe("import sources", () => {
     const temporary = createImportSources(runtime, storage, config);
     const first = await temporary.create({
       body: Readable.from([Buffer.from("1234")]),
-      expectedSize: 4,
+      sizeBytes: 4,
       originalFilename: "scan",
       performedBy: actorId,
     });
@@ -163,26 +163,26 @@ describe("import sources", () => {
     config.maxSizeBytes = 0;
     const second = await retained.create({
       body: Readable.from([]),
-      expectedSize: 0,
+      sizeBytes: 0,
       originalFilename: "scan",
       performedBy: actorId,
     });
     expect(await retained.getByID(first.id)).toMatchObject({
       retentionPolicy: "temporary",
-      actualSize: 4,
+      sizeBytes: 4,
     });
-    expect(second).toMatchObject({ retentionPolicy: "keep", actualSize: 0, state: "available" });
+    expect(second).toMatchObject({ retentionPolicy: "keep", sizeBytes: 0, state: "available" });
     expect(second.id).not.toBe(first.id);
     expect(objects.size).toBe(2);
     expect(await buffer(await retained.readByID(second.id))).toEqual(Buffer.alloc(0));
     expect(
       await temporary.create({
         body: Readable.from([Buffer.from("1234")]),
-        expectedSize: 4,
+        sizeBytes: 4,
         originalFilename: "scan",
         performedBy: actorId,
       }),
-    ).toMatchObject({ retentionPolicy: "temporary", actualSize: 4 });
+    ).toMatchObject({ retentionPolicy: "temporary", sizeBytes: 4 });
     await temporary.deleteByID(first.id);
     expect(await buffer(await retained.readByID(second.id))).toEqual(Buffer.alloc(0));
     expect(temporary).not.toHaveProperty("close");
@@ -192,11 +192,11 @@ describe("import sources", () => {
 
   it.each([-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, 104857601])(
     "rejects invalid declared length %s before consuming input or contacting storage",
-    async (expectedSize) => {
+    async (sizeBytes) => {
       const sources = capability();
       const body = Readable.from([Buffer.from("unused")]);
       await expect(
-        sources.create({ body, expectedSize, originalFilename: "scan", performedBy: actorId }),
+        sources.create({ body, sizeBytes, originalFilename: "scan", performedBy: actorId }),
       ).rejects.toMatchObject({ code: "import_source.invalid_input", kind: "validation" });
       expect(body.readableDidRead).toBe(false);
       expect(storage.write).not.toHaveBeenCalled();
@@ -213,7 +213,7 @@ describe("import sources", () => {
       await expect(
         capability().create({
           body,
-          expectedSize: 0,
+          sizeBytes: 0,
           originalFilename: "scan",
           performedBy: actorId,
         }),
@@ -223,33 +223,42 @@ describe("import sources", () => {
     expect(storage.delete).not.toHaveBeenCalled();
   });
 
-  it("stores streamed bytes and exposes durable identity and provenance without storage secrets", async () => {
-    const sources = capability();
-    const source = await sources.create({
-      body: Readable.from([Buffer.from("hello"), Buffer.from(" world")]),
-      expectedSize: 11,
-      originalFilename: "../../scan.jsonl",
-      performedBy: actorId,
-    });
-    expect(source).toEqual({
-      id: expect.any(String),
-      ingestionId: null,
-      originalFilename: "../../scan.jsonl",
-      createdBy: actorId,
-      expectedSize: 11,
-      actualSize: 11,
-      retentionPolicy: "temporary",
-      state: "available",
-      createdAt: expect.any(Date),
-      availableAt: expect.any(Date),
-      failedAt: null,
-      deletedAt: null,
-      cleanupState: "not_needed",
-    });
-    expect(await sources.getByID(source.id)).toEqual(source);
-    expect(await buffer(await sources.readByID(source.id))).toEqual(Buffer.from("hello world"));
-    expect([...objects.keys()][0]).not.toContain("scan.jsonl");
-  });
+  it.each([
+    { mimeType: "text/plain", storedMimeType: "text/plain" },
+    { mimeType: undefined, storedMimeType: null },
+    { mimeType: "", storedMimeType: null },
+    { mimeType: "  \t", storedMimeType: null },
+  ])(
+    "stores declared MIME type $mimeType with streamed bytes and private provenance",
+    async ({ mimeType, storedMimeType }) => {
+      const sources = capability();
+      const source = await sources.create({
+        body: Readable.from([Buffer.from("hello"), Buffer.from(" world")]),
+        sizeBytes: 11,
+        originalFilename: "../../scan.jsonl",
+        mimeType,
+        performedBy: actorId,
+      });
+      expect(source).toEqual({
+        id: expect.any(String),
+        ingestionId: null,
+        originalFilename: "../../scan.jsonl",
+        mimeType: storedMimeType,
+        createdBy: actorId,
+        sizeBytes: 11,
+        retentionPolicy: "temporary",
+        state: "available",
+        createdAt: expect.any(Date),
+        availableAt: expect.any(Date),
+        failedAt: null,
+        deletedAt: null,
+        cleanupRequired: false,
+      });
+      expect(await sources.getByID(source.id)).toEqual(source);
+      expect(await buffer(await sources.readByID(source.id))).toEqual(Buffer.from("hello world"));
+      expect([...objects.keys()][0]).not.toContain("scan.jsonl");
+    },
+  );
 
   it.each(["success", "failure"])(
     "reserves the complete storage reference and waits for write %s before finalizing or compensating",
@@ -275,18 +284,18 @@ describe("import sources", () => {
           ),
           createdBy: actorId,
           originalFilename: "../../scan.jsonl",
-          expectedSize: 3,
-          actualSize: null,
+          mimeType: null,
+          sizeBytes: 3,
           retentionPolicy: "keep",
           state: "incomplete",
           createdAt: expect.any(Date),
           availableAt: null,
           failedAt: null,
           deletedAt: null,
-          cleanupState: "pending",
+          cleanupRequired: true,
         });
         expect(command.body).toBe(body);
-        expect(command.expectedSize).toBe(3);
+        expect(command.expectedSizeBytes).toBe(3);
         objects.set(command.key, await buffer(command.body));
         writing.resolve();
         await settled.promise;
@@ -301,17 +310,17 @@ describe("import sources", () => {
       });
       const command = {
         body,
-        expectedSize: 3,
+        sizeBytes: 3,
         originalFilename: "../../scan.jsonl",
         performedBy: actorId,
       };
       const result = sources.create(command);
       try {
         await writing.promise;
-        command.expectedSize = 1;
+        command.sizeBytes = 1;
         expect(await sources.getByID(sourceId)).toMatchObject({
           state: "incomplete",
-          actualSize: null,
+          sizeBytes: 3,
           availableAt: null,
           failedAt: null,
         });
@@ -323,19 +332,19 @@ describe("import sources", () => {
         settled.resolve();
       }
       if (outcome === "success") {
-        await expect(result).resolves.toMatchObject({ state: "available", actualSize: 3 });
+        await expect(result).resolves.toMatchObject({ state: "available", sizeBytes: 3 });
         expect(storage.delete).not.toHaveBeenCalled();
       } else {
         await expect(result).rejects.toMatchObject({
           code: "import_source.create_failed",
-          details: { sourceId, reason: "transfer_failed", cleanupState: "completed" },
+          details: { sourceId, reason: "transfer_failed", cleanupRequired: false },
         });
         expect(storage.delete).toHaveBeenCalledOnce();
         expect(await sources.getByID(sourceId)).toMatchObject({
           state: "incomplete",
-          actualSize: 3,
+          sizeBytes: 3,
           failedAt: expect.any(Date),
-          cleanupState: "completed",
+          cleanupRequired: false,
         });
       }
     },
@@ -345,8 +354,9 @@ describe("import sources", () => {
     const sources = capability({ retentionPolicy: "keep" });
     const source = await sources.create({
       body: Readable.from([Buffer.from("abc")]),
-      expectedSize: 3,
+      sizeBytes: 3,
       originalFilename: "scan.jsonl",
+      mimeType: "application/x-ndjson",
       performedBy: actorId,
     });
     const ingestion = await testDb.db
@@ -364,7 +374,11 @@ describe("import sources", () => {
       .where("id", "=", source.id)
       .execute();
     const linked = await sources.getByIngestionID(ingestion.id);
-    expect(linked).toEqual({ ...source, ingestionId: ingestion.id });
+    expect(linked).toEqual({
+      ...source,
+      ingestionId: ingestion.id,
+      mimeType: "application/x-ndjson",
+    });
     expect(await sources.getByID(source.id)).toEqual(linked);
     expect(await buffer(await sources.readByID(linked!.id))).toEqual(Buffer.from("abc"));
 
@@ -379,7 +393,7 @@ describe("import sources", () => {
       ...linked,
       state: "deleted",
       deletedAt: expect.any(Date),
-      cleanupState: "completed",
+      cleanupRequired: false,
     });
     await sources.deleteByID(source.id);
     expect(await sources.getByIngestionID(ingestion.id)).toEqual(deleted);
@@ -397,8 +411,9 @@ describe("import sources", () => {
       const result = await sources
         .create({
           body: Readable.from([Buffer.from("abc")]),
-          expectedSize: 3,
+          sizeBytes: 3,
           originalFilename: "scan.jsonl",
+          mimeType: "application/x-ndjson",
           performedBy: actorId,
         })
         .catch((error: ApplicationError<"import_source.create_failed">) => ({
@@ -417,7 +432,19 @@ describe("import sources", () => {
         .where("id", "=", result.id)
         .execute();
       const source = await sources.getByID(result.id);
-      expect(source).toMatchObject({ state, ingestionId: ingestion.id });
+      expect(source).toMatchObject({
+        state,
+        ingestionId: ingestion.id,
+        mimeType: "application/x-ndjson",
+        sizeBytes: 3,
+        cleanupRequired: state === "incomplete",
+      });
+      const linked = await sources.getByIngestionID(ingestion.id);
+      expect(linked).toEqual(source);
+      for (const metadata of [source, linked]) {
+        expect(metadata).not.toHaveProperty("bucket");
+        expect(metadata).not.toHaveProperty("objectKey");
+      }
       const mismatched = capability({}, { ...storage, bucket: "other-input" });
       storage.write.mockClear();
       storage.read.mockClear();
@@ -461,7 +488,7 @@ describe("import sources", () => {
     { label: "overrun input", reason: "size_mismatch", actualSize: null },
     { label: "interrupted input", reason: "transfer_failed", actualSize: null },
   ] as const)(
-    "maps storage's $label failure and size facts while keeping incomplete provenance",
+    "maps storage's $label failure while retaining only the declared source size",
     async ({ reason, actualSize }) => {
       const sources = capability();
       storage.write.mockImplementationOnce(async ({ body }) => {
@@ -477,8 +504,9 @@ describe("import sources", () => {
       try {
         await sources.create({
           body: Readable.from([Buffer.from("abc")]),
-          expectedSize: 3,
+          sizeBytes: 3,
           originalFilename: "scan",
+          mimeType: "application/x-ndjson",
           performedBy: actorId,
         });
         expect.fail("mismatched input must fail");
@@ -488,18 +516,21 @@ describe("import sources", () => {
           details: {
             sourceId: expect.any(String),
             reason,
-            cleanupState: "completed",
+            cleanupRequired: false,
           },
         });
         sourceId = (error as { details: { sourceId: string } }).details.sourceId;
       }
-      expect(await sources.getByID(sourceId)).toMatchObject({
+      const source = await sources.getByID(sourceId);
+      expect(source).toMatchObject({
         state: "incomplete",
-        actualSize,
+        mimeType: "application/x-ndjson",
+        sizeBytes: 3,
         availableAt: null,
         failedAt: expect.any(Date),
-        cleanupState: "completed",
+        cleanupRequired: false,
       });
+      expect(source).not.toHaveProperty("actualSize");
       await expect(sources.readByID(sourceId)).rejects.toMatchObject({
         code: "import_source.not_available",
       });
@@ -531,18 +562,13 @@ describe("import sources", () => {
         autoDestroy: failure !== "finalization" && failure !== "bookkeeping",
       });
       const error = await sources
-        .create({ body, expectedSize: 3, originalFilename: "scan", performedBy: actorId })
+        .create({ body, sizeBytes: 3, originalFilename: "scan", performedBy: actorId })
         .catch((error: unknown) => error);
       expect(error).toMatchObject({
         code: "import_source.create_failed",
         details: {
           sourceId: expect.any(String),
-          cleanupState:
-            failure === "bookkeeping"
-              ? "pending"
-              : failure === "compensation"
-                ? "failed"
-                : "completed",
+          cleanupRequired: failure === "bookkeeping" || failure === "compensation",
           reason:
             failure === "finalization" || failure === "bookkeeping"
               ? "finalization_failed"
@@ -553,14 +579,9 @@ describe("import sources", () => {
       const id = (error as { details: { sourceId: string } }).details.sourceId;
       expect(await sources.getByID(id)).toMatchObject({
         state: "incomplete",
-        actualSize: failure === "bookkeeping" ? null : 3,
+        sizeBytes: 3,
         availableAt: null,
-        cleanupState:
-          failure === "bookkeeping"
-            ? "pending"
-            : failure === "compensation"
-              ? "failed"
-              : "completed",
+        cleanupRequired: failure === "bookkeeping" || failure === "compensation",
         failedAt: failure === "bookkeeping" ? null : expect.any(Date),
       });
       await expect(sources.readByID(id)).rejects.toMatchObject({
@@ -609,7 +630,7 @@ describe("import sources", () => {
       const error = await sources
         .create({
           body: Readable.from([Buffer.from("abc")]),
-          expectedSize: 3,
+          sizeBytes: 3,
           originalFilename: "scan",
           performedBy: actorId,
         })
@@ -619,7 +640,7 @@ describe("import sources", () => {
         details: {
           sourceId,
           reason: "finalization_failed",
-          cleanupState: bookkeepingUnavailable ? "pending" : "completed",
+          cleanupRequired: bookkeepingUnavailable,
         },
       });
       if (bookkeepingUnavailable) {
@@ -633,7 +654,7 @@ describe("import sources", () => {
         expect(await sources.getByID(sourceId)).toMatchObject({
           state: "incomplete",
           availableAt: null,
-          cleanupState: "completed",
+          cleanupRequired: false,
           failedAt: expect.any(Date),
         });
         await expect(sources.readByID(sourceId)).rejects.toMatchObject({
@@ -652,7 +673,7 @@ describe("import sources", () => {
     });
     const source = await sources.create({
       body: Readable.from([Buffer.from("a")]),
-      expectedSize: 1,
+      sizeBytes: 1,
       originalFilename: "scan",
       performedBy: actorId,
     });
@@ -669,7 +690,7 @@ describe("import sources", () => {
     await expect(
       sources.create({
         body,
-        expectedSize: 3,
+        sizeBytes: 3,
         originalFilename: "scan",
         performedBy: "00000000-0000-4000-8000-000000000000",
       }),
@@ -713,7 +734,7 @@ describe("import sources", () => {
       const body = new Readable({ read() {} });
       const result = sources.create({
         body,
-        expectedSize: 1,
+        sizeBytes: 1,
         originalFilename: "scan",
         performedBy: actorId,
       });
@@ -730,14 +751,14 @@ describe("import sources", () => {
       const error = await result.catch((error: unknown) => error);
       expect(error).toMatchObject({
         code: "import_source.create_failed",
-        details: { reason: "transfer_failed", cleanupState: "completed" },
+        details: { reason: "transfer_failed", cleanupRequired: false },
       });
       const { sourceId } = (error as ApplicationError<"import_source.create_failed">).details;
       expect(await sources.getByID(sourceId)).toMatchObject({
         state: "incomplete",
-        actualSize: null,
+        sizeBytes: 1,
         failedAt: expect.any(Date),
-        cleanupState: "completed",
+        cleanupRequired: false,
       });
       expect(body.destroyed).toBe(true);
       expect(storage.write).not.toHaveBeenCalled();
@@ -755,7 +776,7 @@ describe("import sources", () => {
     await expect(
       capability().create({
         body,
-        expectedSize: 1,
+        sizeBytes: 1,
         originalFilename: "scan",
         performedBy: "00000000-0000-4000-8000-000000000000",
       }),
@@ -770,7 +791,7 @@ describe("import sources", () => {
     const sources = capability();
     const source = await sources.create({
       body: Readable.from([Buffer.from("abc")]),
-      expectedSize: 3,
+      sizeBytes: 3,
       originalFilename: "scan",
       performedBy: actorId,
     });
@@ -791,7 +812,7 @@ describe("import sources", () => {
       const sources = capability({ retentionPolicy });
       const source = await sources.create({
         body: Readable.from([Buffer.from("abc")]),
-        expectedSize: 3,
+        sizeBytes: 3,
         originalFilename: "scan.jsonl",
         performedBy: actorId,
       });
@@ -802,7 +823,7 @@ describe("import sources", () => {
         ...source,
         state: "deleted",
         deletedAt: expect.any(Date),
-        cleanupState: "completed",
+        cleanupRequired: false,
       });
       await sources.deleteByID(source.id);
       expect(await sources.getByID(source.id)).toEqual(deleted);
@@ -819,7 +840,7 @@ describe("import sources", () => {
     const sources = capability();
     const source = await sources.create({
       body: Readable.from([Buffer.from("abc")]),
-      expectedSize: 3,
+      sizeBytes: 3,
       originalFilename: "scan",
       performedBy: actorId,
     });
@@ -876,7 +897,7 @@ describe("import sources", () => {
     expect(storage.delete).not.toHaveBeenCalled();
     const source = await sources.create({
       body: Readable.from([Buffer.from("abc")]),
-      expectedSize: 3,
+      sizeBytes: 3,
       originalFilename: "scan",
       performedBy: actorId,
     });
@@ -889,7 +910,7 @@ describe("import sources", () => {
       ...source,
       state: "deleted",
       deletedAt: expect.any(Date),
-      cleanupState: "completed",
+      cleanupRequired: false,
     });
   });
 
@@ -899,7 +920,7 @@ describe("import sources", () => {
       const sources = capability();
       const source = await sources.create({
         body: Readable.from([Buffer.from("abc")]),
-        expectedSize: 3,
+        sizeBytes: 3,
         originalFilename: "scan",
         performedBy: actorId,
       });
@@ -944,7 +965,7 @@ describe("import sources", () => {
         ...source,
         state: "deleted",
         deletedAt: expect.any(Date),
-        cleanupState: "completed",
+        cleanupRequired: false,
       });
     },
   );
@@ -956,14 +977,14 @@ describe("import sources", () => {
     const error = await sources
       .create({
         body: Readable.from([Buffer.from("abc")]),
-        expectedSize: 3,
+        sizeBytes: 3,
         originalFilename: "scan",
         performedBy: actorId,
       })
       .catch((error: unknown) => error);
     const { sourceId } = (error as { details: { sourceId: string } }).details;
     const incomplete = await sources.getByID(sourceId);
-    expect(incomplete).toMatchObject({ state: "incomplete", cleanupState: "failed" });
+    expect(incomplete).toMatchObject({ state: "incomplete", cleanupRequired: true });
     failDelete = false;
     await sources.deleteByID(sourceId);
     expect(objects.size).toBe(0);
@@ -971,7 +992,7 @@ describe("import sources", () => {
       ...incomplete,
       state: "deleted",
       deletedAt: expect.any(Date),
-      cleanupState: "completed",
+      cleanupRequired: false,
     });
     await expect(sources.readByID(sourceId)).rejects.toMatchObject({
       code: "import_source.not_available",

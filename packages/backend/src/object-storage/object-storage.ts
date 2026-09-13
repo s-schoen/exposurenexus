@@ -6,7 +6,6 @@ import {
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
-  type S3ClientConfig,
 } from "@aws-sdk/client-s3";
 
 import { ApplicationError } from "../application-error.js";
@@ -14,7 +13,7 @@ import { ApplicationError } from "../application-error.js";
 export interface ObjectStorageConfiguration {
   bucket: string;
   region: string;
-  credentials: NonNullable<S3ClientConfig["credentials"]>;
+  credentials: { accessKeyId: string; secretAccessKey: string };
   endpoint?: string;
   forcePathStyle?: boolean;
 }
@@ -22,7 +21,7 @@ export interface ObjectStorageConfiguration {
 export interface ObjectStorageWriteCommand {
   key: string;
   body: Readable;
-  expectedSize: number;
+  expectedSizeBytes: number;
 }
 
 export interface ObjectStorage {
@@ -34,24 +33,14 @@ export interface ObjectStorage {
 }
 
 export function createObjectStorage(configuration: ObjectStorageConfiguration): ObjectStorage {
-  const { bucket, region, credentials, endpoint, forcePathStyle } = configuration ?? {};
+  const { bucket, region, credentials, endpoint, forcePathStyle } = configuration;
   if (
-    typeof bucket !== "string" ||
     !bucket.trim() ||
-    typeof region !== "string" ||
     !region.trim() ||
-    (typeof credentials !== "function" &&
-      (!credentials ||
-        typeof credentials !== "object" ||
-        typeof credentials.accessKeyId !== "string" ||
-        !credentials.accessKeyId ||
-        typeof credentials.secretAccessKey !== "string" ||
-        !credentials.secretAccessKey)) ||
+    !credentials.accessKeyId.trim() ||
+    !credentials.secretAccessKey.trim() ||
     (endpoint !== undefined &&
-      (typeof endpoint !== "string" ||
-        !URL.canParse(endpoint) ||
-        !["http:", "https:"].includes(new URL(endpoint).protocol))) ||
-    (forcePathStyle !== undefined && typeof forcePathStyle !== "boolean")
+      (!URL.canParse(endpoint) || !["http:", "https:"].includes(new URL(endpoint).protocol)))
   ) {
     throw new ApplicationError({
       code: "object_storage.invalid_configuration",
@@ -61,7 +50,10 @@ export function createObjectStorage(configuration: ObjectStorageConfiguration): 
   }
   const client = new S3Client({
     region,
-    credentials: typeof credentials === "function" ? credentials : { ...credentials },
+    credentials: {
+      accessKeyId: credentials.accessKeyId,
+      secretAccessKey: credentials.secretAccessKey,
+    },
     endpoint,
     forcePathStyle,
     maxAttempts: 1,
@@ -73,13 +65,13 @@ export function createObjectStorage(configuration: ObjectStorageConfiguration): 
     get bucket() {
       return bucket;
     },
-    async write({ key, body, expectedSize }) {
+    async write({ key, body, expectedSizeBytes }) {
       if (
         !(body instanceof Readable) ||
         body.destroyed ||
         !body.readable ||
-        !Number.isSafeInteger(expectedSize) ||
-        expectedSize < 0
+        !Number.isSafeInteger(expectedSizeBytes) ||
+        expectedSizeBytes < 0
       ) {
         throw new ApplicationError({
           code: "object_storage.invalid_input",
@@ -93,7 +85,7 @@ export function createObjectStorage(configuration: ObjectStorageConfiguration): 
       let sizeMismatch = false;
       const counter = new Transform({
         transform(chunk: Buffer, _encoding, callback) {
-          if (chunk.byteLength > expectedSize - bytes) {
+          if (chunk.byteLength > expectedSizeBytes - bytes) {
             sizeMismatch = true;
             callback(new Error("Object size exceeds declared length"));
             return;
@@ -103,7 +95,7 @@ export function createObjectStorage(configuration: ObjectStorageConfiguration): 
         },
         flush(callback) {
           ended = true;
-          sizeMismatch = bytes !== expectedSize;
+          sizeMismatch = bytes !== expectedSizeBytes;
           callback(sizeMismatch ? new Error("Object size differs from declared length") : null);
         },
       });
@@ -116,7 +108,7 @@ export function createObjectStorage(configuration: ObjectStorageConfiguration): 
             Bucket: bucket,
             Key: key,
             Body: counter,
-            ContentLength: expectedSize,
+            ContentLength: expectedSizeBytes,
           }),
           { abortSignal: abort.signal },
         );

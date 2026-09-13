@@ -99,8 +99,9 @@ describe("backend exports", () => {
     }>();
     expectTypeOf<CreateImportSourceCommand>().toEqualTypeOf<{
       body: Readable;
-      expectedSize: number;
+      sizeBytes: number;
       originalFilename: string;
+      mimeType?: string;
       performedBy: string;
     }>();
     expectTypeOf<ImportSource>().toEqualTypeOf<{
@@ -108,15 +109,15 @@ describe("backend exports", () => {
       ingestionId: string | null;
       createdBy: string;
       originalFilename: string;
-      expectedSize: number;
-      actualSize: number | null;
+      mimeType: string | null;
+      sizeBytes: number;
       retentionPolicy: "temporary" | "keep";
       state: "incomplete" | "available" | "deleted";
       createdAt: Date;
       availableAt: Date | null;
       failedAt: Date | null;
       deletedAt: Date | null;
-      cleanupState: "not_needed" | "pending" | "completed" | "failed";
+      cleanupRequired: boolean;
     }>();
     expectTypeOf<ImportSources>().toEqualTypeOf<{
       create(command: CreateImportSourceCommand): Promise<ImportSource>;
@@ -131,6 +132,11 @@ describe("backend exports", () => {
     expectTypeOf<ApplicationError<"import_source.bucket_mismatch">["details"]>().toEqualTypeOf<{
       sourceId: string;
     }>();
+    expectTypeOf<ApplicationError<"import_source.create_failed">["details"]>().toEqualTypeOf<{
+      sourceId: string;
+      reason: "size_mismatch" | "transfer_failed" | "finalization_failed";
+      cleanupRequired: boolean;
+    }>();
   });
 
   it("exports the object-storage factory and caller types without an SDK operational interface", async () => {
@@ -140,10 +146,17 @@ describe("backend exports", () => {
       .parameter(0)
       .toEqualTypeOf<ObjectStorageConfiguration>();
     expectTypeOf(entrypoint.createObjectStorage).returns.toEqualTypeOf<ObjectStorage>();
+    expectTypeOf<ObjectStorageConfiguration>().toEqualTypeOf<{
+      bucket: string;
+      region: string;
+      credentials: { accessKeyId: string; secretAccessKey: string };
+      endpoint?: string;
+      forcePathStyle?: boolean;
+    }>();
     expectTypeOf<ObjectStorageWriteCommand>().toEqualTypeOf<{
       key: string;
       body: Readable;
-      expectedSize: number;
+      expectedSizeBytes: number;
     }>();
     expectTypeOf<ObjectStorage>().toEqualTypeOf<{
       readonly bucket: string;
