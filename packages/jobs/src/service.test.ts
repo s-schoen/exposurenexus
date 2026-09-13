@@ -9,9 +9,7 @@ import type { Logger } from "pino";
 import type { Mock } from "vitest";
 
 const ingestionData = {
-  userid: "550e8400-e29b-41d4-a716-446655440000",
-  ingestdataurl: "https://example.com/ingest.json",
-  format: "json",
+  ingestionId: "550e8400-e29b-41d4-a716-446655440000",
 };
 const initialTime = new Date("2026-08-25T10:00:00.000Z");
 const mutationTime = new Date("2026-08-25T11:00:00.000Z");
@@ -255,14 +253,14 @@ describe("createJobService", () => {
       expect.objectContaining({ data: expect.anything() }),
       expect.anything(),
     );
-    expect(JSON.stringify(debug.mock.calls)).not.toContain(ingestionData.ingestdataurl);
+    expect(JSON.stringify(debug.mock.calls)).not.toContain(ingestionData.ingestionId);
   });
 
   it("rejects invalid job data before persistence", async () => {
     await expect(
       service.create({
         type: JobType.INGESTION,
-        data: { ...ingestionData, userid: "not-a-uuid" },
+        data: { ingestionId: "not-a-uuid" },
       }),
     ).rejects.toThrow();
     expect(repository.jobs.size).toBe(0);

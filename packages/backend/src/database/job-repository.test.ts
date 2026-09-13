@@ -34,9 +34,7 @@ function makeJob(overrides: Partial<Omit<Job, "id" | "event">> & { id?: string }
       time: initialTime.toISOString(),
       datacontenttype: "application/json",
       data: {
-        userid: "00000000-0000-4000-8000-000000000099",
-        ingestdataurl: "https://example.test/findings.json",
-        format: "json",
+        ingestionId: "00000000-0000-4000-8000-000000000099",
       },
     },
     publicationState: "pending",

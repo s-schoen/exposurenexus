@@ -83,6 +83,34 @@ single-relay restriction, and separately operate the RabbitMQ topology described
 below. Automated ingestion submission and dead-letter-queue reconciliation
 remain unimplemented.
 
+## Ingestion Handoff
+
+Ingestion events have strict data containing only an ingestion UUID v4:
+
+```json
+{ "ingestionId": "550e8400-e29b-41d4-a716-446655440000" }
+```
+
+The ingestion ID is distinct from the CloudEvent/job ID. Backend metadata owns
+the ingestion actor (`createdBy`), scanner source (`source`, currently `nuclei`),
+and the associated import-source reference. The shared import-source capability
+resolves source metadata by ingestion ID and reads bytes by source ID without
+exposing buckets or keys. Source metadata and its ingestion relationship survive
+byte deletion; preexisting ingestions without raw input have no fabricated source.
+See [Import Sources](import-sources.md#ingestion-references).
+
+The former `userid`, `ingestdataurl`, and `format` fields are rejected, as are all
+other extra fields. No file bytes, URLs, or storage credentials belong in job data.
+This is a direct breaking contract replacement with no legacy parser, dual dispatch,
+backfill, or broker purge; there is no deployed ingestion work requiring compatibility.
+
+This handoff does not create jobs in production or activate ingestion. The HTTP
+import route remains unavailable, and the production worker's handler set remains
+empty. The later submission use case must link the ingestion and its source and
+insert the outbox job in one transaction. Real processing, execution idempotency,
+and retention-based cleanup decisions are still deferred. S3 is not a required
+API or worker startup dependency in this foundation.
+
 ## Confirm-channel Producer
 
 The producer owns its AMQP connection and confirm channel. It passively checks
@@ -109,9 +137,7 @@ const producer = await createJobProducer({
 const event = createJobEvent({
   type: JobType.INGESTION,
   data: {
-    userid: "550e8400-e29b-41d4-a716-446655440000",
-    ingestdataurl: "https://example.com/ingest.json",
-    format: "json",
+    ingestionId: "550e8400-e29b-41d4-a716-446655440000",
   },
 });
 
@@ -177,8 +203,8 @@ const consumer = await createJobConsumer({
 });
 
 consumer.registerJobHandler(JobType.INGESTION, async (event) => {
-  // Perform idempotent ingestion work using event.data here.
-  console.log(`Processing ${event.id} from ${event.data.ingestdataurl}`);
+  // Demonstration only; the real backend ingestion use case is not implemented.
+  console.log(`Job ${event.id} identifies ingestion ${event.data.ingestionId}`);
 });
 
 const running = consumer.start();

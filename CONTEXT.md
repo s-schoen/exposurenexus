@@ -338,28 +338,35 @@ whose target cannot be resolved to one asset will not become an observation.
 ### Ingestion
 
 An **ingestion** groups observations created from one imported source file or
-source dataset. The initial persisted record retains only its identity, source,
-creation actor, and creation time so imported observations can retain
-provenance. Ingestion scope and processed, created, skipped, and erroneous
-record accounting are deferred until automated ingestion is implemented.
-Manual observations do not belong to ingestions.
+source dataset. It retains its identity, scanner source, creation actor, and
+creation time so imported observations can retain provenance. It may identify one
+durable import source; preexisting ingestions without stored raw input retain
+their provenance without an invented source. An ingestion is not an upload
+placeholder. Ingestion scope and processed, created, skipped, and erroneous record
+accounting are deferred until automated ingestion is implemented. Manual
+observations do not belong to ingestions.
 
 ### Import Source
 
-An **import source** (planned) is the raw input artifact for an ingestion, with
-provenance that remains meaningful after its raw data is removed. An import
-source may exist before ingestion and belongs to at most one ingestion;
-retaining it does not make it a reusable dataset.
+An **import source** is the raw input artifact for an ingestion, with its own
+identity, creation actor, original filename, size, retention policy, and lifecycle
+metadata. It may exist before ingestion and belongs to at most one ingestion;
+retaining it does not make it a reusable dataset. Incomplete and deleted sources
+remain identifiable, and deleting raw data preserves provenance and any ingestion
+relationship. Durable source storage and lookup are available; submission and
+automated ingestion processing remain deferred.
 
 ### Import Source Retention
 
-An import source's **retention policy** (planned) expresses whether its raw data
+An import source's **retention policy** expresses whether its raw data
 is intended for cleanup after ingestion (`temporary`) or continued retention
-(`keep`). Retention does not prevent explicit deletion or imply immutable
-evidence.
+(`keep`). The policy is recorded when the source is created; later configuration
+changes do not change existing sources' policies. Retention does not schedule
+cleanup, prevent explicit deletion, or imply immutable evidence. The future
+ingestion workflow must decide when raw input is no longer needed for retries.
 
 See [S3-Backed Import Sources](docs/adr/0006-s3-backed-import-sources.md) for the
-accepted, not-yet-implemented decision.
+delivered storage and durable-reference foundation and deferred ingestion work.
 
 ### Vulnerability Source Mapping
 

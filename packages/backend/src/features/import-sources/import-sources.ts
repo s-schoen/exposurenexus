@@ -26,6 +26,7 @@ export interface ImportSourcesConfiguration {
 
 export interface ImportSource {
   id: string;
+  ingestionId: string | null;
   createdBy: string;
   originalFilename: string;
   expectedSize: number;
@@ -49,6 +50,7 @@ export interface CreateImportSourceCommand {
 export interface ImportSources {
   create(command: CreateImportSourceCommand): Promise<ImportSource>;
   getByID(id: string): Promise<ImportSource | null>;
+  getByIngestionID(ingestionId: string): Promise<ImportSource | null>;
   readByID(id: string): Promise<Readable>;
   deleteByID(id: string): Promise<void>;
   close(): void;
@@ -109,6 +111,7 @@ export function createImportSources(
       try {
         await persistence.reserve(database, {
           id,
+          ingestionId: null,
           objectKey,
           bucket,
           createdBy: command.performedBy,
@@ -231,6 +234,18 @@ export function createImportSources(
           kind: "unexpected",
           message: "Import source metadata could not be read",
           details: { sourceId: id },
+        });
+      }
+    },
+    async getByIngestionID(ingestionId) {
+      try {
+        return await persistence.getMetadataByIngestionID(database, ingestionId);
+      } catch {
+        throw new ApplicationError({
+          code: "import_source.get_by_ingestion_failed",
+          kind: "unexpected",
+          message: "Import source metadata could not be read by ingestion",
+          details: { ingestionId },
         });
       }
     },

@@ -3,15 +3,16 @@
 The shared backend provides a library-only capability for storing, reading, and
 explicitly deleting raw import input while preserving provenance. It is independent
 of ingestion execution and HTTP authentication.
-There is no working HTTP import endpoint, ingestion submission/linkage, or active
-worker handler in this slice. S3 is not a required API or worker startup dependency.
+Persisted ingestion linkage and lookup are available, but there is no working HTTP
+import endpoint, ingestion submission workflow, or active worker handler. S3 is
+not a required API or worker startup dependency.
 
 ## Configuration And Usage
 
 Import `createImportSources` from `@exposurenexus/backend/import-sources`. The
 backend root still constructs only a runtime around PostgreSQL and a logger.
 Apply backend migrations before using the capability, including
-`20260913-import-sources`.
+`20260913-import-sources` and `20260913-import-sources-ingestion-link`.
 
 ```ts
 import { createReadStream } from "node:fs";
@@ -108,7 +109,7 @@ requires both successful storage and exact-length completion. A file changing
 between `stat` and reading therefore fails rather than becoming truncated input.
 
 `getByID` returns `null` for unknown identities. Otherwise metadata includes
-`createdBy`, `originalFilename`, `expectedSize`, `actualSize`, the retention
+`ingestionId`, `createdBy`, `originalFilename`, `expectedSize`, `actualSize`, the retention
 snapshot, lifecycle state, and creation/availability/failure/deletion timestamps.
 `actualSize` is known after complete input reaches EOF; interrupted or overlong
 input may leave it `null`, not a misleading partial-file total. Actor references
@@ -120,6 +121,36 @@ Only `available` sources with no deletion timestamp can be read. Incomplete and
 deleted states are rejected. An unexpectedly absent object is a typed
 `import_source.read_failed` error, not an empty stream. After `readByID` resolves,
 normal Node stream errors must also be handled while consuming the returned body.
+
+## Ingestion References
+
+Each source starts unattached (`ingestionId: null`). Its optional ingestion
+reference is foreign-key enforced and unique: a source belongs to at most one
+ingestion, and an ingestion identifies at most one source. Linked sources restrict
+ingestion deletion. Existing ingestions and their observations retain their
+original provenance; the migration neither invents source objects nor attaches
+previously stored input automatically. An ingestion is not an upload placeholder.
+
+`await sources.getByIngestionID(ingestionId)` returns the same safe metadata as
+`getByID`, including the source ID and nullable ingestion ID, without contacting
+S3. It returns `null` when no source is linked, including unknown ingestions and
+preexisting ingestions without stored input. Database failures throw
+`import_source.get_by_ingestion_failed` with the ingestion ID in internal details.
+Callers pass the returned source ID to `readByID` or `deleteByID`; bucket/key lookup
+stays private. Metadata resolution does not promise byte availability: missing
+objects and explicitly deleted bytes do not erase the relationship or provenance.
+
+Ingestion actor and scanner source remain authoritative in `ingestion.createdBy`
+and `ingestion.source` (currently `nuclei`). Source creation attribution and the
+input reference remain in import-source metadata. [Ingestion job data](job-queue.md#ingestion-handoff)
+contains only `{ ingestionId }`, never a duplicate actor/format, bytes, URL, or
+credentials. A future backend ingestion use case will resolve these records;
+there is no processing facade or public standalone link operation in this slice.
+
+The later submission use case must atomically link the source to the ingestion
+and insert its outbox job. Submission validation, processing, execution idempotency,
+and cleanup decisions based on durable ingestion outcomes remain deferred.
+Retention does not enable source reuse across ingestions or reprocessing.
 
 ## Failures And Retention
 
@@ -157,8 +188,7 @@ records for investigation rather than removing the only object reference.
 Retention is snapshotted per creation: `temporary` by default, or deployment-wide
 `keep`. Later factory configuration affects new sources only. Neither policy
 expires or deletes bytes automatically, and there is no per-import override.
-`keep` is intent, not a regulatory lock. Ingestion relationships and ingestion-only
-job contracts remain a separate ticket, not available behavior here.
+`keep` is intent, not a regulatory lock.
 
 ## Explicit Deletion
 
@@ -198,9 +228,11 @@ limits, interruption, failed storage, and finalization/compensation failures,
 including committed finalization with a lost response and unavailable bookkeeping.
 They verify that creation recovery revokes availability before deleting bytes,
 and cover explicit deletion under both policies, missing objects, repeated calls,
-storage failures, bookkeeping retry, and preserved provenance. The
-central migration-chain tests cover schema integration, and export tests keep
-storage and persistence internals private.
+storage failures, bookkeeping retry, and preserved provenance. Ingestion lookup
+tests cover unattached sources and provenance after missing/deleted bytes. The
+central migration-chain tests cover foreign keys, uniqueness, and preservation of
+preexisting ingestion/observation provenance without manufactured sources. Export
+tests keep storage and persistence internals private.
 
 An opt-in real-S3 smoke test uses an isolated in-memory database and bounded
 streamed input, explicit/repeated deletion, and deletion of an already-absent

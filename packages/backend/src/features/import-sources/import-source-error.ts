@@ -3,6 +3,10 @@ export type ImportSourceApplicationErrorCatalog = {
   "import_source.invalid_input": { kind: "validation" };
   "import_source.reserve_failed": { kind: "unexpected" };
   "import_source.get_failed": { kind: "unexpected"; details: { sourceId: string } };
+  "import_source.get_by_ingestion_failed": {
+    kind: "unexpected";
+    details: { ingestionId: string };
+  };
   "import_source.create_failed": {
     kind: "unexpected";
     details: {

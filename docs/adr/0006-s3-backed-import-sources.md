@@ -1,6 +1,6 @@
 # S3-Backed Import Sources
 
-**Status:** Accepted; implementation pending.
+**Status:** Accepted; storage, explicit deletion, and durable-reference foundation implemented. Submission and processing remain deferred.
 
 Asynchronous ingestion needs input bytes that remain accessible independently of an HTTP request or worker host. Store raw input in private S3 object storage, track each import source in PostgreSQL, and identify an ingestion in its job rather than carrying bytes or an expiring URL. This separates file lifetime from message delivery without introducing the ingestion pipeline itself.
 
@@ -13,6 +13,13 @@ Add an import-source capability to the shared backend established by [ADR-0004](
 An import source has its own identity, provenance, storage reference, and lifecycle metadata. It can exist before ingestion and belong to at most one ingestion. Retries reuse the same ingestion and source; keeping raw input does not introduce reuse across ingestions or a reprocessing feature. Deleting bytes preserves source metadata and the ingestion relationship.
 
 Ingestion job data contains only `ingestionId`. Authoritative actor, scanner format/source, and input metadata remain in the backend. A future ingestion use case resolves the source from the ingestion. The old actor/URL/format job payload is replaced without a compatibility adapter; no deployed jobs require it. This change does not create production jobs, purge queues, or activate handlers.
+
+The delivered relationship is a nullable, unique ingestion reference on import-source
+metadata with restricted ingestion deletion. Sources start unattached; existing
+ingestions retain their original provenance without manufactured source records.
+The import-source capability resolves metadata by ingestion ID, even after byte
+deletion, while keeping storage references private. This is not a standalone
+submission/link operation or a placeholder ingestion-processing use case.
 
 ### Storage Interface
 

@@ -21,9 +21,7 @@ vi.mock("amqplib", () => ({
 const EXCHANGE_NAME = "EXPOSURENEXUS_JOBS";
 const CONNECTION_URL = "amqp://127.0.0.1:5672";
 const ingestionData = {
-  userid: "550e8400-e29b-41d4-a716-446655440000",
-  ingestdataurl: "https://example.com/ingest.json",
-  format: "json",
+  ingestionId: "550e8400-e29b-41d4-a716-446655440000",
 };
 
 const ingestionEvent: JobEvent = {
@@ -119,11 +117,8 @@ describe("createJobProducer", () => {
     const assertRejectedTypes = () => {
       void producer.publish({
         ...ingestionEvent,
-        // @ts-expect-error the format field is required by the public event type
-        data: {
-          userid: ingestionData.userid,
-          ingestdataurl: ingestionData.ingestdataurl,
-        },
+        // @ts-expect-error the ingestionId field is required by the public event type
+        data: {},
       });
     };
 

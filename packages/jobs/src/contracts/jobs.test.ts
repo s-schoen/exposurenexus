@@ -5,22 +5,45 @@ import { createJobEvent, ingestionJobDataSchema, jobEventSchema, JobType } from 
 import type { IngestionJobData, JobDataFor, JobEvent, JobEventFor } from "./jobs.js";
 
 const ingestionData: IngestionJobData = {
+  ingestionId: "550e8400-e29b-41d4-a716-446655440000",
+};
+
+const oldIngestionData = {
   userid: "550e8400-e29b-41d4-a716-446655440000",
   ingestdataurl: "https://example.com/ingest.json",
   format: "json",
 };
 
 describe("ingestion job data schema", () => {
-  it("accepts a valid ingestion payload without changing it", () => {
+  it("accepts only an ingestion UUID without changing it", () => {
     expect(ingestionJobDataSchema.parse(ingestionData)).toEqual(ingestionData);
   });
 
+  it.each(["not-a-uuid", "", 42, null, undefined])(
+    "rejects an invalid ingestionId (%s)",
+    (value) => {
+      expect(() =>
+        ingestionJobDataSchema.parse({
+          ingestionId: value,
+        }),
+      ).toThrow();
+    },
+  );
+
+  it("requires ingestionId", () => {
+    expect(() => ingestionJobDataSchema.parse({})).toThrow();
+  });
+
+  it("rejects the old actor, URL, and format payload", () => {
+    expect(() => ingestionJobDataSchema.parse(oldIngestionData)).toThrow();
+  });
+
   it.each([
-    ["userid", "not-a-uuid"],
-    ["userid", 42],
-    ["ingestdataurl", 42],
-    ["format", 42],
-  ])("rejects an invalid %s value", (field, value) => {
+    ["userid", oldIngestionData.userid],
+    ["ingestdataurl", oldIngestionData.ingestdataurl],
+    ["format", oldIngestionData.format],
+    ["extra", true],
+  ])("rejects the extra %s field alongside ingestionId", (field, value) => {
     expect(() =>
       ingestionJobDataSchema.parse({
         ...ingestionData,
@@ -28,26 +51,10 @@ describe("ingestion job data schema", () => {
       }),
     ).toThrow();
   });
-
-  it.each(["userid", "ingestdataurl", "format"])("requires %s", (field) => {
-    const data = { ...ingestionData };
-    delete data[field as keyof typeof data];
-
-    expect(() => ingestionJobDataSchema.parse(data)).toThrow();
-  });
-
-  it("rejects payload properties outside the ingestion contract", () => {
-    expect(() =>
-      ingestionJobDataSchema.parse({
-        ...ingestionData,
-        extra: true,
-      }),
-    ).toThrow();
-  });
 });
 
 describe("createJobEvent", () => {
-  it("creates a validated ingestion event", () => {
+  it("round-trips a serialized event carrying only the ingestion identity", () => {
     const event = createJobEvent({
       type: JobType.INGESTION,
       data: ingestionData,
@@ -63,7 +70,12 @@ describe("createJobEvent", () => {
     expect(event.id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
     );
-    expect(jobEventSchema.parse(event)).toEqual(event);
+
+    const roundTrippedEvent = jobEventSchema.parse(JSON.parse(JSON.stringify(event)));
+    expect(roundTrippedEvent).toEqual(event);
+    expect(roundTrippedEvent.data).toEqual({
+      ingestionId: "550e8400-e29b-41d4-a716-446655440000",
+    });
   });
 
   it("rejects runtime payloads that are only structurally valid", () => {
@@ -80,7 +92,10 @@ describe("createJobEvent", () => {
     ).toThrow();
   });
 
-  it("rejects invalid ingestion data at the event boundary", () => {
+  it.each([
+    ["invalid ingestionId", { ingestionId: "not-a-uuid" }],
+    ["old payload", oldIngestionData],
+  ])("rejects ingestion data at the event boundary (%s)", (_description, data) => {
     expect(() =>
       jobEventSchema.parse({
         specversion: "1.0",
@@ -89,10 +104,7 @@ describe("createJobEvent", () => {
         type: JobType.INGESTION,
         time: "2026-08-23T12:00:00.000Z",
         datacontenttype: "application/json",
-        data: {
-          ...ingestionData,
-          userid: "not-a-uuid",
-        },
+        data,
       }),
     ).toThrow();
   });
@@ -126,6 +138,7 @@ describe("createJobEvent", () => {
       data: ingestionData,
     });
 
+    expectTypeOf<IngestionJobData>().toEqualTypeOf<{ ingestionId: string }>();
     expectTypeOf<JobDataFor<JobType.INGESTION>>().toEqualTypeOf<IngestionJobData>();
     expectTypeOf(event).toEqualTypeOf<JobEventFor<JobType.INGESTION>>();
     expectTypeOf(event).toExtend<JobEvent>();
@@ -144,11 +157,14 @@ describe("createJobEvent", () => {
 
       createJobEvent({
         type: JobType.INGESTION,
-        // @ts-expect-error the format field is required
-        data: {
-          userid: ingestionData.userid,
-          ingestdataurl: ingestionData.ingestdataurl,
-        },
+        // @ts-expect-error the ingestionId field is required
+        data: {},
+      });
+
+      createJobEvent({
+        type: JobType.INGESTION,
+        // @ts-expect-error the old payload does not identify an ingestion
+        data: oldIngestionData,
       });
     };
 

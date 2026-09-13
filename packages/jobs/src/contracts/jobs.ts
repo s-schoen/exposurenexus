@@ -7,9 +7,7 @@ export enum JobType {
 }
 
 export const ingestionJobDataSchema = z.strictObject({
-  userid: z.uuidv4(),
-  ingestdataurl: z.string(),
-  format: z.string(),
+  ingestionId: z.uuidv4(),
 });
 export type IngestionJobData = z.output<typeof ingestionJobDataSchema>;
 
