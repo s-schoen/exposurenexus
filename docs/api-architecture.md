@@ -53,11 +53,14 @@ and caller-facing commands, results, and operation-specific mutation outcomes.
 The runtime keeps database access, logging, and per-runtime memoization private.
 Constructing assets, findings, vulnerabilities, or statistics does not require
 authentication configuration. These factories memoize their capabilities
-independently within the runtime. The library-only `/import-sources` capability currently owns an
-independent S3 client per factory call, with capability-local configuration and
-explicit `close()` after transfers drain. It needs no authentication configuration
-and is not composed by the API or worker yet. Migration to injected object storage
-is deferred to ticket 02. See [Import Sources](import-sources.md).
+independently within the runtime. The library-only `/import-sources` capability uses
+`createImportSources(runtime, storage, configuration = {})`, borrowing an explicit
+`ObjectStorage` handle and snapshotting its bound bucket and import policy per
+factory call. `ImportSourcesConfiguration` has only optional `maxSizeBytes` and
+`retentionPolicy`; it has no SDK settings. There is no compatibility constructor
+or `ImportSources.close()`. It needs no authentication configuration and is not
+composed by the API or worker yet. See [Import Sources](import-sources.md) for
+separate real-storage construction and caller-owned shutdown.
 
 Callers use these interfaces:
 
@@ -76,8 +79,10 @@ Shared infrastructure uses the strict `@exposurenexus/backend/database` and
 constructs a bucket-bound handle without a database, backend runtime, environment
 lookup, or startup I/O. The composing caller owns its client lifetime and may
 share the handle across capabilities, closing it only after consumers and read
-streams stop. No runtime registration or required application-startup S3 dependency
-is introduced. See [Object Storage](object-storage.md).
+streams stop. Borrowing capabilities never close storage; `close()` does not drain
+work. No runtime registration or required backend-runtime/application-startup S3
+dependency is introduced. Production storage composition and startup checks remain
+deferred, not enabled by the library capability. See [Object Storage](object-storage.md).
 
 There are no wildcard exports or compatibility imports. Repository contracts,
 dependency objects, lookup ports, persistence records, transaction types, and raw
@@ -101,8 +106,20 @@ audit handling stay at the assets level because both subfeatures use them. Share
 security-identifier canonicalization stays private at package level.
 
 Reusable byte storage lives at `packages/backend/src/object-storage/`, outside
-the import-source feature. It owns object I/O and transfer mechanics, not domain
-metadata, import policy, retention, or compensation decisions.
+the import-source feature. It owns SDK access, object I/O, exact-byte counting,
+backpressure, cancellation, and upload settlement. Import sources own provenance,
+metadata, key generation, size/retention policy, finalization, and compensation
+decisions; they translate typed storage failures rather than expose SDK or storage
+error details. No second feature-owned byte counter or schema migration is needed.
+
+Import sources reject recorded-bucket mismatches before byte reads or deletes with
+`import_source.bucket_mismatch`, kind `conflict`, and only `{ sourceId: string }`
+in details. A mismatch performs no object I/O or metadata mutation. Unavailable
+reads still return `import_source.not_available`; already-deleted deletion remains
+a no-op. Source/ingestion metadata lookup stays independent of the bound bucket.
+Bucket equality does not validate endpoint/account continuity: operators must
+supply the correct original endpoint, account, and bucket for historical objects.
+There is no handle registry, historical routing, or relocation.
 
 Separate entrypoints do not imply independent persistence: identity changes can
 revoke authentication sessions in the same transaction, and findings can use
@@ -158,7 +175,8 @@ the initial admin through identity, then starts serving. It closes the pool on
 startup failure and during shutdown. The runtime does not manage resource
 lifecycle.
 
-The worker remains connected but idle with no production ingestion handler. It
+The import HTTP endpoint remains unavailable. The worker remains connected but
+idle with no production ingestion handler. It
 uses an undecorated backend runtime as a trusted system caller and checks required
 migrations without applying them. Source storage and ingestion references do not
 enable submission or processing. Future ingestion orchestration belongs in a high-level

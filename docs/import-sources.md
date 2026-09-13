@@ -7,36 +7,46 @@ Persisted ingestion linkage and lookup are available, but there is no working HT
 import endpoint, ingestion submission workflow, or active worker handler. S3 is
 not a required API or worker startup dependency.
 
-The separate [Object Storage](object-storage.md) module is available, but this
-capability's migration is deferred to ticket 02. The configuration below,
-feature-owned SDK client, and `ImportSources.close()` remain current; no storage
-handle is injected yet.
+The capability borrows an explicitly injected, bucket-bound
+[Object Storage](object-storage.md) handle. Storage owns bytes, SDK access, exact
+byte counting, cancellation, and transfer settlement; import sources own policy,
+provenance, metadata, finalization, and compensation decisions. The composing
+caller owns storage shutdown, not the capability.
 
 ## Configuration And Usage
 
 Import `createImportSources` from `@exposurenexus/backend/import-sources`. The
-backend root still constructs only a runtime around PostgreSQL and a logger.
-Apply backend migrations before using the capability, including
+signature is `createImportSources(runtime, storage, configuration = {})`;
+`ImportSourcesConfiguration` has only optional `maxSizeBytes` and `retentionPolicy`.
+There is no compatibility constructor or overload and no `ImportSources.close()`.
+The same strict subpath exports the caller types `ImportSources`, `ImportSource`,
+and `CreateImportSourceCommand`; storage references and persistence stay private.
+The backend root still constructs only a runtime around PostgreSQL and a logger.
+Apply the existing backend migrations before using the capability, including
 `20260913-import-sources` and `20260913-import-sources-ingestion-link`.
+Storage injection requires no new migration or source records.
 
 ```ts
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createBackendRuntime } from "@exposurenexus/backend";
 import { createImportSources } from "@exposurenexus/backend/import-sources";
+import { createObjectStorage } from "@exposurenexus/backend/object-storage";
 
 const runtime = createBackendRuntime({ database, logger });
-const sources = createImportSources(runtime, {
+const storage = createObjectStorage({
   bucket: "private-import-input",
   region: "us-east-1",
   credentials: credentialProvider,
   // endpoint: "https://your-s3-service.example",
   // forcePathStyle: true,
-  maxSizeBytes: 104857600,
-  retentionPolicy: "temporary",
 });
 
 try {
+  const sources = createImportSources(runtime, storage, {
+    maxSizeBytes: 104857600,
+    retentionPolicy: "temporary",
+  });
   const { size } = await stat(inputPath);
   const source = await sources.create({
     body: createReadStream(inputPath),
@@ -49,25 +59,49 @@ try {
   // Fully consume readable, or destroy it if abandoning the read.
   await consumeInput(readable, metadata);
 } finally {
-  sources.close();
+  // All operations and returned streams must have stopped before closing storage.
+  storage.close();
 }
 ```
 
-Executable composition supplies configuration; the capability does not read
-application environment variables, provision buckets, or require auth secrets.
-`bucket`, `region`, and `credentials` are required. Credentials accept the official
-AWS SDK credential identity or async provider, so callers can select renewable
-workload credentials instead of hardcoding keys. Optional `endpoint` and
-`forcePathStyle` select the service's addressing. Use HTTPS outside isolated local
-test infrastructure. Credentials and raw SDK/database errors are not included in
-capability metadata, creation error details, or capability logs.
+Executable composition supplies storage configuration separately from import
+policy; neither module reads application environment variables, provisions
+buckets, or requires auth secrets. `createObjectStorage` requires `bucket`,
+`region`, and `credentials`. Credentials accept the official AWS SDK credential
+identity or async provider, allowing renewable workload credentials. Optional
+`endpoint` and `forcePathStyle` select the service's addressing. Use HTTPS outside
+isolated local test infrastructure. Credentials and raw SDK/database errors are
+not included in capability metadata, creation error details, or capability logs.
 
-Each factory invocation owns an independent S3 client and snapshots its size and
-retention configuration. Unlike runtime-memoized database-only capabilities, it
-must be closed explicitly after operations and read streams have drained. `close()`
-releases SDK connections; it does not delete source bytes or close PostgreSQL.
-Retain the same storage endpoint/account when resolving old sources; bucket and
-key are recorded privately, but endpoint credentials remain deployment configuration.
+Each import-source factory invocation snapshots the handle's bound bucket and
+its size and retention policy. It does not construct an SDK client or own a
+lifecycle. Multiple capability instances can share a handle. The composing caller
+must stop all consumers, settle their operations, and finish or destroy returned
+read streams before calling `storage.close()` once. Closing releases SDK
+connections; it does not drain work, delete source bytes, or close PostgreSQL.
+Production API/worker composition and storage startup checks remain deferred.
+
+## Historical References
+
+Before reading or deleting bytes, the capability compares the recorded bucket
+with its bound-bucket snapshot. A mismatch throws `import_source.bucket_mismatch`,
+kind `conflict`, with details containing only `{ sourceId: string }`. No object
+read or deletion occurs, and availability, deletion, and cleanup metadata remain
+unchanged; public results and errors expose neither bucket nor key. Read
+eligibility and already-deleted checks take precedence: unavailable reads still
+fail with `import_source.not_available`, and deleting an already-deleted source
+remains a no-op, even with a differently bound handle.
+
+`getByID` and `getByIngestionID` do not contact storage or depend on its bound
+bucket. They still resolve metadata for incomplete, deleted, and differently
+bucketed sources. Accessing a historical object's bytes requires composing the
+capability with the correct handle; there is no handle registry, historical-bucket
+routing, fallback, or relocation of persisted objects.
+
+Bucket equality checks do not prove endpoint/account continuity. Operators must
+retain access to the correct original endpoint, account, and bucket when resolving
+historical references. Bucket and key remain privately persisted; endpoint and
+credentials remain deployment configuration, not recorded routing information.
 
 ## Storage Requirements
 
@@ -78,15 +112,17 @@ compensation and explicit deletion. Bucket
 listing, bucket creation, ACL modification, and multipart permissions are not used.
 Encryption and any additional KMS permissions belong to bucket provisioning.
 
-The official `@aws-sdk/client-s3` uses single `PutObject`, streamed `GetObject`,
-and `DeleteObject` requests for compensation and explicit deletion. Automatic retries are disabled because
+The object-storage module alone uses the official `@aws-sdk/client-s3` for single
+`PutObject`, streamed `GetObject`, and `DeleteObject` requests. Import sources call
+its byte interface, including when compensating or explicitly deleting. Automatic retries are disabled because
 the input stream cannot be replayed. Checksum calculation/validation is configured
 as `WHEN_REQUIRED`, avoiding automatic checksum-trailer framing for arbitrary
-Node stream chunks. The capability checks byte counts, not a cryptographic content
-hash. An S3-compatible deployment must support these SDK operations; the unit
+Node stream chunks. Storage checks byte counts, not a cryptographic content hash.
+An S3-compatible deployment must support these SDK operations; an in-memory
 storage double is not proof of interoperability.
 
-Keys are random, generated independently of the original filename and source ID.
+The feature generates `import-sources/<random UUID>` keys independently of the
+original filename and source ID.
 Results expose a durable source UUID, not a key, URL, or presigned URL. There is no
 overwrite operation, conditional write, or versioning requirement. Write-once is
 an application convention, not protection from administrators or other holders of
@@ -107,17 +143,26 @@ Invalid/oversized declarations are rejected without consuming the stream; the
 caller retains responsibility for disposing of that rejected input. Once a valid
 creation starts, the capability owns consumption and destroys input on failure.
 
-The capability reserves an independent PostgreSQL record before sending bytes.
-It counts bytes with backpressure, rejects an overrun before forwarding the
-offending chunk, and requires EOF at exactly the declared length. Availability
-requires both successful storage and exact-length completion. A file changing
-between `stat` and reading therefore fails rather than becoming truncated input.
+The capability reserves complete metadata and the exact bucket/key reference in
+PostgreSQL before sending bytes. It handles stream errors while reservation is
+pending without an unhandled error and destroys input if reservation fails. An
+input failing after initial command validation still receives failed-creation
+bookkeeping once its record is reserved.
+
+Storage then owns transfer and counts bytes with backpressure, rejects an overrun
+before forwarding the offending chunk, and requires EOF at exactly the declared
+length. The feature does not maintain a second byte counter: a successful write
+guarantees the declared size, which the feature records during finalization.
+Availability requires both successful storage and database finalization. A file
+changing between `stat` and reading therefore fails rather than becoming truncated
+input.
 
 `getByID` returns `null` for unknown identities. Otherwise metadata includes
 `ingestionId`, `createdBy`, `originalFilename`, `expectedSize`, `actualSize`, the retention
 snapshot, lifecycle state, and creation/availability/failure/deletion timestamps.
-`actualSize` is known after complete input reaches EOF; interrupted or overlong
-input may leave it `null`, not a misleading partial-file total. Actor references
+`actualSize` comes from a successful write or storage's safe failure facts. Fully
+observed short input records its size; interrupted or overlong input leaves it
+`null`, not a misleading partial-file total. Actor references
 point to existing user profiles with deletion restricted. Metadata byte counts use
 PostgreSQL double precision constrained to safe, nonnegative integer values,
 preserving the public numeric shape without driver-specific bigint strings.
@@ -160,10 +205,13 @@ Retention does not enable source reuse across ingestions or reprocessing.
 ## Failures And Retention
 
 Caught transfer, length-check, or finalization failures attempt best-effort object
-cleanup after stopping the local upload, provided unavailability is established.
-They throw `import_source.create_failed`
-with `sourceId`, a safe failure category, and cleanup outcome. Callers can use the
-source ID to inspect the reserved metadata. No raw external exception is attached.
+cleanup after storage has settled the local upload, provided unavailability is
+established. Storage does not delete failed writes itself; the feature decides
+whether to compensate and records the outcome. It translates typed storage
+failures into `import_source.create_failed` with `sourceId`, `reason`
+(`size_mismatch`, `transfer_failed`, or `finalization_failed`), and `cleanupState`
+(`pending`, `completed`, or `failed`). Callers can inspect the reserved metadata
+by source ID. No raw external exception or storage error details are attached.
 
 Transfer and length-check failures leave the reserved record `incomplete`.
 Finalization errors are different: PostgreSQL may have committed `available`
@@ -198,7 +246,8 @@ expires or deletes bytes automatically, and there is no per-import override.
 ## Explicit Deletion
 
 `await sources.deleteByID(sourceId)` removes bytes using the stored object
-reference, regardless of whether the source records `temporary` or `keep`.
+reference after the bucket check, regardless of whether the source records
+`temporary` or `keep`.
 The caller decides when input is no longer needed; the capability does not inspect
 ingestion outcomes, schedule deletion/expiry, or activate worker cleanup. Creation
 must have finished or been abandoned before requesting cleanup. Crash-abandoned,
@@ -211,8 +260,9 @@ Only `state`, `deletedAt`, and `cleanupState` change to `deleted`, the deletion
 recording time, and `completed`. No record or ingestion relationship is removed.
 Subsequent reads fail with `import_source.not_available`.
 
-Deletion is repeatable: an already-recorded deletion succeeds without changing
-its timestamp, and S3 accepts deletion of an already-absent key. An unknown source
+Deletion is repeatable: an already-recorded deletion succeeds without object I/O
+or changing its timestamp, and storage accepts deletion of an already-absent key.
+Overlapping deletes preserve the first recorded deletion timestamp. An unknown source
 record instead fails with `import_source.not_found`; metadata lookup failures
 use `import_source.get_failed`. Unexpectedly missing bytes remain read errors
 until explicit deletion records their removal.
@@ -228,20 +278,29 @@ can also mean deletion was recorded despite the error; lookup and retry are safe
 
 ## Verification
 
-PGlite-backed public-capability tests cover byte/provenance round trips, retention,
-limits, interruption, failed storage, and finalization/compensation failures,
+PGlite-backed public-capability tests inject an in-memory `ObjectStorage` handle
+with targeted failure injection, not SDK mocks. They cover provenance round trips,
+retention, input policy, reservation-time stream failures, failed storage, and finalization/compensation failures,
 including committed finalization with a lost response and unavailable bookkeeping.
 They verify that creation recovery revokes availability before deleting bytes,
 and cover explicit deletion under both policies, missing objects, repeated calls,
-storage failures, bookkeeping retry, and preserved provenance. Ingestion lookup
+storage failures, bookkeeping retry, concurrent deletion, and preserved provenance. Ingestion lookup
 tests cover unattached sources and provenance after missing/deleted bytes. The
 central migration-chain tests cover foreign keys, uniqueness, and preservation of
-preexisting ingestion/observation provenance without manufactured sources. Export
-tests keep storage and persistence internals private.
+preexisting ingestion/observation provenance without manufactured sources. Bucket
+mismatch regressions verify no wrong-bucket reads/deletes or metadata mutation,
+independent metadata access, and read/deletion precedence. Ownership tests verify
+shared handles and caller-owned shutdown. Transfer mechanics and SDK mocks belong
+to object-storage tests. Export/caller-type tests pin the injected signature,
+policy-only configuration, lifecycle-free capability, safe results and mismatch
+details, and strict public subpaths while keeping storage/persistence internals private.
 
-An opt-in real-S3 smoke test uses an isolated in-memory database and bounded
-streamed input, explicit/repeated deletion, and deletion of an already-absent
-test-owned object. Configure these variables in the test process, not in production
+An opt-in real-S3 smoke test composes `createObjectStorage` and the domain capability
+with an isolated in-memory database. It exercises bounded streamed input,
+explicit/repeated deletion, and reading/deleting an already-absent test-owned
+object. It uses no SDK imports, mocks, or separate cleanup client; the same real
+handle removes only test-owned objects and is closed once after operations and
+streams stop. Configure these variables in the test process, not in production
 application composition:
 
 | Variable                                  | Requirement                                        |

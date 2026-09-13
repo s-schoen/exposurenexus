@@ -1,13 +1,13 @@
 import { Readable } from "node:stream";
 import { buffer } from "node:stream/consumers";
 
-import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { pino } from "pino";
 import { expect, it } from "vitest";
 
 import { createTestDatabase } from "../../database/test/database.js";
 import { createBackendRuntime } from "../../index.js";
-import { createImportSources, type ImportSourcesConfiguration } from "./index.js";
+import { createObjectStorage } from "../../object-storage/index.js";
+import { createImportSources } from "./index.js";
 
 const bucket = process.env.IMPORT_SOURCE_S3_TEST_BUCKET;
 const region = process.env.IMPORT_SOURCE_S3_TEST_REGION;
@@ -19,8 +19,7 @@ it.skipIf(!configured)(
   "real S3 store/read/delete smoke (skipped when IMPORT_SOURCE_S3_TEST_* infrastructure is not configured)",
   async () => {
     const testDb = createTestDatabase();
-    await testDb.start();
-    const configuration: ImportSourcesConfiguration = {
+    const storage = createObjectStorage({
       bucket: bucket!,
       region: region!,
       endpoint: process.env.IMPORT_SOURCE_S3_TEST_ENDPOINT,
@@ -30,15 +29,15 @@ it.skipIf(!configured)(
         secretAccessKey: secretAccessKey!,
         sessionToken: process.env.IMPORT_SOURCE_S3_TEST_SESSION_TOKEN,
       }),
-      maxSizeBytes: 131075,
-    };
-    const sources = createImportSources(
-      createBackendRuntime({ database: testDb.db, logger: pino({ enabled: false }) }),
-      configuration,
-    );
-    const cleanup = new S3Client({ ...configuration, maxAttempts: 1 });
+    });
     const errors: unknown[] = [];
     try {
+      await testDb.start();
+      const sources = createImportSources(
+        createBackendRuntime({ database: testDb.db, logger: pino({ enabled: false }) }),
+        storage,
+        { maxSizeBytes: 131075 },
+      );
       const actor = await testDb.db
         .insertInto("user_profile")
         .values({
@@ -93,9 +92,11 @@ it.skipIf(!configured)(
         .select(["bucket", "objectKey"])
         .where("id", "=", missing.id)
         .executeTakeFirstOrThrow();
-      await cleanup.send(
-        new DeleteObjectCommand({ Bucket: missingRecord.bucket, Key: missingRecord.objectKey }),
-      );
+      expect(missingRecord.bucket).toBe(storage.bucket);
+      await storage.delete(missingRecord.objectKey);
+      await expect(sources.readByID(missing.id)).rejects.toMatchObject({
+        code: "import_source.read_failed",
+      });
       await sources.deleteByID(missing.id);
       expect(await sources.getByID(missing.id)).toMatchObject({ state: "deleted" });
     } catch (error) {
@@ -109,9 +110,12 @@ it.skipIf(!configured)(
           .select(["bucket", "objectKey"])
           .execute();
         const results = await Promise.allSettled(
-          records.map((record) =>
-            cleanup.send(new DeleteObjectCommand({ Bucket: record.bucket, Key: record.objectKey })),
-          ),
+          records.map(async (record) => {
+            if (record.bucket !== storage.bucket) {
+              throw new Error("S3 smoke cleanup bucket mismatch for test-owned object");
+            }
+            await storage.delete(record.objectKey);
+          }),
         );
         if (results.some((result) => result.status === "rejected")) {
           errors.push(
@@ -123,8 +127,7 @@ it.skipIf(!configured)(
       } catch {
         errors.push(new Error("S3 smoke cleanup metadata lookup failed"));
       } finally {
-        sources.close();
-        cleanup.destroy();
+        storage.close();
         await testDb.dispose();
       }
     }
