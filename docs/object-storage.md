@@ -53,11 +53,15 @@ cannot retarget the handle. An async provider may refresh credentials.
 The composing caller owns the handle and underlying client's lifetime. Multiple
 capabilities may share it without global registration. Stop all consumers, settle
 operations, and finish or destroy returned read streams before calling `close()`.
-Closing releases client resources, not objects; it is not a drain operation.
+Borrowing capabilities, including import sources, never close it. The owner closes
+it once, releasing client resources, not objects; this is not a drain operation.
 
-Historical references require the same bucket and storage endpoint/account.
-Configuration validation does not verify account identity, and the module does
-not route keys to historical buckets or relocate objects.
+Historical references require the correct original bucket and storage
+endpoint/account. Neither configuration validation nor bucket equality proves
+endpoint/account continuity. Import sources compare their recorded bucket with
+the injected handle's bound-bucket snapshot before byte reads/deletes, but
+operators still own endpoint/account continuity. The module does not register
+handles, route keys to historical buckets, or relocate objects.
 
 ## Streams And Errors
 
@@ -113,18 +117,46 @@ Trusted callers choose keys, which are passed through without generation,
 prefixing, filename interpretation, or feature-specific routing. Write-once is a
 caller convention, not conditional-write enforcement or a versioning requirement.
 Consumers own metadata, allowed-size policy (including import sources' 100 MiB
-default), retention, and compensation. There is no database coordination,
+default), provenance, retention, finalization, and compensation decisions. Storage
+owns SDK access and transfer settlement, not those domain lifecycle rules.
+There is no database coordination,
 automatic cleanup, unknown-length/multipart/resumable upload, retry policy,
 additional provider implementation, or provider registry.
 
-## Migration And Verification
+## Import Sources
 
-Import sources still use their existing SDK implementation, configuration, and
-`ImportSources.close()`; injection of this handle is deferred to ticket 02. API and
-worker production composition remain deferred. See [Import Sources](import-sources.md)
-and the deliberate [ADR-0006 refinement](adr/0006-s3-backed-import-sources.md#reusable-storage-refinement).
+Import sources now use `createImportSources(runtime, storage, configuration = {})`.
+The optional configuration contains only `maxSizeBytes` and `retentionPolicy`;
+SDK settings belong solely to `createObjectStorage`. There is no compatibility
+constructor or `ImportSources.close()`. The feature snapshots the bound bucket,
+generates its own keys, and uses storage's successful-write guarantee and safe
+failure facts without a second byte counter. It reserves metadata before writing,
+translates storage errors into its domain contract, and chooses compensation only
+after transfer settlement and, for ambiguous finalization, confirmed durable
+unavailability.
+
+A recorded-bucket mismatch rejects a byte read/delete as
+`import_source.bucket_mismatch`, kind `conflict`, with details containing only
+`{ sourceId: string }`; no storage reference leaks or metadata mutations occur.
+Already-deleted deletion remains a no-op and unavailable reads still reject as
+`import_source.not_available`. Metadata lookup by source or ingestion ID remains
+independent of the bound bucket. No registry or historical routing is provided.
+
+API and worker production composition and storage startup checks remain deferred:
+the import HTTP endpoint is unavailable and the worker stays connected but idle.
+Storage is not a mandatory backend-runtime or application-startup dependency.
+See [Import Sources](import-sources.md) for executable usage and the deliberate
+[ADR-0006 refinement](adr/0006-s3-backed-import-sources.md#reusable-storage-refinement).
+
+## Verification
 
 Storage unit tests exercise the public interface with SDK mocks and no PostgreSQL
-dependency. They do not prove S3 interoperability. The existing opt-in real-S3
-test remains with import sources and will compose this module in ticket 02; no
-separate real-S3 integration project is introduced here.
+dependency. Import-source domain tests instead inject an in-memory storage handle;
+they test domain policy and recovery rather than duplicate SDK transfer mechanics.
+Neither proves S3 interoperability. The opt-in
+[real-S3 import-source test](import-sources.md#verification) composes this module
+and the domain capability, using the same real handle for exact test-owned object
+cleanup and closing it once at the end. It never lists or sweeps a bucket. Missing
+infrastructure configuration skips the test; configured connectivity, permission,
+interoperability, and cleanup failures fail it. A skip is not verified S3
+interoperability; no separate real-S3 integration project is introduced here.

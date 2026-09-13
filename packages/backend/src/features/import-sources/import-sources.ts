@@ -1,25 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { Readable, Transform } from "node:stream";
-import { pipeline } from "node:stream/promises";
-
-import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-  type S3ClientConfig,
-} from "@aws-sdk/client-s3";
+import { Readable } from "node:stream";
 
 import { ApplicationError } from "../../application-error.js";
 import { getRuntimeDatabase, getRuntimeLogger, type BackendRuntime } from "../../runtime.js";
 import * as persistence from "./import-source-persistence.js";
 
+import type { ObjectStorage } from "../../object-storage/index.js";
+
 export interface ImportSourcesConfiguration {
-  bucket: string;
-  region: string;
-  credentials: NonNullable<S3ClientConfig["credentials"]>;
-  endpoint?: string;
-  forcePathStyle?: boolean;
   maxSizeBytes?: number;
   retentionPolicy?: "temporary" | "keep";
 }
@@ -53,49 +41,38 @@ export interface ImportSources {
   getByIngestionID(ingestionId: string): Promise<ImportSource | null>;
   readByID(id: string): Promise<Readable>;
   deleteByID(id: string): Promise<void>;
-  close(): void;
 }
 
 export function createImportSources(
   runtime: BackendRuntime,
-  configuration: ImportSourcesConfiguration,
+  storage: ObjectStorage,
+  configuration: ImportSourcesConfiguration = {},
 ): ImportSources {
   const database = getRuntimeDatabase(runtime);
   const logger = getRuntimeLogger(runtime).child({ capability: "import-sources" });
-  const { bucket, retentionPolicy = "temporary", maxSizeBytes = 104857600 } = configuration;
+  const { bucket } = storage;
+  const { retentionPolicy = "temporary", maxSizeBytes = 104857600 } = configuration;
   if (
     !Number.isSafeInteger(maxSizeBytes) ||
     maxSizeBytes < 0 ||
-    !bucket?.trim() ||
-    !configuration.region?.trim() ||
-    !configuration.credentials ||
     !["temporary", "keep"].includes(retentionPolicy)
   ) {
     throw new ApplicationError({
       code: "import_source.invalid_configuration",
       kind: "validation",
-      message: "Import source storage configuration is invalid",
+      message: "Import source policy configuration is invalid",
     });
   }
-  const client = new S3Client({
-    region: configuration.region,
-    credentials: configuration.credentials,
-    endpoint: configuration.endpoint,
-    forcePathStyle: configuration.forcePathStyle,
-    maxAttempts: 1,
-    requestChecksumCalculation: "WHEN_REQUIRED",
-    responseChecksumValidation: "WHEN_REQUIRED",
-  });
 
   return {
-    async create(command) {
+    async create({ body, expectedSize, originalFilename, performedBy }) {
       if (
-        !(command.body instanceof Readable) ||
-        command.body.destroyed ||
-        !command.body.readable ||
-        !Number.isSafeInteger(command.expectedSize) ||
-        command.expectedSize < 0 ||
-        command.expectedSize > maxSizeBytes
+        !(body instanceof Readable) ||
+        body.destroyed ||
+        !body.readable ||
+        !Number.isSafeInteger(expectedSize) ||
+        expectedSize < 0 ||
+        expectedSize > maxSizeBytes
       ) {
         throw new ApplicationError({
           code: "import_source.invalid_input",
@@ -105,18 +82,23 @@ export function createImportSources(
       }
       const id = randomUUID();
       const objectKey = `import-sources/${randomUUID()}`;
-      // Input can fail while reservation is awaiting PostgreSQL, before pipeline owns it.
-      const onInputError = () => {};
-      command.body.on("error", onInputError);
+      // Guard input until close, including errors while waiting for PostgreSQL
+      // or destroying rejected input before storage can take ownership.
+      let inputFailed = false;
+      const onInputError = () => {
+        inputFailed = true;
+      };
+      body.on("error", onInputError);
+      body.once("close", () => body.removeListener("error", onInputError));
       try {
         await persistence.reserve(database, {
           id,
           ingestionId: null,
           objectKey,
           bucket,
-          createdBy: command.performedBy,
-          originalFilename: command.originalFilename,
-          expectedSize: command.expectedSize,
+          createdBy: performedBy,
+          originalFilename,
+          expectedSize,
           actualSize: null,
           retentionPolicy,
           state: "incomplete",
@@ -127,62 +109,45 @@ export function createImportSources(
           cleanupState: "pending",
         });
       } catch {
-        command.body.destroy();
+        body.destroy();
         throw new ApplicationError({
           code: "import_source.reserve_failed",
           kind: "unexpected",
           message: "Import source metadata could not be reserved",
         });
       }
-      let bytes = 0;
-      let ended = false;
-      let sizeMismatch = false;
+      let actualSize: number | null = null;
       let transferred = false;
-      const counter = new Transform({
-        transform(chunk: Buffer, _encoding, callback) {
-          bytes += chunk.byteLength;
-          if (bytes > maxSizeBytes || bytes > command.expectedSize) {
-            sizeMismatch = true;
-            callback(new Error("Import source exceeds declared size or configured limit"));
-          } else {
-            callback(null, chunk);
-          }
-        },
-        flush(callback) {
-          ended = true;
-          sizeMismatch = bytes !== command.expectedSize;
-          callback(sizeMismatch ? new Error("Import source shorter than declared size") : null);
-        },
-      });
-      const abort = new AbortController();
-      const transfer = pipeline(command.body, counter);
-      command.body.removeListener("error", onInputError);
-      const upload = client.send(
-        new PutObjectCommand({
-          Bucket: bucket,
-          Key: objectKey,
-          Body: counter,
-          ContentLength: command.expectedSize,
-        }),
-        { abortSignal: abort.signal },
-      );
       try {
-        await Promise.all([transfer, upload]);
+        if (inputFailed || body.destroyed || !body.readable) {
+          body.destroy();
+          throw new Error("Import source input failed during reservation");
+        }
+        await storage.write({
+          key: objectKey,
+          body,
+          expectedSize,
+        });
         transferred = true;
-        return await persistence.finalize(database, id, bytes);
-      } catch {
-        abort.abort();
-        command.body.destroy();
-        counter.destroy();
-        // Wait for local request shutdown before attempting compensation.
-        await Promise.allSettled([transfer, upload]);
+        actualSize = expectedSize;
+        return await persistence.finalize(database, id, actualSize);
+      } catch (error) {
+        const failure =
+          !transferred &&
+          error instanceof ApplicationError &&
+          error.code === "object_storage.write_failed"
+            ? (error as ApplicationError<"object_storage.write_failed">).details
+            : null;
+        if (failure) actualSize = failure.actualSize;
+        // A rejected storage write has already stopped and settled its local transfer.
         let cleanupState: "pending" | "completed" | "failed" = "pending";
         let safeToCleanup = !transferred;
         if (transferred) {
+          body.destroy();
           // Finalization may have committed before its response was lost. Revoke
           // availability durably before deleting bytes; preserve them if uncertain.
           try {
-            await persistence.recordFailure(database, id, bytes, "pending");
+            await persistence.recordFailure(database, id, actualSize, "pending");
             safeToCleanup = true;
           } catch {
             logger.error(
@@ -193,13 +158,13 @@ export function createImportSources(
         }
         if (safeToCleanup) {
           try {
-            await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }));
+            await storage.delete(objectKey);
             cleanupState = "completed";
           } catch {
             cleanupState = "failed";
           }
           try {
-            await persistence.recordFailure(database, id, ended ? bytes : null, cleanupState);
+            await persistence.recordFailure(database, id, actualSize, cleanupState);
           } catch {
             // Availability is already revoked; only the cleanup outcome is uncertain.
             logger.error(
@@ -215,11 +180,7 @@ export function createImportSources(
           message: "Import source creation failed",
           details: {
             sourceId: id,
-            reason: sizeMismatch
-              ? "size_mismatch"
-              : transferred
-                ? "finalization_failed"
-                : "transfer_failed",
+            reason: transferred ? "finalization_failed" : (failure?.reason ?? "transfer_failed"),
             cleanupState,
           },
         });
@@ -273,12 +234,16 @@ export function createImportSources(
           details: { sourceId: id },
         });
       }
+      if (source.bucket !== bucket) {
+        throw new ApplicationError({
+          code: "import_source.bucket_mismatch",
+          kind: "conflict",
+          message: "Import source requires storage bound to its recorded bucket",
+          details: { sourceId: id },
+        });
+      }
       try {
-        const result = await client.send(
-          new GetObjectCommand({ Bucket: source.bucket, Key: source.objectKey }),
-        );
-        if (!(result.Body instanceof Readable)) throw new Error("Missing readable body");
-        return result.Body;
+        return await storage.read(source.objectKey);
       } catch {
         throw new ApplicationError({
           code: "import_source.read_failed",
@@ -305,12 +270,17 @@ export function createImportSources(
           details: { sourceId: id },
         });
       if (source.state === "deleted") return;
+      if (source.bucket !== bucket) {
+        throw new ApplicationError({
+          code: "import_source.bucket_mismatch",
+          kind: "conflict",
+          message: "Import source requires storage bound to its recorded bucket",
+          details: { sourceId: id },
+        });
+      }
       let removed = false;
       try {
-        // S3 DeleteObject also succeeds when the key is already absent.
-        await client.send(
-          new DeleteObjectCommand({ Bucket: source.bucket, Key: source.objectKey }),
-        );
+        await storage.delete(source.objectKey);
         removed = true;
         await persistence.recordDeletion(database, id);
       } catch {
@@ -324,9 +294,6 @@ export function createImportSources(
           },
         });
       }
-    },
-    close() {
-      client.destroy();
     },
   };
 }

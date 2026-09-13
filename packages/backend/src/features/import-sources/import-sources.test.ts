@@ -1,43 +1,39 @@
 import { Readable } from "node:stream";
 import { buffer } from "node:stream/consumers";
+import { setImmediate } from "node:timers/promises";
 
-import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
 import { sql } from "kysely";
 import { pino } from "pino";
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-  type MockInstance,
-} from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTestDatabase } from "../../database/test/database.js";
-import { createBackendRuntime } from "../../index.js";
+import { ApplicationError, createBackendRuntime } from "../../index.js";
 import { createImportSources, type ImportSourcesConfiguration } from "./index.js";
 
+import type { ObjectStorage } from "../../object-storage/index.js";
+
 const actorId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f";
-const configuration = {
-  bucket: "private-input",
-  region: "us-east-1",
-  credentials: { accessKeyId: "test", secretAccessKey: "secret-not-for-results" },
-};
+
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((complete) => {
+    resolve = complete;
+  });
+  return { promise, resolve };
+}
 
 describe("import sources", () => {
   const testDb = createTestDatabase();
   const objects = new Map<string, Buffer>();
-  let failPut = false;
+  const storage = {
+    bucket: "private-input",
+    write: vi.fn<ObjectStorage["write"]>(),
+    read: vi.fn<ObjectStorage["read"]>(),
+    delete: vi.fn<ObjectStorage["delete"]>(),
+    close: vi.fn<ObjectStorage["close"]>(),
+  } satisfies ObjectStorage;
+  let failWrite = false;
   let failDelete = false;
-  let send: MockInstance<S3Client["send"]>;
 
   beforeAll(async () => {
     await testDb.start();
@@ -55,42 +51,68 @@ describe("import sources", () => {
   });
   afterAll(async () => await testDb.dispose());
   afterEach(async () => {
+    storage.close();
     vi.restoreAllMocks();
     await sql`drop trigger if exists fail_import_source_update on import_source`.execute(testDb.db);
     await sql`drop function if exists fail_import_source_update()`.execute(testDb.db);
   });
   beforeEach(() => {
     objects.clear();
-    failPut = false;
+    failWrite = false;
     failDelete = false;
-    send = vi.spyOn(S3Client.prototype, "send").mockImplementation(async (command) => {
-      if (command instanceof PutObjectCommand) {
-        objects.set(command.input.Key!, await buffer(command.input.Body as Readable));
-        if (failPut)
-          throw new Error("storage error containing credentials: secret-not-for-results");
-        return {};
+    storage.close.mockClear();
+    storage.write.mockReset().mockImplementation(async ({ key, body, expectedSize }) => {
+      if (body.destroyed || !body.readable) {
+        throw new ApplicationError({
+          code: "object_storage.invalid_input",
+          kind: "validation",
+          message: "Input is no longer readable",
+        });
       }
-      if (command instanceof GetObjectCommand) {
-        const bytes = objects.get(command.input.Key!);
-        if (!bytes) throw new Error("NoSuchKey");
-        return { Body: Readable.from([bytes]) };
+      objects.set(key, await buffer(body));
+      if (failWrite) {
+        throw new ApplicationError({
+          code: "object_storage.write_failed",
+          kind: "unexpected",
+          message: "private-storage-failure",
+          details: { reason: "transfer_failed", actualSize: expectedSize },
+        });
       }
-      if (command instanceof DeleteObjectCommand) {
-        if (failDelete) throw new Error("cleanup unavailable");
-        objects.delete(command.input.Key!);
-        return {};
+    });
+    storage.read.mockReset().mockImplementation(async (key) => {
+      const bytes = objects.get(key);
+      if (!bytes) {
+        throw new ApplicationError({
+          code: "object_storage.read_failed",
+          kind: "unexpected",
+          message: "private-storage-failure",
+        });
       }
-      throw new Error("Unexpected S3 operation");
+      return Readable.from([bytes]);
+    });
+    storage.delete.mockReset().mockImplementation(async (key) => {
+      if (failDelete) {
+        throw new ApplicationError({
+          code: "object_storage.delete_failed",
+          kind: "unexpected",
+          message: "private-storage-failure",
+        });
+      }
+      objects.delete(key);
     });
   });
 
-  function capability(overrides: Partial<ImportSourcesConfiguration> = {}) {
+  function capability(
+    configuration: ImportSourcesConfiguration = {},
+    objectStorage: ObjectStorage = storage,
+  ) {
     return createImportSources(
       createBackendRuntime({
         database: testDb.db,
         logger: pino({ enabled: false }),
       }),
-      { ...configuration, ...overrides },
+      objectStorage,
+      configuration,
     );
   }
 
@@ -105,7 +127,7 @@ describe("import sources", () => {
           performedBy: actorId,
         }),
       ).rejects.toMatchObject({ code: "import_source.invalid_input", kind: "validation" });
-      expect(send).not.toHaveBeenCalled();
+      expect(storage.write).not.toHaveBeenCalled();
     },
   );
 
@@ -118,10 +140,18 @@ describe("import sources", () => {
     },
   );
 
-  it("snapshots retention independently of subsequent capability configuration and accepts exact-limit and empty input", async () => {
+  it("rejects invalid retention policy without taking ownership of storage", () => {
+    expect(() => capability({ retentionPolicy: "forever" as never })).toThrow(
+      expect.objectContaining({ code: "import_source.invalid_configuration", kind: "validation" }),
+    );
+    expect(storage.write).not.toHaveBeenCalled();
+    expect(storage.close).not.toHaveBeenCalled();
+  });
+
+  it("shares caller-owned storage and snapshots size and retention policy per capability", async () => {
     const runtime = createBackendRuntime({ database: testDb.db, logger: pino({ enabled: false }) });
-    const config: ImportSourcesConfiguration = { ...configuration, maxSizeBytes: 4 };
-    const temporary = createImportSources(runtime, config);
+    const config: ImportSourcesConfiguration = { maxSizeBytes: 4 };
+    const temporary = createImportSources(runtime, storage, config);
     const first = await temporary.create({
       body: Readable.from([Buffer.from("1234")]),
       expectedSize: 4,
@@ -129,7 +159,8 @@ describe("import sources", () => {
       performedBy: actorId,
     });
     config.retentionPolicy = "keep";
-    const retained = createImportSources(runtime, config);
+    const retained = createImportSources(runtime, storage, config);
+    config.maxSizeBytes = 0;
     const second = await retained.create({
       body: Readable.from([]),
       expectedSize: 0,
@@ -144,8 +175,19 @@ describe("import sources", () => {
     expect(second.id).not.toBe(first.id);
     expect(objects.size).toBe(2);
     expect(await buffer(await retained.readByID(second.id))).toEqual(Buffer.alloc(0));
-    temporary.close();
-    retained.close();
+    expect(
+      await temporary.create({
+        body: Readable.from([Buffer.from("1234")]),
+        expectedSize: 4,
+        originalFilename: "scan",
+        performedBy: actorId,
+      }),
+    ).toMatchObject({ retentionPolicy: "temporary", actualSize: 4 });
+    await temporary.deleteByID(first.id);
+    expect(await buffer(await retained.readByID(second.id))).toEqual(Buffer.alloc(0));
+    expect(temporary).not.toHaveProperty("close");
+    expect(retained).not.toHaveProperty("close");
+    expect(storage.close).not.toHaveBeenCalled();
   });
 
   it.each([-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, 104857601])(
@@ -157,11 +199,29 @@ describe("import sources", () => {
         sources.create({ body, expectedSize, originalFilename: "scan", performedBy: actorId }),
       ).rejects.toMatchObject({ code: "import_source.invalid_input", kind: "validation" });
       expect(body.readableDidRead).toBe(false);
-      expect(send).not.toHaveBeenCalled();
+      expect(storage.write).not.toHaveBeenCalled();
       body.destroy();
-      sources.close();
     },
   );
+
+  it("rejects destroyed and exhausted input before reserving or transferring", async () => {
+    const destroyed = new Readable({ read() {} });
+    destroyed.destroy();
+    const exhausted = Readable.from([]);
+    await buffer(exhausted);
+    for (const body of [destroyed, exhausted]) {
+      await expect(
+        capability().create({
+          body,
+          expectedSize: 0,
+          originalFilename: "scan",
+          performedBy: actorId,
+        }),
+      ).rejects.toMatchObject({ code: "import_source.invalid_input" });
+    }
+    expect(storage.write).not.toHaveBeenCalled();
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
 
   it("stores streamed bytes and exposes durable identity and provenance without storage secrets", async () => {
     const sources = capability();
@@ -189,8 +249,97 @@ describe("import sources", () => {
     expect(await sources.getByID(source.id)).toEqual(source);
     expect(await buffer(await sources.readByID(source.id))).toEqual(Buffer.from("hello world"));
     expect([...objects.keys()][0]).not.toContain("scan.jsonl");
-    sources.close();
   });
+
+  it.each(["success", "failure"])(
+    "reserves the complete storage reference and waits for write %s before finalizing or compensating",
+    async (outcome) => {
+      const writing = deferred();
+      const settled = deferred();
+      const body = Readable.from([Buffer.from("abc")]);
+      const sources = capability({ retentionPolicy: "keep" });
+      let sourceId = "";
+      storage.write.mockImplementationOnce(async (command) => {
+        const reserved = await testDb.db
+          .selectFrom("import_source")
+          .selectAll()
+          .where("objectKey", "=", command.key)
+          .executeTakeFirstOrThrow();
+        sourceId = reserved.id;
+        expect(reserved).toEqual({
+          id: expect.any(String),
+          ingestionId: null,
+          bucket: "private-input",
+          objectKey: expect.stringMatching(
+            /^import-sources\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
+          ),
+          createdBy: actorId,
+          originalFilename: "../../scan.jsonl",
+          expectedSize: 3,
+          actualSize: null,
+          retentionPolicy: "keep",
+          state: "incomplete",
+          createdAt: expect.any(Date),
+          availableAt: null,
+          failedAt: null,
+          deletedAt: null,
+          cleanupState: "pending",
+        });
+        expect(command.body).toBe(body);
+        expect(command.expectedSize).toBe(3);
+        objects.set(command.key, await buffer(command.body));
+        writing.resolve();
+        await settled.promise;
+        if (outcome === "failure") {
+          throw new ApplicationError({
+            code: "object_storage.write_failed",
+            kind: "unexpected",
+            message: "private-storage-failure",
+            details: { reason: "transfer_failed", actualSize: 3 },
+          });
+        }
+      });
+      const command = {
+        body,
+        expectedSize: 3,
+        originalFilename: "../../scan.jsonl",
+        performedBy: actorId,
+      };
+      const result = sources.create(command);
+      try {
+        await writing.promise;
+        command.expectedSize = 1;
+        expect(await sources.getByID(sourceId)).toMatchObject({
+          state: "incomplete",
+          actualSize: null,
+          availableAt: null,
+          failedAt: null,
+        });
+        expect(storage.delete).not.toHaveBeenCalled();
+        await expect(sources.readByID(sourceId)).rejects.toMatchObject({
+          code: "import_source.not_available",
+        });
+      } finally {
+        settled.resolve();
+      }
+      if (outcome === "success") {
+        await expect(result).resolves.toMatchObject({ state: "available", actualSize: 3 });
+        expect(storage.delete).not.toHaveBeenCalled();
+      } else {
+        await expect(result).rejects.toMatchObject({
+          code: "import_source.create_failed",
+          details: { sourceId, reason: "transfer_failed", cleanupState: "completed" },
+        });
+        expect(storage.delete).toHaveBeenCalledOnce();
+        expect(await sources.getByID(sourceId)).toMatchObject({
+          state: "incomplete",
+          actualSize: 3,
+          failedAt: expect.any(Date),
+          cleanupState: "completed",
+        });
+      }
+    },
+  );
 
   it("resolves source provenance by ingestion identity independently of byte availability", async () => {
     const sources = capability({ retentionPolicy: "keep" });
@@ -237,28 +386,98 @@ describe("import sources", () => {
     await expect(sources.readByID(deleted!.id)).rejects.toMatchObject({
       code: "import_source.not_available",
     });
-    sources.close();
   });
 
-  it.each([
-    { label: "short", chunks: ["ab"], expectedSize: 3, maxSizeBytes: 4, actualSize: 2 },
-    { label: "long", chunks: ["ab", "cd"], expectedSize: 3, maxSizeBytes: 8, actualSize: null },
-    {
-      label: "in-flight limit overrun",
-      chunks: ["ab", "cdef"],
-      expectedSize: 4,
-      maxSizeBytes: 4,
-      actualSize: null,
+  it.each(["available", "incomplete", "deleted"] as const)(
+    "preserves %s metadata and never accesses bytes through a differently bucketed handle",
+    async (state) => {
+      const sources = capability();
+      failWrite = state === "incomplete";
+      failDelete = state === "incomplete";
+      const result = await sources
+        .create({
+          body: Readable.from([Buffer.from("abc")]),
+          expectedSize: 3,
+          originalFilename: "scan.jsonl",
+          performedBy: actorId,
+        })
+        .catch((error: ApplicationError<"import_source.create_failed">) => ({
+          id: error.details.sourceId,
+        }));
+      failDelete = false;
+      if (state === "deleted") await sources.deleteByID(result.id);
+      const ingestion = await testDb.db
+        .insertInto("ingestion")
+        .values({ source: "nuclei", createdAt: new Date(), createdBy: actorId })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      await testDb.db
+        .updateTable("import_source")
+        .set({ ingestionId: ingestion.id })
+        .where("id", "=", result.id)
+        .execute();
+      const source = await sources.getByID(result.id);
+      expect(source).toMatchObject({ state, ingestionId: ingestion.id });
+      const mismatched = capability({}, { ...storage, bucket: "other-input" });
+      storage.write.mockClear();
+      storage.read.mockClear();
+      storage.delete.mockClear();
+
+      expect(await mismatched.getByID(result.id)).toEqual(source);
+      expect(await mismatched.getByIngestionID(ingestion.id)).toEqual(source);
+      await expect(mismatched.readByID(result.id)).rejects.toMatchObject({
+        code:
+          state === "available" ? "import_source.bucket_mismatch" : "import_source.not_available",
+        kind: "conflict",
+        details: { sourceId: result.id },
+      });
+      if (state === "deleted") {
+        await expect(mismatched.deleteByID(result.id)).resolves.toBeUndefined();
+      } else {
+        const error = await mismatched.deleteByID(result.id).catch((error: unknown) => error);
+        expect(error).toMatchObject({ code: "import_source.bucket_mismatch", kind: "conflict" });
+        expect((error as ApplicationError<"import_source.bucket_mismatch">).details).toEqual({
+          sourceId: result.id,
+        });
+      }
+      expect(await sources.getByID(result.id)).toEqual(source);
+      expect(await mismatched.getByIngestionID(ingestion.id)).toEqual(source);
+      expect(storage.write).not.toHaveBeenCalled();
+      expect(storage.read).not.toHaveBeenCalled();
+      expect(storage.delete).not.toHaveBeenCalled();
+      expect(objects.size).toBe(state === "deleted" ? 0 : 1);
+      if (state === "available") {
+        expect(await buffer(await sources.readByID(result.id))).toEqual(Buffer.from("abc"));
+      }
+      await sources.deleteByID(result.id);
+      expect(await sources.getByID(result.id)).toMatchObject({ state: "deleted" });
+      expect(objects.size).toBe(0);
     },
-  ])(
-    "rejects $label input, cleans bytes and keeps incomplete provenance",
-    async ({ chunks, expectedSize, maxSizeBytes, actualSize }) => {
-      const sources = capability({ maxSizeBytes });
+  );
+
+  it.each([
+    { label: "short input", reason: "size_mismatch", actualSize: 2 },
+    { label: "empty short input", reason: "size_mismatch", actualSize: 0 },
+    { label: "overrun input", reason: "size_mismatch", actualSize: null },
+    { label: "interrupted input", reason: "transfer_failed", actualSize: null },
+  ] as const)(
+    "maps storage's $label failure and size facts while keeping incomplete provenance",
+    async ({ reason, actualSize }) => {
+      const sources = capability();
+      storage.write.mockImplementationOnce(async ({ body }) => {
+        body.destroy();
+        throw new ApplicationError({
+          code: "object_storage.write_failed",
+          kind: "unexpected",
+          message: "private-storage-failure",
+          details: { reason, actualSize },
+        });
+      });
       let sourceId = "";
       try {
         await sources.create({
-          body: Readable.from(chunks.map((chunk) => Buffer.from(chunk))),
-          expectedSize,
+          body: Readable.from([Buffer.from("abc")]),
+          expectedSize: 3,
           originalFilename: "scan",
           performedBy: actorId,
         });
@@ -268,7 +487,7 @@ describe("import sources", () => {
           code: "import_source.create_failed",
           details: {
             sourceId: expect.any(String),
-            reason: "size_mismatch",
+            reason,
             cleanupState: "completed",
           },
         });
@@ -285,15 +504,14 @@ describe("import sources", () => {
         code: "import_source.not_available",
       });
       expect(objects.size).toBe(0);
-      sources.close();
     },
   );
 
-  it.each(["stream", "storage", "finalization", "compensation", "bookkeeping"] as const)(
+  it.each(["storage", "finalization", "compensation", "bookkeeping"] as const)(
     "keeps %s failures unavailable and records truthful cleanup outcomes",
     async (failure) => {
       const sources = capability();
-      failPut = failure === "storage" || failure === "compensation";
+      failWrite = failure === "storage" || failure === "compensation";
       failDelete = failure === "compensation";
       if (failure === "finalization" || failure === "bookkeeping") {
         await sql`create function fail_import_source_update() returns trigger language plpgsql as $$
@@ -309,15 +527,9 @@ describe("import sources", () => {
             for each row execute function fail_import_source_update()`.execute(testDb.db);
         }
       }
-      const body =
-        failure === "stream"
-          ? Readable.from(
-              (async function* () {
-                yield Buffer.from("a");
-                throw new Error("interrupted stream");
-              })(),
-            )
-          : Readable.from([Buffer.from("abc")]);
+      const body = Readable.from([Buffer.from("abc")], {
+        autoDestroy: failure !== "finalization" && failure !== "bookkeeping",
+      });
       const error = await sources
         .create({ body, expectedSize: 3, originalFilename: "scan", performedBy: actorId })
         .catch((error: unknown) => error);
@@ -337,10 +549,11 @@ describe("import sources", () => {
               : "transfer_failed",
         },
       });
-      expect(JSON.stringify(error)).not.toContain("secret-not-for-results");
+      expect(JSON.stringify(error)).not.toContain("private-storage-failure");
       const id = (error as { details: { sourceId: string } }).details.sourceId;
       expect(await sources.getByID(id)).toMatchObject({
         state: "incomplete",
+        actualSize: failure === "bookkeeping" ? null : 3,
         availableAt: null,
         cleanupState:
           failure === "bookkeeping"
@@ -355,7 +568,6 @@ describe("import sources", () => {
       });
       expect(objects.size).toBe(failure === "compensation" || failure === "bookkeeping" ? 1 : 0);
       expect(body.destroyed).toBe(true);
-      sources.close();
     },
   );
 
@@ -386,15 +598,13 @@ describe("import sources", () => {
       });
       const sources = createImportSources(
         createBackendRuntime({ database, logger: pino({ enabled: false }) }),
-        configuration,
+        storage,
       );
-      const storage = send.getMockImplementation()!;
+      const remove = storage.delete.getMockImplementation()!;
       let stateAtDelete: string | undefined;
-      send.mockImplementation(async (...args) => {
-        const [command] = args;
-        if (command instanceof DeleteObjectCommand)
-          stateAtDelete = (await sources.getByID(sourceId))?.state;
-        return storage(...args);
+      storage.delete.mockImplementation(async (key) => {
+        stateAtDelete = (await sources.getByID(sourceId))?.state;
+        await remove(key);
       });
       const error = await sources
         .create({
@@ -430,7 +640,6 @@ describe("import sources", () => {
           code: "import_source.not_available",
         });
       }
-      sources.close();
     },
   );
 
@@ -452,7 +661,6 @@ describe("import sources", () => {
       code: "import_source.read_failed",
       kind: "unexpected",
     });
-    sources.close();
   });
 
   it("does not transfer bytes when reservation fails and wraps database lookup failures", async () => {
@@ -466,7 +674,7 @@ describe("import sources", () => {
         performedBy: "00000000-0000-4000-8000-000000000000",
       }),
     ).rejects.toMatchObject({ code: "import_source.reserve_failed", kind: "unexpected" });
-    expect(send).not.toHaveBeenCalled();
+    expect(storage.write).not.toHaveBeenCalled();
     expect(body.destroyed).toBe(true);
     await expect(sources.getByID("invalid-uuid")).rejects.toMatchObject({
       code: "import_source.get_failed",
@@ -479,71 +687,102 @@ describe("import sources", () => {
     await expect(sources.readByID("invalid-uuid")).rejects.toMatchObject({
       code: "import_source.get_failed",
     });
-    sources.close();
   });
 
-  it("aborts a blocked input when storage fails before reading it", async () => {
-    send.mockRejectedValueOnce(new Error("storage unavailable"));
-    const body = new Readable({ read() {} });
-    const sources = capability();
-    await expect(
-      sources.create({ body, expectedSize: 1, originalFilename: "scan", performedBy: actorId }),
-    ).rejects.toMatchObject({
-      code: "import_source.create_failed",
-      details: { reason: "transfer_failed", cleanupState: "completed" },
-    });
-    expect(body.destroyed).toBe(true);
-    sources.close();
-  });
-
-  it("rejects non-byte stream chunks without leaking an unhandled stream error", async () => {
-    const sources = capability();
-    await expect(
-      sources.create({
-        body: Readable.from([{ not: "bytes" }]),
+  it.each(["destroy", "error", "close"])(
+    "records failed creation when input emits %s while reservation is pending",
+    async (event) => {
+      const reserved = deferred();
+      const released = deferred();
+      let waiting = true;
+      const database = testDb.db.withPlugin({
+        transformQuery: ({ node }) => node,
+        async transformResult({ result }) {
+          if (waiting) {
+            waiting = false;
+            reserved.resolve();
+            await released.promise;
+          }
+          return result;
+        },
+      });
+      const sources = createImportSources(
+        createBackendRuntime({ database, logger: pino({ enabled: false }) }),
+        storage,
+      );
+      const body = new Readable({ read() {} });
+      const result = sources.create({
+        body,
         expectedSize: 1,
         originalFilename: "scan",
         performedBy: actorId,
-      }),
-    ).rejects.toMatchObject({
-      code: "import_source.create_failed",
-      details: { reason: "transfer_failed", cleanupState: "completed" },
-    });
-    sources.close();
-  });
+      });
+      try {
+        await reserved.promise;
+        expect(body.readableDidRead).toBe(false);
+        expect(storage.write).not.toHaveBeenCalled();
+        if (event === "error") body.emit("error", new Error("input disconnected"));
+        else body.destroy(event === "destroy" ? new Error("input disconnected") : undefined);
+        await setImmediate();
+      } finally {
+        released.resolve();
+      }
+      const error = await result.catch((error: unknown) => error);
+      expect(error).toMatchObject({
+        code: "import_source.create_failed",
+        details: { reason: "transfer_failed", cleanupState: "completed" },
+      });
+      const { sourceId } = (error as ApplicationError<"import_source.create_failed">).details;
+      expect(await sources.getByID(sourceId)).toMatchObject({
+        state: "incomplete",
+        actualSize: null,
+        failedAt: expect.any(Date),
+        cleanupState: "completed",
+      });
+      expect(body.destroyed).toBe(true);
+      expect(storage.write).not.toHaveBeenCalled();
+      expect(storage.delete).toHaveBeenCalledOnce();
+    },
+  );
 
-  it("handles input errors during database reservation and premature stream closure", async () => {
-    const sources = capability();
-    const body = new Readable({ read() {} });
-    const result = sources.create({
-      body,
-      expectedSize: 1,
-      originalFilename: "scan",
-      performedBy: actorId,
-    });
-    body.destroy(new Error("input disconnected during reservation"));
-    await expect(result).rejects.toMatchObject({
-      code: "import_source.create_failed",
-      details: { reason: "transfer_failed" },
-    });
-    const interrupted = new Readable({
-      read() {
-        this.push(Buffer.from("a"));
-        this.destroy();
+  it("handles an asynchronous input error from destruction after reservation fails", async () => {
+    const body = new Readable({
+      read() {},
+      destroy(_error, callback) {
+        void setImmediate().then(() => callback(new Error("input teardown failed")));
       },
     });
     await expect(
-      sources.create({
-        body: interrupted,
+      capability().create({
+        body,
         expectedSize: 1,
         originalFilename: "scan",
-        performedBy: actorId,
+        performedBy: "00000000-0000-4000-8000-000000000000",
       }),
-    ).rejects.toMatchObject({
-      code: "import_source.create_failed",
-      details: { reason: "transfer_failed" },
+    ).rejects.toMatchObject({ code: "import_source.reserve_failed" });
+    await setImmediate();
+    expect(body.destroyed).toBe(true);
+    expect(storage.write).not.toHaveBeenCalled();
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
+
+  it("returns the read stream without consuming it and leaves late errors to its caller", async () => {
+    const sources = capability();
+    const source = await sources.create({
+      body: Readable.from([Buffer.from("abc")]),
+      expectedSize: 3,
+      originalFilename: "scan",
+      performedBy: actorId,
     });
-    sources.close();
+    const body = new Readable({ read() {} });
+    storage.read.mockResolvedValueOnce(body);
+    const returned = await sources.readByID(source.id);
+    expect(returned).toBe(body);
+    expect(body.readableDidRead).toBe(false);
+    const consumed = buffer(returned);
+    body.destroy(new Error("read interrupted after return"));
+    await expect(consumed).rejects.toThrow("read interrupted after return");
+    expect(await sources.getByID(source.id)).toEqual(source);
   });
 
   it.each(["temporary", "keep"] as const)(
@@ -567,13 +806,12 @@ describe("import sources", () => {
       });
       await sources.deleteByID(source.id);
       expect(await sources.getByID(source.id)).toEqual(deleted);
-      send.mockClear();
+      storage.read.mockClear();
       await expect(sources.readByID(source.id)).rejects.toMatchObject({
         code: "import_source.not_available",
         kind: "conflict",
       });
-      expect(send).not.toHaveBeenCalled();
-      sources.close();
+      expect(storage.read).not.toHaveBeenCalled();
     },
   );
 
@@ -593,19 +831,17 @@ describe("import sources", () => {
     const secondReleased = new Promise<void>((resolve) => {
       releaseSecond = resolve;
     });
-    const storage = send.getMockImplementation()!;
+    const remove = storage.delete.getMockImplementation()!;
     let deletions = 0;
-    send.mockImplementation(async (...args) => {
-      if (args[0] instanceof DeleteObjectCommand) {
-        deletions += 1;
-        if (deletions === 1) {
-          await bothDeleting;
-        } else {
-          signalBothDeleting();
-          await secondReleased;
-        }
+    storage.delete.mockImplementation(async (key) => {
+      deletions += 1;
+      if (deletions === 1) {
+        await bothDeleting;
+      } else {
+        signalBothDeleting();
+        await secondReleased;
       }
-      return storage(...args);
+      await remove(key);
     });
     vi.useFakeTimers({ toFake: ["Date"] });
     try {
@@ -623,7 +859,6 @@ describe("import sources", () => {
     } finally {
       releaseSecond();
       vi.useRealTimers();
-      sources.close();
     }
   });
 
@@ -638,7 +873,7 @@ describe("import sources", () => {
       code: "import_source.get_failed",
       kind: "unexpected",
     });
-    expect(send).not.toHaveBeenCalled();
+    expect(storage.delete).not.toHaveBeenCalled();
     const source = await sources.create({
       body: Readable.from([Buffer.from("abc")]),
       expectedSize: 3,
@@ -656,10 +891,9 @@ describe("import sources", () => {
       deletedAt: expect.any(Date),
       cleanupState: "completed",
     });
-    sources.close();
   });
 
-  it.each(["ServiceUnavailable", "AccessDenied", "NoSuchBucket", "bookkeeping"])(
+  it.each(["storage", "bookkeeping"])(
     "reports %s deletion failure truthfully and permits retry",
     async (failure) => {
       const sources = capability();
@@ -676,8 +910,12 @@ describe("import sources", () => {
         await sql`create trigger fail_import_source_update before update on import_source
           for each row execute function fail_import_source_update()`.execute(testDb.db);
       } else {
-        send.mockRejectedValueOnce(
-          Object.assign(new Error("secret-not-for-results"), { name: failure }),
+        storage.delete.mockRejectedValueOnce(
+          new ApplicationError({
+            code: "object_storage.delete_failed",
+            kind: "unexpected",
+            message: "private-storage-failure",
+          }),
         );
       }
       const error = await sources.deleteByID(source.id).catch((error: unknown) => error);
@@ -689,7 +927,7 @@ describe("import sources", () => {
           reason: failure === "bookkeeping" ? "bookkeeping_failed" : "storage_failed",
         },
       });
-      expect(JSON.stringify(error)).not.toContain("secret-not-for-results");
+      expect(JSON.stringify(error)).not.toContain("private-storage-failure");
       expect(await sources.getByID(source.id)).toEqual(source);
       expect(objects.size).toBe(failure === "bookkeeping" ? 0 : 1);
       if (failure === "bookkeeping") {
@@ -708,13 +946,12 @@ describe("import sources", () => {
         deletedAt: expect.any(Date),
         cleanupState: "completed",
       });
-      sources.close();
     },
   );
 
   it("explicitly cleans failed creation without losing incomplete provenance", async () => {
     const sources = capability();
-    failPut = true;
+    failWrite = true;
     failDelete = true;
     const error = await sources
       .create({
@@ -739,6 +976,5 @@ describe("import sources", () => {
     await expect(sources.readByID(sourceId)).rejects.toMatchObject({
       code: "import_source.not_available",
     });
-    sources.close();
   });
 });

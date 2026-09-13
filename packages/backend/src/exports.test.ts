@@ -3,6 +3,14 @@ import { createRequire } from "node:module";
 
 import { describe, expect, expectTypeOf, it } from "vitest";
 
+import type { ApplicationError, BackendRuntime } from "@exposurenexus/backend";
+import type {
+  createImportSources,
+  CreateImportSourceCommand,
+  ImportSource,
+  ImportSources,
+  ImportSourcesConfiguration,
+} from "@exposurenexus/backend/import-sources";
 import type {
   ObjectStorage,
   ObjectStorageConfiguration,
@@ -74,10 +82,55 @@ describe("backend exports", () => {
     }
   });
 
-  it("exports only the import-source factory from its feature entrypoint", async () => {
+  it("exports the injected import-source factory and caller types without storage references or lifecycle", async () => {
     expect(Object.keys(await import("./features/import-sources/index.js"))).toEqual([
       "createImportSources",
     ]);
+    expectTypeOf<typeof createImportSources>().toEqualTypeOf<
+      (
+        runtime: BackendRuntime,
+        storage: ObjectStorage,
+        configuration?: ImportSourcesConfiguration,
+      ) => ImportSources
+    >();
+    expectTypeOf<ImportSourcesConfiguration>().toEqualTypeOf<{
+      maxSizeBytes?: number;
+      retentionPolicy?: "temporary" | "keep";
+    }>();
+    expectTypeOf<CreateImportSourceCommand>().toEqualTypeOf<{
+      body: Readable;
+      expectedSize: number;
+      originalFilename: string;
+      performedBy: string;
+    }>();
+    expectTypeOf<ImportSource>().toEqualTypeOf<{
+      id: string;
+      ingestionId: string | null;
+      createdBy: string;
+      originalFilename: string;
+      expectedSize: number;
+      actualSize: number | null;
+      retentionPolicy: "temporary" | "keep";
+      state: "incomplete" | "available" | "deleted";
+      createdAt: Date;
+      availableAt: Date | null;
+      failedAt: Date | null;
+      deletedAt: Date | null;
+      cleanupState: "not_needed" | "pending" | "completed" | "failed";
+    }>();
+    expectTypeOf<ImportSources>().toEqualTypeOf<{
+      create(command: CreateImportSourceCommand): Promise<ImportSource>;
+      getByID(id: string): Promise<ImportSource | null>;
+      getByIngestionID(ingestionId: string): Promise<ImportSource | null>;
+      readByID(id: string): Promise<Readable>;
+      deleteByID(id: string): Promise<void>;
+    }>();
+    expectTypeOf<
+      ApplicationError<"import_source.bucket_mismatch">["kind"]
+    >().toEqualTypeOf<"conflict">();
+    expectTypeOf<ApplicationError<"import_source.bucket_mismatch">["details"]>().toEqualTypeOf<{
+      sourceId: string;
+    }>();
   });
 
   it("exports the object-storage factory and caller types without an SDK operational interface", async () => {
