@@ -87,7 +87,9 @@ describe("20260827 job outbox migration", () => {
       const database = createDatabase(new PGliteDialect({ pglite: pgLite }));
 
       try {
-        const migrator = await migrate(database);
+        const migrator = new Migrator({ db: database, provider: createMigrationProvider() });
+        const migration = await migrator.migrateTo("20260827-job-outbox");
+        expect(migration.error).toBeUndefined();
         const repository = createJobRepository(database);
         const validJob = makeJob();
         await expect(repository.insert(validJob)).resolves.toEqual(validJob);

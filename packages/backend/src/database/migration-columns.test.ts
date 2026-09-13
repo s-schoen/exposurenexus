@@ -20,6 +20,109 @@ describe("db migration columns", () => {
     await testDb.dispose();
   });
 
+  it("creates independent import-source bookkeeping with constrained lifecycle and restricted provenance", async () => {
+    const columns = await sql<{ column_name: string; is_nullable: string }>`
+      select column_name, is_nullable from information_schema.columns
+      where table_name = 'import_source' order by ordinal_position
+    `.execute(testDb.db);
+    expect(columns.rows).toEqual([
+      { column_name: "id", is_nullable: "NO" },
+      { column_name: "createdBy", is_nullable: "NO" },
+      { column_name: "originalFilename", is_nullable: "NO" },
+      { column_name: "bucket", is_nullable: "NO" },
+      { column_name: "objectKey", is_nullable: "NO" },
+      { column_name: "expectedSize", is_nullable: "NO" },
+      { column_name: "actualSize", is_nullable: "YES" },
+      { column_name: "retentionPolicy", is_nullable: "NO" },
+      { column_name: "state", is_nullable: "NO" },
+      { column_name: "cleanupState", is_nullable: "NO" },
+      { column_name: "createdAt", is_nullable: "NO" },
+      { column_name: "availableAt", is_nullable: "YES" },
+      { column_name: "failedAt", is_nullable: "YES" },
+      { column_name: "deletedAt", is_nullable: "YES" },
+    ]);
+    const foreignKeys = await sql<{ definition: string }>`
+      select pg_get_constraintdef(oid) as definition from pg_constraint
+      where conrelid = 'import_source'::regclass and contype = 'f'
+    `.execute(testDb.db);
+    expect(foreignKeys.rows).toEqual([
+      { definition: 'FOREIGN KEY ("createdBy") REFERENCES user_profile(id) ON DELETE RESTRICT' },
+    ]);
+  });
+
+  it("prevents invalid sizes and false availability in import-source metadata", async () => {
+    const actor = await testDb.db
+      .insertInto("user_profile")
+      .values({
+        username: "source-schema",
+        email: "source-schema@example.test",
+        displayName: "Source schema",
+        enabled: true,
+        passwordHash: "unused",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const id = "00000000-0000-4000-8000-000000000001";
+    await testDb.db
+      .insertInto("import_source")
+      .values({
+        id,
+        createdBy: actor.id,
+        originalFilename: "scan",
+        bucket: "private",
+        objectKey: "test-owned",
+        expectedSize: 3,
+        actualSize: null,
+        retentionPolicy: "temporary",
+        state: "incomplete",
+        cleanupState: "pending",
+        createdAt: new Date(),
+        availableAt: null,
+        failedAt: null,
+        deletedAt: null,
+      })
+      .execute();
+    for (const expectedSize of [-1, 0.5, Infinity, NaN, Number.MAX_SAFE_INTEGER + 1]) {
+      await expect(
+        testDb.db.updateTable("import_source").set({ expectedSize }).where("id", "=", id).execute(),
+      ).rejects.toThrow();
+    }
+    for (const actualSize of [null, 2, 4]) {
+      await expect(
+        testDb.db
+          .updateTable("import_source")
+          .set({
+            state: "available",
+            actualSize,
+            availableAt: new Date(),
+            cleanupState: "not_needed",
+          })
+          .where("id", "=", id)
+          .execute(),
+      ).rejects.toThrow();
+    }
+    await expect(
+      testDb.db.deleteFrom("user_profile").where("id", "=", actor.id).execute(),
+    ).rejects.toThrow();
+    await testDb.db
+      .updateTable("import_source")
+      .set({
+        state: "available",
+        actualSize: 3,
+        availableAt: new Date(),
+        cleanupState: "not_needed",
+      })
+      .where("id", "=", id)
+      .execute();
+    await expect(
+      testDb.db
+        .updateTable("import_source")
+        .set({ deletedAt: new Date() })
+        .where("id", "=", id)
+        .execute(),
+    ).rejects.toThrow();
+  });
+
   it("drops legacy auth tables and points audit columns at user profiles", async () => {
     const legacyAuthTables = await sql<{ table_name: string }>`
       select table_name
