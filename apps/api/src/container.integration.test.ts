@@ -11,6 +11,14 @@ vi.mock("./env.js", () => ({ env: { LOG_LEVEL: "silent" } }));
 describe("API backend cutover", () => {
   const testDb = createTestDatabase();
   const logger = pino({ enabled: false });
+  const storage = {
+    bucket: "private-imports",
+    write: vi.fn(),
+    read: vi.fn(),
+    delete: vi.fn(),
+    close: vi.fn(),
+  };
+  let container: ReturnType<typeof createAppContainer>;
   let server: ReturnType<typeof serve> | undefined;
   let origin: string;
   let initialPassword: string;
@@ -19,8 +27,10 @@ describe("API backend cutover", () => {
   beforeAll(async () => {
     await testDb.start();
     const bootstrapLogger = vi.spyOn(logger, "info");
-    const container = createAppContainer({
+    container = createAppContainer({
       db: testDb.db,
+      storage,
+      importSourcesConfiguration: { maxSizeBytes: 4, retentionPolicy: "keep" },
       appOrigin: "https://app.example.test",
       authSessionLifetimeHours: 12,
       authSessionHmacSecret: "0123456789012345678901234567890123456789",
@@ -56,6 +66,7 @@ describe("API backend cutover", () => {
         activeServer.close((error) => (error ? reject(error) : resolve()));
       });
     }
+    storage.close();
     await testDb.dispose();
   });
 
@@ -186,5 +197,56 @@ describe("API backend cutover", () => {
     await request("/assets", "GET", undefined, 401);
     await request("/auth", "POST", { username: "analyst", password: "analyst-password" });
     await request("/assets", "GET", undefined, 403);
+    await request(
+      "/findings/import",
+      "POST",
+      { source: "nuclei", originalFilename: "scan.jsonl", sizeBytes: 0 },
+      403,
+    );
+  });
+
+  it("registers immutable scan metadata without bytes or submission through the protected API", async () => {
+    cookies.clear();
+    const metadata = {
+      source: "nuclei",
+      originalFilename: " ../scan.jsonl ",
+      sizeBytes: 4,
+      mimeType: "unverified/type",
+    };
+    await request("/findings/import", "POST", metadata, 401);
+    const login = await request("/auth", "POST", { username: "admin", password: initialPassword });
+    await request("/findings/import", "POST", { ...metadata, sizeBytes: 5 }, 400);
+    expect(await testDb.db.selectFrom("import_source").selectAll().execute()).toEqual([]);
+
+    const registered = await request("/findings/import", "POST", metadata, 201);
+    expect(registered).toEqual({
+      correlationId: expect.any(String),
+      data: { importSourceId: expect.any(String) },
+    });
+    const source = await container.services.importSources.getByID(registered.data.importSourceId);
+    expect(source).toMatchObject({
+      ...metadata,
+      id: registered.data.importSourceId,
+      createdBy: login.data.user.id,
+      retentionPolicy: "keep",
+      ingestionId: null,
+      state: "incomplete",
+      availableAt: null,
+      failedAt: null,
+      deletedAt: null,
+    });
+    const repeated = await request("/findings/import", "POST", metadata, 201);
+    expect(repeated.data.importSourceId).not.toBe(source!.id);
+    await request("/findings/import", "POST", { ...metadata, sizeBytes: 0 }, 201);
+    await request(`/findings/import/${source!.id}`, "PATCH", { originalFilename: "edited" }, 404);
+    expect(await container.services.importSources.getByID(source!.id)).toEqual(source);
+    expect(await testDb.db.selectFrom("ingestion").selectAll().execute()).toEqual([]);
+    expect(await testDb.db.selectFrom("job").selectAll().execute()).toEqual([]);
+    expect(storage.write).not.toHaveBeenCalled();
+    expect(storage.read).not.toHaveBeenCalled();
+    expect(storage.delete).not.toHaveBeenCalled();
+    expect(storage.close).not.toHaveBeenCalled();
+
+    expect(await testDb.db.selectFrom("import_source").selectAll().execute()).toHaveLength(3);
   });
 });

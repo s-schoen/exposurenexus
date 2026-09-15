@@ -63,6 +63,23 @@ export const env = createEnv({
     DATABASE_URL: z.url(),
     RABBITMQ_URL: z.url({ protocol: /^amqps?$/ }),
     RABBITMQ_EXCHANGE: z.string().trim().min(1),
+    S3_BUCKET: z.string().trim().min(1),
+    S3_REGION: z.string().trim().min(1),
+    S3_ACCESS_KEY_ID: z.string().regex(/\S/u),
+    S3_SECRET_ACCESS_KEY: z.string().regex(/\S/u),
+    S3_ENDPOINT: z.url({ protocol: /^https?$/ }).optional(),
+    S3_FORCE_PATH_STYLE: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
+    IMPORT_SOURCE_MAX_SIZE_BYTES: z
+      .string()
+      .trim()
+      .min(1)
+      .default("104857600")
+      .transform(Number)
+      .pipe(z.number().int().min(0)),
+    IMPORT_SOURCE_RETENTION_POLICY: z.enum(["temporary", "keep"]).default("temporary"),
   },
 
   /**

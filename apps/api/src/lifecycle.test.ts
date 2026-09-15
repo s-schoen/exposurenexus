@@ -26,8 +26,16 @@ function fixture() {
   const database = {
     destroy: vi.fn().mockResolvedValue(undefined),
   };
+  const storage = {
+    bucket: "private-imports",
+    write: vi.fn(),
+    read: vi.fn(),
+    delete: vi.fn(),
+    close: vi.fn(),
+  };
   const dependencies = {
     openDatabase: vi.fn(() => database as never),
+    openStorage: vi.fn(() => storage),
     initializeApplication: vi.fn().mockResolvedValue(app),
     openProducer: vi.fn().mockResolvedValue(producer),
     createRelay: vi.fn(() => relay),
@@ -42,7 +50,7 @@ function fixture() {
       logger,
       dependencies,
     });
-  return { app, producer, relay, http, database, dependencies, logger, start };
+  return { app, producer, relay, http, database, storage, dependencies, logger, start };
 }
 
 afterEach(() => vi.useRealTimers());
@@ -103,6 +111,7 @@ describe("API lifecycle", () => {
 
   it.each([
     "database",
+    "storage",
     "initialization",
     "producer",
     "relay creation",
@@ -116,6 +125,10 @@ describe("API lifecycle", () => {
       const error = new Error("amqp://user:secret@broker");
       if (stage === "database")
         f.dependencies.openDatabase.mockImplementation(() => {
+          throw error;
+        });
+      if (stage === "storage")
+        f.dependencies.openStorage.mockImplementation(() => {
           throw error;
         });
       if (stage === "initialization") f.dependencies.initializeApplication.mockRejectedValue(error);
@@ -139,8 +152,11 @@ describe("API lifecycle", () => {
       expect(await api.ready).toBe(false);
       await api.stopped;
       expect(f.database.destroy).toHaveBeenCalledTimes(stage === "database" ? 0 : 1);
+      expect(f.storage.close).toHaveBeenCalledTimes(
+        ["database", "storage"].includes(stage) ? 0 : 1,
+      );
       expect(f.producer.close).toHaveBeenCalledTimes(
-        ["database", "initialization", "producer"].includes(stage) ? 0 : 1,
+        ["database", "storage", "initialization", "producer"].includes(stage) ? 0 : 1,
       );
       expect(f.relay.stop).toHaveBeenCalledTimes(
         ["relay start", "HTTP creation", "HTTP readiness"].includes(stage) ? 1 : 0,
@@ -196,6 +212,7 @@ describe("API lifecycle", () => {
     await earlyApi.stopped;
     expect(await earlyApi.ready).toBe(false);
     expect(early.dependencies.openDatabase).not.toHaveBeenCalled();
+    expect(early.dependencies.openStorage).not.toHaveBeenCalled();
 
     const f = fixture();
     const acquired = deferred<typeof f.producer>();
@@ -211,6 +228,7 @@ describe("API lifecycle", () => {
     expect(f.dependencies.openHttp).not.toHaveBeenCalled();
     expect(f.producer.close).toHaveBeenCalledOnce();
     expect(f.database.destroy).toHaveBeenCalledOnce();
+    expect(f.storage.close).toHaveBeenCalledOnce();
   });
 
   it("stops HTTP and relay concurrently, retains dependencies until both settle, and cleans up after failures", async () => {
@@ -229,10 +247,12 @@ describe("API lifecycle", () => {
     expect(f.http.close).toHaveBeenCalledOnce();
     expect(f.producer.close).not.toHaveBeenCalled();
     expect(f.database.destroy).not.toHaveBeenCalled();
+    expect(f.storage.close).not.toHaveBeenCalled();
     drained.resolve();
     await api.stopped;
     expect(f.producer.close).toHaveBeenCalledOnce();
     expect(f.database.destroy).toHaveBeenCalledOnce();
+    expect(f.storage.close).toHaveBeenCalledOnce();
     expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(1);
     expect(f.dependencies.signals.listenerCount("SIGTERM")).toBe(0);
   });
@@ -245,7 +265,10 @@ describe("API lifecycle", () => {
     f.http.ready = listening.promise;
     const api = f.start();
     await vi.waitFor(() =>
-      expect(f.dependencies.initializeApplication).toHaveBeenCalledExactlyOnceWith(f.database),
+      expect(f.dependencies.initializeApplication).toHaveBeenCalledExactlyOnceWith(
+        f.database,
+        f.storage,
+      ),
     );
     expect(f.dependencies.openProducer).not.toHaveBeenCalled();
     initialized.resolve(f.app);
@@ -262,6 +285,34 @@ describe("API lifecycle", () => {
     expect(f.relay.stop).toHaveBeenCalledOnce();
     expect(f.producer.close).toHaveBeenCalledOnce();
     expect(f.database.destroy).toHaveBeenCalledOnce();
+    expect(f.storage.close).toHaveBeenCalledOnce();
+    expect(f.storage.write).not.toHaveBeenCalled();
+    expect(f.storage.read).not.toHaveBeenCalled();
+    expect(f.storage.delete).not.toHaveBeenCalled();
     expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(0);
+  });
+
+  it("keeps storage open while HTTP requests drain and reports storage close failures", async () => {
+    const f = fixture();
+    const drained = deferred();
+    f.http.close.mockReturnValue(drained.promise);
+    f.storage.close.mockImplementation(() => {
+      throw new Error("do-not-log-storage-credentials");
+    });
+    const api = f.start();
+    expect(await api.ready).toBe(true);
+    void api.shutdown();
+    await vi.waitFor(() => expect(f.http.close).toHaveBeenCalledOnce());
+    expect(f.storage.close).not.toHaveBeenCalled();
+    drained.resolve();
+    await api.stopped;
+    expect(f.storage.close).toHaveBeenCalledOnce();
+    expect(f.database.destroy).toHaveBeenCalledOnce();
+    expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(1);
+    expect(f.logger.error).toHaveBeenCalledWith(
+      { resource: "storage" },
+      "API resource shutdown failed",
+    );
+    expect(JSON.stringify(f.logger.error.mock.calls)).not.toContain("credentials");
   });
 });

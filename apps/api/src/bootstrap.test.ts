@@ -6,6 +6,7 @@ import { bootstrapApi } from "./bootstrap.js";
 
 const mocks = vi.hoisted(() => ({
   createPostgresDatabase: vi.fn(),
+  createObjectStorage: vi.fn(),
   migrateToLatest: vi.fn(),
   createAppContainer: vi.fn(),
   createJobProducer: vi.fn(),
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@exposurenexus/backend/database", () => mocks);
+vi.mock("@exposurenexus/backend/object-storage", () => mocks);
 vi.mock("./container.js", () => mocks);
 vi.mock("@exposurenexus/jobs/producer", () => mocks);
 vi.mock("@exposurenexus/jobs/postgres", () => mocks);
@@ -38,6 +40,14 @@ const config = {
   AUTH_TRUSTED_PROXIES: ["127.0.0.1"],
   API_TIMEOUT_MS: 5000,
   CORS_ORIGIN: undefined,
+  S3_BUCKET: "private-imports",
+  S3_REGION: "us-east-1",
+  S3_ACCESS_KEY_ID: "test-key",
+  S3_SECRET_ACCESS_KEY: "test-secret",
+  S3_ENDPOINT: "http://localhost:7070",
+  S3_FORCE_PATH_STYLE: true,
+  IMPORT_SOURCE_MAX_SIZE_BYTES: 42,
+  IMPORT_SOURCE_RETENTION_POLICY: "keep" as const,
 };
 
 beforeEach(() => vi.resetAllMocks());
@@ -45,6 +55,13 @@ beforeEach(() => vi.resetAllMocks());
 function fixture() {
   const database = { destroy: vi.fn().mockResolvedValue(undefined) };
   const pool = new EventEmitter();
+  const storage = {
+    bucket: config.S3_BUCKET,
+    write: vi.fn(),
+    read: vi.fn(),
+    delete: vi.fn(),
+    close: vi.fn(),
+  };
   const container = {
     createDefaultAdmin: vi.fn().mockResolvedValue(undefined),
     app: { fetch: vi.fn() },
@@ -59,6 +76,7 @@ function fixture() {
     close: vi.fn((callback: (error?: NodeJS.ErrnoException) => void) => callback()),
   });
   mocks.createPostgresDatabase.mockReturnValue({ database, pool });
+  mocks.createObjectStorage.mockReturnValue(storage);
   mocks.migrateToLatest.mockResolvedValue(undefined);
   mocks.createAppContainer.mockReturnValue(container);
   mocks.createJobProducer.mockResolvedValue(producer);
@@ -68,7 +86,19 @@ function fixture() {
   const signals = new EventEmitter();
   const exit = vi.fn();
   const start = () => bootstrapApi(config, { signals, exit });
-  return { database, pool, container, producer, relay, repository, server, signals, exit, start };
+  return {
+    database,
+    pool,
+    storage,
+    container,
+    producer,
+    relay,
+    repository,
+    server,
+    signals,
+    exit,
+    start,
+  };
 }
 
 it("wires the initialized application and relay to one database before reporting HTTP readiness", async () => {
@@ -79,8 +109,23 @@ it("wires the initialized application and relay to one database before reporting
   await vi.waitFor(() => expect(mocks.serve).toHaveBeenCalledOnce());
   expect(mocks.createPostgresDatabase).toHaveBeenCalledExactlyOnceWith(config.DATABASE_URL);
   expect(mocks.migrateToLatest).toHaveBeenCalledExactlyOnceWith(f.database, expect.anything());
+  expect(mocks.createObjectStorage).toHaveBeenCalledExactlyOnceWith({
+    bucket: config.S3_BUCKET,
+    region: config.S3_REGION,
+    credentials: {
+      accessKeyId: config.S3_ACCESS_KEY_ID,
+      secretAccessKey: config.S3_SECRET_ACCESS_KEY,
+    },
+    endpoint: config.S3_ENDPOINT,
+    forcePathStyle: config.S3_FORCE_PATH_STYLE,
+  });
   expect(mocks.createAppContainer).toHaveBeenCalledExactlyOnceWith({
     db: f.database,
+    storage: f.storage,
+    importSourcesConfiguration: {
+      maxSizeBytes: config.IMPORT_SOURCE_MAX_SIZE_BYTES,
+      retentionPolicy: config.IMPORT_SOURCE_RETENTION_POLICY,
+    },
     appOrigin: config.APP_ORIGIN,
     staticDir: config.STATIC_DIR,
     authSessionLifetimeHours: config.AUTH_SESSION_LIFETIME,
@@ -106,6 +151,7 @@ it("wires the initialized application and relay to one database before reporting
     logger: mocks.createJobProducer.mock.calls[0]![0].logger,
   });
   const startupCalls = [
+    mocks.createObjectStorage,
     mocks.migrateToLatest,
     mocks.createAppContainer,
     f.container.createDefaultAdmin,
@@ -133,6 +179,10 @@ it("wires the initialized application and relay to one database before reporting
   expect(f.relay.stop).toHaveBeenCalledOnce();
   expect(f.producer.close).toHaveBeenCalledOnce();
   expect(f.database.destroy).toHaveBeenCalledOnce();
+  expect(f.storage.close).toHaveBeenCalledOnce();
+  expect(f.storage.write).not.toHaveBeenCalled();
+  expect(f.storage.read).not.toHaveBeenCalled();
+  expect(f.storage.delete).not.toHaveBeenCalled();
   expect(f.exit).toHaveBeenCalledExactlyOnceWith(0);
 });
 
@@ -143,16 +193,21 @@ it("installs supervision before acquisition so an immediate signal opens no reso
   await api.stopped;
   expect(await api.ready).toBe(false);
   expect(mocks.createPostgresDatabase).not.toHaveBeenCalled();
+  expect(mocks.createObjectStorage).not.toHaveBeenCalled();
   expect(mocks.createJobProducer).not.toHaveBeenCalled();
   expect(mocks.serve).not.toHaveBeenCalled();
   expect(f.exit).toHaveBeenCalledExactlyOnceWith(0);
 });
 
-it.each(["migrations", "composition", "default admin"])(
-  "closes the acquired database after %s failure without starting broker or HTTP work",
+it.each(["storage", "migrations", "composition", "default admin"])(
+  "closes acquired resources after %s failure without starting broker or HTTP work",
   async (stage) => {
     const f = fixture();
     const error = new Error("initialization failed");
+    if (stage === "storage")
+      mocks.createObjectStorage.mockImplementation(() => {
+        throw error;
+      });
     if (stage === "migrations") mocks.migrateToLatest.mockRejectedValue(error);
     if (stage === "composition")
       mocks.createAppContainer.mockImplementation(() => {
@@ -163,6 +218,7 @@ it.each(["migrations", "composition", "default admin"])(
     expect(await api.ready).toBe(false);
     await api.stopped;
     expect(f.database.destroy).toHaveBeenCalledOnce();
+    expect(f.storage.close).toHaveBeenCalledTimes(stage === "storage" ? 0 : 1);
     expect(mocks.createJobProducer).not.toHaveBeenCalled();
     expect(mocks.serve).not.toHaveBeenCalled();
     expect(f.exit).toHaveBeenCalledExactlyOnceWith(1);
@@ -180,5 +236,6 @@ it("owns the HTTP server and other resources when binding fails", async () => {
   expect(f.relay.stop).toHaveBeenCalledOnce();
   expect(f.producer.close).toHaveBeenCalledOnce();
   expect(f.database.destroy).toHaveBeenCalledOnce();
+  expect(f.storage.close).toHaveBeenCalledOnce();
   expect(f.exit).toHaveBeenCalledExactlyOnceWith(1);
 });
