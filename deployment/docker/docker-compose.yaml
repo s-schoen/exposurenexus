@@ -15,6 +15,14 @@ services:
       DATABASE_URL: postgres://exposurenexus:change-me@postgres:5432/exposurenexus
       RABBITMQ_URL: ${RABBITMQ_API_URL:?Set RABBITMQ_API_URL with publisher credentials}
       RABBITMQ_EXCHANGE: EXPOSURENEXUS_JOBS
+      S3_BUCKET: ${S3_BUCKET:?Set S3_BUCKET}
+      S3_REGION: ${S3_REGION:?Set S3_REGION}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?Set S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?Set S3_SECRET_ACCESS_KEY}
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://s3:7070}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      IMPORT_SOURCE_MAX_SIZE_BYTES: ${IMPORT_SOURCE_MAX_SIZE_BYTES:-104857600}
+      IMPORT_SOURCE_RETENTION_POLICY: ${IMPORT_SOURCE_RETENTION_POLICY:-temporary}
       LOG_LEVEL: info
     ports:
       - "3001:3001"
@@ -131,10 +139,10 @@ services:
     container_name: versitygw
     image: ghcr.io/versity/versitygw:latest
     ports:
-      - "7070:7070" # S3 API
+      - "127.0.0.1:7070:7070" # S3 API for host development
     environment:
-      ROOT_ACCESS_KEY: s3access # TODO: change
-      ROOT_SECRET_KEY: s3secret # TODO: change
+      ROOT_ACCESS_KEY: ${S3_ACCESS_KEY_ID:?Set S3_ACCESS_KEY_ID}
+      ROOT_SECRET_KEY: ${S3_SECRET_ACCESS_KEY:?Set S3_SECRET_ACCESS_KEY}
       VGW_PORT: ":7070"
       VGW_BACKEND: posix
       VGW_BACKEND_ARGS: /data/s3
@@ -154,10 +162,10 @@ services:
     image: public.ecr.aws/aws-cli/aws-cli:latest
     restart: no
     environment:
-      AWS_ACCESS_KEY_ID: s3access # TODO: change
-      AWS_SECRET_ACCESS_KEY: s3secret # TODO: change
-      AWS_DEFAULT_REGION: us-east-1
-      S3_BUCKET: exposurenexus
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?Set S3_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?Set S3_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: ${S3_REGION:?Set S3_REGION}
+      S3_BUCKET: ${S3_BUCKET:?Set S3_BUCKET}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |

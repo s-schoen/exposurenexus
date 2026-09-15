@@ -1,6 +1,7 @@
 import type { createApp } from "./app.js";
 import type { ApiHttp } from "./http.js";
 import type { Database } from "@exposurenexus/backend/database";
+import type { ObjectStorage } from "@exposurenexus/backend/object-storage";
 import type { JobProducer } from "@exposurenexus/jobs/producer";
 import type { JobRelay } from "@exposurenexus/jobs/relay";
 import type { Kysely } from "kysely";
@@ -10,7 +11,11 @@ type ApiApplication = Pick<ReturnType<typeof createApp>, "fetch">;
 
 export interface ApiDependencies {
   openDatabase(): Kysely<Database>;
-  initializeApplication(database: Kysely<Database>): Promise<ApiApplication>;
+  openStorage(): ObjectStorage;
+  initializeApplication(
+    database: Kysely<Database>,
+    storage: ObjectStorage,
+  ): Promise<ApiApplication>;
   openProducer(): Promise<JobProducer>;
   createRelay(database: Kysely<Database>, producer: JobProducer): JobRelay;
   openHttp(application: ApiApplication, onError: () => void): ApiHttp;
@@ -31,6 +36,7 @@ export function runApi({
   dependencies: ApiDependencies;
 }) {
   let database: Kysely<Database> | undefined;
+  let storage: ObjectStorage | undefined;
   let producer: JobProducer | undefined;
   let relay: JobRelay | undefined;
   let http: ApiHttp | undefined;
@@ -55,7 +61,7 @@ export function runApi({
     dependencies.exit(code);
   }
 
-  async function close(resource: string, action: () => Promise<void> | undefined) {
+  async function close(resource: string, action: () => Promise<void> | void) {
     try {
       await action();
     } catch {
@@ -88,6 +94,7 @@ export function runApi({
       await Promise.all([
         close("producer", () => producer?.close()),
         close("database", () => database?.destroy()),
+        close("storage", () => storage?.close()),
       ]);
       if (finished) return;
       logger.info({ exitCode }, "API shutdown completed");
@@ -113,8 +120,11 @@ export function runApi({
       if (stopping) return;
       database = dependencies.openDatabase();
       if (stopping) return;
+      stage = "storage configuration";
+      storage = dependencies.openStorage();
+      if (stopping) return;
       stage = "migrations and initialization";
-      const application = await dependencies.initializeApplication(database);
+      const application = await dependencies.initializeApplication(database, storage);
       if (stopping) return;
       stage = "broker connection and exchange check";
       producer = await dependencies.openProducer();

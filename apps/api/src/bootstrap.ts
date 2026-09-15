@@ -1,4 +1,5 @@
 import { createPostgresDatabase, migrateToLatest } from "@exposurenexus/backend/database";
+import { createObjectStorage } from "@exposurenexus/backend/object-storage";
 import { createJobRepository } from "@exposurenexus/jobs/postgres";
 import { createJobProducer } from "@exposurenexus/jobs/producer";
 import { createJobRelay } from "@exposurenexus/jobs/relay";
@@ -11,6 +12,7 @@ import { createApiLoggers } from "./logging.js";
 import type { env } from "./env.js";
 import type { ApiDependencies } from "./lifecycle.js";
 import type { Database } from "@exposurenexus/backend/database";
+import type { ObjectStorage } from "@exposurenexus/backend/object-storage";
 import type { Kysely } from "kysely";
 
 export function bootstrapApi(
@@ -30,10 +32,15 @@ export function bootstrapApi(
     return database;
   }
 
-  async function initializeApplication(db: Kysely<Database>) {
+  async function initializeApplication(db: Kysely<Database>, storage: ObjectStorage) {
     await migrateToLatest(db, dbLogger);
     const container = createAppContainer({
       db,
+      storage,
+      importSourcesConfiguration: {
+        maxSizeBytes: config.IMPORT_SOURCE_MAX_SIZE_BYTES,
+        retentionPolicy: config.IMPORT_SOURCE_RETENTION_POLICY,
+      },
       appOrigin: config.APP_ORIGIN,
       staticDir: config.STATIC_DIR,
       authSessionLifetimeHours: config.AUTH_SESSION_LIFETIME,
@@ -56,6 +63,17 @@ export function bootstrapApi(
     dependencies: {
       ...processHooks,
       openDatabase,
+      openStorage: () =>
+        createObjectStorage({
+          bucket: config.S3_BUCKET,
+          region: config.S3_REGION,
+          credentials: {
+            accessKeyId: config.S3_ACCESS_KEY_ID,
+            secretAccessKey: config.S3_SECRET_ACCESS_KEY,
+          },
+          endpoint: config.S3_ENDPOINT,
+          forcePathStyle: config.S3_FORCE_PATH_STYLE,
+        }),
       initializeApplication,
       openProducer: () =>
         createJobProducer({

@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => {
   const rawVulnerabilities = { kind: "raw-vulnerabilities" };
   const vulnerabilities = { kind: "vulnerabilities" };
   const statistics = { kind: "statistics" };
+  const importSources = { kind: "import-sources" };
 
   return {
     createBackendRuntime: vi.fn(() => ({})),
@@ -51,6 +52,8 @@ const mocks = vi.hoisted(() => {
     decorateVulnerabilitiesWithEvents: vi.fn(() => vulnerabilities),
     statistics,
     createStatistics: vi.fn(() => statistics),
+    importSources,
+    createImportSources: vi.fn(() => importSources),
     createApp: vi.fn(() => ({ fetch: vi.fn() })),
     createAuthRoute: vi.fn(() => ({ route: "auth" })),
     createAuthAnnotate: vi.fn(() => vi.fn()),
@@ -89,6 +92,9 @@ vi.mock("@exposurenexus/backend/vulnerabilities", () => ({
 }));
 vi.mock("@exposurenexus/backend/statistics", () => ({
   createStatistics: mocks.createStatistics,
+}));
+vi.mock("@exposurenexus/backend/import-sources", () => ({
+  createImportSources: mocks.createImportSources,
 }));
 vi.mock("./lib/authentication-events.js", () => ({
   decorateAuthenticationWithEvents: mocks.decorateAuthenticationWithEvents,
@@ -146,6 +152,14 @@ function createContainerOptions() {
   const logger = pino({ enabled: false });
   return {
     db: {} as never,
+    storage: {
+      bucket: "private-imports",
+      write: vi.fn(),
+      read: vi.fn(),
+      delete: vi.fn(),
+      close: vi.fn(),
+    },
+    importSourcesConfiguration: { maxSizeBytes: 42, retentionPolicy: "keep" as const },
     appOrigin: "http://localhost:3000",
     staticDir: "/app/public",
     authSessionLifetimeHours: 12,
@@ -179,6 +193,14 @@ describe("app container", () => {
     expect(mocks.createFindings).toHaveBeenCalledExactlyOnceWith(runtime);
     expect(mocks.createVulnerabilities).toHaveBeenCalledExactlyOnceWith(runtime);
     expect(mocks.createStatistics).toHaveBeenCalledExactlyOnceWith(runtime);
+    expect(mocks.createImportSources).toHaveBeenCalledExactlyOnceWith(
+      runtime,
+      options.storage,
+      options.importSourcesConfiguration,
+    );
+    expect(mocks.createImportRoute).toHaveBeenCalledExactlyOnceWith(mocks.importSources, {
+      requireDomainPermission: expect.any(Function),
+    });
     expect(mocks.createAuthentication).toHaveBeenCalledWith(runtime, {
       sessionLifetimeHours: options.authSessionLifetimeHours,
       sessionHmacSecret: options.authSessionHmacSecret,

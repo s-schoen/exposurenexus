@@ -16,6 +16,14 @@ async function loadEnv(
   vi.stubEnv("RABBITMQ_EXCHANGE", "jobs");
   vi.stubEnv("SHUTDOWN_TIMEOUT_MS", "");
   vi.stubEnv("STARTUP_TIMEOUT_MS", "");
+  vi.stubEnv("S3_BUCKET", "private-imports");
+  vi.stubEnv("S3_REGION", "us-east-1");
+  vi.stubEnv("S3_ACCESS_KEY_ID", "test-access-key");
+  vi.stubEnv("S3_SECRET_ACCESS_KEY", "test-secret-key");
+  vi.stubEnv("S3_ENDPOINT", "");
+  vi.stubEnv("S3_FORCE_PATH_STYLE", "");
+  vi.stubEnv("IMPORT_SOURCE_MAX_SIZE_BYTES", "");
+  vi.stubEnv("IMPORT_SOURCE_RETENTION_POLICY", "");
 
   for (const [key, value] of Object.entries(overrides)) {
     vi.stubEnv(key, value);
@@ -43,6 +51,23 @@ describe("api environment", () => {
     { AUTH_SECRET: "do-not-log" },
     { AUTH_TRUSTED_PROXIES: "do-not-log" },
     { DATABASE_URL: "do-not-log" },
+    { S3_BUCKET: undefined },
+    { S3_BUCKET: "   " },
+    { S3_REGION: undefined },
+    { S3_REGION: "   " },
+    { S3_ACCESS_KEY_ID: undefined },
+    { S3_ACCESS_KEY_ID: "   " },
+    { S3_SECRET_ACCESS_KEY: undefined },
+    { S3_SECRET_ACCESS_KEY: "   " },
+    { S3_ENDPOINT: "not-a-url" },
+    { S3_ENDPOINT: "ftp://user:do-not-log@storage" },
+    { S3_FORCE_PATH_STYLE: "yes" },
+    { IMPORT_SOURCE_MAX_SIZE_BYTES: "-1" },
+    { IMPORT_SOURCE_MAX_SIZE_BYTES: "0.5" },
+    { IMPORT_SOURCE_MAX_SIZE_BYTES: "9007199254740992" },
+    { IMPORT_SOURCE_MAX_SIZE_BYTES: "Infinity" },
+    { IMPORT_SOURCE_MAX_SIZE_BYTES: "   " },
+    { IMPORT_SOURCE_RETENTION_POLICY: "expire" },
   ])("rejects invalid configuration with field-only diagnostics: %j", async (invalid) => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     await expect(loadEnv(invalid)).rejects.toEqual(
@@ -93,6 +118,37 @@ describe("api environment", () => {
 
     expect(env.APP_ORIGIN).toBe("http://localhost:3000");
   });
+
+  it("requires storage credentials and defaults import policy without an endpoint", async () => {
+    const env = await loadEnv();
+    expect(env).toMatchObject({
+      S3_BUCKET: "private-imports",
+      S3_REGION: "us-east-1",
+      S3_ACCESS_KEY_ID: "test-access-key",
+      S3_SECRET_ACCESS_KEY: "test-secret-key",
+      S3_FORCE_PATH_STYLE: false,
+      IMPORT_SOURCE_MAX_SIZE_BYTES: 104857600,
+      IMPORT_SOURCE_RETENTION_POLICY: "temporary",
+      API_TIMEOUT_MS: 5000,
+    });
+    expect(env.S3_ENDPOINT).toBeUndefined();
+  });
+
+  it.each(["0", "9007199254740991"])(
+    "accepts configured storage addressing, retention and size boundary %s",
+    async (sizeBytes) => {
+      const env = await loadEnv({
+        S3_ENDPOINT: "http://localhost:7070",
+        S3_FORCE_PATH_STYLE: "true",
+        IMPORT_SOURCE_MAX_SIZE_BYTES: sizeBytes,
+        IMPORT_SOURCE_RETENTION_POLICY: "keep",
+      });
+      expect(env.S3_ENDPOINT).toBe("http://localhost:7070");
+      expect(env.S3_FORCE_PATH_STYLE).toBe(true);
+      expect(env.IMPORT_SOURCE_MAX_SIZE_BYTES).toBe(Number(sizeBytes));
+      expect(env.IMPORT_SOURCE_RETENTION_POLICY).toBe("keep");
+    },
+  );
 
   it("prefers APP_ORIGIN for browser origin validation", async () => {
     const env = await loadEnv({

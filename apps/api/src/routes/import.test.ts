@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createRequireDomainPermission } from "../middleware/auth.js";
+import { createCsrfProtection } from "../middleware/csrf.js";
 import {
   annotateAuthenticatedUser,
   createTestApp,
@@ -12,6 +13,14 @@ import { createImportRoute } from "./import.js";
 describe("finding import routes", () => {
   const user = createTestUser();
   const userHasPermission = vi.fn();
+  const importSources = { register: vi.fn() };
+  const importSourceId = "6b80ec81-bfa7-435c-b41e-8d14510b5ee2";
+  const metadata = {
+    source: "nuclei",
+    originalFilename: "scan.jsonl",
+    sizeBytes: 0,
+    mimeType: "application/x-ndjson",
+  };
   const routeDependencies = {
     requireDomainPermission: createRequireDomainPermission(userHasPermission),
   };
@@ -19,12 +28,13 @@ describe("finding import routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     userHasPermission.mockResolvedValue(true);
+    importSources.register.mockResolvedValue({ id: importSourceId });
   });
 
   it("returns 401 for unauthenticated requests", async () => {
     const requestId = "findings-import-unauthorized-request";
     const app = createTestApp({
-      importerRoute: createImportRoute(routeDependencies),
+      importerRoute: createImportRoute(importSources, routeDependencies),
       requireAuth: requireAuthenticatedUser,
     });
 
@@ -42,14 +52,15 @@ describe("finding import routes", () => {
       status: 401,
       error: "Unauthorized",
     });
+    expect(importSources.register).not.toHaveBeenCalled();
   });
 
-  it("returns 501 without reading or processing an import", async () => {
-    const requestId = "findings-import-wip-request";
+  it("registers metadata for the authenticated creator and returns only its reference", async () => {
+    const requestId = "findings-import-registration-request";
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      importerRoute: createImportRoute(routeDependencies),
+      importerRoute: createImportRoute(importSources, routeDependencies),
     });
 
     const response = await app.request("/api/findings/import", {
@@ -58,15 +69,18 @@ describe("finding import routes", () => {
         "X-Request-Id": requestId,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ type: "nuclei", file: "ignored" }),
+      body: JSON.stringify(metadata),
     });
     const body = await response.json();
 
-    expect(response.status).toBe(501);
+    expect(response.status).toBe(201);
     expect(body).toEqual({
       correlationId: requestId,
-      status: 501,
-      error: "Automated finding imports are not available yet",
+      data: { importSourceId },
+    });
+    expect(importSources.register).toHaveBeenCalledExactlyOnceWith({
+      ...metadata,
+      performedBy: user.id,
     });
     expect(userHasPermission).toHaveBeenCalledWith(user.id, {
       import: ["write"],
@@ -78,7 +92,7 @@ describe("finding import routes", () => {
     const app = createTestApp({
       annotateAuth: annotateAuthenticatedUser(user),
       requireAuth: requireAuthenticatedUser,
-      importerRoute: createImportRoute(routeDependencies),
+      importerRoute: createImportRoute(importSources, routeDependencies),
     });
 
     const response = await app.request("/api/findings/import", {
@@ -92,5 +106,57 @@ describe("finding import routes", () => {
     expect(userHasPermission).toHaveBeenCalledWith(user.id, {
       import: ["write"],
     });
+    expect(importSources.register).not.toHaveBeenCalled();
   });
+
+  it.each([
+    {},
+    { ...metadata, source: "manual" },
+    { ...metadata, originalFilename: "  " },
+    { ...metadata, sizeBytes: -1 },
+    { ...metadata, sizeBytes: 0.5 },
+    { ...metadata, sizeBytes: Number.MAX_SAFE_INTEGER + 1 },
+    { ...metadata, sizeBytes: "0" },
+    { ...metadata, mimeType: null },
+    { ...metadata, retentionPolicy: "keep" },
+    { ...metadata, performedBy: user.id },
+  ])("rejects invalid registration before calling the capability: %j", async (input) => {
+    const app = createTestApp({
+      annotateAuth: annotateAuthenticatedUser(user),
+      requireAuth: requireAuthenticatedUser,
+      importerRoute: createImportRoute(importSources, routeDependencies),
+    });
+    const response = await app.request("/api/findings/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    expect(response.status).toBe(400);
+    expect(importSources.register).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, "https://untrusted.example", "http://localhost:3000"])(
+    "rejects CSRF failures before registration (origin %s)",
+    async (origin) => {
+      const app = createTestApp({
+        annotateAuth: annotateAuthenticatedUser(user),
+        requireAuth: requireAuthenticatedUser,
+        csrfProtection: createCsrfProtection({
+          allowedOrigins: ["http://localhost:3000"],
+          tokenSecret: "test-secret",
+        }).middleware,
+        importerRoute: createImportRoute(importSources, routeDependencies),
+      });
+      const response = await app.request("/api/findings/import", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(origin ? { Origin: origin } : {}),
+        },
+        body: JSON.stringify(metadata),
+      });
+      expect(response.status).toBe(403);
+      expect(importSources.register).not.toHaveBeenCalled();
+    },
+  );
 });

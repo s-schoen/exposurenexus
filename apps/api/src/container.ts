@@ -3,6 +3,7 @@ import { createAssets } from "@exposurenexus/backend/assets";
 import { createAuthentication } from "@exposurenexus/backend/authentication";
 import { createFindings } from "@exposurenexus/backend/findings";
 import { createIdentity } from "@exposurenexus/backend/identity";
+import { createImportSources } from "@exposurenexus/backend/import-sources";
 import { createStatistics } from "@exposurenexus/backend/statistics";
 import { createVulnerabilities } from "@exposurenexus/backend/vulnerabilities";
 
@@ -35,6 +36,8 @@ import { createVulnerabilityRoute } from "./routes/vulnerabilities.js";
 
 import type { DomainEvent } from "./lib/eventbus/events/index.js";
 import type { Database } from "@exposurenexus/backend/database";
+import type { ImportSourcesConfiguration } from "@exposurenexus/backend/import-sources";
+import type { ObjectStorage } from "@exposurenexus/backend/object-storage";
 import type { Kysely } from "kysely";
 import type { Logger } from "pino";
 
@@ -42,6 +45,8 @@ type LoggerFactory = (moduleName: string) => Logger;
 
 export interface CreateAppContainerOptions {
   db: Kysely<Database>;
+  storage: ObjectStorage;
+  importSourcesConfiguration: ImportSourcesConfiguration;
   appOrigin: string;
   staticDir?: string;
   authSessionLifetimeHours: number;
@@ -84,6 +89,11 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     eventBus,
   );
   const statistics = createStatistics(runtime);
+  const importSources = createImportSources(
+    runtime,
+    options.storage,
+    options.importSourcesConfiguration,
+  );
 
   const requireDomainPermission = createRequireDomainPermission(
     identity.authorization.userHasPermission.bind(identity.authorization),
@@ -115,7 +125,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     findingRoute: createFindingRoute(findings, {
       requireDomainPermission,
     }),
-    importerRoute: createImportRoute({
+    importerRoute: createImportRoute(importSources, {
       requireDomainPermission,
     }),
   };
@@ -146,6 +156,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
       findings,
       vulnerabilities,
       statistics,
+      importSources,
     },
     routes,
     middleware,
