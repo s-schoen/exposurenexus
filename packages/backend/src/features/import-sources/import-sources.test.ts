@@ -116,6 +116,214 @@ describe("import sources", () => {
     );
   }
 
+  it("registers immutable private metadata without bytes, ingestion, or jobs", async () => {
+    const sources = capability();
+    const command = {
+      source: "nuclei" as const,
+      originalFilename: " ../../scan.jsonl ",
+      sizeBytes: 0,
+      mimeType: " unverified metadata ",
+      performedBy: actorId,
+    };
+    const ingestions = await testDb.db.selectFrom("ingestion").selectAll().execute();
+    const jobs = await testDb.db.selectFrom("job").selectAll().execute();
+    const registered = await sources.register(command);
+    expect(registered).toEqual({
+      id: expect.any(String),
+      ingestionId: null,
+      source: "nuclei",
+      originalFilename: " ../../scan.jsonl ",
+      mimeType: " unverified metadata ",
+      createdBy: actorId,
+      sizeBytes: 0,
+      retentionPolicy: "temporary",
+      state: "incomplete",
+      createdAt: expect.any(Date),
+      availableAt: null,
+      failedAt: null,
+      deletedAt: null,
+      cleanupRequired: true,
+    });
+    command.originalFilename = "changed";
+    command.mimeType = "changed";
+    command.sizeBytes = 1;
+    expect(await capability().getByID(registered.id)).toEqual(registered);
+    expect(
+      await testDb.db
+        .selectFrom("import_source")
+        .selectAll()
+        .where("id", "=", registered.id)
+        .executeTakeFirstOrThrow(),
+    ).toEqual({
+      ...registered,
+      bucket: "private-input",
+      objectKey: expect.stringMatching(
+        /^import-sources\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
+      ),
+    });
+    await expect(sources.readByID(registered.id)).rejects.toMatchObject({
+      code: "import_source.not_available",
+    });
+    expect(await testDb.db.selectFrom("ingestion").selectAll().execute()).toEqual(ingestions);
+    expect(await testDb.db.selectFrom("job").selectAll().execute()).toEqual(jobs);
+    expect(objects.size).toBe(0);
+    expect(storage.write).not.toHaveBeenCalled();
+    expect(storage.read).not.toHaveBeenCalled();
+    expect(storage.delete).not.toHaveBeenCalled();
+    expect(storage.close).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid registration metadata before reservation or storage work", async () => {
+    const queried = vi.fn();
+    const database = testDb.db.withPlugin({
+      transformQuery({ node }) {
+        queried();
+        return node;
+      },
+      async transformResult({ result }) {
+        return result;
+      },
+    });
+    const sources = createImportSources(
+      createBackendRuntime({ database, logger: pino({ enabled: false }) }),
+      storage,
+    );
+    const command = {
+      source: "nuclei",
+      originalFilename: "scan.jsonl",
+      sizeBytes: 0,
+      performedBy: actorId,
+    };
+    for (const invalid of [
+      null,
+      undefined,
+      [],
+      { ...command, source: undefined },
+      { ...command, source: "manual" },
+      { ...command, source: "other-scanner" },
+      { ...command, originalFilename: undefined },
+      { ...command, originalFilename: "" },
+      { ...command, originalFilename: " \t\n\u00a0" },
+      ...[undefined, null, "0", -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, 104857601].map(
+        (sizeBytes) => ({ ...command, sizeBytes }),
+      ),
+      { ...command, mimeType: 123 },
+      { ...command, mimeType: null },
+      { ...command, retentionPolicy: "keep" },
+      { ...command, performedBy: undefined },
+      { ...command, performedBy: "not-a-uuid" },
+    ]) {
+      await expect(sources.register(invalid as never)).rejects.toMatchObject({
+        code: "import_source.invalid_input",
+        kind: "validation",
+      });
+    }
+    expect(queried).not.toHaveBeenCalled();
+    expect(storage.write).not.toHaveBeenCalled();
+    expect(storage.read).not.toHaveBeenCalled();
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { maxSizeBytes: 0, mimeType: undefined, storedMimeType: null },
+    { maxSizeBytes: 4, mimeType: "", storedMimeType: null },
+    { maxSizeBytes: undefined, mimeType: " \t", storedMimeType: null },
+    {
+      maxSizeBytes: Number.MAX_SAFE_INTEGER,
+      mimeType: " unverified ",
+      storedMimeType: " unverified ",
+    },
+  ])(
+    "registers the exact size limit $maxSizeBytes with declared MIME metadata",
+    async ({ maxSizeBytes, mimeType, storedMimeType }) => {
+      const sources = capability({ maxSizeBytes });
+      const sizeBytes = maxSizeBytes ?? 104857600;
+      const command = {
+        source: "nuclei" as const,
+        originalFilename: "scan",
+        sizeBytes,
+        mimeType,
+        performedBy: actorId,
+      };
+      const source = await sources.register(command);
+      expect(await sources.getByID(source.id)).toMatchObject({
+        state: "incomplete",
+        sizeBytes,
+        mimeType: storedMimeType,
+      });
+      await expect(
+        sources.register({ ...command, sizeBytes: sizeBytes + 1 }),
+      ).rejects.toMatchObject({
+        code: "import_source.invalid_input",
+        kind: "validation",
+      });
+      expect(storage.write).not.toHaveBeenCalled();
+      expect(storage.delete).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps repeated registrations distinct and snapshots storage and retention policy", async () => {
+    const configuration: ImportSourcesConfiguration = { maxSizeBytes: 4 };
+    const objectStorage = { ...storage };
+    const temporary = capability(configuration, objectStorage);
+    const command = {
+      source: "nuclei" as const,
+      originalFilename: "scan",
+      sizeBytes: 4,
+      performedBy: actorId,
+    };
+    const first = await temporary.register(command);
+    configuration.retentionPolicy = "keep";
+    const kept = capability(configuration, objectStorage);
+    configuration.maxSizeBytes = 0;
+    configuration.retentionPolicy = "temporary";
+    objectStorage.bucket = "changed-bucket";
+    const second = await kept.register(command);
+    const repeated = await temporary.register(command);
+    expect(new Set([first.id, second.id, repeated.id]).size).toBe(3);
+    expect(await kept.getByID(first.id)).toEqual(first);
+    expect(await temporary.getByID(second.id)).toMatchObject({
+      retentionPolicy: "keep",
+      sizeBytes: 4,
+    });
+    expect(repeated).toMatchObject({ retentionPolicy: "temporary", sizeBytes: 4 });
+    const records = await testDb.db
+      .selectFrom("import_source")
+      .select(["bucket", "objectKey"])
+      .where("id", "in", [first.id, second.id, repeated.id])
+      .execute();
+    expect(records.map((record) => record.bucket)).toEqual([
+      "private-input",
+      "private-input",
+      "private-input",
+    ]);
+    expect(new Set(records.map((record) => record.objectKey)).size).toBe(3);
+    expect(storage.write).not.toHaveBeenCalled();
+    expect(storage.delete).not.toHaveBeenCalled();
+    expect(storage.close).not.toHaveBeenCalled();
+  });
+
+  it("reports registration reservation failure without exposing persistence details or touching storage", async () => {
+    const records = await testDb.db.selectFrom("import_source").selectAll().execute();
+    const error = await capability()
+      .register({
+        source: "nuclei",
+        originalFilename: "scan",
+        sizeBytes: 0,
+        performedBy: "00000000-0000-4000-8000-000000000000",
+      })
+      .catch((error: unknown) => error);
+    expect(error).toMatchObject({
+      code: "import_source.reserve_failed",
+      kind: "unexpected",
+      message: "Import source metadata could not be reserved",
+      cause: undefined,
+    });
+    expect(await testDb.db.selectFrom("import_source").selectAll().execute()).toEqual(records);
+    expect(storage.write).not.toHaveBeenCalled();
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
+
   it.each([undefined, null, Buffer.from("not a stream"), {}])(
     "rejects non-readable input %s",
     async (body) => {
@@ -242,6 +450,7 @@ describe("import sources", () => {
       expect(source).toEqual({
         id: expect.any(String),
         ingestionId: null,
+        source: null,
         originalFilename: "../../scan.jsonl",
         mimeType: storedMimeType,
         createdBy: actorId,
@@ -278,6 +487,7 @@ describe("import sources", () => {
         expect(reserved).toEqual({
           id: expect.any(String),
           ingestionId: null,
+          source: null,
           bucket: "private-input",
           objectKey: expect.stringMatching(
             /^import-sources\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,

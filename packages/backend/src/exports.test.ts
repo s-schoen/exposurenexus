@@ -10,12 +10,14 @@ import type {
   ImportSource,
   ImportSources,
   ImportSourcesConfiguration,
+  RegisterImportSourceCommand,
 } from "@exposurenexus/backend/import-sources";
 import type {
   ObjectStorage,
   ObjectStorageConfiguration,
   ObjectStorageWriteCommand,
 } from "@exposurenexus/backend/object-storage";
+import type { RegisterImportSource } from "@exposurenexus/contracts/api";
 import type { Readable } from "node:stream";
 
 describe("backend exports", () => {
@@ -104,9 +106,14 @@ describe("backend exports", () => {
       mimeType?: string;
       performedBy: string;
     }>();
+    expectTypeOf<
+      Omit<RegisterImportSourceCommand, "performedBy">
+    >().toEqualTypeOf<RegisterImportSource>();
+    expectTypeOf<RegisterImportSourceCommand["performedBy"]>().toEqualTypeOf<string>();
     expectTypeOf<ImportSource>().toEqualTypeOf<{
       id: string;
       ingestionId: string | null;
+      source: "nuclei" | null;
       createdBy: string;
       originalFilename: string;
       mimeType: string | null;
@@ -120,6 +127,7 @@ describe("backend exports", () => {
       cleanupRequired: boolean;
     }>();
     expectTypeOf<ImportSources>().toEqualTypeOf<{
+      register(command: RegisterImportSourceCommand): Promise<ImportSource>;
       create(command: CreateImportSourceCommand): Promise<ImportSource>;
       getByID(id: string): Promise<ImportSource | null>;
       getByIngestionID(ingestionId: string): Promise<ImportSource | null>;

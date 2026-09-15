@@ -1,11 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 
+import { registerImportSourceSchema } from "@exposurenexus/contracts/api";
+import { z } from "zod/v4";
+
 import { ApplicationError } from "../../application-error.js";
 import { getRuntimeDatabase, getRuntimeLogger, type BackendRuntime } from "../../runtime.js";
 import * as persistence from "./import-source-persistence.js";
 
 import type { ObjectStorage } from "../../object-storage/index.js";
+import type { RegisterImportSource } from "@exposurenexus/contracts/api";
+
+const registerCommandSchema = registerImportSourceSchema.extend({ performedBy: z.uuidv4() });
 
 export interface ImportSourcesConfiguration {
   maxSizeBytes?: number;
@@ -15,6 +21,7 @@ export interface ImportSourcesConfiguration {
 export interface ImportSource {
   id: string;
   ingestionId: string | null;
+  source: RegisterImportSource["source"] | null;
   createdBy: string;
   originalFilename: string;
   mimeType: string | null;
@@ -36,7 +43,12 @@ export interface CreateImportSourceCommand {
   performedBy: string;
 }
 
+export interface RegisterImportSourceCommand extends RegisterImportSource {
+  performedBy: string;
+}
+
 export interface ImportSources {
+  register(command: RegisterImportSourceCommand): Promise<ImportSource>;
   create(command: CreateImportSourceCommand): Promise<ImportSource>;
   getByID(id: string): Promise<ImportSource | null>;
   getByIngestionID(ingestionId: string): Promise<ImportSource | null>;
@@ -66,6 +78,44 @@ export function createImportSources(
   }
 
   return {
+    async register(command) {
+      const parsed = registerCommandSchema.safeParse(command);
+      if (!parsed.success || parsed.data.sizeBytes > maxSizeBytes) {
+        throw new ApplicationError({
+          code: "import_source.invalid_input",
+          kind: "validation",
+          message:
+            "Import source requires valid metadata and a declared size within the configured limit",
+        });
+      }
+      const { source, originalFilename, sizeBytes, mimeType, performedBy } = parsed.data;
+      try {
+        return await persistence.reserve(database, {
+          id: randomUUID(),
+          ingestionId: null,
+          source,
+          objectKey: `import-sources/${randomUUID()}`,
+          bucket,
+          createdBy: performedBy,
+          originalFilename,
+          mimeType: mimeType?.trim() ? mimeType : null,
+          sizeBytes,
+          retentionPolicy,
+          state: "incomplete",
+          createdAt: new Date(),
+          availableAt: null,
+          failedAt: null,
+          deletedAt: null,
+          cleanupRequired: true,
+        });
+      } catch {
+        throw new ApplicationError({
+          code: "import_source.reserve_failed",
+          kind: "unexpected",
+          message: "Import source metadata could not be reserved",
+        });
+      }
+    },
     async create({ body, sizeBytes, originalFilename, mimeType, performedBy }) {
       if (
         !(body instanceof Readable) ||
@@ -95,6 +145,7 @@ export function createImportSources(
         await persistence.reserve(database, {
           id,
           ingestionId: null,
+          source: null,
           objectKey,
           bucket,
           createdBy: performedBy,

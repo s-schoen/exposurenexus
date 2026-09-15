@@ -53,3 +53,17 @@ export type AuthLogin = z.infer<typeof authLoginSchema>;
 export type AuthSessionReply = z.infer<typeof authSessionReplySchema>;
 export type AuthSessionDataReply = z.infer<typeof authSessionDataReplySchema>;
 export type AuthSignOutDataReply = z.infer<typeof authSignOutDataReplySchema>;
+
+export const registerImportSourceSchema = z.strictObject({
+  source: z.literal("nuclei"),
+  originalFilename: z.string().min(1).regex(/\S/u),
+  sizeBytes: z.int().min(0),
+  mimeType: z.string().optional(),
+});
+
+export const registerImportSourceDataReplySchema = z.strictObject({
+  importSourceId: z.uuidv4(),
+});
+
+export type RegisterImportSource = z.infer<typeof registerImportSourceSchema>;
+export type RegisterImportSourceDataReply = z.infer<typeof registerImportSourceDataReplySchema>;
