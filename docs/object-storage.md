@@ -151,9 +151,13 @@ Already-deleted deletion remains a no-op and unavailable reads still reject as
 `import_source.not_available`. Metadata lookup by source or ingestion ID remains
 independent of the bound bucket. No registry or historical routing is provided.
 
-API and worker production composition and storage startup checks remain deferred:
-the import HTTP endpoint is unavailable and the worker stays connected but idle.
-Storage is not a mandatory backend-runtime or application-startup dependency.
+The API composes storage for import-source metadata registration and requires valid
+[storage configuration](deployment.md#api-storage-configuration) at startup, without
+a connectivity or bucket probe. Registration itself performs no object I/O. The
+API closes storage after HTTP and relay drain, and on startup failure. Storage is
+not a general backend-runtime dependency; worker composition remains deferred and
+the worker stays connected but idle. Byte upload and ingestion submission follow
+in ticket 02; actual scan processing is still unavailable.
 See [Import Sources](import-sources.md) for executable usage and the deliberate
 [ADR-0006 refinement](adr/0006-s3-backed-import-sources.md#reusable-storage-refinement).
 

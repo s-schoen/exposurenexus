@@ -1,17 +1,67 @@
 # Import Sources
 
-The shared backend provides a library-only capability for storing, reading, and
-explicitly deleting raw import input while preserving provenance. It is independent
-of ingestion execution and HTTP authentication.
-Persisted ingestion linkage and lookup are available, but there is no working HTTP
-import endpoint, ingestion submission workflow, or active worker handler. S3 is
-not a required API or worker startup dependency.
+The API registers scan-upload metadata through `POST /api/findings/import`.
+Registration reserves an import source without receiving file bytes or submitting
+an ingestion. Byte upload and submission follow in scan-import ticket 02; actual
+scan processing is still unavailable, and the UI import page remains disabled.
+
+The shared backend also provides streamed creation, reading, metadata lookup, and
+explicit byte deletion while preserving provenance. These remain library operations,
+independent of ingestion execution and HTTP authentication. The API now requires
+valid storage configuration at startup; the worker's configuration is unchanged.
 
 The capability borrows an explicitly injected, bucket-bound
 [Object Storage](object-storage.md) handle. Storage owns bytes, SDK access, exact
 byte counting, cancellation, and transfer settlement; import sources own policy,
 provenance, metadata, finalization, and compensation decisions. The composing
 caller owns storage shutdown, not the capability.
+
+## Register A Scan Upload
+
+Send `Content-Type: application/json` to `POST /api/findings/import` with an
+authenticated session, current `import:write` permission, and the existing
+[CSRF protections](api-authentication.md#csrf-protection), including an allowed
+Origin and matching `X-CSRF-Token` header:
+
+```json
+{
+  "source": "nuclei",
+  "originalFilename": "scan.jsonl",
+  "sizeBytes": 1024,
+  "mimeType": "application/x-ndjson"
+}
+```
+
+The JSON object is strict: extra fields are rejected. `source`, `originalFilename`,
+and `sizeBytes` are required. Only `source: "nuclei"` is supported; the filename must
+be nonblank, and the size must be a nonnegative safe integer, including zero. The
+declared size must not exceed the API-configured maximum (100 MiB by default).
+Invalid or oversized metadata is rejected before reserving a source or doing
+storage work. `mimeType` is an optional string, not scanner detection or content
+validation; omitted or blank MIME declarations are stored as `null`.
+
+Success returns HTTP `201` in the existing API envelope:
+
+```json
+{
+  "correlationId": "request-correlation-id",
+  "data": { "importSourceId": "550e8400-e29b-41d4-a716-446655440000" }
+}
+```
+
+The source starts `incomplete` with `ingestionId: null`, the authenticated user
+profile as `createdBy`, immutable input metadata, a retention-policy snapshot, and
+an internally generated private bucket/key reference. Registration performs no
+object I/O and creates no ingestion, outbox row, or job. It retains the ordinary
+`API_TIMEOUT_MS` deadline, not a binary-upload deadline.
+
+The returned ID is a reference, not a bearer upload credential. Ticket 02 will
+restrict byte upload to this creator with current `import:write` permission, using
+the already registered metadata. There is no edit endpoint, idempotency key,
+registration deduplication, expiry, cleanup job, listing, status, or download
+endpoint. Repeated valid registrations create distinct sources. Neither
+`temporary` nor `keep` triggers automatic deletion, and callers cannot override
+the configured retention policy per registration.
 
 ## Configuration And Usage
 
@@ -20,11 +70,31 @@ signature is `createImportSources(runtime, storage, configuration = {})`;
 `ImportSourcesConfiguration` has only optional `maxSizeBytes` and `retentionPolicy`.
 There is no compatibility constructor or overload and no `ImportSources.close()`.
 The same strict subpath exports the caller types `ImportSources`, `ImportSource`,
-and `CreateImportSourceCommand`; storage references and persistence stay private.
+`RegisterImportSourceCommand`, and `CreateImportSourceCommand`; storage references
+and persistence stay private.
 The backend root still constructs only a runtime around PostgreSQL and a logger.
 Apply the existing backend migrations before using the capability, including
-`20260913-import-sources` and `20260913-import-sources-ingestion-link`.
-Storage injection requires no new migration or source records.
+`20260913-import-sources`, `20260913-import-sources-ingestion-link`, and the forward
+`20260914-import-source-scanner` migration. The latter adds nullable scanner
+`source` metadata, preserving historical sources and provenance without inventing
+scanner values for unknown input.
+
+The API calls `register(command: RegisterImportSourceCommand)` with `performedBy`
+taken from the authenticated user, not the request body:
+
+```ts
+const source = await sources.register({
+  source: "nuclei",
+  originalFilename: "scan.jsonl",
+  sizeBytes: 1024,
+  mimeType: "application/x-ndjson",
+  performedBy: userProfileId,
+});
+```
+
+The existing streamed `create` operation remains available to trusted backend
+callers. It creates a separate source with `source: null`; it does not complete an
+HTTP registration or submit an ingestion:
 
 ```ts
 import { createReadStream } from "node:fs";
@@ -80,7 +150,11 @@ lifecycle. Multiple capability instances can share a handle. The composing calle
 must stop all consumers, settle their operations, and finish or destroy returned
 read streams before calling `storage.close()` once. Closing releases SDK
 connections; it does not drain work, delete source bytes, or close PostgreSQL.
-Production API/worker composition and storage startup checks remain deferred.
+The API creates and owns storage in its application lifecycle, closing it after
+HTTP requests and the outbox relay drain, and on startup failure. Startup validates
+configuration only, with no connectivity or bucket probe. Worker storage composition
+remains deferred to ticket 03. See [API storage configuration](deployment.md#api-storage-configuration)
+and [local development](development.md#configure-the-api).
 
 ## Historical References
 
@@ -160,8 +234,8 @@ successful storage and database finalization. A file changing between `stat` and
 reading therefore fails rather than becoming truncated input.
 
 `getByID` returns `null` for unknown identities. Otherwise `ImportSource` metadata
-includes `ingestionId`, `createdBy`, `originalFilename`, `mimeType`, `sizeBytes`, the
-retention snapshot, lifecycle state, and creation/availability/failure/deletion
+includes `ingestionId`, nullable scanner `source`, `createdBy`, `originalFilename`,
+`mimeType`, `sizeBytes`, the retention snapshot, lifecycle state, and creation/availability/failure/deletion
 timestamps. `sizeBytes` is the only size field in the creation command, public
 metadata, and database. For incomplete sources it is the declared byte length;
 successful availability confirms exactly that many bytes were received. Failed
@@ -201,14 +275,15 @@ stays private. Metadata resolution does not promise byte availability: missing
 objects and explicitly deleted bytes do not erase the relationship or provenance.
 
 Ingestion actor and scanner source remain authoritative in `ingestion.createdBy`
-and `ingestion.source` (currently `nuclei`). Source creation attribution and the
-input reference remain in import-source metadata. [Ingestion job data](job-queue.md#ingestion-handoff)
+and `ingestion.source` (currently `nuclei`) once an ingestion exists. Before
+submission, the registered scanner declaration, creator, and input reference live
+in import-source metadata. [Ingestion job data](job-queue.md#ingestion-handoff)
 contains only `{ ingestionId }`, never a duplicate actor/format, bytes, URL, or
 credentials. A future backend ingestion use case will resolve these records;
 there is no processing facade or public standalone link operation in this slice.
 
-The later submission use case must atomically link the source to the ingestion
-and insert its outbox job. Submission validation, processing, execution idempotency,
+Ticket 02's later upload/submission use case must atomically link the source to
+the ingestion and insert its outbox job. Submission validation, processing, execution idempotency,
 and cleanup decisions based on durable ingestion outcomes remain deferred.
 Retention does not enable source reuse across ingestions or reprocessing.
 
@@ -267,8 +342,8 @@ must have finished or been abandoned before requesting cleanup. Crash-abandoned,
 failed, and never-submitted sources still require explicit cleanup.
 
 Successful deletion resolves without a return value. The source record remains
-inspectable through `getByID`, retaining its identity, actor, filename, MIME type,
-`sizeBytes`, retention snapshot, and prior lifecycle timestamps.
+inspectable through `getByID`, retaining its identity, scanner source, actor,
+filename, MIME type, `sizeBytes`, retention snapshot, and prior lifecycle timestamps.
 Only `state`, `deletedAt`, and `cleanupRequired` change to `deleted`, the deletion
 recording time, and `false`. No record or ingestion relationship is removed.
 Subsequent reads fail with `import_source.not_available`.

@@ -8,6 +8,7 @@ This document covers local development setup for ExposureNexus. The root README 
 - `pnpm` 11.21.0
 - PostgreSQL, or Docker with Compose for the provided PostgreSQL 18 stack
 - RabbitMQ with the [jobs topology](job-queue.md#rabbitmq-topology) provisioned
+- Private S3-compatible storage, or the existing Compose VersityGW service
 
 Always use `pnpm` for workspace commands.
 
@@ -19,27 +20,30 @@ pnpm install
 
 ## Start Infrastructure
 
-Create the ignored root `.env` with all eight variables from
+Create the ignored root `.env` with the required broker and storage variables from
 [deployment configuration](deployment.md#compose-configuration). Compose requires
-the two full application URLs even when selecting infrastructure only. Root URLs
-use host `rabbitmq`; local application URLs use `localhost` instead.
+these values even when selecting infrastructure only. Root broker URLs use host
+`rabbitmq`; local application URLs use `localhost` instead.
 
-The consolidated `deployment/docker/docker-compose.yaml` binds PostgreSQL `5432`
-and AMQP `5672` to `127.0.0.1` only. No development override is required.
+The consolidated `deployment/docker/docker-compose.yaml` binds PostgreSQL `5432`,
+AMQP `5672`, and the VersityGW S3 API `7070` to `127.0.0.1` only. No development
+override is required.
 Run from the repository root, in order:
 
 ```bash
-docker compose -f deployment/docker/docker-compose.yaml stop -t 75 worker app
-docker compose -f deployment/docker/docker-compose.yaml up -d --wait postgres rabbitmq
-docker compose -f deployment/docker/docker-compose.yaml run --rm rabbitmq-init
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml stop -t 75 worker app
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml up -d --wait postgres rabbitmq s3
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml run --rm rabbitmq-init
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml run --rm init-s3
 ```
 
-Check that the one-shot init command exits **zero** before starting the local API.
-Broker health alone is insufficient. On failure, correct the reported configuration
-or topology problem and rerun init; do not continue or delete volumes.
+Check that both one-shot init commands exit **zero** before starting the local API.
+Broker health alone is insufficient. `init-s3` checks for the configured private
+bucket and creates it if absent. On failure, correct the configuration or
+provisioning problem and rerun the failed init; do not continue or delete volumes.
 
-Only PostgreSQL, RabbitMQ, and init run in containers for local development. Never
-run an unqualified Compose `up` alongside the local API: it starts a second API and
+Only PostgreSQL, RabbitMQ, S3, and their init services run in containers for local
+development. Never run an unqualified Compose `up` alongside the local API: it starts a second API and
 outbox relay. Explicit `stop` also prevents old `unless-stopped` application
 containers from auto-restarting. Stop any other local API using this database too.
 
@@ -48,7 +52,7 @@ RabbitMQ management remains internal to the Compose network.
 
 ## Configure The API
 
-Create `apps/api/.env`:
+Create ignored `apps/api/.env` using these non-secret placeholders:
 
 ```env
 PORT=3001
@@ -62,6 +66,14 @@ AUTH_TRUSTED_PROXIES=
 DATABASE_URL=postgres://exposurenexus:change-me@localhost:5432/exposurenexus
 RABBITMQ_URL=amqp://api-publisher:replace-with-api-password@localhost:5672/exposurenexus
 RABBITMQ_EXCHANGE=EXPOSURENEXUS_JOBS
+S3_BUCKET=exposurenexus
+S3_REGION=us-east-1
+S3_ACCESS_KEY_ID=replace-with-local-s3-access-key
+S3_SECRET_ACCESS_KEY=replace-with-local-s3-secret
+S3_ENDPOINT=http://localhost:7070
+S3_FORCE_PATH_STYLE=true
+IMPORT_SOURCE_MAX_SIZE_BYTES=104857600
+IMPORT_SOURCE_RETENTION_POLICY=temporary
 STARTUP_TIMEOUT_MS=30000
 SHUTDOWN_TIMEOUT_MS=60000
 ```
@@ -74,6 +86,18 @@ Leave `STATIC_DIR` unset for split local development. Set it to a built UI
 asset directory when the API process should also serve the React app.
 
 If you use a different local database, update `DATABASE_URL` accordingly.
+
+Use the same bucket, region, and static S3 credentials as the root Compose `.env`.
+Only the API endpoint changes from Compose's `http://s3:7070` to
+`http://localhost:7070`. The four bucket/region/credential variables are required
+and nonblank. Path-style addressing is `true` for this local gateway, overriding
+the API default of `false`. See [API storage configuration](deployment.md#api-storage-configuration)
+for optional settings, validation, and non-local storage requirements.
+
+Storage configuration is validated at API startup, without a connectivity or bucket
+probe. A healthy API therefore does not establish S3 reachability or permissions.
+The API owns the storage client and closes it after HTTP and relay drain and on
+startup failure. Worker storage configuration remains ticket 03's responsibility.
 
 On first startup, the API runs backend-owned database migrations automatically and creates a default admin user if the database is empty. The username is `admin`; the initial password is written to the API logs once.
 
@@ -137,6 +161,11 @@ pnpm dev:ui
 
 Open `http://localhost:3000`.
 
+The UI import page remains disabled. Authenticated API callers can
+[register immutable scan-upload metadata](import-sources.md#register-a-scan-upload),
+but registration sends no bytes and creates no ingestion or job. Byte upload and
+submission follow in ticket 02; actual scan processing remains unavailable.
+
 Worker is intentionally connected but idle without a subscription. Logs and exit
 status describe process availability, not processing readiness. Jobs accumulate
 until a complete real handler set ships and activates consumption automatically.
@@ -148,7 +177,7 @@ SIGTERM drain within the default 60-second deadline; expiry exits nonzero. Only 
 stop infrastructure:
 
 ```bash
-docker compose -f deployment/docker/docker-compose.yaml stop postgres rabbitmq
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml stop postgres rabbitmq s3
 ```
 
 This preserves data; do not use `down -v` or delete volumes. See

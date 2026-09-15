@@ -36,7 +36,7 @@ relay role, worker-hosted relay, singleton lock, or leader election. Workers may
 scale independently. See [ADR-0005](adr/0005-worker-runtime-and-deployment-topology.md).
 
 `SIGINT` and `SIGTERM` stop new HTTP and relay work and drain both before closing
-the producer and database. Repeated shutdown requests are safe.
+the producer, API-owned object storage, and database. Repeated shutdown requests are safe.
 `SHUTDOWN_TIMEOUT_MS` defaults to `60000`; expiry logs and forces a nonzero exit
 even if draining or resource closure is still pending. Allow the supervisor more
 than this deadline before forced termination. Shutdown preserves at-least-once
@@ -105,11 +105,14 @@ This is a direct breaking contract replacement with no legacy parser, dual dispa
 backfill, or broker purge; there is no deployed ingestion work requiring compatibility.
 
 This handoff does not create jobs in production or activate ingestion. The HTTP
-import route remains unavailable, and the production worker's handler set remains
-empty. The later submission use case must link the ingestion and its source and
-insert the outbox job in one transaction. Real processing, execution idempotency,
-and retention-based cleanup decisions are still deferred. S3 is not a required
-API or worker startup dependency in this foundation.
+import route now registers immutable scan-upload metadata only, without object I/O,
+an ingestion, or an outbox row. Byte upload and submission follow in ticket 02;
+submission must link the ingestion and its source and insert the outbox job in one
+transaction. The production worker's handler set remains empty. Real processing,
+execution idempotency, and retention-based cleanup decisions are still deferred.
+The API requires valid [S3 configuration](deployment.md#api-storage-configuration)
+at startup without probing connectivity or the bucket; worker storage configuration
+remains ticket 03's responsibility.
 
 ## Confirm-channel Producer
 
@@ -302,17 +305,19 @@ usernames using letters, digits, `_`, `-`, `.`, or `@` (start with a letter,
 digit, `_`, or `-`), and independent strong passwords without control characters.
 With Compose env files, single-quote passwords containing `$` to prevent
 interpolation. Do not commit the env file or print rendered configuration with
-real secrets; use `docker compose -f deployment/docker/docker-compose.yaml config --quiet`
+real secrets; use `docker compose --env-file .env -f deployment/docker/docker-compose.yaml config --quiet`
 from the repository root for validation.
 
 Initialize independently of the application from the repository root:
 
 ```bash
-docker compose -f deployment/docker/docker-compose.yaml up -d --wait rabbitmq
-docker compose -f deployment/docker/docker-compose.yaml run --rm rabbitmq-init
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml up -d --wait rabbitmq
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml run --rm rabbitmq-init
 ```
 
-Both commands also accept Compose's `--env-file` option before the subcommand.
+Use a different private `--env-file` path if needed. The complete Compose file
+requires the [storage variables](deployment.md#compose-configuration) even when
+selecting only broker services.
 The init command exits zero only after provisioning and verification succeed.
 Run it again to reconcile application passwords, permissions, and the retry
 policy. Initialization is bounded and failures exit nonzero with sanitized
