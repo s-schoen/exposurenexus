@@ -1,11 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 
 import {
   authLoginSchema,
   authSessionDataReplySchema,
   authSessionReplySchema,
   authSignOutDataReplySchema,
+  registerImportSourceDataReplySchema,
+  registerImportSourceSchema,
 } from "./index.js";
+
+import type {
+  RegisterImportSource,
+  RegisterImportSourceDataReply,
+} from "@exposurenexus/contracts/api";
 
 const serializedSession = {
   id: "11003daa-67df-40e4-894f-ada5de7bd1be",
@@ -68,5 +75,71 @@ describe("auth API schemas", () => {
       }).success,
     ).toBe(false);
     expect(authSignOutDataReplySchema.safeParse({ revoked: "yes" }).success).toBe(false);
+  });
+});
+
+describe("scan registration API schemas", () => {
+  it("accepts zero-byte Nuclei registration without altering declared metadata", () => {
+    const request = {
+      source: "nuclei",
+      originalFilename: " ../../scan.jsonl ",
+      sizeBytes: 0,
+      mimeType: "unverified scanner metadata",
+    };
+    expect(registerImportSourceSchema.parse(request)).toEqual(request);
+    expectTypeOf<RegisterImportSource>().toEqualTypeOf<{
+      source: "nuclei";
+      originalFilename: string;
+      sizeBytes: number;
+      mimeType?: string;
+    }>();
+  });
+
+  it("requires strict registration metadata and accepts the full nonnegative safe-integer range", () => {
+    const request = { source: "nuclei", originalFilename: "scan.jsonl", sizeBytes: 0 };
+    for (const sizeBytes of [0, 104857600, Number.MAX_SAFE_INTEGER]) {
+      expect(registerImportSourceSchema.parse({ ...request, sizeBytes })).toEqual({
+        ...request,
+        sizeBytes,
+      });
+    }
+    for (const invalid of [
+      null,
+      [],
+      "scan.jsonl",
+      { ...request, source: undefined },
+      { ...request, source: "manual" },
+      { ...request, source: "other-scanner" },
+      { ...request, originalFilename: undefined },
+      { ...request, originalFilename: "" },
+      { ...request, originalFilename: " \t\n\u00a0" },
+      { ...request, originalFilename: 123 },
+      ...[undefined, null, "0", -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1].map(
+        (sizeBytes) => ({ ...request, sizeBytes }),
+      ),
+      { ...request, mimeType: null },
+      { ...request, mimeType: 123 },
+      { ...request, retentionPolicy: "keep" },
+      { ...request, performedBy: user.id },
+    ]) {
+      expect(registerImportSourceSchema.safeParse(invalid).success).toBe(false);
+    }
+  });
+
+  it("returns only a UUIDv4 import-source reference in registration data", () => {
+    const data = { importSourceId: "11003daa-67df-40e4-894f-ada5de7bd1be" };
+    expect(registerImportSourceDataReplySchema.parse(data)).toEqual(data);
+    expectTypeOf<RegisterImportSourceDataReply>().toEqualTypeOf<{ importSourceId: string }>();
+    for (const invalid of [
+      {},
+      { importSourceId: "not-a-uuid" },
+      { importSourceId: "11003daa-67df-50e4-894f-ada5de7bd1be" },
+      { ...data, ingestionId: data.importSourceId },
+      { ...data, jobId: data.importSourceId },
+      { ...data, bucket: "private-input" },
+      { ...data, objectKey: "private-key" },
+    ]) {
+      expect(registerImportSourceDataReplySchema.safeParse(invalid).success).toBe(false);
+    }
   });
 });

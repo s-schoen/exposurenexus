@@ -41,6 +41,7 @@ describe("db migration columns", () => {
       { column_name: "failedAt", is_nullable: "YES" },
       { column_name: "deletedAt", is_nullable: "YES" },
       { column_name: "ingestionId", is_nullable: "YES" },
+      { column_name: "source", is_nullable: "YES" },
     ]);
     const foreignKeys = await sql<{ definition: string }>`
       select pg_get_constraintdef(oid) as definition from pg_constraint
@@ -53,7 +54,7 @@ describe("db migration columns", () => {
     ]);
   });
 
-  it("prevents invalid sizes and false availability in import-source metadata", async () => {
+  it("prevents unsupported scanners, invalid sizes, and false availability in import-source metadata", async () => {
     const actor = await testDb.db
       .insertInto("user_profile")
       .values({
@@ -83,6 +84,25 @@ describe("db migration columns", () => {
         failedAt: null,
         deletedAt: null,
       })
+      .execute();
+    expect(
+      await testDb.db
+        .selectFrom("import_source")
+        .select("source")
+        .where("id", "=", id)
+        .executeTakeFirstOrThrow(),
+    ).toEqual({ source: null });
+    await expect(
+      testDb.db
+        .updateTable("import_source")
+        .set({ source: "manual" as never })
+        .where("id", "=", id)
+        .execute(),
+    ).rejects.toMatchObject({ code: "22P02" });
+    await testDb.db
+      .updateTable("import_source")
+      .set({ source: "nuclei" })
+      .where("id", "=", id)
       .execute();
     for (const sizeBytes of [-1, 0.5, Infinity, NaN, Number.MAX_SAFE_INTEGER + 1]) {
       await expect(

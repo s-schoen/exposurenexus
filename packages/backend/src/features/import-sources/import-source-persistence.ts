@@ -7,7 +7,12 @@ function toMetadata({ bucket: _bucket, objectKey: _objectKey, ...metadata }: Imp
 }
 
 export async function reserve(database: Kysely<Database>, record: ImportSourceTable) {
-  await database.insertInto("import_source").values(record).execute();
+  const reserved = await database
+    .insertInto("import_source")
+    .values(record)
+    .returningAll()
+    .executeTakeFirstOrThrow();
+  return toMetadata(reserved);
 }
 
 export async function finalize(database: Kysely<Database>, id: string) {

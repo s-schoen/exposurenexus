@@ -56,7 +56,7 @@ describe("migration runner", () => {
 
 describe("database migration preservation", () => {
   it(
-    "preserves ingestion and observation provenance without inventing or linking import sources",
+    "preserves historical import sources and provenance without inventing scanners or relationships",
     { timeout: 30_000 },
     async () => {
       const pgLite = new PGlite("memory://");
@@ -147,6 +147,37 @@ describe("database migration preservation", () => {
           .returningAll()
           .executeTakeFirstOrThrow();
 
+        const linkMigration = await migrator.migrateTo("20260913-import-sources-ingestion-link");
+        expect(linkMigration.error).toBeUndefined();
+        expect(await database.selectFrom("import_source").selectAll().execute()).toEqual([
+          { ...source, ingestionId: null },
+        ]);
+        await database
+          .insertInto("import_source")
+          .values([
+            {
+              ...source,
+              id: "00000000-0000-4000-8000-000000000002",
+              objectKey: "import-sources/incomplete",
+              state: "incomplete",
+              availableAt: null,
+              cleanupRequired: true,
+            },
+            {
+              ...source,
+              id: "00000000-0000-4000-8000-000000000003",
+              objectKey: "import-sources/deleted",
+              state: "deleted",
+              deletedAt: new Date("2026-09-13T10:00:00.000Z"),
+              ingestionId: ingestion.id,
+            },
+          ])
+          .execute();
+        const historicalSources = await database
+          .selectFrom("import_source")
+          .selectAll()
+          .orderBy("id")
+          .execute();
         await migrateToLatest(database, pino({ enabled: false }));
 
         expect(await database.selectFrom("ingestion").selectAll().execute()).toEqual([ingestion]);
@@ -154,9 +185,9 @@ describe("database migration preservation", () => {
         expect(await database.selectFrom("observation").selectAll().execute()).toEqual([
           observation,
         ]);
-        expect(await database.selectFrom("import_source").selectAll().execute()).toEqual([
-          { ...source, ingestionId: null },
-        ]);
+        expect(
+          await database.selectFrom("import_source").selectAll().orderBy("id").execute(),
+        ).toEqual(historicalSources.map((record) => ({ ...record, source: null })));
       } finally {
         await database.destroy();
         if (!pgLite.closed) await pgLite.close();
@@ -194,6 +225,7 @@ const expectedMigrationNames = [
   "20260827-job-outbox",
   "20260913-import-sources",
   "20260913-import-sources-ingestion-link",
+  "20260914-import-source-scanner",
 ];
 
 // Forward-only migration history prevents renaming this already-applied file set.
