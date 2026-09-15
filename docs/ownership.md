@@ -61,8 +61,8 @@ Ownership can be cleared explicitly by setting `ownerId` to `null`. Clearing
 ownership means responsibility is unknown; it is distinct from assigning an
 invalid or missing user profile.
 
-Automated scanner import is currently work in progress and returns `501 Not
-Implemented`. Import-time asset ownership behavior is not defined yet.
+The import API registers scan-upload metadata only; it does not process scans or
+change asset ownership. Import-time asset ownership behavior is not defined yet.
 
 ## User Profile Behavior
 
@@ -110,8 +110,8 @@ shown as context, but it is not copied into the finding assignment.
 Manual finding creation may set an assignee explicitly, but the default is
 unassigned.
 
-Assignment behavior for automated imports is not defined while the import
-endpoint remains unavailable.
+Metadata registration does not create or assign findings. Automated scan
+processing remains unavailable.
 
 The first assignment model does not keep dedicated assignment history. The
 normal finding audit fields still show the most recent update metadata, but

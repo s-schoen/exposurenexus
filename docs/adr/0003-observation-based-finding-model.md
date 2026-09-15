@@ -637,7 +637,7 @@ resource. Users correct those finding-owned fields explicitly.
 
 The following describes the intended scanner-import boundary once automated
 persistence and observation-to-finding matching are implemented. The current
-import endpoint remains unavailable.
+import endpoint registers metadata only; it does not submit or process scans.
 
 Imports ingest external observations, not findings directly.
 
@@ -894,8 +894,11 @@ not emit one unlink event per cascaded finding link.
 
 Automated persistence is not enabled until the observation-to-finding matching
 policy is decided. The import page remains visible but clearly marked as work in
-progress and does not submit imports. `POST /api/findings/import` returns `501 Not
-Implemented` during this phase.
+progress and does not submit imports. `POST /api/findings/import` now registers
+immutable scan-upload metadata and returns an import-source ID with `201`, without
+receiving bytes or creating an ingestion or job. Byte upload and submission follow
+in ticket 02; processing is still unavailable. See
+[ADR-0006](0006-s3-backed-import-sources.md#scan-upload-registration).
 
 The model cutover still introduces and tests a source-independent resolver
 contract. It accepts an asset ID and normalized observation draft and returns one

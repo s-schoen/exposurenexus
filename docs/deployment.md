@@ -7,11 +7,17 @@ This guide shows setup for local evaluation with docker compose.
 Both applications require PostgreSQL and initialized RabbitMQ. The consolidated
 `deployment/docker/docker-compose.yaml` includes `postgres`, `rabbitmq`, one-shot
 `rabbitmq-init`, `app` (API and UI), `worker`, `s3`, and one-shot `init-s3`.
-Both roles wait for healthy PostgreSQL and RabbitMQ and successful init completion;
-failed provisioning blocks startup. Worker additionally waits for `app` health after
-API initialization and migrations. This is startup coordination, not an ongoing API
+Both roles wait for healthy PostgreSQL and RabbitMQ and successful broker init;
+failed broker provisioning blocks startup. Worker additionally waits for `app`
+health after API initialization and migrations. This is startup coordination, not an ongoing API
 dependency or callback. Worker migration checks remain read-only and authoritative
 outside Compose too; workers never apply migrations.
+
+The API requires valid S3 configuration, but performs no storage connectivity or
+bucket probe at startup. Compose's existing VersityGW healthcheck and `init-s3`
+provisioning are separate infrastructure steps, not API probes or registration
+startup gates. Worker storage configuration is unchanged and remains deferred to
+ticket 03.
 
 Run **exactly one active API** because it owns the single outbox relay. Use
 stop-before-start upgrades with no replica overlap. There is no separate relay
@@ -28,9 +34,9 @@ dead-letter reconciliation are not implemented. See the
 
 ## Compose Configuration
 
-Create an ignored root `.env` (or pass a private `--env-file` before each Compose
-subcommand) with all eight required variables. These non-secret placeholders must
-be replaced with independent strong passwords:
+Create an ignored root `.env` (or use a private `--env-file` path in the commands
+below) with the required broker and storage variables. These non-secret credential
+placeholders must be replaced with independent strong values:
 
 ```env
 RABBITMQ_PROVISIONER_USER=topology-admin
@@ -41,9 +47,13 @@ RABBITMQ_WORKER_USER=worker-consumer
 RABBITMQ_WORKER_PASSWORD=replace-with-worker-password
 RABBITMQ_API_URL=amqp://api-publisher:replace-with-api-password@rabbitmq:5672/exposurenexus
 RABBITMQ_WORKER_URL=amqp://worker-consumer:replace-with-worker-password@rabbitmq:5672/exposurenexus
+S3_BUCKET=exposurenexus
+S3_REGION=us-east-1
+S3_ACCESS_KEY_ID=replace-with-local-s3-access-key
+S3_SECRET_ACCESS_KEY=replace-with-local-s3-secret
 ```
 
-The last two values are **full URLs**, using the respective provisioned credentials,
+The two `RABBITMQ_*_URL` values are **full URLs**, using the respective provisioned credentials,
 host `rabbitmq`, and vhost `exposurenexus`. Percent-encode username/password URL
 components (for example, `@` as `%40` and `#` as `%23`), not the entire URL or the
 six provisioner credential inputs. Single-quote env-file values containing `$` to
@@ -56,6 +66,54 @@ application database; only `app` receives API-specific configuration. See
 [provisioning details](job-queue.md#reference-initialization) for account restrictions,
 repeatability, and safe credential rotation on existing volumes.
 
+The S3 values are shared by the API, existing VersityGW service, and `init-s3`.
+The initializer creates `S3_BUCKET` if absent; it does not run inside the API.
+Compose defaults the API's `S3_ENDPOINT` to `http://s3:7070` and
+`S3_FORCE_PATH_STYLE` to `true` for this gateway. Local host processes use
+`http://localhost:7070` instead. No storage variables are added to `worker`.
+
+This local-evaluation stack shares gateway root credentials with the API and
+initializer. Do not use that privilege model outside isolated evaluation: provision
+a private bucket and restricted application credentials as described in
+[storage requirements](import-sources.md#storage-requirements), and adapt the
+Compose services and provisioning for that deployment. S3 data resides in the
+existing volumes; do not delete them to repair credentials or configuration.
+
+## API Storage Configuration
+
+These variables configure the API, independently of backend library callers and
+the opt-in `IMPORT_SOURCE_S3_TEST_*` smoke-test variables:
+
+| Variable                         | Requirement / API Default                                     |
+| -------------------------------- | ------------------------------------------------------------- |
+| `S3_BUCKET`                      | Required nonblank private bucket name                         |
+| `S3_REGION`                      | Required nonblank signing region                              |
+| `S3_ACCESS_KEY_ID`               | Required nonblank static access key ID                        |
+| `S3_SECRET_ACCESS_KEY`           | Required nonblank static secret access key                    |
+| `S3_ENDPOINT`                    | Optional HTTP(S) URL; omit for the SDK's regional S3 endpoint |
+| `S3_FORCE_PATH_STYLE`            | `true` or `false` string; default `false`                     |
+| `IMPORT_SOURCE_MAX_SIZE_BYTES`   | Nonnegative safe integer; default `104857600` (100 MiB)       |
+| `IMPORT_SOURCE_RETENTION_POLICY` | `temporary` or `keep`; default `temporary`                    |
+
+The reference Compose stack supplies the local endpoint/path-style overrides above
+and forwards the size and retention settings with their API defaults. Credentials
+are static under the existing storage contract; session tokens and asynchronous
+credential providers are not supported. Keep credentials in private configuration,
+never in requests, responses, jobs, or tracked files. Use HTTPS outside isolated
+local infrastructure.
+
+Missing or invalid configuration fails API startup. Validation does not contact
+storage, verify bucket existence, or establish access permissions. Registration
+performs no object I/O either, so API health and successful registration are not
+storage-readiness checks. The API owns and closes its storage client after HTTP
+and relay drain, and on startup failure. General backend runtime construction and
+the idle worker do not require S3 configuration.
+
+The maximum applies to declared upload size before reservation, including an
+allowed zero-byte declaration. The retention policy is snapshotted into each new
+source, with no per-registration override or retroactive changes. Neither policy
+expires registrations or automatically deletes data.
+
 ## Start The Compose Stack
 
 Both `app` and `worker` select their application entrypoint paths using the same
@@ -64,10 +122,10 @@ in root `.env` to a release tag or digest for both roles. Validate without print
 secrets, then start from the repository root:
 
 ```bash
-docker compose -f deployment/docker/docker-compose.yaml config --quiet
-docker compose -f deployment/docker/docker-compose.yaml up -d --wait
-docker compose -f deployment/docker/docker-compose.yaml ps -a
-docker compose -f deployment/docker/docker-compose.yaml logs rabbitmq-init app worker
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml config --quiet
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml up -d --wait
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml ps -a
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml logs rabbitmq-init init-s3 app worker
 ```
 
 The image serves the React UI and Hono API from one container. API routes remain
@@ -75,7 +133,12 @@ under `/api`; all other browser navigation paths are served by the built UI.
 
 Open `http://localhost:3001`.
 
-Confirm init exited zero and `app` is healthy. Worker is a normal connected idle
+`POST /api/findings/import` now [registers scan-upload metadata](import-sources.md#register-a-scan-upload)
+and returns an import-source ID, not an ingestion or job ID. Byte upload and
+submission follow in ticket 02. Actual scan processing remains unavailable and
+the UI import page remains disabled.
+
+Confirm both init services exited zero and `app` is healthy. Worker is a normal connected idle
 service, not opt-in. It has no subscription, HTTP endpoint, healthcheck command,
 status file, or Compose healthcheck. Monitor structured lifecycle logs and process
 exit status; a running process does not imply processing readiness. Jobs accumulate
@@ -87,7 +150,7 @@ Both applications use `restart: unless-stopped` for unexpected exits and a
 75-second stop grace period around the default 60-second application deadline.
 Init remains one-shot with `restart: "no"`. Application security hardening retains
 the nonroot image, read-only filesystem, dropped capabilities, and no-new-privileges.
-PostgreSQL `5432` and RabbitMQ AMQP `5672` are published on `127.0.0.1` only for
+PostgreSQL `5432`, RabbitMQ AMQP `5672`, and S3 `7070` are published on `127.0.0.1` only for
 [host development](development.md#start-infrastructure); management remains internal.
 
 Before deploying beyond local evaluation, edit `deployment/docker/docker-compose.yaml` and replace
@@ -108,7 +171,9 @@ docker run --env-file worker.env ghcr.io/s-schoen/exposurenexus:edge /app/apps/w
 ```
 
 These examples assume reachable PostgreSQL and pre-provisioned RabbitMQ. Supply
-API configuration in `api.env`. The worker requires `DATABASE_URL` and
+API configuration, including the required S3 variables, in private `api.env`.
+Provision the private bucket separately; the API will not create or probe it.
+The worker requires `DATABASE_URL` and
 `RABBITMQ_URL` (with consumer credentials). `RABBITMQ_QUEUE` optionally overrides
 the default `EXPOSURENEXUS_JOBS_INGEST` queue. It does not require or load API
 authentication, origin, session, or static-serving configuration. See the
@@ -131,10 +196,10 @@ Never scale `app` above one or use rolling API updates. For an application-image
 update, set the new `APP_IMAGE` if needed, then run in order:
 
 ```bash
-docker compose -f deployment/docker/docker-compose.yaml pull app worker
-docker compose -f deployment/docker/docker-compose.yaml stop -t 75 worker app
-docker compose -f deployment/docker/docker-compose.yaml up -d --no-deps --wait app
-docker compose -f deployment/docker/docker-compose.yaml up -d --no-deps worker
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml pull app worker
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml stop -t 75 worker app
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml up -d --no-deps --wait app
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml up -d --no-deps worker
 ```
 
 Proceed only if each command succeeds. These commands assume healthy infrastructure
@@ -148,8 +213,8 @@ The new API must become healthy and finish migrations before workers start.
 Once the stack is healthy, scale workers without touching dependencies or the API:
 
 ```bash
-docker compose -f deployment/docker/docker-compose.yaml up -d --no-deps --scale worker=3 worker
-docker compose -f deployment/docker/docker-compose.yaml logs -f worker
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml up -d --no-deps --scale worker=3 worker
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml logs -f worker
 ```
 
 Workers have no fixed container names, published ports, or relay per replica. Use
@@ -160,15 +225,15 @@ provisioning, and API initialization.
 For graceful shutdown, stop applications before their dependencies:
 
 ```bash
-docker compose -f deployment/docker/docker-compose.yaml stop -t 75 worker app
-docker compose -f deployment/docker/docker-compose.yaml stop postgres rabbitmq s3
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml stop -t 75 worker app
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml stop postgres rabbitmq s3
 ```
 
 SIGTERM (containers) or Ctrl+C/SIGINT (terminals) stops new work and drains active
 work before connections close. Wait for exit; deadline expiry is nonzero and
 unfinished deliveries are not acknowledged. If increasing `SHUTDOWN_TIMEOUT_MS`,
-increase supervisor grace beyond it too. These commands preserve PostgreSQL and
-RabbitMQ data. Do not use `down -v` or delete volumes for updates, shutdown, or
+increase supervisor grace beyond it too. These commands preserve PostgreSQL, RabbitMQ, and
+S3 data. Do not use `down -v` or delete volumes for updates, shutdown, or
 provisioning failures.
 
 ## Image Tags

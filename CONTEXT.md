@@ -327,9 +327,10 @@ changes emit complete previous and current asset snapshots after commit.
 ### Import
 
 An **import** is intended to ingest external observations into ExposureNexus.
-The import endpoint is currently unavailable: the pure Nuclei JSONL translator
-is implemented, but automated persistence and observation-to-finding matching
-are not.
+Scan-upload metadata registration is available, but it is not ingestion
+submission: byte upload and submission remain deferred. The pure Nuclei JSONL
+translator is implemented, but automated persistence and observation-to-finding
+matching are not. The UI import workflow remains disabled.
 
 When enabled, imports will resolve source records against user-managed assets and
 findings. They will not create assets or vulnerability catalog entries. A record
@@ -349,14 +350,22 @@ observations do not belong to ingestions.
 ### Import Source
 
 An **import source** is the raw input artifact for an ingestion, with its own
-identity, creation actor, original filename, optional declared MIME type, size,
-retention policy, and lifecycle metadata. Declared MIME type is caller-supplied
-metadata, not verified content or scanner identity. An import source may exist
-before ingestion and belongs to at most one ingestion;
+identity, creation actor, declared scanner source, original filename, optional
+declared MIME type, size, retention policy, and lifecycle metadata. Registered
+sources declare `nuclei`; historical sources with unknown scanner identity retain
+`null`. Declared MIME type is caller-supplied metadata, not verified content or
+scanner identity. An import source may exist before ingestion and belongs to at
+most one ingestion;
 retaining it does not make it a reusable dataset. Incomplete and deleted sources
 remain identifiable, and deleting raw data preserves provenance and any ingestion
-relationship. Durable source storage and lookup are available; submission and
-automated ingestion processing remain deferred.
+relationship.
+
+Registration reserves an incomplete import source with immutable input metadata
+and the authenticated user profile as creator, without receiving bytes or creating
+an ingestion or job. Its ID is a reference, not an upload credential. Repeated
+registrations are distinct, and unused registrations do not expire. Durable source
+storage and lookup remain available to backend callers; byte upload, ingestion
+submission, and automated processing are not yet available through the application.
 
 An import source's **size** is its single `sizeBytes` value: the declared byte
 length while incomplete, verified when the source becomes available. Failed
@@ -367,13 +376,15 @@ diagnostic.
 
 An import source's **retention policy** expresses whether its raw data
 is intended for cleanup after ingestion (`temporary`) or continued retention
-(`keep`). The policy is recorded when the source is created; later configuration
+(`keep`). The application snapshots its configured policy at registration, with
+`temporary` as the default and no per-upload override; later configuration
 changes do not change existing sources' policies. Retention does not schedule
 cleanup, prevent explicit deletion, or imply immutable evidence. The future
 ingestion workflow must decide when raw input is no longer needed for retries.
 
 See [S3-Backed Import Sources](docs/adr/0006-s3-backed-import-sources.md) for the
-delivered storage and durable-reference foundation and deferred ingestion work.
+delivered registration, storage, and durable-reference foundation and deferred
+ingestion work.
 
 ### Vulnerability Source Mapping
 

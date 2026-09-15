@@ -53,26 +53,27 @@ and caller-facing commands, results, and operation-specific mutation outcomes.
 The runtime keeps database access, logging, and per-runtime memoization private.
 Constructing assets, findings, vulnerabilities, or statistics does not require
 authentication configuration. These factories memoize their capabilities
-independently within the runtime. The library-only `/import-sources` capability uses
+independently within the runtime. The `/import-sources` capability uses
 `createImportSources(runtime, storage, configuration = {})`, borrowing an explicit
 `ObjectStorage` handle and snapshotting its bound bucket and import policy per
 factory call. `ImportSourcesConfiguration` has only optional `maxSizeBytes` and
 `retentionPolicy`; it has no SDK settings. There is no compatibility constructor
-or `ImportSources.close()`. It needs no authentication configuration and is not
-composed by the API or worker yet. See [Import Sources](import-sources.md) for
+or `ImportSources.close()`. The capability needs no authentication configuration;
+the API composes it for metadata registration, while worker composition remains
+deferred. See [Import Sources](import-sources.md) for
 separate real-storage construction and caller-owned shutdown.
 
 Callers use these interfaces:
 
-| Capability      | Interfaces                                                                             |
-| --------------- | -------------------------------------------------------------------------------------- |
-| Identity        | `users`, `roles`, `authorization`                                                      |
-| Authentication  | Credential and session operations                                                      |
-| Assets          | `inventory`, `customFields`                                                            |
-| Findings        | Finding, observation, and catalog-link operations                                      |
-| Vulnerabilities | Vulnerability catalog operations                                                       |
-| Statistics      | Finding statistics                                                                     |
-| Import Sources  | Streamed creation/read, source/ingestion lookup, explicit byte deletion (library only) |
+| Capability      | Interfaces                                                                       |
+| --------------- | -------------------------------------------------------------------------------- |
+| Identity        | `users`, `roles`, `authorization`                                                |
+| Authentication  | Credential and session operations                                                |
+| Assets          | `inventory`, `customFields`                                                      |
+| Findings        | Finding, observation, and catalog-link operations                                |
+| Vulnerabilities | Vulnerability catalog operations                                                 |
+| Statistics      | Finding statistics                                                               |
+| Import Sources  | Metadata registration; library streamed creation/read, lookup, and byte deletion |
 
 Shared infrastructure uses the strict `@exposurenexus/backend/database` and
 `@exposurenexus/backend/object-storage` subpaths. `createObjectStorage(config)`
@@ -80,9 +81,10 @@ constructs a bucket-bound handle without a database, backend runtime, environmen
 lookup, or startup I/O. The composing caller owns its client lifetime and may
 share the handle across capabilities, closing it only after consumers and read
 streams stop. Borrowing capabilities never close storage; `close()` does not drain
-work. No runtime registration or required backend-runtime/application-startup S3
-dependency is introduced. Production storage composition and startup checks remain
-deferred, not enabled by the library capability. See [Object Storage](object-storage.md).
+work. The API requires valid storage configuration at startup, with no connectivity
+or bucket probe, and closes its handle after HTTP and relay drain and on startup
+failure. General backend runtime construction and worker startup do not require S3
+configuration. See [Object Storage](object-storage.md).
 
 There are no wildcard exports or compatibility imports. Repository contracts,
 dependency objects, lookup ports, persistence records, transaction types, and raw
@@ -110,15 +112,16 @@ the import-source feature. It owns SDK access, object I/O, exact-byte counting,
 backpressure, cancellation, and upload settlement. Import sources own provenance,
 metadata, key generation, size/retention policy, finalization, and compensation
 decisions; they translate typed storage failures rather than expose SDK or storage
-error details. `CreateImportSourceCommand`, `ImportSource`, and persisted source
-metadata use one `sizeBytes` field: declared while incomplete and verified when
+error details. `RegisterImportSourceCommand`, `CreateImportSourceCommand`,
+`ImportSource`, and persisted source metadata use one `sizeBytes` field: declared while incomplete and verified when
 availability is established. Import sources enforce `maxSizeBytes` and pass the
 declaration as `ObjectStorageWriteCommand.expectedSizeBytes`, relying on storage's
 exact-write guarantee and failure `reason` without a second feature-owned byte
 counter or observed-size bookkeeping. Storage error `actualSize` remains transient:
 it is known only for fully observed input and is `null` for overruns or interrupted
-input. Import sources do not persist it. The source migration is revised in place;
-the size constraint remains a nonnegative safe integer, with no forward migration.
+input. Import sources do not persist it. The size constraint remains a nonnegative
+safe integer. The forward `20260914-import-source-scanner` migration adds nullable
+scanner `source` metadata, preserving historical input with unknown scanner as `null`.
 
 Import sources reject recorded-bucket mismatches before byte reads or deletes with
 `import_source.bucket_mismatch`, kind `conflict`, and only `{ sourceId: string }`
@@ -160,6 +163,13 @@ Authentication handles credentials and sessions; identity authorization resolves
 current RBAC permissions. API middleware enforces access and owns request
 annotation. See [API Authentication](api-authentication.md).
 
+`POST /api/findings/import` validates strict JSON registration metadata and requires
+authentication, CSRF protection, and `import:write`. It calls import sources'
+`register` with the authenticated user as `performedBy`, leaving reservation and
+policy in backend. The `201` response contains only `importSourceId` in the API
+`data` envelope alongside `correlationId`. No bytes, ingestion, or job are created;
+the ordinary API timeout applies. See [registration](import-sources.md#register-a-scan-upload).
+
 ## Application Errors
 
 Backend throws typed `ApplicationError`s from the package root. The API maps
@@ -183,8 +193,9 @@ the initial admin through identity, then starts serving. It closes the pool on
 startup failure and during shutdown. The runtime does not manage resource
 lifecycle.
 
-The import HTTP endpoint remains unavailable. The worker remains connected but
-idle with no production ingestion handler. It
+The import HTTP endpoint registers metadata only; byte upload and ingestion
+submission follow in ticket 02, and the UI import page remains disabled.
+The worker remains connected but idle with no production ingestion handler. It
 uses an undecorated backend runtime as a trusted system caller and checks required
 migrations without applying them. Source storage and ingestion references do not
 enable submission or processing. Future ingestion orchestration belongs in a high-level

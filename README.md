@@ -10,8 +10,8 @@ observations into asset-centered findings and tracking triage through remediatio
 ## Project Status
 
 ExposureNexus is in early development. The current setup is intended for local evaluation and development, not as a
-production deployment guide. Automated scanner import is work in progress; the import API currently returns `501 Not
-Implemented` without processing uploaded data.
+production deployment guide. Automated scanner import is work in progress; the import API registers scan-upload
+metadata and returns an import-source ID. Byte upload, submission, and scan processing remain unavailable.
 
 ![ExposureNexus dashboard showing finding severity, status, affected assets, and source breakdowns](docs/assets/readme-dashboard.png)
 
@@ -44,14 +44,14 @@ not yet available.
 pnpm install
 ```
 
-Before running applications, follow [Development](docs/development.md) to configure credentials, start PostgreSQL and
-mandatory RabbitMQ, and verify one-shot initialization. Then run `pnpm dev:api`, `pnpm dev:worker`, and `pnpm dev:ui`
+Before running applications, follow [Development](docs/development.md) to configure credentials and API object storage,
+start PostgreSQL and RabbitMQ, and verify one-shot initialization. Then run `pnpm dev:api`, `pnpm dev:worker`, and `pnpm dev:ui`
 in separate terminals, waiting for API startup before starting the worker. The worker is initially connected but idle;
 queued jobs accumulate until real ingestion handlers ship.
 
 ## Deployment
 
-See [Deployment](docs/deployment.md) for the reference Compose stack with PostgreSQL, RabbitMQ, one-shot provisioning,
+See [Deployment](docs/deployment.md) for the reference Compose stack with PostgreSQL, RabbitMQ, private object storage, one-shot provisioning,
 and API/worker roles from one image, including single-API updates, worker scaling, and graceful shutdown.
 
 ## Development
