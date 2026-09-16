@@ -9,6 +9,7 @@ import { runWorker } from "./worker.js";
 
 import type { WorkerDependencies, WorkerHandlers } from "./worker.js";
 import type { BackendRuntime } from "@exposurenexus/backend";
+import type { ObjectStorage } from "@exposurenexus/backend/object-storage";
 import type { Logger } from "pino";
 
 function setup(handlers: WorkerHandlers = {}) {
@@ -27,6 +28,15 @@ function setup(handlers: WorkerHandlers = {}) {
       order.push("database.close");
     }),
   };
+  const storage = {
+    bucket: "scan-inputs",
+    read: vi.fn(),
+    write: vi.fn(),
+    delete: vi.fn(),
+    close: vi.fn(() => {
+      order.push("storage.close");
+    }),
+  } satisfies ObjectStorage;
   const consumer = {
     registerJobHandler: vi.fn(() => {
       order.push("register");
@@ -46,6 +56,10 @@ function setup(handlers: WorkerHandlers = {}) {
   const config = readConfig({
     DATABASE_URL: "postgres://localhost/db",
     RABBITMQ_URL: "amqp://localhost",
+    S3_BUCKET: "scan-inputs",
+    S3_REGION: "us-east-1",
+    S3_ACCESS_KEY_ID: "test-key",
+    S3_SECRET_ACCESS_KEY: "test-secret",
   });
   const dependencies = {
     openDatabase: vi.fn(() => {
@@ -56,7 +70,11 @@ function setup(handlers: WorkerHandlers = {}) {
       order.push("consumer");
       return consumer;
     }),
-    createHandlers: vi.fn((_runtime: BackendRuntime) => {
+    openStorage: vi.fn(() => {
+      order.push("storage");
+      return storage;
+    }),
+    createHandlers: vi.fn((_runtime: BackendRuntime, _storage: ObjectStorage) => {
       order.push("handlers");
       return handlers;
     }),
@@ -68,6 +86,7 @@ function setup(handlers: WorkerHandlers = {}) {
     runtime,
     lifetime,
     database,
+    storage,
     consumer,
     signals,
     log,
@@ -81,12 +100,15 @@ describe("worker lifecycle", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it("initializes in order, remains idle without starting, and closes consumer before database", async () => {
+  it("initializes in order, supports idle handlers, and drains before closing storage and database", async () => {
     const f = setup();
     const worker = f.run();
     expect(await worker.ready).toBe(true);
-    expect(f.order).toEqual(["database", "check", "runtime", "handlers", "consumer"]);
-    expect(f.dependencies.createHandlers).toHaveBeenCalledWith(f.runtime);
+    expect(f.order).toEqual(["database", "check", "storage", "runtime", "handlers", "consumer"]);
+    expect(f.dependencies.createHandlers).toHaveBeenCalledWith(f.runtime, f.storage);
+    expect(f.storage.read).not.toHaveBeenCalled();
+    expect(f.storage.write).not.toHaveBeenCalled();
+    expect(f.storage.delete).not.toHaveBeenCalled();
     expect(f.consumer.start).not.toHaveBeenCalled();
     expect(f.consumer.waitForInitialActivation).not.toHaveBeenCalled();
     expect(f.consumer.registerJobHandler).not.toHaveBeenCalled();
@@ -94,7 +116,7 @@ describe("worker lifecycle", () => {
     await vi.advanceTimersByTimeAsync(60_000);
     expect(f.dependencies.exit).not.toHaveBeenCalled();
     await worker.shutdown();
-    expect(f.order.slice(-2)).toEqual(["consumer.stop", "database.close"]);
+    expect(f.order.slice(-3)).toEqual(["consumer.stop", "storage.close", "database.close"]);
     expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(0);
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -138,10 +160,12 @@ describe("worker lifecycle", () => {
         await vi.advanceTimersByTimeAsync(f.config.SHUTDOWN_TIMEOUT_MS - 1);
         expect(f.dependencies.exit).not.toHaveBeenCalled();
         expect(f.database.close).not.toHaveBeenCalled();
+        expect(f.storage.close).not.toHaveBeenCalled();
         await vi.advanceTimersByTimeAsync(1);
       }
       await worker.stopped;
       expect(f.database.close).toHaveBeenCalledTimes(hung ? 0 : 1);
+      expect(f.storage.close).toHaveBeenCalledTimes(hung ? 0 : 1);
       expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(1);
       expect(f.log.info).not.toHaveBeenCalledWith(
         expect.anything(),
@@ -174,6 +198,7 @@ describe("worker lifecycle", () => {
     await vi.advanceTimersByTimeAsync(1);
     await worker.stopped;
     expect(f.database.close).not.toHaveBeenCalled();
+    expect(f.storage.close).not.toHaveBeenCalled();
     expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(1);
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -205,7 +230,7 @@ describe("worker lifecycle", () => {
     );
     draining.resolve();
     await worker.stopped;
-    expect(f.order.slice(-2)).toEqual(["consumer.stop", "database.close"]);
+    expect(f.order.slice(-3)).toEqual(["consumer.stop", "storage.close", "database.close"]);
     expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(0);
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -226,6 +251,7 @@ describe("worker lifecycle", () => {
   it.each([
     "openDatabase",
     "check",
+    "openStorage",
     "createRuntime",
     "createHandlers",
     "openConsumer",
@@ -237,7 +263,12 @@ describe("worker lifecycle", () => {
     const failure = () => {
       throw new Error("amqp://user:super-secret@host");
     };
-    if (stage === "openDatabase" || stage === "createHandlers" || stage === "openConsumer") {
+    if (
+      stage === "openDatabase" ||
+      stage === "createHandlers" ||
+      stage === "openConsumer" ||
+      stage === "openStorage"
+    ) {
       f.dependencies[stage].mockImplementation(failure);
     } else if (stage === "check" || stage === "createRuntime") {
       f.database[stage].mockImplementation(failure);
@@ -249,6 +280,9 @@ describe("worker lifecycle", () => {
     await worker.stopped;
     expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(1);
     expect(f.database.close).toHaveBeenCalledTimes(stage === "openDatabase" ? 0 : 1);
+    expect(f.storage.close).toHaveBeenCalledTimes(
+      stage === "openDatabase" || stage === "check" || stage === "openStorage" ? 0 : 1,
+    );
     expect(f.consumer.stop).toHaveBeenCalledTimes(
       stage === "registerJobHandler" || stage === "start" || stage === "waitForInitialActivation"
         ? 1
@@ -288,7 +322,7 @@ describe("worker lifecycle", () => {
     expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(0);
   });
 
-  it.each(["database", "handlers"] as const)(
+  it.each(["database", "storage", "handlers"] as const)(
     "does not advance startup after a signal inside %s construction",
     async (stage) => {
       const f = setup();
@@ -296,6 +330,11 @@ describe("worker lifecycle", () => {
         f.dependencies.openDatabase.mockImplementation(() => {
           f.signals.emit("SIGTERM");
           return f.database;
+        });
+      } else if (stage === "storage") {
+        f.dependencies.openStorage.mockImplementation(() => {
+          f.signals.emit("SIGTERM");
+          return f.storage;
         });
       } else {
         f.dependencies.createHandlers.mockImplementation(() => {
@@ -309,6 +348,7 @@ describe("worker lifecycle", () => {
       if (stage === "database") expect(f.database.check).not.toHaveBeenCalled();
       expect(f.dependencies.openConsumer).not.toHaveBeenCalled();
       expect(f.database.close).toHaveBeenCalledOnce();
+      expect(f.storage.close).toHaveBeenCalledTimes(stage === "database" ? 0 : 1);
       expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(0);
     },
   );
@@ -339,11 +379,11 @@ describe("worker lifecycle", () => {
     connecting.resolve(f.consumer);
     await worker.stopped;
     expect(f.consumer.start).not.toHaveBeenCalled();
-    expect(f.order.slice(-2)).toEqual(["consumer.stop", "database.close"]);
+    expect(f.order.slice(-3)).toEqual(["consumer.stop", "storage.close", "database.close"]);
     expect(await worker.ready).toBe(false);
   });
 
-  it("retains database resources until active work drains", async () => {
+  it("retains storage and database resources until active work drains", async () => {
     const f = setup();
     const draining = deferred();
     f.consumer.stop.mockReturnValue(draining.promise);
@@ -353,9 +393,11 @@ describe("worker lifecycle", () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(f.consumer.stop).toHaveBeenCalledOnce();
     expect(f.database.close).not.toHaveBeenCalled();
+    expect(f.storage.close).not.toHaveBeenCalled();
     draining.resolve();
     await worker.stopped;
     expect(f.database.close).toHaveBeenCalledOnce();
+    expect(f.storage.close).toHaveBeenCalledOnce();
   });
 
   it.each([
@@ -383,11 +425,15 @@ describe("worker lifecycle", () => {
     await worker.stopped;
     expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(1);
     expect(f.log.fatal).toHaveBeenCalledWith(expect.stringContaining("deadline expired"));
-    if (blocked !== "pending close") expect(f.database.close).not.toHaveBeenCalled();
+    if (blocked !== "pending close") {
+      expect(f.database.close).not.toHaveBeenCalled();
+      expect(f.storage.close).not.toHaveBeenCalled();
+    }
     pending.resolve();
     connecting.resolve(f.consumer);
     await vi.advanceTimersByTimeAsync(0);
     expect(f.dependencies.exit).toHaveBeenCalledOnce();
+    if (blocked !== "pending close") expect(f.storage.close).not.toHaveBeenCalled();
     if (blocked === "pending check" || blocked === "pending acquisition") {
       expect(f.log.info).not.toHaveBeenCalledWith(
         expect.anything(),
@@ -455,5 +501,19 @@ describe("worker lifecycle", () => {
     await worker.shutdown();
     expect(f.database.close).toHaveBeenCalledOnce();
     expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(1);
+  });
+
+  it("still closes the database if storage close fails without exposing credentials", async () => {
+    const f = setup();
+    f.storage.close.mockImplementation(() => {
+      throw new Error("storage-secret");
+    });
+    const worker = f.run();
+    await worker.ready;
+    await worker.shutdown();
+    expect(f.storage.close).toHaveBeenCalledOnce();
+    expect(f.database.close).toHaveBeenCalledOnce();
+    expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(1);
+    expect(f.log.error).toHaveBeenCalledExactlyOnceWith("worker storage shutdown failed");
   });
 });
