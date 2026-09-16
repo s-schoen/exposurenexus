@@ -49,6 +49,10 @@
     "./import-sources": {
       "types": "./dist/features/import-sources/index.d.ts",
       "import": "./dist/features/import-sources/index.js"
+    },
+    "./ingestions": {
+      "types": "./dist/features/ingestions/index.d.ts",
+      "import": "./dist/features/ingestions/index.js"
     }
   },
   "scripts": {
