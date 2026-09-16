@@ -2,6 +2,7 @@ import { JobType } from "@exposurenexus/jobs";
 
 import type { WorkerConfig } from "./env.js";
 import type { BackendRuntime } from "@exposurenexus/backend";
+import type { ObjectStorage } from "@exposurenexus/backend/object-storage";
 import type { JobEventType } from "@exposurenexus/jobs";
 import type { JobConsumer, JobHandler } from "@exposurenexus/jobs/consumer";
 import type { Logger } from "pino";
@@ -16,8 +17,9 @@ export interface WorkerDatabase {
 
 export interface WorkerDependencies {
   openDatabase(): WorkerDatabase;
+  openStorage(): ObjectStorage;
   openConsumer(): Promise<JobConsumer>;
-  createHandlers(runtime: BackendRuntime): WorkerHandlers;
+  createHandlers(runtime: BackendRuntime, storage: ObjectStorage): WorkerHandlers;
   signals: {
     on(signal: "SIGINT" | "SIGTERM", listener: () => void): unknown;
     removeListener(signal: "SIGINT" | "SIGTERM", listener: () => void): unknown;
@@ -27,6 +29,7 @@ export interface WorkerDependencies {
 
 export function runWorker(config: WorkerConfig, logger: Logger, dependencies: WorkerDependencies) {
   let database: WorkerDatabase | undefined;
+  let storage: ObjectStorage | undefined;
   let consumer: JobConsumer | undefined;
   let stopping = false;
   let finished = false;
@@ -68,11 +71,17 @@ export function runWorker(config: WorkerConfig, logger: Logger, dependencies: Wo
         await consumer?.stop();
       } catch {
         logger.error("worker consumer shutdown failed");
-        // Drain is not known to have completed; retain the database until forced exit.
+        // Drain is not known to have completed; retain storage and database until forced exit.
         exitCode = 1;
         return;
       }
       if (finished) return;
+      try {
+        storage?.close();
+      } catch {
+        exitCode = 1;
+        logger.error("worker storage shutdown failed");
+      }
       try {
         await database?.close();
       } catch {
@@ -106,8 +115,11 @@ export function runWorker(config: WorkerConfig, logger: Logger, dependencies: Wo
       stage = "database connectivity and migrations";
       await database.check();
       if (stopping) return;
+      stage = "storage initialization";
+      storage = dependencies.openStorage();
+      if (stopping) return;
       stage = "backend runtime and handlers";
-      const handlers = dependencies.createHandlers(database.createRuntime());
+      const handlers = dependencies.createHandlers(database.createRuntime(), storage);
       if (stopping) return;
       const declared = Object.values(JobType);
       const implemented = Object.keys(handlers);

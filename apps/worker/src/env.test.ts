@@ -5,6 +5,10 @@ import { readConfig } from "./env.js";
 const required = {
   DATABASE_URL: "postgresql://user:secret@localhost/app",
   RABBITMQ_URL: "amqp://worker:secret@localhost/jobs",
+  S3_BUCKET: "scan-inputs",
+  S3_REGION: "us-east-1",
+  S3_ACCESS_KEY_ID: "test-key",
+  S3_SECRET_ACCESS_KEY: "test-secret",
 };
 
 describe("worker configuration", () => {
@@ -24,6 +28,7 @@ describe("worker configuration", () => {
       RABBITMQ_QUEUE: "EXPOSURENEXUS_JOBS_INGEST",
       SHUTDOWN_TIMEOUT_MS: 60_000,
       STARTUP_TIMEOUT_MS: 30_000,
+      S3_FORCE_PATH_STYLE: false,
     });
   });
 
@@ -50,6 +55,12 @@ describe("worker configuration", () => {
     { RABBITMQ_URL: "https://worker:do-not-log@localhost" },
     { LOG_LEVEL: "do-not-log" },
     { RABBITMQ_QUEUE: "   " },
+    { S3_BUCKET: "   " },
+    { S3_REGION: "" },
+    { S3_ACCESS_KEY_ID: "   " },
+    { S3_SECRET_ACCESS_KEY: "" },
+    { S3_ENDPOINT: "ftp://do-not-log@host" },
+    { S3_FORCE_PATH_STYLE: "do-not-log" },
   ])("rejects invalid settings without exposing input values", (invalid) => {
     expect(() => readConfig({ ...required, ...invalid })).toThrow("Invalid worker configuration:");
     try {
@@ -57,5 +68,20 @@ describe("worker configuration", () => {
     } catch (error) {
       expect(String(error)).not.toContain("do-not-log");
     }
+  });
+
+  it("reads optional storage settings without trimming credentials", () => {
+    expect(
+      readConfig({
+        ...required,
+        S3_ENDPOINT: "http://localhost:7070",
+        S3_FORCE_PATH_STYLE: "true",
+        S3_SECRET_ACCESS_KEY: " secret with whitespace ",
+      }),
+    ).toMatchObject({
+      S3_ENDPOINT: "http://localhost:7070",
+      S3_FORCE_PATH_STYLE: true,
+      S3_SECRET_ACCESS_KEY: " secret with whitespace ",
+    });
   });
 });

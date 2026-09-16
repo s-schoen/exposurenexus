@@ -8,6 +8,15 @@ const schema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   SHUTDOWN_TIMEOUT_MS: milliseconds.default(60_000),
   STARTUP_TIMEOUT_MS: milliseconds.default(30_000),
+  S3_BUCKET: z.string().trim().min(1),
+  S3_REGION: z.string().trim().min(1),
+  S3_ACCESS_KEY_ID: z.string().regex(/\S/u),
+  S3_SECRET_ACCESS_KEY: z.string().regex(/\S/u),
+  S3_ENDPOINT: z.url({ protocol: /^https?$/ }).optional(),
+  S3_FORCE_PATH_STYLE: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
 });
 
 export type WorkerConfig = z.output<typeof schema>;
