@@ -8,8 +8,9 @@ consumer.
 
 As established by [ADR-0004](adr/0004-shared-backend-capabilities.md),
 `@exposurenexus/backend/database` owns application migrations and the aggregate
-database type. Its narrow dependency on `@exposurenexus/jobs/postgres` supplies
-the jobs table contract; the application migration lives in backend. The API runs backend migrations during
+database type. Backend's narrow jobs dependency includes the event contract,
+`JobService`, and transaction-bound PostgreSQL persistence for atomic outbox
+creation; the application migration lives in backend. The API runs backend migrations during
 startup; the worker only verifies that required migrations have been applied.
 
 Executable apps own connection lifecycle and jobs infrastructure composition.
@@ -18,7 +19,7 @@ apps and the jobs package. Backend capability callers do not gain repository
 or transaction access through this integration. The API hosts the producer and
 one outbox relay. The worker maintains its consumer connection but remains idle
 without implemented handlers. The package examples below describe queue
-primitives, not an implemented ingestion workflow.
+primitives; ingestion submission is implemented, but processing remains deferred.
 
 ## API Lifecycle And Deployment
 
@@ -36,7 +37,9 @@ relay role, worker-hosted relay, singleton lock, or leader election. Workers may
 scale independently. See [ADR-0005](adr/0005-worker-runtime-and-deployment-topology.md).
 
 `SIGINT` and `SIGTERM` stop new HTTP and relay work and drain both before closing
-the producer, API-owned object storage, and database. Repeated shutdown requests are safe.
+the producer, API-owned object storage, and database. Upload work is tracked
+independently of socket lifetime, cancelled and awaited before storage or database
+closure. Repeated shutdown requests are safe.
 `SHUTDOWN_TIMEOUT_MS` defaults to `60000`; expiry logs and forces a nonzero exit
 even if draining or resource closure is still pending. Allow the supervisor more
 than this deadline before forced termination. Shutdown preserves at-least-once
@@ -80,8 +83,8 @@ not a new publication attempt.
 
 Deployments must supervise the API-owned producer and relay, guarantee the
 single-relay restriction, and separately operate the RabbitMQ topology described
-below. Automated ingestion submission and dead-letter-queue reconciliation
-remain unimplemented.
+below. Ingestion submission uses this outbox; worker processing and
+dead-letter-queue reconciliation remain unimplemented.
 
 ## Ingestion Handoff
 
@@ -102,14 +105,31 @@ See [Import Sources](import-sources.md#ingestion-references).
 The former `userid`, `ingestdataurl`, and `format` fields are rejected, as are all
 other extra fields. No file bytes, URLs, or storage credentials belong in job data.
 This is a direct breaking contract replacement with no legacy parser, dual dispatch,
-backfill, or broker purge; there is no deployed ingestion work requiring compatibility.
+backfill, or broker purge; no deployed ingestion work required compatibility at replacement.
 
-This handoff does not create jobs in production or activate ingestion. The HTTP
-import route now registers immutable scan-upload metadata only, without object I/O,
-an ingestion, or an outbox row. Byte upload and submission follow in ticket 02;
-submission must link the ingestion and its source and insert the outbox job in one
-transaction. The production worker's handler set remains empty. Real processing,
-execution idempotency, and retention-based cleanup decisions are still deferred.
+`POST /api/findings/import` registers immutable metadata without bytes, an ingestion,
+or a job. The creator's one-shot
+`PUT /api/findings/import/:importSourceId/content` stores and verifies the raw input,
+then atomically creates the ingestion, links the available unlinked source, and
+inserts the outbox job in one backend transaction. The high-level
+`createIngestions(runtime, importSources)` capability owns upload and submission;
+it uses `JobService` with a transaction-bound jobs repository, not a producer.
+
+HTTP `202` returns `{ importSourceId, ingestionId, jobId }` in the API `data`
+envelope only after durable storage and transaction success. It does not promise
+broker publication, execution, or imported observations; relay publication
+failures retain the existing finite retry behavior. The production worker's handler
+set remains empty until ticket 03, so accepted jobs may wait in the queue. Real
+processing, execution idempotency, and retention-based cleanup remain deferred.
+
+Every claimed upload ID is permanently consumed, including after failure or
+cancellation; unused registrations never expire. A later submission failure or
+ambiguous commit never deletes durably available input and logs its safe source ID.
+Recovery requires a new registration and upload. Unlike relay redelivery with a
+stable job ID, recovery from an ambiguous HTTP response can create a separate
+submission and job: there is no request deduplication or same-ID upload retry.
+See the [upload contract](import-sources.md#upload-and-submit).
+
 The API requires valid [S3 configuration](deployment.md#api-storage-configuration)
 at startup without probing connectivity or the bucket; worker storage configuration
 remains ticket 03's responsibility.
@@ -206,7 +226,7 @@ const consumer = await createJobConsumer({
 });
 
 consumer.registerJobHandler(JobType.INGESTION, async (event) => {
-  // Demonstration only; the real backend ingestion use case is not implemented.
+  // Demonstration only; real ingestion processing is not implemented.
   console.log(`Job ${event.id} identifies ingestion ${event.data.ingestionId}`);
 });
 

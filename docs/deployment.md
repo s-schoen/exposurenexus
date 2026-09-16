@@ -84,19 +84,20 @@ existing volumes; do not delete them to repair credentials or configuration.
 These variables configure the API, independently of backend library callers and
 the opt-in `IMPORT_SOURCE_S3_TEST_*` smoke-test variables:
 
-| Variable                         | Requirement / API Default                                     |
-| -------------------------------- | ------------------------------------------------------------- |
-| `S3_BUCKET`                      | Required nonblank private bucket name                         |
-| `S3_REGION`                      | Required nonblank signing region                              |
-| `S3_ACCESS_KEY_ID`               | Required nonblank static access key ID                        |
-| `S3_SECRET_ACCESS_KEY`           | Required nonblank static secret access key                    |
-| `S3_ENDPOINT`                    | Optional HTTP(S) URL; omit for the SDK's regional S3 endpoint |
-| `S3_FORCE_PATH_STYLE`            | `true` or `false` string; default `false`                     |
-| `IMPORT_SOURCE_MAX_SIZE_BYTES`   | Nonnegative safe integer; default `104857600` (100 MiB)       |
-| `IMPORT_SOURCE_RETENTION_POLICY` | `temporary` or `keep`; default `temporary`                    |
+| Variable                          | Requirement / API Default                                           |
+| --------------------------------- | ------------------------------------------------------------------- |
+| `S3_BUCKET`                       | Required nonblank private bucket name                               |
+| `S3_REGION`                       | Required nonblank signing region                                    |
+| `S3_ACCESS_KEY_ID`                | Required nonblank static access key ID                              |
+| `S3_SECRET_ACCESS_KEY`            | Required nonblank static secret access key                          |
+| `S3_ENDPOINT`                     | Optional HTTP(S) URL; omit for the SDK's regional S3 endpoint       |
+| `S3_FORCE_PATH_STYLE`             | `true` or `false` string; default `false`                           |
+| `IMPORT_SOURCE_MAX_SIZE_BYTES`    | Nonnegative safe integer; default `104857600` (100 MiB)             |
+| `IMPORT_SOURCE_RETENTION_POLICY`  | `temporary` or `keep`; default `temporary`                          |
+| `IMPORT_SOURCE_UPLOAD_TIMEOUT_MS` | Positive bounded integer milliseconds; default `300000` (5 minutes) |
 
 The reference Compose stack supplies the local endpoint/path-style overrides above
-and forwards the size and retention settings with their API defaults. Credentials
+and forwards the size, retention, and upload-timeout settings with their API defaults. Credentials
 are static under the existing storage contract; session tokens and asynchronous
 credential providers are not supported. Keep credentials in private configuration,
 never in requests, responses, jobs, or tracked files. Use HTTPS outside isolated
@@ -105,14 +106,57 @@ local infrastructure.
 Missing or invalid configuration fails API startup. Validation does not contact
 storage, verify bucket existence, or establish access permissions. Registration
 performs no object I/O either, so API health and successful registration are not
-storage-readiness checks. The API owns and closes its storage client after HTTP
-and relay drain, and on startup failure. General backend runtime construction and
-the idle worker do not require S3 configuration.
+storage-readiness checks. The API owns and closes its storage client after HTTP,
+tracked upload work, and relay settlement, and on startup failure. General backend
+runtime construction and the idle worker do not require S3 configuration.
 
-The maximum applies to declared upload size before reservation, including an
-allowed zero-byte declaration. The retention policy is snapshotted into each new
-source, with no per-registration override or retroactive changes. Neither policy
+The maximum applies to declared upload size before reservation and again at upload,
+including an allowed zero-byte declaration. The retention policy is snapshotted
+into each new source, with no per-registration override or retroactive changes. Neither policy
 expires registrations or automatically deletes data.
+
+## Upload Deadlines And Recovery
+
+`IMPORT_SOURCE_UPLOAD_TIMEOUT_MS` applies only to the raw-body
+`PUT /api/findings/import/:importSourceId/content`, with a five-minute default.
+Set it in the API environment or root Compose `.env`, for example:
+
+```env
+IMPORT_SOURCE_UPLOAD_TIMEOUT_MS=300000
+```
+
+Registration (`POST /api/findings/import`) and ordinary requests retain
+`API_TIMEOUT_MS`, default `5000`. Upload middleware aborts on deadline or
+disconnection, awaits transfer settlement, and prevents submission that has not
+begun instead of leaving an upload running after a timeout response. The HTTP
+server sets `requestTimeout` to the upload deadline plus `60000` ms to allow for
+Node's default header-receipt budget before the application timer starts;
+`headersTimeout` retains its existing default. Configure any reverse proxy's body-size limit and upload/request
+timeouts to accommodate the chosen size and deadline, with room for cancellation
+settlement, rather than cutting off uploads at an ordinary API timeout.
+
+Upload work is tracked independently of socket lifetime. Shutdown cancels and
+awaits it before storage and database close, including work from disconnected
+clients. The existing `SHUTDOWN_TIMEOUT_MS` still bounds the whole shutdown; a
+five-minute upload deadline does not extend the default 60-second shutdown grace.
+The supervisor grace must remain longer than the shutdown deadline.
+
+Unused registrations never expire. A durably claimed upload ID is permanently
+consumed, including after transfer failure, cancellation, crash, or cleanup; later
+PUTs receive `409`. Failed or incomplete transfers remain unavailable and receive
+best-effort compensation, with unresolved cleanup recorded. Once the source is
+durably available, later abort, submission failure, or ambiguous commit never
+triggers byte deletion. Submission failures log only the safe source ID for diagnosis,
+not storage references, credentials, or raw external errors.
+
+Recover with a new registration and upload, not by retrying the consumed ID or
+resetting its marker. A lost response can hide a committed submission; there is no
+request deduplication, so starting over may produce a separate, duplicate ingestion
+and job. There is no status endpoint, automatic retry of the upload, expiry, or
+automatic cleanup. Neither `temporary` retention nor a timeout guarantees orphan
+reclamation. See [Import Sources](import-sources.md#failures-and-retention) for
+diagnosis and explicit library cleanup safeguards; existing relay publication
+retry behavior is unchanged.
 
 ## Start The Compose Stack
 
@@ -134,16 +178,20 @@ under `/api`; all other browser navigation paths are served by the built UI.
 Open `http://localhost:3001`.
 
 `POST /api/findings/import` now [registers scan-upload metadata](import-sources.md#register-a-scan-upload)
-and returns an import-source ID, not an ingestion or job ID. Byte upload and
-submission follow in ticket 02. Actual scan processing remains unavailable and
-the UI import page remains disabled.
+and returns an import-source ID, not an ingestion or job ID. The creator then sends
+raw bytes once to `PUT /api/findings/import/:importSourceId/content`, retaining
+current `import:write` permission and CSRF protection. Its `202` response contains
+`{ importSourceId, ingestionId, jobId }` in `data` only after durable storage and one
+transaction creates the ingestion, source link, and outbox job. This is acceptance,
+not successful publication, processing, or imported observations. Actual scan
+processing remains unavailable until ticket 03 and the UI import page remains disabled.
 
 Confirm both init services exited zero and `app` is healthy. Worker is a normal connected idle
 service, not opt-in. It has no subscription, HTTP endpoint, healthcheck command,
 status file, or Compose healthcheck. Monitor structured lifecycle logs and process
 exit status; a running process does not imply processing readiness. Jobs accumulate
 until a complete real handler set ships and enables consumption automatically,
-without an operator flag. Real ingestion, execution-state orchestration, and
+without an operator flag. Processing, execution-state orchestration, and
 business idempotency remain future work.
 
 Both applications use `restart: unless-stopped` for unexpected exits and a
@@ -230,7 +278,9 @@ docker compose --env-file .env -f deployment/docker/docker-compose.yaml stop pos
 ```
 
 SIGTERM (containers) or Ctrl+C/SIGINT (terminals) stops new work and drains active
-work before connections close. Wait for exit; deadline expiry is nonzero and
+work before connections close. The API also cancels and awaits tracked uploads,
+including those whose sockets have disconnected, before closing storage or the
+database. Wait for exit; deadline expiry is nonzero and
 unfinished deliveries are not acknowledged. If increasing `SHUTDOWN_TIMEOUT_MS`,
 increase supervisor grace beyond it too. These commands preserve PostgreSQL, RabbitMQ, and
 S3 data. Do not use `down -v` or delete volumes for updates, shutdown, or

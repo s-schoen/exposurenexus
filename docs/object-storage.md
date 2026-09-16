@@ -27,6 +27,7 @@ interface ObjectStorageWriteCommand {
   key: string;
   body: Readable;
   expectedSizeBytes: number;
+  signal?: AbortSignal;
 }
 
 interface ObjectStorage {
@@ -83,6 +84,9 @@ there is no upload metadata result. Short input at EOF and in-flight overruns fa
 On failure, storage cancels the upload, destroys the relevant streams (including
 blocked input), and awaits local pipeline and upload settlement before rejecting.
 Non-byte chunks and input interruption are transfer failures.
+
+An optional `signal` cancels both the pipeline and S3 request, including while
+waiting for S3 after input EOF. A cancelled write settles both before rejecting.
 
 Failures use the shared `ApplicationError` contract, with safe messages and details
 rather than credentials or raw SDK exceptions in operation rejections:
@@ -151,13 +155,14 @@ Already-deleted deletion remains a no-op and unavailable reads still reject as
 `import_source.not_available`. Metadata lookup by source or ingestion ID remains
 independent of the bound bucket. No registry or historical routing is provided.
 
-The API composes storage for import-source metadata registration and requires valid
+The API composes storage for registration and one-shot byte upload and requires valid
 [storage configuration](deployment.md#api-storage-configuration) at startup, without
 a connectivity or bucket probe. Registration itself performs no object I/O. The
-API closes storage after HTTP and relay drain, and on startup failure. Storage is
+API cancels and settles tracked uploads before closing storage after HTTP and
+relay drain, and on startup failure. Storage is
 not a general backend-runtime dependency; worker composition remains deferred and
-the worker stays connected but idle. Byte upload and ingestion submission follow
-in ticket 02; actual scan processing is still unavailable.
+the worker stays connected but idle. Upload durably accepts an ingestion and outbox
+job, but actual scan processing is still unavailable.
 See [Import Sources](import-sources.md) for executable usage and the deliberate
 [ADR-0006 refinement](adr/0006-s3-backed-import-sources.md#reusable-storage-refinement).
 

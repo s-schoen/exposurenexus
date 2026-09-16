@@ -1,9 +1,11 @@
 # Import Sources
 
-The API registers scan-upload metadata through `POST /api/findings/import`.
-Registration reserves an import source without receiving file bytes or submitting
-an ingestion. Byte upload and submission follow in scan-import ticket 02; actual
-scan processing is still unavailable, and the UI import page remains disabled.
+The API accepts scans in two requests: register immutable metadata through
+`POST /api/findings/import`, then send raw bytes once through
+`PUT /api/findings/import/:importSourceId/content`. The second request stores the
+input and durably submits an ingestion and outbox job without a third request.
+Acceptance is not processing: the worker remains idle until scan-import ticket 03,
+no imported observations are created, and the UI import page remains disabled.
 
 The shared backend also provides streamed creation, reading, metadata lookup, and
 explicit byte deletion while preserving provenance. These remain library operations,
@@ -50,18 +52,83 @@ Success returns HTTP `201` in the existing API envelope:
 ```
 
 The source starts `incomplete` with `ingestionId: null`, the authenticated user
-profile as `createdBy`, immutable input metadata, a retention-policy snapshot, and
-an internally generated private bucket/key reference. Registration performs no
-object I/O and creates no ingestion, outbox row, or job. It retains the ordinary
+profile as `createdBy`, `uploadStartedAt: null`, immutable input metadata, a
+retention-policy snapshot, and an internally generated private bucket/key reference.
+Registration performs no object I/O and creates no ingestion, outbox row, or job. It retains the ordinary
 `API_TIMEOUT_MS` deadline, not a binary-upload deadline.
 
-The returned ID is a reference, not a bearer upload credential. Ticket 02 will
-restrict byte upload to this creator with current `import:write` permission, using
-the already registered metadata. There is no edit endpoint, idempotency key,
+The returned ID is a reference, not a bearer upload credential. Byte upload is
+restricted to this creator with current `import:write` permission, using the
+already registered metadata. There is no edit endpoint, idempotency key,
 registration deduplication, expiry, cleanup job, listing, status, or download
 endpoint. Repeated valid registrations create distinct sources. Neither
 `temporary` nor `keep` triggers automatic deletion, and callers cannot override
 the configured retention policy per registration.
+
+## Upload And Submit
+
+Send the file itself as the raw body of
+`PUT /api/findings/import/:importSourceId/content`, not multipart form data or a
+JSON wrapper. The authenticated creator must still have current `import:write`
+permission and satisfy the same CSRF protections as registration. Unknown sources
+and unauthorized callers are rejected before claiming an attempt or accessing
+object bytes.
+
+The registered scanner source, filename, MIME type, size, creator, and retention
+policy remain authoritative; upload headers or body cannot override them. Optional
+`Content-Length` must equal the registered `sizeBytes`, or validation rejects the
+request before a claim or storage write. Without that header, including chunked
+transport, storage still knows the registered size and verifies exactly that many
+bytes through EOF. The configured size limit also applies at upload. Zero-byte
+input is valid for a zero-byte registration. There is no whole-file buffering,
+JSONL parsing, scanner inference from MIME type, or scan-content validation.
+
+Before writing the private storage key, the backend atomically and durably sets
+`uploadStartedAt` once on an eligible unused registration. No database transaction
+stays open during the transfer. Concurrent losers and all later uploads receive
+`409`, without writing or compensating the winning request's bytes. The marker
+survives success, failure, cancellation, crashes, and cleanup; available, failed,
+or deleted sources cannot be overwritten. Pre-claim authentication and validation
+failures do not consume an attempt. Unused registrations never expire, while a
+claimed registration is never reusable.
+
+Only after exact-byte storage and durable source availability succeed does one
+database transaction create the ingestion, link the available unlinked source,
+and create its outbox job. A failed transfer creates none of them; a rolled-back
+transaction leaves no partial ingestion, link, or job. Success returns HTTP `202`:
+
+```json
+{
+  "correlationId": "request-correlation-id",
+  "data": {
+    "importSourceId": "550e8400-e29b-41d4-a716-446655440000",
+    "ingestionId": "550e8400-e29b-41d4-a716-446655440001",
+    "jobId": "550e8400-e29b-41d4-a716-446655440002"
+  }
+}
+```
+
+This promises durable acceptance, not broker publication, worker execution, or
+imported observations. The existing API relay publishes the job asynchronously;
+accepted jobs may wait in the queue until ticket 03 activates processing.
+
+The upload request uses `IMPORT_SOURCE_UPLOAD_TIMEOUT_MS` (default `300000`, five
+minutes), separate from ordinary `API_TIMEOUT_MS` (default `5000`), which still
+applies to registration. On deadline or disconnection, middleware aborts the
+transfer, awaits settlement, and prevents submission that has not begun; it does
+not return a timeout while leaving the transfer running. Cancellation cannot
+retract a committed transaction. The HTTP server's `requestTimeout` is the upload
+deadline plus `60000` ms to allow for Node's default header-receipt budget before
+the application timer starts; `headersTimeout` retains its existing default. See
+[operator guidance](deployment.md#upload-deadlines-and-recovery) for shutdown and proxy configuration.
+
+Once the source is durably available, a later abort, submission failure, or lost
+response never triggers byte deletion, including an ambiguous database commit.
+Submission failure logs the safe source ID for diagnosis. Recovery requires a new
+registration and upload, not another PUT to the consumed ID; an ambiguous response
+may therefore lead to a separate, duplicate submission. No request deduplication,
+same-ID upload retry, resumable upload, expiry, automatic cleanup, or status
+endpoint is provided.
 
 ## Configuration And Usage
 
@@ -70,14 +137,16 @@ signature is `createImportSources(runtime, storage, configuration = {})`;
 `ImportSourcesConfiguration` has only optional `maxSizeBytes` and `retentionPolicy`.
 There is no compatibility constructor or overload and no `ImportSources.close()`.
 The same strict subpath exports the caller types `ImportSources`, `ImportSource`,
-`RegisterImportSourceCommand`, and `CreateImportSourceCommand`; storage references
-and persistence stay private.
+`RegisterImportSourceCommand`, `UploadImportSourceCommand`, and
+`CreateImportSourceCommand`; storage references and persistence stay private.
 The backend root still constructs only a runtime around PostgreSQL and a logger.
 Apply the existing backend migrations before using the capability, including
 `20260913-import-sources`, `20260913-import-sources-ingestion-link`, and the forward
 `20260914-import-source-scanner` migration. The latter adds nullable scanner
 `source` metadata, preserving historical sources and provenance without inventing
-scanner values for unknown input.
+scanner values for unknown input. The forward `20260915-import-source-upload-attempt`
+migration adds nullable `uploadStartedAt`, preserving only unused scanner
+registrations as eligible and marking historical attempted sources as consumed.
 
 The API calls `register(command: RegisterImportSourceCommand)` with `performedBy`
 taken from the authenticated user, not the request body:
@@ -91,6 +160,21 @@ const source = await sources.register({
   performedBy: userProfileId,
 });
 ```
+
+`upload(command: UploadImportSourceCommand)` completes a registration using
+`{ importSourceId, performedBy, body, contentLength?, signal }`: `body` is an unread
+Node `Readable` yielding bytes, `contentLength` is an optional number, and `signal`
+is a required `AbortSignal`. It owns the claim, upload, and finalization, returning
+safe source metadata, but does not submit a job on its own. It passes cancellation
+to object storage's optional `ObjectStorageWriteCommand.signal`.
+
+The API instead calls `submit` on the high-level
+`@exposurenexus/backend/ingestions` capability. Its factory is
+`createIngestions(runtime, importSources: Pick<ImportSources, "upload">)` and its
+`Ingestions.submit` accepts the same `UploadImportSourceCommand`, orchestrating
+upload and the submission transaction and returning
+`{ importSourceId, ingestionId, jobId }`. No caller transaction callback,
+standalone link operation, or direct broker publication is exposed.
 
 The existing streamed `create` operation remains available to trusted backend
 callers. It creates a separate source with `source: null`; it does not complete an
@@ -151,8 +235,11 @@ must stop all consumers, settle their operations, and finish or destroy returned
 read streams before calling `storage.close()` once. Closing releases SDK
 connections; it does not drain work, delete source bytes, or close PostgreSQL.
 The API creates and owns storage in its application lifecycle, closing it after
-HTTP requests and the outbox relay drain, and on startup failure. Startup validates
-configuration only, with no connectivity or bucket probe. Worker storage composition
+HTTP requests, tracked upload work, and the outbox relay settle, and on startup failure.
+Upload work is tracked independently of socket lifetime; shutdown cancels and
+awaits it before closing storage or PostgreSQL, within the existing bounded
+shutdown deadline. Startup validates configuration only, with no connectivity or
+bucket probe. Worker storage composition
 remains deferred to ticket 03. See [API storage configuration](deployment.md#api-storage-configuration)
 and [local development](development.md#configure-the-api).
 
@@ -201,7 +288,7 @@ original filename and source ID.
 Results expose a durable source UUID, not a key, URL, or presigned URL. There is no
 overwrite operation, conditional write, or versioning requirement. Write-once is
 an application convention, not protection from administrators or other holders of
-write credentials. Browser uploads must revisit that assumption. Avoid bucket
+write credentials. Direct-to-storage browser uploads must revisit that assumption. Avoid bucket
 lifecycle expiration rules that would delete retained or still-needed input.
 Use an unversioned bucket for byte removal: on a versioned bucket, S3's unqualified
 delete only creates a delete marker and retains older bytes. Version cleanup and
@@ -209,10 +296,12 @@ Object Lock bypass are not implemented by this capability.
 
 ## Streams And Lifecycle
 
-Creation requires an unread Node `Readable` yielding bytes and a nonnegative safe
-integer `sizeBytes` in `CreateImportSourceCommand`. Empty input is supported.
-Unknown-length input, whole-file buffering, multipart uploads, and resumable uploads
-are not supported. The default maximum is 100 MiB (`104857600` bytes);
+Library creation requires an unread Node `Readable` yielding bytes and a nonnegative
+safe integer `sizeBytes` in `CreateImportSourceCommand`. Registered uploads use the
+stored `sizeBytes` instead. Empty input is supported. Unknown declared lengths are
+not supported; an absent HTTP `Content-Length` is supported because registration
+already supplies the exact size. Whole-file buffering, multipart uploads, and
+resumable uploads are not supported. The default maximum is 100 MiB (`104857600` bytes);
 `maxSizeBytes` may set a different
 nonnegative safe integer limit. Storage service single-PUT limits still apply.
 Invalid/oversized declarations are rejected without consuming the stream; the
@@ -235,7 +324,8 @@ reading therefore fails rather than becoming truncated input.
 
 `getByID` returns `null` for unknown identities. Otherwise `ImportSource` metadata
 includes `ingestionId`, nullable scanner `source`, `createdBy`, `originalFilename`,
-`mimeType`, `sizeBytes`, the retention snapshot, lifecycle state, and creation/availability/failure/deletion
+`mimeType`, `sizeBytes`, the retention snapshot, lifecycle state, nullable
+`uploadStartedAt`, and creation/availability/failure/deletion
 timestamps. `sizeBytes` is the only size field in the creation command, public
 metadata, and database. For incomplete sources it is the declared byte length;
 successful availability confirms exactly that many bytes were received. Failed
@@ -279,12 +369,15 @@ and `ingestion.source` (currently `nuclei`) once an ingestion exists. Before
 submission, the registered scanner declaration, creator, and input reference live
 in import-source metadata. [Ingestion job data](job-queue.md#ingestion-handoff)
 contains only `{ ingestionId }`, never a duplicate actor/format, bytes, URL, or
-credentials. A future backend ingestion use case will resolve these records;
-there is no processing facade or public standalone link operation in this slice.
+credentials. Backend `Ingestions.submit` creates the ingestion with the registered
+scanner source and creator, guards the available source against replacement or
+duplicate linking, and inserts the outbox job in the same transaction through
+`JobService` and a transaction-bound jobs PostgreSQL repository. Publication belongs
+to the existing API relay, not the upload request.
 
-Ticket 02's later upload/submission use case must atomically link the source to
-the ingestion and insert its outbox job. Submission validation, processing, execution idempotency,
-and cleanup decisions based on durable ingestion outcomes remain deferred.
+There is no processing facade or public standalone link operation in this slice.
+Processing, execution idempotency, and cleanup decisions based on durable ingestion
+outcomes remain deferred.
 Retention does not enable source reuse across ingestions or reprocessing.
 
 ## Failures And Retention
@@ -319,6 +412,15 @@ stored flag may still be `true`. An error's flag describes the observed recovery
 outcome, not proof of current database state. The flag alone never authorizes
 deletion of an active upload or available source; lifecycle safeguards still apply.
 `failedAt` distinguishes recorded failures from interrupted or unrecorded attempts.
+`uploadStartedAt` independently records a consumed attempt and is never cleared by
+failure bookkeeping or deletion. A null `failedAt` does not make an attempted
+upload eligible again.
+
+These compensation rules concern transfer and source-finalization failures, not
+ingestion submission. After durable availability succeeds, later cancellation or
+submission failure preserves the input even if the submission commit outcome is
+uncertain. Inspect the safely logged source ID; there is no status endpoint or
+automatic reconciliation, and recovery requires a new registration and upload.
 
 PostgreSQL and S3 do not share a transaction. Process crashes, ambiguous remote
 request outcomes, failed cleanup, and never-submitted sources can leave orphans;
