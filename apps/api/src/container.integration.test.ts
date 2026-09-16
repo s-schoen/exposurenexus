@@ -1,5 +1,8 @@
+import { Readable } from "node:stream";
 import { buffer } from "node:stream/consumers";
 
+import { createJobRepository } from "@exposurenexus/jobs/postgres";
+import { createJobRelay } from "@exposurenexus/jobs/relay";
 import { serve } from "@hono/node-server";
 import { pino } from "pino";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -9,6 +12,7 @@ import { CSRF_COOKIE, CSRF_HEADER } from "./middleware/csrf.js";
 import { createTestDatabase } from "./test/db.js";
 
 import type { ObjectStorage } from "@exposurenexus/backend/object-storage";
+import type { JobProducer } from "@exposurenexus/jobs/producer";
 
 vi.mock("./env.js", () => ({ env: { LOG_LEVEL: "silent" } }));
 
@@ -255,7 +259,7 @@ describe("API backend cutover", () => {
     expect(await testDb.db.selectFrom("import_source").selectAll().execute()).toHaveLength(3);
   });
 
-  it("accepts one creator upload and atomically links its stored input, ingestion, and outbox job", async () => {
+  it("accepts one creator upload and relays its ingestion to the read-only shell", async () => {
     cookies.clear();
     const login = await request("/auth", "POST", { username: "admin", password: initialPassword });
     const metadata = {
@@ -307,11 +311,13 @@ describe("API backend cutover", () => {
     const hold = new Promise<void>((resolve) => {
       release = resolve;
     });
+    let storedBytes = Buffer.alloc(0);
     storage.write.mockImplementationOnce(async ({ body, expectedSizeBytes }) => {
       entered();
       await hold;
       expect(expectedSizeBytes).toBe(4);
-      expect(await buffer(body)).toEqual(Buffer.from("nope"));
+      storedBytes = await buffer(body);
+      expect(storedBytes).toEqual(Buffer.from("nope"));
     });
     const winner = upload(id, "nope");
     try {
@@ -345,7 +351,8 @@ describe("API backend cutover", () => {
         createdAt: expect.any(Date),
       },
     ]);
-    expect(await testDb.db.selectFrom("job").selectAll().execute()).toMatchObject([
+    const pendingJobs = await testDb.db.selectFrom("job").selectAll().execute();
+    expect(pendingJobs).toMatchObject([
       {
         id: accepted.data.jobId,
         publicationState: "pending",
@@ -359,6 +366,61 @@ describe("API backend cutover", () => {
     expect((await upload(id, "nope")).status).toBe(409);
     expect(storage.write).toHaveBeenCalledOnce();
     expect(storage.delete).not.toHaveBeenCalled();
+
+    const repository = createJobRepository(testDb.db);
+    const producer = {
+      publish: vi.fn<JobProducer["publish"]>().mockResolvedValue(undefined),
+      close: vi.fn<JobProducer["close"]>().mockResolvedValue(undefined),
+    };
+    const relay = createJobRelay({ repository, producer, logger });
+    try {
+      await relay.start();
+      await vi.waitFor(async () => {
+        expect(await repository.getByID(accepted.data.jobId)).toMatchObject({
+          publicationState: "published",
+        });
+      });
+    } finally {
+      await relay.stop();
+    }
+    expect(producer.publish).toHaveBeenCalledExactlyOnceWith(pendingJobs[0]!.event);
+    const event = producer.publish.mock.calls[0]![0];
+    expect(event.data).toEqual({ ingestionId: accepted.data.ingestionId });
+    expect(storage.read).not.toHaveBeenCalled();
+
+    async function snapshot() {
+      return {
+        sources: await testDb.db.selectFrom("import_source").selectAll().execute(),
+        ingestions: await testDb.db.selectFrom("ingestion").selectAll().execute(),
+        jobs: await repository.listAll(),
+        assets: await testDb.db.selectFrom("asset").selectAll().execute(),
+        vulnerabilities: await testDb.db.selectFrom("vulnerability").selectAll().execute(),
+        findings: await testDb.db.selectFrom("finding").selectAll().execute(),
+        observations: await testDb.db.selectFrom("observation").selectAll().execute(),
+      };
+    }
+    const before = await snapshot();
+    expect(before.jobs).toMatchObject([
+      {
+        publicationState: "published",
+        executionState: "pending",
+        executionStartedAt: null,
+        executionFinishedAt: null,
+        executionError: null,
+      },
+    ]);
+    const body = Readable.from([storedBytes.subarray(0, 2), storedBytes.subarray(2)]);
+    storage.read.mockResolvedValueOnce(body);
+    await expect(container.services.ingestions.process(event.data.ingestionId)).resolves.toEqual({
+      importSourceId: id,
+      bytesRead: 4,
+    });
+    expect(body.readableEnded).toBe(true);
+    expect(storage.read).toHaveBeenCalledExactlyOnceWith(storage.write.mock.calls[0]![0].key);
+    expect(storedBytes).toEqual(Buffer.from("nope"));
+    expect(storage.write).toHaveBeenCalledOnce();
+    expect(storage.delete).not.toHaveBeenCalled();
+    expect(await snapshot()).toEqual(before);
 
     const empty = await request("/findings/import", "POST", { ...metadata, sizeBytes: 0 }, 201);
     storage.write.mockImplementationOnce(async ({ body, expectedSizeBytes }) => {

@@ -19,14 +19,24 @@ describe("ingestions exports", () => {
       );
     }
     expectTypeOf<typeof createIngestions>().toEqualTypeOf<
-      (runtime: BackendRuntime, importSources: Pick<ImportSources, "upload">) => Ingestions
+      (
+        runtime: BackendRuntime,
+        importSources: Pick<ImportSources, "upload" | "getByIngestionID" | "readByID">,
+      ) => Ingestions
     >();
     expectTypeOf<Ingestions>().toEqualTypeOf<{
+      process(ingestionId: string): Promise<{ importSourceId: string; bytesRead: number }>;
       submit(command: UploadImportSourceCommand): Promise<{
         importSourceId: string;
         ingestionId: string;
         jobId: string;
       }>;
+    }>();
+    expectTypeOf<
+      ApplicationError<"ingestion.source_not_found">["kind"]
+    >().toEqualTypeOf<"missing">();
+    expectTypeOf<ApplicationError<"ingestion.source_not_found">["details"]>().toEqualTypeOf<{
+      ingestionId: string;
     }>();
     expectTypeOf<
       ApplicationError<"ingestion.source_not_submittable">["kind"]

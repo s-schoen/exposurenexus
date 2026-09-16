@@ -8,6 +8,7 @@ import { getRuntimeDatabase, getRuntimeLogger, type BackendRuntime } from "../..
 import type { ImportSources, UploadImportSourceCommand } from "../import-sources/index.js";
 
 export interface Ingestions {
+  process(ingestionId: string): Promise<{ importSourceId: string; bytesRead: number }>;
   submit(command: UploadImportSourceCommand): Promise<{
     importSourceId: string;
     ingestionId: string;
@@ -17,12 +18,39 @@ export interface Ingestions {
 
 export function createIngestions(
   runtime: BackendRuntime,
-  importSources: Pick<ImportSources, "upload">,
+  importSources: Pick<ImportSources, "upload" | "getByIngestionID" | "readByID">,
 ): Ingestions {
   const database = getRuntimeDatabase(runtime);
   const logger = getRuntimeLogger(runtime).child({ capability: "ingestions" });
 
   return {
+    async process(ingestionId) {
+      const source = await importSources.getByIngestionID(ingestionId);
+      if (!source) {
+        throw new ApplicationError({
+          code: "ingestion.source_not_found",
+          kind: "missing",
+          message: "Ingestion has no linked import source",
+          details: { ingestionId },
+        });
+      }
+      const body = await importSources.readByID(source.id);
+      let bytesRead = 0;
+      try {
+        for await (const chunk of body) {
+          bytesRead += Buffer.byteLength(chunk as Uint8Array);
+        }
+      } catch {
+        // Late stream errors may contain storage credentials; never expose their cause.
+        throw new ApplicationError({
+          code: "import_source.read_failed",
+          kind: "unexpected",
+          message: "Import source could not be read",
+          details: { sourceId: source.id },
+        });
+      }
+      return { importSourceId: source.id, bytesRead };
+    },
     async submit(command) {
       const { importSourceId, performedBy, signal } = command;
       const checkCancellation = () => {
