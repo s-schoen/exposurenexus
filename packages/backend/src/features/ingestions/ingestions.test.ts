@@ -322,22 +322,84 @@ describe("ingestion submission", () => {
     { message: "private-cancellation-reason" },
     new Error("private-cancellation-reason"),
     NaN,
-  ])("returns a safe error before upload for cancellation reason %j", async (reason) => {
-    const { ingestions, upload, command, controller } = await setup();
+  ])("destroys pre-cancelled input without claiming it for reason %j", async (reason) => {
+    const runtime = createBackendRuntime({ database: testDb.db, logger: pino({ enabled: false }) });
+    const sources = createImportSources(runtime, storage);
+    const registered = await sources.register({
+      source: "nuclei",
+      originalFilename: "scan.jsonl",
+      sizeBytes: input.length,
+      performedBy: actorId,
+    });
+    const ingestions = createIngestions(runtime, sources);
+    const body = new Readable({ read() {} });
+    const controller = new AbortController();
     const transaction = vi.spyOn(testDb.db, "transaction");
+    const write = vi.spyOn(storage, "write");
     controller.abort(reason);
 
-    await expect(ingestions.submit(command)).rejects.toMatchObject({
+    await expect(
+      ingestions.submit({
+        importSourceId: registered.id,
+        performedBy: actorId,
+        body,
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({
       name: "ApplicationError",
-      code: "ingestion.submit_cancelled",
+      code: "import_source.upload_cancelled",
       kind: "conflict",
-      message: "Ingestion submission was cancelled",
-      details: { sourceId: command.importSourceId },
+      message: "Import source upload was cancelled",
+      details: { sourceId: registered.id },
       cause: undefined,
     });
 
-    expect(upload).not.toHaveBeenCalled();
+    expect(body.destroyed).toBe(true);
+    expect(body.readableDidRead).toBe(false);
+    expect(write).not.toHaveBeenCalled();
     expect(transaction).not.toHaveBeenCalled();
+    expect(await sources.getByID(registered.id)).toEqual(registered);
+    expect(await testDb.db.selectFrom("ingestion").selectAll().execute()).toEqual([]);
+    expect(await createJobRepository(testDb.db).listAll()).toEqual([]);
+    expect(storage.delete).not.toHaveBeenCalled();
+  });
+
+  it("validates runtime submissions before taking ownership of invalid input", async () => {
+    const runtime = createBackendRuntime({ database: testDb.db, logger: pino({ enabled: false }) });
+    const ingestions = createIngestions(runtime, createImportSources(runtime, storage));
+    const body = new Readable({ read() {} });
+    const command = {
+      importSourceId: actorId,
+      performedBy: actorId,
+      body,
+      signal: new AbortController().signal,
+    };
+    const lookup = vi.spyOn(testDb.db, "selectFrom");
+    const transaction = vi.spyOn(testDb.db, "transaction");
+    const write = vi.spyOn(storage, "write");
+    try {
+      for (const invalid of [
+        undefined,
+        null,
+        ...[undefined, null, {}, { aborted: true }].map((signal) => ({ ...command, signal })),
+        ...[undefined, null, {}, Buffer.from("not a stream")].map((body) => ({ ...command, body })),
+      ]) {
+        await expect(ingestions.submit(invalid as never)).rejects.toMatchObject({
+          name: "ApplicationError",
+          code: "import_source.invalid_input",
+          kind: "validation",
+          cause: undefined,
+        });
+      }
+      expect(body.destroyed).toBe(false);
+      expect(body.readableDidRead).toBe(false);
+      expect(lookup).not.toHaveBeenCalled();
+      expect(transaction).not.toHaveBeenCalled();
+      expect(write).not.toHaveBeenCalled();
+      expect(storage.delete).not.toHaveBeenCalled();
+    } finally {
+      body.destroy();
+    }
   });
 
   it("preserves safe preclaim upload cancellation through submission for a non-Error reason", async () => {

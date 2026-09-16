@@ -186,9 +186,11 @@ the worker separately owns its handle for the read-only processing shell.
 streamed read operation, preserving lifecycle and recorded-bucket validation.
 Missing or unavailable input rejects processing. Consume the complete stream to
 discard without whole-file buffering or invoking the scanner translator, returning
-`{ importSourceId, bytesRead }` only after EOF. Lookup and storage failures, including
-mid-stream errors, propagate to the existing consumer's rejection and broker-managed
-retry/dead-letter path; no classification or application retry layer is added.
+`{ importSourceId, bytesRead }` only after EOF with `bytesRead === source.sizeBytes`.
+A clean-EOF size mismatch rejects with `import_source.read_failed`. Lookup and storage
+failures, including mid-stream errors and size mismatches, propagate to the existing
+consumer's rejection and broker-managed retry/dead-letter path; no classification
+or application retry layer is added.
 
 The worker logs `ingestion shell completed` with `jobId`, `ingestionId`,
 `importSourceId`, and `bytesRead`. It never logs raw scan content or credentials.
@@ -245,7 +247,7 @@ after accepted work drains on shutdown, never while accepted reads remain active
 If drain fails or times out, bounded nonzero exit and unacknowledged redelivery
 remain unchanged. General backend runtime construction still does not require S3
 configuration. The existing Compose gateway and bucket initializer supply local
-infrastructure separately and gate worker startup; see
+infrastructure separately and gate both API and worker startup; see
 [Deployment](../deployment.md#api-and-worker-storage-configuration).
 
 `temporary` is recorded intent, not automatic expiry. Retained inputs, abandoned registrations, and crash-abandoned or never-submitted sources accumulate until cleanup is implemented or explicitly performed. Caught upload failures receive best-effort compensation, not a guarantee of orphan reclamation; shell success or failure never triggers cleanup. Keeping provenance does not imply keeping bytes, and a self-hosted S3 gateway inherits the durability of its underlying storage rather than AWS S3's availability guarantees.
