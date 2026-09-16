@@ -59,11 +59,13 @@ independently within the runtime. The `/import-sources` capability uses
 factory call. `ImportSourcesConfiguration` has only optional `maxSizeBytes` and
 `retentionPolicy`; it has no SDK settings. There is no compatibility constructor
 or `ImportSources.close()`. The capability needs no authentication configuration;
-the API composes it for registration and one-shot byte upload, while worker
-composition remains deferred. The `/ingestions` factory
-`createIngestions(runtime, importSources: Pick<ImportSources, "upload">)` provides
+the API composes it for registration and one-shot byte upload, and the worker for
+read-only processing. The `/ingestions` factory
+`createIngestions(runtime, importSources)` provides
 `submit(UploadImportSourceCommand)`, orchestrating upload and atomic submission
-without exposing persistence or a transaction callback. See [Import Sources](import-sources.md)
+without exposing persistence or a transaction callback. Its `process(ingestionId)`
+resolves the linked source and fully streams its bytes to discard, returning
+`{ importSourceId, bytesRead }` without parsing or database writes. See [Import Sources](import-sources.md)
 for separate real-storage construction and caller-owned shutdown.
 
 Callers use these interfaces:
@@ -77,7 +79,7 @@ Callers use these interfaces:
 | Vulnerabilities | Vulnerability catalog operations                                                          |
 | Statistics      | Finding statistics                                                                        |
 | Import Sources  | Metadata registration, one-shot upload, streamed creation/read, lookup, and byte deletion |
-| Ingestions      | Upload and durable ingestion/outbox submission; no processing yet                         |
+| Ingestions      | Upload, durable ingestion/outbox submission, and read-only processing shell               |
 
 Shared infrastructure uses the strict `@exposurenexus/backend/database` and
 `@exposurenexus/backend/object-storage` subpaths. `createObjectStorage(config)`
@@ -85,10 +87,12 @@ constructs a bucket-bound handle without a database, backend runtime, environmen
 lookup, or startup I/O. The composing caller owns its client lifetime and may
 share the handle across capabilities, closing it only after consumers and read
 streams stop. Borrowing capabilities never close storage; `close()` does not drain
-work. The API requires valid storage configuration at startup, with no connectivity
-or bucket probe, and closes its handle after HTTP, tracked upload work, and relay
-settlement and on startup failure. General backend runtime construction and worker
-startup do not require S3 configuration. See [Object Storage](object-storage.md).
+work. Both API and worker require valid storage configuration at startup, with no
+connectivity or bucket probe. The API closes its handle after HTTP, tracked upload
+work, and relay settlement. The worker retains storage while accepted reads drain,
+then closes it. Both clean up acquired resources on startup failure and preserve
+bounded shutdown. General backend runtime construction does not require S3
+configuration. See [Object Storage](object-storage.md).
 
 There are no wildcard exports or compatibility imports. Repository contracts,
 dependency objects, lookup ports, persistence records, transaction types, and raw
@@ -163,6 +167,11 @@ policy. The root `ApplicationError` similarly aggregates feature- and infrastruc
 catalogs through type-only imports. No generic feature framework or separate
 workspace packages are required.
 
+The pure Nuclei translator and its tests moved from `apps/api/src/import` into the
+private backend `features/ingestions` area. Only required translator types remain;
+unused resolver scaffolding is removed. The production processing shell does not
+invoke translation or matching, or expose a scanner registry.
+
 ## API Adaptation
 
 The API container decorates mutation capabilities with API-local event adapters
@@ -231,12 +240,16 @@ lifecycle.
 
 The import HTTP flow registers metadata, then accepts a one-shot upload and
 atomically submits ingestion work. The UI import page remains disabled.
-The worker remains connected but idle with no production ingestion handler. It
-uses an undecorated backend runtime as a trusted system caller and checks required
-migrations without applying them. Accepted jobs may wait in the queue until ticket
-03; submission does not enable processing. Future processing orchestration belongs
-in a high-level backend use case, not in the worker or a recreated exposures
-aggregate. Execution idempotency and cleanup policy remain deferred.
+The worker uses an undecorated backend runtime as a trusted system caller and checks
+required migrations without applying them. Its complete real handler set activates
+consumption automatically and calls `Ingestions.process`, not direct queries.
+Completion is logged with all three IDs and `bytesRead`; the shell makes no worker
+database writes, so execution remains `pending` on success and failure. Duplicate
+deliveries safely reread and log without changing source metadata or deleting
+bytes, even for `temporary` input. Empty/malformed contents are not parsed and
+accepted/read bytes are not imported observations. Retained inputs and abandoned
+registrations accumulate. Parsing/persistence, execution-state orchestration,
+business idempotency, and cleanup remain deferred.
 Queue infrastructure remains in apps and the jobs package;
 see [Job Queue](job-queue.md).
 

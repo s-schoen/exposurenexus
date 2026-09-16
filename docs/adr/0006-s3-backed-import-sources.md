@@ -1,6 +1,6 @@
 # S3-Backed Import Sources
 
-**Status:** Accepted; storage, explicit deletion, durable references, metadata registration, one-shot byte upload, ingestion submission, and API storage composition implemented. Processing and worker storage composition remain deferred to scan-import ticket 03; the worker stays idle and UI import disabled.
+**Status:** Accepted; storage, explicit deletion, durable references, metadata registration, one-shot byte upload, ingestion submission, and the read-only worker shell are implemented. API and worker both compose storage. Scanner parsing and persistence remain deferred, and UI import remains disabled.
 
 Asynchronous ingestion needs input bytes that remain accessible independently of an HTTP request or worker host. Store raw input in private S3 object storage, track each import source in PostgreSQL, and identify an ingestion in its job rather than carrying bytes or an expiring URL. This separates file lifetime from message delivery without introducing the ingestion pipeline itself.
 
@@ -8,7 +8,7 @@ Asynchronous ingestion needs input bytes that remain accessible independently of
 
 ### Ownership And Handoff
 
-Add an import-source capability to the shared backend established by [ADR-0004](0004-shared-backend-capabilities.md). Callers use metadata registration, one-shot upload, streamed source creation, metadata lookup, streamed reading, and explicit deletion by source ID. The capability owns source persistence, policy, and lifecycle; an injected object-storage handle owns byte access. The worker will call the capability in-process, not through an HTTP endpoint or direct database queries.
+Add an import-source capability to the shared backend established by [ADR-0004](0004-shared-backend-capabilities.md). Callers use metadata registration, one-shot upload, streamed source creation, metadata lookup, streamed reading, and explicit deletion by source ID. The capability owns source persistence, policy, and lifecycle; an injected object-storage handle owns byte access. The worker calls the high-level ingestion capability in-process, which orchestrates import-source lookup and reading, not an HTTP endpoint or direct worker database queries.
 
 An import source has its own identity, provenance, storage reference, and lifecycle metadata. It can exist before ingestion and belong to at most one ingestion. Future processing retries refer to the same ingestion and source; upload attempts cannot reuse a registration. Keeping raw input does not introduce reuse across ingestions or a reprocessing feature. Deleting bytes preserves source metadata and the ingestion relationship.
 
@@ -17,7 +17,7 @@ through failed creation and byte deletion. Missing or blank declarations remain
 unknown. This is caller-supplied provenance, not verified content, parser selection,
 or an S3 `ContentType` header.
 
-Ingestion job data contains only `ingestionId`. Authoritative actor, scanner source, and input metadata remain in the backend. A future processing use case resolves the source from the ingestion. The old actor/URL/format job payload is replaced without a compatibility adapter; no deployed jobs required it. Submission now creates production outbox jobs without purging queues or activating handlers.
+Ingestion job data contains only `ingestionId`. Authoritative actor, scanner source, and input metadata remain in the backend. The processing shell resolves the source from the ingestion. The old actor/URL/format job payload is replaced without a compatibility adapter; no deployed jobs required it. Submission creates production outbox jobs without purging queues; the worker's complete real handler set activates consumption automatically.
 
 The delivered relationship is a nullable, unique ingestion reference on import-source
 metadata with restricted ingestion deletion. Sources start unattached; existing
@@ -73,7 +73,7 @@ write nor compensate another request's bytes. A claim survives failure,
 cancellation, crash, and cleanup forever; available, failed, or deleted sources
 never become overwrite targets.
 
-Backend `createIngestions(runtime, importSources: Pick<ImportSources, "upload">)`
+Backend `createIngestions(runtime, importSources)`
 exposes `submit(UploadImportSourceCommand)`. The command carries only
 `{ importSourceId, performedBy, body, contentLength?, signal }`, with an unread
 Node `Readable` and required `AbortSignal`. Submission calls import sources'
@@ -178,7 +178,31 @@ There is no handle registry, historical-bucket routing, fallback, or relocation.
 Existing private references remain authoritative; storage injection requires no
 reference migration or invented source records. See [Object Storage](../object-storage.md) for the storage
 contract. Storage composition now belongs to the API lifecycle for registration and upload;
-worker composition remains deferred.
+the worker separately owns its handle for the read-only processing shell.
+
+### Worker Processing Shell
+
+`Ingestions.process(ingestionId)` resolves the linked import source and calls its
+streamed read operation, preserving lifecycle and recorded-bucket validation.
+Missing or unavailable input rejects processing. Consume the complete stream to
+discard without whole-file buffering or invoking the scanner translator, returning
+`{ importSourceId, bytesRead }` only after EOF. Lookup and storage failures, including
+mid-stream errors, propagate to the existing consumer's rejection and broker-managed
+retry/dead-letter path; no classification or application retry layer is added.
+
+The worker logs `ingestion shell completed` with `jobId`, `ingestionId`,
+`importSourceId`, and `bytesRead`. It never logs raw scan content or credentials.
+The shell writes no database state: execution remains `pending` on start, success,
+and failure, independently of API relay publication updates. Duplicate deliveries
+can safely reread and log again. No claims, deduplication, or status endpoint is added.
+Neither success nor failure changes source metadata, links, retention, or bytes;
+even `temporary` input is not deleted.
+
+The pure Nuclei translator and its tests move from `apps/api/src/import` to the
+private backend `features/ingestions` area, preserving behavior and only the types
+it uses, with unused resolver scaffolding removed. The live shell does not call it.
+Accepted or successfully read bytes are not imported observations: zero-byte and
+malformed contents are not parsed or validated as scanner output.
 
 ### Retention And Deletion
 
@@ -186,7 +210,7 @@ A deployment-wide policy selects `temporary` by default or `keep`. Snapshot the 
 
 Deletion explicitly removes object bytes regardless of retention policy. It is repeatable, treats an already-absent object as success, and records deletion only after storage deletion succeeds. Preserve provenance and the first deletion timestamp, including overlapping deletes. If storage deletion succeeds but recording it fails, repeating the operation must complete the bookkeeping rather than require the object to exist again.
 
-The future ingestion handler decides whether and when to invoke deletion using the source's recorded policy and durable processing outcome. This foundation implements neither execution-outcome policy nor automatic cleanup. Merely exiting a handler is not proof that input is no longer needed for retry.
+A future ingestion workflow must decide whether and when to invoke deletion using the source's recorded policy and durable processing outcome. The current shell implements neither execution-outcome policy nor automatic cleanup, including for `temporary` input. Merely exiting a handler is not proof that input is no longer needed for retry.
 
 ## Considered Alternatives
 
@@ -194,16 +218,18 @@ The future ingestion handler decides whether and when to invoke deletion using t
 - **Source metadata only on ingestion:** fewer records, but no independent identity or bookkeeping for input received before ingestion acceptance.
 - **Bucket versioning or conditional writes:** stronger input stability, deliberately deferred in favor of internally generated keys and a write-once convention.
 - **Age-based bucket expiration or scheduled cleanup:** cannot be adopted blindly alongside retained and active sources. The selected scope exposes deletion for the future handler rather than adding a scheduler.
-- **Eager application wiring before a caller exists:** initially deferred. Registration and upload are now API callers; worker wiring still waits for its consuming feature.
+- **Eager application wiring before a caller exists:** initially deferred. Registration/upload and the read-only worker shell now justify storage composition in both roles.
 
 ## Consequences And Deferred Work
 
-Registration and submission extend backend capabilities without changing the connected-idle
-worker or singleton API relay in [ADR-0005](0005-worker-runtime-and-deployment-topology.md).
-Unlike the initial library-only foundation, API startup now requires nonblank
+Registration, submission, and the worker shell extend backend capabilities while
+preserving the singleton API relay in [ADR-0005](0005-worker-runtime-and-deployment-topology.md).
+Unlike the initial library-only foundation, both API and worker startup require nonblank
 `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY`, with optional
 HTTP(S) `S3_ENDPOINT` and boolean-string `S3_FORCE_PATH_STYLE` (default `false`).
-Credentials remain static under the existing storage contract.
+Credentials remain static under the existing storage contract. Worker and API must
+address the same bucket, endpoint, and account; matching bucket names alone do not
+prove endpoint/account continuity. The following upload-policy settings are API-only.
 `IMPORT_SOURCE_MAX_SIZE_BYTES` defaults to `104857600` and must be a nonnegative
 safe integer; `IMPORT_SOURCE_RETENTION_POLICY` defaults to `temporary`, with `keep`
 also supported. `IMPORT_SOURCE_UPLOAD_TIMEOUT_MS` is a positive bounded integer,
@@ -211,19 +237,24 @@ default `300000` (five minutes); registration and ordinary requests retain
 `API_TIMEOUT_MS`, default `5000`. The HTTP server's `requestTimeout` is the upload
 deadline plus the default `60000` ms header-receipt budget, allowing the application
 timer to cancel first, while
-`headersTimeout` retains its existing default. The API validates configuration
-without a connectivity or bucket probe. It owns storage and closes it after HTTP,
+`headersTimeout` retains its existing default. Both roles validate storage configuration
+without a connectivity or bucket probe. The API owns storage and closes it after HTTP,
 tracked upload work, and relay settlement, and on startup failure. Shutdown remains
-bounded by `SHUTDOWN_TIMEOUT_MS`. General backend runtime construction and worker
-startup still do not require S3 configuration. The existing Compose gateway and bucket initializer
-supply local infrastructure separately; see [Deployment](../deployment.md#api-storage-configuration).
+bounded by `SHUTDOWN_TIMEOUT_MS`. The worker closes storage on startup failure and
+after accepted work drains on shutdown, never while accepted reads remain active.
+If drain fails or times out, bounded nonzero exit and unacknowledged redelivery
+remain unchanged. General backend runtime construction still does not require S3
+configuration. The existing Compose gateway and bucket initializer supply local
+infrastructure separately and gate worker startup; see
+[Deployment](../deployment.md#api-and-worker-storage-configuration).
 
-`temporary` is recorded intent, not automatic expiry in this foundation. Crash-abandoned and never-submitted sources may persist until explicitly cleaned up. Ordinary caught failures receive best-effort cleanup, not a guarantee of orphan reclamation. Keeping provenance does not imply keeping bytes, and a self-hosted S3 gateway inherits the durability of its underlying storage rather than AWS S3's availability guarantees.
+`temporary` is recorded intent, not automatic expiry. Retained inputs, abandoned registrations, and crash-abandoned or never-submitted sources accumulate until cleanup is implemented or explicitly performed. Caught upload failures receive best-effort compensation, not a guarantee of orphan reclamation; shell success or failure never triggers cleanup. Keeping provenance does not imply keeping bytes, and a self-hosted S3 gateway inherits the durability of its underlying storage rather than AWS S3's availability guarantees.
 
-Binary HTTP upload and durable ingestion submission are implemented. Scanner
-processing, matching and observation/finding persistence, execution-state
-orchestration, retry classification, worker activation, source reprocessing,
-automatic orphan reclamation, and operator cleanup tooling remain separate work.
-Accepted jobs can wait in the existing queue until ticket 03. Future execution
-must establish idempotency before consuming real work; durable submission alone
-does not provide it.
+Binary HTTP upload, durable ingestion submission, and full streamed worker reads
+are implemented. Scanner parsing, matching and observation/finding persistence,
+ingestion accounting, execution-state orchestration, retry classification, source
+reprocessing, automatic orphan reclamation, and operator cleanup tooling remain
+separate work. Future execution must establish idempotency before adding business
+effects; durable submission alone does not provide it. The
+[stack smoke check](../deployment.md#ingestion-shell-smoke-check) verifies the live
+handoff without introducing new infrastructure or changing job execution state.

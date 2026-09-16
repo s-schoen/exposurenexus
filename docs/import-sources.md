@@ -4,13 +4,14 @@ The API accepts scans in two requests: register immutable metadata through
 `POST /api/findings/import`, then send raw bytes once through
 `PUT /api/findings/import/:importSourceId/content`. The second request stores the
 input and durably submits an ingestion and outbox job without a third request.
-Acceptance is not processing: the worker remains idle until scan-import ticket 03,
-no imported observations are created, and the UI import page remains disabled.
+Acceptance is not processing: the worker now reads the full stored input and logs
+shell completion, but neither accepted nor successfully read bytes are imported
+observations. Contents are not parsed, and the UI import page remains disabled.
 
 The shared backend also provides streamed creation, reading, metadata lookup, and
 explicit byte deletion while preserving provenance. These remain library operations,
-independent of ingestion execution and HTTP authentication. The API now requires
-valid storage configuration at startup; the worker's configuration is unchanged.
+independent of HTTP authentication. Both API and worker require valid storage
+configuration at startup, addressing the same bucket, endpoint, and account.
 
 The capability borrows an explicitly injected, bucket-bound
 [Object Storage](object-storage.md) handle. Storage owns bytes, SDK access, exact
@@ -110,7 +111,7 @@ transaction leaves no partial ingestion, link, or job. Success returns HTTP `202
 
 This promises durable acceptance, not broker publication, worker execution, or
 imported observations. The existing API relay publishes the job asynchronously;
-accepted jobs may wait in the queue until ticket 03 activates processing.
+the worker's complete real handler set activates consumption automatically.
 
 The upload request uses `IMPORT_SOURCE_UPLOAD_TIMEOUT_MS` (default `300000`, five
 minutes), separate from ordinary `API_TIMEOUT_MS` (default `5000`), which still
@@ -129,6 +130,34 @@ registration and upload, not another PUT to the consumed ID; an ambiguous respon
 may therefore lead to a separate, duplicate submission. No request deduplication,
 same-ID upload retry, resumable upload, expiry, automatic cleanup, or status
 endpoint is provided.
+
+## Worker Processing Shell
+
+The production handler calls the high-level backend `Ingestions.process(ingestionId)`.
+It resolves the linked import source, rejects missing or unavailable input, and
+reads through the existing import-source/storage capabilities with lifecycle and
+recorded-bucket checks intact. The whole stream is consumed to discard with byte
+counting, not accumulated in memory. Only EOF resolves with
+`{ importSourceId, bytesRead }`; lookup and read failures, including errors after
+partial reads, propagate to the existing consumer. Success allows acknowledgement;
+failure uses the existing broker retry/dead-letter policy with no application
+retry layer or permanent/transient classification.
+
+The worker logs `ingestion shell completed` with `jobId`, `ingestionId`,
+`importSourceId`, and `bytesRead`, never raw input or storage credentials. This is
+log-only execution observability: the worker makes no database writes and job
+execution stays `pending` on start, success, and failure. API relay publication
+updates are independent. There are no execution claims, deduplication, or status
+endpoints. Duplicate deliveries safely reread and log again without changing
+source metadata, links, retention, or bytes. Nothing is deleted after a read,
+even for `temporary` input or after a failure.
+
+Zero-byte and malformed scan contents are not parsed or rejected as scanner output.
+The existing pure Nuclei translator and its tests moved from `apps/api/src/import`
+to the backend's private `features/ingestions` area; unused resolver scaffolding
+was removed. The shell never invokes it. Matching, asset/vulnerability creation,
+observation/finding persistence, and ingestion accounting are not implemented.
+See the [stack smoke check](deployment.md#ingestion-shell-smoke-check).
 
 ## Configuration And Usage
 
@@ -170,11 +199,13 @@ to object storage's optional `ObjectStorageWriteCommand.signal`.
 
 The API instead calls `submit` on the high-level
 `@exposurenexus/backend/ingestions` capability. Its factory is
-`createIngestions(runtime, importSources: Pick<ImportSources, "upload">)` and its
+`createIngestions(runtime, importSources)` and its
 `Ingestions.submit` accepts the same `UploadImportSourceCommand`, orchestrating
 upload and the submission transaction and returning
 `{ importSourceId, ingestionId, jobId }`. No caller transaction callback,
 standalone link operation, or direct broker publication is exposed.
+The same capability exposes the read-only `process(ingestionId)` shell described
+above; lookup and stream orchestration stay in backend, not worker queries.
 
 The existing streamed `create` operation remains available to trusted backend
 callers. It creates a separate source with `source: null`; it does not complete an
@@ -238,9 +269,11 @@ The API creates and owns storage in its application lifecycle, closing it after
 HTTP requests, tracked upload work, and the outbox relay settle, and on startup failure.
 Upload work is tracked independently of socket lifetime; shutdown cancels and
 awaits it before closing storage or PostgreSQL, within the existing bounded
-shutdown deadline. Startup validates configuration only, with no connectivity or
-bucket probe. Worker storage composition
-remains deferred to ticket 03. See [API storage configuration](deployment.md#api-storage-configuration)
+shutdown deadline. Both roles validate storage configuration only, with no connectivity or
+bucket probe. The worker owns a separate handle, closes it on startup failure, and
+retains it until accepted reads drain before normal shutdown closure. A failed or
+hung drain leaves storage open until bounded nonzero exit; unfinished deliveries
+remain unacknowledged for redelivery. See [API and worker storage configuration](deployment.md#api-and-worker-storage-configuration)
 and [local development](development.md#configure-the-api).
 
 ## Historical References
@@ -268,11 +301,13 @@ credentials remain deployment configuration, not recorded routing information.
 ## Storage Requirements
 
 Use a preprovisioned private bucket with public access blocked. Credentials need
-`s3:PutObject`, `s3:GetObject`, and `s3:DeleteObject` for the capability's
+`s3:PutObject`, `s3:GetObject`, and `s3:DeleteObject` for the API capability's
 `import-sources/` keys. Deletion permission is necessary for failed-write
 compensation and explicit deletion. Bucket
 listing, bucket creation, ACL modification, and multipart permissions are not used.
 Encryption and any additional KMS permissions belong to bucket provisioning.
+The read-only worker shell needs only `s3:GetObject` for the same input objects;
+separate restricted credentials may be used within the same storage account.
 
 The object-storage module alone uses the official `@aws-sdk/client-s3` for single
 `PutObject`, streamed `GetObject`, and `DeleteObject` requests. Import sources call
@@ -375,9 +410,10 @@ duplicate linking, and inserts the outbox job in the same transaction through
 `JobService` and a transaction-bound jobs PostgreSQL repository. Publication belongs
 to the existing API relay, not the upload request.
 
-There is no processing facade or public standalone link operation in this slice.
-Processing, execution idempotency, and cleanup decisions based on durable ingestion
-outcomes remain deferred.
+The processing shell resolves and reads through this relationship without mutations.
+There is no public standalone link operation. Parsing/persistence, execution
+idempotency for future business effects, and cleanup decisions based on durable
+ingestion outcomes remain deferred.
 Retention does not enable source reuse across ingestions or reprocessing.
 
 ## Failures And Retention
@@ -431,7 +467,9 @@ records for investigation rather than removing the only object reference.
 Retention is snapshotted per creation: `temporary` by default, or deployment-wide
 `keep`. Later factory configuration affects new sources only. Neither policy
 expires or deletes bytes automatically, and there is no per-import override.
-`keep` is intent, not a regulatory lock.
+`keep` is intent, not a regulatory lock. The worker never cleans up after shell
+completion or failure, including `temporary` input. Retained inputs and abandoned
+registrations accumulate until cleanup is implemented or explicitly performed.
 
 ## Explicit Deletion
 
@@ -467,6 +505,13 @@ metadata may still say `available` even though reads fail. A lost database respo
 can also mean deletion was recorded despite the error; lookup and retry are safe.
 
 ## Verification
+
+The [deployment smoke check](deployment.md#ingestion-shell-smoke-check) exercises
+authenticated/CSRF-protected registration and upload through real storage, the API
+relay, broker, and worker. It correlates all three IDs and the full byte count in
+logs with read-only SQL showing an available source, pending execution, and no
+observations. It does not delete the submitted input. If dependencies are unavailable,
+record the smoke check as not run, separately from unit-test results.
 
 PGlite-backed public-capability tests inject an in-memory `ObjectStorage` handle
 with targeted failure injection, not SDK mocks. They cover provenance round trips,

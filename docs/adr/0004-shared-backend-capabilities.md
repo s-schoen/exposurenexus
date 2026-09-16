@@ -15,7 +15,7 @@ Callers use capability interfaces, never repositories or Kysely queries. The pub
 - `Vulnerabilities`, for the vulnerability catalog;
 - `Statistics`, for finding statistics;
 - `ImportSources`, for registration, one-shot upload, stored input, and provenance;
-- `Ingestions`, for durable submission after upload, not yet processing.
+- `Ingestions`, for durable submission after upload and a read-only processing shell.
 
 Capability construction is explicit and scoped through strict package subpaths:
 
@@ -40,7 +40,7 @@ The initial extraction grouped findings, vulnerabilities, and statistics behind 
 
 Implementation lives under `src/features/`, colocating feature behavior, private persistence, table types, errors, rules, and tests. Findings retain observations and finding-vulnerability link mutations because they share transactions, projections, and audit updates. Shared asset projections and audit handling stay at the assets level. Existing cross-feature persistence dependencies remain private and transaction-aware; independent entrypoints do not require isolated databases or new repository interfaces.
 
-Database and application-error modules aggregate feature-owned types through type-only imports. Migration history remains centralized. Ingestion now owns submission through its strict `/ingestions` entrypoint; processing remains deferred. The earlier feature split was an organizational and caller-interface change, not a change to business behavior, HTTP contracts, or persistence semantics.
+Database and application-error modules aggregate feature-owned types through type-only imports. Migration history remains centralized. Ingestion owns submission and the read-only processing shell through its strict `/ingestions` entrypoint. The earlier feature split was an organizational and caller-interface change, not a change to business behavior, HTTP contracts, or persistence semantics.
 
 ### Shared Infrastructure And Adapters
 
@@ -48,7 +48,9 @@ Database and application-error modules aggregate feature-owned types through typ
 
 The backend package's narrow jobs allowance includes the event contract from `@exposurenexus/jobs`, `JobService` from `@exposurenexus/jobs/service`, and the table and transactional persistence contracts from `@exposurenexus/jobs/postgres`. Backend use cases may bind a jobs repository to their private business transaction and use the service to create an atomic outbox job; the application migration stays in backend. Queue transport, producers, consumers, relays, handlers, and delivery policy remain in executable apps and the jobs package. This does not expose repositories, transaction types, or transaction callbacks to capability callers merely to bridge the package boundary.
 
-`createIngestions(runtime, importSources: Pick<ImportSources, "upload">)` exposes `submit(UploadImportSourceCommand)`. It uploads through the import-source capability before starting a transaction, then atomically creates the ingestion, links the available unlinked source, and records its job. The API adapts HTTP and cancellation but never orchestrates these database mutations or publishes directly to RabbitMQ. A later abort or submission failure, including an ambiguous commit, must preserve durably available input.
+`createIngestions(runtime, importSources)` exposes `submit(UploadImportSourceCommand)` and `process(ingestionId)`. Submission uploads through the import-source capability before starting a transaction, then atomically creates the ingestion, links the available unlinked source, and records its job. The API adapts HTTP and cancellation but never orchestrates these database mutations or publishes directly to RabbitMQ. A later abort or submission failure, including an ambiguous commit, must preserve durably available input.
+
+`Ingestions.process(ingestionId)` resolves linked source metadata and reads through import sources, preserving source lifecycle and bucket checks. It fully streams input to discard without buffering or parsing and returns `{ importSourceId, bytesRead }` only after EOF. Lookup and read failures propagate to the consumer through the worker handler, including failures after partial reads. The shell makes no database writes or byte deletions, even for `temporary` input. Job execution stays `pending`; the worker logs completion and the existing consumer owns acknowledgement and broker retry behavior. Duplicate deliveries safely reread and log again.
 
 `@exposurenexus/contracts` remains backend-agnostic and client-safe. It may define TypeScript data structures and declarative Zod schemas for serialized shapes and primitive constraints, but it does not own business rules, canonicalization, database structures, backend commands, password-bearing records, or session persistence data. API routes and job handlers validate serialized shape; backend capabilities enforce business meaning and invariants.
 
@@ -70,4 +72,4 @@ The API will migrate completely to the backend capability interfaces, after whic
 
 Business, persistence, transaction, and migration tests move with their implementation into the backend package. The API retains tests for HTTP adaptation, authorization middleware, cookies, event decorators, error translation, and composition. Typed `ApplicationError`s remain the shared failure identity, while the API continues to own HTTP status and safe-public-reason mapping as established by ADR-0001.
 
-A future ingestion handler will validate and map its job, then call one high-level backend processing use case. Submission now has its own capability, but matching, processing orchestration, and persistence remain deferred backend work rather than worker logic or direct database access. The processing interface will be defined with that behavior rather than retaining an otherwise unnecessary `Exposures` aggregate.
+The ingestion handler calls the high-level backend processing shell, not repositories or direct queries. The existing pure Nuclei translator and its tests move from `apps/api/src/import` into the private backend `features/ingestions` area with only the types they need; unused resolver scaffolding is removed. The production shell does not call the translator. Matching, observation/finding persistence, ingestion accounting, execution-state orchestration, and cleanup remain deferred backend work, not worker logic. Accepted or successfully read bytes, including empty or malformed contents, are not imported observations.

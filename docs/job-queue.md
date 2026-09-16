@@ -17,9 +17,10 @@ Executable apps own connection lifecycle and jobs infrastructure composition.
 Queue producers, consumers, relays, handlers, and delivery policy remain in
 apps and the jobs package. Backend capability callers do not gain repository
 or transaction access through this integration. The API hosts the producer and
-one outbox relay. The worker maintains its consumer connection but remains idle
-without implemented handlers. The package examples below describe queue
-primitives; ingestion submission is implemented, but processing remains deferred.
+one outbox relay. The worker's complete production handler set activates consumption
+and calls the backend read-only ingestion shell. Empty handler sets still support
+connected-idle operation. The package examples below describe queue primitives,
+not an alternative production import path.
 
 ## API Lifecycle And Deployment
 
@@ -79,12 +80,14 @@ Publication state (`pending`, `published`, `failed`, or `abandoned`) describes
 delivery to RabbitMQ. Execution state (`pending`, `running`, `succeeded`, or
 `failed`) independently describes the worker's logical processing result. A
 publication failure is not an execution failure, and RabbitMQ redelivery is
-not a new publication attempt.
+not a new publication attempt. The current ingestion shell deliberately does not
+write execution state: it remains `pending` even after a successful read or failure.
+Use correlated worker logs for execution observability, not these unused transitions.
 
 Deployments must supervise the API-owned producer and relay, guarantee the
 single-relay restriction, and separately operate the RabbitMQ topology described
-below. Ingestion submission uses this outbox; worker processing and
-dead-letter-queue reconciliation remain unimplemented.
+below. Ingestion submission uses this outbox and the worker fully reads stored
+input; parsing/persistence and dead-letter-queue reconciliation remain unimplemented.
 
 ## Ingestion Handoff
 
@@ -118,9 +121,22 @@ it uses `JobService` with a transaction-bound jobs repository, not a producer.
 HTTP `202` returns `{ importSourceId, ingestionId, jobId }` in the API `data`
 envelope only after durable storage and transaction success. It does not promise
 broker publication, execution, or imported observations; relay publication
-failures retain the existing finite retry behavior. The production worker's handler
-set remains empty until ticket 03, so accepted jobs may wait in the queue. Real
-processing, execution idempotency, and retention-based cleanup remain deferred.
+failures retain the existing finite retry behavior. The production handler calls
+`Ingestions.process(ingestionId)`, which resolves the linked source with lifecycle
+and bucket checks and streams the complete input to discard without buffering or
+parsing. It returns `{ importSourceId, bytesRead }` only after EOF. The worker then
+logs `ingestion shell completed` with `jobId`, `ingestionId`, `importSourceId`, and
+`bytesRead`, allowing the consumer to acknowledge. Missing/unavailable input and
+read failures, including mid-stream errors, propagate to the existing broker retry
+and dead-letter path without classification or an application retry layer.
+
+The shell makes no worker-side database writes, claims, or deduplication; execution
+stays `pending` on start, success, and failure while relay publication updates
+continue independently. Duplicate deliveries safely reread and log again. Neither
+success nor failure changes source metadata, links, retention, or bytes; even
+`temporary` sources are not cleaned up. Accepted/read bytes are not imported
+observations, and zero-byte/malformed contents are not parsed. The backend's private
+Nuclei translator is outside the live path. The UI import page remains disabled.
 
 Every claimed upload ID is permanently consumed, including after failure or
 cancellation; unused registrations never expire. A later submission failure or
@@ -130,9 +146,14 @@ stable job ID, recovery from an ambiguous HTTP response can create a separate
 submission and job: there is no request deduplication or same-ID upload retry.
 See the [upload contract](import-sources.md#upload-and-submit).
 
-The API requires valid [S3 configuration](deployment.md#api-storage-configuration)
-at startup without probing connectivity or the bucket; worker storage configuration
-remains ticket 03's responsibility.
+Both roles require valid [S3 configuration](deployment.md#api-and-worker-storage-configuration)
+at startup without probing connectivity or the bucket, addressing the same bucket,
+endpoint, and account. The worker retains storage until accepted reads drain, then
+closes it; startup failure cleans it up too. Failed or hung drain preserves the
+existing bounded nonzero exit and unacknowledged redelivery behavior. Retained
+inputs and abandoned registrations accumulate until cleanup is implemented or
+explicitly performed. See the [stack smoke check](deployment.md#ingestion-shell-smoke-check)
+for log correlation and read-only SQL verification of pending execution.
 
 ## Confirm-channel Producer
 
@@ -226,7 +247,7 @@ const consumer = await createJobConsumer({
 });
 
 consumer.registerJobHandler(JobType.INGESTION, async (event) => {
-  // Demonstration only; real ingestion processing is not implemented.
+  // Transport demonstration only; production calls Ingestions.process instead.
   console.log(`Job ${event.id} identifies ingestion ${event.data.ingestionId}`);
 });
 
@@ -304,7 +325,7 @@ once delivery, not exactly-once execution.
 The consolidated `deployment/docker/docker-compose.yaml` runs `rabbitmq:4.3.5-management`
 with persistent storage and AMQP port `5672` published on `127.0.0.1` only;
 management remains internal. Its `rabbitmq-init` service
-runs the checked-in Node script using the standard `node:24-alpine` image; no
+runs the checked-in Bash script using the standard `alpine:3` image; no
 application image or additional application role is required.
 
 Supply these six environment variables through your deployment's secret
@@ -388,11 +409,12 @@ still performs authoritative read-only migration checks, with no ongoing API
 dependency. The same stack exposes PostgreSQL `5432` and AMQP `5672` on localhost
 for [terminal-based development](development.md#start-infrastructure), without an override.
 
-The worker is intentionally connected but idle until a complete real handler set
-ships, when consumption activates automatically. It has no subscription or health
-endpoint; logs and exit status describe availability, not processing readiness.
-Queued jobs accumulate without consuming delivery retry budgets. Real ingestion,
-execution-state orchestration, and business idempotency remain future work.
+The complete real ingestion handler set activates consumption automatically, with
+no operator flag. The worker has a subscription but no health endpoint; startup
+mode, structured completion logs, and exit status are the operational signals.
+Startup does not prove storage read permission or successful processing. Parsing,
+observation/finding persistence, execution-state orchestration, and business
+idempotency for future writes remain deferred.
 
 ### Equivalent Manual Topology
 

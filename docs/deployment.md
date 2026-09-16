@@ -13,11 +13,12 @@ health after API initialization and migrations. This is startup coordination, no
 dependency or callback. Worker migration checks remain read-only and authoritative
 outside Compose too; workers never apply migrations.
 
-The API requires valid S3 configuration, but performs no storage connectivity or
+Both roles require valid S3 configuration, but perform no storage connectivity or
 bucket probe at startup. Compose's existing VersityGW healthcheck and `init-s3`
-provisioning are separate infrastructure steps, not API probes or registration
-startup gates. Worker storage configuration is unchanged and remains deferred to
-ticket 03.
+provisioning are separate infrastructure steps, not application probes or API
+registration startup gates. The worker waits for healthy `s3` and successful
+`init-s3` as well as its existing dependencies, so queued reads do not race local
+bucket provisioning. API and worker must use the same bucket, endpoint, and account.
 
 Run **exactly one active API** because it owns the single outbox relay. Use
 stop-before-start upgrades with no replica overlap. There is no separate relay
@@ -66,32 +67,38 @@ application database; only `app` receives API-specific configuration. See
 [provisioning details](job-queue.md#reference-initialization) for account restrictions,
 repeatability, and safe credential rotation on existing volumes.
 
-The S3 values are shared by the API, existing VersityGW service, and `init-s3`.
+The S3 values are shared by the API, worker, existing VersityGW service, and `init-s3`.
 The initializer creates `S3_BUCKET` if absent; it does not run inside the API.
-Compose defaults the API's `S3_ENDPOINT` to `http://s3:7070` and
+Compose defaults both applications' `S3_ENDPOINT` to `http://s3:7070` and
 `S3_FORCE_PATH_STYLE` to `true` for this gateway. Local host processes use
-`http://localhost:7070` instead. No storage variables are added to `worker`.
+`http://localhost:7070` instead. Bucket-name equality alone does not verify
+endpoint/account continuity; both roles must address the same stored objects.
 
-This local-evaluation stack shares gateway root credentials with the API and
+This local-evaluation stack shares gateway root credentials with the API, worker, and
 initializer. Do not use that privilege model outside isolated evaluation: provision
 a private bucket and restricted application credentials as described in
 [storage requirements](import-sources.md#storage-requirements), and adapt the
 Compose services and provisioning for that deployment. S3 data resides in the
 existing volumes; do not delete them to repair credentials or configuration.
 
-## API Storage Configuration
+## API And Worker Storage Configuration
 
-These variables configure the API, independently of backend library callers and
+These variables configure both roles, independently of backend library callers and
 the opt-in `IMPORT_SOURCE_S3_TEST_*` smoke-test variables:
+
+| Variable               | Requirement / Application Default                             |
+| ---------------------- | ------------------------------------------------------------- |
+| `S3_BUCKET`            | Required nonblank private bucket name                         |
+| `S3_REGION`            | Required nonblank signing region                              |
+| `S3_ACCESS_KEY_ID`     | Required nonblank static access key ID                        |
+| `S3_SECRET_ACCESS_KEY` | Required nonblank static secret access key                    |
+| `S3_ENDPOINT`          | Optional HTTP(S) URL; omit for the SDK's regional S3 endpoint |
+| `S3_FORCE_PATH_STYLE`  | `true` or `false` string; default `false`                     |
+
+These upload-policy variables apply only to the API, not the worker:
 
 | Variable                          | Requirement / API Default                                           |
 | --------------------------------- | ------------------------------------------------------------------- |
-| `S3_BUCKET`                       | Required nonblank private bucket name                               |
-| `S3_REGION`                       | Required nonblank signing region                                    |
-| `S3_ACCESS_KEY_ID`                | Required nonblank static access key ID                              |
-| `S3_SECRET_ACCESS_KEY`            | Required nonblank static secret access key                          |
-| `S3_ENDPOINT`                     | Optional HTTP(S) URL; omit for the SDK's regional S3 endpoint       |
-| `S3_FORCE_PATH_STYLE`             | `true` or `false` string; default `false`                           |
 | `IMPORT_SOURCE_MAX_SIZE_BYTES`    | Nonnegative safe integer; default `104857600` (100 MiB)             |
 | `IMPORT_SOURCE_RETENTION_POLICY`  | `temporary` or `keep`; default `temporary`                          |
 | `IMPORT_SOURCE_UPLOAD_TIMEOUT_MS` | Positive bounded integer milliseconds; default `300000` (5 minutes) |
@@ -103,17 +110,30 @@ credential providers are not supported. Keep credentials in private configuratio
 never in requests, responses, jobs, or tracked files. Use HTTPS outside isolated
 local infrastructure.
 
-Missing or invalid configuration fails API startup. Validation does not contact
+Missing or invalid configuration fails startup in either role. Validation does not contact
 storage, verify bucket existence, or establish access permissions. Registration
 performs no object I/O either, so API health and successful registration are not
 storage-readiness checks. The API owns and closes its storage client after HTTP,
-tracked upload work, and relay settlement, and on startup failure. General backend
-runtime construction and the idle worker do not require S3 configuration.
+tracked upload work, and relay settlement, and on startup failure. The worker owns
+its separate handle, closes it on startup failure, and retains it until accepted
+reads drain before normal shutdown closure. If drain fails or hangs, storage stays
+open until bounded nonzero exit, preserving unfinished delivery redelivery.
+General backend runtime construction does not require S3 configuration.
+
+Outside local evaluation, the worker can use separate credentials restricted to
+`s3:GetObject` on the API's `import-sources/` objects in the same bucket/account.
+API writes and compensation still need the permissions described in
+[storage requirements](import-sources.md#storage-requirements). Neither role
+provisions buckets. Use the correct original endpoint/account for existing input;
+there is no historical-bucket routing or automatic relocation.
 
 The maximum applies to declared upload size before reservation and again at upload,
 including an allowed zero-byte declaration. The retention policy is snapshotted
 into each new source, with no per-registration override or retroactive changes. Neither policy
-expires registrations or automatically deletes data.
+expires registrations or automatically deletes data. Worker shell success or
+failure never deletes input, including `temporary` input. Retained objects and
+abandoned registrations accumulate until cleanup is implemented or explicitly
+performed.
 
 ## Upload Deadlines And Recovery
 
@@ -183,16 +203,24 @@ raw bytes once to `PUT /api/findings/import/:importSourceId/content`, retaining
 current `import:write` permission and CSRF protection. Its `202` response contains
 `{ importSourceId, ingestionId, jobId }` in `data` only after durable storage and one
 transaction creates the ingestion, source link, and outbox job. This is acceptance,
-not successful publication, processing, or imported observations. Actual scan
-processing remains unavailable until ticket 03 and the UI import page remains disabled.
+not successful publication, execution, or imported observations. The worker now
+reads the full stored input without parsing it; shell completion is not imported
+observations either. Zero-byte and malformed contents are not parsed or validated
+as scans. The UI import page remains disabled.
 
-Confirm both init services exited zero and `app` is healthy. Worker is a normal connected idle
-service, not opt-in. It has no subscription, HTTP endpoint, healthcheck command,
-status file, or Compose healthcheck. Monitor structured lifecycle logs and process
-exit status; a running process does not imply processing readiness. Jobs accumulate
-until a complete real handler set ships and enables consumption automatically,
-without an operator flag. Processing, execution-state orchestration, and
-business idempotency remain future work.
+Confirm both init services exited zero and `app` is healthy. The complete real
+ingestion handler set activates worker consumption automatically, without an
+operator flag. It has no HTTP endpoint, healthcheck command, status file, or Compose
+healthcheck. Monitor startup `mode: "consuming"`, structured completion logs, and
+process exit status; a running process does not prove storage reads work.
+The handler calls `Ingestions.process(ingestionId)` and logs
+`ingestion shell completed` with `jobId`, `ingestionId`, `importSourceId`, and
+`bytesRead` only after the full stream is read. Lookup/read failures, including
+mid-stream failures, use existing broker retries and dead-lettering. The worker
+makes no database writes: execution stays `pending` on success and failure, while
+API relay publication updates remain independent. Duplicate deliveries safely
+reread and log again without changing source metadata, links, retention, or bytes.
+There are no execution claims, deduplication, status endpoints, or cleanup.
 
 Both applications use `restart: unless-stopped` for unexpected exits and a
 75-second stop grace period around the default 60-second application deadline.
@@ -206,6 +234,149 @@ Before deploying beyond local evaluation, edit `deployment/docker/docker-compose
 with the PostgreSQL service credentials. Set `APP_ORIGIN` to the browser-facing
 origin users will load in their browser.
 
+## Ingestion Shell Smoke Check
+
+Run this only against an already-running, operator-approved local evaluation stack
+using the build under test for both `app` and `worker` (see [local image builds](#image-tags)
+and [stop-before-start updates](#updates-scaling-and-shutdown)). Do not point it at
+an operator or production database without explicit approval. It creates a login
+session and one retained source, ingestion, and job through the API. The SQL is
+read-only and scoped to returned IDs; it never changes execution state, purges a
+queue, or deletes input. Only local cookie/response files are removed on exit.
+
+Prerequisites: Bash, current curl, jq, the configured root `.env`, both init services
+successfully completed, a healthy API, and worker startup reporting `mode: "consuming"`.
+Use an existing account with `import:write` (the initial admin password is issued
+once in API logs). Do not disable auth or CSRF. The reference stack uses
+`http://localhost:3001` for both URL and Origin; keep `localhost` for curl's local
+Secure-cookie support. Elsewhere use HTTPS and the configured `APP_ORIGIN`. Never
+enable shell tracing or include passwords, cookies, or raw scan data in evidence.
+
+Run from the repository root in Bash. The default input is the tracked `README.md`,
+deliberately not scanner JSONL, so this works on a fresh checkout and demonstrates
+that contents are not parsed. This sends one PUT only, with no upload retry:
+
+```bash
+(
+set -euo pipefail
+set +x
+compose=(docker compose --env-file .env -f deployment/docker/docker-compose.yaml)
+api=http://localhost:3001
+origin=http://localhost:3001
+input=${INPUT:-README.md}
+bytes=$(wc -c < "$input")
+work=$(mktemp -d)
+trap 'rm -f -- "$work/cookies" "$work/registration.json" "$work/submission.json"; rmdir -- "$work"; unset SMOKE_PASSWORD' EXIT
+
+curl --fail --silent --show-error "$api/api/health" >/dev/null
+read -r -p 'Username with import:write: ' smoke_user
+read -r -s -p 'Password: ' SMOKE_PASSWORD
+printf '\n'
+export SMOKE_PASSWORD
+test "$(jq -nc --arg username "$smoke_user" \
+  '{username: $username, password: env.SMOKE_PASSWORD}' |
+  curl --fail-with-body --silent --show-error -c "$work/cookies" \
+    -H "Origin: $origin" -H 'Content-Type: application/json' \
+    --data-binary @- -o /dev/null -w '%{http_code}' "$api/api/auth")" = 200
+unset SMOKE_PASSWORD
+csrf=$(awk '$6 == "__Host-exposurenexus-csrf" {print $7}' "$work/cookies")
+test -n "$csrf"
+
+test "$(jq -nc --argjson size "$bytes" \
+  '{source: "nuclei", originalFilename: "shell-smoke.jsonl", sizeBytes: $size}' |
+  curl --fail-with-body --silent --show-error -b "$work/cookies" \
+    -H "Origin: $origin" -H "X-CSRF-Token: $csrf" \
+    -H 'Content-Type: application/json' --data-binary @- \
+    -o "$work/registration.json" -w '%{http_code}' "$api/api/findings/import")" = 201
+source_id=$(jq -er '.data.importSourceId' "$work/registration.json")
+printf 'Registered importSourceId=%s, expected bytes=%s\n' "$source_id" "$bytes"
+
+# Registration must be incomplete, unlinked, and not yet attempted.
+test "$("${compose[@]}" exec -T postgres psql -XAtq \
+  -U exposurenexus -d exposurenexus -v ON_ERROR_STOP=1 \
+  -v source_id="$source_id" <<'SQL'
+BEGIN READ ONLY;
+SELECT count(*) = 1 FROM import_source
+WHERE id = :'source_id'::uuid AND state = 'incomplete'
+  AND "ingestionId" IS NULL AND "uploadStartedAt" IS NULL
+  AND "availableAt" IS NULL AND "deletedAt" IS NULL;
+ROLLBACK;
+SQL
+)" = t
+
+test "$(curl --fail-with-body --silent --show-error -b "$work/cookies" \
+  -X PUT -H "Origin: $origin" -H "X-CSRF-Token: $csrf" \
+  -H 'Content-Type: application/octet-stream' --data-binary "@$input" \
+  -o "$work/submission.json" -w '%{http_code}' \
+  "$api/api/findings/import/$source_id/content")" = 202
+test "$(jq -er '.data.importSourceId' "$work/submission.json")" = "$source_id"
+ingestion_id=$(jq -er '.data.ingestionId' "$work/submission.json")
+job_id=$(jq -er '.data.jobId' "$work/submission.json")
+jq '.data' "$work/submission.json"
+
+# Poll logs only, not the one-shot upload. Allow one minute for the handoff.
+completed=
+for attempt in {1..30}; do
+  completed=$("${compose[@]}" logs --no-color --no-log-prefix --since 10m worker |
+    jq -Rc --arg job "$job_id" --arg ingestion "$ingestion_id" \
+      --arg source "$source_id" --argjson bytes "$bytes" \
+      'fromjson? | select(.msg == "ingestion shell completed" and
+       .jobId == $job and .ingestionId == $ingestion and
+       .importSourceId == $source and .bytesRead == $bytes) |
+       {msg, jobId, ingestionId, importSourceId, bytesRead}')
+  if [ -n "$completed" ]; then break; fi
+  sleep 2
+done
+test -n "$completed"
+printf '%s\n' "$completed"
+
+# Inspect only this submission; no UPDATE, reset, deletion, or bucket/key output.
+"${compose[@]}" exec -T postgres psql -X \
+  -U exposurenexus -d exposurenexus -v ON_ERROR_STOP=1 \
+  -v source_id="$source_id" -v ingestion_id="$ingestion_id" -v job_id="$job_id" <<'SQL'
+BEGIN READ ONLY;
+SELECT s.id AS "importSourceId", s.state, s."sizeBytes", s."retentionPolicy",
+       s."uploadStartedAt", s."availableAt", s."failedAt", s."deletedAt",
+       s."cleanupRequired", i.id AS "ingestionId", i.source,
+       s."createdBy" = i."createdBy" AS "sameCreator",
+       j.id AS "jobId", j."publicationState", j."executionState",
+       j."executionStartedAt", j."executionFinishedAt", j."executionError",
+       (SELECT count(*) FROM observation o WHERE o."ingestionId" = i.id) AS observations
+FROM import_source s
+JOIN ingestion i ON i.id = s."ingestionId"
+JOIN job j ON j.id = :'job_id'::uuid AND j.event->'data'->>'ingestionId' = i.id::text
+WHERE s.id = :'source_id'::uuid AND i.id = :'ingestion_id'::uuid;
+ROLLBACK;
+SQL
+)
+```
+
+Verify exactly one SQL row: source `available`, the expected `sizeBytes`, unchanged
+configured retention (`temporary` by default), nonnull upload/availability timestamps,
+null failure/deletion timestamps, `cleanupRequired = false`, scanner `nuclei`, and
+`sameCreator = true`. Publication should become `published`; execution must still
+be `pending`, with null execution timestamps/error and zero observations. Relay
+publication bookkeeping can lag the worker log briefly; rerun only the read-only
+query with the recorded IDs if needed. Do not rerun PUT or mark the job succeeded.
+The completion log proves the entire input reached the worker through storage and
+the broker; database execution state is deliberately not a completion signal.
+Repeated matching logs are safe at-least-once delivery, not additional observations.
+
+For empty input, repeat the check with `INPUT=/dev/null`; use `INPUT=/path/to/scan.jsonl`
+to read a real scan instead of the default malformed content. Each run must register
+a fresh ID. All should reach
+shell completion with the exact byte count, not parsing success or imported results.
+All resulting input remains retained, even under `temporary`; this check performs
+no automatic source cleanup. The translator has moved from `apps/api/src/import`
+to the backend's private `features/ingestions` area and is never invoked here.
+
+Record the tested image/revision, returned IDs, expected/logged byte count, and
+read-only SQL result. If Docker, a dependency, current images, or an authorized
+account is unavailable, explicitly record **not run** and the missing prerequisite;
+unit tests or API health alone do not verify this live handoff. A missing completion
+log is a failure to investigate in worker/relay logs and publication state, not a
+reason to reset job/source rows or purge broker data.
+
 ## Image Roles
 
 One application image contains the API, bundled UI, and worker. Its default
@@ -218,10 +389,11 @@ docker run --env-file api.env -p 3001:3001 ghcr.io/s-schoen/exposurenexus:edge /
 docker run --env-file worker.env ghcr.io/s-schoen/exposurenexus:edge /app/apps/worker/dist/src/index.js
 ```
 
-These examples assume reachable PostgreSQL and pre-provisioned RabbitMQ. Supply
+These examples assume reachable PostgreSQL, pre-provisioned RabbitMQ, and a private
+S3 bucket. Supply
 API configuration, including the required S3 variables, in private `api.env`.
-Provision the private bucket separately; the API will not create or probe it.
-The worker requires `DATABASE_URL` and
+Provision the private bucket separately; neither role will create or probe it.
+The worker requires the same four required S3 variables plus `DATABASE_URL` and
 `RABBITMQ_URL` (with consumer credentials). `RABBITMQ_QUEUE` optionally overrides
 the default `EXPOSURENEXUS_JOBS_INGEST` queue. It does not require or load API
 authentication, origin, session, or static-serving configuration. See the
@@ -235,8 +407,8 @@ There is no role launcher, environment-based role selector, or relay role.
 The distroless, nonroot runtime contains no shell or package manager. Node runs
 the selected application directly as PID 1, receiving signals and
 retaining its exit status. Allow 75 seconds for graceful container shutdown with
-the default application deadline. The worker starts in connected idle mode,
-without consuming jobs or serving HTTP; jobs accumulate until real handlers ship.
+the default application deadline. The worker consumes jobs without serving HTTP;
+completion is log-only and job execution state remains `pending`.
 
 ## Updates, Scaling, And Shutdown
 
@@ -266,8 +438,9 @@ docker compose --env-file .env -f deployment/docker/docker-compose.yaml logs -f 
 ```
 
 Workers have no fixed container names, published ports, or relay per replica. Use
-the same command with `worker=1` to scale down. Scaling idle workers does not enable
-ingestion. `--no-deps` bypasses startup gates: use it only after verifying infrastructure,
+the same command with `worker=1` to scale down. Each replica processes one delivery
+at a time with prefetch `1`; all must address the same stored input. `--no-deps`
+bypasses startup gates: use it only after verifying infrastructure,
 provisioning, and API initialization.
 
 For graceful shutdown, stop applications before their dependencies:
@@ -280,7 +453,8 @@ docker compose --env-file .env -f deployment/docker/docker-compose.yaml stop pos
 SIGTERM (containers) or Ctrl+C/SIGINT (terminals) stops new work and drains active
 work before connections close. The API also cancels and awaits tracked uploads,
 including those whose sockets have disconnected, before closing storage or the
-database. Wait for exit; deadline expiry is nonzero and
+database. The worker retains storage and database access while accepted reads
+drain, then closes them. Wait for exit; deadline expiry is nonzero and
 unfinished deliveries are not acknowledged. If increasing `SHUTDOWN_TIMEOUT_MS`,
 increase supervisor grace beyond it too. These commands preserve PostgreSQL, RabbitMQ, and
 S3 data. Do not use `down -v` or delete volumes for updates, shutdown, or

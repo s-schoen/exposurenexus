@@ -637,8 +637,8 @@ resource. Users correct those finding-owned fields explicitly.
 
 The following describes the intended scanner-import boundary once automated
 persistence and observation-to-finding matching are implemented. The current
-import API registers metadata and accepts uploaded bytes for asynchronous
-processing, but does not yet process scans.
+import API registers metadata and accepts uploaded bytes; the worker shell reads
+and logs the complete stored input but does not parse scans or persist observations.
 
 Imports ingest external observations, not findings directly.
 
@@ -664,8 +664,8 @@ Automated importers do not create findings with `affectedResource.type` set to
 
 When enabled, imports will not create assets or vulnerability catalog entries.
 Records that cannot be confidently matched to an existing asset will produce a
-structured skip outcome rather than an observation. The resolver's attach,
-create, and skip outcomes are part of the source-independent contract, but
+structured skip outcome rather than an observation. Attach, create, and skip
+are intended outcomes, not a shipped resolver contract;
 partial-success behavior and JSONL processed/created/skipped/error accounting
 are deferred until synchronous import persistence is implemented.
 
@@ -900,16 +900,17 @@ immutable scan-upload metadata and returns an import-source ID with `201`, witho
 receiving bytes or creating an ingestion or job. The creator's one-shot
 `PUT /api/findings/import/:importSourceId/content` stores the bytes and atomically
 creates an ingestion, source link, and outbox job before returning `202`. This is
-durable acceptance, not imported observations; processing is still unavailable. See
+durable acceptance, not imported observations. The worker shell now reads and logs
+the full input without parsing, database execution-state updates, or cleanup. See
 [ADR-0006](0006-s3-backed-import-sources.md#scan-upload-registration).
 
-The model cutover still introduces and tests a source-independent resolver
-contract. It accepts an asset ID and normalized observation draft and returns one
-of three explicit outcomes: attach to a specified finding, create a finding from
-specified canonical fields, or skip with a structured reason. Tests may stub
-these outcomes without defining production matching rules.
+The initial cutover sketched a source-independent resolver contract with attach,
+create, and skip outcomes. That unused scaffolding is now removed; production
+matching remains undefined rather than preserving speculative interfaces.
 
-The initial pure Nuclei translator supports HTTP and HTTPS records. It produces
+The pure Nuclei translator and its tests now live privately under backend
+`features/ingestions`, moved from `apps/api/src/import`, and are not called by the
+worker shell. The translator supports HTTP and HTTPS records. It produces
 normalized observation drafts, derives a missing title from the template ID,
 falls back missing or unknown severity to `info`, falls back missing observed time
 to a supplied ingestion time, adds template/CVE/CWE weakness identifiers,
