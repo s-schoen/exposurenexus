@@ -6,6 +6,7 @@ import type { ObservationApplicationErrorCatalog } from "./features/findings/obs
 import type { RoleApplicationErrorCatalog } from "./features/identity/roles/role-error.js";
 import type { UserProfileApplicationErrorCatalog } from "./features/identity/users/user-profile-error.js";
 import type { ImportSourceApplicationErrorCatalog } from "./features/import-sources/import-source-error.js";
+import type { IngestionApplicationErrorCatalog } from "./features/ingestions/ingestion-error.js";
 import type { StatsApplicationErrorCatalog } from "./features/statistics/stats-error.js";
 export type { ImportSourceApplicationErrorCatalog } from "./features/import-sources/import-source-error.js";
 import type { VulnerabilityApplicationErrorCatalog } from "./features/vulnerabilities/vulnerability-error.js";
@@ -17,6 +18,7 @@ export type { AuthApplicationErrorCatalog } from "./features/authentication/auth
 export type { FindingApplicationErrorCatalog } from "./features/findings/finding-error.js";
 export type { ObservationApplicationErrorCatalog } from "./features/findings/observation-error.js";
 export type { RoleApplicationErrorCatalog } from "./features/identity/roles/role-error.js";
+export type { IngestionApplicationErrorCatalog } from "./features/ingestions/ingestion-error.js";
 export type { StatsApplicationErrorCatalog } from "./features/statistics/stats-error.js";
 export type { UserProfileApplicationErrorCatalog } from "./features/identity/users/user-profile-error.js";
 export type { VulnerabilityApplicationErrorCatalog } from "./features/vulnerabilities/vulnerability-error.js";
@@ -24,6 +26,7 @@ export type { ObjectStorageApplicationErrorCatalog } from "./object-storage/obje
 
 export type ApplicationErrorCatalog = AssetApplicationErrorCatalog &
   ImportSourceApplicationErrorCatalog &
+  IngestionApplicationErrorCatalog &
   AssetCustomFieldApplicationErrorCatalog &
   AuthApplicationErrorCatalog &
   FindingApplicationErrorCatalog &

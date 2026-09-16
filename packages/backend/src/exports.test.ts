@@ -11,13 +11,18 @@ import type {
   ImportSources,
   ImportSourcesConfiguration,
   RegisterImportSourceCommand,
+  UploadImportSourceCommand,
 } from "@exposurenexus/backend/import-sources";
+import type { createIngestions, Ingestions } from "@exposurenexus/backend/ingestions";
 import type {
   ObjectStorage,
   ObjectStorageConfiguration,
   ObjectStorageWriteCommand,
 } from "@exposurenexus/backend/object-storage";
-import type { RegisterImportSource } from "@exposurenexus/contracts/api";
+import type {
+  RegisterImportSource,
+  SubmitImportSourceDataReply,
+} from "@exposurenexus/contracts/api";
 import type { Readable } from "node:stream";
 
 describe("backend exports", () => {
@@ -33,6 +38,10 @@ describe("backend exports", () => {
       "features/import-sources/import-source-persistence",
       "features/import-sources/import-source-table",
       "import-sources/import-sources",
+      "ingestion",
+      "ingestions/ingestions",
+      "features/ingestions/index",
+      "features/ingestions/ingestion-error",
       "object-storage/object-storage",
       "object-storage/object-storage-error",
       "object-storage/index",
@@ -69,6 +78,7 @@ describe("backend exports", () => {
       "./findings",
       "./identity",
       "./import-sources",
+      "./ingestions",
       "./object-storage",
       "./statistics",
       "./vulnerabilities",
@@ -110,6 +120,13 @@ describe("backend exports", () => {
       Omit<RegisterImportSourceCommand, "performedBy">
     >().toEqualTypeOf<RegisterImportSource>();
     expectTypeOf<RegisterImportSourceCommand["performedBy"]>().toEqualTypeOf<string>();
+    expectTypeOf<UploadImportSourceCommand>().toEqualTypeOf<{
+      importSourceId: string;
+      performedBy: string;
+      body: Readable;
+      contentLength?: number;
+      signal: AbortSignal;
+    }>();
     expectTypeOf<ImportSource>().toEqualTypeOf<{
       id: string;
       ingestionId: string | null;
@@ -121,6 +138,7 @@ describe("backend exports", () => {
       retentionPolicy: "temporary" | "keep";
       state: "incomplete" | "available" | "deleted";
       createdAt: Date;
+      uploadStartedAt: Date | null;
       availableAt: Date | null;
       failedAt: Date | null;
       deletedAt: Date | null;
@@ -128,6 +146,7 @@ describe("backend exports", () => {
     }>();
     expectTypeOf<ImportSources>().toEqualTypeOf<{
       register(command: RegisterImportSourceCommand): Promise<ImportSource>;
+      upload(command: UploadImportSourceCommand): Promise<ImportSource>;
       create(command: CreateImportSourceCommand): Promise<ImportSource>;
       getByID(id: string): Promise<ImportSource | null>;
       getByIngestionID(ingestionId: string): Promise<ImportSource | null>;
@@ -144,6 +163,18 @@ describe("backend exports", () => {
       sourceId: string;
       reason: "size_mismatch" | "transfer_failed" | "finalization_failed";
       cleanupRequired: boolean;
+    }>();
+  });
+
+  it("exports high-level ingestion submission matching the API reply data", async () => {
+    expect(Object.keys(await import("./features/ingestions/index.js"))).toEqual([
+      "createIngestions",
+    ]);
+    expectTypeOf<typeof createIngestions>().toEqualTypeOf<
+      (runtime: BackendRuntime, importSources: Pick<ImportSources, "upload">) => Ingestions
+    >();
+    expectTypeOf<Ingestions>().toEqualTypeOf<{
+      submit(command: UploadImportSourceCommand): Promise<SubmitImportSourceDataReply>;
     }>();
   });
 
@@ -165,6 +196,7 @@ describe("backend exports", () => {
       key: string;
       body: Readable;
       expectedSizeBytes: number;
+      signal?: AbortSignal;
     }>();
     expectTypeOf<ObjectStorage>().toEqualTypeOf<{
       readonly bucket: string;
