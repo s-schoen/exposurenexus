@@ -2,6 +2,10 @@ export type ImportSourceApplicationErrorCatalog = {
   "import_source.invalid_configuration": { kind: "validation" };
   "import_source.invalid_input": { kind: "validation" };
   "import_source.reserve_failed": { kind: "unexpected" };
+  "import_source.claim_failed": { kind: "unexpected"; details: { sourceId: string } };
+  "import_source.upload_forbidden": { kind: "denied"; details: { sourceId: string } };
+  "import_source.upload_already_attempted": { kind: "conflict"; details: { sourceId: string } };
+  "import_source.upload_cancelled": { kind: "conflict"; details: { sourceId: string } };
   "import_source.get_failed": { kind: "unexpected"; details: { sourceId: string } };
   "import_source.get_by_ingestion_failed": {
     kind: "unexpected";

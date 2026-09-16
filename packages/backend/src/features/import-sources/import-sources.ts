@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Readable } from "node:stream";
+import { addAbortSignal, Readable } from "node:stream";
 
 import { registerImportSourceSchema } from "@exposurenexus/contracts/api";
 import { z } from "zod/v4";
@@ -9,9 +9,17 @@ import { getRuntimeDatabase, getRuntimeLogger, type BackendRuntime } from "../..
 import * as persistence from "./import-source-persistence.js";
 
 import type { ObjectStorage } from "../../object-storage/index.js";
+import type { ImportSourceTable } from "./import-source-table.js";
 import type { RegisterImportSource } from "@exposurenexus/contracts/api";
 
 const registerCommandSchema = registerImportSourceSchema.extend({ performedBy: z.uuidv4() });
+const uploadCommandSchema = z.strictObject({
+  importSourceId: z.uuidv4().toLowerCase(),
+  performedBy: z.uuidv4().toLowerCase(),
+  body: z.instanceof(Readable).refine((body) => !body.destroyed && body.readable),
+  contentLength: z.number().int().nonnegative().optional(),
+  signal: z.instanceof(AbortSignal),
+});
 
 export interface ImportSourcesConfiguration {
   maxSizeBytes?: number;
@@ -29,6 +37,7 @@ export interface ImportSource {
   retentionPolicy: "temporary" | "keep";
   state: "incomplete" | "available" | "deleted";
   createdAt: Date;
+  uploadStartedAt: Date | null;
   availableAt: Date | null;
   failedAt: Date | null;
   deletedAt: Date | null;
@@ -47,8 +56,17 @@ export interface RegisterImportSourceCommand extends RegisterImportSource {
   performedBy: string;
 }
 
+export interface UploadImportSourceCommand {
+  importSourceId: string;
+  performedBy: string;
+  body: Readable;
+  contentLength?: number;
+  signal: AbortSignal;
+}
+
 export interface ImportSources {
   register(command: RegisterImportSourceCommand): Promise<ImportSource>;
+  upload(command: UploadImportSourceCommand): Promise<ImportSource>;
   create(command: CreateImportSourceCommand): Promise<ImportSource>;
   getByID(id: string): Promise<ImportSource | null>;
   getByIngestionID(ingestionId: string): Promise<ImportSource | null>;
@@ -77,6 +95,106 @@ export function createImportSources(
     });
   }
 
+  async function requireSource(id: string) {
+    const source = await persistence.getRecord(database, id).catch(() => {
+      throw new ApplicationError({
+        code: "import_source.get_failed",
+        kind: "unexpected",
+        message: "Import source metadata could not be read",
+        details: { sourceId: id },
+      });
+    });
+    if (!source) {
+      throw new ApplicationError({
+        code: "import_source.not_found",
+        kind: "missing",
+        message: "Import source not found",
+        details: { sourceId: id },
+      });
+    }
+    return source;
+  }
+
+  function ownInput(body: Readable, signal?: AbortSignal) {
+    // Guard errors during database waits and asynchronous destruction before storage owns input.
+    const onInputError = () => body.destroy();
+    body.on("error", onInputError);
+    body.once("close", () => body.removeListener("error", onInputError));
+    if (signal) addAbortSignal(signal, body);
+  }
+
+  async function transfer(
+    { id, objectKey, sizeBytes }: Pick<ImportSourceTable, "id" | "objectKey" | "sizeBytes">,
+    body: Readable,
+    signal?: AbortSignal,
+  ) {
+    let transferred = false;
+    try {
+      signal?.throwIfAborted();
+      if (body.destroyed || !body.readable) {
+        body.destroy();
+        throw new Error("Import source input failed before transfer");
+      }
+      await storage.write({ key: objectKey, body, expectedSizeBytes: sizeBytes, signal });
+      signal?.throwIfAborted();
+      transferred = true;
+      // After durable finalization returns, cancellation belongs to the caller, not compensation.
+      return await persistence.finalize(database, id);
+    } catch (error) {
+      const failure =
+        !transferred &&
+        error instanceof ApplicationError &&
+        error.code === "object_storage.write_failed"
+          ? (error as ApplicationError<"object_storage.write_failed">).details
+          : null;
+      // A rejected storage write has already stopped and settled its local transfer.
+      let cleanupRequired = true;
+      let safeToCleanup = !transferred;
+      if (transferred) {
+        body.destroy();
+        // Finalization may have committed before its response was lost. Revoke
+        // availability durably before deleting bytes; preserve them if uncertain.
+        try {
+          await persistence.recordFailure(database, id, true);
+          safeToCleanup = true;
+        } catch {
+          logger.error(
+            { sourceId: id, cleanupRequired },
+            "Import source availability is uncertain; preserving object",
+          );
+        }
+      }
+      if (safeToCleanup) {
+        try {
+          await storage.delete(objectKey);
+          cleanupRequired = false;
+        } catch {
+          cleanupRequired = true;
+        }
+        try {
+          await persistence.recordFailure(database, id, cleanupRequired);
+        } catch {
+          // Availability is already revoked; only the cleanup outcome is uncertain.
+          logger.error(
+            { sourceId: id, cleanupRequired },
+            "Import source failure bookkeeping failed",
+          );
+        }
+      }
+      logger.warn({ sourceId: id, cleanupRequired }, "Import source creation failed");
+      throw new ApplicationError({
+        code: "import_source.create_failed",
+        kind: "unexpected",
+        message: "Import source creation failed",
+        details: {
+          sourceId: id,
+          reason: transferred ? "finalization_failed" : (failure?.reason ?? "transfer_failed"),
+          cleanupRequired,
+        },
+      });
+    }
+  }
+
   return {
     async register(command) {
       const parsed = registerCommandSchema.safeParse(command);
@@ -103,6 +221,7 @@ export function createImportSources(
           retentionPolicy,
           state: "incomplete",
           createdAt: new Date(),
+          uploadStartedAt: null,
           availableAt: null,
           failedAt: null,
           deletedAt: null,
@@ -115,6 +234,93 @@ export function createImportSources(
           message: "Import source metadata could not be reserved",
         });
       }
+    },
+    async upload(command) {
+      const parsed = uploadCommandSchema.safeParse(command);
+      if (!parsed.success) {
+        throw new ApplicationError({
+          code: "import_source.invalid_input",
+          kind: "validation",
+          message:
+            "Import source upload requires valid identities, input, length, and cancellation signal",
+        });
+      }
+      const { importSourceId: id, performedBy, body, contentLength, signal } = parsed.data;
+      ownInput(body, signal);
+      let claimed: ImportSourceTable;
+      try {
+        signal.throwIfAborted();
+        const source = await requireSource(id);
+        if (source.createdBy !== performedBy) {
+          throw new ApplicationError({
+            code: "import_source.upload_forbidden",
+            kind: "denied",
+            message: "Only the import source creator may upload its bytes",
+            details: { sourceId: id },
+          });
+        }
+        if (source.uploadStartedAt !== null) {
+          throw new ApplicationError({
+            code: "import_source.upload_already_attempted",
+            kind: "conflict",
+            message: "Import source is not an unused upload registration",
+            details: { sourceId: id },
+          });
+        }
+        if (
+          source.sizeBytes > maxSizeBytes ||
+          (contentLength !== undefined && contentLength !== source.sizeBytes) ||
+          body.destroyed ||
+          !body.readable
+        ) {
+          signal.throwIfAborted();
+          throw new ApplicationError({
+            code: "import_source.invalid_input",
+            kind: "validation",
+            message:
+              "Import source upload requires readable input and the registered length within the configured limit",
+          });
+        }
+        if (source.bucket !== bucket) {
+          throw new ApplicationError({
+            code: "import_source.bucket_mismatch",
+            kind: "conflict",
+            message: "Import source requires storage bound to its recorded bucket",
+            details: { sourceId: id },
+          });
+        }
+        signal.throwIfAborted();
+        const record = await persistence.claimUpload(database, id, performedBy).catch(() => {
+          throw new ApplicationError({
+            code: "import_source.claim_failed",
+            kind: "unexpected",
+            message: "Import source upload attempt could not be claimed",
+            details: { sourceId: id },
+          });
+        });
+        if (!record) {
+          throw new ApplicationError({
+            code: "import_source.upload_already_attempted",
+            kind: "conflict",
+            message: "Import source is not an unused upload registration",
+            details: { sourceId: id },
+          });
+        }
+        claimed = record;
+      } catch (error) {
+        body.destroy();
+        // No confirmed claim means no ownership of bytes, including an uncertain claim outcome.
+        if (signal.aborted && Object.is(error, signal.reason)) {
+          throw new ApplicationError({
+            code: "import_source.upload_cancelled",
+            kind: "conflict",
+            message: "Import source upload was cancelled",
+            details: { sourceId: id },
+          });
+        }
+        throw error;
+      }
+      return await transfer(claimed, body, signal);
     },
     async create({ body, sizeBytes, originalFilename, mimeType, performedBy }) {
       if (
@@ -133,14 +339,7 @@ export function createImportSources(
       }
       const id = randomUUID();
       const objectKey = `import-sources/${randomUUID()}`;
-      // Guard input until close, including errors while waiting for PostgreSQL
-      // or destroying rejected input before storage can take ownership.
-      let inputFailed = false;
-      const onInputError = () => {
-        inputFailed = true;
-      };
-      body.on("error", onInputError);
-      body.once("close", () => body.removeListener("error", onInputError));
+      ownInput(body);
       try {
         await persistence.reserve(database, {
           id,
@@ -155,6 +354,7 @@ export function createImportSources(
           retentionPolicy,
           state: "incomplete",
           createdAt: new Date(),
+          uploadStartedAt: new Date(),
           availableAt: null,
           failedAt: null,
           deletedAt: null,
@@ -168,72 +368,7 @@ export function createImportSources(
           message: "Import source metadata could not be reserved",
         });
       }
-      let transferred = false;
-      try {
-        if (inputFailed || body.destroyed || !body.readable) {
-          body.destroy();
-          throw new Error("Import source input failed during reservation");
-        }
-        await storage.write({
-          key: objectKey,
-          body,
-          expectedSizeBytes: sizeBytes,
-        });
-        transferred = true;
-        return await persistence.finalize(database, id);
-      } catch (error) {
-        const failure =
-          !transferred &&
-          error instanceof ApplicationError &&
-          error.code === "object_storage.write_failed"
-            ? (error as ApplicationError<"object_storage.write_failed">).details
-            : null;
-        // A rejected storage write has already stopped and settled its local transfer.
-        let cleanupRequired = true;
-        let safeToCleanup = !transferred;
-        if (transferred) {
-          body.destroy();
-          // Finalization may have committed before its response was lost. Revoke
-          // availability durably before deleting bytes; preserve them if uncertain.
-          try {
-            await persistence.recordFailure(database, id, true);
-            safeToCleanup = true;
-          } catch {
-            logger.error(
-              { sourceId: id, cleanupRequired },
-              "Import source availability is uncertain; preserving object",
-            );
-          }
-        }
-        if (safeToCleanup) {
-          try {
-            await storage.delete(objectKey);
-            cleanupRequired = false;
-          } catch {
-            cleanupRequired = true;
-          }
-          try {
-            await persistence.recordFailure(database, id, cleanupRequired);
-          } catch {
-            // Availability is already revoked; only the cleanup outcome is uncertain.
-            logger.error(
-              { sourceId: id, cleanupRequired },
-              "Import source failure bookkeeping failed",
-            );
-          }
-        }
-        logger.warn({ sourceId: id, cleanupRequired }, "Import source creation failed");
-        throw new ApplicationError({
-          code: "import_source.create_failed",
-          kind: "unexpected",
-          message: "Import source creation failed",
-          details: {
-            sourceId: id,
-            reason: transferred ? "finalization_failed" : (failure?.reason ?? "transfer_failed"),
-            cleanupRequired,
-          },
-        });
-      }
+      return await transfer({ id, objectKey, sizeBytes }, body);
     },
     async getByID(id) {
       try {
@@ -260,21 +395,7 @@ export function createImportSources(
       }
     },
     async readByID(id) {
-      const source = await persistence.getRecord(database, id).catch(() => {
-        throw new ApplicationError({
-          code: "import_source.get_failed",
-          kind: "unexpected",
-          message: "Import source metadata could not be read",
-          details: { sourceId: id },
-        });
-      });
-      if (!source)
-        throw new ApplicationError({
-          code: "import_source.not_found",
-          kind: "missing",
-          message: "Import source not found",
-          details: { sourceId: id },
-        });
+      const source = await requireSource(id);
       if (source.state !== "available" || source.deletedAt !== null) {
         throw new ApplicationError({
           code: "import_source.not_available",
@@ -303,21 +424,7 @@ export function createImportSources(
       }
     },
     async deleteByID(id) {
-      const source = await persistence.getRecord(database, id).catch(() => {
-        throw new ApplicationError({
-          code: "import_source.get_failed",
-          kind: "unexpected",
-          message: "Import source metadata could not be read",
-          details: { sourceId: id },
-        });
-      });
-      if (!source)
-        throw new ApplicationError({
-          code: "import_source.not_found",
-          kind: "missing",
-          message: "Import source not found",
-          details: { sourceId: id },
-        });
+      const source = await requireSource(id);
       if (source.state === "deleted") return;
       if (source.bucket !== bucket) {
         throw new ApplicationError({

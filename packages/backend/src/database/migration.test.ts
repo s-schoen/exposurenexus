@@ -178,6 +178,32 @@ describe("database migration preservation", () => {
           .selectAll()
           .orderBy("id")
           .execute();
+        const scannerMigration = await migrator.migrateTo("20260914-import-source-scanner");
+        expect(scannerMigration.error).toBeUndefined();
+        const registrations = await database
+          .insertInto("import_source")
+          .values([
+            {
+              ...source,
+              id: "00000000-0000-4000-8000-000000000004",
+              objectKey: "import-sources/unused-registration",
+              source: "nuclei",
+              state: "incomplete",
+              availableAt: null,
+              cleanupRequired: true,
+            },
+            {
+              ...source,
+              id: "00000000-0000-4000-8000-000000000005",
+              objectKey: "import-sources/failed-registration",
+              source: "nuclei",
+              state: "incomplete",
+              availableAt: null,
+              failedAt: createdAt,
+            },
+          ])
+          .returningAll()
+          .execute();
         await migrateToLatest(database, pino({ enabled: false }));
 
         expect(await database.selectFrom("ingestion").selectAll().execute()).toEqual([ingestion]);
@@ -187,7 +213,17 @@ describe("database migration preservation", () => {
         ]);
         expect(
           await database.selectFrom("import_source").selectAll().orderBy("id").execute(),
-        ).toEqual(historicalSources.map((record) => ({ ...record, source: null })));
+        ).toEqual([
+          ...historicalSources.map((record) => ({
+            ...record,
+            source: null,
+            uploadStartedAt: record.createdAt,
+          })),
+          ...registrations.map((record) => ({
+            ...record,
+            uploadStartedAt: record.failedAt ? record.createdAt : null,
+          })),
+        ]);
       } finally {
         await database.destroy();
         if (!pgLite.closed) await pgLite.close();
@@ -226,6 +262,7 @@ const expectedMigrationNames = [
   "20260913-import-sources",
   "20260913-import-sources-ingestion-link",
   "20260914-import-source-scanner",
+  "20260915-import-source-upload-attempt",
 ];
 
 // Forward-only migration history prevents renaming this already-applied file set.
