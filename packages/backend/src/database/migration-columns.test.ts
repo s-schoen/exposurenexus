@@ -42,6 +42,7 @@ describe("db migration columns", () => {
       { column_name: "deletedAt", is_nullable: "YES" },
       { column_name: "ingestionId", is_nullable: "YES" },
       { column_name: "source", is_nullable: "YES" },
+      { column_name: "uploadStartedAt", is_nullable: "YES" },
     ]);
     const foreignKeys = await sql<{ definition: string }>`
       select pg_get_constraintdef(oid) as definition from pg_constraint

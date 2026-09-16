@@ -5,4 +5,5 @@ export type {
   ImportSources,
   ImportSourcesConfiguration,
   RegisterImportSourceCommand,
+  UploadImportSourceCommand,
 } from "./import-sources.js";

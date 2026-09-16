@@ -29,6 +29,23 @@ export async function finalize(database: Kysely<Database>, id: string) {
   return toMetadata(record);
 }
 
+export async function claimUpload(database: Kysely<Database>, id: string, createdBy: string) {
+  return await database
+    .updateTable("import_source")
+    .set({ uploadStartedAt: new Date() })
+    .where("id", "=", id)
+    .where("createdBy", "=", createdBy)
+    .where("uploadStartedAt", "is", null)
+    .where("state", "=", "incomplete")
+    .where("source", "is not", null)
+    .where("availableAt", "is", null)
+    .where("failedAt", "is", null)
+    .where("deletedAt", "is", null)
+    .where("ingestionId", "is", null)
+    .returningAll()
+    .executeTakeFirst();
+}
+
 export async function getMetadata(database: Kysely<Database>, id: string) {
   const record = await database
     .selectFrom("import_source")
