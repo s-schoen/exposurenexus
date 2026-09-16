@@ -6,7 +6,20 @@ import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerabil
 import { weaknessSchema } from "@exposurenexus/contracts/model/weakness";
 import { z } from "zod/v4";
 
-import type { NormalizedObservationDraft } from "./observation.js";
+import type { ObservationAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
+import type { Weakness } from "@exposurenexus/contracts/model/weakness";
+
+interface NormalizedObservationDraft {
+  source: string;
+  title: string;
+  description?: string;
+  evidence?: string;
+  remediation?: string;
+  severity: VulnerabilitySeverity;
+  weakness: Weakness;
+  affectedResource: ObservationAffectedResource;
+  observedAt: Date;
+}
 
 const nucleiClassificationSchema = z
   .object({
