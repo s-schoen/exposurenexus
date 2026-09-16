@@ -74,6 +74,7 @@ S3_ENDPOINT=http://localhost:7070
 S3_FORCE_PATH_STYLE=true
 IMPORT_SOURCE_MAX_SIZE_BYTES=104857600
 IMPORT_SOURCE_RETENTION_POLICY=temporary
+IMPORT_SOURCE_UPLOAD_TIMEOUT_MS=300000
 STARTUP_TIMEOUT_MS=30000
 SHUTDOWN_TIMEOUT_MS=60000
 ```
@@ -96,8 +97,17 @@ for optional settings, validation, and non-local storage requirements.
 
 Storage configuration is validated at API startup, without a connectivity or bucket
 probe. A healthy API therefore does not establish S3 reachability or permissions.
-The API owns the storage client and closes it after HTTP and relay drain and on
-startup failure. Worker storage configuration remains ticket 03's responsibility.
+The API owns the storage client and closes it after HTTP, tracked upload work, and
+relay settlement and on startup failure. Upload work is tracked even after its
+socket closes, cancelled and awaited during bounded shutdown before storage or
+database closure. Worker storage configuration remains ticket 03's responsibility.
+
+`IMPORT_SOURCE_UPLOAD_TIMEOUT_MS` is a positive bounded integer with a five-minute
+default. Only the raw-byte PUT uses it; registration and ordinary requests retain
+`API_TIMEOUT_MS=5000`. Deadline or disconnection aborts the transfer, awaits its
+settlement, and prevents submission that has not begun. The HTTP server uses the
+upload deadline plus the default `60000` ms header budget for `requestTimeout`, while `headersTimeout` keeps
+its existing default. See [upload deadlines and recovery](deployment.md#upload-deadlines-and-recovery).
 
 On first startup, the API runs backend-owned database migrations automatically and creates a default admin user if the database is empty. The username is `admin`; the initial password is written to the API logs once.
 
@@ -163,13 +173,20 @@ Open `http://localhost:3000`.
 
 The UI import page remains disabled. Authenticated API callers can
 [register immutable scan-upload metadata](import-sources.md#register-a-scan-upload),
-but registration sends no bytes and creates no ingestion or job. Byte upload and
-submission follow in ticket 02; actual scan processing remains unavailable.
+then [upload raw bytes once](import-sources.md#upload-and-submit) as that creator
+with current `import:write` permission and CSRF protection. Registration alone
+creates no bytes, ingestion, or job. Upload returns `202` with
+`{ importSourceId, ingestionId, jobId }` only after durable storage and atomic
+submission, not processed results or imported observations. Unused registrations
+never expire, but claimed IDs are never reusable, even after failure or cancellation.
+Recovery requires a new registration and upload; an ambiguous response can mean a
+separate, duplicate submission. Durably available input is preserved after later
+abort or submission failure, with its safe source ID logged for diagnosis.
 
 Worker is intentionally connected but idle without a subscription. Logs and exit
 status describe process availability, not processing readiness. Jobs accumulate
 until a complete real handler set ships and activates consumption automatically.
-Real ingestion, execution-state orchestration, and business idempotency remain future work.
+Processing, execution-state orchestration, and business idempotency remain ticket 03 work.
 
 For graceful shutdown, press Ctrl+C in worker and API terminals and wait for cleanup
 and process exit before restarting either. Stop the UI with Ctrl+C too. SIGINT and

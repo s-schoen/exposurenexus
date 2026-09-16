@@ -59,21 +59,25 @@ independently within the runtime. The `/import-sources` capability uses
 factory call. `ImportSourcesConfiguration` has only optional `maxSizeBytes` and
 `retentionPolicy`; it has no SDK settings. There is no compatibility constructor
 or `ImportSources.close()`. The capability needs no authentication configuration;
-the API composes it for metadata registration, while worker composition remains
-deferred. See [Import Sources](import-sources.md) for
-separate real-storage construction and caller-owned shutdown.
+the API composes it for registration and one-shot byte upload, while worker
+composition remains deferred. The `/ingestions` factory
+`createIngestions(runtime, importSources: Pick<ImportSources, "upload">)` provides
+`submit(UploadImportSourceCommand)`, orchestrating upload and atomic submission
+without exposing persistence or a transaction callback. See [Import Sources](import-sources.md)
+for separate real-storage construction and caller-owned shutdown.
 
 Callers use these interfaces:
 
-| Capability      | Interfaces                                                                       |
-| --------------- | -------------------------------------------------------------------------------- |
-| Identity        | `users`, `roles`, `authorization`                                                |
-| Authentication  | Credential and session operations                                                |
-| Assets          | `inventory`, `customFields`                                                      |
-| Findings        | Finding, observation, and catalog-link operations                                |
-| Vulnerabilities | Vulnerability catalog operations                                                 |
-| Statistics      | Finding statistics                                                               |
-| Import Sources  | Metadata registration; library streamed creation/read, lookup, and byte deletion |
+| Capability      | Interfaces                                                                                |
+| --------------- | ----------------------------------------------------------------------------------------- |
+| Identity        | `users`, `roles`, `authorization`                                                         |
+| Authentication  | Credential and session operations                                                         |
+| Assets          | `inventory`, `customFields`                                                               |
+| Findings        | Finding, observation, and catalog-link operations                                         |
+| Vulnerabilities | Vulnerability catalog operations                                                          |
+| Statistics      | Finding statistics                                                                        |
+| Import Sources  | Metadata registration, one-shot upload, streamed creation/read, lookup, and byte deletion |
+| Ingestions      | Upload and durable ingestion/outbox submission; no processing yet                         |
 
 Shared infrastructure uses the strict `@exposurenexus/backend/database` and
 `@exposurenexus/backend/object-storage` subpaths. `createObjectStorage(config)`
@@ -82,9 +86,9 @@ lookup, or startup I/O. The composing caller owns its client lifetime and may
 share the handle across capabilities, closing it only after consumers and read
 streams stop. Borrowing capabilities never close storage; `close()` does not drain
 work. The API requires valid storage configuration at startup, with no connectivity
-or bucket probe, and closes its handle after HTTP and relay drain and on startup
-failure. General backend runtime construction and worker startup do not require S3
-configuration. See [Object Storage](object-storage.md).
+or bucket probe, and closes its handle after HTTP, tracked upload work, and relay
+settlement and on startup failure. General backend runtime construction and worker
+startup do not require S3 configuration. See [Object Storage](object-storage.md).
 
 There are no wildcard exports or compatibility imports. Repository contracts,
 dependency objects, lookup ports, persistence records, transaction types, and raw
@@ -96,8 +100,8 @@ invocation, jobs persistence composition, and test infrastructure.
 ## Backend Feature Organization
 
 Backend feature implementation lives under `packages/backend/src/features/`.
-Authentication, identity, assets, findings, vulnerabilities, statistics, and import sources are
-top-level features. Identity groups users, roles, and authorization; assets groups
+Authentication, identity, assets, findings, vulnerabilities, statistics, import
+sources, and ingestions are top-level features. Identity groups users, roles, and authorization; assets groups
 inventory and custom fields. Each feature colocates its behavior, private
 persistence, table types, error catalogs, rules, and adjacent tests. Commands and
 outcomes belong to the feature or subfeature that implements them.
@@ -122,6 +126,17 @@ it is known only for fully observed input and is `null` for overruns or interrup
 input. Import sources do not persist it. The size constraint remains a nonnegative
 safe integer. The forward `20260914-import-source-scanner` migration adds nullable
 scanner `source` metadata, preserving historical input with unknown scanner as `null`.
+The forward `20260915-import-source-upload-attempt` migration adds nullable
+`uploadStartedAt`: only unused registrations remain eligible for a durable atomic
+claim. Claims survive failed transfers, cancellation, interruption, and cleanup;
+losing or repeated uploads cannot write or compensate another attempt's bytes.
+
+`UploadImportSourceCommand` carries only `importSourceId`, `performedBy`, a Node
+`Readable` body, optional numeric `contentLength`, and required `AbortSignal`.
+Registered metadata supplies the size and policy rather than request overrides.
+Import sources pass the signal to storage's optional write signal and use the
+registered length for exact verification, including chunked input without
+`Content-Length` and zero-byte input. No transaction stays open during transfer.
 
 Import sources reject recorded-bucket mismatches before byte reads or deletes with
 `import_source.bucket_mismatch`, kind `conflict`, and only `{ sourceId: string }`
@@ -138,11 +153,13 @@ vulnerability persistence internally. These dependencies remain private; apps do
 not orchestrate business transactions through repositories.
 
 Database infrastructure aggregates feature-owned table types through type-only
-imports and retains one chronological migration chain. Ingestion has only a table
-definition under database schema until its behavior is implemented. Import sources
-own the optional, unique ingestion reference and expose source metadata lookup by
-ingestion ID without exposing queries or introducing a submission/processing use case. The root
-`ApplicationError` similarly aggregates feature- and infrastructure-owned error
+imports and retains one chronological migration chain. Import sources own the
+optional, unique ingestion reference and expose metadata lookup by ingestion ID.
+After durable upload, ingestions privately create the ingestion, guard and link its
+available unlinked source, and create the outbox job in one transaction. The narrow
+jobs dependency includes its event contract, `JobService`, and transaction-bound
+PostgreSQL persistence for this atomicity, not transport, handlers, or delivery
+policy. The root `ApplicationError` similarly aggregates feature- and infrastructure-owned error
 catalogs through type-only imports. No generic feature framework or separate
 workspace packages are required.
 
@@ -170,6 +187,25 @@ policy in backend. The `201` response contains only `importSourceId` in the API
 `data` envelope alongside `correlationId`. No bytes, ingestion, or job are created;
 the ordinary API timeout applies. See [registration](import-sources.md#register-a-scan-upload).
 
+`PUT /api/findings/import/:importSourceId/content` requires the same authentication,
+CSRF, and current permission checks, with creator enforcement in backend. The route
+adapts a raw body to a Node `Readable`, validates optional `Content-Length`, and calls
+`Ingestions.submit` with the authenticated actor and request cancellation signal.
+No metadata override, multipart parsing, scanner translation, or imported
+observations are involved. Only durable source availability and successful
+submission return `202` with `{ importSourceId, ingestionId, jobId }` in `data`;
+this does not promise publication or execution. See [upload and submission](import-sources.md#upload-and-submit).
+
+Upload middleware uses `IMPORT_SOURCE_UPLOAD_TIMEOUT_MS` (default `300000`) instead
+of ordinary `API_TIMEOUT_MS` (default `5000`, including registration). It aborts the
+transfer on deadline or disconnection, awaits settlement, and prevents submission
+that has not begun. Server `requestTimeout` is the upload deadline plus `60000` ms
+so the application timer handles cancellation first; `headersTimeout` keeps its
+existing default. The app tracks upload work independently of socket lifetime and
+cancels and awaits it during bounded shutdown before storage or database closure.
+Later abort or submission failure never deletes durably available input, even if a
+commit outcome is ambiguous; committed effects cannot be retracted by a lost response.
+
 ## Application Errors
 
 Backend throws typed `ApplicationError`s from the package root. The API maps
@@ -193,15 +229,14 @@ the initial admin through identity, then starts serving. It closes the pool on
 startup failure and during shutdown. The runtime does not manage resource
 lifecycle.
 
-The import HTTP endpoint registers metadata only; byte upload and ingestion
-submission follow in ticket 02, and the UI import page remains disabled.
+The import HTTP flow registers metadata, then accepts a one-shot upload and
+atomically submits ingestion work. The UI import page remains disabled.
 The worker remains connected but idle with no production ingestion handler. It
 uses an undecorated backend runtime as a trusted system caller and checks required
-migrations without applying them. Source storage and ingestion references do not
-enable submission or processing. Future ingestion orchestration belongs in a high-level
-backend ingestion use case, not in the worker or a recreated exposures aggregate.
-Submission must atomically link the source and ingestion and insert the outbox job;
-execution idempotency and cleanup policy remain deferred.
+migrations without applying them. Accepted jobs may wait in the queue until ticket
+03; submission does not enable processing. Future processing orchestration belongs
+in a high-level backend use case, not in the worker or a recreated exposures
+aggregate. Execution idempotency and cleanup policy remain deferred.
 Queue infrastructure remains in apps and the jobs package;
 see [Job Queue](job-queue.md).
 
@@ -220,6 +255,11 @@ that target:
 Partial core metadata updates use `PATCH` with a separate schema and explicit
 merge rules. The asset update payload must contain at least one editable field;
 omitted fields remain unchanged and a no-op does not advance audit metadata.
+
+Import-source content is a write-once subresource, not a replacement endpoint.
+Its PUT sends the entire registered file, but every claimed attempt consumes the
+ID permanently and later PUTs receive `409`. Recovery requires a new registration
+and upload; there is no same-ID retry or request deduplication.
 
 ## Tests
 

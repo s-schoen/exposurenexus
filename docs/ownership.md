@@ -61,7 +61,8 @@ Ownership can be cleared explicitly by setting `ownerId` to `null`. Clearing
 ownership means responsibility is unknown; it is distinct from assigning an
 invalid or missing user profile.
 
-The import API registers scan-upload metadata only; it does not process scans or
+The import API registers metadata and accepts uploaded scans for asynchronous
+processing; it does not yet process scans or
 change asset ownership. Import-time asset ownership behavior is not defined yet.
 
 ## User Profile Behavior
@@ -110,7 +111,7 @@ shown as context, but it is not copied into the finding assignment.
 Manual finding creation may set an assignee explicitly, but the default is
 unassigned.
 
-Metadata registration does not create or assign findings. Automated scan
+Neither metadata registration nor upload acceptance creates or assigns findings. Automated scan
 processing remains unavailable.
 
 The first assignment model does not keep dedicated assignment history. The

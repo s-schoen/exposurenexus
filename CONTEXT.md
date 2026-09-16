@@ -327,10 +327,11 @@ changes emit complete previous and current asset snapshots after commit.
 ### Import
 
 An **import** is intended to ingest external observations into ExposureNexus.
-Scan-upload metadata registration is available, but it is not ingestion
-submission: byte upload and submission remain deferred. The pure Nuclei JSONL
-translator is implemented, but automated persistence and observation-to-finding
-matching are not. The UI import workflow remains disabled.
+Scan-upload registration and one-shot byte upload now support durable ingestion
+submission, not completed import results. The pure Nuclei JSONL translator is
+implemented, but queued scans are not yet processed and no imported observations
+are created. Automated persistence and observation-to-finding matching remain
+deferred, and the UI import workflow remains disabled.
 
 When enabled, imports will resolve source records against user-managed assets and
 findings. They will not create assets or vulnerability catalog entries. A record
@@ -343,9 +344,11 @@ source dataset. It retains its identity, scanner source, creation actor, and
 creation time so imported observations can retain provenance. It may identify one
 durable import source; preexisting ingestions without stored raw input retain
 their provenance without an invented source. An ingestion is not an upload
-placeholder. Ingestion scope and processed, created, skipped, and erroneous record
-accounting are deferred until automated ingestion is implemented. Manual
-observations do not belong to ingestions.
+placeholder: submission creates it only after its raw input is durably available,
+with the registered scanner source and creator. Acceptance does not mean processing
+has run or observations exist. Ingestion scope and processed, created, skipped, and
+erroneous record accounting are deferred until automated processing is implemented.
+Manual observations do not belong to ingestions.
 
 ### Import Source
 
@@ -355,17 +358,20 @@ declared MIME type, size, retention policy, and lifecycle metadata. Registered
 sources declare `nuclei`; historical sources with unknown scanner identity retain
 `null`. Declared MIME type is caller-supplied metadata, not verified content or
 scanner identity. An import source may exist before ingestion and belongs to at
-most one ingestion;
-retaining it does not make it a reusable dataset. Incomplete and deleted sources
-remain identifiable, and deleting raw data preserves provenance and any ingestion
-relationship.
+most one ingestion; retaining it does not make it a reusable dataset. Incomplete
+and deleted sources remain identifiable, and deleting raw data preserves provenance
+and any ingestion relationship.
 
 Registration reserves an incomplete import source with immutable input metadata
 and the authenticated user profile as creator, without receiving bytes or creating
 an ingestion or job. Its ID is a reference, not an upload credential. Repeated
 registrations are distinct, and unused registrations do not expire. Durable source
-storage and lookup remain available to backend callers; byte upload, ingestion
-submission, and automated processing are not yet available through the application.
+storage and lookup remain available to backend callers. Only the registration's
+creator with current import permission may upload its bytes, without replacing its
+metadata. An upload attempt consumes the registration permanently, including after
+failure, cancellation, or interruption; cleanup never makes it reusable. Recovery
+requires a new registration and upload. A lost response can leave acceptance
+uncertain, so recovery can create a separate submission rather than deduplicating it.
 
 An import source's **size** is its single `sizeBytes` value: the declared byte
 length while incomplete, verified when the source becomes available. Failed
@@ -383,8 +389,8 @@ cleanup, prevent explicit deletion, or imply immutable evidence. The future
 ingestion workflow must decide when raw input is no longer needed for retries.
 
 See [S3-Backed Import Sources](docs/adr/0006-s3-backed-import-sources.md) for the
-delivered registration, storage, and durable-reference foundation and deferred
-ingestion work.
+delivered registration, one-shot upload, and durable submission contract and
+deferred processing work.
 
 ### Vulnerability Source Mapping
 
