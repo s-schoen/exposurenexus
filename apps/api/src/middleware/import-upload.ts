@@ -3,6 +3,23 @@ import { ApiError, replyError } from "../lib/api-error.js";
 import type { ContextVariables } from "../lib/hono-schema.js";
 import type { MiddlewareHandler } from "hono";
 
+/**
+ * Guards the import content upload (`PUT /api/findings/import/:importSourceId/content`),
+ * which streams large files and therefore needs different lifetime rules than
+ * ordinary API requests:
+ *
+ * - Applies its own, longer timeout instead of the short default API timeout
+ *   (see `api.use("*", ...)` in `app.ts`), and cancels the work when it expires.
+ * - Propagates an `AbortSignal` combining client disconnect, timeout, and
+ *   shutdown through `importUploadSignal`, which the import route passes to
+ *   `ingestions.submit`.
+ * - Tracks in-flight uploads so `close()` can wait for them to settle during
+ *   graceful shutdown instead of dropping them when the socket closes.
+ *
+ * Unlike Hono's `timeout` middleware, it aborts the underlying work and awaits
+ * its settlement before sending the error reply, so no orphaned ingestion runs
+ * after the response.
+ */
 export function createImportUploads(timeoutMs: number) {
   const shutdown = new AbortController();
   const active = new Set<Promise<void>>();
