@@ -39,6 +39,10 @@ services:
         condition: service_healthy
       rabbitmq-init:
         condition: service_completed_successfully
+      s3:
+        condition: service_healthy
+      init-s3:
+        condition: service_completed_successfully
     healthcheck:
       test:
         - CMD

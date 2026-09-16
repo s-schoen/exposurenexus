@@ -14,11 +14,11 @@ dependency or callback. Worker migration checks remain read-only and authoritati
 outside Compose too; workers never apply migrations.
 
 Both roles require valid S3 configuration, but perform no storage connectivity or
-bucket probe at startup. Compose's existing VersityGW healthcheck and `init-s3`
-provisioning are separate infrastructure steps, not application probes or API
-registration startup gates. The worker waits for healthy `s3` and successful
-`init-s3` as well as its existing dependencies, so queued reads do not race local
-bucket provisioning. API and worker must use the same bucket, endpoint, and account.
+bucket probe at startup. Compose separately gates both `app` and `worker` on healthy
+`s3` and successful `init-s3`, so uploads and queued reads do not race local bucket
+provisioning. The VersityGW healthcheck and bucket initialization are infrastructure
+steps, not application probes. API and worker must use the same bucket, endpoint,
+and account.
 
 Run **exactly one active API** because it owns the single outbox relay. Use
 stop-before-start upgrades with no replica overlap. There is no separate relay
@@ -215,9 +215,10 @@ healthcheck. Monitor startup `mode: "consuming"`, structured completion logs, an
 process exit status; a running process does not prove storage reads work.
 The handler calls `Ingestions.process(ingestionId)` and logs
 `ingestion shell completed` with `jobId`, `ingestionId`, `importSourceId`, and
-`bytesRead` only after the full stream is read. Lookup/read failures, including
-mid-stream failures, use existing broker retries and dead-lettering. The worker
-makes no database writes: execution stays `pending` on success and failure, while
+`bytesRead` only after EOF at the source's recorded `sizeBytes`. Lookup/read
+failures, including mid-stream errors and clean-EOF size mismatches
+(`import_source.read_failed`), use existing broker retries and dead-lettering. The
+worker makes no database writes: execution stays `pending` on success and failure, while
 API relay publication updates remain independent. Duplicate deliveries safely
 reread and log again without changing source metadata, links, retention, or bytes.
 There are no execution claims, deduplication, status endpoints, or cleanup.
@@ -361,6 +362,19 @@ query with the recorded IDs if needed. Do not rerun PUT or mark the job succeede
 The completion log proves the entire input reached the worker through storage and
 the broker; database execution state is deliberately not a completion signal.
 Repeated matching logs are safe at-least-once delivery, not additional observations.
+
+The shell completion log precedes the consumer's ACK; it alone does not prove broker
+acknowledgement. On an otherwise idle, isolated smoke stack, also check settlement:
+
+```bash
+docker compose --env-file .env -f deployment/docker/docker-compose.yaml \
+  exec -T rabbitmq rabbitmqctl -q list_queues -p exposurenexus \
+  name messages_ready messages_unacknowledged consumers
+```
+
+Wait for `EXPOSURENEXUS_JOBS_INGEST` to have zero ready and unacknowledged messages
+with one consumer. Record these counts with the completion log and SQL result.
+Do not expect an idle queue on a shared stack or purge messages to make this pass.
 
 For empty input, repeat the check with `INPUT=/dev/null`; use `INPUT=/path/to/scan.jsonl`
 to read a real scan instead of the default malformed content. Each run must register

@@ -38,7 +38,7 @@ Both roles require nonblank `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, and `S
 
 The API continues to run backend-owned migrations. The worker initializes its database and backend runtime but only performs read-only connectivity and migration-status checks: every migration required by its build must have been applied. Missing migrations cause startup failure; the worker never applies them. The shared backend database boundary owns the migration-status check rather than exposing migration internals to handlers.
 
-In the reference Compose deployment, both roles wait for successful broker provisioning. The worker also waits for API health to confirm API startup and migration completion, healthy storage, and the existing one-shot bucket initializer. These are infrastructure startup dependencies, not application storage probes or an ongoing API dependency: the worker accesses shared backend capabilities directly and does not require the API to remain available.
+In the reference Compose deployment, both roles wait for successful broker provisioning, healthy storage, and the existing one-shot bucket initializer. The worker also waits for API health to confirm API startup and migration completion. These are infrastructure startup dependencies, not application storage probes or an ongoing API dependency: the worker accesses shared backend capabilities directly and does not require the API to remain available.
 
 ### Shutdown And Operational Visibility
 
