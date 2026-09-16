@@ -89,10 +89,10 @@ asset directory when the API process should also serve the React app.
 If you use a different local database, update `DATABASE_URL` accordingly.
 
 Use the same bucket, region, and static S3 credentials as the root Compose `.env`.
-Only the API endpoint changes from Compose's `http://s3:7070` to
+Only the endpoint changes from Compose's `http://s3:7070` to
 `http://localhost:7070`. The four bucket/region/credential variables are required
 and nonblank. Path-style addressing is `true` for this local gateway, overriding
-the API default of `false`. See [API storage configuration](deployment.md#api-storage-configuration)
+the application default of `false`. See [API and worker storage configuration](deployment.md#api-and-worker-storage-configuration)
 for optional settings, validation, and non-local storage requirements.
 
 Storage configuration is validated at API startup, without a connectivity or bucket
@@ -100,7 +100,8 @@ probe. A healthy API therefore does not establish S3 reachability or permissions
 The API owns the storage client and closes it after HTTP, tracked upload work, and
 relay settlement and on startup failure. Upload work is tracked even after its
 socket closes, cancelled and awaited during bounded shutdown before storage or
-database closure. Worker storage configuration remains ticket 03's responsibility.
+database closure. Configure worker storage below against the same bucket, endpoint,
+and account; bucket-name equality alone cannot establish endpoint/account continuity.
 
 `IMPORT_SOURCE_UPLOAD_TIMEOUT_MS` is a positive bounded integer with a five-minute
 default. Only the raw-byte PUT uses it; registration and ordinary requests retain
@@ -126,6 +127,12 @@ Create ignored `apps/worker/.env`:
 DATABASE_URL=postgres://exposurenexus:change-me@localhost:5432/exposurenexus
 RABBITMQ_URL=amqp://worker-consumer:replace-with-worker-password@localhost:5672/exposurenexus
 RABBITMQ_QUEUE=EXPOSURENEXUS_JOBS_INGEST
+S3_BUCKET=exposurenexus
+S3_REGION=us-east-1
+S3_ACCESS_KEY_ID=replace-with-local-s3-access-key
+S3_SECRET_ACCESS_KEY=replace-with-local-s3-secret
+S3_ENDPOINT=http://localhost:7070
+S3_FORCE_PATH_STYLE=true
 LOG_LEVEL=info
 STARTUP_TIMEOUT_MS=30000
 SHUTDOWN_TIMEOUT_MS=60000
@@ -137,6 +144,15 @@ or a shared account. Percent-encode username/password URL components (for exampl
 `@` as `%40`), but keep provisioner credential inputs unencoded. Worker needs no
 API authentication or UI configuration. Its migration checks are read-only and
 fail if required migrations are missing, including outside Compose.
+
+The four bucket/region/credential variables are required and nonblank, matching
+the API's storage account and bucket. `S3_ENDPOINT` and `S3_FORCE_PATH_STYLE` are
+optional with the same semantics as the API; the local gateway needs the values
+above. The worker uses the existing storage factory, with no storage connectivity
+or bucket probe at startup. It needs no API upload-policy variables. It closes
+storage on startup failure and after accepted reads drain on normal shutdown,
+never while those reads are active. If drain fails or hangs, bounded nonzero exit
+and unacknowledged redelivery remain unchanged.
 
 ## Configure The UI
 
@@ -183,10 +199,22 @@ Recovery requires a new registration and upload; an ambiguous response can mean 
 separate, duplicate submission. Durably available input is preserved after later
 abort or submission failure, with its safe source ID logged for diagnosis.
 
-Worker is intentionally connected but idle without a subscription. Logs and exit
-status describe process availability, not processing readiness. Jobs accumulate
-until a complete real handler set ships and activates consumption automatically.
-Processing, execution-state orchestration, and business idempotency remain ticket 03 work.
+The complete real ingestion handler set activates worker consumption automatically,
+without a flag. The handler calls backend `Ingestions.process(ingestionId)` to
+stream the entire stored input to discard, then logs `ingestion shell completed`
+with `jobId`, `ingestionId`, `importSourceId`, and `bytesRead`. It never parses
+zero-byte or malformed contents, creates observations, writes database state, or
+deletes input, even under `temporary` retention. Execution deliberately stays
+`pending`; duplicate deliveries safely repeat reads and logs. Retained inputs and
+abandoned registrations accumulate until cleanup exists or is explicitly performed.
+The pure Nuclei translator and tests now live privately under backend
+`features/ingestions`, not `apps/api/src/import`, and are not called by the shell.
+
+Use the [existing-stack smoke check](deployment.md#ingestion-shell-smoke-check) to
+verify the real handoff and log-only observability. A running worker has no HTTP
+health endpoint and does not prove successful storage access. Parsing, matching,
+observation/finding persistence, execution-state orchestration, and cleanup remain
+deferred.
 
 For graceful shutdown, press Ctrl+C in worker and API terminals and wait for cleanup
 and process exit before restarting either. Stop the UI with Ctrl+C too. SIGINT and
@@ -206,7 +234,7 @@ This preserves data; do not use `down -v` or delete volumes. See
 .
 ├── apps/
 │   ├── api/      # Hono HTTP adapters and executable composition
-│   ├── worker/   # Connected jobs runtime, initially idle
+│   ├── worker/   # Jobs consumer and read-only ingestion shell adapter
 │   └── ui/       # React + Vite frontend
 └── packages/
     ├── backend/  # Business capabilities, persistence, migrations

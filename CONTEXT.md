@@ -328,9 +328,10 @@ changes emit complete previous and current asset snapshots after commit.
 
 An **import** is intended to ingest external observations into ExposureNexus.
 Scan-upload registration and one-shot byte upload now support durable ingestion
-submission, not completed import results. The pure Nuclei JSONL translator is
-implemented, but queued scans are not yet processed and no imported observations
-are created. Automated persistence and observation-to-finding matching remain
+submission. A worker shell reads the complete stored input and logs completion,
+but accepted or successfully read bytes are not imported observations. Empty and
+malformed contents are not parsed. The pure Nuclei JSONL translator remains outside
+the live path. Automated persistence and observation-to-finding matching remain
 deferred, and the UI import workflow remains disabled.
 
 When enabled, imports will resolve source records against user-managed assets and
@@ -345,8 +346,9 @@ creation time so imported observations can retain provenance. It may identify on
 durable import source; preexisting ingestions without stored raw input retain
 their provenance without an invented source. An ingestion is not an upload
 placeholder: submission creates it only after its raw input is durably available,
-with the registered scanner source and creator. Acceptance does not mean processing
-has run or observations exist. Ingestion scope and processed, created, skipped, and
+with the registered scanner source and creator. Acceptance does not mean the worker
+has run, and shell completion does not mean observations exist. Ingestion scope
+and processed, created, skipped, and
 erroneous record accounting are deferred until automated processing is implemented.
 Manual observations do not belong to ingestions.
 
@@ -387,10 +389,13 @@ is intended for cleanup after ingestion (`temporary`) or continued retention
 changes do not change existing sources' policies. Retention does not schedule
 cleanup, prevent explicit deletion, or imply immutable evidence. The future
 ingestion workflow must decide when raw input is no longer needed for retries.
+The read-only worker shell never deletes input, even under `temporary` retention.
+Retained inputs and abandoned registrations accumulate until cleanup is implemented
+or explicitly performed; duplicate deliveries can safely read and log again.
 
 See [S3-Backed Import Sources](docs/adr/0006-s3-backed-import-sources.md) for the
-delivered registration, one-shot upload, and durable submission contract and
-deferred processing work.
+delivered registration, one-shot upload, durable submission, and read-only worker
+shell contract and deferred processing work.
 
 ### Vulnerability Source Mapping
 
@@ -454,18 +459,18 @@ high exposure, affected assets, and mitigation rate.
 
 ## System Boundaries
 
-- The API owns persistence, authentication, imports, domain services, and route
-  authorization.
-- Inside the API, routes adapt HTTP and authorization concerns, services own
-  application behavior, and repositories adapt persistence.
+- The shared backend owns business capabilities, persistence, authentication,
+  import sources, and ingestion behavior. The API owns HTTP and route authorization;
+  the worker calls the same high-level capabilities as a trusted system caller.
 - The UI owns the authenticated React workflows for dashboard, assets,
   findings, vulnerabilities, users, roles, custom fields, and imports.
 - `packages/contracts` owns shared Zod schemas, enum values, and TypeScript types
   used by both API and UI.
 - Asset custom fields currently apply only to assets, not findings,
   vulnerabilities, users, or roles.
-- The API includes a pure Nuclei JSONL observation translator; automated scanner
-  import persistence is not currently enabled.
+- The backend ingestion feature owns the private pure Nuclei JSONL observation
+  translator. The worker shell does not call it or write domain or job execution
+  state; execution remains `pending` and completion is observable only in logs.
 
 ## Vocabulary Rules
 

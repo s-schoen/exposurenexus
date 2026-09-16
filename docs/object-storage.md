@@ -155,14 +155,18 @@ Already-deleted deletion remains a no-op and unavailable reads still reject as
 `import_source.not_available`. Metadata lookup by source or ingestion ID remains
 independent of the bound bucket. No registry or historical routing is provided.
 
-The API composes storage for registration and one-shot byte upload and requires valid
-[storage configuration](deployment.md#api-storage-configuration) at startup, without
-a connectivity or bucket probe. Registration itself performs no object I/O. The
+The API composes storage for registration and one-shot byte upload; the worker
+composes it for full streamed reads through `Ingestions.process`. Both require valid
+[storage configuration](deployment.md#api-and-worker-storage-configuration) at startup,
+addressing the same bucket, endpoint, and account, without a connectivity or bucket
+probe. Registration itself performs no object I/O. The
 API cancels and settles tracked uploads before closing storage after HTTP and
-relay drain, and on startup failure. Storage is
-not a general backend-runtime dependency; worker composition remains deferred and
-the worker stays connected but idle. Upload durably accepts an ingestion and outbox
-job, but actual scan processing is still unavailable.
+relay drain, and on startup failure. The worker retains its handle until accepted
+reads drain before closing it, and cleans it up on startup failure. Storage is
+not a general backend-runtime dependency. Worker reads discard bytes without parsing
+or cleanup; shell completion is not imported observations and job execution stays
+`pending`. Retained input, including `temporary` sources, and abandoned registrations
+can accumulate.
 See [Import Sources](import-sources.md) for executable usage and the deliberate
 [ADR-0006 refinement](adr/0006-s3-backed-import-sources.md#reusable-storage-refinement).
 

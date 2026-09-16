@@ -60,8 +60,8 @@ Do NOT commit any changes to git unless you are explicitly asked.
   invalidation.
 - Resource mutations include findings, observations, finding-to-vulnerability catalog links, assets and asset ownership,
   asset custom field definitions/assignments/values, vulnerabilities, users, and roles.
-- Automated finding import is work in progress and currently returns `501 Not Implemented`; do not model import mutation
-  behavior in the UI until an API contract is implemented.
+- Keep the UI import page disabled. The API accepts metadata and bytes and the worker only reads/logs input; this is not
+  imported observations. See `docs/import-sources.md` before changing the import workflow.
 - Exceptions include auth/session cache clearing, pure local UI state, form validation and draft state, clipboard actions,
   dialogs, filters, search params, tests, and stories. Test and Storybook harnesses may seed or update query caches to
   simulate API-backed state without going through lifecycle hooks.

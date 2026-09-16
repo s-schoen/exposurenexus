@@ -2,6 +2,8 @@
 
 ExposureNexus will add a long-lived `apps/worker` application for asynchronous jobs while continuing to publish one container image with API and worker roles. The API will host the existing transactional outbox relay, and the worker will initially remain connected but non-consuming until real ingestion behavior is implemented. This keeps deployment to two application roles without discarding queued work or prematurely defining ingestion and execution semantics.
 
+The foundation described above shipped with no handlers. The current worker now consumes ingestion jobs through the read-only shell below; connected-idle operation remains a supported empty-handler-set behavior, not the production composition.
+
 ## Decision
 
 This decision extends [ADR-0004](0004-shared-backend-capabilities.md), which establishes shared backend capabilities and executable-app ownership of infrastructure lifecycle. It preserves the publication and delivery contracts in the [job queue documentation](../job-queue.md).
@@ -16,9 +18,9 @@ The relay supports only one active instance and has no claims, leases, or leader
 
 ### Worker Foundation And Activation
 
-The worker composes the existing jobs consumer instead of adding an application polling loop. It owns its environment configuration, logging, database resources, backend runtime, and queue lifecycle. It uses backend capabilities without API event decorators or API authentication configuration, as established by ADR-0004.
+The worker composes the existing jobs consumer instead of adding an application polling loop. It owns its environment configuration, logging, database and object-storage resources, backend runtime, and queue lifecycle. It uses backend capabilities without API event decorators or API authentication configuration, as established by ADR-0004.
 
-The initial release has no implemented ingestion handler. It establishes a RabbitMQ connection, passively verifies the queue exists, and stays alive without subscribing. It neither acknowledges nor rejects queued messages and does not consume their retry budgets. Connection maintenance and reconnection must work independently of subscription startup; this requires a narrow lifecycle change in the jobs package. Waiting is event-driven, not a busy loop.
+The initial release had no implemented ingestion handler. It established a RabbitMQ connection, passively verified the queue existed, and stayed alive without subscribing. It neither acknowledged nor rejected queued messages and did not consume their retry budgets. Connection maintenance and reconnection work independently of subscription startup. Waiting is event-driven, not a busy loop.
 
 Activation depends on the implemented handler set, not a temporary configuration switch:
 
@@ -26,33 +28,35 @@ Activation depends on the implemented handler set, not a temporary configuration
 - A complete handler set enables consumption automatically.
 - A partially implemented handler set is a startup error; consuming workers must support every declared job type.
 
-A future release that implements ingestion therefore enables consumption without an additional operator flag. Each consuming instance processes one delivery at a time with prefetch `1`. Multiple instances consume the same queue concurrently. Existing manual acknowledgement, broker-managed retry, and at-least-once delivery semantics remain unchanged.
+The production ingestion handler now completes the declared handler set and enables consumption without an additional operator flag. It calls `Ingestions.process(ingestionId)` and logs `ingestion shell completed` with `jobId`, `ingestionId`, `importSourceId`, and `bytesRead` only after the full stored stream has been consumed. Each consuming instance processes one delivery at a time with prefetch `1`. Multiple instances consume the same queue concurrently. Existing manual acknowledgement, broker-managed retry, and at-least-once delivery semantics remain unchanged.
 
 ### Startup And Schema Ownership
 
 Both applications validate their own required configuration and dependencies during startup. Invalid configuration, missing required broker resources, or an initial dependency connection failure causes a clear error and nonzero exit rather than indefinite initialization retries. The supervisor owns restarting failed processes. After successful initialization, broker connection loss uses the jobs package's reconnection behavior, including while the worker is idle.
 
+Both roles require nonblank `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY`, with optional HTTP(S) `S3_ENDPOINT` and boolean-string `S3_FORCE_PATH_STYLE` (default `false`). Worker storage uses the existing factory and the same bucket, endpoint, and account as the API. Storage configuration validation performs no connectivity or bucket probe; startup logs do not establish storage reachability or read permission.
+
 The API continues to run backend-owned migrations. The worker initializes its database and backend runtime but only performs read-only connectivity and migration-status checks: every migration required by its build must have been applied. Missing migrations cause startup failure; the worker never applies them. The shared backend database boundary owns the migration-status check rather than exposing migration internals to handlers.
 
-In the reference Compose deployment, both roles wait for successful broker provisioning. The worker also waits for API health to confirm API startup and migration completion. This is startup coordination, not an ongoing API dependency: the worker accesses shared backend capabilities directly and does not require the API to remain available.
+In the reference Compose deployment, both roles wait for successful broker provisioning. The worker also waits for API health to confirm API startup and migration completion, healthy storage, and the existing one-shot bucket initializer. These are infrastructure startup dependencies, not application storage probes or an ongoing API dependency: the worker accesses shared backend capabilities directly and does not require the API to remain available.
 
 ### Shutdown And Operational Visibility
 
-On `SIGINT` or `SIGTERM`, applications stop accepting new work and drain active work before closing its dependencies. The API keeps the producer and database available until relay shutdown completes; the worker keeps resources available while an active handler drains.
+On `SIGINT` or `SIGTERM`, applications stop accepting new work and drain active work before closing dependencies. The API keeps the producer and database available until relay shutdown completes. The worker retains storage and database access while accepted handlers drain, then closes storage and database resources. Startup failure also cleans up acquired resources; storage must not close while accepted reads remain active. If drain fails or hangs, resources remain available until bounded failure exit.
 
 Both roles use a configurable shutdown deadline with a default of 60 seconds. Compose allows 75 seconds before forced termination. If the application deadline expires, the process logs the timeout and exits nonzero without acknowledging unfinished work. Forced exit does not roll back completed business effects, and an unacknowledged delivery can run again.
 
-The worker has no HTTP server, liveness or readiness endpoints, healthcheck command, status file, or Compose healthcheck in this foundation. Structured logs report startup completion, intentional idle mode, connection loss and recovery, and shutdown. Process exit status and a supervisor restart policy provide failure handling. An alive idle process is not a claim that jobs are being processed.
+The worker has no HTTP server, liveness or readiness endpoints, healthcheck command, status file, or Compose healthcheck. Structured logs report startup mode, connection loss and recovery, shell completion, and shutdown. Process exit status and a supervisor restart policy provide failure handling. A running process is not proof of successful input reads; completion is log-only and database execution state deliberately remains `pending`.
 
 ### Broker Provisioning And Development
 
-The root Compose stack is the reference deployment and includes RabbitMQ, a one-shot topology init container, API, worker, and PostgreSQL. The initial broker version is RabbitMQ 4.3.5, which supports the documented quorum-queue delayed-retry policy. Broker configuration retains the existing exchanges, queues, bindings, delivery limit, retry delays, consumer timeout, and dead-letter policy from the job queue documentation.
+The consolidated `deployment/docker/docker-compose.yaml` is the reference deployment and includes RabbitMQ, a one-shot topology init container, API, worker, PostgreSQL, private S3 storage, and its bucket initializer. The initial broker version is RabbitMQ 4.3.5, which supports the documented quorum-queue delayed-retry policy. Broker configuration retains the existing exchanges, queues, bindings, delivery limit, retry delays, consumer timeout, and dead-letter policy from the job queue documentation.
 
 The init container provisions topology and permissions before either application starts. Provisioning is repeatable, preserves existing data, and fails on incompatible resources rather than deleting or replacing queues. Application connections remain passive: they verify required resources but do not provision broker topology.
 
 Use three separate broker accounts: privileged provisioner, API publisher, and worker consumer. Application permissions are restricted to the jobs vhost and resources required by their operations, including passive topology checks. Management privileges remain exclusive to provisioning. Credentials come from environment configuration, not committed working passwords.
 
-Broker ports remain internal in the reference deployment. A checked-in development override exposes AMQP and the management UI on localhost, allowing local application processes to reuse the root Compose infrastructure. Unrelated cleanup of legacy deployment examples is outside this foundation.
+The reference deployment exposes PostgreSQL, AMQP, and S3 on localhost for terminal-based development; broker management remains internal. No development override is needed. Unrelated cleanup of legacy deployment examples is outside this work.
 
 ## Considered Alternatives
 
@@ -66,10 +70,10 @@ Broker ports remain internal in the reference deployment. A checked-in developme
 
 ## Consequences And Deferred Work
 
-The worker foundation is deployable but does not yet process ingestion jobs. Jobs may accumulate in RabbitMQ until a complete real handler set ships. Existing API-only deployments must add RabbitMQ configuration and provisioning even though the image still defaults to the API role.
+The worker now consumes ingestion jobs as a read-only shell. Accepted or successfully read bytes are not imported observations; zero-byte and malformed contents are not parsed. API-only deployments require broker provisioning and both roles now require storage configuration, even though the image still defaults to the API role. Retained input and abandoned registrations accumulate; the shell performs no cleanup even for `temporary` sources. The UI import page remains disabled.
 
 Publication retry remains finite: by default, five attempts with a five-second retry delay. Publishing while disconnected consumes an attempt. A prolonged broker outage can leave jobs in publication state `failed`; reconnecting does not revive them. Explicit publication retry is available through the existing service, but operator-facing controls and dead-letter reconciliation remain deferred. Long-lived processes do not imply infinite retries for each job.
 
-Real ingestion, a generic durable execution-state wrapper, execution retry classification, and business idempotency are deferred to the first real handler slice. In particular, recording terminal execution `failed` on every handler exception would conflict with broker redelivery, and execution `running` is not an exclusive claim. These contracts must be resolved before enabling real processing, including duplicate deliveries across replicas and crashes after business effects commit but before acknowledgement. A future ingestion handler will call the high-level backend ingestion use case described by ADR-0004 rather than implement business persistence in the worker.
+The shell makes no worker-side database writes, including execution-state updates on start, success, or failure. API relay publication-state updates are unaffected. Missing/unavailable input and read failures propagate to existing consumer rejection and broker retry/dead-letter handling without classification or application retries. Duplicate deliveries safely repeat reads and logs; source metadata, links, retention, and bytes stay unchanged. Parsing, matching, observation/finding persistence, execution claims, deduplication, status endpoints, and cleanup remain deferred. Recording terminal execution `failed` on every handler exception would still conflict with broker redelivery, and `running` is not an exclusive claim; these contracts must be resolved before adding business effects.
 
-This foundation adds neither production placeholder/test job types nor container smoke tests. Unit tests can inject handlers to exercise dispatch and draining without enabling production consumption. Build, lint, and formatting checks remain part of verification, but live broker policy and container integration coverage are explicitly deferred.
+The historical foundation added neither production placeholder/test job types nor container smoke tests. The active shell reuses the real ingestion job type and existing test infrastructure. A reproducible [stack smoke check](../deployment.md#ingestion-shell-smoke-check) now covers authenticated registration/upload, storage, relay, broker, worker logs, and read-only SQL state verification without a new integration framework. Unavailable live verification must be recorded explicitly, not counted as passing.
