@@ -5,4 +5,5 @@ export interface ContextVariables {
   requestId: string;
   user: UserProfile | null;
   session: AuthenticationSession | null;
+  importUploadSignal?: AbortSignal;
 }

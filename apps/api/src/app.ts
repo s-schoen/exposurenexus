@@ -7,6 +7,7 @@ import { timeout } from "hono/timeout";
 
 import { replyError, routeNotFound } from "./lib/api-error.js";
 import { registerErrorHandler } from "./lib/handler.js";
+import { createImportUploads } from "./middleware/import-upload.js";
 import { accessLogger } from "./middleware/logger.js";
 
 import type { ContextVariables } from "./lib/hono-schema.js";
@@ -19,6 +20,7 @@ export interface CreateAppOptions {
   appOrigin: string;
   staticDir?: string;
   apiTimeoutMs: number;
+  importUploadTimeoutMs: number;
   annotateAuth: MiddlewareHandler<{ Variables: ContextVariables }>;
   csrfProtection: MiddlewareHandler<{ Variables: ContextVariables }>;
   requireAuth: MiddlewareHandler<{ Variables: ContextVariables }>;
@@ -56,10 +58,15 @@ function apiNotFound(c: Context<{ Variables: ContextVariables }>) {
   return replyError(c, routeNotFound());
 }
 
-function createApiApp(options: CreateAppOptions) {
+function createApiApp(
+  options: CreateAppOptions,
+  uploadMiddleware: MiddlewareHandler<{ Variables: ContextVariables }>,
+) {
   const api = new Hono<{ Variables: ContextVariables }>();
 
-  api.use("*", timeout(options.apiTimeoutMs));
+  api.put("/findings/import/:importSourceId/content", uploadMiddleware);
+  const ordinaryTimeout = timeout(options.apiTimeoutMs);
+  api.use("*", (c, next) => (c.get("importUploadSignal") ? next() : ordinaryTimeout(c, next)));
   api.use(
     "*",
     cors({
@@ -97,6 +104,7 @@ function createApiApp(options: CreateAppOptions) {
 
 export function createApp(options: CreateAppOptions) {
   const app = new Hono<{ Variables: ContextVariables }>();
+  const uploads = createImportUploads(options.importUploadTimeoutMs);
 
   app.use("*", requestId());
   app.use("*", accessLogger(options.accessLogger));
@@ -104,10 +112,10 @@ export function createApp(options: CreateAppOptions) {
 
   registerErrorHandler(app, options.logger);
 
-  app.route("/api", createApiApp(options));
+  app.route("/api", createApiApp(options, uploads.middleware));
   app.all("/api", apiNotFound);
   app.all("/api/*", apiNotFound);
   registerStaticRoutes(app, options.staticDir);
 
-  return app;
+  return Object.assign(app, { closeUploads: uploads.close });
 }

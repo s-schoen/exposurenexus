@@ -7,7 +7,7 @@ import type { JobRelay } from "@exposurenexus/jobs/relay";
 import type { Kysely } from "kysely";
 import type { Logger } from "pino";
 
-type ApiApplication = Pick<ReturnType<typeof createApp>, "fetch">;
+type ApiApplication = Pick<ReturnType<typeof createApp>, "fetch" | "closeUploads">;
 
 export interface ApiDependencies {
   openDatabase(): Kysely<Database>;
@@ -37,6 +37,7 @@ export function runApi({
 }) {
   let database: Kysely<Database> | undefined;
   let storage: ObjectStorage | undefined;
+  let application: ApiApplication | undefined;
   let producer: JobProducer | undefined;
   let relay: JobRelay | undefined;
   let http: ApiHttp | undefined;
@@ -89,7 +90,11 @@ export function runApi({
     void (async () => {
       await startup;
       if (finished) return;
-      await Promise.all([close("HTTP", () => http?.close()), close("relay", () => relay?.stop())]);
+      await Promise.all([
+        close("HTTP", () => http?.close()),
+        close("uploads", () => application?.closeUploads()),
+        close("relay", () => relay?.stop()),
+      ]);
       if (finished) return;
       await Promise.all([
         close("producer", () => producer?.close()),
@@ -124,7 +129,7 @@ export function runApi({
       storage = dependencies.openStorage();
       if (stopping) return;
       stage = "migrations and initialization";
-      const application = await dependencies.initializeApplication(database, storage);
+      application = await dependencies.initializeApplication(database, storage);
       if (stopping) return;
       stage = "broker connection and exchange check";
       producer = await dependencies.openProducer();

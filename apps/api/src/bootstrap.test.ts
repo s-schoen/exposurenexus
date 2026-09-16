@@ -39,6 +39,7 @@ const config = {
   AUTH_COOKIE_SECURE: true,
   AUTH_TRUSTED_PROXIES: ["127.0.0.1"],
   API_TIMEOUT_MS: 5000,
+  IMPORT_SOURCE_UPLOAD_TIMEOUT_MS: 600000,
   CORS_ORIGIN: undefined,
   S3_BUCKET: "private-imports",
   S3_REGION: "us-east-1",
@@ -64,7 +65,7 @@ function fixture() {
   };
   const container = {
     createDefaultAdmin: vi.fn().mockResolvedValue(undefined),
-    app: { fetch: vi.fn() },
+    app: { fetch: vi.fn(), closeUploads: vi.fn().mockResolvedValue(undefined) },
   };
   const producer = { publish: vi.fn(), close: vi.fn().mockResolvedValue(undefined) };
   const relay = {
@@ -133,6 +134,7 @@ it("wires the initialized application and relay to one database before reporting
     authCookieSecure: config.AUTH_COOKIE_SECURE,
     authTrustedProxies: config.AUTH_TRUSTED_PROXIES,
     apiTimeoutMs: config.API_TIMEOUT_MS,
+    importUploadTimeoutMs: config.IMPORT_SOURCE_UPLOAD_TIMEOUT_MS,
     logger: expect.anything(),
     accessLogger: expect.anything(),
     dbLogger: mocks.migrateToLatest.mock.calls[0]![1],
@@ -163,7 +165,7 @@ it("wires the initialized application and relay to one database before reporting
     expect(startupCalls[index - 1]).toBeLessThan(startupCalls[index]!);
   }
   expect(mocks.serve).toHaveBeenCalledWith(
-    { fetch: f.container.app.fetch, port: config.PORT },
+    { fetch: f.container.app.fetch, port: config.PORT, serverOptions: { requestTimeout: 660000 } },
     expect.any(Function),
   );
   const ready = vi.fn();

@@ -18,7 +18,7 @@ function fixture() {
   vi.mocked(serve).mockReturnValue(server);
   const fetch = vi.fn(() => new Response("ok"));
   const onError = vi.fn();
-  const http = openHttp({ fetch, port: 3000, onError });
+  const http = openHttp({ fetch, port: 3000, importUploadTimeoutMs: 600000, onError });
   const listen = () =>
     vi.mocked(serve).mock.calls[0]![1]?.({ port: 3000, address: "127.0.0.1", family: "IPv4" });
   return { server, close, fetch, onError, http, listen };
@@ -30,7 +30,10 @@ it("reports readiness only after listening and waits for HTTP close to finish", 
   void f.http.ready.then(ready);
   await Promise.resolve();
   expect(ready).not.toHaveBeenCalled();
-  expect(serve).toHaveBeenCalledWith({ fetch: f.fetch, port: 3000 }, expect.any(Function));
+  expect(serve).toHaveBeenCalledWith(
+    { fetch: f.fetch, port: 3000, serverOptions: { requestTimeout: 660000 } },
+    expect.any(Function),
+  );
   f.listen();
   await expect(f.http.ready).resolves.toBeUndefined();
 

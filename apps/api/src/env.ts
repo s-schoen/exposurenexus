@@ -31,6 +31,7 @@ export const env = createEnv({
     PORT: z.coerce.number().min(1).max(65535).default(3001),
     LOG_LEVEL: z.string().optional().default("info"),
     API_TIMEOUT_MS: z.coerce.number().min(1).default(5000),
+    IMPORT_SOURCE_UPLOAD_TIMEOUT_MS: milliseconds.default(300_000),
     SHUTDOWN_TIMEOUT_MS: milliseconds.default(60_000),
     STARTUP_TIMEOUT_MS: milliseconds.default(30_000),
     APP_ORIGIN: z.url().default("http://localhost:3000"),
