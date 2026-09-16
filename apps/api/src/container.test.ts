@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => {
   const vulnerabilities = { kind: "vulnerabilities" };
   const statistics = { kind: "statistics" };
   const importSources = { kind: "import-sources" };
+  const ingestions = { kind: "ingestions" };
 
   return {
     createBackendRuntime: vi.fn(() => ({})),
@@ -54,6 +55,8 @@ const mocks = vi.hoisted(() => {
     createStatistics: vi.fn(() => statistics),
     importSources,
     createImportSources: vi.fn(() => importSources),
+    ingestions,
+    createIngestions: vi.fn(() => ingestions),
     createApp: vi.fn(() => ({ fetch: vi.fn() })),
     createAuthRoute: vi.fn(() => ({ route: "auth" })),
     createAuthAnnotate: vi.fn(() => vi.fn()),
@@ -95,6 +98,9 @@ vi.mock("@exposurenexus/backend/statistics", () => ({
 }));
 vi.mock("@exposurenexus/backend/import-sources", () => ({
   createImportSources: mocks.createImportSources,
+}));
+vi.mock("@exposurenexus/backend/ingestions", () => ({
+  createIngestions: mocks.createIngestions,
 }));
 vi.mock("./lib/authentication-events.js", () => ({
   decorateAuthenticationWithEvents: mocks.decorateAuthenticationWithEvents,
@@ -167,6 +173,7 @@ function createContainerOptions() {
     authCookieSecure: true,
     authTrustedProxies: ["127.0.0.1"],
     apiTimeoutMs: 5000,
+    importUploadTimeoutMs: 300000,
     logger,
     accessLogger: logger,
     dbLogger: logger,
@@ -200,7 +207,15 @@ describe("app container", () => {
     );
     expect(mocks.createImportRoute).toHaveBeenCalledExactlyOnceWith(mocks.importSources, {
       requireDomainPermission: expect.any(Function),
+      ingestions: mocks.ingestions,
     });
+    expect(mocks.createIngestions).toHaveBeenCalledExactlyOnceWith(runtime, mocks.importSources);
+    expect(mocks.createApp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiTimeoutMs: options.apiTimeoutMs,
+        importUploadTimeoutMs: options.importUploadTimeoutMs,
+      }),
+    );
     expect(mocks.createAuthentication).toHaveBeenCalledWith(runtime, {
       sessionLifetimeHours: options.authSessionLifetimeHours,
       sessionHmacSecret: options.authSessionHmacSecret,

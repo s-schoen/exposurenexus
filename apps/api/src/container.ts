@@ -4,6 +4,7 @@ import { createAuthentication } from "@exposurenexus/backend/authentication";
 import { createFindings } from "@exposurenexus/backend/findings";
 import { createIdentity } from "@exposurenexus/backend/identity";
 import { createImportSources } from "@exposurenexus/backend/import-sources";
+import { createIngestions } from "@exposurenexus/backend/ingestions";
 import { createStatistics } from "@exposurenexus/backend/statistics";
 import { createVulnerabilities } from "@exposurenexus/backend/vulnerabilities";
 
@@ -54,6 +55,7 @@ export interface CreateAppContainerOptions {
   authCookieSecure: boolean;
   authTrustedProxies: readonly string[];
   apiTimeoutMs: number;
+  importUploadTimeoutMs: number;
   logger: Logger;
   accessLogger: Logger;
   dbLogger?: Logger;
@@ -94,6 +96,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     options.storage,
     options.importSourcesConfiguration,
   );
+  const ingestions = createIngestions(runtime, importSources);
 
   const requireDomainPermission = createRequireDomainPermission(
     identity.authorization.userHasPermission.bind(identity.authorization),
@@ -127,6 +130,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     }),
     importerRoute: createImportRoute(importSources, {
       requireDomainPermission,
+      ingestions,
     }),
   };
 
@@ -142,6 +146,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
     appOrigin: options.appOrigin,
     staticDir: options.staticDir,
     apiTimeoutMs: options.apiTimeoutMs,
+    importUploadTimeoutMs: options.importUploadTimeoutMs,
     annotateAuth: middleware.annotateAuth,
     csrfProtection: middleware.csrfProtection,
     requireAuth: middleware.requireAuth,
@@ -157,6 +162,7 @@ export function createAppContainer(options: CreateAppContainerOptions) {
       vulnerabilities,
       statistics,
       importSources,
+      ingestions,
     },
     routes,
     middleware,

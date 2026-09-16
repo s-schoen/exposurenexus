@@ -11,6 +11,8 @@ import type { MiddlewareHandler } from "hono";
 
 interface CreateTestAppOptions {
   staticDir?: string;
+  apiTimeoutMs?: number;
+  importUploadTimeoutMs?: number;
   annotateAuth?: MiddlewareHandler<{ Variables: ContextVariables }>;
   csrfProtection?: MiddlewareHandler<{ Variables: ContextVariables }>;
   requireAuth?: MiddlewareHandler<{ Variables: ContextVariables }>;
@@ -77,7 +79,8 @@ export function createTestApp(options: CreateTestAppOptions = {}) {
     accessLogger: pino({ enabled: false }),
     appOrigin: "http://localhost:3000",
     staticDir: options.staticDir,
-    apiTimeoutMs: 5000,
+    apiTimeoutMs: options.apiTimeoutMs ?? 5000,
+    importUploadTimeoutMs: options.importUploadTimeoutMs ?? 300000,
     annotateAuth: options.annotateAuth ?? passthrough,
     csrfProtection: options.csrfProtection ?? passthrough,
     requireAuth: options.requireAuth ?? passthrough,

@@ -8,14 +8,24 @@ export interface ApiHttp {
 export function openHttp({
   fetch,
   port,
+  importUploadTimeoutMs,
   onError,
 }: {
   fetch: Parameters<typeof serve>[0]["fetch"];
   port: number;
+  importUploadTimeoutMs: number;
   onError: () => void;
 }): ApiHttp {
   const ready = Promise.withResolvers<void>();
-  const server = serve({ fetch, port }, () => ready.resolve());
+  const server = serve(
+    {
+      fetch,
+      port,
+      // Header receipt precedes the application deadline; allow Node's default 60s header budget.
+      serverOptions: { requestTimeout: importUploadTimeoutMs + 60_000 },
+    },
+    () => ready.resolve(),
+  );
   server.on("error", () => {
     ready.reject(new Error("HTTP server failed"));
     onError();

@@ -1,3 +1,5 @@
+import { buffer } from "node:stream/consumers";
+
 import { serve } from "@hono/node-server";
 import { pino } from "pino";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -6,6 +8,8 @@ import { createAppContainer } from "./container.js";
 import { CSRF_COOKIE, CSRF_HEADER } from "./middleware/csrf.js";
 import { createTestDatabase } from "./test/db.js";
 
+import type { ObjectStorage } from "@exposurenexus/backend/object-storage";
+
 vi.mock("./env.js", () => ({ env: { LOG_LEVEL: "silent" } }));
 
 describe("API backend cutover", () => {
@@ -13,7 +17,7 @@ describe("API backend cutover", () => {
   const logger = pino({ enabled: false });
   const storage = {
     bucket: "private-imports",
-    write: vi.fn(),
+    write: vi.fn<ObjectStorage["write"]>(),
     read: vi.fn(),
     delete: vi.fn(),
     close: vi.fn(),
@@ -37,6 +41,7 @@ describe("API backend cutover", () => {
       authCookieSecure: true,
       authTrustedProxies: [],
       apiTimeoutMs: 5000,
+      importUploadTimeoutMs: 300000,
       logger,
       accessLogger: logger,
       dbLogger: logger,
@@ -248,5 +253,122 @@ describe("API backend cutover", () => {
     expect(storage.close).not.toHaveBeenCalled();
 
     expect(await testDb.db.selectFrom("import_source").selectAll().execute()).toHaveLength(3);
+  });
+
+  it("accepts one creator upload and atomically links its stored input, ingestion, and outbox job", async () => {
+    cookies.clear();
+    const login = await request("/auth", "POST", { username: "admin", password: initialPassword });
+    const metadata = {
+      source: "nuclei" as const,
+      originalFilename: "scan.jsonl",
+      sizeBytes: 4,
+      mimeType: "unverified/type",
+    };
+    const registered = await request("/findings/import", "POST", metadata, 201);
+    const id: string = registered.data.importSourceId;
+    async function upload(sourceId: string, bytes: string) {
+      return await fetch(`${origin}/api/findings/import/${sourceId}/content`, {
+        method: "PUT",
+        headers: {
+          Origin: "https://app.example.test",
+          Cookie: [...cookies].map(([name, value]) => `${name}=${value}`).join("; "),
+          [CSRF_HEADER]: decodeURIComponent(cookies.get(CSRF_COOKIE) ?? ""),
+          "Content-Type": "application/octet-stream",
+        },
+        body: bytes,
+      });
+    }
+    expect((await upload("00000000-0000-4000-8000-000000000001", "nope")).status).toBe(404);
+    const analyst = await testDb.db
+      .selectFrom("user_profile")
+      .select("id")
+      .where("username", "=", "analyst")
+      .executeTakeFirstOrThrow();
+    const otherRegistration = await container.services.importSources.register({
+      ...metadata,
+      performedBy: analyst.id,
+    });
+    expect((await upload(otherRegistration.id, "nope")).status).toBe(403);
+    expect(await container.services.importSources.getByID(otherRegistration.id)).toEqual(
+      otherRegistration,
+    );
+    expect((await upload(id, "x")).status).toBe(400);
+    expect(await container.services.importSources.getByID(id)).toMatchObject({
+      uploadStartedAt: null,
+    });
+    expect(storage.write).not.toHaveBeenCalled();
+    expect(storage.delete).not.toHaveBeenCalled();
+
+    let entered!: () => void;
+    const writing = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let release!: () => void;
+    const hold = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    storage.write.mockImplementationOnce(async ({ body, expectedSizeBytes }) => {
+      entered();
+      await hold;
+      expect(expectedSizeBytes).toBe(4);
+      expect(await buffer(body)).toEqual(Buffer.from("nope"));
+    });
+    const winner = upload(id, "nope");
+    try {
+      await writing;
+      expect((await upload(id, "evil")).status).toBe(409);
+      expect(storage.write).toHaveBeenCalledOnce();
+      expect(storage.delete).not.toHaveBeenCalled();
+    } finally {
+      release();
+    }
+    const response = await winner;
+    expect(response.status).toBe(202);
+    const accepted = await response.json();
+    expect(accepted).toEqual({
+      correlationId: expect.any(String),
+      data: { importSourceId: id, ingestionId: expect.any(String), jobId: expect.any(String) },
+    });
+    expect(await container.services.importSources.getByID(id)).toMatchObject({
+      ...metadata,
+      createdBy: login.data.user.id,
+      retentionPolicy: "keep",
+      state: "available",
+      uploadStartedAt: expect.any(Date),
+      ingestionId: accepted.data.ingestionId,
+    });
+    expect(await testDb.db.selectFrom("ingestion").selectAll().execute()).toEqual([
+      {
+        id: accepted.data.ingestionId,
+        source: "nuclei",
+        createdBy: login.data.user.id,
+        createdAt: expect.any(Date),
+      },
+    ]);
+    expect(await testDb.db.selectFrom("job").selectAll().execute()).toMatchObject([
+      {
+        id: accepted.data.jobId,
+        publicationState: "pending",
+        executionState: "pending",
+        event: {
+          type: "exposurenexus.jobs.ingest",
+          data: { ingestionId: accepted.data.ingestionId },
+        },
+      },
+    ]);
+    expect((await upload(id, "nope")).status).toBe(409);
+    expect(storage.write).toHaveBeenCalledOnce();
+    expect(storage.delete).not.toHaveBeenCalled();
+
+    const empty = await request("/findings/import", "POST", { ...metadata, sizeBytes: 0 }, 201);
+    storage.write.mockImplementationOnce(async ({ body, expectedSizeBytes }) => {
+      expect(expectedSizeBytes).toBe(0);
+      expect(await buffer(body)).toEqual(Buffer.alloc(0));
+    });
+    expect((await upload(empty.data.importSourceId, "")).status).toBe(202);
+    expect(await testDb.db.selectFrom("ingestion").selectAll().execute()).toHaveLength(2);
+    expect(await testDb.db.selectFrom("job").selectAll().execute()).toHaveLength(2);
+    expect(await testDb.db.selectFrom("observation").selectAll().execute()).toEqual([]);
+    expect(await testDb.db.selectFrom("finding").selectAll().execute()).toEqual([]);
   });
 });

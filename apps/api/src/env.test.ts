@@ -24,6 +24,7 @@ async function loadEnv(
   vi.stubEnv("S3_FORCE_PATH_STYLE", "");
   vi.stubEnv("IMPORT_SOURCE_MAX_SIZE_BYTES", "");
   vi.stubEnv("IMPORT_SOURCE_RETENTION_POLICY", "");
+  vi.stubEnv("IMPORT_SOURCE_UPLOAD_TIMEOUT_MS", "");
 
   for (const [key, value] of Object.entries(overrides)) {
     vi.stubEnv(key, value);
@@ -79,7 +80,11 @@ describe("api environment", () => {
   it.each(["0", "-1", "1.5", "Infinity", "2147483648", "abc", "   "])(
     "rejects invalid deadlines %s",
     async (value) => {
-      for (const field of ["SHUTDOWN_TIMEOUT_MS", "STARTUP_TIMEOUT_MS"]) {
+      for (const field of [
+        "SHUTDOWN_TIMEOUT_MS",
+        "STARTUP_TIMEOUT_MS",
+        "IMPORT_SOURCE_UPLOAD_TIMEOUT_MS",
+      ]) {
         await expect(loadEnv({ [field]: value })).rejects.toThrow(
           `Invalid API configuration: ${field}`,
         );
@@ -129,9 +134,17 @@ describe("api environment", () => {
       S3_FORCE_PATH_STYLE: false,
       IMPORT_SOURCE_MAX_SIZE_BYTES: 104857600,
       IMPORT_SOURCE_RETENTION_POLICY: "temporary",
+      IMPORT_SOURCE_UPLOAD_TIMEOUT_MS: 300000,
       API_TIMEOUT_MS: 5000,
     });
     expect(env.S3_ENDPOINT).toBeUndefined();
+  });
+
+  it("accepts a separate configured upload deadline", async () => {
+    expect(
+      (await loadEnv({ IMPORT_SOURCE_UPLOAD_TIMEOUT_MS: "600000" }))
+        .IMPORT_SOURCE_UPLOAD_TIMEOUT_MS,
+    ).toBe(600000);
   });
 
   it.each(["0", "9007199254740991"])(

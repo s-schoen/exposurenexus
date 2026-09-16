@@ -48,6 +48,7 @@ export function bootstrapApi(
       authCookieSecure: config.AUTH_COOKIE_SECURE,
       authTrustedProxies: config.AUTH_TRUSTED_PROXIES,
       apiTimeoutMs: config.API_TIMEOUT_MS,
+      importUploadTimeoutMs: config.IMPORT_SOURCE_UPLOAD_TIMEOUT_MS,
       logger,
       accessLogger,
       dbLogger,
@@ -89,7 +90,12 @@ export function bootstrapApi(
           logger: infrastructureLogger,
         }),
       openHttp: (application, onError) =>
-        openHttp({ fetch: application.fetch, port: config.PORT, onError }),
+        openHttp({
+          fetch: application.fetch,
+          port: config.PORT,
+          importUploadTimeoutMs: config.IMPORT_SOURCE_UPLOAD_TIMEOUT_MS,
+          onError,
+        }),
     },
   });
 }

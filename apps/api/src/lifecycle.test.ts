@@ -13,7 +13,7 @@ function deferred<T = void>() {
 }
 
 function fixture() {
-  const app = { fetch: vi.fn() };
+  const app = { fetch: vi.fn(), closeUploads: vi.fn().mockResolvedValue(undefined) };
   const producer = { publish: vi.fn(), close: vi.fn().mockResolvedValue(undefined) };
   const relay = {
     start: vi.fn().mockResolvedValue(undefined),
@@ -73,6 +73,7 @@ describe("API lifecycle", () => {
     "producer acquisition",
     "HTTP bind",
     "relay drain",
+    "upload cancellation",
     "producer close",
     "database close",
   ])("forces nonzero exit independently of stuck %s promises", async (stage) => {
@@ -86,6 +87,7 @@ describe("API lifecycle", () => {
       f.http.close.mockReturnValue(pending);
     }
     if (stage === "relay drain") f.relay.stop.mockReturnValue(pending);
+    if (stage === "upload cancellation") f.app.closeUploads.mockReturnValue(pending);
     if (stage === "producer close") f.producer.close.mockReturnValue(pending);
     if (stage === "database close") f.database.destroy.mockReturnValue(pending);
     const api = f.start();
@@ -103,9 +105,10 @@ describe("API lifecycle", () => {
     await api.stopped;
     expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(1);
     expect(f.logger.fatal).toHaveBeenCalledOnce();
-    if (stage === "relay drain") {
+    if (["relay drain", "upload cancellation"].includes(stage)) {
       expect(f.producer.close).not.toHaveBeenCalled();
       expect(f.database.destroy).not.toHaveBeenCalled();
+      expect(f.storage.close).not.toHaveBeenCalled();
     }
   });
 
@@ -314,5 +317,22 @@ describe("API lifecycle", () => {
       "API resource shutdown failed",
     );
     expect(JSON.stringify(f.logger.error.mock.calls)).not.toContain("credentials");
+  });
+
+  it("cancels and settles upload work before closing storage even after all sockets closed", async () => {
+    const f = fixture();
+    const settled = deferred();
+    f.app.closeUploads.mockReturnValue(settled.promise);
+    const api = f.start();
+    expect(await api.ready).toBe(true);
+    void api.shutdown();
+    await vi.waitFor(() => expect(f.app.closeUploads).toHaveBeenCalledOnce());
+    expect(f.http.close).toHaveBeenCalledOnce();
+    expect(f.storage.close).not.toHaveBeenCalled();
+    expect(f.database.destroy).not.toHaveBeenCalled();
+    settled.resolve();
+    await api.stopped;
+    expect(f.storage.close).toHaveBeenCalledOnce();
+    expect(f.dependencies.exit).toHaveBeenCalledExactlyOnceWith(0);
   });
 });
