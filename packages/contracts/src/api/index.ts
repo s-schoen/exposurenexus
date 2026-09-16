@@ -65,5 +65,12 @@ export const registerImportSourceDataReplySchema = z.strictObject({
   importSourceId: z.uuidv4(),
 });
 
+export const submitImportSourceDataReplySchema = z.strictObject({
+  importSourceId: z.uuidv4(),
+  ingestionId: z.uuidv4(),
+  jobId: z.uuidv4(),
+});
+
 export type RegisterImportSource = z.infer<typeof registerImportSourceSchema>;
 export type RegisterImportSourceDataReply = z.infer<typeof registerImportSourceDataReplySchema>;
+export type SubmitImportSourceDataReply = z.infer<typeof submitImportSourceDataReplySchema>;
