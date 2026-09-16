@@ -120,6 +120,81 @@ describe("object storage", () => {
     expect(await buffer(await storage.read("empty"))).toEqual(Buffer.alloc(0));
   });
 
+  it.each([null, {}, { aborted: false }])(
+    "rejects invalid cancellation signal %j before transfer",
+    async (signal) => {
+      const body = Readable.from([]);
+      try {
+        await expect(
+          storage.write({
+            key: "invalid-signal",
+            body,
+            expectedSizeBytes: 0,
+            signal: signal as never,
+          }),
+        ).rejects.toMatchObject({ code: "object_storage.invalid_input" });
+        expect(body.readableDidRead).toBe(false);
+        expect(send).not.toHaveBeenCalled();
+      } finally {
+        body.destroy();
+      }
+    },
+  );
+
+  it("does not contact S3 for an already cancelled write", async () => {
+    const body = new Readable({ read() {} });
+    await expect(
+      storage.write({ key: "cancelled", body, expectedSizeBytes: 3, signal: AbortSignal.abort() }),
+    ).rejects.toMatchObject({
+      code: "object_storage.write_failed",
+      details: { reason: "transfer_failed", actualSize: null },
+    });
+    expect(body.destroyed).toBe(true);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])(
+    "cancels the SDK request and waits for settlement (input EOF: %s)",
+    async (eof) => {
+      const ready = deferred();
+      const released = deferred();
+      send.mockImplementationOnce(async (request) => {
+        if (eof) await buffer((request as PutObjectCommand).input.Body as Readable);
+        ready.resolve();
+        await released.promise;
+        throw new Error("cancelled SDK request settled");
+      });
+      const controller = new AbortController();
+      const body = eof
+        ? Readable.from([Buffer.from("abc")])
+        : new Readable({ read() {}, emitClose: false });
+      const settled = vi.fn();
+      const result = storage.write({
+        key: "cancelled-upload",
+        body,
+        expectedSizeBytes: 3,
+        signal: controller.signal,
+      });
+      void result.then(settled, settled);
+      try {
+        await ready.promise;
+        controller.abort();
+        await setImmediate();
+        const options = send.mock.calls[0]![1] as { abortSignal: AbortSignal };
+        expect(options.abortSignal.aborted).toBe(true);
+        expect(body.destroyed).toBe(true);
+        expect(settled).not.toHaveBeenCalled();
+      } finally {
+        released.resolve();
+        await result.catch(() => {});
+      }
+      await expect(result).rejects.toMatchObject({
+        code: "object_storage.write_failed",
+        details: { reason: "transfer_failed", actualSize: eof ? 3 : null },
+      });
+    },
+  );
+
   it.each([-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, undefined, null, "1"])(
     "rejects invalid declared length %s before transfer and leaves input with the caller",
     async (expectedSizeBytes) => {

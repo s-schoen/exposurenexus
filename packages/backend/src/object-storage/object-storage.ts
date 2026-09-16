@@ -22,6 +22,7 @@ export interface ObjectStorageWriteCommand {
   key: string;
   body: Readable;
   expectedSizeBytes: number;
+  signal?: AbortSignal;
 }
 
 export interface ObjectStorage {
@@ -65,13 +66,14 @@ export function createObjectStorage(configuration: ObjectStorageConfiguration): 
     get bucket() {
       return bucket;
     },
-    async write({ key, body, expectedSizeBytes }) {
+    async write({ key, body, expectedSizeBytes, signal }) {
       if (
         !(body instanceof Readable) ||
         body.destroyed ||
         !body.readable ||
         !Number.isSafeInteger(expectedSizeBytes) ||
-        expectedSizeBytes < 0
+        expectedSizeBytes < 0 ||
+        (signal !== undefined && !(signal instanceof AbortSignal))
       ) {
         throw new ApplicationError({
           code: "object_storage.invalid_input",
@@ -100,9 +102,11 @@ export function createObjectStorage(configuration: ObjectStorageConfiguration): 
         },
       });
       const abort = new AbortController();
-      const transfer = pipeline(body, counter);
+      const transferSignal = signal ? AbortSignal.any([signal, abort.signal]) : abort.signal;
+      const transfer = pipeline(body, counter, { signal: transferSignal });
       let upload: Promise<unknown> | undefined;
       try {
+        transferSignal.throwIfAborted();
         upload = client.send(
           new PutObjectCommand({
             Bucket: bucket,
@@ -110,9 +114,10 @@ export function createObjectStorage(configuration: ObjectStorageConfiguration): 
             Body: counter,
             ContentLength: expectedSizeBytes,
           }),
-          { abortSignal: abort.signal },
+          { abortSignal: transferSignal },
         );
         await Promise.all([transfer, upload]);
+        transferSignal.throwIfAborted();
       } catch {
         abort.abort();
         // An error also settles inputs configured not to emit a close event on destruction.
