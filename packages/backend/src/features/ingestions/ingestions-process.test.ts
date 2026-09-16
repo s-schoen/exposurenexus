@@ -212,6 +212,26 @@ describe("ingestion processing shell", () => {
     expect(await snapshot()).toEqual(before);
   });
 
+  it.each([Buffer.from("abc"), Buffer.from("abcdef")])(
+    "rejects clean EOF with a different stored length: %j",
+    async (bytes) => {
+      const { ingestions, ingestionId, importSourceId } = await setup();
+      const before = await snapshot();
+      const body = Readable.from([bytes]);
+      storage.read.mockResolvedValueOnce(body);
+
+      await expect(ingestions.process(ingestionId)).rejects.toMatchObject({
+        code: "import_source.read_failed",
+        kind: "unexpected",
+        details: { sourceId: importSourceId },
+        cause: undefined,
+      });
+      expect(body.readableEnded).toBe(true);
+      expect(body.destroyed).toBe(true);
+      expect(await snapshot()).toEqual(before);
+    },
+  );
+
   it.each(["unknown ingestion", "unlinked ingestion", "removed source"])(
     "rejects missing input for an %s before storage access",
     async (missing) => {

@@ -137,20 +137,21 @@ The production handler calls the high-level backend `Ingestions.process(ingestio
 It resolves the linked import source, rejects missing or unavailable input, and
 reads through the existing import-source/storage capabilities with lifecycle and
 recorded-bucket checks intact. The whole stream is consumed to discard with byte
-counting, not accumulated in memory. Only EOF resolves with
-`{ importSourceId, bytesRead }`; lookup and read failures, including errors after
-partial reads, propagate to the existing consumer. Success allows acknowledgement;
-failure uses the existing broker retry/dead-letter policy with no application
-retry layer or permanent/transient classification.
+counting, not accumulated in memory. Only EOF with `bytesRead === source.sizeBytes`
+resolves with `{ importSourceId, bytesRead }`; a clean-EOF size mismatch raises
+`import_source.read_failed`. Lookup and read failures, including errors after
+partial reads, propagate to the existing consumer's broker retry/dead-letter
+policy with no application retry layer or permanent/transient classification.
 
 The worker logs `ingestion shell completed` with `jobId`, `ingestionId`,
 `importSourceId`, and `bytesRead`, never raw input or storage credentials. This is
 log-only execution observability: the worker makes no database writes and job
-execution stays `pending` on start, success, and failure. API relay publication
-updates are independent. There are no execution claims, deduplication, or status
-endpoints. Duplicate deliveries safely reread and log again without changing
-source metadata, links, retention, or bytes. Nothing is deleted after a read,
-even for `temporary` input or after a failure.
+execution stays `pending` on start, success, and failure. Successful reads ACK these
+diagnostic jobs; published jobs are not automatically replayed when parsing is
+later implemented. API relay publication updates are independent. There are no
+execution claims, deduplication, or status endpoints. Duplicate deliveries safely
+reread and log again without changing source metadata, links, retention, or bytes.
+Nothing is deleted after a read, even for `temporary` input or after a failure.
 
 Zero-byte and malformed scan contents are not parsed or rejected as scanner output.
 The existing pure Nuclei translator and its tests moved from `apps/api/src/import`
@@ -206,6 +207,13 @@ upload and the submission transaction and returning
 standalone link operation, or direct broker publication is exposed.
 The same capability exposes the read-only `process(ingestionId)` shell described
 above; lookup and stream orchestration stay in backend, not worker queries.
+
+`submit` delegates to `upload(command)` before inspecting fields or the signal.
+`upload` validates at runtime, then owns consumption and destroys input on
+failure or cancellation. Schema-invalid commands fail with
+`import_source.invalid_input` before ownership; the caller owns any still-open
+`Readable`. An initially aborted signal yields `import_source.upload_cancelled`;
+later submission-phase cancellation remains `ingestion.submit_cancelled`.
 
 The existing streamed `create` operation remains available to trusted backend
 callers. It creates a separate source with `source: null`; it does not complete an

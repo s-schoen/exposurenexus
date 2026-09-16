@@ -40,6 +40,9 @@ export function createIngestions(
         for await (const chunk of body) {
           bytesRead += Buffer.byteLength(chunk as Uint8Array);
         }
+        if (bytesRead !== source.sizeBytes) {
+          throw new Error("Import source size mismatch");
+        }
       } catch {
         // Late stream errors may contain storage credentials; never expose their cause.
         throw new ApplicationError({
@@ -52,6 +55,8 @@ export function createIngestions(
       return { importSourceId: source.id, bytesRead };
     },
     async submit(command) {
+      await importSources.upload(command);
+
       const { importSourceId, performedBy, signal } = command;
       const checkCancellation = () => {
         if (signal.aborted) {
@@ -63,9 +68,6 @@ export function createIngestions(
           });
         }
       };
-      checkCancellation();
-      await importSources.upload(command);
-
       try {
         checkCancellation();
         return await database.transaction().execute(async (transaction) => {
