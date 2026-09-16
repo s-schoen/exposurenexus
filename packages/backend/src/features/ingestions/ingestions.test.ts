@@ -100,7 +100,7 @@ describe("ingestion submission", () => {
       signal: new AbortController().signal,
     });
     const upload = vi.fn<ImportSources["upload"]>().mockResolvedValue(source);
-    const ingestions = createIngestions(runtime, { upload });
+    const ingestions = createIngestions(runtime, { ...sources, upload });
     const controller = new AbortController();
     const command = {
       importSourceId: source.id,

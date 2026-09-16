@@ -166,14 +166,18 @@ describe("backend exports", () => {
     }>();
   });
 
-  it("exports high-level ingestion submission matching the API reply data", async () => {
+  it("exports high-level ingestion submission and read-only processing", async () => {
     expect(Object.keys(await import("./features/ingestions/index.js"))).toEqual([
       "createIngestions",
     ]);
     expectTypeOf<typeof createIngestions>().toEqualTypeOf<
-      (runtime: BackendRuntime, importSources: Pick<ImportSources, "upload">) => Ingestions
+      (
+        runtime: BackendRuntime,
+        importSources: Pick<ImportSources, "upload" | "getByIngestionID" | "readByID">,
+      ) => Ingestions
     >();
     expectTypeOf<Ingestions>().toEqualTypeOf<{
+      process(ingestionId: string): Promise<{ importSourceId: string; bytesRead: number }>;
       submit(command: UploadImportSourceCommand): Promise<SubmitImportSourceDataReply>;
     }>();
   });
