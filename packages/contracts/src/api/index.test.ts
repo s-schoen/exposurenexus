@@ -7,11 +7,13 @@ import {
   authSignOutDataReplySchema,
   registerImportSourceDataReplySchema,
   registerImportSourceSchema,
+  submitImportSourceDataReplySchema,
 } from "./index.js";
 
 import type {
   RegisterImportSource,
   RegisterImportSourceDataReply,
+  SubmitImportSourceDataReply,
 } from "@exposurenexus/contracts/api";
 
 const serializedSession = {
@@ -140,6 +142,49 @@ describe("scan registration API schemas", () => {
       { ...data, objectKey: "private-key" },
     ]) {
       expect(registerImportSourceDataReplySchema.safeParse(invalid).success).toBe(false);
+    }
+  });
+});
+
+describe("scan submission API schemas", () => {
+  const data = {
+    importSourceId: "11003daa-67df-40e4-894f-ada5de7bd1be",
+    ingestionId: "8b2648c7-945c-49bb-9a3f-66e02a35df52",
+    jobId: "fce4b0c8-f63f-4b21-84f5-f5f4de71f9cb",
+  };
+
+  it("returns only source, ingestion, and job references as submission data", () => {
+    expect(submitImportSourceDataReplySchema.parse(data)).toEqual(data);
+    expectTypeOf<SubmitImportSourceDataReply>().toEqualTypeOf<{
+      importSourceId: string;
+      ingestionId: string;
+      jobId: string;
+    }>();
+  });
+
+  it.each(["importSourceId", "ingestionId", "jobId"])("requires a UUIDv4 %s", (field) => {
+    for (const invalid of [
+      undefined,
+      null,
+      123,
+      "not-a-uuid",
+      "11003daa-67df-50e4-894f-ada5de7bd1be",
+    ]) {
+      expect(
+        submitImportSourceDataReplySchema.safeParse({ ...data, [field]: invalid }).success,
+      ).toBe(false);
+    }
+  });
+
+  it("rejects extra metadata and leaves response enveloping to the API adapter", () => {
+    for (const invalid of [
+      { ...data, status: "succeeded" },
+      { ...data, source: "nuclei" },
+      { ...data, bucket: "private-input" },
+      { ...data, objectKey: "private-key" },
+      { correlationId: "request-id", data },
+    ]) {
+      expect(submitImportSourceDataReplySchema.safeParse(invalid).success).toBe(false);
     }
   });
 });
