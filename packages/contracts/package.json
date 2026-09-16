@@ -70,10 +70,10 @@
     "typecheck:test": "tsc -p tsconfig.test.json --noEmit"
   },
   "dependencies": {
-    "zod": "^4.5.4"
+    "zod": "^4.6.4"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
+    "@types/node": "^24.13.4",
     "typescript": "7.0.2",
     "vitest": "^4.1.11"
   },
