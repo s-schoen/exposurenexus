@@ -37,25 +37,6 @@ describe("observation provenance", () => {
       }),
     ).toThrow();
   });
-
-  it("requires imported observations to identify their ingestion", () => {
-    const ingestionId = "40b71ac1-b003-46b4-a1fc-8e8d384dd140";
-
-    expect(
-      observationSchema.parse({
-        ...observation,
-        source: ObservationSource.Nuclei,
-        ingestionId,
-      }),
-    ).toMatchObject({ source: ObservationSource.Nuclei, ingestionId });
-    expect(() =>
-      observationSchema.parse({
-        ...observation,
-        source: ObservationSource.Nuclei,
-        ingestionId: null,
-      }),
-    ).toThrow();
-  });
 });
 
 describe("manual observation input schema", () => {
@@ -78,7 +59,7 @@ describe("manual observation input schema", () => {
   });
 
   it.each([
-    ["source", ObservationSource.Nuclei],
+    ["source", ObservationSource.Manual],
     ["ingestionId", "9d7acdd0-fad1-46c9-8218-1793f421f0fe"],
     ["findingId", "2713d833-eb13-4517-ac7c-7761545ed42a"],
     ["id", "2713d833-eb13-4517-ac7c-7761545ed42a"],
@@ -131,7 +112,7 @@ describe("observation update schema", () => {
   it.each([
     ["id", "2713d833-eb13-4517-ac7c-7761545ed42a"],
     ["findingId", "2713d833-eb13-4517-ac7c-7761545ed42a"],
-    ["source", ObservationSource.Nuclei],
+    ["source", ObservationSource.Manual],
     ["ingestionId", "2713d833-eb13-4517-ac7c-7761545ed42a"],
     ["createdAt", new Date()],
     ["updatedAt", new Date()],

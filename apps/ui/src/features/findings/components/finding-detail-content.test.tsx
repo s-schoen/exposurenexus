@@ -75,7 +75,7 @@ const finding: Finding = {
   assigneeId: null,
   dueDate: null,
   mitigation: "Restrict administrative access to trusted networks.",
-  weakness: { identifiers: { cwe: ["CWE-200"], nuclei: ["admin-panel"] } },
+  weakness: { identifiers: { cwe: ["CWE-200"], scanner: ["admin-panel"] } },
   affectedResource: {
     type: AffectedResourceType.WebEndpoint,
     scheme: "https",
@@ -461,7 +461,7 @@ describe("FindingDetailContent", () => {
     expect(screen.getByRole("dialog", { name: "Correct finding" })).toBeTruthy();
     expect(screen.getByLabelText("Title")).toHaveValue(finding.title);
     expect(screen.getByLabelText("Weakness identifiers")).toHaveValue(
-      "cwe=CWE-200; nuclei=admin-panel",
+      "cwe=CWE-200; scanner=admin-panel",
     );
 
     await actor.click(screen.getByRole("button", { name: "Cancel" }));

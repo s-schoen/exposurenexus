@@ -7,7 +7,6 @@ import { weaknessSchema } from "./weakness.js";
 
 export enum ObservationSource {
   Manual = "manual",
-  Nuclei = "nuclei",
 }
 
 const observationFields = {
@@ -27,18 +26,11 @@ const observationFields = {
   updatedBy: z.uuidv4(),
 };
 
-export const observationSchema = z.discriminatedUnion("source", [
-  z.strictObject({
-    ...observationFields,
-    source: z.literal(ObservationSource.Manual),
-    ingestionId: z.null(),
-  }),
-  z.strictObject({
-    ...observationFields,
-    source: z.literal(ObservationSource.Nuclei),
-    ingestionId: z.uuidv4(),
-  }),
-]);
+export const observationSchema = z.strictObject({
+  ...observationFields,
+  source: z.literal(ObservationSource.Manual),
+  ingestionId: z.null(),
+});
 
 const observationInputSchema = z.strictObject({
   title: z.string().min(1),

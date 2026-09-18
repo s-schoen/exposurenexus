@@ -636,7 +636,7 @@ describe("CreateFindingPage", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: /identity/i }));
     fireEvent.change(screen.getByLabelText(/weakness identifiers/i), {
-      target: { value: "cwe=cwe-89; nuclei=admin-panel" },
+      target: { value: "cwe=cwe-89; scanner=admin-panel" },
     });
     fireEvent.click(screen.getByRole("button", { name: /create finding/i }));
 
@@ -646,7 +646,7 @@ describe("CreateFindingPage", () => {
           weakness: {
             identifiers: {
               cwe: ["CWE-89"],
-              nuclei: ["admin-panel"],
+              scanner: ["admin-panel"],
             },
           },
         }),

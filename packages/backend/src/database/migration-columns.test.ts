@@ -55,7 +55,7 @@ describe("db migration columns", () => {
     ]);
   });
 
-  it("prevents unsupported scanners, invalid sizes, and false availability in import-source metadata", async () => {
+  it("stores scanner metadata and prevents invalid sizes and false availability in import-source metadata", async () => {
     const actor = await testDb.db
       .insertInto("user_profile")
       .values({
@@ -93,18 +93,18 @@ describe("db migration columns", () => {
         .where("id", "=", id)
         .executeTakeFirstOrThrow(),
     ).toEqual({ source: null });
-    await expect(
-      testDb.db
-        .updateTable("import_source")
-        .set({ source: "manual" as never })
-        .where("id", "=", id)
-        .execute(),
-    ).rejects.toMatchObject({ code: "22P02" });
     await testDb.db
       .updateTable("import_source")
-      .set({ source: "nuclei" })
+      .set({ source: "example-scanner" })
       .where("id", "=", id)
       .execute();
+    expect(
+      await testDb.db
+        .selectFrom("import_source")
+        .select("source")
+        .where("id", "=", id)
+        .executeTakeFirstOrThrow(),
+    ).toEqual({ source: "example-scanner" });
     for (const sizeBytes of [-1, 0.5, Infinity, NaN, Number.MAX_SAFE_INTEGER + 1]) {
       await expect(
         testDb.db.updateTable("import_source").set({ sizeBytes }).where("id", "=", id).execute(),
@@ -157,7 +157,7 @@ describe("db migration columns", () => {
       .executeTakeFirstOrThrow();
     const ingestion = await testDb.db
       .insertInto("ingestion")
-      .values({ source: "nuclei", createdAt: new Date(), createdBy: actor.id })
+      .values({ source: "example-scanner", createdAt: new Date(), createdBy: actor.id })
       .returningAll()
       .executeTakeFirstOrThrow();
     const sourceIds = [
@@ -1092,8 +1092,8 @@ describe("db migration columns", () => {
         expect.objectContaining({
           table_name: "ingestion",
           column_name: "source",
-          data_type: "USER-DEFINED",
-          udt_name: "ingestion_source",
+          data_type: "text",
+          udt_name: "text",
           is_nullable: "NO",
         }),
         expect.objectContaining({
@@ -1146,7 +1146,7 @@ describe("db migration columns", () => {
     );
   });
 
-  it("uses closed catalog and source enums with no manual ingestion source", async () => {
+  it("uses closed catalog enums and keeps only the manual observation source", async () => {
     const enumValues = await sql<{ typname: string; enumlabel: string }>`
       select pg_type.typname, pg_enum.enumlabel
       from pg_type
@@ -1156,9 +1156,7 @@ describe("db migration columns", () => {
     `.execute(testDb.db);
 
     expect(enumValues.rows).toEqual([
-      { typname: "ingestion_source", enumlabel: "nuclei" },
       { typname: "observation_source", enumlabel: "manual" },
-      { typname: "observation_source", enumlabel: "nuclei" },
       { typname: "vulnerability_type", enumlabel: "cve" },
       { typname: "vulnerability_type", enumlabel: "cwe" },
       { typname: "vulnerability_type", enumlabel: "ghsa" },

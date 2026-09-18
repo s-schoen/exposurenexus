@@ -130,7 +130,7 @@ describe("backend exports", () => {
     expectTypeOf<ImportSource>().toEqualTypeOf<{
       id: string;
       ingestionId: string | null;
-      source: "nuclei" | null;
+      source: string | null;
       createdBy: string;
       originalFilename: string;
       mimeType: string | null;

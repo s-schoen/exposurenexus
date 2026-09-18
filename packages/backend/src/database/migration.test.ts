@@ -104,7 +104,7 @@ describe("database migration preservation", () => {
             title: "Existing finding",
             severity: VulnerabilitySeverity.High,
             status: FindingStatus.Active,
-            weakness: { identifiers: { nuclei: ["existing-template"] } },
+            weakness: { identifiers: { scanner: ["existing-template"] } },
             affectedResource: { type: AffectedResourceType.Unspecified },
             ...audit,
           })
@@ -114,9 +114,9 @@ describe("database migration preservation", () => {
           .insertInto("observation")
           .values({
             findingId: finding.id,
-            ingestionId: ingestion.id,
-            source: ObservationSource.Nuclei,
-            title: "Existing scanner observation",
+            ingestionId: null,
+            source: ObservationSource.Manual,
+            title: "Existing manual observation",
             evidence: "Original scanner evidence",
             severity: VulnerabilitySeverity.High,
             weakness: finding.weakness,
@@ -263,6 +263,7 @@ const expectedMigrationNames = [
   "20260913-import-sources-ingestion-link",
   "20260914-import-source-scanner",
   "20260915-import-source-upload-attempt",
+  "20260918-remove-nuclei-source",
 ];
 
 // Forward-only migration history prevents renaming this already-applied file set.

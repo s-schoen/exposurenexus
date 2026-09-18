@@ -15,7 +15,7 @@ import type { ImportSourcesConfiguration, UploadImportSourceCommand } from "./in
 
 const actorId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f";
 const registration = {
-  source: "nuclei" as const,
+  source: "example-scanner" as const,
   originalFilename: "../../scan.jsonl",
   mimeType: "unverified metadata",
   sizeBytes: 3,
@@ -200,7 +200,7 @@ describe("registered import-source uploads", () => {
         ),
         ...[undefined, null, {}, { aborted: false }].map((signal) => ({ ...valid, signal })),
         { ...valid, sizeBytes: 0 },
-        { ...valid, source: "nuclei" },
+        { ...valid, source: "example-scanner" },
         { ...valid, originalFilename: "replacement" },
         { ...valid, retentionPolicy: "keep" },
       ]) {

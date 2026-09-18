@@ -119,7 +119,7 @@ describe("import sources", () => {
   it("registers immutable private metadata without bytes, ingestion, or jobs", async () => {
     const sources = capability();
     const command = {
-      source: "nuclei" as const,
+      source: "example-scanner" as const,
       originalFilename: " ../../scan.jsonl ",
       sizeBytes: 0,
       mimeType: " unverified metadata ",
@@ -131,7 +131,7 @@ describe("import sources", () => {
     expect(registered).toEqual({
       id: expect.any(String),
       ingestionId: null,
-      source: "nuclei",
+      source: "example-scanner",
       originalFilename: " ../../scan.jsonl ",
       mimeType: " unverified metadata ",
       createdBy: actorId,
@@ -190,7 +190,7 @@ describe("import sources", () => {
       storage,
     );
     const command = {
-      source: "nuclei",
+      source: "example-scanner",
       originalFilename: "scan.jsonl",
       sizeBytes: 0,
       performedBy: actorId,
@@ -200,8 +200,10 @@ describe("import sources", () => {
       undefined,
       [],
       { ...command, source: undefined },
-      { ...command, source: "manual" },
-      { ...command, source: "other-scanner" },
+      { ...command, source: "" },
+      { ...command, source: " \t\n\u00a0" },
+      { ...command, source: 123 },
+      { ...command, source: null },
       { ...command, originalFilename: undefined },
       { ...command, originalFilename: "" },
       { ...command, originalFilename: " \t\n\u00a0" },
@@ -240,7 +242,7 @@ describe("import sources", () => {
       const sources = capability({ maxSizeBytes });
       const sizeBytes = maxSizeBytes ?? 104857600;
       const command = {
-        source: "nuclei" as const,
+        source: "example-scanner" as const,
         originalFilename: "scan",
         sizeBytes,
         mimeType,
@@ -268,7 +270,7 @@ describe("import sources", () => {
     const objectStorage = { ...storage };
     const temporary = capability(configuration, objectStorage);
     const command = {
-      source: "nuclei" as const,
+      source: "example-scanner" as const,
       originalFilename: "scan",
       sizeBytes: 4,
       performedBy: actorId,
@@ -308,7 +310,7 @@ describe("import sources", () => {
     const records = await testDb.db.selectFrom("import_source").selectAll().execute();
     const error = await capability()
       .register({
-        source: "nuclei",
+        source: "example-scanner",
         originalFilename: "scan",
         sizeBytes: 0,
         performedBy: "00000000-0000-4000-8000-000000000000",
@@ -574,7 +576,7 @@ describe("import sources", () => {
     });
     const ingestion = await testDb.db
       .insertInto("ingestion")
-      .values({ source: "nuclei", createdAt: new Date(), createdBy: actorId })
+      .values({ source: "example-scanner", createdAt: new Date(), createdBy: actorId })
       .returning("id")
       .executeTakeFirstOrThrow();
     expect(await sources.getByIngestionID(ingestion.id)).toBeNull();
@@ -636,7 +638,7 @@ describe("import sources", () => {
       if (state === "deleted") await sources.deleteByID(result.id);
       const ingestion = await testDb.db
         .insertInto("ingestion")
-        .values({ source: "nuclei", createdAt: new Date(), createdBy: actorId })
+        .values({ source: "example-scanner", createdAt: new Date(), createdBy: actorId })
         .returning("id")
         .executeTakeFirstOrThrow();
       await testDb.db

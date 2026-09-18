@@ -209,7 +209,7 @@ describe("API backend cutover", () => {
     await request(
       "/findings/import",
       "POST",
-      { source: "nuclei", originalFilename: "scan.jsonl", sizeBytes: 0 },
+      { source: "example-scanner", originalFilename: "scan.jsonl", sizeBytes: 0 },
       403,
     );
   });
@@ -217,7 +217,7 @@ describe("API backend cutover", () => {
   it("registers immutable scan metadata without bytes or submission through the protected API", async () => {
     cookies.clear();
     const metadata = {
-      source: "nuclei",
+      source: "example-scanner",
       originalFilename: " ../scan.jsonl ",
       sizeBytes: 4,
       mimeType: "unverified/type",
@@ -263,7 +263,7 @@ describe("API backend cutover", () => {
     cookies.clear();
     const login = await request("/auth", "POST", { username: "admin", password: initialPassword });
     const metadata = {
-      source: "nuclei" as const,
+      source: "example-scanner" as const,
       originalFilename: "scan.jsonl",
       sizeBytes: 4,
       mimeType: "unverified/type",
@@ -346,7 +346,7 @@ describe("API backend cutover", () => {
     expect(await testDb.db.selectFrom("ingestion").selectAll().execute()).toEqual([
       {
         id: accepted.data.ingestionId,
-        source: "nuclei",
+        source: "example-scanner",
         createdBy: login.data.user.id,
         createdAt: expect.any(Date),
       },
