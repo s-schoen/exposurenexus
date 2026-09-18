@@ -31,7 +31,7 @@ ingestion capability owns atomic submission.
 
 The API composes import sources and object storage for a two-request import flow.
 `POST /api/findings/import` accepts strict JSON metadata
-with scanner `source: "nuclei"`, a nonblank `originalFilename`, a nonnegative safe
+with a nonblank scanner `source`, a nonblank `originalFilename`, a nonnegative safe
 integer `sizeBytes`, and optional string `mimeType`. Authentication, CSRF protection,
 and current `import:write` permission remain required. The ordinary API timeout
 applies. The response is `201` with `{ correlationId, data: { importSourceId } }`,
@@ -200,9 +200,7 @@ can safely reread and log again. No claims, deduplication, or status endpoint is
 Neither success nor failure changes source metadata, links, retention, or bytes;
 even `temporary` input is not deleted.
 
-The pure Nuclei translator and its tests move from `apps/api/src/import` to the
-private backend `features/ingestions` area, preserving behavior and only the types
-it uses, with unused resolver scaffolding removed. The live shell does not call it.
+Scanner parsing is not implemented. The live shell does not translate stored input.
 Accepted or successfully read bytes are not imported observations: zero-byte and
 malformed contents are not parsed or validated as scanner output.
 

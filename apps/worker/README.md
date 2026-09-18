@@ -44,8 +44,8 @@ Storage stays open if drain has not completed; the bounded shutdown deadline sti
 forces a nonzero exit, leaving unfinished deliveries unacknowledged for redelivery.
 Compose allows 75 seconds around the default 60-second application deadline.
 
-The pure Nuclei translator and its tests moved from `apps/api/src/import` into the
-backend's private `features/ingestions` area; the live shell never calls it.
+Scanner parsing is not implemented; the live shell reads stored input without
+translating or matching it.
 See [Import Sources](../../docs/import-sources.md#worker-processing-shell),
 [Job Queue](../../docs/job-queue.md), and the reproducible
 [stack smoke check](../../docs/deployment.md#ingestion-shell-smoke-check).

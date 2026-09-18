@@ -284,7 +284,7 @@ csrf=$(awk '$6 == "__Host-exposurenexus-csrf" {print $7}' "$work/cookies")
 test -n "$csrf"
 
 test "$(jq -nc --argjson size "$bytes" \
-  '{source: "nuclei", originalFilename: "shell-smoke.jsonl", sizeBytes: $size}' |
+  '{source: "example-scanner", originalFilename: "shell-smoke.jsonl", sizeBytes: $size}' |
   curl --fail-with-body --silent --show-error -b "$work/cookies" \
     -H "Origin: $origin" -H "X-CSRF-Token: $csrf" \
     -H 'Content-Type: application/json' --data-binary @- \
@@ -354,7 +354,7 @@ SQL
 
 Verify exactly one SQL row: source `available`, the expected `sizeBytes`, unchanged
 configured retention (`temporary` by default), nonnull upload/availability timestamps,
-null failure/deletion timestamps, `cleanupRequired = false`, scanner `nuclei`, and
+null failure/deletion timestamps, `cleanupRequired = false`, the registered scanner, and
 `sameCreator = true`. Publication should become `published`; execution must still
 be `pending`, with null execution timestamps/error and zero observations. Relay
 publication bookkeeping can lag the worker log briefly; rerun only the read-only

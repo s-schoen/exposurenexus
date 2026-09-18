@@ -167,10 +167,8 @@ policy. The root `ApplicationError` similarly aggregates feature- and infrastruc
 catalogs through type-only imports. No generic feature framework or separate
 workspace packages are required.
 
-The pure Nuclei translator and its tests moved from `apps/api/src/import` into the
-private backend `features/ingestions` area. Only required translator types remain;
-unused resolver scaffolding is removed. The production processing shell does not
-invoke translation or matching, or expose a scanner registry.
+The worker processing shell reads stored input without translation or matching and
+does not expose a scanner registry. Scanner parsing is not implemented.
 
 ## API Adaptation
 

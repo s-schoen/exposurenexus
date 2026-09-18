@@ -98,8 +98,8 @@ Ingestion events have strict data containing only an ingestion UUID v4:
 ```
 
 The ingestion ID is distinct from the CloudEvent/job ID. Backend metadata owns
-the ingestion actor (`createdBy`), scanner source (`source`, currently `nuclei`),
-and the associated import-source reference. The shared import-source capability
+the ingestion actor (`createdBy`), scanner source (`source`), and the associated
+import-source reference. The shared import-source capability
 resolves source metadata by ingestion ID and reads bytes by source ID without
 exposing buckets or keys. Source metadata and its ingestion relationship survive
 byte deletion; preexisting ingestions without raw input have no fabricated source.
@@ -135,8 +135,8 @@ stays `pending` on start, success, and failure while relay publication updates
 continue independently. Duplicate deliveries safely reread and log again. Neither
 success nor failure changes source metadata, links, retention, or bytes; even
 `temporary` sources are not cleaned up. Accepted/read bytes are not imported
-observations, and zero-byte/malformed contents are not parsed. The backend's private
-Nuclei translator is outside the live path. The UI import page remains disabled.
+observations, and zero-byte/malformed contents are not parsed or translated.
+The UI import page remains disabled.
 
 Every claimed upload ID is permanently consumed, including after failure or
 cancellation; unused registrations never expire. A later submission failure or

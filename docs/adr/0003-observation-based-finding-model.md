@@ -50,7 +50,7 @@ the vulnerability catalog. Weakness data is structured but does not require a
 hard source-specific schema.
 
 Weakness identifiers live under an `identifiers` object. Each key is an
-identifier namespace, such as `cve`, `cwe`, `ghsa`, `nuclei`, or `semgrep`, and
+identifier namespace, such as `cve`, `cwe`, `ghsa`, or `semgrep`, and
 each value is an array of identifiers in that namespace. CVEs and CWEs are arrays,
 even when there is one value. CWE values use canonical strings such as `CWE-200`.
 Identifier namespaces are extensible. Namespace keys are canonical lowercase
@@ -65,7 +65,7 @@ case-sensitive. An empty weakness is represented canonically as
   "identifiers": {
     "cve": ["CVE-2026-34256"],
     "cwe": ["CWE-200"],
-    "nuclei": ["admin-panel"]
+    "rule": ["admin-panel"]
   }
 }
 ```
@@ -391,7 +391,7 @@ workflow and matching.
   "weakness": {
     "identifiers": {
       "cwe": ["CWE-200"],
-      "nuclei": ["admin-panel"]
+      "rule": ["admin-panel"]
     }
   },
   "affectedResource": {
@@ -439,7 +439,7 @@ finding. It does not link directly to vulnerability catalog entries.
   "id": "observation-uuid",
   "findingId": "finding-uuid",
   "ingestionId": "ingestion-uuid",
-  "source": "nuclei",
+  "source": "example-scanner",
   "title": "Admin panel exposure",
   "description": "A publicly reachable admin panel was detected.",
   "severity": "high",
@@ -448,7 +448,7 @@ finding. It does not link directly to vulnerability catalog entries.
   "weakness": {
     "identifiers": {
       "cwe": ["CWE-200"],
-      "nuclei": ["admin-panel"]
+      "rule": ["admin-panel"]
     }
   },
   "affectedResource": {
@@ -469,8 +469,8 @@ finding. It does not link directly to vulnerability catalog entries.
 
 Observation fields:
 
-- `source` is the scanner or reporting family, such as `nuclei`, `semgrep`,
-  `trivy`, or `manual`; configured source instances are out of scope for now.
+- `source` is the scanner or reporting family, such as `semgrep`, `trivy`, or
+  `manual`; configured source instances are out of scope for now.
 - `ingestionId` is set for imported observations and absent or null for manual
   observations.
 - `title` is required. If a source has no explicit title, its importer derives a
@@ -496,7 +496,8 @@ affected resource, and observed time may be edited. Source, ingestion, creation
 time, and creation actor are immutable. Moving an observation changes its parent
 finding through an explicit move operation rather than an ordinary content edit.
 
-The initial observation source enum is `manual` and `nuclei`. The enum is a
+The observation source enum currently contains only `manual`. Scanner sources
+will be added when automated import persistence is implemented. The enum is a
 closed validation set; extending it is an explicit domain model change.
 
 Observations are editable so users can correct importer mistakes, source
@@ -582,7 +583,7 @@ record retains only the identity and provenance needed by imported observations:
 ```json
 {
   "id": "ingestion-uuid",
-  "source": "nuclei",
+  "source": "example-scanner",
   "createdAt": "2026-06-20T08:35:00.000Z",
   "createdBy": "user-profile-uuid"
 }
@@ -908,15 +909,9 @@ The initial cutover sketched a source-independent resolver contract with attach,
 create, and skip outcomes. That unused scaffolding is now removed; production
 matching remains undefined rather than preserving speculative interfaces.
 
-The pure Nuclei translator and its tests now live privately under backend
-`features/ingestions`, moved from `apps/api/src/import`, and are not called by the
-worker shell. The translator supports HTTP and HTTPS records. It produces
-normalized observation drafts, derives a missing title from the template ID,
-falls back missing or unknown severity to `info`, falls back missing observed time
-to a supplied ingestion time, adds template/CVE/CWE weakness identifiers,
-preserves request/response/cURL evidence, and stores the source URL as
-`reportedUrl` while parsing canonical endpoint fields. Other Nuclei protocol
-families return a typed unsupported result rather than an assumed resource type.
+Scanner parsing is not implemented. The worker shell reads stored input without
+translating or matching it, and no scanner-specific translator remains in the
+codebase.
 
 When automated persistence is eventually enabled, an ingestion will retain only
 its identity, source, creation actor, and creation time so imported observations

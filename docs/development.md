@@ -207,8 +207,7 @@ zero-byte or malformed contents, creates observations, writes database state, or
 deletes input, even under `temporary` retention. Execution deliberately stays
 `pending`; duplicate deliveries safely repeat reads and logs. Retained inputs and
 abandoned registrations accumulate until cleanup exists or is explicitly performed.
-The pure Nuclei translator and tests now live privately under backend
-`features/ingestions`, not `apps/api/src/import`, and are not called by the shell.
+Scanner parsing is not implemented and the shell does not translate or match input.
 
 Use the [existing-stack smoke check](deployment.md#ingestion-shell-smoke-check) to
 verify the real handoff and log-only observability. A running worker has no HTTP

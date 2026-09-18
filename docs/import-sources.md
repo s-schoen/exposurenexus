@@ -28,7 +28,7 @@ Origin and matching `X-CSRF-Token` header:
 
 ```json
 {
-  "source": "nuclei",
+  "source": "example-scanner",
   "originalFilename": "scan.jsonl",
   "sizeBytes": 1024,
   "mimeType": "application/x-ndjson"
@@ -36,8 +36,8 @@ Origin and matching `X-CSRF-Token` header:
 ```
 
 The JSON object is strict: extra fields are rejected. `source`, `originalFilename`,
-and `sizeBytes` are required. Only `source: "nuclei"` is supported; the filename must
-be nonblank, and the size must be a nonnegative safe integer, including zero. The
+and `sizeBytes` are required. `source` is a nonblank scanner identifier; the filename
+must be nonblank, and the size must be a nonnegative safe integer, including zero. The
 declared size must not exceed the API-configured maximum (100 MiB by default).
 Invalid or oversized metadata is rejected before reserving a source or doing
 storage work. `mimeType` is an optional string, not scanner detection or content
@@ -154,9 +154,7 @@ reread and log again without changing source metadata, links, retention, or byte
 Nothing is deleted after a read, even for `temporary` input or after a failure.
 
 Zero-byte and malformed scan contents are not parsed or rejected as scanner output.
-The existing pure Nuclei translator and its tests moved from `apps/api/src/import`
-to the backend's private `features/ingestions` area; unused resolver scaffolding
-was removed. The shell never invokes it. Matching, asset/vulnerability creation,
+Scanner parsing is not implemented. Matching, asset/vulnerability creation,
 observation/finding persistence, and ingestion accounting are not implemented.
 See the [stack smoke check](deployment.md#ingestion-shell-smoke-check).
 
@@ -183,7 +181,7 @@ taken from the authenticated user, not the request body:
 
 ```ts
 const source = await sources.register({
-  source: "nuclei",
+  source: "example-scanner",
   originalFilename: "scan.jsonl",
   sizeBytes: 1024,
   mimeType: "application/x-ndjson",
@@ -408,7 +406,7 @@ stays private. Metadata resolution does not promise byte availability: missing
 objects and explicitly deleted bytes do not erase the relationship or provenance.
 
 Ingestion actor and scanner source remain authoritative in `ingestion.createdBy`
-and `ingestion.source` (currently `nuclei`) once an ingestion exists. Before
+and `ingestion.source` once an ingestion exists. Before
 submission, the registered scanner declaration, creator, and input reference live
 in import-source metadata. [Ingestion job data](job-queue.md#ingestion-handoff)
 contains only `{ ingestionId }`, never a duplicate actor/format, bytes, URL, or
