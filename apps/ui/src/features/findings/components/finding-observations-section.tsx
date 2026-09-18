@@ -759,7 +759,7 @@ function EditObservationDialog({ observation }: { observation: Observation }) {
               <Input
                 id={`${formId}-weakness`}
                 value={weakness}
-                placeholder="cwe=CWE-200; nuclei=admin-panel"
+                placeholder="cwe=CWE-200; scanner=admin-panel"
                 onChange={(event) => setWeakness(event.target.value)}
               />
               <FieldDescription>
@@ -1210,7 +1210,7 @@ function AddObservationDialog({ finding }: { finding: Finding }) {
             <Input
               id="observation-weakness"
               value={weakness}
-              placeholder="Use finding weakness, or cwe=CWE-200; nuclei=admin-panel"
+              placeholder="Use finding weakness, or cwe=CWE-200; scanner=admin-panel"
               onChange={(event) => setWeakness(event.target.value)}
             />
             <FieldDescription>

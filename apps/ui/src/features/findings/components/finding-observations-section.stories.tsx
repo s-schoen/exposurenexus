@@ -89,8 +89,8 @@ const unspecifiedObservation = observationSchema.parse({
 const reportedEndpointObservation = observationSchema.parse({
   id: "197083f7-91c2-4c36-9a20-7ff90fd45e91",
   findingId: finding.id,
-  ingestionId: "16c25531-28e5-43d7-bbfd-8709ae8e907c",
-  source: ObservationSource.Nuclei,
+  ingestionId: null,
+  source: ObservationSource.Manual,
   title: "Reported endpoint URL",
   description: "The endpoint exposed administrative controls.",
   evidence: "`GET /admin?debug=true` returned **200**.",

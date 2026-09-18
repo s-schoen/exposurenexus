@@ -10,7 +10,7 @@ describe("weakness schemas", () => {
           CVE: [" cve-2026-0002 ", "CVE-2026-0001", "CVE-2026-0002"],
           cwe: [" cWe-89 "],
           ghsa: [" ghsa-abcd-1234-Efgh "],
-          nuclei: [" Rule-Z ", "rule-a", " Rule-Z "],
+          scanner: [" Rule-Z ", "rule-a", " Rule-Z "],
         },
       }),
     ).toEqual({
@@ -18,7 +18,7 @@ describe("weakness schemas", () => {
         cve: ["CVE-2026-0001", "CVE-2026-0002"],
         cwe: ["CWE-89"],
         ghsa: ["GHSA-ABCD-1234-EFGH"],
-        nuclei: ["Rule-Z", "rule-a"],
+        scanner: ["Rule-Z", "rule-a"],
       },
     });
   });

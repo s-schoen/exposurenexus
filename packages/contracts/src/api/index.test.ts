@@ -81,16 +81,16 @@ describe("auth API schemas", () => {
 });
 
 describe("scan registration API schemas", () => {
-  it("accepts zero-byte Nuclei registration without altering declared metadata", () => {
+  it("accepts zero-byte scanner registration without altering declared metadata", () => {
     const request = {
-      source: "nuclei",
+      source: "example-scanner",
       originalFilename: " ../../scan.jsonl ",
       sizeBytes: 0,
       mimeType: "unverified scanner metadata",
     };
     expect(registerImportSourceSchema.parse(request)).toEqual(request);
     expectTypeOf<RegisterImportSource>().toEqualTypeOf<{
-      source: "nuclei";
+      source: string;
       originalFilename: string;
       sizeBytes: number;
       mimeType?: string;
@@ -98,7 +98,7 @@ describe("scan registration API schemas", () => {
   });
 
   it("requires strict registration metadata and accepts the full nonnegative safe-integer range", () => {
-    const request = { source: "nuclei", originalFilename: "scan.jsonl", sizeBytes: 0 };
+    const request = { source: "example-scanner", originalFilename: "scan.jsonl", sizeBytes: 0 };
     for (const sizeBytes of [0, 104857600, Number.MAX_SAFE_INTEGER]) {
       expect(registerImportSourceSchema.parse({ ...request, sizeBytes })).toEqual({
         ...request,
@@ -110,8 +110,9 @@ describe("scan registration API schemas", () => {
       [],
       "scan.jsonl",
       { ...request, source: undefined },
-      { ...request, source: "manual" },
-      { ...request, source: "other-scanner" },
+      { ...request, source: "" },
+      { ...request, source: " \t\n\u00a0" },
+      { ...request, source: 123 },
       { ...request, originalFilename: undefined },
       { ...request, originalFilename: "" },
       { ...request, originalFilename: " \t\n\u00a0" },
@@ -179,7 +180,7 @@ describe("scan submission API schemas", () => {
   it("rejects extra metadata and leaves response enveloping to the API adapter", () => {
     for (const invalid of [
       { ...data, status: "succeeded" },
-      { ...data, source: "nuclei" },
+      { ...data, source: "example-scanner" },
       { ...data, bucket: "private-input" },
       { ...data, objectKey: "private-key" },
       { correlationId: "request-id", data },

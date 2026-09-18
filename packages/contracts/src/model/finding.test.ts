@@ -19,7 +19,7 @@ describe("finding statistics schema", () => {
 
   it("contains only finding-owned aggregate dimensions", () => {
     expect(FindingStatistics.parse(statistics)).toEqual(statistics);
-    expect(() => FindingStatistics.parse({ ...statistics, source: { nuclei: 1 } })).toThrow();
+    expect(() => FindingStatistics.parse({ ...statistics, source: { scanner: 1 } })).toThrow();
   });
 });
 

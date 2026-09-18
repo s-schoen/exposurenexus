@@ -670,7 +670,7 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
                   name="weakness"
                   value={weaknessDraft}
                   onChange={(event) => setWeaknessDraft(event.target.value)}
-                  placeholder="cwe=CWE-200; nuclei=admin-panel"
+                  placeholder="cwe=CWE-200; scanner=admin-panel"
                 />
                 <FieldDescription>
                   Separate namespaces with semicolons and identifiers with commas.

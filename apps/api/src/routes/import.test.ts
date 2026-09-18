@@ -20,7 +20,7 @@ describe("finding import routes", () => {
   const ingestions = { submit: vi.fn() };
   const importSourceId = "6b80ec81-bfa7-435c-b41e-8d14510b5ee2";
   const metadata = {
-    source: "nuclei",
+    source: "example-scanner",
     originalFilename: "scan.jsonl",
     sizeBytes: 0,
     mimeType: "application/x-ndjson",
@@ -196,7 +196,8 @@ describe("finding import routes", () => {
 
   it.each([
     {},
-    { ...metadata, source: "manual" },
+    { ...metadata, source: "  " },
+    { ...metadata, source: 123 },
     { ...metadata, originalFilename: "  " },
     { ...metadata, sizeBytes: -1 },
     { ...metadata, sizeBytes: 0.5 },

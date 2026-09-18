@@ -36,7 +36,7 @@ describe("ImportFindingsPage", () => {
 
   it("shows selected file metadata and clears the file", async () => {
     renderImportFindingsPage();
-    const file = new File(["{}"], "nuclei.json", {
+    const file = new File(["{}"], "scan.json", {
       type: "application/json",
     });
 
@@ -46,14 +46,14 @@ describe("ImportFindingsPage", () => {
       },
     });
 
-    expect(screen.getByText("nuclei.json")).toBeTruthy();
+    expect(screen.getByText("scan.json")).toBeTruthy();
     expect(screen.getByText(/2 B/)).toBeTruthy();
     expect(screen.getByText(/application\/json/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /clear/i }));
 
     await waitFor(() => {
-      expect(screen.queryByText("nuclei.json")).toBeNull();
+      expect(screen.queryByText("scan.json")).toBeNull();
     });
   });
 

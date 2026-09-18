@@ -83,7 +83,7 @@ export function createIngestions(
             .where("ingestionId", "is", null)
             .forUpdate()
             .executeTakeFirst();
-          if (source?.source !== "nuclei") {
+          if (!source || source.source === null) {
             throw new ApplicationError({
               code: "ingestion.source_not_submittable",
               kind: "conflict",

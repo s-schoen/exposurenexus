@@ -89,7 +89,7 @@ const baseFinding: Finding = {
   weakness: {
     identifiers: {
       cwe: ["CWE-200"],
-      nuclei: ["admin-panel"],
+      scanner: ["admin-panel"],
     },
   },
   affectedResource: {

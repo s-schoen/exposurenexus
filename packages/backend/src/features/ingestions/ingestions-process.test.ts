@@ -85,7 +85,7 @@ describe("ingestion processing shell", () => {
     const sources = createImportSources(runtime, storage, { retentionPolicy });
     const ingestions = createIngestions(runtime, sources);
     const registered = await sources.register({
-      source: "nuclei",
+      source: "example-scanner",
       sizeBytes: bytes.length,
       originalFilename: "scan.jsonl",
       performedBy: actorId,

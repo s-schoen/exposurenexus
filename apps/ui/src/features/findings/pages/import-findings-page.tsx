@@ -54,7 +54,7 @@ export function ImportFindingsPage() {
         <CardHeader>
           <CardTitle>Upload file</CardTitle>
           <CardDescription>
-            Select a nuclei export file to prepare for the future import workflow.
+            Select a scan export file to prepare for the future import workflow.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -88,7 +88,7 @@ export function ImportFindingsPage() {
                 {file ? "Replace selected file" : "Choose a file to import"}
               </div>
               <p className="text-sm text-muted-foreground">
-                Pick a nuclei result file from your machine.
+                Pick a scan result file from your machine.
               </p>
             </div>
           </label>

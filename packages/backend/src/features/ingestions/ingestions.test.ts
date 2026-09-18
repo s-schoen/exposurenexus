@@ -87,7 +87,7 @@ describe("ingestion submission", () => {
     );
     // Upload mechanics have their own suite; submission faults start with durable bytes.
     const registered = await sources.register({
-      source: "nuclei",
+      source: "example-scanner",
       sizeBytes: input.length,
       originalFilename: "registered-scan.jsonl",
       mimeType: "unverified/type",
@@ -116,7 +116,7 @@ describe("ingestion submission", () => {
     const runtime = createBackendRuntime({ database: testDb.db, logger: pino({ enabled: false }) });
     const sources = createImportSources(runtime, storage);
     const registered = await sources.register({
-      source: "nuclei",
+      source: "example-scanner",
       originalFilename: "scan.jsonl",
       sizeBytes: input.length,
       performedBy: actorId,
@@ -174,7 +174,7 @@ describe("ingestion submission", () => {
     expect(await testDb.db.selectFrom("ingestion").selectAll().execute()).toEqual([
       {
         id: accepted.ingestionId,
-        source: "nuclei",
+        source: "example-scanner",
         createdBy: actorId,
         createdAt: expect.any(Date),
       },
@@ -326,7 +326,7 @@ describe("ingestion submission", () => {
     const runtime = createBackendRuntime({ database: testDb.db, logger: pino({ enabled: false }) });
     const sources = createImportSources(runtime, storage);
     const registered = await sources.register({
-      source: "nuclei",
+      source: "example-scanner",
       originalFilename: "scan.jsonl",
       sizeBytes: input.length,
       performedBy: actorId,
@@ -409,7 +409,7 @@ describe("ingestion submission", () => {
       storage,
     );
     const registered = await sources.register({
-      source: "nuclei",
+      source: "example-scanner",
       originalFilename: "scan.jsonl",
       sizeBytes: input.length,
       performedBy: actorId,

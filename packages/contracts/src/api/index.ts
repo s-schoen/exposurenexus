@@ -55,7 +55,7 @@ export type AuthSessionDataReply = z.infer<typeof authSessionDataReplySchema>;
 export type AuthSignOutDataReply = z.infer<typeof authSignOutDataReplySchema>;
 
 export const registerImportSourceSchema = z.strictObject({
-  source: z.literal("nuclei"),
+  source: z.string().min(1).regex(/\S/u),
   originalFilename: z.string().min(1).regex(/\S/u),
   sizeBytes: z.int().min(0),
   mimeType: z.string().optional(),
