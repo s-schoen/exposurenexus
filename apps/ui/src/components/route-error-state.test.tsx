@@ -39,6 +39,15 @@ describe("RouteErrorState", () => {
     expect(screen.getByText("An unexpected error occurred.")).toBeTruthy();
   });
 
+  it.each([null, undefined, "thrown string", { message: "thrown object" }])(
+    "renders the fallback when a non-Error is thrown: %s",
+    (error) => {
+      render(<UnexpectedError error={error} />);
+
+      expect(screen.getByText("An unexpected error occurred.")).toBeTruthy();
+    },
+  );
+
   it("retries a failed loader query and renders the recovered page", async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const request = vi

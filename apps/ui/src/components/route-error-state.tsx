@@ -10,7 +10,7 @@ const FALLBACK_ERROR_MESSAGE = "An unexpected error occurred.";
 
 export function RouteErrorState({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
-  const message = error.message || FALLBACK_ERROR_MESSAGE;
+  const message = error instanceof Error && error.message ? error.message : FALLBACK_ERROR_MESSAGE;
 
   async function handleRetry() {
     // Resetting the boundary alone rethrows the router's failed loader state.
