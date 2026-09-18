@@ -240,9 +240,8 @@ An **observation source** identifies the scanner or reporting family that
 reported an observation. Current sources are:
 
 - `manual`: recorded directly by a user.
-- `nuclei`: the source represented by the pure Nuclei JSONL translator and
-  reserved for future persisted imports.
 
+Scanner sources will be added alongside the automated import implementation.
 One finding may have observations from multiple sources. Source is not a
 finding-owned identity or lifecycle field.
 
@@ -330,9 +329,8 @@ An **import** is intended to ingest external observations into ExposureNexus.
 Scan-upload registration and one-shot byte upload now support durable ingestion
 submission. A worker shell reads the complete stored input and logs completion,
 but accepted or successfully read bytes are not imported observations. Empty and
-malformed contents are not parsed. The pure Nuclei JSONL translator remains outside
-the live path. Automated persistence and observation-to-finding matching remain
-deferred, and the UI import workflow remains disabled.
+malformed contents are not parsed. Automated persistence and observation-to-finding
+matching remain deferred, and the UI import workflow remains disabled.
 
 When enabled, imports will resolve source records against user-managed assets and
 findings. They will not create assets or vulnerability catalog entries. A record
@@ -357,8 +355,8 @@ Manual observations do not belong to ingestions.
 An **import source** is the raw input artifact for an ingestion, with its own
 identity, creation actor, declared scanner source, original filename, optional
 declared MIME type, size, retention policy, and lifecycle metadata. Registered
-sources declare `nuclei`; historical sources with unknown scanner identity retain
-`null`. Declared MIME type is caller-supplied metadata, not verified content or
+sources declare a scanner source; historical sources with unknown scanner identity
+retain `null`. Declared MIME type is caller-supplied metadata, not verified content or
 scanner identity. An import source may exist before ingestion and belongs to at
 most one ingestion; retaining it does not make it a reusable dataset. Incomplete
 and deleted sources remain identifiable, and deleting raw data preserves provenance
@@ -468,9 +466,8 @@ high exposure, affected assets, and mitigation rate.
   used by both API and UI.
 - Asset custom fields currently apply only to assets, not findings,
   vulnerabilities, users, or roles.
-- The backend ingestion feature owns the private pure Nuclei JSONL observation
-  translator. The worker shell does not call it or write domain or job execution
-  state; execution remains `pending` and completion is observable only in logs.
+- The worker shell reads stored input without parsing it or writing domain or job
+  execution state; execution remains `pending` and completion is observable only in logs.
 
 ## Vocabulary Rules
 
