@@ -1,4 +1,5 @@
 export { createAssets } from "./assets.js";
+export { assetIdentifierSchema } from "./inventory/identifiers/schema.js";
 export type {
   AddAssetIdentifierCommand,
   AssetCreatedOutcome,

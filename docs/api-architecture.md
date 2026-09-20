@@ -113,7 +113,12 @@ outcomes belong to the feature or subfeature that implements them.
 Findings own observations and finding-vulnerability link mutations because their
 transactions, projections, and audit updates are coupled. Asset projections and
 audit handling stay at the assets level because both subfeatures use them. Shared
-security-identifier canonicalization stays private at package level.
+security-identifier canonicalization helpers stay private at package level. The
+existing canonicalizing `assetIdentifierSchema` and `weaknessSchema` are exposed
+through `/assets` and `/findings`, respectively, for worker candidate normalization.
+This is the narrow export-policy extension recorded in
+[ADR-0004](adr/0004-shared-backend-capabilities.md#candidate-normalization-refinement),
+not a public interface to the underlying helpers or other rule schemas.
 
 Reusable byte storage lives at `packages/backend/src/object-storage/`, outside
 the import-source feature. It owns SDK access, object I/O, exact-byte counting,
@@ -167,8 +172,14 @@ policy. The root `ApplicationError` similarly aggregates feature- and infrastruc
 catalogs through type-only imports. No generic feature framework or separate
 workspace packages are required.
 
-The worker processing shell reads stored input without translation or matching and
-does not expose a scanner registry. Scanner parsing is not implemented.
+Standalone scanner-to-candidate normalization lives in
+`../apps/worker/src/normalization/normalization.ts`, reusing backend canonicalizers and existing
+contract shapes without a backend runtime. It has no database, network, or clock
+reads; logging is its only side effect. See the
+[worker normalization contract](../apps/worker/README.md#observation-candidate-normalization).
+This callable boundary has no real scanner parsers and is not wired to ingestion
+jobs. The live worker processing shell still reads stored input without translation
+or matching and does not expose a scanner registry.
 
 ## API Adaptation
 

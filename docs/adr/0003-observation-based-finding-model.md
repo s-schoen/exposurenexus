@@ -923,6 +923,20 @@ Vulnerability source mappings remain a named future concept. The old raw mapping
 API and UI are removed, but no replacement persistence or import consumer is
 defined until matching semantics and a consuming workflow are decided.
 
+### Candidate Normalization Follow-Up
+
+The earlier removal of unused resolver and translator scaffolding stands. This
+follow-up permits worker-local candidate types and a dispatcher under
+the [worker normalization contract](../../apps/worker/README.md#observation-candidate-normalization),
+without real parsers or live ingestion-handler integration. Candidates are not
+persisted observations and do not extend the persisted observation source enum.
+
+Candidates may carry empty weakness data, no asset identifiers, `unspecified`
+resources, and unknown detection times without relaxing automated finding-matching rules.
+The earlier asset-name matching sketch is not a current resolver contract; asset
+display names are not identity, and matching remains undecided. Persistence,
+ingestion accounting, and reprocessing remain deferred.
+
 ### Initial UI
 
 The finding table uses finding title, removes source grouping, and defaults to
@@ -1001,8 +1015,9 @@ one-based domain convention.
 
 The finding table, observation table, finding API responses, manual finding
 creation, vulnerability catalog model, and finding UI reflect the new boundaries.
-The pure source translator remains available, while automated import persistence,
-matching, and source-mapping persistence remain future work.
+The initial pure source translator was subsequently removed. Candidate
+normalization is now a separate worker-local boundary; automated import
+persistence, matching, and source-mapping persistence remain future work.
 
 The initial UI scope stays intentionally small. Users should still primarily work
 with findings. Observations add supporting context and correction workflows, but

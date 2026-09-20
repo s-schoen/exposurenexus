@@ -32,7 +32,7 @@ const importSources = createImportSources(runtime, storage, importPolicy);
 const ingestions = createIngestions(runtime, importSources);
 ```
 
-Each capability subpath owns its construction code. The opaque runtime owns the shared database and logger plus private per-runtime memoization, so the package root does not import or initialize every capability. Public exports are limited to capability interfaces and factories, caller-facing commands and results, domain-neutral mutation outcomes, configuration, database construction types, and backend errors. Repository contracts, dependency objects, lookup ports, persistence records, and transaction types remain private.
+Each capability subpath owns its construction code. The opaque runtime owns the shared database and logger plus private per-runtime memoization, so the package root does not import or initialize every capability. Public exports are limited to capability interfaces and factories, caller-facing commands and results, domain-neutral mutation outcomes, configuration, database construction types, backend errors, and the two canonicalizing schemas added in the refinement below. Repository contracts, dependency objects, lookup ports, persistence records, and transaction types remain private.
 
 ### Feature Organization Refinement
 
@@ -41,6 +41,29 @@ The initial extraction grouped findings, vulnerabilities, and statistics behind 
 Implementation lives under `src/features/`, colocating feature behavior, private persistence, table types, errors, rules, and tests. Findings retain observations and finding-vulnerability link mutations because they share transactions, projections, and audit updates. Shared asset projections and audit handling stay at the assets level. Existing cross-feature persistence dependencies remain private and transaction-aware; independent entrypoints do not require isolated databases or new repository interfaces.
 
 Database and application-error modules aggregate feature-owned types through type-only imports. Migration history remains centralized. Ingestion owns submission and the read-only processing shell through its strict `/ingestions` entrypoint. The earlier feature split was an organizational and caller-interface change, not a change to business behavior, HTTP contracts, or persistence semantics.
+
+### Candidate Normalization Refinement
+
+This deliberately extends the earlier export policy, which kept canonicalizing
+rules behind capabilities: expose the existing `assetIdentifierSchema` through
+`@exposurenexus/backend/assets` and `weaknessSchema` through
+`@exposurenexus/backend/findings`. Worker normalization needs the same canonical
+values as backend mutations; reusing these schemas avoids competing rules without
+requiring a backend runtime or persistence access. Underlying normalization
+helpers and other rule schemas remain private.
+
+The worker owns standalone scanner-to-candidate normalization, not matching or
+domain mutations. Candidates are plain TypeScript types reusing existing contract
+types; trusted normalizer output does not need whole-object runtime validation.
+The dispatcher applies the shared canonicalizers only to identifiers; concrete
+normalizers own parsing and validation of the external scanner bytes. The worker
+uses the existing `@exposurenexus/contracts` workspace dependency, not a new
+package or library. Whole-file bytes in and a candidate batch out accept an
+in-memory input/output tradeoff; logging is the only side effect. This boundary
+has no real scanner parsers or production ingestion-handler wiring. See the
+[worker contract](../../apps/worker/README.md#observation-candidate-normalization)
+for its single-method interface and ordinary, log-safe parser errors; backend
+capability failures still follow the typed application-error policy.
 
 ### Shared Infrastructure And Adapters
 

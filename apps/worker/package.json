@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@exposurenexus/backend": "workspace:*",
+    "@exposurenexus/contracts": "workspace:*",
     "@exposurenexus/jobs": "workspace:*",
     "pino": "10.3.1",
     "zod": "^4.6.4"

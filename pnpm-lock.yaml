@@ -266,6 +266,9 @@ importers:
       '@exposurenexus/backend':
         specifier: workspace:*
         version: link:../../packages/backend
+      '@exposurenexus/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@exposurenexus/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs

@@ -7,8 +7,15 @@ import { createVulnerabilities, type Vulnerabilities } from "./features/vulnerab
 import { createBackendRuntime } from "./runtime.js";
 
 describe("public feature factories", () => {
-  it("exports only runtime factories as feature values", async () => {
-    expect(Object.keys(await import("./features/findings/index.js"))).toEqual(["createFindings"]);
+  it("exports runtime factories and the shared candidate canonicalization schemas", async () => {
+    expect(Object.keys(await import("./features/assets/index.js")).sort()).toEqual([
+      "assetIdentifierSchema",
+      "createAssets",
+    ]);
+    expect(Object.keys(await import("./features/findings/index.js")).sort()).toEqual([
+      "createFindings",
+      "weaknessSchema",
+    ]);
     expect(Object.keys(await import("./features/vulnerabilities/index.js"))).toEqual([
       "createVulnerabilities",
     ]);
