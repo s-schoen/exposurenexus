@@ -61,6 +61,8 @@ including archived assets.
 An **asset identifier namespace** is an optional identity scope used when an
 identifier is not globally unambiguous, such as split DNS or overlapping private
 networks. A missing namespace means global scope; namespaces are case-sensitive.
+Potential asset identifiers on observation candidates deliberately do not
+distinguish an unknown namespace from global scope.
 
 Use namespace only for identity scope. Do not use it for import source,
 provenance, ownership, or arbitrary categorization.
@@ -174,6 +176,26 @@ Observations have no lifecycle status. Correct an inaccurate observation by
 editing, moving, or deleting it; these actions do not automatically change the
 finding's workflow state. Imported observations belong to an ingestion. Manual
 observations do not.
+
+### Observation Candidate
+
+An **observation candidate** is a normalized detection proposal that has not been
+resolved to an asset or finding and is not a persisted observation. One source
+record may yield zero, one, or multiple candidates; accepting a candidate does not
+establish sufficient identity for matching.
+
+### Source Record Locator
+
+A **source record locator** identifies a record within one source file using
+parser-defined conventions. It is not cross-scan identity; candidates produced
+from the same record share its locator.
+
+### Potential Asset Identifier
+
+A **potential asset identifier** is a canonical external identifier extracted for
+an observation candidate's affected subject, not an established association with
+an inventory asset. All such identifiers describe that subject, without
+confidence scores or identifier roles.
 
 ### Finding Assignee
 

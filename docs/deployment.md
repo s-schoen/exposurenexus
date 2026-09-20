@@ -381,8 +381,9 @@ to read a real scan instead of the default malformed content. Each run must regi
 a fresh ID. All should reach
 shell completion with the exact byte count, not parsing success or imported results.
 All resulting input remains retained, even under `temporary`; this check performs
-no automatic source cleanup. The translator has moved from `apps/api/src/import`
-to the backend's private `features/ingestions` area and is never invoked here.
+no automatic source cleanup. Standalone
+[candidate normalization](../apps/worker/README.md#observation-candidate-normalization)
+is not invoked by this live check.
 
 Record the tested image/revision, returned IDs, expected/logged byte count, and
 read-only SQL result. If Docker, a dependency, current images, or an authorized
