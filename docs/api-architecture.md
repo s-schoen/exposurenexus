@@ -173,7 +173,7 @@ catalogs through type-only imports. No generic feature framework or separate
 workspace packages are required.
 
 Standalone scanner-to-candidate normalization lives in
-`../apps/worker/src/normalization/normalization.ts`, reusing backend canonicalizers and existing
+`../apps/worker/src/classification`, reusing backend canonicalizers and existing
 contract shapes without a backend runtime. It has no database, network, or clock
 reads; logging is its only side effect. See the
 [worker normalization contract](../apps/worker/README.md#observation-candidate-normalization).
