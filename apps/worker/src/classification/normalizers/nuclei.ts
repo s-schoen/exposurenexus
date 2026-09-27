@@ -24,9 +24,27 @@ type WebEndpointResource = Extract<
   { type: AffectedResourceType.WebEndpoint }
 >;
 
+type NetworkServiceResource = Extract<
+  ObservationAffectedResource,
+  { type: AffectedResourceType.NetworkService }
+>;
+
 type SubjectMapping = {
   affectedResource: ObservationAffectedResource;
   assetIdentifierCandidates: AssetIdentifier[];
+};
+
+/** Transport/application details each network-service protocol establishes. */
+type NetworkServiceDetails = {
+  transport?: string;
+  protocol?: string;
+  /**
+   * Whether the reported `ip` describes the dialed subject itself. TCP, TLS,
+   * and JavaScript report the IP of the matched/dialed address (TLS via the
+   * TLS response's remote address); HTTP and WebSocket report the original
+   * input target's IP.
+   */
+  ipTracksDialedAddress?: boolean;
 };
 
 type ParsedRecord = {
@@ -39,6 +57,17 @@ const sourceName = "nuclei";
 
 /** Protocols whose subject mapping is defined by the HTTP/headless slice. */
 const webProtocols = new Set(["http", "headless"]);
+
+/**
+ * Protocols that establish a network service. The result type only carries the
+ * transport layer; an application protocol is never inferred from template
+ * names, payloads, or port numbers.
+ */
+const networkServiceProtocols = new Map<string, NetworkServiceDetails>([
+  ["tcp", { transport: "tcp", ipTracksDialedAddress: true }],
+  ["ssl", { transport: "tcp", protocol: "tls", ipTracksDialedAddress: true }],
+  ["javascript", { ipTracksDialedAddress: true }],
+]);
 
 const defaultPorts = new Map<string, number>([
   ["http", 80],
@@ -535,23 +564,144 @@ function mapSubject(
   lineNumber: number,
   logger: Logger,
 ): SubjectMapping {
-  if (!webProtocols.has(type.trim().toLowerCase())) {
-    return unspecifiedSubject();
+  const protocol = type.trim().toLowerCase();
+  if (webProtocols.has(protocol)) {
+    return mapWebSubject(record, lineNumber, logger);
   }
 
+  const networkDetails = networkServiceProtocols.get(protocol);
+  if (networkDetails !== undefined) {
+    return mapNetworkServiceSubject(record, lineNumber, logger, networkDetails);
+  }
+
+  if (protocol === "websocket") {
+    return mapWebSocketSubject(record, lineNumber, logger);
+  }
+
+  return unspecifiedSubject();
+}
+
+function mapWebSubject(record: JsonObject, lineNumber: number, logger: Logger): SubjectMapping {
   const endpoint = resolveWebEndpoint(record, lineNumber, logger);
   if (endpoint === null) {
     return unspecifiedSubject();
   }
 
-  const identifiers = identifiersForHost(endpoint.host);
-  const reportedIp = reportedIpIdentifier(record, endpoint.host, lineNumber, logger);
+  return subjectMappingForResource(record, endpoint.host, endpoint, false, lineNumber, logger);
+}
+
+function mapNetworkServiceSubject(
+  record: JsonObject,
+  lineNumber: number,
+  logger: Logger,
+  details: NetworkServiceDetails,
+): SubjectMapping {
+  const address = resolveNetworkAddress(record, lineNumber, logger);
+  if (address === null) {
+    return unspecifiedSubject();
+  }
+
+  const resource: NetworkServiceResource = {
+    type: AffectedResourceType.NetworkService,
+    host: address.host,
+    ...(address.port === undefined ? {} : { port: address.port }),
+    ...(details.transport === undefined ? {} : { transport: details.transport }),
+    ...(details.protocol === undefined ? {} : { protocol: details.protocol }),
+  };
+
+  // Only protocols whose reported IP belongs to the dialed address may keep it
+  // when the matched host differs from the original input host.
+  const subjectIsDialedAddress =
+    details.ipTracksDialedAddress === true && address.fromMatchedAddress;
+  return subjectMappingForResource(
+    record,
+    address.host,
+    resource,
+    subjectIsDialedAddress,
+    lineNumber,
+    logger,
+  );
+}
+
+function mapWebSocketSubject(
+  record: JsonObject,
+  lineNumber: number,
+  logger: Logger,
+): SubjectMapping {
+  // The websocket matched address is the URL actually dialed, so it wins over
+  // the original input URL. Its reported IP is looked up for the original
+  // input host, so it is attributed only when the subject still matches it.
+  const matchedAt = readWebSocketAddress(record["matched-at"], "matched-at", lineNumber, logger);
+  if (matchedAt !== null) {
+    return webSocketSubjectMapping(record, matchedAt, lineNumber, logger);
+  }
+
+  const url = readWebSocketAddress(record.url, "url", lineNumber, logger);
+  if (url !== null) {
+    return webSocketSubjectMapping(record, url, lineNumber, logger);
+  }
+
+  const hostText = readTextValue(record.host, "host", lineNumber, logger)?.trim();
+  if (hostText === undefined) {
+    return unspecifiedSubject();
+  }
+
+  const fields = resolveExplicitWebEndpoint(record, hostText, lineNumber, logger);
+  if (fields === null) {
+    return unspecifiedSubject();
+  }
+
+  const resource: WebEndpointResource = {
+    type: AffectedResourceType.WebEndpoint,
+    ...(fields.scheme === undefined ? {} : { scheme: fields.scheme }),
+    host: fields.host,
+    ...(fields.port === undefined ? {} : { port: fields.port }),
+    ...(fields.path === undefined ? {} : { path: fields.path }),
+    // A websocket payload is not an HTTP request, so it never establishes a
+    // method or a fuzzing component; only the endpoint itself is known.
+    component: { kind: WebEndpointComponentKind.Endpoint },
+  };
+  return subjectMappingForResource(record, fields.host, resource, false, lineNumber, logger);
+}
+
+function webSocketSubjectMapping(
+  record: JsonObject,
+  address: WebSocketAddress,
+  lineNumber: number,
+  logger: Logger,
+): SubjectMapping {
+  const scheme = address.scheme;
+  // Nuclei strips default ports from URLs, so materialize the standard port
+  // again for the scheme the URL establishes.
+  const port = address.port ?? defaultPorts.get(scheme);
+  const resource: WebEndpointResource = {
+    type: AffectedResourceType.WebEndpoint,
+    scheme,
+    host: address.host,
+    ...(port === undefined ? {} : { port }),
+    path: address.path === undefined || address.path === "" ? "/" : address.path,
+    component: { kind: WebEndpointComponentKind.Endpoint },
+    ...(address.reportedUrl === undefined ? {} : { reportedUrl: address.reportedUrl }),
+  };
+  return subjectMappingForResource(record, address.host, resource, false, lineNumber, logger);
+}
+
+function subjectMappingForResource(
+  record: JsonObject,
+  host: string | undefined,
+  resource: ObservationAffectedResource,
+  subjectIsDialedAddress: boolean,
+  lineNumber: number,
+  logger: Logger,
+): SubjectMapping {
+  const identifiers = identifiersForHost(host);
+  const reportedIp = reportedIpIdentifier(record, host, lineNumber, logger, subjectIsDialedAddress);
   if (reportedIp !== undefined) {
     identifiers.push(reportedIp);
   }
 
   return {
-    affectedResource: endpoint,
+    affectedResource: resource,
     assetIdentifierCandidates: dedupeIdentifiers(identifiers),
   };
 }
@@ -711,12 +861,25 @@ function normalizeAuthorityHost(hostText: string): string | null {
   }
 }
 
-function webEndpointFromFields(
+type ExplicitWebEndpoint = {
+  scheme: string | undefined;
+  host: string;
+  port: number | undefined;
+  path: string | undefined;
+};
+
+/**
+ * Builds the endpoint details carried by explicit source fields, shared by the
+ * HTTP/headless and WebSocket fallbacks. Method and component stay
+ * protocol-specific because a WebSocket payload never establishes an HTTP
+ * request line or a fuzzing component.
+ */
+function resolveExplicitWebEndpoint(
   record: JsonObject,
   hostValue: string,
   lineNumber: number,
   logger: Logger,
-): WebEndpointResource | null {
+): ExplicitWebEndpoint | null {
   const authority = readHostAuthority(hostValue, lineNumber, logger);
   if (authority === null) {
     return null;
@@ -741,18 +904,242 @@ function webEndpointFromFields(
     // A known scheme forms a URL, so a missing path means the root path.
     path = "/";
   }
+
+  return { scheme, host: authority.host, port, path };
+}
+
+function webEndpointFromFields(
+  record: JsonObject,
+  hostValue: string,
+  lineNumber: number,
+  logger: Logger,
+): WebEndpointResource | null {
+  const fields = resolveExplicitWebEndpoint(record, hostValue, lineNumber, logger);
+  if (fields === null) {
+    return null;
+  }
+
   const method = readHttpMethod(record, lineNumber, logger);
   const component = readFuzzingComponent(record, lineNumber, logger);
 
   return {
     type: AffectedResourceType.WebEndpoint,
-    ...(scheme === undefined ? {} : { scheme }),
-    host: authority.host,
-    ...(port === undefined ? {} : { port }),
-    ...(path === undefined ? {} : { path }),
+    ...(fields.scheme === undefined ? {} : { scheme: fields.scheme }),
+    host: fields.host,
+    ...(fields.port === undefined ? {} : { port: fields.port }),
+    ...(fields.path === undefined ? {} : { path: fields.path }),
     ...(method === undefined ? {} : { method }),
     component,
   };
+}
+
+type ResolvedNetworkAddress = {
+  host: string;
+  port: number | undefined;
+  /** Whether the matched/dialed address established the subject. */
+  fromMatchedAddress: boolean;
+};
+
+type ParsedAddress = {
+  host: string;
+  port: number | undefined;
+  /** Whether the address text itself carried a port, valid or not. */
+  portReported: boolean;
+  scheme: string | undefined;
+  path: string | undefined;
+  reportedUrl: string | undefined;
+};
+
+type WebSocketAddress = ParsedAddress & { scheme: "ws" | "wss" };
+
+const schemeTextPattern = /^[a-z][a-z\d+.-]*:\/\//iu;
+
+/**
+ * Resolves the service address for TCP, TLS, and JavaScript results, preferring
+ * the matched/dialed address, then the reported source URL, then explicit
+ * host/port fields.
+ */
+function resolveNetworkAddress(
+  record: JsonObject,
+  lineNumber: number,
+  logger: Logger,
+): ResolvedNetworkAddress | null {
+  const matchedAt = readAddressValue(record["matched-at"], "matched-at", lineNumber, logger);
+  if (matchedAt !== null) {
+    return {
+      host: matchedAt.host,
+      port: resolveReportedPort(matchedAt, record, lineNumber, logger),
+      fromMatchedAddress: true,
+    };
+  }
+
+  const url = readAddressValue(record.url, "url", lineNumber, logger);
+  if (url !== null) {
+    return {
+      host: url.host,
+      port: resolveReportedPort(url, record, lineNumber, logger),
+      fromMatchedAddress: true,
+    };
+  }
+
+  const hostText = readTextValue(record.host, "host", lineNumber, logger)?.trim();
+  if (hostText === undefined) {
+    return null;
+  }
+
+  const authority = readHostAuthority(hostText, lineNumber, logger);
+  if (authority === null) {
+    return null;
+  }
+  // Explicit fields describe the original scan target, not the dialed service.
+  // Both describe the same input, so a valid separate port still applies when
+  // the embedded port text is malformed.
+  return {
+    host: authority.host,
+    port: authority.port ?? parsePort(record.port, lineNumber, logger),
+    fromMatchedAddress: false,
+  };
+}
+
+/** Falls back to the explicit port field only when the address reported none. */
+function resolveReportedPort(
+  address: { port: number | undefined; portReported: boolean },
+  record: JsonObject,
+  lineNumber: number,
+  logger: Logger,
+): number | undefined {
+  if (address.port !== undefined) {
+    return address.port;
+  }
+  return address.portReported ? undefined : parsePort(record.port, lineNumber, logger);
+}
+
+function readAddressValue(
+  value: unknown,
+  field: string,
+  lineNumber: number,
+  logger: Logger,
+): ParsedAddress | null {
+  const text = readTextValue(value, field, lineNumber, logger)?.trim();
+  if (text === undefined) {
+    return null;
+  }
+
+  const parsed = parseAddressText(text);
+  if (parsed === null) {
+    warnUnusable(logger, lineNumber, field);
+    return null;
+  }
+  // Retain a usable host even when the reported port text is malformed.
+  if (parsed.portReported && parsed.port === undefined) {
+    warnUnusable(logger, lineNumber, "port");
+  }
+  return parsed;
+}
+
+function readWebSocketAddress(
+  value: unknown,
+  field: string,
+  lineNumber: number,
+  logger: Logger,
+): WebSocketAddress | null {
+  const address = readAddressValue(value, field, lineNumber, logger);
+  if (address === null) {
+    return null;
+  }
+  if (address.scheme === "ws" || address.scheme === "wss") {
+    return { ...address, scheme: address.scheme };
+  }
+  // Only ws and wss URLs establish a websocket endpoint; anything else falls
+  // through to the host/port fallback.
+  warnUnusable(logger, lineNumber, field);
+  return null;
+}
+
+/**
+ * Parses a reported address as either a scheme URL or a bare host authority.
+ * The scheme check requires `://` so that `host:port` text is never mistaken
+ * for a URL scheme.
+ */
+function parseAddressText(value: string): ParsedAddress | null {
+  const text = value.trim();
+  if (text.length === 0) {
+    return null;
+  }
+
+  if (schemeTextPattern.test(text)) {
+    let url: URL;
+    try {
+      url = new URL(text);
+    } catch {
+      return null;
+    }
+    // A URL without a host does not establish a network endpoint; for example
+    // file:///tmp/result. Fall through to the explicit-field fallbacks.
+    if (url.hostname.length === 0) {
+      return null;
+    }
+    // Non-special schemes such as tcp: and ssl: percent-encode international
+    // hostnames instead of applying IDNA, so normalize the parsed hostname
+    // through the same authority rules as bare hosts.
+    const host = normalizeAuthorityHost(url.hostname);
+    if (host === null) {
+      return null;
+    }
+    // WHATWG strips default ports from URL.port, so read the authority text
+    // instead to preserve an explicitly reported port such as :80 or :443.
+    const authority = parseUrlAuthorityPort(text, url.protocol.slice(0, -1).toLowerCase());
+    const port = authority?.port ?? (url.port === "" ? undefined : Number(url.port));
+    return {
+      host,
+      port,
+      portReported: authority?.portReported ?? url.port !== "",
+      scheme: url.protocol.slice(0, -1).toLowerCase(),
+      path: url.pathname,
+      reportedUrl: text,
+    };
+  }
+
+  const authority = parseHostAuthority(text);
+  if (authority === null) {
+    return null;
+  }
+  return {
+    host: authority.host,
+    port: authority.port,
+    portReported: authority.portReported,
+    scheme: undefined,
+    path: undefined,
+    reportedUrl: undefined,
+  };
+}
+
+/** WHATWG special schemes treat backslashes as authority terminators. */
+const backslashAuthoritySchemes = new Set(["ftp", "file", "http", "https", "ws", "wss"]);
+
+/**
+ * Reads the port from the raw authority text of a URL so default ports survive
+ * the WHATWG URL parser's normalization.
+ */
+function parseUrlAuthorityPort(text: string, scheme: string): HostAuthority | null {
+  const start = text.indexOf("://") + 3;
+  const delimiters = backslashAuthoritySchemes.has(scheme)
+    ? ["/", "?", "#", "\\"]
+    : ["/", "?", "#"];
+  let end = text.length;
+  for (const delimiter of delimiters) {
+    const index = text.indexOf(delimiter, start);
+    if (index !== -1 && index < end) {
+      end = index;
+    }
+  }
+
+  let authorityText = text.slice(start, end);
+  const userinfoEnd = authorityText.lastIndexOf("@");
+  if (userinfoEnd !== -1) {
+    authorityText = authorityText.slice(userinfoEnd + 1);
+  }
+  return parseHostAuthority(authorityText);
 }
 
 function readHttpMethod(
@@ -829,6 +1216,7 @@ function reportedIpIdentifier(
   subjectHost: string | undefined,
   lineNumber: number,
   logger: Logger,
+  subjectIsDialedAddress: boolean,
 ): AssetIdentifier | undefined {
   const reportedIp = readTextValue(record.ip, "ip", lineNumber, logger)?.trim();
   if (reportedIp === undefined) {
@@ -851,6 +1239,22 @@ function reportedIpIdentifier(
     return undefined;
   }
   if (subject === ipAddress.value.toLowerCase()) {
+    return ipAddress;
+  }
+
+  // A literal-address subject cannot also be a different address: both
+  // identifiers would claim to describe the same subject.
+  const literalSubject = canonicalizeAssetIdentifier(
+    AssetIdentifierType.IpAddress,
+    stripHostBrackets(subjectHost),
+  );
+  if (literalSubject !== null) {
+    return undefined;
+  }
+
+  // Protocols that dial the matched address report its IP, so the IP still
+  // explains the selected subject when the original input host differs.
+  if (subjectIsDialedAddress) {
     return ipAddress;
   }
 
@@ -884,7 +1288,7 @@ function originalTargetHost(record: JsonObject): string | null {
   }
 
   const urlText = typeof record.url === "string" ? record.url.trim() : "";
-  const url = parseHttpUrl(urlText.length > 0 ? urlText : undefined);
+  const url = parseTargetUrl(urlText.length > 0 ? urlText : undefined);
   return url === null ? null : canonicalHostIdentifier(url.hostname);
 }
 
@@ -921,6 +1325,23 @@ function parseHttpUrl(value: string | undefined): URL | null {
     return null;
   }
   return url.protocol === "http:" || url.protocol === "https:" ? url : null;
+}
+
+/** Source URL schemes whose hostname identifies the original scan target. */
+const targetUrlSchemes = new Set(["http:", "https:", "ws:", "wss:"]);
+
+function parseTargetUrl(value: string | undefined): URL | null {
+  if (value === undefined || value.length === 0) {
+    return null;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  return targetUrlSchemes.has(url.protocol) ? url : null;
 }
 
 function parsePortText(value: string): number | undefined {
