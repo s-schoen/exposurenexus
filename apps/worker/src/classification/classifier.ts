@@ -37,6 +37,12 @@ export type ObservationCandidate = {
    * Canonical external identifiers describing the affected subject.
    */
   assetIdentifierCandidates: AssetIdentifier[];
+  /**
+   * Source-owned structured context preserved verbatim for provenance,
+   * including fields that were mapped onto candidate fields and optional
+   * values that could not be normalized.
+   */
+  sourceMetadata: Record<string, unknown>;
 };
 
 export interface Normalizer {
