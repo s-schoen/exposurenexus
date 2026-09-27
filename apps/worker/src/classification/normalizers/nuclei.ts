@@ -69,6 +69,18 @@ const networkServiceProtocols = new Map<string, NetworkServiceDetails>([
   ["javascript", { ipTracksDialedAddress: true }],
 ]);
 
+type SubjectIdentifierResolver = (host: string) => AssetIdentifier[];
+
+/**
+ * Protocols whose reported host is the affected subject but whose detections
+ * have no narrower shared resource type. WHOIS derives identifiers under its
+ * own rules because ASNs, network ranges, and handles are not hostnames.
+ */
+const queriedHostProtocols = new Map<string, SubjectIdentifierResolver>([
+  ["dns", identifiersForHost],
+  ["whois", identifiersForWhoisSubject],
+]);
+
 const defaultPorts = new Map<string, number>([
   ["http", 80],
   ["https", 443],
@@ -578,7 +590,34 @@ function mapSubject(
     return mapWebSocketSubject(record, lineNumber, logger);
   }
 
+  // DNS and WHOIS report the queried host as the affected subject, but the
+  // shared resource vocabulary has no DNS-record or registration type.
+  const queriedHostResolver = queriedHostProtocols.get(protocol);
+  if (queriedHostResolver !== undefined) {
+    return mapQueriedHostSubject(record, lineNumber, logger, queriedHostResolver);
+  }
+
+  // File, code, offline-HTTP-style, and unknown future protocols identify
+  // their subject through scanner-local paths; keep the detection without
+  // inventing an asset identity.
   return unspecifiedSubject();
+}
+
+/**
+ * Maps a result whose only usable subject detail is the reported queried host.
+ * The resource stays unspecified because there is no narrower shared type.
+ */
+function mapQueriedHostSubject(
+  record: JsonObject,
+  lineNumber: number,
+  logger: Logger,
+  resolveIdentifiers: SubjectIdentifierResolver,
+): SubjectMapping {
+  const host = readTextValue(record.host, "host", lineNumber, logger)?.trim();
+  return {
+    affectedResource: { type: AffectedResourceType.Unspecified },
+    assetIdentifierCandidates: host === undefined ? [] : resolveIdentifiers(host),
+  };
 }
 
 function mapWebSubject(record: JsonObject, lineNumber: number, logger: Logger): SubjectMapping {
@@ -1198,8 +1237,10 @@ function identifiersForHost(host: string | undefined): AssetIdentifier[] {
   if (host === undefined) {
     return [];
   }
+  return canonicalHostIdentifiers(stripHostBrackets(host));
+}
 
-  const value = stripHostBrackets(host);
+function canonicalHostIdentifiers(value: string): AssetIdentifier[] {
   // Classify before canonicalizing: IP literals must not be accepted as DNS
   // names, and DNS normalization rejects addresses anyway.
   const ipAddress = canonicalizeAssetIdentifier(AssetIdentifierType.IpAddress, value);
@@ -1209,6 +1250,40 @@ function identifiersForHost(host: string | undefined): AssetIdentifier[] {
 
   const dnsName = canonicalizeAssetIdentifier(AssetIdentifierType.DnsName, value);
   return dnsName === null ? [] : [dnsName];
+}
+
+/** WHOIS query shapes that resemble hostnames but carry no DNS identity. */
+const asnQueryPattern = /^as\d+$/iu;
+const ipv4RangeQueryPattern = /^\d{1,3}(?:\.\d{1,3}){3}\s*-\s*\d{1,3}(?:\.\d{1,3}){3}$/u;
+
+/** Whether a WHOIS query can name a hostname rather than an ASN or a range. */
+function isWhoisHostname(value: string): boolean {
+  return (
+    !value.includes("/") &&
+    !asnQueryPattern.test(value) &&
+    !ipv4RangeQueryPattern.test(value) &&
+    value.includes(".")
+  );
+}
+
+/**
+ * Canonicalizes a WHOIS query subject. WHOIS accepts ASNs, network ranges, and
+ * handles that look like hostnames once lowercased, so a DNS identifier is
+ * only derived from a dotted domain name; everything else stays source context
+ * rather than asset identity.
+ */
+function identifiersForWhoisSubject(host: string): AssetIdentifier[] {
+  // Drop a single trailing root dot so shapes such as "AS15169." cannot slip
+  // past the WHOIS guards and canonicalize into a DNS label.
+  const value = stripHostBrackets(host).replace(/\.$/u, "");
+
+  if (isWhoisHostname(value)) {
+    return canonicalHostIdentifiers(value);
+  }
+
+  // IP literals remain valid registration subjects even though IPv6 has no dot.
+  const ipAddress = canonicalizeAssetIdentifier(AssetIdentifierType.IpAddress, value);
+  return ipAddress === null ? [] : [ipAddress];
 }
 
 function reportedIpIdentifier(

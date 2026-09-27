@@ -1014,7 +1014,7 @@ describe("NucleiNormalizer HTTP and headless subject mapping", () => {
     ]);
   });
 
-  it.each(["dns", "whois", "file", "code", ""])(
+  it.each(["file", "code", ""])(
     "keeps a %s detection with an unspecified resource and no inferred identifiers",
     async (type) => {
       const { candidates } = await normalizeRecord({
@@ -1887,6 +1887,485 @@ describe("NucleiNormalizer network-oriented subject mapping", () => {
       { line: 1, field: "matched-at" },
       expect.stringContaining("nuclei"),
     );
+  });
+});
+
+describe("NucleiNormalizer domain and non-addressable subject mapping", () => {
+  it("maps a dns detection to its queried host with an unspecified resource", async () => {
+    const request =
+      ";; opcode: QUERY, status: NOERROR, id: 12345\n;; flags: rd; QUERY: 1, ANSWER: 1\n\n;; QUESTION SECTION:\n;shop.example.com.\tIN\t A\n";
+    const response =
+      ";; opcode: QUERY, status: NOERROR, id: 12345\n;; ANSWER SECTION:\nshop.example.com.\t300\tIN\tA\t93.184.216.34\n";
+    const raw = baseRecord({
+      type: "dns",
+      host: "shop.example.com",
+      port: "53",
+      scheme: undefined,
+      url: undefined,
+      "matched-at": "shop.example.com",
+      ip: undefined,
+      request,
+      response,
+    });
+    const { candidates, logger } = await normalize(JSON.stringify(raw));
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({ type: AffectedResourceType.Unspecified });
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "shop.example.com" },
+    ]);
+    expect(candidate.evidence).toContain(request);
+    expect(candidate.evidence).toContain(response);
+    expect(candidate.sourceMetadata).toEqual(raw);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it("keeps DNS answers and extracted values as source context, not identifiers", async () => {
+    const raw = baseRecord({
+      type: "dns",
+      host: "shop.example.com",
+      "matched-at": "shop.example.com",
+      // A resolved-address field is answer-shaped context, not subject identity.
+      ip: "203.0.113.9",
+      a: ["93.184.216.34", "93.184.216.35"],
+      cname: "cdn.example.net",
+      answer: "shop.example.com.\t300\tIN\tCNAME\tcdn.example.net.",
+      "extracted-results": ["93.184.216.34", "cdn.example.net"],
+    });
+    const { candidates } = await normalize(JSON.stringify(raw));
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "shop.example.com" },
+    ]);
+    expect(candidate.sourceMetadata).toEqual(raw);
+  });
+
+  it("keeps the scanned input host as the DNS identity when the question differs", async () => {
+    const raw = baseRecord({
+      type: "dns",
+      host: "example.com",
+      "matched-at": "_dmarc.example.com",
+      ip: undefined,
+      question: "_dmarc.example.com.\tIN\t TXT",
+      txt: "v=DMARC1; p=none",
+    });
+    const { candidates } = await normalize(JSON.stringify(raw));
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "example.com" },
+    ]);
+    expect(candidate.sourceMetadata).toMatchObject({
+      "matched-at": "_dmarc.example.com",
+      question: "_dmarc.example.com.\tIN\t TXT",
+    });
+  });
+
+  it.each(["dns", "whois"])(
+    "canonicalizes the %s subject before deriving identifiers",
+    async (type) => {
+      const { candidates } = await normalizeRecord({
+        type,
+        host: "Shop.Example.COM.",
+        "matched-at": undefined,
+        ip: undefined,
+      });
+
+      expect(firstCandidate(candidates).assetIdentifierCandidates).toEqual([
+        { type: AssetIdentifierType.DnsName, namespace: null, value: "shop.example.com" },
+      ]);
+    },
+  );
+
+  it("canonicalizes a PTR detection's reverse name without promoting its answers", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "dns",
+      host: "5.3.0.203.in-addr.arpa",
+      "matched-at": "5.3.0.203.in-addr.arpa",
+      ip: undefined,
+      ptr: "reversed.example.com",
+      "extracted-results": ["reversed.example.com"],
+    });
+
+    expect(firstCandidate(candidates).affectedResource).toEqual({
+      type: AffectedResourceType.Unspecified,
+    });
+    expect(firstCandidate(candidates).assetIdentifierCandidates).toEqual([
+      {
+        type: AssetIdentifierType.DnsName,
+        namespace: null,
+        value: "5.3.0.203.in-addr.arpa",
+      },
+    ]);
+  });
+
+  it("maps a whois domain query with an unspecified resource", async () => {
+    const response =
+      '{"ldhName":"EXAMPLE.COM","status":["active"],"events":[{"eventAction":"registration","eventDate":"1995-08-14T04:00:00Z"}]}';
+    const raw = baseRecord({
+      type: "whois",
+      host: "example.com",
+      port: undefined,
+      scheme: undefined,
+      url: undefined,
+      "matched-at": undefined,
+      ip: "203.0.113.9",
+      request: undefined,
+      response,
+      "extracted-results": ["AS15169", "192.0.2.0/24"],
+    });
+    const { candidates, logger } = await normalize(JSON.stringify(raw));
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({ type: AffectedResourceType.Unspecified });
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "example.com" },
+    ]);
+    expect(candidate.evidence).toContain(response);
+    expect(candidate.evidence).not.toContain("<summary>Request</summary>");
+    expect(candidate.sourceMetadata).toEqual(raw);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it("maps a whois IP query to an IP identifier", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "whois",
+      host: "203.0.113.5",
+      "matched-at": undefined,
+      ip: undefined,
+    });
+
+    expect(firstCandidate(candidates).affectedResource).toEqual({
+      type: AffectedResourceType.Unspecified,
+    });
+    expect(firstCandidate(candidates).assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.IpAddress, namespace: null, value: "203.0.113.5" },
+    ]);
+  });
+
+  it.each([
+    "AS13335",
+    "as13335",
+    "AS15169.",
+    "GOGL",
+    "192.0.2.0/24",
+    "2001:db8::/32",
+    "192.0.2.0-192.0.2.255",
+  ])("does not misclassify the WHOIS query %s as a DNS name or IP address", async (host) => {
+    const raw = baseRecord({
+      type: "whois",
+      host,
+      port: undefined,
+      scheme: undefined,
+      url: undefined,
+      "matched-at": undefined,
+      ip: undefined,
+      request: undefined,
+      response: '{"handle":"GOGL","entities":[]}',
+    });
+    const { candidates } = await normalize(JSON.stringify(raw));
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({ type: AffectedResourceType.Unspecified });
+    expect(candidate.assetIdentifierCandidates).toEqual([]);
+    expect(candidate.sourceMetadata).toEqual(raw);
+  });
+
+  it("keeps file detections unspecified without deriving identity from scanner-local paths", async () => {
+    const raw = baseRecord({
+      type: "file",
+      host: "unrelated.example.com",
+      port: undefined,
+      scheme: undefined,
+      url: undefined,
+      path: "/home/scanner/targets/web.config",
+      "matched-at": "/home/scanner/targets/web.config",
+      ip: "203.0.113.5",
+      "matched-line": [3, 9],
+      "extracted-results": ["connectionString"],
+      request: undefined,
+    });
+    const { candidates, logger } = await normalize(JSON.stringify(raw));
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({ type: AffectedResourceType.Unspecified });
+    expect(candidate.assetIdentifierCandidates).toEqual([]);
+    expect(candidate.sourceMetadata).toEqual(raw);
+    expect(candidate.sourceMetadata.path).toBe("/home/scanner/targets/web.config");
+    expect(candidate.sourceMetadata["matched-line"]).toEqual([3, 9]);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it("keeps code detections unspecified while retaining execution context", async () => {
+    const raw = baseRecord({
+      type: "code",
+      host: "scanner.internal",
+      port: undefined,
+      scheme: undefined,
+      url: undefined,
+      input: "/home/scanner/snippets/probe.js",
+      "matched-at": "/home/scanner/snippets/probe.js",
+      ip: "203.0.113.5",
+      response: "true\n",
+      stderr: "deprecation warning\n",
+      engine: ["nodejs"],
+      "extracted-results": ["true"],
+      request: undefined,
+    });
+    const { candidates } = await normalize(JSON.stringify(raw));
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({ type: AffectedResourceType.Unspecified });
+    expect(candidate.assetIdentifierCandidates).toEqual([]);
+    expect(candidate.sourceMetadata).toEqual(raw);
+    expect(candidate.sourceMetadata).toMatchObject({
+      engine: ["nodejs"],
+      input: "/home/scanner/snippets/probe.js",
+      stderr: "deprecation warning\n",
+    });
+    expect(candidate.evidence).toContain("true");
+  });
+
+  it("keeps an empty-type offline-HTTP-style result unspecified without treating the response file as a website", async () => {
+    const response = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html></html>";
+    const raw = baseRecord({
+      type: "",
+      host: undefined,
+      port: undefined,
+      scheme: undefined,
+      url: undefined,
+      path: "/home/scanner/responses/index.html",
+      "matched-at": "/home/scanner/responses/index.html",
+      ip: "",
+      request: undefined,
+      response,
+    });
+    const { candidates, logger } = await normalize(JSON.stringify(raw));
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({ type: AffectedResourceType.Unspecified });
+    expect(candidate.assetIdentifierCandidates).toEqual([]);
+    expect(candidate.evidence).toContain(response);
+    expect(candidate.sourceMetadata).toEqual(raw);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it("keeps an unknown future protocol unspecified and preserves its protocol value", async () => {
+    const raw = baseRecord({
+      type: "quantum-probe",
+      host: "shop.example.com",
+      port: "443",
+      scheme: "https",
+      url: "https://shop.example.com",
+      "matched-at": "https://shop.example.com/entangled",
+      ip: "93.184.216.34",
+    });
+    const { candidates } = await normalize(JSON.stringify(raw));
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({ type: AffectedResourceType.Unspecified });
+    expect(candidate.assetIdentifierCandidates).toEqual([]);
+    expect(candidate.sourceMetadata.type).toBe("quantum-probe");
+    expect(candidate.sourceMetadata).toEqual(raw);
+  });
+
+  it("normalizes descriptive fields even when resource semantics are unknown", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "file",
+      host: undefined,
+      info: {
+        name: "Exposed Config",
+        description: "A configuration file was readable",
+        remediation: "Restrict file permissions",
+        severity: "medium",
+        reference: ["https://example.com/advisory"],
+        classification: { "cve-id": "CVE-2021-44228" },
+      },
+      "matched-at": "/tmp/config",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.title).toBe("Exposed Config");
+    expect(candidate.description).toBe("A configuration file was readable");
+    expect(candidate.remediation).toBe("Restrict file permissions");
+    expect(candidate.severity).toBe(VulnerabilitySeverity.Medium);
+    expect(candidate.weakness).toMatchObject({
+      identifiers: { nuclei: ["example-template"], cve: ["CVE-2021-44228"] },
+      references: ["https://example.com/advisory"],
+    });
+    expect(candidate.affectedResource).toEqual({ type: AffectedResourceType.Unspecified });
+    expect(candidate.assetIdentifierCandidates).toEqual([]);
+  });
+
+  it("uses the shared optional-value fallbacks for non-addressable results", async () => {
+    const { candidates, logger } = await normalizeRecord({
+      type: "file",
+      host: undefined,
+      info: { name: "Config", description: 42, severity: "catastrophic" },
+      timestamp: "not-a-time",
+      "matched-at": "/tmp/config",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidates).toHaveLength(1);
+    expect(candidate.description).toBeNull();
+    expect(candidate.severity).toBe(VulnerabilitySeverity.Info);
+    expect(candidate.observedAt).toBeNull();
+    for (const field of ["description", "severity", "timestamp"]) {
+      expect(logger.warn).toHaveBeenCalledWith(
+        { line: 1, field },
+        expect.stringContaining("nuclei"),
+      );
+    }
+  });
+
+  it("still requires a nonblank template id for an empty protocol", async () => {
+    await expect(normalize(JSON.stringify({ "template-id": "  ", type: "" }))).rejects.toThrow(
+      /line 1/u,
+    );
+  });
+
+  it("normalizes mixed record types in source order with locators and duplicate preservation", async () => {
+    const httpRecord = baseRecord({ type: "http" });
+    const dnsRecord = baseRecord({
+      type: "dns",
+      host: "shop.example.com",
+      port: "53",
+      scheme: undefined,
+      url: undefined,
+      "matched-at": "shop.example.com",
+      ip: undefined,
+      request: ";; DNS request",
+      response: ";; DNS response",
+    });
+    const whoisRecord = baseRecord({
+      type: "whois",
+      host: "example.com",
+      port: undefined,
+      scheme: undefined,
+      url: undefined,
+      "matched-at": undefined,
+      ip: undefined,
+      request: undefined,
+      response: '{"ldhName":"EXAMPLE.COM"}',
+    });
+    const fileRecord = baseRecord({
+      type: "file",
+      host: undefined,
+      port: undefined,
+      scheme: undefined,
+      url: undefined,
+      path: "/home/scanner/targets/web.config",
+      "matched-at": "/home/scanner/targets/web.config",
+      ip: undefined,
+      "matched-line": [3],
+      request: undefined,
+    });
+    const codeRecord = baseRecord({
+      type: "code",
+      host: undefined,
+      port: undefined,
+      scheme: undefined,
+      url: undefined,
+      input: "/home/scanner/snippets/probe.js",
+      "matched-at": "/home/scanner/snippets/probe.js",
+      ip: undefined,
+      response: "true",
+      request: undefined,
+    });
+    const offlineRecord = baseRecord({
+      type: "",
+      host: undefined,
+      port: undefined,
+      scheme: undefined,
+      url: undefined,
+      path: "/home/scanner/responses/index.html",
+      "matched-at": "/home/scanner/responses/index.html",
+      ip: undefined,
+      request: undefined,
+    });
+    const unknownRecord = baseRecord({
+      type: "future-protocol",
+      host: "future.example.com",
+      "matched-at": "future://future.example.com",
+      ip: undefined,
+    });
+    const failedDns = baseRecord({ type: "dns", "matcher-status": false });
+    const erroredWhois = baseRecord({ type: "whois", error: "whois lookup failed" });
+
+    const source = [
+      JSON.stringify(httpRecord),
+      "",
+      JSON.stringify(dnsRecord),
+      JSON.stringify(whoisRecord),
+      JSON.stringify(fileRecord),
+      JSON.stringify(codeRecord),
+      JSON.stringify(offlineRecord),
+      JSON.stringify(unknownRecord),
+      JSON.stringify(dnsRecord),
+      JSON.stringify(failedDns),
+      JSON.stringify(erroredWhois),
+    ].join("\n");
+
+    const { candidates, logger } = await normalize(source);
+
+    expect(candidates.map((candidate) => candidate.sourceRecord)).toEqual([
+      "line:1",
+      "line:3",
+      "line:4",
+      "line:5",
+      "line:6",
+      "line:7",
+      "line:8",
+      "line:9",
+    ]);
+    expect(candidates.map((candidate) => candidate.sourceMetadata.type)).toEqual([
+      "http",
+      "dns",
+      "whois",
+      "file",
+      "code",
+      "",
+      "future-protocol",
+      "dns",
+    ]);
+    expect(candidates[1]?.assetIdentifierCandidates).toEqual(
+      candidates[7]?.assetIdentifierCandidates,
+    );
+    expect(candidates[1]?.evidence).toContain(";; DNS request");
+    expect(candidates[1]?.evidence).toContain(";; DNS response");
+    expect(candidates[2]?.evidence).toContain('{"ldhName":"EXAMPLE.COM"}');
+    expect(candidates[4]?.evidence).toContain("true");
+    expect(candidates[3]?.sourceMetadata["matched-line"]).toEqual([3]);
+    const nonAddressable = candidates.filter(
+      (entry) => !["http", "dns", "whois"].includes(String(entry.sourceMetadata.type)),
+    );
+    for (const candidate of nonAddressable) {
+      expect(candidate.affectedResource).toEqual({ type: AffectedResourceType.Unspecified });
+      expect(candidate.assetIdentifierCandidates).toEqual([]);
+    }
+    expect(candidates[0]?.affectedResource).toMatchObject({
+      type: AffectedResourceType.WebEndpoint,
+    });
+    for (const candidate of [candidates[1], candidates[2], candidates[7]]) {
+      expect(candidate?.affectedResource).toEqual({ type: AffectedResourceType.Unspecified });
+    }
+    expect(candidates[1]?.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "shop.example.com" },
+    ]);
+    expect(candidates[2]?.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "example.com" },
+    ]);
+    expect(logger.debug).toHaveBeenCalledWith(
+      { line: 10, reason: "matcher-status is false" },
+      expect.any(String),
+    );
+    expect(logger.debug).toHaveBeenCalledWith(
+      { line: 11, reason: "error reported" },
+      expect.any(String),
+    );
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 });
 
