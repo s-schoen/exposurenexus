@@ -1,0 +1,1001 @@
+import { assetIdentifierSchema } from "@exposurenexus/backend/assets";
+import { weaknessSchema } from "@exposurenexus/backend/findings";
+import {
+  AffectedResourceType,
+  WebEndpointComponentKind,
+} from "@exposurenexus/contracts/model/affected-resource";
+import { AssetIdentifierType } from "@exposurenexus/contracts/model/asset-identifier";
+import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
+
+import type { Normalizer, ObservationCandidate } from "../classifier.js";
+import type { ObservationAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
+import type { AssetIdentifier } from "@exposurenexus/contracts/model/asset-identifier";
+import type {
+  CvssAssessment,
+  EpssAssessment,
+  Weakness,
+} from "@exposurenexus/contracts/model/weakness";
+import type { Logger } from "pino";
+
+type JsonObject = Record<string, unknown>;
+
+type WebEndpointResource = Extract<
+  ObservationAffectedResource,
+  { type: AffectedResourceType.WebEndpoint }
+>;
+
+type SubjectMapping = {
+  affectedResource: ObservationAffectedResource;
+  assetIdentifierCandidates: AssetIdentifier[];
+};
+
+type ParsedRecord = {
+  record: JsonObject;
+  templateId: string;
+  type: string;
+};
+
+const sourceName = "nuclei";
+
+/** Protocols whose subject mapping is defined by the HTTP/headless slice. */
+const webProtocols = new Set(["http", "headless"]);
+
+const defaultPorts = new Map<string, number>([
+  ["http", 80],
+  ["https", 443],
+  ["ws", 80],
+  ["wss", 443],
+]);
+
+const fuzzingPositionKinds = new Map<string, WebEndpointComponentKind>([
+  ["query", WebEndpointComponentKind.QueryParameter],
+  ["path", WebEndpointComponentKind.PathParameter],
+  ["header", WebEndpointComponentKind.Header],
+  ["cookie", WebEndpointComponentKind.Cookie],
+  ["body", WebEndpointComponentKind.BodyField],
+]);
+
+const knownSeverities = new Set<string>(Object.values(VulnerabilitySeverity));
+
+/**
+ * Normalizes a Nuclei JSONL scan into observation candidates.
+ *
+ * One source record yields exactly one candidate, including informational
+ * detections. Malformed records, invalid required fields, and invalid
+ * detection-status fields reject the whole file with a log-safe error that
+ * identifies the physical line; failure records are skipped with a debug log.
+ */
+export class NucleiNormalizer implements Normalizer {
+  public async normalize(scanData: Uint8Array, logger: Logger): Promise<ObservationCandidate[]> {
+    const text = new TextDecoder("utf-8").decode(scanData);
+    if (text.trim().length === 0) {
+      return [];
+    }
+
+    const candidates: ObservationCandidate[] = [];
+
+    for (const [index, line] of text.split(/\r?\n/u).entries()) {
+      // Blank lines still advance the physical line number used in locators.
+      if (line.trim().length === 0) {
+        continue;
+      }
+
+      const lineNumber = index + 1;
+      const parsed = parseRecord(line, lineNumber, logger);
+      if (parsed !== null) {
+        candidates.push(normalizeRecord(parsed, lineNumber, logger));
+      }
+    }
+
+    return candidates;
+  }
+}
+
+function parseRecord(line: string, lineNumber: number, logger: Logger): ParsedRecord | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(line);
+  } catch {
+    throw new Error(`nuclei: invalid JSON on line ${lineNumber}`);
+  }
+
+  if (!isJsonObject(parsed)) {
+    throw new Error(`nuclei: line ${lineNumber} is not a JSON object`);
+  }
+
+  // Detection-status fields are validated before skipping so that malformed
+  // status values reject the file instead of being silently ignored.
+  const matcherStatus = parsed["matcher-status"];
+  if (matcherStatus !== undefined && matcherStatus !== null && typeof matcherStatus !== "boolean") {
+    throw new Error(`nuclei: line ${lineNumber} has an invalid matcher-status field`);
+  }
+
+  const errorValue = parsed.error;
+  if (errorValue !== undefined && errorValue !== null && typeof errorValue !== "string") {
+    throw new Error(`nuclei: line ${lineNumber} has an invalid error field`);
+  }
+
+  if (matcherStatus === false) {
+    debugSkip(logger, lineNumber, "matcher-status is false");
+    return null;
+  }
+  // An empty error string is not a failure; only a nonempty report skips the record.
+  if (typeof errorValue === "string" && errorValue.trim().length > 0) {
+    debugSkip(logger, lineNumber, "error reported");
+    return null;
+  }
+
+  // Required fields are checked after skipping so failure records cannot reject a valid file.
+  const templateId = parsed["template-id"];
+  if (!isNonBlankString(templateId)) {
+    throw new Error(`nuclei: line ${lineNumber} has an invalid template-id`);
+  }
+  if (typeof parsed.type !== "string") {
+    throw new Error(`nuclei: line ${lineNumber} has an invalid type`);
+  }
+
+  return { record: parsed, templateId: templateId.trim(), type: parsed.type };
+}
+
+function normalizeRecord(
+  parsed: ParsedRecord,
+  lineNumber: number,
+  logger: Logger,
+): ObservationCandidate {
+  const { record, templateId, type } = parsed;
+  const info = readInfo(record, lineNumber, logger);
+  const matcherName = readTextValue(record["matcher-name"], "matcher-name", lineNumber, logger);
+  const subject = mapSubject(record, type, lineNumber, logger);
+
+  return {
+    source: sourceName,
+    sourceRecord: `line:${lineNumber}`,
+    title: buildTitle(info, templateId, matcherName, lineNumber, logger),
+    description: readNullableText(info.description, "description", lineNumber, logger),
+    remediation: readNullableText(info.remediation, "remediation", lineNumber, logger),
+    evidence: buildEvidence(record, lineNumber, logger),
+    severity: readSeverity(info.severity, lineNumber, logger),
+    weakness: buildWeakness(info, templateId, matcherName, lineNumber, logger),
+    affectedResource: subject.affectedResource,
+    observedAt: readObservedAt(record.timestamp, lineNumber, logger),
+    assetIdentifierCandidates: subject.assetIdentifierCandidates,
+    // The whole parsed record is kept verbatim: duplicating mapped fields is
+    // cheap, while unmapped fields, unusable originals, tag/author context, and
+    // original target details must all survive under their original names.
+    sourceMetadata: record,
+  };
+}
+
+function readInfo(record: JsonObject, lineNumber: number, logger: Logger): JsonObject {
+  // The info block is optional in programmatic output; a malformed one only
+  // loses descriptive fields, so fall back instead of rejecting the record.
+  const info = record.info;
+  if (info === undefined || info === null) {
+    return {};
+  }
+  if (!isJsonObject(info)) {
+    warnUnusable(logger, lineNumber, "info");
+    return {};
+  }
+  return info;
+}
+
+function buildTitle(
+  info: JsonObject,
+  templateId: string,
+  matcherName: string | undefined,
+  lineNumber: number,
+  logger: Logger,
+): string {
+  const name = readTextValue(info.name, "name", lineNumber, logger)?.trim();
+  const base = name === undefined ? templateId : name;
+  if (matcherName === undefined) {
+    return base;
+  }
+
+  const suffix = matcherName.trim();
+  // Skip the suffix when the title already names the matcher; matcher labels
+  // must not add repeated text or unrelated metadata noise to the title.
+  if (suffix.length === 0 || base.toLowerCase().includes(suffix.toLowerCase())) {
+    return base;
+  }
+
+  return `${base} (${suffix})`;
+}
+
+function buildEvidence(record: JsonObject, lineNumber: number, logger: Logger): string | null {
+  const sections: string[] = [];
+
+  const request = readTextValue(record.request, "request", lineNumber, logger);
+  if (request !== undefined) {
+    sections.push(renderEvidenceSection("Request", request));
+  }
+
+  const response = readTextValue(record.response, "response", lineNumber, logger);
+  if (response !== undefined) {
+    sections.push(renderEvidenceSection("Response", response));
+  }
+
+  const extractedResults = readExtractedResults(record["extracted-results"], lineNumber, logger);
+  if (extractedResults.length > 0) {
+    sections.push(renderEvidenceSection("Extracted Results", extractedResults.join("\n")));
+  }
+
+  const reproduction = readTextValue(record["curl-command"], "curl-command", lineNumber, logger);
+  if (reproduction !== undefined) {
+    sections.push(renderEvidenceSection("Reproduction", reproduction));
+  }
+
+  return sections.length === 0 ? null : sections.join("\n\n");
+}
+
+function renderEvidenceSection(label: string, content: string): string {
+  // Details/summary sections render through the UI markdown sanitizer, and the
+  // fenced block keeps the reported bytes, including trailing blank lines, as-is.
+  return `<details><summary>${label}</summary>\n\n\`\`\`\n${content}\n\`\`\`\n\n</details>`;
+}
+
+function readExtractedResults(value: unknown, lineNumber: number, logger: Logger): string[] {
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  const values = typeof value === "string" ? [value] : Array.isArray(value) ? value : undefined;
+  if (values === undefined) {
+    warnUnusable(logger, lineNumber, "extracted-results");
+    return [];
+  }
+
+  const results: string[] = [];
+  for (const entry of values) {
+    if (typeof entry !== "string") {
+      warnUnusable(logger, lineNumber, "extracted-results");
+      continue;
+    }
+    if (entry.trim().length > 0) {
+      results.push(entry);
+    }
+  }
+  return results;
+}
+
+function buildWeakness(
+  info: JsonObject,
+  templateId: string,
+  matcherName: string | undefined,
+  lineNumber: number,
+  logger: Logger,
+): Weakness {
+  const classification = readClassification(info, lineNumber, logger);
+  const identifiers: Record<string, string[]> = { nuclei: [templateId] };
+
+  const cveIds = canonicalizeIdentifiers(
+    "cve",
+    "cve-id",
+    classification["cve-id"],
+    lineNumber,
+    logger,
+  );
+  if (cveIds.length > 0) {
+    identifiers.cve = cveIds;
+  }
+
+  const cweIds = canonicalizeIdentifiers(
+    "cwe",
+    "cwe-id",
+    classification["cwe-id"],
+    lineNumber,
+    logger,
+  );
+  if (cweIds.length > 0) {
+    identifiers.cwe = cweIds;
+  }
+
+  if (matcherName !== undefined) {
+    identifiers["nuclei-matcher"] = [`${templateId}:${matcherName.trim()}`];
+  }
+
+  const references = readReferences(info, lineNumber, logger);
+  const cvss = readCvss(classification, lineNumber, logger);
+  const epss = readEpss(classification, lineNumber, logger);
+
+  return {
+    identifiers,
+    ...(references.length > 0 ? { references } : {}),
+    ...(cvss === undefined ? {} : { cvss }),
+    ...(epss === undefined ? {} : { epss }),
+  };
+}
+
+function readClassification(info: JsonObject, lineNumber: number, logger: Logger): JsonObject {
+  // Templates without classification emit null or omit the block entirely.
+  const classification = info.classification;
+  if (classification === undefined || classification === null) {
+    return {};
+  }
+  if (!isJsonObject(classification)) {
+    warnUnusable(logger, lineNumber, "classification");
+    return {};
+  }
+  return classification;
+}
+
+function canonicalizeIdentifiers(
+  namespace: string,
+  field: string,
+  value: unknown,
+  lineNumber: number,
+  logger: Logger,
+): string[] {
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  const values = typeof value === "string" ? [value] : Array.isArray(value) ? value : undefined;
+  if (values === undefined) {
+    warnUnusable(logger, lineNumber, field);
+    return [];
+  }
+
+  const reported: string[] = [];
+  for (const entry of values) {
+    if (typeof entry !== "string") {
+      warnUnusable(logger, lineNumber, field);
+      continue;
+    }
+    if (entry.trim().length > 0) {
+      reported.push(entry.trim());
+    }
+  }
+
+  const unique = [...new Set(reported)];
+  // The backend schema canonicalizes a whole namespace at once, so fall back to
+  // validating each value separately to keep the usable identifiers.
+  const canonical = weaknessSchema.safeParse({ identifiers: { [namespace]: unique } });
+  if (canonical.success) {
+    return canonical.data.identifiers[namespace] ?? [];
+  }
+
+  // With one unusable identifier the whole namespace fails to parse; retain
+  // every value that still canonicalizes on its own.
+  const usable = new Set<string>();
+  for (const entry of unique) {
+    const single = weaknessSchema.safeParse({ identifiers: { [namespace]: [entry] } });
+    if (single.success) {
+      for (const identifier of single.data.identifiers[namespace] ?? []) {
+        usable.add(identifier);
+      }
+    } else {
+      warnUnusable(logger, lineNumber, field);
+    }
+  }
+  return [...usable].sort();
+}
+
+function readReferences(info: JsonObject, lineNumber: number, logger: Logger): string[] {
+  const value = info.reference;
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  const values = typeof value === "string" ? [value] : Array.isArray(value) ? value : undefined;
+  if (values === undefined) {
+    warnUnusable(logger, lineNumber, "reference");
+    return [];
+  }
+
+  const references: string[] = [];
+  for (const entry of values) {
+    if (typeof entry !== "string") {
+      warnUnusable(logger, lineNumber, "reference");
+      continue;
+    }
+    if (entry.trim().length > 0) {
+      references.push(entry);
+    }
+  }
+
+  // Deduplication preserves reference text, casing, and first-occurrence order.
+  return [...new Set(references)];
+}
+
+function readCvss(
+  classification: JsonObject,
+  lineNumber: number,
+  logger: Logger,
+): CvssAssessment[] | undefined {
+  const score = readBoundedNumber(
+    classification["cvss-score"],
+    0,
+    10,
+    "cvss-score",
+    lineNumber,
+    logger,
+  );
+  const vector = readTextValue(
+    classification["cvss-metrics"],
+    "cvss-metrics",
+    lineNumber,
+    logger,
+  )?.trim();
+
+  if (score === undefined && vector === undefined) {
+    return undefined;
+  }
+
+  // The vector prefix is the only source of the CVSS version; partial
+  // assessments (score-only or vector-only) are preserved as reported.
+  const version = vector === undefined ? undefined : versionFromVector(vector);
+  return [
+    {
+      ...(score === undefined ? {} : { score }),
+      ...(vector === undefined ? {} : { vector }),
+      ...(version === undefined ? {} : { version }),
+    },
+  ];
+}
+
+function readEpss(
+  classification: JsonObject,
+  lineNumber: number,
+  logger: Logger,
+): EpssAssessment | undefined {
+  const score = readBoundedNumber(
+    classification["epss-score"],
+    0,
+    1,
+    "epss-score",
+    lineNumber,
+    logger,
+  );
+  const percentile = readBoundedNumber(
+    classification["epss-percentile"],
+    0,
+    1,
+    "epss-percentile",
+    lineNumber,
+    logger,
+  );
+
+  if (score === undefined && percentile === undefined) {
+    return undefined;
+  }
+
+  return {
+    ...(score === undefined ? {} : { score }),
+    ...(percentile === undefined ? {} : { percentile }),
+  };
+}
+
+function versionFromVector(vector: string): string | undefined {
+  // Vectors carry their version as a "CVSS:x.y/" prefix, though programmatic
+  // output sometimes omits the "CVSS:" marker.
+  return /^(?:CVSS:)?(\d+(?:\.\d+)?)\//iu.exec(vector)?.[1];
+}
+
+function readBoundedNumber(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+  field: string,
+  lineNumber: number,
+  logger: Logger,
+): number | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value) || value < minimum || value > maximum) {
+    warnUnusable(logger, lineNumber, field);
+    return undefined;
+  }
+  return value;
+}
+
+function readSeverity(value: unknown, lineNumber: number, logger: Logger): VulnerabilitySeverity {
+  if (value === undefined || value === null) {
+    return VulnerabilitySeverity.Info;
+  }
+  if (typeof value !== "string") {
+    warnUnusable(logger, lineNumber, "severity");
+    return VulnerabilitySeverity.Info;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (knownSeverities.has(normalized)) {
+    return normalized as VulnerabilitySeverity;
+  }
+  // Unrecognized severities become info; the raw value stays in source metadata.
+  if (normalized.length > 0) {
+    warnUnusable(logger, lineNumber, "severity");
+  }
+  return VulnerabilitySeverity.Info;
+}
+
+function readObservedAt(value: unknown, lineNumber: number, logger: Logger): Date | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value !== "string") {
+    warnUnusable(logger, lineNumber, "timestamp");
+    return null;
+  }
+
+  const observedAt = new Date(value);
+  // An invalid report means the observation time is unknown; never substitute "now".
+  if (Number.isNaN(observedAt.getTime())) {
+    warnUnusable(logger, lineNumber, "timestamp");
+    return null;
+  }
+  return observedAt;
+}
+
+function mapSubject(
+  record: JsonObject,
+  type: string,
+  lineNumber: number,
+  logger: Logger,
+): SubjectMapping {
+  if (!webProtocols.has(type.trim().toLowerCase())) {
+    return unspecifiedSubject();
+  }
+
+  const endpoint = resolveWebEndpoint(record, lineNumber, logger);
+  if (endpoint === null) {
+    return unspecifiedSubject();
+  }
+
+  const identifiers = identifiersForHost(endpoint.host);
+  const reportedIp = reportedIpIdentifier(record, endpoint.host, lineNumber, logger);
+  if (reportedIp !== undefined) {
+    identifiers.push(reportedIp);
+  }
+
+  return {
+    affectedResource: endpoint,
+    assetIdentifierCandidates: dedupeIdentifiers(identifiers),
+  };
+}
+
+function unspecifiedSubject(): SubjectMapping {
+  return {
+    affectedResource: { type: AffectedResourceType.Unspecified },
+    assetIdentifierCandidates: [],
+  };
+}
+
+function resolveWebEndpoint(
+  record: JsonObject,
+  lineNumber: number,
+  logger: Logger,
+): WebEndpointResource | null {
+  // matched-at is the target the matcher actually hit (post-redirect), so it
+  // wins over the original url; only an HTTP(S) value is a usable endpoint.
+  const matchedAtText = readTextValue(
+    record["matched-at"],
+    "matched-at",
+    lineNumber,
+    logger,
+  )?.trim();
+  const matchedAt = parseHttpUrl(matchedAtText);
+  if (matchedAt !== null) {
+    return webEndpointFromUrl(matchedAt, matchedAtText, record, lineNumber, logger);
+  }
+
+  const urlText = readTextValue(record.url, "url", lineNumber, logger)?.trim();
+  const url = parseHttpUrl(urlText);
+  if (url !== null) {
+    return webEndpointFromUrl(url, urlText, record, lineNumber, logger);
+  }
+
+  const host = readTextValue(record.host, "host", lineNumber, logger)?.trim();
+  if (host === undefined) {
+    return null;
+  }
+
+  // Explicit fields are parsed as an authority plus a separate path; building a
+  // URL from them would let path text rewrite the host.
+  return webEndpointFromFields(record, host, lineNumber, logger);
+}
+
+function webEndpointFromUrl(
+  url: URL,
+  reportedUrl: string | undefined,
+  record: JsonObject,
+  lineNumber: number,
+  logger: Logger,
+): WebEndpointResource {
+  const scheme = url.protocol.slice(0, -1);
+  // Nuclei strips default ports from URL fields, so materialize the standard
+  // port again to keep the endpoint complete.
+  const port = url.port === "" ? defaultPorts.get(scheme) : Number(url.port);
+  const method = readHttpMethod(record, lineNumber, logger);
+  const component = readFuzzingComponent(record, lineNumber, logger);
+
+  return {
+    type: AffectedResourceType.WebEndpoint,
+    scheme,
+    host: url.hostname,
+    ...(port === undefined ? {} : { port }),
+    path: url.pathname === "" ? "/" : url.pathname,
+    ...(method === undefined ? {} : { method }),
+    component,
+    ...(reportedUrl === undefined ? {} : { reportedUrl }),
+  };
+}
+
+type HostAuthority = {
+  host: string;
+  port: number | undefined;
+  /** Whether the authority text itself carried a port, valid or not. */
+  portReported: boolean;
+};
+
+/** Rejects authority text containing path, userinfo, query, backslash, or whitespace. */
+const authorityTextPattern = /[/?#@\\\s]/u;
+
+/**
+ * Splits and normalizes an explicit host field without any path involvement, so
+ * path contents can never change the affected host. Handles bracketed hosts,
+ * bare IPv6 (as Nuclei v3 emits), and embedded ports without relying on URL
+ * default-port normalization, which would silently drop port 80/443.
+ */
+function parseHostAuthority(value: string): HostAuthority | null {
+  const text = value.trim();
+  if (text.length === 0) {
+    return null;
+  }
+
+  let hostText = text;
+  let portText: string | undefined;
+  if (text.startsWith("[")) {
+    const closing = text.indexOf("]");
+    if (closing === -1) {
+      return null;
+    }
+    hostText = text.slice(0, closing + 1);
+    const remainder = text.slice(closing + 1);
+    if (remainder.startsWith(":")) {
+      portText = remainder.slice(1);
+    } else if (remainder.length > 0) {
+      return null;
+    }
+  } else {
+    const firstColon = text.indexOf(":");
+    // A single colon separates host and port; multiple colons are a bare IPv6 address.
+    if (firstColon !== -1 && firstColon === text.lastIndexOf(":")) {
+      hostText = text.slice(0, firstColon);
+      portText = text.slice(firstColon + 1);
+    }
+  }
+
+  const host = normalizeAuthorityHost(hostText);
+  if (host === null) {
+    return null;
+  }
+
+  return {
+    host,
+    port: portText === undefined ? undefined : parsePortText(portText),
+    portReported: portText !== undefined,
+  };
+}
+
+function readHostAuthority(
+  value: string,
+  lineNumber: number,
+  logger: Logger,
+): HostAuthority | null {
+  const authority = parseHostAuthority(value);
+  if (authority === null) {
+    warnUnusable(logger, lineNumber, "host");
+    return null;
+  }
+  if (authority.portReported && authority.port === undefined) {
+    warnUnusable(logger, lineNumber, "port");
+  }
+  return authority;
+}
+
+function normalizeAuthorityHost(hostText: string): string | null {
+  if (authorityTextPattern.test(hostText)) {
+    return null;
+  }
+
+  const bracketed =
+    hostText.includes(":") && !hostText.startsWith("[") ? `[${hostText}]` : hostText;
+  try {
+    const url = new URL(`http://${bracketed}`);
+    return url.hostname.length === 0 ? null : url.hostname;
+  } catch {
+    return null;
+  }
+}
+
+function webEndpointFromFields(
+  record: JsonObject,
+  hostValue: string,
+  lineNumber: number,
+  logger: Logger,
+): WebEndpointResource | null {
+  const authority = readHostAuthority(hostValue, lineNumber, logger);
+  if (authority === null) {
+    return null;
+  }
+
+  const schemeText = readTextValue(record.scheme, "scheme", lineNumber, logger)?.trim();
+  const scheme =
+    schemeText !== undefined && /^[a-z][a-z\d+.-]*$/iu.test(schemeText)
+      ? schemeText.toLowerCase()
+      : undefined;
+  if (schemeText !== undefined && scheme === undefined) {
+    warnUnusable(logger, lineNumber, "scheme");
+  }
+
+  const reportedPort = authority.port ?? parsePort(record.port, lineNumber, logger);
+  const port = reportedPort ?? (scheme === undefined ? undefined : defaultPorts.get(scheme));
+  const reportedPath = readTextValue(record.path, "path", lineNumber, logger);
+  let path: string | undefined;
+  if (reportedPath !== undefined) {
+    path = reportedPath.startsWith("/") ? reportedPath : `/${reportedPath}`;
+  } else if (scheme !== undefined) {
+    // A known scheme forms a URL, so a missing path means the root path.
+    path = "/";
+  }
+  const method = readHttpMethod(record, lineNumber, logger);
+  const component = readFuzzingComponent(record, lineNumber, logger);
+
+  return {
+    type: AffectedResourceType.WebEndpoint,
+    ...(scheme === undefined ? {} : { scheme }),
+    host: authority.host,
+    ...(port === undefined ? {} : { port }),
+    ...(path === undefined ? {} : { path }),
+    ...(method === undefined ? {} : { method }),
+    component,
+  };
+}
+
+function readHttpMethod(
+  record: JsonObject,
+  lineNumber: number,
+  logger: Logger,
+): string | undefined {
+  const fuzzingMethod = record.fuzzing_method;
+  if (fuzzingMethod !== undefined && fuzzingMethod !== null) {
+    // For fuzzing results this is the method of the request actually sent.
+    const method = readTextValue(fuzzingMethod, "fuzzing_method", lineNumber, logger);
+    if (method !== undefined) {
+      return method.trim();
+    }
+  }
+
+  const request = record.request;
+  if (typeof request !== "string") {
+    return undefined;
+  }
+
+  const requestLine = request.split(/\r?\n/u, 1)[0]?.trim() ?? "";
+  return /^([A-Za-z]+)[ \t]+\S+[ \t]+HTTP\/\d(?:\.\d+)?$/u.exec(requestLine)?.[1];
+}
+
+function readFuzzingComponent(
+  record: JsonObject,
+  lineNumber: number,
+  logger: Logger,
+): WebEndpointResource["component"] {
+  const position = readTextValue(
+    record.fuzzing_position,
+    "fuzzing_position",
+    lineNumber,
+    logger,
+  )?.trim();
+  const kind =
+    position === undefined ? undefined : fuzzingPositionKinds.get(position.toLowerCase());
+  // Position values come from Nuclei's fuzz components (query/path/header/
+  // cookie/body). Anything else is not an explicit affected component, and
+  // matcher labels never establish one either.
+  if (kind === undefined) {
+    return { kind: WebEndpointComponentKind.Endpoint };
+  }
+
+  const parameter = readTextValue(
+    record.fuzzing_parameter,
+    "fuzzing_parameter",
+    lineNumber,
+    logger,
+  )?.trim();
+  return parameter === undefined ? { kind } : { kind, name: parameter };
+}
+
+function identifiersForHost(host: string | undefined): AssetIdentifier[] {
+  if (host === undefined) {
+    return [];
+  }
+
+  const value = stripHostBrackets(host);
+  // Classify before canonicalizing: IP literals must not be accepted as DNS
+  // names, and DNS normalization rejects addresses anyway.
+  const ipAddress = canonicalizeAssetIdentifier(AssetIdentifierType.IpAddress, value);
+  if (ipAddress !== null) {
+    return [ipAddress];
+  }
+
+  const dnsName = canonicalizeAssetIdentifier(AssetIdentifierType.DnsName, value);
+  return dnsName === null ? [] : [dnsName];
+}
+
+function reportedIpIdentifier(
+  record: JsonObject,
+  subjectHost: string | undefined,
+  lineNumber: number,
+  logger: Logger,
+): AssetIdentifier | undefined {
+  const reportedIp = readTextValue(record.ip, "ip", lineNumber, logger)?.trim();
+  if (reportedIp === undefined) {
+    return undefined;
+  }
+
+  const ipAddress = canonicalizeAssetIdentifier(AssetIdentifierType.IpAddress, reportedIp);
+  if (ipAddress === null) {
+    warnUnusable(logger, lineNumber, "ip");
+    return undefined;
+  }
+  if (subjectHost === undefined) {
+    return undefined;
+  }
+
+  // Compare canonical host spellings, not raw text, so trailing root dots and
+  // casing cannot split one subject into two.
+  const subject = canonicalHostIdentifier(subjectHost);
+  if (subject === null) {
+    return undefined;
+  }
+  if (subject === ipAddress.value.toLowerCase()) {
+    return ipAddress;
+  }
+
+  // For HTTP, `ip` describes the original scan target. It only explains the
+  // selected subject when that subject still resolves to the same host, so a
+  // redirect to a different host does not inherit the original target address.
+  const originalHost = originalTargetHost(record);
+  return originalHost !== null && originalHost === subject ? ipAddress : undefined;
+}
+
+/** Canonicalizes a host the way the backend asset-identifier rules would. */
+function canonicalHostIdentifier(host: string): string | null {
+  const value = stripHostBrackets(host);
+  const ipAddress = canonicalizeAssetIdentifier(AssetIdentifierType.IpAddress, value);
+  if (ipAddress !== null) {
+    return ipAddress.value.toLowerCase();
+  }
+  const dnsName = canonicalizeAssetIdentifier(AssetIdentifierType.DnsName, value);
+  return dnsName === null ? null : dnsName.value.toLowerCase();
+}
+
+function originalTargetHost(record: JsonObject): string | null {
+  // Prefer the explicit host field; older or partial output may only carry the
+  // original target URL, whose hostname serves the same purpose.
+  const hostText = typeof record.host === "string" ? record.host.trim() : "";
+  if (hostText.length > 0) {
+    const authority = parseHostAuthority(hostText);
+    if (authority !== null) {
+      return canonicalHostIdentifier(authority.host);
+    }
+  }
+
+  const urlText = typeof record.url === "string" ? record.url.trim() : "";
+  const url = parseHttpUrl(urlText.length > 0 ? urlText : undefined);
+  return url === null ? null : canonicalHostIdentifier(url.hostname);
+}
+
+function canonicalizeAssetIdentifier(
+  type: AssetIdentifierType,
+  value: string,
+): AssetIdentifier | null {
+  const parsed = assetIdentifierSchema.safeParse({ type, namespace: null, value });
+  return parsed.success ? parsed.data : null;
+}
+
+function dedupeIdentifiers(identifiers: AssetIdentifier[]): AssetIdentifier[] {
+  // The same address can arrive from both the subject host and the reported IP.
+  const seen = new Set<string>();
+  return identifiers.filter((identifier) => {
+    const key = `${identifier.type}\u0000${identifier.value}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function parseHttpUrl(value: string | undefined): URL | null {
+  if (value === undefined || value.length === 0) {
+    return null;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  return url.protocol === "http:" || url.protocol === "https:" ? url : null;
+}
+
+function parsePortText(value: string): number | undefined {
+  const text = value.trim();
+  if (!/^\d+$/u.test(text)) {
+    return undefined;
+  }
+  const port = Number(text);
+  return Number.isInteger(port) && port <= 65535 ? port : undefined;
+}
+
+function parsePort(value: unknown, lineNumber: number, logger: Logger): number | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value !== "number" && typeof value !== "string") {
+    warnUnusable(logger, lineNumber, "port");
+    return undefined;
+  }
+
+  // Parsed as text, not through the URL parser, so an explicit default port
+  // such as 80 or 443 is preserved rather than normalized away.
+  const port = parsePortText(typeof value === "number" ? String(value) : value);
+  if (port === undefined) {
+    warnUnusable(logger, lineNumber, "port");
+  }
+  return port;
+}
+
+function stripHostBrackets(value: string): string {
+  // WHATWG hostnames keep IPv6 brackets, but identifiers and host comparisons
+  // need the bare address.
+  return value.startsWith("[") && value.endsWith("]") ? value.slice(1, -1) : value;
+}
+
+function readNullableText(
+  value: unknown,
+  field: string,
+  lineNumber: number,
+  logger: Logger,
+): string | null {
+  return readTextValue(value, field, lineNumber, logger) ?? null;
+}
+
+function readTextValue(
+  value: unknown,
+  field: string,
+  lineNumber: number,
+  logger: Logger,
+): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    warnUnusable(logger, lineNumber, field);
+    return undefined;
+  }
+  // Blank strings behave as absent, but nonblank values are returned verbatim
+  // so evidence, references, and target text keep their reported whitespace.
+  return value.trim().length === 0 ? undefined : value;
+}
+
+function isJsonObject(value: unknown): value is JsonObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNonBlankString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function warnUnusable(logger: Logger, lineNumber: number, field: string) {
+  logger.warn({ line: lineNumber, field }, "nuclei: ignoring unusable optional value");
+}
+
+function debugSkip(logger: Logger, lineNumber: number, reason: string) {
+  logger.debug({ line: lineNumber, reason }, "nuclei: skipping record");
+}
