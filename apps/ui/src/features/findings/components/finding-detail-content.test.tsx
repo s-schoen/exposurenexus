@@ -474,7 +474,7 @@ describe("FindingDetailContent", () => {
 
     await actor.click(screen.getByRole("button", { name: "Edit finding" }));
     await actor.click(screen.getByLabelText("Affected resource type"));
-    await actor.click(screen.getByRole("option", { name: "Cloud resource" }));
+    await actor.click(await screen.findByRole("option", { name: "Cloud resource" }));
 
     expect(screen.getByLabelText("Provider")).toHaveValue("");
     expect(screen.getByLabelText("Provider account")).toHaveValue("");
@@ -616,18 +616,18 @@ describe("FindingDetailContent", () => {
     await actor.clear(screen.getByLabelText("Title"));
     await actor.type(screen.getByLabelText("Title"), "Corrected endpoint");
     await actor.click(screen.getByLabelText("Severity"));
-    await actor.click(screen.getByRole("option", { name: "Critical" }));
+    await actor.click(await screen.findByRole("option", { name: "Critical" }));
     await actor.click(screen.getByLabelText("Status"));
-    await actor.click(screen.getByRole("option", { name: "Mitigated" }));
+    await actor.click(await screen.findByRole("option", { name: "Mitigated" }));
     await actor.click(screen.getByLabelText("Assignee"));
-    await actor.click(screen.getByRole("option", { name: "Casey Disabled" }));
+    await actor.click(await screen.findByRole("option", { name: "Casey Disabled" }));
     await actor.type(screen.getByLabelText("Due date"), "2026-06-30");
     await actor.clear(screen.getByLabelText("Mitigation"));
     await actor.type(screen.getByLabelText("Mitigation"), "Deploy the corrected policy.");
     await actor.clear(screen.getByLabelText("Weakness identifiers"));
     await actor.type(screen.getByLabelText("Weakness identifiers"), "cwe=CWE-284");
     await actor.click(screen.getByLabelText("Affected resource type"));
-    await actor.click(screen.getByRole("option", { name: "Cloud resource" }));
+    await actor.click(await screen.findByRole("option", { name: "Cloud resource" }));
     await actor.type(screen.getByLabelText("Provider"), "aws");
     await actor.type(screen.getByLabelText("Resource ID"), "arn:aws:s3:::admin-data");
     await actor.click(screen.getByRole("button", { name: "Save correction" }));
@@ -668,7 +668,7 @@ describe("FindingDetailContent", () => {
     await actor.click(screen.getByRole("button", { name: "Edit finding" }));
     expect(screen.getByLabelText("Title")).toHaveValue(finding.title);
     await actor.click(screen.getByLabelText("Assignee"));
-    await actor.click(screen.getByRole("option", { name: "Unassigned" }));
+    await actor.click(await screen.findByRole("option", { name: "Unassigned" }));
     await actor.clear(screen.getByLabelText("Due date"));
     await actor.click(screen.getByRole("button", { name: "Save correction" }));
 

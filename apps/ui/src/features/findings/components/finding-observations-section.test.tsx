@@ -454,14 +454,14 @@ describe("FindingObservationsSection", () => {
     const dialog = await screen.findByRole("dialog", { name: "Add manual observation" });
     await actor.type(within(dialog).getByLabelText("Title"), "Manual endpoint snapshot");
     await actor.click(within(dialog).getByLabelText("Severity"));
-    await actor.click(screen.getByRole("option", { name: "Medium" }));
+    await actor.click(await screen.findByRole("option", { name: "Medium" }));
     await actor.type(within(dialog).getByLabelText("Observed at"), "2026-06-10T12:30");
     await actor.type(within(dialog).getByLabelText("Description"), "Observed externally");
     await actor.type(within(dialog).getByLabelText("Evidence"), "GET /admin returned 200");
     await actor.type(within(dialog).getByLabelText("Remediation"), "Restrict access");
     await actor.type(within(dialog).getByLabelText("Weakness identifiers"), "cwe=CWE-284");
     await actor.click(within(dialog).getByLabelText("Affected resource type"));
-    await actor.click(screen.getByRole("option", { name: "Web endpoint" }));
+    await actor.click(await screen.findByRole("option", { name: "Web endpoint" }));
     await actor.type(within(dialog).getByLabelText("Host"), "snapshot.example.com");
     await actor.type(
       within(dialog).getByLabelText("Reported URL"),
@@ -497,7 +497,7 @@ describe("FindingObservationsSection", () => {
     globalThis.fetch = fetchSpy;
     const dialog = await screen.findByRole("dialog", { name: "Add manual observation" });
     await actor.click(within(dialog).getByLabelText("Affected resource type"));
-    await actor.click(screen.getByRole("option", { name: "Package" }));
+    await actor.click(await screen.findByRole("option", { name: "Package" }));
     await actor.type(within(dialog).getByLabelText("Version"), "1.2.3");
     await actor.click(within(dialog).getByLabelText("Affected resource type"));
     await actor.click(await screen.findByRole("option", { name: "Use finding resource" }));
@@ -523,7 +523,7 @@ describe("FindingObservationsSection", () => {
     await actor.type(within(dialog).getByLabelText("Title"), "Corrected observation");
     await actor.clear(within(dialog).getByLabelText("Weakness identifiers"));
     await actor.click(within(dialog).getByLabelText("Affected resource type"));
-    await actor.click(screen.getByRole("option", { name: "Source code" }));
+    await actor.click(await screen.findByRole("option", { name: "Source code" }));
     await actor.type(within(dialog).getByLabelText("File"), "src/query.ts");
     await actor.click(within(dialog).getByRole("button", { name: "Save correction" }));
 

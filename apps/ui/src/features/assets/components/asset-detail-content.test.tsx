@@ -370,21 +370,21 @@ describe("AssetDetailContent stories", () => {
 
     const typeRow = metadataRow("Type");
     await user.click(typeRow.getByRole("button", { name: "Host" }));
-    await user.click(screen.getByRole("option", { name: "Container Image" }));
+    await user.click(await screen.findByRole("option", { name: "Container Image" }));
     await waitFor(() =>
       expect(metadataRow("Type").getByText("Container Image")).toBeInTheDocument(),
     );
 
     const environmentRow = metadataRow("Environment");
     await user.click(environmentRow.getByRole("button", { name: "Production" }));
-    await user.click(screen.getByRole("option", { name: "Staging" }));
+    await user.click(await screen.findByRole("option", { name: "Staging" }));
     await waitFor(() =>
       expect(metadataRow("Environment").getByText("Staging")).toBeInTheDocument(),
     );
 
     const lifecycleRow = metadataRow("Lifecycle state");
     await user.click(lifecycleRow.getByRole("button", { name: "Active" }));
-    await user.click(screen.getByRole("option", { name: "Archived" }));
+    await user.click(await screen.findByRole("option", { name: "Archived" }));
     await waitFor(() =>
       expect(metadataRow("Lifecycle state").getByText("Archived")).toBeInTheDocument(),
     );

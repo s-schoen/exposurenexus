@@ -311,7 +311,7 @@ describe("AssetCustomFieldForm", () => {
     renderSelectForm();
 
     await user.click(screen.getByRole("combobox", { name: /default value/i }));
-    await user.click(screen.getByRole("option", { name: "Staging" }));
+    await user.click(await screen.findByRole("option", { name: "Staging" }));
     expect(screen.getByRole("combobox", { name: /default value/i })).toHaveTextContent("Staging");
 
     const defaultSelect = screen.getByRole("combobox", { name: /default value/i });
