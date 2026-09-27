@@ -1014,7 +1014,7 @@ describe("NucleiNormalizer HTTP and headless subject mapping", () => {
     ]);
   });
 
-  it.each(["tcp", "ssl", "websocket", "javascript", "dns", "whois", "file", "code", ""])(
+  it.each(["dns", "whois", "file", "code", ""])(
     "keeps a %s detection with an unspecified resource and no inferred identifiers",
     async (type) => {
       const { candidates } = await normalizeRecord({
@@ -1031,6 +1031,863 @@ describe("NucleiNormalizer HTTP and headless subject mapping", () => {
       expect(candidate.sourceMetadata).toMatchObject({ type, ip: "203.0.113.5" });
     },
   );
+});
+
+describe("NucleiNormalizer network-oriented subject mapping", () => {
+  it("maps a tcp matched address to a TCP network service", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "tcp",
+      host: "db.example.com",
+      port: "5432",
+      scheme: undefined,
+      url: undefined,
+      "matched-at": "db.example.com:5432",
+      ip: "203.0.113.5",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "db.example.com",
+      port: 5432,
+      transport: "tcp",
+    });
+    expect(candidate.affectedResource).not.toHaveProperty("protocol");
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "db.example.com" },
+      { type: AssetIdentifierType.IpAddress, namespace: null, value: "203.0.113.5" },
+    ]);
+  });
+
+  it("prefers the dialed tcp port over the original input port", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "tcp",
+      host: "db.example.com",
+      port: "80",
+      url: undefined,
+      "matched-at": "db.example.com:6379",
+      ip: undefined,
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "db.example.com",
+      port: 6379,
+      transport: "tcp",
+    });
+    expect(candidate.sourceMetadata).toMatchObject({ host: "db.example.com", port: "80" });
+  });
+
+  it("preserves an explicitly reported default port in a tcp matched URL", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "tcp",
+      host: "matched.example",
+      port: "22",
+      url: undefined,
+      "matched-at": "http://matched.example:80/",
+      ip: undefined,
+    });
+
+    expect(firstCandidate(candidates).affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "matched.example",
+      port: 80,
+      transport: "tcp",
+    });
+  });
+
+  it("canonicalizes internationalized hosts from custom-scheme tcp URLs", async () => {
+    const fromUrl = await normalizeRecord({
+      type: "tcp",
+      host: undefined,
+      port: undefined,
+      scheme: undefined,
+      url: undefined,
+      "matched-at": "tcp://bücher.example:5432",
+      ip: undefined,
+    });
+    const fromAuthority = await normalizeRecord({
+      type: "tcp",
+      host: "bücher.example:5432",
+      port: undefined,
+      scheme: undefined,
+      url: undefined,
+      "matched-at": undefined,
+      ip: undefined,
+    });
+    const expected = {
+      type: AffectedResourceType.NetworkService,
+      host: "xn--bcher-kva.example",
+      port: 5432,
+      transport: "tcp",
+    };
+
+    expect(firstCandidate(fromUrl.candidates).affectedResource).toEqual(expected);
+    expect(firstCandidate(fromAuthority.candidates).affectedResource).toEqual(expected);
+    expect(firstCandidate(fromUrl.candidates).assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "xn--bcher-kva.example" },
+    ]);
+  });
+
+  it("rejects a hostless tcp matched URL and uses the host and port fallbacks", async () => {
+    const { candidates, logger } = await normalizeRecord({
+      type: "tcp",
+      host: "db.example",
+      port: "5432",
+      url: undefined,
+      "matched-at": "file:///tmp/result",
+      ip: undefined,
+    });
+
+    expect(firstCandidate(candidates).affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "db.example",
+      port: 5432,
+      transport: "tcp",
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      { line: 1, field: "matched-at" },
+      expect.stringContaining("nuclei"),
+    );
+  });
+
+  it.each([
+    [
+      "tcp",
+      {
+        type: AffectedResourceType.NetworkService,
+        host: "db.example",
+        port: 5432,
+        transport: "tcp",
+      },
+    ],
+    [
+      "ssl",
+      {
+        type: AffectedResourceType.NetworkService,
+        host: "db.example",
+        port: 5432,
+        transport: "tcp",
+        protocol: "tls",
+      },
+    ],
+    ["javascript", { type: AffectedResourceType.NetworkService, host: "db.example", port: 5432 }],
+  ])(
+    "uses a valid explicit port when the %s host's embedded port is malformed",
+    async (type, expected) => {
+      const { candidates, logger } = await normalizeRecord({
+        type,
+        host: "db.example:bad",
+        port: "5432",
+        scheme: undefined,
+        url: undefined,
+        "matched-at": undefined,
+        ip: undefined,
+      });
+
+      expect(firstCandidate(candidates).affectedResource).toEqual(expected);
+      expect(logger.warn).toHaveBeenCalledWith(
+        { line: 1, field: "port" },
+        expect.stringContaining("nuclei"),
+      );
+    },
+  );
+
+  it("excludes a conflicting reported IP when the tcp subject is an IP literal", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "tcp",
+      host: "10.0.0.5",
+      port: "2222",
+      url: undefined,
+      "matched-at": "10.0.0.5:2222",
+      ip: "198.51.100.20",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "10.0.0.5",
+      port: 2222,
+      transport: "tcp",
+    });
+    // A literal-address subject cannot also be a different address, so the
+    // conflicting report stays in metadata only.
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.IpAddress, namespace: null, value: "10.0.0.5" },
+    ]);
+    expect(candidate.sourceMetadata).toMatchObject({ ip: "198.51.100.20" });
+  });
+
+  it("attributes the dialed tcp IP when the original input host differs", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "tcp",
+      host: "origin.example.com",
+      port: "22",
+      url: undefined,
+      "matched-at": "10.0.0.5:2222",
+      ip: "10.0.0.5",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "10.0.0.5",
+      port: 2222,
+      transport: "tcp",
+    });
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.IpAddress, namespace: null, value: "10.0.0.5" },
+    ]);
+    expect(candidate.sourceMetadata).toMatchObject({
+      host: "origin.example.com",
+      ip: "10.0.0.5",
+      "matched-at": "10.0.0.5:2222",
+    });
+  });
+
+  it("falls back from an absent tcp matched address to the url and host fields", async () => {
+    const url = await normalizeRecord({
+      type: "tcp",
+      host: "ignored.example.com",
+      port: undefined,
+      url: "cache.example.com:11211",
+      "matched-at": undefined,
+      ip: undefined,
+    });
+    expect(firstCandidate(url.candidates).affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "cache.example.com",
+      port: 11211,
+      transport: "tcp",
+    });
+
+    const host = await normalizeRecord({
+      type: "tcp",
+      host: "cache.example.com:11211",
+      port: undefined,
+      url: undefined,
+      "matched-at": undefined,
+      ip: undefined,
+    });
+    expect(firstCandidate(host.candidates).affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "cache.example.com",
+      port: 11211,
+      transport: "tcp",
+    });
+
+    const explicitPort = await normalizeRecord({
+      type: "tcp",
+      host: "cache.example.com",
+      port: "11211",
+      url: undefined,
+      "matched-at": undefined,
+      ip: undefined,
+    });
+    expect(firstCandidate(explicitPort.candidates).affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "cache.example.com",
+      port: 11211,
+      transport: "tcp",
+    });
+  });
+
+  it("parses a bracketed IPv6 tcp matched address", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "tcp",
+      host: "2001:db8::1",
+      port: "6379",
+      url: undefined,
+      "matched-at": "[2001:db8::1]:6379",
+      ip: "2001:db8::1",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "[2001:db8::1]",
+      port: 6379,
+      transport: "tcp",
+    });
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.IpAddress, namespace: null, value: "2001:db8::1" },
+    ]);
+  });
+
+  it("warns about an unusable tcp matched address and uses the fallback fields", async () => {
+    const { candidates, logger } = await normalizeRecord({
+      type: "tcp",
+      host: "db.example.com",
+      port: "5432",
+      url: undefined,
+      "matched-at": "not a target",
+      ip: undefined,
+    });
+
+    expect(firstCandidate(candidates).affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "db.example.com",
+      port: 5432,
+      transport: "tcp",
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      { line: 1, field: "matched-at" },
+      expect.stringContaining("nuclei"),
+    );
+  });
+
+  it("keeps a tcp detection with an unspecified resource when no address is usable", async () => {
+    const { candidates, logger } = await normalizeRecord({
+      type: "tcp",
+      host: "exam ple.com",
+      port: "22",
+      url: undefined,
+      "matched-at": undefined,
+      ip: "203.0.113.5",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({ type: AffectedResourceType.Unspecified });
+    expect(candidate.assetIdentifierCandidates).toEqual([]);
+    expect(logger.warn).toHaveBeenCalledWith(
+      { line: 1, field: "host" },
+      expect.stringContaining("nuclei"),
+    );
+  });
+
+  it("warns about an unusable tcp IP but keeps the detection", async () => {
+    const { candidates, logger } = await normalizeRecord({
+      type: "tcp",
+      host: "db.example.com",
+      port: "5432",
+      url: undefined,
+      "matched-at": "db.example.com:5432",
+      ip: "not-an-ip",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "db.example.com" },
+    ]);
+    expect(logger.warn).toHaveBeenCalledWith(
+      { line: 1, field: "ip" },
+      expect.stringContaining("nuclei"),
+    );
+  });
+
+  it("maps a minimal ssl result to a TLS network service", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "ssl",
+      host: "example.com",
+      port: "443",
+      scheme: undefined,
+      url: undefined,
+      "matched-at": "example.com:443",
+      ip: "93.184.216.34",
+      request: undefined,
+      response: undefined,
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "example.com",
+      port: 443,
+      transport: "tcp",
+      protocol: "tls",
+    });
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "example.com" },
+      { type: AssetIdentifierType.IpAddress, namespace: null, value: "93.184.216.34" },
+    ]);
+    expect(candidate.evidence).toBeNull();
+  });
+
+  it("attributes the ssl dialed IP when the matched host differs from the original input", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "ssl",
+      host: "origin.example.com",
+      port: "8443",
+      scheme: undefined,
+      url: undefined,
+      "matched-at": "cert.example.net:8443",
+      ip: "203.0.113.20",
+      request: undefined,
+      response: undefined,
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "cert.example.net",
+      port: 8443,
+      transport: "tcp",
+      protocol: "tls",
+    });
+    // The TLS response reports the dialed connection's remote address, so the
+    // IP still describes the matched subject when the original host differs.
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "cert.example.net" },
+      { type: AssetIdentifierType.IpAddress, namespace: null, value: "203.0.113.20" },
+    ]);
+    expect(candidate.sourceMetadata).toMatchObject({
+      host: "origin.example.com",
+      ip: "203.0.113.20",
+      "matched-at": "cert.example.net:8443",
+    });
+  });
+
+  it("attributes the ssl dialed IP when the host field is omitted", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "ssl",
+      host: undefined,
+      port: "8443",
+      scheme: undefined,
+      url: undefined,
+      "matched-at": "cert.example.net:8443",
+      ip: "203.0.113.22",
+      request: undefined,
+      response: undefined,
+    });
+
+    expect(firstCandidate(candidates).assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "cert.example.net" },
+      { type: AssetIdentifierType.IpAddress, namespace: null, value: "203.0.113.22" },
+    ]);
+  });
+
+  it("uses the explicit ssl port when the matched address carries none", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "ssl",
+      host: "example.com",
+      port: "8443",
+      scheme: undefined,
+      url: undefined,
+      "matched-at": "example.com",
+      ip: undefined,
+      request: undefined,
+      response: undefined,
+    });
+
+    expect(firstCandidate(candidates).affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "example.com",
+      port: 8443,
+      transport: "tcp",
+      protocol: "tls",
+    });
+  });
+
+  it("maps a JavaScript host and port without guessing transport or protocol", async () => {
+    const script = "export default () => ({ response: 'ok' });";
+    const { candidates } = await normalizeRecord({
+      type: "javascript",
+      host: "example.com",
+      port: "8443",
+      scheme: undefined,
+      url: "https://example.com/",
+      "matched-at": "example.com:8443",
+      ip: "203.0.113.30",
+      request: script,
+      response: "ok",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "example.com",
+      port: 8443,
+    });
+    expect(candidate.affectedResource).not.toHaveProperty("transport");
+    expect(candidate.affectedResource).not.toHaveProperty("protocol");
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "example.com" },
+      { type: AssetIdentifierType.IpAddress, namespace: null, value: "203.0.113.30" },
+    ]);
+    expect(candidate.evidence).toContain(script);
+    expect(candidate.evidence).toContain("<summary>Response</summary>");
+  });
+
+  it("uses the explicit JavaScript port when the matched address carries none", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "javascript",
+      host: "example.com",
+      port: "443",
+      url: undefined,
+      "matched-at": "example.com",
+      ip: undefined,
+    });
+
+    expect(firstCandidate(candidates).affectedResource).toEqual({
+      type: AffectedResourceType.NetworkService,
+      host: "example.com",
+      port: 443,
+    });
+  });
+
+  it("keeps a JavaScript detection unspecified when no host can be established", async () => {
+    const { candidates, logger } = await normalizeRecord({
+      type: "javascript",
+      host: undefined,
+      port: undefined,
+      scheme: undefined,
+      url: undefined,
+      "matched-at": "not a target",
+      ip: undefined,
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({ type: AffectedResourceType.Unspecified });
+    expect(candidate.assetIdentifierCandidates).toEqual([]);
+    expect(logger.warn).toHaveBeenCalledWith(
+      { line: 1, field: "matched-at" },
+      expect.stringContaining("nuclei"),
+    );
+  });
+
+  it("maps a websocket URL to a web endpoint and preserves path and query", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "websocket",
+      host: "example.com",
+      port: "8080",
+      scheme: undefined,
+      url: undefined,
+      "matched-at": "ws://example.com:8080/socket?token=abc#frag",
+      ip: "203.0.113.40",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "ws",
+      host: "example.com",
+      port: 8080,
+      path: "/socket",
+      component: { kind: WebEndpointComponentKind.Endpoint },
+      reportedUrl: "ws://example.com:8080/socket?token=abc#frag",
+    });
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "example.com" },
+      { type: AssetIdentifierType.IpAddress, namespace: null, value: "203.0.113.40" },
+    ]);
+  });
+
+  it("materializes the websocket default ports and root path", async () => {
+    const wss = await normalizeRecord({
+      type: "websocket",
+      host: "example.com",
+      port: "443",
+      url: undefined,
+      "matched-at": "wss://example.com/chat",
+      ip: undefined,
+    });
+    expect(firstCandidate(wss.candidates).affectedResource).toEqual({
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "wss",
+      host: "example.com",
+      port: 443,
+      path: "/chat",
+      component: { kind: WebEndpointComponentKind.Endpoint },
+      reportedUrl: "wss://example.com/chat",
+    });
+
+    const ws = await normalizeRecord({
+      type: "websocket",
+      host: "example.com",
+      port: "80",
+      url: undefined,
+      "matched-at": "ws://example.com",
+      ip: undefined,
+    });
+    expect(firstCandidate(ws.candidates).affectedResource).toEqual({
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "ws",
+      host: "example.com",
+      port: 80,
+      path: "/",
+      component: { kind: WebEndpointComponentKind.Endpoint },
+      reportedUrl: "ws://example.com",
+    });
+  });
+
+  it("never derives a websocket method from payload text", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "websocket",
+      host: "example.com",
+      port: "80",
+      url: undefined,
+      "matched-at": "ws://example.com/socket",
+      ip: undefined,
+      request: "POST /socket HTTP/1.1\r\nHost: example.com\r\n\r\n",
+    });
+    const resource = firstCandidate(candidates).affectedResource;
+
+    expect(resource).not.toHaveProperty("method");
+    expect(resource).toMatchObject({
+      type: AffectedResourceType.WebEndpoint,
+      path: "/socket",
+    });
+  });
+
+  it("parses a bracketed IPv6 websocket URL", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "websocket",
+      host: undefined,
+      port: undefined,
+      url: undefined,
+      "matched-at": "wss://[2001:db8::1]:9001/stream?x=1",
+      ip: "2001:db8::1",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "wss",
+      host: "[2001:db8::1]",
+      port: 9001,
+      path: "/stream",
+      component: { kind: WebEndpointComponentKind.Endpoint },
+      reportedUrl: "wss://[2001:db8::1]:9001/stream?x=1",
+    });
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.IpAddress, namespace: null, value: "2001:db8::1" },
+    ]);
+  });
+
+  it("does not associate the original literal IP with a different websocket matched host", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "websocket",
+      host: "192.0.2.10",
+      port: "80",
+      url: undefined,
+      "matched-at": "ws://socket.example.net/ws",
+      ip: "192.0.2.10",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "ws",
+      host: "socket.example.net",
+      port: 80,
+      path: "/ws",
+      component: { kind: WebEndpointComponentKind.Endpoint },
+      reportedUrl: "ws://socket.example.net/ws",
+    });
+    // The websocket result's ip is dialed for the original input host, so a
+    // cross-host match must not inherit it even when that host is the IP.
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "socket.example.net" },
+    ]);
+    expect(candidate.sourceMetadata).toMatchObject({
+      host: "192.0.2.10",
+      ip: "192.0.2.10",
+      "matched-at": "ws://socket.example.net/ws",
+    });
+  });
+
+  it("includes the websocket dial IP when the matched host matches the original input", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "websocket",
+      host: "socket.example.net",
+      port: "443",
+      url: undefined,
+      "matched-at": "wss://socket.example.net/ws",
+      ip: "203.0.113.51",
+    });
+
+    expect(firstCandidate(candidates).assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "socket.example.net" },
+      { type: AssetIdentifierType.IpAddress, namespace: null, value: "203.0.113.51" },
+    ]);
+  });
+
+  it("uses the reported websocket url when the matched address is not a websocket URL", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "websocket",
+      host: "example.com",
+      port: "8080",
+      url: "ws://example.com:8080/socket",
+      "matched-at": "/tmp/nuclei-response.txt",
+      ip: undefined,
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "ws",
+      host: "example.com",
+      port: 8080,
+      path: "/socket",
+      component: { kind: WebEndpointComponentKind.Endpoint },
+      reportedUrl: "ws://example.com:8080/socket",
+    });
+  });
+
+  it("retains the websocket IP when the source URL establishes the same subject", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "websocket",
+      host: undefined,
+      port: undefined,
+      url: "wss://socket.example.net/ws",
+      "matched-at": undefined,
+      ip: "203.0.113.51",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "wss",
+      host: "socket.example.net",
+      port: 443,
+      path: "/ws",
+      component: { kind: WebEndpointComponentKind.Endpoint },
+      reportedUrl: "wss://socket.example.net/ws",
+    });
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "socket.example.net" },
+      { type: AssetIdentifierType.IpAddress, namespace: null, value: "203.0.113.51" },
+    ]);
+  });
+
+  it("excludes the websocket IP when the source URL host differs from the matched host", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "websocket",
+      host: undefined,
+      port: undefined,
+      url: "wss://socket.example.net/ws",
+      "matched-at": "ws://other.example.net/ws",
+      ip: "203.0.113.51",
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "ws",
+      host: "other.example.net",
+      port: 80,
+      path: "/ws",
+      component: { kind: WebEndpointComponentKind.Endpoint },
+      reportedUrl: "ws://other.example.net/ws",
+    });
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "other.example.net" },
+    ]);
+    expect(candidate.sourceMetadata).toMatchObject({ ip: "203.0.113.51" });
+  });
+
+  it("keeps the websocket authority port when the path contains a backslash and @", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "websocket",
+      host: undefined,
+      port: undefined,
+      url: undefined,
+      "matched-at": "ws://socket.example:8080\\u@other.example:9000/chat",
+      ip: undefined,
+    });
+
+    expect(firstCandidate(candidates).affectedResource).toEqual({
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "ws",
+      host: "socket.example",
+      port: 8080,
+      path: "/u@other.example:9000/chat",
+      component: { kind: WebEndpointComponentKind.Endpoint },
+      reportedUrl: "ws://socket.example:8080\\u@other.example:9000/chat",
+    });
+  });
+
+  it("falls back to websocket host and port fields without a usable URL", async () => {
+    const { candidates, logger } = await normalizeRecord({
+      type: "websocket",
+      host: "example.com",
+      port: "9001",
+      url: undefined,
+      scheme: undefined,
+      "matched-at": undefined,
+      ip: undefined,
+    });
+    const candidate = firstCandidate(candidates);
+
+    expect(candidate.affectedResource).toEqual({
+      type: AffectedResourceType.WebEndpoint,
+      host: "example.com",
+      port: 9001,
+      component: { kind: WebEndpointComponentKind.Endpoint },
+    });
+    expect(candidate.assetIdentifierCandidates).toEqual([
+      { type: AssetIdentifierType.DnsName, namespace: null, value: "example.com" },
+    ]);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it("keeps websocket scheme and path from explicit fields", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "websocket",
+      host: "socket.example",
+      scheme: "wss",
+      port: "9001",
+      path: "/stream",
+      url: undefined,
+      "matched-at": undefined,
+      ip: undefined,
+    });
+
+    expect(firstCandidate(candidates).affectedResource).toEqual({
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "wss",
+      host: "socket.example",
+      port: 9001,
+      path: "/stream",
+      component: { kind: WebEndpointComponentKind.Endpoint },
+    });
+  });
+
+  it("materializes the websocket default port from an explicit scheme", async () => {
+    const { candidates } = await normalizeRecord({
+      type: "websocket",
+      host: "socket.example",
+      scheme: "wss",
+      port: undefined,
+      path: "stream",
+      url: undefined,
+      "matched-at": undefined,
+      ip: undefined,
+    });
+
+    expect(firstCandidate(candidates).affectedResource).toEqual({
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "wss",
+      host: "socket.example",
+      port: 443,
+      path: "/stream",
+      component: { kind: WebEndpointComponentKind.Endpoint },
+    });
+  });
+
+  it("warns about an unusable websocket matched address", async () => {
+    const { candidates, logger } = await normalizeRecord({
+      type: "websocket",
+      host: "example.com",
+      port: "9001",
+      url: undefined,
+      scheme: undefined,
+      "matched-at": "http://example.com/socket",
+      ip: undefined,
+    });
+
+    expect(firstCandidate(candidates).affectedResource).toEqual({
+      type: AffectedResourceType.WebEndpoint,
+      host: "example.com",
+      port: 9001,
+      component: { kind: WebEndpointComponentKind.Endpoint },
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      { line: 1, field: "matched-at" },
+      expect.stringContaining("nuclei"),
+    );
+  });
 });
 
 describe("NucleiNormalizer reference scan", () => {
