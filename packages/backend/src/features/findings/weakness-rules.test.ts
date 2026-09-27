@@ -56,4 +56,63 @@ describe("weakness schemas", () => {
       identifiers: { cwe: ["CWE-89"] },
     });
   });
+
+  it("keeps enrichment optional and preserves partial and zero-valued assessments", () => {
+    expect(weaknessSchema.parse({ identifiers: { cwe: ["89"] } })).toEqual({
+      identifiers: { cwe: ["CWE-89"] },
+    });
+    expect(
+      weaknessSchema.parse({
+        identifiers: { cwe: ["89"] },
+        cvss: [{ score: 0 }, { vector: "CVSS:3.1/AV:N/AC:L" }, { version: "3.1" }],
+        epss: { score: 0, percentile: 0.997 },
+      }),
+    ).toEqual({
+      identifiers: { cwe: ["CWE-89"] },
+      cvss: [{ score: 0 }, { vector: "CVSS:3.1/AV:N/AC:L" }, { version: "3.1" }],
+      epss: { score: 0, percentile: 0.997 },
+    });
+  });
+
+  it("deduplicates exact references while preserving text, casing, and first-occurrence order", () => {
+    expect(
+      weaknessSchema.parse({
+        identifiers: { cwe: ["CWE-89"] },
+        references: [
+          "https://example.com/One",
+          "https://example.com/one",
+          "https://example.com/One",
+          " https://example.com/spaced ",
+        ],
+      }),
+    ).toEqual({
+      identifiers: { cwe: ["CWE-89"] },
+      references: [
+        "https://example.com/One",
+        "https://example.com/one",
+        " https://example.com/spaced ",
+      ],
+    });
+  });
+
+  it("preserves reported CVSS scores instead of recalculating them from vectors", () => {
+    expect(
+      weaknessSchema.parse({
+        cvss: [{ score: 1.5, vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H" }],
+      }),
+    ).toEqual({
+      identifiers: {},
+      cvss: [{ score: 1.5, vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H" }],
+    });
+  });
+
+  it("rejects enrichment values outside their bounds or with unknown fields", () => {
+    expect(() => weaknessSchema.parse({ references: [""] })).toThrow();
+    expect(() => weaknessSchema.parse({ cvss: [{ score: 10.1 }] })).toThrow();
+    expect(() => weaknessSchema.parse({ cvss: [{ score: -0.1 }] })).toThrow();
+    expect(() => weaknessSchema.parse({ cvss: [{ severity: "critical" }] })).toThrow();
+    expect(() => weaknessSchema.parse({ epss: { score: 1.1 } })).toThrow();
+    expect(() => weaknessSchema.parse({ epss: { percentile: -0.1 } })).toThrow();
+    expect(() => weaknessSchema.parse({ epss: { score: 0.5, rank: 1 } })).toThrow();
+  });
 });

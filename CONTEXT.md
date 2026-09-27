@@ -123,7 +123,8 @@ catalog links do not define finding identity, title, severity, or lifecycle.
 A **weakness** is the underlying security problem or suspected problem,
 independent of the vulnerability catalog. A weakness may contain identifiers
 grouped by namespace, such as CVE, CWE, scanner rule, or advisory identifiers,
-and does not require a catalog match.
+and does not require a catalog match. It may also carry reported references,
+CVSS assessments, and EPSS data alongside those identifiers.
 
 Findings own normalized weakness data used for workflow and matching.
 Observations preserve the weakness data reported by their source.

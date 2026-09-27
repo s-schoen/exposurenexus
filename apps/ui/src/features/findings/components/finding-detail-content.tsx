@@ -535,7 +535,7 @@ function FindingCorrectionDialog({
   };
 
   const handleSubmit = async () => {
-    const weakness = parseWeaknessText(weaknessDraft);
+    const weakness = parseWeaknessText(weaknessDraft, draft.weakness);
     if (!weakness) {
       setError("Weakness identifiers must use namespace=identifier entries.");
       return;

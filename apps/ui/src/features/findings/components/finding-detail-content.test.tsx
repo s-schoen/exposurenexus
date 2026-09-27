@@ -75,7 +75,18 @@ const finding: Finding = {
   assigneeId: null,
   dueDate: null,
   mitigation: "Restrict administrative access to trusted networks.",
-  weakness: { identifiers: { cwe: ["CWE-200"], scanner: ["admin-panel"] } },
+  weakness: {
+    identifiers: { cwe: ["CWE-200"], scanner: ["admin-panel"] },
+    references: ["https://example.com/advisory"],
+    cvss: [
+      {
+        score: 7.5,
+        vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+        version: "3.1",
+      },
+    ],
+    epss: { score: 0.05, percentile: 0.8 },
+  },
   affectedResource: {
     type: AffectedResourceType.WebEndpoint,
     scheme: "https",
@@ -639,7 +650,7 @@ describe("FindingDetailContent", () => {
       assigneeId: ids.disabledUser,
       dueDate: new Date("2026-06-30T00:00:00.000Z"),
       mitigation: "Deploy the corrected policy.",
-      weakness: { identifiers: { cwe: ["CWE-284"] } },
+      weakness: { ...finding.weakness, identifiers: { cwe: ["CWE-284"] } },
       affectedResource: {
         type: AffectedResourceType.CloudResource,
         provider: "aws",
