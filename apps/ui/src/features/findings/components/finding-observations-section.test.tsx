@@ -15,6 +15,19 @@ const { AddManualObservation, DeleteFinalObservation, Empty, ErrorState, Loading
   composeStories(stories);
 const originalFetch = globalThis.fetch;
 
+const enrichedWeakness = {
+  identifiers: {},
+  references: ["https://example.com/advisory"],
+  cvss: [
+    {
+      score: 7.5,
+      vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      version: "3.1",
+    },
+  ],
+  epss: { score: 0.05, percentile: 0.8 },
+};
+
 function parseRequestBody(init: RequestInit | undefined) {
   if (typeof init?.body !== "string") throw new Error("Expected a JSON request body");
   return JSON.parse(init.body) as unknown;
@@ -532,7 +545,7 @@ describe("FindingObservationsSection", () => {
     expect(screen.getAllByText("No identifiers recorded").length).toBeGreaterThan(0);
   });
 
-  it("submits the exact correction payload and clears weakness", async () => {
+  it("submits the exact correction payload and preserves enrichment while clearing identifiers", async () => {
     const actor = userEvent.setup();
     render(<Populated />);
     const fetchSpy = vi.fn(globalThis.fetch);
@@ -556,10 +569,34 @@ describe("FindingObservationsSection", () => {
       evidence: "Corrected evidence",
       remediation: null,
       severity: "high",
-      weakness: { identifiers: {} },
+      weakness: enrichedWeakness,
       affectedResource: { type: "unspecified" },
       observedAt: "2026-06-07T09:00:00.000Z",
     });
+  });
+
+  it("preserves structured weakness enrichment when correcting another field", async () => {
+    const actor = userEvent.setup();
+    render(<Populated />);
+    const fetchSpy = vi.fn(globalThis.fetch);
+    globalThis.fetch = fetchSpy;
+    await actor.click(
+      await screen.findByRole("button", { name: "Edit observation Unspecified resource" }),
+    );
+    const dialog = screen.getByRole("dialog", { name: "Correct observation" });
+    await actor.clear(within(dialog).getByLabelText("Evidence"));
+    await actor.type(within(dialog).getByLabelText("Evidence"), "Corrected evidence");
+    await actor.click(within(dialog).getByRole("button", { name: "Save correction" }));
+
+    await waitFor(() =>
+      expect(fetchSpy.mock.calls.some(([, init]) => init?.method === "PUT")).toBe(true),
+    );
+    const put = fetchSpy.mock.calls.find(([, init]) => init?.method === "PUT")?.[1];
+    expect(parseRequestBody(put)).toEqual(
+      expect.objectContaining({
+        weakness: { ...enrichedWeakness, identifiers: {} },
+      }),
+    );
   });
 
   it("retains a failed add draft for retry and prevents duplicate pending submissions", async () => {
@@ -675,7 +712,7 @@ describe("FindingObservationsSection", () => {
       evidence: null,
       remediation: null,
       severity: "high",
-      weakness: { identifiers: {} },
+      weakness: enrichedWeakness,
       affectedResource: { type: "unspecified" },
       observedAt: "2026-06-07T09:00:00.000Z",
     });

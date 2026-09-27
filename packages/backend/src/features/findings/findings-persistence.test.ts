@@ -182,6 +182,115 @@ describe("findings cross-feature persistence", () => {
     await expect(exposures.findings.listAll()).resolves.toEqual([cleared!.current]);
   });
 
+  it("round-trips structured weakness enrichment through findings and observations", async () => {
+    const asset = await createAsset("api.example.com");
+    const findings = createCapability().findings;
+    const cvss = [
+      { score: 0 },
+      { score: 9.8, vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", version: "3.1" },
+    ];
+    const canonicalWeakness = {
+      identifiers: { cwe: ["CWE-89"] },
+      references: ["https://example.com/advisory", "https://example.com/other"],
+      cvss,
+      epss: { score: 0, percentile: 0.997 },
+    };
+
+    const created = await findings.createManual({
+      finding: {
+        assetId: asset.id,
+        title: "Enriched finding",
+        severity: VulnerabilitySeverity.High,
+        status: FindingStatus.Active,
+        assigneeId: null,
+        dueDate: null,
+        mitigation: null,
+        weakness: {
+          identifiers: { CWE: ["89", "cwe-89"] },
+          references: [
+            "https://example.com/advisory",
+            "https://example.com/advisory",
+            "https://example.com/other",
+          ],
+          cvss,
+          epss: { score: 0, percentile: 0.997 },
+        },
+        affectedResource: { type: AffectedResourceType.Unspecified },
+        vulnerabilityIds: [],
+      },
+      performedBy: auditUserId,
+    });
+
+    // A manual observation without an explicit weakness copies the enriched finding weakness.
+    expect(created.current.weakness).toEqual(canonicalWeakness);
+    expect(created.observation.weakness).toEqual(canonicalWeakness);
+    await expect(findings.getByID(created.current.id)).resolves.toEqual(created.current);
+    await expect(findings.listObservations(created.current.id)).resolves.toEqual([
+      created.observation,
+    ]);
+
+    // A later manual observation also inherits the enriched finding weakness when omitted.
+    const added = await findings.createManualObservation({
+      findingId: created.current.id,
+      observation: { evidence: "Confirming scan" },
+      performedBy: auditUserId,
+    });
+    expect(added!.observation.weakness).toEqual(canonicalWeakness);
+
+    const renamed = await findings.updateByID({
+      id: created.current.id,
+      finding: { title: "Renamed finding" },
+      performedBy: auditUserId,
+    });
+    expect(renamed!.current).toMatchObject({ title: "Renamed finding" });
+    expect(renamed!.current.weakness).toEqual(canonicalWeakness);
+
+    // Finding weaknesses are replaced as whole objects, without merging enrichment.
+    const reEnriched = await findings.updateByID({
+      id: created.current.id,
+      finding: { weakness: { identifiers: { cwe: ["cwe-89"] }, epss: { percentile: 0.9 } } },
+      performedBy: auditUserId,
+    });
+    expect(reEnriched!.current.weakness).toEqual({
+      identifiers: { cwe: ["CWE-89"] },
+      epss: { percentile: 0.9 },
+    });
+
+    // Observation updates round-trip enrichment and leave the finding weakness alone.
+    const corrected = await findings.updateObservation({
+      findingId: created.current.id,
+      observationId: created.observation.id,
+      observation: {
+        weakness: {
+          identifiers: { cwe: ["cwe-284"] },
+          references: ["https://example.com/advisory"],
+          cvss: [{ score: 5 }],
+          epss: { percentile: 0.5 },
+        },
+      },
+      performedBy: auditUserId,
+    });
+    expect(corrected!.observation.weakness).toEqual({
+      identifiers: { cwe: ["CWE-284"] },
+      references: ["https://example.com/advisory"],
+      cvss: [{ score: 5 }],
+      epss: { percentile: 0.5 },
+    });
+    expect(corrected!.currentFinding.weakness).toEqual({
+      identifiers: { cwe: ["CWE-89"] },
+      epss: { percentile: 0.9 },
+    });
+
+    // An identifier-only observation correction replaces the whole weakness rather than merging.
+    const replaced = await findings.updateObservation({
+      findingId: created.current.id,
+      observationId: created.observation.id,
+      observation: { weakness: { identifiers: { cwe: ["cwe-284"] } } },
+      performedBy: auditUserId,
+    });
+    expect(replaced!.observation.weakness).toEqual({ identifiers: { cwe: ["CWE-284"] } });
+  });
+
   it("blocks asset deletion until its findings are deleted and preserves catalog entries", async () => {
     const asset = await createAsset("api.example.com");
     const exposures = createCapability();

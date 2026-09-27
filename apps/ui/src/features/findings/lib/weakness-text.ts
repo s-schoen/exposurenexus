@@ -1,16 +1,16 @@
 import type { Weakness } from "@exposurenexus/contracts/model/weakness";
 
-interface WeaknessTextInput {
-  identifiers: Record<string, Array<string>>;
-}
-
-export function formatWeaknessText(weakness: Weakness): string {
+export function formatWeaknessText(weakness: Pick<Weakness, "identifiers">): string {
   return Object.entries(weakness.identifiers)
     .map(([namespace, identifiers]) => `${namespace}=${identifiers.join(",")}`)
     .join("; ");
 }
 
-export function parseWeaknessText(value: string): WeaknessTextInput | null {
+/**
+ * Parses identifier text and keeps every other weakness field from `base`, so
+ * edits to identifiers preserve reported references, CVSS, and EPSS values.
+ */
+export function parseWeaknessText(value: string, base?: Weakness): Weakness | null {
   const identifiers: Record<string, Array<string>> = {};
 
   for (const entry of value.split(";")) {
@@ -33,5 +33,5 @@ export function parseWeaknessText(value: string): WeaknessTextInput | null {
     identifiers[namespace] = values;
   }
 
-  return { identifiers };
+  return { ...base, identifiers };
 }

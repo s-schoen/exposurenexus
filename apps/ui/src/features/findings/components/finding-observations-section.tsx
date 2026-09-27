@@ -637,7 +637,7 @@ function EditObservationDialog({ observation }: { observation: Observation }) {
   };
 
   const submit = async () => {
-    const parsedWeakness = parseWeaknessText(weakness);
+    const parsedWeakness = parseWeaknessText(weakness, observation.weakness);
     if (parsedWeakness === null) {
       setError("Weakness identifiers must use namespace=identifier entries.");
       return;

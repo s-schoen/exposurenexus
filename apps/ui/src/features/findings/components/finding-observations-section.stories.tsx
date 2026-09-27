@@ -78,7 +78,18 @@ const unspecifiedObservation = observationSchema.parse({
   evidence: null,
   remediation: null,
   severity: VulnerabilitySeverity.High,
-  weakness: { identifiers: {} },
+  weakness: {
+    identifiers: {},
+    references: ["https://example.com/advisory"],
+    cvss: [
+      {
+        score: 7.5,
+        vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+        version: "3.1",
+      },
+    ],
+    epss: { score: 0.05, percentile: 0.8 },
+  },
   affectedResource: { type: AffectedResourceType.Unspecified },
   observedAt: new Date("2026-06-07T09:00:00.000Z"),
   createdAt: new Date("2026-06-08T09:00:00.000Z"),

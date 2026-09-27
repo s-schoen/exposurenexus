@@ -1,4 +1,8 @@
 // Draft preview only; backend independently canonicalizes all mutations.
+import {
+  cvssAssessmentSchema,
+  epssAssessmentSchema,
+} from "@exposurenexus/contracts/model/weakness";
 import { z } from "zod/v4";
 
 import { canonicalizeKnownSecurityIdentifier } from "@/features/vulnerabilities";
@@ -55,8 +59,18 @@ const weaknessIdentifiersSchema = z
     return result;
   });
 
+const weaknessReferencesSchema = z
+  .array(z.string().min(1, "Weakness references must not be empty."))
+  .transform((references) => {
+    // Deduplication keeps reported reference text, casing, and first-occurrence order.
+    return [...new Set(references)];
+  });
+
 export const weaknessSchema = z.strictObject({
   identifiers: weaknessIdentifiersSchema.default({}),
+  references: weaknessReferencesSchema.optional(),
+  cvss: z.array(cvssAssessmentSchema).optional(),
+  epss: epssAssessmentSchema.optional(),
 });
 
 export const nonEmptyWeaknessSchema = weaknessSchema.refine(

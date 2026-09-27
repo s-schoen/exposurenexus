@@ -19,4 +19,20 @@ describe("weakness text", () => {
 
     expect(parseWeaknessText(value)).toBeNull();
   });
+
+  it("preserves enrichment from the base weakness when identifiers change", () => {
+    const base = {
+      identifiers: { cwe: ["CWE-89"] },
+      references: ["https://example.com/advisory", "https://example.com/advisory"],
+      cvss: [{ score: 9.8, vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H" }],
+      epss: { score: 0, percentile: 0.997 },
+    };
+
+    expect(parseWeaknessText("scanner=admin-panel", base)).toEqual({
+      ...base,
+      identifiers: { scanner: ["admin-panel"] },
+    });
+    expect(formatWeaknessText(base)).toBe("cwe=CWE-89");
+    expect(parseWeaknessText("", base)).toEqual({ ...base, identifiers: {} });
+  });
 });
