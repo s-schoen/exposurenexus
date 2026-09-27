@@ -43,6 +43,7 @@ function candidate(overrides: Partial<ObservationCandidate> = {}): ObservationCa
     assetIdentifierCandidates: [
       { type: AssetIdentifierType.DnsName, namespace: null, value: "example.com" },
     ],
+    sourceMetadata: { "template-id": "example-template" },
     ...overrides,
   };
 }
@@ -122,6 +123,18 @@ describe("Classifier", () => {
     const [result] = await classifier.normalize("nuclei", scanData);
 
     expect(result).toEqual({ ...input, source: "nuclei" });
+  });
+
+  it("preserves structured source metadata alongside the other candidate fields", async () => {
+    const { classifier } = createClassifier();
+    const { normalizer, normalize } = createNormalizer();
+    classifier.registerNormalizer("nuclei", normalizer);
+    const sourceMetadata = { type: "http", meta: { paths: "/admin" }, "unknown-field": [1, 2, 3] };
+    normalize.mockResolvedValue([candidate({ sourceMetadata })]);
+
+    const [result] = await classifier.normalize("nuclei", scanData);
+
+    expect(result?.sourceMetadata).toEqual(sourceMetadata);
   });
 
   it.each([
