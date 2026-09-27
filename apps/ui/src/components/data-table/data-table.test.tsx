@@ -300,7 +300,7 @@ describe("DataTable stories", () => {
       expect(screen.getByText("2 selected")).toBeVisible();
     });
 
-    await user.click(screen.getByRole("option", { name: "Active" }));
+    await user.click(await screen.findByRole("option", { name: "Active" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
@@ -310,7 +310,7 @@ describe("DataTable stories", () => {
       expect(screen.getByText("1 selected")).toBeVisible();
     });
 
-    await user.click(screen.getByRole("option", { name: "In Review" }));
+    await user.click(await screen.findByRole("option", { name: "In Review" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("data-table-result-summary")).toHaveAttribute(
