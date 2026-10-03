@@ -102,8 +102,10 @@ function isRfc3339(value: string): boolean {
   return true;
 }
 
+export const dateTimeSchema = z.string().refine(isRfc3339);
+
 export const sarifFormats: ReadonlyMap<string, z.ZodType> = new Map([
   ["uri", uriSchema],
   ["uri-reference", uriReferenceSchema],
-  ["date-time", z.string().refine(isRfc3339)],
+  ["date-time", dateTimeSchema],
 ]);
