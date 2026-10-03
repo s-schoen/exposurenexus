@@ -6,6 +6,7 @@ import {
   isNonBlankString,
   readCweIdentifier,
   readSourceLocation,
+  readText,
   renderCodeBlock,
   renderEvidenceSection,
 } from "./shared.js";
@@ -226,17 +227,6 @@ function mapFinding(
     observedAt: null,
     sourceMetadata: { provenance: { result, document: structuredClone(document) } },
   };
-}
-
-function readText(value: unknown, field: string, warn: Diagnostics): string | null {
-  if (value === undefined || value === null) {
-    return null;
-  }
-  if (typeof value !== "string") {
-    warn(field);
-    return null;
-  }
-  return isNonBlankString(value) ? value : null;
 }
 
 function readCwes(value: unknown, warn: Diagnostics): string[] {
