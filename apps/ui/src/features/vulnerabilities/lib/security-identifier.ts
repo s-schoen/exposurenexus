@@ -1,5 +1,6 @@
 const cvePattern = /^cve-(\d{4})-(\d{4,})$/iu;
-const cwePattern = /^(?:cwe-)?(\d+)$/iu;
+// CWE IDs are positive integers; leading zeros must not create distinct identifiers.
+const cwePattern = /^(?:cwe-)?0*([1-9]\d*)$/iu;
 const ghsaPattern = /^ghsa-([a-z\d]{4})-([a-z\d]{4})-([a-z\d]{4})$/iu;
 
 export type KnownSecurityIdentifierNamespace = "cve" | "cwe" | "ghsa";
