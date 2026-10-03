@@ -763,8 +763,8 @@ function EditObservationDialog({ observation }: { observation: Observation }) {
                 onChange={(event) => setWeakness(event.target.value)}
               />
               <FieldDescription>
-                Blank clears the observation weakness. Separate namespaces with semicolons and
-                identifiers with commas.
+                Blank removes all identifiers; reported references, CVSS, and EPSS are kept.
+                Separate namespaces with semicolons and identifiers with commas.
               </FieldDescription>
             </Field>
             <Field>
