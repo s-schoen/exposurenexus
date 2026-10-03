@@ -37,6 +37,16 @@ describe("weakness schemas", () => {
     });
   });
 
+  it("strips CWE leading zeros so one weakness has one identifier", () => {
+    expect(weaknessSchema.parse({ identifiers: { cwe: ["CWE-079", "79", "cwe-0079"] } })).toEqual({
+      identifiers: { cwe: ["CWE-79"] },
+    });
+  });
+
+  it.each(["CWE-0", "0", "CWE-000"])("rejects the non-positive CWE identifier %j", (cwe) => {
+    expect(() => weaknessSchema.parse({ identifiers: { cwe: [cwe] } })).toThrow();
+  });
+
   it("uses a canonical empty representation and removes empty namespaces", () => {
     expect(weaknessSchema.parse({})).toEqual({ identifiers: {} });
     expect(weaknessSchema.parse({ identifiers: { cve: [] } })).toEqual({ identifiers: {} });
