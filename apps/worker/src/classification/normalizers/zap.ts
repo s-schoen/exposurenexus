@@ -9,7 +9,13 @@ import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerabil
 
 import { uriSchema } from "../sarif/formats.js";
 import { parseSarif } from "../sarif/parser.js";
-import { readCweIdentifier, renderEvidenceSection } from "./shared.js";
+import {
+  isJsonObject,
+  isNonBlankString,
+  readCweIdentifier,
+  readText,
+  renderEvidenceSection,
+} from "./shared.js";
 
 import type { Normalizer, ObservationCandidate } from "../classifier.js";
 import type { SarifDocument, SarifResult, SarifRule, SarifRun } from "../sarif/parser.js";
@@ -85,6 +91,7 @@ function normalizeRun(
   if (results === undefined) {
     throw new Error(`zap: ${runLocator}/results is unavailable`);
   }
+  const runProvenance = summarizeRun(runContext);
 
   const candidates: ObservationCandidate[] = [];
   for (const [resultIndex, result] of results.entries()) {
@@ -98,10 +105,27 @@ function normalizeRun(
       logger.warn({ sourceRecord, field }, "zap: ignoring unusable optional value");
     };
 
-    candidates.push(normalizeResult(result, sourceRecord, document, runContext, warn));
+    candidates.push(
+      normalizeResult(result, sourceRecord, { document, run: runContext, runProvenance }, warn),
+    );
   }
 
   return candidates;
+}
+
+/**
+ * Drops the driver rule catalog and taxonomy taxa, which are shared by every result and can
+ * dominate large reports. Each candidate keeps its own matched rule instead.
+ */
+function summarizeRun(run: RunContext): RunContext {
+  const { rules: _rules, ...driver } = run.tool.driver;
+  return {
+    ...run,
+    tool: { ...run.tool, driver },
+    ...(run.taxonomies === undefined
+      ? {}
+      : { taxonomies: run.taxonomies.map(({ taxa: _taxa, ...taxonomy }) => taxonomy) }),
+  };
 }
 
 function isExcludedResult(result: SarifResult): boolean {
@@ -123,24 +147,24 @@ function isExcludedResult(result: SarifResult): boolean {
 function normalizeResult(
   result: SarifResult,
   sourceRecord: string,
-  document: DocumentContext,
-  run: RunContext,
+  context: { document: DocumentContext; run: RunContext; runProvenance: RunContext },
   warn: Diagnostics,
 ): ObservationCandidate {
+  const { document, run, runProvenance } = context;
   const ruleId = result.ruleId;
   if (ruleId === undefined || ruleId.trim().length === 0) {
     throw new Error(`zap: ${sourceRecord}/ruleId must be nonblank`);
   }
 
   const rule = findRule(run, ruleId, sourceRecord, warn);
-  const level = result.level ?? rule?.defaultConfiguration?.level ?? "none";
+  const level = result.level ?? defaultLevel(result, rule);
   const subject = mapSubject(result, warn);
 
   return {
     source: "zap",
     sourceRecord,
-    title: readText(rule?.name) ?? readText(rule?.shortDescription?.text) ?? ruleId,
-    description: readText(rule?.fullDescription?.text) ?? null,
+    title: [rule?.name, rule?.shortDescription?.text].find(isNonBlankString) ?? ruleId,
+    description: readText(rule?.fullDescription?.text, "rule.fullDescription.text", warn),
     remediation: readSolution(rule?.properties?.solution, warn),
     severity: severities[level],
     weakness: buildWeakness(ruleId, rule, run, warn),
@@ -149,12 +173,13 @@ function normalizeResult(
     // ZAP supplies no detection time; HTTP dates describe the exchange instead.
     observedAt: null,
     sourceMetadata: {
-      provenance: {
+      // Each candidate owns its provenance, so later edits cannot leak across the report.
+      provenance: structuredClone({
         document,
-        run,
+        run: runProvenance,
         result,
         ...(rule === undefined ? {} : { rule }),
-      },
+      }),
     },
   };
 }
@@ -180,13 +205,15 @@ function findRule(
   return rule;
 }
 
-function readText(value: unknown): string | undefined {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    return undefined;
+/**
+ * SARIF 2.1.0 §3.27.10: an absent level is "none" for non-failure kinds; failures fall back to
+ * the rule's default configuration, whose own level defaults to "warning".
+ */
+function defaultLevel(result: SarifResult, rule: SarifRule | undefined): keyof typeof severities {
+  if (result.kind !== undefined && result.kind !== "fail") {
+    return "none";
   }
-
-  // Use trimming only to detect blank values; preserve reported text verbatim.
-  return value;
+  return rule?.defaultConfiguration?.level ?? "warning";
 }
 
 function readSolution(value: unknown, warn: Diagnostics): string | null {
@@ -195,15 +222,11 @@ function readSolution(value: unknown, warn: Diagnostics): string | null {
   }
 
   // Property bags are not structurally validated by the SARIF schema.
-  if (typeof value === "object" && value !== null && "text" in value) {
-    const solution = readText(value.text);
-    if (solution !== undefined) {
-      return solution;
-    }
+  if (!isJsonObject(value)) {
+    warn("properties.solution");
+    return null;
   }
-
-  warn("properties.solution.text");
-  return null;
+  return readText(value.text, "properties.solution.text", warn);
 }
 
 function buildWeakness(
@@ -333,7 +356,7 @@ function readReferences(value: unknown, warn: Diagnostics): string[] {
 
   const references = new Set<string>();
   for (const entry of values) {
-    if (readText(entry) === undefined) {
+    if (!isNonBlankString(entry)) {
       warn("properties.references");
       continue;
     }
@@ -493,7 +516,7 @@ function buildEvidence(result: SarifResult, warn: Diagnostics): string | null {
   appendEvidenceSection(
     sections,
     "Message",
-    readText(result.message.text) ?? result.message.markdown,
+    [result.message.text, result.message.markdown].find(isNonBlankString),
   );
 
   for (const location of result.locations ?? []) {
@@ -501,11 +524,11 @@ function buildEvidence(result: SarifResult, warn: Diagnostics): string | null {
     appendArtifactSection(sections, "Snippet", physicalLocation?.region?.snippet);
     appendArtifactSection(sections, "Context Snippet", physicalLocation?.contextRegion?.snippet);
 
-    const attack = location.properties?.attack;
-    if (attack !== undefined && typeof attack !== "string") {
-      warn("locations.properties.attack");
-    }
-    appendEvidenceSection(sections, "Attack", attack);
+    appendEvidenceSection(
+      sections,
+      "Attack",
+      readText(location.properties?.attack, "locations.properties.attack", warn),
+    );
   }
 
   appendEvidenceSection(sections, "Request (exported fields)", renderExchange(result.webRequest));
@@ -518,9 +541,13 @@ function buildEvidence(result: SarifResult, warn: Diagnostics): string | null {
   return sections.length === 0 ? null : sections.join("\n\n");
 }
 
-function appendEvidenceSection(sections: string[], label: string, value: unknown): void {
-  const content = readText(value);
-  if (content === undefined) {
+function appendEvidenceSection(
+  sections: string[],
+  label: string,
+  content: string | null | undefined,
+): void {
+  // Blank text is absent; nonblank text is kept verbatim.
+  if (!isNonBlankString(content)) {
     return;
   }
 
@@ -531,14 +558,16 @@ function appendEvidenceSection(sections: string[], label: string, value: unknown
 function readArtifactEvidence(
   artifact: ArtifactContent | undefined,
 ): { text: string; rendered: boolean } | undefined {
-  const originalText = readText(artifact?.text);
-  if (originalText !== undefined) {
+  const originalText = artifact?.text;
+  if (isNonBlankString(originalText)) {
     return { text: originalText, rendered: false };
   }
 
   // A rendered representation is still useful evidence, but label it so it
   // cannot be mistaken for the original body/snippet bytes. Keep both in provenance.
-  const renderedText = readText(artifact?.rendered?.text) ?? readText(artifact?.rendered?.markdown);
+  const renderedText = [artifact?.rendered?.text, artifact?.rendered?.markdown].find(
+    isNonBlankString,
+  );
   if (renderedText !== undefined) {
     return { text: renderedText, rendered: true };
   }
