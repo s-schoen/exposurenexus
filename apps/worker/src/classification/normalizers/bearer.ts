@@ -8,6 +8,7 @@ import {
   readCoordinate,
   readCweIdentifier,
   readSourceLocation,
+  readText,
   renderEvidenceSection,
 } from "./shared.js";
 
@@ -152,17 +153,6 @@ function mapFinding(
       },
     },
   };
-}
-
-function readText(value: unknown, field: string, warn: Diagnostics): string | null {
-  if (value === undefined) {
-    return null;
-  }
-  if (typeof value !== "string") {
-    warn(field);
-    return null;
-  }
-  return isNonBlankString(value) ? value : null;
 }
 
 function readRemediation(

@@ -103,10 +103,14 @@ describe("ZapSarifNormalizer", () => {
       const provenance = candidate.sourceMetadata.provenance as Record<string, unknown>;
       expect(provenance.document).not.toHaveProperty("runs");
       expect(provenance.run).not.toHaveProperty("results");
-      expect(provenance.run).toMatchObject({
-        tool: sourceRun.tool,
-        taxonomies: sourceRun.taxonomies,
-      });
+      // The shared rule catalog and taxa stay out of every candidate's provenance.
+      const { rules: _rules, ...driver } = sourceRun.tool.driver;
+      expect(provenance.run).toEqual(
+        expect.objectContaining({
+          tool: { ...sourceRun.tool, driver },
+          taxonomies: sourceRun.taxonomies!.map(({ taxa: _taxa, ...taxonomy }) => taxonomy),
+        }),
+      );
       if (raw.message.text?.trim()) expect(candidate.evidence).toContain(raw.message.text);
       if (raw.locations?.[0].physicalLocation?.region?.snippet?.text)
         expect(candidate.evidence).toContain(raw.locations[0].physicalLocation.region.snippet.text);
@@ -232,7 +236,8 @@ describe("ZapSarifNormalizer", () => {
     const { candidates, log } = await normalize(report([run([raw], [])]));
     expect(candidates[0]).toMatchObject({
       title: raw.ruleId,
-      severity: "info",
+      // SARIF failures without a level or rule default are warnings.
+      severity: "medium",
       description: null,
       remediation: null,
       weakness: { identifiers: { zap: [raw.ruleId] } },
@@ -253,10 +258,24 @@ describe("ZapSarifNormalizer", () => {
     ["note", "error", "low"],
     ["none", "error", "info"],
     [undefined, "warning", "medium"],
-    [undefined, undefined, "info"],
+    [undefined, "none", "info"],
+    [undefined, undefined, "medium"],
   ])("maps result/default levels %j/%j to %j", async (level, fallback, expected) => {
     const { candidates } = await normalize(
       report([run([result({ level })], [rule({ defaultConfiguration: { level: fallback } })])]),
+    );
+    expect(candidates[0].severity).toBe(expected);
+  });
+
+  it.each([
+    [undefined, "high"],
+    ["fail", "high"],
+    ["open", "info"],
+    ["review", "info"],
+    ["informational", "info"],
+  ])("applies the rule default level only to failures of kind %j", async (kind, expected) => {
+    const { candidates } = await normalize(
+      report([run([result({ kind })], [rule({ defaultConfiguration: { level: "error" } })])]),
     );
     expect(candidates[0].severity).toBe(expected);
   });

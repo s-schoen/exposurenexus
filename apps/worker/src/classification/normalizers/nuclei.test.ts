@@ -165,6 +165,14 @@ describe("NucleiNormalizer file handling", () => {
     ).rejects.toThrow(/^nuclei: invalid JSON on line 2$/u);
   });
 
+  it("rejects invalid UTF-8 instead of substituting replacement characters", async () => {
+    const line = new TextEncoder().encode(JSON.stringify(baseRecord()));
+    const corrupt = new Uint8Array([...line.slice(0, -2), 0xff, ...line.slice(-2)]);
+    await expect(
+      normalizer.normalize(corrupt, createLogger() as unknown as Logger),
+    ).rejects.toThrow(/^nuclei: invalid UTF-8$/u);
+  });
+
   it("accepts an empty protocol string and unknown protocol names", async () => {
     const { candidates } = await normalize(
       [
@@ -267,14 +275,19 @@ describe("NucleiNormalizer candidate content", () => {
     expect(missing.logger.warn).not.toHaveBeenCalled();
   });
 
-  it("maps invalid and missing timestamps to null without substituting the current time", async () => {
-    const invalid = await normalizeRecord({ timestamp: "not-a-timestamp" });
-    expect(firstCandidate(invalid.candidates).observedAt).toBeNull();
-    expect(invalid.logger.warn).toHaveBeenCalledWith(
-      { line: 1, field: "timestamp" },
-      expect.any(String),
-    );
+  it.each(["not-a-timestamp", "1", "May 5", "2024-02-30T00:00:00Z", "2024-01-01 00:00:00"])(
+    "maps the non-RFC 3339 timestamp %j to null without substituting another time",
+    async (timestamp) => {
+      const invalid = await normalizeRecord({ timestamp });
+      expect(firstCandidate(invalid.candidates).observedAt).toBeNull();
+      expect(invalid.logger.warn).toHaveBeenCalledWith(
+        { line: 1, field: "timestamp" },
+        expect.any(String),
+      );
+    },
+  );
 
+  it("maps missing timestamps to null without substituting the current time", async () => {
     const missing = await normalizeRecord({ timestamp: undefined });
     expect(firstCandidate(missing.candidates).observedAt).toBeNull();
     expect(missing.logger.warn).not.toHaveBeenCalled();

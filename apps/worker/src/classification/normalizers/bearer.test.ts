@@ -516,7 +516,8 @@ describe("BearerJsonNormalizer jsonv2 envelope", () => {
       affectedResource: { location: { startLine: 5 } },
       weakness: { identifiers: { cwe: ["CWE-79", "CWE-89"] } },
     });
-    expect(log.warn).toHaveBeenCalledTimes(6);
+    // A null code_extract is absent rather than unusable, so it does not warn.
+    expect(log.warn).toHaveBeenCalledTimes(5);
     expect(log.warn.mock.calls.every(([fields]) => fields.sourceRecord === "/findings/0")).toBe(
       true,
     );
@@ -675,9 +676,32 @@ describe("BearerJsonNormalizer text and weakness", () => {
   });
 
   it.each(["title", "description", "code_extract", "documentation_url"])(
+    "treats a null %s as absent without a warning",
+    async (field) => {
+      const record = finding({
+        title: "Human title",
+        description: "## Remediations\n\nFix it.\n",
+        code_extract: "code",
+        documentation_url: "https://docs.example/rule",
+        [field]: null,
+      });
+      const { candidates, log } = await normalize({ high: [record] });
+      expect(candidates[0].title).toBe(field === "title" ? record.id : "Human title");
+      expect(candidates[0].description).toBe(field === "description" ? null : record.description);
+      expect(candidates[0].evidence).toBe(
+        field === "code_extract" ? null : renderEvidenceSection("Code Extract", "code"),
+      );
+      expect(candidates[0].weakness.references).toEqual(
+        field === "documentation_url" ? undefined : ["https://docs.example/rule"],
+      );
+      expect(log.warn).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["title", "description", "code_extract", "documentation_url"])(
     "recovers wrong-shaped %s independently with structural warnings",
     async (field) => {
-      for (const value of [null, {}, [], 42, true]) {
+      for (const value of [{}, [], 42, true]) {
         const record = finding({
           title: "Human title",
           description: "## Remediations\n\nFix it.\n",

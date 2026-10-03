@@ -7,7 +7,13 @@ import {
 import { AssetIdentifierType } from "@exposurenexus/contracts/model/asset-identifier";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
-import { isJsonObject, isNonBlankString, renderEvidenceSection } from "./shared.js";
+import {
+  isJsonObject,
+  isNonBlankString,
+  readDateTime,
+  readText,
+  renderEvidenceSection,
+} from "./shared.js";
 
 import type { Normalizer, ObservationCandidate } from "../classifier.js";
 import type { JsonObject } from "./shared.js";
@@ -109,7 +115,12 @@ const knownSeverities = new Set<string>(Object.values(VulnerabilitySeverity));
  */
 export class NucleiNormalizer implements Normalizer {
   public async normalize(scanData: Uint8Array, logger: Logger): Promise<ObservationCandidate[]> {
-    const text = new TextDecoder("utf-8").decode(scanData);
+    let text: string;
+    try {
+      text = new TextDecoder("utf-8", { fatal: true }).decode(scanData);
+    } catch {
+      throw new Error("nuclei: invalid UTF-8");
+    }
     if (text.trim().length === 0) {
       return [];
     }
@@ -556,9 +567,11 @@ function readObservedAt(value: unknown, lineNumber: number, logger: Logger): Dat
     return null;
   }
 
-  const observedAt = new Date(value);
-  // An invalid report means the observation time is unknown; never substitute "now".
-  if (Number.isNaN(observedAt.getTime())) {
+  // Nuclei reports RFC 3339 timestamps. Lenient Date parsing would turn malformed or
+  // out-of-range text into a different instant, so an invalid report means the
+  // observation time is unknown; never substitute "now".
+  const observedAt = readDateTime(value);
+  if (observedAt === null) {
     warnUnusable(logger, lineNumber, "timestamp");
     return null;
   }
@@ -1454,7 +1467,7 @@ function readNullableText(
   lineNumber: number,
   logger: Logger,
 ): string | null {
-  return readTextValue(value, field, lineNumber, logger) ?? null;
+  return readText(value, field, (unusable) => warnUnusable(logger, lineNumber, unusable));
 }
 
 function readTextValue(
@@ -1463,16 +1476,11 @@ function readTextValue(
   lineNumber: number,
   logger: Logger,
 ): string | undefined {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  if (typeof value !== "string") {
-    warnUnusable(logger, lineNumber, field);
-    return undefined;
-  }
-  // Blank strings behave as absent, but nonblank values are returned verbatim
-  // so evidence, references, and target text keep their reported whitespace.
-  return value.trim().length === 0 ? undefined : value;
+  // Nonblank values are returned verbatim so evidence, references, and target
+  // text keep their reported whitespace.
+  return (
+    readText(value, field, (unusable) => warnUnusable(logger, lineNumber, unusable)) ?? undefined
+  );
 }
 
 function warnUnusable(logger: Logger, lineNumber: number, field: string) {
