@@ -1,17 +1,18 @@
-import { weaknessSchema } from "@exposurenexus/backend/findings";
 import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
-import type { Normalizer, ObservationCandidate } from "../classifier.js";
-import type { ObservationAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
-import type { Logger } from "pino";
+import {
+  isJsonObject,
+  isNonBlankString,
+  readCweIdentifier,
+  readSourceLocation,
+  renderCodeBlock,
+  renderEvidenceSection,
+} from "./shared.js";
 
-type JsonObject = Record<string, unknown>;
-type Diagnostics = (field: string) => void;
-type SourceCodeResource = Extract<
-  ObservationAffectedResource,
-  { type: AffectedResourceType.SourceCode }
->;
+import type { Normalizer, ObservationCandidate } from "../classifier.js";
+import type { Diagnostics, JsonObject, SourceLocation } from "./shared.js";
+import type { Logger } from "pino";
 
 const severities = new Map<string, VulnerabilitySeverity>([
   ["INFO", VulnerabilitySeverity.Low],
@@ -30,9 +31,9 @@ export class SemgrepJsonNormalizer implements Normalizer {
   public async normalize(bytes: Uint8Array, logger: Logger): Promise<ObservationCandidate[]> {
     let parsed: unknown;
     try {
-      parsed = JSON.parse(new TextDecoder("utf-8").decode(bytes));
+      parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
     } catch {
-      throw new Error("semgrep: invalid JSON");
+      throw new Error("semgrep: invalid JSON or UTF-8");
     }
     if (!isJsonObject(parsed)) {
       throw new Error("semgrep: document must be a JSON object");
@@ -68,8 +69,9 @@ export class SemgrepJsonNormalizer implements Normalizer {
       const warn: Diagnostics = (field) => {
         logger.warn({ sourceRecord, field }, "semgrep: ignoring unusable optional value");
       };
+      // Blank messages are unavailable rather than malformed.
       const description = isNonBlankString(extra.message) ? extra.message : null;
-      if (extra.message !== undefined && description === null) {
+      if (extra.message !== undefined && typeof extra.message !== "string") {
         warn("extra.message");
       }
       const severity =
@@ -94,6 +96,8 @@ export class SemgrepJsonNormalizer implements Normalizer {
         weakness: buildWeakness(ruleId, extra.metadata, warn),
         // Native Semgrep JSON supplies no authoritative scanned repository or revision.
         // Future ingestion context must supply them; paths and rule URLs cannot.
+        // Unlike Bearer's rule/file ordinal, the fingerprint hashes the rule, path, and matched
+        // code; its ordinal only separates otherwise identical matches, so it is location identity.
         affectedResource: {
           type: AffectedResourceType.SourceCode,
           file: path,
@@ -102,17 +106,15 @@ export class SemgrepJsonNormalizer implements Normalizer {
         },
         assetIdentifierCandidates: [],
         observedAt: null,
-        evidence:
-          snippet === undefined
-            ? null
-            : `<details><summary>Code Snippet</summary>\n\n${renderCodeBlock(snippet)}\n\n</details>`,
+        evidence: snippet === undefined ? null : renderEvidenceSection("Code Snippet", snippet),
         remediation:
           typeof fix !== "string"
             ? null
             : fix === ""
               ? "Suggested fix: delete the matched source range."
               : `Suggested fix: replace the matched source range with:\n\n${renderCodeBlock(fix)}`,
-        sourceMetadata: { provenance: { result, document } },
+        // Each candidate owns its provenance, so later edits cannot leak across the report.
+        sourceMetadata: { provenance: { result, document: structuredClone(document) } },
       });
     }
 
@@ -130,16 +132,6 @@ function readAvailableText(value: unknown, field: string, warn: Diagnostics): st
     return undefined;
   }
   return value;
-}
-
-function renderCodeBlock(content: string): string {
-  // Source backticks must not close the surrounding Markdown fence.
-  let length = 3;
-  for (const [match] of content.matchAll(/`+/gu)) {
-    length = Math.max(length, match.length + 1);
-  }
-  const fence = "`".repeat(length);
-  return `${fence}\n${content}\n${fence}`;
 }
 
 function buildWeakness(
@@ -175,19 +167,15 @@ function buildWeakness(
 
       // Descriptive labels must start with a CWE; prose and URLs are not classifications.
       const id = /^(CWE-\d+)\s*:/iu.exec(entry.trim())?.[1] ?? entry;
-      const parsed = weaknessSchema.safeParse({ identifiers: { cwe: [id] } });
-      if (!parsed.success) {
-        warn("extra.metadata.cwe");
-        continue;
-      }
-      for (const cwe of parsed.data.identifiers.cwe ?? []) {
+      const cwe = readCweIdentifier(id, "extra.metadata.cwe", warn);
+      if (cwe !== undefined) {
         cwes.add(cwe);
       }
     }
   }
 
   if (cwes.size > 0) {
-    identifiers.cwe = [...cwes].sort();
+    identifiers.cwe = [...cwes];
   }
   return {
     identifiers,
@@ -195,61 +183,25 @@ function buildWeakness(
   };
 }
 
-function readLocation(result: JsonObject, warn: Diagnostics): SourceCodeResource["location"] {
+function readLocation(result: JsonObject, warn: Diagnostics): SourceLocation | undefined {
   const start = readPosition(result.start, "start", warn);
   const end = readPosition(result.end, "end", warn);
-  if (start.line === undefined) {
-    return undefined;
-  }
-
-  const location: NonNullable<SourceCodeResource["location"]> = {
-    startLine: start.line,
-    ...(start.col === undefined ? {} : { startColumn: start.col }),
-  };
-  if (
-    (end.line !== undefined && end.line < start.line) ||
-    ((end.line === undefined || end.line === start.line) &&
-      start.col !== undefined &&
-      end.col !== undefined &&
-      end.col < start.col)
-  ) {
-    warn("end");
-    return location;
-  }
-
-  return {
-    ...location,
-    ...(end.line === undefined ? {} : { endLine: end.line }),
-    ...(end.col === undefined ? {} : { endColumn: end.col }),
-  };
+  return readSourceLocation(
+    {
+      startLine: { value: start.line, field: "start.line" },
+      startColumn: { value: start.col, field: "start.col" },
+      endLine: { value: end.line, field: "end.line" },
+      endColumn: { value: end.col, field: "end.col" },
+    },
+    warn,
+  );
 }
 
-function readPosition(
-  value: unknown,
-  field: string,
-  warn: Diagnostics,
-): { line?: number; col?: number } {
-  if (value === undefined) {
-    return {};
-  }
-  if (!isJsonObject(value)) {
+function readPosition(value: unknown, field: string, warn: Diagnostics): JsonObject {
+  if (value !== undefined && !isJsonObject(value)) {
     warn(field);
-    return {};
   }
-
-  const position: { line?: number; col?: number } = {};
-  for (const key of ["line", "col"] as const) {
-    const coordinate = value[key];
-    if (coordinate === undefined) {
-      continue;
-    }
-    if (typeof coordinate !== "number" || !Number.isInteger(coordinate) || coordinate <= 0) {
-      warn(`${field}.${key}`);
-      continue;
-    }
-    position[key] = coordinate;
-  }
-  return position;
+  return isJsonObject(value) ? value : {};
 }
 
 function summarizeDiagnostics(value: unknown, logger: Logger): void {
@@ -278,12 +230,4 @@ function summarizeDiagnostics(value: unknown, logger: Logger): void {
   } else {
     logger.info({ field: "errors", counts }, "semgrep: scanner diagnostics");
   }
-}
-
-function isJsonObject(value: unknown): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isNonBlankString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
 }

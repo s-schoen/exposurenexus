@@ -144,10 +144,18 @@ describe("SemgrepJsonNormalizer core input", () => {
       const log = logger();
       await expect(
         normalizer.normalize(new TextEncoder().encode(text), log as unknown as Logger),
-      ).rejects.toEqual(new Error("semgrep: invalid JSON"));
+      ).rejects.toEqual(new Error("semgrep: invalid JSON or UTF-8"));
       expect(log.warn).not.toHaveBeenCalled();
     },
   );
+
+  it("rejects invalid UTF-8 instead of replacing it", async () => {
+    const [before, after] = JSON.stringify({ results: [result({ path: "a|.js" })] }).split("|");
+    const invalid = Buffer.concat([Buffer.from(before), Buffer.from([0xff]), Buffer.from(after)]);
+    await expect(normalizer.normalize(invalid, logger() as unknown as Logger)).rejects.toEqual(
+      new Error("semgrep: invalid JSON or UTF-8"),
+    );
+  });
 
   it.each([null, [], "SECRET", 7, true])("rejects non-object roots (%#)", async (raw) => {
     await expect(normalize(raw)).rejects.toEqual(
@@ -203,6 +211,17 @@ describe("SemgrepJsonNormalizer core input", () => {
       expect(candidates[0].sourceMetadata).toEqual({ provenance: { result: raw, document } });
     },
   );
+
+  it("gives each candidate its own copy of the report provenance", async () => {
+    const document = { version: "1.0.0", engine_requested: { name: "OSS" } };
+    const { candidates } = await normalize({ ...document, results: [result(), result()] });
+    const [first, second] = candidates.map(
+      ({ sourceMetadata }) => (sourceMetadata.provenance as { document: unknown }).document,
+    );
+    expect(first).toEqual(document);
+    expect(second).toEqual(first);
+    expect(second).not.toBe(first);
+  });
 
   it("accepts an empty results array without other report fields", async () => {
     const { candidates, log } = await normalize({ results: [] });
@@ -281,7 +300,8 @@ describe("SemgrepJsonNormalizer candidate mapping", () => {
         results: [result({ extra: { severity: "HIGH", message } })],
       });
       expect(candidates[0].description).toBeNull();
-      if (message === undefined) {
+      // Blank messages are unavailable rather than malformed.
+      if (message === undefined || typeof message === "string") {
         expect(log.warn).not.toHaveBeenCalled();
       } else {
         expect(log.warn).toHaveBeenCalledExactlyOnceWith(
@@ -369,8 +389,9 @@ describe("SemgrepJsonNormalizer weakness enrichment", () => {
     [" 89 ", ["CWE-89"]],
     [
       ["CWE-353", "1357", "CWE-1357: Label", "cwe-353", "798"],
-      ["CWE-1357", "CWE-353", "CWE-798"],
+      ["CWE-353", "CWE-1357", "CWE-798"],
     ],
+    [["CWE-079: Label", "CWE-79", "079"], ["CWE-79"]],
   ])(
     "canonicalizes scalar/list classifications without changing originals (%#)",
     async (cwe, expected) => {
@@ -434,6 +455,8 @@ describe("SemgrepJsonNormalizer weakness enrichment", () => {
               "CWE-89SECRET: label",
               "CWE--89",
               "89: SECRET",
+              "CWE-0: SECRET label",
+              "CWE-000",
             ]
           : []),
       ];
@@ -751,8 +774,11 @@ describe("SemgrepJsonNormalizer locations", () => {
       });
       expect(candidates[1].affectedResource).not.toHaveProperty("location.startColumn");
       expect(candidates[1].affectedResource).not.toHaveProperty("location.endColumn");
-      expect(candidates[2].affectedResource).toMatchObject({
-        location: { startLine: 2, startColumn: 3, endColumn: 8 },
+      // The end column belongs to the unusable end line, not to the start line.
+      expect(candidates[2].affectedResource).toEqual({
+        type: "sourceCode",
+        file: "src/example.ts",
+        location: { startLine: 2, startColumn: 3 },
       });
       expect(log.warn.mock.calls.map(([context]) => context)).toEqual([
         { sourceRecord: "/results/0", field: "start.line" },
@@ -763,18 +789,22 @@ describe("SemgrepJsonNormalizer locations", () => {
     },
   );
 
-  it.each([{ line: 1, col: 99 }, { line: 2, col: 2 }, { col: 2 }])(
+  it.each([
+    [{ line: 1, col: 99 }, "end.line", {}],
+    [{ line: 2, col: 2 }, "end.col", { endLine: 2 }],
+    [{ col: 2 }, "end.col", {}],
+  ])(
     "retains the start rather than publishing a reversed range (%#)",
-    async (end) => {
+    async (end, field, validEnd) => {
       const raw = result({ end });
       const { candidates, log } = await normalize({ results: [raw] });
       expect(candidates[0].affectedResource).toEqual({
         type: "sourceCode",
         file: raw.path,
-        location: { startLine: 2, startColumn: 3 },
+        location: { startLine: 2, startColumn: 3, ...validEnd },
       });
       expect(log.warn).toHaveBeenCalledExactlyOnceWith(
-        { sourceRecord: "/results/0", field: "end" },
+        { sourceRecord: "/results/0", field },
         expect.any(String),
       );
       expect(candidates[0].sourceMetadata).toEqual({ provenance: { result: raw, document: {} } });
