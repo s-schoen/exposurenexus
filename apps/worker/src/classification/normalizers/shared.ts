@@ -38,7 +38,9 @@ export function renderCodeBlock(content: string): string {
 export function renderEvidenceSection(label: string, content: string): string {
   // Details/summary sections render through the UI markdown sanitizer, and the
   // fenced block keeps the reported bytes, including trailing blank lines, as-is.
-  return `<details><summary>${label}</summary>\n\n${renderCodeBlock(content)}\n\n</details>`;
+  // Labels may carry source text, which must not be read as summary HTML.
+  const summary = label.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  return `<details><summary>${summary}</summary>\n\n${renderCodeBlock(content)}\n\n</details>`;
 }
 
 /**
