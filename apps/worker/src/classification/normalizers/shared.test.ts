@@ -17,6 +17,12 @@ describe("renderCodeBlock", () => {
       "<details><summary>Response</summary>\n\n````\n```\n<script>\n\n````\n\n</details>",
     );
   });
+
+  it("escapes source text in the summary label", () => {
+    expect(renderEvidenceSection("</summary><script>&", "x")).toBe(
+      "<details><summary>&lt;/summary&gt;&lt;script&gt;&amp;</summary>\n\n```\nx\n```\n\n</details>",
+    );
+  });
 });
 
 describe("readCweIdentifier", () => {
