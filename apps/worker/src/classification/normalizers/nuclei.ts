@@ -7,7 +7,10 @@ import {
 import { AssetIdentifierType } from "@exposurenexus/contracts/model/asset-identifier";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
+import { isJsonObject, isNonBlankString, renderEvidenceSection } from "./shared.js";
+
 import type { Normalizer, ObservationCandidate } from "../classifier.js";
+import type { JsonObject } from "./shared.js";
 import type { ObservationAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
 import type { AssetIdentifier } from "@exposurenexus/contracts/model/asset-identifier";
 import type {
@@ -16,8 +19,6 @@ import type {
   Weakness,
 } from "@exposurenexus/contracts/model/weakness";
 import type { Logger } from "pino";
-
-type JsonObject = Record<string, unknown>;
 
 type WebEndpointResource = Extract<
   ObservationAffectedResource,
@@ -268,12 +269,6 @@ function buildEvidence(record: JsonObject, lineNumber: number, logger: Logger): 
   }
 
   return sections.length === 0 ? null : sections.join("\n\n");
-}
-
-function renderEvidenceSection(label: string, content: string): string {
-  // Details/summary sections render through the UI markdown sanitizer, and the
-  // fenced block keeps the reported bytes, including trailing blank lines, as-is.
-  return `<details><summary>${label}</summary>\n\n\`\`\`\n${content}\n\`\`\`\n\n</details>`;
 }
 
 function readExtractedResults(value: unknown, lineNumber: number, logger: Logger): string[] {
@@ -1478,14 +1473,6 @@ function readTextValue(
   // Blank strings behave as absent, but nonblank values are returned verbatim
   // so evidence, references, and target text keep their reported whitespace.
   return value.trim().length === 0 ? undefined : value;
-}
-
-function isJsonObject(value: unknown): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isNonBlankString(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
 }
 
 function warnUnusable(logger: Logger, lineNumber: number, field: string) {

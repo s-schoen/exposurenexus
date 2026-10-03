@@ -9,9 +9,11 @@ import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerabil
 
 import { uriSchema } from "../sarif/formats.js";
 import { parseSarif } from "../sarif/parser.js";
+import { readCweIdentifier, renderEvidenceSection } from "./shared.js";
 
 import type { Normalizer, ObservationCandidate } from "../classifier.js";
 import type { SarifDocument, SarifResult, SarifRule, SarifRun } from "../sarif/parser.js";
+import type { Diagnostics } from "./shared.js";
 import type { Logger } from "pino";
 
 // Reverse ZAP's risk-to-SARIF conversion: NOTE is RISK_LOW, NONE is RISK_INFO.
@@ -24,7 +26,6 @@ const severities = {
   none: VulnerabilitySeverity.Info,
 };
 
-type Diagnostics = (field: string) => void;
 type Subject = Pick<ObservationCandidate, "affectedResource" | "assetIdentifierCandidates">;
 type DocumentContext = Omit<SarifDocument, "runs">;
 type RunContext = Omit<SarifRun, "results">;
@@ -245,20 +246,13 @@ function readCweIdentifiers(
     }
 
     const id = relationship.target.id;
-    if (id === undefined || !/^\d+$/u.test(id) || !/[1-9]/u.test(id)) {
+    if (id === undefined || !/^\d+$/u.test(id)) {
       warn("relationships.target.id");
       continue;
     }
 
-    // Validate each optional enrichment separately so one bad value cannot
-    // poison a candidate when the classifier canonicalizes its identifiers.
-    const parsed = weaknessSchema.safeParse({ identifiers: { cwe: [`CWE-${id}`] } });
-    if (!parsed.success) {
-      warn("relationships.target.id");
-      continue;
-    }
-
-    for (const cwe of parsed.data.identifiers.cwe ?? []) {
+    const cwe = readCweIdentifier(`CWE-${id}`, "relationships.target.id", warn);
+    if (cwe !== undefined) {
       identifiers.add(cwe);
     }
   }
@@ -531,7 +525,7 @@ function appendEvidenceSection(sections: string[], label: string, value: unknown
   }
 
   // Match the Nuclei presentation, preserving multiline text and truncation markers.
-  sections.push(`<details><summary>${label}</summary>\n\n\`\`\`\n${content}\n\`\`\`\n\n</details>`);
+  sections.push(renderEvidenceSection(label, content));
 }
 
 function readArtifactEvidence(
