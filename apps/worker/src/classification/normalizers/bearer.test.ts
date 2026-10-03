@@ -110,7 +110,7 @@ describe("BearerJsonNormalizer fixture acceptance", () => {
     });
     expect(multiline?.evidence).toContain("...omitted (buffer value 3)");
     expect(log.warn).not.toHaveBeenCalled();
-    expect(input).toEqual(original);
+    expect(input.equals(original)).toBe(true);
   });
 });
 
@@ -352,7 +352,7 @@ describe("BearerJsonNormalizer jsonv2 envelope", () => {
     );
     expect(JSON.stringify(log.warn.mock.calls)).not.toContain(raw.errors[0].filename);
     expect(JSON.stringify(log.warn.mock.calls)).not.toContain(raw.errors[0].error);
-    expect(input).toEqual(original);
+    expect(input.equals(original)).toBe(true);
   });
 
   it("rejects a jsonv2 envelope without its required producer", async () => {

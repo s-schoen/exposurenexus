@@ -173,7 +173,7 @@ describe.each(["direct", "classifier"] as const)("KicsNormalizer %s", (mode) => 
     expect(duplicates[0][0].sourceRecord).not.toBe(duplicates[0][1].sourceRecord);
     expect(provenance(duplicates[0][0]).result).not.toEqual(provenance(duplicates[0][1]).result);
     expect(log.warn).not.toHaveBeenCalled();
-    expect(input).toEqual(original);
+    expect(input.equals(original)).toBe(true);
 
     const variant = structuredClone(raw);
     variant.queries[0].files[0].search_line = variant.queries[0].files[0].line + 100;

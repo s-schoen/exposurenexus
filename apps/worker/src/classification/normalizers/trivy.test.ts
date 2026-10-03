@@ -184,7 +184,7 @@ describe.each(["direct", "classifier"] as const)("TrivyNormalizer %s", (mode) =>
     expect(withOccurrences).toBe(81);
     expect(occurrenceCount).toBe(111);
     expect(log.warn).not.toHaveBeenCalled();
-    expect(input).toEqual(original);
+    expect(input.equals(original)).toBe(true);
   });
 
   it("maps minimal failures without invented context", async () => {
