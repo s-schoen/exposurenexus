@@ -1,5 +1,7 @@
 import { weaknessSchema } from "@exposurenexus/backend/findings";
 
+import { dateTimeSchema } from "../sarif/formats.js";
+
 import type {
   AffectedResourceType,
   ObservationAffectedResource,
@@ -23,6 +25,51 @@ export function isJsonObject(value: unknown): value is JsonObject {
 
 export function isNonBlankString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+/** Reads optional source text; null is absent, and blank text is dropped without a warning. */
+export function readText(value: unknown, field: string, warn: Diagnostics): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value !== "string") {
+    warn(field);
+    return null;
+  }
+  return isNonBlankString(value) ? value : null;
+}
+
+export function readObject(value: unknown, field: string, warn: Diagnostics): JsonObject {
+  if (value === undefined) {
+    return {};
+  }
+  if (isJsonObject(value)) {
+    return value;
+  }
+  warn(field);
+  return {};
+}
+
+export function readArray(value: unknown, field: string, warn: Diagnostics): unknown[] {
+  if (value === undefined) {
+    return [];
+  }
+  if (Array.isArray(value)) {
+    return value;
+  }
+  warn(field);
+  return [];
+}
+
+/** Parses an RFC 3339 timestamp, or returns null when it is not a representable instant. */
+export function readDateTime(value: unknown): Date | null {
+  const timestamp = dateTimeSchema.safeParse(value);
+  if (!timestamp.success) {
+    return null;
+  }
+  // Date cannot represent a leap second, so keep the instant at the preceding second.
+  const instant = new Date(timestamp.data.replace(/(?<=[Tt]\d{2}:\d{2}:)60/u, "59"));
+  return Number.isFinite(instant.getTime()) ? instant : null;
 }
 
 export function renderCodeBlock(content: string): string {

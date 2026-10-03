@@ -1,12 +1,13 @@
 import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
-import { dateTimeSchema } from "../sarif/formats.js";
 import {
   isJsonObject,
   isNonBlankString,
   readCoordinate,
   readCweIdentifier,
+  readDateTime,
+  readText,
   renderEvidenceSection,
 } from "./shared.js";
 
@@ -85,16 +86,8 @@ export class KicsNormalizer implements Normalizer {
     );
     let observedAt: Date | null = null;
     if (parsed.end !== undefined) {
-      const end = dateTimeSchema.safeParse(parsed.end);
-      // Date cannot represent a leap second, so keep the instant at the preceding second.
-      const instant = end.success
-        ? new Date(end.data.replace(/(?<=[Tt]\d{2}:\d{2}:)60/u, "59"))
-        : null;
-      if (
-        instant !== null &&
-        Number.isFinite(instant.getTime()) &&
-        instant.getTime() !== unsetInstant
-      ) {
+      const instant = readDateTime(parsed.end);
+      if (instant !== null && instant.getTime() !== unsetInstant) {
         observedAt = instant;
       } else {
         warnDocument("end");
@@ -196,17 +189,6 @@ export class KicsNormalizer implements Normalizer {
     }
     return candidates;
   }
-}
-
-function readText(value: unknown, field: string, warn: Diagnostics): string | null {
-  if (value === undefined || value === null) {
-    return null;
-  }
-  if (typeof value !== "string") {
-    warn(field);
-    return null;
-  }
-  return isNonBlankString(value) ? value : null;
 }
 
 function readCount(value: unknown, field: string, warn: Diagnostics): number | undefined {
