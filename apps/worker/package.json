@@ -5,6 +5,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch --env-file=.env src/index.ts | pino-pretty",
+    "eval:asset-matching": "tsx src/classification/evaluation/cli.ts",
     "start": "node dist/src/index.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage --reporter=default --reporter=junit --outputFile=coverage/test-results.junit.xml",

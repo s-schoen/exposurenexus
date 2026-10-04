@@ -17,6 +17,7 @@
     "dev:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api dev",
     "dev:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui dev",
     "dev:worker": "pnpm --filter @exposurenexus/worker^... build && pnpm --filter @exposurenexus/worker dev",
+    "eval:asset-matching": "pnpm --filter @exposurenexus/worker^... build && pnpm --filter @exposurenexus/worker eval:asset-matching",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "lint": "pnpm --filter @exposurenexus/contracts build && pnpm --filter @exposurenexus/jobs build && pnpm --filter @exposurenexus/backend build && oxlint .",
