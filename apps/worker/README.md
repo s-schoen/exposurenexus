@@ -43,3 +43,10 @@ stops new work and drains accepted reads before storage and database closure.
 Storage stays open if drain has not completed; the bounded shutdown deadline still
 forces a nonzero exit, leaving unfinished deliveries unacknowledged for redelivery.
 Compose allows 75 seconds around the default 60-second application deadline.
+
+## Asset Matcher Evaluation
+
+Use `pnpm eval:asset-matching` from the repository root for the standalone
+[asset matcher comparison harness](src/classification/evaluation/README.md).
+It is separate from ingestion and the default test suite; concrete matchers must
+be registered explicitly before comparisons can run.
