@@ -112,10 +112,14 @@ const stagingPortal = asset(
   ],
   { environment: AssetEnvironment.Staging },
 );
+const labPortal = asset(105, "Harbor portal lab", AssetType.Host, [
+  identifier(AssetIdentifierType.DnsName, "portal.lab.example.test"),
+  identifier(AssetIdentifierType.IpAddress, "192.0.2.50"),
+]);
 
 const network: InventoryScenario = {
   id: "network",
-  assets: [portal, gateway, legacyPortal, stagingPortal],
+  assets: [portal, gateway, legacyPortal, stagingPortal, labPortal],
   cases: [
     {
       id: "dns-and-ip-agree",
@@ -270,6 +274,41 @@ const network: InventoryScenario = {
       }),
       expected: { status: "unresolved", reason: "insufficient_evidence" },
     },
+    {
+      id: "short-hostname-expands-to-one-host",
+      // An intranet short name is partial DNS identity. Only one inventory hostname
+      // starts with this label; portal-staging is a different label, not a prefix match.
+      candidate: candidate("nuclei", "line:9", "http-security-headers", {
+        affectedResource: {
+          type: AffectedResourceType.WebEndpoint,
+          scheme: "http",
+          host: "gateway",
+          port: 80,
+          path: "/",
+          component: { kind: WebEndpointComponentKind.Endpoint },
+        },
+        assetIdentifierCandidates: [identifier(AssetIdentifierType.DnsName, "gateway")],
+        sourceMetadata: { type: "http", host: "gateway", "matched-at": "http://gateway/" },
+      }),
+      expected: { status: "matched", assetId: gateway.id },
+    },
+    {
+      id: "short-hostname-fits-several-hosts",
+      // Two inventory hostnames share the first label, so the short name stays ambiguous.
+      candidate: candidate("nuclei", "line:10", "http-security-headers", {
+        affectedResource: {
+          type: AffectedResourceType.WebEndpoint,
+          scheme: "http",
+          host: "portal",
+          port: 80,
+          path: "/",
+          component: { kind: WebEndpointComponentKind.Endpoint },
+        },
+        assetIdentifierCandidates: [identifier(AssetIdentifierType.DnsName, "portal")],
+        sourceMetadata: { type: "http", host: "portal", "matched-at": "http://portal/" },
+      }),
+      expected: { status: "unresolved", reason: "ambiguous" },
+    },
   ],
 };
 
@@ -293,10 +332,27 @@ const beaconImage = asset(203, "Beacon service", AssetType.ContainerImage, [
 const mirrorImage = asset(204, "Beacon service mirror", AssetType.ContainerImage, [
   identifier(AssetIdentifierType.OciImageName, "mirror.example.test/platform/beacon"),
 ]);
+const mirrorRepository = asset(
+  205,
+  "Beacon service mirror",
+  AssetType.Software,
+  [identifier(AssetIdentifierType.VcsRepository, "mirror.example.test/platform/beacon")],
+  { environment: AssetEnvironment.NotApplicable },
+);
+const lanternImage = asset(206, "Lantern worker", AssetType.ContainerImage, [
+  identifier(AssetIdentifierType.OciImageName, "registry.example.test/platform/lantern"),
+]);
 
 const repositoriesImages: InventoryScenario = {
   id: "repositories-images",
-  assets: [beaconRepository, lowercaseRepository, beaconImage, mirrorImage],
+  assets: [
+    beaconRepository,
+    lowercaseRepository,
+    beaconImage,
+    mirrorImage,
+    mirrorRepository,
+    lanternImage,
+  ],
   cases: [
     {
       id: "canonical-repository-identifier",
@@ -451,6 +507,50 @@ const repositoriesImages: InventoryScenario = {
       }),
       expected: { status: "unresolved", reason: "no_match" },
     },
+    {
+      id: "server-less-repository-path-unique",
+      // Synthetic owner/name repository context without a server. Path case is
+      // significant, so only the mixed-case Beacon repository fits.
+      candidate: candidate("semgrep", "/results/3", "typescript.security.unsafe-redirect", {
+        affectedResource: {
+          type: AffectedResourceType.SourceCode,
+          repository: "platform/Beacon",
+          file: "service/routes/redirect.ts",
+          location: { startLine: 24 },
+        },
+        sourceMetadata: { provenance: { result: { path: "service/routes/redirect.ts" } } },
+      }),
+      expected: { status: "matched", assetId: beaconRepository.id },
+    },
+    {
+      id: "server-less-repository-path-on-several-servers",
+      // The same lowercase path exists on the primary and mirror servers.
+      candidate: candidate("semgrep", "/results/4", "typescript.security.unsafe-redirect", {
+        affectedResource: {
+          type: AffectedResourceType.SourceCode,
+          repository: "platform/beacon",
+          file: "service/routes/redirect.ts",
+          location: { startLine: 24 },
+        },
+        sourceMetadata: { provenance: { result: { path: "service/routes/redirect.ts" } } },
+      }),
+      expected: { status: "unresolved", reason: "ambiguous" },
+    },
+    {
+      id: "registry-less-image-path-unique",
+      // Synthetic typed image context without a registry; only one registry hosts this path.
+      candidate: candidate("trivy", "/Results/0/Vulnerabilities/5", "CVE-2025-12345", {
+        affectedResource: {
+          type: AffectedResourceType.ContainerImage,
+          repository: "platform/lantern",
+          tag: "1.0.3",
+        },
+        sourceMetadata: {
+          provenance: { document: { ArtifactType: "container_image" } },
+        },
+      }),
+      expected: { status: "matched", assetId: lanternImage.id },
+    },
   ],
 };
 
@@ -484,6 +584,16 @@ const globalGateway = asset(306, "Shared gateway", AssetType.Host, [
   identifier(AssetIdentifierType.DnsName, "gateway.example.test"),
   identifier(AssetIdentifierType.IpAddress, "203.0.113.30"),
 ]);
+const ledgerDatabase = asset(307, "Ledger database", AssetType.Host, [
+  identifier(AssetIdentifierType.DnsName, "ledger.db.example.test", "vpc-a"),
+  identifier(AssetIdentifierType.IpAddress, "203.0.113.50", "vpc-a"),
+]);
+const batchRunnerA = asset(308, "Batch runner", AssetType.Host, [
+  identifier(AssetIdentifierType.IpAddress, "203.0.113.60", "vpc-a"),
+]);
+const batchRunnerB = asset(309, "Batch runner", AssetType.Host, [
+  identifier(AssetIdentifierType.IpAddress, "203.0.113.60", "vpc-b"),
+]);
 
 const cloudScoped: InventoryScenario = {
   id: "cloud-scoped",
@@ -494,6 +604,9 @@ const cloudScoped: InventoryScenario = {
     lowerScopeGateway,
     upperScopeGateway,
     globalGateway,
+    ledgerDatabase,
+    batchRunnerA,
+    batchRunnerB,
   ],
   cases: [
     {
@@ -647,6 +760,37 @@ const cloudScoped: InventoryScenario = {
         sourceMetadata: { type: "ssl", host: "gateway.example.test", ip: "203.0.113.30" },
       }),
       expected: { status: "unresolved", reason: "no_match" },
+    },
+    {
+      id: "unscoped-identifier-in-one-namespace",
+      // Normalizers cannot know namespaces, so null may mean unknown scope. With no
+      // global holder, the only namespaced holder of this address is selected.
+      candidate: candidate("nuclei", "line:5", "tls-version", {
+        affectedResource: {
+          type: AffectedResourceType.NetworkService,
+          host: "203.0.113.50",
+          port: 5432,
+          transport: "tcp",
+        },
+        assetIdentifierCandidates: [identifier(AssetIdentifierType.IpAddress, "203.0.113.50")],
+        sourceMetadata: { type: "tcp", ip: "203.0.113.50", "matched-at": "203.0.113.50:5432" },
+      }),
+      expected: { status: "matched", assetId: ledgerDatabase.id },
+    },
+    {
+      id: "unscoped-identifier-in-several-namespaces",
+      // Overlapping private networks reuse this address; unknown scope cannot choose.
+      candidate: candidate("nuclei", "line:6", "tls-version", {
+        affectedResource: {
+          type: AffectedResourceType.NetworkService,
+          host: "203.0.113.60",
+          port: 22,
+          transport: "tcp",
+        },
+        assetIdentifierCandidates: [identifier(AssetIdentifierType.IpAddress, "203.0.113.60")],
+        sourceMetadata: { type: "tcp", ip: "203.0.113.60", "matched-at": "203.0.113.60:22" },
+      }),
+      expected: { status: "unresolved", reason: "ambiguous" },
     },
   ],
 };

@@ -2,8 +2,8 @@
 
 Standalone comparison of `AssetMatcher` implementations on a controlled inventory
 and normalized candidates. It does not run normalizers, connect to the application
-database, or participate in worker ingestion. No concrete matchers are registered
-yet: the command reports this and exits nonzero without producing a report.
+database, or participate in worker ingestion. The deterministic `identifier` matcher
+(`../asset-classifiers/identifier-matcher.ts`) is the only registered offline matcher.
 
 ## Run
 
@@ -12,8 +12,8 @@ From the repository root:
 ```sh
 pnpm eval:asset-matching --help
 pnpm eval:asset-matching
-pnpm eval:asset-matching --matcher YOUR_MATCHER --scenario network
-pnpm eval:asset-matching --matcher YOUR_MATCHER --output evaluation-results/local.json
+pnpm eval:asset-matching --matcher identifier --scenario network
+pnpm eval:asset-matching --matcher identifier --output evaluation-results/local.json
 pnpm eval:asset-matching --matcher YOUR_LIVE_MATCHER --allow-network
 ```
 
@@ -58,15 +58,15 @@ setup/call failure messages; raw messages, stacks, and response bodies are omitt
 
 ## Corpus
 
-[scenarios.ts](scenarios.ts) contains 24 hand-authored, sanitized cases: 15 desired
-asset assignments and 9 unresolved outcomes. All five identifier types and all
+[scenarios.ts](scenarios.ts) contains 31 hand-authored, sanitized cases: 19 desired
+asset assignments and 12 unresolved outcomes. All five identifier types and all
 four unresolved reasons are represented.
 
-| Scenario              | Assets | Cases | Focus                                                                                                                 |
-| --------------------- | -----: | ----: | --------------------------------------------------------------------------------------------------------------------- |
-| `network`             |      4 |     8 | DNS/IP agreement, partial hits, conflicts, redirected context, archived assets, absent targets, insufficient evidence |
-| `repositories-images` |      4 |     8 | VCS/OCI identity, source/package context, case sensitivity, contextual inference, ambiguity                           |
-| `cloud-scoped`        |      6 |     8 | Cloud identities, account ambiguity, case-sensitive values/namespaces, global versus scoped identifiers               |
+| Scenario              | Assets | Cases | Focus                                                                                                                                       |
+| --------------------- | -----: | ----: | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `network`             |      5 |    10 | DNS/IP agreement, partial hits, conflicts, redirected context, archived assets, absent targets, insufficient evidence, short hostnames      |
+| `repositories-images` |      6 |    11 | VCS/OCI identity, source/package context, case sensitivity, contextual inference, ambiguity, server-less repositories, registry-less images |
+| `cloud-scoped`        |      9 |    10 | Cloud identities, account ambiguity, case-sensitive values/namespaces, global versus scoped identifiers, unscoped namespace fallback        |
 
 Field shapes are informed by the Nuclei, Semgrep, Trivy, and Checkov normalizers;
 source comments record provenance and label rationale. Explicit repository/cloud
@@ -114,5 +114,6 @@ benchmark or a statistically stable LLM evaluation. Dataset labels reward useful
 matches even where the matcher contract also permits abstention. There is no
 composite score, automatic winner, historical baseline comparison, or dashboard.
 
-Ordinary unit tests cover evaluator behavior using test-only fake matchers. They
-do not run this corpus, real matchers, paid calls, or performance thresholds.
+Evaluator unit tests use test-only fake matchers. Concrete matcher unit tests
+exercise their public matching interface separately. Neither runs this corpus,
+paid calls, or performance thresholds.
