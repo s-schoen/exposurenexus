@@ -198,6 +198,25 @@ an observation candidate's affected subject, not an established association with
 an inventory asset. All such identifiers describe that subject, without
 confidence scores or identifier roles.
 
+### Asset Matching
+
+**Asset matching** resolves one observation candidate to an existing inventory
+asset, including archived assets, or explicitly leaves it unresolved. Matching
+does not establish finding identity, persist an observation, create assets, or
+modify the candidate or inventory.
+
+Contextual evidence may establish a match without an exact identifier match, but
+display-name similarity alone is insufficient. Potential identifiers that resolve
+to different assets require an unresolved decision. When known identifiers resolve
+to only one asset, matching may select that asset or abstain, never select another.
+Additional identifiers with no inventory match do not automatically veto that
+asset and are never added to its inventory identifiers by matching.
+
+An **unresolved asset match** is a completed decision with insufficient evidence,
+no suitable inventory match despite sufficient identifying evidence, ambiguity
+among plausible assets, or conflicting identifiers. Every matching decision has
+an explanation; inability to execute matching is not an unresolved decision.
+
 ### Finding Assignee
 
 A **finding assignee** is the single user profile explicitly assigned to handle
