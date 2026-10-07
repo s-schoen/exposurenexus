@@ -118,6 +118,7 @@ describe.each(["direct", "classifier"] as const)("KicsNormalizer %s", (mode) => 
             ...(result.resource_name ? { symbol: result.resource_name } : {}),
           },
           assetIdentifierCandidates: [],
+          fingerprints: {},
           observedAt: new Date("2026-09-16T18:59:18.905Z"),
           evidence: `${renderEvidenceSection("Expected", result.expected_value)}\n\n${renderEvidenceSection("Actual", result.actual_value)}`,
           remediation: result.remediation
@@ -198,6 +199,7 @@ describe.each(["direct", "classifier"] as const)("KicsNormalizer %s", (mode) => 
         weakness: { identifiers: { kics: ["custom/rule:1"] } },
         affectedResource: { type: "sourceCode", file: "main.tf" },
         assetIdentifierCandidates: [],
+        fingerprints: {},
         observedAt: null,
         sourceMetadata: {
           provenance: {
@@ -435,6 +437,7 @@ describe.each(["direct", "classifier"] as const)("KicsNormalizer %s", (mode) => 
           references: ["https://example.test/query"],
         },
         assetIdentifierCandidates: [],
+        fingerprints: {},
       });
       expect(candidates[0].affectedResource).toEqual({
         type: "sourceCode",

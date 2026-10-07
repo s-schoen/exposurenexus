@@ -543,6 +543,8 @@ describe.each(["direct", "classifier"] as const)("Trivy packages %s", (mode) => 
       ghsa: ["GHSA-ABCD-2345-6789"],
     });
     expect(candidates[2].weakness.identifiers).toEqual({ trivy: ["CVE-invalid"] });
+    // The artifact-scoped Fingerprint changes with every rebuild, so only provenance keeps it.
+    expect(candidates[0].fingerprints).toEqual({});
     expect(provenance(candidates[0]).result).toEqual(item);
     expect(log.warn).toHaveBeenCalled();
     expect(JSON.stringify(log.warn.mock.calls)).not.toContain("SECRET");

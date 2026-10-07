@@ -607,6 +607,8 @@ describe("SemgrepJsonNormalizer evidence, fingerprints and fixes", () => {
       expect(observationAffectedResourceSchema.safeParse(candidate.affectedResource).success).toBe(
         true,
       );
+      // Location identity keeps the source text; observation fingerprints are canonicalized.
+      expect(candidate.fingerprints).toEqual({ semgrep: [fingerprint.trim()] });
       expect(candidate.sourceMetadata).toEqual({
         provenance: { result: records[index], document: {} },
       });
@@ -643,6 +645,7 @@ describe("SemgrepJsonNormalizer evidence, fingerprints and fixes", () => {
       expect(candidates[0].evidence).toBeNull();
       expect(candidates[0].remediation).toBeNull();
       expect(candidates[0].affectedResource).not.toHaveProperty("locationFingerprint");
+      expect(candidates[0].fingerprints).toEqual({});
       expect(candidates[0].description).toBe(result().extra.message);
       expect(candidates[0].sourceMetadata).toEqual({ provenance: { result: raw, document: {} } });
       expect(log.warn).not.toHaveBeenCalled();
@@ -696,10 +699,12 @@ describe("SemgrepJsonNormalizer evidence, fingerprints and fixes", () => {
         );
         if (field === "fingerprint") {
           expect(candidate.affectedResource).not.toHaveProperty("locationFingerprint");
+          expect(candidate.fingerprints).toEqual({});
         } else {
           expect(candidate.affectedResource).toMatchObject({
             locationFingerprint: extra.fingerprint,
           });
+          expect(candidate.fingerprints).toEqual({ semgrep: [extra.fingerprint] });
         }
       }
       expect(log.warn.mock.calls).toEqual(

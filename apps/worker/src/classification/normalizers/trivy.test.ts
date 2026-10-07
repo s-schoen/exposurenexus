@@ -146,6 +146,7 @@ describe.each(["direct", "classifier"] as const)("TrivyNormalizer %s", (mode) =>
           remediation: item.Resolution,
           observedAt: new Date("2026-09-16T18:57:33.949Z"),
           assetIdentifierCandidates: [],
+          fingerprints: {},
         });
         expect(weaknessSchema.parse(candidate.weakness)).toEqual(
           weaknessSchema.parse({
@@ -199,6 +200,7 @@ describe.each(["direct", "classifier"] as const)("TrivyNormalizer %s", (mode) =>
         weakness: { identifiers: { trivy: ["custom/rule:1"] } },
         affectedResource: { type: "sourceCode", file: "main.tf" },
         assetIdentifierCandidates: [],
+        fingerprints: {},
         observedAt: null,
         evidence: null,
         remediation: null,
@@ -532,6 +534,7 @@ describe.each(["direct", "classifier"] as const)("TrivyNormalizer %s", (mode) =>
         description: " full\r\n description \n",
         remediation: " fix \n",
         assetIdentifierCandidates: [],
+        fingerprints: {},
       });
       expect(candidates[0].affectedResource).toEqual({
         type: "sourceCode",

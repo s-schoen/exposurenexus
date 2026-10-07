@@ -212,6 +212,7 @@ function normalizeRecord(
     affectedResource: subject.affectedResource,
     observedAt: readObservedAt(record.timestamp, lineNumber, logger),
     assetIdentifierCandidates: subject.assetIdentifierCandidates,
+    fingerprints: {},
     // The whole parsed record is kept verbatim: duplicating mapped fields is
     // cheap, while unmapped fields, unusable originals, tag/author context, and
     // original target details must all survive under their original names.

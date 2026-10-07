@@ -6,7 +6,10 @@ import type { EvaluationDataset, InventoryScenario } from "./evaluate.js";
 
 const dataDirectory = new URL("./data/", import.meta.url);
 
-/** Restores the Date fields JSON stores as strings; the evaluator validates the rest. */
+/**
+ * Restores the Date fields JSON stores as strings and the empty fingerprints the snapshots
+ * predate; the evaluator validates the rest.
+ */
 function reviveDates(scenario: InventoryScenario): InventoryScenario {
   return {
     ...scenario,
@@ -19,6 +22,7 @@ function reviveDates(scenario: InventoryScenario): InventoryScenario {
       ...entry,
       candidate: {
         ...entry.candidate,
+        fingerprints: {},
         observedAt:
           entry.candidate.observedAt === null ? null : new Date(entry.candidate.observedAt),
       },

@@ -177,6 +177,7 @@ export class KicsNormalizer implements Normalizer {
                     : `Suggested remediation (${remediationType})`,
                   remediation,
                 ),
+          fingerprints: {},
           sourceMetadata: {
             provenance: {
               result,

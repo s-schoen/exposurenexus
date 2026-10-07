@@ -172,6 +172,7 @@ function normalizeResult(
     evidence: buildEvidence(result, warn),
     // ZAP supplies no detection time; HTTP dates describe the exchange instead.
     observedAt: null,
+    fingerprints: {},
     sourceMetadata: {
       // Each candidate owns its provenance, so later edits cannot leak across the report.
       provenance: structuredClone({

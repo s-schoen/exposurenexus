@@ -95,7 +95,8 @@ verbatim scan records. Changes to normalizers do not regenerate this corpus.
 
 The `replay`, `generated`, and `heldout` suites are frozen snapshots in
 [data/](data), one JSON file per scenario holding a serialized `InventoryScenario`.
-Dates are stored as ISO strings and restored on load; everything else is validated
+Dates are stored as ISO strings and restored on load. Snapshot candidates predate
+source fingerprints and load with empty `fingerprints`. Everything else is validated
 like the edge suite. Each case's `note` explains its labels. Snapshots are never
 regenerated: like the edge corpus, they do not follow later normalizer changes.
 

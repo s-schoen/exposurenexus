@@ -3,7 +3,7 @@ import { performance } from "node:perf_hooks";
 import { isDeepStrictEqual } from "node:util";
 
 import { assetIdentifierSchema } from "@exposurenexus/backend/assets";
-import { weaknessSchema } from "@exposurenexus/backend/findings";
+import { fingerprintsSchema, weaknessSchema } from "@exposurenexus/backend/findings";
 import {
   AffectedResourceType,
   observationAffectedResourceSchema,
@@ -121,6 +121,7 @@ const candidateSchema = z.strictObject({
   affectedResource: observationAffectedResourceSchema,
   observedAt: z.date().nullable(),
   assetIdentifierCandidates: z.array(assetIdentifierSchema),
+  fingerprints: fingerprintsSchema,
   sourceMetadata: z.record(z.string(), z.unknown()),
 }) satisfies z.ZodType<ObservationCandidate>;
 

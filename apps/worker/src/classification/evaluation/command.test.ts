@@ -35,6 +35,7 @@ const dataset: EvaluationDataset = {
             assetIdentifierCandidates: [
               { type: AssetIdentifierType.DnsName, namespace: null, value: "absent.example.test" },
             ],
+            fingerprints: {},
             sourceMetadata: { private: "private-metadata" },
           },
         },

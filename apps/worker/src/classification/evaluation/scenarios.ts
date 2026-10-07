@@ -79,6 +79,7 @@ function candidate(
     affectedResource: { type: AffectedResourceType.Unspecified },
     observedAt: null,
     assetIdentifierCandidates: [],
+    fingerprints: {},
     sourceMetadata: {},
     ...fields,
   };

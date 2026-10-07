@@ -43,6 +43,7 @@ function candidate(overrides: Partial<ObservationCandidate> = {}): ObservationCa
     assetIdentifierCandidates: [
       { type: AssetIdentifierType.DnsName, namespace: null, value: "example.com" },
     ],
+    fingerprints: {},
     sourceMetadata: { "template-id": "example-template" },
     ...overrides,
   };
@@ -169,6 +170,31 @@ describe("Classifier", () => {
 
     expect(result).toEqual([]);
     expect(logger.warn).toHaveBeenCalledExactlyOnceWith({ source: "nuclei" }, expect.any(String));
+  });
+
+  it("canonicalizes source fingerprints from a normalizer", async () => {
+    const { classifier } = createClassifier();
+    const { normalizer, normalize } = createNormalizer();
+    classifier.registerNormalizer("nuclei", normalizer);
+    normalize.mockResolvedValue([
+      candidate({ fingerprints: { Semgrep: [" b_0 ", "a_0", "b_0"], bearer: [] } }),
+    ]);
+
+    const [result] = await classifier.normalize("nuclei", scanData);
+
+    expect(result?.fingerprints).toEqual({ semgrep: ["a_0", "b_0"] });
+  });
+
+  it("skips candidates with invalid fingerprints", async () => {
+    const { classifier, logger } = createClassifier();
+    const { normalizer, normalize } = createNormalizer();
+    classifier.registerNormalizer("nuclei", normalizer);
+    normalize.mockResolvedValue([candidate({ fingerprints: { "sarif/v1": ["abc"] } })]);
+
+    const result = await classifier.normalize("nuclei", scanData);
+
+    expect(result).toEqual([]);
+    expect(logger.warn).toHaveBeenCalledOnce();
   });
 
   it("skips the whole asset identifier array when one element is invalid", async () => {
