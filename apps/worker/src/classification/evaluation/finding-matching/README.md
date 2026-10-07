@@ -1,16 +1,18 @@
 # Finding Matcher Evaluation
 
 The `finding-matching` kind of the [matcher evaluation harness](../README.md), comparing
-`FindingMatcher` implementations with `pnpm eval:finding-matching`. No matcher is
-registered yet, so a run without one fails with "No offline matchers are registered";
-`--help` lists the scenarios.
+`FindingMatcher` implementations with `pnpm eval:finding-matching`. The deterministic
+`identity` matcher (`../../finding-classifiers/identity-matcher.ts`) is the only
+registered offline matcher; it scores 24 of 24 edge candidates. `--help` lists the
+scenarios.
 
 ## Fixtures
 
 A scenario holds assets, the existing findings on them, and those findings'
 observations. Factories in [matchers.ts](matchers.ts) receive a cloned
 `{ assets, findings, observations }` fixture and adapt it to the implementation's own
-read-only finding dependencies.
+read-only finding dependencies; the `identity` factory lists an asset's findings with
+their observations' fingerprints merged per finding.
 
 - Findings are `findingRecordSchema` records: finding-owned identity (`weakness`,
   finding `affectedResource`) and workflow (`status`), without catalog joins or

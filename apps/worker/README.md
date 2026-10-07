@@ -49,5 +49,5 @@ Compose allows 75 seconds around the default 60-second application deadline.
 Use `pnpm eval:asset-matching` or `pnpm eval:finding-matching` from the repository
 root for the standalone [matcher comparison harness](src/classification/evaluation/README.md).
 It is separate from ingestion and the default test suite. The offline `identifier`
-asset matcher is registered; no finding matcher exists yet, and worker pipeline
+asset matcher and `identity` finding matcher are registered; worker pipeline
 integration remains deferred.
