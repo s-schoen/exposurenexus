@@ -44,9 +44,10 @@ Storage stays open if drain has not completed; the bounded shutdown deadline sti
 forces a nonzero exit, leaving unfinished deliveries unacknowledged for redelivery.
 Compose allows 75 seconds around the default 60-second application deadline.
 
-## Asset Matcher Evaluation
+## Matcher Evaluation
 
-Use `pnpm eval:asset-matching` from the repository root for the standalone
-[asset matcher comparison harness](src/classification/evaluation/README.md).
-It is separate from ingestion and the default test suite. The offline
-`identifier` matcher is registered; worker pipeline integration remains deferred.
+Use `pnpm eval:asset-matching` or `pnpm eval:finding-matching` from the repository
+root for the standalone [matcher comparison harness](src/classification/evaluation/README.md).
+It is separate from ingestion and the default test suite. The offline `identifier`
+asset matcher is registered; no finding matcher exists yet, and worker pipeline
+integration remains deferred.

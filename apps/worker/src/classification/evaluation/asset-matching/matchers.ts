@@ -1,5 +1,5 @@
-import { identifierInventoryFrom } from "../asset-classifiers/asset-inventory-adapter.js";
-import { IdentifierAssetMatcher } from "../asset-classifiers/identifier-matcher.js";
+import { identifierInventoryFrom } from "../../asset-classifiers/asset-inventory-adapter.js";
+import { IdentifierAssetMatcher } from "../../asset-classifiers/identifier-matcher.js";
 
 import type { MatcherFactory } from "./evaluate.js";
 

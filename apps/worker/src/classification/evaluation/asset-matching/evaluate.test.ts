@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { evaluateAssetMatchers } from "./evaluate.js";
 
-import type { AssetMatchResult } from "../asset-matcher.js";
+import type { AssetMatchResult } from "../../asset-matcher.js";
 import type { EvaluationCase, EvaluationDataset, ExpectedAssetMatch } from "./evaluate.js";
 import type { Asset } from "@exposurenexus/contracts/model/asset";
 
