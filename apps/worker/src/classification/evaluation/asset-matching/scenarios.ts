@@ -10,12 +10,12 @@ import {
 } from "@exposurenexus/contracts/model/asset";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
-import type { ObservationCandidate } from "../classifier.js";
+import type { ObservationCandidate } from "../../classifier.js";
 import type { EvaluationDataset, InventoryScenario } from "./evaluate.js";
 import type { Asset, AssetIdentifier } from "@exposurenexus/contracts/model/asset";
 
 // Hand-authored matcher inputs, not copied scanner records or normalizer replays.
-// Field provenance: ../normalizers/nuclei.ts (normalizeRecord/mapSubject),
+// Field provenance: ../../normalizers/nuclei.ts (normalizeRecord/mapSubject),
 // nuclei.test.ts (subject IP attribution and redirects), semgrep.ts and
 // semgrep.test.ts (source locations and empty identifiers), trivy.ts and
 // trivy-packages.test.ts (package resources and report provenance), checkov.ts

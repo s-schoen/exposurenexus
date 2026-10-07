@@ -7,9 +7,12 @@ import { AssetIdentifierType } from "@exposurenexus/contracts/model/asset-identi
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { assetMatching } from "./asset-matching/evaluate.js";
 import { runEvaluationCommand } from "./command.js";
+import { findingMatching } from "./finding-matching/evaluate.js";
+import { dataset as findingDataset } from "./finding-matching/scenarios.js";
 
-import type { EvaluationDataset, MatcherFactory } from "./evaluate.js";
+import type { EvaluationDataset, MatcherFactory } from "./asset-matching/evaluate.js";
 
 const dataset: EvaluationDataset = {
   id: "command-test",
@@ -77,7 +80,12 @@ describe("runEvaluationCommand", () => {
           }),
         },
       ];
-      const exitCode = await runEvaluationCommand(["--output", output], dataset, factories);
+      const exitCode = await runEvaluationCommand(
+        ["--output", output],
+        assetMatching,
+        dataset,
+        factories,
+      );
       expect(exitCode).toBe(fails ? 1 : 0);
       const text = await readFile(output, "utf8");
       const report = JSON.parse(text);
@@ -111,7 +119,12 @@ describe("runEvaluationCommand", () => {
     }));
     const factories: MatcherFactory[] = [{ id: "live", requiresNetwork: true, create }];
     await expect(
-      runEvaluationCommand(["--matcher", "live", "--output", output], dataset, factories),
+      runEvaluationCommand(
+        ["--matcher", "live", "--output", output],
+        assetMatching,
+        dataset,
+        factories,
+      ),
     ).rejects.toThrow(/network/i);
     expect(create).not.toHaveBeenCalled();
     await expect(readFile(output)).rejects.toMatchObject({ code: "ENOENT" });
@@ -128,6 +141,7 @@ describe("runEvaluationCommand", () => {
           "--output",
           output,
         ],
+        assetMatching,
         dataset,
         factories,
       ),
@@ -146,26 +160,46 @@ describe("runEvaluationCommand", () => {
     }));
     const factories: MatcherFactory[] = [{ id: "example", requiresNetwork: false, create }];
     await expect(
-      runEvaluationCommand(["--repetitions", "2", "--output", output], dataset, factories),
+      runEvaluationCommand(
+        ["--repetitions", "2", "--output", output],
+        assetMatching,
+        dataset,
+        factories,
+      ),
     ).rejects.toThrow(/repetitions/);
     await expect(
-      runEvaluationCommand(["--scenario", "unknown", "--output", output], dataset, factories),
+      runEvaluationCommand(
+        ["--scenario", "unknown", "--output", output],
+        assetMatching,
+        dataset,
+        factories,
+      ),
     ).rejects.toThrow(/unknown scenario/i);
-    await expect(runEvaluationCommand(["--output", output], dataset, [])).rejects.toThrow(
-      /no offline matchers/i,
-    );
+    await expect(
+      runEvaluationCommand(["--output", output], assetMatching, dataset, []),
+    ).rejects.toThrow(/no offline matchers/i);
     await expect(readFile(output)).rejects.toMatchObject({ code: "ENOENT" });
     await writeFile(output, "previous-report");
     await expect(
-      runEvaluationCommand(["--output", output], dataset, factories),
+      runEvaluationCommand(["--output", output], assetMatching, dataset, factories),
     ).rejects.toMatchObject({ code: "EEXIST" });
     expect(await readFile(output, "utf8")).toBe("previous-report");
     expect(create).not.toHaveBeenCalled();
   });
 
   it("shows available scenarios without running a matcher", async () => {
-    expect(await runEvaluationCommand(["--help"], dataset, [])).toBe(0);
+    expect(await runEvaluationCommand(["--help"], assetMatching, dataset, [])).toBe(0);
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining("Scenarios: network"));
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining("(none registered)"));
+  });
+
+  it("names usage after the matcher kind", async () => {
+    expect(await runEvaluationCommand(["--help"], findingMatching, findingDataset, [])).toBe(0);
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining("Usage: pnpm eval:finding-matching"),
+    );
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining("container-packages (edge), source-code (edge)"),
+    );
   });
 });

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { loadDataset } from "./dataset.js";
 import { evaluateAssetMatchers } from "./evaluate.js";
 
-import type { AssetMatchResult } from "../asset-matcher.js";
+import type { AssetMatchResult } from "../../asset-matcher.js";
 
 const abstain = {
   id: "abstain",
