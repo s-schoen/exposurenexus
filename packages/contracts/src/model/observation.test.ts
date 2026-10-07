@@ -17,6 +17,7 @@ const observation = {
   severity: VulnerabilitySeverity.Medium,
   weakness: { identifiers: {} },
   affectedResource: { type: AffectedResourceType.Unspecified },
+  fingerprints: {},
   observedAt: new Date("2026-08-17T10:00:00.000Z"),
   createdAt: new Date("2026-08-17T10:00:00.000Z"),
   updatedAt: new Date("2026-08-17T10:00:00.000Z"),
@@ -36,6 +37,18 @@ describe("observation provenance", () => {
         ingestionId: "40b71ac1-b003-46b4-a1fc-8e8d384dd140",
       }),
     ).toThrow();
+  });
+});
+
+describe("observation fingerprints", () => {
+  it("exposes namespaced source fingerprints on observations", () => {
+    expect(
+      observationSchema.parse({ ...observation, fingerprints: { semgrep: ["abc_0"] } }),
+    ).toMatchObject({ fingerprints: { semgrep: ["abc_0"] } });
+  });
+
+  it("requires a fingerprint record", () => {
+    expect(() => observationSchema.parse({ ...observation, fingerprints: undefined })).toThrow();
   });
 });
 
@@ -67,6 +80,7 @@ describe("manual observation input schema", () => {
     ["updatedAt", new Date()],
     ["createdBy", "85196743-cfba-4afb-b286-d36be32a64a4"],
     ["updatedBy", "85196743-cfba-4afb-b286-d36be32a64a4"],
+    ["fingerprints", { semgrep: ["abc_0"] }],
   ])("rejects the server-owned %s field", (field, value) => {
     expect(() => manualObservationInputSchema.parse({ [field]: value })).toThrow();
   });
@@ -118,6 +132,7 @@ describe("observation update schema", () => {
     ["updatedAt", new Date()],
     ["createdBy", "85196743-cfba-4afb-b286-d36be32a64a4"],
     ["updatedBy", "85196743-cfba-4afb-b286-d36be32a64a4"],
+    ["fingerprints", { semgrep: ["abc_0"] }],
   ])("rejects immutable %s fields", (field, value) => {
     expect(() => updateObservationSchema.parse({ title: "Correction", [field]: value })).toThrow();
   });

@@ -3,6 +3,7 @@ import { observationSchema, type Observation } from "@exposurenexus/contracts/mo
 import { weaknessSchema } from "@exposurenexus/contracts/model/weakness";
 
 import { getFindingProjectionByID } from "./finding-projection.js";
+import { fingerprintsSchema } from "./fingerprint-rules.js";
 
 import type { DatabaseExecutor } from "../../database/executor.js";
 import type { ObservationTable } from "./observation-table.js";
@@ -91,6 +92,7 @@ function normalizedObservationValues(
     ...observation,
     weakness: weaknessSchema.parse(observation.weakness),
     affectedResource: observationAffectedResourceSchema.parse(observation.affectedResource),
+    fingerprints: fingerprintsSchema.parse(observation.fingerprints),
   };
 }
 

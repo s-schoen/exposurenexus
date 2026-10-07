@@ -169,8 +169,8 @@ not call a finding an issue unless referring to the project issue tracker.
 
 An **observation** is a scanner or manual detection record attached to exactly
 one finding. It carries source context such as its title, source, severity,
-description, evidence, remediation, weakness, affected resource, and observed
-time. It inherits its canonical asset through its finding and does not link
+description, evidence, remediation, weakness, affected resource, source
+fingerprints, and observed time. It inherits its canonical asset through its finding and does not link
 directly to vulnerability catalog entries.
 
 Observations have no lifecycle status. Correct an inaccurate observation by
@@ -190,6 +190,17 @@ establish sufficient identity for matching.
 A **source record locator** identifies a record within one source file using
 parser-defined conventions. It is not cross-scan identity; candidates produced
 from the same record share its locator.
+
+### Source Fingerprint
+
+A **source fingerprint** is an opaque value a scanner reports to recognize the
+same detection across rescans, stored on observation candidates and observations
+under a source namespace such as `semgrep`. Fingerprints compare only within one
+namespace. Findings carry none; finding matching reaches them through a finding's
+observations. Only values that stay stable across rescans are recorded: Bearer's
+occurrence ordinals and Trivy's artifact-scoped fingerprints remain provenance.
+Source fingerprints are read-only and distinct from a source code affected
+resource's location fingerprint, which the finding owns and users may edit.
 
 ### Potential Asset Identifier
 
@@ -549,6 +560,8 @@ high exposure, affected assets, and mitigation rate.
   finding.
 - Say **vulnerability** for the reusable catalog entry.
 - Say **weakness** for the security problem independent of catalog enrichment.
+- Say **source fingerprint** for scanner-reported rescan identity on an
+  observation; say **location fingerprint** only for the affected resource field.
 - Say **affected resource** for the typed part of an asset involved in a
   finding or observation.
 - Say **asset display name** for an asset's human-readable label; do not call it

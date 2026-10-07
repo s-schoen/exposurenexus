@@ -72,6 +72,7 @@ const observation: Observation = {
   severity: finding.severity,
   weakness: finding.weakness,
   affectedResource: finding.affectedResource,
+  fingerprints: {},
   observedAt: timestamp,
   createdAt: timestamp,
   updatedAt: timestamp,

@@ -1,5 +1,8 @@
 import type { ObservationAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
-import type { ObservationSource } from "@exposurenexus/contracts/model/observation";
+import type {
+  ObservationFingerprints,
+  ObservationSource,
+} from "@exposurenexus/contracts/model/observation";
 import type { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import type { Weakness } from "@exposurenexus/contracts/model/weakness";
 import type { Generated } from "kysely";
@@ -16,6 +19,7 @@ export interface ObservationTable {
   severity: VulnerabilitySeverity;
   weakness: Weakness;
   affectedResource: ObservationAffectedResource;
+  fingerprints: ObservationFingerprints;
   observedAt: Date;
   createdAt: Date;
   updatedAt: Date;

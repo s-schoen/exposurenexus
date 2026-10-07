@@ -16,6 +16,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDatabase } from "./factory.js";
 import { createMigrationProvider, migrateToLatest } from "./migration.js";
 
+import type { ObservationTable } from "../features/findings/observation-table.js";
+import type { Insertable } from "kysely";
+
 describe("migration runner", () => {
   afterEach(() => vi.restoreAllMocks());
 
@@ -112,6 +115,7 @@ describe("database migration preservation", () => {
           .executeTakeFirstOrThrow();
         const observation = await database
           .insertInto("observation")
+          // This schema predates observation fingerprints.
           .values({
             findingId: finding.id,
             ingestionId: null,
@@ -123,7 +127,7 @@ describe("database migration preservation", () => {
             affectedResource: finding.affectedResource,
             observedAt: new Date("2026-09-12T09:00:00.000Z"),
             ...audit,
-          })
+          } as Insertable<ObservationTable>)
           .returningAll()
           .executeTakeFirstOrThrow();
         const source = await database
@@ -209,7 +213,7 @@ describe("database migration preservation", () => {
         expect(await database.selectFrom("ingestion").selectAll().execute()).toEqual([ingestion]);
         expect(await database.selectFrom("finding").selectAll().execute()).toEqual([finding]);
         expect(await database.selectFrom("observation").selectAll().execute()).toEqual([
-          observation,
+          { ...observation, fingerprints: {} },
         ]);
         expect(
           await database.selectFrom("import_source").selectAll().orderBy("id").execute(),
@@ -264,6 +268,7 @@ const expectedMigrationNames = [
   "20260914-import-source-scanner",
   "20260915-import-source-upload-attempt",
   "20260918-remove-nuclei-source",
+  "20261007-observation-fingerprints",
 ];
 
 // Forward-only migration history prevents renaming this already-applied file set.
