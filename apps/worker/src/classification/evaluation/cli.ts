@@ -1,9 +1,9 @@
 import { runEvaluationCommand } from "./command.js";
+import { loadDataset } from "./dataset.js";
 import { matchers } from "./matchers.js";
-import { dataset } from "./scenarios.js";
 
 try {
-  process.exitCode = await runEvaluationCommand(process.argv.slice(2), dataset, matchers);
+  process.exitCode = await runEvaluationCommand(process.argv.slice(2), loadDataset, matchers);
 } catch (error) {
   console.error(error instanceof Error ? error.message : "Evaluation failed.");
   process.exitCode = 1;

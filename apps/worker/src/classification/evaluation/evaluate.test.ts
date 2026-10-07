@@ -163,7 +163,7 @@ describe("evaluateAssetMatchers", () => {
       { id: "example", requiresNetwork: false, create },
     ]);
 
-    expect(report.matchers[0].summary).toEqual({
+    expect(report.matchers[0].summary).toMatchObject({
       cases: 6,
       expectedMatches: 4,
       correctAssignments: 1,
@@ -426,5 +426,141 @@ describe("evaluateAssetMatchers", () => {
     });
     expect(selected.matchers[0].scenarios).toHaveLength(1);
     expect(selected.dataset.sha256).toBe(report.dataset.sha256);
+  });
+
+  it("separates evidence-correct decisions from real-world coverage", async () => {
+    const otherAsset: Asset = {
+      ...structuredClone(asset),
+      id: otherAssetId,
+      identifiers: [
+        {
+          ...asset.identifiers[0],
+          id: "00000000-0000-4000-8000-000000000005",
+          value: "other.test",
+        },
+      ],
+    };
+    const input = dataset([
+      { ...testCase("exact", { status: "matched", assetId }), weight: 10 },
+      {
+        // Inventory drift: the evidence correctly selects the other asset.
+        ...testCase("stale", { status: "matched", assetId: otherAssetId }),
+        truthAssetId: assetId,
+        tags: ["drift:stale-ip"],
+        weight: 3,
+      },
+      {
+        ...testCase("loopback", { status: "unresolved", reason: "insufficient_evidence" }),
+        truthAssetId: assetId,
+        acceptable: [{ status: "unresolved", reason: "no_match" }],
+        tags: ["alias:scan-endpoint"],
+        weight: 5,
+      },
+      {
+        ...testCase("alias", { status: "matched", assetId }),
+        knownGap: "Docker Hub short names are not expanded.",
+        tags: ["alias:dockerhub"],
+      },
+      testCase("regression", { status: "unresolved", reason: "ambiguous" }),
+    ]);
+    input.scenarios[0].assets.push(otherAsset);
+    const decisions: AssetMatchResult[] = [
+      { status: "matched", assetId, explanation: "Exact." },
+      { status: "matched", assetId: otherAssetId, explanation: "Stale." },
+      { status: "unresolved", reason: "no_match", explanation: "Permitted." },
+      { status: "unresolved", reason: "no_match", explanation: "Gap." },
+      { status: "unresolved", reason: "no_match", explanation: "Wrong reason." },
+    ];
+    const report = await evaluateAssetMatchers(input, [
+      {
+        id: "example",
+        requiresNetwork: false,
+        create: () => ({ match: async () => decisions.shift()! }),
+      },
+    ]);
+    const [scenario] = report.matchers[0].scenarios;
+    const { summary } = scenario;
+
+    expect(scenario.cases.map((entry) => entry.outcome)).toEqual([
+      "correct_assignment",
+      "correct_assignment",
+      "acceptable_alternative",
+      "missed_match",
+      "incorrect_unresolved_reason",
+    ]);
+    expect(summary).toMatchObject({ cases: 5, assignmentPrecision: 1, coverage: 1 / 4 });
+    expect(summary.weighted).toMatchObject({
+      candidates: 20,
+      correctAssignments: 13,
+      acceptableAlternatives: 5,
+      // Real subjects: exact (10), stale (3), loopback (5), alias (1); only exact is covered.
+      coverage: 10 / 19,
+      misattributionRate: 3 / 20,
+      wrongAssignmentRate: 0,
+    });
+    expect(summary.confusion).toEqual({
+      matched: { matched: 13, no_match: 1 },
+      insufficient_evidence: { no_match: 5 },
+      ambiguous: { no_match: 1 },
+    });
+    expect(summary.tags["drift:stale-ip"]).toMatchObject({
+      candidates: 3,
+      misattributed: 3,
+      uncovered: 3,
+    });
+    expect(summary.tags["evidence:none"]).toMatchObject({ cases: 5, candidates: 20 });
+    expect(summary.tags["source:nuclei"]).toMatchObject({ cases: 5 });
+    expect(summary.knownGaps).toEqual({
+      "Docker Hub short names are not expanded.": { open: 1, closed: 0, candidates: 1 },
+    });
+    expect(summary.unexpectedFailures).toEqual(["network/regression"]);
+  });
+
+  it("runs held-out scenarios only when selected", async () => {
+    const input = dataset([testCase("edge-case", { status: "matched", assetId })]);
+    input.scenarios.push({
+      id: "blind",
+      suite: "heldout",
+      assets: [structuredClone(asset)],
+      cases: [testCase("held-out-case", { status: "matched", assetId })],
+    });
+    const factory = {
+      id: "example",
+      requiresNetwork: false,
+      create: () => ({
+        match: async (): Promise<AssetMatchResult> => ({
+          status: "matched",
+          assetId,
+          explanation: "x",
+        }),
+      }),
+    };
+    const ids = async (options: Parameters<typeof evaluateAssetMatchers>[2]) =>
+      (await evaluateAssetMatchers(input, [factory], options)).matchers[0].scenarios.map(
+        (scenario) => `${scenario.id}:${scenario.suite}`,
+      );
+
+    expect(await ids({})).toEqual(["network:edge"]);
+    expect(await ids({ suites: ["heldout"] })).toEqual(["blind:heldout"]);
+    expect(await ids({ scenarioIds: ["blind"] })).toEqual(["blind:heldout"]);
+    await expect(ids({ suites: ["edge"], scenarioIds: ["blind"] })).rejects.toThrow(
+      /unknown scenario/i,
+    );
+  });
+
+  it.each<[string, Partial<EvaluationCase>]>([
+    ["unknown truth asset", { truthAssetId: otherAssetId }],
+    ["matched acceptable outcome", { acceptable: [{ status: "matched", assetId }] }],
+    ["malformed tag", { tags: ["has space"] }],
+    ["empty known gap", { knownGap: " " }],
+    ["fractional weight", { weight: 1.5 }],
+    ["blank note", { note: "" }],
+  ])("rejects a case with %s", async (_kind, fields) => {
+    const input = dataset([{ ...testCase("case", { status: "matched", assetId }), ...fields }]);
+    await expect(
+      evaluateAssetMatchers(input, [
+        { id: "example", requiresNetwork: false, create: () => ({ match: vi.fn() }) },
+      ]),
+    ).rejects.toThrow();
   });
 });

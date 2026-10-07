@@ -1,0 +1,1401 @@
+{
+  "id": "heldout-replay",
+  "suite": "heldout",
+  "assets": [
+    {
+      "id": "10000000-0000-4000-8000-000000000401",
+      "displayName": "Juice Shop",
+      "type": "host",
+      "environment": "staging",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "juice-shop.staging.example.test",
+          "id": "20000000-0000-4000-8000-000000040101"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "198.51.100.80",
+          "id": "20000000-0000-4000-8000-000000040102"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000402",
+      "displayName": "Juice Shop",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "github.com/juice-shop/juice-shop",
+          "id": "20000000-0000-4000-8000-000000040201"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000403",
+      "displayName": "Cloud infrastructure (TerraGoat)",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "github.com/bridgecrewio/terragoat",
+          "id": "20000000-0000-4000-8000-000000040301"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000404",
+      "displayName": "Trivy test image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "ghcr.io/aquasecurity/trivy-test-images",
+          "id": "20000000-0000-4000-8000-000000040401"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000405",
+      "displayName": "Trivy test image mirror",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "registry.example.test/aquasecurity/trivy-test-images",
+          "id": "20000000-0000-4000-8000-000000040501"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000406",
+      "displayName": "Trivy CI test",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "github.com/knqyf263/trivy-ci-test",
+          "id": "20000000-0000-4000-8000-000000040601"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000407",
+      "displayName": "Legacy developer workstation",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "archived",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "127.0.0.1",
+          "id": "20000000-0000-4000-8000-000000040701"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000408",
+      "displayName": "Reporting portal",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "reports.example.test",
+          "id": "20000000-0000-4000-8000-000000040801"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "198.51.100.81",
+          "id": "20000000-0000-4000-8000-000000040802"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    }
+  ],
+  "cases": [
+    {
+      "id": "nuclei-juice-shop.loopback.1",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "line:1",
+        "title": "Public Swagger API - Detect",
+        "description": "Public Swagger API was detected.\n",
+        "remediation": null,
+        "evidence": "<details><summary>Request</summary>\n\n```\nGET /api-docs/swagger.yaml HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36\r\nAccept: text/html, application/json\r\nAccept-Language: en\r\nAccept-Encoding: gzip\r\n\r\n\n```\n\n</details>\n\n<details><summary>Response</summary>\n\n```\nHTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nAccess-Control-Allow-Origin: *\r\nConnection: keep-alive\r\nContent-Type: text/html; charset=utf-8\r\nDate: Wed, 16 Sep 2026 18:10:36 GMT\r\nEtag: W/\"c22-H8FH9nKD8DeX/nvIRrte6ZjP2a4\"\r\nFeature-Policy: payment 'self'\r\nKeep-Alive: timeout=5\r\nVary: Accept-Encoding\r\nX-Content-Type-Options: nosniff\r\nX-Frame-Options: SAMEORIGIN\r\nX-Recruiting: /#/jobs\r\n\r\n\n<!-- HTML for static distribution bundle build -->\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  \n  <title>Swagger UI</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"./swagger-ui.css\" >\n  <link rel=\"icon\" type=\"image/png\" href=\"./favicon-32x32.png\" sizes=\"32x32\" /><link rel=\"icon\" type=\"image/png\" href=\"./favicon-16x16.png\" sizes=\"16x16\" />\n  <style>\n    html\n    {\n      box-sizing: border-box;\n      overflow: -moz-scrollbars-vertical;\n      overflow-y: scroll;\n    }\n    *,\n    *:before,\n    *:after\n    {\n      box-sizing: inherit;\n    }\n\n    body {\n      margin:0;\n      background: #fafafa;\n    }\n  </style>\n</head>\n\n<body>\n\n<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" style=\"position:absolute;width:0;height:0\">\n  <defs>\n    <symbol viewBox=\"0 0 20 20\" id=\"unlocked\">\n      <path d=\"M15.8 8H14V5.6C14 2.703 12.665 1 10 1 7.334 1 6 2.703 6 5.6V6h2v-.801C8 3.754 8.797 3 10 3c1.203 0 2 .754 2 2.199V8H4c-.553 0-1 .646-1 1.199V17c0 .549.428 1.139.951 1.307l1.197.387C5.672 18.861 6.55 19 7.1 19h5.8c.549 0 1.428-.139 1.951-.307l1.196-.387c.524-.167.953-.757.953-1.306V9.199C17 8.646 16.352 8 15.8 8z\"></path>\n    </symbol>\n\n    <symbol viewBox=\"0 0 20 20\" id=\"locked\">\n      <path d=\"M15.8 8H14V5.6C14 2.703 12.665 1 10 1 7.334 1 6 2.703 6 5.6V8H4c-.553 0-1 .646-1 1.199V17c0 .549.428 1.139.951 1.307l1.197.387C5.672 18.861 6.55 19 7.1 19h5.8c.549 0 1.428-.139 1.951-.307l1.196-.387c.524-.167.953-.757.953-1.306V9.199C17 8.646 16.352 8 15.8 8zM12 8H8V5.199C8 3.754 8.797 3 10 3c1.203 0 2 .754 2 2.199V8z\"/>\n    </symbol>\n\n    <symbol viewBox=\"0 0 20 20\" id=\"close\">\n      <path d=\"M14.348 14.849c-.469.469-1.229.469-1.697 0L10 11.819l-2.651 3.029c-.469.469-1.229.469-1.697 0-.469-.469-.469-1.229 0-1.697l2.758-3.15-2.759-3.152c-.469-.469-.469-1.228 0-1.697.469-.469 1.228-.469 1.697 0L10 8.183l2.651-3.031c.469-.469 1.228-.469 1.697 0 .469.469.469 1.229 0 1.697l-2.758 3.152 2.758 3.15c.469.469.469 1.229 0 1.698z\"/>\n    </symbol>\n\n    <symbol viewBox=\"0 0 20 20\" id=\"large-arrow\">\n      <path d=\"M13.25 10L6.109 2.58c-.268-.27-.268-.707 0-.979.268-.27.701-.27.969 0l7.83 7.908c.268.271.268.709 0 .979l-7.83 7.908c-.268.271-.701.27-.969 0-.268-.269-.268-.707 0-.979L13.25 10z\"/>\n    </symbol>\n\n    <symbol viewBox=\"0 0 20 20\" id=\"large-arrow-down\">\n      <path d=\"M17.418 6.109c.272-.268.709-.268.979 0s.271.701 0 .969l-7.908 7.83c-.27.268-.707.268-.979 0l-7.908-7.83c-.27-.268-.27-.701 0-.969.271-.268.709-.268.979 0L10 13.25l7.418-7.141z\"/>\n    </symbol>\n\n\n    <symbol viewBox=\"0 0 24 24\" id=\"jump-to\">\n      <path d=\"M19 7v4H5.83l3.58-3.59L8 6l-6 6 6 6 1.41-1.41L5.83 13H21V7z\"/>\n    </symbol>\n\n    <symbol viewBox=\"0 0 24 24\" id=\"expand\">\n      <path d=\"M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z\"/>\n    </symbol>\n\n  </defs>\n</svg>\n\n<div id=\"swagger-ui\"></div>\n\n<script src=\"./swagger-ui-bundle.js\"> </script>\n<script src=\"./swagger-ui-standalone-preset.js\"> </script>\n<script src=\"./swagger-ui-init.js\"> </script>\n\n\n\n<style>\n  .swagger-ui .topbar .download-url-wrapper { display: none } undefined\n</style>\n</body>\n\n</html>\n\n```\n\n</details>\n\n<details><summary>Reproduction</summary>\n\n```\ncurl -X 'GET' -d '' -H 'Accept: text/html, application/json' -H 'Accept-Language: en' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' 'http://localhost:8080/api-docs/swagger.yaml'\n```\n\n</details>",
+        "severity": "info",
+        "weakness": {
+          "identifiers": {
+            "cwe": ["CWE-200"],
+            "nuclei": ["swagger-api"]
+          },
+          "references": ["https://swagger.io/"],
+          "cvss": [
+            {
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N",
+              "version": "3.1"
+            }
+          ]
+        },
+        "affectedResource": {
+          "type": "webEndpoint",
+          "scheme": "http",
+          "host": "localhost",
+          "port": 8080,
+          "path": "/api-docs/swagger.yaml",
+          "method": "GET",
+          "component": {
+            "kind": "endpoint"
+          },
+          "reportedUrl": "http://localhost:8080/api-docs/swagger.yaml"
+        },
+        "observedAt": "2026-09-16T18:10:36.869Z",
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "localhost"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "127.0.0.1"
+          }
+        ],
+        "sourceMetadata": {
+          "template": "http/exposures/apis/swagger-api.yaml",
+          "template-url": "https://cloud.projectdiscovery.io/public/swagger-api",
+          "template-id": "swagger-api",
+          "template-path": "/home/steffen/nuclei-templates/http/exposures/apis/swagger-api.yaml",
+          "info": {
+            "name": "Public Swagger API - Detect",
+            "author": ["pdteam", "c-sh0", "amirhossein raeisi", "eduardo quintanilha"],
+            "tags": ["exposure", "api", "swagger", "discovery"],
+            "description": "Public Swagger API was detected.\n",
+            "reference": ["https://swagger.io/"],
+            "severity": "info",
+            "metadata": {
+              "max-request": 59,
+              "shodan-query": "http.title:\"swagger\"",
+              "verified": true
+            },
+            "classification": {
+              "cve-id": null,
+              "cwe-id": ["cwe-200"],
+              "cvss-metrics": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:N"
+            }
+          },
+          "type": "http",
+          "host": "localhost",
+          "port": "8080",
+          "scheme": "http",
+          "url": "http://localhost:8080",
+          "matched-at": "http://localhost:8080/api-docs/swagger.yaml",
+          "request": "GET /api-docs/swagger.yaml HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36\r\nAccept: text/html, application/json\r\nAccept-Language: en\r\nAccept-Encoding: gzip\r\n\r\n",
+          "response": "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nAccess-Control-Allow-Origin: *\r\nConnection: keep-alive\r\nContent-Type: text/html; charset=utf-8\r\nDate: Wed, 16 Sep 2026 18:10:36 GMT\r\nEtag: W/\"c22-H8FH9nKD8DeX/nvIRrte6ZjP2a4\"\r\nFeature-Policy: payment 'self'\r\nKeep-Alive: timeout=5\r\nVary: Accept-Encoding\r\nX-Content-Type-Options: nosniff\r\nX-Frame-Options: SAMEORIGIN\r\nX-Recruiting: /#/jobs\r\n\r\n\n<!-- HTML for static distribution bundle build -->\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  \n  <title>Swagger UI</title>\n  <link rel=\"stylesheet\" type=\"text/css\" href=\"./swagger-ui.css\" >\n  <link rel=\"icon\" type=\"image/png\" href=\"./favicon-32x32.png\" sizes=\"32x32\" /><link rel=\"icon\" type=\"image/png\" href=\"./favicon-16x16.png\" sizes=\"16x16\" />\n  <style>\n    html\n    {\n      box-sizing: border-box;\n      overflow: -moz-scrollbars-vertical;\n      overflow-y: scroll;\n    }\n    *,\n    *:before,\n    *:after\n    {\n      box-sizing: inherit;\n    }\n\n    body {\n      margin:0;\n      background: #fafafa;\n    }\n  </style>\n</head>\n\n<body>\n\n<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" style=\"position:absolute;width:0;height:0\">\n  <defs>\n    <symbol viewBox=\"0 0 20 20\" id=\"unlocked\">\n      <path d=\"M15.8 8H14V5.6C14 2.703 12.665 1 10 1 7.334 1 6 2.703 6 5.6V6h2v-.801C8 3.754 8.797 3 10 3c1.203 0 2 .754 2 2.199V8H4c-.553 0-1 .646-1 1.199V17c0 .549.428 1.139.951 1.307l1.197.387C5.672 18.861 6.55 19 7.1 19h5.8c.549 0 1.428-.139 1.951-.307l1.196-.387c.524-.167.953-.757.953-1.306V9.199C17 8.646 16.352 8 15.8 8z\"></path>\n    </symbol>\n\n    <symbol viewBox=\"0 0 20 20\" id=\"locked\">\n      <path d=\"M15.8 8H14V5.6C14 2.703 12.665 1 10 1 7.334 1 6 2.703 6 5.6V8H4c-.553 0-1 .646-1 1.199V17c0 .549.428 1.139.951 1.307l1.197.387C5.672 18.861 6.55 19 7.1 19h5.8c.549 0 1.428-.139 1.951-.307l1.196-.387c.524-.167.953-.757.953-1.306V9.199C17 8.646 16.352 8 15.8 8zM12 8H8V5.199C8 3.754 8.797 3 10 3c1.203 0 2 .754 2 2.199V8z\"/>\n    </symbol>\n\n    <symbol viewBox=\"0 0 20 20\" id=\"close\">\n      <path d=\"M14.348 14.849c-.469.469-1.229.469-1.697 0L10 11.819l-2.651 3.029c-.469.469-1.229.469-1.697 0-.469-.469-.469-1.229 0-1.697l2.758-3.15-2.759-3.152c-.469-.469-.469-1.228 0-1.697.469-.469 1.228-.469 1.697 0L10 8.183l2.651-3.031c.469-.469 1.228-.469 1.697 0 .469.469.469 1.229 0 1.697l-2.758 3.152 2.758 3.15c.469.469.469 1.229 0 1.698z\"/>\n    </symbol>\n\n    <symbol viewBox=\"0 0 20 20\" id=\"large-arrow\">\n      <path d=\"M13.25 10L6.109 2.58c-.268-.27-.268-.707 0-.979.268-.27.701-.27.969 0l7.83 7.908c.268.271.268.709 0 .979l-7.83 7.908c-.268.271-.701.27-.969 0-.268-.269-.268-.707 0-.979L13.25 10z\"/>\n    </symbol>\n\n    <symbol viewBox=\"0 0 20 20\" id=\"large-arrow-down\">\n      <path d=\"M17.418 6.109c.272-.268.709-.268.979 0s.271.701 0 .969l-7.908 7.83c-.27.268-.707.268-.979 0l-7.908-7.83c-.27-.268-.27-.701 0-.969.271-.268.709-.268.979 0L10 13.25l7.418-7.141z\"/>\n    </symbol>\n\n\n    <symbol viewBox=\"0 0 24 24\" id=\"jump-to\">\n      <path d=\"M19 7v4H5.83l3.58-3.59L8 6l-6 6 6 6 1.41-1.41L5.83 13H21V7z\"/>\n    </symbol>\n\n    <symbol viewBox=\"0 0 24 24\" id=\"expand\">\n      <path d=\"M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z\"/>\n    </symbol>\n\n  </defs>\n</svg>\n\n<div id=\"swagger-ui\"></div>\n\n<script src=\"./swagger-ui-bundle.js\"> </script>\n<script src=\"./swagger-ui-standalone-preset.js\"> </script>\n<script src=\"./swagger-ui-init.js\"> </script>\n\n\n\n<style>\n  .swagger-ui .topbar .download-url-wrapper { display: none } undefined\n</style>\n</body>\n\n</html>\n",
+          "meta": {
+            "paths": "/api-docs/swagger.yaml"
+          },
+          "ip": "127.0.0.1",
+          "timestamp": "2026-09-16T20:10:36.869987084+02:00",
+          "curl-command": "curl -X 'GET' -d '' -H 'Accept: text/html, application/json' -H 'Accept-Language: en' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36' 'http://localhost:8080/api-docs/swagger.yaml'",
+          "matcher-status": true
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "insufficient_evidence"
+      },
+      "acceptable": [
+        {
+          "status": "unresolved",
+          "reason": "no_match"
+        }
+      ],
+      "truthAssetId": "10000000-0000-4000-8000-000000000401",
+      "tags": ["alias:scan-endpoint", "hazard:loopback-in-inventory"],
+      "weight": 19,
+      "note": "Blind label: localhost/127.0.0.1 are loopback values meaning 'the scanning machine itself' and cannot identify an inventory asset; the archived asset 0407 holding 127.0.0.1 must not be selected, since every loopback scan would otherwise be misattributed to it."
+    },
+    {
+      "id": "zap-juice-shop.loopback.1",
+      "candidate": {
+        "source": "zap",
+        "sourceRecord": "/runs/0/results/0",
+        "title": "Vulnerable JS Library",
+        "description": "The identified library appears to be vulnerable.",
+        "remediation": "Upgrade to the latest version of the affected library.",
+        "severity": "high",
+        "weakness": {
+          "identifiers": {
+            "cwe": ["CWE-1395"],
+            "zap": ["10003"]
+          },
+          "references": [
+            "https://owasp.org/Top10/2021/A06_2021-Vulnerable_and_Outdated_Components/"
+          ]
+        },
+        "affectedResource": {
+          "type": "webEndpoint",
+          "scheme": "http",
+          "host": "localhost",
+          "port": 8080,
+          "path": "/vendor.js",
+          "method": "GET",
+          "component": {
+            "kind": "endpoint"
+          },
+          "reportedUrl": "http://localhost:8080/vendor.js"
+        },
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "localhost"
+          }
+        ],
+        "evidence": "<details><summary>Message</summary>\n\n```\nThe identified library @angular/core, version 20.2.3 is vulnerable.\nCVE-2026-32635\nCVE-2026-52725\nCVE-2026-50557\nCVE-2026-88057\nCVE-2026-27970\nCVE-2026-54267\nhttps://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP\nhttps://github.com/angular/angular/pull/67561\nhttps://github.com/angular/angular/commit/2f96c8020f85ccb715a76de4b79a0c680c2c7264\nhttps://github.com/angular/angular/releases/tag/v20.3.28\nhttps://github.com/angular/angular/pull/67541\nhttps://developer.mozilla.org/en-US/docs/Web/API/Trusted_Types_API\nhttps://github.com/angular/angular/pull/69064\nhttps://github.com/angular/angular/pull/67183\nhttps://developer.mozilla.org/en-US/docs/Web/Security/Attacks/XSS\nhttps://github.com/angular/angular/issues/69550\nhttps://github.com/angular/angular/security/advisories/GHSA-rgjc-h3x7-9mwg\nhttps://github.com/angular/angular/commit/306f367899dfc2e04238fecd3455547b5d54075d\nhttps://github.com/angular/angular/security/advisories/GHSA-g93w-mfhg-p222\nhttps://github.com/angular/angular/security/advisories/GHSA-hh8m-fm6v-7cvg\nhttps://github.com/angular/angular/releases/tag/v22.1.0\nhttps://github.com/angular/angular/commit/b85830953281ff3a1a77bbfe69019d352d509c93\nhttps://github.com/angular/angular/pull/68713\nhttps://github.com/angular/angular/pull/68686\nhttps://github.com/angular/angular/security/advisories/GHSA-prjf-86w9-mfqv\nhttps://github.com/angular/angular/pull/68689\nhttps://github.com/angular/angular/pull/69558\nhttps://github.com/angular/angular/commit/6caa298dee58319b2d674dc91364e26ffe3ecb2b\nhttps://github.com/angular/angular/commit/6bde84fa8e6a5770b54040fbbc9bf10d5d0386fa\nhttps://github.com/angular/angular/security/advisories/GHSA-f3m7-gqxr-g87x\nhttps://github.com/angular/angular/commit/8630319f74c9575a21693d875cc7d5252516146d\nhttps://github.com/angular/angular/security/advisories/GHSA-692r-grfm-v8x7\nhttps://angular.dev/best-practices/security#enforcing-trusted-types\nhttps://github.com/angular/angular/releases/tag/v21.2.20\nhttps://github.com/angular/angular/commit/224e60ecb1b90115baa702f1c06edc1d64d86187\nhttps://github.com/angular/angular/commit/78dea55351fb305b33a919c43a6b363137eca166\nhttps://github.com/angular/angular/commit/6afe6fa781c2f0931f0aedd729b9884a8fe212ee\nhttps://github.com/angular/angular/commit/7d58b798c626bb0e4e5f89ca8affdce4f352b232\nhttps://github.com/angular/angular/commit/ed2d324f9cc12aab6cfa0569ef10b73243a62c65\nhttps://github.com/angular/angular/pull/68868\n\n```\n\n</details>\n\n<details><summary>Snippet</summary>\n\n```\n[\"ng-version\",\"20.2.3\"]\n```\n\n</details>\n\n<details><summary>Request (exported fields)</summary>\n\n```\nprotocol: HTTP\nversion: 1.1\ntarget: http://localhost:8080/vendor.js\nmethod: GET\ncache-control: no-cache\nhost: localhost:8080\npragma: no-cache\nreferer: http://localhost:8080/sitemap.xml\nuser-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36\n```\n\n</details>\n\n<details><summary>Response (exported fields)</summary>\n\n```\nstatusCode: 200\nreasonPhrase: OK\nprotocol: HTTP\nversion: 1.1\nnoResponseReceived: false\nAccept-Ranges: bytes\nAccess-Control-Allow-Origin: *\nCache-Control: public, max-age=0\nConnection: keep-alive\nContent-Length: 1689033\nContent-Type: application/javascript; charset=UTF-8\nDate: Wed, 16 Sep 2026 18:16:41 GMT\nETag: W/\"19c5c9-1990c7e7c40\"\nFeature-Policy: payment 'self'\nKeep-Alive: timeout=5\nLast-Modified: Tue, 02 Sep 2025 22:14:00 GMT\nVary: Accept-Encoding\nX-Content-Type-Options: nosniff\nX-Frame-Options: SAMEORIGIN\nX-Recruiting: /#/jobs\n\n[...]new Yt(d,(0,e.JlV)(s),Yo,null);t.blueprint[a]=_,i[a]=_,function Dd(t,n,i,a,s){const d=s.hostBindings;if(d){let _=t.hostBindingOpCodes;null===_&&(_=t.hostBindingOpCodes=[]);const x=~n.index;(function Ed(t){let n=t.length;for(;n>0;){const i=t[--n];if(\"number\"==typeof i&&i<0)return i}return 0})(_)!=x&&_.push(x),_.push(i,a,d)}}(t,n,a,po(t,i,s.hostVars,Gi),s)}function xd(t,n,i){if(i){if(n.exportAs)for(let a=0;a<n.exportAs.length;a++)i[n.exportAs[a]]=t;(0,e.JlV)(n)&&(i[\"\"]=t)}}function Uc(t,n,i,a,s,d,_,x){const I=n[e.eDl],pe=I.consts,rt=vo(I,t,i,a,(0,e.db4)(pe,_));return d&&Bc(I,n,rt,(0,e.db4)(pe,x),s),rt.mergedAttrs=Jt(rt.mergedAttrs,rt.attrs),null!==rt.attrs&&U2(rt,rt.attrs,!1),null!==rt.mergedAttrs&&U2(rt,rt.mergedAttrs,!0),null!==I.queries&&I.queries.elementStart(I,rt),rt}function jc(t,n){Fe(t,n),(0,e.srX)(n)&&t.queries.elementEnd(n)}function H4(t,n,i,a,s,d){const _=n.consts,I=vo(n,t,i,a,(0,e.db4)(_,s));if(I.mergedAttrs=Jt(I.mergedAttrs,I.attrs),null!=d){const pe=(0,e.db4)(_,d);I.localNames=[];for(let ke=0;ke<pe.length;ke+=2)I.localNames.push(pe[ke],-1)}return null!==I.attrs&&U2(I,I.attrs,!1),null!==I.mergedAttrs&&U2(I,I.mergedAttrs,!0),null!==n.queries&&n.queries.elementStart(n,I),I}function Wc(t){return!!B4(t)&&(Array.isArray(t)||!(t instanceof Map)&&Symbol.iterator in t)}function Sd(t,n){if(Array.isArray(t))for(let i=0;i<t.length;i++)n(t[i]);else{const i=t[Symbol.iterator]();let a;for(;!(a=i.next()).done;)n(a.value)}}function B4(t){return null!==t&&(\"function\"==typeof t||\"object\"==typeof t)}function ur(t,n,i){return t[n]=i}function js(t,n){return t[n]}function p1(t,n,i){return i!==Gi&&(!Object.is(t[n],i)&&(t[n]=i,!0))}function Co(t,n,i,a){const s=p1(t,n,i);return p1(t,n+1,a)||s}function j2(t,n,i,a,s){const d=Co(t,n,i,a);return p1(t,n+2,s)||d}function za(t,n,i,a,s,d){const _=Co(t,n,i,a);return Co(t,n+2,s,d)||_}function Zo(t,n,i){return function a(s){Go((0,e.Qs1)(t)?(0,e.KdJ)(t.index,n):n,5);const _=n[e.SKP];let x=U4(n,_,i,s),I=a.__ngNextListenerFn__;for(;I;)x=U4(n,_,I,s)&&x,I=I.__ngNextListenerFn__;return x}}function U4(t,n,i,a){const s=(0,o.Ht)(null);try{return Qe(6,n,i),!1!==i(a)}catch(d){return Ec(t,d),!1}finally{Qe(7,n,i),(0,o.Ht)(s)}}function j4(t,n,i,a,s,d,_,x){const I=(0,e.yoD)(t);let pe=!1,ke=null;if(!a&&I&&(ke=function kd(t,n,i,a){const s=t.cleanup;if(null!=s)for(let d=0;d<s.length-1;d+=2){const _=s[d];if(_===i&&s[d+1]===a){const x=n[e.VVG],I=s[d+2];return x&&x.length>I?x[I]:null}\"string\"==typeof _&&(d+=2)}return null}(n,i,d,t.index)),null!==ke)(ke.__ngLastListenerFn__||ke).__ngNextListenerFn__=_,ke.__ngLastListenerFn__=_,pe=!0;else{const rt=(0,e.d31)(t,i),wt=a?a(rt):rt;!function q1(t,n,i,a){x1(t,n,i,a)}(i,wt,d,x);const Tt=s.listen(wt,d,x);W4(a?fn=>a((0,e.IvY)(fn[t.index])):t.index,n,i,d,x,Tt,!1)}return pe}function W4(t,n,i,a,s,d,_){const x=n.firstCreatePass?(0,e.vNG)(n):null,I=(0,e.d_l)(i),pe=I.length;I.push(s,d),x&&x.push(a,t,pe,(pe+1)*(_?-1:1))}function W2(t,n,i,a,s,d){const x=n[e.eDl],rt=n[i][x.data[i].outputs[a]].subscribe(d);W4(t.index,x,n,s,d,rt,!0)}const Qr=Symbol(\"BINDING\");class G4 extends H2{ngModule;constructor(n){super(),this.ngModule=n}resolveComponentFactory(n){const i=(0,e.xUg)(n);return new K2(i,this.ngModule)}}class K2 extends z4{componentDef;ngModule;selector;componentType;ngContentSelectors;isBoundToModule;cachedInputs=null;cachedOutputs=null;get inputs(){return this.cachedInputs??=function Vd(t){return Object.keys(t).map(n=>{const[i,a,s]=t[n],d={propName:i,templateName:n,isSignal:0!==(a&Uo.SignalBased)};return s&&(d.transform=s),d})}(this.componentDef.inputs),this.cachedInputs}get outputs(){return this.cachedOutputs??=function Fd(t){return Object.keys(t).map(n=>({propName:t[n],templateName:n}))}(this.componentDef.outputs),this.cachedOutputs}constructor(n,i){super(),this.componentDef=n,this.ngModule=i,this.componentType=n.type,this.selector=function Gr(t){return t.map(Fo).join(\",\")}(n.selectors),this.ngContentSelectors=n.ngContentSelectors??[],this.isBoundToModule=!!i}create(n,i,a,s,d,_){Qe(22);const x=(0,o.Ht)(null);try{const I=this.componentDef,pe=function X4(t,n,i,a){const s=t?[\"ng-version\",\"20.2.3\"]:function $r(t){const n=[],i=[];let a=1,s=2;for(;a<t.length;){let d=t[a];if(\"string\"==typeof d)2===s?\"\"!==d&&n.push(d,t[++a]):8===s&&i.push(d);else{if(!t1(s))break;s=d}a++}return i.length&&n.push(1,...i),n}(n.selectors[0]);let d=null,_=null,x=0;if(i)for(const ke of i)x+=ke[Qr].requiredVars,ke.create&&(ke.targetIdx=0,(d??=[]).push(ke)),ke.update&&(ke.targetIdx=0,(_??=[]).push(ke));if(a)for(let ke=0;ke<a.length;ke++){const rt=a[ke];if(\"function\"!=typeof rt)for(const wt of rt.bindings){x+=wt[Qr].requiredVars;const Tt=ke+1;wt.create&&(wt.targetIdx=Tt,(d??=[]).push(wt)),wt.update&&(wt.targetIdx=Tt,(_??=[]).push(wt))}}const I=[n];if(a)for(const ke of a){const wt=(0,e.HaV)(\"function\"==typeof ke?ke:ke.type);I.push(wt)}return ws(0,null,function jd(t,n){return t||n?i=>{if(1&i&&t)for(const a of t)a.create();if(2&i&&n)for(const a of n)a.update()}:null}(d,_),1,x,I,null,null,null,[s],null)}(a,I,_,d),ke=function Hd(t,n,i){let a=n instanceof e.uvJ?n:n?.injector;return a&&null!==t.getStandaloneInjector&&(a=t.getStandaloneInjector(a)||a),a?new Qo(i,a):i}(I,s||this.ngModule,n),rt=function $4(t){const n=t.get(Vc,null);if(null===n)throw new e.buA(407,!1);return{rendererFactory:n,sanitizer:t.get(md,null),changeDetectionScheduler:t.get(e.hk6,null),ngReflect:!1}}(ke),wt=rt.rendererFactory.createRenderer(null,I),Tt=a?function $0(t,n,i,a){const d=a.get(ft,!1)||i===Z1.ShadowDom,_=t.selectRootElement(n,d);return function X0(t){Gl(t)}(_),_}(wt,a,I.encapsulation,ke):function Bd(t,n){const i=function Ud(t){return(t.selectors[0][0]||\"div\").toLowerCase()}(t);return Ho(n,i,\"svg\"===i?e.jNX:\"math\"===i?e.rJ1:null)}(I,wt),en=_?.some(Q4)||d?.some(Nn=>\"function\"!=typeof Nn&&Nn.bindings.some(Q4)),fn=Bo(null,pe,null,512|As(I),null,null,rt,wt,ke,null,Ba(Tt,ke,!0));fn[e.Yw1]=Tt,(0,e.ID8)(fn);let Fn=null;try{const Nn=Uc(e.Yw1,fn,2,\"#host\",()=>pe.directiveRegistry,!0,0);Tt&&(p2(wt,Tt,Nn),kt(Tt,fn)),M2(pe,fn,Nn),_r(pe,Nn,fn),jc(pe,Nn),void 0!==i&&function Y4(t,n,i){const a=t.projection=[];for(let s=0;s<n.length;s++){const d=i[s];a.push(null!=d&&d.length?Array.from(d):null)}}(Nn,this.ngContentSelectors,i),Fn=(0,e.KdJ)(Nn.index,fn),fn[e.SKP]=Fn[e.SKP],T2(pe,fn,null)}catch(Nn){throw null!==Fn&&Qi(Fn),Qi(fn),Nn}finally{Qe(23),(0,e.bll)()}return new Wd(this.componentType,fn,!!en)}finally{(0,o.Ht)(x)}}}function Q4(t){const n=t[Qr].kind;return\"input\"===n||\"twoWay\"===n}class Wd extends dd{_rootLView;_hasInputBindings;instance;hostView;changeDetectorRef;componentType;location;previousInputValues=null;_tNode;constructor(n,i,a){super(),this._rootLView=i,this._hasInputBindings=a,this._tNode=(0,e.XRZ)(i[e.eDl],e.Yw1),this.location=Tn(this._tNode,i),this.instance=(0,e.KdJ)(this._tNode.index,i)[e.SKP],this.hostView=this.changeDetectorRef=new k2(i,void 0),this.componentType=n}setInput(n,i){const a=this._tNode;if(this.previousInputValues??=new Map,this.previousInputValues.has(n)&&Object.is(this.previousInputValues.get(n),i))return;const s=this._rootLView;A2(a,s[e.eDl],s,n,i),this.previousInputValues.set(n,i),Go((0,e.KdJ)(a.index,s),1)}get injector(){return new Jn(this._tNode,this._rootLView)}destroy(){this.hostView.destroy()}onDestroy(n){this.hostView.onDestroy(n)}}let G2=(()=>class t{static __NG_ELEMENT_ID__=Z4})();function Z4(){return e3((0,e.Mx4)(),(0,e.OAn)())}const Kd=G2,J4=class extends Kd{_lContainer;_hostTNode;_hostLView;constructor(n,i,a){super(),this._lContainer=n,this._hostTNode=i,this._hostLView=a}get element(){return Tn(this._hostTNode,this._hostLView)}get injector(){return new Jn(this._hostTNode,this._hostLView)}get parentInjector(){const n=qe(this._hostTNode,this._hostLView);if(wn(n)){const i=jt(n,this._hostLView),a=Vn(n);return new Jn(i[e.eDl].data[a+8],i)}return new Jn(null,this._hostLView)}clear(){for(;this.length>0;)this.remove(this.length-1)}get(n){const i=q4(this._lContainer);return null!==i&&i[n]||null}get length(){return this._lContainer.length-e.Y20}createEmbeddedView(n,i,a){let s,d;\"number\"==typeof a?s=a:null!=a&&(s=a.index,d=a.injector);const _=Hs(this._lContainer,n.ssrId),x=n.createEmbeddedViewImpl(i||{},d,_);return this.insertImpl(x,s,_o(this._[...]\n```\n\n</details>",
+        "observedAt": null,
+        "sourceMetadata": {
+          "provenance": {
+            "document": {
+              "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+              "version": "2.1.0"
+            },
+            "run": {
+              "taxonomies": [
+                {
+                  "downloadUri": "https://cwe.mitre.org/data/xml/cwec_v4.8.xml.zip",
+                  "guid": "b000a760-3e52-3565-a35c-f61369da53b7",
+                  "informationUri": "https://cwe.mitre.org/data/published/cwe_v4.8.pdf",
+                  "isComprehensive": true,
+                  "language": "en",
+                  "minimumRequiredLocalizedDataSemanticVersion": "4.8",
+                  "name": "CWE",
+                  "organization": "MITRE",
+                  "releaseDateUtc": "2022-06-28",
+                  "shortDescription": {
+                    "text": "The MITRE Common Weakness Enumeration"
+                  },
+                  "version": "4.8"
+                }
+              ],
+              "tool": {
+                "driver": {
+                  "guid": "3716e880-7ee2-34d2-9cf1-0f88c0dc613a",
+                  "informationUri": "https://www.zaproxy.org/",
+                  "name": "ZAP",
+                  "semanticVersion": "2.17.0",
+                  "supportedTaxonomies": [
+                    {
+                      "guid": "b000a760-3e52-3565-a35c-f61369da53b7",
+                      "name": "CWE"
+                    }
+                  ],
+                  "version": "2.17.0"
+                }
+              }
+            },
+            "result": {
+              "level": "error",
+              "locations": [
+                {
+                  "physicalLocation": {
+                    "artifactLocation": {
+                      "uri": "http://localhost:8080/vendor.js"
+                    },
+                    "region": {
+                      "startLine": 1,
+                      "snippet": {
+                        "text": "[\"ng-version\",\"20.2.3\"]"
+                      }
+                    }
+                  },
+                  "properties": {
+                    "attack": ""
+                  }
+                }
+              ],
+              "message": {
+                "text": "The identified library @angular/core, version 20.2.3 is vulnerable.\nCVE-2026-32635\nCVE-2026-52725\nCVE-2026-50557\nCVE-2026-88057\nCVE-2026-27970\nCVE-2026-54267\nhttps://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP\nhttps://github.com/angular/angular/pull/67561\nhttps://github.com/angular/angular/commit/2f96c8020f85ccb715a76de4b79a0c680c2c7264\nhttps://github.com/angular/angular/releases/tag/v20.3.28\nhttps://github.com/angular/angular/pull/67541\nhttps://developer.mozilla.org/en-US/docs/Web/API/Trusted_Types_API\nhttps://github.com/angular/angular/pull/69064\nhttps://github.com/angular/angular/pull/67183\nhttps://developer.mozilla.org/en-US/docs/Web/Security/Attacks/XSS\nhttps://github.com/angular/angular/issues/69550\nhttps://github.com/angular/angular/security/advisories/GHSA-rgjc-h3x7-9mwg\nhttps://github.com/angular/angular/commit/306f367899dfc2e04238fecd3455547b5d54075d\nhttps://github.com/angular/angular/security/advisories/GHSA-g93w-mfhg-p222\nhttps://github.com/angular/angular/security/advisories/GHSA-hh8m-fm6v-7cvg\nhttps://github.com/angular/angular/releases/tag/v22.1.0\nhttps://github.com/angular/angular/commit/b85830953281ff3a1a77bbfe69019d352d509c93\nhttps://github.com/angular/angular/pull/68713\nhttps://github.com/angular/angular/pull/68686\nhttps://github.com/angular/angular/security/advisories/GHSA-prjf-86w9-mfqv\nhttps://github.com/angular/angular/pull/68689\nhttps://github.com/angular/angular/pull/69558\nhttps://github.com/angular/angular/commit/6caa298dee58319b2d674dc91364e26ffe3ecb2b\nhttps://github.com/angular/angular/commit/6bde84fa8e6a5770b54040fbbc9bf10d5d0386fa\nhttps://github.com/angular/angular/security/advisories/GHSA-f3m7-gqxr-g87x\nhttps://github.com/angular/angular/commit/8630319f74c9575a21693d875cc7d5252516146d\nhttps://github.com/angular/angular/security/advisories/GHSA-692r-grfm-v8x7\nhttps://angular.dev/best-practices/security#enforcing-trusted-types\nhttps://github.com/angular/angular/releases/tag/v21.2.20\nhttps://github.com/angular/angular/commit/224e60ecb1b90115baa702f1c06edc1d64d86187\nhttps://github.com/angular/angular/commit/78dea55351fb305b33a919c43a6b363137eca166\nhttps://github.com/angular/angular/commit/6afe6fa781c2f0931f0aedd729b9884a8fe212ee\nhttps://github.com/angular/angular/commit/7d58b798c626bb0e4e5f89ca8affdce4f352b232\nhttps://github.com/angular/angular/commit/ed2d324f9cc12aab6cfa0569ef10b73243a62c65\nhttps://github.com/angular/angular/pull/68868\n"
+              },
+              "ruleId": "10003",
+              "webRequest": {
+                "protocol": "HTTP",
+                "version": "1.1",
+                "target": "http://localhost:8080/vendor.js",
+                "method": "GET",
+                "headers": {
+                  "cache-control": "no-cache",
+                  "host": "localhost:8080",
+                  "pragma": "no-cache",
+                  "referer": "http://localhost:8080/sitemap.xml",
+                  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+                },
+                "body": {}
+              },
+              "webResponse": {
+                "statusCode": 200,
+                "reasonPhrase": "OK",
+                "protocol": "HTTP",
+                "version": "1.1",
+                "headers": {
+                  "Accept-Ranges": "bytes",
+                  "Access-Control-Allow-Origin": "*",
+                  "Cache-Control": "public, max-age=0",
+                  "Connection": "keep-alive",
+                  "Content-Length": "1689033",
+                  "Content-Type": "application/javascript; charset=UTF-8",
+                  "Date": "Wed, 16 Sep 2026 18:16:41 GMT",
+                  "ETag": "W/\"19c5c9-1990c7e7c40\"",
+                  "Feature-Policy": "payment 'self'",
+                  "Keep-Alive": "timeout=5",
+                  "Last-Modified": "Tue, 02 Sep 2025 22:14:00 GMT",
+                  "Vary": "Accept-Encoding",
+                  "X-Content-Type-Options": "nosniff",
+                  "X-Frame-Options": "SAMEORIGIN",
+                  "X-Recruiting": "/#/jobs"
+                },
+                "body": {
+                  "text": "[...]new Yt(d,(0,e.JlV)(s),Yo,null);t.blueprint[a]=_,i[a]=_,function Dd(t,n,i,a,s){const d=s.hostBindings;if(d){let _=t.hostBindingOpCodes;null===_&&(_=t.hostBindingOpCodes=[]);const x=~n.index;(function Ed(t){let n=t.length;for(;n>0;){const i=t[--n];if(\"number\"==typeof i&&i<0)return i}return 0})(_)!=x&&_.push(x),_.push(i,a,d)}}(t,n,a,po(t,i,s.hostVars,Gi),s)}function xd(t,n,i){if(i){if(n.exportAs)for(let a=0;a<n.exportAs.length;a++)i[n.exportAs[a]]=t;(0,e.JlV)(n)&&(i[\"\"]=t)}}function Uc(t,n,i,a,s,d,_,x){const I=n[e.eDl],pe=I.consts,rt=vo(I,t,i,a,(0,e.db4)(pe,_));return d&&Bc(I,n,rt,(0,e.db4)(pe,x),s),rt.mergedAttrs=Jt(rt.mergedAttrs,rt.attrs),null!==rt.attrs&&U2(rt,rt.attrs,!1),null!==rt.mergedAttrs&&U2(rt,rt.mergedAttrs,!0),null!==I.queries&&I.queries.elementStart(I,rt),rt}function jc(t,n){Fe(t,n),(0,e.srX)(n)&&t.queries.elementEnd(n)}function H4(t,n,i,a,s,d){const _=n.consts,I=vo(n,t,i,a,(0,e.db4)(_,s));if(I.mergedAttrs=Jt(I.mergedAttrs,I.attrs),null!=d){const pe=(0,e.db4)(_,d);I.localNames=[];for(let ke=0;ke<pe.length;ke+=2)I.localNames.push(pe[ke],-1)}return null!==I.attrs&&U2(I,I.attrs,!1),null!==I.mergedAttrs&&U2(I,I.mergedAttrs,!0),null!==n.queries&&n.queries.elementStart(n,I),I}function Wc(t){return!!B4(t)&&(Array.isArray(t)||!(t instanceof Map)&&Symbol.iterator in t)}function Sd(t,n){if(Array.isArray(t))for(let i=0;i<t.length;i++)n(t[i]);else{const i=t[Symbol.iterator]();let a;for(;!(a=i.next()).done;)n(a.value)}}function B4(t){return null!==t&&(\"function\"==typeof t||\"object\"==typeof t)}function ur(t,n,i){return t[n]=i}function js(t,n){return t[n]}function p1(t,n,i){return i!==Gi&&(!Object.is(t[n],i)&&(t[n]=i,!0))}function Co(t,n,i,a){const s=p1(t,n,i);return p1(t,n+1,a)||s}function j2(t,n,i,a,s){const d=Co(t,n,i,a);return p1(t,n+2,s)||d}function za(t,n,i,a,s,d){const _=Co(t,n,i,a);return Co(t,n+2,s,d)||_}function Zo(t,n,i){return function a(s){Go((0,e.Qs1)(t)?(0,e.KdJ)(t.index,n):n,5);const _=n[e.SKP];let x=U4(n,_,i,s),I=a.__ngNextListenerFn__;for(;I;)x=U4(n,_,I,s)&&x,I=I.__ngNextListenerFn__;return x}}function U4(t,n,i,a){const s=(0,o.Ht)(null);try{return Qe(6,n,i),!1!==i(a)}catch(d){return Ec(t,d),!1}finally{Qe(7,n,i),(0,o.Ht)(s)}}function j4(t,n,i,a,s,d,_,x){const I=(0,e.yoD)(t);let pe=!1,ke=null;if(!a&&I&&(ke=function kd(t,n,i,a){const s=t.cleanup;if(null!=s)for(let d=0;d<s.length-1;d+=2){const _=s[d];if(_===i&&s[d+1]===a){const x=n[e.VVG],I=s[d+2];return x&&x.length>I?x[I]:null}\"string\"==typeof _&&(d+=2)}return null}(n,i,d,t.index)),null!==ke)(ke.__ngLastListenerFn__||ke).__ngNextListenerFn__=_,ke.__ngLastListenerFn__=_,pe=!0;else{const rt=(0,e.d31)(t,i),wt=a?a(rt):rt;!function q1(t,n,i,a){x1(t,n,i,a)}(i,wt,d,x);const Tt=s.listen(wt,d,x);W4(a?fn=>a((0,e.IvY)(fn[t.index])):t.index,n,i,d,x,Tt,!1)}return pe}function W4(t,n,i,a,s,d,_){const x=n.firstCreatePass?(0,e.vNG)(n):null,I=(0,e.d_l)(i),pe=I.length;I.push(s,d),x&&x.push(a,t,pe,(pe+1)*(_?-1:1))}function W2(t,n,i,a,s,d){const x=n[e.eDl],rt=n[i][x.data[i].outputs[a]].subscribe(d);W4(t.index,x,n,s,d,rt,!0)}const Qr=Symbol(\"BINDING\");class G4 extends H2{ngModule;constructor(n){super(),this.ngModule=n}resolveComponentFactory(n){const i=(0,e.xUg)(n);return new K2(i,this.ngModule)}}class K2 extends z4{componentDef;ngModule;selector;componentType;ngContentSelectors;isBoundToModule;cachedInputs=null;cachedOutputs=null;get inputs(){return this.cachedInputs??=function Vd(t){return Object.keys(t).map(n=>{const[i,a,s]=t[n],d={propName:i,templateName:n,isSignal:0!==(a&Uo.SignalBased)};return s&&(d.transform=s),d})}(this.componentDef.inputs),this.cachedInputs}get outputs(){return this.cachedOutputs??=function Fd(t){return Object.keys(t).map(n=>({propName:t[n],templateName:n}))}(this.componentDef.outputs),this.cachedOutputs}constructor(n,i){super(),this.componentDef=n,this.ngModule=i,this.componentType=n.type,this.selector=function Gr(t){return t.map(Fo).join(\",\")}(n.selectors),this.ngContentSelectors=n.ngContentSelectors??[],this.isBoundToModule=!!i}create(n,i,a,s,d,_){Qe(22);const x=(0,o.Ht)(null);try{const I=this.componentDef,pe=function X4(t,n,i,a){const s=t?[\"ng-version\",\"20.2.3\"]:function $r(t){const n=[],i=[];let a=1,s=2;for(;a<t.length;){let d=t[a];if(\"string\"==typeof d)2===s?\"\"!==d&&n.push(d,t[++a]):8===s&&i.push(d);else{if(!t1(s))break;s=d}a++}return i.length&&n.push(1,...i),n}(n.selectors[0]);let d=null,_=null,x=0;if(i)for(const ke of i)x+=ke[Qr].requiredVars,ke.create&&(ke.targetIdx=0,(d??=[]).push(ke)),ke.update&&(ke.targetIdx=0,(_??=[]).push(ke));if(a)for(let ke=0;ke<a.length;ke++){const rt=a[ke];if(\"function\"!=typeof rt)for(const wt of rt.bindings){x+=wt[Qr].requiredVars;const Tt=ke+1;wt.create&&(wt.targetIdx=Tt,(d??=[]).push(wt)),wt.update&&(wt.targetIdx=Tt,(_??=[]).push(wt))}}const I=[n];if(a)for(const ke of a){const wt=(0,e.HaV)(\"function\"==typeof ke?ke:ke.type);I.push(wt)}return ws(0,null,function jd(t,n){return t||n?i=>{if(1&i&&t)for(const a of t)a.create();if(2&i&&n)for(const a of n)a.update()}:null}(d,_),1,x,I,null,null,null,[s],null)}(a,I,_,d),ke=function Hd(t,n,i){let a=n instanceof e.uvJ?n:n?.injector;return a&&null!==t.getStandaloneInjector&&(a=t.getStandaloneInjector(a)||a),a?new Qo(i,a):i}(I,s||this.ngModule,n),rt=function $4(t){const n=t.get(Vc,null);if(null===n)throw new e.buA(407,!1);return{rendererFactory:n,sanitizer:t.get(md,null),changeDetectionScheduler:t.get(e.hk6,null),ngReflect:!1}}(ke),wt=rt.rendererFactory.createRenderer(null,I),Tt=a?function $0(t,n,i,a){const d=a.get(ft,!1)||i===Z1.ShadowDom,_=t.selectRootElement(n,d);return function X0(t){Gl(t)}(_),_}(wt,a,I.encapsulation,ke):function Bd(t,n){const i=function Ud(t){return(t.selectors[0][0]||\"div\").toLowerCase()}(t);return Ho(n,i,\"svg\"===i?e.jNX:\"math\"===i?e.rJ1:null)}(I,wt),en=_?.some(Q4)||d?.some(Nn=>\"function\"!=typeof Nn&&Nn.bindings.some(Q4)),fn=Bo(null,pe,null,512|As(I),null,null,rt,wt,ke,null,Ba(Tt,ke,!0));fn[e.Yw1]=Tt,(0,e.ID8)(fn);let Fn=null;try{const Nn=Uc(e.Yw1,fn,2,\"#host\",()=>pe.directiveRegistry,!0,0);Tt&&(p2(wt,Tt,Nn),kt(Tt,fn)),M2(pe,fn,Nn),_r(pe,Nn,fn),jc(pe,Nn),void 0!==i&&function Y4(t,n,i){const a=t.projection=[];for(let s=0;s<n.length;s++){const d=i[s];a.push(null!=d&&d.length?Array.from(d):null)}}(Nn,this.ngContentSelectors,i),Fn=(0,e.KdJ)(Nn.index,fn),fn[e.SKP]=Fn[e.SKP],T2(pe,fn,null)}catch(Nn){throw null!==Fn&&Qi(Fn),Qi(fn),Nn}finally{Qe(23),(0,e.bll)()}return new Wd(this.componentType,fn,!!en)}finally{(0,o.Ht)(x)}}}function Q4(t){const n=t[Qr].kind;return\"input\"===n||\"twoWay\"===n}class Wd extends dd{_rootLView;_hasInputBindings;instance;hostView;changeDetectorRef;componentType;location;previousInputValues=null;_tNode;constructor(n,i,a){super(),this._rootLView=i,this._hasInputBindings=a,this._tNode=(0,e.XRZ)(i[e.eDl],e.Yw1),this.location=Tn(this._tNode,i),this.instance=(0,e.KdJ)(this._tNode.index,i)[e.SKP],this.hostView=this.changeDetectorRef=new k2(i,void 0),this.componentType=n}setInput(n,i){const a=this._tNode;if(this.previousInputValues??=new Map,this.previousInputValues.has(n)&&Object.is(this.previousInputValues.get(n),i))return;const s=this._rootLView;A2(a,s[e.eDl],s,n,i),this.previousInputValues.set(n,i),Go((0,e.KdJ)(a.index,s),1)}get injector(){return new Jn(this._tNode,this._rootLView)}destroy(){this.hostView.destroy()}onDestroy(n){this.hostView.onDestroy(n)}}let G2=(()=>class t{static __NG_ELEMENT_ID__=Z4})();function Z4(){return e3((0,e.Mx4)(),(0,e.OAn)())}const Kd=G2,J4=class extends Kd{_lContainer;_hostTNode;_hostLView;constructor(n,i,a){super(),this._lContainer=n,this._hostTNode=i,this._hostLView=a}get element(){return Tn(this._hostTNode,this._hostLView)}get injector(){return new Jn(this._hostTNode,this._hostLView)}get parentInjector(){const n=qe(this._hostTNode,this._hostLView);if(wn(n)){const i=jt(n,this._hostLView),a=Vn(n);return new Jn(i[e.eDl].data[a+8],i)}return new Jn(null,this._hostLView)}clear(){for(;this.length>0;)this.remove(this.length-1)}get(n){const i=q4(this._lContainer);return null!==i&&i[n]||null}get length(){return this._lContainer.length-e.Y20}createEmbeddedView(n,i,a){let s,d;\"number\"==typeof a?s=a:null!=a&&(s=a.index,d=a.injector);const _=Hs(this._lContainer,n.ssrId),x=n.createEmbeddedViewImpl(i||{},d,_);return this.insertImpl(x,s,_o(this._[...]"
+                },
+                "noResponseReceived": false
+              }
+            },
+            "rule": {
+              "id": "10003",
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "fullDescription": {
+                "text": "The identified library appears to be vulnerable."
+              },
+              "name": "Vulnerable JS Library",
+              "properties": {
+                "references": [
+                  "https://owasp.org/Top10/2021/A06_2021-Vulnerable_and_Outdated_Components/"
+                ],
+                "solution": {
+                  "text": "Upgrade to the latest version of the affected library."
+                },
+                "confidence": "medium"
+              },
+              "relationships": [
+                {
+                  "kinds": ["superset"],
+                  "target": {
+                    "guid": "6062ba51-f294-3a93-8f01-9b49adfb8c4d",
+                    "id": "1395",
+                    "toolComponent": {
+                      "guid": "b000a760-3e52-3565-a35c-f61369da53b7",
+                      "name": "CWE"
+                    }
+                  }
+                }
+              ],
+              "shortDescription": {
+                "text": "Vulnerable JS Library"
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "insufficient_evidence"
+      },
+      "acceptable": [
+        {
+          "status": "unresolved",
+          "reason": "no_match"
+        }
+      ],
+      "truthAssetId": "10000000-0000-4000-8000-000000000401",
+      "tags": ["alias:scan-endpoint"],
+      "weight": 46,
+      "note": "Blind label: The only identifier, dnsName localhost, is a loopback name with no stable external identity; display names and URLs/paths are not identity evidence."
+    },
+    {
+      "id": "trivy-image.image.1",
+      "candidate": {
+        "source": "trivy",
+        "sourceRecord": "/Results/0/Vulnerabilities/0",
+        "title": "openssl: information disclosure in fork()",
+        "description": "OpenSSL 1.1.1 introduced a rewritten random number generator (RNG). This was intended to include protection in the event of a fork() system call in order to ensure that the parent and child processes did not share the same RNG state. However this protection was not being used in the default case. A partial mitigation for this issue is that the output from a high precision timer is mixed into the RNG state so the likelihood of a parent and child process sharing state is significantly reduced. If an application already calls OPENSSL_init_crypto() explicitly using OPENSSL_INIT_ATFORK then this problem does not occur at all. Fixed in OpenSSL 1.1.1d (Affected 1.1.1-1.1.1c).",
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "cve": ["CVE-2019-1549"],
+            "cwe": ["CWE-330"],
+            "trivy": ["CVE-2019-1549"]
+          },
+          "references": [
+            "https://avd.aquasec.com/nvd/cve-2019-1549",
+            "https://access.redhat.com/security/cve/CVE-2019-1549",
+            "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-1549",
+            "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=1b0fe00e2704b5e20334a16d3c9099d1ba2ef1be",
+            "https://linux.oracle.com/cve/CVE-2019-1549.html",
+            "https://linux.oracle.com/errata/ELSA-2020-1840.html",
+            "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/GY6SNRJP2S7Y42GIIDO3HXPNMDYN2U3A/",
+            "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ZN4VVQJ3JDCHGIHV4Y2YTXBYQZ6PWQ7E/",
+            "https://seclists.org/bugtraq/2019/Oct/1",
+            "https://security.netapp.com/advisory/ntap-20190919-0002/",
+            "https://support.f5.com/csp/article/K44070243",
+            "https://support.f5.com/csp/article/K44070243?utm_source=f5support&amp;utm_medium=RSS",
+            "https://ubuntu.com/security/notices/USN-4376-1",
+            "https://usn.ubuntu.com/4376-1/",
+            "https://www.debian.org/security/2019/dsa-4539",
+            "https://www.openssl.org/news/secadv/20190910.txt",
+            "https://www.oracle.com/security-alerts/cpuapr2020.html",
+            "https://www.oracle.com/security-alerts/cpujan2020.html",
+            "https://www.oracle.com/security-alerts/cpujul2020.html",
+            "https://www.oracle.com/security-alerts/cpuoct2020.html",
+            "https://www.oracle.com/technetwork/security-advisory/cpuoct2019-5072832.html"
+          ],
+          "cvss": [
+            {
+              "score": 5,
+              "vector": "AV:N/AC:L/Au:N/C:P/I:N/A:N",
+              "version": "2.0"
+            },
+            {
+              "score": 5.3,
+              "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+              "version": "3.1"
+            },
+            {
+              "score": 4.8,
+              "vector": "CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N",
+              "version": "3.0"
+            }
+          ]
+        },
+        "affectedResource": {
+          "type": "package",
+          "name": "libcrypto1.1",
+          "version": "1.1.1c-r0",
+          "ecosystem": "apk"
+        },
+        "evidence": "<details><summary>Package</summary>\n\n```\nlibcrypto1.1\n```\n\n</details>\n\n<details><summary>Installed version</summary>\n\n```\n1.1.1c-r0\n```\n\n</details>\n\n<details><summary>Advisory status</summary>\n\n```\nfixed\n```\n\n</details>",
+        "remediation": "<details><summary>Reported fixed version(s)</summary>\n\n```\n1.1.1d-r0\n```\n\n</details>",
+        "assetIdentifierCandidates": [
+          {
+            "type": "ociImageName",
+            "namespace": null,
+            "value": "ghcr.io/aquasecurity/trivy-test-images"
+          }
+        ],
+        "observedAt": "2021-08-25T12:20:30.000Z",
+        "sourceMetadata": {
+          "provenance": {
+            "document": {
+              "SchemaVersion": 2,
+              "Trivy": {
+                "Version": "dev"
+              },
+              "ReportID": "017b7d41-e09f-7000-80ea-000000000001",
+              "CreatedAt": "2021-08-25T12:20:30.000000005Z",
+              "ArtifactID": "sha256:39549bf49d696f172a6513103cdc8f53717024ad1fbce62d680a8e7ddde1a612",
+              "ArtifactName": "testdata/fixtures/images/alpine-310.tar.gz",
+              "ArtifactType": "container_image",
+              "Metadata": {
+                "Size": 5843968,
+                "OS": {
+                  "Family": "alpine",
+                  "Name": "3.10.2",
+                  "EOSL": true
+                },
+                "ImageID": "sha256:961769676411f082461f9ef46626dd7a2d1e2b2a38e6a44364bcbecf51e66dd4",
+                "DiffIDs": [
+                  "sha256:03901b4a2ea88eeaad62dbe59b072b28b6efa00491962b8741081c5df50c65e0"
+                ],
+                "RepoTags": ["ghcr.io/aquasecurity/trivy-test-images:alpine-310"],
+                "Reference": "ghcr.io/aquasecurity/trivy-test-images:alpine-310",
+                "ImageConfig": {
+                  "architecture": "amd64",
+                  "container": "0a80155a31551fcc1a36fccbbda79fcd3f0b1c7d270653d00310e6e2217c57e6",
+                  "created": "2019-08-20T20:19:55.211423266Z",
+                  "docker_version": "18.06.1-ce",
+                  "history": [
+                    {
+                      "created": "2019-08-20T20:19:55.062606894Z",
+                      "created_by": "/bin/sh -c #(nop) ADD file:fe64057fbb83dccb960efabbf1cd8777920ef279a7fa8dbca0a8801c651bdf7c in / "
+                    },
+                    {
+                      "created": "2019-08-20T20:19:55.211423266Z",
+                      "created_by": "/bin/sh -c #(nop)  CMD [\"/bin/sh\"]",
+                      "empty_layer": true
+                    }
+                  ],
+                  "os": "linux",
+                  "rootfs": {
+                    "type": "layers",
+                    "diff_ids": [
+                      "sha256:03901b4a2ea88eeaad62dbe59b072b28b6efa00491962b8741081c5df50c65e0"
+                    ]
+                  },
+                  "config": {
+                    "Cmd": ["/bin/sh"],
+                    "Env": ["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"],
+                    "Image": "sha256:06f4121dff4d0123ce11bd2e44f48da9ba9ddcd23ae376ea1f363f63ea0849b5",
+                    "ArgsEscaped": true
+                  }
+                },
+                "Layers": [
+                  {
+                    "Size": 5843968,
+                    "Digest": "sha256:9d48c3bd43c520dc2784e868a780e976b207cbf493eaff8c6596eb871cbd9609",
+                    "DiffID": "sha256:03901b4a2ea88eeaad62dbe59b072b28b6efa00491962b8741081c5df50c65e0"
+                  }
+                ]
+              }
+            },
+            "scanResult": {
+              "Target": "testdata/fixtures/images/alpine-310.tar.gz (alpine 3.10.2)",
+              "Class": "os-pkgs",
+              "Type": "alpine"
+            },
+            "result": {
+              "VulnerabilityID": "CVE-2019-1549",
+              "PkgID": "libcrypto1.1@1.1.1c-r0",
+              "PkgName": "libcrypto1.1",
+              "PkgIdentifier": {
+                "PURL": "pkg:apk/alpine/libcrypto1.1@1.1.1c-r0?arch=x86_64&distro=3.10.2",
+                "UID": "c3465bd7087640a7"
+              },
+              "InstalledVersion": "1.1.1c-r0",
+              "FixedVersion": "1.1.1d-r0",
+              "Status": "fixed",
+              "Layer": {
+                "Digest": "sha256:9d48c3bd43c520dc2784e868a780e976b207cbf493eaff8c6596eb871cbd9609",
+                "DiffID": "sha256:03901b4a2ea88eeaad62dbe59b072b28b6efa00491962b8741081c5df50c65e0"
+              },
+              "SeveritySource": "nvd",
+              "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2019-1549",
+              "DataSource": {
+                "ID": "alpine",
+                "Name": "Alpine Secdb",
+                "URL": "https://secdb.alpinelinux.org/"
+              },
+              "Fingerprint": "sha256:6843bc8bcd09d2629416906fb83f17f31dde9a2702183571f9d447c3185814ca",
+              "Title": "openssl: information disclosure in fork()",
+              "Description": "OpenSSL 1.1.1 introduced a rewritten random number generator (RNG). This was intended to include protection in the event of a fork() system call in order to ensure that the parent and child processes did not share the same RNG state. However this protection was not being used in the default case. A partial mitigation for this issue is that the output from a high precision timer is mixed into the RNG state so the likelihood of a parent and child process sharing state is significantly reduced. If an application already calls OPENSSL_init_crypto() explicitly using OPENSSL_INIT_ATFORK then this problem does not occur at all. Fixed in OpenSSL 1.1.1d (Affected 1.1.1-1.1.1c).",
+              "Severity": "MEDIUM",
+              "CweIDs": ["CWE-330"],
+              "VendorSeverity": {
+                "amazon": 2,
+                "nvd": 2,
+                "oracle-oval": 2,
+                "photon": 2,
+                "redhat": 1,
+                "ubuntu": 1
+              },
+              "CVSS": {
+                "nvd": {
+                  "V2Vector": "AV:N/AC:L/Au:N/C:P/I:N/A:N",
+                  "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+                  "V2Score": 5,
+                  "V3Score": 5.3
+                },
+                "redhat": {
+                  "V3Vector": "CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N",
+                  "V3Score": 4.8
+                }
+              },
+              "References": [
+                "https://access.redhat.com/security/cve/CVE-2019-1549",
+                "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-1549",
+                "https://git.openssl.org/gitweb/?p=openssl.git;a=commitdiff;h=1b0fe00e2704b5e20334a16d3c9099d1ba2ef1be",
+                "https://linux.oracle.com/cve/CVE-2019-1549.html",
+                "https://linux.oracle.com/errata/ELSA-2020-1840.html",
+                "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/GY6SNRJP2S7Y42GIIDO3HXPNMDYN2U3A/",
+                "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/ZN4VVQJ3JDCHGIHV4Y2YTXBYQZ6PWQ7E/",
+                "https://seclists.org/bugtraq/2019/Oct/1",
+                "https://security.netapp.com/advisory/ntap-20190919-0002/",
+                "https://support.f5.com/csp/article/K44070243",
+                "https://support.f5.com/csp/article/K44070243?utm_source=f5support&amp;utm_medium=RSS",
+                "https://ubuntu.com/security/notices/USN-4376-1",
+                "https://usn.ubuntu.com/4376-1/",
+                "https://www.debian.org/security/2019/dsa-4539",
+                "https://www.openssl.org/news/secadv/20190910.txt",
+                "https://www.oracle.com/security-alerts/cpuapr2020.html",
+                "https://www.oracle.com/security-alerts/cpujan2020.html",
+                "https://www.oracle.com/security-alerts/cpujul2020.html",
+                "https://www.oracle.com/security-alerts/cpuoct2020.html",
+                "https://www.oracle.com/technetwork/security-advisory/cpuoct2019-5072832.html"
+              ],
+              "PublishedDate": "2019-09-10T17:15:00Z",
+              "LastModifiedDate": "2020-10-20T22:15:00Z"
+            }
+          }
+        }
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000404"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000404",
+      "weight": 4,
+      "note": "Blind label: ociImageName ghcr.io/aquasecurity/trivy-test-images exactly matches asset 0404; asset 0405 has a different registry and is therefore a different image identity."
+    },
+    {
+      "id": "trivy-repository.repository.1",
+      "candidate": {
+        "source": "trivy",
+        "sourceRecord": "/Results/0/Vulnerabilities/0",
+        "title": "Uncontrolled recursion leads to abort in HTML serialization",
+        "description": "An issue was discovered in the ammonia crate before 2.1.0 for Rust. There is uncontrolled recursion during HTML DOM tree serialization.",
+        "severity": "high",
+        "weakness": {
+          "identifiers": {
+            "cve": ["CVE-2019-15542"],
+            "cwe": ["CWE-674"],
+            "trivy": ["CVE-2019-15542"]
+          },
+          "references": [
+            "https://avd.aquasec.com/nvd/cve-2019-15542",
+            "https://crates.io/crates/ammonia",
+            "https://github.com/rust-ammonia/ammonia/blob/master/CHANGELOG.md#210",
+            "https://rustsec.org/advisories/RUSTSEC-2019-0001.html"
+          ],
+          "cvss": [
+            {
+              "score": 5,
+              "vector": "AV:N/AC:L/Au:N/C:N/I:N/A:P",
+              "version": "2.0"
+            },
+            {
+              "score": 7.5,
+              "vector": "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+              "version": "3.0"
+            }
+          ]
+        },
+        "affectedResource": {
+          "type": "package",
+          "name": "ammonia",
+          "version": "1.9.0",
+          "ecosystem": "cargo"
+        },
+        "evidence": "<details><summary>Package</summary>\n\n```\nammonia\n```\n\n</details>\n\n<details><summary>Installed version</summary>\n\n```\n1.9.0\n```\n\n</details>\n\n<details><summary>Advisory status</summary>\n\n```\nfixed\n```\n\n</details>",
+        "remediation": "<details><summary>Reported fixed version(s)</summary>\n\n```\n>= 2.1.0\n```\n\n</details>",
+        "assetIdentifierCandidates": [
+          {
+            "type": "vcsRepository",
+            "namespace": null,
+            "value": "github.com/knqyf263/trivy-ci-test"
+          }
+        ],
+        "observedAt": "2021-08-25T12:20:30.000Z",
+        "sourceMetadata": {
+          "provenance": {
+            "document": {
+              "SchemaVersion": 2,
+              "Trivy": {
+                "Version": "dev"
+              },
+              "ReportID": "017b7d41-e09f-7000-80ea-000000000001",
+              "CreatedAt": "2021-08-25T12:20:30.000000005Z",
+              "ArtifactID": "sha256:4f8b4cb139bdac63ad60b7382a80cd0414c55018e2f80d4163f59e40f71766cc",
+              "ArtifactName": "https://github.com/knqyf263/trivy-ci-test",
+              "ArtifactType": "repository",
+              "Metadata": {
+                "RepoURL": "https://github.com/knqyf263/trivy-ci-test",
+                "Branch": "master",
+                "Commit": "5ae342eb2802672402d9b2c26f09e2051bbd91b8",
+                "CommitMsg": "Use COPY instead of ADD in Dockerfile (#4)",
+                "Author": "gy741 <gy741.kim@gmail.com>",
+                "Committer": "knqyf263 <knqyf263@gmail.com>"
+              }
+            },
+            "scanResult": {
+              "Target": "Cargo.lock",
+              "Class": "lang-pkgs",
+              "Type": "cargo"
+            },
+            "result": {
+              "VulnerabilityID": "CVE-2019-15542",
+              "PkgID": "ammonia@1.9.0",
+              "PkgName": "ammonia",
+              "PkgIdentifier": {
+                "PURL": "pkg:cargo/ammonia@1.9.0",
+                "UID": "9ec7999f7bb7437e"
+              },
+              "InstalledVersion": "1.9.0",
+              "FixedVersion": ">= 2.1.0",
+              "Status": "fixed",
+              "SeveritySource": "nvd",
+              "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2019-15542",
+              "DataSource": {
+                "Name": "RustSec Advisory Database",
+                "URL": "https://github.com/RustSec/advisory-db"
+              },
+              "Fingerprint": "sha256:f2b941fc60acd755d2c6a7e168e6b45422ea44a089d689f5c0a4971470acd837",
+              "Title": "Uncontrolled recursion leads to abort in HTML serialization",
+              "Description": "An issue was discovered in the ammonia crate before 2.1.0 for Rust. There is uncontrolled recursion during HTML DOM tree serialization.",
+              "Severity": "HIGH",
+              "CweIDs": ["CWE-674"],
+              "VendorSeverity": {
+                "nvd": 3
+              },
+              "CVSS": {
+                "nvd": {
+                  "V2Vector": "AV:N/AC:L/Au:N/C:N/I:N/A:P",
+                  "V3Vector": "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+                  "V2Score": 5,
+                  "V3Score": 7.5
+                }
+              },
+              "References": [
+                "https://crates.io/crates/ammonia",
+                "https://github.com/rust-ammonia/ammonia/blob/master/CHANGELOG.md#210",
+                "https://rustsec.org/advisories/RUSTSEC-2019-0001.html"
+              ],
+              "PublishedDate": "2019-08-26T18:15:00Z",
+              "LastModifiedDate": "2020-08-24T17:37:00Z"
+            }
+          }
+        }
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000406"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000406",
+      "weight": 2,
+      "note": "Blind label: vcsRepository github.com/knqyf263/trivy-ci-test exactly matches asset 0406."
+    },
+    {
+      "id": "trivy-terraform.checkout.1",
+      "candidate": {
+        "source": "trivy",
+        "sourceRecord": "/Results/2/Misconfigurations/0",
+        "title": "aws_instance should activate session tokens for Instance Metadata Service.",
+        "description": "IMDS v2 (Instance Metadata Service) introduced session authentication tokens which improve security when talking to IMDS.\n\nBy default <code>aws_instance</code> resource sets IMDS session auth tokens to be optional.\n\nTo fully protect IMDS you need to enable session tokens by using <code>metadata_options</code> block and its <code>http_tokens</code> variable set to <code>required</code>.\n",
+        "severity": "high",
+        "weakness": {
+          "identifiers": {
+            "trivy": ["AWS-0028"]
+          },
+          "references": [
+            "https://avd.aquasec.com/misconfig/aws-0028",
+            "https://aws.amazon.com/blogs/security/defense-in-depth-open-firewalls-reverse-proxies-ssrf-vulnerabilities-ec2-instance-metadata-service"
+          ]
+        },
+        "affectedResource": {
+          "type": "sourceCode",
+          "file": "aws/db-app.tf",
+          "location": {
+            "startLine": 243,
+            "endLine": 413
+          },
+          "symbol": "aws_instance.db_app"
+        },
+        "evidence": "<details><summary>Message</summary>\n\n```\nInstance does not require IMDS access to require a token.\n```\n\n</details>\n\n<details><summary>Code (reported excerpt)</summary>\n\n```\nresource \"aws_instance\" \"db_app\" {\n  # ec2 have plain text secrets in user data\n  ami                  = data.aws_ami.amazon-linux-2.id\n  instance_type        = \"t2.nano\"\n  iam_instance_profile = aws_iam_instance_profile.ec2profile.name\n\n  vpc_security_group_ids = [\n  \"${aws_security_group.web-node.id}\"]\n  subnet_id = \"${aws_subnet.web_subnet.id}\"\n\n```\n\n</details>",
+        "remediation": "Enable HTTP token requirement for IMDS",
+        "assetIdentifierCandidates": [],
+        "observedAt": "2026-09-16T18:57:33.949Z",
+        "sourceMetadata": {
+          "provenance": {
+            "document": {
+              "SchemaVersion": 2,
+              "Trivy": {
+                "Version": "0.74.0"
+              },
+              "ReportID": "01a0ab94-d8fd-79f0-9abb-b152fadecca6",
+              "CreatedAt": "2026-09-16T18:57:33.949652717Z",
+              "ArtifactName": "/tf",
+              "ArtifactType": "filesystem"
+            },
+            "scanResult": {
+              "Target": "aws/db-app.tf",
+              "Class": "config",
+              "Type": "terraform",
+              "MisconfSummary": {
+                "Successes": 0,
+                "Failures": 13
+              }
+            },
+            "result": {
+              "Type": "Terraform Security Check",
+              "ID": "AWS-0028",
+              "Title": "aws_instance should activate session tokens for Instance Metadata Service.",
+              "Description": "IMDS v2 (Instance Metadata Service) introduced session authentication tokens which improve security when talking to IMDS.\n\nBy default <code>aws_instance</code> resource sets IMDS session auth tokens to be optional.\n\nTo fully protect IMDS you need to enable session tokens by using <code>metadata_options</code> block and its <code>http_tokens</code> variable set to <code>required</code>.\n",
+              "Message": "Instance does not require IMDS access to require a token.",
+              "Namespace": "builtin.aws.ec2.aws0028",
+              "Query": "data.builtin.aws.ec2.aws0028.deny",
+              "Resolution": "Enable HTTP token requirement for IMDS",
+              "Severity": "HIGH",
+              "PrimaryURL": "https://avd.aquasec.com/misconfig/aws-0028",
+              "References": [
+                "https://aws.amazon.com/blogs/security/defense-in-depth-open-firewalls-reverse-proxies-ssrf-vulnerabilities-ec2-instance-metadata-service",
+                "https://avd.aquasec.com/misconfig/aws-0028"
+              ],
+              "Status": "FAIL",
+              "CauseMetadata": {
+                "Resource": "aws_instance.db_app",
+                "Provider": "AWS",
+                "Service": "ec2",
+                "StartLine": 243,
+                "EndLine": 413,
+                "Code": {
+                  "Lines": [
+                    {
+                      "Number": 243,
+                      "Content": "resource \"aws_instance\" \"db_app\" {",
+                      "IsCause": true,
+                      "Annotation": "",
+                      "Truncated": false,
+                      "Highlighted": "\u001b[38;5;33mresource\u001b[0m \u001b[38;5;37m\"aws_instance\"\u001b[0m \u001b[38;5;37m\"db_app\"\u001b[0m {",
+                      "FirstCause": true,
+                      "LastCause": false
+                    },
+                    {
+                      "Number": 244,
+                      "Content": "  # ec2 have plain text secrets in user data",
+                      "IsCause": true,
+                      "Annotation": "",
+                      "Truncated": false,
+                      "Highlighted": "\u001b[38;5;239m  # ec2 have plain text secrets in user data",
+                      "FirstCause": false,
+                      "LastCause": false
+                    },
+                    {
+                      "Number": 245,
+                      "Content": "  ami                  = data.aws_ami.amazon-linux-2.id",
+                      "IsCause": true,
+                      "Annotation": "",
+                      "Truncated": false,
+                      "Highlighted": "\u001b[0m  \u001b[38;5;245mami\u001b[0m                  = \u001b[38;5;33mdata\u001b[0m.aws_ami.amazon\u001b[38;5;245m-\u001b[0mlinux\u001b[38;5;37m-2\u001b[0m.id",
+                      "FirstCause": false,
+                      "LastCause": false
+                    },
+                    {
+                      "Number": 246,
+                      "Content": "  instance_type        = \"t2.nano\"",
+                      "IsCause": true,
+                      "Annotation": "",
+                      "Truncated": false,
+                      "Highlighted": "  \u001b[38;5;245minstance_type\u001b[0m        = \u001b[38;5;37m\"t2.nano\"",
+                      "FirstCause": false,
+                      "LastCause": false
+                    },
+                    {
+                      "Number": 247,
+                      "Content": "  iam_instance_profile = aws_iam_instance_profile.ec2profile.name",
+                      "IsCause": true,
+                      "Annotation": "",
+                      "Truncated": false,
+                      "Highlighted": "\u001b[0m  \u001b[38;5;245miam_instance_profile\u001b[0m = aws_iam_instance_profile.ec2profile.name",
+                      "FirstCause": false,
+                      "LastCause": false
+                    },
+                    {
+                      "Number": 248,
+                      "Content": "",
+                      "IsCause": true,
+                      "Annotation": "",
+                      "Truncated": false,
+                      "FirstCause": false,
+                      "LastCause": false
+                    },
+                    {
+                      "Number": 249,
+                      "Content": "  vpc_security_group_ids = [",
+                      "IsCause": true,
+                      "Annotation": "",
+                      "Truncated": false,
+                      "Highlighted": "  \u001b[38;5;245mvpc_security_group_ids\u001b[0m = [",
+                      "FirstCause": false,
+                      "LastCause": false
+                    },
+                    {
+                      "Number": 250,
+                      "Content": "  \"${aws_security_group.web-node.id}\"]",
+                      "IsCause": true,
+                      "Annotation": "",
+                      "Truncated": false,
+                      "Highlighted": "  \u001b[38;5;37m\"\u001b[0m\u001b[38;5;37m${\u001b[0maws_security_group.web\u001b[38;5;245m-\u001b[0mnode.id\u001b[38;5;37m}\u001b[0m\u001b[38;5;37m\"\u001b[0m]",
+                      "FirstCause": false,
+                      "LastCause": false
+                    },
+                    {
+                      "Number": 251,
+                      "Content": "  subnet_id = \"${aws_subnet.web_subnet.id}\"",
+                      "IsCause": true,
+                      "Annotation": "",
+                      "Truncated": false,
+                      "Highlighted": "  \u001b[38;5;245msubnet_id\u001b[0m = \u001b[38;5;37m\"\u001b[0m\u001b[38;5;37m${\u001b[0maws_subnet.web_subnet.id\u001b[38;5;37m}\u001b[0m\u001b[38;5;37m\"",
+                      "FirstCause": false,
+                      "LastCause": true
+                    },
+                    {
+                      "Number": 252,
+                      "Content": "",
+                      "IsCause": false,
+                      "Annotation": "",
+                      "Truncated": true,
+                      "FirstCause": false,
+                      "LastCause": false
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "insufficient_evidence"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000403",
+      "tags": ["upstream:missing-scan-target"],
+      "weight": 252,
+      "note": "Blind label: No identifier candidates and the sourceCode affectedResource has only a file path and symbol, no repository; source metadata is not identity evidence."
+    },
+    {
+      "id": "checkov-terraform.checkout.1",
+      "candidate": {
+        "source": "checkov",
+        "sourceRecord": "/results/failed_checks/0",
+        "title": "Alibaba Cloud OSS bucket accessible to public",
+        "description": null,
+        "remediation": null,
+        "evidence": "<details><summary>Code</summary>\n\n```\nresource \"alicloud_oss_bucket\" \"bad_bucket\" {\n  # Public and writeable bucket \n  # Versioning isn't enabled\n  # Not Encrypted with a Customer Master Key and no Server side encryption\n  # Doesn't have access logging enabled\" \n  bucket = \"wildwestfreeforall\"\n  acl    = \"public-read-write\"\n  tags = {\n    git_commit           = \"9c114f23d311f787c137723e1f71b27a52f0adec\"\n    git_file             = \"terraform/alicloud/bucket.tf\"\n    git_last_modified_at = \"2022-04-05 15:17:55\"\n    git_last_modified_by = \"james.woolfenden@gmail.com\"\n    git_modifiers        = \"james.woolfenden\"\n    git_org              = \"bridgecrewio\"\n    git_repo             = \"terragoat\"\n    yor_trace            = \"80373049-248d-4f5e-9d25-740c3e80f2b9\"\n  }\n}\n\n```\n\n</details>",
+        "severity": "info",
+        "weakness": {
+          "identifiers": {
+            "bridgecrew": ["BC_ALI_GENERAL_5"],
+            "checkov": ["CKV_ALI_1"]
+          },
+          "references": [
+            "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/alibaba-policies/alibaba-general-policies/ensure-alibaba-cloud-oss-bucket-is-not-accessible-to-public"
+          ]
+        },
+        "affectedResource": {
+          "type": "sourceCode",
+          "file": "/alicloud/bucket.tf",
+          "location": {
+            "startLine": 1,
+            "endLine": 18
+          },
+          "symbol": "alicloud_oss_bucket.bad_bucket"
+        },
+        "assetIdentifierCandidates": [],
+        "observedAt": null,
+        "sourceMetadata": {
+          "provenance": {
+            "result": {
+              "check_id": "CKV_ALI_1",
+              "bc_check_id": "BC_ALI_GENERAL_5",
+              "check_name": "Alibaba Cloud OSS bucket accessible to public",
+              "check_result": {
+                "result": "FAILED",
+                "evaluated_keys": ["acl"]
+              },
+              "code_block": [
+                [1, "resource \"alicloud_oss_bucket\" \"bad_bucket\" {\n"],
+                [2, "  # Public and writeable bucket \n"],
+                [3, "  # Versioning isn't enabled\n"],
+                [4, "  # Not Encrypted with a Customer Master Key and no Server side encryption\n"],
+                [5, "  # Doesn't have access logging enabled\" \n"],
+                [6, "  bucket = \"wildwestfreeforall\"\n"],
+                [7, "  acl    = \"public-read-write\"\n"],
+                [8, "  tags = {\n"],
+                [9, "    git_commit           = \"9c114f23d311f787c137723e1f71b27a52f0adec\"\n"],
+                [10, "    git_file             = \"terraform/alicloud/bucket.tf\"\n"],
+                [11, "    git_last_modified_at = \"2022-04-05 15:17:55\"\n"],
+                [12, "    git_last_modified_by = \"james.woolfenden@gmail.com\"\n"],
+                [13, "    git_modifiers        = \"james.woolfenden\"\n"],
+                [14, "    git_org              = \"bridgecrewio\"\n"],
+                [15, "    git_repo             = \"terragoat\"\n"],
+                [16, "    yor_trace            = \"80373049-248d-4f5e-9d25-740c3e80f2b9\"\n"],
+                [17, "  }\n"],
+                [18, "}\n"]
+              ],
+              "file_path": "/alicloud/bucket.tf",
+              "file_abs_path": "/tf/alicloud/bucket.tf",
+              "repo_file_path": "/tf/alicloud/bucket.tf",
+              "file_line_range": [1, 18],
+              "resource": "alicloud_oss_bucket.bad_bucket",
+              "evaluations": null,
+              "check_class": "checkov.terraform.checks.resource.alicloud.OSSBucketPublic",
+              "fixed_definition": null,
+              "entity_tags": null,
+              "caller_file_path": null,
+              "caller_file_line_range": null,
+              "resource_address": null,
+              "severity": null,
+              "bc_category": null,
+              "benchmarks": null,
+              "description": null,
+              "short_description": null,
+              "vulnerability_details": null,
+              "connected_node": null,
+              "guideline": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/alibaba-policies/alibaba-general-policies/ensure-alibaba-cloud-oss-bucket-is-not-accessible-to-public",
+              "details": [],
+              "check_len": null,
+              "definition_context_file_path": "/tf/alicloud/bucket.tf"
+            },
+            "document": {
+              "check_type": "terraform",
+              "summary": {
+                "passed": 196,
+                "failed": 467,
+                "skipped": 0,
+                "parsing_errors": 0,
+                "resource_count": 133,
+                "checkov_version": "3.2.360"
+              },
+              "url": "Add an api key '--bc-api-key <api-key>' to see more detailed insights via https://bridgecrew.cloud"
+            }
+          }
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "insufficient_evidence"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000403",
+      "tags": ["upstream:missing-scan-target"],
+      "weight": 467,
+      "note": "Blind label: No identifier candidates and the sourceCode affectedResource has only a file path and symbol, no repository."
+    },
+    {
+      "id": "kics-terraform.checkout.1",
+      "candidate": {
+        "source": "kics",
+        "sourceRecord": "/queries/0/files/0",
+        "title": "Cloud Storage Anonymous or Publicly Accessible",
+        "description": "Cloud Storage Buckets must not be anonymously or publicly accessible, which means the attribute 'members' must not possess 'allUsers' or 'allAuthenticatedUsers'",
+        "severity": "critical",
+        "weakness": {
+          "identifiers": {
+            "cwe": ["CWE-732"],
+            "kics": ["a6cd52a1-3056-4910-96a5-894de9f3f3b3"]
+          },
+          "references": [
+            "https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket_iam#google_storage_bucket_iam_binding"
+          ]
+        },
+        "affectedResource": {
+          "type": "sourceCode",
+          "file": "../../path/gcp/gcs.tf",
+          "location": {
+            "startLine": 19
+          },
+          "symbol": "allow_public_read"
+        },
+        "assetIdentifierCandidates": [],
+        "observedAt": "2026-09-16T18:59:18.905Z",
+        "evidence": "<details><summary>Expected</summary>\n\n```\n'google_storage_bucket_iam_binding[allow_public_read].members' should not have 'allUsers'\n```\n\n</details>\n\n<details><summary>Actual</summary>\n\n```\n'google_storage_bucket_iam_binding[allow_public_read].members' has 'allUsers'\n```\n\n</details>",
+        "remediation": null,
+        "sourceMetadata": {
+          "provenance": {
+            "result": {
+              "file_name": "../../path/gcp/gcs.tf",
+              "similarity_id": "753a66703f392ada37fa143e4cbda2e38b048d54451dcb3d5ec3e0251810b26b",
+              "line": 19,
+              "resource_type": "google_storage_bucket_iam_binding",
+              "resource_name": "allow_public_read",
+              "issue_type": "IncorrectValue",
+              "search_key": "google_storage_bucket_iam_binding[allow_public_read].members",
+              "search_line": -1,
+              "search_value": "",
+              "expected_value": "'google_storage_bucket_iam_binding[allow_public_read].members' should not have 'allUsers'",
+              "actual_value": "'google_storage_bucket_iam_binding[allow_public_read].members' has 'allUsers'"
+            },
+            "query": {
+              "query_name": "Cloud Storage Anonymous or Publicly Accessible",
+              "query_id": "a6cd52a1-3056-4910-96a5-894de9f3f3b3",
+              "query_url": "https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket_iam#google_storage_bucket_iam_binding",
+              "severity": "CRITICAL",
+              "platform": "Terraform",
+              "cwe": "732",
+              "risk_score": "8.8",
+              "cloud_provider": "GCP",
+              "category": "Access Control",
+              "experimental": false,
+              "description": "Cloud Storage Buckets must not be anonymously or publicly accessible, which means the attribute 'members' must not possess 'allUsers' or 'allAuthenticatedUsers'",
+              "description_id": "fd990360"
+            },
+            "document": {
+              "kics_version": "v2.1.20",
+              "files_scanned": 47,
+              "lines_scanned": 2934,
+              "files_parsed": 47,
+              "lines_parsed": 2894,
+              "lines_ignored": 40,
+              "files_failed_to_scan": 0,
+              "queries_total": 1100,
+              "queries_failed_to_execute": 0,
+              "queries_failed_to_compute_similarity_id": 0,
+              "scan_id": "console",
+              "severity_counters": {
+                "CRITICAL": 4,
+                "HIGH": 68,
+                "INFO": 57,
+                "LOW": 57,
+                "MEDIUM": 116,
+                "TRACE": 0
+              },
+              "total_counter": 302,
+              "total_bom_resources": 0,
+              "start": "2026-09-16T18:59:11.11114574Z",
+              "end": "2026-09-16T18:59:18.905190313Z",
+              "paths": ["/path"]
+            }
+          }
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "insufficient_evidence"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000403",
+      "tags": ["upstream:missing-scan-target"],
+      "weight": 302,
+      "note": "Blind label: No identifier candidates and the sourceCode affectedResource has only a file path and symbol, no repository."
+    },
+    {
+      "id": "semgrep-juice-shop.checkout.1",
+      "candidate": {
+        "source": "semgrep",
+        "sourceRecord": "/results/0",
+        "title": "yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag",
+        "description": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "cwe": ["CWE-1357", "CWE-353"],
+            "semgrep": [
+              "yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag"
+            ]
+          },
+          "references": [
+            "https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-third-party-actions",
+            "https://semgrep.dev/r/yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag",
+            "https://sg.run/2LgAL"
+          ]
+        },
+        "affectedResource": {
+          "type": "sourceCode",
+          "file": ".github/workflows/ci.yml",
+          "location": {
+            "startLine": 188,
+            "startColumn": 9,
+            "endLine": 188,
+            "endColumn": 44
+          }
+        },
+        "assetIdentifierCandidates": [],
+        "observedAt": null,
+        "evidence": null,
+        "remediation": null,
+        "sourceMetadata": {
+          "provenance": {
+            "result": {
+              "check_id": "yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag",
+              "path": ".github/workflows/ci.yml",
+              "start": {
+                "line": 188,
+                "col": 9,
+                "offset": 9217
+              },
+              "end": {
+                "line": 188,
+                "col": 44,
+                "offset": 9252
+              },
+              "extra": {
+                "message": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.",
+                "metadata": {
+                  "category": "security",
+                  "cwe": [
+                    "CWE-1357: Reliance on Insufficiently Trustworthy Component",
+                    "CWE-353: Missing Support for Integrity Check"
+                  ],
+                  "owasp": [
+                    "A08:2021 - Software and Data Integrity Failures",
+                    "A08:2025 - Software and Data Integrity Failures"
+                  ],
+                  "references": [
+                    "https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-third-party-actions"
+                  ],
+                  "technology": ["github-actions"],
+                  "subcategory": ["vuln"],
+                  "likelihood": "MEDIUM",
+                  "impact": "HIGH",
+                  "confidence": "HIGH",
+                  "license": "Semgrep Rules License v1.0. For more details, visit semgrep.dev/legal/rules-license",
+                  "vulnerability_class": ["Cryptographic Issues", "Other"],
+                  "source": "https://semgrep.dev/r/yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag",
+                  "shortlink": "https://sg.run/2LgAL"
+                },
+                "severity": "WARNING",
+                "fingerprint": "requires login",
+                "lines": "requires login",
+                "validation_state": "NO_VALIDATOR",
+                "engine_kind": "OSS"
+              }
+            },
+            "document": {
+              "version": "1.176.1",
+              "engine_requested": "OSS"
+            }
+          }
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "insufficient_evidence"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000402",
+      "tags": ["upstream:missing-scan-target"],
+      "weight": 68,
+      "note": "Blind label: No identifier candidates and the sourceCode affectedResource has only a file path and location, no repository; the case/source naming is not evidence."
+    },
+    {
+      "id": "bearer-juice-shop.checkout.1",
+      "candidate": {
+        "source": "bearer",
+        "sourceRecord": "/critical/0",
+        "title": "Usage of hard-coded secret",
+        "description": "## Description\n\nStoring secrets directly in code compromises security. It's safer to use environment variables or a secret management system.\n\n## Remediations\n\n- **Do not** store plaintext secrets in your code. This makes your application vulnerable to unauthorized access if the codebase is exposed.\n  ```javascript\n  app.use(\n    session({\n      secret: \"shh-my-secret\",\n      name: \"my-custom-session-name\",\n    })\n  )\n  ```\n- **Do** use environment variables to store secrets. This method keeps sensitive information out of your codebase.\n  ```javascript\n  app.use(\n    session({\n      secret: process.env.SECRET,\n      name: \"my-custom-session-name\",\n    })\n  )\n  ```\n- **Do** use a secret management system or a key management service (KMS) with encryption for enhanced security. These services provide secure storage and management of secrets, reducing the risk of exposure.\n\n## References\n\n- [OWASP hardcoded passwords](https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_password)\n- [Google Cloud Key Management Service](https://cloud.google.com/kms/docs)\n- [AWS Key Management Service](https://aws.amazon.com/kms/)\n",
+        "remediation": "- **Do not** store plaintext secrets in your code. This makes your application vulnerable to unauthorized access if the codebase is exposed.\n  ```javascript\n  app.use(\n    session({\n      secret: \"shh-my-secret\",\n      name: \"my-custom-session-name\",\n    })\n  )\n  ```\n- **Do** use environment variables to store secrets. This method keeps sensitive information out of your codebase.\n  ```javascript\n  app.use(\n    session({\n      secret: process.env.SECRET,\n      name: \"my-custom-session-name\",\n    })\n  )\n  ```\n- **Do** use a secret management system or a key management service (KMS) with encryption for enhanced security. These services provide secure storage and management of secrets, reducing the risk of exposure.",
+        "evidence": "<details><summary>Code Extract</summary>\n\n```\nexport const authorize = (user = {}) => jwt.sign(user, privateKey, { expiresIn: '6h', algorithm: 'RS256' })\n```\n\n</details>",
+        "severity": "critical",
+        "weakness": {
+          "identifiers": {
+            "bearer": ["javascript_express_hardcoded_secret"],
+            "cwe": ["CWE-798"]
+          },
+          "references": [
+            "https://docs.bearer.com/reference/rules/javascript_express_hardcoded_secret"
+          ]
+        },
+        "affectedResource": {
+          "type": "sourceCode",
+          "file": "lib/insecurity.ts",
+          "location": {
+            "startLine": 54,
+            "startColumn": 41,
+            "endLine": 54,
+            "endColumn": 108
+          }
+        },
+        "assetIdentifierCandidates": [],
+        "observedAt": null,
+        "sourceMetadata": {
+          "provenance": {
+            "result": {
+              "cwe_ids": ["798"],
+              "id": "javascript_express_hardcoded_secret",
+              "title": "Usage of hard-coded secret",
+              "description": "## Description\n\nStoring secrets directly in code compromises security. It's safer to use environment variables or a secret management system.\n\n## Remediations\n\n- **Do not** store plaintext secrets in your code. This makes your application vulnerable to unauthorized access if the codebase is exposed.\n  ```javascript\n  app.use(\n    session({\n      secret: \"shh-my-secret\",\n      name: \"my-custom-session-name\",\n    })\n  )\n  ```\n- **Do** use environment variables to store secrets. This method keeps sensitive information out of your codebase.\n  ```javascript\n  app.use(\n    session({\n      secret: process.env.SECRET,\n      name: \"my-custom-session-name\",\n    })\n  )\n  ```\n- **Do** use a secret management system or a key management service (KMS) with encryption for enhanced security. These services provide secure storage and management of secrets, reducing the risk of exposure.\n\n## References\n\n- [OWASP hardcoded passwords](https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_password)\n- [Google Cloud Key Management Service](https://cloud.google.com/kms/docs)\n- [AWS Key Management Service](https://aws.amazon.com/kms/)\n",
+              "documentation_url": "https://docs.bearer.com/reference/rules/javascript_express_hardcoded_secret",
+              "line_number": 54,
+              "full_filename": "/tmp/scan/lib/insecurity.ts",
+              "filename": "lib/insecurity.ts",
+              "category_groups": ["PII", "Personal Data"],
+              "source": {
+                "start": 54,
+                "end": 54,
+                "column": {
+                  "start": 41,
+                  "end": 108
+                }
+              },
+              "sink": {
+                "start": 54,
+                "end": 54,
+                "column": {
+                  "start": 41,
+                  "end": 108
+                },
+                "content": ""
+              },
+              "parent_line_number": 54,
+              "fingerprint": "c095a5cc1948bae67c38b5c5d85eb4f4_0",
+              "old_fingerprint": "4c615af79a8957cd201b08577bcf8606_0",
+              "code_extract": "export const authorize = (user = {}) => jwt.sign(user, privateKey, { expiresIn: '6h', algorithm: 'RS256' })"
+            },
+            "severity": "critical",
+            "document": {}
+          }
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "insufficient_evidence"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000402",
+      "tags": ["upstream:missing-scan-target"],
+      "weight": 400,
+      "note": "Blind label: No identifier candidates and the sourceCode affectedResource has only a file path and location, no repository."
+    }
+  ]
+}
