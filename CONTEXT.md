@@ -217,6 +217,35 @@ no suitable inventory match despite sufficient identifying evidence, ambiguity
 among plausible assets, or conflicting identifiers. Every matching decision has
 an explanation; inability to execute matching is not an unresolved decision.
 
+### Finding Matching
+
+**Finding matching** resolves the observation candidates of one ingestion that
+asset matching resolved to the same asset, as one batch, deciding per candidate
+whether it belongs to an existing finding on that asset, seeds a new finding, or
+remains unresolved. Finding identity never spans assets, so a batch never does
+either. Matching does not create or modify findings, observations, or assets,
+and it does not seed new finding data.
+
+All findings on the asset are eligible regardless of status or origin, including
+terminal statuses and manually created findings; matching decides identity, not
+workflow. Several candidates may match the same finding. Title or description
+similarity alone is insufficient evidence. Decisions reflect a point-in-time read
+and reserve nothing; inability to execute matching rejects the whole batch.
+
+### New Finding Group
+
+A **new finding group** is the set of candidates in one finding matching batch
+that share an opaque, batch-local group key. Each group seeds exactly one new
+finding. Deciding that a candidate belongs to a new finding group is a positive
+decision on sufficient identity evidence, not a fallback for inability to decide.
+
+### Unresolved Finding Match
+
+An **unresolved finding match** is a completed decision with insufficient identity
+evidence to choose between an existing finding and a new one, ambiguity among
+plausible targets, or identity evidence pointing at different findings. Every
+finding matching decision has an explanation.
+
 ### Finding Assignee
 
 A **finding assignee** is the single user profile explicitly assigned to handle
@@ -377,6 +406,8 @@ matching remain deferred, and the UI import workflow remains disabled.
 When enabled, imports will resolve source records against user-managed assets and
 findings. They will not create assets or vulnerability catalog entries. A record
 whose target cannot be resolved to one asset will not become an observation.
+Neither will a candidate with an unresolved finding match; these are logged, and
+human review of unresolved finding matches is the intended future.
 
 ### Ingestion
 
