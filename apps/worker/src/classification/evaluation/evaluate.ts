@@ -4,7 +4,10 @@ import { isDeepStrictEqual } from "node:util";
 
 import { assetIdentifierSchema } from "@exposurenexus/backend/assets";
 import { weaknessSchema } from "@exposurenexus/backend/findings";
-import { observationAffectedResourceSchema } from "@exposurenexus/contracts/model/affected-resource";
+import {
+  AffectedResourceType,
+  observationAffectedResourceSchema,
+} from "@exposurenexus/contracts/model/affected-resource";
 import { assetSchema } from "@exposurenexus/contracts/model/asset";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import pino from "pino";
@@ -21,10 +24,37 @@ export type ExpectedAssetMatch =
 export type EvaluationCase = {
   id: string;
   candidate: ObservationCandidate;
+  /** The correct decision given only the candidate's evidence and the inventory. */
   expected: ExpectedAssetMatch;
+  /**
+   * The asset the subject really is, which inventory drift can hide from any matcher;
+   * null when the subject is absent from inventory. Defaults to an expected match's asset.
+   */
+  truthAssetId?: string | null;
+  /** Other unresolved decisions the contract permits; they score as correct but uncovered. */
+  acceptable?: ExpectedAssetMatch[];
+  /** Breakdown labels such as `drift:stale-ip`; `source:` and `evidence:` tags are derived. */
+  tags?: string[];
+  /** Why current matchers are expected to fail this case. */
+  knownGap?: string;
+  /** How many source candidates this case stands for; defaults to 1. */
+  weight?: number;
+  /** Why the labels are what they are; for reviewers, never scored or reported. */
+  note?: string;
 };
 
-export type InventoryScenario = { id: string; assets: Asset[]; cases: EvaluationCase[] };
+export const evaluationSuites = ["edge", "replay", "generated", "heldout"] as const;
+export type EvaluationSuite = (typeof evaluationSuites)[number];
+/** Held-out cases run only when explicitly selected, so tuning cannot overfit them. */
+export const defaultEvaluationSuites: readonly EvaluationSuite[] = ["edge", "replay", "generated"];
+
+export type InventoryScenario = {
+  id: string;
+  /** Defaults to `edge`. */
+  suite?: EvaluationSuite;
+  assets: Asset[];
+  cases: EvaluationCase[];
+};
 export type EvaluationDataset = { id: string; scenarios: InventoryScenario[] };
 
 export type MatcherFactory = {
@@ -40,12 +70,18 @@ type CaseOutcome =
   | "wrong_assignment"
   | "missed_match"
   | "correctly_unresolved"
+  | "acceptable_alternative"
   | "incorrect_unresolved_reason"
   | "error"
   | "not_run";
 
 type CaseEvaluation = {
   id: string;
+  scenarioId: string;
+  tags: string[];
+  weight: number;
+  truthAssetId?: string | null;
+  knownGap: string | null;
   expected: ExpectedAssetMatch;
   actual: AssetMatchResult | null;
   outcome: CaseOutcome;
@@ -56,6 +92,7 @@ type CaseEvaluation = {
 type SetupEvaluation = { durationMs: number; error: string | null };
 type ScenarioEvaluation = {
   id: string;
+  suite: EvaluationSuite;
   assetCount: number;
   setup: SetupEvaluation;
   cases: CaseEvaluation[];
@@ -87,6 +124,30 @@ const candidateSchema = z.strictObject({
   sourceMetadata: z.record(z.string(), z.unknown()),
 }) satisfies z.ZodType<ObservationCandidate>;
 
+const tagPattern = /^[a-z0-9][a-z0-9._:/-]*$/i;
+
+/** Which identity evidence a candidate offers, by field presence, independent of any matcher. */
+export function evidenceTier(candidate: ObservationCandidate): "explicit" | "context" | "none" {
+  if (candidate.assetIdentifierCandidates.length > 0) return "explicit";
+  const resource = candidate.affectedResource;
+  switch (resource.type) {
+    case AffectedResourceType.WebEndpoint:
+    case AffectedResourceType.NetworkService:
+      return resource.host === undefined ? "none" : "context";
+    case AffectedResourceType.SourceCode:
+      return resource.repository === undefined ? "none" : "context";
+    case AffectedResourceType.ContainerImage:
+      return resource.registry === undefined && resource.repository === undefined
+        ? "none"
+        : "context";
+    case AffectedResourceType.CloudResource:
+      return resource.resourceId === undefined ? "none" : "context";
+    case AffectedResourceType.Package:
+    case AffectedResourceType.Unspecified:
+      return "none";
+  }
+}
+
 function uniqueIds(entries: { id: string }[], kind: string) {
   if (
     entries.some(
@@ -115,6 +176,9 @@ function validateDataset(dataset: EvaluationDataset) {
   uniqueIds(dataset.scenarios, "scenario");
   if (dataset.scenarios.length === 0) throw new Error("The dataset has no inventory scenarios.");
   for (const scenario of dataset.scenarios) {
+    if (scenario.suite !== undefined && !evaluationSuites.includes(scenario.suite)) {
+      throw new Error(`Unknown suite for scenario ${scenario.id}.`);
+    }
     const assets = uniqueIds(scenario.assets, "asset");
     uniqueIds(scenario.cases, "case");
     if (scenario.cases.length === 0) throw new Error(`Scenario ${scenario.id} has no cases.`);
@@ -149,6 +213,40 @@ function validateDataset(dataset: EvaluationDataset) {
       if (!candidate.success || !isDeepStrictEqual(candidate.data, testCase.candidate)) {
         throw new Error(`Invalid or noncanonical observation candidate in ${context}.`);
       }
+      const { truthAssetId, acceptable, tags, knownGap, weight, note } = testCase;
+      if (truthAssetId !== undefined && truthAssetId !== null && !assets.has(truthAssetId)) {
+        throw new Error(`Truth asset is not in the inventory for ${context}.`);
+      }
+      if (
+        acceptable !== undefined &&
+        (!Array.isArray(acceptable) ||
+          acceptable.some(
+            (entry) =>
+              !resultSchema.safeParse({ ...entry, explanation: "" }).success ||
+              entry.status !== "unresolved",
+          ))
+      ) {
+        throw new Error(`Acceptable outcomes must be valid unresolved decisions in ${context}.`);
+      }
+      if (
+        tags !== undefined &&
+        (!Array.isArray(tags) ||
+          tags.some((tag) => typeof tag !== "string" || !tagPattern.test(tag)))
+      ) {
+        throw new Error(`Invalid tag in ${context}.`);
+      }
+      if (
+        knownGap !== undefined &&
+        (typeof knownGap !== "string" || knownGap.trim().length === 0)
+      ) {
+        throw new Error(`Known gaps need a description in ${context}.`);
+      }
+      if (weight !== undefined && (!Number.isSafeInteger(weight) || weight < 1)) {
+        throw new Error(`Case weights must be positive integers in ${context}.`);
+      }
+      if (note !== undefined && (typeof note !== "string" || note.trim().length === 0)) {
+        throw new Error(`Notes must not be empty in ${context}.`);
+      }
     }
   }
 }
@@ -167,25 +265,130 @@ function timingSummary(durations: number[]) {
   };
 }
 
-function summarize(cases: CaseEvaluation[], setups: SetupEvaluation[]) {
-  const count = (outcome: CaseOutcome) => cases.filter((entry) => entry.outcome === outcome).length;
-  const correctAssignments = count("correct_assignment");
-  const wrongAssignments = count("wrong_assignment");
-  const assignments = correctAssignments + wrongAssignments;
-  const expectedMatches = cases.filter((entry) => entry.expected.status === "matched").length;
-  const notRun = count("not_run");
+const correctOutcomes = new Set<CaseOutcome>([
+  "correct_assignment",
+  "correctly_unresolved",
+  "acceptable_alternative",
+]);
+
+function ratio(numerator: number, denominator: number) {
+  return denominator === 0 ? null : numerator / denominator;
+}
+
+function truthMatched(entry: CaseEvaluation) {
+  return entry.actual?.status === "matched" && entry.actual.assetId === entry.truthAssetId;
+}
+
+function misattributed(entry: CaseEvaluation) {
+  return (
+    entry.actual?.status === "matched" &&
+    entry.truthAssetId !== undefined &&
+    entry.actual.assetId !== entry.truthAssetId
+  );
+}
+
+function tally(cases: CaseEvaluation[], weightOf: (entry: CaseEvaluation) => number) {
+  const total = (keep: (entry: CaseEvaluation) => boolean) =>
+    cases.filter(keep).reduce((sum, entry) => sum + weightOf(entry), 0);
+  const outcome = (value: CaseOutcome) => total((entry) => entry.outcome === value);
+  const all = total(() => true);
+  const correctAssignments = outcome("correct_assignment");
+  const wrongAssignments = outcome("wrong_assignment");
+  const expectedMatches = total((entry) => entry.expected.status === "matched");
+  const withTruth = total((entry) => typeof entry.truthAssetId === "string");
   return {
-    cases: cases.length,
+    total: all,
     expectedMatches,
     correctAssignments,
     wrongAssignments,
-    missedMatches: count("missed_match"),
-    correctlyUnresolved: count("correctly_unresolved"),
-    incorrectUnresolvedReasons: count("incorrect_unresolved_reason"),
-    errors: count("error"),
-    notRun,
-    assignmentPrecision: assignments === 0 ? null : correctAssignments / assignments,
-    matchRecall: expectedMatches === 0 ? null : correctAssignments / expectedMatches,
+    missedMatches: outcome("missed_match"),
+    correctlyUnresolved: outcome("correctly_unresolved"),
+    acceptableAlternatives: outcome("acceptable_alternative"),
+    incorrectUnresolvedReasons: outcome("incorrect_unresolved_reason"),
+    errors: outcome("error"),
+    notRun: outcome("not_run"),
+    assignmentPrecision: ratio(correctAssignments, correctAssignments + wrongAssignments),
+    matchRecall: ratio(correctAssignments, expectedMatches),
+    /** Share of subjects with a known inventory asset that were assigned to it. */
+    coverage: ratio(total(truthMatched), withTruth),
+    wrongAssignmentRate: ratio(wrongAssignments, all),
+    /** Assignments to anything but the real subject, including inventory-induced ones. */
+    misattributionRate: ratio(total(misattributed), all),
+  };
+}
+
+function decisionLabel(entry: CaseEvaluation) {
+  if (entry.actual === null) return entry.outcome;
+  if (entry.actual.status === "unresolved") return entry.actual.reason;
+  return entry.outcome === "correct_assignment" ? "matched" : "matched:other";
+}
+
+function summarize(cases: CaseEvaluation[], setups: SetupEvaluation[]) {
+  const { total: caseCount, ...unweighted } = tally(cases, () => 1);
+  const { total: candidates, ...weighted } = tally(cases, (entry) => entry.weight);
+
+  // Candidate-weighted: expected decision -> actual decision.
+  const confusion: Record<string, Record<string, number>> = {};
+  const tags: Record<
+    string,
+    {
+      cases: number;
+      candidates: number;
+      correct: number;
+      wrongAssignments: number;
+      misattributed: number;
+      uncovered: number;
+    }
+  > = {};
+  const knownGaps: Record<string, { open: number; closed: number; candidates: number }> = {};
+  const unexpectedFailures: string[] = [];
+  for (const entry of cases) {
+    const expected = entry.expected.status === "matched" ? "matched" : entry.expected.reason;
+    confusion[expected] ??= {};
+    const actual = decisionLabel(entry);
+    confusion[expected][actual] = (confusion[expected][actual] ?? 0) + entry.weight;
+
+    const correct = correctOutcomes.has(entry.outcome);
+    for (const tag of entry.tags) {
+      const stats = (tags[tag] ??= {
+        cases: 0,
+        candidates: 0,
+        correct: 0,
+        wrongAssignments: 0,
+        misattributed: 0,
+        uncovered: 0,
+      });
+      stats.cases += 1;
+      stats.candidates += entry.weight;
+      if (correct) stats.correct += entry.weight;
+      if (entry.outcome === "wrong_assignment") stats.wrongAssignments += entry.weight;
+      if (misattributed(entry)) stats.misattributed += entry.weight;
+      if (typeof entry.truthAssetId === "string" && !truthMatched(entry)) {
+        stats.uncovered += entry.weight;
+      }
+    }
+
+    if (entry.outcome === "not_run") {
+      continue;
+    }
+    if (entry.knownGap !== null) {
+      const gap = (knownGaps[entry.knownGap] ??= { open: 0, closed: 0, candidates: 0 });
+      gap[correct ? "closed" : "open"] += 1;
+      gap.candidates += entry.weight;
+    } else if (!correct) {
+      unexpectedFailures.push(`${entry.scenarioId}/${entry.id}`);
+    }
+  }
+
+  const notRun = unweighted.notRun;
+  return {
+    cases: caseCount,
+    ...unweighted,
+    weighted: { candidates, ...weighted },
+    confusion,
+    tags: Object.fromEntries(Object.entries(tags).sort(([a], [b]) => a.localeCompare(b))),
+    knownGaps,
+    unexpectedFailures,
     incomplete: notRun > 0,
     setupFailures: setups.filter((setup) => setup.error !== null).length,
     setupTiming: timingSummary(setups.map((setup) => setup.durationMs)),
@@ -216,7 +419,13 @@ function selectEntries<T extends { id: string }>(
 export async function evaluateAssetMatchers(
   dataset: EvaluationDataset,
   factories: MatcherFactory[],
-  options: { matcherIds?: string[]; scenarioIds?: string[]; allowNetwork?: boolean } = {},
+  options: {
+    matcherIds?: string[];
+    scenarioIds?: string[];
+    /** Defaults to every suite when scenarios are named, otherwise to the default suites. */
+    suites?: EvaluationSuite[];
+    allowNetwork?: boolean;
+  } = {},
 ) {
   let input: EvaluationDataset;
   let serialized: string;
@@ -236,7 +445,17 @@ export async function evaluateAssetMatchers(
   ) {
     throw new Error("Each matcher factory must declare requiresNetwork and provide create().");
   }
-  const selectedScenarios = selectEntries(input.scenarios, options.scenarioIds, "scenario");
+  const suites: readonly EvaluationSuite[] =
+    options.suites ??
+    (options.scenarioIds === undefined ? defaultEvaluationSuites : evaluationSuites);
+  const unknownSuite = suites.find((suite) => !evaluationSuites.includes(suite));
+  if (unknownSuite !== undefined)
+    throw new Error(`Unknown suite: ${JSON.stringify(unknownSuite)}.`);
+  const selectedScenarios = selectEntries(
+    input.scenarios.filter((scenario) => suites.includes(scenario.suite ?? "edge")),
+    options.scenarioIds,
+    "scenario",
+  );
   let selectedFactories = selectEntries(factories, options.matcherIds, "matcher");
   if (options.matcherIds === undefined) {
     selectedFactories = selectedFactories.filter((factory) => factory.requiresNetwork === false);
@@ -283,9 +502,28 @@ export async function evaluateAssetMatchers(
           testCase.expected.status === "matched"
             ? { status: "matched", assetId: testCase.expected.assetId }
             : { status: "unresolved", reason: testCase.expected.reason };
+        const metadata = {
+          id: testCase.id,
+          scenarioId: scenario.id,
+          tags: [
+            ...new Set([
+              `source:${testCase.candidate.source}`,
+              `evidence:${evidenceTier(testCase.candidate)}`,
+              ...(testCase.tags ?? []),
+            ]),
+          ],
+          weight: testCase.weight ?? 1,
+          truthAssetId:
+            testCase.truthAssetId !== undefined
+              ? testCase.truthAssetId
+              : expected.status === "matched"
+                ? expected.assetId
+                : undefined,
+          knownGap: testCase.knownGap ?? null,
+        };
         if (matcher === undefined) {
           cases.push({
-            id: testCase.id,
+            ...metadata,
             expected,
             actual: null,
             outcome: "not_run",
@@ -308,7 +546,7 @@ export async function evaluateAssetMatchers(
         const parsed = callError === null ? resultSchema.safeParse(result) : null;
         if (!parsed?.success) {
           cases.push({
-            id: testCase.id,
+            ...metadata,
             expected,
             actual: null,
             outcome: "error",
@@ -332,10 +570,20 @@ export async function evaluateAssetMatchers(
               ? "correctly_unresolved"
               : "incorrect_unresolved_reason";
         }
-        cases.push({ id: testCase.id, expected, actual, outcome, durationMs, error: null });
+        if (
+          actual.status === "unresolved" &&
+          !correctOutcomes.has(outcome) &&
+          testCase.acceptable?.some(
+            (entry) => entry.status === "unresolved" && entry.reason === actual.reason,
+          )
+        ) {
+          outcome = "acceptable_alternative";
+        }
+        cases.push({ ...metadata, expected, actual, outcome, durationMs, error: null });
       }
       scenarios.push({
         id: scenario.id,
+        suite: scenario.suite ?? "edge",
         assetCount: scenario.assets.length,
         setup,
         cases,
@@ -354,7 +602,7 @@ export async function evaluateAssetMatchers(
     });
   }
   return {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
     dataset: {
       id: input.id,
       sha256: fingerprint,

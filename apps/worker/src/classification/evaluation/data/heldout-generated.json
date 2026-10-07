@@ -1,0 +1,3481 @@
+{
+  "id": "heldout-generated",
+  "suite": "heldout",
+  "assets": [
+    {
+      "id": "10000000-0000-4000-8000-000000000001",
+      "displayName": "gateway-1 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "gateway-1.staging.example.test",
+          "id": "20000000-0000-4000-8000-000000000101"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.2",
+          "id": "20000000-0000-4000-8000-000000000102"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000002",
+      "displayName": "orders-Service-3 source",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "git.example.test/Data-Eng/orders-Service-3",
+          "id": "20000000-0000-4000-8000-000000000201"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000003",
+      "displayName": "web/auth-4 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "registry.example.test/web/auth-4",
+          "id": "20000000-0000-4000-8000-000000000301"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000004",
+      "displayName": "function:inventory-5 (lambda)",
+      "type": "cloudResource",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "cloudResourceId",
+          "namespace": null,
+          "value": "arn:aws:lambda:eu-west-1:222233334444:function:inventory-5",
+          "id": "20000000-0000-4000-8000-000000000401"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000005",
+      "displayName": "platform/ledger-6 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "registry.example.test/platform/ledger-6",
+          "id": "20000000-0000-4000-8000-000000000501"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000006",
+      "displayName": "payments/media-7 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "ghcr.example.test/payments/media-7",
+          "id": "20000000-0000-4000-8000-000000000601"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000007",
+      "displayName": "web/search-8 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "ghcr.example.test/web/search-8",
+          "id": "20000000-0000-4000-8000-000000000701"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000008",
+      "displayName": "search-Service-9 source",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "git.example.test/payments/search-Service-9",
+          "id": "20000000-0000-4000-8000-000000000801"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000009",
+      "displayName": "ledger-10 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "ledger-10.staging.example.test",
+          "id": "20000000-0000-4000-8000-000000000901"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.11",
+          "id": "20000000-0000-4000-8000-000000000902"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000010",
+      "displayName": "gateway-12 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "gateway-12.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000001001"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.13",
+          "id": "20000000-0000-4000-8000-000000001002"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000011",
+      "displayName": "web/catalog-14 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "ghcr.example.test/web/catalog-14",
+          "id": "20000000-0000-4000-8000-000000001101"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000012",
+      "displayName": "data-eng/orders-15 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "ghcr.example.test/data-eng/orders-15",
+          "id": "20000000-0000-4000-8000-000000001201"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000013",
+      "displayName": "data-eng/payments-16 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "registry.example.test/data-eng/payments-16",
+          "id": "20000000-0000-4000-8000-000000001301"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000014",
+      "displayName": "billing-17 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "billing-17.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000001401"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.18",
+          "id": "20000000-0000-4000-8000-000000001402"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000015",
+      "displayName": "media-Service-19 source",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "git.example.test/web/media-Service-19",
+          "id": "20000000-0000-4000-8000-000000001501"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000016",
+      "displayName": "orders-20 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "orders-20.staging.example.test",
+          "id": "20000000-0000-4000-8000-000000001601"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.21",
+          "id": "20000000-0000-4000-8000-000000001602"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000017",
+      "displayName": "orders-22 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "orders-22.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000001701"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.23",
+          "id": "20000000-0000-4000-8000-000000001702"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000018",
+      "displayName": "web/billing-24 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "ghcr.example.test/web/billing-24",
+          "id": "20000000-0000-4000-8000-000000001801"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000019",
+      "displayName": "payments/notify-25 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "registry.example.test/payments/notify-25",
+          "id": "20000000-0000-4000-8000-000000001901"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000020",
+      "displayName": "inventory-26 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "inventory-26.staging.example.test",
+          "id": "20000000-0000-4000-8000-000000002001"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.27",
+          "id": "20000000-0000-4000-8000-000000002002"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000021",
+      "displayName": "payments-28 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "payments-28.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000002101"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.29",
+          "id": "20000000-0000-4000-8000-000000002102"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000022",
+      "displayName": "orders-Service-30 source",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "git.example.test/Data-Eng/orders-Service-30",
+          "id": "20000000-0000-4000-8000-000000002201"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000023",
+      "displayName": "search-31 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "search-31.staging.example.test",
+          "id": "20000000-0000-4000-8000-000000002301"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.32",
+          "id": "20000000-0000-4000-8000-000000002302"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000024",
+      "displayName": "media-33 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "media-33.staging.example.test",
+          "id": "20000000-0000-4000-8000-000000002401"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.34",
+          "id": "20000000-0000-4000-8000-000000002402"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000025",
+      "displayName": "table/inventory-35 (dynamodb)",
+      "type": "cloudResource",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "cloudResourceId",
+          "namespace": null,
+          "value": "arn:aws:dynamodb:eu-central-1:444455556666:table/inventory-35",
+          "id": "20000000-0000-4000-8000-000000002501"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000026",
+      "displayName": "ledger-36 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "ledger-36.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000002601"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.37",
+          "id": "20000000-0000-4000-8000-000000002602"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000027",
+      "displayName": "reports-38 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "reports-38.prod.example.test",
+          "id": "20000000-0000-4000-8000-000000002701"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.39",
+          "id": "20000000-0000-4000-8000-000000002702"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000028",
+      "displayName": "data-eng/payments-40 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "docker.io/data-eng/payments-40",
+          "id": "20000000-0000-4000-8000-000000002801"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000029",
+      "displayName": "function:auth-41 (lambda)",
+      "type": "cloudResource",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "cloudResourceId",
+          "namespace": null,
+          "value": "arn:aws:lambda:us-east-1:111122223333:function:auth-41",
+          "id": "20000000-0000-4000-8000-000000002901"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000030",
+      "displayName": "log-group:/services/inventory-42 (logs)",
+      "type": "cloudResource",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "cloudResourceId",
+          "namespace": null,
+          "value": "arn:aws:logs:eu-central-1:222233334444:log-group:/services/inventory-42",
+          "id": "20000000-0000-4000-8000-000000003001"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000031",
+      "displayName": "ledger-43 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "ledger-43.staging.example.test",
+          "id": "20000000-0000-4000-8000-000000003101"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.44",
+          "id": "20000000-0000-4000-8000-000000003102"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000032",
+      "displayName": "media-45 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "media-45.prod.example.test",
+          "id": "20000000-0000-4000-8000-000000003201"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.46",
+          "id": "20000000-0000-4000-8000-000000003202"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000033",
+      "displayName": "data-eng/catalog-47 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "docker.io/data-eng/catalog-47",
+          "id": "20000000-0000-4000-8000-000000003301"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000034",
+      "displayName": "search-48 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "search-48.prod.example.test",
+          "id": "20000000-0000-4000-8000-000000003401"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.49",
+          "id": "20000000-0000-4000-8000-000000003402"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000035",
+      "displayName": "reports-Service-50 source",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "git.example.test/Data-Eng/reports-Service-50",
+          "id": "20000000-0000-4000-8000-000000003501"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000036",
+      "displayName": "web/gateway-51 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "registry.example.test/web/gateway-51",
+          "id": "20000000-0000-4000-8000-000000003601"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000037",
+      "displayName": "function:search-52 (lambda)",
+      "type": "cloudResource",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "cloudResourceId",
+          "namespace": null,
+          "value": "arn:aws:lambda:eu-west-1:222233334444:function:search-52",
+          "id": "20000000-0000-4000-8000-000000003701"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000038",
+      "displayName": "table/notify-53 (dynamodb)",
+      "type": "cloudResource",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "cloudResourceId",
+          "namespace": null,
+          "value": "arn:aws:dynamodb:eu-west-1:111122223333:table/notify-53",
+          "id": "20000000-0000-4000-8000-000000003801"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000039",
+      "displayName": "web/ledger-54 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "registry.example.test/web/ledger-54",
+          "id": "20000000-0000-4000-8000-000000003901"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000040",
+      "displayName": "payments-55 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "payments-55.staging.example.test",
+          "id": "20000000-0000-4000-8000-000000004001"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.56",
+          "id": "20000000-0000-4000-8000-000000004002"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000041",
+      "displayName": "payments/billing-57 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "docker.io/payments/billing-57",
+          "id": "20000000-0000-4000-8000-000000004101"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000042",
+      "displayName": "catalog-58 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "catalog-58.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000004201"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.59",
+          "id": "20000000-0000-4000-8000-000000004202"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000043",
+      "displayName": "platform/orders-60 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "ghcr.example.test/platform/orders-60",
+          "id": "20000000-0000-4000-8000-000000004301"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000044",
+      "displayName": "ledger-61 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "ledger-61.prod.example.test",
+          "id": "20000000-0000-4000-8000-000000004401"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.62",
+          "id": "20000000-0000-4000-8000-000000004402"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000045",
+      "displayName": "payments-63 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "payments-63.prod.example.test",
+          "id": "20000000-0000-4000-8000-000000004501"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.64",
+          "id": "20000000-0000-4000-8000-000000004502"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000046",
+      "displayName": "gateway-65 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "gateway-65.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000004601"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.66",
+          "id": "20000000-0000-4000-8000-000000004602"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000047",
+      "displayName": "auth-67 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "auth-67.prod.example.test",
+          "id": "20000000-0000-4000-8000-000000004701"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.68",
+          "id": "20000000-0000-4000-8000-000000004702"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000048",
+      "displayName": "function:reports-69 (lambda)",
+      "type": "cloudResource",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "cloudResourceId",
+          "namespace": null,
+          "value": "arn:aws:lambda:us-east-1:333344445555:function:reports-69",
+          "id": "20000000-0000-4000-8000-000000004801"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000049",
+      "displayName": "log-group:/services/catalog-70 (logs)",
+      "type": "cloudResource",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "cloudResourceId",
+          "namespace": null,
+          "value": "arn:aws:logs:eu-central-1:111122223333:log-group:/services/catalog-70",
+          "id": "20000000-0000-4000-8000-000000004901"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000050",
+      "displayName": "data-eng/catalog-71 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "docker.io/data-eng/catalog-71",
+          "id": "20000000-0000-4000-8000-000000005001"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000051",
+      "displayName": "media-72 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "media-72.prod.example.test",
+          "id": "20000000-0000-4000-8000-000000005101"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.73",
+          "id": "20000000-0000-4000-8000-000000005102"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000052",
+      "displayName": "web/payments-74 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "ghcr.example.test/web/payments-74",
+          "id": "20000000-0000-4000-8000-000000005201"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000053",
+      "displayName": "media-Service-75 source",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "git.example.test/Data-Eng/media-Service-75",
+          "id": "20000000-0000-4000-8000-000000005301"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000054",
+      "displayName": "table/inventory-76 (dynamodb)",
+      "type": "cloudResource",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "cloudResourceId",
+          "namespace": null,
+          "value": "arn:aws:dynamodb:eu-central-1:333344445555:table/inventory-76",
+          "id": "20000000-0000-4000-8000-000000005401"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000055",
+      "displayName": "data-eng/search-77 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "docker.io/data-eng/search-77",
+          "id": "20000000-0000-4000-8000-000000005501"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000056",
+      "displayName": "auth-78 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "auth-78.prod.example.test",
+          "id": "20000000-0000-4000-8000-000000005601"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.79",
+          "id": "20000000-0000-4000-8000-000000005602"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000057",
+      "displayName": "payments/inventory-80 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "docker.io/payments/inventory-80",
+          "id": "20000000-0000-4000-8000-000000005701"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000058",
+      "displayName": "catalog-Service-81 source",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "git.example.test/Platform/catalog-Service-81",
+          "id": "20000000-0000-4000-8000-000000005801"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000059",
+      "displayName": "media-Service-82 source",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "git.example.test/payments/media-Service-82",
+          "id": "20000000-0000-4000-8000-000000005901"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000060",
+      "displayName": "payments-83 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "payments-83.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000006001"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.84",
+          "id": "20000000-0000-4000-8000-000000006002"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000061",
+      "displayName": "orders-Service-85 source",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "git.example.test/Data-Eng/orders-Service-85",
+          "id": "20000000-0000-4000-8000-000000006101"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000062",
+      "displayName": "billing-86 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "billing-86.prod.example.test",
+          "id": "20000000-0000-4000-8000-000000006201"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.87",
+          "id": "20000000-0000-4000-8000-000000006202"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000063",
+      "displayName": "data-eng/gateway-88 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "docker.io/data-eng/gateway-88",
+          "id": "20000000-0000-4000-8000-000000006301"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000064",
+      "displayName": "media-Service-89 source",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "git.example.test/Platform/media-Service-89",
+          "id": "20000000-0000-4000-8000-000000006401"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000065",
+      "displayName": "billing-90 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "billing-90.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000006501"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.91",
+          "id": "20000000-0000-4000-8000-000000006502"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000066",
+      "displayName": "notify-92 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "notify-92.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000006601"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.93",
+          "id": "20000000-0000-4000-8000-000000006602"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000067",
+      "displayName": "log-group:/services/billing-94 (logs)",
+      "type": "cloudResource",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "cloudResourceId",
+          "namespace": null,
+          "value": "arn:aws:logs:us-east-1:111122223333:log-group:/services/billing-94",
+          "id": "20000000-0000-4000-8000-000000006701"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000068",
+      "displayName": "payments/payments-95 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "docker.io/payments/payments-95",
+          "id": "20000000-0000-4000-8000-000000006801"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000069",
+      "displayName": "inventory-Service-96 source",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "git.example.test/web/inventory-Service-96",
+          "id": "20000000-0000-4000-8000-000000006901"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000070",
+      "displayName": "reports-97 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "reports-97.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000007001"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.98",
+          "id": "20000000-0000-4000-8000-000000007002"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000071",
+      "displayName": "orders-99 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "orders-99.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000007101"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.100",
+          "id": "20000000-0000-4000-8000-000000007102"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000072",
+      "displayName": "reports-101 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "reports-101.staging.example.test",
+          "id": "20000000-0000-4000-8000-000000007201"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.102",
+          "id": "20000000-0000-4000-8000-000000007202"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000073",
+      "displayName": "platform/orders-103 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "registry.example.test/platform/orders-103",
+          "id": "20000000-0000-4000-8000-000000007301"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000074",
+      "displayName": "reports-104 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "reports-104.prod.example.test",
+          "id": "20000000-0000-4000-8000-000000007401"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.105",
+          "id": "20000000-0000-4000-8000-000000007402"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000075",
+      "displayName": "gateway-106 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "gateway-106.staging.example.test",
+          "id": "20000000-0000-4000-8000-000000007501"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.107",
+          "id": "20000000-0000-4000-8000-000000007502"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000076",
+      "displayName": "billing-108 service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "billing-108.staging.example.test",
+          "id": "20000000-0000-4000-8000-000000007601"
+        },
+        {
+          "type": "ipAddress",
+          "namespace": null,
+          "value": "10.0.0.109",
+          "id": "20000000-0000-4000-8000-000000007602"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000077",
+      "displayName": "payments-Service-110 source",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "git.example.test/web/payments-Service-110",
+          "id": "20000000-0000-4000-8000-000000007701"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000078",
+      "displayName": "table/inventory-111 (dynamodb)",
+      "type": "cloudResource",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "cloudResourceId",
+          "namespace": null,
+          "value": "arn:aws:dynamodb:eu-central-1:444455556666:table/inventory-111",
+          "id": "20000000-0000-4000-8000-000000007801"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000079",
+      "displayName": "platform/auth-112 image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "docker.io/platform/auth-112",
+          "id": "20000000-0000-4000-8000-000000007901"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000080",
+      "displayName": "billing-Service-113 source",
+      "type": "software",
+      "environment": "notApplicable",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "vcsRepository",
+          "namespace": null,
+          "value": "git.example.test/payments/billing-Service-113",
+          "id": "20000000-0000-4000-8000-000000008001"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000081",
+      "displayName": "Batch runner",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ipAddress",
+          "namespace": "vpc-a",
+          "value": "10.0.0.116",
+          "id": "20000000-0000-4000-8000-000000008101"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000082",
+      "displayName": "Batch runner",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ipAddress",
+          "namespace": "vpc-b",
+          "value": "10.0.0.116",
+          "id": "20000000-0000-4000-8000-000000008201"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000083",
+      "displayName": "inventory-117.corp.example.test service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "inventory-117.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000008301"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000084",
+      "displayName": "catalog-119 official image",
+      "type": "containerImage",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "ociImageName",
+          "namespace": null,
+          "value": "catalog-119",
+          "id": "20000000-0000-4000-8000-000000008401"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000085",
+      "displayName": "orders-120.example.test website",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "orders-120.example.test",
+          "id": "20000000-0000-4000-8000-000000008501"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000086",
+      "displayName": "inventory-121.corp.example.test service",
+      "type": "host",
+      "environment": "unknown",
+      "lifecycleState": "active",
+      "ownerId": null,
+      "identifiers": [
+        {
+          "type": "dnsName",
+          "namespace": null,
+          "value": "inventory-121.corp.example.test",
+          "id": "20000000-0000-4000-8000-000000008601"
+        }
+      ],
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-02T00:00:00.000Z",
+      "createdBy": "90000000-0000-4000-8000-000000000001",
+      "updatedBy": "90000000-0000-4000-8000-000000000001"
+    }
+  ],
+  "cases": [
+    {
+      "id": "host-exact-1",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "host": "reports-104.prod.example.test",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "reports-104.prod.example.test"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.105"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000074"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000074",
+      "tags": ["recipe:host-exact"],
+      "note": "Blind label: Both dnsName reports-104.prod.example.test and ipAddress 10.0.0.105 resolve exactly to the same global identifiers of asset 0074."
+    },
+    {
+      "id": "host-metadata-noise-2",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": "Redirected from https://reports-101.staging.example.test/",
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "gateway-12.corp.example.test"
+          }
+        ],
+        "sourceMetadata": {
+          "host": "reports-101.staging.example.test",
+          "matched-at": "https://reports-101.staging.example.test/"
+        }
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000010"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000010",
+      "tags": ["recipe:host-metadata-noise", "noise:metadata"],
+      "note": "Blind label: dnsName gateway-12.corp.example.test exactly matches asset 0010; metadata is not identity evidence."
+    },
+    {
+      "id": "image-registry-less-3",
+      "candidate": {
+        "source": "trivy",
+        "sourceRecord": "generated:trivy",
+        "title": "trivy-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "trivy": ["trivy-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "containerImage",
+          "repository": "data-eng/catalog-47",
+          "tag": "1.0.0"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000033"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000033",
+      "tags": ["recipe:image-registry-less", "partial:image"],
+      "note": "Blind label: No identifier candidates, so the typed affectedResource image repository 'data-eng/catalog-47' (registry-less partial identity; tag ignored) is used; only asset 0033 (docker.io/data-eng/catalog-47) fits, and Docker's default registry convention makes it the canonical equivalent anyway."
+    },
+    {
+      "id": "host-ip-only-4",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.44"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000031"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000031",
+      "tags": ["recipe:host-ip-only"],
+      "note": "Blind label: ipAddress 10.0.0.44 exactly matches the global identifier of asset 0031."
+    },
+    {
+      "id": "absent-host-5",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "notify-114.unknown.example.test"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "192.0.0.115"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "no_match"
+      },
+      "truthAssetId": null,
+      "tags": ["recipe:absent-host", "inventory:absent"],
+      "note": "Blind label: A full FQDN and an IP address were provided (sufficient evidence) but neither matches any inventory identifier."
+    },
+    {
+      "id": "host-ip-only-6",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.62"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000044"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000044",
+      "tags": ["recipe:host-ip-only"],
+      "note": "Blind label: ipAddress 10.0.0.62 exactly matches the global identifier of asset 0044."
+    },
+    {
+      "id": "scope-overlap-7",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.116"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "ambiguous"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000081",
+      "tags": ["recipe:scope-overlap", "scope:overlap"],
+      "note": "Blind label: Null-namespace ipAddress 10.0.0.116 has no global match but equals namespaced identifiers on two assets (vpc-a 0081, vpc-b 0082), so several plausible assets remain without conflicting identifiers."
+    },
+    {
+      "id": "image-exact-8",
+      "candidate": {
+        "source": "trivy",
+        "sourceRecord": "generated:trivy",
+        "title": "trivy-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "trivy": ["trivy-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "package",
+          "ecosystem": "apk",
+          "name": "zlib",
+          "version": "1.3"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "ociImageName",
+            "namespace": null,
+            "value": "docker.io/payments/payments-95"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000068"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000068",
+      "tags": ["recipe:image-exact"],
+      "note": "Blind label: ociImageName docker.io/payments/payments-95 exactly matches asset 0068; the package affectedResource is not identity."
+    },
+    {
+      "id": "repository-mirror-9",
+      "candidate": {
+        "source": "semgrep",
+        "sourceRecord": "generated:semgrep",
+        "title": "semgrep-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "semgrep": ["semgrep-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "sourceCode",
+          "repository": "https://github.com/Data-Eng/orders-Service-85",
+          "file": "src/app.ts"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "no_match"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000061",
+      "tags": ["recipe:repository-mirror", "alias:mirror"],
+      "note": "Blind label: affectedResource repository resolves to the full identity github.com/Data-Eng/orders-Service-85, which is a different server than inventory asset 0061 (git.example.test/...); a same-path repository on another host is a distinct repository (possible mirror), so a sufficient identifier matches nothing."
+    },
+    {
+      "id": "loopback-endpoint-10",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "host": "localhost",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "localhost"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "127.0.0.1"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "insufficient_evidence"
+      },
+      "acceptable": [
+        {
+          "status": "unresolved",
+          "reason": "no_match"
+        }
+      ],
+      "truthAssetId": "10000000-0000-4000-8000-000000000042",
+      "tags": ["recipe:loopback-endpoint", "alias:scan-endpoint"],
+      "note": "Blind label: localhost and 127.0.0.1 are loopback values that denote whatever machine the scanner ran on, not a stable external identity, so they cannot meaningfully identify an asset (and none in this inventory carries them anyway)."
+    },
+    {
+      "id": "missing-identifier-11",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.118"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "no_match"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000083",
+      "tags": ["recipe:missing-identifier", "drift:missing-identifier"],
+      "note": "Blind label: ipAddress 10.0.0.118 is usable identifying evidence but matches no inventory identifier in any namespace."
+    },
+    {
+      "id": "repository-url-context-12",
+      "candidate": {
+        "source": "semgrep",
+        "sourceRecord": "generated:semgrep",
+        "title": "semgrep-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "semgrep": ["semgrep-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "sourceCode",
+          "repository": "git@git.example.test:Platform/catalog-Service-81.git",
+          "file": "src/app.ts"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000058"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000058",
+      "tags": ["recipe:repository-url-context"],
+      "note": "Blind label: affectedResource repository git@git.example.test:Platform/catalog-Service-81.git canonicalizes to git.example.test/Platform/catalog-Service-81 (case preserved), exactly matching asset 0058."
+    },
+    {
+      "id": "host-metadata-noise-13",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": "Redirected from https://notify-92.corp.example.test/",
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "reports-101.staging.example.test"
+          }
+        ],
+        "sourceMetadata": {
+          "host": "notify-92.corp.example.test",
+          "matched-at": "https://notify-92.corp.example.test/"
+        }
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000072"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000072",
+      "tags": ["recipe:host-metadata-noise", "noise:metadata"],
+      "note": "Blind label: dnsName reports-101.staging.example.test exactly matches asset 0072."
+    },
+    {
+      "id": "host-dns-only-14",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "payments-63.prod.example.test"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000045"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000045",
+      "tags": ["recipe:host-dns-only"],
+      "note": "Blind label: dnsName payments-63.prod.example.test exactly matches asset 0045."
+    },
+    {
+      "id": "dockerhub-short-name-15",
+      "candidate": {
+        "source": "trivy",
+        "sourceRecord": "generated:trivy",
+        "title": "trivy-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "trivy": ["trivy-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "unspecified"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "ociImageName",
+            "namespace": null,
+            "value": "docker.io/library/catalog-119"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000084"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000084",
+      "tags": ["recipe:dockerhub-short-name", "alias:dockerhub"],
+      "note": "Blind label: docker.io/library/catalog-119 is the canonical form of the Docker Hub short name 'catalog-119' held by asset 0084, and no other image fits that name."
+    },
+    {
+      "id": "host-dns-only-16",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "media-45.prod.example.test"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000032"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000032",
+      "tags": ["recipe:host-dns-only"],
+      "note": "Blind label: dnsName media-45.prod.example.test exactly matches asset 0032."
+    },
+    {
+      "id": "image-exact-17",
+      "candidate": {
+        "source": "trivy",
+        "sourceRecord": "generated:trivy",
+        "title": "trivy-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "trivy": ["trivy-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "package",
+          "ecosystem": "apk",
+          "name": "zlib",
+          "version": "1.3"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "ociImageName",
+            "namespace": null,
+            "value": "registry.example.test/web/gateway-51"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000036"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000036",
+      "tags": ["recipe:image-exact"],
+      "note": "Blind label: ociImageName registry.example.test/web/gateway-51 exactly matches asset 0036."
+    },
+    {
+      "id": "host-metadata-noise-18",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": "Redirected from https://orders-99.corp.example.test/",
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "ledger-10.staging.example.test"
+          }
+        ],
+        "sourceMetadata": {
+          "host": "orders-99.corp.example.test",
+          "matched-at": "https://orders-99.corp.example.test/"
+        }
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000009"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000009",
+      "tags": ["recipe:host-metadata-noise", "noise:metadata"],
+      "note": "Blind label: dnsName ledger-10.staging.example.test exactly matches asset 0009."
+    },
+    {
+      "id": "iac-no-identity-19",
+      "candidate": {
+        "source": "checkov",
+        "sourceRecord": "generated:checkov",
+        "title": "checkov-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "checkov": ["checkov-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "sourceCode",
+          "file": "infra/storage.tf",
+          "symbol": "aws_s3_bucket.logs"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "insufficient_evidence"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000015",
+      "tags": ["recipe:iac-no-identity", "upstream:missing-scan-target"],
+      "note": "Blind label: No identifier candidates and the sourceCode affectedResource has only a file path and IaC symbol, no repository; nothing identifies a target."
+    },
+    {
+      "id": "host-exact-20",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "host": "billing-90.corp.example.test",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "billing-90.corp.example.test"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.91"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000065"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000065",
+      "tags": ["recipe:host-exact"],
+      "note": "Blind label: dnsName billing-90.corp.example.test and ipAddress 10.0.0.91 both resolve to asset 0065."
+    },
+    {
+      "id": "host-exact-21",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "host": "ledger-61.prod.example.test",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "ledger-61.prod.example.test"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.62"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000044"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000044",
+      "tags": ["recipe:host-exact"],
+      "note": "Blind label: dnsName ledger-61.prod.example.test and ipAddress 10.0.0.62 both resolve to asset 0044."
+    },
+    {
+      "id": "repository-mirror-22",
+      "candidate": {
+        "source": "semgrep",
+        "sourceRecord": "generated:semgrep",
+        "title": "semgrep-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "semgrep": ["semgrep-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "sourceCode",
+          "repository": "https://github.com/web/inventory-Service-96",
+          "file": "src/app.ts"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "no_match"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000069",
+      "tags": ["recipe:repository-mirror", "alias:mirror"],
+      "note": "Blind label: affectedResource repository is github.com/web/inventory-Service-96, a full identity on a different server than asset 0069 (git.example.test/web/inventory-Service-96); same path on another host is a distinct repository, so nothing matches."
+    },
+    {
+      "id": "host-exact-23",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "host": "gateway-12.corp.example.test",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "gateway-12.corp.example.test"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.13"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000010"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000010",
+      "tags": ["recipe:host-exact"],
+      "note": "Blind label: dnsName gateway-12.corp.example.test and ipAddress 10.0.0.13 both resolve to asset 0010."
+    },
+    {
+      "id": "www-alias-24",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "www.orders-120.example.test"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "no_match"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000085",
+      "tags": ["recipe:www-alias", "alias:www"],
+      "note": "Blind label: www.orders-120.example.test is a fully qualified DNS name distinct from asset 0085's orders-120.example.test; a www subdomain may be a separate host, so the sufficient identifier has no exact match and inferring the alias is not warranted."
+    },
+    {
+      "id": "iac-no-identity-25",
+      "candidate": {
+        "source": "checkov",
+        "sourceRecord": "generated:checkov",
+        "title": "checkov-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "checkov": ["checkov-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "sourceCode",
+          "file": "infra/storage.tf",
+          "symbol": "aws_s3_bucket.logs"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "insufficient_evidence"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000058",
+      "tags": ["recipe:iac-no-identity", "upstream:missing-scan-target"],
+      "note": "Blind label: No identifier candidates; the sourceCode affectedResource has only a file path and IaC symbol with no repository."
+    },
+    {
+      "id": "missing-identifier-26",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.122"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "no_match"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000086",
+      "tags": ["recipe:missing-identifier", "drift:missing-identifier"],
+      "note": "Blind label: ipAddress 10.0.0.122 is usable identifying evidence but matches no inventory identifier."
+    },
+    {
+      "id": "repository-url-context-27",
+      "candidate": {
+        "source": "semgrep",
+        "sourceRecord": "generated:semgrep",
+        "title": "semgrep-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "semgrep": ["semgrep-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "sourceCode",
+          "repository": "git@git.example.test:web/payments-Service-110.git",
+          "file": "src/app.ts"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000077"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000077",
+      "tags": ["recipe:repository-url-context"],
+      "note": "Blind label: affectedResource repository git@git.example.test:web/payments-Service-110.git canonicalizes to git.example.test/web/payments-Service-110, exactly matching asset 0077."
+    },
+    {
+      "id": "cloud-partial-scoped-28",
+      "candidate": {
+        "source": "checkov",
+        "sourceRecord": "generated:checkov",
+        "title": "checkov-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "checkov": ["checkov-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "cloudResource",
+          "provider": "aws",
+          "providerAccount": "222233334444",
+          "region": "eu-west-1",
+          "resourceId": "function:inventory-5"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000004"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000004",
+      "tags": ["recipe:cloud-partial-scoped", "partial:aws"],
+      "note": "Blind label: Typed cloud fields (aws, account 222233334444, eu-west-1, function:inventory-5) uniquely fit asset 0004's ARN arn:aws:lambda:eu-west-1:222233334444:function:inventory-5; no other asset fits."
+    },
+    {
+      "id": "image-exact-29",
+      "candidate": {
+        "source": "trivy",
+        "sourceRecord": "generated:trivy",
+        "title": "trivy-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "trivy": ["trivy-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "package",
+          "ecosystem": "apk",
+          "name": "zlib",
+          "version": "1.3"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "ociImageName",
+            "namespace": null,
+            "value": "ghcr.example.test/web/payments-74"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000052"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000052",
+      "tags": ["recipe:image-exact"],
+      "note": "Blind label: ociImageName ghcr.example.test/web/payments-74 exactly matches asset 0052."
+    },
+    {
+      "id": "host-extra-ip-30",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "reports-104.prod.example.test"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "172.0.0.123"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000074"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000074",
+      "tags": ["recipe:host-extra-ip", "noise:extra-ip"],
+      "note": "Blind label: dnsName reports-104.prod.example.test resolves to asset 0074; the extra ipAddress 172.0.0.123 matches nothing and does not veto the single resolved asset."
+    },
+    {
+      "id": "host-extra-ip-31",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "reports-101.staging.example.test"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "172.0.0.124"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000072"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000072",
+      "tags": ["recipe:host-extra-ip", "noise:extra-ip"],
+      "note": "Blind label: dnsName reports-101.staging.example.test resolves to asset 0072; the unmatched ipAddress 172.0.0.124 does not veto it."
+    },
+    {
+      "id": "absent-host-32",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "payments-125.unknown.example.test"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "192.0.0.126"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "no_match"
+      },
+      "truthAssetId": null,
+      "tags": ["recipe:absent-host", "inventory:absent"],
+      "note": "Blind label: FQDN payments-125.unknown.example.test and IP 192.0.0.126 are sufficient evidence but match no inventory identifier."
+    },
+    {
+      "id": "repository-url-context-33",
+      "candidate": {
+        "source": "semgrep",
+        "sourceRecord": "generated:semgrep",
+        "title": "semgrep-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "semgrep": ["semgrep-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "sourceCode",
+          "repository": "git@git.example.test:web/media-Service-19.git",
+          "file": "src/app.ts"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000015"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000015",
+      "tags": ["recipe:repository-url-context"],
+      "note": "Blind label: affectedResource repository git@git.example.test:web/media-Service-19.git canonicalizes to git.example.test/web/media-Service-19, exactly matching asset 0015."
+    },
+    {
+      "id": "host-ip-only-34",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.105"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000074"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000074",
+      "tags": ["recipe:host-ip-only"],
+      "note": "Blind label: ipAddress 10.0.0.105 exactly matches the global identifier of asset 0074."
+    },
+    {
+      "id": "iac-no-identity-35",
+      "candidate": {
+        "source": "checkov",
+        "sourceRecord": "generated:checkov",
+        "title": "checkov-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "checkov": ["checkov-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "sourceCode",
+          "file": "infra/storage.tf",
+          "symbol": "aws_s3_bucket.logs"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "unresolved",
+        "reason": "insufficient_evidence"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000053",
+      "tags": ["recipe:iac-no-identity", "upstream:missing-scan-target"],
+      "note": "Blind label: No identifier candidates; the sourceCode affectedResource has only a file path and IaC symbol with no repository."
+    },
+    {
+      "id": "host-exact-36",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "host": "auth-78.prod.example.test",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "auth-78.prod.example.test"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.79"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000056"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000056",
+      "tags": ["recipe:host-exact"],
+      "note": "Blind label: dnsName auth-78.prod.example.test and ipAddress 10.0.0.79 both resolve to asset 0056."
+    },
+    {
+      "id": "host-exact-37",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "host": "orders-22.corp.example.test",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "orders-22.corp.example.test"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.23"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000017"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000017",
+      "tags": ["recipe:host-exact"],
+      "note": "Blind label: dnsName orders-22.corp.example.test and ipAddress 10.0.0.23 both resolve to asset 0017."
+    },
+    {
+      "id": "host-metadata-noise-38",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": "Redirected from https://reports-38.prod.example.test/",
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "search-48.prod.example.test"
+          }
+        ],
+        "sourceMetadata": {
+          "host": "reports-38.prod.example.test",
+          "matched-at": "https://reports-38.prod.example.test/"
+        }
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000034"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000034",
+      "tags": ["recipe:host-metadata-noise", "noise:metadata"],
+      "note": "Blind label: dnsName search-48.prod.example.test exactly matches asset 0034."
+    },
+    {
+      "id": "host-exact-39",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "host": "billing-90.corp.example.test",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "billing-90.corp.example.test"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.91"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000065"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000065",
+      "tags": ["recipe:host-exact"],
+      "note": "Blind label: dnsName billing-90.corp.example.test and ipAddress 10.0.0.91 both resolve to asset 0065."
+    },
+    {
+      "id": "host-exact-40",
+      "candidate": {
+        "source": "nuclei",
+        "sourceRecord": "generated:nuclei",
+        "title": "nuclei-generated-rule",
+        "description": null,
+        "remediation": null,
+        "evidence": null,
+        "severity": "medium",
+        "weakness": {
+          "identifiers": {
+            "nuclei": ["nuclei-generated-rule"]
+          }
+        },
+        "affectedResource": {
+          "type": "networkService",
+          "host": "gateway-106.staging.example.test",
+          "port": 443,
+          "transport": "tcp"
+        },
+        "observedAt": null,
+        "assetIdentifierCandidates": [
+          {
+            "type": "dnsName",
+            "namespace": null,
+            "value": "gateway-106.staging.example.test"
+          },
+          {
+            "type": "ipAddress",
+            "namespace": null,
+            "value": "10.0.0.107"
+          }
+        ],
+        "sourceMetadata": {}
+      },
+      "expected": {
+        "status": "matched",
+        "assetId": "10000000-0000-4000-8000-000000000075"
+      },
+      "truthAssetId": "10000000-0000-4000-8000-000000000075",
+      "tags": ["recipe:host-exact"],
+      "note": "Blind label: dnsName gateway-106.staging.example.test and ipAddress 10.0.0.107 both resolve to asset 0075."
+    }
+  ]
+}

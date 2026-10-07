@@ -80,7 +80,7 @@ describe("runEvaluationCommand", () => {
       expect(exitCode).toBe(fails ? 1 : 0);
       const text = await readFile(output, "utf8");
       const report = JSON.parse(text);
-      expect(report.schemaVersion).toBe(1);
+      expect(report.schemaVersion).toBe(2);
       expect(report.dataset).toMatchObject({
         id: "command-test",
         sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
