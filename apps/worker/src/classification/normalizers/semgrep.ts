@@ -105,6 +105,7 @@ export class SemgrepJsonNormalizer implements Normalizer {
           ...(fingerprint === undefined ? {} : { locationFingerprint: fingerprint }),
         },
         assetIdentifierCandidates: [],
+        fingerprints: fingerprint === undefined ? {} : { semgrep: [fingerprint] },
         observedAt: null,
         evidence: snippet === undefined ? null : renderEvidenceSection("Code Snippet", snippet),
         remediation:

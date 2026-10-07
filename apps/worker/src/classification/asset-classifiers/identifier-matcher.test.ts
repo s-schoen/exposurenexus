@@ -43,6 +43,7 @@ function candidate(
     affectedResource,
     observedAt: null,
     assetIdentifierCandidates,
+    fingerprints: {},
     sourceMetadata: { host: "portal.example.test" },
   };
 }

@@ -57,6 +57,7 @@ describe("BearerJsonNormalizer fixture acceptance", () => {
         evidence: renderEvidenceSection("Code Extract", result.code_extract),
         observedAt: null,
         assetIdentifierCandidates: [],
+        fingerprints: {},
       });
       expect(candidate.remediation).toBeTruthy();
       expect(candidate.description).toBeTruthy();
@@ -211,6 +212,8 @@ describe("BearerJsonNormalizer grouped envelope", () => {
     ]);
     for (const candidate of candidates) {
       expect(candidate.affectedResource).toEqual({ type: "sourceCode", file: record.filename });
+      // Occurrence-order fingerprints are not stable identity, so only provenance keeps them.
+      expect(candidate.fingerprints).toEqual({});
       expect(candidate.sourceMetadata).toEqual({
         provenance: {
           result: record,
@@ -295,6 +298,7 @@ describe("BearerJsonNormalizer jsonv2 envelope", () => {
         evidence: renderEvidenceSection("Code Extract", result.code_extract),
         observedAt: null,
         assetIdentifierCandidates: [],
+        fingerprints: {},
       });
       expect(candidate.remediation).toBeTruthy();
       expect(candidate.weakness).toEqual({
@@ -618,6 +622,7 @@ describe("BearerJsonNormalizer text and weakness", () => {
         weakness: { identifiers: { bearer: [record.id] } },
         affectedResource: { type: "sourceCode", file: record.filename },
         assetIdentifierCandidates: [],
+        fingerprints: {},
         observedAt: null,
         sourceMetadata: { provenance: { result: record, severity: "low", document: {} } },
       },

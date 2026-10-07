@@ -92,6 +92,7 @@ describe("CheckovNormalizer Terraform fixture", () => {
           },
           observedAt: null,
           assetIdentifierCandidates: [],
+          fingerprints: {},
           sourceMetadata: { provenance: { result, document } },
         });
         expect(
@@ -181,6 +182,7 @@ describe("CheckovNormalizer other frameworks", () => {
           title: result.check_id,
           weakness: { identifiers: { checkov: [result.check_id] } },
           assetIdentifierCandidates: [],
+          fingerprints: {},
           observedAt: null,
           sourceMetadata: { provenance: { result, document } },
         });
@@ -323,6 +325,7 @@ describe("CheckovNormalizer other frameworks", () => {
           severity: "high",
           observedAt: null,
           assetIdentifierCandidates: [],
+          fingerprints: {},
           evidence: renderEvidenceSection("Code", text),
         });
         expect(candidates[0].weakness).toEqual({
@@ -418,6 +421,7 @@ describe("CheckovNormalizer SAST and CDK reports", () => {
           },
           observedAt: null,
           assetIdentifierCandidates: [],
+          fingerprints: {},
           sourceMetadata: { provenance: { result: record, document: { check_type } } },
         },
       ]);
@@ -838,6 +842,7 @@ describe("CheckovNormalizer optional mapping", () => {
         weakness: { identifiers: { checkov: ["CKV_CUSTOM_1"] } },
         affectedResource: { type: "sourceCode", file: "/modules/main.tf" },
         assetIdentifierCandidates: [],
+        fingerprints: {},
         observedAt: null,
         sourceMetadata: { provenance: { result: record, document: { check_type: "terraform" } } },
       },

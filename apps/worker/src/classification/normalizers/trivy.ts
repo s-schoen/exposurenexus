@@ -234,6 +234,8 @@ export class TrivyNormalizer implements Normalizer {
               : readMisconfiguration(result, file, warn)),
             assetIdentifierCandidates: structuredClone(assets),
             observedAt: observedAt === null ? null : new Date(observedAt),
+            // Trivy's Fingerprint hashes the artifact ID, so it changes with every image rebuild.
+            fingerprints: {},
             sourceMetadata: {
               provenance: structuredClone({ document, scanResult: context, result }),
             },

@@ -1,8 +1,9 @@
 import { assetIdentifierSchema } from "@exposurenexus/backend/assets";
-import { weaknessSchema } from "@exposurenexus/backend/findings";
+import { fingerprintsSchema, weaknessSchema } from "@exposurenexus/backend/findings";
 
 import type { ObservationAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
 import type { AssetIdentifier } from "@exposurenexus/contracts/model/asset-identifier";
+import type { ObservationFingerprints } from "@exposurenexus/contracts/model/observation";
 import type { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import type { Weakness } from "@exposurenexus/contracts/model/weakness";
 import type { Logger } from "pino";
@@ -37,6 +38,12 @@ export type ObservationCandidate = {
    * Canonical external identifiers describing the affected subject.
    */
   assetIdentifierCandidates: AssetIdentifier[];
+  /**
+   * Source-reported fingerprints that stay stable across rescans, keyed by namespace.
+   * Values compare only within one namespace. Distinct from the finding-owned
+   * `sourceCode.locationFingerprint`; empty when the source reports none worth keeping.
+   */
+  fingerprints: ObservationFingerprints;
   /**
    * Source-owned structured context preserved verbatim for provenance,
    * including fields that were mapped onto candidate fields and optional
@@ -82,7 +89,7 @@ export class Classifier {
   /**
    * Normalizes one source file into canonical observation candidates.
    *
-   * Candidates whose weakness or asset identifiers cannot be canonicalized are
+   * Candidates whose weakness, asset identifiers, or fingerprints cannot be canonicalized are
    * logged and skipped; order and duplicates are otherwise preserved.
    *
    * @param source Registered scanner source key used to select a normalizer.
@@ -108,8 +115,9 @@ export class Classifier {
       const assetIdentifiers = assetIdentifierSchema
         .array()
         .safeParse(candidate.assetIdentifierCandidates);
+      const fingerprints = fingerprintsSchema.safeParse(candidate.fingerprints);
 
-      if (!weakness.success || !assetIdentifiers.success) {
+      if (!weakness.success || !assetIdentifiers.success || !fingerprints.success) {
         this.logger.warn({ source }, "skipping observation candidate with invalid identifiers");
         continue;
       }
@@ -118,6 +126,7 @@ export class Classifier {
         ...candidate,
         weakness: weakness.data,
         assetIdentifierCandidates: assetIdentifiers.data,
+        fingerprints: fingerprints.data,
         source: source,
       });
     }

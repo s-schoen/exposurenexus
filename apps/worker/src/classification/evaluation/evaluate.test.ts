@@ -55,6 +55,7 @@ function testCase(id: string, expected: ExpectedAssetMatch): EvaluationCase {
       affectedResource: { type: AffectedResourceType.Unspecified },
       observedAt: null,
       assetIdentifierCandidates: [],
+      fingerprints: {},
       sourceMetadata: { private: "private-metadata" },
     },
   };

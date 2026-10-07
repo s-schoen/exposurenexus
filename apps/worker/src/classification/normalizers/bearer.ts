@@ -144,6 +144,7 @@ function mapFinding(
     },
     assetIdentifierCandidates: [],
     observedAt: null,
+    fingerprints: {},
     sourceMetadata: {
       provenance: {
         result,
