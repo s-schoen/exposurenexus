@@ -133,6 +133,7 @@ const observationJson = {
     path: "/admin",
     reportedUrl: "https://example.com/admin?source=scan",
   },
+  fingerprints: {},
   observedAt: "2026-01-03T00:00:00.000Z",
   createdBy: userId,
   updatedBy: userId,

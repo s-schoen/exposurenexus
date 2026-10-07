@@ -366,6 +366,7 @@ const observation: Observation = {
     name: "example-package",
     version: "1.2.3",
   },
+  fingerprints: {},
   observedAt: new Date("2026-01-03T00:00:00.000Z"),
   createdBy: user.id,
   updatedBy: user.id,

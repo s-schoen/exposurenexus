@@ -24,6 +24,7 @@ import { createAssets } from "../assets/assets.js";
 import { createStatistics } from "../statistics/index.js";
 import { createVulnerabilities } from "../vulnerabilities/index.js";
 import { createFindings } from "./index.js";
+import { insertObservation } from "./observation-persistence.js";
 
 const auditUserId = "85196743-cfba-4afb-b286-d36be32a64a4";
 
@@ -180,6 +181,35 @@ describe("findings cross-feature persistence", () => {
       updatedAt: expect.any(Date),
     });
     await expect(exposures.findings.listAll()).resolves.toEqual([cleared!.current]);
+  });
+
+  it("persists canonical source fingerprints on observations only", async () => {
+    const asset = await createAsset("api.example.com");
+    const findings = createCapability().findings;
+    const created = await createFinding(asset.id, "Fingerprinted finding");
+    expect(created.observation.fingerprints).toEqual({});
+    expect(created.current).not.toHaveProperty("fingerprints");
+
+    const timestamp = new Date("2026-01-02T00:00:00.000Z");
+    const imported = await insertObservation(testDb.db, {
+      ...created.observation,
+      id: undefined,
+      fingerprints: { Semgrep: [" b_0 ", "a_0", "b_0"] },
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    expect(imported.fingerprints).toEqual({ semgrep: ["a_0", "b_0"] });
+
+    const corrected = await findings.updateObservation({
+      findingId: created.current.id,
+      observationId: imported.id,
+      observation: { title: "Corrected" },
+      performedBy: auditUserId,
+    });
+    expect(corrected!.observation.fingerprints).toEqual({ semgrep: ["a_0", "b_0"] });
+    await expect(findings.listObservations(created.current.id)).resolves.toEqual(
+      expect.arrayContaining([corrected!.observation, created.observation]),
+    );
   });
 
   it("round-trips structured weakness enrichment through findings and observations", async () => {

@@ -9,6 +9,15 @@ export enum ObservationSource {
   Manual = "manual",
 }
 
+/**
+ * Source-reported fingerprints keyed by namespace, such as `semgrep`.
+ * Values are opaque and compare only within one namespace.
+ */
+export const observationFingerprintsSchema = z.record(
+  z.string().min(1),
+  z.array(z.string().min(1)),
+);
+
 const observationFields = {
   id: z.uuidv4(),
   findingId: z.uuidv4(),
@@ -19,6 +28,7 @@ const observationFields = {
   severity: z.enum(VulnerabilitySeverity),
   weakness: weaknessSchema,
   affectedResource: observationAffectedResourceSchema,
+  fingerprints: observationFingerprintsSchema,
   observedAt: dateSchema,
   createdAt: dateSchema,
   updatedAt: dateSchema,
@@ -55,6 +65,7 @@ export const moveObservationInputSchema = z.strictObject({
   targetFindingId: z.uuidv4(),
 });
 
+export type ObservationFingerprints = z.infer<typeof observationFingerprintsSchema>;
 export type Observation = z.infer<typeof observationSchema>;
 export type ManualObservationInput = z.infer<typeof manualObservationInputSchema>;
 export type UpdateObservation = z.infer<typeof updateObservationSchema>;

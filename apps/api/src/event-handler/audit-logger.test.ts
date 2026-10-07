@@ -92,6 +92,7 @@ describe("registerAuditLogger", () => {
     severity: VulnerabilitySeverity.High,
     weakness: { identifiers: { scanner: ["admin-panel"] } },
     affectedResource: { type: AffectedResourceType.WebEndpoint, path: "/admin" },
+    fingerprints: {},
     observedAt: finding.firstSeen,
     createdAt: finding.createdAt,
     updatedAt: finding.updatedAt,

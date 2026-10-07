@@ -14,6 +14,7 @@ describe("public feature factories", () => {
     ]);
     expect(Object.keys(await import("./features/findings/index.js")).sort()).toEqual([
       "createFindings",
+      "fingerprintsSchema",
       "weaknessSchema",
     ]);
     expect(Object.keys(await import("./features/vulnerabilities/index.js"))).toEqual([

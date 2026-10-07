@@ -1090,6 +1090,12 @@ describe("db migration columns", () => {
           is_nullable: "NO",
         }),
         expect.objectContaining({
+          table_name: "observation",
+          column_name: "fingerprints",
+          data_type: "jsonb",
+          is_nullable: "NO",
+        }),
+        expect.objectContaining({
           table_name: "ingestion",
           column_name: "source",
           data_type: "text",

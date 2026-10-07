@@ -68,6 +68,7 @@ const observation: Observation = {
   severity: VulnerabilitySeverity.High,
   weakness: { identifiers: { cwe: ["CWE-284"] } },
   affectedResource: { type: AffectedResourceType.Unspecified },
+  fingerprints: {},
   observedAt: new Date("2026-01-04T00:00:00.000Z"),
   createdAt: new Date("2026-01-04T00:00:00.000Z"),
   updatedAt: new Date("2026-01-04T00:00:00.000Z"),

@@ -19,6 +19,7 @@ const sourceObservation: Observation = {
   severity: VulnerabilitySeverity.High,
   weakness: { identifiers: { scanner: ["admin-panel"] } },
   affectedResource: { type: AffectedResourceType.WebEndpoint, path: "/admin" },
+  fingerprints: {},
   observedAt: new Date("2026-08-16T10:00:00.000Z"),
   createdAt: new Date("2026-08-16T10:00:00.000Z"),
   updatedAt: new Date("2026-08-16T10:00:00.000Z"),
