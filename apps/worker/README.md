@@ -2,10 +2,11 @@
 
 Standalone async job worker over `@exposurenexus/backend` and `@exposurenexus/jobs`.
 The production ingestion handler calls `Ingestions.process(ingestionId)`, which
-resolves the linked import source and streams the entire object to discard without
-buffering or parsing it. Only after EOF does the worker log `ingestion shell completed`
-with `jobId`, `ingestionId`, `importSourceId`, and `bytesRead`, then let the consumer
-acknowledge the delivery. Accepted/read bytes are not imported observations; empty
+loads the ingestion and buffers the entire linked import source in memory without
+parsing it. An ingestion that is no longer `pending` is logged as `ingestion already
+processed` and acknowledged. Otherwise, only after EOF does the worker log `ingestion
+shell completed` with `jobId`, `ingestionId`, `importSourceId`, and `bytesRead`, then
+let the consumer acknowledge the delivery. Accepted/read bytes are not imported observations; empty
 or malformed scan contents are not parsed. The UI import page remains disabled.
 
 ## Configuration

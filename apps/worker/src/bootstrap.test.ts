@@ -6,9 +6,24 @@ import { describe, expect, it, vi } from "vitest";
 import { bootstrapWorker } from "./bootstrap.js";
 
 import type { BackendRuntime } from "@exposurenexus/backend";
+import type { IngestionStatus } from "@exposurenexus/backend/ingestions";
 import type { JobEventType } from "@exposurenexus/jobs";
 import type { JobHandler } from "@exposurenexus/jobs/consumer";
 import type { Logger } from "pino";
+
+function processed(ingestionId: string, status: IngestionStatus = "pending") {
+  return {
+    ingestion: {
+      id: ingestionId,
+      source: "nuclei",
+      createdBy: "22222222-2222-4222-8222-222222222222",
+      createdAt: new Date("2026-10-08T12:00:00.000Z"),
+      status,
+    },
+    importSourceId: "source-id",
+    data: new Uint8Array(42),
+  };
+}
 
 function setup() {
   const environment = {
@@ -51,10 +66,8 @@ function setup() {
   };
   const ingestions = {
     submit: vi.fn(),
-    process: vi.fn(async (_ingestionId: string) => ({
-      importSourceId: "source-id",
-      bytesRead: 42,
-    })),
+    fail: vi.fn(),
+    process: vi.fn(async (ingestionId: string) => processed(ingestionId)),
   };
   const lifetime = Promise.withResolvers<void>();
   const consumer = {
@@ -151,11 +164,10 @@ describe("worker bootstrap", () => {
       source: "/services/api",
       data: { ingestionId: "11111111-1111-4111-8111-111111111111" },
     });
-    const completed = { importSourceId: "source-id", bytesRead: 42 };
     await handler(event);
     // A broker redelivery runs the same read-only use case again, without execution claims.
     f.log.info.mockClear();
-    const reading = Promise.withResolvers<typeof completed>();
+    const reading = Promise.withResolvers<ReturnType<typeof processed>>();
     f.ingestions.process.mockReturnValueOnce(reading.promise);
     const handling = handler(event);
     const settled = vi.fn();
@@ -170,7 +182,7 @@ describe("worker bootstrap", () => {
     await Promise.resolve();
     expect(f.storage.close).not.toHaveBeenCalled();
     expect(f.database.close).not.toHaveBeenCalled();
-    reading.resolve(completed);
+    reading.resolve(processed(event.data.ingestionId));
     await handling;
     await stopping;
     expect(f.storage.close).toHaveBeenCalledOnce();
@@ -179,7 +191,12 @@ describe("worker bootstrap", () => {
       [event.data.ingestionId],
     ]);
     expect(f.log.info).toHaveBeenCalledWith(
-      { jobId: event.id, ingestionId: event.data.ingestionId, ...completed },
+      {
+        jobId: event.id,
+        ingestionId: event.data.ingestionId,
+        importSourceId: "source-id",
+        bytesRead: 42,
+      },
       "ingestion shell completed",
     );
     expect(
@@ -188,6 +205,32 @@ describe("worker bootstrap", () => {
     expect(f.ingestions.submit).not.toHaveBeenCalled();
     expect(f.storage.delete).not.toHaveBeenCalled();
   });
+
+  it.each(["completed", "failed"] as const)(
+    "acknowledges an already %s ingestion without further processing",
+    async (status) => {
+      const f = setup();
+      const worker = f.run()!;
+      expect(await worker.ready).toBe(true);
+      const handler = f.consumer.registerJobHandler.mock.calls[0][1];
+      const event = createJobEvent({
+        type: JobType.INGESTION,
+        source: "/services/api",
+        data: { ingestionId: "11111111-1111-4111-8111-111111111111" },
+      });
+      f.ingestions.process.mockResolvedValueOnce(processed(event.data.ingestionId, status));
+
+      await expect(handler(event)).resolves.toBeUndefined();
+
+      expect(f.log.info).toHaveBeenCalledWith(
+        { jobId: event.id, ingestionId: event.data.ingestionId, status },
+        "ingestion already processed",
+      );
+      expect(f.log.info).not.toHaveBeenCalledWith(expect.anything(), "ingestion shell completed");
+      expect(f.ingestions.fail).not.toHaveBeenCalled();
+      await worker.shutdown();
+    },
+  );
 
   it("propagates shell failures to the consumer without logging false completion or duplicate errors", async () => {
     const f = setup();
