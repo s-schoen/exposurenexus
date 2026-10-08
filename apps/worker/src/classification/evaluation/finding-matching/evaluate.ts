@@ -64,8 +64,8 @@ export type FindingBatchCase = {
 
 export type FindingRecord = z.infer<typeof findingRecordSchema>;
 /**
- * A persisted observation. The contracts admit only manual observations so far; scanner
- * observations carry their source and ingestion as the pipeline will persist them.
+ * A persisted observation, typed loosely because fixtures are built from candidates whose
+ * `source` is a plain string; validation still parses it against the observation contract.
  */
 export type EvaluationObservation = Omit<Observation, "source" | "ingestionId"> & {
   source: string;
@@ -131,17 +131,6 @@ const expectedSchema = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("unresolved"), reason: z.enum(reasons) }),
 ]);
 
-const observationRecordSchema = observationSchema
-  .extend({
-    source: z.string().trim().min(1),
-    ingestionId: z.uuidv4().nullable(),
-    weakness: weaknessSchema,
-    fingerprints: fingerprintsSchema,
-  })
-  .refine(
-    (observation) => (observation.source === "manual") === (observation.ingestionId === null),
-  );
-
 function validateScenario(scenario: FindingScenario) {
   const assets = uniqueIds(scenario.assets, "asset");
   for (const asset of scenario.assets) {
@@ -160,10 +149,12 @@ function validateScenario(scenario: FindingScenario) {
   uniqueIds(scenario.observations, "observation");
   for (const observation of scenario.observations) {
     const context = `${scenario.id}/${observation.id}`;
+    assertCanonical(observationSchema, observation, `Invalid observation in ${context}.`);
+    assertCanonical(weaknessSchema, observation.weakness, `Noncanonical weakness in ${context}.`);
     assertCanonical(
-      observationRecordSchema,
-      observation,
-      `Invalid or noncanonical observation in ${context}.`,
+      fingerprintsSchema,
+      observation.fingerprints,
+      `Noncanonical fingerprints in ${context}.`,
     );
     if (!findings.has(observation.findingId)) {
       throw new Error(`Observation finding is not in the scenario for ${context}.`);

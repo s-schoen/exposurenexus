@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { AffectedResourceType } from "./affected-resource.js";
-import { observationSchema, ObservationSource, moveObservationInputSchema } from "./observation.js";
+import {
+  observationSchema,
+  ObservationSource,
+  moveObservationInputSchema,
+  ScannerSource,
+} from "./observation.js";
 import { manualObservationInputSchema, updateObservationSchema } from "./observation.js";
 import { VulnerabilitySeverity } from "./vulnerability.js";
 
@@ -34,6 +39,35 @@ describe("observation provenance", () => {
     expect(() =>
       observationSchema.parse({
         ...observation,
+        ingestionId: "40b71ac1-b003-46b4-a1fc-8e8d384dd140",
+      }),
+    ).toThrow();
+  });
+
+  it("lists manual and every scanner source", () => {
+    expect(Object.values(ObservationSource).sort()).toEqual(
+      [ObservationSource.Manual, ...Object.values(ScannerSource)].sort(),
+    );
+  });
+
+  it.each(Object.values(ScannerSource))(
+    "requires %s observations to carry their ingestion identity",
+    (source) => {
+      const ingestionId = "40b71ac1-b003-46b4-a1fc-8e8d384dd140";
+
+      expect(observationSchema.parse({ ...observation, source, ingestionId })).toMatchObject({
+        source,
+        ingestionId,
+      });
+      expect(() => observationSchema.parse({ ...observation, source })).toThrow();
+    },
+  );
+
+  it("rejects unknown sources", () => {
+    expect(() =>
+      observationSchema.parse({
+        ...observation,
+        source: "unknown",
         ingestionId: "40b71ac1-b003-46b4-a1fc-8e8d384dd140",
       }),
     ).toThrow();
