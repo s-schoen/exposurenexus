@@ -58,6 +58,7 @@ import type { Finding } from "@exposurenexus/contracts/model/finding";
 import type {
   ManualObservationInput,
   Observation,
+  ObservationSource,
 } from "@exposurenexus/contracts/model/observation";
 
 interface FindingObservationsSectionProps {
@@ -89,6 +90,17 @@ function isAffectedResourceType(value: string): value is AffectedResourceType {
 function isWebEndpointComponentKind(value: string): value is WebEndpointComponentKind {
   return componentKinds.some((kind) => kind === value);
 }
+
+const observationSourceLabels: Record<ObservationSource, string> = {
+  manual: "Manual",
+  nuclei: "Nuclei",
+  zap: "ZAP",
+  semgrep: "Semgrep",
+  bearer: "Bearer",
+  checkov: "Checkov",
+  kics: "KICS",
+  trivy: "Trivy",
+};
 
 function formatResourceType(type: AffectedResourceType) {
   return type === AffectedResourceType.WebEndpoint
@@ -993,7 +1005,7 @@ function ObservationCard({ observation }: { observation: Observation }) {
         <div className="min-w-0">
           <h3 className="font-semibold">{observation.title}</h3>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span>{capitalizeFirstLetter(observation.source)}</span>
+            <span>{observationSourceLabels[observation.source]}</span>
             <span aria-hidden="true">/</span>
             <Timestamp timestamp={observation.observedAt} />
           </div>

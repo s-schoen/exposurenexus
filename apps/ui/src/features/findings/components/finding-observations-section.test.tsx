@@ -198,6 +198,10 @@ describe("FindingObservationsSection", () => {
     expect(screen.getByText("Restrict access to trusted networks.")).toBeVisible();
     expect(screen.getByText(/CWE-200/)).toBeVisible();
     for (const value of [
+      "Manual",
+      "ZAP",
+      "Semgrep",
+      "Trivy",
       "Unspecified resource",
       "Observed network service",
       "9a0f8c1",

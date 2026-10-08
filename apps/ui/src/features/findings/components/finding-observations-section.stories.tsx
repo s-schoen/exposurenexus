@@ -101,8 +101,8 @@ const unspecifiedObservation = observationSchema.parse({
 const reportedEndpointObservation = observationSchema.parse({
   id: "197083f7-91c2-4c36-9a20-7ff90fd45e91",
   findingId: finding.id,
-  ingestionId: null,
-  source: ObservationSource.Manual,
+  ingestionId: "5f0b3a8e-2c1d-4e6f-9a7b-8c9d0e1f2a3b",
+  source: ObservationSource.Zap,
   title: "Reported endpoint URL",
   description: "The endpoint exposed administrative controls.",
   evidence: "`GET /admin?debug=true` returned **200**.",
@@ -154,8 +154,8 @@ const networkServiceObservation = observationSchema.parse({
 const sourceCodeObservation = observationSchema.parse({
   id: "1431897b-8d86-47f1-94f4-ac955cd120cf",
   findingId: finding.id,
-  ingestionId: null,
-  source: ObservationSource.Manual,
+  ingestionId: "5f0b3a8e-2c1d-4e6f-9a7b-8c9d0e1f2a3c",
+  source: ObservationSource.Semgrep,
   title: "Source revision snapshot",
   description: null,
   evidence: null,
@@ -181,8 +181,8 @@ const sourceCodeObservation = observationSchema.parse({
 const packageObservation = observationSchema.parse({
   id: "db85c61c-e66b-41a5-ab46-0d133b84e443",
   findingId: finding.id,
-  ingestionId: null,
-  source: ObservationSource.Manual,
+  ingestionId: "5f0b3a8e-2c1d-4e6f-9a7b-8c9d0e1f2a3d",
+  source: ObservationSource.Trivy,
   title: "Package version snapshot",
   description: null,
   evidence: null,
