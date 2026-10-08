@@ -321,9 +321,15 @@ guidance.
 An **observation source** identifies the scanner or reporting family that
 reported an observation. Current sources are:
 
-- `manual`: recorded directly by a user.
+- `manual`: recorded directly by a user. Manual observations never belong to an
+  ingestion.
+- A **scanner source**: one of `nuclei`, `zap`, `semgrep`, `bearer`, `checkov`,
+  `kics`, or `trivy`. Scanner observations always belong to the ingestion that
+  created them, whose scanner source they carry.
 
-Scanner sources will be added alongside the automated import implementation.
+The scanner sources are one closed vocabulary: import source registration accepts
+only these values, and the worker has exactly one normalizer per scanner source.
+Ingestions and import sources registered before validation may retain other text.
 One finding may have observations from multiple sources. Source is not a
 finding-owned identity or lifecycle field.
 
