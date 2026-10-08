@@ -43,6 +43,12 @@ export type FindingCandidateCase = {
   candidate: ObservationCandidate;
   /** The correct decision given only the batch's evidence and the existing findings. */
   expected: ExpectedFindingMatch;
+  /**
+   * The existing findings this detection really continues, any of which is the truth, or
+   * `null` when it is truly new; absent when unknown. Drift can make it differ from
+   * `expected`, which grades the evidence instead.
+   */
+  truthFindingIds?: string[] | null;
   /** Breakdown labels such as `status:mitigated`; `source:` tags are derived. */
   tags?: string[];
 };
@@ -96,6 +102,8 @@ type CandidateEvaluation = {
   expected: ExpectedFindingMatch;
   actual: FindingMatchResult | null;
   outcome: CandidateOutcome;
+  /** Continued findings, `null` when truly new, absent when unknown. */
+  truthFindingIds?: string[] | null;
   /** Set when a match broke a hard contract invariant. */
   violation: "other_asset" | "nonexistent_finding" | null;
 };
@@ -179,13 +187,20 @@ function validateScenario(scenario: FindingScenario) {
         `Invalid or noncanonical observation candidate in ${context}.`,
       );
       assertCanonical(expectedSchema, entry.expected, `Invalid expected outcome in ${context}.`);
-      if (entry.expected.status === "matched") {
-        const targets = entry.expected.findingIds;
-        if (new Set(targets).size !== targets.length) {
-          throw new Error(`Duplicate expected findings in ${context}.`);
+      const truth: unknown = entry.truthFindingIds;
+      if (truth !== undefined && truth !== null && !Array.isArray(truth)) {
+        throw new Error(`Truth findings must be a list or null in ${context}.`);
+      }
+      const targets: Array<[string, readonly string[]]> = [];
+      if (entry.expected.status === "matched")
+        targets.push(["Expected", entry.expected.findingIds]);
+      if (Array.isArray(truth)) targets.push(["Truth", truth as string[]]);
+      for (const [label, ids] of targets) {
+        if (ids.length === 0 || new Set(ids).size !== ids.length) {
+          throw new Error(`${label} findings must be unique and not empty in ${context}.`);
         }
-        if (targets.some((id) => findings.get(id)?.assetId !== batch.assetId)) {
-          throw new Error(`Expected finding is not on the batch asset for ${context}.`);
+        if (ids.some((id) => findings.get(id)?.assetId !== batch.assetId)) {
+          throw new Error(`${label} finding is not on the batch asset for ${context}.`);
         }
       }
       validateTags(entry.tags, context);
@@ -253,6 +268,7 @@ function score(
         tags: [...new Set([`source:${entry.candidate.source}`, ...(entry.tags ?? [])])],
         expected: entry.expected,
         actual,
+        ...(entry.truthFindingIds === undefined ? {} : { truthFindingIds: entry.truthFindingIds }),
         outcome:
           run.status === "not_run"
             ? "not_run"
@@ -272,6 +288,35 @@ function score(
     durationMs: run.durationMs,
     error: run.error,
   };
+}
+
+/** Truth names existing findings, so a correct decision continues one of them. */
+function continuing(
+  entry: CandidateEvaluation,
+): entry is CandidateEvaluation & { truthFindingIds: string[] } {
+  return Array.isArray(entry.truthFindingIds);
+}
+
+function continued(entry: CandidateEvaluation) {
+  return (
+    continuing(entry) &&
+    entry.actual?.status === "matched" &&
+    entry.truthFindingIds.includes(entry.actual.findingId)
+  );
+}
+
+/** A new decision for a continuing detection would create a duplicate finding. */
+function duplicated(entry: CandidateEvaluation) {
+  return continuing(entry) && entry.actual?.status === "new";
+}
+
+/** A match on anything but the known truth, including evidence-correct matches drift makes wrong. */
+function misattributed(entry: CandidateEvaluation) {
+  return (
+    entry.truthFindingIds !== undefined &&
+    entry.actual?.status === "matched" &&
+    !(entry.truthFindingIds ?? []).includes(entry.actual.findingId)
+  );
 }
 
 const correctOutcomes = new Set<CandidateOutcome>([
@@ -306,10 +351,22 @@ function summarize(batches: BatchEvaluation[]) {
   const unexpectedNew = outcome("unexpected_new");
   const expectedMatches = count((entry) => entry.expected.status === "matched");
   const expectedNew = count((entry) => entry.expected.status === "new");
+  const continuingCount = count(continuing);
+  const duplicates = count(duplicated);
+  const misattributedCount = count(misattributed);
 
   // Expected decision -> actual decision, counted per candidate.
   const confusion: Record<string, Record<string, number>> = {};
-  const tags: Record<string, { candidates: number; correct: number; wrongMatches: number }> = {};
+  const tags: Record<
+    string,
+    {
+      candidates: number;
+      correct: number;
+      wrongMatches: number;
+      duplicates: number;
+      misattributed: number;
+    }
+  > = {};
   const failures: string[] = [];
   for (const entry of candidates) {
     const expected =
@@ -320,10 +377,18 @@ function summarize(batches: BatchEvaluation[]) {
 
     const correct = correctOutcomes.has(entry.outcome);
     for (const tag of entry.tags) {
-      const stats = (tags[tag] ??= { candidates: 0, correct: 0, wrongMatches: 0 });
+      const stats = (tags[tag] ??= {
+        candidates: 0,
+        correct: 0,
+        wrongMatches: 0,
+        duplicates: 0,
+        misattributed: 0,
+      });
       stats.candidates += 1;
       if (correct) stats.correct += 1;
       if (entry.outcome === "wrong_match") stats.wrongMatches += 1;
+      if (duplicated(entry)) stats.duplicates += 1;
+      if (misattributed(entry)) stats.misattributed += 1;
     }
     if (!correct && entry.outcome !== "not_run") failures.push(`${entry.path}/${entry.id}`);
   }
@@ -352,6 +417,16 @@ function summarize(batches: BatchEvaluation[]) {
     matchRecall: ratio(correctMatches, expectedMatches),
     newPrecision: ratio(correctNew, correctNew + wrongGroupings + unexpectedNew),
     newRecall: ratio(correctNew, expectedNew),
+    /** Candidates whose truth names existing findings they continue. */
+    continuingDetections: continuingCount,
+    /** Share of continuing detections matched to a finding they really continue. */
+    continuity: ratio(count(continued), continuingCount),
+    /** Continuing detections decided new, each of which would create a duplicate finding. */
+    duplicates,
+    duplicateRate: ratio(duplicates, continuingCount),
+    /** Matches on anything but the known truth, per candidate. */
+    misattributed: misattributedCount,
+    misattributionRate: ratio(misattributedCount, candidates.length),
     confusion,
     tags: Object.fromEntries(Object.entries(tags).sort(([a], [b]) => a.localeCompare(b))),
     failures,
@@ -367,6 +442,22 @@ function printDetails(matcherId: string, summary: Summary) {
       `  Contract violations: ${summary.otherAssetMatches} matches on another asset, ` +
         `${summary.nonexistentMatches} matches on nonexistent findings`,
     );
+  }
+  if (summary.continuingDetections > 0) {
+    console.log(
+      `  Truth: ${summary.continuingDetections} continuing detections; ` +
+        `${summary.duplicates} decided new (duplicates), ${summary.misattributed} misattributed`,
+    );
+    const lossy = Object.entries(summary.tags)
+      .filter(([, stats]) => stats.duplicates + stats.misattributed > 0)
+      .sort(([, a], [, b]) => b.duplicates + b.misattributed - (a.duplicates + a.misattributed))
+      .slice(0, 5);
+    for (const [tag, stats] of lossy) {
+      console.log(
+        `    ${tag}: ${stats.duplicates} duplicates, ${stats.misattributed} misattributed ` +
+          `of ${stats.candidates}`,
+      );
+    }
   }
   if (summary.failures.length > 0) {
     const shown = summary.failures.slice(0, 10).join(", ");
@@ -385,7 +476,7 @@ export const findingMatching: MatcherKind<
   ReturnType<typeof summarize>
 > = {
   name: "finding-matching",
-  schemaVersion: 1,
+  schemaVersion: 2,
   validateScenario,
   fixture: ({ assets, findings, observations }) => ({ assets, findings, observations }),
   describe: (scenario) => ({
@@ -414,6 +505,9 @@ export const findingMatching: MatcherKind<
     recall: percent(summary.matchRecall),
     newPrecision: percent(summary.newPrecision),
     newRecall: percent(summary.newRecall),
+    continuity: percent(summary.continuity),
+    duplicates: percent(summary.duplicateRate),
+    misattributed: percent(summary.misattributionRate),
   }),
   printDetails,
 };
