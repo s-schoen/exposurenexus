@@ -5,8 +5,27 @@ import { dateSchema } from "./date.js";
 import { VulnerabilitySeverity } from "./vulnerability.js";
 import { weaknessSchema } from "./weakness.js";
 
+/** Scanners whose output can be ingested. */
+export enum ScannerSource {
+  Nuclei = "nuclei",
+  Zap = "zap",
+  Semgrep = "semgrep",
+  Bearer = "bearer",
+  Checkov = "checkov",
+  Kics = "kics",
+  Trivy = "trivy",
+}
+
+/** Origin of an observation: entered manually or ingested from a scanner. */
 export enum ObservationSource {
   Manual = "manual",
+  Nuclei = ScannerSource.Nuclei,
+  Zap = ScannerSource.Zap,
+  Semgrep = ScannerSource.Semgrep,
+  Bearer = ScannerSource.Bearer,
+  Checkov = ScannerSource.Checkov,
+  Kics = ScannerSource.Kics,
+  Trivy = ScannerSource.Trivy,
 }
 
 /**
@@ -36,11 +55,19 @@ const observationFields = {
   updatedBy: z.uuidv4(),
 };
 
-export const observationSchema = z.strictObject({
-  ...observationFields,
-  source: z.literal(ObservationSource.Manual),
-  ingestionId: z.null(),
-});
+// Manual observations have no ingestion; scanner observations always belong to one.
+export const observationSchema = z.discriminatedUnion("source", [
+  z.strictObject({
+    ...observationFields,
+    source: z.literal(ObservationSource.Manual),
+    ingestionId: z.null(),
+  }),
+  z.strictObject({
+    ...observationFields,
+    source: z.enum(ObservationSource).exclude(["Manual"]),
+    ingestionId: z.uuidv4(),
+  }),
+]);
 
 const observationInputSchema = z.strictObject({
   title: z.string().min(1),
