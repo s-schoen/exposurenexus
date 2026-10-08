@@ -7,7 +7,12 @@ import type {
   ImportSources,
   UploadImportSourceCommand,
 } from "@exposurenexus/backend/import-sources";
-import type { createIngestions, Ingestions } from "@exposurenexus/backend/ingestions";
+import type {
+  createIngestions,
+  IngestionPlan,
+  Ingestions,
+  RecordedIngestion,
+} from "@exposurenexus/backend/ingestions";
 
 describe("ingestions exports", () => {
   it("exports only the high-level factory at the plural capability subpath", async () => {
@@ -40,11 +45,36 @@ describe("ingestions exports", () => {
         ingestionId: string,
         failureCode: string,
       ): Promise<{ status: "failed" | "already_processed" }>;
+      record(ingestionId: string, plan: IngestionPlan): Promise<RecordedIngestion>;
       submit(command: UploadImportSourceCommand): Promise<{
         importSourceId: string;
         ingestionId: string;
         jobId: string;
       }>;
+    }>();
+    expectTypeOf<RecordedIngestion>().toEqualTypeOf<
+      | {
+          status: "recorded";
+          createdFindingIds: string[];
+          attachedObservations: number;
+          reopenedFindingIds: string[];
+        }
+      | { status: "already_processed" }
+    >();
+    for (const code of ["ingestion.plan_invalid", "ingestion.plan_stale"] as const) {
+      expectTypeOf<ApplicationError<typeof code>["details"]>().toEqualTypeOf<{
+        ingestionId: string;
+      }>();
+    }
+    expectTypeOf<
+      ApplicationError<"ingestion.plan_invalid">["kind"]
+    >().toEqualTypeOf<"validation">();
+    expectTypeOf<ApplicationError<"ingestion.plan_stale">["kind"]>().toEqualTypeOf<"conflict">();
+    expectTypeOf<
+      ApplicationError<"ingestion.record_failed">["kind"]
+    >().toEqualTypeOf<"unexpected">();
+    expectTypeOf<ApplicationError<"ingestion.record_failed">["details"]>().toEqualTypeOf<{
+      ingestionId: string;
     }>();
     expectTypeOf<
       ApplicationError<"ingestion.source_not_found">["kind"]

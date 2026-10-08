@@ -4,6 +4,8 @@ import { createJobService } from "@exposurenexus/jobs/service";
 
 import { ApplicationError, isApplicationError } from "../../application-error.js";
 import { getRuntimeDatabase, getRuntimeLogger, type BackendRuntime } from "../../runtime.js";
+import { ingestionPlanSchema, type IngestionPlan } from "./ingestion-plan.js";
+import { recordIngestionPlan, type RecordedIngestion } from "./ingestion-record.js";
 
 import type { ImportSources, UploadImportSourceCommand } from "../import-sources/index.js";
 import type { IngestionStatus } from "./ingestion-table.js";
@@ -26,6 +28,7 @@ export interface Ingestions {
     ingestionId: string,
     failureCode: string,
   ): Promise<{ status: "failed" | "already_processed" }>;
+  record(ingestionId: string, plan: IngestionPlan): Promise<RecordedIngestion>;
   submit(command: UploadImportSourceCommand): Promise<{
     importSourceId: string;
     ingestionId: string;
@@ -122,6 +125,32 @@ export function createIngestions(
           code: "ingestion.fail_failed",
           kind: "unexpected",
           message: "Ingestion failure could not be recorded",
+          details: { ingestionId },
+        });
+      }
+    },
+    async record(ingestionId, input) {
+      const plan = ingestionPlanSchema.safeParse(input);
+      if (!plan.success) {
+        throw new ApplicationError({
+          code: "ingestion.plan_invalid",
+          kind: "validation",
+          message: "Ingestion plan is invalid",
+          details: { ingestionId },
+        });
+      }
+      try {
+        return await database
+          .transaction()
+          .execute(
+            async (transaction) => await recordIngestionPlan(transaction, ingestionId, plan.data),
+          );
+      } catch (error) {
+        if (isApplicationError(error)) throw error;
+        throw new ApplicationError({
+          code: "ingestion.record_failed",
+          kind: "unexpected",
+          message: "Ingestion plan could not be recorded",
           details: { ingestionId },
         });
       }
