@@ -61,8 +61,17 @@ export function bootstrapWorker(
           [JobType.INGESTION]: async (event) => {
             const fields = { jobId: event.id, ingestionId: event.data.ingestionId };
             logger.info(fields, "ingestion shell started");
-            const result = await ingestions.process(event.data.ingestionId);
-            logger.info({ ...fields, ...result }, "ingestion shell completed");
+            const { ingestion, importSourceId, data } = await ingestions.process(
+              event.data.ingestionId,
+            );
+            if (ingestion.status !== "pending") {
+              logger.info({ ...fields, status: ingestion.status }, "ingestion already processed");
+              return;
+            }
+            logger.info(
+              { ...fields, importSourceId, bytesRead: data.byteLength },
+              "ingestion shell completed",
+            );
           },
         };
       },
