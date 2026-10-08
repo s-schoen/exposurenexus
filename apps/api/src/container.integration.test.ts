@@ -1,6 +1,7 @@
 import { Readable } from "node:stream";
 import { buffer } from "node:stream/consumers";
 
+import { ScannerSource } from "@exposurenexus/contracts/model/observation";
 import { createJobRepository } from "@exposurenexus/jobs/postgres";
 import { createJobRelay } from "@exposurenexus/jobs/relay";
 import { serve } from "@hono/node-server";
@@ -209,7 +210,7 @@ describe("API backend cutover", () => {
     await request(
       "/findings/import",
       "POST",
-      { source: "example-scanner", originalFilename: "scan.jsonl", sizeBytes: 0 },
+      { source: ScannerSource.Nuclei, originalFilename: "scan.jsonl", sizeBytes: 0 },
       403,
     );
   });
@@ -217,7 +218,7 @@ describe("API backend cutover", () => {
   it("registers immutable scan metadata without bytes or submission through the protected API", async () => {
     cookies.clear();
     const metadata = {
-      source: "example-scanner",
+      source: ScannerSource.Nuclei,
       originalFilename: " ../scan.jsonl ",
       sizeBytes: 4,
       mimeType: "unverified/type",
@@ -263,7 +264,7 @@ describe("API backend cutover", () => {
     cookies.clear();
     const login = await request("/auth", "POST", { username: "admin", password: initialPassword });
     const metadata = {
-      source: "example-scanner" as const,
+      source: ScannerSource.Nuclei,
       originalFilename: "scan.jsonl",
       sizeBytes: 4,
       mimeType: "unverified/type",
@@ -346,7 +347,7 @@ describe("API backend cutover", () => {
     expect(await testDb.db.selectFrom("ingestion").selectAll().execute()).toEqual([
       {
         id: accepted.data.ingestionId,
-        source: "example-scanner",
+        source: ScannerSource.Nuclei,
         createdBy: login.data.user.id,
         createdAt: expect.any(Date),
       },

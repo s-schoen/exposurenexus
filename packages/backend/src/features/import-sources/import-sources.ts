@@ -29,7 +29,8 @@ export interface ImportSourcesConfiguration {
 export interface ImportSource {
   id: string;
   ingestionId: string | null;
-  source: RegisterImportSource["source"] | null;
+  /** Registered as a scanner source; rows from before validation may hold other text. */
+  source: string | null;
   createdBy: string;
   originalFilename: string;
   mimeType: string | null;

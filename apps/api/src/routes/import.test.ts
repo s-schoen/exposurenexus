@@ -1,6 +1,7 @@
 import { Readable } from "node:stream";
 import { text } from "node:stream/consumers";
 
+import { ScannerSource } from "@exposurenexus/contracts/model/observation";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createRequireDomainPermission } from "../middleware/auth.js";
@@ -20,7 +21,7 @@ describe("finding import routes", () => {
   const ingestions = { submit: vi.fn() };
   const importSourceId = "6b80ec81-bfa7-435c-b41e-8d14510b5ee2";
   const metadata = {
-    source: "example-scanner",
+    source: ScannerSource.Nuclei,
     originalFilename: "scan.jsonl",
     sizeBytes: 0,
     mimeType: "application/x-ndjson",
@@ -198,6 +199,7 @@ describe("finding import routes", () => {
     {},
     { ...metadata, source: "  " },
     { ...metadata, source: 123 },
+    { ...metadata, source: "unknown" },
     { ...metadata, originalFilename: "  " },
     { ...metadata, sizeBytes: -1 },
     { ...metadata, sizeBytes: 0.5 },
