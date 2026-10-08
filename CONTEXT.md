@@ -214,7 +214,8 @@ confidence scores or identifier roles.
 **Asset matching** resolves one observation candidate to an existing inventory
 asset, including archived assets, or explicitly leaves it unresolved. Matching
 does not establish finding identity, persist an observation, create assets, or
-modify the candidate or inventory.
+modify the candidate or inventory. All candidates of one ingestion are matched
+against one point-in-time read of the inventory.
 
 Contextual evidence may establish a match without an exact identifier match, but
 display-name similarity alone is insufficient. Potential identifiers that resolve
