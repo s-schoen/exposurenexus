@@ -18,7 +18,7 @@ import type { ImportSourcesConfiguration } from "../import-sources/index.js";
 const actorId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f";
 const input = Buffer.from([0x61, 0xc3, 0xa4, 0xff, 0x0a]);
 
-describe("ingestion processing shell", () => {
+describe("ingestion processing", () => {
   const testDb = createTestDatabase();
   const objects = new Map<string, Buffer>();
   const queries: string[] = [];
@@ -102,6 +102,25 @@ describe("ingestion processing shell", () => {
     return { runtime, sources, ingestions, ...accepted };
   }
 
+  async function processed(ingestionId: string, importSourceId: string, data: Uint8Array = input) {
+    const ingestion = await testDb.db
+      .selectFrom("ingestion")
+      .select(["createdAt"])
+      .where("id", "=", ingestionId)
+      .executeTakeFirstOrThrow();
+    return {
+      ingestion: {
+        id: ingestionId,
+        source: ScannerSource.Nuclei,
+        createdBy: actorId,
+        createdAt: ingestion.createdAt,
+        status: "pending",
+      },
+      importSourceId,
+      data: Buffer.from(data),
+    };
+  }
+
   async function snapshot() {
     return {
       sources: await testDb.db.selectFrom("import_source").selectAll().execute(),
@@ -115,7 +134,7 @@ describe("ingestion processing shell", () => {
     };
   }
 
-  it("awaits the entire byte stream without changing accepted input or pending execution", async () => {
+  it("buffers the entire byte stream without changing accepted input or pending execution", async () => {
     const { ingestions, ingestionId, importSourceId } = await setup();
     const before = await snapshot();
     const started = Promise.withResolvers<void>();
@@ -144,7 +163,7 @@ describe("ingestion processing shell", () => {
       finish.resolve();
     }
 
-    await expect(result).resolves.toEqual({ importSourceId, bytesRead: 5 });
+    await expect(result).resolves.toEqual(await processed(ingestionId, importSourceId));
     expect(body.readableEnded).toBe(true);
     expect(body.destroyed).toBe(true);
     expect(await snapshot()).toEqual(before);
@@ -183,10 +202,9 @@ describe("ingestion processing shell", () => {
     expect(body.readableDidRead).toBe(true);
     expect(body.destroyed).toBe(true);
     expect(await snapshot()).toEqual(before);
-    await expect(ingestions.process(ingestionId)).resolves.toEqual({
-      importSourceId,
-      bytesRead: 5,
-    });
+    await expect(ingestions.process(ingestionId)).resolves.toEqual(
+      await processed(ingestionId, importSourceId),
+    );
     expect(await snapshot()).toEqual(before);
   });
 
@@ -233,7 +251,22 @@ describe("ingestion processing shell", () => {
     },
   );
 
-  it.each(["unknown ingestion", "unlinked ingestion", "removed source"])(
+  it("rejects an unknown ingestion before source lookup or storage access", async () => {
+    const { ingestions } = await setup();
+    const before = await snapshot();
+
+    await expect(ingestions.process(actorId)).rejects.toMatchObject({
+      code: "ingestion.not_found",
+      kind: "missing",
+      details: { ingestionId: actorId },
+      cause: undefined,
+    });
+    expect(queries).toEqual(["SelectQueryNode"]);
+    expect(storage.read).not.toHaveBeenCalled();
+    expect(await snapshot()).toEqual(before);
+  });
+
+  it.each(["unlinked ingestion", "removed source"])(
     "rejects missing input for an %s before storage access",
     async (missing) => {
       const { ingestions, ingestionId, importSourceId } = await setup();
@@ -243,16 +276,15 @@ describe("ingestion processing shell", () => {
           .set({ ingestionId: null })
           .where("id", "=", importSourceId)
           .execute();
-      } else if (missing === "removed source") {
+      } else {
         await testDb.db.deleteFrom("import_source").where("id", "=", importSourceId).execute();
       }
-      const requestedId = missing === "unknown ingestion" ? actorId : ingestionId;
       const before = await snapshot();
 
-      await expect(ingestions.process(requestedId)).rejects.toMatchObject({
+      await expect(ingestions.process(ingestionId)).rejects.toMatchObject({
         code: "ingestion.source_not_found",
         kind: "missing",
-        details: { ingestionId: requestedId },
+        details: { ingestionId },
         cause: undefined,
       });
       expect(storage.read).not.toHaveBeenCalled();
@@ -331,9 +363,9 @@ describe("ingestion processing shell", () => {
     const before = await snapshot();
 
     await expect(ingestions.process(ingestionId)).rejects.toMatchObject({
-      code: "import_source.get_by_ingestion_failed",
+      code: "ingestion.get_failed",
       kind: "unexpected",
-      message: "Import source metadata could not be read by ingestion",
+      message: "Ingestion could not be read",
       details: { ingestionId },
       cause: undefined,
     });
@@ -342,13 +374,15 @@ describe("ingestion processing shell", () => {
   });
 
   it.each([
-    { contents: "empty", bytes: Buffer.alloc(0), bytesRead: 0 },
-    { contents: "malformed", bytes: input, bytesRead: 5 },
-  ])("completes $contents input without parsing it", async ({ bytes, bytesRead }) => {
+    { contents: "empty", bytes: Buffer.alloc(0) },
+    { contents: "malformed", bytes: input },
+  ])("returns $contents input without parsing it", async ({ bytes }) => {
     const { ingestions, ingestionId, importSourceId } = await setup(bytes);
     const before = await snapshot();
 
-    await expect(ingestions.process(ingestionId)).resolves.toEqual({ importSourceId, bytesRead });
+    await expect(ingestions.process(ingestionId)).resolves.toEqual(
+      await processed(ingestionId, importSourceId, bytes),
+    );
     expect(storage.read).toHaveBeenCalledOnce();
     expect(await snapshot()).toEqual(before);
   });
@@ -359,17 +393,37 @@ describe("ingestion processing shell", () => {
       const { ingestions, ingestionId, importSourceId } = await setup(input, retentionPolicy);
       const before = await snapshot();
 
+      const expected = await processed(ingestionId, importSourceId);
+
       await expect(
         Promise.all([ingestions.process(ingestionId), ingestions.process(ingestionId)]),
-      ).resolves.toEqual([
-        { importSourceId, bytesRead: 5 },
-        { importSourceId, bytesRead: 5 },
-      ]);
-      await expect(ingestions.process(ingestionId)).resolves.toEqual({
-        importSourceId,
-        bytesRead: 5,
-      });
+      ).resolves.toEqual([expected, expected]);
+      await expect(ingestions.process(ingestionId)).resolves.toEqual(expected);
       expect(storage.read).toHaveBeenCalledTimes(3);
+      expect(await snapshot()).toEqual(before);
+    },
+  );
+
+  it.each(["completed", "failed"] as const)(
+    "reports an already %s ingestion with its bytes and leaves skipping to the caller",
+    async (status) => {
+      const { ingestions, ingestionId, importSourceId } = await setup();
+      await testDb.db
+        .updateTable("ingestion")
+        .set({
+          status,
+          processedAt: new Date(),
+          failureCode: status === "failed" ? "ingestion.parse_failed" : null,
+        })
+        .where("id", "=", ingestionId)
+        .execute();
+      const expected = await processed(ingestionId, importSourceId);
+      const before = await snapshot();
+
+      await expect(ingestions.process(ingestionId)).resolves.toEqual({
+        ...expected,
+        ingestion: { ...expected.ingestion, status },
+      });
       expect(await snapshot()).toEqual(before);
     },
   );
