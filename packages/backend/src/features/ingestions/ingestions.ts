@@ -6,9 +6,26 @@ import { ApplicationError, isApplicationError } from "../../application-error.js
 import { getRuntimeDatabase, getRuntimeLogger, type BackendRuntime } from "../../runtime.js";
 
 import type { ImportSources, UploadImportSourceCommand } from "../import-sources/index.js";
+import type { IngestionStatus } from "./ingestion-table.js";
+
+export interface ProcessedIngestion {
+  ingestion: {
+    id: string;
+    source: string;
+    createdBy: string;
+    createdAt: Date;
+    status: IngestionStatus;
+  };
+  importSourceId: string;
+  data: Uint8Array;
+}
 
 export interface Ingestions {
-  process(ingestionId: string): Promise<{ importSourceId: string; bytesRead: number }>;
+  process(ingestionId: string): Promise<ProcessedIngestion>;
+  fail(
+    ingestionId: string,
+    failureCode: string,
+  ): Promise<{ status: "failed" | "already_processed" }>;
   submit(command: UploadImportSourceCommand): Promise<{
     importSourceId: string;
     ingestionId: string;
@@ -23,8 +40,33 @@ export function createIngestions(
   const database = getRuntimeDatabase(runtime);
   const logger = getRuntimeLogger(runtime).child({ capability: "ingestions" });
 
+  function ingestionNotFound(ingestionId: string) {
+    return new ApplicationError({
+      code: "ingestion.not_found",
+      kind: "missing",
+      message: "Ingestion does not exist",
+      details: { ingestionId },
+    });
+  }
+
   return {
     async process(ingestionId) {
+      let ingestion: ProcessedIngestion["ingestion"] | undefined;
+      try {
+        ingestion = await database
+          .selectFrom("ingestion")
+          .select(["id", "source", "createdBy", "createdAt", "status"])
+          .where("id", "=", ingestionId)
+          .executeTakeFirst();
+      } catch {
+        throw new ApplicationError({
+          code: "ingestion.get_failed",
+          kind: "unexpected",
+          message: "Ingestion could not be read",
+          details: { ingestionId },
+        });
+      }
+      if (!ingestion) throw ingestionNotFound(ingestionId);
       const source = await importSources.getByIngestionID(ingestionId);
       if (!source) {
         throw new ApplicationError({
@@ -35,10 +77,12 @@ export function createIngestions(
         });
       }
       const body = await importSources.readByID(source.id);
+      const chunks: Uint8Array[] = [];
       let bytesRead = 0;
       try {
         for await (const chunk of body) {
-          bytesRead += Buffer.byteLength(chunk as Uint8Array);
+          chunks.push(chunk as Uint8Array);
+          bytesRead += (chunk as Uint8Array).byteLength;
         }
         if (bytesRead !== source.sizeBytes) {
           throw new Error("Import source size mismatch");
@@ -52,7 +96,35 @@ export function createIngestions(
           details: { sourceId: source.id },
         });
       }
-      return { importSourceId: source.id, bytesRead };
+      return { ingestion, importSourceId: source.id, data: Buffer.concat(chunks, bytesRead) };
+    },
+    async fail(ingestionId, failureCode) {
+      try {
+        return await database.transaction().execute(async (transaction) => {
+          const ingestion = await transaction
+            .selectFrom("ingestion")
+            .select("status")
+            .where("id", "=", ingestionId)
+            .forUpdate()
+            .executeTakeFirst();
+          if (!ingestion) throw ingestionNotFound(ingestionId);
+          if (ingestion.status !== "pending") return { status: "already_processed" as const };
+          await transaction
+            .updateTable("ingestion")
+            .set({ status: "failed", processedAt: new Date(), failureCode })
+            .where("id", "=", ingestionId)
+            .execute();
+          return { status: "failed" as const };
+        });
+      } catch (error) {
+        if (isApplicationError(error)) throw error;
+        throw new ApplicationError({
+          code: "ingestion.fail_failed",
+          kind: "unexpected",
+          message: "Ingestion failure could not be recorded",
+          details: { ingestionId },
+        });
+      }
     },
     async submit(command) {
       await importSources.upload(command);

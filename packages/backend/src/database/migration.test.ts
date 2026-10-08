@@ -210,7 +210,9 @@ describe("database migration preservation", () => {
           .execute();
         await migrateToLatest(database, pino({ enabled: false }));
 
-        expect(await database.selectFrom("ingestion").selectAll().execute()).toEqual([ingestion]);
+        expect(await database.selectFrom("ingestion").selectAll().execute()).toEqual([
+          { ...ingestion, status: "pending", processedAt: null, failureCode: null },
+        ]);
         expect(await database.selectFrom("finding").selectAll().execute()).toEqual([finding]);
         expect(await database.selectFrom("observation").selectAll().execute()).toEqual([
           { ...observation, fingerprints: {} },
@@ -270,6 +272,7 @@ const expectedMigrationNames = [
   "20260918-remove-nuclei-source",
   "20261007-observation-fingerprints",
   "20261008-scanner-observation-sources",
+  "20261009-ingestion-processing-state",
 ];
 
 // Forward-only migration history prevents renaming this already-applied file set.

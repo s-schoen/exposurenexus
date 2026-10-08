@@ -350,6 +350,9 @@ describe("API backend cutover", () => {
         source: ScannerSource.Nuclei,
         createdBy: login.data.user.id,
         createdAt: expect.any(Date),
+        status: "pending",
+        processedAt: null,
+        failureCode: null,
       },
     ]);
     const pendingJobs = await testDb.db.selectFrom("job").selectAll().execute();
@@ -413,8 +416,15 @@ describe("API backend cutover", () => {
     const body = Readable.from([storedBytes.subarray(0, 2), storedBytes.subarray(2)]);
     storage.read.mockResolvedValueOnce(body);
     await expect(container.services.ingestions.process(event.data.ingestionId)).resolves.toEqual({
+      ingestion: {
+        id: event.data.ingestionId,
+        source: ScannerSource.Nuclei,
+        createdBy: login.data.user.id,
+        createdAt: expect.any(Date),
+        status: "pending",
+      },
       importSourceId: id,
-      bytesRead: 4,
+      data: Buffer.from("nope"),
     });
     expect(body.readableEnded).toBe(true);
     expect(storage.read).toHaveBeenCalledExactlyOnceWith(storage.write.mock.calls[0]![0].key);

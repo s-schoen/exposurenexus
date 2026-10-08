@@ -25,7 +25,21 @@ describe("ingestions exports", () => {
       ) => Ingestions
     >();
     expectTypeOf<Ingestions>().toEqualTypeOf<{
-      process(ingestionId: string): Promise<{ importSourceId: string; bytesRead: number }>;
+      process(ingestionId: string): Promise<{
+        ingestion: {
+          id: string;
+          source: string;
+          createdBy: string;
+          createdAt: Date;
+          status: "pending" | "completed" | "failed";
+        };
+        importSourceId: string;
+        data: Uint8Array;
+      }>;
+      fail(
+        ingestionId: string,
+        failureCode: string,
+      ): Promise<{ status: "failed" | "already_processed" }>;
       submit(command: UploadImportSourceCommand): Promise<{
         importSourceId: string;
         ingestionId: string;
@@ -36,6 +50,14 @@ describe("ingestions exports", () => {
       ApplicationError<"ingestion.source_not_found">["kind"]
     >().toEqualTypeOf<"missing">();
     expectTypeOf<ApplicationError<"ingestion.source_not_found">["details"]>().toEqualTypeOf<{
+      ingestionId: string;
+    }>();
+    expectTypeOf<ApplicationError<"ingestion.not_found">["kind"]>().toEqualTypeOf<"missing">();
+    expectTypeOf<ApplicationError<"ingestion.not_found">["details"]>().toEqualTypeOf<{
+      ingestionId: string;
+    }>();
+    expectTypeOf<ApplicationError<"ingestion.fail_failed">["kind"]>().toEqualTypeOf<"unexpected">();
+    expectTypeOf<ApplicationError<"ingestion.fail_failed">["details"]>().toEqualTypeOf<{
       ingestionId: string;
     }>();
     expectTypeOf<

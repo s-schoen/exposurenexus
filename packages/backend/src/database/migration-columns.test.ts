@@ -1128,7 +1128,7 @@ describe("db migration columns", () => {
       columns.rows
         .filter((column) => column.table_name === "ingestion")
         .map((column) => column.column_name),
-    ).toEqual(["id", "source", "createdAt", "createdBy"]);
+    ).toEqual(["id", "source", "createdAt", "createdBy", "status", "processedAt", "failureCode"]);
     expect(
       columns.rows.some((column) => column.table_name === "vulnerability_source_mapping"),
     ).toBe(false);
@@ -1176,6 +1176,63 @@ describe("db migration columns", () => {
       { typname: "vulnerability_type", enumlabel: "advisory" },
       { typname: "vulnerability_type", enumlabel: "custom" },
     ]);
+  });
+
+  it("constrains ingestion processing state to consistent outcomes", async () => {
+    const statuses = await sql<{ enumlabel: string }>`
+      select pg_enum.enumlabel
+      from pg_type
+      join pg_enum on pg_enum.enumtypid = pg_type.oid
+      where pg_type.typname = 'ingestion_status'
+      order by pg_enum.enumsortorder asc
+    `.execute(testDb.db);
+    expect(statuses.rows.map((row) => row.enumlabel)).toEqual(["pending", "completed", "failed"]);
+
+    const actor = await testDb.db
+      .insertInto("user_profile")
+      .values({
+        username: "ingestion-state",
+        email: "ingestion-state@example.test",
+        displayName: "Ingestion state",
+        enabled: true,
+        passwordHash: "unused",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const insert = (state: {
+      status?: "pending" | "completed" | "failed";
+      processedAt?: Date | null;
+      failureCode?: string | null;
+    }) =>
+      testDb.db
+        .insertInto("ingestion")
+        .values({ source: "trivy", createdBy: actor.id, createdAt: new Date(), ...state })
+        .returning(["status", "processedAt", "failureCode"])
+        .executeTakeFirstOrThrow();
+    const processedAt = new Date("2026-10-08T12:00:00.000Z");
+
+    await expect(insert({})).resolves.toEqual({
+      status: "pending",
+      processedAt: null,
+      failureCode: null,
+    });
+    await expect(insert({ status: "completed", processedAt })).resolves.toMatchObject({
+      status: "completed",
+    });
+    await expect(
+      insert({ status: "failed", processedAt, failureCode: "ingestion.parse_failed" }),
+    ).resolves.toMatchObject({ status: "failed" });
+
+    for (const inconsistent of [
+      { status: "pending" as const, processedAt },
+      { status: "pending" as const, failureCode: "ingestion.parse_failed" },
+      { status: "completed" as const },
+      { status: "completed" as const, processedAt, failureCode: "ingestion.parse_failed" },
+      { status: "failed" as const, processedAt },
+      { status: "failed" as const, failureCode: "ingestion.parse_failed" },
+    ]) {
+      await expect(insert(inconsistent)).rejects.toThrow(/ingestion_processing_state_check/);
+    }
   });
 
   it("couples observation source to ingestion identity", async () => {

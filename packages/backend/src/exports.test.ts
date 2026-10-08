@@ -13,7 +13,11 @@ import type {
   RegisterImportSourceCommand,
   UploadImportSourceCommand,
 } from "@exposurenexus/backend/import-sources";
-import type { createIngestions, Ingestions } from "@exposurenexus/backend/ingestions";
+import type {
+  createIngestions,
+  Ingestions,
+  ProcessedIngestion,
+} from "@exposurenexus/backend/ingestions";
 import type {
   ObjectStorage,
   ObjectStorageConfiguration,
@@ -166,7 +170,7 @@ describe("backend exports", () => {
     }>();
   });
 
-  it("exports high-level ingestion submission and read-only processing", async () => {
+  it("exports high-level ingestion submission, processing, and failure", async () => {
     expect(Object.keys(await import("./features/ingestions/index.js"))).toEqual([
       "createIngestions",
     ]);
@@ -177,7 +181,11 @@ describe("backend exports", () => {
       ) => Ingestions
     >();
     expectTypeOf<Ingestions>().toEqualTypeOf<{
-      process(ingestionId: string): Promise<{ importSourceId: string; bytesRead: number }>;
+      process(ingestionId: string): Promise<ProcessedIngestion>;
+      fail(
+        ingestionId: string,
+        failureCode: string,
+      ): Promise<{ status: "failed" | "already_processed" }>;
       submit(command: UploadImportSourceCommand): Promise<SubmitImportSourceDataReply>;
     }>();
   });

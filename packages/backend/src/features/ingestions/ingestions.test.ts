@@ -178,6 +178,9 @@ describe("ingestion submission", () => {
         source: ScannerSource.Nuclei,
         createdBy: actorId,
         createdAt: expect.any(Date),
+        status: "pending",
+        processedAt: null,
+        failureCode: null,
       },
     ]);
     const jobs = await createJobRepository(testDb.db).listAll();

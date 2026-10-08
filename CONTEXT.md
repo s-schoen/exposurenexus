@@ -435,7 +435,11 @@ durable import source; preexisting ingestions without stored raw input retain
 their provenance without an invented source. An ingestion is not an upload
 placeholder: submission creates it only after its raw input is durably available,
 with the registered scanner source and creator. Acceptance does not mean the worker
-has run, and shell completion does not mean observations exist. Ingestion scope
+has run, and shell completion does not mean observations exist. An ingestion's
+**status** is `pending` until processing records an outcome: `completed`, or `failed`
+with a failure code such as `ingestion.parse_failed`. Both outcomes record when
+processing finished, and an ingestion that is no longer `pending` is not processed
+again. Ingestion scope
 and processed, created, skipped, and
 erroneous record accounting are deferred until automated processing is implemented.
 Manual observations do not belong to ingestions.
