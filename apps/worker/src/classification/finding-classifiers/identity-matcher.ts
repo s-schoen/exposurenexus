@@ -1,17 +1,21 @@
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 
+import { alignShifted } from "./drift-pairing.js";
 import { FindingIndex } from "./finding-index.js";
 import {
   compareResource,
   locationFingerprint,
   missingMinimumFields,
   resourceIdentity,
+  sameSourceScope,
+  sourceLocation,
 } from "./resource-identity.js";
 import { compareWeakness, specificNamespaces } from "./weakness-identity.js";
 
 import type { ObservationCandidate } from "../classifier.js";
 import type { FindingMatcher, FindingMatchResult } from "../finding-matcher.js";
 import type { FindingIdentity, Identity, KnownFinding } from "./finding-index.js";
+import type { SourceLocation } from "./resource-identity.js";
 import type { Logger } from "pino";
 
 export type { FindingIdentity } from "./finding-index.js";
@@ -79,7 +83,10 @@ function preference(left: FindingIdentity, right: FindingIdentity) {
   );
 }
 
-function matched({ members, evidence }: Claim): FindingMatchResult {
+function matched(
+  { members, evidence }: Pick<Claim, "members" | "evidence">,
+  context = "",
+): FindingMatchResult {
   const [finding] = members.map((member) => member.finding).sort(preference);
   const target =
     members.length === 1
@@ -88,7 +95,7 @@ function matched({ members, evidence }: Claim): FindingMatchResult {
   return {
     status: "matched",
     findingId: finding.id,
-    explanation: `${evidence} matched ${target}.`,
+    explanation: `${evidence} matched ${target}${context}.`,
   };
 }
 
@@ -104,9 +111,10 @@ function list(values: Iterable<string>) {
  * resource identify another finding exactly. Exact weakness and resource identity decides
  * next. Partial identity, such as a CWE-only finding or a resource missing an optional
  * field, is consulted only when nothing matched exactly, and only when no other candidate
- * identity in the batch claims the same finding. Unmatched candidates with a specific
- * weakness identifier and a sufficient resource seed new findings, grouped by identity.
- * Titles, descriptions, evidence, and source metadata are never evidence.
+ * identity in the batch claims the same finding. Source code results whose location moved
+ * pair with findings no candidate reached, in file order. Remaining candidates with a
+ * specific weakness identifier and a sufficient resource seed new findings, grouped by
+ * identity. Titles, descriptions, evidence, and source metadata are never evidence.
  *
  * Every call reads and validates the asset's current findings once, so all decisions in a
  * batch rest on one point-in-time read.
@@ -128,10 +136,11 @@ export class IdentityFindingMatcher implements FindingMatcher {
       weakness: candidate.weakness,
       resource: resourceIdentity(candidate.affectedResource),
     }));
-    const results = settle(
-      candidates.map((candidate, position) => decide(index, candidate, identities[position])),
-      identities,
+    const reached = new Set<KnownFinding>();
+    const pending = candidates.map((candidate, position) =>
+      decide(index, candidate, identities[position], reached),
     );
+    const results = settle(pending, { candidates, identities, index, reached });
     for (const result of results) {
       logger.debug(result, "finding match decided");
     }
@@ -139,7 +148,13 @@ export class IdentityFindingMatcher implements FindingMatcher {
   }
 }
 
-function decide(index: FindingIndex, candidate: ObservationCandidate, identity: Identity): Pending {
+/** @param reached Collects every finding the candidate's evidence reaches, decided or not. */
+function decide(
+  index: FindingIndex,
+  candidate: ObservationCandidate,
+  identity: Identity,
+  reached: Set<KnownFinding>,
+): Pending {
   const type = identity.resource.type;
   const strong: KnownFinding[] = [];
   const strongNamespaces: string[] = [];
@@ -169,6 +184,9 @@ function decide(index: FindingIndex, candidate: ObservationCandidate, identity: 
     candidate.fingerprints,
     locationFingerprint(candidate.affectedResource),
   );
+  for (const known of [...strong, ...weak, ...fingerprinted.findings]) {
+    reached.add(known);
+  }
   if (fingerprinted.findings.length > 0) {
     const evidence = `Fingerprints (${fingerprinted.labels.join(", ")})`;
     const classes = identityClasses(fingerprinted.findings);
@@ -230,11 +248,20 @@ function decide(index: FindingIndex, candidate: ObservationCandidate, identity: 
   return { status: "new" };
 }
 
-/** Applies batch-wide rules: weak claims must be exclusive, and new candidates form groups. */
-function settle(
-  pending: readonly Pending[],
-  identities: readonly Identity[],
-): FindingMatchResult[] {
+/** One batch's candidates, their identities, and the findings their evidence reached. */
+type Batch = {
+  candidates: readonly ObservationCandidate[];
+  identities: readonly Identity[];
+  index: FindingIndex;
+  reached: ReadonlySet<KnownFinding>;
+};
+
+/**
+ * Applies batch-wide rules: weak claims must be exclusive, moved source code results pair
+ * with unreached findings, and new candidates form groups.
+ */
+function settle(pending: readonly Pending[], batch: Batch): FindingMatchResult[] {
+  const { identities } = batch;
   const results: FindingMatchResult[] = [];
   const fresh: number[] = [];
 
@@ -263,7 +290,8 @@ function settle(
       : matched(decision);
   });
 
-  for (const [key, members] of groupNew(fresh, identities, results).entries()) {
+  const unpaired = pairShifted(fresh, batch, results);
+  for (const [key, members] of groupNew(unpaired, identities, results).entries()) {
     const { weakness, resource } = identities[members[0]];
     const peers =
       members.length === 1 ? "" : ` ${members.length} candidates in the batch seed it together.`;
@@ -276,6 +304,120 @@ function settle(
     }
   }
   return results;
+}
+
+/** KICS names no resource with this placeholder, which encloses nothing. */
+const placeholderSymbol = "n/a";
+
+type Located<T> = { location: SourceLocation; members: T[] };
+
+/** New source code candidates and unreached findings of one weakness in one file and symbol. */
+type Bucket = { groups: Located<number>[]; orphans: Located<KnownFinding>[] };
+
+/**
+ * Pairs new source code candidates with findings no candidate's evidence reached, after
+ * code moved within their file, using {@link alignShifted}. Candidates with equal identity
+ * move together. An unpaired candidate stays new only when no finding in its bucket is left
+ * unpaired; otherwise it is ambiguous. Matched and ambiguous results are written directly.
+ *
+ * @returns The candidate positions that stay new.
+ */
+function pairShifted(
+  fresh: readonly number[],
+  { candidates, identities, index, reached }: Batch,
+  results: FindingMatchResult[],
+): number[] {
+  const unpaired: number[] = [];
+  const buckets: Bucket[] = [];
+  for (const position of fresh) {
+    const identity = identities[position];
+    const location = sourceLocation(candidates[position].affectedResource);
+    if (location === undefined) {
+      unpaired.push(position);
+      continue;
+    }
+    const bucket = buckets.find(({ groups: [{ members }] }) => {
+      const first = identities[members[0]];
+      return (
+        sameSourceScope(first.resource, identity.resource) &&
+        compareWeakness(first.weakness, identity.weakness).relation === "same"
+      );
+    });
+    if (bucket === undefined) {
+      buckets.push({ groups: [{ location, members: [position] }], orphans: [] });
+      continue;
+    }
+    const group = bucket.groups.find(({ members }) =>
+      sameIdentity(identities[members[0]], identity),
+    );
+    if (group === undefined) {
+      bucket.groups.push({ location, members: [position] });
+    } else {
+      group.members.push(position);
+    }
+  }
+
+  // A finding that fits several buckets cannot pair, but still blocks their new decisions.
+  const fits = new Map<KnownFinding, number>();
+  for (const bucket of buckets) {
+    const { weakness, resource } = identities[bucket.groups[0].members[0]];
+    const orphans = index
+      .sharingIdentifiers(weakness)
+      .filter(
+        (known) =>
+          !reached.has(known) &&
+          sameSourceScope(resource, known.resource) &&
+          compareWeakness(weakness, known.weakness).relation === "same",
+      );
+    for (const members of identityClasses(orphans)) {
+      const location = sourceLocation(members[0].finding.affectedResource);
+      if (location !== undefined) {
+        bucket.orphans.push({ location, members });
+        members.forEach((known) => fits.set(known, (fits.get(known) ?? 0) + 1));
+      }
+    }
+  }
+
+  for (const { groups, orphans } of buckets) {
+    const { weakness, resource } = identities[groups[0].members[0]];
+    const free = orphans.filter(({ members }) => members.every((known) => fits.get(known) === 1));
+    const symbol = resource.fields.symbol?.toLowerCase();
+    const pairs = new Map(
+      alignShifted(
+        groups.map(({ location }) => location),
+        free.map(({ location }) => location),
+        symbol !== undefined && symbol !== placeholderSymbol,
+      ),
+    );
+    const remaining = orphans.length - pairs.size;
+    for (const [group, { members }] of groups.entries()) {
+      const orphan = pairs.get(group);
+      if (orphan === undefined && remaining === 0) {
+        unpaired.push(...members);
+        continue;
+      }
+      for (const position of members) {
+        if (orphan === undefined) {
+          const findings =
+            remaining === 1 ? "1 unpaired finding" : `${remaining} unpaired findings`;
+          results[position] = unresolved(
+            "ambiguous",
+            `The weakness (${list(specificNamespaces(weakness))}) and ${resource.type} identity fit no finding exactly, and ${findings} with that weakness in its file may have moved.`,
+          );
+        } else {
+          const { namespaces } = compareWeakness(weakness, free[orphan].members[0].weakness);
+          results[position] = matched(
+            {
+              members: free[orphan].members,
+              evidence: `Weakness (${list(namespaces)}) and ${resource.type} identity`,
+            },
+            " after an order-preserving line shift in its file",
+          );
+        }
+      }
+    }
+  }
+  return unpaired.sort((left, right) => left - right);
 }
 
 /**
