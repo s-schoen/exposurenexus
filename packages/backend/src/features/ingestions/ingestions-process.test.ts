@@ -2,6 +2,7 @@ import { Readable } from "node:stream";
 import { buffer } from "node:stream/consumers";
 import { setImmediate } from "node:timers/promises";
 
+import { ScannerSource } from "@exposurenexus/contracts/model/observation";
 import { createJobRepository } from "@exposurenexus/jobs/postgres";
 import { pino } from "pino";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -85,7 +86,7 @@ describe("ingestion processing shell", () => {
     const sources = createImportSources(runtime, storage, { retentionPolicy });
     const ingestions = createIngestions(runtime, sources);
     const registered = await sources.register({
-      source: "example-scanner",
+      source: ScannerSource.Nuclei,
       sizeBytes: bytes.length,
       originalFilename: "scan.jsonl",
       performedBy: actorId,

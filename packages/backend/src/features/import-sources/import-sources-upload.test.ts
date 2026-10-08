@@ -2,6 +2,7 @@ import { Readable } from "node:stream";
 import { buffer } from "node:stream/consumers";
 import { setImmediate } from "node:timers/promises";
 
+import { ScannerSource } from "@exposurenexus/contracts/model/observation";
 import { sql } from "kysely";
 import { pino } from "pino";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,7 +16,7 @@ import type { ImportSourcesConfiguration, UploadImportSourceCommand } from "./in
 
 const actorId = "72fb3d48-4f34-4ec4-b7cd-9f68f5f4d19f";
 const registration = {
-  source: "example-scanner" as const,
+  source: ScannerSource.Nuclei,
   originalFilename: "../../scan.jsonl",
   mimeType: "unverified metadata",
   sizeBytes: 3,

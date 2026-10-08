@@ -1,6 +1,7 @@
 import { Readable } from "node:stream";
 import { buffer } from "node:stream/consumers";
 
+import { ScannerSource } from "@exposurenexus/contracts/model/observation";
 import { createJobRepository } from "@exposurenexus/jobs/postgres";
 import { sql } from "kysely";
 import { pino } from "pino";
@@ -87,7 +88,7 @@ describe("ingestion submission", () => {
     );
     // Upload mechanics have their own suite; submission faults start with durable bytes.
     const registered = await sources.register({
-      source: "example-scanner",
+      source: ScannerSource.Nuclei,
       sizeBytes: input.length,
       originalFilename: "registered-scan.jsonl",
       mimeType: "unverified/type",
@@ -116,7 +117,7 @@ describe("ingestion submission", () => {
     const runtime = createBackendRuntime({ database: testDb.db, logger: pino({ enabled: false }) });
     const sources = createImportSources(runtime, storage);
     const registered = await sources.register({
-      source: "example-scanner",
+      source: ScannerSource.Nuclei,
       originalFilename: "scan.jsonl",
       sizeBytes: input.length,
       performedBy: actorId,
@@ -174,7 +175,7 @@ describe("ingestion submission", () => {
     expect(await testDb.db.selectFrom("ingestion").selectAll().execute()).toEqual([
       {
         id: accepted.ingestionId,
-        source: "example-scanner",
+        source: ScannerSource.Nuclei,
         createdBy: actorId,
         createdAt: expect.any(Date),
       },
@@ -326,7 +327,7 @@ describe("ingestion submission", () => {
     const runtime = createBackendRuntime({ database: testDb.db, logger: pino({ enabled: false }) });
     const sources = createImportSources(runtime, storage);
     const registered = await sources.register({
-      source: "example-scanner",
+      source: ScannerSource.Nuclei,
       originalFilename: "scan.jsonl",
       sizeBytes: input.length,
       performedBy: actorId,
@@ -409,7 +410,7 @@ describe("ingestion submission", () => {
       storage,
     );
     const registered = await sources.register({
-      source: "example-scanner",
+      source: ScannerSource.Nuclei,
       originalFilename: "scan.jsonl",
       sizeBytes: input.length,
       performedBy: actorId,

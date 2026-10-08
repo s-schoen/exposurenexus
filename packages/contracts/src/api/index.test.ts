@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 
+import { ScannerSource } from "../model/observation.js";
 import {
   authLoginSchema,
   authSessionDataReplySchema,
@@ -15,6 +16,7 @@ import type {
   RegisterImportSourceDataReply,
   SubmitImportSourceDataReply,
 } from "@exposurenexus/contracts/api";
+import type { ScannerSource as PublishedScannerSource } from "@exposurenexus/contracts/model/observation";
 
 const serializedSession = {
   id: "11003daa-67df-40e4-894f-ada5de7bd1be",
@@ -83,14 +85,15 @@ describe("auth API schemas", () => {
 describe("scan registration API schemas", () => {
   it("accepts zero-byte scanner registration without altering declared metadata", () => {
     const request = {
-      source: "example-scanner",
+      source: ScannerSource.Nuclei,
       originalFilename: " ../../scan.jsonl ",
       sizeBytes: 0,
       mimeType: "unverified scanner metadata",
     };
     expect(registerImportSourceSchema.parse(request)).toEqual(request);
-    expectTypeOf<RegisterImportSource>().toEqualTypeOf<{
-      source: string;
+    // expect-type cannot compare enum-typed properties nested in an object.
+    expectTypeOf<RegisterImportSource["source"]>().toEqualTypeOf<PublishedScannerSource>();
+    expectTypeOf<Omit<RegisterImportSource, "source">>().toEqualTypeOf<{
       originalFilename: string;
       sizeBytes: number;
       mimeType?: string;
@@ -98,7 +101,7 @@ describe("scan registration API schemas", () => {
   });
 
   it("requires strict registration metadata and accepts the full nonnegative safe-integer range", () => {
-    const request = { source: "example-scanner", originalFilename: "scan.jsonl", sizeBytes: 0 };
+    const request = { source: ScannerSource.Trivy, originalFilename: "scan.jsonl", sizeBytes: 0 };
     for (const sizeBytes of [0, 104857600, Number.MAX_SAFE_INTEGER]) {
       expect(registerImportSourceSchema.parse({ ...request, sizeBytes })).toEqual({
         ...request,
@@ -113,6 +116,9 @@ describe("scan registration API schemas", () => {
       { ...request, source: "" },
       { ...request, source: " \t\n\u00a0" },
       { ...request, source: 123 },
+      { ...request, source: "unknown" },
+      { ...request, source: "Nuclei" },
+      { ...request, source: "manual" },
       { ...request, originalFilename: undefined },
       { ...request, originalFilename: "" },
       { ...request, originalFilename: " \t\n\u00a0" },
@@ -126,6 +132,14 @@ describe("scan registration API schemas", () => {
       { ...request, performedBy: user.id },
     ]) {
       expect(registerImportSourceSchema.safeParse(invalid).success).toBe(false);
+    }
+  });
+
+  it("accepts every scanner source", () => {
+    for (const source of Object.values(ScannerSource)) {
+      expect(
+        registerImportSourceSchema.parse({ source, originalFilename: "scan.json", sizeBytes: 1 }),
+      ).toMatchObject({ source });
     }
   });
 

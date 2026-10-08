@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 
 import { dateSchema } from "../model/date.js";
+import { ScannerSource } from "../model/observation.js";
 import { userProfileSchema } from "../model/user.js";
 
 interface APIReply {
@@ -55,7 +56,7 @@ export type AuthSessionDataReply = z.infer<typeof authSessionDataReplySchema>;
 export type AuthSignOutDataReply = z.infer<typeof authSignOutDataReplySchema>;
 
 export const registerImportSourceSchema = z.strictObject({
-  source: z.string().min(1).regex(/\S/u),
+  source: z.enum(ScannerSource),
   originalFilename: z.string().min(1).regex(/\S/u),
   sizeBytes: z.int().min(0),
   mimeType: z.string().optional(),
