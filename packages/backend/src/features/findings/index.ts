@@ -15,6 +15,7 @@ import * as observationPersistence from "./observation-persistence.js";
 
 export { fingerprintsSchema } from "./fingerprint-rules.js";
 export { weaknessSchema } from "./weakness-rules.js";
+export type { FindingIdentity } from "./finding-projection.js";
 export type {
   Findings,
   CreateManualFindingCommand,

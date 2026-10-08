@@ -24,6 +24,7 @@ import type {
   FindingRecord,
   UpdateFindingRecord,
 } from "./finding-persistence.js";
+import type { FindingIdentity } from "./finding-projection.js";
 import type {
   FindingVulnerabilityMutation,
   FindingVulnerabilityMutationInput,
@@ -49,6 +50,7 @@ import type { z } from "zod/v4";
 interface FindingProjection {
   listFindingProjections(database: DatabaseExecutor): Promise<Finding[]>;
   getFindingProjectionByID(database: DatabaseExecutor, id: string): Promise<Finding | null>;
+  listFindingIdentities(database: DatabaseExecutor, assetId: string): Promise<FindingIdentity[]>;
 }
 
 interface FindingPersistence {
@@ -221,6 +223,11 @@ export interface FindingVulnerabilityMutationOutcome {
 export interface Findings {
   listAll(): Promise<Finding[]>;
   getByID(id: string): Promise<Finding | null>;
+  /**
+   * Lists the identity evidence of every finding on an asset, in any status, imported or
+   * manually created, for finding matching. An unknown asset has no findings.
+   */
+  listIdentities(assetId: string): Promise<FindingIdentity[]>;
   createManual(command: CreateManualFindingCommand): Promise<FindingCreatedOutcome>;
   listObservations(findingId: string): Promise<Observation[] | null>;
   createManualObservation(
@@ -480,6 +487,21 @@ export function createFindingsBehavior({
           message: "failed to get finding",
           cause: error,
           details: { findingId: id },
+        });
+      }
+    },
+
+    async listIdentities(assetId: string): Promise<FindingIdentity[]> {
+      try {
+        return await findingProjection.listFindingIdentities(database, assetId);
+      } catch (error) {
+        logger.error(error, `failed to list finding identities for asset ${assetId}`);
+        throw new ApplicationError({
+          code: "finding.identity_list_failed",
+          kind: "unexpected",
+          message: "failed to list finding identities",
+          cause: error,
+          details: { assetId },
         });
       }
     },

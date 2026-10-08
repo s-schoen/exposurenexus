@@ -84,6 +84,7 @@ describe("exposure findings", () => {
   const findingProjection = {
     getFindingProjectionByID: vi.fn(),
     listFindingProjections: vi.fn(),
+    listFindingIdentities: vi.fn(),
   };
   const findingPersistence = {
     insertFinding: vi.fn(),
@@ -534,10 +535,32 @@ describe("exposure findings", () => {
 
   it("maps finding read failures to typed application errors", async () => {
     findingProjection.listFindingProjections.mockRejectedValue(new Error("database offline"));
+    findingProjection.listFindingIdentities.mockRejectedValue(new Error("database offline"));
 
     await expect(createCapability().listAll()).rejects.toMatchObject({
       code: "finding.list_failed",
       kind: "unexpected",
     });
+    await expect(createCapability().listIdentities(assetId)).rejects.toMatchObject({
+      code: "finding.identity_list_failed",
+      kind: "unexpected",
+      details: { assetId },
+    });
+  });
+
+  it("lists finding identities of one asset", async () => {
+    const identity = {
+      id: findingId,
+      assetId,
+      status: FindingStatus.Active,
+      createdAt: timestamp,
+      weakness: { identifiers: {} },
+      affectedResource: { type: AffectedResourceType.Unspecified },
+      fingerprints: { semgrep: ["a"] },
+    };
+    findingProjection.listFindingIdentities.mockResolvedValue([identity]);
+
+    await expect(createCapability().listIdentities(assetId)).resolves.toEqual([identity]);
+    expect(findingProjection.listFindingIdentities).toHaveBeenCalledWith(database, assetId);
   });
 });
