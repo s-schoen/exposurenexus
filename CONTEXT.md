@@ -439,7 +439,13 @@ has run, and shell completion does not mean observations exist. An ingestion's
 **status** is `pending` until processing records an outcome: `completed`, or `failed`
 with a failure code such as `ingestion.parse_failed`. Both outcomes record when
 processing finished, and an ingestion that is no longer `pending` is not processed
-again. Ingestion scope
+again. An **ingestion plan** is the fully decided outcome of matching: the new
+findings to create on matched assets, and the observations to attach to existing
+findings. Recording a plan writes it and completes the ingestion together. The
+ingestion's creator is the actor, and its scanner source is each observation's source.
+Attaching an observation reopens an `inactive` or `mitigated` finding as `active` and
+keeps its triage. If an asset or finding changed after matching, the plan is stale
+and nothing is written. Ingestion scope
 and processed, created, skipped, and
 erroneous record accounting are deferred until automated processing is implemented.
 Manual observations do not belong to ingestions.

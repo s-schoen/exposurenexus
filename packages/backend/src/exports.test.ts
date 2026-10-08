@@ -15,8 +15,10 @@ import type {
 } from "@exposurenexus/backend/import-sources";
 import type {
   createIngestions,
+  IngestionPlan,
   Ingestions,
   ProcessedIngestion,
+  RecordedIngestion,
 } from "@exposurenexus/backend/ingestions";
 import type {
   ObjectStorage,
@@ -170,7 +172,7 @@ describe("backend exports", () => {
     }>();
   });
 
-  it("exports high-level ingestion submission, processing, and failure", async () => {
+  it("exports high-level ingestion submission, processing, recording, and failure", async () => {
     expect(Object.keys(await import("./features/ingestions/index.js"))).toEqual([
       "createIngestions",
     ]);
@@ -186,6 +188,7 @@ describe("backend exports", () => {
         ingestionId: string,
         failureCode: string,
       ): Promise<{ status: "failed" | "already_processed" }>;
+      record(ingestionId: string, plan: IngestionPlan): Promise<RecordedIngestion>;
       submit(command: UploadImportSourceCommand): Promise<SubmitImportSourceDataReply>;
     }>();
   });

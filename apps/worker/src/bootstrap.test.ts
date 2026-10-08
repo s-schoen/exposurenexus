@@ -67,6 +67,7 @@ function setup() {
   const ingestions = {
     submit: vi.fn(),
     fail: vi.fn(),
+    record: vi.fn(),
     process: vi.fn(async (ingestionId: string) => processed(ingestionId)),
   };
   const lifetime = Promise.withResolvers<void>();
