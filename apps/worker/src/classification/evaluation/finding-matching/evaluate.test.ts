@@ -275,6 +275,54 @@ describe("evaluateFindingMatchers", () => {
     });
   });
 
+  it("grades decisions against truth separately from the evidence", async () => {
+    const input = dataset([
+      {
+        ...entry("continued", { status: "matched", findingIds: [first.id] }),
+        truthFindingIds: [first.id],
+      },
+      { ...entry("drifted", { status: "new", group: "a" }), truthFindingIds: [first.id] },
+      {
+        ...entry("evidence-wrong", { status: "matched", findingIds: [second.id] }),
+        truthFindingIds: [first.id],
+      },
+      { ...entry("truly-new", { status: "new", group: "b" }), truthFindingIds: null },
+      entry("unknown", { status: "matched", findingIds: [second.id] }),
+    ]);
+    const report = await evaluateFindingMatchers(input, [
+      replying([
+        matched(first.id),
+        grouped("x"),
+        matched(second.id),
+        matched(first.id),
+        matched(second.id),
+      ]),
+    ]);
+    const { summary, scenarios } = report.matchers[0];
+
+    expect(
+      scenarios[0].cases[0].candidates.map((candidate) => [
+        candidate.outcome,
+        candidate.truthFindingIds,
+      ]),
+    ).toEqual([
+      ["correct_match", [first.id]],
+      ["correct_new", [first.id]],
+      ["correct_match", [first.id]],
+      ["wrong_match", null],
+      ["correct_match", undefined],
+    ]);
+    expect(summary).toMatchObject({
+      continuingDetections: 3,
+      continuity: 1 / 3,
+      duplicates: 1,
+      duplicateRate: 1 / 3,
+      misattributed: 2,
+      misattributionRate: 2 / 5,
+    });
+    expect(summary.tags["source:trivy"]).toMatchObject({ duplicates: 1, misattributed: 2 });
+  });
+
   it("fails whole batches on errors, wrong lengths, and invalid shapes", async () => {
     const input = dataset([
       entry("one", { status: "matched", findingIds: [first.id] }),
@@ -411,6 +459,26 @@ describe("evaluateFindingMatchers", () => {
       "duplicate candidate IDs",
       (input) =>
         input.scenarios[0].cases[0].candidates.push(entry("one", { status: "new", group: "a" })),
+    ],
+    [
+      "truth finding on another asset",
+      (input) => (input.scenarios[0].cases[0].candidates[0].truthFindingIds = [elsewhere.id]),
+    ],
+    [
+      "nonexistent truth finding",
+      (input) => (input.scenarios[0].cases[0].candidates[0].truthFindingIds = [author]),
+    ],
+    [
+      "empty truth list",
+      (input) => (input.scenarios[0].cases[0].candidates[0].truthFindingIds = []),
+    ],
+    [
+      "truth that is neither a list nor null",
+      (input) => {
+        (
+          input.scenarios[0].cases[0].candidates[0] as { truthFindingIds: unknown }
+        ).truthFindingIds = first.id;
+      },
     ],
     ["empty batch", (input) => (input.scenarios[0].cases[0].candidates = [])],
     ["unknown batch asset", (input) => (input.scenarios[0].cases[0].assetId = author)],

@@ -1,13 +1,13 @@
 import { runEvaluationCommand } from "../command.js";
+import { loadDataset } from "./dataset.js";
 import { findingMatching } from "./evaluate.js";
 import { matchers } from "./matchers.js";
-import { dataset } from "./scenarios.js";
 
 try {
   process.exitCode = await runEvaluationCommand(
     process.argv.slice(2),
     findingMatching,
-    dataset,
+    loadDataset,
     matchers,
   );
 } catch (error) {
