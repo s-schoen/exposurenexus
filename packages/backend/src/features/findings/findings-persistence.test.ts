@@ -23,6 +23,7 @@ import { createBackendRuntime } from "../../runtime.js";
 import { createAssets } from "../assets/assets.js";
 import { createStatistics } from "../statistics/index.js";
 import { createVulnerabilities } from "../vulnerabilities/index.js";
+import { insertFinding } from "./finding-persistence.js";
 import { createFindings } from "./index.js";
 import { insertObservation } from "./observation-persistence.js";
 
@@ -247,6 +248,89 @@ describe("findings cross-feature persistence", () => {
         ingestionId: null,
       }),
     ).rejects.toThrow();
+  });
+
+  it("lists the identity of every finding on an asset with merged fingerprints", async () => {
+    const asset = await createAsset("api.example.com");
+    const other = await createAsset("other.example.com");
+    const findings = createCapability().findings;
+    const weakness = { identifiers: { cwe: ["CWE-79"] } };
+    const affectedResource = { type: AffectedResourceType.WebEndpoint, path: "/search" };
+    const insertAt = async (assetId: string, status: FindingStatus, day: number) => {
+      const timestamp = new Date(Date.UTC(2026, 0, day));
+      return await insertFinding(testDb.db, {
+        assetId,
+        title: status,
+        severity: VulnerabilitySeverity.High,
+        status,
+        assigneeId: null,
+        dueDate: null,
+        mitigation: null,
+        weakness,
+        affectedResource,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        createdBy: auditUserId,
+        updatedBy: auditUserId,
+      });
+    };
+
+    // Findings in every status; none of these has an observation.
+    const statuses = Object.values(FindingStatus);
+    const bare = [];
+    for (const [day, status] of statuses.entries()) {
+      bare.push(await insertAt(asset.id, status, day + 1));
+    }
+    await insertAt(other.id, FindingStatus.Active, 1);
+
+    const manual = await createFinding(asset.id, "Manual finding");
+    const ingestion = await testDb.db
+      .insertInto("ingestion")
+      .values({
+        source: ObservationSource.Semgrep,
+        createdAt: new Date("2026-02-01T00:00:00.000Z"),
+        createdBy: auditUserId,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const observed: Record<string, string[]>[] = [
+      { semgrep: ["b", "a"] },
+      { semgrep: ["c", "a"], trivy: ["x"] },
+    ];
+    for (const fingerprints of observed) {
+      await insertObservation(testDb.db, {
+        ...manual.observation,
+        id: undefined,
+        source: ObservationSource.Semgrep,
+        ingestionId: ingestion.id,
+        fingerprints,
+      });
+    }
+
+    await expect(findings.listIdentities(asset.id)).resolves.toEqual([
+      ...bare.map(({ id, status, createdAt }) => ({
+        id,
+        assetId: asset.id,
+        status,
+        createdAt,
+        weakness,
+        affectedResource,
+        fingerprints: {},
+      })),
+      {
+        id: manual.current.id,
+        assetId: asset.id,
+        status: FindingStatus.Active,
+        createdAt: manual.current.createdAt,
+        weakness: { identifiers: {} },
+        affectedResource: { type: AffectedResourceType.Unspecified },
+        fingerprints: { semgrep: ["a", "b", "c"], trivy: ["x"] },
+      },
+    ]);
+    expect(bare.map(({ status }) => status)).toEqual(statuses);
+    await expect(findings.listIdentities("00000000-0000-4000-8000-000000000000")).resolves.toEqual(
+      [],
+    );
   });
 
   it("round-trips structured weakness enrichment through findings and observations", async () => {

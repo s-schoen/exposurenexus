@@ -1,9 +1,20 @@
 import { findingSchema, type Finding } from "@exposurenexus/contracts/model/finding";
 import { jsonArrayFrom } from "kysely/helpers/postgres";
 
+import { fingerprintsSchema, type Fingerprints } from "./fingerprint-rules.js";
+
 import type { DatabaseExecutor } from "../../database/executor.js";
 import type { FindingTable } from "./finding-table.js";
 import type { Selectable } from "kysely";
+
+/** Identity evidence of one existing finding, in any status and of any origin. */
+export type FindingIdentity = Pick<
+  Selectable<FindingTable>,
+  "id" | "assetId" | "status" | "createdAt" | "weakness" | "affectedResource"
+> & {
+  /** Canonical source fingerprints of all the finding's observations, merged per namespace. */
+  fingerprints: Fingerprints;
+};
 
 type FindingProjectionRow = Selectable<FindingTable> & {
   vulnerabilities: unknown;
@@ -88,4 +99,43 @@ export async function getFindingProjectionByID(
   const finding = await projectionQuery(database).where("finding.id", "=", id).executeTakeFirst();
 
   return finding ? normalizeFindingProjection(finding) : null;
+}
+
+/** Lists every finding on an asset with its observations' source fingerprints in one query. */
+export async function listFindingIdentities(
+  database: DatabaseExecutor,
+  assetId: string,
+): Promise<FindingIdentity[]> {
+  const findings = await database
+    .selectFrom("finding")
+    .select([
+      "finding.id",
+      "finding.assetId",
+      "finding.status",
+      "finding.createdAt",
+      "finding.weakness",
+      "finding.affectedResource",
+    ])
+    .select((expression) =>
+      jsonArrayFrom(
+        expression
+          .selectFrom("observation")
+          .select("observation.fingerprints")
+          .whereRef("observation.findingId", "=", "finding.id"),
+      ).as("observations"),
+    )
+    .where("finding.assetId", "=", assetId)
+    .orderBy("finding.createdAt")
+    .orderBy("finding.id")
+    .execute();
+
+  return findings.map(({ observations, ...finding }) => {
+    const merged: Record<string, string[]> = {};
+    for (const { fingerprints } of observations) {
+      for (const [namespace, values] of Object.entries(fingerprints)) {
+        (merged[namespace] ??= []).push(...values);
+      }
+    }
+    return { ...finding, fingerprints: fingerprintsSchema.parse(merged) };
+  });
 }

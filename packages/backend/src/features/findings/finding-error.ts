@@ -1,6 +1,10 @@
 export type FindingApplicationErrorCatalog = {
   "finding.invalid_input": { kind: "validation" };
   "finding.list_failed": { kind: "unexpected" };
+  "finding.identity_list_failed": {
+    kind: "unexpected";
+    details: { assetId: string };
+  };
   "finding.get_failed": {
     kind: "unexpected";
     details: { findingId: string };
