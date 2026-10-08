@@ -72,11 +72,29 @@ function isValid(assetId: string, finding: FindingIdentity) {
 }
 
 /**
- * Read-only lookup structures over one point-in-time read of an asset's findings.
+ * Checks one point-in-time read of an asset's findings against the identity invariants.
  *
  * @throws An `Error` when a finding belongs to another asset, repeats an ID, or carries an
  * invalid status, creation time, or affected resource, or non-canonical weakness
  * identifiers or fingerprints.
+ */
+export function assertFindingIdentities(assetId: string, findings: readonly FindingIdentity[]) {
+  if (!Array.isArray(findings)) {
+    throw new Error(invalidFindingResponse);
+  }
+  const ids = new Set<string>();
+  for (const finding of findings) {
+    if (!isValid(assetId, finding) || ids.has(finding.id)) {
+      throw new Error(invalidFindingResponse);
+    }
+    ids.add(finding.id);
+  }
+}
+
+/**
+ * Read-only lookup structures over one point-in-time read of an asset's findings.
+ *
+ * @throws An `Error` when the findings violate {@link assertFindingIdentities}.
  */
 export class FindingIndex {
   private readonly byFingerprint = new Map<string, KnownFinding[]>();
@@ -84,13 +102,8 @@ export class FindingIndex {
   private readonly byIdentifier = new Map<string, KnownFinding[]>();
 
   constructor(assetId: string, findings: readonly FindingIdentity[]) {
-    const ids = new Set<string>();
+    assertFindingIdentities(assetId, findings);
     for (const finding of findings) {
-      if (!isValid(assetId, finding) || ids.has(finding.id)) {
-        throw new Error(invalidFindingResponse);
-      }
-      ids.add(finding.id);
-
       const entry: KnownFinding = {
         finding,
         weakness: finding.weakness,
