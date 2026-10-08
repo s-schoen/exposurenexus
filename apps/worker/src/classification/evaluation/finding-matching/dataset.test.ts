@@ -32,6 +32,7 @@ describe("loadDataset", () => {
     ).toEqual([
       "container-packages:edge",
       "source-code:edge",
+      "source-drift:edge",
       "replay-fixtures:replay",
       "replay-lab:replay",
       "heldout-replay:heldout",

@@ -84,6 +84,15 @@ function code(file: string, startLine: number, locationFingerprint?: string) {
   } as const;
 }
 
+/** A source code result with a full span on one line, as Semgrep and Bearer report it. */
+function span(file: string, startLine: number, startColumn: number, endColumn: number) {
+  return {
+    type: AffectedResourceType.SourceCode,
+    file,
+    location: { startLine, startColumn, endLine: startLine, endColumn },
+  } as const;
+}
+
 function cve(id: string, cwe?: string): Record<string, string[]> {
   return { cve: [id], trivy: [id], ...(cwe === undefined ? {} : { cwe: [cwe] }) };
 }
@@ -187,26 +196,8 @@ describe("IdentityFindingMatcher structural identity", () => {
       ),
       candidate({ zap: ["10021"] }, { type: AffectedResourceType.Unspecified }),
     ],
-    [
-      "a shifted line without fingerprints",
-      finding("bearer", { bearer: ["xss"] }, code("src/a.ts", 40)),
-      candidate({ bearer: ["xss"] }, code("src/a.ts", 52)),
-    ],
   ])("seeds a new finding for %s", async (_case, existing, input) => {
     expect(await match([existing], [input])).toEqual([expect.objectContaining({ status: "new" })]);
-  });
-
-  it("follows an IaC resource across line shifts through its symbol", async () => {
-    const bucket = {
-      type: AffectedResourceType.SourceCode,
-      file: "main.tf",
-      symbol: "aws_s3_bucket.data",
-    } as const;
-    const results = await match(
-      [finding("bucket", { checkov: ["CKV_AWS_18"] }, { ...bucket, location: { startLine: 4 } })],
-      [candidate({ checkov: ["CKV_AWS_18"] }, { ...bucket, location: { startLine: 12 } })],
-    );
-    expect(results).toEqual([expect.objectContaining({ status: "matched", findingId: "bucket" })]);
   });
 });
 
@@ -278,6 +269,150 @@ describe("IdentityFindingMatcher fingerprints", () => {
     );
     expect(results).toEqual([
       expect.objectContaining({ status: "unresolved", reason: "conflicting_evidence" }),
+    ]);
+  });
+});
+
+describe("IdentityFindingMatcher drift pairing", () => {
+  const leak = { bearer: ["logger-leak"], cwe: ["CWE-532"] };
+  const sameStatus = (results: { status: string }[]) => results.map((result) => result.status);
+
+  it("follows results that shifted together in their file, in order", async () => {
+    const results = await match(
+      [
+        finding("first", leak, span("src/server.ts", 10, 5, 40)),
+        finding("second", leak, span("src/server.ts", 25, 9, 30)),
+        finding("third", leak, span("src/server.ts", 40, 5, 61)),
+      ],
+      [
+        candidate(leak, span("src/server.ts", 46, 5, 61)),
+        candidate(leak, span("src/server.ts", 16, 5, 40)),
+        candidate(leak, span("src/server.ts", 31, 9, 30)),
+      ],
+    );
+    expect(results.map((result) => result.status === "matched" && result.findingId)).toEqual([
+      "third",
+      "first",
+      "second",
+    ]);
+    expect(results[0].explanation).toBe(
+      "Weakness (bearer) and sourceCode identity matched one finding after an order-preserving line shift in its file.",
+    );
+  });
+
+  it("keeps results on one line apart by their columns", async () => {
+    const results = await match(
+      [
+        finding("narrow", xss, span("src/a.ts", 46, 34, 82)),
+        finding("wide", xss, span("src/a.ts", 46, 34, 106)),
+      ],
+      [candidate(xss, span("src/a.ts", 46, 34, 106)), candidate(xss, span("src/a.ts", 50, 34, 82))],
+    );
+    expect(results.map((result) => result.status === "matched" && result.findingId)).toEqual([
+      "wide",
+      "narrow",
+    ]);
+  });
+
+  it("moves candidates with equal identity together", async () => {
+    const shifted = candidate(leak, span("src/a.ts", 14, 5, 40));
+    const results = await match(
+      [finding("leak", leak, span("src/a.ts", 10, 5, 40))],
+      [shifted, structuredClone(shifted)],
+    );
+    expect(results.map((result) => result.status === "matched" && result.findingId)).toEqual([
+      "leak",
+      "leak",
+    ]);
+  });
+
+  it("abstains on a changed span while a finding in its file stays unpaired", async () => {
+    const results = await match(
+      [finding("logger", leak, span("lib/restore.ts", 32, 5, 103))],
+      [candidate(leak, span("lib/restore.ts", 37, 7, 79))],
+    );
+    expect(results).toEqual([
+      expect.objectContaining({
+        status: "unresolved",
+        reason: "ambiguous",
+        explanation:
+          "The weakness (bearer) and sourceCode identity fit no finding exactly, and 1 unpaired finding with that weakness in its file may have moved.",
+      }),
+    ]);
+  });
+
+  it("seeds a new finding once every finding in its file is paired", async () => {
+    const results = await match(
+      [finding("leak", leak, span("src/a.ts", 10, 5, 40))],
+      [candidate(leak, span("src/a.ts", 14, 5, 40)), candidate(leak, span("src/a.ts", 60, 3, 18))],
+    );
+    expect(sameStatus(results)).toEqual(["matched", "new"]);
+  });
+
+  it("pairs only within one weakness, file, and symbol", async () => {
+    const results = await match(
+      [
+        finding("other-file", leak, span("src/b.ts", 10, 5, 40)),
+        finding("other-rule", xss, span("src/a.ts", 10, 5, 40)),
+      ],
+      [candidate(leak, span("src/a.ts", 14, 5, 40))],
+    );
+    expect(sameStatus(results)).toEqual(["new"]);
+  });
+
+  it("follows a resized IaC block through its symbol, but not through a placeholder", async () => {
+    const block = (symbol: string, startLine: number, endLine: number) =>
+      ({
+        type: AffectedResourceType.SourceCode,
+        file: "main.tf",
+        symbol,
+        location: { startLine, endLine },
+      }) as const;
+    const check = { checkov: ["CKV_AWS_18"] };
+    expect(
+      await match(
+        [finding("bucket", check, block("aws_s3_bucket.data", 4, 12))],
+        [candidate(check, block("aws_s3_bucket.data", 12, 23))],
+      ),
+    ).toEqual([expect.objectContaining({ status: "matched", findingId: "bucket" })]);
+    expect(
+      sameStatus(
+        await match(
+          [finding("unnamed", check, block("N/A", 4, 12))],
+          [candidate(check, block("N/A", 12, 23))],
+        ),
+      ),
+    ).toEqual(["unresolved"]);
+  });
+
+  it("abstains instead of pairing a finding that fits two buckets", async () => {
+    const results = await match(
+      [finding("merged", { semgrep: ["rule-a", "rule-b"] }, span("src/a.ts", 10, 5, 40))],
+      [
+        candidate({ semgrep: ["rule-a"] }, span("src/a.ts", 14, 5, 40)),
+        candidate({ semgrep: ["rule-b"] }, span("src/a.ts", 14, 5, 40)),
+      ],
+    );
+    expect(results).toEqual([
+      expect.objectContaining({ status: "unresolved", reason: "ambiguous" }),
+      expect.objectContaining({ status: "unresolved", reason: "ambiguous" }),
+    ]);
+  });
+
+  it("never pairs a finding that another candidate's evidence reached", async () => {
+    const search = finding("search", xss, code("src/search.ts", 40), {
+      fingerprints: { semgrep: ["9c1f"] },
+    });
+    const results = await match(
+      [search, finding("other", xss, code("src/search.ts", 70))],
+      [
+        candidate(xss, code("src/search.ts", 70), { semgrep: ["9c1f"] }),
+        candidate(xss, code("src/search.ts", 90)),
+      ],
+    );
+    expect(results).toEqual([
+      expect.objectContaining({ status: "unresolved", reason: "conflicting_evidence" }),
+      expect.objectContaining({ status: "new" }),
     ]);
   });
 });

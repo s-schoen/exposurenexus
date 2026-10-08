@@ -24,9 +24,11 @@ import type { Weakness } from "@exposurenexus/contracts/model/weakness";
 
 // Hand-authored matcher inputs, not copied scanner records or normalizer replays.
 // Field provenance: ../../normalizers/trivy.ts (package resources, cve/trivy identifiers,
-// empty fingerprints because Trivy's Fingerprint hashes the rebuilt artifact) and
+// empty fingerprints because Trivy's Fingerprint hashes the rebuilt artifact),
 // ../../normalizers/semgrep.ts (source locations, semgrep/cwe identifiers, and
-// fingerprints.semgrep mirrored into locationFingerprint).
+// fingerprints.semgrep mirrored into locationFingerprint), ../../normalizers/bearer.ts
+// (one-line spans with columns, bearer/cwe identifiers, no stable fingerprint), and
+// ../../normalizers/checkov.ts (block lines, checkov identifiers, the resource as symbol).
 // Existing findings are projections of the candidate that first reported them, the way
 // pipeline seeding is expected to work; manual findings are authored directly.
 // Identifiers and fingerprints are canonical under backend findings rules. Labels follow
@@ -138,6 +140,47 @@ function semgrep(
       locationFingerprint: fingerprint,
     },
     { fingerprints: { semgrep: [fingerprint] } },
+  );
+}
+
+/** A Bearer result as the Bearer normalizer emits it, without a stable fingerprint. */
+function bearer(
+  sourceRecord: string,
+  rule: string,
+  cwe: string,
+  file: string,
+  startLine: number,
+  startColumn: number,
+  endColumn: number,
+) {
+  return candidate(
+    "bearer",
+    sourceRecord,
+    rule,
+    { identifiers: { bearer: [rule], cwe: [cwe] } },
+    {
+      type: AffectedResourceType.SourceCode,
+      file,
+      location: { startLine, startColumn, endLine: startLine, endColumn },
+    },
+  );
+}
+
+/** A Checkov result as the Checkov normalizer emits it, with its resource as the symbol. */
+function checkov(
+  sourceRecord: string,
+  check: string,
+  file: string,
+  symbol: string,
+  startLine: number,
+  endLine: number,
+) {
+  return candidate(
+    "checkov",
+    sourceRecord,
+    check,
+    { identifiers: { checkov: [check] } },
+    { type: AffectedResourceType.SourceCode, file, symbol, location: { startLine, endLine } },
   );
 }
 
@@ -707,7 +750,209 @@ const sourceCode: FindingScenario = {
   ],
 };
 
+const storefront = asset(
+  4,
+  "Storefront monorepo",
+  AssetType.Software,
+  "git.example.test/shop/storefront",
+);
+
+const loggerLeak = "javascript_lang_logger_leak";
+const weakHash = "javascript_lang_weak_hash_md5";
+const openRedirect = "javascript_express_open_redirect";
+const leak = (record: number, file: string, line: number, start: number, end: number) =>
+  bearer(`findings[${record}]`, loggerLeak, "CWE-532", file, line, start, end);
+const redirect = (record: number, line: number, start: number, end: number) =>
+  bearer(`findings[${record}]`, openRedirect, "CWE-601", "routes/redirect.ts", line, start, end);
+const s3Logging = (startLine: number, endLine: number) =>
+  checkov(
+    "results.failed_checks[0]",
+    "CKV_AWS_18",
+    "terraform/s3.tf",
+    "aws_s3_bucket.logs",
+    startLine,
+    endLine,
+  );
+const basketXss = (record: number, startLine: number, fingerprint: string) =>
+  semgrep(`results[${record}]`, xssRule, "CWE-79", "routes/basket.ts", startLine, fingerprint);
+
+const leakStartup = seeded(41, storefront, FindingStatus.Active, leak(0, "server.ts", 10, 5, 40));
+const leakRoutes = seeded(42, storefront, FindingStatus.Active, leak(1, "server.ts", 25, 9, 30));
+const leakShutdown = seeded(43, storefront, FindingStatus.Active, leak(2, "server.ts", 40, 5, 61));
+const hashUtils = seeded(
+  44,
+  storefront,
+  FindingStatus.Active,
+  bearer("findings[3]", weakHash, "CWE-328", "lib/utils.ts", 20, 3, 50),
+);
+const redirectKept = seeded(45, storefront, FindingStatus.Active, redirect(4, 12, 5, 40));
+const redirectFixed = seeded(46, storefront, FindingStatus.Active, redirect(5, 30, 7, 22));
+const leakInsecurity = seeded(
+  47,
+  storefront,
+  FindingStatus.Active,
+  leak(6, "lib/insecurity.ts", 20, 5, 40),
+);
+const leakLogin = seeded(
+  48,
+  storefront,
+  FindingStatus.Active,
+  leak(7, "routes/login.ts", 15, 5, 40),
+);
+const logsBucket = seeded(49, storefront, FindingStatus.Active, s3Logging(10, 20));
+const basketFirst = seeded(50, storefront, FindingStatus.Active, basketXss(0, 10, "a1c4e7f20b38"));
+const basketSecond = seeded(51, storefront, FindingStatus.Active, basketXss(1, 30, "b2d5f8a31c49"));
+
+const driftExisting = [
+  leakStartup,
+  leakRoutes,
+  leakShutdown,
+  hashUtils,
+  redirectKept,
+  redirectFixed,
+  leakInsecurity,
+  leakLogin,
+  logsBucket,
+  basketFirst,
+  basketSecond,
+];
+const paired = ["drift:line", "evidence:drift-pairing"];
+
+const sourceDrift: FindingScenario = {
+  id: "source-drift",
+  assets: [storefront],
+  findings: driftExisting.map((entry) => entry.finding),
+  observations: driftExisting.map((entry) => entry.observation),
+  cases: [
+    {
+      id: "shifted-together",
+      assetId: storefront.id,
+      note:
+        "Bearer reports no stable fingerprint. Results of one rule in one file that shift " +
+        "together pair in file order by span shape; a lone result whose indentation changed " +
+        "pairs by equal width.",
+      candidates: [
+        {
+          id: "leak-startup-shifted",
+          candidate: leak(0, "server.ts", 16, 5, 40),
+          expected: { status: "matched", findingIds: [leakStartup.finding.id] },
+          tags: paired,
+        },
+        {
+          id: "leak-shutdown-shifted",
+          candidate: leak(2, "server.ts", 46, 5, 61),
+          expected: { status: "matched", findingIds: [leakShutdown.finding.id] },
+          tags: paired,
+        },
+        {
+          id: "leak-routes-shifted",
+          candidate: leak(1, "server.ts", 31, 9, 30),
+          expected: { status: "matched", findingIds: [leakRoutes.finding.id] },
+          tags: paired,
+        },
+        {
+          id: "hash-reindented",
+          candidate: bearer("findings[3]", weakHash, "CWE-328", "lib/utils.ts", 21, 5, 52),
+          expected: { status: "matched", findingIds: [hashUtils.finding.id] },
+          tags: paired,
+        },
+      ],
+    },
+    {
+      id: "fixed-and-introduced",
+      assetId: storefront.id,
+      note:
+        "One open redirect was fixed and another introduced in the same file. Their spans " +
+        "differ, so no pair forms, and the new result is ambiguous while the fixed finding " +
+        "stays unpaired.",
+      candidates: [
+        {
+          id: "redirect-kept",
+          candidate: redirect(4, 12, 5, 40),
+          expected: { status: "matched", findingIds: [redirectKept.finding.id] },
+        },
+        {
+          id: "redirect-introduced",
+          candidate: redirect(5, 44, 3, 58),
+          expected: { status: "unresolved", reason: "ambiguous" },
+          tags: ["evidence:drift-pairing"],
+        },
+      ],
+    },
+    {
+      id: "leftovers",
+      assetId: storefront.id,
+      note:
+        "A leftover result seeds a new finding only once every finding of its rule in its " +
+        "file is paired. Two results competing for one unpaired finding are both ambiguous.",
+      candidates: [
+        {
+          id: "insecurity-shifted",
+          candidate: leak(6, "lib/insecurity.ts", 23, 5, 40),
+          expected: { status: "matched", findingIds: [leakInsecurity.finding.id] },
+          tags: paired,
+        },
+        {
+          id: "insecurity-introduced",
+          candidate: leak(8, "lib/insecurity.ts", 50, 3, 18),
+          expected: { status: "new", group: "insecurity-leak" },
+          tags: ["evidence:drift-pairing"],
+        },
+        {
+          id: "login-first",
+          candidate: leak(7, "routes/login.ts", 18, 9, 30),
+          expected: { status: "unresolved", reason: "ambiguous" },
+          tags: ["evidence:drift-pairing"],
+        },
+        {
+          id: "login-second",
+          candidate: leak(9, "routes/login.ts", 40, 3, 18),
+          expected: { status: "unresolved", reason: "ambiguous" },
+          tags: ["evidence:drift-pairing"],
+        },
+      ],
+    },
+    {
+      id: "iac-block-resized",
+      assetId: storefront.id,
+      note:
+        "Checkov reports a resource's block lines. The block grew and moved; the shared " +
+        "resource symbol anchors the pair although the span shape changed.",
+      candidates: [
+        {
+          id: "logs-bucket-resized",
+          candidate: s3Logging(14, 27),
+          expected: { status: "matched", findingIds: [logsBucket.finding.id] },
+          tags: paired,
+        },
+      ],
+    },
+    {
+      id: "fingerprint-conflict",
+      assetId: storefront.id,
+      note:
+        "A Semgrep fingerprint names one finding while rule, file, and line name the other: " +
+        "a conflict. Drift pairing never overrides it, and findings the conflict reached " +
+        "cannot pair with a new result in the same file.",
+      candidates: [
+        {
+          id: "basket-conflict",
+          candidate: basketXss(1, 30, "a1c4e7f20b38"),
+          expected: { status: "unresolved", reason: "conflicting_evidence" },
+          tags: ["evidence:conflict"],
+        },
+        {
+          id: "basket-introduced",
+          candidate: basketXss(2, 52, "c3e6a9b42d5f"),
+          expected: { status: "new", group: "basket-xss" },
+          tags: ["evidence:drift-pairing"],
+        },
+      ],
+    },
+  ],
+};
+
 export const dataset: FindingDataset = {
   id: "finding-matching-v1",
-  scenarios: [containerPackages, sourceCode],
+  scenarios: [containerPackages, sourceCode, sourceDrift],
 };

@@ -78228,7 +78228,7 @@
     {
       "id": "semgrep-juice-shop",
       "assetId": "10000000-0000-4000-8000-000000000601",
-      "note": "Semgrep 1.179.0 rescan of Juice Shop v20.2.0 after v20.1.1; the first scan seeded the findings. Truth: the same scanner rule at the git-diff-mapped path and line; a result on a rewritten line whose rule also flagged a rewritten old line has unknown truth. Expected decisions follow the identity rules: same weakness and finding-owned resource as an existing finding, else new. Semgrep OSS reports no fingerprint, so a shifted line changes the finding-owned identity.",
+      "note": "Semgrep 1.179.0 rescan of Juice Shop v20.2.0 after v20.1.1; the first scan seeded the findings. Truth: the same scanner rule at the git-diff-mapped path and line; a result on a rewritten line whose rule also flagged a rewritten old line has unknown truth. Expected decisions follow the identity rules: the same weakness and finding-owned resource as an existing finding, the full location included; otherwise an order-preserving drift pair with an unclaimed finding of the same rule, file, and symbol; else new. Semgrep OSS reports no fingerprint, so the 9 shifted results match through drift pairing.",
       "candidates": [
         {
           "id": "semgrep-1",
@@ -78291,7 +78291,10 @@
             "remediation": null,
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g1" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000002"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000002"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -79093,10 +79096,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000017",
-              "30000000-0000-4000-8000-000000000018"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000017"]
           },
           "truthFindingIds": [
             "30000000-0000-4000-8000-000000000017",
@@ -79134,10 +79134,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000017",
-              "30000000-0000-4000-8000-000000000018"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000018"]
           },
           "truthFindingIds": [
             "30000000-0000-4000-8000-000000000017",
@@ -79844,7 +79841,10 @@
             "remediation": null,
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g16" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000034"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000034"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -80016,7 +80016,10 @@
             "remediation": null,
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g17" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000039"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000039"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -80081,7 +80084,10 @@
             "remediation": null,
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g18" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000041"]
+          },
           "tags": ["truth:unknown"]
         },
         {
@@ -80110,7 +80116,10 @@
             "remediation": null,
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g19" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000042"]
+          },
           "tags": ["truth:unknown"]
         },
         {
@@ -80243,7 +80252,10 @@
             "remediation": null,
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g21" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000046"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000046"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -80275,7 +80287,10 @@
             "remediation": null,
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g22" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000047"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000047"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -80307,7 +80322,10 @@
             "remediation": null,
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g23" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000048"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000048"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -80339,7 +80357,10 @@
             "remediation": null,
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g24" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000049"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000049"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -80511,7 +80532,7 @@
     {
       "id": "bearer-juice-shop",
       "assetId": "10000000-0000-4000-8000-000000000601",
-      "note": "Bearer 2.1.1 rescan of Juice Shop v20.2.0 after v20.1.1; the first scan seeded the findings. Truth: the same scanner rule at the git-diff-mapped path and line; a result on a rewritten line whose rule also flagged a rewritten old line has unknown truth. Expected decisions follow the identity rules: same weakness and finding-owned resource as an existing finding, else new.",
+      "note": "Bearer 2.1.1 rescan of Juice Shop v20.2.0 after v20.1.1; the first scan seeded the findings. Truth: the same scanner rule at the git-diff-mapped path and line; a result on a rewritten line whose rule also flagged a rewritten old line has unknown truth. Expected decisions follow the identity rules: the same weakness and finding-owned resource as an existing finding, the full location included; otherwise an order-preserving drift pair with an unclaimed finding of the same rule, file, and symbol; else new. Bearer records no stable fingerprint, so 151 shifted results match through drift pairing. bearer-277 is ambiguous: its rule's only result in the file moved with a changed span, and the rule's finding there stayed unpaired.",
       "candidates": [
         {
           "id": "bearer-1",
@@ -80629,7 +80650,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g1" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000054"]
+          },
           "tags": ["truth:unknown"]
         },
         {
@@ -81177,7 +81201,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g2" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000072"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000072"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -81741,7 +81768,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g4" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000089"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000089"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -81798,7 +81828,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g6" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000090"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000090"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -81825,7 +81858,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g7" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000091"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000091"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -82809,7 +82845,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g9" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000120"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000120"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -82839,7 +82878,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g10" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000121"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000121"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -82869,7 +82911,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g11" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000122"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000122"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -82899,7 +82944,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g12" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000123"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000123"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -83127,7 +83175,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g13" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000130"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000130"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84552,7 +84603,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g14" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000177"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000177"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84579,7 +84633,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g15" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000178"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000178"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84606,7 +84663,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g16" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000179"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000179"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84633,7 +84693,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g17" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000180"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000180"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84660,7 +84723,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g18" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000181"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000181"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84687,7 +84753,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g19" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000182"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000182"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84714,7 +84783,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g20" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000183"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000183"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84741,7 +84813,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g21" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000184"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000184"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84768,7 +84843,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g22" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000185"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000185"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84795,7 +84873,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g23" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000186"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000186"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84822,7 +84903,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g24" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000187"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000187"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84849,7 +84933,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g25" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000188"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000188"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84876,7 +84963,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g26" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000189"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000189"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84903,7 +84993,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g27" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000190"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000190"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84960,7 +85053,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g28" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000192"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000192"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -84987,7 +85083,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g29" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000193"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000193"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85014,7 +85113,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g30" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000194"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000194"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85041,7 +85143,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g31" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000195"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000195"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85158,7 +85263,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g32" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000199"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000199"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85185,7 +85293,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g33" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000200"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000200"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85212,7 +85323,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g34" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000201"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000201"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85239,7 +85353,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g35" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000202"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000202"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85266,7 +85383,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g36" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000203"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000203"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85293,7 +85413,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g37" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000204"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000204"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85320,7 +85443,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g38" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000205"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000205"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85347,7 +85473,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g39" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000206"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000206"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85374,7 +85503,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g40" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000207"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000207"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85401,7 +85533,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g41" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000208"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000208"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85428,7 +85563,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g42" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000209"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000209"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85455,7 +85593,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g43" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000210"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000210"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85482,7 +85623,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g44" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000211"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000211"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85509,7 +85653,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g45" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000212"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000212"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85536,7 +85683,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g46" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000213"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000213"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85563,7 +85713,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g47" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000214"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000214"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85590,7 +85743,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g48" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000215"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000215"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85617,7 +85773,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g49" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000216"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000216"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85644,7 +85803,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g50" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000217"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000217"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85671,7 +85833,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g51" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000218"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000218"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85698,7 +85863,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g52" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000219"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000219"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85725,7 +85893,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g53" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000220"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000220"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85752,7 +85923,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g54" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000221"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000221"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85779,7 +85953,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g55" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000222"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000222"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85806,7 +85983,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g56" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000223"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000223"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85833,7 +86013,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g57" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000224"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000224"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85860,7 +86043,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g58" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000225"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000225"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85887,7 +86073,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g59" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000226"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000226"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85914,7 +86103,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g60" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000227"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000227"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85941,7 +86133,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g61" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000228"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000228"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85968,7 +86163,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g62" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000229"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000229"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -85995,7 +86193,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g63" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000230"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000230"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86022,7 +86223,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g64" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000231"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000231"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86049,7 +86253,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g65" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000232"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000232"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86076,7 +86283,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g66" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000233"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000233"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86103,7 +86313,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g67" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000234"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000234"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86130,7 +86343,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g68" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000235"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000235"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86157,7 +86373,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g69" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000236"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000236"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86184,7 +86403,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g70" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000237"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000237"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86211,7 +86433,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g71" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000238"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000238"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86238,7 +86463,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g72" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000239"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000239"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86265,7 +86493,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g73" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000240"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000240"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86292,7 +86523,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g74" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000241"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000241"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86319,7 +86553,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g75" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000242"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000242"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86346,7 +86583,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g76" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000243"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000243"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86373,7 +86613,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g77" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000244"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000244"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86400,7 +86643,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g78" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000245"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000245"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86427,7 +86673,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g79" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000246"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000246"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86454,7 +86703,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g80" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000247"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000247"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86481,7 +86733,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g81" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000248"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000248"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86508,7 +86763,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g82" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000249"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000249"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86535,7 +86793,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g83" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000250"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000250"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86562,7 +86823,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g84" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000251"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000251"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86589,7 +86853,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g85" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000252"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000252"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86616,7 +86883,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g86" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000253"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000253"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86643,7 +86913,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g87" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000254"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000254"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86670,7 +86943,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g88" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000255"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000255"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86697,7 +86973,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g89" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000256"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000256"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86724,7 +87003,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g90" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000257"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000257"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86751,7 +87033,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g91" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000258"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000258"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86778,7 +87063,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g92" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000259"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000259"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86805,7 +87093,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g93" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000260"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000260"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86832,7 +87123,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g94" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000261"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000261"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86859,7 +87153,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g95" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000262"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000262"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86886,7 +87183,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g96" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000263"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000263"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86913,7 +87213,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g97" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000264"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000264"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86940,7 +87243,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g98" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000265"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000265"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86967,7 +87273,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g99" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000266"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000266"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -86994,7 +87303,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g100" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000267"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000267"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87021,7 +87333,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g101" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000268"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000268"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87048,7 +87363,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g102" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000269"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000269"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87075,7 +87393,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g103" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000270"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000270"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87102,7 +87423,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g104" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000271"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000271"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87129,7 +87453,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g105" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000272"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000272"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87156,7 +87483,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g106" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000273"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000273"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87183,7 +87513,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g107" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000274"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000274"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87210,7 +87543,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g108" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000275"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000275"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87237,7 +87573,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g109" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000276"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000276"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87264,7 +87603,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g110" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000277"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000277"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87291,7 +87633,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g111" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000278"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000278"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87318,7 +87663,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g112" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000279"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000279"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87345,7 +87693,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g113" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000280"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000280"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87372,7 +87723,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g114" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000281"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000281"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87399,7 +87753,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g115" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000282"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000282"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87426,7 +87783,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g116" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000283"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000283"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87453,7 +87813,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g117" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000284"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000284"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87480,7 +87843,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g118" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000285"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000285"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87507,7 +87873,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g119" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000286"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000286"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87534,7 +87903,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g120" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000287"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000287"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87561,7 +87933,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g121" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000288"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000288"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87588,7 +87963,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g122" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000289"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000289"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87615,7 +87993,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g123" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000290"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000290"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87642,7 +88023,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g124" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000291"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000291"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87669,7 +88053,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g125" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000292"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000292"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87696,7 +88083,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g126" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000293"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000293"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87723,7 +88113,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g127" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000294"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000294"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87750,7 +88143,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g128" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000295"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000295"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87777,7 +88173,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g129" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000296"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000296"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87804,7 +88203,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g130" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000297"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000297"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87831,7 +88233,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g131" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000298"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000298"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87858,7 +88263,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g132" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000299"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000299"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87885,7 +88293,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g133" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000300"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000300"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -87912,7 +88323,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g134" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000301"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000301"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -88059,7 +88473,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g135" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000306"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000306"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -88086,7 +88503,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g136" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000307"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000307"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -88113,7 +88533,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g137" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000308"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000308"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -88140,7 +88563,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g138" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000309"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000309"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -88583,7 +89009,7 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g140" },
+          "expected": { "status": "unresolved", "reason": "ambiguous" },
           "tags": ["truth:unknown"]
         },
         {
@@ -90139,7 +90565,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g141" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000375"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000375"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -90253,7 +90682,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g143" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000378"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000378"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -90370,7 +90802,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g144" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000382"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000382"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -91051,7 +91486,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g147" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000403"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000403"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -91078,7 +91516,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g148" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000404"]
+          },
           "tags": ["truth:unknown"]
         },
         {
@@ -91104,7 +91545,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g149" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000405"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000405"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -91133,7 +91577,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": ["30000000-0000-4000-8000-000000000407"]
+            "findingIds": ["30000000-0000-4000-8000-000000000406"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000406"],
           "tags": ["truth:continued", "drift:line"]
@@ -91161,7 +91605,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g150" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000407"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000407"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -91188,7 +91635,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g151" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000408"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000408"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -91281,7 +91731,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g152" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000411"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000411"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -91368,7 +91821,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g153" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000414"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000414"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -91395,7 +91851,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g154" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000415"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000415"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -91782,7 +92241,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g155" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000428"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000428"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -91809,7 +92271,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g156" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000429"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000429"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -91836,7 +92301,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g157" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000430"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000430"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -92220,7 +92688,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g159" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000443"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000443"],
           "tags": ["truth:continued", "drift:line"]
         }
@@ -92229,7 +92700,7 @@
     {
       "id": "checkov-terragoat",
       "assetId": "10000000-0000-4000-8000-000000000602",
-      "note": "Checkov 3.3.22 rescan of TerraGoat 729f8da after 2a0761f seeded the findings. Truth: the same check on the same resource in the git-diff-mapped file, narrowed by mapped line when the check flags one resource more than once. Expected decisions follow the identity rules: a shared symbol supersedes the line.",
+      "note": "Checkov 3.3.22 rescan of TerraGoat 729f8da after 2a0761f seeded the findings. Truth: the same check on the same resource in the git-diff-mapped file, narrowed by mapped line when the check flags one resource more than once. Expected decisions follow the identity rules: the same weakness and finding-owned resource as an existing finding, the full location included; otherwise an order-preserving drift pair with an unclaimed finding of the same rule, file, and symbol; else new. The resource symbol anchors drift pairing, so 106 results whose block moved or was resized match through it.",
       "candidates": [
         {
           "id": "checkov-1",
@@ -105767,7 +106238,7 @@
     {
       "id": "kics-terragoat",
       "assetId": "10000000-0000-4000-8000-000000000602",
-      "note": "KICS 2.1.20 rescan of TerraGoat 729f8da after 2a0761f seeded the findings. Truth: the same check on the same resource in the git-diff-mapped file, narrowed by mapped line when the check flags one resource more than once. Expected decisions follow the identity rules: a shared symbol supersedes the line. KICS search keys stand in for the resource.",
+      "note": "KICS 2.1.20 rescan of TerraGoat 729f8da after 2a0761f seeded the findings. Truth: the same check on the same resource in the git-diff-mapped file, narrowed by mapped line when the check flags one resource more than once. KICS search keys stand in for the resource. Expected decisions follow the identity rules: the same weakness and finding-owned resource as an existing finding, the full location included; otherwise an order-preserving drift pair with an unclaimed finding of the same rule, file, and symbol; else new. 47 shifted results match through drift pairing. KICS symbols are the resource's name attribute, or n/a, and not unique, so results sharing one stay apart by location.",
       "candidates": [
         {
           "id": "kics-1",
@@ -107087,7 +107558,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g1" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000948"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000948"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -107249,7 +107723,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g2" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000952"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000952"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -107576,7 +108053,10 @@
             "fingerprints": {},
             "sourceMetadata": {}
           },
-          "expected": { "status": "new", "group": "g3" },
+          "expected": {
+            "status": "matched",
+            "findingIds": ["30000000-0000-4000-8000-000000000963"]
+          },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000963"],
           "tags": ["truth:continued", "drift:line"]
         },
@@ -108084,10 +108564,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000977",
-              "30000000-0000-4000-8000-000000000978"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000978"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000978"],
           "tags": ["truth:continued", "drift:none"]
@@ -108121,10 +108598,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000977",
-              "30000000-0000-4000-8000-000000000978"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000977"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000977"],
           "tags": ["truth:continued", "drift:none"]
@@ -108158,10 +108632,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000979",
-              "30000000-0000-4000-8000-000000000980"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000979"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000979"],
           "tags": ["truth:continued", "drift:none"]
@@ -108195,10 +108666,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000979",
-              "30000000-0000-4000-8000-000000000980"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000980"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000980"],
           "tags": ["truth:continued", "drift:none"]
@@ -108334,10 +108802,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000984",
-              "30000000-0000-4000-8000-000000000985"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000985"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000985"],
           "tags": ["truth:continued", "drift:none"]
@@ -108371,10 +108836,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000984",
-              "30000000-0000-4000-8000-000000000985"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000984"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000984"],
           "tags": ["truth:continued", "drift:none"]
@@ -108408,10 +108870,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000986",
-              "30000000-0000-4000-8000-000000000987"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000987"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000987"],
           "tags": ["truth:continued", "drift:none"]
@@ -108445,10 +108904,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000986",
-              "30000000-0000-4000-8000-000000000987"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000986"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000986"],
           "tags": ["truth:continued", "drift:none"]
@@ -108482,10 +108938,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000988",
-              "30000000-0000-4000-8000-000000000989"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000989"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000989"],
           "tags": ["truth:continued", "drift:none"]
@@ -108519,10 +108972,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000988",
-              "30000000-0000-4000-8000-000000000989"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000988"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000988"],
           "tags": ["truth:continued", "drift:none"]
@@ -108590,10 +109040,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000991",
-              "30000000-0000-4000-8000-000000000992"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000992"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000992"],
           "tags": ["truth:continued", "drift:none"]
@@ -108627,10 +109074,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000991",
-              "30000000-0000-4000-8000-000000000992"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000991"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000991"],
           "tags": ["truth:continued", "drift:none"]
@@ -111554,10 +111998,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001078",
-              "30000000-0000-4000-8000-000000001079"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001079"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001079"],
           "tags": ["truth:continued", "drift:none"]
@@ -111591,10 +112032,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001078",
-              "30000000-0000-4000-8000-000000001079"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001078"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001078"],
           "tags": ["truth:continued", "drift:none"]
@@ -112308,10 +112746,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001100",
-              "30000000-0000-4000-8000-000000001101"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001100"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001100"],
           "tags": ["truth:continued", "drift:none"]
@@ -112345,10 +112780,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001100",
-              "30000000-0000-4000-8000-000000001101"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001101"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001101"],
           "tags": ["truth:continued", "drift:none"]
@@ -114895,10 +115327,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001174",
-              "30000000-0000-4000-8000-000000001177"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001174"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001174"],
           "tags": ["truth:continued", "drift:line"]
@@ -114932,10 +115361,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001175",
-              "30000000-0000-4000-8000-000000001176"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001175"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001175"],
           "tags": ["truth:continued", "drift:none"]
@@ -114969,10 +115395,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001175",
-              "30000000-0000-4000-8000-000000001176"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001176"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001176"],
           "tags": ["truth:continued", "drift:none"]
@@ -115006,10 +115429,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001174",
-              "30000000-0000-4000-8000-000000001177"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001177"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001177"],
           "tags": ["truth:continued", "drift:line"]
@@ -115383,11 +115803,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001189",
-              "30000000-0000-4000-8000-000000001190",
-              "30000000-0000-4000-8000-000000001192"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001189"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001189"],
           "tags": ["truth:continued", "drift:none"]
@@ -115489,11 +115905,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001189",
-              "30000000-0000-4000-8000-000000001190",
-              "30000000-0000-4000-8000-000000001192"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001192"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001192"],
           "tags": ["truth:continued", "drift:none"]
@@ -115527,11 +115939,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001189",
-              "30000000-0000-4000-8000-000000001190",
-              "30000000-0000-4000-8000-000000001192"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001190"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001190"],
           "tags": ["truth:continued", "drift:none"]
@@ -115599,13 +116007,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001194",
-              "30000000-0000-4000-8000-000000001195",
-              "30000000-0000-4000-8000-000000001197",
-              "30000000-0000-4000-8000-000000001199",
-              "30000000-0000-4000-8000-000000001200"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001195"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001195"],
           "tags": ["truth:continued", "drift:none"]
@@ -115639,13 +116041,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001194",
-              "30000000-0000-4000-8000-000000001195",
-              "30000000-0000-4000-8000-000000001197",
-              "30000000-0000-4000-8000-000000001199",
-              "30000000-0000-4000-8000-000000001200"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001199"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001199"],
           "tags": ["truth:continued", "drift:none"]
@@ -115713,10 +116109,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001196",
-              "30000000-0000-4000-8000-000000001201"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001201"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001201"],
           "tags": ["truth:continued", "drift:none"]
@@ -115750,13 +116143,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001194",
-              "30000000-0000-4000-8000-000000001195",
-              "30000000-0000-4000-8000-000000001197",
-              "30000000-0000-4000-8000-000000001199",
-              "30000000-0000-4000-8000-000000001200"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001194"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001194"],
           "tags": ["truth:continued", "drift:none"]
@@ -115790,13 +116177,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001194",
-              "30000000-0000-4000-8000-000000001195",
-              "30000000-0000-4000-8000-000000001197",
-              "30000000-0000-4000-8000-000000001199",
-              "30000000-0000-4000-8000-000000001200"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001200"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001200"],
           "tags": ["truth:continued", "drift:none"]
@@ -115830,13 +116211,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001194",
-              "30000000-0000-4000-8000-000000001195",
-              "30000000-0000-4000-8000-000000001197",
-              "30000000-0000-4000-8000-000000001199",
-              "30000000-0000-4000-8000-000000001200"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001197"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001197"],
           "tags": ["truth:continued", "drift:none"]
@@ -115870,10 +116245,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001196",
-              "30000000-0000-4000-8000-000000001201"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001196"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001196"],
           "tags": ["truth:continued", "drift:none"]
@@ -115938,12 +116310,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001202",
-              "30000000-0000-4000-8000-000000001203",
-              "30000000-0000-4000-8000-000000001206",
-              "30000000-0000-4000-8000-000000001207"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001206"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001206"],
           "tags": ["truth:continued", "drift:none"]
@@ -115977,12 +116344,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001202",
-              "30000000-0000-4000-8000-000000001203",
-              "30000000-0000-4000-8000-000000001206",
-              "30000000-0000-4000-8000-000000001207"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001202"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001202"],
           "tags": ["truth:continued", "drift:none"]
@@ -116016,12 +116378,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001202",
-              "30000000-0000-4000-8000-000000001203",
-              "30000000-0000-4000-8000-000000001206",
-              "30000000-0000-4000-8000-000000001207"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001203"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001203"],
           "tags": ["truth:continued", "drift:none"]
@@ -116089,12 +116446,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001202",
-              "30000000-0000-4000-8000-000000001203",
-              "30000000-0000-4000-8000-000000001206",
-              "30000000-0000-4000-8000-000000001207"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001207"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001207"],
           "tags": ["truth:continued", "drift:none"]
@@ -116138,7 +116490,7 @@
     {
       "id": "trivy-terragoat",
       "assetId": "10000000-0000-4000-8000-000000000602",
-      "note": "Trivy 0.75.0 config rescan of TerraGoat 729f8da after 2a0761f seeded the findings. Truth: the same check on the same resource in the git-diff-mapped file, narrowed by mapped line when the check flags one resource more than once. Expected decisions follow the identity rules: a shared symbol supersedes the line.",
+      "note": "Trivy 0.75.0 config rescan of TerraGoat 729f8da after 2a0761f seeded the findings. Truth: the same check on the same resource in the git-diff-mapped file, narrowed by mapped line when the check flags one resource more than once. Expected decisions follow the identity rules: the same weakness and finding-owned resource as an existing finding, the full location included; otherwise an order-preserving drift pair with an unclaimed finding of the same rule, file, and symbol; else new. The resource symbol anchors drift pairing, so 70 results whose block moved or was resized match through it.",
       "candidates": [
         {
           "id": "trivy-1",
@@ -116918,11 +117270,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001234",
-              "30000000-0000-4000-8000-000000001235",
-              "30000000-0000-4000-8000-000000001236"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001235"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001235"],
           "tags": ["truth:continued", "drift:none"]
@@ -116951,11 +117299,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001234",
-              "30000000-0000-4000-8000-000000001235",
-              "30000000-0000-4000-8000-000000001236"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001234"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001234"],
           "tags": ["truth:continued", "drift:none"]
@@ -116984,11 +117328,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001234",
-              "30000000-0000-4000-8000-000000001235",
-              "30000000-0000-4000-8000-000000001236"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001236"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001236"],
           "tags": ["truth:continued", "drift:none"]
@@ -121241,10 +121581,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001380",
-              "30000000-0000-4000-8000-000000001381"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001380"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001380"],
           "tags": ["truth:continued", "drift:none"]
@@ -121273,10 +121610,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001380",
-              "30000000-0000-4000-8000-000000001381"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001381"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001381"],
           "tags": ["truth:continued", "drift:none"]
@@ -121595,10 +121929,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001392",
-              "30000000-0000-4000-8000-000000001393"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001392"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001392"],
           "tags": ["truth:continued", "drift:none"]
@@ -121627,10 +121958,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001392",
-              "30000000-0000-4000-8000-000000001393"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001393"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001393"],
           "tags": ["truth:continued", "drift:none"]
@@ -122210,10 +122538,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001413",
-              "30000000-0000-4000-8000-000000001414"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001413"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001413"],
           "tags": ["truth:continued", "drift:none"]
@@ -122242,10 +122567,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001413",
-              "30000000-0000-4000-8000-000000001414"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001414"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001414"],
           "tags": ["truth:continued", "drift:none"]

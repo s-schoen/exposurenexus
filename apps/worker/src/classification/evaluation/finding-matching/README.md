@@ -50,9 +50,9 @@ Expected decisions:
 `expected` grades a decision against the evidence. `truthFindingIds` records reality:
 the existing findings the detection really continues, any of which counts, or `null`
 when it is truly new. It is absent when unknown and is never inferred from `expected`.
-Drift makes the two differ: a source code result whose line moved without a fingerprint
-is expected `new`, because its finding-owned identity changed, yet it continues an
-existing finding.
+The two differ where the evidence falls short of reality, such as a moved source code
+result whose span also changed: it may be expected `ambiguous`, yet continue an existing
+finding.
 
 Besides the shared checks, the kind validates asset, finding, observation, and
 candidate shapes, canonical weakness identifiers and fingerprints, that findings and
@@ -110,16 +110,17 @@ that lose the most.
 
 ## Edge Suite
 
-[scenarios.ts](scenarios.ts) contains 2 scenarios, 9 batches, and 24 hand-authored,
-sanitized candidates: 15 expected matches, 6 new decisions in 5 groups, and 3
+[scenarios.ts](scenarios.ts) contains 3 scenarios, 14 batches, and 37 hand-authored,
+sanitized candidates: 22 expected matches, 8 new decisions in 7 groups, and 7
 unresolved outcomes covering all three reasons. Existing scanner findings are
 projections of the candidate that first reported them, the way finding seeding is
 expected to work.
 
-| Scenario             | Focus                                                                                                                                                                                                            |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `container-packages` | Trivy package findings: every terminal status, version drift, sibling candidates forming one group, one finding reported twice, a duplicate and its canonical finding, partial identity, another asset's finding |
-| `source-code`        | Semgrep findings: fingerprints surviving line shifts, manually created findings with and without observations, title-only evidence, foreign fingerprint namespaces, conflicting evidence                         |
+| Scenario             | Focus                                                                                                                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `container-packages` | Trivy package findings: every terminal status, version drift, sibling candidates forming one group, one finding reported twice, a duplicate and its canonical finding, partial identity, another asset's finding         |
+| `source-code`        | Semgrep findings: fingerprints surviving line shifts, manually created findings with and without observations, title-only evidence, foreign fingerprint namespaces, conflicting evidence                                 |
+| `source-drift`       | Drift pairing without fingerprints: Bearer results shifting together, an indentation change, a fix next to a new result, leftovers with and without an unpaired finding, a resized Checkov block, a fingerprint conflict |
 
 Labels follow [`finding-matcher.ts`](../../finding-matcher.ts) and the finding matching
 PRD: status and origin never exclude a finding, finding identity never spans assets,
@@ -182,8 +183,15 @@ the normalizers emitted them.
   `identity` matcher:
   - same weakness: every shared specific namespace overlaps, and CWE counts only against a
     CWE-only side
-  - same finding-owned resource: a shared symbol supersedes the line
-  - otherwise `new`, grouped by equal identity
+  - same finding-owned resource: for source code, the location counts, with columns and end
+    lines where both sides have them
+  - otherwise drift pairing: an unclaimed finding of the same weakness, file, and symbol, in
+    file order by span shape, or by equal width or a shared symbol when it is alone in a gap
+  - a leftover result is `ambiguous` while its file keeps an unpaired finding of its weakness,
+    and otherwise `new`, grouped by equal identity
+
+  A labeling script outside the repository wrote these labels from the written rules,
+  never by running the matcher.
 
   Agreement with that matcher is therefore expected. The truth rates and the blind labels
   are the independent signal.

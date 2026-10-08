@@ -77350,7 +77350,7 @@
     {
       "id": "semgrep-juice-shop",
       "assetId": "10000000-0000-4000-8000-000000000402",
-      "note": "An unchanged rescan: the same committed fixture seeded the findings and is replayed as the next ingestion. Truth is the finding seeded from the same record; every candidate repeats its finding's identity, so each expected match is that finding's identity class.",
+      "note": "An unchanged rescan: the same committed fixture seeded the findings and is replayed as the next ingestion. Truth is the finding seeded from the same record; every candidate repeats its finding's identity, so each expected match is that finding's identity class. The full location counts in source code identity, so results sharing a symbol or a line stay apart.",
       "candidates": [
         {
           "id": "semgrep-1",
@@ -78245,10 +78245,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000076",
-              "30000000-0000-4000-8000-000000000077"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000076"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000076"],
           "tags": ["truth:continued", "drift:none"]
@@ -78283,10 +78280,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000000076",
-              "30000000-0000-4000-8000-000000000077"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000000077"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000000077"],
           "tags": ["truth:continued", "drift:none"]
@@ -79713,7 +79707,7 @@
     {
       "id": "bearer-juice-shop",
       "assetId": "10000000-0000-4000-8000-000000000402",
-      "note": "An unchanged rescan: the same committed fixture seeded the findings and is replayed as the next ingestion. Truth is the finding seeded from the same record; every candidate repeats its finding's identity, so each expected match is that finding's identity class.",
+      "note": "An unchanged rescan: the same committed fixture seeded the findings and is replayed as the next ingestion. Truth is the finding seeded from the same record; every candidate repeats its finding's identity, so each expected match is that finding's identity class. The full location counts in source code identity, so results sharing a symbol or a line stay apart.",
       "candidates": [
         {
           "id": "bearer-1",
@@ -91912,7 +91906,7 @@
     {
       "id": "checkov-terragoat",
       "assetId": "10000000-0000-4000-8000-000000000403",
-      "note": "An unchanged rescan: the same committed fixture seeded the findings and is replayed as the next ingestion. Truth is the finding seeded from the same record; every candidate repeats its finding's identity, so each expected match is that finding's identity class.",
+      "note": "An unchanged rescan: the same committed fixture seeded the findings and is replayed as the next ingestion. Truth is the finding seeded from the same record; every candidate repeats its finding's identity, so each expected match is that finding's identity class. The full location counts in source code identity, so results sharing a symbol or a line stay apart.",
       "candidates": [
         {
           "id": "checkov-1",
@@ -106456,7 +106450,7 @@
     {
       "id": "kics-terragoat",
       "assetId": "10000000-0000-4000-8000-000000000403",
-      "note": "An unchanged rescan: the same committed fixture seeded the findings and is replayed as the next ingestion. Truth is the finding seeded from the same record; every candidate repeats its finding's identity, so each expected match is that finding's identity class.",
+      "note": "An unchanged rescan: the same committed fixture seeded the findings and is replayed as the next ingestion. Truth is the finding seeded from the same record; every candidate repeats its finding's identity, so each expected match is that finding's identity class. The full location counts in source code identity, so results sharing a symbol or a line stay apart.",
       "candidates": [
         {
           "id": "kics-1",
@@ -108782,10 +108776,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001054",
-              "30000000-0000-4000-8000-000000001055"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001054"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001054"],
           "tags": ["truth:continued", "drift:none"]
@@ -108819,10 +108810,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001054",
-              "30000000-0000-4000-8000-000000001055"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001055"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001055"],
           "tags": ["truth:continued", "drift:none"]
@@ -108856,10 +108844,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001056",
-              "30000000-0000-4000-8000-000000001057"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001056"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001056"],
           "tags": ["truth:continued", "drift:none"]
@@ -108893,10 +108878,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001056",
-              "30000000-0000-4000-8000-000000001057"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001057"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001057"],
           "tags": ["truth:continued", "drift:none"]
@@ -109032,10 +109014,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001061",
-              "30000000-0000-4000-8000-000000001062"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001061"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001061"],
           "tags": ["truth:continued", "drift:none"]
@@ -109069,10 +109048,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001061",
-              "30000000-0000-4000-8000-000000001062"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001062"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001062"],
           "tags": ["truth:continued", "drift:none"]
@@ -109106,10 +109082,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001063",
-              "30000000-0000-4000-8000-000000001064"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001063"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001063"],
           "tags": ["truth:continued", "drift:none"]
@@ -109143,10 +109116,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001063",
-              "30000000-0000-4000-8000-000000001064"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001064"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001064"],
           "tags": ["truth:continued", "drift:none"]
@@ -109180,10 +109150,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001065",
-              "30000000-0000-4000-8000-000000001066"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001065"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001065"],
           "tags": ["truth:continued", "drift:none"]
@@ -109217,10 +109184,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001065",
-              "30000000-0000-4000-8000-000000001066"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001066"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001066"],
           "tags": ["truth:continued", "drift:none"]
@@ -109288,10 +109252,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001068",
-              "30000000-0000-4000-8000-000000001069"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001068"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001068"],
           "tags": ["truth:continued", "drift:none"]
@@ -109325,10 +109286,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001068",
-              "30000000-0000-4000-8000-000000001069"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001069"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001069"],
           "tags": ["truth:continued", "drift:none"]
@@ -112252,10 +112210,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001155",
-              "30000000-0000-4000-8000-000000001156"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001155"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001155"],
           "tags": ["truth:continued", "drift:none"]
@@ -112289,10 +112244,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001155",
-              "30000000-0000-4000-8000-000000001156"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001156"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001156"],
           "tags": ["truth:continued", "drift:none"]
@@ -113006,10 +112958,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001177",
-              "30000000-0000-4000-8000-000000001178"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001177"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001177"],
           "tags": ["truth:continued", "drift:none"]
@@ -113043,10 +112992,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001177",
-              "30000000-0000-4000-8000-000000001178"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001178"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001178"],
           "tags": ["truth:continued", "drift:none"]
@@ -115596,10 +115542,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001252",
-              "30000000-0000-4000-8000-000000001255"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001252"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001252"],
           "tags": ["truth:continued", "drift:none"]
@@ -115633,10 +115576,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001253",
-              "30000000-0000-4000-8000-000000001254"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001253"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001253"],
           "tags": ["truth:continued", "drift:none"]
@@ -115670,10 +115610,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001253",
-              "30000000-0000-4000-8000-000000001254"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001254"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001254"],
           "tags": ["truth:continued", "drift:none"]
@@ -115707,10 +115644,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001252",
-              "30000000-0000-4000-8000-000000001255"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001255"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001255"],
           "tags": ["truth:continued", "drift:none"]
@@ -116118,11 +116052,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001267",
-              "30000000-0000-4000-8000-000000001269",
-              "30000000-0000-4000-8000-000000001270"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001267"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001267"],
           "tags": ["truth:continued", "drift:none"]
@@ -116190,11 +116120,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001267",
-              "30000000-0000-4000-8000-000000001269",
-              "30000000-0000-4000-8000-000000001270"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001269"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001269"],
           "tags": ["truth:continued", "drift:none"]
@@ -116228,11 +116154,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001267",
-              "30000000-0000-4000-8000-000000001269",
-              "30000000-0000-4000-8000-000000001270"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001270"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001270"],
           "tags": ["truth:continued", "drift:none"]
@@ -116300,10 +116222,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001272",
-              "30000000-0000-4000-8000-000000001278"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001272"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001272"],
           "tags": ["truth:continued", "drift:none"]
@@ -116337,13 +116256,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001273",
-              "30000000-0000-4000-8000-000000001274",
-              "30000000-0000-4000-8000-000000001275",
-              "30000000-0000-4000-8000-000000001276",
-              "30000000-0000-4000-8000-000000001277"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001273"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001273"],
           "tags": ["truth:continued", "drift:none"]
@@ -116377,13 +116290,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001273",
-              "30000000-0000-4000-8000-000000001274",
-              "30000000-0000-4000-8000-000000001275",
-              "30000000-0000-4000-8000-000000001276",
-              "30000000-0000-4000-8000-000000001277"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001274"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001274"],
           "tags": ["truth:continued", "drift:none"]
@@ -116417,13 +116324,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001273",
-              "30000000-0000-4000-8000-000000001274",
-              "30000000-0000-4000-8000-000000001275",
-              "30000000-0000-4000-8000-000000001276",
-              "30000000-0000-4000-8000-000000001277"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001275"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001275"],
           "tags": ["truth:continued", "drift:none"]
@@ -116457,13 +116358,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001273",
-              "30000000-0000-4000-8000-000000001274",
-              "30000000-0000-4000-8000-000000001275",
-              "30000000-0000-4000-8000-000000001276",
-              "30000000-0000-4000-8000-000000001277"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001276"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001276"],
           "tags": ["truth:continued", "drift:none"]
@@ -116497,13 +116392,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001273",
-              "30000000-0000-4000-8000-000000001274",
-              "30000000-0000-4000-8000-000000001275",
-              "30000000-0000-4000-8000-000000001276",
-              "30000000-0000-4000-8000-000000001277"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001277"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001277"],
           "tags": ["truth:continued", "drift:none"]
@@ -116537,10 +116426,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001272",
-              "30000000-0000-4000-8000-000000001278"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001278"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001278"],
           "tags": ["truth:continued", "drift:none"]
@@ -116608,12 +116494,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001280",
-              "30000000-0000-4000-8000-000000001281",
-              "30000000-0000-4000-8000-000000001282",
-              "30000000-0000-4000-8000-000000001285"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001280"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001280"],
           "tags": ["truth:continued", "drift:none"]
@@ -116647,12 +116528,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001280",
-              "30000000-0000-4000-8000-000000001281",
-              "30000000-0000-4000-8000-000000001282",
-              "30000000-0000-4000-8000-000000001285"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001281"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001281"],
           "tags": ["truth:continued", "drift:none"]
@@ -116686,12 +116562,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001280",
-              "30000000-0000-4000-8000-000000001281",
-              "30000000-0000-4000-8000-000000001282",
-              "30000000-0000-4000-8000-000000001285"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001282"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001282"],
           "tags": ["truth:continued", "drift:none"]
@@ -116793,12 +116664,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001280",
-              "30000000-0000-4000-8000-000000001281",
-              "30000000-0000-4000-8000-000000001282",
-              "30000000-0000-4000-8000-000000001285"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001285"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001285"],
           "tags": ["truth:continued", "drift:none"]
@@ -116842,7 +116708,7 @@
     {
       "id": "trivy-terragoat",
       "assetId": "10000000-0000-4000-8000-000000000403",
-      "note": "An unchanged rescan: the same committed fixture seeded the findings and is replayed as the next ingestion. Truth is the finding seeded from the same record; every candidate repeats its finding's identity, so each expected match is that finding's identity class.",
+      "note": "An unchanged rescan: the same committed fixture seeded the findings and is replayed as the next ingestion. Truth is the finding seeded from the same record; every candidate repeats its finding's identity, so each expected match is that finding's identity class. The full location counts in source code identity, so results sharing a symbol or a line stay apart.",
       "candidates": [
         {
           "id": "trivy-1",
@@ -117622,11 +117488,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001313",
-              "30000000-0000-4000-8000-000000001314",
-              "30000000-0000-4000-8000-000000001315"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001313"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001313"],
           "tags": ["truth:continued", "drift:none"]
@@ -117655,11 +117517,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001313",
-              "30000000-0000-4000-8000-000000001314",
-              "30000000-0000-4000-8000-000000001315"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001314"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001314"],
           "tags": ["truth:continued", "drift:none"]
@@ -117688,11 +117546,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001313",
-              "30000000-0000-4000-8000-000000001314",
-              "30000000-0000-4000-8000-000000001315"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001315"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001315"],
           "tags": ["truth:continued", "drift:none"]
@@ -121897,10 +121751,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001456",
-              "30000000-0000-4000-8000-000000001457"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001456"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001456"],
           "tags": ["truth:continued", "drift:none"]
@@ -121929,10 +121780,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001456",
-              "30000000-0000-4000-8000-000000001457"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001457"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001457"],
           "tags": ["truth:continued", "drift:none"]
@@ -122251,10 +122099,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001468",
-              "30000000-0000-4000-8000-000000001469"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001468"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001468"],
           "tags": ["truth:continued", "drift:none"]
@@ -122283,10 +122128,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001468",
-              "30000000-0000-4000-8000-000000001469"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001469"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001469"],
           "tags": ["truth:continued", "drift:none"]
@@ -122866,10 +122708,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001489",
-              "30000000-0000-4000-8000-000000001490"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001489"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001489"],
           "tags": ["truth:continued", "drift:none"]
@@ -122898,10 +122737,7 @@
           },
           "expected": {
             "status": "matched",
-            "findingIds": [
-              "30000000-0000-4000-8000-000000001489",
-              "30000000-0000-4000-8000-000000001490"
-            ]
+            "findingIds": ["30000000-0000-4000-8000-000000001490"]
           },
           "truthFindingIds": ["30000000-0000-4000-8000-000000001490"],
           "tags": ["truth:continued", "drift:none"]

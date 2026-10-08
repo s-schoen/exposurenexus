@@ -9,8 +9,10 @@ import {
   locationFingerprint,
   missingMinimumFields,
   resourceIdentity,
+  sameSourceScope,
 } from "./resource-identity.js";
 
+import type { SourceLocation } from "./resource-identity.js";
 import type { ObservationAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
 
 function relation(left: ObservationAffectedResource, right: ObservationAffectedResource) {
@@ -121,7 +123,7 @@ describe("compareResource", () => {
     ).toBe("different");
   });
 
-  it("lets a shared symbol supersede the start line", () => {
+  it("keeps the start line strict despite a shared symbol", () => {
     const bucket = {
       type: AffectedResourceType.SourceCode,
       file: "main.tf",
@@ -132,13 +134,16 @@ describe("compareResource", () => {
         { ...bucket, location: { startLine: 4 } },
         { ...bucket, location: { startLine: 9 } },
       ),
-    ).toBe("exact");
-    expect(
-      relation(
-        { ...bucket, location: { startLine: 4 } },
-        { type: AffectedResourceType.SourceCode, file: "main.tf", location: { startLine: 9 } },
-      ),
     ).toBe("different");
+  });
+
+  it("compares columns and end lines only where both sides know them", () => {
+    const span = { startLine: 46, startColumn: 34, endLine: 46, endColumn: 82 };
+    const at = (location: SourceLocation) =>
+      ({ type: AffectedResourceType.SourceCode, file: "a.ts", location }) as const;
+    expect(relation(at(span), at({ ...span, endColumn: 106 }))).toBe("different");
+    expect(relation(at(span), at({ startLine: 46 }))).toBe("exact");
+    expect(relation(at(span), at({ startLine: 46, endLine: 46 }))).toBe("exact");
   });
 
   it("keeps the start line strict without a shared symbol", () => {
@@ -148,5 +153,27 @@ describe("compareResource", () => {
         { type: AffectedResourceType.SourceCode, file: "a.ts", location: { startLine: 52 } },
       ),
     ).toBe("different");
+  });
+});
+
+describe("sameSourceScope", () => {
+  const file = { type: AffectedResourceType.SourceCode, file: "./main.tf" } as const;
+  const scope = resourceIdentity;
+
+  it("ignores the location but not the symbol", () => {
+    expect(
+      sameSourceScope(
+        scope({ ...file, location: { startLine: 4 } }),
+        scope({ ...file, file: "main.tf", location: { startLine: 9, endLine: 12 } }),
+      ),
+    ).toBe(true);
+    expect(sameSourceScope(scope({ ...file, symbol: "a" }), scope({ ...file, symbol: "b" }))).toBe(
+      false,
+    );
+    expect(sameSourceScope(scope({ ...file, symbol: "a" }), scope(file))).toBe(false);
+  });
+
+  it("holds only for source code", () => {
+    expect(sameSourceScope(scope(lodash), scope(lodash))).toBe(false);
   });
 });

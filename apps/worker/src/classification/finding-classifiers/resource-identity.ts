@@ -8,12 +8,18 @@ import type {
 /**
  * How two affected resources relate as finding identity evidence.
  *
- * - `exact`: same type, same identity fields, equal values.
+ * - `exact`: same type, same identity fields, equal values. Source location detail that
+ *   one side lacks, such as columns, is not compared.
  * - `compatible`: same type, the minimum fields agree, no field known on both sides differs,
  *   and some field is known on only one side.
  * - `different`: anything else, including a minimum field missing on either side.
  */
 export type ResourceRelation = "exact" | "compatible" | "different";
+
+/** Where a source code result sits in its file. */
+export type SourceLocation = NonNullable<
+  Extract<FindingAffectedResource, { type: AffectedResourceType.SourceCode }>["location"]
+>;
 
 /** Canonical identity fields of one affected resource; a missing field is unknown, never empty. */
 export type ResourceIdentity = {
@@ -73,8 +79,8 @@ function known(entries: Record<string, string | number | undefined>) {
 /**
  * Reads the finding-owned identity of an affected resource. Observation-only snapshot
  * fields such as a package version are never read, and values are canonicalized only
- * for comparison. A source code location fingerprint is fingerprint evidence, not part
- * of this identity.
+ * for comparison. A source code location is part of this identity, so a line shift
+ * changes it; a location fingerprint is fingerprint evidence instead.
  */
 export function resourceIdentity(
   resource: ObservationAffectedResource | FindingAffectedResource,
@@ -115,6 +121,9 @@ export function resourceIdentity(
           file: path(resource.file),
           symbol: text(resource.symbol),
           startLine: resource.location?.startLine,
+          startColumn: resource.location?.startColumn,
+          endLine: resource.location?.endLine,
+          endColumn: resource.location?.endColumn,
         }),
       };
     case AffectedResourceType.Package:
@@ -158,24 +167,29 @@ export function locationFingerprint(
     : undefined;
 }
 
+/** The location of a source code resource, which orders results within their file. */
+export function sourceLocation(
+  resource: ObservationAffectedResource | FindingAffectedResource,
+): SourceLocation | undefined {
+  return resource.type === AffectedResourceType.SourceCode ? resource.location : undefined;
+}
+
+/** Whether two source code identities share repository, file, and symbol, wherever they sit. */
+export function sameSourceScope(left: ResourceIdentity, right: ResourceIdentity) {
+  return (
+    left.type === AffectedResourceType.SourceCode &&
+    right.type === AffectedResourceType.SourceCode &&
+    ["repository", "file", "symbol"].every((field) => left.fields[field] === right.fields[field])
+  );
+}
+
 /** Minimum identity fields the resource lacks; empty when it can identify a finding. */
 export function missingMinimumFields(identity: ResourceIdentity): string[] {
   return minimumFields[identity.type].filter((field) => identity.fields[field] === undefined);
 }
 
-function comparableFields(left: ResourceIdentity, right: ResourceIdentity) {
-  // A symbol on both sides, such as an IaC resource name, outlasts line shifts.
-  if (
-    left.type === AffectedResourceType.SourceCode &&
-    left.fields.symbol !== undefined &&
-    right.fields.symbol !== undefined
-  ) {
-    const { startLine: _left, ...leftFields } = left.fields;
-    const { startLine: _right, ...rightFields } = right.fields;
-    return [leftFields, rightFields];
-  }
-  return [left.fields, right.fields];
-}
+/** Location detail that scanners report unevenly; it counts only where both sides know it. */
+const spanDetail = new Set(["startColumn", "endLine", "endColumn"]);
 
 /** Relates two resource identities; different types never describe one finding. */
 export function compareResource(left: ResourceIdentity, right: ResourceIdentity): ResourceRelation {
@@ -187,13 +201,13 @@ export function compareResource(left: ResourceIdentity, right: ResourceIdentity)
     return "different";
   }
 
-  const [leftFields, rightFields] = comparableFields(left, right);
+  const located = left.type === AffectedResourceType.SourceCode;
   let partial = false;
-  for (const field of new Set([...Object.keys(leftFields), ...Object.keys(rightFields)])) {
-    const leftValue = leftFields[field];
-    const rightValue = rightFields[field];
+  for (const field of new Set([...Object.keys(left.fields), ...Object.keys(right.fields)])) {
+    const leftValue = left.fields[field];
+    const rightValue = right.fields[field];
     if (leftValue === undefined || rightValue === undefined) {
-      partial = true;
+      partial ||= !(located && spanDetail.has(field));
     } else if (leftValue !== rightValue) {
       return "different";
     }
