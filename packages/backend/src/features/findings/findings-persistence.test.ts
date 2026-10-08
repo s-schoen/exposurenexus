@@ -212,6 +212,43 @@ describe("findings cross-feature persistence", () => {
     );
   });
 
+  it("reads scanner observations with their ingestion identity", async () => {
+    const asset = await createAsset("api.example.com");
+    const created = await createFinding(asset.id, "Scanned finding");
+    const ingestion = await testDb.db
+      .insertInto("ingestion")
+      .values({
+        source: ObservationSource.Trivy,
+        createdAt: new Date("2026-01-02T00:00:00.000Z"),
+        createdBy: auditUserId,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    const scanned = await insertObservation(testDb.db, {
+      ...created.observation,
+      id: undefined,
+      source: ObservationSource.Trivy,
+      ingestionId: ingestion.id,
+    });
+
+    expect(scanned).toMatchObject({
+      source: ObservationSource.Trivy,
+      ingestionId: ingestion.id,
+    });
+    await expect(createCapability().findings.listObservations(created.current.id)).resolves.toEqual(
+      expect.arrayContaining([scanned, created.observation]),
+    );
+    await expect(
+      insertObservation(testDb.db, {
+        ...created.observation,
+        id: undefined,
+        source: ObservationSource.Trivy,
+        ingestionId: null,
+      }),
+    ).rejects.toThrow();
+  });
+
   it("round-trips structured weakness enrichment through findings and observations", async () => {
     const asset = await createAsset("api.example.com");
     const findings = createCapability().findings;

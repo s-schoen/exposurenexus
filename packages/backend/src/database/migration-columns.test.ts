@@ -1152,7 +1152,7 @@ describe("db migration columns", () => {
     );
   });
 
-  it("uses closed catalog enums and keeps only the manual observation source", async () => {
+  it("uses closed catalog enums and lists manual and scanner observation sources", async () => {
     const enumValues = await sql<{ typname: string; enumlabel: string }>`
       select pg_type.typname, pg_enum.enumlabel
       from pg_type
@@ -1163,6 +1163,13 @@ describe("db migration columns", () => {
 
     expect(enumValues.rows).toEqual([
       { typname: "observation_source", enumlabel: "manual" },
+      { typname: "observation_source", enumlabel: "nuclei" },
+      { typname: "observation_source", enumlabel: "zap" },
+      { typname: "observation_source", enumlabel: "semgrep" },
+      { typname: "observation_source", enumlabel: "bearer" },
+      { typname: "observation_source", enumlabel: "checkov" },
+      { typname: "observation_source", enumlabel: "kics" },
+      { typname: "observation_source", enumlabel: "trivy" },
       { typname: "vulnerability_type", enumlabel: "cve" },
       { typname: "vulnerability_type", enumlabel: "cwe" },
       { typname: "vulnerability_type", enumlabel: "ghsa" },

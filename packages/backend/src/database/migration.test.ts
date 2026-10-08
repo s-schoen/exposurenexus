@@ -269,6 +269,7 @@ const expectedMigrationNames = [
   "20260915-import-source-upload-attempt",
   "20260918-remove-nuclei-source",
   "20261007-observation-fingerprints",
+  "20261008-scanner-observation-sources",
 ];
 
 // Forward-only migration history prevents renaming this already-applied file set.
