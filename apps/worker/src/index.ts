@@ -1,5 +1,7 @@
 import { createBackendRuntime } from "@exposurenexus/backend";
+import { createAssets } from "@exposurenexus/backend/assets";
 import { checkDatabaseMigrations, createPostgresDatabase } from "@exposurenexus/backend/database";
+import { createFindings } from "@exposurenexus/backend/findings";
 import { createImportSources } from "@exposurenexus/backend/import-sources";
 import { createIngestions } from "@exposurenexus/backend/ingestions";
 import { createObjectStorage } from "@exposurenexus/backend/object-storage";
@@ -18,6 +20,8 @@ bootstrapWorker(
     createObjectStorage,
     createImportSources,
     createIngestions,
+    createAssets,
+    createFindings,
     openDatabase: (config, logger) =>
       openWorkerDatabase(config.DATABASE_URL, logger, {
         createPostgresDatabase,
