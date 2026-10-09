@@ -57,13 +57,13 @@ import {
   createVulnerabilityByIDQueryOptions,
 } from "@/features/vulnerabilities/queries/vulnerabilities.ts";
 import {
-  ASSET_CUSTOM_FIELD_FIXTURES,
-  ROLE_FIXTURES,
-  STORY_ASSETS,
-  STORY_ASSETS_WITH_CUSTOM_FIELDS,
-  STORY_USERS,
-  STORY_VULNERABILITIES,
-} from "@/test/fixtures.ts";
+  SEED_CUSTOM_FIELDS,
+  SEED_ROLES,
+  SEED_ASSETS,
+  SEED_ASSETS_WITH_CUSTOM_FIELDS,
+  SEED_USERS,
+  SEED_VULNERABILITIES,
+} from "@/mocks/fixtures/seed.ts";
 
 import type {
   Asset,
@@ -113,13 +113,13 @@ vi.mock("sonner", () => ({ toast: toastMocks }));
 
 const fetchMock = vi.fn<typeof fetch>();
 
-const asset = STORY_ASSETS[0];
-const user = STORY_USERS[0];
-const role = ROLE_FIXTURES[1];
-const vulnerability = STORY_VULNERABILITIES[0];
-const textField = ASSET_CUSTOM_FIELD_FIXTURES[0];
-const numberField = ASSET_CUSTOM_FIELD_FIXTURES[1];
-const selectField = ASSET_CUSTOM_FIELD_FIXTURES[2];
+const asset = SEED_ASSETS[0];
+const user = SEED_USERS[0];
+const role = SEED_ROLES[1];
+const vulnerability = SEED_VULNERABILITIES[0];
+const textField = SEED_CUSTOM_FIELDS[0];
+const numberField = SEED_CUSTOM_FIELDS[1];
+const selectField = SEED_CUSTOM_FIELDS[2];
 
 const categoryValue: AssetCustomFieldValue = {
   fieldId: textField.id,
@@ -625,7 +625,7 @@ describe("real resource mutation wiring", () => {
     queryClient.setQueryData(listOptions.queryKey, [asset]);
     queryClient.setQueryData(filteredListOptions.queryKey, [asset]);
     queryClient.setQueryData(enrichedListOptions.queryKey, [
-      { ...asset, customFields: STORY_ASSETS_WITH_CUSTOM_FIELDS[0].customFields },
+      { ...asset, customFields: SEED_ASSETS_WITH_CUSTOM_FIELDS[0].customFields },
     ]);
     queryClient.setQueryData(detailOptions.queryKey, asset);
     queryClient.setQueryData(createdDetailOptions.queryKey, createdAsset);
@@ -1205,9 +1205,9 @@ describe("real query option wiring", () => {
       createListAssetsWithCustomFieldsQueryOptions({
         assetEnvironment: [AssetEnvironment.Staging],
       }),
-      arrayReply([STORY_ASSETS_WITH_CUSTOM_FIELDS[0]]),
+      arrayReply([SEED_ASSETS_WITH_CUSTOM_FIELDS[0]]),
       "/api/assets?includeCustomFields=true&assetEnvironment=staging",
-      [STORY_ASSETS_WITH_CUSTOM_FIELDS[0]],
+      [SEED_ASSETS_WITH_CUSTOM_FIELDS[0]],
     );
     await assertQuery(
       queryClient,

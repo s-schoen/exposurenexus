@@ -4,7 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { getRoleByID } from "@/features/roles/api/roles.ts";
 import { RolesPage } from "@/features/roles/pages/roles-page.tsx";
-import { CUSTOM_AUDITOR_ROLE } from "@/test/fixtures.ts";
+import { CUSTOM_AUDITOR_ROLE } from "@/mocks/fixtures/seed.ts";
 
 import type { ReactNode } from "react";
 

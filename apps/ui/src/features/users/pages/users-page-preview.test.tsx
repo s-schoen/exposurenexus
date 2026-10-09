@@ -4,7 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { getUserByID } from "@/features/users/api/users.ts";
 import { UsersPage } from "@/features/users/pages/users-page.tsx";
-import { ROLE_FIXTURES, STORY_USERS } from "@/test/fixtures.ts";
+import { SEED_ROLES, SEED_USERS } from "@/mocks/fixtures/seed.ts";
 
 import type { ReactNode } from "react";
 
@@ -33,25 +33,25 @@ it("does not fetch a preview until selected and keeps the table usable after pre
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
-  client.setQueryData(["users"], [STORY_USERS[1]]);
-  client.setQueryData(["roles"], ROLE_FIXTURES);
+  client.setQueryData(["users"], [SEED_USERS[1]]);
+  client.setQueryData(["roles"], SEED_ROLES);
   vi.mocked(getUserByID).mockRejectedValue(new Error("Preview request failed"));
   const { rerender } = render(
     <QueryClientProvider client={client}>
       <UsersPage />
     </QueryClientProvider>,
   );
-  expect(screen.getByText(STORY_USERS[1].displayName)).toBeVisible();
+  expect(screen.getByText(SEED_USERS[1].displayName)).toBeVisible();
   expect(getUserByID).not.toHaveBeenCalled();
   rerender(
     <QueryClientProvider client={client}>
-      <UsersPage selected={STORY_USERS[1].id} />
+      <UsersPage selected={SEED_USERS[1].id} />
     </QueryClientProvider>,
   );
   expect(await screen.findByText("Unable to load user")).toBeVisible();
   expect(screen.getByText("Preview request failed")).toBeVisible();
-  expect(screen.getByText(STORY_USERS[1].displayName)).toBeVisible();
+  expect(screen.getByText(SEED_USERS[1].displayName)).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "New user" }));
   expect(mocks.navigate).toHaveBeenCalledWith({ to: "/users/new" });
-  expect(getUserByID).toHaveBeenCalledExactlyOnceWith(STORY_USERS[1].id);
+  expect(getUserByID).toHaveBeenCalledExactlyOnceWith(SEED_USERS[1].id);
 });

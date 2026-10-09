@@ -1,3 +1,4 @@
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import {
   AssetEnvironment,
   AssetIdentifierType,
@@ -8,6 +9,8 @@ import {
   AssetCustomFieldType,
   AssetCustomFieldValueSource,
 } from "@exposurenexus/contracts/model/asset-custom-field";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
+import { ObservationSource } from "@exposurenexus/contracts/model/observation";
 import {
   BuiltInRoleName,
   PermissionResource,
@@ -19,14 +22,18 @@ import {
   VulnerabilityType,
 } from "@exposurenexus/contracts/model/vulnerability";
 
+import { DEFAULT_ACTOR_ID } from "@/mocks/fixtures/ids.ts";
+
 import type { AuthSessionDataReply } from "@exposurenexus/contracts/api";
 import type { Asset, AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
+import type { Finding } from "@exposurenexus/contracts/model/finding";
+import type { Observation } from "@exposurenexus/contracts/model/observation";
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
 
-export const ROLE_FIXTURES: Array<Role> = [
+export const SEED_ROLES: Array<Role> = [
   {
     id: builtInRoleIds.viewer,
     name: BuiltInRoleName.Viewer,
@@ -106,8 +113,8 @@ export const ROLE_FIXTURES: Array<Role> = [
   },
 ];
 
-export const BUILT_IN_ADMIN_ROLE = ROLE_FIXTURES[2];
-export const CUSTOM_AUDITOR_ROLE = ROLE_FIXTURES[3];
+export const BUILT_IN_ADMIN_ROLE = SEED_ROLES[2];
+export const CUSTOM_AUDITOR_ROLE = SEED_ROLES[3];
 
 export const USER_FORM_ROLE_FIXTURES: Array<Role> = [
   {
@@ -134,7 +141,7 @@ export const USER_FORM_ROLE_FIXTURES: Array<Role> = [
   },
 ];
 
-export const ASSET_CUSTOM_FIELD_FIXTURES: Array<AssetCustomFieldDefinition> = [
+export const SEED_CUSTOM_FIELDS: Array<AssetCustomFieldDefinition> = [
   {
     id: "8f0365b2-1bbb-46e2-b1f4-06300ade23f3",
     key: "category",
@@ -175,29 +182,29 @@ export const ASSET_CUSTOM_FIELD_FIXTURES: Array<AssetCustomFieldDefinition> = [
   },
 ];
 
-const STORY_ENVIRONMENT_OPTIONS = [
+const DEPLOYMENT_TIER_OPTIONS = [
   {
     id: "6b567696-6808-45be-ab67-a8683d98a138",
-    fieldId: ASSET_CUSTOM_FIELD_FIXTURES[2].id,
+    fieldId: SEED_CUSTOM_FIELDS[2].id,
     value: "production",
     label: "Production",
   },
   {
     id: "1dec1f7b-0650-4e64-bdfa-1d4228a99e87",
-    fieldId: ASSET_CUSTOM_FIELD_FIXTURES[2].id,
+    fieldId: SEED_CUSTOM_FIELDS[2].id,
     value: "staging",
     label: "Staging",
   },
 ];
 
-export const STORY_USERS: Array<UserProfile> = [
+export const SEED_USERS: Array<UserProfile> = [
   {
-    id: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+    id: DEFAULT_ACTOR_ID,
     username: "robin",
     displayName: "Robin Owner",
     email: "robin@example.com",
     enabled: true,
-    roleIds: [ROLE_FIXTURES[2].id],
+    roleIds: [SEED_ROLES[2].id],
   },
   {
     id: "bb9f2b64-2f45-4bb8-9f16-659d633cb398",
@@ -205,7 +212,7 @@ export const STORY_USERS: Array<UserProfile> = [
     displayName: "Morgan Analyst",
     email: "morgan@example.com",
     enabled: true,
-    roleIds: [ROLE_FIXTURES[1].id, ROLE_FIXTURES[3].id],
+    roleIds: [SEED_ROLES[1].id, SEED_ROLES[3].id],
   },
   {
     id: "7b413aba-5164-456b-8ffd-88fb6b99bbed",
@@ -217,11 +224,11 @@ export const STORY_USERS: Array<UserProfile> = [
   },
 ];
 
-export const STORY_AUTH_SESSION: AuthSessionDataReply = {
-  user: STORY_USERS[0],
+export const SEED_AUTH_SESSION: AuthSessionDataReply = {
+  user: SEED_USERS[0],
   session: {
     id: "7d42e746-7950-4db9-91d8-22b22d2f17cd",
-    userId: STORY_USERS[0].id,
+    userId: SEED_USERS[0].id,
     sourceIp: "203.0.113.10",
     userAgent: "Vitest",
     createdAt: new Date("2026-01-02T03:04:05.000Z"),
@@ -229,14 +236,14 @@ export const STORY_AUTH_SESSION: AuthSessionDataReply = {
   },
 };
 
-export const STORY_ASSETS: Array<Asset> = [
+export const SEED_ASSETS: Array<Asset> = [
   {
     id: "447b53a7-c3ce-4a0c-b96a-099f5e5dc71c",
     displayName: "web-01",
     type: AssetType.Host,
     environment: AssetEnvironment.Production,
     lifecycleState: AssetLifecycleState.Active,
-    ownerId: STORY_USERS[0].id,
+    ownerId: SEED_USERS[0].id,
     identifiers: [
       {
         id: "d8f05cbe-d12c-4d05-a969-cee572a77887",
@@ -247,8 +254,8 @@ export const STORY_ASSETS: Array<Asset> = [
     ],
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-02T00:00:00.000Z"),
-    createdBy: STORY_USERS[0].id,
-    updatedBy: STORY_USERS[1].id,
+    createdBy: SEED_USERS[0].id,
+    updatedBy: SEED_USERS[1].id,
   },
   {
     id: "0bb9b410-7763-4e7a-9942-b752367fd63d",
@@ -267,8 +274,8 @@ export const STORY_ASSETS: Array<Asset> = [
     ],
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-02T00:00:00.000Z"),
-    createdBy: STORY_USERS[0].id,
-    updatedBy: STORY_USERS[1].id,
+    createdBy: SEED_USERS[0].id,
+    updatedBy: SEED_USERS[1].id,
   },
   {
     id: "4eaf1ce4-51f4-4a63-80b4-7b550e91050d",
@@ -276,7 +283,7 @@ export const STORY_ASSETS: Array<Asset> = [
     type: AssetType.Software,
     environment: AssetEnvironment.Development,
     lifecycleState: AssetLifecycleState.Active,
-    ownerId: STORY_USERS[1].id,
+    ownerId: SEED_USERS[1].id,
     identifiers: [
       {
         id: "f1c4c65c-4486-4a4d-b3fc-86f702390ba3",
@@ -287,17 +294,17 @@ export const STORY_ASSETS: Array<Asset> = [
     ],
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-02T00:00:00.000Z"),
-    createdBy: STORY_USERS[0].id,
-    updatedBy: STORY_USERS[1].id,
+    createdBy: SEED_USERS[0].id,
+    updatedBy: SEED_USERS[1].id,
   },
 ];
 
-export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
+export const SEED_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
   {
-    ...STORY_ASSETS[0],
+    ...SEED_ASSETS[0],
     customFields: [
       {
-        fieldId: ASSET_CUSTOM_FIELD_FIXTURES[0].id,
+        fieldId: SEED_CUSTOM_FIELDS[0].id,
         key: "category",
         name: "Category",
         source: AssetCustomFieldValueSource.Asset,
@@ -305,7 +312,7 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
         value: "Internet-facing",
       },
       {
-        fieldId: ASSET_CUSTOM_FIELD_FIXTURES[1].id,
+        fieldId: SEED_CUSTOM_FIELDS[1].id,
         key: "priority",
         name: "Priority",
         source: AssetCustomFieldValueSource.Default,
@@ -313,10 +320,10 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
         value: 3,
       },
       {
-        fieldId: ASSET_CUSTOM_FIELD_FIXTURES[2].id,
+        fieldId: SEED_CUSTOM_FIELDS[2].id,
         key: "deployment_tier",
         name: "Deployment tier",
-        options: STORY_ENVIRONMENT_OPTIONS,
+        options: DEPLOYMENT_TIER_OPTIONS,
         source: AssetCustomFieldValueSource.Asset,
         type: AssetCustomFieldType.Select,
         value: "production",
@@ -324,10 +331,10 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
     ],
   },
   {
-    ...STORY_ASSETS[1],
+    ...SEED_ASSETS[1],
     customFields: [
       {
-        fieldId: ASSET_CUSTOM_FIELD_FIXTURES[0].id,
+        fieldId: SEED_CUSTOM_FIELDS[0].id,
         key: "category",
         name: "Category",
         source: AssetCustomFieldValueSource.Asset,
@@ -335,7 +342,7 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
         value: "Runtime",
       },
       {
-        fieldId: ASSET_CUSTOM_FIELD_FIXTURES[1].id,
+        fieldId: SEED_CUSTOM_FIELDS[1].id,
         key: "priority",
         name: "Priority",
         source: AssetCustomFieldValueSource.Asset,
@@ -343,10 +350,10 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
         value: 2,
       },
       {
-        fieldId: ASSET_CUSTOM_FIELD_FIXTURES[2].id,
+        fieldId: SEED_CUSTOM_FIELDS[2].id,
         key: "deployment_tier",
         name: "Deployment tier",
-        options: STORY_ENVIRONMENT_OPTIONS,
+        options: DEPLOYMENT_TIER_OPTIONS,
         source: AssetCustomFieldValueSource.Asset,
         type: AssetCustomFieldType.Select,
         value: "staging",
@@ -354,12 +361,12 @@ export const STORY_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
     ],
   },
   {
-    ...STORY_ASSETS[2],
+    ...SEED_ASSETS[2],
     customFields: [],
   },
 ];
 
-export const STORY_VULNERABILITIES: Array<VulnerabilityCatalog> = [
+export const SEED_VULNERABILITIES: Array<VulnerabilityCatalog> = [
   {
     id: "9d7acdd0-fad1-46c9-8218-1793f421f0fe",
     type: VulnerabilityType.Cve,
@@ -368,8 +375,8 @@ export const STORY_VULNERABILITIES: Array<VulnerabilityCatalog> = [
     severity: VulnerabilitySeverity.High,
     description: "Administrative interfaces are reachable from the internet.",
     metadata: { cvss: 8.1 },
-    createdBy: STORY_USERS[0].id,
-    updatedBy: STORY_USERS[1].id,
+    createdBy: SEED_USERS[0].id,
+    updatedBy: SEED_USERS[1].id,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-02T00:00:00.000Z"),
   },
@@ -381,8 +388,8 @@ export const STORY_VULNERABILITIES: Array<VulnerabilityCatalog> = [
     severity: VulnerabilitySeverity.Critical,
     description: "Authentication controls can be bypassed.",
     metadata: null,
-    createdBy: STORY_USERS[0].id,
-    updatedBy: STORY_USERS[1].id,
+    createdBy: SEED_USERS[0].id,
+    updatedBy: SEED_USERS[1].id,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-02T00:00:00.000Z"),
   },
@@ -394,9 +401,193 @@ export const STORY_VULNERABILITIES: Array<VulnerabilityCatalog> = [
     severity: VulnerabilitySeverity.Medium,
     description: null,
     metadata: null,
-    createdBy: STORY_USERS[1].id,
-    updatedBy: STORY_USERS[1].id,
+    createdBy: SEED_USERS[1].id,
+    updatedBy: SEED_USERS[1].id,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-02T00:00:00.000Z"),
+  },
+];
+
+const [WEB_01, CONTAINER_01, API_WORKER] = SEED_ASSETS;
+const [ADMIN_ENDPOINT_CVE, , OUTDATED_DEPENDENCY_CWE] = SEED_VULNERABILITIES;
+
+const ADMIN_ENDPOINT_FINDING_ID = "023eb4f0-a658-44fe-a062-af7dd55a4bc2";
+const OUTDATED_DEPENDENCY_FINDING_ID = "f9f09fad-104d-4d1a-8d0e-d991138c2cb7";
+
+export const SEED_OBSERVATIONS: Array<Observation> = [
+  {
+    id: "6d8f775d-a527-4a68-ae64-86ccb8cdba43",
+    findingId: ADMIN_ENDPOINT_FINDING_ID,
+    title: "Admin panel reachable without VPN",
+    description: "The admin login page answered from a public network.",
+    evidence: "GET https://web-01.example.com/admin -> 200",
+    remediation: "Restrict /admin to the internal network.",
+    severity: VulnerabilitySeverity.High,
+    weakness: { identifiers: { cwe: ["CWE-284"] } },
+    affectedResource: {
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "https",
+      host: "web-01.example.com",
+      path: "/admin",
+      method: "GET",
+      reportedUrl: "https://web-01.example.com/admin",
+    },
+    fingerprints: {},
+    source: ObservationSource.Manual,
+    ingestionId: null,
+    observedAt: new Date("2026-01-05T09:00:00.000Z"),
+    createdAt: new Date("2026-01-05T09:00:00.000Z"),
+    updatedAt: new Date("2026-01-05T09:00:00.000Z"),
+    createdBy: SEED_USERS[1].id,
+    updatedBy: SEED_USERS[1].id,
+  },
+  {
+    id: "1812d299-9792-495e-b05f-abefa5c925b3",
+    findingId: ADMIN_ENDPOINT_FINDING_ID,
+    title: "Exposed admin endpoint",
+    description: null,
+    evidence: null,
+    remediation: null,
+    severity: VulnerabilitySeverity.High,
+    weakness: { identifiers: { cwe: ["CWE-284"] } },
+    affectedResource: {
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "https",
+      host: "web-01.example.com",
+      path: "/admin",
+    },
+    fingerprints: { nuclei: ["exposed-admin-panel"] },
+    source: ObservationSource.Nuclei,
+    ingestionId: "9ebad20b-2842-4738-99e5-67df7fcfc079",
+    observedAt: new Date("2026-01-08T12:30:00.000Z"),
+    createdAt: new Date("2026-01-08T12:30:00.000Z"),
+    updatedAt: new Date("2026-01-08T12:30:00.000Z"),
+    createdBy: SEED_USERS[0].id,
+    updatedBy: SEED_USERS[0].id,
+  },
+  {
+    id: "fd08923c-2963-49d2-bcdf-e61402b19ae2",
+    findingId: OUTDATED_DEPENDENCY_FINDING_ID,
+    title: "lodash 4.17.15 in package-lock.json",
+    description: null,
+    evidence: null,
+    remediation: "Upgrade lodash to 4.17.21 or later.",
+    severity: VulnerabilitySeverity.Medium,
+    weakness: { identifiers: { cwe: ["CWE-1104"] } },
+    affectedResource: {
+      type: AffectedResourceType.Package,
+      ecosystem: "npm",
+      name: "lodash",
+      version: "4.17.15",
+    },
+    fingerprints: {},
+    source: ObservationSource.Manual,
+    ingestionId: null,
+    observedAt: new Date("2026-01-03T15:00:00.000Z"),
+    createdAt: new Date("2026-01-03T15:00:00.000Z"),
+    updatedAt: new Date("2026-01-03T15:00:00.000Z"),
+    createdBy: SEED_USERS[1].id,
+    updatedBy: SEED_USERS[1].id,
+  },
+];
+
+export const SEED_FINDINGS: Array<Finding> = [
+  {
+    id: ADMIN_ENDPOINT_FINDING_ID,
+    assetId: WEB_01.id,
+    title: "Exposed admin endpoint",
+    severity: VulnerabilitySeverity.High,
+    status: FindingStatus.Active,
+    assigneeId: SEED_USERS[1].id,
+    dueDate: new Date("2026-02-01T00:00:00.000Z"),
+    mitigation: null,
+    weakness: { identifiers: { cwe: ["CWE-284"] } },
+    affectedResource: {
+      type: AffectedResourceType.WebEndpoint,
+      scheme: "https",
+      host: "web-01.example.com",
+      path: "/admin",
+    },
+    vulnerabilities: [ADMIN_ENDPOINT_CVE],
+    observationCount: 2,
+    firstSeen: SEED_OBSERVATIONS[0].observedAt,
+    lastSeen: SEED_OBSERVATIONS[1].observedAt,
+    createdAt: new Date("2026-01-05T09:00:00.000Z"),
+    updatedAt: new Date("2026-01-08T12:30:00.000Z"),
+    createdBy: SEED_USERS[1].id,
+    updatedBy: SEED_USERS[0].id,
+  },
+  {
+    id: OUTDATED_DEPENDENCY_FINDING_ID,
+    assetId: API_WORKER.id,
+    title: "Outdated API dependency",
+    severity: VulnerabilitySeverity.Medium,
+    status: FindingStatus.Confirmed,
+    assigneeId: null,
+    dueDate: null,
+    mitigation: null,
+    weakness: { identifiers: { cwe: ["CWE-1104"] } },
+    affectedResource: {
+      type: AffectedResourceType.Package,
+      ecosystem: "npm",
+      name: "lodash",
+    },
+    vulnerabilities: [OUTDATED_DEPENDENCY_CWE],
+    observationCount: 1,
+    firstSeen: SEED_OBSERVATIONS[2].observedAt,
+    lastSeen: SEED_OBSERVATIONS[2].observedAt,
+    createdAt: new Date("2026-01-03T15:00:00.000Z"),
+    updatedAt: new Date("2026-01-04T10:00:00.000Z"),
+    createdBy: SEED_USERS[1].id,
+    updatedBy: SEED_USERS[1].id,
+  },
+  {
+    id: "97cf37a9-abf2-4039-aa10-e0cdf59f5534",
+    assetId: CONTAINER_01.id,
+    title: "Container runs as root",
+    severity: VulnerabilitySeverity.Critical,
+    status: FindingStatus.Active,
+    assigneeId: SEED_USERS[0].id,
+    dueDate: new Date("2026-01-20T00:00:00.000Z"),
+    mitigation: null,
+    weakness: { identifiers: { cwe: ["CWE-250"] } },
+    affectedResource: {
+      type: AffectedResourceType.ContainerImage,
+      registry: "ghcr.io",
+      repository: "exposurenexus/container",
+    },
+    vulnerabilities: [],
+    observationCount: 0,
+    firstSeen: null,
+    lastSeen: null,
+    createdAt: new Date("2026-01-06T08:00:00.000Z"),
+    updatedAt: new Date("2026-01-06T08:00:00.000Z"),
+    createdBy: SEED_USERS[0].id,
+    updatedBy: SEED_USERS[0].id,
+  },
+  {
+    id: "10b2c634-7dd8-4e03-892a-0c5b956bbaf4",
+    assetId: WEB_01.id,
+    title: "Weak TLS configuration",
+    severity: VulnerabilitySeverity.Low,
+    status: FindingStatus.Mitigated,
+    assigneeId: null,
+    dueDate: null,
+    mitigation: "Disabled TLS 1.0 and 1.1 on the load balancer.",
+    weakness: { identifiers: { cwe: ["CWE-326"] } },
+    affectedResource: {
+      type: AffectedResourceType.NetworkService,
+      host: "web-01.example.com",
+      port: 443,
+      protocol: "https",
+    },
+    vulnerabilities: [],
+    observationCount: 0,
+    firstSeen: null,
+    lastSeen: null,
+    createdAt: new Date("2026-01-02T08:00:00.000Z"),
+    updatedAt: new Date("2026-01-09T08:00:00.000Z"),
+    createdBy: SEED_USERS[0].id,
+    updatedBy: SEED_USERS[0].id,
   },
 ];

@@ -5,10 +5,11 @@ import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
+import { msw } from "msw/vite";
 import { defineConfig } from "vite";
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     devtools(),
     tanstackRouter({
@@ -24,6 +25,8 @@ export default defineConfig({
     }),
     viteReact(),
     tailwindcss(),
+    // `pnpm dev:mock`: serve the MSW service worker. Never registered for builds, so it never ships.
+    mode === "mock" && msw({ mode: "worker-only" }),
   ],
   server: {
     proxy: {
@@ -56,4 +59,4 @@ export default defineConfig({
     testTimeout: 15000,
     setupFiles: ["./src/test/setup.ts"],
   },
-});
+}));

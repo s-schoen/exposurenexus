@@ -10,7 +10,7 @@ import {
   useAssetTableSearchState,
   validateAssetTableSearch,
 } from "@/features/assets/hooks/use-asset-table-search-state.ts";
-import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/test/fixtures.ts";
+import { SEED_CUSTOM_FIELDS } from "@/mocks/fixtures/seed.ts";
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
@@ -74,7 +74,7 @@ describe("useAssetTableSearchState", () => {
           filter: "api",
           priority: "3",
         },
-        ASSET_CUSTOM_FIELD_FIXTURES,
+        SEED_CUSTOM_FIELDS,
       ),
     ).toEqual({
       globalFilter: "api",
@@ -102,7 +102,7 @@ describe("useAssetTableSearchState", () => {
           assetLifecycleState: "archived",
           assetOwnerId: "none",
         },
-        ASSET_CUSTOM_FIELD_FIXTURES,
+        SEED_CUSTOM_FIELDS,
       ),
     ).toMatchObject({
       selectFilters: {
@@ -130,7 +130,7 @@ describe("useAssetTableSearchState", () => {
           },
           numberFilters: {},
         },
-        ASSET_CUSTOM_FIELD_FIXTURES,
+        SEED_CUSTOM_FIELDS,
       ),
     ).toEqual({
       category: "internet",
@@ -154,7 +154,7 @@ describe("useAssetTableSearchState", () => {
           textFilters: {},
           numberFilters: {},
         },
-        ASSET_CUSTOM_FIELD_FIXTURES,
+        SEED_CUSTOM_FIELDS,
       ),
     ).toMatchObject({
       assetType: "host",
@@ -209,7 +209,7 @@ describe("useAssetTableSearchState", () => {
           priority: "3",
           deployment_tier: "production,staging",
         },
-        ASSET_CUSTOM_FIELD_FIXTURES,
+        SEED_CUSTOM_FIELDS,
       ),
     ).toEqual({
       filter: "api",
@@ -224,7 +224,7 @@ describe("useAssetTableSearchState", () => {
     const { result } = renderHook(() =>
       useAssetTableSearchState({
         search: {},
-        customFieldDefinitions: ASSET_CUSTOM_FIELD_FIXTURES,
+        customFieldDefinitions: SEED_CUSTOM_FIELDS,
       }),
     );
 

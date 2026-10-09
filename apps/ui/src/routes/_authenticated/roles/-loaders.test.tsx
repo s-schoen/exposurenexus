@@ -1,32 +1,18 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import {
   createListRolesQueryOptions,
   createRoleByIDQueryOptions,
   EditRolePage,
 } from "@/features/roles";
+import { CUSTOM_AUDITOR_ROLE } from "@/mocks/fixtures/seed.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/roles/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/roles/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/roles/index.tsx";
 import { Route as NewRoute } from "@/routes/_authenticated/roles/new.tsx";
-import { CUSTOM_AUDITOR_ROLE } from "@/test/fixtures.ts";
-
-const getRoleByID = vi.fn<(...args: Array<string>) => Promise<unknown>>();
-const listRoles = vi.fn<(...args: Array<string>) => Promise<unknown>>();
-
-beforeEach(() => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (input: string) => {
-      if (input.startsWith("/api/roles/"))
-        return Response.json({ data: await getRoleByID(input.split("/").at(-1)!) });
-      if (input === "/api/roles") return Response.json({ data: { items: await listRoles() } });
-      throw new Error(`Unexpected request: ${input}`);
-    }),
-  );
-});
+import { recordApiRequests } from "@/test/msw.ts";
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -36,7 +22,6 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
 vi.mock("@/hooks/use-page-meta.tsx", () => ({ usePageMeta: vi.fn() }));
 afterEach(() => {
   cleanup();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 type Loader = (args: {
@@ -69,8 +54,7 @@ it("ensures exactly the requested role and lets nested edit reuse its parent cac
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
-  vi.mocked(getRoleByID).mockResolvedValue(role);
-  vi.mocked(listRoles).mockResolvedValue([role]);
+  const requests = recordApiRequests();
   const ensure = vi.spyOn(client, "ensureQueryData");
   const args = { context: { queryClient: client }, params: { id: role.id } };
   await expect((DetailRoute.options.loader as unknown as Loader)(args)).resolves.toEqual(role);
@@ -92,8 +76,7 @@ it("ensures exactly the requested role and lets nested edit reuse its parent cac
   );
   expect(screen.getByDisplayValue(role.name)).toBeVisible();
   expect(client.isFetching()).toBe(0);
-  expect(getRoleByID).toHaveBeenCalledExactlyOnceWith(role.id);
-  expect(listRoles).toHaveBeenCalledTimes(1);
+  expect(requests).toEqual([`GET /api/roles/${role.id}`, "GET /api/roles"]);
 });
 
 it.each([IndexRoute, NewRoute, DetailRoute, EditRoute])(
