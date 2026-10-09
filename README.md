@@ -11,8 +11,8 @@ observations into asset-centered findings and tracking triage through remediatio
 
 ExposureNexus is in early development. The current setup is intended for local evaluation and development, not as a
 production deployment guide. Automated scanner import is work in progress: the API registers metadata, accepts a
-one-shot byte upload, and queues an ingestion. The worker reads the stored input and logs shell completion without
-parsing it or creating imported observations. The UI import page remains disabled.
+one-shot byte upload, and queues an ingestion. The worker normalizes the stored input, matches it to assets and
+findings, and records the resulting observations and findings. The UI import page remains disabled.
 
 ![ExposureNexus dashboard showing finding severity, status, affected assets, and source breakdowns](docs/assets/readme-dashboard.png)
 

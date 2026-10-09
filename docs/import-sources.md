@@ -4,9 +4,9 @@ The API accepts scans in two requests: register immutable metadata through
 `POST /api/findings/import`, then send raw bytes once through
 `PUT /api/findings/import/:importSourceId/content`. The second request stores the
 input and durably submits an ingestion and outbox job without a third request.
-Acceptance is not processing: the worker now reads the full stored input and logs
-shell completion, but neither accepted nor successfully read bytes are imported
-observations. Contents are not parsed, and the UI import page remains disabled.
+Acceptance is not processing: the worker later normalizes the stored input, matches
+it to assets and findings, and records the resulting observations and findings. The
+UI import page remains disabled.
 
 The shared backend also provides streamed creation, reading, metadata lookup, and
 explicit byte deletion while preserving provenance. These remain library operations,
@@ -131,32 +131,26 @@ may therefore lead to a separate, duplicate submission. No request deduplication
 same-ID upload retry, resumable upload, expiry, automatic cleanup, or status
 endpoint is provided.
 
-## Worker Processing Shell
+## Worker Processing
 
 The production handler calls the high-level backend `Ingestions.process(ingestionId)`.
-It resolves the linked import source, rejects missing or unavailable input, and
-reads through the existing import-source/storage capabilities with lifecycle and
-recorded-bucket checks intact. The whole stream is consumed to discard with byte
-counting, not accumulated in memory. Only EOF with `bytesRead === source.sizeBytes`
-resolves with `{ importSourceId, bytesRead }`; a clean-EOF size mismatch raises
+It loads the ingestion, resolves the linked import source, rejects missing or
+unavailable input, and reads through the existing import-source/storage capabilities
+with lifecycle and recorded-bucket checks intact. The whole stream is buffered in
+memory. Only EOF with a byte count equal to `source.sizeBytes` resolves with the
+ingestion, its import source ID, and the bytes; a clean-EOF size mismatch raises
 `import_source.read_failed`. Lookup and read failures, including errors after
-partial reads, propagate to the existing consumer's broker retry/dead-letter
-policy with no application retry layer or permanent/transient classification.
+partial reads, propagate to the existing consumer's broker retry/dead-letter policy.
 
-The worker logs `ingestion shell completed` with `jobId`, `ingestionId`,
-`importSourceId`, and `bytesRead`, never raw input or storage credentials. This is
-log-only execution observability: the worker makes no database writes and job
-execution stays `pending` on start, success, and failure. Successful reads ACK these
-diagnostic jobs; published jobs are not automatically replayed when parsing is
-later implemented. API relay publication updates are independent. There are no
-execution claims, deduplication, or status endpoints. Duplicate deliveries safely
-reread and log again without changing source metadata, links, retention, or bytes.
-Nothing is deleted after a read, even for `temporary` input or after a failure.
-
-Zero-byte and malformed scan contents are not parsed or rejected as scanner output.
-Scanner parsing is not implemented. Matching, asset/vulnerability creation,
-observation/finding persistence, and ingestion accounting are not implemented.
-See the [stack smoke check](deployment.md#ingestion-shell-smoke-check).
+The worker then runs the [ingestion pipeline](../apps/worker/README.md): it
+normalizes the bytes with the scanner source's normalizer, matches candidates to
+assets and findings, and records the plan with `Ingestions.record` in one
+transaction. Input that cannot be parsed, including malformed contents, fails the
+ingestion with `ingestion.parse_failed`. The worker logs `ingestion completed` with
+counts, never raw input or storage credentials. Job execution stays `pending`; the
+ingestion status is the domain record. A duplicate delivery finds the ingestion no
+longer `pending` and writes nothing. Nothing is deleted after processing, even for
+`temporary` input or after a failure. Ingestion accounting is not implemented.
 
 ## Configuration And Usage
 
@@ -203,8 +197,8 @@ The API instead calls `submit` on the high-level
 upload and the submission transaction and returning
 `{ importSourceId, ingestionId, jobId }`. No caller transaction callback,
 standalone link operation, or direct broker publication is exposed.
-The same capability exposes the read-only `process(ingestionId)` shell described
-above; lookup and stream orchestration stay in backend, not worker queries.
+The same capability exposes `process(ingestionId)`, `fail`, and `record` described
+above; lookup, stream orchestration, and persistence stay in backend, not worker queries.
 
 `submit` delegates to `upload(command)` before inspecting fields or the signal.
 `upload` validates at runtime, then owns consumption and destroys input on
@@ -312,7 +306,7 @@ Use a preprovisioned private bucket with public access blocked. Credentials need
 compensation and explicit deletion. Bucket
 listing, bucket creation, ACL modification, and multipart permissions are not used.
 Encryption and any additional KMS permissions belong to bucket provisioning.
-The read-only worker shell needs only `s3:GetObject` for the same input objects;
+The worker needs only `s3:GetObject` for the same input objects;
 separate restricted credentials may be used within the same storage account.
 
 The object-storage module alone uses the official `@aws-sdk/client-s3` for single
@@ -416,9 +410,8 @@ duplicate linking, and inserts the outbox job in the same transaction through
 `JobService` and a transaction-bound jobs PostgreSQL repository. Publication belongs
 to the existing API relay, not the upload request.
 
-The processing shell resolves and reads through this relationship without mutations.
-There is no public standalone link operation. Parsing/persistence, execution
-idempotency for future business effects, and cleanup decisions based on durable
+Worker processing resolves and reads input through this relationship without changing it.
+There is no public standalone link operation. Cleanup decisions based on durable
 ingestion outcomes remain deferred.
 Retention does not enable source reuse across ingestions or reprocessing.
 
@@ -473,8 +466,8 @@ records for investigation rather than removing the only object reference.
 Retention is snapshotted per creation: `temporary` by default, or deployment-wide
 `keep`. Later factory configuration affects new sources only. Neither policy
 expires or deletes bytes automatically, and there is no per-import override.
-`keep` is intent, not a regulatory lock. The worker never cleans up after shell
-completion or failure, including `temporary` input. Retained inputs and abandoned
+`keep` is intent, not a regulatory lock. The worker never cleans up after an
+ingestion completes or fails, including `temporary` input. Retained inputs and abandoned
 registrations accumulate until cleanup is implemented or explicitly performed.
 
 ## Explicit Deletion

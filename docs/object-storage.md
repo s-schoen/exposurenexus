@@ -163,9 +163,8 @@ probe. Registration itself performs no object I/O. The
 API cancels and settles tracked uploads before closing storage after HTTP and
 relay drain, and on startup failure. The worker retains its handle until accepted
 reads drain before closing it, and cleans it up on startup failure. Storage is
-not a general backend-runtime dependency. Worker reads discard bytes without parsing
-or cleanup; shell completion is not imported observations and job execution stays
-`pending`. Retained input, including `temporary` sources, and abandoned registrations
+not a general backend-runtime dependency. The worker buffers input for ingestion and
+never cleans it up; job execution stays `pending`. Retained input, including `temporary` sources, and abandoned registrations
 can accumulate.
 See [Import Sources](import-sources.md) for executable usage and the deliberate
 [ADR-0006 refinement](adr/0006-s3-backed-import-sources.md#reusable-storage-refinement).

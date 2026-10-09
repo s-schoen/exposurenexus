@@ -79,7 +79,7 @@ Callers use these interfaces:
 | Vulnerabilities | Vulnerability catalog operations                                                          |
 | Statistics      | Finding statistics                                                                        |
 | Import Sources  | Metadata registration, one-shot upload, streamed creation/read, lookup, and byte deletion |
-| Ingestions      | Upload, durable ingestion/outbox submission, and read-only processing shell               |
+| Ingestions      | Upload, durable ingestion/outbox submission, processing input, and recording plans        |
 
 Shared infrastructure uses the strict `@exposurenexus/backend/database` and
 `@exposurenexus/backend/object-storage` subpaths. `createObjectStorage(config)`
@@ -175,11 +175,8 @@ workspace packages are required.
 Standalone scanner-to-candidate normalization lives in
 `../apps/worker/src/classification`, reusing backend canonicalizers and existing
 contract shapes without a backend runtime. It has no database, network, or clock
-reads; logging is its only side effect. See the
-[worker normalization contract](../apps/worker/README.md#observation-candidate-normalization).
-This callable boundary has no real scanner parsers and is not wired to ingestion
-jobs. The live worker processing shell still reads stored input without translation
-or matching and does not expose a scanner registry.
+reads; logging is its only side effect. A normalizer is registered for each scanner
+source, and the worker's ingestion pipeline runs it on every ingestion.
 
 ## API Adaptation
 
@@ -252,13 +249,12 @@ atomically submits ingestion work. The UI import page remains disabled.
 The worker uses an undecorated backend runtime as a trusted system caller and checks
 required migrations without applying them. Its complete real handler set activates
 consumption automatically and calls `Ingestions.process`, not direct queries.
-Completion is logged with all three IDs and `bytesRead`; the shell makes no worker
-database writes, so execution remains `pending` on success and failure. Duplicate
-deliveries safely reread and log without changing source metadata or deleting
-bytes, even for `temporary` input. Empty/malformed contents are not parsed and
-accepted/read bytes are not imported observations. Retained inputs and abandoned
-registrations accumulate. Parsing/persistence, execution-state orchestration,
-business idempotency, and cleanup remain deferred.
+The worker runs the [ingestion pipeline](../apps/worker/README.md) and records its
+plan through `Ingestions.record`; execution remains `pending` on success and
+failure, and the ingestion status is the domain record. Duplicate deliveries find
+the ingestion no longer `pending` and write nothing, without changing source
+metadata or deleting bytes, even for `temporary` input. Retained inputs and abandoned
+registrations accumulate. Execution-state orchestration and cleanup remain deferred.
 Queue infrastructure remains in apps and the jobs package;
 see [Job Queue](job-queue.md).
 

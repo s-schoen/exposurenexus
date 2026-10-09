@@ -200,19 +200,18 @@ separate, duplicate submission. Durably available input is preserved after later
 abort or submission failure, with its safe source ID logged for diagnosis.
 
 The complete real ingestion handler set activates worker consumption automatically,
-without a flag. The handler calls backend `Ingestions.process(ingestionId)` to
-stream the entire stored input to discard, then logs `ingestion shell completed`
-with `jobId`, `ingestionId`, `importSourceId`, and `bytesRead`. It never parses
-zero-byte or malformed contents, creates observations, writes database state, or
+without a flag. The handler runs the [ingestion pipeline](../apps/worker/README.md):
+it normalizes the stored input, matches candidates to assets and findings, and
+records the plan, then logs `ingestion completed` with counts. A source that cannot
+be parsed fails the ingestion with `ingestion.parse_failed`. The worker never
 deletes input, even under `temporary` retention. Execution deliberately stays
-`pending`; duplicate deliveries safely repeat reads and logs. Retained inputs and
-abandoned registrations accumulate until cleanup exists or is explicitly performed.
-Scanner parsing is not implemented and the shell does not translate or match input.
+`pending`; duplicate deliveries find the ingestion already processed. Retained
+inputs and abandoned registrations accumulate until cleanup exists or is explicitly
+performed.
 
 Use the [existing-stack smoke check](deployment.md#ingestion-shell-smoke-check) to
-verify the real handoff and log-only observability. A running worker has no HTTP
-health endpoint and does not prove successful storage access. Parsing, matching,
-observation/finding persistence, execution-state orchestration, and cleanup remain
+verify the real handoff. A running worker has no HTTP health endpoint and does not
+prove successful storage access. Execution-state orchestration and cleanup remain
 deferred.
 
 For graceful shutdown, press Ctrl+C in worker and API terminals and wait for cleanup
