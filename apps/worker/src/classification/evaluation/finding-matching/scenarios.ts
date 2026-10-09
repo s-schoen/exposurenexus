@@ -1,3 +1,4 @@
+import { toFindingAffectedResource } from "@exposurenexus/backend/findings";
 import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import {
   AssetEnvironment,
@@ -15,10 +16,7 @@ import type {
   FindingRecord,
   FindingScenario,
 } from "./evaluate.js";
-import type {
-  FindingAffectedResource,
-  ObservationAffectedResource,
-} from "@exposurenexus/contracts/model/affected-resource";
+import type { ObservationAffectedResource } from "@exposurenexus/contracts/model/affected-resource";
 import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type { Weakness } from "@exposurenexus/contracts/model/weakness";
 
@@ -184,34 +182,6 @@ function checkov(
   );
 }
 
-/** Drops observation-only snapshot fields, as finding seeding projects a resource. */
-function findingResource(resource: ObservationAffectedResource): FindingAffectedResource {
-  switch (resource.type) {
-    case AffectedResourceType.WebEndpoint: {
-      const { reportedUrl: _, ...rest } = resource;
-      return rest;
-    }
-    case AffectedResourceType.SourceCode: {
-      const { revision: _, ...rest } = resource;
-      return rest;
-    }
-    case AffectedResourceType.Package: {
-      const { version: _, ...rest } = resource;
-      return rest;
-    }
-    case AffectedResourceType.ContainerImage: {
-      const { tag: _, ...rest } = resource;
-      return rest;
-    }
-    case AffectedResourceType.CloudResource: {
-      const { displayName: _, ...rest } = resource;
-      return rest;
-    }
-    default:
-      return resource;
-  }
-}
-
 function finding(
   key: number,
   owner: Asset,
@@ -244,7 +214,7 @@ function seeded(
   const record = finding(key, owner, status, {
     title: source.title,
     weakness: source.weakness,
-    affectedResource: findingResource(source.affectedResource),
+    affectedResource: toFindingAffectedResource(source.affectedResource),
   });
   return { finding: record, observation: observation(key, record, source) };
 }
@@ -608,7 +578,7 @@ const manualSecretSource = semgrep(
 const manualSecret = finding(34, checkoutRepository, FindingStatus.Active, {
   title: "Hard-coded payment gateway secret",
   weakness: manualSecretSource.weakness,
-  affectedResource: findingResource(manualSecretSource.affectedResource),
+  affectedResource: toFindingAffectedResource(manualSecretSource.affectedResource),
 });
 
 const sourceCode: FindingScenario = {
