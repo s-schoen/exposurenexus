@@ -2,7 +2,6 @@
   "$schema": "https://opencode.ai/config.json",
   "permission": {
     "bash": {
-      "pnpm --filter @exposurenexus/ui build-storybook *": "allow",
       "pnpm --filter @exposurenexus/ui build *": "allow",
       "pnpm format *": "allow",
       "pnpm format:check *": "allow",
@@ -10,7 +9,6 @@
       "pnpm lint:agent *": "allow",
       "pnpm lint:fix *": "allow",
       "pnpm --filter @exposurenexus/ui test *": "allow",
-      "pnpm --filter @exposurenexus/ui test:unit *": "allow",
       "pnpm --filter @exposurenexus/ui test:coverage *": "allow"
     }
   },
@@ -24,11 +22,6 @@
     "shadcn": {
       "type": "local",
       "command": ["pnpm", "dlx", "shadcn@latest", "mcp"],
-      "enabled": true
-    },
-    "storybook": {
-      "type": "remote",
-      "url": "http://localhost:6006/mcp",
       "enabled": true
     }
   }

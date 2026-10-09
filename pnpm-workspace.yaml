@@ -9,9 +9,7 @@ overrides:
   "fast-uri@<=3.1.1": 3.1.2
   # Force patched express dependency for GHSA-q8mj-m7cp-5q26.
   "qs@>=6.11.1 <=6.15.1": 6.15.2
-  # Satisfy @valibot/to-json-schema peer range used by Storybook MCP tooling.
-  valibot: 1.4.0
-  # Force patched devtools/storybook websocket dependency for GHSA-58qx-3vcg-4xpx.
+  # Force patched devtools websocket dependency for GHSA-58qx-3vcg-4xpx.
   "ws@>=8.0.0 <8.20.1": 8.20.1
 
 blockExoticSubdeps: true
@@ -23,7 +21,7 @@ trustPolicyIgnoreAfter: 525600
 trustLockfile: false
 strictDepBuilds: true
 allowBuilds:
-  # Required native binary setup for Vite, Vitest, Storybook, and tsx.
+  # Required native binary setup for Vite, Vitest, and tsx.
   esbuild: true
   # MSW postinstall is not required for this workspace.
   msw: false

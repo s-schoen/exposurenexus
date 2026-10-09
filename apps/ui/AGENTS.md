@@ -6,11 +6,8 @@
 - `pnpm build` to build code with `tsc` and check for syntax errors
 - Run `pnpm lint` from the repository root to lint with Oxlint
 - Run `pnpm format:check` from the repository root to verify Oxfmt formatting
-- `pnpm test` to run the full Vitest suite
-- `pnpm test:unit` to run unit tests only; pass a file path after `--` to target an individual test file
+- `pnpm test` to run the Vitest suite; pass a file path after `--` to target an individual test file
 - `pnpm test:coverage` to run the test suite with coverage output
-- `pnpm storybook` to run Storybook locally
-- `pnpm build-storybook` to build the static Storybook site
 
 ## Code Style & Conventions
 
@@ -31,9 +28,6 @@ Do NOT commit any changes to git unless you are explicitly asked.
 - **Imports**: ALWAYS use absolute imports with `@/` alias (e.g., `import { Button } from "@/components/ui/button"`).
   Generated files such as `src/routeTree.gen.ts` are exempt and may keep generator-produced relative imports.
 - **Naming**: kebab-case for components (`my-button.tsx`), camelCase for helpers (`utils.ts`).
-- **Storybook**: Always create or update a Storybook story for new app-owned components. Prefer colocated
-  `*.stories.tsx` files that cover the component's primary visual states. Do not add stories for shadcn internal
-  primitives in `src/components/ui` unless explicitly requested.
 
 ## Resource Mutation Policy
 
@@ -63,19 +57,16 @@ Do NOT commit any changes to git unless you are explicitly asked.
 - Keep the UI import page disabled. The API accepts metadata and bytes and the worker only reads/logs input; this is not
   imported observations. See `docs/import-sources.md` before changing the import workflow.
 - Exceptions include auth/session cache clearing, pure local UI state, form validation and draft state, clipboard actions,
-  dialogs, filters, search params, tests, and stories. Test and Storybook harnesses may seed or update query caches to
+  dialogs, filters, search params, and tests. Test harnesses may seed or update query caches to
   simulate API-backed state without going through lifecycle hooks.
 
 ## Component Tests
 
-- Every new app-owned component should include a colocated Storybook story and a colocated unit test from now on.
-- Treat the story file as the source of truth for component states, sample data, and test harness setup.
-- Prefer colocated `*.test.tsx` files that import the stories with `composeStories` from `@storybook/react-vite`.
-- Use unit tests to assert user-visible behavior and core interactions. Do not duplicate those assertions in story
-  `play` functions unless the `play` function adds real value to the Storybook demo itself.
-- Keep `play` functions only for interactions that are useful to demonstrate inside Storybook.
-- For simple display components, test the primary render states from the stories.
-- For interactive components, test the key user flows from the stories, such as typing, selecting, submitting, clearing,
+- Every new app-owned component should include a colocated `*.test.tsx` unit test using Testing Library in jsdom.
+- Build sample data with shared fixture builders in `src/test/` rather than inlining large literals per test.
+- Use unit tests to assert user-visible behavior and core interactions.
+- For simple display components, test the primary render states.
+- For interactive components, test the key user flows, such as typing, selecting, submitting, clearing,
   and loading or error transitions.
 - Prefer user-visible assertions over implementation-detail assertions. Only assert data attributes or internal markers
   when they are the intentional public output of the component.

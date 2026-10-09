@@ -2,14 +2,14 @@
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
   "extends": ["../../.oxlintrc.json"],
   "plugins": ["react", "jsx-a11y", "vitest"],
-  "jsPlugins": ["eslint-plugin-storybook", "eslint-plugin-testing-library"],
+  "jsPlugins": ["eslint-plugin-testing-library"],
   "env": {
     "es2022": true
   },
-  "ignorePatterns": ["coverage", "dist", "node_modules", "/storybook-static", "src/**/*.gen.ts"],
+  "ignorePatterns": ["coverage", "dist", "node_modules", "src/**/*.gen.ts"],
   "overrides": [
     {
-      "files": ["/vite.config.ts", ".storybook/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
+      "files": ["/vite.config.ts"],
       "env": {
         "node": true
       },
@@ -138,34 +138,6 @@
       }
     },
     {
-      "files": ["src/**/*.stories.{ts,tsx}"],
-      "plugins": ["eslint", "import", "oxc", "typescript", "unicorn", "react", "jsx-a11y"],
-      "rules": {
-        "react/exhaustive-deps": "off",
-        "storybook/await-interactions": "error",
-        "storybook/context-in-play-function": "error",
-        "storybook/default-exports": "error",
-        "storybook/hierarchy-separator": "warn",
-        "storybook/no-redundant-story-name": "warn",
-        "storybook/no-renderer-packages": "error",
-        "storybook/prefer-pascal-case": "warn",
-        "storybook/story-exports": "error",
-        "storybook/use-storybook-expect": "error",
-        "storybook/use-storybook-testing-library": "error"
-      }
-    },
-    {
-      "files": [".storybook/main.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
-      "rules": {
-        "storybook/no-uninstalled-addons": [
-          "error",
-          {
-            "packageJsonLocation": "apps/ui/package.json"
-          }
-        ]
-      }
-    },
-    {
       "files": ["src/components/ui/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}"],
       "plugins": ["eslint", "import", "oxc", "typescript", "unicorn", "react"],
       "rules": {
@@ -223,7 +195,7 @@
                 "regex": "^@/features/[^/]+/"
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -238,7 +210,7 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
       "files": ["src/components/**/*.{ts,tsx}"],
@@ -256,7 +228,7 @@
                 "regex": "^@/features/[^/]+/"
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -289,7 +261,7 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
       "files": ["src/components/ui/**/*.{ts,tsx}"],
@@ -307,7 +279,7 @@
                 "regex": "^@/features/[^/]+/"
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -344,7 +316,7 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
       "files": ["src/hooks/**/*.{ts,tsx}"],
@@ -362,7 +334,7 @@
                 "regex": "^@/features/[^/]+/"
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -385,7 +357,7 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
       "files": ["src/integrations/**/*.{ts,tsx}"],
@@ -403,7 +375,7 @@
                 "regex": "^@/features/[^/]+/"
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -426,7 +398,7 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
       "files": ["src/lib/**/*.{ts,tsx}"],
@@ -444,7 +416,7 @@
                 "regex": "^@/features/[^/]+/"
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -467,7 +439,7 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
       "files": ["src/features/auth/**/*.{ts,tsx}"],
@@ -493,7 +465,7 @@
                 "message": "Features must not depend on routing or integration wiring."
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -512,10 +484,10 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
-      "files": ["src/features/auth/**/*.{test,spec,stories}.{ts,tsx}"],
+      "files": ["src/features/auth/**/*.{test,spec}.{ts,tsx}"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -574,7 +546,7 @@
                 "message": "Features must not depend on routing or integration wiring."
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -593,10 +565,10 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
-      "files": ["src/features/roles/**/*.{test,spec,stories}.{ts,tsx}"],
+      "files": ["src/features/roles/**/*.{test,spec}.{ts,tsx}"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -655,7 +627,7 @@
                 "message": "Features must not depend on routing or integration wiring."
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -678,10 +650,10 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
-      "files": ["src/features/custom-fields/**/*.{test,spec,stories}.{ts,tsx}"],
+      "files": ["src/features/custom-fields/**/*.{test,spec}.{ts,tsx}"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -744,7 +716,7 @@
                 "message": "Features must not depend on routing or integration wiring."
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -769,10 +741,10 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
-      "files": ["src/features/users/**/*.{test,spec,stories}.{ts,tsx}"],
+      "files": ["src/features/users/**/*.{test,spec}.{ts,tsx}"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -837,7 +809,7 @@
                 "message": "Features must not depend on routing or integration wiring."
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -862,10 +834,10 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
-      "files": ["src/features/vulnerabilities/**/*.{test,spec,stories}.{ts,tsx}"],
+      "files": ["src/features/vulnerabilities/**/*.{test,spec}.{ts,tsx}"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -930,7 +902,7 @@
                 "message": "Features must not depend on routing or integration wiring."
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -957,10 +929,10 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
-      "files": ["src/features/assets/**/*.{test,spec,stories}.{ts,tsx}"],
+      "files": ["src/features/assets/**/*.{test,spec}.{ts,tsx}"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -1027,7 +999,7 @@
                 "message": "Features must not depend on routing or integration wiring."
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -1056,10 +1028,10 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
-      "files": ["src/features/findings/**/*.{test,spec,stories}.{ts,tsx}"],
+      "files": ["src/features/findings/**/*.{test,spec}.{ts,tsx}"],
       "rules": {
         "no-restricted-imports": [
           "error",
@@ -1128,7 +1100,7 @@
                 "message": "Features must not depend on routing or integration wiring."
               },
               {
-                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec|stories)(?:\\.|$))",
+                "regex": "(?:^@/test(?:/|$)|\\.(?:test|spec)(?:\\.|$))",
                 "message": "Production modules must not import test or story support."
               },
               {
@@ -1155,10 +1127,10 @@
           }
         ]
       },
-      "excludeFiles": ["src/**/*.{test,spec,stories}.{ts,tsx}", "src/test/**"]
+      "excludeFiles": ["src/**/*.{test,spec}.{ts,tsx}", "src/test/**"]
     },
     {
-      "files": ["src/features/dashboard/**/*.{test,spec,stories}.{ts,tsx}"],
+      "files": ["src/features/dashboard/**/*.{test,spec}.{ts,tsx}"],
       "rules": {
         "no-restricted-imports": [
           "error",

@@ -273,7 +273,6 @@ pnpm dev:api
 pnpm dev:ui
 pnpm test:api
 pnpm test:ui
-pnpm storybook:ui
 ```
 
 ## Technical Notes

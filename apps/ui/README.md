@@ -11,8 +11,6 @@ pnpm dev
 pnpm build
 pnpm test
 pnpm test:coverage
-pnpm storybook
-pnpm build-storybook
 ```
 
 ## Notes
