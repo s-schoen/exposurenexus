@@ -13,6 +13,7 @@ import * as findingVulnerabilityPersistence from "./finding-vulnerability-persis
 import { createFindingsBehavior, type Findings } from "./findings.js";
 import * as observationPersistence from "./observation-persistence.js";
 
+export { toFindingAffectedResource } from "./affected-resource-rules.js";
 export { fingerprintsSchema } from "./fingerprint-rules.js";
 export { weaknessSchema } from "./weakness-rules.js";
 export type { FindingIdentity } from "./finding-projection.js";
