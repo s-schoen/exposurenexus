@@ -61,11 +61,12 @@ export function subscribeUnauthorizedAPIError(handler: UnauthorizedAPIErrorHandl
   };
 }
 
-export function createAppQueryClient(): QueryClient {
+/** `retry: false` keeps the app's error handling without retry backoff, for tests. */
+export function createAppQueryClient({ retry = true }: { retry?: boolean } = {}): QueryClient {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        retry: shouldRetryQuery,
+        retry: retry ? shouldRetryQuery : false,
       },
     },
     queryCache: new QueryCache({
