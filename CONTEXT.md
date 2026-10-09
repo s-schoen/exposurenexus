@@ -414,42 +414,45 @@ changes emit complete previous and current asset snapshots after commit.
 
 ### Import
 
-An **import** is intended to ingest external observations into ExposureNexus.
-Scan-upload registration and one-shot byte upload now support durable ingestion
-submission. A worker shell reads the complete stored input and logs completion,
-but accepted or successfully read bytes are not imported observations. Empty and
-malformed contents are not parsed. Automated persistence and observation-to-finding
-matching remain deferred, and the UI import workflow remains disabled.
+An **import** ingests external observations into ExposureNexus. Scan-upload
+registration and one-shot byte upload support durable ingestion submission. The
+worker then normalizes the stored input, matches its candidates to assets and
+findings, and persists the resulting observations, attached to existing findings or
+to new ones. The UI import workflow remains disabled.
 
-When enabled, imports will resolve source records against user-managed assets and
-findings. They will not create assets or vulnerability catalog entries. A record
-whose target cannot be resolved to one asset will not become an observation.
-Neither will a candidate with an unresolved finding match; these are logged, and
-human review of unresolved finding matches is the intended future.
+Imports resolve source records against user-managed assets and findings. They do
+not create assets or vulnerability catalog entries. A candidate that cannot be
+resolved to one asset does not become an observation. Neither does a candidate with
+an unresolved finding match; both are logged, and human review of unresolved
+matches is the intended future.
 
 ### Ingestion
 
-An **ingestion** groups observations created from one imported source file or
-source dataset. It retains its identity, scanner source, creation actor, and
-creation time so imported observations can retain provenance. It may identify one
-durable import source; preexisting ingestions without stored raw input retain
-their provenance without an invented source. An ingestion is not an upload
-placeholder: submission creates it only after its raw input is durably available,
-with the registered scanner source and creator. Acceptance does not mean the worker
-has run, and shell completion does not mean observations exist. An ingestion's
+An **ingestion** groups observations created from one imported source file or source
+dataset. It retains its identity, scanner source, creation actor, and creation time so
+imported observations can retain provenance. It may identify one durable import
+source; preexisting ingestions without stored raw input retain their provenance
+without an invented source. An ingestion is not an upload placeholder: submission
+creates it only after its raw input is durably available, with the registered scanner
+source and creator. Acceptance does not mean the worker has run. An ingestion's
 **status** is `pending` until processing records an outcome: `completed`, or `failed`
-with a failure code such as `ingestion.parse_failed`. Both outcomes record when
-processing finished, and an ingestion that is no longer `pending` is not processed
-again. An **ingestion plan** is the fully decided outcome of matching: the new
-findings to create on matched assets, and the observations to attach to existing
-findings. Recording a plan writes it and completes the ingestion together. The
-ingestion's creator is the actor, and its scanner source is each observation's source.
-Attaching an observation reopens an `inactive` or `mitigated` finding as `active` and
-keeps its triage. If an asset or finding changed after matching, the plan is stale
-and nothing is written. Ingestion scope
-and processed, created, skipped, and
-erroneous record accounting are deferred until automated processing is implemented.
-Manual observations do not belong to ingestions.
+with a failure code such as `ingestion.parse_failed` when its input cannot be parsed.
+Both outcomes record when processing finished, and an ingestion that is no longer
+`pending` is not processed again. An **ingestion plan** is the fully decided outcome
+of matching: the new findings to create on matched assets, and the observations to
+attach to existing findings. Each new finding group seeds one `active` finding: its
+first candidate in source order supplies the title, weakness, and affected resource
+without observation-only fields, and the group's highest severity becomes the
+finding's. An observation without an observed time takes the ingestion's creation
+time. Recording a plan writes it and completes the ingestion together. The ingestion's
+creator is the actor, and its scanner source is each observation's source. Attaching
+an observation reopens an `inactive` or `mitigated` finding as `active` and keeps its
+triage. If an asset or finding changed after matching, the plan is stale and nothing
+is written; processing is retried on fresh data. A scan with no candidates, or with
+only unresolved ones, still completes. Importing the same file twice creates two
+ingestions and duplicate observations. Ingestion scope and stored processed, created,
+skipped, and unresolved record accounting are deferred. Manual observations do not
+belong to ingestions.
 
 ### Import Source
 
@@ -486,15 +489,14 @@ is intended for cleanup after ingestion (`temporary`) or continued retention
 (`keep`). The application snapshots its configured policy at registration, with
 `temporary` as the default and no per-upload override; later configuration
 changes do not change existing sources' policies. Retention does not schedule
-cleanup, prevent explicit deletion, or imply immutable evidence. The future
-ingestion workflow must decide when raw input is no longer needed for retries.
-The read-only worker shell never deletes input, even under `temporary` retention.
-Retained inputs and abandoned registrations accumulate until cleanup is implemented
-or explicitly performed; duplicate deliveries can safely read and log again.
+cleanup, prevent explicit deletion, or imply immutable evidence. Ingestion
+does not yet decide when raw input is no longer needed for retries, so the worker
+never deletes input, even under `temporary` retention. Retained inputs and abandoned
+registrations accumulate until cleanup is implemented or explicitly performed;
+duplicate deliveries can safely read the input again.
 
 See [S3-Backed Import Sources](docs/adr/0006-s3-backed-import-sources.md) for the
-delivered registration, one-shot upload, durable submission, and read-only worker
-shell contract and deferred processing work.
+registration, one-shot upload, and durable submission contract.
 
 ### Vulnerability Source Mapping
 
@@ -567,8 +569,9 @@ high exposure, affected assets, and mitigation rate.
   used by both API and UI.
 - Asset custom fields currently apply only to assets, not findings,
   vulnerabilities, users, or roles.
-- The worker shell reads stored input without parsing it or writing domain or job
-  execution state; execution remains `pending` and completion is observable only in logs.
+- The worker orchestrates ingestion: it normalizes stored input, runs asset and
+  finding matching, and builds the ingestion plan. The shared backend persists the
+  plan and the ingestion status. Job execution state remains `pending`.
 
 ## Vocabulary Rules
 

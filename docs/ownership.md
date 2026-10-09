@@ -61,9 +61,9 @@ Ownership can be cleared explicitly by setting `ownerId` to `null`. Clearing
 ownership means responsibility is unknown; it is distinct from assigning an
 invalid or missing user profile.
 
-The import API registers metadata and accepts uploaded scans; the worker shell
-only reads and logs the stored input, without parsing or changing asset ownership.
-Import-time asset ownership behavior is not defined yet.
+The import API registers metadata and accepts uploaded scans; the worker matches
+their observations to existing assets without creating assets or changing asset
+ownership. Import-time asset ownership behavior is not defined yet.
 
 ## User Profile Behavior
 
@@ -111,8 +111,8 @@ shown as context, but it is not copied into the finding assignment.
 Manual finding creation may set an assignee explicitly, but the default is
 unassigned.
 
-Neither metadata registration, upload acceptance, nor worker shell completion
-creates or assigns findings. Automated scan parsing and persistence remain unavailable.
+Neither metadata registration nor upload acceptance creates findings. Ingestion
+creates findings without an assignee and keeps the assignee of matched findings.
 
 The first assignment model does not keep dedicated assignment history. The
 normal finding audit fields still show the most recent update metadata, but
