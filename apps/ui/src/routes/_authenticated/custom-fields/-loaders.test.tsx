@@ -7,11 +7,11 @@ import {
   createAssetCustomFieldDefinitionByIDQueryOptions,
   createListAssetCustomFieldDefinitionsQueryOptions,
 } from "@/features/custom-fields";
+import { SEED_CUSTOM_FIELDS } from "@/mocks/fixtures/seed.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/custom-fields/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/custom-fields/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/custom-fields/index.tsx";
 import { Route as NewRoute } from "@/routes/_authenticated/custom-fields/new.tsx";
-import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/test/fixtures.ts";
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -38,7 +38,7 @@ type Loader = (args: {
   context: { queryClient: QueryClient };
   params: { id: string };
 }) => Promise<unknown>;
-const field = ASSET_CUSTOM_FIELD_FIXTURES[0];
+const field = SEED_CUSTOM_FIELDS[0];
 it("ensures exactly the list query without loading the selected preview", async () => {
   const client = new QueryClient();
   const ensure = vi.spyOn(client, "ensureQueryData").mockResolvedValue([]);

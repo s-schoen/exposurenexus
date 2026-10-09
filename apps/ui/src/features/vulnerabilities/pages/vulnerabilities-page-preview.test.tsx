@@ -4,7 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { getVulnerabilityByID } from "@/features/vulnerabilities/api/vulnerabilities.ts";
 import { VulnerabilitiesPage } from "@/features/vulnerabilities/pages/vulnerabilities-page.tsx";
-import { STORY_VULNERABILITIES } from "@/test/fixtures.ts";
+import { SEED_VULNERABILITIES } from "@/mocks/fixtures/seed.ts";
 
 import type { ReactNode } from "react";
 
@@ -38,18 +38,18 @@ it("does not fetch a preview until selected and keeps the table usable after pre
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
-  client.setQueryData(["vulnerabilities"], [STORY_VULNERABILITIES[1]]);
+  client.setQueryData(["vulnerabilities"], [SEED_VULNERABILITIES[1]]);
   vi.mocked(getVulnerabilityByID).mockRejectedValue(new Error("Preview request failed"));
   const { rerender } = render(
     <QueryClientProvider client={client}>
       <VulnerabilitiesPage />
     </QueryClientProvider>,
   );
-  expect(screen.getByText(STORY_VULNERABILITIES[1].title)).toBeVisible();
+  expect(screen.getByText(SEED_VULNERABILITIES[1].title)).toBeVisible();
   expect(getVulnerabilityByID).not.toHaveBeenCalled();
   rerender(
     <QueryClientProvider client={client}>
-      <VulnerabilitiesPage selected={STORY_VULNERABILITIES[1].id} />
+      <VulnerabilitiesPage selected={SEED_VULNERABILITIES[1].id} />
     </QueryClientProvider>,
   );
   // The real lazy preview module can take longer to load alongside Chromium stories.
@@ -57,8 +57,8 @@ it("does not fetch a preview until selected and keeps the table usable after pre
     await screen.findByText("Unable to load catalog entry", {}, { timeout: 10000 }),
   ).toBeVisible();
   expect(screen.getByText("Preview request failed")).toBeVisible();
-  expect(screen.getByText(STORY_VULNERABILITIES[1].title)).toBeVisible();
+  expect(screen.getByText(SEED_VULNERABILITIES[1].title)).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "New catalog entry" }));
   expect(mocks.navigate).toHaveBeenCalledWith({ to: "/vulnerabilities/new" });
-  expect(getVulnerabilityByID).toHaveBeenCalledExactlyOnceWith(STORY_VULNERABILITIES[1].id);
+  expect(getVulnerabilityByID).toHaveBeenCalledExactlyOnceWith(SEED_VULNERABILITIES[1].id);
 });

@@ -5,11 +5,11 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { createListRolesQueryOptions } from "@/features/roles";
 import { createListUsersQueryOptions, createUserByIDQueryOptions } from "@/features/users";
+import { SEED_ROLES, SEED_USERS } from "@/mocks/fixtures/seed.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/users/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/users/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/users/index.tsx";
 import { Route as NewRoute } from "@/routes/_authenticated/users/new.tsx";
-import { ROLE_FIXTURES, STORY_USERS } from "@/test/fixtures.ts";
 
 import type { ComponentType } from "react";
 
@@ -34,7 +34,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   createFileRoute: () => (options: Record<string, unknown>) => ({
     options,
-    useParams: () => ({ id: STORY_USERS[1].id }),
+    useParams: () => ({ id: SEED_USERS[1].id }),
     useSearch: () => ({}),
   }),
   useNavigate: () => vi.fn(),
@@ -62,7 +62,7 @@ type Loader = (args: {
   deps?: { selected: string };
 }) => Promise<unknown>;
 
-const user = STORY_USERS[1];
+const user = SEED_USERS[1];
 const cases = [
   ["index", IndexRoute, [createListUsersQueryOptions(), createListRolesQueryOptions()]],
   [
@@ -130,7 +130,7 @@ it("fetches users and roles once across index loading and suspense rendering", a
   // Use production query defaults, so a stale-time regression causes a duplicate request.
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   vi.mocked(listUsers).mockResolvedValue([user]);
-  vi.mocked(listRoles).mockResolvedValue(ROLE_FIXTURES);
+  vi.mocked(listRoles).mockResolvedValue(SEED_ROLES);
   await (IndexRoute.options.loader as unknown as Loader)({
     context: { queryClient: client },
     params: { id: user.id },
@@ -147,7 +147,7 @@ it("fetches users and roles once across index loading and suspense rendering", a
   });
   expect(await screen.findByText(user.displayName)).toBeVisible();
   expect(
-    screen.getByText(ROLE_FIXTURES.find((role) => user.roleIds.includes(role.id))!.name),
+    screen.getByText(SEED_ROLES.find((role) => user.roleIds.includes(role.id))!.name),
   ).toBeVisible();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(listUsers).toHaveBeenCalledTimes(1);
@@ -162,7 +162,7 @@ it("nested edit renders parent-loaded user and roles without a duplicate loader"
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
   vi.mocked(getUserByID).mockResolvedValue(user);
-  vi.mocked(listRoles).mockResolvedValue(ROLE_FIXTURES);
+  vi.mocked(listRoles).mockResolvedValue(SEED_ROLES);
   await (DetailRoute.options.loader as unknown as Loader)({
     context: { queryClient: client },
     params: { id: user.id },

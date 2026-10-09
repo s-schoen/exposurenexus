@@ -7,11 +7,11 @@ import {
   createListVulnerabilitiesQueryOptions,
   createVulnerabilityByIDQueryOptions,
 } from "@/features/vulnerabilities";
+import { SEED_VULNERABILITIES } from "@/mocks/fixtures/seed.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/vulnerabilities/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/vulnerabilities/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/vulnerabilities/index.tsx";
 import { Route as NewRoute } from "@/routes/_authenticated/vulnerabilities/new.tsx";
-import { STORY_VULNERABILITIES } from "@/test/fixtures.ts";
 
 import type { ComponentType } from "react";
 
@@ -35,7 +35,7 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   createFileRoute: () => (options: Record<string, unknown>) => ({
     options,
-    useParams: () => ({ id: STORY_VULNERABILITIES[1].id }),
+    useParams: () => ({ id: SEED_VULNERABILITIES[1].id }),
     useSearch: () => ({}),
   }),
   useNavigate: () => vi.fn(),
@@ -63,7 +63,7 @@ type Loader = (args: {
   deps?: { selected: string };
 }) => Promise<unknown>;
 
-const vulnerability = STORY_VULNERABILITIES[1];
+const vulnerability = SEED_VULNERABILITIES[1];
 const cases = [
   ["index", IndexRoute, [createListVulnerabilitiesQueryOptions()]],
   ["parent detail", DetailRoute, [createVulnerabilityByIDQueryOptions(vulnerability.id)]],

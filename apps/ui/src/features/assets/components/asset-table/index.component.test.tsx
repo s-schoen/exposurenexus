@@ -7,7 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getAssetCustomFieldColumnId } from "@/features/assets/components/asset-table/columns.tsx";
-import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/test/fixtures.ts";
+import { SEED_CUSTOM_FIELDS } from "@/mocks/fixtures/seed.ts";
 
 import type { AssetListOptions } from "@/features/assets/api/assets.ts";
 import type { AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
@@ -62,7 +62,7 @@ vi.mock("@tanstack/react-query", () => ({
   useSuspenseQuery: (options: { queryKey: Array<string> }) => {
     if (options.queryKey.join("/") === "asset-custom-fields") {
       return {
-        data: ASSET_CUSTOM_FIELD_FIXTURES,
+        data: SEED_CUSTOM_FIELDS,
         isPending: false,
         isSuccess: true,
       };

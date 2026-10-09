@@ -16,6 +16,7 @@
     "coverage:worker": "pnpm --filter @exposurenexus/worker^... build && pnpm --filter @exposurenexus/worker test:coverage",
     "dev:api": "pnpm --filter @exposurenexus/api^... build && pnpm --filter @exposurenexus/api dev",
     "dev:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui dev",
+    "dev:ui:mock": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui dev:mock",
     "dev:worker": "pnpm --filter @exposurenexus/worker^... build && pnpm --filter @exposurenexus/worker dev",
     "eval:asset-matching": "pnpm --filter @exposurenexus/worker^... build && pnpm --filter @exposurenexus/worker eval:asset-matching",
     "eval:finding-matching": "pnpm --filter @exposurenexus/worker^... build && pnpm --filter @exposurenexus/worker eval:finding-matching",

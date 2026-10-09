@@ -187,6 +187,11 @@ pnpm dev:ui
 
 Open `http://localhost:3000`.
 
+To work on the UI without the API, worker, or database, run `pnpm dev:ui:mock` instead. It serves every API request
+from an in-browser [MSW](https://mswjs.io) mock backed by seed data (`apps/ui/src/mocks`). Sign in with any password; an
+unknown username signs in as the seeded admin. Add `?mockScenario=empty` or `?mockScenario=loggedOut` to the URL to
+start from another seed. Mock data lives in memory, so a reload starts over.
+
 The UI import page remains disabled. Authenticated API callers can
 [register immutable scan-upload metadata](import-sources.md#register-a-scan-upload),
 then [upload raw bytes once](import-sources.md#upload-and-submit) as that creator
@@ -271,6 +276,7 @@ Useful workspace commands:
 ```bash
 pnpm dev:api
 pnpm dev:ui
+pnpm dev:ui:mock
 pnpm test:api
 pnpm test:ui
 ```

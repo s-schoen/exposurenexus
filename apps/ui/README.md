@@ -8,6 +8,7 @@ See [Development](../../docs/development.md) for local setup and workspace comma
 
 ```bash
 pnpm dev
+pnpm dev:mock   # UI against the MSW mock API, no backend needed
 pnpm build
 pnpm test
 pnpm test:coverage

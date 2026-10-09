@@ -8,6 +8,8 @@
 - Run `pnpm format:check` from the repository root to verify Oxfmt formatting
 - `pnpm test` to run the Vitest suite; pass a file path after `--` to target an individual test file
 - `pnpm test:coverage` to run the test suite with coverage output
+- `pnpm dev:mock` to run the UI against the in-browser MSW mock API (no API server or database); pick a seed with
+  `?mockScenario=empty` or `?mockScenario=loggedOut`
 
 ## Code Style & Conventions
 
@@ -57,13 +59,33 @@ Do NOT commit any changes to git unless you are explicitly asked.
 - Keep the UI import page disabled. The API accepts metadata and bytes and the worker only reads/logs input; this is not
   imported observations. See `docs/import-sources.md` before changing the import workflow.
 - Exceptions include auth/session cache clearing, pure local UI state, form validation and draft state, clipboard actions,
-  dialogs, filters, search params, and tests. Test harnesses may seed or update query caches to
-  simulate API-backed state without going through lifecycle hooks.
+  dialogs, filters, search params, and tests. Tests should seed API-backed state in the mock DB, not the query cache.
+
+## Mock API and Fixtures
+
+- `src/mocks/` is the single mock backend for tests and `pnpm dev:mock`: MSW handlers in `src/mocks/handlers/` over an
+  in-memory DB (`src/mocks/db.ts`) seeded from `src/mocks/fixtures/seed.ts`. Handlers mirror the real API: reply
+  envelopes, 201 on create, 404 for unknown ids, 401 without a session, and request bodies validated with the contracts
+  schemas.
+- Build sample data with `buildX(overrides)` from `@/mocks/fixtures` (deterministic ids, names and dates). Pass
+  relations explicitly, e.g. `buildFinding({ assetId: asset.id })`. Use the `SEED_*` records when a test needs data the
+  default scenario already serves.
+- When the API gains or changes an endpoint, update its handler and builder in the same change. Keep
+  `src/mocks/fixtures/fixtures.test.ts` and `src/mocks/handlers/handlers.test.ts` passing; they catch drift from
+  contracts.
 
 ## Component Tests
 
 - Every new app-owned component should include a colocated `*.test.tsx` unit test using Testing Library in jsdom.
-- Build sample data with shared fixture builders in `src/test/` rather than inlining large literals per test.
+- Tests run against the MSW mock API (`src/test/setup.ts`); any unmocked request fails the test, and the mock DB
+  resets after each test.
+- Render whole pages with `renderApp({ path, scenario })` from `@/test/render-app.tsx` (real router, queries and
+  lifecycle hooks). Render components with `renderWithAppProviders` from `@/test/harness.tsx`. See
+  `src/features/roles/pages/roles-pages.app.test.tsx`.
+- Set up state through the mock API: insert records with `db` from `@/test/msw.ts`, switch seeds with `seedScenario`,
+  force failures with `mockApiError(method, path, status)`, and assert traffic with `recordApiRequests()`.
+- Do not `vi.mock` `@tanstack/react-query`, `@tanstack/react-router`, or feature `api`/`queries`/`mutations`/`hooks`
+  modules in new tests, and do not stub `fetch`. Older tests still do; migrate them when you touch them.
 - Use unit tests to assert user-visible behavior and core interactions.
 - For simple display components, test the primary render states.
 - For interactive components, test the key user flows, such as typing, selecting, submitting, clearing,

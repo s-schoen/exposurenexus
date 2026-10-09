@@ -20,7 +20,7 @@ import {
   createClearedAssetCustomFieldSearchParams,
   parseAssetCustomFieldFiltersFromSearch,
 } from "@/features/assets/hooks/use-asset-table-search-state.ts";
-import { ASSET_CUSTOM_FIELD_FIXTURES } from "@/test/fixtures.ts";
+import { SEED_CUSTOM_FIELDS } from "@/mocks/fixtures/seed.ts";
 
 import type { DataTableAccessorFnColumnDef } from "@/components/data-table/types.ts";
 import type { AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
@@ -49,7 +49,7 @@ describe("asset table custom field grouping", () => {
           [getAssetCustomFieldColumnId("2808e68c-9a48-4b50-9a2d-d1df4c83ff06")]: "3",
         },
       },
-      ASSET_CUSTOM_FIELD_FIXTURES,
+      SEED_CUSTOM_FIELDS,
     );
 
     expect(searchParams).toEqual({
@@ -71,7 +71,7 @@ describe("asset table custom field grouping", () => {
             ],
           },
         },
-        ASSET_CUSTOM_FIELD_FIXTURES,
+        SEED_CUSTOM_FIELDS,
       ),
     ).toEqual({
       deployment_tier: "production,staging",
@@ -86,7 +86,7 @@ describe("asset table custom field grouping", () => {
           deployment_tier: "production,staging",
           priority: "3",
         },
-        ASSET_CUSTOM_FIELD_FIXTURES,
+        SEED_CUSTOM_FIELDS,
       ),
     ).toEqual({
       select: {
@@ -105,7 +105,7 @@ describe("asset table custom field grouping", () => {
   });
 
   it("builds cleared search params for all custom field keys", () => {
-    expect(createClearedAssetCustomFieldSearchParams(ASSET_CUSTOM_FIELD_FIXTURES)).toEqual({
+    expect(createClearedAssetCustomFieldSearchParams(SEED_CUSTOM_FIELDS)).toEqual({
       category: undefined,
       deployment_tier: undefined,
       priority: undefined,
@@ -113,7 +113,7 @@ describe("asset table custom field grouping", () => {
   });
 
   it("assigns type-specific filter variants to custom field columns", () => {
-    const columns = createAssetTableColumns(ASSET_CUSTOM_FIELD_FIXTURES);
+    const columns = createAssetTableColumns(SEED_CUSTOM_FIELDS);
 
     expect(
       columns.find(
@@ -136,7 +136,7 @@ describe("asset table custom field grouping", () => {
   });
 
   it("exposes core asset filters and canonical identifiers", () => {
-    const columns = createAssetTableColumns(ASSET_CUSTOM_FIELD_FIXTURES);
+    const columns = createAssetTableColumns(SEED_CUSTOM_FIELDS);
     const asset: AssetWithCustomFields = {
       id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
       displayName: "api-01",
@@ -217,7 +217,7 @@ describe("asset table custom field grouping", () => {
   });
 
   it("filters core asset columns, including ownerless assets", () => {
-    const columns = createAssetTableColumns(ASSET_CUSTOM_FIELD_FIXTURES);
+    const columns = createAssetTableColumns(SEED_CUSTOM_FIELDS);
     const asset: AssetWithCustomFields = {
       id: "9cfa717a-332f-4ee5-a98e-7641d9a055f5",
       displayName: "api-01",
@@ -263,7 +263,7 @@ describe("asset table custom field grouping", () => {
   });
 
   it("adds custom field definitions to the grouping options", () => {
-    const groupingOptions = createAssetTableGroupingOptions(ASSET_CUSTOM_FIELD_FIXTURES);
+    const groupingOptions = createAssetTableGroupingOptions(SEED_CUSTOM_FIELDS);
 
     expect(groupingOptions.map((option) => option.label)).toEqual([
       "Type",
@@ -282,9 +282,9 @@ describe("asset table custom field grouping", () => {
   });
 
   it("formats empty custom field grouping values as None", () => {
-    const categoryGroupingOption = createAssetTableGroupingOptions(
-      ASSET_CUSTOM_FIELD_FIXTURES,
-    ).find((option) => option.label === "Category");
+    const categoryGroupingOption = createAssetTableGroupingOptions(SEED_CUSTOM_FIELDS).find(
+      (option) => option.label === "Category",
+    );
 
     expect(categoryGroupingOption?.formatValue?.("Internet-facing")).toBe("Internet-facing");
     expect(categoryGroupingOption?.formatValue?.("")).toBe("None");
@@ -292,13 +292,13 @@ describe("asset table custom field grouping", () => {
   });
 
   it("groups select custom fields by their display label", () => {
-    const environmentDefinition = ASSET_CUSTOM_FIELD_FIXTURES.find(
+    const environmentDefinition = SEED_CUSTOM_FIELDS.find(
       (
         definition,
       ): definition is Extract<AssetCustomFieldDefinition, { type: AssetCustomFieldType.Select }> =>
         definition.name === "Deployment tier" && definition.type === AssetCustomFieldType.Select,
     )!;
-    const environmentColumn = createAssetTableColumns(ASSET_CUSTOM_FIELD_FIXTURES).find(
+    const environmentColumn = createAssetTableColumns(SEED_CUSTOM_FIELDS).find(
       (column) => column.id === getAssetCustomFieldColumnId(environmentDefinition.id),
     ) as DataTableAccessorFnColumnDef<AssetWithCustomFields, string>;
     const asset: AssetWithCustomFields = {
@@ -330,10 +330,10 @@ describe("asset table custom field grouping", () => {
   });
 
   it("filters text custom fields case-insensitively and ignores empty filters", () => {
-    const categoryDefinition = ASSET_CUSTOM_FIELD_FIXTURES.find(
+    const categoryDefinition = SEED_CUSTOM_FIELDS.find(
       (definition) => definition.name === "Category",
     )!;
-    const categoryColumn = createAssetTableColumns(ASSET_CUSTOM_FIELD_FIXTURES).find(
+    const categoryColumn = createAssetTableColumns(SEED_CUSTOM_FIELDS).find(
       (column) => column.id === getAssetCustomFieldColumnId(categoryDefinition.id),
     );
     if (!categoryColumn) {
@@ -364,10 +364,10 @@ describe("asset table custom field grouping", () => {
   });
 
   it("filters number custom fields by exact numeric value", () => {
-    const priorityDefinition = ASSET_CUSTOM_FIELD_FIXTURES.find(
+    const priorityDefinition = SEED_CUSTOM_FIELDS.find(
       (definition) => definition.name === "Priority",
     )!;
-    const priorityColumn = createAssetTableColumns(ASSET_CUSTOM_FIELD_FIXTURES).find(
+    const priorityColumn = createAssetTableColumns(SEED_CUSTOM_FIELDS).find(
       (column) => column.id === getAssetCustomFieldColumnId(priorityDefinition.id),
     );
     if (!priorityColumn) {
@@ -399,13 +399,13 @@ describe("asset table custom field grouping", () => {
   });
 
   it("filters select custom fields including empty values", () => {
-    const environmentDefinition = ASSET_CUSTOM_FIELD_FIXTURES.find(
+    const environmentDefinition = SEED_CUSTOM_FIELDS.find(
       (
         definition,
       ): definition is Extract<AssetCustomFieldDefinition, { type: AssetCustomFieldType.Select }> =>
         definition.name === "Deployment tier" && definition.type === AssetCustomFieldType.Select,
     )!;
-    const environmentColumn = createAssetTableColumns(ASSET_CUSTOM_FIELD_FIXTURES).find(
+    const environmentColumn = createAssetTableColumns(SEED_CUSTOM_FIELDS).find(
       (column) => column.id === getAssetCustomFieldColumnId(environmentDefinition.id),
     );
     if (!environmentColumn) {
