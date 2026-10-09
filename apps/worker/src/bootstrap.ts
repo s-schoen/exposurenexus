@@ -1,11 +1,19 @@
 import { JobType } from "@exposurenexus/jobs";
 
+import { identifierInventorySnapshotFrom } from "./classification/asset-classifiers/asset-inventory-adapter.js";
+import { IdentifierAssetMatcher } from "./classification/asset-classifiers/identifier-matcher.js";
+import { findingIdentitySourceFrom } from "./classification/finding-classifiers/finding-identity-adapter.js";
+import { IdentityFindingMatcher } from "./classification/finding-classifiers/identity-matcher.js";
+import { createScannerClassifier } from "./classification/normalizers/registry.js";
 import { readConfig, WorkerConfigurationError } from "./env.js";
+import { createIngestionPipeline } from "./ingestion/pipeline.js";
 import { runWorker } from "./worker.js";
 
 import type { WorkerConfig } from "./env.js";
 import type { createLogger } from "./logging.js";
 import type { WorkerDependencies } from "./worker.js";
+import type { createAssets } from "@exposurenexus/backend/assets";
+import type { createFindings } from "@exposurenexus/backend/findings";
 import type { createImportSources } from "@exposurenexus/backend/import-sources";
 import type { createIngestions } from "@exposurenexus/backend/ingestions";
 import type { createObjectStorage } from "@exposurenexus/backend/object-storage";
@@ -25,6 +33,8 @@ export function bootstrapWorker(
     createObjectStorage: typeof createObjectStorage;
     createImportSources: typeof createImportSources;
     createIngestions: typeof createIngestions;
+    createAssets: typeof createAssets;
+    createFindings: typeof createFindings;
   },
 ) {
   const bootstrapLogger = factories.createLogger();
@@ -53,26 +63,22 @@ export function bootstrapWorker(
           logger,
         }),
       createHandlers: (runtime, storage) => {
-        const ingestions = factories.createIngestions(
-          runtime,
-          factories.createImportSources(runtime, storage),
-        );
+        const inventory = factories.createAssets(runtime).inventory;
+        const pipeline = createIngestionPipeline({
+          ingestions: factories.createIngestions(
+            runtime,
+            factories.createImportSources(runtime, storage),
+          ),
+          classifier: createScannerClassifier(logger),
+          createAssetMatcher: () =>
+            new IdentifierAssetMatcher(identifierInventorySnapshotFrom(inventory)),
+          findingMatcher: new IdentityFindingMatcher(
+            findingIdentitySourceFrom(factories.createFindings(runtime)),
+          ),
+        });
         return {
-          [JobType.INGESTION]: async (event) => {
-            const fields = { jobId: event.id, ingestionId: event.data.ingestionId };
-            logger.info(fields, "ingestion shell started");
-            const { ingestion, importSourceId, data } = await ingestions.process(
-              event.data.ingestionId,
-            );
-            if (ingestion.status !== "pending") {
-              logger.info({ ...fields, status: ingestion.status }, "ingestion already processed");
-              return;
-            }
-            logger.info(
-              { ...fields, importSourceId, bytesRead: data.byteLength },
-              "ingestion shell completed",
-            );
-          },
+          [JobType.INGESTION]: (event) =>
+            pipeline.run(event.data.ingestionId, logger.child({ jobId: event.id })),
         };
       },
     });
