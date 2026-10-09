@@ -24,7 +24,6 @@
     "dist",
     "node_modules",
     "pnpm-lock.yaml",
-    "apps/ui/storybook-static",
     "apps/ui/src/**/*.gen.ts"
   ]
 }

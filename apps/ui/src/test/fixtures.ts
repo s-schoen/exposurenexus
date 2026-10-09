@@ -223,7 +223,7 @@ export const STORY_AUTH_SESSION: AuthSessionDataReply = {
     id: "7d42e746-7950-4db9-91d8-22b22d2f17cd",
     userId: STORY_USERS[0].id,
     sourceIp: "203.0.113.10",
-    userAgent: "Storybook",
+    userAgent: "Vitest",
     createdAt: new Date("2026-01-02T03:04:05.000Z"),
     expiresAt: new Date("2026-01-03T03:04:05.000Z"),
   },

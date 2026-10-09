@@ -105,9 +105,6 @@ jobs:
       - name: Run worker tests
         run: pnpm test:worker
 
-      - name: Install Playwright Chromium
-        run: pnpm --filter @exposurenexus/ui exec playwright install --with-deps chromium
-
       - name: Run UI tests
         run: pnpm test:ui
 
@@ -153,10 +150,6 @@ jobs:
       - name: Run worker coverage
         if: ${{ !cancelled() }}
         run: pnpm coverage:worker
-
-      - name: Install Playwright Chromium
-        if: ${{ !cancelled() }}
-        run: pnpm --filter @exposurenexus/ui exec playwright install --with-deps chromium
 
       - name: Run UI coverage
         if: ${{ !cancelled() }}
