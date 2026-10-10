@@ -1,4 +1,5 @@
 import { Search, XIcon } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -18,7 +19,13 @@ export function DataTableFilter({
   onFilterChange,
   onClearAll,
 }: DataTableFilterProps) {
+  // `value` usually comes from the URL, which catches up only once the navigation started by a
+  // keystroke completes. While the input has focus, show the typed text instead, so keystrokes
+  // made in the meantime are not lost.
+  const [draft, setDraft] = useState<string | null>(null);
+
   const onFilter = (e: ChangeEvent<HTMLInputElement>) => {
+    setDraft(e.target.value);
     onFilterChange(e.target.value);
   };
 
@@ -31,7 +38,8 @@ export function DataTableFilter({
           aria-label="Search across visible columns"
           placeholder="Search across visible columns"
           onChange={onFilter}
-          value={value}
+          onBlur={() => setDraft(null)}
+          value={draft ?? value}
           className="h-9 rounded-xl bg-background pl-9"
         />
       </div>
