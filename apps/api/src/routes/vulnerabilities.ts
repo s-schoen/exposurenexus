@@ -1,11 +1,11 @@
 import { vulnerabilityInputSchema } from "@exposurenexus/contracts/model/vulnerability";
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod/v4";
 
 import { notFound, unauthorized } from "../lib/api-error.js";
 import { replyArray, replyObject } from "../lib/reply.js";
 import { requestEventContext } from "../lib/request-event-context.js";
+import { zValidator } from "../lib/validator.js";
 
 import type { ContextVariables } from "../lib/hono-schema.js";
 import type { ApiVulnerabilityOperations } from "../lib/vulnerabilities-events.js";

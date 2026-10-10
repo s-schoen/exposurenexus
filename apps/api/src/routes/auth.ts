@@ -7,13 +7,13 @@ import {
   type AuthSessionReply,
 } from "@exposurenexus/contracts/api";
 import { getConnInfo } from "@hono/node-server/conninfo";
-import { zValidator } from "@hono/zod-validator";
 import { Hono, type Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 
 import { unauthorized } from "../lib/api-error.js";
 import { replyObject } from "../lib/reply.js";
 import { resolveRequestSourceIp } from "../lib/source-ip.js";
+import { zValidator } from "../lib/validator.js";
 import {
   AUTH_SESSION_COOKIE,
   DEFAULT_AUTH_COOKIE_POLICY,

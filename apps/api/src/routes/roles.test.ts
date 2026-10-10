@@ -265,6 +265,12 @@ describe("role routes", () => {
     });
 
     expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      correlationId: "roles-invalid-create-request",
+      status: 400,
+      error: "Bad Request",
+      reason: expect.stringContaining('"path": [\n      "name"\n    ]'),
+    });
     expect(roleService.create).not.toHaveBeenCalled();
   });
 
@@ -282,6 +288,7 @@ describe("role routes", () => {
     });
 
     expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ status: 400, error: "Bad Request" });
     expect(roleService.getByID).not.toHaveBeenCalled();
   });
 

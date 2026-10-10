@@ -1,12 +1,12 @@
 import { Readable } from "node:stream";
 
 import { registerImportSourceSchema } from "@exposurenexus/contracts/api";
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod/v4";
 
 import { badRequest, unauthorized } from "../lib/api-error.js";
 import { replyObject } from "../lib/reply.js";
+import { zValidator } from "../lib/validator.js";
 
 import type { ContextVariables } from "../lib/hono-schema.js";
 import type { RequireDomainPermission } from "../middleware/auth.js";
