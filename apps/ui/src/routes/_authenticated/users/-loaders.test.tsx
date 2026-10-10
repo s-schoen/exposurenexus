@@ -1,34 +1,19 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { Suspense } from "react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { createListRolesQueryOptions } from "@/features/roles";
 import { createListUsersQueryOptions, createUserByIDQueryOptions } from "@/features/users";
+import { PageProvider } from "@/hooks/use-page-meta.tsx";
 import { SEED_ROLES, SEED_USERS } from "@/mocks/fixtures/seed.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/users/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/users/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/users/index.tsx";
 import { Route as NewRoute } from "@/routes/_authenticated/users/new.tsx";
+import { recordApiRequests } from "@/test/msw.ts";
 
 import type { ComponentType } from "react";
-
-const listRoles = vi.fn<(...args: Array<string>) => Promise<unknown>>();
-const getUserByID = vi.fn<(...args: Array<string>) => Promise<unknown>>();
-const listUsers = vi.fn<(...args: Array<string>) => Promise<unknown>>();
-
-beforeEach(() => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (input: string) => {
-      if (input === "/api/roles") return Response.json({ data: { items: await listRoles() } });
-      if (input.startsWith("/api/users/"))
-        return Response.json({ data: await getUserByID(input.split("/").at(-1)!) });
-      if (input === "/api/users") return Response.json({ data: { items: await listUsers() } });
-      throw new Error(`Unexpected request: ${input}`);
-    }),
-  );
-});
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -39,21 +24,9 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
   }),
   useNavigate: () => vi.fn(),
 }));
-vi.mock("@/hooks/use-page-meta.tsx", () => ({ usePageMeta: vi.fn() }));
-vi.mock("@/components/detail-preview-dialog.tsx", () => ({ DetailPreviewDialog: () => null }));
-
-class ResizeObserverMock {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-vi.stubGlobal("ResizeObserver", ResizeObserverMock);
-
 afterEach(() => {
   cleanup();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
-  vi.clearAllMocks();
 });
 
 type Loader = (args: {
@@ -129,8 +102,7 @@ it.each(cases)(
 it("fetches users and roles once across index loading and suspense rendering", async () => {
   // Use production query defaults, so a stale-time regression causes a duplicate request.
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  vi.mocked(listUsers).mockResolvedValue([user]);
-  vi.mocked(listRoles).mockResolvedValue(SEED_ROLES);
+  const requests = recordApiRequests();
   await (IndexRoute.options.loader as unknown as Loader)({
     context: { queryClient: client },
     params: { id: user.id },
@@ -139,9 +111,11 @@ it("fetches users and roles once across index loading and suspense rendering", a
   await act(async () => {
     render(
       <QueryClientProvider client={client}>
-        <Suspense fallback="Loading">
-          <Component />
-        </Suspense>
+        <PageProvider>
+          <Suspense fallback="Loading">
+            <Component />
+          </Suspense>
+        </PageProvider>
       </QueryClientProvider>,
     );
   });
@@ -150,9 +124,7 @@ it("fetches users and roles once across index loading and suspense rendering", a
     screen.getByText(SEED_ROLES.find((role) => user.roleIds.includes(role.id))!.name),
   ).toBeVisible();
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(listUsers).toHaveBeenCalledTimes(1);
-  expect(listRoles).toHaveBeenCalledTimes(1);
-  expect(getUserByID).not.toHaveBeenCalled();
+  expect([...requests].sort()).toEqual(["GET /api/roles", "GET /api/users"]);
 });
 
 it("nested edit renders parent-loaded user and roles without a duplicate loader", async () => {
@@ -161,8 +133,7 @@ it("nested edit renders parent-loaded user and roles without a duplicate loader"
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
-  vi.mocked(getUserByID).mockResolvedValue(user);
-  vi.mocked(listRoles).mockResolvedValue(SEED_ROLES);
+  const requests = recordApiRequests();
   await (DetailRoute.options.loader as unknown as Loader)({
     context: { queryClient: client },
     params: { id: user.id },
@@ -171,16 +142,16 @@ it("nested edit renders parent-loaded user and roles without a duplicate loader"
   await act(async () => {
     render(
       <QueryClientProvider client={client}>
-        <Suspense fallback="Loading">
-          <Component />
-        </Suspense>
+        <PageProvider>
+          <Suspense fallback="Loading">
+            <Component />
+          </Suspense>
+        </PageProvider>
       </QueryClientProvider>,
     );
   });
   expect(await screen.findByDisplayValue(user.displayName)).toBeVisible();
   expect(screen.getByDisplayValue(user.email)).toBeVisible();
   expect(client.isFetching()).toBe(0);
-  expect(getUserByID).toHaveBeenCalledExactlyOnceWith(user.id);
-  expect(listRoles).toHaveBeenCalledTimes(1);
-  expect(listUsers).not.toHaveBeenCalled();
+  expect([...requests].sort()).toEqual(["GET /api/roles", `GET /api/users/${user.id}`]);
 });

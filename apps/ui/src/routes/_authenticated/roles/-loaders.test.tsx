@@ -7,6 +7,7 @@ import {
   createRoleByIDQueryOptions,
   EditRolePage,
 } from "@/features/roles";
+import { PageProvider } from "@/hooks/use-page-meta.tsx";
 import { CUSTOM_AUDITOR_ROLE } from "@/mocks/fixtures/seed.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/roles/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/roles/$id.tsx";
@@ -19,7 +20,6 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
   createFileRoute: () => (options: Record<string, unknown>) => ({ options }),
   useNavigate: () => vi.fn(),
 }));
-vi.mock("@/hooks/use-page-meta.tsx", () => ({ usePageMeta: vi.fn() }));
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -71,7 +71,9 @@ it("ensures exactly the requested role and lets nested edit reuse its parent cac
   });
   render(
     <QueryClientProvider client={client}>
-      <EditRolePage roleId={role.id} />
+      <PageProvider>
+        <EditRolePage roleId={role.id} />
+      </PageProvider>
     </QueryClientProvider>,
   );
   expect(screen.getByDisplayValue(role.name)).toBeVisible();

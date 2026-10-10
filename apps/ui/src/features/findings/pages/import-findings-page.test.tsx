@@ -1,23 +1,14 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { ImportFindingsPage } from "@/features/findings/pages/import-findings-page.tsx";
-
-const mocks = vi.hoisted(() => ({
-  usePageMeta: vi.fn(),
-}));
-
-vi.mock("@/hooks/use-page-meta.tsx", () => ({
-  usePageMeta: mocks.usePageMeta,
-}));
+import { renderWithAppProviders } from "@/test/harness.tsx";
 
 function renderImportFindingsPage() {
-  return render(<ImportFindingsPage />);
+  return renderWithAppProviders(<ImportFindingsPage />);
 }
 
 describe("ImportFindingsPage", () => {
-  beforeEach(() => mocks.usePageMeta.mockReset());
-
   afterEach(() => {
     cleanup();
   });

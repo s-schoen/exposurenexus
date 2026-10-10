@@ -1,27 +1,13 @@
-import { act, cleanup, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   createUserTableFilterState,
   createUserTableSearchParams,
-  useUserTableSearchState,
   validateUserTableSearch,
 } from "@/features/users/hooks/use-user-table-search-state.ts";
 
-const mocks = vi.hoisted(() => ({
-  navigate: vi.fn(),
-}));
-
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mocks.navigate,
-}));
-
-describe("useUserTableSearchState", () => {
-  afterEach(() => {
-    cleanup();
-    mocks.navigate.mockReset();
-  });
-
+// Navigation through these helpers is covered by users.app.test.tsx.
+describe("user table search state", () => {
   it("validates user table filter search params", () => {
     expect(
       validateUserTableSearch({
@@ -59,46 +45,6 @@ describe("useUserTableSearchState", () => {
     ).toEqual({
       enabled: "false",
       filter: "bob",
-    });
-  });
-
-  it("updates the user route search state and preserves unrelated params", () => {
-    const { result } = renderHook(() =>
-      useUserTableSearchState({
-        search: {},
-      }),
-    );
-
-    act(() => {
-      result.current.onFilterStateChange({
-        globalFilter: "bob",
-        selectFilters: {
-          enabled: ["false"],
-        },
-      });
-    });
-
-    expect(mocks.navigate).toHaveBeenCalledWith({
-      to: "/users",
-      replace: true,
-      search: expect.any(Function),
-    });
-
-    const search = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>,
-    ) => Record<string, unknown>;
-
-    expect(
-      search({
-        filter: "alice",
-        page: "2",
-        selected: "user-1",
-      }),
-    ).toEqual({
-      enabled: "false",
-      filter: "bob",
-      page: "2",
-      selected: "user-1",
     });
   });
 

@@ -1,78 +1,47 @@
 import { QueryClient } from "@tanstack/react-query";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { HttpResponse, http } from "msw";
+import { describe, expect, it } from "vitest";
 
 import {
   AUTH_SESSION_QUERY_KEY,
   createAuthSessionQueryOptions,
 } from "@/features/auth/queries/session.ts";
 import { APIError } from "@/lib/api-client.ts";
-import { createTestAuthSession } from "@/test/harness.tsx";
+import { SEED_AUTH_SESSION } from "@/mocks/fixtures/index.ts";
+import { apiPath } from "@/mocks/handlers/shared.ts";
+import { mockApiError, seedScenario, server } from "@/test/msw.ts";
 
-import type { UserProfile } from "@exposurenexus/contracts/model/user";
-
-const mocks = vi.hoisted(() => ({
-  getSession: vi.fn(),
-}));
-
-vi.mock("@/features/auth/api/auth.ts", () => ({
-  getSession: mocks.getSession,
-}));
-
-const user: UserProfile = {
-  id: "7b413aba-5164-456b-8ffd-88fb6b99bbed",
-  username: "alice",
-  displayName: "Alice Example",
-  email: "alice@example.com",
-  enabled: true,
-  roleIds: [],
-};
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-}
-
-beforeEach(() => {
-  mocks.getSession.mockReset();
-});
+const fetchSession = () =>
+  new QueryClient({ defaultOptions: { queries: { retry: false } } }).fetchQuery(
+    createAuthSessionQueryOptions(),
+  );
 
 describe("auth session query", () => {
   it("loads the current session under the stable auth query key", async () => {
-    const authSession = createTestAuthSession(user);
-    mocks.getSession.mockResolvedValueOnce({ data: authSession });
-    const queryConfig = createAuthSessionQueryOptions();
-
-    await expect(createQueryClient().fetchQuery(queryConfig)).resolves.toEqual(authSession);
-    expect(queryConfig.queryKey).toEqual(AUTH_SESSION_QUERY_KEY);
+    await expect(fetchSession()).resolves.toEqual(SEED_AUTH_SESSION);
+    expect(createAuthSessionQueryOptions().queryKey).toEqual(AUTH_SESSION_QUERY_KEY);
   });
 
   it("maps unauthenticated session reads to null", async () => {
-    mocks.getSession.mockRejectedValueOnce(new APIError(401, "Unauthorized"));
+    seedScenario("loggedOut");
 
-    await expect(
-      createQueryClient().fetchQuery(createAuthSessionQueryOptions()),
-    ).resolves.toBeNull();
+    await expect(fetchSession()).resolves.toBeNull();
   });
 
-  it.each([
-    {
-      name: "a non-401 API error",
-      error: new APIError(403, "Forbidden", "session access denied"),
-    },
-    {
-      name: "an ordinary network error",
-      error: new Error("Network unavailable"),
-    },
-  ])("rejects $name unchanged", async ({ error }) => {
-    mocks.getSession.mockRejectedValueOnce(error);
+  it("rejects other API errors unchanged", async () => {
+    mockApiError("get", "/auth/session", 403, "Forbidden", "session access denied");
 
-    const request = createQueryClient().fetchQuery(createAuthSessionQueryOptions());
+    const request = fetchSession();
+    await expect(request).rejects.toBeInstanceOf(APIError);
+    await expect(request).rejects.toMatchObject({
+      statusCode: 403,
+      reason: "session access denied",
+    });
+  });
 
-    await expect(request).rejects.toBe(error);
+  it("rejects network errors", async () => {
+    server.use(http.get(apiPath("/auth/session"), () => HttpResponse.error()));
+
+    await expect(fetchSession()).rejects.toThrow(TypeError);
   });
 });

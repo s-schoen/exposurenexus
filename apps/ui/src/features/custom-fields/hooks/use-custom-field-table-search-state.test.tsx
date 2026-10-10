@@ -1,27 +1,13 @@
-import { act, cleanup, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   createCustomFieldTableFilterState,
   createCustomFieldTableSearchParams,
-  useCustomFieldTableSearchState,
   validateCustomFieldTableSearch,
 } from "@/features/custom-fields/hooks/use-custom-field-table-search-state.ts";
 
-const mocks = vi.hoisted(() => ({
-  navigate: vi.fn(),
-}));
-
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mocks.navigate,
-}));
-
-describe("useCustomFieldTableSearchState", () => {
-  afterEach(() => {
-    cleanup();
-    mocks.navigate.mockReset();
-  });
-
+// Navigation through these helpers is covered by custom-fields.app.test.tsx.
+describe("custom field table search state", () => {
   it("validates custom field table filter search params", () => {
     expect(
       validateCustomFieldTableSearch({
@@ -64,42 +50,6 @@ describe("useCustomFieldTableSearchState", () => {
     ).toEqual({
       filter: "environment",
       required: "true",
-      type: "select",
-    });
-  });
-
-  it("updates the custom field route search state and preserves unrelated params", () => {
-    const { result } = renderHook(() =>
-      useCustomFieldTableSearchState({
-        search: {},
-      }),
-    );
-
-    act(() => {
-      result.current.onFilterStateChange({
-        globalFilter: "environment",
-        selectFilters: {
-          required: ["true"],
-          type: ["select"],
-        },
-      });
-    });
-
-    expect(mocks.navigate).toHaveBeenCalledWith({
-      to: "/custom-fields",
-      replace: true,
-      search: expect.any(Function),
-    });
-
-    const search = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>,
-    ) => Record<string, unknown>;
-
-    expect(search({ page: "2", selected: "field-1" })).toEqual({
-      filter: "environment",
-      page: "2",
-      required: "true",
-      selected: "field-1",
       type: "select",
     });
   });

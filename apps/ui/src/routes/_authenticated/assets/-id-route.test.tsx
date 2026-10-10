@@ -1,59 +1,39 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { QueryClient } from "@tanstack/react-query";
+import { describe, expect, it, vi } from "vitest";
 
+import { createAssetByIDQueryOptions } from "@/features/assets";
+import { SEED_ASSETS } from "@/mocks/fixtures/index.ts";
 import { Route } from "@/routes/_authenticated/assets/$id.tsx";
+import { recordApiRequests } from "@/test/msw.ts";
 
-const mocks = vi.hoisted(() => ({
-  asset: { id: "asset-1", displayName: "API" },
-  assetId: "asset-1",
-  assetOptions: { queryKey: ["assets", "asset-1"] },
-  createAssetByIDQueryOptions: vi.fn(),
-  ensureQueryData: vi.fn(),
+vi.mock("@tanstack/react-router", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  createFileRoute: () => (options: Record<string, unknown>) => ({ options }),
 }));
 
-vi.mock("@tanstack/react-router", async (importOriginal) => {
-  const actual = await importOriginal();
-
-  return Object.assign({}, actual, {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      options,
-      useParams: () => ({ id: mocks.assetId }),
-    }),
-  });
-});
-
-vi.mock("@/features/assets", () => ({
-  AssetDetailPage: () => null,
-  createAssetByIDQueryOptions: mocks.createAssetByIDQueryOptions,
-}));
-
-type LoaderArgs = {
-  context: {
-    queryClient: {
-      ensureQueryData: typeof mocks.ensureQueryData;
-    };
-  };
+type Loader = (args: {
+  context: { queryClient: QueryClient };
   params: { id: string };
-};
+}) => Promise<unknown>;
+
+const [asset] = SEED_ASSETS;
 
 describe("assets id route", () => {
-  beforeEach(() => {
-    mocks.createAssetByIDQueryOptions.mockReset();
-    mocks.createAssetByIDQueryOptions.mockReturnValue(mocks.assetOptions);
-    mocks.ensureQueryData.mockReset();
-    mocks.ensureQueryData.mockResolvedValue(mocks.asset);
-  });
-
-  it("ensures the requested asset before rendering the detail page", async () => {
-    const loader = Route.options.loader as unknown as (args: LoaderArgs) => Promise<unknown>;
+  it("ensures exactly the requested asset before rendering the detail page", async () => {
+    const requests = recordApiRequests();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const ensure = vi.spyOn(client, "ensureQueryData");
 
     await expect(
-      loader({
-        context: { queryClient: { ensureQueryData: mocks.ensureQueryData } },
-        params: { id: mocks.assetId },
+      (Route.options.loader as unknown as Loader)({
+        context: { queryClient: client },
+        params: { id: asset.id },
       }),
-    ).resolves.toBe(mocks.asset);
+    ).resolves.toEqual(asset);
 
-    expect(mocks.createAssetByIDQueryOptions).toHaveBeenCalledWith(mocks.assetId);
-    expect(mocks.ensureQueryData).toHaveBeenCalledWith(mocks.assetOptions);
+    expect(ensure.mock.calls.map(([options]) => options)).toEqual([
+      { ...createAssetByIDQueryOptions(asset.id), queryFn: expect.any(Function) },
+    ]);
+    expect(requests).toEqual([`GET /api/assets/${asset.id}`]);
   });
 });

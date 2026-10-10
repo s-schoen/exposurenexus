@@ -1,80 +1,34 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { QueryClient } from "@tanstack/react-query";
+import { describe, expect, it, vi } from "vitest";
 
+import { createListAssetsQueryOptions } from "@/features/assets";
+import { createFindingStatsQueryOptions } from "@/features/findings";
 import { Route } from "@/routes/_authenticated/index.tsx";
+import { recordApiRequests } from "@/test/msw.ts";
 
-const mocks = vi.hoisted(() => ({
-  assetOptions: { queryKey: ["assets"] },
-  findingStatsOptions: { queryKey: ["findings", "stats"] },
-  ensureQueryData: vi.fn(),
+vi.mock("@tanstack/react-router", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  createFileRoute: () => (options: Record<string, unknown>) => ({ options }),
 }));
 
-vi.mock("@tanstack/react-router", async (importOriginal) => {
-  const actual = await importOriginal();
-
-  return Object.assign({}, actual, {
-    createFileRoute: () => (options: Record<string, unknown>) => ({
-      options,
-    }),
-  });
-});
-
-vi.mock("@/features/assets", () => ({
-  createListAssetsQueryOptions: () => mocks.assetOptions,
-}));
-
-vi.mock("@/features/dashboard", () => ({
-  DashboardPage: () => null,
-}));
-
-vi.mock("@/features/findings", () => ({
-  createFindingStatsQueryOptions: () => mocks.findingStatsOptions,
-}));
+type Loader = (args: { context: { queryClient: QueryClient } }) => Promise<unknown>;
 
 describe("dashboard route", () => {
-  beforeEach(() => {
-    mocks.ensureQueryData.mockReset();
-  });
+  it("ensures assets and finding statistics in parallel", async () => {
+    const requests = recordApiRequests();
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const ensure = vi.spyOn(client, "ensureQueryData");
 
-  it("ensures asset and finding statistics queries in parallel", async () => {
-    let resolveAsset: (value: typeof mocks.assetOptions) => void = () => undefined;
-    let resolveFindingStats: (value: typeof mocks.findingStatsOptions) => void = () => undefined;
-    const assetPromise = new Promise<typeof mocks.assetOptions>((resolve) => {
-      resolveAsset = resolve;
-    });
-    const findingStatsPromise = new Promise<typeof mocks.findingStatsOptions>((resolve) => {
-      resolveFindingStats = resolve;
+    const loading = (Route.options.loader as unknown as Loader)({
+      context: { queryClient: client },
     });
 
-    mocks.ensureQueryData.mockImplementation((options: typeof mocks.assetOptions) => {
-      if (options === mocks.assetOptions) {
-        return assetPromise;
-      }
-
-      return findingStatsPromise;
-    });
-
-    const loader = Route.options.loader as unknown as (args: {
-      context: {
-        queryClient: {
-          ensureQueryData: typeof mocks.ensureQueryData;
-        };
-      };
-    }) => Promise<unknown>;
-    const loaderResult = loader({
-      context: {
-        queryClient: {
-          ensureQueryData: mocks.ensureQueryData,
-        },
-      },
-    });
-
-    expect(mocks.ensureQueryData).toHaveBeenCalledTimes(2);
-    expect(mocks.ensureQueryData).toHaveBeenNthCalledWith(1, mocks.assetOptions);
-    expect(mocks.ensureQueryData).toHaveBeenNthCalledWith(2, mocks.findingStatsOptions);
-
-    resolveAsset(mocks.assetOptions);
-    resolveFindingStats(mocks.findingStatsOptions);
-
-    await expect(loaderResult).resolves.toEqual([mocks.assetOptions, mocks.findingStatsOptions]);
+    // Both queries start before either resolves.
+    expect(ensure.mock.calls.map(([options]) => options.queryKey)).toEqual([
+      createListAssetsQueryOptions().queryKey,
+      createFindingStatsQueryOptions().queryKey,
+    ]);
+    await loading;
+    expect([...requests].sort()).toEqual(["GET /api/assets", "GET /api/findings/stats"]);
   });
 });

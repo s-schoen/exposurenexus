@@ -1,38 +1,28 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, cleanup } from "@testing-library/react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import {
   EditCustomFieldPage,
   createAssetCustomFieldDefinitionByIDQueryOptions,
   createListAssetCustomFieldDefinitionsQueryOptions,
 } from "@/features/custom-fields";
+import { PageProvider } from "@/hooks/use-page-meta.tsx";
 import { SEED_CUSTOM_FIELDS } from "@/mocks/fixtures/seed.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/custom-fields/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/custom-fields/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/custom-fields/index.tsx";
 import { Route as NewRoute } from "@/routes/_authenticated/custom-fields/new.tsx";
+import { recordApiRequests } from "@/test/msw.ts";
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   createFileRoute: () => (options: Record<string, unknown>) => ({ options }),
   useNavigate: () => vi.fn(),
 }));
-vi.mock("@/hooks/use-page-meta.tsx", () => ({ usePageMeta: vi.fn() }));
-const getAssetCustomFieldDefinitionByID = vi.fn<(...args: Array<string>) => Promise<unknown>>();
-beforeEach(() => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (input: string) =>
-      Response.json({
-        data: await getAssetCustomFieldDefinitionByID(input.split("/").at(-1)!),
-      }),
-    ),
-  );
-});
 afterEach(() => {
   cleanup();
-  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 type Loader = (args: {
   context: { queryClient: QueryClient };
@@ -56,7 +46,7 @@ it("ensures exactly the requested definition and lets nested edit reuse the pare
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
-  vi.mocked(getAssetCustomFieldDefinitionByID).mockResolvedValue(field);
+  const requests = recordApiRequests();
   const ensure = vi.spyOn(client, "ensureQueryData");
   await expect(
     (DetailRoute.options.loader as unknown as Loader)({
@@ -72,12 +62,14 @@ it("ensures exactly the requested definition and lets nested edit reuse the pare
   expect(EditRoute.options.loader).toBeUndefined();
   render(
     <QueryClientProvider client={client}>
-      <EditCustomFieldPage customFieldId={field.id} />
+      <PageProvider>
+        <EditCustomFieldPage customFieldId={field.id} />
+      </PageProvider>
     </QueryClientProvider>,
   );
   expect(screen.getByDisplayValue(field.name)).toBeVisible();
   expect(client.isFetching()).toBe(0);
-  expect(getAssetCustomFieldDefinitionByID).toHaveBeenCalledExactlyOnceWith(field.id);
+  expect(requests).toEqual([`GET /api/assets/custom-fields/${field.id}`]);
 });
 it("keeps creation loader-free", () => {
   expect(NewRoute.options.loader).toBeUndefined();
