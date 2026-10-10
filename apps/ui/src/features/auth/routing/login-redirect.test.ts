@@ -16,7 +16,6 @@ function createRedirects() {
     }),
     context: {
       auth: undefined!,
-      page: undefined!,
       redirects: undefined!,
       queryClient: new QueryClient(),
     },

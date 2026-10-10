@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import type { LucideIcon } from "lucide-react";
 
@@ -27,26 +27,33 @@ interface UsePageMetaOptions {
 
 const EMPTY_PAGE_ACTIONS: Array<PageAction> = [];
 
+type PageSetters = Pick<PageState, "setTitle" | "setDescription" | "setActions">;
+
 const PageContext = createContext<PageState | undefined>(undefined);
+// Setters get their own context so pages that publish meta don't re-render when it changes:
+// with a single context, a page passing a new `actions` array each render re-rendered forever.
+const PageSettersContext = createContext<PageSetters | undefined>(undefined);
 
 export function PageProvider({ children }: { children: React.ReactNode }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [actions, setActions] = useState<Array<PageAction>>([]);
+  // `useState` setters are stable, so this value never changes.
+  const setters = useMemo(() => ({ setTitle, setDescription, setActions }), []);
 
   return (
-    <PageContext.Provider
-      value={{
-        title,
-        setTitle,
-        description,
-        setDescription,
-        actions,
-        setActions,
-      }}
-    >
-      {children}
-    </PageContext.Provider>
+    <PageSettersContext.Provider value={setters}>
+      <PageContext.Provider
+        value={{
+          title,
+          description,
+          actions,
+          ...setters,
+        }}
+      >
+        {children}
+      </PageContext.Provider>
+    </PageSettersContext.Provider>
   );
 }
 
@@ -58,12 +65,20 @@ export function usePage() {
   return context;
 }
 
+function usePageSetters() {
+  const context = useContext(PageSettersContext);
+  if (context === undefined) {
+    throw new Error("usePageMeta must be used within an PageProvider");
+  }
+  return context;
+}
+
 export function usePageMeta({
   title,
   description = "",
   actions = EMPTY_PAGE_ACTIONS,
 }: UsePageMetaOptions) {
-  const { setTitle, setDescription, setActions } = usePage();
+  const { setTitle, setDescription, setActions } = usePageSetters();
 
   useEffect(() => {
     setTitle(title);
