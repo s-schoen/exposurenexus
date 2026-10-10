@@ -59,7 +59,8 @@ Do NOT commit any changes to git unless you are explicitly asked.
 - Keep the UI import page disabled. The API accepts metadata and bytes and the worker only reads/logs input; this is not
   imported observations. See `docs/import-sources.md` before changing the import workflow.
 - Exceptions include auth/session cache clearing, pure local UI state, form validation and draft state, clipboard actions,
-  dialogs, filters, search params, and tests. Tests should seed API-backed state in the mock DB, not the query cache.
+  dialogs, filters, search params, and tests. Tests seed API-backed state in the mock DB; hook tests may also seed
+  query cache entries to check what gets invalidated.
 
 ## Mock API and Fixtures
 
@@ -74,18 +75,28 @@ Do NOT commit any changes to git unless you are explicitly asked.
   `src/mocks/fixtures/fixtures.test.ts` and `src/mocks/handlers/handlers.test.ts` passing; they catch drift from
   contracts.
 
-## Component Tests
+## Tests
 
-- Every new app-owned component should include a colocated `*.test.tsx` unit test using Testing Library in jsdom.
 - Tests run against the MSW mock API (`src/test/setup.ts`); any unmocked request fails the test, and the mock DB
-  resets after each test.
-- Render whole pages with `renderApp({ path, scenario })` from `@/test/render-app.tsx` (real router, queries and
-  lifecycle hooks). Render components with `renderWithAppProviders` from `@/test/harness.tsx`. See
-  `src/features/roles/pages/roles-pages.app.test.tsx`.
-- Set up state through the mock API: insert records with `db` from `@/test/msw.ts`, switch seeds with `seedScenario`,
-  force failures with `mockApiError(method, path, status)`, and assert traffic with `recordApiRequests()`.
-- Do not `vi.mock` `@tanstack/react-query`, `@tanstack/react-router`, or feature `api`/`queries`/`mutations`/`hooks`
-  modules in new tests, and do not stub `fetch`. Older tests still do; migrate them when you touch them.
+  resets after each test. Shared jsdom polyfills live in `src/test/dom-polyfills.ts`.
+- Test each feature by behavior in `src/features/<feature>/pages/<feature>.app.test.tsx`, rendering whole pages with
+  `renderApp({ path, scenario })` from `@/test/render-app.tsx` (real router, queries and lifecycle hooks). Assert what a
+  user sees, the URL (`router.state.location`) and the mock data (`db`), not props or spy calls. See
+  `src/features/roles/pages/roles.app.test.tsx`.
+- Render single components with `renderWithAppProviders` and hooks with `renderHookWithApp` from `@/test/harness.tsx`.
+  Lifecycle hook tests cover only what pages cannot show: return values, which cached reads are invalidated, and batch
+  summaries.
+- Set up and observe state through the mock API with the helpers in `@/test/msw.ts`: `db`, `seedScenario`,
+  `mockApiError(method, path, status)` (use a literal id path to fail one item), `holdApiResponses` for pending states,
+  `recordApiRequests` and `captureApiCalls` for request assertions, and `mockApiReply` for malformed replies.
+- When a rule has many input combinations (payload mapping, metrics, search-param parsing), extract it into a pure
+  function under `lib/` and test the combinations there; keep one or two representative UI flows in the app test.
+- Do not `vi.mock` `@tanstack/react-query`, feature `api`/`queries`/`mutations`/`hooks` modules, or
+  `@/hooks/use-page-meta.tsx`, and do not stub `fetch`. Allowed mocks: `createFileRoute` in route loader tests to read
+  route options, `sonner` in hook tests, and jsdom-hostile primitives (recharts, the Base UI select or context menu) in
+  tests of components that take their data as props.
+- Every new app-owned component should be covered: by its feature app test, or by a colocated `*.test.tsx` for
+  reusable components and pure logic.
 - Use unit tests to assert user-visible behavior and core interactions.
 - For simple display components, test the primary render states.
 - For interactive components, test the key user flows, such as typing, selecting, submitting, clearing,
@@ -98,7 +109,7 @@ Do NOT commit any changes to git unless you are explicitly asked.
   sorted row order, validation messages, or submitted data.
 - When a third-party UI primitive is hard to drive reliably in jsdom, prefer a minimal harness that exercises the
   component through its real public API instead of brittle DOM-structure assertions.
-- If a component needs browser APIs that jsdom does not provide, add the smallest possible test-local polyfill in the
-  test file.
+- If a component needs a browser API that jsdom lacks, add the smallest polyfill to `src/test/dom-polyfills.ts` when
+  many tests need it, otherwise to the test file.
 - Validate new component work with root `pnpm lint` and `pnpm test`. Use `pnpm test:coverage` when you need a coverage
   report.
