@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => ({
       autoCodeSplitting: true,
       quoteStyle: "double",
       semicolons: true,
+      // Tests under src/routes (e.g. routing.app.test.tsx) aren't routes.
+      routeFileIgnorePattern: "\\.test\\.tsx?$",
       routeTreeFileHeader: [
         "/* oxlint-disable */",
         "// @ts-nocheck",
