@@ -1,12 +1,10 @@
 import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
-import { cleanup, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { screen, waitFor, within } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import { SEED_CUSTOM_FIELDS } from "@/mocks/fixtures/index.ts";
 import { db, mockApiError, recordApiRequests } from "@/test/msw.ts";
 import { renderApp } from "@/test/render-app.tsx";
-
-afterEach(cleanup);
 
 // Whole-app tests: real router, queries and lifecycle hooks against the MSW mock API.
 
@@ -140,6 +138,93 @@ describe("creating and editing definitions", () => {
       expect(router.state.location.pathname).toBe(`/custom-fields/${created.id}`),
     );
     expect(await screen.findByRole("heading", { level: 1, name: "Risk Owner" })).toBeVisible();
+  });
+
+  it("creates a select definition from edited option rows", async () => {
+    const { user } = renderApp({ path: "/custom-fields/new" });
+
+    await user.type(await screen.findByRole("textbox", { name: /^name$/i }), "Exposure");
+    await user.type(screen.getByRole("textbox", { name: /^key$/i }), "exposure");
+    await user.click(screen.getByLabelText("Type"));
+    await user.click(await screen.findByRole("option", { name: "Select" }));
+
+    await user.type(screen.getByLabelText("Option 1 value"), "internal");
+    await user.type(screen.getByLabelText("Option 1 label"), "Internal");
+    await user.click(screen.getByRole("button", { name: "Add option" }));
+    await user.type(screen.getByLabelText("Option 2 value"), "restricted");
+    await user.click(screen.getByRole("button", { name: "Add option" }));
+    await user.type(screen.getByLabelText("Option 3 value"), "public");
+    await user.type(screen.getByLabelText("Option 3 label"), "Public");
+    await user.click(screen.getByRole("button", { name: "Remove option 2" }));
+    expect(screen.getByLabelText("Option 2 value")).toHaveValue("public");
+
+    await user.click(screen.getByLabelText("Default value"));
+    await user.click(await screen.findByRole("option", { name: "Public" }));
+    expect(screen.getByLabelText("Default value")).toHaveTextContent("Public");
+    await user.click(screen.getByRole("button", { name: "Create custom field" }));
+
+    await waitFor(() =>
+      expect(db.customFields.all().find((field) => field.key === "exposure")).toMatchObject({
+        type: AssetCustomFieldType.Select,
+        defaultValue: "public",
+        options: [
+          { value: "internal", label: "Internal" },
+          { value: "public", label: "Public" },
+        ],
+      }),
+    );
+    // Let the app finish opening the new definition before the test ends.
+    expect(await screen.findByRole("heading", { level: 1, name: "Exposure" })).toBeVisible();
+  });
+
+  it("blocks incomplete select options until they're complete", async () => {
+    const requests = recordApiRequests();
+    const { user } = renderApp({ path: "/custom-fields/new" });
+
+    await user.type(await screen.findByRole("textbox", { name: /^name$/i }), "Exposure");
+    await user.type(screen.getByRole("textbox", { name: /^key$/i }), "exposure");
+    await user.click(screen.getByLabelText("Type"));
+    await user.click(await screen.findByRole("option", { name: "Select" }));
+    await user.click(screen.getByRole("button", { name: "Create custom field" }));
+    expect(await screen.findByText("Add at least one option")).toBeVisible();
+
+    await user.type(screen.getByLabelText("Option 1 value"), "internal");
+    await user.click(screen.getByRole("button", { name: "Create custom field" }));
+    expect(await screen.findByText("Enter an option label")).toBeVisible();
+    expect(requests.filter((request) => request.startsWith("POST"))).toEqual([]);
+
+    await user.type(screen.getByLabelText("Option 1 label"), "Internal");
+    await user.click(screen.getByRole("button", { name: "Create custom field" }));
+    await waitFor(() =>
+      expect(db.customFields.all().find((field) => field.key === "exposure")).toMatchObject({
+        options: [{ value: "internal", label: "Internal" }],
+      }),
+    );
+    expect(await screen.findByRole("heading", { level: 1, name: "Exposure" })).toBeVisible();
+  });
+
+  it("asks for a new default when the default option is removed", async () => {
+    const { router, user } = renderApp({ path: `/custom-fields/${DEPLOYMENT_TIER.id}/edit` });
+
+    expect(await screen.findByLabelText("Default value")).toHaveTextContent("Production");
+    expect(screen.getByLabelText("Option 1 value")).toHaveValue("production");
+    await user.click(screen.getByRole("button", { name: "Remove option 1" }));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    expect(await screen.findByText("Select a default from the available options")).toBeVisible();
+
+    await user.click(screen.getByLabelText("Default value"));
+    await user.click(await screen.findByRole("option", { name: "Staging" }));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() =>
+      expect(db.customFields.get(DEPLOYMENT_TIER.id)).toMatchObject({
+        defaultValue: "staging",
+        options: [{ value: "staging", label: "Staging" }],
+      }),
+    );
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/custom-fields/${DEPLOYMENT_TIER.id}`),
+    );
   });
 
   it("shows validation errors instead of submitting an empty form", async () => {
