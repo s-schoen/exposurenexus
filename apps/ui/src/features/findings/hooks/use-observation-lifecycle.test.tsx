@@ -58,7 +58,6 @@ function renderLifecycle() {
 beforeEach(() => {
   toast.error.mockReset();
   toast.success.mockReset();
-  vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
 
 afterEach(() => {

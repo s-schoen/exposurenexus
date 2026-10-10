@@ -94,9 +94,11 @@ Do NOT commit any changes to git unless you are explicitly asked.
 - Set up and observe state through the mock API with the helpers in `@/test/msw.ts`: `db`, `seedScenario`,
   `mockApiError(method, path, status)` (use a literal id path to fail one item), `holdApiResponses` for pending states,
   `recordApiRequests` and `captureApiCalls` for request assertions, and `mockApiReply` for malformed replies.
-- Passing tests print nothing. `mockApiError` also declares the app's error log for that failure as expected; declare
-  other expected errors or warnings with `expectConsoleLog(text)` from `@/test/console.ts`. Unavoidable third-party
-  warnings go in its `IGNORED_WARNINGS`, with a reason. The render helpers cancel their queries when a test ends, so no
+- Passing tests print nothing, and any `console.error` or `console.warn` a test didn't declare fails it (React's `act(...)`
+  and "Maximum update depth" warnings included). `mockApiError` also declares the app's error log for that failure as
+  expected; declare other expected errors or warnings with `expectConsoleLog(text | matcher)` from `@/test/console.ts`,
+  matching the message or error, never everything. Do not spy on `console` yourself: to assert on a log, read
+  `vi.mocked(console.error)`. Unavoidable third-party warnings go in its `IGNORED_WARNINGS`, with a reason. The render helpers cancel their queries when a test ends, so no
   request outlives its test.
 - When a rule has many input combinations (payload mapping, metrics, search-param parsing), extract it into a pure
   function under `lib/` and test the combinations there; keep one or two representative UI flows in the app test.
