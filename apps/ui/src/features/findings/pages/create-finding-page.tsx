@@ -1,5 +1,5 @@
 import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
-import { FindingStatus, createFindingSchema } from "@exposurenexus/contracts/model/finding";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useForm } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -27,9 +27,15 @@ import { Textarea } from "@/components/ui/textarea.tsx";
 import { AssetCombobox } from "@/features/assets";
 import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifecycle.ts";
 import { formatLocalDateTimeInput, formatUtcDateOnly } from "@/features/findings/lib/date-input.ts";
+import {
+  buildCreateFindingPayload,
+  emptyResource,
+  optionalNumberValue,
+  optionalStringValue,
+  updateResourceLocation,
+} from "@/features/findings/lib/finding-form.ts";
 import { formatFindingStatus } from "@/features/findings/lib/format.ts";
-import { weaknessSchema } from "@/features/findings/lib/weakness-preview";
-import { formatWeaknessText, parseWeaknessText } from "@/features/findings/lib/weakness-text.ts";
+import { formatWeaknessText } from "@/features/findings/lib/weakness-text.ts";
 import { createListUsersQueryOptions, getUserProfileDisplayName } from "@/features/users";
 import { SeverityBadge } from "@/features/vulnerabilities";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
@@ -104,51 +110,6 @@ function formatResourceType(type: AffectedResourceType) {
     case AffectedResourceType.Package:
       return "Package";
   }
-}
-
-function emptyResource(type: AffectedResourceType): FindingAffectedResource {
-  return { type };
-}
-
-function optionalStringValue(value: string) {
-  const trimmed = value.trim();
-  return trimmed || undefined;
-}
-
-function optionalNumberValue(value: string) {
-  const trimmed = value.trim();
-  return trimmed ? Number(trimmed) : undefined;
-}
-
-type SourceCodeResource = Extract<
-  FindingAffectedResource,
-  { type: AffectedResourceType.SourceCode }
->;
-type SourceLocationKey = "startLine" | "startColumn" | "endLine" | "endColumn";
-
-function updateResourceLocation(
-  resource: SourceCodeResource,
-  key: SourceLocationKey,
-  rawValue: string,
-): SourceCodeResource {
-  const value = optionalNumberValue(rawValue);
-  const startLine = key === "startLine" ? value : resource.location?.startLine;
-  const startColumn = key === "startColumn" ? value : resource.location?.startColumn;
-  const endLine = key === "endLine" ? value : resource.location?.endLine;
-  const endColumn = key === "endColumn" ? value : resource.location?.endColumn;
-
-  return {
-    ...resource,
-    location:
-      startLine === undefined
-        ? undefined
-        : {
-            startLine,
-            ...(startColumn === undefined ? {} : { startColumn }),
-            ...(endLine === undefined ? {} : { endLine }),
-            ...(endColumn === undefined ? {} : { endColumn }),
-          },
-  };
 }
 
 function renderResourceInput({
@@ -412,32 +373,14 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
   const form = useForm({
     defaultValues: defaultFormValues,
     onSubmit: async ({ value }) => {
-      const weakness = parseWeaknessText(weaknessDraft);
-      if (!weakness) {
-        setSubmissionError("Weakness identifiers must use namespace=identifier entries.");
-        return;
-      }
-
-      const canonicalWeakness = weaknessSchema.safeParse(weakness);
-      if (!canonicalWeakness.success) {
-        setSubmissionError("Invalid weakness identifiers");
-        return;
-      }
-      const result = createFindingSchema.safeParse({
-        ...value,
-        title: value.title.trim(),
-        weakness: canonicalWeakness.data,
-        vulnerabilityIds: [...new Set(value.vulnerabilityIds)],
-      });
-      if (!result.success) {
-        const issue = result.error.issues[0];
-        const location = issue.path.length > 0 ? `${issue.path.join(".")}: ` : "";
-        setSubmissionError(`Unable to create finding. ${location}${issue.message}`);
+      const result = buildCreateFindingPayload(value, weaknessDraft);
+      if (result.error !== undefined) {
+        setSubmissionError(result.error);
         return;
       }
 
       setSubmissionError(null);
-      const createdFinding = await findingLifecycle.createFinding(result.data);
+      const createdFinding = await findingLifecycle.createFinding(result.payload);
 
       if (createdFinding) {
         onClose();
