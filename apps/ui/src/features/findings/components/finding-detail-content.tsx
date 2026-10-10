@@ -2,7 +2,7 @@ import {
   AffectedResourceType,
   WebEndpointComponentKind,
 } from "@exposurenexus/contracts/model/affected-resource";
-import { FindingStatus, updateFindingSchema } from "@exposurenexus/contracts/model/finding";
+import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -48,8 +48,15 @@ import { FindingObservationsSection } from "@/features/findings/components/findi
 import { FindingStatusBadge } from "@/features/findings/components/finding-status-badge.tsx";
 import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifecycle.ts";
 import { formatUtcDateOnly } from "@/features/findings/lib/date-input.ts";
+import {
+  buildFindingCorrection,
+  emptyResource,
+  optionalNumberValue,
+  optionalStringValue,
+  updateResourceLocation,
+} from "@/features/findings/lib/finding-form.ts";
 import { formatFindingStatus } from "@/features/findings/lib/format.ts";
-import { formatWeaknessText, parseWeaknessText } from "@/features/findings/lib/weakness-text.ts";
+import { formatWeaknessText } from "@/features/findings/lib/weakness-text.ts";
 import {
   UserLabel,
   createListUsersQueryOptions,
@@ -106,50 +113,6 @@ function formatDateInputValue(value: Date | null) {
 
 function parseDateInputValue(value: string) {
   return value ? normalizeDateToUtcStart(new Date(`${value}T00:00:00.000Z`)) : null;
-}
-
-function emptyResource(type: AffectedResourceType): FindingAffectedResource {
-  return { type };
-}
-
-function optionalStringValue(value: string) {
-  const trimmed = value.trim();
-  return trimmed || undefined;
-}
-
-function optionalNumberValue(value: string) {
-  const trimmed = value.trim();
-  return trimmed ? Number(trimmed) : undefined;
-}
-
-type SourceCodeResource = Extract<
-  FindingAffectedResource,
-  { type: AffectedResourceType.SourceCode }
->;
-type SourceLocationKey = "startLine" | "startColumn" | "endLine" | "endColumn";
-
-function updateResourceLocation(
-  resource: SourceCodeResource,
-  key: SourceLocationKey,
-  rawValue: string,
-): SourceCodeResource {
-  const value = optionalNumberValue(rawValue);
-  const startLine = key === "startLine" ? value : resource.location?.startLine;
-  const startColumn = key === "startColumn" ? value : resource.location?.startColumn;
-  const endLine = key === "endLine" ? value : resource.location?.endLine;
-  const endColumn = key === "endColumn" ? value : resource.location?.endColumn;
-  return {
-    ...resource,
-    location:
-      startLine === undefined
-        ? undefined
-        : {
-            startLine,
-            ...(startColumn === undefined ? {} : { startColumn }),
-            ...(endLine === undefined ? {} : { endLine }),
-            ...(endColumn === undefined ? {} : { endColumn }),
-          },
-  };
 }
 
 function ResourceInput({
@@ -535,23 +498,15 @@ function FindingCorrectionDialog({
   };
 
   const handleSubmit = async () => {
-    const weakness = parseWeaknessText(weaknessDraft, draft.weakness);
-    if (!weakness) {
-      setError("Weakness identifiers must use namespace=identifier entries.");
-      return;
-    }
-
-    const result = updateFindingSchema.safeParse({ ...draft, weakness });
-    if (!result.success) {
-      const issue = result.error.issues[0];
-      const location = issue.path.length > 0 ? `${issue.path.join(".")}: ` : "";
-      setError(`Unable to save correction. ${location}${issue.message}`);
+    const result = buildFindingCorrection(draft, weaknessDraft);
+    if (result.error !== undefined) {
+      setError(result.error);
       return;
     }
 
     setError(null);
     setSubmitting(true);
-    const corrected = await findingLifecycle.correctFinding(finding.id, result.data);
+    const corrected = await findingLifecycle.correctFinding(finding.id, result.payload);
     setSubmitting(false);
     if (!corrected) {
       setError("Unable to save correction. Try again.");
