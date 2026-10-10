@@ -69,8 +69,10 @@ Do NOT commit any changes to git unless you are explicitly asked.
 
 - `src/mocks/` is the single mock backend for tests and `pnpm dev:mock`: MSW handlers in `src/mocks/handlers/` over an
   in-memory DB (`src/mocks/db.ts`) seeded from `src/mocks/fixtures/seed.ts`. Handlers mirror the real API: reply
-  envelopes, 201 on create, 404 for unknown ids, 401 without a session, and request bodies validated with the contracts
-  schemas.
+  envelopes and error messages, 201 on create, 404 for unknown ids, 401 without a session, 403 when the signed-in
+  user's roles lack the route's permission, 409 for conflicts (duplicates, deleting a referenced asset or an assigned
+  role), and request bodies validated with the contracts schemas. To test a denied request, sign in as a user with
+  fewer roles: `db.session = buildAuthSession(user)`.
 - Build sample data with `buildX(overrides)` from `@/mocks/fixtures` (deterministic ids, names and dates). Pass
   relations explicitly, e.g. `buildFinding({ assetId: asset.id })`. Use the `SEED_*` records when a test needs data the
   default scenario already serves.

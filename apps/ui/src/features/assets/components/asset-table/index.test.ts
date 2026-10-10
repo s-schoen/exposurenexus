@@ -54,7 +54,7 @@ describe("asset table custom field grouping", () => {
 
     expect(searchParams).toEqual({
       category: "internet",
-      deployment_tier: "production",
+      tier: "production",
       priority: "3",
     });
   });
@@ -74,7 +74,7 @@ describe("asset table custom field grouping", () => {
         SEED_CUSTOM_FIELDS,
       ),
     ).toEqual({
-      deployment_tier: "production,staging",
+      tier: "production,staging",
     });
   });
 
@@ -83,7 +83,7 @@ describe("asset table custom field grouping", () => {
       parseAssetCustomFieldFiltersFromSearch(
         {
           category: "internet",
-          deployment_tier: "production,staging",
+          tier: "production,staging",
           priority: "3",
         },
         SEED_CUSTOM_FIELDS,
@@ -107,7 +107,7 @@ describe("asset table custom field grouping", () => {
   it("builds cleared search params for all custom field keys", () => {
     expect(createClearedAssetCustomFieldSearchParams(SEED_CUSTOM_FIELDS)).toEqual({
       category: undefined,
-      deployment_tier: undefined,
+      tier: undefined,
       priority: undefined,
     });
   });
