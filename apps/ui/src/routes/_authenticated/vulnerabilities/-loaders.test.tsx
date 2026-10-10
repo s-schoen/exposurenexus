@@ -1,35 +1,21 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { Suspense } from "react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import {
   createListVulnerabilitiesQueryOptions,
   createVulnerabilityByIDQueryOptions,
 } from "@/features/vulnerabilities";
+import { PageProvider } from "@/hooks/use-page-meta.tsx";
 import { SEED_VULNERABILITIES } from "@/mocks/fixtures/seed.ts";
 import { Route as EditRoute } from "@/routes/_authenticated/vulnerabilities/$id.edit.tsx";
 import { Route as DetailRoute } from "@/routes/_authenticated/vulnerabilities/$id.tsx";
 import { Route as IndexRoute } from "@/routes/_authenticated/vulnerabilities/index.tsx";
 import { Route as NewRoute } from "@/routes/_authenticated/vulnerabilities/new.tsx";
+import { recordApiRequests } from "@/test/msw.ts";
 
 import type { ComponentType } from "react";
-
-const getVulnerabilityByID = vi.fn<(...args: Array<string>) => Promise<unknown>>();
-const listVulnerabilities = vi.fn<(...args: Array<string>) => Promise<unknown>>();
-
-beforeEach(() => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async (input: string) => {
-      if (input.startsWith("/api/vulnerabilities/"))
-        return Response.json({ data: await getVulnerabilityByID(input.split("/").at(-1)!) });
-      if (input === "/api/vulnerabilities")
-        return Response.json({ data: { items: await listVulnerabilities() } });
-      throw new Error(`Unexpected request: ${input}`);
-    }),
-  );
-});
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -40,21 +26,9 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
   }),
   useNavigate: () => vi.fn(),
 }));
-vi.mock("@/hooks/use-page-meta.tsx", () => ({ usePageMeta: vi.fn() }));
-vi.mock("@/components/detail-preview-dialog.tsx", () => ({ DetailPreviewDialog: () => null }));
-
-class ResizeObserverMock {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-vi.stubGlobal("ResizeObserver", ResizeObserverMock);
-
 afterEach(() => {
   cleanup();
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
-  vi.clearAllMocks();
 });
 
 type Loader = (args: {
@@ -125,7 +99,7 @@ it.each(cases)(
 it("fetches catalog entries once across index loading and suspense rendering", async () => {
   // Use production query defaults, so a stale-time regression causes a duplicate request.
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  vi.mocked(listVulnerabilities).mockResolvedValue([vulnerability]);
+  const requests = recordApiRequests();
   await (IndexRoute.options.loader as unknown as Loader)({
     context: { queryClient: client },
     params: { id: vulnerability.id },
@@ -134,16 +108,17 @@ it("fetches catalog entries once across index loading and suspense rendering", a
   await act(async () => {
     render(
       <QueryClientProvider client={client}>
-        <Suspense fallback="Loading">
-          <Component />
-        </Suspense>
+        <PageProvider>
+          <Suspense fallback="Loading">
+            <Component />
+          </Suspense>
+        </PageProvider>
       </QueryClientProvider>,
     );
   });
   expect(await screen.findByText(vulnerability.title)).toBeVisible();
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(listVulnerabilities).toHaveBeenCalledTimes(1);
-  expect(getVulnerabilityByID).not.toHaveBeenCalled();
+  expect(requests).toEqual(["GET /api/vulnerabilities"]);
 });
 
 it("nested edit renders parent-loaded catalog entry without a duplicate loader", async () => {
@@ -152,7 +127,7 @@ it("nested edit renders parent-loaded catalog entry without a duplicate loader",
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
-  vi.mocked(getVulnerabilityByID).mockResolvedValue(vulnerability);
+  const requests = recordApiRequests();
   await (DetailRoute.options.loader as unknown as Loader)({
     context: { queryClient: client },
     params: { id: vulnerability.id },
@@ -161,17 +136,18 @@ it("nested edit renders parent-loaded catalog entry without a duplicate loader",
   await act(async () => {
     render(
       <QueryClientProvider client={client}>
-        <Suspense fallback="Loading">
-          <Component />
-        </Suspense>
+        <PageProvider>
+          <Suspense fallback="Loading">
+            <Component />
+          </Suspense>
+        </PageProvider>
       </QueryClientProvider>,
     );
   });
   expect(await screen.findByDisplayValue(vulnerability.title)).toBeVisible();
   expect(screen.getByDisplayValue(vulnerability.identifier)).toBeVisible();
   expect(client.isFetching()).toBe(0);
-  expect(getVulnerabilityByID).toHaveBeenCalledExactlyOnceWith(vulnerability.id);
-  expect(listVulnerabilities).not.toHaveBeenCalled();
+  expect(requests).toEqual([`GET /api/vulnerabilities/${vulnerability.id}`]);
 });
 
 it("keeps new loader-free", () => {

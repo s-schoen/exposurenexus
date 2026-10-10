@@ -1,28 +1,15 @@
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
-import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   createFindingTableFilterState,
   createFindingTableSearchParams,
-  useFindingTableSearchState,
   validateFindingTableSearch,
 } from "@/features/findings/hooks/use-finding-table-search-state.ts";
 
-const mocks = vi.hoisted(() => ({
-  navigate: vi.fn(),
-}));
-
-vi.mock("@tanstack/react-router", () => ({
-  useNavigate: () => mocks.navigate,
-}));
-
-describe("useFindingTableSearchState", () => {
-  afterEach(() => {
-    cleanup();
-    mocks.navigate.mockReset();
-  });
-
+// Navigation through these helpers, including the triage default, is covered by
+// findings.app.test.tsx.
+describe("finding table search state", () => {
   it("validates finding table filter search params", () => {
     expect(
       validateFindingTableSearch({
@@ -82,91 +69,5 @@ describe("useFindingTableSearchState", () => {
       severity: "critical",
       status: "confirmed",
     });
-  });
-
-  it("updates the finding route search state", () => {
-    const { result } = renderHook(() =>
-      useFindingTableSearchState({
-        search: {},
-        to: "/findings",
-      }),
-    );
-
-    act(() => {
-      result.current.onFilterStateChange({
-        globalFilter: "edge",
-        selectFilters: {
-          assignee: ["user-1"],
-          severity: ["critical"],
-          status: ["confirmed"],
-        },
-      });
-    });
-
-    expect(mocks.navigate).toHaveBeenCalledWith({
-      to: "/findings",
-      replace: true,
-      search: expect.any(Function),
-    });
-
-    const search = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>,
-    ) => Record<string, unknown>;
-
-    expect(search({ filter: "old", selected: "finding-1" })).toEqual({
-      assignee: "user-1",
-      filter: "edge",
-      selected: "finding-1",
-      severity: "critical",
-      status: "confirmed",
-    });
-  });
-
-  it("writes the triage default status into the URL when absent", async () => {
-    renderHook(() =>
-      useFindingTableSearchState({
-        search: {},
-        to: "/findings/triage",
-        defaultStatusFilter: [FindingStatus.Active],
-      }),
-    );
-
-    await waitFor(() => {
-      expect(mocks.navigate).toHaveBeenCalledWith({
-        to: "/findings/triage",
-        replace: true,
-        search: expect.any(Function),
-      });
-    });
-
-    const search = mocks.navigate.mock.calls[0][0].search as (
-      previous: Record<string, unknown>,
-    ) => Record<string, unknown>;
-
-    expect(search({ selected: "finding-1" })).toEqual({
-      assignee: undefined,
-      filter: undefined,
-      selected: "finding-1",
-      severity: undefined,
-      status: FindingStatus.Active,
-    });
-  });
-
-  it("uses an existing comma-delimited triage status instead of writing the default", () => {
-    const { result } = renderHook(() =>
-      useFindingTableSearchState({
-        search: { status: "fixed,false-positive" },
-        to: "/findings/triage",
-        defaultStatusFilter: [FindingStatus.Active],
-      }),
-    );
-
-    expect(result.current.filterState).toEqual({
-      globalFilter: "",
-      selectFilters: {
-        status: ["fixed", "false-positive"],
-      },
-    });
-    expect(mocks.navigate).not.toHaveBeenCalled();
   });
 });

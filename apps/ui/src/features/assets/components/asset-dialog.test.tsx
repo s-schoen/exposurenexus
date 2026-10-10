@@ -3,45 +3,25 @@ import {
   AssetLifecycleState,
   AssetType,
 } from "@exposurenexus/contracts/model/asset";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AssetDialog } from "@/features/assets/components/asset-dialog.tsx";
+import { SEED_USERS } from "@/mocks/fixtures/index.ts";
+import { renderWithAppProviders } from "@/test/harness.tsx";
+import { holdApiResponses, mockApiError } from "@/test/msw.ts";
 
 import type { ReactNode } from "react";
 
-const queryMocks = vi.hoisted(() => ({
-  ownerId: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
-  users: [
-    {
-      id: "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
-      username: "owner",
-      displayName: "Asset Owner",
-      email: "owner@example.com",
-      enabled: false,
-      roleIds: [],
-    },
-  ],
-  isPending: false,
-  isError: false,
-}));
+// Owners load from the MSW mock API; the seeded admin is the owner used below.
+const OWNER = SEED_USERS[0];
 
 const selectMocks = vi.hoisted(() => ({
   value: undefined as string | undefined,
 }));
 
-vi.mock("@tanstack/react-query", () => ({
-  keepPreviousData: Symbol("keepPreviousData"),
-  queryOptions: (options: unknown) => options,
-  useQuery: () => ({
-    data: queryMocks.users,
-    isLoading: queryMocks.isPending,
-    isPending: queryMocks.isPending,
-    isError: queryMocks.isError,
-  }),
-}));
-
+// jsdom cannot drive the Base UI select popup; a native <select> stands in for it.
 vi.mock("@/components/ui/select.tsx", () => ({
   Select: ({
     children,
@@ -89,18 +69,6 @@ afterEach(() => {
 });
 
 beforeEach(() => {
-  queryMocks.users = [
-    {
-      id: queryMocks.ownerId,
-      username: "owner",
-      displayName: "Asset Owner",
-      email: "owner@example.com",
-      enabled: false,
-      roleIds: [],
-    },
-  ];
-  queryMocks.isPending = false;
-  queryMocks.isError = false;
   selectMocks.value = undefined;
 });
 
@@ -110,7 +78,7 @@ function renderAssetDialog() {
     end: vi.fn(),
   };
 
-  const view = render(<AssetDialog call={call as never} />);
+  const view = renderWithAppProviders(<AssetDialog call={call as never} />);
 
   return {
     ...view,
@@ -220,12 +188,13 @@ describe("AssetDialog", () => {
       screen.getByLabelText(/^lifecycle state$/i),
       AssetLifecycleState.Archived,
     );
-    await user.selectOptions(screen.getByLabelText(/^owner$/i), queryMocks.ownerId);
+    await screen.findByRole("option", { name: OWNER.displayName });
+    await user.selectOptions(screen.getByLabelText(/^owner$/i), OWNER.id);
 
     expect(screen.getByTestId("type-trigger")).toHaveTextContent("ContainerImage");
     expect(screen.getByTestId("environment-trigger")).toHaveTextContent("NotApplicable");
     expect(screen.getByTestId("lifecycleState-trigger")).toHaveTextContent("Archived");
-    expect(screen.getByTestId("ownerId-trigger")).toHaveTextContent("Asset Owner");
+    expect(screen.getByTestId("ownerId-trigger")).toHaveTextContent(OWNER.displayName);
   });
 
   it("submits the selected owner", async () => {
@@ -233,7 +202,8 @@ describe("AssetDialog", () => {
     const { call } = renderAssetDialog();
 
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
-    await user.selectOptions(screen.getByLabelText(/^owner$/i), queryMocks.ownerId);
+    await screen.findByRole("option", { name: OWNER.displayName });
+    await user.selectOptions(screen.getByLabelText(/^owner$/i), OWNER.id);
     await user.click(screen.getByRole("button", { name: /^create$/i }));
 
     await waitFor(() => {
@@ -242,7 +212,7 @@ describe("AssetDialog", () => {
         type: AssetType.Host,
         environment: AssetEnvironment.Unknown,
         lifecycleState: AssetLifecycleState.Active,
-        ownerId: queryMocks.ownerId,
+        ownerId: OWNER.id,
       });
     });
   });
@@ -252,7 +222,8 @@ describe("AssetDialog", () => {
     const { call } = renderAssetDialog();
 
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
-    await user.selectOptions(screen.getByLabelText(/^owner$/i), queryMocks.ownerId);
+    await screen.findByRole("option", { name: OWNER.displayName });
+    await user.selectOptions(screen.getByLabelText(/^owner$/i), OWNER.id);
     await user.selectOptions(screen.getByLabelText(/^owner$/i), "__no_owner__");
     await user.click(screen.getByRole("button", { name: /^create$/i }));
 
@@ -268,16 +239,14 @@ describe("AssetDialog", () => {
   });
 
   it.each([
-    ["delayed", { isPending: true, isError: false }],
-    ["failed", { isPending: false, isError: true }],
-  ])("keeps the form usable without stale owners when users are %s", async (_state, queryState) => {
+    ["delayed", () => holdApiResponses("get", "/users")],
+    ["failed", () => mockApiError("get", "/users", 500)],
+  ])("keeps the form usable without stale owners when users are %s", async (_state, setup) => {
     const user = userEvent.setup();
-    queryMocks.users = [];
-    queryMocks.isPending = queryState.isPending;
-    queryMocks.isError = queryState.isError;
+    setup();
     const { call } = renderAssetDialog();
 
-    expect(screen.queryByRole("option", { name: "Asset Owner" })).toBeNull();
+    expect(screen.queryByRole("option", { name: OWNER.displayName })).toBeNull();
     await user.type(screen.getByLabelText(/^display name$/i), "api-01");
     await user.click(screen.getByRole("button", { name: /^create$/i }));
 

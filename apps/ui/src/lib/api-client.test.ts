@@ -11,7 +11,9 @@ import {
   parseObjectReply,
 } from "@/lib/api-client.ts";
 
-const fetchMock = vi.fn<typeof fetch>();
+// apiRequest wraps fetch, so this test watches fetch itself; a pass-through spy keeps the MSW
+// mock API answering while exposing what the client passed (headers, credentials, body).
+let fetchSpy: ReturnType<typeof vi.spyOn<typeof globalThis, "fetch">>;
 
 function jsonResponse(body: object, init?: ResponseInit): Response {
   return new Response(JSON.stringify(body), {
@@ -24,7 +26,7 @@ function jsonResponse(body: object, init?: ResponseInit): Response {
 }
 
 function requestInit(): RequestInit {
-  const init = fetchMock.mock.calls[0]?.[1];
+  const init = fetchSpy.mock.calls[0]?.[1];
   if (!init) {
     throw new Error("fetch was not called");
   }
@@ -33,26 +35,22 @@ function requestInit(): RequestInit {
 }
 
 beforeEach(() => {
-  vi.stubGlobal("fetch", fetchMock);
-  fetchMock.mockReset();
+  fetchSpy = vi.spyOn(globalThis, "fetch");
   document.cookie = "__Host-exposurenexus-csrf=; Max-Age=0; path=/";
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 describe("generic API client", () => {
   it("sends GET requests with browser credentials and no csrf header", async () => {
-    fetchMock.mockResolvedValueOnce(jsonResponse({ data: { ok: true } }));
-
     await apiRequest("/api/assets");
 
     const init = requestInit();
     const headers = init.headers as Headers;
 
-    expect(fetchMock).toHaveBeenCalledWith(
+    expect(fetchSpy).toHaveBeenCalledWith(
       "/api/assets",
       expect.objectContaining({
         method: "GET",
@@ -75,7 +73,6 @@ describe("generic API client", () => {
 
   it("adds csrf headers to unsafe JSON requests", async () => {
     vi.spyOn(document, "cookie", "get").mockReturnValue("__Host-exposurenexus-csrf=csrf-token");
-    fetchMock.mockResolvedValueOnce(jsonResponse({ data: { ok: true } }));
 
     await apiRequest("/api/assets", {
       method: "POST",
@@ -95,7 +92,6 @@ describe("generic API client", () => {
 
   it("adds csrf headers to delete requests", async () => {
     vi.spyOn(document, "cookie", "get").mockReturnValue("__Host-exposurenexus-csrf=csrf-token");
-    fetchMock.mockResolvedValueOnce(jsonResponse({ data: { ok: true } }));
 
     await apiRequest("/api/assets/asset-id", {
       method: "DELETE",
@@ -116,7 +112,8 @@ describe("generic API client", () => {
 
   it("does not force content-type for form data uploads", async () => {
     vi.spyOn(document, "cookie", "get").mockReturnValue("__Host-exposurenexus-csrf=csrf-token");
-    fetchMock.mockResolvedValueOnce(jsonResponse({ data: { ok: true } }));
+    // Node's fetch cannot serialize jsdom's File, so this case answers without sending.
+    fetchSpy.mockResolvedValueOnce(new Response("{}"));
     const formData = new FormData();
     formData.append("file", new File(["finding"], "finding.jsonl"));
 
@@ -135,7 +132,6 @@ describe("generic API client", () => {
 
   it("can disable csrf headers for login", async () => {
     vi.spyOn(document, "cookie", "get").mockReturnValue("__Host-exposurenexus-csrf=csrf-token");
-    fetchMock.mockResolvedValueOnce(jsonResponse({ data: { ok: true } }));
 
     await apiRequest(
       "/api/auth",

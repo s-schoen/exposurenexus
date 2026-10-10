@@ -1,5 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, renderHook } from "@testing-library/react";
+import { act, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useUserLifecycle } from "@/features/users/hooks/use-user-lifecycle.ts";
@@ -7,86 +6,39 @@ import {
   createListUsersQueryOptions,
   createUserByIDQueryOptions,
 } from "@/features/users/queries/users.ts";
+import { SEED_USERS } from "@/mocks/fixtures/index.ts";
+import { renderHookWithApp } from "@/test/harness.tsx";
+import { db, mockApiError } from "@/test/msw.ts";
 
-import type {
-  CreateUserProfile,
-  UpdateUserProfile,
-  UserProfile,
-} from "@exposurenexus/contracts/model/user";
-import type { ReactNode } from "react";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
-const { createUserRequestMock, toastErrorMock, toastSuccessMock, updateUserRequestMock } =
-  vi.hoisted(() => ({
-    createUserRequestMock: vi.fn(),
-    toastErrorMock: vi.fn(),
-    toastSuccessMock: vi.fn(),
-    updateUserRequestMock: vi.fn(),
-  }));
+const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }));
+vi.mock("sonner", () => ({ toast }));
 
-vi.mock("sonner", () => ({
-  toast: {
-    error: toastErrorMock,
-    success: toastSuccessMock,
-  },
-}));
+// Page flows live in users.app.test.tsx; this covers return values and cache effects.
 
-vi.mock("@/features/users/mutations/users.ts", () => ({
-  useCreateUserMutation: () => ({
-    mutateAsync: createUserRequestMock,
-  }),
-  useUpdateUserMutation: () => ({
-    mutateAsync: updateUserRequestMock,
-  }),
-}));
+const [, MORGAN] = SEED_USERS;
+const listKey = createListUsersQueryOptions().queryKey;
+const detailKey = createUserByIDQueryOptions(MORGAN.id).queryKey;
+const unrelatedKey = ["roles"];
 
-function createUserFixture(overrides: Partial<UserProfile> = {}): UserProfile {
-  return {
-    id: overrides.id ?? "1f9c36d2-1355-49d1-8464-b01ce955d88f",
-    username: overrides.username ?? "alice",
-    displayName: overrides.displayName ?? "Alice Example",
-    email: overrides.email ?? "alice@example.com",
-    enabled: overrides.enabled ?? true,
-    roleIds: overrides.roleIds ?? ["6d0d8a47-0f6d-47b6-9b9a-d8f0d3f4dd01"],
-  };
+function seedCache(queryClient: QueryClient) {
+  queryClient.setQueryData(listKey, SEED_USERS);
+  queryClient.setQueryData(detailKey, MORGAN);
+  queryClient.setQueryData(unrelatedKey, []);
 }
 
-function createUserPayload(overrides: Partial<CreateUserProfile> = {}): CreateUserProfile {
-  return {
-    username: overrides.username ?? "alice",
-    displayName: overrides.displayName ?? "Alice Example",
-    email: overrides.email ?? "alice@example.com",
-    enabled: overrides.enabled ?? true,
-    password: overrides.password ?? "correct horse battery staple",
-    roleIds: overrides.roleIds ?? ["6d0d8a47-0f6d-47b6-9b9a-d8f0d3f4dd01"],
-  };
-}
+const isInvalidated = (queryClient: QueryClient, key: QueryKey) =>
+  queryClient.getQueryState(key)?.isInvalidated ?? false;
 
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-}
-
-function renderLifecycleHook(queryClient = createQueryClient()) {
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
-
-  return {
-    queryClient,
-    ...renderHook(() => useUserLifecycle(), { wrapper }),
-  };
-}
+const { id: _, ...profile } = MORGAN;
+// The update contract has no username: usernames are immutable.
+const { username: __, ...update } = profile;
 
 beforeEach(() => {
-  createUserRequestMock.mockReset();
-  toastErrorMock.mockReset();
-  toastSuccessMock.mockReset();
-  updateUserRequestMock.mockReset();
+  toast.error.mockReset();
+  toast.success.mockReset();
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
 
 afterEach(() => {
@@ -95,95 +47,58 @@ afterEach(() => {
 });
 
 describe("useUserLifecycle", () => {
-  it("creates users and invalidates user reads", async () => {
-    const user = createUserFixture();
-    const payload = createUserPayload();
-    createUserRequestMock.mockResolvedValueOnce(user);
-    const { queryClient, result } = renderLifecycleHook();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+  it("creates a user and invalidates the user list", async () => {
+    const { queryClient, result } = renderHookWithApp(() => useUserLifecycle());
+    seedCache(queryClient);
 
-    let createdUser: UserProfile | null = null;
+    let created = null;
     await act(async () => {
-      createdUser = await result.current.createUser(payload);
-    });
-
-    expect(createdUser).toEqual(user);
-    expect(createUserRequestMock).toHaveBeenCalledWith(payload);
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: createListUsersQueryOptions().queryKey,
-      exact: true,
-    });
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: createUserByIDQueryOptions(user.id).queryKey,
-      exact: true,
-    });
-    expect(toastSuccessMock).toHaveBeenCalledWith("Created user Alice Example");
-  });
-
-  it("updates users, writes detail cache, and invalidates user reads", async () => {
-    const user = createUserFixture({ displayName: "Alice Changed" });
-    const payload: UpdateUserProfile = {
-      displayName: "Alice Changed",
-      email: "alice.changed@example.com",
-      enabled: false,
-      roleIds: ["5d5f5c6f-a9d6-4d49-9f4d-9462b873a902"],
-    };
-    updateUserRequestMock.mockResolvedValueOnce(user);
-    const { queryClient, result } = renderLifecycleHook();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
-
-    let updatedUser: UserProfile | null = null;
-    await act(async () => {
-      updatedUser = await result.current.updateUser(user.id, payload);
-    });
-
-    expect(updatedUser).toEqual(user);
-    expect(updateUserRequestMock).toHaveBeenCalledWith({
-      id: user.id,
-      user: payload,
-    });
-    expect(
-      queryClient.getQueryData<UserProfile>(createUserByIDQueryOptions(user.id).queryKey),
-    ).toEqual(user);
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: createListUsersQueryOptions().queryKey,
-      exact: true,
-    });
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: createUserByIDQueryOptions(user.id).queryKey,
-      exact: true,
-    });
-    expect(toastSuccessMock).toHaveBeenCalledWith("Updated user Alice Changed");
-  });
-
-  it("reports update failures", async () => {
-    const user = createUserFixture();
-    const error = new Error("Update failed");
-    updateUserRequestMock.mockRejectedValueOnce(error);
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const { queryClient, result } = renderLifecycleHook();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
-    const listQueryKey = createListUsersQueryOptions().queryKey;
-    const detailQueryKey = createUserByIDQueryOptions(user.id).queryKey;
-    queryClient.setQueryData(listQueryKey, [user]);
-    queryClient.setQueryData(detailQueryKey, user);
-
-    let updatedUser: UserProfile | null = user;
-    await act(async () => {
-      updatedUser = await result.current.updateUser(user.id, {
-        displayName: "Alice Changed",
-        email: "alice.changed@example.com",
-        enabled: false,
-        roleIds: [],
+      created = await result.current.createUser({
+        ...profile,
+        username: "jamie",
+        displayName: "Jamie",
+        password: "secret",
       });
     });
 
-    expect(updatedUser).toBeNull();
-    expect(queryClient.getQueryData(listQueryKey)).toEqual([user]);
-    expect(queryClient.getQueryData(detailQueryKey)).toEqual(user);
-    expect(invalidateSpy).not.toHaveBeenCalled();
-    expect(toastErrorMock).toHaveBeenCalledWith(`Failed to update user: ${error}`);
-    expect(toastSuccessMock).not.toHaveBeenCalled();
-    expect(consoleError).toHaveBeenCalledWith(error);
+    expect(created).toEqual(db.users.all().find((user) => user.username === "jamie"));
+    expect(isInvalidated(queryClient, listKey)).toBe(true);
+    expect(isInvalidated(queryClient, unrelatedKey)).toBe(false);
+    expect(toast.success).toHaveBeenCalledWith("Created user Jamie");
+  });
+
+  it("writes the updated user to its detail cache and invalidates user reads", async () => {
+    const { queryClient, result } = renderHookWithApp(() => useUserLifecycle());
+    seedCache(queryClient);
+
+    let updated = null;
+    await act(async () => {
+      updated = await result.current.updateUser(MORGAN.id, {
+        ...update,
+        displayName: "Morgan Lead",
+      });
+    });
+
+    expect(updated).toEqual({ ...MORGAN, displayName: "Morgan Lead" });
+    expect(queryClient.getQueryData(detailKey)).toEqual(updated);
+    expect(isInvalidated(queryClient, listKey)).toBe(true);
+    expect(isInvalidated(queryClient, unrelatedKey)).toBe(false);
+    expect(toast.success).toHaveBeenCalledWith("Updated user Morgan Lead");
+  });
+
+  it("returns null and reports the error when an update fails", async () => {
+    mockApiError("put", "/users/:id", 500, "Update failed");
+    const { queryClient, result } = renderHookWithApp(() => useUserLifecycle());
+    seedCache(queryClient);
+
+    let updated: unknown = "unset";
+    await act(async () => {
+      updated = await result.current.updateUser(MORGAN.id, update);
+    });
+
+    expect(updated).toBeNull();
+    expect(queryClient.getQueryData(detailKey)).toEqual(MORGAN);
+    expect(isInvalidated(queryClient, listKey)).toBe(false);
+    expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Update failed"));
   });
 });

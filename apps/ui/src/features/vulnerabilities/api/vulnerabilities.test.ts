@@ -1,7 +1,3 @@
-import {
-  VulnerabilitySeverity,
-  VulnerabilityType,
-} from "@exposurenexus/contracts/model/vulnerability";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -11,267 +7,53 @@ import {
   listVulnerabilities,
   updateVulnerability,
 } from "@/features/vulnerabilities/api/vulnerabilities.ts";
+import { APIError } from "@/lib/api-client.ts";
+import { SEED_VULNERABILITIES } from "@/mocks/fixtures/index.ts";
+import { mockApiError, mockApiReply } from "@/test/msw.ts";
 
-import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
+// Happy-path requests and bodies are covered by src/mocks/handlers/handlers.test.ts, whose
+// handlers validate bodies with the contracts schemas. This covers error and reply handling.
 
-const fetchMock = vi.fn<typeof fetch>();
-
-function jsonResponse(body: object, init?: ResponseInit): Response {
-  return new Response(JSON.stringify(body), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-    },
-    ...init,
-  });
-}
-
-function requestHeader(name: string): string | null | undefined {
-  const headers = fetchMock.mock.calls[0]?.[1]?.headers as Headers | undefined;
-  return headers?.get(name);
-}
-
-const vulnerabilityId = "9d7acdd0-fad1-46c9-8218-1793f421f0fe";
-const userId = "1f9c36d2-1355-49d1-8464-b01ce955d88f";
-const vulnerabilityJson = {
-  id: vulnerabilityId,
-  type: VulnerabilityType.Cve,
-  identifier: "CVE-2026-0001",
-  title: "Exposed Admin Endpoint",
-  severity: VulnerabilitySeverity.High,
-  description: "Administrative interface is reachable externally",
-  metadata: { cwe: 284 },
-  createdBy: userId,
-  updatedBy: userId,
-  createdAt: "2026-01-01T00:00:00.000Z",
-  updatedAt: "2026-01-02T00:00:00.000Z",
+const [entry] = SEED_VULNERABILITIES;
+const input = {
+  type: entry.type,
+  identifier: entry.identifier,
+  title: entry.title,
+  severity: entry.severity,
+  description: entry.description,
+  metadata: entry.metadata,
 };
 
-function expectVulnerabilityDates(vulnerability: VulnerabilityCatalog) {
-  expect(vulnerability.createdAt).toBeInstanceOf(Date);
-  expect(vulnerability.updatedAt).toBeInstanceOf(Date);
-  expect(vulnerability.createdAt.toISOString()).toBe("2026-01-01T00:00:00.000Z");
-  expect(vulnerability.updatedAt.toISOString()).toBe("2026-01-02T00:00:00.000Z");
-}
-
 beforeEach(() => {
-  vi.stubGlobal("fetch", fetchMock);
-  fetchMock.mockReset();
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 describe("vulnerability api", () => {
-  it("lists and parses vulnerabilities", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        data: {
-          items: [vulnerabilityJson],
-        },
-      }),
-    );
+  it.each([
+    ["list", "get", "/vulnerabilities", () => listVulnerabilities()],
+    ["get", "get", "/vulnerabilities/:id", () => getVulnerabilityByID(entry.id)],
+    ["create", "post", "/vulnerabilities", () => createVulnerability(input)],
+    ["update", "put", "/vulnerabilities/:id", () => updateVulnerability(entry.id, input)],
+    ["delete", "delete", "/vulnerabilities/:id", () => deleteVulnerability(entry.id)],
+  ] as const)("turns %s error replies into APIErrors", async (_name, method, path, call) => {
+    mockApiError(method, path, 422, "Catalog endpoint rejected the request", "catalog-reason");
 
-    const vulnerabilities = await listVulnerabilities();
-    expect(vulnerabilities).toHaveLength(1);
-    expect(vulnerabilities[0]).toMatchObject({
-      id: vulnerabilityId,
-      title: "Exposed Admin Endpoint",
-      severity: VulnerabilitySeverity.High,
+    const request = call();
+    await expect(request).rejects.toBeInstanceOf(APIError);
+    await expect(request).rejects.toMatchObject({
+      statusCode: 422,
+      message: "Catalog endpoint rejected the request",
+      reason: "catalog-reason",
     });
-    expectVulnerabilityDates(vulnerabilities[0]);
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/vulnerabilities",
-      expect.objectContaining({
-        credentials: "include",
-        method: "GET",
-      }),
-    );
   });
 
-  it("gets and parses vulnerability details", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        data: vulnerabilityJson,
-      }),
-    );
+  it("rejects replies that break the catalog contract", async () => {
+    mockApiReply("get", "/vulnerabilities/:id", { data: { ...entry, severity: "urgent" } });
 
-    const vulnerability = await getVulnerabilityByID(vulnerabilityId);
-
-    expect(vulnerability.id).toBe(vulnerabilityId);
-    expectVulnerabilityDates(vulnerability);
-    expect(fetchMock).toHaveBeenCalledWith(
-      `/api/vulnerabilities/${vulnerabilityId}`,
-      expect.objectContaining({
-        credentials: "include",
-        method: "GET",
-      }),
-    );
-  });
-
-  it("throws API errors from list requests", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse(
-        {
-          error: "Vulnerability list failed",
-          reason: "database unavailable",
-        },
-        { status: 503 },
-      ),
-    );
-
-    await expect(listVulnerabilities()).rejects.toThrow("Vulnerability list failed");
-  });
-
-  it("throws API errors from detail requests", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse(
-        {
-          error: "Vulnerability not found",
-          reason: "missing record",
-        },
-        { status: 404 },
-      ),
-    );
-
-    await expect(getVulnerabilityByID(vulnerabilityId)).rejects.toThrow("Vulnerability not found");
-  });
-
-  it("creates vulnerabilities with a JSON request body", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        data: vulnerabilityJson,
-      }),
-    );
-
-    const payload = {
-      type: VulnerabilityType.Cve,
-      identifier: "cve-2026-0001",
-      title: "Exposed Admin Endpoint",
-      severity: VulnerabilitySeverity.High,
-      description: "Administrative interface is reachable externally",
-      metadata: { cwe: 284 },
-    };
-    const created = await createVulnerability(payload);
-
-    expect(created.id).toBe(vulnerabilityId);
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/vulnerabilities",
-      expect.objectContaining({
-        credentials: "include",
-        method: "POST",
-        body: JSON.stringify(payload),
-      }),
-    );
-    expect(requestHeader("Content-Type")).toBe("application/json");
-  });
-
-  it("updates vulnerabilities with a JSON request body", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        data: vulnerabilityJson,
-      }),
-    );
-
-    const payload = {
-      type: VulnerabilityType.Custom,
-      identifier: "exposed-management-endpoint",
-      title: "Exposed Management Endpoint",
-      severity: VulnerabilitySeverity.Critical,
-      description: null,
-      metadata: null,
-    };
-    const updated = await updateVulnerability(vulnerabilityId, payload);
-
-    expect(updated.id).toBe(vulnerabilityId);
-    expect(fetchMock).toHaveBeenCalledWith(
-      `/api/vulnerabilities/${vulnerabilityId}`,
-      expect.objectContaining({
-        credentials: "include",
-        method: "PUT",
-        body: JSON.stringify(payload),
-      }),
-    );
-    expect(requestHeader("Content-Type")).toBe("application/json");
-  });
-
-  it("deletes vulnerabilities", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        data: vulnerabilityJson,
-      }),
-    );
-
-    const deleted = await deleteVulnerability(vulnerabilityId);
-
-    expect(deleted.id).toBe(vulnerabilityId);
-    expect(fetchMock).toHaveBeenCalledWith(
-      `/api/vulnerabilities/${vulnerabilityId}`,
-      expect.objectContaining({
-        credentials: "include",
-        method: "DELETE",
-      }),
-    );
-  });
-
-  it("throws API errors from create, update, and delete requests", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse(
-        {
-          error: "Vulnerability create failed",
-          reason: "invalid payload",
-        },
-        { status: 400 },
-      ),
-    );
-
-    await expect(
-      createVulnerability({
-        type: VulnerabilityType.Custom,
-        identifier: "",
-        title: "",
-        severity: VulnerabilitySeverity.High,
-        description: null,
-        metadata: null,
-      }),
-    ).rejects.toThrow("Vulnerability create failed");
-
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse(
-        {
-          error: "Vulnerability update failed",
-          reason: "missing record",
-        },
-        { status: 404 },
-      ),
-    );
-
-    await expect(
-      updateVulnerability(vulnerabilityId, {
-        type: VulnerabilityType.Custom,
-        identifier: "exposed-admin-endpoint",
-        title: "Exposed Admin Endpoint",
-        severity: VulnerabilitySeverity.High,
-        description: null,
-        metadata: null,
-      }),
-    ).rejects.toThrow("Vulnerability update failed");
-
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse(
-        {
-          error: "Vulnerability delete failed",
-          reason: "delete rejected",
-        },
-        { status: 409 },
-      ),
-    );
-
-    await expect(deleteVulnerability(vulnerabilityId)).rejects.toThrow(
-      "Vulnerability delete failed",
-    );
+    await expect(getVulnerabilityByID(entry.id)).rejects.toThrow();
   });
 });

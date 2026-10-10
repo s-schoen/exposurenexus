@@ -1,4 +1,4 @@
-import { http } from "msw";
+import { HttpResponse, http } from "msw";
 import { onTestFinished } from "vitest";
 
 import { apiPath } from "@/mocks/handlers/shared.ts";
@@ -39,4 +39,55 @@ export function recordApiRequests(): Array<string> {
   server.events.on("request:start", listener);
   onTestFinished(() => server.events.removeListener("request:start", listener));
   return requests;
+}
+
+export interface CapturedApiCall {
+  url: URL;
+  headers: Headers;
+  /** Parsed JSON body, or `undefined` for requests without one. */
+  body: unknown;
+}
+
+/**
+ * Records requests to one endpoint while the mock API still answers them, for the few tests
+ * that assert query strings, headers or bodies. Prefer asserting `db` state.
+ */
+export function captureApiCalls(method: HttpMethod, path: string): Array<CapturedApiCall> {
+  const calls: Array<CapturedApiCall> = [];
+  server.use(
+    http[method](apiPath(path), async ({ request }) => {
+      const text = await request.clone().text();
+      calls.push({
+        url: new URL(request.url),
+        headers: request.headers,
+        body: text ? (JSON.parse(text) as unknown) : undefined,
+      });
+      return undefined;
+    }),
+  );
+  return calls;
+}
+
+/**
+ * Holds every response from one endpoint until `release()`, to observe pending states. Held
+ * requests then get the mock API's normal answer.
+ */
+export function holdApiResponses(method: HttpMethod, path: string): { release: () => void } {
+  let release = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  server.use(
+    http[method](apiPath(path), async () => {
+      await held;
+      return undefined;
+    }),
+  );
+  onTestFinished(release);
+  return { release };
+}
+
+/** Answers one endpoint with a raw JSON body, e.g. a malformed envelope. */
+export function mockApiReply(method: HttpMethod, path: string, body: unknown, status = 200): void {
+  server.use(http[method](apiPath(path), () => HttpResponse.json(body as object, { status })));
 }

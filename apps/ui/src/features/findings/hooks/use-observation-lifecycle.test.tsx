@@ -1,8 +1,4 @@
-import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
-import { ObservationSource } from "@exposurenexus/contracts/model/observation";
-import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, renderHook } from "@testing-library/react";
+import { act, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useObservationLifecycle } from "@/features/findings/hooks/use-observation-lifecycle.ts";
@@ -12,87 +8,56 @@ import {
   createFindingStatsQueryOptions,
   createListFindingsQueryOptions,
 } from "@/features/findings/queries/findings.ts";
+import { computeFindingStatistics } from "@/mocks/db.ts";
+import { SEED_FINDINGS, SEED_OBSERVATIONS } from "@/mocks/fixtures/index.ts";
+import { renderHookWithApp } from "@/test/harness.tsx";
+import { db, mockApiError } from "@/test/msw.ts";
 
-import type { Observation } from "@exposurenexus/contracts/model/observation";
-import type { ReactNode } from "react";
+import type { QueryClient, QueryKey } from "@tanstack/react-query";
 
-const {
-  createObservationRequestMock,
-  deleteObservationRequestMock,
-  moveObservationRequestMock,
-  toastErrorMock,
-  toastSuccessMock,
-  updateObservationRequestMock,
-} = vi.hoisted(() => ({
-  createObservationRequestMock: vi.fn(),
-  deleteObservationRequestMock: vi.fn(),
-  moveObservationRequestMock: vi.fn(),
-  toastErrorMock: vi.fn(),
-  toastSuccessMock: vi.fn(),
-  updateObservationRequestMock: vi.fn(),
-}));
+const toast = vi.hoisted(() => ({ error: vi.fn(), success: vi.fn() }));
+vi.mock("sonner", () => ({ toast }));
 
-vi.mock("sonner", () => ({
-  toast: {
-    error: toastErrorMock,
-    success: toastSuccessMock,
-  },
-}));
+// Page flows live in finding-observations.app.test.tsx; this covers which reads are invalidated.
 
-vi.mock("@/features/findings/mutations/findings.ts", () => ({
-  useCreateFindingObservationMutation: () => ({
-    mutateAsync: createObservationRequestMock,
-  }),
-  useUpdateFindingObservationMutation: () => ({
-    mutateAsync: updateObservationRequestMock,
-  }),
-  useDeleteFindingObservationMutation: () => ({
-    mutateAsync: deleteObservationRequestMock,
-  }),
-  useMoveFindingObservationMutation: () => ({
-    mutateAsync: moveObservationRequestMock,
-  }),
-}));
+const [ADMIN_ENDPOINT, OUTDATED_DEPENDENCY, ROOT_CONTAINER] = SEED_FINDINGS;
+const [MANUAL_REPORT, SCANNER_REPORT] = SEED_OBSERVATIONS;
+const listKey = createListFindingsQueryOptions().queryKey;
+const statsKey = createFindingStatsQueryOptions().queryKey;
+const detailKey = (id: string) => createFindingByIDQueryOptions(id).queryKey;
+const observationsKey = (id: string) => createFindingObservationsQueryOptions(id).queryKey;
 
-const findingId = "2713d833-eb13-4517-ac7c-7761545ed42a";
-const userId = "1f9c36d2-1355-49d1-8464-b01ce955d88f";
-const observation: Observation = {
-  id: "f39a0c31-33b9-4f10-a128-35158dee4a26",
-  findingId,
-  ingestionId: null,
-  source: ObservationSource.Manual,
-  title: "Exposed Admin Endpoint",
-  description: null,
-  evidence: "GET /admin returned 200",
-  remediation: null,
-  severity: VulnerabilitySeverity.High,
-  weakness: { identifiers: { cwe: ["CWE-284"] } },
-  affectedResource: { type: AffectedResourceType.Unspecified },
-  fingerprints: {},
-  observedAt: new Date("2026-01-04T00:00:00.000Z"),
-  createdAt: new Date("2026-01-04T00:00:00.000Z"),
-  updatedAt: new Date("2026-01-04T00:00:00.000Z"),
-  createdBy: userId,
-  updatedBy: userId,
-};
+function seedCache(queryClient: QueryClient) {
+  queryClient.setQueryData(listKey, SEED_FINDINGS);
+  queryClient.setQueryData(statsKey, computeFindingStatistics(db));
+  for (const finding of SEED_FINDINGS) {
+    queryClient.setQueryData(detailKey(finding.id), finding);
+    queryClient.setQueryData(observationsKey(finding.id), []);
+  }
+}
 
-function renderLifecycleHook() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  const wrapper = ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
-  return { queryClient, ...renderHook(() => useObservationLifecycle(), { wrapper }) };
+const isInvalidated = (queryClient: QueryClient, key: QueryKey) =>
+  queryClient.getQueryState(key)?.isInvalidated ?? false;
+
+function expectFindingReadsInvalidated(queryClient: QueryClient, findingIds: Array<string>) {
+  for (const id of findingIds) {
+    expect(isInvalidated(queryClient, detailKey(id))).toBe(true);
+    expect(isInvalidated(queryClient, observationsKey(id))).toBe(true);
+  }
+  expect(isInvalidated(queryClient, listKey)).toBe(true);
+  expect(isInvalidated(queryClient, statsKey)).toBe(true);
+  expect(isInvalidated(queryClient, detailKey(ROOT_CONTAINER.id))).toBe(false);
+}
+
+function renderLifecycle() {
+  const view = renderHookWithApp(() => useObservationLifecycle());
+  seedCache(view.queryClient);
+  return view;
 }
 
 beforeEach(() => {
-  createObservationRequestMock.mockReset();
-  deleteObservationRequestMock.mockReset();
-  moveObservationRequestMock.mockReset();
-  toastErrorMock.mockReset();
-  toastSuccessMock.mockReset();
-  updateObservationRequestMock.mockReset();
+  toast.error.mockReset();
+  toast.success.mockReset();
   vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
 
@@ -102,197 +67,96 @@ afterEach(() => {
 });
 
 describe("useObservationLifecycle", () => {
-  it("creates an observation and invalidates every exact affected read", async () => {
-    createObservationRequestMock.mockResolvedValueOnce(observation);
-    const { queryClient, result } = renderLifecycleHook();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+  it("adds an observation and invalidates its finding's reads", async () => {
+    const { queryClient, result } = renderLifecycle();
 
-    let created: Observation | null = null;
+    let added = null;
     await act(async () => {
-      created = await result.current.addObservation(findingId, {
-        evidence: observation.evidence,
+      added = await result.current.addObservation(OUTDATED_DEPENDENCY.id, { title: "Seen again" });
+    });
+
+    expect(added).toMatchObject({ findingId: OUTDATED_DEPENDENCY.id, title: "Seen again" });
+    expectFindingReadsInvalidated(queryClient, [OUTDATED_DEPENDENCY.id]);
+    expect(isInvalidated(queryClient, detailKey(ADMIN_ENDPOINT.id))).toBe(false);
+    expect(toast.success).toHaveBeenCalledWith("Observation added");
+  });
+
+  it("updates and deletes observations", async () => {
+    const { queryClient, result } = renderLifecycle();
+
+    await act(async () => {
+      await result.current.updateObservation(ADMIN_ENDPOINT.id, MANUAL_REPORT.id, {
+        title: "Renamed",
       });
     });
+    expect(db.observations.get(MANUAL_REPORT.id)?.title).toBe("Renamed");
+    expectFindingReadsInvalidated(queryClient, [ADMIN_ENDPOINT.id]);
 
-    expect(created).toEqual(observation);
-    expect(createObservationRequestMock).toHaveBeenCalledWith({
-      findingId,
-      observation: { evidence: observation.evidence },
+    await act(async () => {
+      await result.current.deleteObservation(ADMIN_ENDPOINT.id, MANUAL_REPORT.id);
     });
-    for (const queryKey of [
-      createFindingObservationsQueryOptions(findingId).queryKey,
-      createFindingByIDQueryOptions(findingId).queryKey,
-      createListFindingsQueryOptions().queryKey,
-      createFindingStatsQueryOptions().queryKey,
-    ]) {
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey, exact: true });
-    }
-    expect(toastSuccessMock).toHaveBeenCalledWith("Observation added");
+    expect(db.observations.get(MANUAL_REPORT.id)).toBeUndefined();
+    expect(toast.success).toHaveBeenCalledWith("Observation deleted");
   });
 
-  it("handles creation failures without invalidating caches", async () => {
-    const error = new Error("Request failed");
-    createObservationRequestMock.mockRejectedValueOnce(error);
-    const { queryClient, result } = renderLifecycleHook();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+  it("invalidates both findings when moving an observation", async () => {
+    const { queryClient, result } = renderLifecycle();
 
-    let created: Observation | null = observation;
+    let moved = null;
     await act(async () => {
-      created = await result.current.addObservation(findingId, {});
-    });
-
-    expect(created).toBeNull();
-    expect(invalidateSpy).not.toHaveBeenCalled();
-    expect(toastErrorMock).toHaveBeenCalledWith("Failed to add observation: Error: Request failed");
-    expect(console.error).toHaveBeenCalledWith(error);
-  });
-
-  it("updates an observation and invalidates every exact affected read", async () => {
-    updateObservationRequestMock.mockResolvedValueOnce(observation);
-    const { queryClient, result } = renderLifecycleHook();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
-
-    let changed: Observation | null = null;
-    await act(async () => {
-      changed = await result.current.updateObservation(findingId, observation.id, {
-        title: "Corrected observation",
-      });
-    });
-
-    expect(changed).toEqual(observation);
-    expect(updateObservationRequestMock).toHaveBeenCalledWith({
-      findingId,
-      observationId: observation.id,
-      update: { title: "Corrected observation" },
-    });
-    for (const queryKey of [
-      createFindingObservationsQueryOptions(findingId).queryKey,
-      createFindingByIDQueryOptions(findingId).queryKey,
-      createListFindingsQueryOptions().queryKey,
-      createFindingStatsQueryOptions().queryKey,
-    ]) {
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey, exact: true });
-    }
-    expect(toastSuccessMock).toHaveBeenCalledWith("Observation updated");
-  });
-
-  it("deletes an observation and invalidates every exact affected read", async () => {
-    deleteObservationRequestMock.mockResolvedValueOnce(observation);
-    const { queryClient, result } = renderLifecycleHook();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
-
-    let changed: Observation | null = null;
-    await act(async () => {
-      changed = await result.current.deleteObservation(findingId, observation.id);
-    });
-
-    expect(changed).toEqual(observation);
-    expect(deleteObservationRequestMock).toHaveBeenCalledWith({
-      findingId,
-      observationId: observation.id,
-    });
-    for (const queryKey of [
-      createFindingObservationsQueryOptions(findingId).queryKey,
-      createFindingByIDQueryOptions(findingId).queryKey,
-      createListFindingsQueryOptions().queryKey,
-      createFindingStatsQueryOptions().queryKey,
-    ]) {
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey, exact: true });
-    }
-    expect(toastSuccessMock).toHaveBeenCalledWith("Observation deleted");
-  });
-
-  it("moves an observation and invalidates both parent subtrees plus lists and stats", async () => {
-    const targetFindingId = "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d";
-    const moved = { ...observation, findingId: targetFindingId };
-    moveObservationRequestMock.mockResolvedValueOnce(moved);
-    const { queryClient, result } = renderLifecycleHook();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
-
-    let changed: Observation | null = null;
-    await act(async () => {
-      changed = await result.current.moveObservation(findingId, observation.id, targetFindingId);
-    });
-
-    expect(changed).toEqual(moved);
-    expect(moveObservationRequestMock).toHaveBeenCalledWith({
-      findingId,
-      observationId: observation.id,
-      targetFindingId,
-    });
-    for (const queryKey of [
-      createFindingObservationsQueryOptions(findingId).queryKey,
-      createFindingByIDQueryOptions(findingId).queryKey,
-      createFindingObservationsQueryOptions(targetFindingId).queryKey,
-      createFindingByIDQueryOptions(targetFindingId).queryKey,
-      createListFindingsQueryOptions().queryKey,
-      createFindingStatsQueryOptions().queryKey,
-    ]) {
-      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey, exact: true });
-    }
-    expect(toastSuccessMock).toHaveBeenCalledWith("Observation moved");
-  });
-
-  it("handles move failures without invalidating caches", async () => {
-    const error = new Error("Request failed");
-    moveObservationRequestMock.mockRejectedValueOnce(error);
-    const { queryClient, result } = renderLifecycleHook();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
-
-    let changed: Observation | null = observation;
-    await act(async () => {
-      changed = await result.current.moveObservation(
-        findingId,
-        observation.id,
-        "f74d7ff2-2d81-4d1e-9fa9-73af7d46a37d",
+      moved = await result.current.moveObservation(
+        ADMIN_ENDPOINT.id,
+        SCANNER_REPORT.id,
+        OUTDATED_DEPENDENCY.id,
       );
     });
 
-    expect(changed).toBeNull();
-    expect(invalidateSpy).not.toHaveBeenCalled();
-    expect(toastErrorMock).toHaveBeenCalledWith(
-      "Failed to move observation: Error: Request failed",
-    );
-    expect(console.error).toHaveBeenCalledWith(error);
+    expect(moved).toMatchObject({ id: SCANNER_REPORT.id, findingId: OUTDATED_DEPENDENCY.id });
+    expectFindingReadsInvalidated(queryClient, [ADMIN_ENDPOINT.id, OUTDATED_DEPENDENCY.id]);
+    expect(toast.success).toHaveBeenCalledWith("Observation moved");
   });
 
-  it("handles observation update failures without invalidating caches", async () => {
-    const error = new Error("Request failed");
-    updateObservationRequestMock.mockRejectedValueOnce(error);
-    const { queryClient, result } = renderLifecycleHook();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
+  it.each([
+    ["add", "post", "/findings/:id/observations", "Failed to add observation"],
+    ["update", "put", "/findings/:id/observations/:observationId", "Failed to update observation"],
+    [
+      "delete",
+      "delete",
+      "/findings/:id/observations/:observationId",
+      "Failed to delete observation",
+    ],
+    [
+      "move",
+      "post",
+      "/findings/:id/observations/:observationId/move",
+      "Failed to move observation",
+    ],
+  ] as const)(
+    "returns null without invalidating when %s fails",
+    async (action, method, path, message) => {
+      mockApiError(method, path, 500, "Request failed");
+      const { queryClient, result } = renderLifecycle();
 
-    let changed: Observation | null = observation;
-    await act(async () => {
-      changed = await result.current.updateObservation(findingId, observation.id, {
-        title: "Corrected",
+      let outcome: unknown = "unset";
+      await act(async () => {
+        const actions = result.current;
+        outcome =
+          action === "add"
+            ? await actions.addObservation(ADMIN_ENDPOINT.id, { title: "x" })
+            : action === "update"
+              ? await actions.updateObservation(ADMIN_ENDPOINT.id, MANUAL_REPORT.id, { title: "x" })
+              : action === "delete"
+                ? await actions.deleteObservation(ADMIN_ENDPOINT.id, MANUAL_REPORT.id)
+                : await actions.moveObservation(
+                    ADMIN_ENDPOINT.id,
+                    MANUAL_REPORT.id,
+                    ROOT_CONTAINER.id,
+                  );
       });
-    });
 
-    expect(changed).toBeNull();
-    expect(invalidateSpy).not.toHaveBeenCalled();
-    expect(toastErrorMock).toHaveBeenCalledWith(
-      "Failed to update observation: Error: Request failed",
-    );
-    expect(console.error).toHaveBeenCalledWith(error);
-  });
-
-  it("handles observation deletion failures without invalidating caches", async () => {
-    const error = new Error("Request failed");
-    deleteObservationRequestMock.mockRejectedValueOnce(error);
-    const { queryClient, result } = renderLifecycleHook();
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue(undefined);
-
-    let changed: Observation | null = observation;
-    await act(async () => {
-      changed = await result.current.deleteObservation(findingId, observation.id);
-    });
-
-    expect(changed).toBeNull();
-    expect(invalidateSpy).not.toHaveBeenCalled();
-    expect(toastErrorMock).toHaveBeenCalledWith(
-      "Failed to delete observation: Error: Request failed",
-    );
-    expect(console.error).toHaveBeenCalledWith(error);
-  });
+      expect(outcome).toBeNull();
+      expect(isInvalidated(queryClient, listKey)).toBe(false);
+      expect(toast.error).toHaveBeenCalledWith(expect.stringContaining(message));
+    },
+  );
 });
