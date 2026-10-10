@@ -1,5 +1,5 @@
 import { PermissionVerb } from "@exposurenexus/contracts/model/rbac";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   createRole,
@@ -17,14 +17,6 @@ import { mockApiError, mockApiReply } from "@/test/msw.ts";
 
 const { id } = CUSTOM_AUDITOR_ROLE;
 const payload = { name: "auditor", permissions: [] };
-
-beforeEach(() => {
-  vi.spyOn(console, "error").mockImplementation(() => undefined);
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe("role api", () => {
   it.each([

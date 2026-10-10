@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   createVulnerability,
@@ -23,14 +23,6 @@ const input = {
   description: entry.description,
   metadata: entry.metadata,
 };
-
-beforeEach(() => {
-  vi.spyOn(console, "error").mockImplementation(() => undefined);
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe("vulnerability api", () => {
   it.each([

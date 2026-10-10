@@ -1,7 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, renderHook } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { vi } from "vitest";
+import { onTestFinished, vi } from "vitest";
 
 import { PageProvider } from "@/hooks/use-page-meta.tsx";
 import { createAppQueryClient } from "@/lib/query-client.ts";
@@ -13,6 +13,16 @@ import type { ReactElement, ReactNode } from "react";
 
 // Data comes from the MSW mock API (src/test/setup.ts). Use renderApp from
 // src/test/render-app.tsx for whole pages; these helpers are for components and hooks.
+
+/**
+ * The app's real QueryClient without retries. Its queries are cancelled when the test ends, so a
+ * request still in flight can't fail, and log, once the mock API is reset or closed.
+ */
+export function createTestQueryClient(): QueryClient {
+  const queryClient = createAppQueryClient({ retry: false });
+  onTestFinished(() => queryClient.cancelQueries());
+  return queryClient;
+}
 
 function AppProviders({
   children,
@@ -33,7 +43,7 @@ export function renderWithAppProviders(
   ui: ReactElement,
   renderOptions: Omit<RenderOptions, "wrapper"> = {},
 ) {
-  const queryClient = createAppQueryClient({ retry: false });
+  const queryClient = createTestQueryClient();
   const view = render(ui, {
     wrapper: ({ children }: { children: ReactNode }) => (
       <AppProviders queryClient={queryClient}>{children}</AppProviders>
@@ -49,7 +59,7 @@ export function renderWithAppProviders(
  * Seed unrelated cache entries through the returned `queryClient`.
  */
 export function renderHookWithApp<Result>(hook: () => Result) {
-  const queryClient = createAppQueryClient({ retry: false });
+  const queryClient = createTestQueryClient();
   const view = renderHook(hook, {
     wrapper: ({ children }: { children: ReactNode }) => (
       <AppProviders queryClient={queryClient}>{children}</AppProviders>

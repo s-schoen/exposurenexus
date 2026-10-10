@@ -8,6 +8,7 @@ import {
   invalidateTaggedQueries,
   subscribeUnauthorizedAPIError,
 } from "@/lib/query-client.ts";
+import { expectConsoleLog } from "@/test/console.ts";
 
 describe("query client infrastructure", () => {
   it("does not retry query 401s and notifies subscribers", async () => {
@@ -32,6 +33,7 @@ describe("query client infrastructure", () => {
   });
 
   it("retries other query failures while the failure count is below three", async () => {
+    expectConsoleLog("Internal Server Error");
     const queryClient = createAppQueryClient();
     const queryFn = vi.fn(() => {
       throw new APIError(500, "Internal Server Error");
@@ -46,6 +48,35 @@ describe("query client infrastructure", () => {
     ).rejects.toThrow("Internal Server Error");
 
     expect(queryFn).toHaveBeenCalledTimes(4);
+  });
+
+  it("logs a failed query once after its last retry, but not 401s", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const queryClient = createAppQueryClient();
+    const failure = new APIError(500, "Internal Server Error");
+
+    await expect(
+      queryClient.fetchQuery({
+        queryKey: ["failing"],
+        queryFn: () => {
+          throw failure;
+        },
+        retryDelay: 0,
+      }),
+    ).rejects.toBe(failure);
+    await expect(
+      queryClient.fetchQuery({
+        queryKey: ["session-probe"],
+        meta: SKIP_UNAUTHORIZED_ERROR_META,
+        queryFn: () => {
+          throw new APIError(401, "Unauthorized");
+        },
+      }),
+    ).rejects.toThrow("Unauthorized");
+
+    expect(consoleError).toHaveBeenCalledOnce();
+    expect(consoleError).toHaveBeenCalledWith(failure);
+    consoleError.mockRestore();
   });
 
   it("notifies for mutation 401s", async () => {

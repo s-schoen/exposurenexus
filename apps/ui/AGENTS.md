@@ -42,7 +42,8 @@ Do NOT commit any changes to git unless you are explicitly asked.
 - Keep `src/api/*` mutation hooks as low-level transport wrappers. Production route and component code should not call
   `useCreateXMutation`, `useUpdateXMutation`, or `useDeleteXMutation` directly for resource mutations.
 - Lifecycle hooks own mutation calls, optimistic cache writes, rollback, query invalidation, default success/error toasts,
-  error logging, and structured success/failure results.
+  error logging, and structured success/failure results. Transport functions in `api/*.ts` throw without logging; failed
+  queries are logged once by the `QueryCache` in `src/lib/query-client.ts` (401s go to the unauthorized handler instead).
 - Routes own confirmation dialogs and post-success navigation. Components own local draft state, validation, and rendering.
 - Lifecycle hook actions should accept API/domain payloads or domain records, not screen-specific form values.
 - Single-resource lifecycle actions should return the affected resource on success and `null` for handled API failures.
@@ -91,6 +92,10 @@ Do NOT commit any changes to git unless you are explicitly asked.
 - Set up and observe state through the mock API with the helpers in `@/test/msw.ts`: `db`, `seedScenario`,
   `mockApiError(method, path, status)` (use a literal id path to fail one item), `holdApiResponses` for pending states,
   `recordApiRequests` and `captureApiCalls` for request assertions, and `mockApiReply` for malformed replies.
+- Passing tests print nothing. `mockApiError` also declares the app's error log for that failure as expected; declare
+  other expected errors or warnings with `expectConsoleLog(text)` from `@/test/console.ts`. Unavoidable third-party
+  warnings go in its `IGNORED_WARNINGS`, with a reason. The render helpers cancel their queries when a test ends, so no
+  request outlives its test.
 - When a rule has many input combinations (payload mapping, metrics, search-param parsing), extract it into a pure
   function under `lib/` and test the combinations there; keep one or two representative UI flows in the app test.
 - Do not `vi.mock` `@tanstack/react-query`, feature `api`/`queries`/`mutations`/`hooks` modules, or

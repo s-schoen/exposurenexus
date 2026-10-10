@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { createUser, getUserByID, listUsers, updateUser } from "@/features/users/api/users.ts";
 import { APIError } from "@/lib/api-client.ts";
@@ -11,14 +11,6 @@ import { mockApiError, mockApiReply } from "@/test/msw.ts";
 const [, user] = SEED_USERS;
 const { id: _, ...profile } = user;
 const { username: __, ...update } = profile;
-
-beforeEach(() => {
-  vi.spyOn(console, "error").mockImplementation(() => undefined);
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe("user api", () => {
   it.each([

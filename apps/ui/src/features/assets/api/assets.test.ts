@@ -4,7 +4,7 @@ import {
   AssetLifecycleState,
   AssetType,
 } from "@exposurenexus/contracts/model/asset";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   addAssetIdentifier,
@@ -36,14 +36,6 @@ const identifierInput = {
   namespace: null,
   value: "a.example.com",
 };
-
-beforeEach(() => {
-  vi.spyOn(console, "error").mockImplementation(() => undefined);
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe("asset list query strings", () => {
   it("sends search and core filters as comma-separated params", async () => {

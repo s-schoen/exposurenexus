@@ -1,9 +1,10 @@
 import * as matchers from "@testing-library/jest-dom/matchers";
 import { configure } from "@testing-library/react";
-import { afterAll, afterEach, beforeAll, expect } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, expect } from "vitest";
 
 import { resetFixtureSequences } from "@/mocks/fixtures/ids.ts";
 import { db, server } from "@/mocks/node.ts";
+import { filterConsole, restoreConsole } from "@/test/console.ts";
 import "@/test/dom-polyfills.ts";
 
 expect.extend(matchers);
@@ -14,7 +15,10 @@ configure({ asyncUtilTimeout: 3000 });
 
 // Every API request goes to the mock handlers; an unmocked request fails the test.
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
+// Expected error logs (`mockApiError`, `expectConsoleLog`) stay out of the output.
+beforeEach(filterConsole);
 afterEach(() => {
+  restoreConsole();
   server.resetHandlers();
   db.reset();
   resetFixtureSequences();
