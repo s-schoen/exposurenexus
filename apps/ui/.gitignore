@@ -9,3 +9,5 @@ count.txt
 .tanstack
 .wrangler
 
+test-results
+playwright-report

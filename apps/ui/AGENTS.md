@@ -8,6 +8,8 @@
 - Run `pnpm format:check` from the repository root to verify Oxfmt formatting
 - `pnpm test` to run the Vitest suite; pass a file path after `--` to target an individual test file
 - `pnpm test:coverage` to run the test suite with coverage output
+- `pnpm test:e2e` to run the Playwright browser smoke tests (starts `pnpm dev:mock` unless one is already running on
+  port 3000; install the browser once with `pnpm exec playwright install chromium`)
 - `pnpm dev:mock` to run the UI against the in-browser MSW mock API (no API server or database); pick a seed with
   `?mockScenario=empty` or `?mockScenario=loggedOut`
 
@@ -113,3 +115,18 @@ Do NOT commit any changes to git unless you are explicitly asked.
   many tests need it, otherwise to the test file.
 - Validate new component work with root `pnpm lint` and `pnpm test`. Use `pnpm test:coverage` when you need a coverage
   report.
+
+## Browser smoke tests
+
+- `e2e/*.spec.ts` drive the real UI in Chromium with Playwright against `pnpm dev:mock`, so they share the MSW handlers
+  and seed data with Vitest. Import seed records from `@/mocks/fixtures` instead of repeating names and ids.
+- Add a journey only when a real browser is needed (charts, Base UI selects, dialogs and comboboxes, file inputs, real
+  typing into URL-driven inputs, render loops) or for a flow across pages. Everything else belongs in a Vitest app test.
+  Keep the suite small: a few journeys per area.
+- Import `test` and `expect` from `e2e/fixtures.ts`. Its console guard fails a test on any console error, warning or
+  uncaught error the test did not declare with `consoleGuard.allow(pattern)`; React's "Maximum update depth exceeded"
+  always fails.
+- Mock data lives in memory per page load. Start with one `page.goto`, then navigate client-side (clicks), or a write is
+  lost. Pick a seed with `?mockScenario=empty|loggedOut` on that first URL.
+- Use role and label locators, as in the Vitest tests. The app shell nests the page's `<main>` inside its own; scope
+  to `pageContent(page)` when text could also appear in the shell.
