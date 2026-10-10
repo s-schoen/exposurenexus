@@ -31,6 +31,7 @@
     "test:contracts": "pnpm --filter @exposurenexus/contracts build && pnpm --filter @exposurenexus/contracts typecheck:test && pnpm --filter @exposurenexus/contracts test",
     "test:jobs": "pnpm --filter @exposurenexus/jobs build && pnpm --filter @exposurenexus/jobs typecheck:test && pnpm --filter @exposurenexus/jobs test",
     "test:ui": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test",
+    "test:ui:e2e": "pnpm --filter @exposurenexus/ui^... build && pnpm --filter @exposurenexus/ui test:e2e",
     "test:worker": "pnpm --filter @exposurenexus/worker^... build && pnpm --filter @exposurenexus/worker typecheck:test && pnpm --filter @exposurenexus/worker test",
     "verify:container": "bash scripts/verify-container-build.sh",
     "worktree": "bash scripts/worktree.sh"

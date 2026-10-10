@@ -8,7 +8,8 @@
     "dev:mock": "vite --port 3000 --mode mock",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage --reporter=default --reporter=junit --outputFile=coverage/test-results.junit.xml"
+    "test:coverage": "vitest run --coverage --reporter=default --reporter=junit --outputFile=coverage/test-results.junit.xml",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -39,6 +40,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/devtools-vite": "^0.8.5",
