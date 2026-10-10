@@ -17,3 +17,8 @@ globalThis.ResizeObserver = class {
   unobserve() {}
   disconnect() {}
 };
+
+// Base UI's ScrollArea calls getAnimations. Base UI's own animations-disabled flag keeps popups
+// unmounting synchronously on close, as they do without getAnimations.
+Element.prototype.getAnimations = () => [];
+Object.assign(globalThis, { BASE_UI_ANIMATIONS_DISABLED: true });
