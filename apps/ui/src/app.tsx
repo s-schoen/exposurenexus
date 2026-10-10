@@ -9,7 +9,7 @@ import {
   createUserSessionExpiredRedirectHandler,
   useAuth,
 } from "@/features/auth";
-import { PageProvider, usePage } from "@/hooks/use-page-meta.tsx";
+import { PageProvider } from "@/hooks/use-page-meta.tsx";
 import { subscribeUnauthorizedAPIError } from "@/lib/query-client.ts";
 import { routeTree } from "@/routeTree.gen.ts";
 
@@ -28,9 +28,8 @@ export function createAppRouter({ queryClient, history }: CreateAppRouterOptions
     history,
     context: {
       queryClient,
-      // auth, page and redirects are passed down from App
+      // auth and redirects are passed down from App
       auth: undefined!,
-      page: undefined!,
       redirects: undefined!,
     },
     defaultPreload: "intent",
@@ -53,7 +52,6 @@ declare module "@tanstack/react-router" {
 
 function InnerApp({ router }: { router: AppRouter }) {
   const auth = useAuth();
-  const page = usePage();
   const redirects = useMemo(() => createRouterLoginRedirects(router), [router]);
 
   useEffect(
@@ -76,7 +74,7 @@ function InnerApp({ router }: { router: AppRouter }) {
     [auth, redirects, router],
   );
 
-  return <RouterProvider router={router} context={{ auth, page, redirects }} />;
+  return <RouterProvider router={router} context={{ auth, redirects }} />;
 }
 
 /** The app below the QueryClientProvider: auth, page meta and the router. */

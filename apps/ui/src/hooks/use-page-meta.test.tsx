@@ -145,6 +145,24 @@ describe("PageProvider and usePageMeta", () => {
     });
   });
 
+  it("does not re-render a page that passes new actions on every render", async () => {
+    const rendered = vi.fn<() => void>();
+    function UnstableActionsPage() {
+      rendered();
+      // A render loop would hang jsdom instead of failing; stop it.
+      if (rendered.mock.calls.length > 10) {
+        throw new Error("UnstableActionsPage re-renders in a loop");
+      }
+      usePageMeta({ title: "Assets", actions: [{ label: "Create asset", onClick: () => {} }] });
+      return null;
+    }
+
+    renderPage({ meta: <UnstableActionsPage /> });
+
+    expect(await screen.findByRole("button", { name: "Create asset" })).toBeVisible();
+    expect(rendered).toHaveBeenCalledOnce();
+  });
+
   it("throws when usePage is rendered outside a provider", () => {
     function OutsideConsumer() {
       usePage();
