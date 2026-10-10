@@ -226,7 +226,7 @@ export function AssetCustomFieldForm({
     submitLabel ?? (isCreateMode ? "Create custom field" : "Save changes");
 
   return (
-    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+    <Card>
       <CardHeader>
         <CardTitle>{isCreateMode ? "Create custom field" : "Edit custom field"}</CardTitle>
         <CardDescription>
@@ -316,7 +316,7 @@ export function AssetCustomFieldForm({
                       <SelectTrigger
                         id={field.name}
                         aria-invalid={isInvalid}
-                        className="w-full bg-background text-foreground"
+                        className="w-full"
                         disabled={isSubmitting}
                       >
                         <span className="min-w-0 flex-1 truncate text-left">
@@ -404,7 +404,7 @@ export function AssetCustomFieldForm({
                                     <SelectTrigger
                                       id={field.name}
                                       aria-invalid={isInvalid}
-                                      className="w-full bg-background text-foreground"
+                                      className="w-full"
                                       disabled={isSubmitting}
                                     >
                                       <span className="min-w-0 flex-1 truncate text-left">

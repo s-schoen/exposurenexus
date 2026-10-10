@@ -52,7 +52,7 @@ export function DetailQueryBoundary<TData>({
 
   if (!query.data) {
     return (
-      <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+      <Card>
         <CardHeader>
           <CardTitle>{title}</CardTitle>
           <CardDescription>{errorDescription}</CardDescription>

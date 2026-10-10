@@ -16,7 +16,7 @@ export function InputFilterField<TData extends RowData>({
   const value = (column.getFilterValue() as string | undefined) ?? "";
 
   return (
-    <InputGroup className="w-52 max-w-full rounded-xl border-dashed bg-background">
+    <InputGroup className="w-52 max-w-full">
       <InputGroupAddon className="max-w-24 shrink-0">
         <span className="truncate">{label}</span>
       </InputGroupAddon>

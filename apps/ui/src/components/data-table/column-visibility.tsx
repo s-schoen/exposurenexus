@@ -21,7 +21,7 @@ export function DataTableColumnVisibilityOptions<TData extends RowData>({
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button nativeButton={true} variant="outline" size="sm" className="h-9 rounded-xl">
+          <Button nativeButton={true} variant="outline" size="default">
             <Settings2 />
             Columns
           </Button>

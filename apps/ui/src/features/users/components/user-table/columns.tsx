@@ -69,19 +69,13 @@ export function createColumns(
         return (
           <div className="flex items-center gap-1">
             {visibleRoleLabels.map((roleLabel) => (
-              <Badge key={roleLabel} variant="outline" className="rounded-full">
+              <Badge key={roleLabel} variant="outline">
                 {roleLabel}
               </Badge>
             ))}
-            {hiddenRoleCount > 0 && (
-              <Badge variant="outline" className="rounded-full">
-                +{hiddenRoleCount} more
-              </Badge>
-            )}
+            {hiddenRoleCount > 0 && <Badge variant="outline">+{hiddenRoleCount} more</Badge>}
             {unresolvedRoleCount > 0 && (
-              <Badge variant="outline" className="rounded-full text-muted-foreground">
-                +{unresolvedRoleCount} unknown
-              </Badge>
+              <Badge variant="secondary">+{unresolvedRoleCount} unknown</Badge>
             )}
           </div>
         );
@@ -94,14 +88,7 @@ export function createColumns(
         const enabled = row.getValue<boolean>("enabled");
 
         return (
-          <Badge
-            variant="outline"
-            className={
-              enabled
-                ? "rounded-full border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "rounded-full border-amber-200 bg-amber-50 text-amber-700"
-            }
-          >
+          <Badge variant={enabled ? "success" : "warning"}>
             {enabled ? "Enabled" : "Disabled"}
           </Badge>
         );

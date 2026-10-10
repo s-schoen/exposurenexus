@@ -22,7 +22,7 @@ export function FindingContextMenu({ findings, onDelete, children }: FindingCont
         <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
           {findings.length} finding{findings.length !== 1 ? "s" : ""} selected
         </div>
-        <ContextMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
+        <ContextMenuItem onClick={onDelete} variant="destructive">
           Delete
         </ContextMenuItem>
       </ContextMenuContent>

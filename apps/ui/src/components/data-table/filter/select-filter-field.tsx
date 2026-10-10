@@ -47,13 +47,7 @@ export function SelectFilterField<TData extends RowData>({ column }: FilterField
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           render={
-            <Button
-              nativeButton={true}
-              variant="outline"
-              size="sm"
-              aria-label={`${label} filter`}
-              className="h-9 rounded-xl border-dashed bg-background font-normal"
-            >
+            <Button nativeButton={true} variant="dashed" aria-label={`${label} filter`}>
               <span aria-hidden="true" className="rounded-sm opacity-70 transition-opacity">
                 {selectedOptions.length > 0 ? <XCircle /> : <PlusCircle />}
               </span>
@@ -61,16 +55,14 @@ export function SelectFilterField<TData extends RowData>({ column }: FilterField
               {selectedOptions.length > 0 && (
                 <>
                   <Separator orientation="vertical" />
-                  <Badge variant="outline" className="rounded-full">
-                    {selectedOptions.length} selected
-                  </Badge>
+                  <Badge variant="outline">{selectedOptions.length} selected</Badge>
                 </>
               )}
             </Button>
           }
         ></PopoverTrigger>
-        <PopoverContent className="w-64 rounded-2xl p-0">
-          <Command className="bg-background p-2">
+        <PopoverContent className="w-64 p-0">
+          <Command>
             <CommandInput aria-label={`Search ${label} filter options`} placeholder={label} />
             <CommandList className="max-h-full">
               <CommandEmpty>No options available</CommandEmpty>
@@ -79,11 +71,7 @@ export function SelectFilterField<TData extends RowData>({ column }: FilterField
                   const isSelected = selectedOptions.includes(option);
 
                   return (
-                    <CommandItem
-                      key={option.value}
-                      className="rounded-lg bg-transparent px-3 py-2 data-selected:bg-transparent"
-                      onSelect={() => handleSelectOption(option)}
-                    >
+                    <CommandItem key={option.value} onSelect={() => handleSelectOption(option)}>
                       <span className="truncate">{option.label}</span>
                       {isSelected && <Check className="ml-auto size-4 text-foreground" />}
                     </CommandItem>

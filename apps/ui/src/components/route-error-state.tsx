@@ -20,7 +20,7 @@ export function RouteErrorState({ error, reset }: ErrorComponentProps) {
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-background p-6">
-      <Card className="w-full max-w-lg border-destructive/30 bg-card shadow-(--shell-shadow)">
+      <Card variant="destructive" className="w-full max-w-lg">
         <CardHeader>
           <h1 className="flex items-center gap-2 text-base leading-normal font-medium text-destructive">
             <CircleAlert aria-hidden="true" className="size-5" />

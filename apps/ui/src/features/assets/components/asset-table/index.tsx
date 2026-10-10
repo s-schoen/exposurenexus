@@ -135,7 +135,7 @@ export function AssetTable({
 
   function ToolbarElements() {
     return (
-      <Button variant="default" size="sm" className="h-9 rounded-xl" onClick={handleCreateAsset}>
+      <Button variant="default" size="default" onClick={handleCreateAsset}>
         <Plus />
         New asset
       </Button>

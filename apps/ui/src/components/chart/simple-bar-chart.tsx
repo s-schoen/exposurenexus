@@ -33,8 +33,14 @@ export function SimpleBarChart({
     return (
       <ChartContainer
         config={chartConfig}
-        className="w-full"
-        style={height === undefined ? undefined : { height }}
+        className={height === undefined ? "w-full" : "h-(--chart-height) w-full"}
+        style={
+          height === undefined
+            ? undefined
+            : ({
+                "--chart-height": typeof height === "number" ? `${height}px` : height,
+              } as CSSProperties)
+        }
       >
         <BarChart accessibilityLayer data={chartData}>
           <CartesianGrid vertical={false} />

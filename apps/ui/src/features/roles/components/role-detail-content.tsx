@@ -31,14 +31,7 @@ function RoleTypeBadge({ roleId }: { roleId: string }) {
   const kind = getRoleKindLabel(roleId);
 
   return (
-    <Badge
-      variant="outline"
-      className={
-        kind === "Built-in"
-          ? "rounded-md border-sky-200 bg-sky-50 text-sky-700"
-          : "rounded-md border-violet-200 bg-violet-50 text-violet-700"
-      }
-    >
+    <Badge variant={kind === "Built-in" ? "info" : "secondary"}>
       <KeyRound className="size-3" />
       {kind}
     </Badge>
@@ -51,7 +44,7 @@ export function RoleDetailContent({ role: roleData, titleAction }: RoleDetailCon
   const permissionsByResource = groupRolePermissionsByResource(roleData.permissions);
 
   const overview = (
-    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+    <Card>
       <CardHeader className="gap-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">{titleAction}</div>
@@ -59,7 +52,7 @@ export function RoleDetailContent({ role: roleData, titleAction }: RoleDetailCon
         </div>
         <div className="space-y-3">
           <div className="space-y-2">
-            <CardTitle className="text-2xl font-semibold tracking-tight">{roleData.name}</CardTitle>
+            <CardTitle className="text-2xl tracking-tight">{roleData.name}</CardTitle>
             <CardDescription className="max-w-3xl text-sm leading-6">
               Roles define which resources a user can read, write, or delete across the platform.
             </CardDescription>
@@ -92,7 +85,7 @@ export function RoleDetailContent({ role: roleData, titleAction }: RoleDetailCon
   );
 
   const permissions = (
-    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+    <Card>
       <CardHeader>
         <CardTitle>Permissions</CardTitle>
         <CardDescription>
@@ -110,14 +103,14 @@ export function RoleDetailContent({ role: roleData, titleAction }: RoleDetailCon
               <div className="text-sm font-semibold text-foreground">
                 {formatPermissionLabel(permissionGroup.resource)}
               </div>
-              <Badge variant="outline" className="rounded-full">
+              <Badge variant="outline">
                 {permissionGroup.verbs.length} grant
                 {permissionGroup.verbs.length === 1 ? "" : "s"}
               </Badge>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {permissionGroup.verbs.map((verb) => (
-                <Badge key={verb} variant="secondary" className="rounded-full">
+                <Badge key={verb} variant="secondary">
                   {formatPermissionLabel(verb)}
                 </Badge>
               ))}
@@ -139,7 +132,7 @@ export function RoleDetailContent({ role: roleData, titleAction }: RoleDetailCon
           value={
             <div className="flex max-w-[16rem] flex-wrap justify-end gap-1">
               {resources.map((resource) => (
-                <Badge key={resource} variant="outline" className="rounded-full">
+                <Badge key={resource} variant="outline">
                   {formatPermissionLabel(resource)}
                 </Badge>
               ))}

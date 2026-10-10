@@ -402,15 +402,9 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
         <FieldGroup>
           <Tabs defaultValue="general">
             <TabsList>
-              <TabsTrigger value="general" className="text-foreground">
-                General
-              </TabsTrigger>
-              <TabsTrigger value="identity" className="text-foreground">
-                Identity
-              </TabsTrigger>
-              <TabsTrigger value="observation" className="text-foreground">
-                Observation
-              </TabsTrigger>
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="identity">Identity</TabsTrigger>
+              <TabsTrigger value="observation">Observation</TabsTrigger>
             </TabsList>
             <TabsContent value="general" className="grid gap-2 grid-cols-2">
               <form.Field

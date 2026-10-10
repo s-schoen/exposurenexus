@@ -120,7 +120,7 @@ export function LoginPage({ auth, redirects, redirect, navigate }: LoginPageProp
                 </Button>
               </Field>
               <div className="text-center text-sm text-muted-foreground">
-                {loginFailed && <p className="text-red-500">Invalid username or password.</p>}
+                {loginFailed && <p className="text-destructive">Invalid username or password.</p>}
               </div>
             </FieldGroup>
           </form>

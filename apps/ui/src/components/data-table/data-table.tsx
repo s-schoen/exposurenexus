@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils.ts";
 
 import type {
   DataTableColumnDef,
@@ -391,10 +392,7 @@ export function DataTable<TData extends RowData>({
                   : String(groupingValue);
 
                 return (
-                  <TableRow
-                    key={row.id}
-                    className="border-b border-border/60 bg-muted/25 hover:bg-muted/30"
-                  >
+                  <TableRow key={row.id} variant="group">
                     <TableCell colSpan={row.getVisibleCells().length} className="px-4 py-3">
                       <button
                         type="button"
@@ -432,7 +430,7 @@ export function DataTable<TData extends RowData>({
                   data-state={row.getIsSelected() && "selected"}
                   data-active={isRowActive?.(row.original) || undefined}
                   data-testid={isRowActive?.(row.original) ? "data-table-active-row" : undefined}
-                  className={`${onRowClick ? "cursor-pointer " : ""}select-none border-b border-border/60 transition-colors hover:bg-muted/40 data-[active=true]:bg-accent/60 data-[state=selected]:bg-primary/6`}
+                  className={cn("select-none", onRowClick && "cursor-pointer")}
                   onClick={onRowClick ? (event) => handleOnRowClick(event, row) : undefined}
                   onDoubleClick={onRowDoubleClick ? () => handleOnRowDoubleClick(row) : undefined}
                   onContextMenu={contextMenu ? () => handleOnRowContextMenu(row) : undefined}
@@ -495,22 +493,16 @@ export function DataTable<TData extends RowData>({
         className={
           embedded
             ? "overflow-hidden rounded-xl border border-border/70 bg-background/60"
-            : "overflow-hidden rounded-[1.5rem] border border-shell-border-strong/70 bg-shell-panel shadow-sm"
+            : "overflow-hidden rounded-3xl border border-shell-border-strong/70 bg-shell-panel shadow-sm"
         }
       >
         <Table className="min-w-full">
-          <TableHeader className="bg-muted/35 [&_tr]:border-border/60">
+          <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow
-                key={headerGroup.id}
-                className="select-none border-b border-border/60 hover:bg-transparent"
-              >
+              <TableRow key={headerGroup.id} variant="header" className="select-none">
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead
-                      key={header.id}
-                      className={`${embedded ? "h-10 " : "h-12 "}px-3 text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase first:pl-4 last:pr-4`}
-                    >
+                    <TableHead key={header.id} className={embedded ? "h-10" : "h-12"}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}

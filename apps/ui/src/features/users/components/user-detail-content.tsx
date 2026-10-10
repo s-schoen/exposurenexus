@@ -24,16 +24,7 @@ interface UserDetailContentProps {
 
 function UserStatusBadge({ enabled }: { enabled: boolean }) {
   return (
-    <Badge
-      variant="outline"
-      className={
-        enabled
-          ? "rounded-full border-emerald-200 bg-emerald-50 text-emerald-700"
-          : "rounded-full border-amber-200 bg-amber-50 text-amber-700"
-      }
-    >
-      {enabled ? "Enabled" : "Disabled"}
-    </Badge>
+    <Badge variant={enabled ? "success" : "warning"}>{enabled ? "Enabled" : "Disabled"}</Badge>
   );
 }
 
@@ -58,14 +49,12 @@ export function UserDetailContent({ user: userData, roles, titleAction }: UserDe
         }
       >
         {resolvedRoleLabels.map((roleLabel) => (
-          <Badge key={roleLabel} variant="outline" className="rounded-full">
+          <Badge key={roleLabel} variant="outline">
             {roleLabel}
           </Badge>
         ))}
         {unresolvedRoleCount > 0 && (
-          <Badge variant="outline" className="rounded-full text-muted-foreground">
-            +{unresolvedRoleCount} unknown
-          </Badge>
+          <Badge variant="secondary">+{unresolvedRoleCount} unknown</Badge>
         )}
       </div>
     );
@@ -75,7 +64,7 @@ export function UserDetailContent({ user: userData, roles, titleAction }: UserDe
     const username = userData.username;
 
     return (
-      <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+      <Card>
         <CardHeader className="gap-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">{titleAction}</div>
@@ -83,7 +72,7 @@ export function UserDetailContent({ user: userData, roles, titleAction }: UserDe
           </div>
           <div className="space-y-3">
             <div className="space-y-2">
-              <CardTitle className="text-2xl font-semibold tracking-tight">{displayName}</CardTitle>
+              <CardTitle className="text-2xl tracking-tight">{displayName}</CardTitle>
               <CardDescription className="max-w-3xl text-sm leading-6">
                 Platform user account with access credentials, profile identifiers, and role
                 assignments.
@@ -121,16 +110,16 @@ export function UserDetailContent({ user: userData, roles, titleAction }: UserDe
     const username = userData.username;
 
     return (
-      <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+      <Card>
         <CardHeader className="gap-2">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2">
-              <CardTitle className="text-xl font-semibold">Profile</CardTitle>
+              <CardTitle className="text-xl">Profile</CardTitle>
               <CardDescription>
                 Identity fields stored by the ExposureNexus user profile service.
               </CardDescription>
             </div>
-            <Badge variant="outline" className="rounded-md">
+            <Badge variant="outline">
               <Mail className="size-3" />
               Account
             </Badge>

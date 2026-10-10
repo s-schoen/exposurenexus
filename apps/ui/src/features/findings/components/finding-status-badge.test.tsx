@@ -9,7 +9,7 @@ describe("FindingStatusBadge", () => {
     const { rerender } = render(<FindingStatusBadge status={FindingStatus.Active} />);
 
     expect(screen.getByText("Active")).toBeTruthy();
-    expect(screen.getByText("Active").className).toContain("text-red-700");
+    expect(screen.getByText("Active").className).toContain("text-finding-status-active");
 
     rerender(<FindingStatusBadge status={FindingStatus.FalsePositive} />);
 

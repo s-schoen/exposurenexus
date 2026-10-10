@@ -10,6 +10,14 @@ import { cn } from "@/lib/utils.ts";
 
 import type { LucideIcon } from "lucide-react";
 
+export type MetricTone = "default" | "success" | "destructive";
+
+const valueToneClasses = {
+  default: "",
+  success: "text-success",
+  destructive: "text-destructive",
+} satisfies Record<MetricTone, string>;
+
 interface MetricCardProps {
   title: string;
   value: number | string;
@@ -20,9 +28,9 @@ interface MetricCardProps {
   className?: string;
   variant?: "card" | "panel";
   showIcon?: boolean;
-  valueClassName?: string;
-  titleClassName?: string;
-  descriptionClassName?: string;
+  tone?: MetricTone;
+  /** Render the panel title as an uppercase eyebrow label, like the card variant does. */
+  eyebrowTitle?: boolean;
 }
 
 export function MetricCard({
@@ -35,9 +43,8 @@ export function MetricCard({
   className,
   variant = "card",
   showIcon = true,
-  valueClassName,
-  titleClassName,
-  descriptionClassName,
+  tone = "default",
+  eyebrowTitle = false,
 }: MetricCardProps) {
   if (variant === "panel") {
     return (
@@ -50,7 +57,15 @@ export function MetricCard({
         )}
       >
         <div className="flex items-center justify-between gap-3">
-          <div className={cn("text-sm font-medium text-foreground", titleClassName)}>{title}</div>
+          <div
+            className={
+              eyebrowTitle
+                ? "text-xs tracking-eyebrow text-muted-foreground uppercase"
+                : "text-sm font-medium text-foreground"
+            }
+          >
+            {title}
+          </div>
           {showIcon && Icon ? <Icon className="size-4 text-primary" /> : null}
         </div>
         {loading ? (
@@ -60,15 +75,13 @@ export function MetricCard({
           </>
         ) : (
           <>
-            <div className={cn("mt-3 text-3xl font-semibold tracking-tight", valueClassName)}>
+            <div
+              className={cn("mt-3 text-3xl font-semibold tracking-tight", valueToneClasses[tone])}
+            >
               {value}
             </div>
             {description ? (
-              <p
-                className={cn("mt-2 text-sm leading-6 text-muted-foreground", descriptionClassName)}
-              >
-                {description}
-              </p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
             ) : null}
           </>
         )}
@@ -77,26 +90,18 @@ export function MetricCard({
   }
 
   return (
-    <Card
-      size="sm"
-      className={cn(
-        "border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm",
-        emphasis &&
-          "border-destructive/25 bg-linear-to-br from-destructive/5 via-shell-panel to-shell-panel",
-        className,
-      )}
-    >
+    <Card size="sm" variant={emphasis ? "destructive" : "default"} className={className}>
       <CardHeader className="gap-3">
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-1">
-            <CardDescription className={cn("text-xs uppercase tracking-[0.22em]", titleClassName)}>
+            <CardDescription className="text-xs uppercase tracking-eyebrow">
               {title}
             </CardDescription>
             {loading ? (
               <Skeleton className="h-9 w-24 rounded-lg" />
             ) : (
-              <CardTitle className={cn("text-3xl font-semibold tracking-tight", valueClassName)}>
-                {value}
+              <CardTitle className="text-3xl tracking-tight">
+                <span className={valueToneClasses[tone]}>{value}</span>
               </CardTitle>
             )}
           </div>
@@ -112,9 +117,7 @@ export function MetricCard({
           {loading ? (
             <Skeleton className="h-4 w-full rounded" />
           ) : (
-            <p className={cn("text-sm leading-6 text-muted-foreground", descriptionClassName)}>
-              {description}
-            </p>
+            <p className="text-sm leading-6 text-muted-foreground">{description}</p>
           )}
         </CardContent>
       ) : null}

@@ -60,18 +60,23 @@ async function renderChart(height?: CSSProperties["height"]) {
 }
 
 describe("SimpleBarChart", () => {
-  it("uses an explicit CSS height without dynamic Tailwind classes", async () => {
+  it("passes an explicit height through a CSS custom property", async () => {
     const chartContainer = await renderChart("24rem");
 
-    expect(chartContainer.style.height).toBe("24rem");
-    expect(chartContainer.className).toBe("w-full");
-    expect(chartContainer.className).not.toContain("h-96");
+    expect(chartContainer.style.getPropertyValue("--chart-height")).toBe("24rem");
+    expect(chartContainer.className).toBe("h-(--chart-height) w-full");
+  });
+
+  it("converts a numeric height to pixels", async () => {
+    const chartContainer = await renderChart(320);
+
+    expect(chartContainer.style.getPropertyValue("--chart-height")).toBe("320px");
   });
 
   it("does not set an explicit height when none is provided", async () => {
     const chartContainer = await renderChart();
 
-    expect(chartContainer.style.height).toBe("");
+    expect(chartContainer.style.getPropertyValue("--chart-height")).toBe("");
     expect(chartContainer.className).toBe("w-full");
   });
 

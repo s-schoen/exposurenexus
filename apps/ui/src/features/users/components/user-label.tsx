@@ -70,14 +70,7 @@ export function UserLabel({
   function renderLabel(children: string, fallback = false) {
     if (variant === "chip") {
       return (
-        <Badge
-          variant="outline"
-          className={cn(
-            "max-w-full rounded-md font-normal",
-            fallback && "border-dashed text-muted-foreground",
-            className,
-          )}
-        >
+        <Badge variant={fallback ? "secondary" : "outline"} className={cn("max-w-full", className)}>
           <span className="truncate">{children}</span>
         </Badge>
       );

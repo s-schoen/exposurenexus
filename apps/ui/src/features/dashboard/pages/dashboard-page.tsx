@@ -47,12 +47,12 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm">
+      <Card>
         <CardHeader className="gap-4">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
             <div className="space-y-2">
               <div className="space-y-1">
-                <CardTitle className="text-2xl font-semibold tracking-tight">Overview</CardTitle>
+                <CardTitle className="text-2xl tracking-tight">Overview</CardTitle>
               </div>
             </div>
           </div>
@@ -70,9 +70,8 @@ export function DashboardPage() {
                 value={formatNumber(item.value)}
                 variant="panel"
                 className="h-full"
-                valueClassName={item.tone}
-                titleClassName="text-xs uppercase tracking-[0.2em] text-muted-foreground"
-                descriptionClassName="text-sm leading-6 text-muted-foreground"
+                tone={item.tone}
+                eyebrowTitle
               />
             </Link>
           ))}
@@ -114,7 +113,7 @@ export function DashboardPage() {
       </div>
 
       <div className="grid gap-4">
-        <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm">
+        <Card>
           <CardHeader>
             <CardTitle>Coverage</CardTitle>
             <CardDescription>
@@ -141,16 +140,8 @@ export function DashboardPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <FindingSeverityChart
-          data={findingStats.data.severity}
-          height="24rem"
-          className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
-        />
-        <FindingStatusChart
-          data={findingStats.data.status}
-          height="24rem"
-          className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm"
-        />
+        <FindingSeverityChart data={findingStats.data.severity} height="24rem" />
+        <FindingStatusChart data={findingStats.data.status} height="24rem" />
       </div>
 
       <div className="grid gap-4">
@@ -204,7 +195,7 @@ function OverviewChartCard({
   );
 
   return (
-    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow) backdrop-blur-sm">
+    <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>

@@ -280,20 +280,18 @@ export function AssetDetailContent({ asset, titleAction }: AssetDetailContentPro
 
   function renderAssetOverviewCard({ assetData }: { assetData: Asset }) {
     return (
-      <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+      <Card>
         <CardHeader className="gap-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">{titleAction}</div>
-            <Badge variant="outline" className="rounded-md">
+            <Badge variant="outline">
               <Server className="size-3" />
               {capitalizeFirstLetter(assetData.type)}
             </Badge>
           </div>
           <div className="space-y-3">
             <div className="space-y-2">
-              <CardTitle className="text-2xl font-semibold tracking-tight">
-                {assetData.displayName}
-              </CardTitle>
+              <CardTitle className="text-2xl tracking-tight">{assetData.displayName}</CardTitle>
               <CardDescription className="max-w-3xl text-sm leading-6">
                 Inventory record representing a tracked platform asset that can be linked to
                 findings and vulnerability exposure.
@@ -511,12 +509,10 @@ function AssetCustomFieldsSidebarSection({
           isAvailablePending={isAvailablePending}
           onAssign={onAssign}
         />
-        <Alert variant="destructive" className="px-3 py-2">
+        <Alert variant="destructive">
           <AlertCircle className="size-4" />
-          <AlertTitle className="text-sm">Unable to load custom fields</AlertTitle>
-          <AlertDescription className="text-xs">
-            The asset details are still available.
-          </AlertDescription>
+          <AlertTitle>Unable to load custom fields</AlertTitle>
+          <AlertDescription>The asset details are still available.</AlertDescription>
         </Alert>
       </div>
     );
@@ -568,7 +564,7 @@ function CustomFieldsSectionTitle({
 }: CustomFieldsSectionTitleProps) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <h3 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+      <h3 className="text-xs font-medium uppercase tracking-eyebrow text-muted-foreground">
         Custom fields
       </h3>
       <AssetCustomFieldAssignmentPicker
@@ -659,7 +655,7 @@ function AssetCustomFieldSidebarRow({
 
   return (
     <div className="space-y-2">
-      <span className="block min-w-0 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+      <span className="block min-w-0 text-xs font-medium uppercase tracking-eyebrow text-muted-foreground">
         {field.name}
       </span>
       <div className="flex items-center justify-between gap-2">

@@ -15,22 +15,12 @@ import type { CustomFieldSummary } from "@/features/custom-fields/components/ass
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 import type { ReactNode } from "react";
 
-const DETAIL_CARD_CLASS = "border-border/60 bg-shell-panel shadow-(--shell-shadow)";
 const FIELD_VALUE_CLASS =
   "rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground";
 
 export function CustomFieldRequiredBadge({ required }: { required: boolean }) {
   return (
-    <Badge
-      variant="outline"
-      className={
-        required
-          ? "rounded-full border-amber-200 bg-amber-50 text-amber-700"
-          : "rounded-full border-emerald-200 bg-emerald-50 text-emerald-700"
-      }
-    >
-      {required ? "Required" : "Optional"}
-    </Badge>
+    <Badge variant={required ? "warning" : "success"}>{required ? "Required" : "Optional"}</Badge>
   );
 }
 
@@ -44,7 +34,7 @@ export function CustomFieldOverviewCard({
   titleAction?: ReactNode;
 }) {
   return (
-    <Card className={DETAIL_CARD_CLASS}>
+    <Card>
       <CardHeader className="gap-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex-1">{titleAction}</div>
@@ -52,7 +42,7 @@ export function CustomFieldOverviewCard({
         </div>
         <div className="space-y-3">
           <div className="space-y-2">
-            <CardTitle className="text-2xl font-semibold tracking-tight">{field.name}</CardTitle>
+            <CardTitle className="text-2xl tracking-tight">{field.name}</CardTitle>
             <CardDescription className="max-w-3xl text-sm leading-6">
               Asset metadata field definition used to capture additional registry information.
             </CardDescription>
@@ -93,14 +83,14 @@ export function CustomFieldDefinitionCard({
   summary: CustomFieldSummary;
 }) {
   return (
-    <Card className={DETAIL_CARD_CLASS}>
+    <Card>
       <CardHeader className="gap-2">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2">
-            <CardTitle className="text-xl font-semibold">Definition</CardTitle>
+            <CardTitle className="text-xl">Definition</CardTitle>
             <CardDescription>General settings for this asset custom field.</CardDescription>
           </div>
-          <Badge variant="outline" className="rounded-md">
+          <Badge variant="outline">
             <ListChecks className="size-3" />
             {summary.typeLabel}
           </Badge>
@@ -122,10 +112,10 @@ export function SelectOptionsCard({ field }: { field: AssetCustomFieldDefinition
   }
 
   return (
-    <Card className={DETAIL_CARD_CLASS}>
+    <Card>
       <CardHeader>
         <div className="space-y-2">
-          <CardTitle className="text-xl font-semibold">Select options</CardTitle>
+          <CardTitle className="text-xl">Select options</CardTitle>
           <CardDescription>Values available when assigning this field to an asset.</CardDescription>
         </div>
       </CardHeader>

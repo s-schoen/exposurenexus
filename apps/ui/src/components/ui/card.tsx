@@ -5,14 +5,19 @@ import { cn } from "@/lib/utils";
 function Card({
   className,
   size = "default",
+  variant = "default",
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+}: React.ComponentProps<"div"> & {
+  size?: "default" | "sm";
+  variant?: "default" | "destructive";
+}) {
   return (
     <div
       data-slot="card"
       data-size={size}
+      data-variant={variant}
       className={cn(
-        "group/card flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10 has-[>img:first-child]:pt-0 data-[size=sm]:gap-4 data-[size=sm]:py-4 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "group/card flex flex-col gap-6 overflow-hidden rounded-xl bg-shell-panel py-6 text-sm text-card-foreground shadow-(--shell-shadow) ring-1 ring-foreground/10 backdrop-blur-sm has-[>img:first-child]:pt-0 data-[size=sm]:gap-4 data-[size=sm]:py-4 data-[variant=destructive]:bg-linear-to-br data-[variant=destructive]:from-destructive/5 data-[variant=destructive]:via-shell-panel data-[variant=destructive]:to-shell-panel data-[variant=destructive]:ring-destructive/25 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         className,
       )}
       {...props}
@@ -38,7 +43,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-title"
       className={cn(
-        "text-base leading-normal font-medium group-data-[size=sm]/card:text-sm",
+        "text-base leading-normal font-semibold group-data-[size=sm]/card:text-sm",
         className,
       )}
       {...props}
