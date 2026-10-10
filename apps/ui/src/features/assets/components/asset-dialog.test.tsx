@@ -3,9 +3,9 @@ import {
   AssetLifecycleState,
   AssetType,
 } from "@exposurenexus/contracts/model/asset";
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AssetDialog } from "@/features/assets/components/asset-dialog.tsx";
 import { SEED_USERS } from "@/mocks/fixtures/index.ts";
@@ -63,10 +63,6 @@ vi.mock("@/components/ui/select.tsx", () => ({
     <span>{children ?? selectMocks.value ?? placeholder}</span>
   ),
 }));
-
-afterEach(() => {
-  cleanup();
-});
 
 beforeEach(() => {
   selectMocks.value = undefined;

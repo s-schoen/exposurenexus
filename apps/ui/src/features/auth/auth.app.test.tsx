@@ -1,11 +1,9 @@
-import { cleanup, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { screen, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import { CUSTOM_AUDITOR_ROLE, SEED_USERS } from "@/mocks/fixtures/index.ts";
 import { db } from "@/test/msw.ts";
 import { renderApp } from "@/test/render-app.tsx";
-
-afterEach(cleanup);
 
 // Sign-in, route guards and session expiry against the MSW mock API. The mock signs in any
 // password; a known username signs in as that user.

@@ -7,7 +7,7 @@ import {
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type { Finding } from "@exposurenexus/contracts/model/finding";
@@ -181,10 +181,6 @@ function renderCell(column: TestColumn, rowFinding: Finding = finding) {
 }
 
 describe("createFindingColumns", () => {
-  afterEach(() => {
-    cleanup();
-  });
-
   it("renders title, severity, status, asset, observation count, and date cells", async () => {
     const columns = await createColumns();
 

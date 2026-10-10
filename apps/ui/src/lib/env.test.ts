@@ -8,8 +8,6 @@ async function loadEnv() {
 }
 
 afterEach(() => {
-  vi.unstubAllEnvs();
-  vi.restoreAllMocks();
   vi.resetModules();
 });
 

@@ -1,5 +1,5 @@
-import { cleanup, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { screen, waitFor, within } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import {
   CUSTOM_AUDITOR_ROLE,
@@ -10,8 +10,6 @@ import {
   SEED_VULNERABILITIES,
 } from "@/mocks/fixtures/index.ts";
 import { renderApp } from "@/test/render-app.tsx";
-
-afterEach(cleanup);
 
 // Route wiring and the authenticated shell, against the MSW mock API. Feature behavior lives in
 // the per-feature *.app.test.tsx files.

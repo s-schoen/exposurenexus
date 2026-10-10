@@ -1,11 +1,7 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
-
-afterEach(() => {
-  cleanup();
-});
 
 function renderDetailPreviewDialog(props: Partial<Parameters<typeof DetailPreviewDialog>[0]> = {}) {
   const onClose = vi.fn();

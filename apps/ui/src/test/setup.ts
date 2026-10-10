@@ -1,10 +1,11 @@
 import * as matchers from "@testing-library/jest-dom/matchers";
-import { configure } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach, expect } from "vitest";
 
 import { resetFixtureSequences } from "@/mocks/fixtures/ids.ts";
 import { db, server } from "@/mocks/node.ts";
 import { filterConsole, restoreConsole } from "@/test/console.ts";
+import { cancelTestQueries } from "@/test/harness.tsx";
 import "@/test/dom-polyfills.ts";
 
 expect.extend(matchers);
@@ -17,7 +18,11 @@ configure({ asyncUtilTimeout: 3000 });
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 // A console error or warning the test didn't declare (`mockApiError`, `expectConsoleLog`) fails it.
 beforeEach(filterConsole);
-afterEach(() => {
+afterEach(async () => {
+  // Vitest globals are off, so Testing Library can't register its own cleanup. Unmount and cancel
+  // in-flight queries first, before the mock API and DB reset under them.
+  cleanup();
+  await cancelTestQueries();
   server.resetHandlers();
   db.reset();
   resetFixtureSequences();

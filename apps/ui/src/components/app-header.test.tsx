@@ -1,11 +1,7 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 describe("AppHeader", () => {
-  afterEach(() => {
-    cleanup();
-  });
-
   it("renders the product brand and account menu slot", async () => {
     const { default: AppHeader } = await import("@/components/app-header.tsx");
 

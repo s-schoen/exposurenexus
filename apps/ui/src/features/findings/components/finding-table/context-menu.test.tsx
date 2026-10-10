@@ -1,8 +1,8 @@
 import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import type { FindingContextMenu } from "@/features/findings/components/finding-table/context-menu.tsx";
 import type { Finding } from "@exposurenexus/contracts/model/finding";
@@ -53,10 +53,6 @@ function renderContextMenu(
 }
 
 describe("FindingContextMenu", () => {
-  afterEach(() => {
-    cleanup();
-  });
-
   it("renders the selected count and deletion action", async () => {
     const { FindingContextMenu } =
       await import("@/features/findings/components/finding-table/context-menu.tsx");

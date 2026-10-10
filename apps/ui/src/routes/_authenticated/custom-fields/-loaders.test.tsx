@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, cleanup } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { expect, it, vi } from "vitest";
 
 import {
   EditCustomFieldPage,
@@ -20,10 +20,6 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
   createFileRoute: () => (options: Record<string, unknown>) => ({ options }),
   useNavigate: () => vi.fn(),
 }));
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-});
 type Loader = (args: {
   context: { queryClient: QueryClient };
   params: { id: string };

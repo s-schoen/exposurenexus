@@ -1,13 +1,11 @@
 import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import { createColumns } from "@/features/users/components/user-table/columns.tsx";
 import { buildUser } from "@/mocks/fixtures/index.ts";
 
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
-
-afterEach(cleanup);
 
 function findColumn(columns: ReturnType<typeof createColumns>, id: string) {
   const column = columns.find(

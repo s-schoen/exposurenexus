@@ -57,6 +57,10 @@ export default defineConfig(({ mode }) => ({
       ],
     },
     environment: "jsdom",
+    // Clear vi.fn() calls, restore vi.spyOn() spies and unstub env vars before each test.
+    clearMocks: true,
+    restoreMocks: true,
+    unstubEnvs: true,
     include: ["src/**/*.test.{ts,tsx}"],
     testTimeout: 15000,
     setupFiles: ["./src/test/setup.ts"],

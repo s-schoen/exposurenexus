@@ -1,6 +1,6 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { LoginPage } from "@/features/auth/pages/login-page.tsx";
 import { expectConsoleLog } from "@/test/console.ts";
@@ -40,11 +40,6 @@ function renderLoginPage({
 }
 
 describe("LoginPage", () => {
-  afterEach(() => {
-    cleanup();
-    vi.restoreAllMocks();
-  });
-
   it("does not submit empty credentials", async () => {
     const { user, login } = renderLoginPage();
 

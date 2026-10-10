@@ -1,6 +1,6 @@
 import { PermissionResource, PermissionVerb } from "@exposurenexus/contracts/model/rbac";
-import { act, cleanup } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { useRoleLifecycle } from "@/features/roles/hooks/use-role-lifecycle.ts";
 import {
@@ -32,16 +32,6 @@ function seedCache(queryClient: QueryClient) {
 
 const isInvalidated = (queryClient: QueryClient, key: QueryKey) =>
   queryClient.getQueryState(key)?.isInvalidated ?? false;
-
-beforeEach(() => {
-  toast.error.mockReset();
-  toast.success.mockReset();
-});
-
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-});
 
 describe("useRoleLifecycle", () => {
   it("creates a role and invalidates only the role list", async () => {

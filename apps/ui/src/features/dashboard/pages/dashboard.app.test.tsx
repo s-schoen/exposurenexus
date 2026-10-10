@@ -1,9 +1,7 @@
-import { cleanup, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { screen, within } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import { renderApp } from "@/test/render-app.tsx";
-
-afterEach(cleanup);
 
 // The dashboard against the MSW mock API. Chart contents don't render in jsdom; the numbers
 // behind them, including edge cases, are covered by lib/metrics.test.ts.
