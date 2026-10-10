@@ -29,9 +29,7 @@ export async function listFindings(): Promise<Array<Finding>> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseArrayReply(response, findingSchema);
@@ -43,9 +41,7 @@ export async function deleteFinding(id: string): Promise<Finding> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, findingSchema);
@@ -57,9 +53,7 @@ export async function getFindingByID(id: string): Promise<Finding> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, findingSchema);
@@ -71,9 +65,7 @@ export async function getFindingStats(): Promise<FindingStatistics> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, findingStatisticsSchema);
@@ -85,9 +77,7 @@ export async function listFindingObservations(findingId: string): Promise<Array<
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseArrayReply(response, observationSchema);
@@ -106,9 +96,7 @@ export async function createFindingObservation(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, observationSchema);
@@ -128,9 +116,7 @@ export async function updateFindingObservation(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, observationSchema);
@@ -145,9 +131,7 @@ export async function deleteFindingObservation(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, observationSchema);
@@ -170,9 +154,7 @@ export async function moveFindingObservation(
   );
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, observationSchema);
@@ -188,9 +170,7 @@ export async function createManualFinding(f: CreateManualFinding): Promise<Findi
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, findingSchema);
@@ -206,9 +186,7 @@ export async function updateFinding(id: string, update: UpdateFinding): Promise<
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, findingSchema);
@@ -226,9 +204,7 @@ export async function linkFindingVulnerability(
   );
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, findingSchema);
@@ -246,9 +222,7 @@ export async function unlinkFindingVulnerability(
   );
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, findingSchema);

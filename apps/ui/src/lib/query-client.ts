@@ -41,8 +41,15 @@ function notifyUnauthorizedAPIError(event: UnauthorizedAPIErrorEvent): void {
   }
 }
 
+// Lifecycle hooks log failed mutations; failed reads are logged once here. 401s go to the
+// unauthorized handlers instead.
 function handleQueryError(error: unknown, query: Query<unknown, unknown, unknown>): void {
-  if (isUnauthorizedAPIError(error) && !shouldSkipUnauthorizedError(query.meta)) {
+  if (!isUnauthorizedAPIError(error)) {
+    console.error(error);
+    return;
+  }
+
+  if (!shouldSkipUnauthorizedError(query.meta)) {
     notifyUnauthorizedAPIError({ source: "query" });
   }
 }

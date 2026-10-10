@@ -18,9 +18,7 @@ export async function listVulnerabilities(): Promise<Array<VulnerabilityCatalog>
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseArrayReply(response, vulnerabilityCatalogSchema);
@@ -32,9 +30,7 @@ export async function getVulnerabilityByID(id: string): Promise<VulnerabilityCat
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, vulnerabilityCatalogSchema);
@@ -52,9 +48,7 @@ export async function createVulnerability(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, vulnerabilityCatalogSchema);
@@ -73,9 +67,7 @@ export async function updateVulnerability(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, vulnerabilityCatalogSchema);
@@ -87,9 +79,7 @@ export async function deleteVulnerability(id: string): Promise<VulnerabilityCata
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, vulnerabilityCatalogSchema);
