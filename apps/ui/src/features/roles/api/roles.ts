@@ -15,9 +15,7 @@ export async function listRoles(): Promise<Array<Role>> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseArrayReply(response, roleSchema);
@@ -29,9 +27,7 @@ export async function getRoleByID(id: string): Promise<Role> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, roleSchema);
@@ -47,9 +43,7 @@ export async function createRole(role: CreateRole): Promise<Role> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, roleSchema);
@@ -65,9 +59,7 @@ export async function updateRole(id: string, role: UpdateRole): Promise<Role> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, roleSchema);
@@ -79,9 +71,7 @@ export async function deleteRole(id: string): Promise<Role> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, roleSchema);

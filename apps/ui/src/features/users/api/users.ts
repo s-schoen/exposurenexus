@@ -19,9 +19,7 @@ export async function listUsers(): Promise<Array<UserProfile>> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseArrayReply(response, userProfileSchema);
@@ -33,9 +31,7 @@ export async function getUserByID(id: string): Promise<UserProfile> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, userProfileSchema);
@@ -51,9 +47,7 @@ export async function createUser(user: CreateUserProfile): Promise<UserProfile> 
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, userProfileSchema);
@@ -69,9 +63,7 @@ export async function updateUser(id: string, user: UpdateUserProfile): Promise<U
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, userProfileSchema);

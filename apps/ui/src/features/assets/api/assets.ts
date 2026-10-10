@@ -93,9 +93,7 @@ export async function listAssets(options?: AssetListOptions): Promise<Array<Asse
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseArrayReply(response, assetSchema);
@@ -109,9 +107,7 @@ export async function listAssetsWithCustomFields(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseArrayReply(response, assetWithCustomFieldsSchema);
@@ -123,9 +119,7 @@ export async function deleteAsset(id: string): Promise<Asset> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, assetSchema);
@@ -137,9 +131,7 @@ export async function getAssetByID(id: string): Promise<Asset> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, assetSchema);
@@ -153,9 +145,7 @@ export async function listAssetCustomFieldValues(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseArrayReply(response, assetCustomFieldValueSchema);
@@ -169,9 +159,7 @@ export async function listAvailableAssetCustomFieldDefinitions(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseArrayReply(response, assetCustomFieldDefinitionSchema);
@@ -190,9 +178,7 @@ export async function updateAssetCustomFieldValues(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseArrayReply(response, assetCustomFieldValueSchema);
@@ -211,9 +197,7 @@ export async function replaceAssetCustomFieldAssociations(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseArrayReply(response, assetCustomFieldValueSchema);
@@ -229,9 +213,7 @@ export async function createAsset(asset: CreateAsset): Promise<Asset> {
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, assetSchema);
@@ -247,9 +229,7 @@ export async function updateAsset(assetId: string, asset: UpdateAsset): Promise<
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, assetSchema);
@@ -268,9 +248,7 @@ export async function addAssetIdentifier(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, assetIdentifierRecordSchema);
@@ -290,9 +268,7 @@ export async function updateAssetIdentifier(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, assetIdentifierRecordSchema);
@@ -307,9 +283,7 @@ export async function deleteAssetIdentifier(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, assetIdentifierRecordSchema);

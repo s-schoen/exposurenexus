@@ -21,9 +21,7 @@ export async function listAssetCustomFieldDefinitions(): Promise<
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseArrayReply(response, assetCustomFieldDefinitionSchema);
@@ -37,9 +35,7 @@ export async function getAssetCustomFieldDefinitionByID(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, assetCustomFieldDefinitionSchema);
@@ -57,9 +53,7 @@ export async function createAssetCustomFieldDefinition(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, assetCustomFieldDefinitionSchema);
@@ -78,9 +72,7 @@ export async function updateAssetCustomFieldDefinition(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, assetCustomFieldDefinitionSchema);
@@ -94,9 +86,7 @@ export async function deleteAssetCustomFieldDefinition(
   });
 
   if (!response.ok) {
-    const error = await parseErrorReply(response);
-    console.error(error);
-    throw error;
+    throw await parseErrorReply(response);
   }
 
   return parseObjectReply(response, assetCustomFieldDefinitionSchema);
