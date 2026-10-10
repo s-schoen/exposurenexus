@@ -1,8 +1,8 @@
 import { flexRender, useTable } from "@tanstack/react-table";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useMemo, useState } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { DataTableColumnHeader } from "@/components/data-table/column-header";
 import { dataTableFeatures } from "@/components/data-table/types";
@@ -24,10 +24,6 @@ class ResizeObserverMock {
 }
 
 globalThis.ResizeObserver = ResizeObserverMock;
-
-afterEach(() => {
-  cleanup();
-});
 
 function SortableColumnHeaderHarness({ sortable = true }) {
   const [sorting, setSorting] = useState<SortingState>([]);

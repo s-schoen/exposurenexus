@@ -83,7 +83,9 @@ Do NOT commit any changes to git unless you are explicitly asked.
 ## Tests
 
 - Tests run against the MSW mock API (`src/test/setup.ts`); any unmocked request fails the test, and the mock DB
-  resets after each test. Shared jsdom polyfills live in `src/test/dom-polyfills.ts`.
+  resets after each test. The setup also unmounts rendered components, and the Vitest config clears `vi.fn()` calls,
+  restores `vi.spyOn()` spies and unstubs env vars before each test, so don't repeat `cleanup()`, `mockReset()` or
+  `vi.restoreAllMocks()` in test files. Shared jsdom polyfills live in `src/test/dom-polyfills.ts`.
 - Test each feature by behavior in `src/features/<feature>/pages/<feature>.app.test.tsx`, rendering whole pages with
   `renderApp({ path, scenario })` from `@/test/render-app.tsx` (real router, queries and lifecycle hooks). Assert what a
   user sees, the URL (`router.state.location`) and the mock data (`db`), not props or spy calls. See

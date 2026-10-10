@@ -1,10 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { formatLocalDateTimeInput, formatUtcDateOnly } from "@/features/findings/lib/date-input.ts";
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe("date input formatting", () => {
   it("preserves UTC calendar dates", () => {

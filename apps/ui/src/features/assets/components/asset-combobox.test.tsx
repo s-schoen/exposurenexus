@@ -1,12 +1,10 @@
-import { cleanup, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { AssetCombobox } from "@/features/assets/components/asset-combobox.tsx";
 import { SEED_ASSETS } from "@/mocks/fixtures/index.ts";
 import { renderWithAppProviders } from "@/test/harness.tsx";
 import { holdApiResponses, seedScenario } from "@/test/msw.ts";
-
-afterEach(cleanup);
 
 // Assets load from the MSW mock API (seeded with web-01, container-01 and api-worker).
 

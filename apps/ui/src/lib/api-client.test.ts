@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod/v4";
 
 import {
@@ -37,10 +37,6 @@ function requestInit(): RequestInit {
 beforeEach(() => {
   fetchSpy = vi.spyOn(globalThis, "fetch");
   document.cookie = "__Host-exposurenexus-csrf=; Max-Age=0; path=/";
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
 });
 
 describe("generic API client", () => {

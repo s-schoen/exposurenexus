@@ -1,12 +1,8 @@
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import { FindingStatusBadge } from "@/features/findings/components/finding-status-badge.tsx";
-
-afterEach(() => {
-  cleanup();
-});
 
 describe("FindingStatusBadge", () => {
   it("renders status labels with status-specific styling", () => {

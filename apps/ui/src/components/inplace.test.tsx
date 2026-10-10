@@ -1,5 +1,5 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Inplace } from "@/components/inplace.tsx";
 
@@ -36,10 +36,6 @@ vi.mock("@/components/ui/select.tsx", () => ({
 
 beforeEach(() => {
   selectMocks.onValueChange = undefined;
-});
-
-afterEach(() => {
-  cleanup();
 });
 
 function editButton() {

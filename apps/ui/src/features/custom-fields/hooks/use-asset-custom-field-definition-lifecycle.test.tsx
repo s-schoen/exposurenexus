@@ -1,6 +1,6 @@
 import { AssetCustomFieldType } from "@exposurenexus/contracts/model/asset-custom-field";
-import { act, cleanup } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { useAssetCustomFieldDefinitionLifecycle } from "@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts";
 import {
@@ -39,16 +39,6 @@ function seedCache(queryClient: QueryClient) {
 
 const isInvalidated = (queryClient: QueryClient, key: QueryKey) =>
   queryClient.getQueryState(key)?.isInvalidated ?? false;
-
-beforeEach(() => {
-  toast.error.mockReset();
-  toast.success.mockReset();
-});
-
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-});
 
 describe("useAssetCustomFieldDefinitionLifecycle", () => {
   it("creates a definition and invalidates the list", async () => {

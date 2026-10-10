@@ -1,7 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, renderHook } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { onTestFinished, vi } from "vitest";
+import { vi } from "vitest";
 
 import { PageProvider } from "@/hooks/use-page-meta.tsx";
 import { createAppQueryClient } from "@/lib/query-client.ts";
@@ -14,14 +14,27 @@ import type { ReactElement, ReactNode } from "react";
 // Data comes from the MSW mock API (src/test/setup.ts). Use renderApp from
 // src/test/render-app.tsx for whole pages; these helpers are for components and hooks.
 
+const testQueryClients = new Set<QueryClient>();
+
 /**
- * The app's real QueryClient without retries. Its queries are cancelled when the test ends, so a
- * request still in flight can't fail, and log, once the mock API is reset or closed.
+ * The app's real QueryClient without retries. `cancelTestQueries` cancels its queries when the
+ * test ends.
  */
 export function createTestQueryClient(): QueryClient {
   const queryClient = createAppQueryClient({ retry: false });
-  onTestFinished(() => queryClient.cancelQueries());
+  testQueryClients.add(queryClient);
   return queryClient;
+}
+
+/**
+ * Cancels the current test's queries, so a request still in flight (e.g. a page the test
+ * navigated to just before it ended) can't fail, and log, once the mock DB is reset. Called by
+ * `setup.ts` after each test.
+ */
+export async function cancelTestQueries(): Promise<void> {
+  const queryClients = [...testQueryClients];
+  testQueryClients.clear();
+  await Promise.all(queryClients.map((queryClient) => queryClient.cancelQueries()));
 }
 
 function AppProviders({

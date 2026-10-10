@@ -1,15 +1,11 @@
 import { AssetIdentifierType } from "@exposurenexus/contracts/model/asset";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   AssetIdentifierEditor,
   AssetIdentifierForm,
 } from "@/features/assets/components/asset-identifier-editor.tsx";
-
-afterEach(() => {
-  cleanup();
-});
 
 describe("AssetIdentifierEditor", () => {
   it("shows an empty identifier state and adds a draft row", async () => {

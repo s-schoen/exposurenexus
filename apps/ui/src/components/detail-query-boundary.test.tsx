@@ -1,13 +1,9 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 
 import type { DetailQueryBoundaryState } from "@/components/detail-query-boundary.tsx";
-
-afterEach(() => {
-  cleanup();
-});
 
 function renderBoundary(query: DetailQueryBoundaryState<{ displayName: string }>) {
   render(

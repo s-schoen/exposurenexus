@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import { AuthProvider, useAuth } from "@/features/auth/providers/auth-provider.tsx";
 import { AUTH_SESSION_QUERY_KEY } from "@/features/auth/queries/session.ts";
@@ -37,11 +37,6 @@ function expectSignedOutCaches(queryClient: QueryClient) {
   }
   expect(queryClient.getQueryData(AUTH_SESSION_QUERY_KEY)).toBeNull();
 }
-
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-});
 
 describe("AuthProvider", () => {
   it("loads the current session on mount", async () => {

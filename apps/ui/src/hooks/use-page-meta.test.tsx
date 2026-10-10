@@ -1,7 +1,7 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Activity } from "lucide-react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { PageProvider, usePage, usePageMeta } from "@/hooks/use-page-meta.tsx";
 
@@ -54,8 +54,6 @@ function renderPage({
     </PageProvider>,
   );
 }
-
-afterEach(cleanup);
 
 describe("PageProvider and usePageMeta", () => {
   it("exposes empty initial metadata and defaults omitted values", () => {

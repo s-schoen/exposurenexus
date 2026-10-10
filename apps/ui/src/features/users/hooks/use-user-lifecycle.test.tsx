@@ -1,5 +1,5 @@
-import { act, cleanup } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { useUserLifecycle } from "@/features/users/hooks/use-user-lifecycle.ts";
 import {
@@ -34,16 +34,6 @@ const isInvalidated = (queryClient: QueryClient, key: QueryKey) =>
 const { id: _, ...profile } = MORGAN;
 // The update contract has no username: usernames are immutable.
 const { username: __, ...update } = profile;
-
-beforeEach(() => {
-  toast.error.mockReset();
-  toast.success.mockReset();
-});
-
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-});
 
 describe("useUserLifecycle", () => {
   it("creates a user and invalidates the user list", async () => {

@@ -1,5 +1,5 @@
 import { AssetIdentifierType } from "@exposurenexus/contracts/model/asset";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AssetIdentifierTable } from "@/features/assets/components/asset-identifier-table.tsx";
@@ -38,7 +38,6 @@ function deferred<T>() {
 }
 
 afterEach(() => {
-  cleanup();
   confirmMock.mockReset();
 });
 

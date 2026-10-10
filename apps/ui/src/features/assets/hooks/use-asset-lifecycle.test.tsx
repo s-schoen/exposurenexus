@@ -1,6 +1,6 @@
 import { AssetIdentifierType, AssetType } from "@exposurenexus/contracts/model/asset";
-import { act, cleanup } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { useAssetLifecycle } from "@/features/assets/hooks/use-asset-lifecycle.ts";
 import {
@@ -74,16 +74,6 @@ function renderLifecycle() {
   seedCache(view.queryClient);
   return view;
 }
-
-beforeEach(() => {
-  toast.error.mockReset();
-  toast.success.mockReset();
-});
-
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-});
 
 describe("asset create, update and delete", () => {
   it("creates an asset and invalidates every asset list, filtered ones included", async () => {

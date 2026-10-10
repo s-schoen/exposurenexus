@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { Suspense } from "react";
-import { afterEach, expect, it, vi } from "vitest";
+import { expect, it, vi } from "vitest";
 
 import {
   createListVulnerabilitiesQueryOptions,
@@ -26,10 +26,6 @@ vi.mock("@tanstack/react-router", async (importOriginal) => ({
   }),
   useNavigate: () => vi.fn(),
 }));
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-});
 
 type Loader = (args: {
   context: { queryClient: QueryClient };

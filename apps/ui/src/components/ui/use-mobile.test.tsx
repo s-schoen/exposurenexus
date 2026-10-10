@@ -1,12 +1,7 @@
-import { act, cleanup, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { useIsMobile } from "@/components/ui/use-mobile.ts";
-
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-});
 
 describe("useIsMobile", () => {
   it("tracks the 768px breakpoint and unsubscribes on unmount", () => {

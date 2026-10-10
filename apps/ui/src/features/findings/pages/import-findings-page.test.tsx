@@ -1,5 +1,5 @@
-import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import { ImportFindingsPage } from "@/features/findings/pages/import-findings-page.tsx";
 import { renderWithAppProviders } from "@/test/harness.tsx";
@@ -9,10 +9,6 @@ function renderImportFindingsPage() {
 }
 
 describe("ImportFindingsPage", () => {
-  afterEach(() => {
-    cleanup();
-  });
-
   it("communicates that automated imports are unavailable and cannot submit", () => {
     renderImportFindingsPage();
 

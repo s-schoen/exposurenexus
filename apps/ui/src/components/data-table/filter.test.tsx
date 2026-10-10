@@ -1,10 +1,8 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { DataTableFilter } from "@/components/data-table/filter.tsx";
-
-afterEach(cleanup);
 
 // The value usually comes from the URL and lags behind the keystrokes that change it.
 

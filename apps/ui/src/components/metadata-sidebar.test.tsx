@@ -1,10 +1,8 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { ShieldCheck } from "lucide-react";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { MetadataSidebar } from "@/components/metadata-sidebar/index.tsx";
-
-afterEach(cleanup);
 
 describe("MetadataSidebar", () => {
   it("renders its title, description, icon, and content", () => {

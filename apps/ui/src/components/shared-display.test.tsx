@@ -1,7 +1,5 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
-
-afterEach(cleanup);
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 describe("shared display components", () => {
   it("renders timestamps and invalid date fallbacks", async () => {

@@ -1,14 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { getSession, signIn, signOut } from "@/features/auth/api/auth.ts";
 import { SEED_AUTH_SESSION, SEED_USERS } from "@/mocks/fixtures/index.ts";
 import { captureApiCalls, db, recordApiRequests, seedScenario } from "@/test/msw.ts";
 
 const [, MORGAN] = SEED_USERS;
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe("auth API", () => {
   it("trims the username, keeps the password and sends no CSRF token", async () => {

@@ -1,5 +1,5 @@
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import type { CSSProperties, ReactNode } from "react";
 
@@ -58,10 +58,6 @@ async function renderChart(height?: CSSProperties["height"]) {
 
   return screen.getByTestId("chart-container");
 }
-
-afterEach(() => {
-  cleanup();
-});
 
 describe("SimpleBarChart", () => {
   it("uses an explicit CSS height without dynamic Tailwind classes", async () => {

@@ -1,8 +1,8 @@
 import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
-import { act, cleanup, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifecycle.ts";
 import {
@@ -47,16 +47,6 @@ function renderLifecycle() {
   seedCache(view.queryClient);
   return view;
 }
-
-beforeEach(() => {
-  toast.error.mockReset();
-  toast.success.mockReset();
-});
-
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-});
 
 describe("useFindingLifecycle", () => {
   it("creates a finding and invalidates the list and stats", async () => {
