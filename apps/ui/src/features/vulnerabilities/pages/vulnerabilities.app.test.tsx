@@ -168,6 +168,9 @@ describe("creating and editing entries", () => {
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/vulnerabilities/${created.id}`),
     );
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "Weak session handling" }),
+    ).toBeVisible();
   });
 
   it("stays on the form when creating fails", async () => {

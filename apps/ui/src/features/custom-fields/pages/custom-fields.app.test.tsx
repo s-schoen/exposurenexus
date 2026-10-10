@@ -139,6 +139,7 @@ describe("creating and editing definitions", () => {
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/custom-fields/${created.id}`),
     );
+    expect(await screen.findByRole("heading", { level: 1, name: "Risk Owner" })).toBeVisible();
   });
 
   it("shows validation errors instead of submitting an empty form", async () => {
