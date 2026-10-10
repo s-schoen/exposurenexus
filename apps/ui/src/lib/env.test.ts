@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { expectConsoleLog } from "@/test/console.ts";
+
 async function loadEnv() {
   vi.resetModules();
   return import("@/lib/env.ts");
@@ -46,6 +48,7 @@ describe("environment validation", () => {
     { name: "whitespace-only", value: "   " },
   ])("rejects $name API URLs during module import", async ({ value }) => {
     vi.stubEnv("VITE_API_URL", value);
+    expectConsoleLog("Invalid environment variables");
 
     await expect(loadEnv()).rejects.toThrow();
   });

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   createAssetCustomFieldDefinition,
@@ -17,14 +17,6 @@ import { mockApiError, mockApiReply } from "@/test/msw.ts";
 const [, , DEPLOYMENT_TIER] = SEED_CUSTOM_FIELDS;
 const [CATEGORY] = SEED_CUSTOM_FIELDS;
 const { id, ...definition } = CATEGORY;
-
-beforeEach(() => {
-  vi.spyOn(console, "error").mockImplementation(() => undefined);
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe("asset custom field api", () => {
   it.each([

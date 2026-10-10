@@ -4,7 +4,7 @@ import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { App, createAppRouter } from "@/app.tsx";
-import { createAppQueryClient } from "@/lib/query-client.ts";
+import { createTestQueryClient } from "@/test/harness.tsx";
 import { seedScenario } from "@/test/msw.ts";
 
 import type { MockScenario } from "@/mocks/db.ts";
@@ -25,7 +25,7 @@ export function renderApp({ path = "/", scenario }: RenderAppOptions = {}) {
     seedScenario(scenario);
   }
 
-  const queryClient = createAppQueryClient({ retry: false });
+  const queryClient = createTestQueryClient();
   const router = createAppRouter({
     queryClient,
     history: createMemoryHistory({ initialEntries: [path] }),

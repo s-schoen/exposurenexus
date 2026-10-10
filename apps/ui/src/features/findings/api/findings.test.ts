@@ -1,7 +1,7 @@
 import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   createFindingObservation,
@@ -49,14 +49,6 @@ const createPayload: CreateManualFinding = {
   affectedResource: { type: AffectedResourceType.Unspecified },
   vulnerabilityIds: [],
 };
-
-beforeEach(() => {
-  vi.spyOn(console, "error").mockImplementation(() => undefined);
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 describe("finding dates", () => {
   it("parses date fields of findings and observations", async () => {

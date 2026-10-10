@@ -3,6 +3,7 @@ import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { CUSTOM_AUDITOR_ROLE, SEED_ROLES, buildRole } from "@/mocks/fixtures/index.ts";
+import { expectConsoleLog } from "@/test/console.ts";
 import { db, mockApiError, recordApiRequests } from "@/test/msw.ts";
 import { renderApp } from "@/test/render-app.tsx";
 
@@ -27,6 +28,7 @@ describe("roles list", () => {
 
   it("shows the route error state when the role list fails", async () => {
     mockApiError("get", "/roles", 500, "Roles request failed");
+    expectConsoleLog("Error in route match");
     renderApp({ path: "/roles" });
 
     expect(await screen.findByText("Unable to load this page")).toBeVisible();

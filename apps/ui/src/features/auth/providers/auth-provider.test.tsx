@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AuthProvider, useAuth } from "@/features/auth/providers/auth-provider.tsx";
 import { AUTH_SESSION_QUERY_KEY } from "@/features/auth/queries/session.ts";
-import { createAppQueryClient } from "@/lib/query-client.ts";
 import { SEED_USERS } from "@/mocks/fixtures/index.ts";
+import { createTestQueryClient } from "@/test/harness.tsx";
 import { db, mockApiError, recordApiRequests, seedScenario } from "@/test/msw.ts";
 
 import type { QueryClient } from "@tanstack/react-query";
@@ -17,7 +17,7 @@ const [ROBIN, MORGAN] = SEED_USERS;
 const protectedKeys = [["assets"], ["findings"], ["users"], ["roles"]];
 
 function renderAuth() {
-  const queryClient = createAppQueryClient({ retry: false });
+  const queryClient = createTestQueryClient();
   for (const key of protectedKeys) {
     queryClient.setQueryData(key, []);
   }

@@ -1,9 +1,11 @@
 import { HttpResponse, http } from "msw";
 import { onTestFinished } from "vitest";
 
+import { APIError } from "@/lib/api-client.ts";
 import { apiPath } from "@/mocks/handlers/shared.ts";
 import { db, server } from "@/mocks/node.ts";
 import { replyError } from "@/mocks/reply.ts";
+import { expectConsoleLog } from "@/test/console.ts";
 
 import type { MockScenario } from "@/mocks/db.ts";
 
@@ -14,6 +16,7 @@ type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
 /**
  * Makes one endpoint fail for the rest of the test, e.g.
  * `mockApiError("get", "/roles", 500)`. `path` is relative to `/api` and may use `:params`.
+ * The app's error log for this failure (lifecycle hook or query cache) is expected.
  */
 export function mockApiError(
   method: HttpMethod,
@@ -22,6 +25,11 @@ export function mockApiError(
   error = "Mock API error",
   reason?: string,
 ): void {
+  expectConsoleLog((args) =>
+    args.some(
+      (arg) => arg instanceof APIError && arg.statusCode === status && arg.message === error,
+    ),
+  );
   server.use(http[method](apiPath(path), () => replyError(status, error, reason)));
 }
 
