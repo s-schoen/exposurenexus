@@ -58,7 +58,7 @@ export function UserTable({
 
   function ToolbarElements() {
     return (
-      <Button variant="default" size="sm" className="h-9 rounded-xl" onClick={onCreateUser}>
+      <Button variant="default" size="default" onClick={onCreateUser}>
         <Plus />
         New user
       </Button>

@@ -44,7 +44,7 @@ export function AssetCustomFieldTable({
 }: AssetCustomFieldTableProps) {
   function ToolbarElements() {
     return (
-      <Button variant="default" size="sm" className="h-9 rounded-xl" onClick={onCreateCustomField}>
+      <Button variant="default" size="default" onClick={onCreateCustomField}>
         <Plus />
         New custom field
       </Button>

@@ -202,7 +202,7 @@ describe("Inplace", () => {
   it("hides the edit icon when requested", () => {
     render(<Inplace value="api-01" onSave={vi.fn()} showEditIcon={false} />);
 
-    expect(editButton().className).toContain("opacity-0");
+    expect(editButton().parentElement?.className).toContain("opacity-0");
   });
 
   it("cancels input editing from the cancel button", () => {

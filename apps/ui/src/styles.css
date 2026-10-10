@@ -6,6 +6,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 body {
   @apply m-0;
   font-family: "Instrument Sans", "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
@@ -58,6 +67,22 @@ code {
   --shell-panel-strong: oklch(1 0 0 / 0.96);
   --shell-shadow: 0 18px 48px oklch(0.28 0.02 248 / 0.08);
   --shell-border-strong: oklch(0.9 0.012 220);
+  --success: oklch(0.508 0.118 165.612);
+  --warning: oklch(0.555 0.163 48.998);
+  --info: oklch(0.5 0.134 242.749);
+  --severity-info: oklch(0.488 0.243 264.376);
+  --severity-low: oklch(0.56 0.12 90);
+  --severity-medium: oklch(0.58 0.17 50);
+  --severity-high: oklch(0.505 0.213 27.518);
+  --severity-critical: oklch(0.459 0.187 3.815);
+  --finding-status-active: oklch(0.505 0.213 27.518);
+  --finding-status-confirmed: oklch(0.553 0.195 38.402);
+  --finding-status-mitigated: var(--success);
+  --finding-status-false-positive: oklch(0.446 0.043 257.281);
+  --finding-status-risk-accepted: var(--warning);
+  --finding-status-duplicate: oklch(0.442 0.017 285.786);
+  --finding-status-out-of-scope: var(--info);
+  --finding-status-inactive: oklch(0.439 0 0);
 }
 
 .dark {
@@ -100,6 +125,22 @@ code {
   --shell-panel-strong: oklch(0.24 0.02 248 / 0.9);
   --shell-shadow: 0 22px 60px oklch(0.08 0.01 248 / 0.38);
   --shell-border-strong: oklch(0.38 0.025 238);
+  --success: oklch(0.765 0.177 163.223);
+  --warning: oklch(0.828 0.189 84.429);
+  --info: oklch(0.746 0.16 232.661);
+  --severity-info: oklch(0.707 0.165 254.624);
+  --severity-low: oklch(0.852 0.199 91.936);
+  --severity-medium: oklch(0.75 0.183 55.934);
+  --severity-high: oklch(0.704 0.191 22.216);
+  --severity-critical: oklch(0.718 0.202 349.761);
+  --finding-status-active: oklch(0.704 0.191 22.216);
+  --finding-status-confirmed: oklch(0.75 0.183 55.934);
+  --finding-status-mitigated: var(--success);
+  --finding-status-false-positive: oklch(0.704 0.04 256.788);
+  --finding-status-risk-accepted: var(--warning);
+  --finding-status-duplicate: oklch(0.705 0.015 286.067);
+  --finding-status-out-of-scope: var(--info);
+  --finding-status-inactive: oklch(0.708 0 0);
 }
 
 @theme inline {
@@ -131,6 +172,8 @@ code {
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --tracking-eyebrow: 0.18em;
+  --text-2xs: 0.6875rem;
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -142,6 +185,22 @@ code {
   --color-shell-panel: var(--shell-panel);
   --color-shell-panel-strong: var(--shell-panel-strong);
   --color-shell-border-strong: var(--shell-border-strong);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-severity-info: var(--severity-info);
+  --color-severity-low: var(--severity-low);
+  --color-severity-medium: var(--severity-medium);
+  --color-severity-high: var(--severity-high);
+  --color-severity-critical: var(--severity-critical);
+  --color-finding-status-active: var(--finding-status-active);
+  --color-finding-status-confirmed: var(--finding-status-confirmed);
+  --color-finding-status-mitigated: var(--finding-status-mitigated);
+  --color-finding-status-false-positive: var(--finding-status-false-positive);
+  --color-finding-status-risk-accepted: var(--finding-status-risk-accepted);
+  --color-finding-status-duplicate: var(--finding-status-duplicate);
+  --color-finding-status-out-of-scope: var(--finding-status-out-of-scope);
+  --color-finding-status-inactive: var(--finding-status-inactive);
 }
 
 @layer base {

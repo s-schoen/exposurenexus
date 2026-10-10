@@ -121,12 +121,7 @@ export function FindingTable({
   function ToolbarElements() {
     return (
       <>
-        <Button
-          variant="default"
-          size="sm"
-          className="h-9 rounded-xl"
-          onClick={handleCreateFinding}
-        >
+        <Button variant="default" size="default" onClick={handleCreateFinding}>
           <Plus />
           New finding
         </Button>

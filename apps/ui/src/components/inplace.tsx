@@ -126,7 +126,7 @@ export function Inplace<T>({
             void commit(typed);
           }}
         >
-          <SelectTrigger className="h-7 min-w-32 text-sm">
+          <SelectTrigger className="h-7 min-w-32">
             <span className="min-w-0 flex-1 truncate text-left">{selectedLabel}</span>
           </SelectTrigger>
           <SelectContent>
@@ -153,7 +153,7 @@ export function Inplace<T>({
           setDraft(typed);
         }}
         onKeyDown={handleKeyDown}
-        className="h-7 w-auto min-w-32 py-0 text-sm"
+        className="h-7 w-auto min-w-32"
       />
     );
   }
@@ -189,16 +189,22 @@ export function Inplace<T>({
             </Button>
           </div>
         ) : (
-          <Button
-            onClick={() => enterEdit()}
-            size="icon-sm"
-            variant="ghost"
-            aria-label="Edit value"
-            title="Edit"
-            className={hovered && showEditIcon ? "opacity-100" : "opacity-0"}
+          <span
+            className={cn(
+              "inline-flex",
+              hovered && showEditIcon ? "opacity-100" : "opacity-0 focus-within:opacity-100",
+            )}
           >
-            <PencilIcon />
-          </Button>
+            <Button
+              onClick={() => enterEdit()}
+              size="icon-sm"
+              variant="ghost"
+              aria-label="Edit value"
+              title="Edit"
+            >
+              <PencilIcon />
+            </Button>
+          </span>
         )}
       </div>
     );

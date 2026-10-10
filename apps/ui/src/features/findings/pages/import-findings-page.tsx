@@ -50,7 +50,7 @@ export function ImportFindingsPage() {
 
   return (
     <div className="flex w-full flex-col">
-      <Card className="w-full border-border/70">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Upload file</CardTitle>
           <CardDescription>

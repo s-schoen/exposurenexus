@@ -26,18 +26,7 @@ export const columns: Array<DataTableColumnDef<Role>> = [
     cell: ({ row }) => {
       const kind = getRoleKindLabel(row.original.id);
 
-      return (
-        <Badge
-          variant="outline"
-          className={
-            kind === "Built-in"
-              ? "rounded-full border-sky-200 bg-sky-50 text-sky-700"
-              : "rounded-full border-violet-200 bg-violet-50 text-violet-700"
-          }
-        >
-          {kind}
-        </Badge>
-      );
+      return <Badge variant={kind === "Built-in" ? "info" : "secondary"}>{kind}</Badge>;
     },
     filterFn: (row, _columnId, filterValue: Array<string>) => {
       if (filterValue.length === 0) {
@@ -60,7 +49,7 @@ export const columns: Array<DataTableColumnDef<Role>> = [
     accessorFn: (role) => role.permissions.length,
     header: ({ column }) => <DataTableColumnHeader column={column} title="Permissions" />,
     cell: ({ row }) => (
-      <Badge variant="outline" className="rounded-full">
+      <Badge variant="outline">
         {row.original.permissions.length} grant
         {row.original.permissions.length === 1 ? "" : "s"}
       </Badge>
@@ -78,15 +67,11 @@ export const columns: Array<DataTableColumnDef<Role>> = [
       return (
         <div className="flex items-center gap-1">
           {visibleResources.map((resource) => (
-            <Badge key={resource} variant="secondary" className="rounded-full">
+            <Badge key={resource} variant="secondary">
               {formatPermissionLabel(resource)}
             </Badge>
           ))}
-          {hiddenResourceCount > 0 && (
-            <Badge variant="outline" className="rounded-full">
-              +{hiddenResourceCount} more
-            </Badge>
-          )}
+          {hiddenResourceCount > 0 && <Badge variant="outline">+{hiddenResourceCount} more</Badge>}
         </div>
       );
     },

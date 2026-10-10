@@ -1,5 +1,6 @@
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 
+import type { MetricTone } from "@/components/metric-card.tsx";
 import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type { FindingStatistics } from "@exposurenexus/contracts/model/finding";
 
@@ -27,13 +28,18 @@ export function computeDashboardOverview(stats: FindingStatistics, assetList: Ar
       value: count,
     }));
 
-  const priorityItems = [
+  const priorityItems: Array<{
+    label: string;
+    description: string;
+    value: number;
+    tone: MetricTone;
+    href: string;
+  }> = [
     {
       label: "Needs review",
       description: "Critical and high severity findings",
       value: criticalHighFindings,
-      tone:
-        criticalHighFindings > 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400",
+      tone: criticalHighFindings > 0 ? "destructive" : "success",
       href: buildFilterHref("/findings", {
         severity: ["critical", "high"],
         status: ["active"],
@@ -43,7 +49,7 @@ export function computeDashboardOverview(stats: FindingStatistics, assetList: Ar
       label: "Triage queue",
       description: "Findings still awaiting triage",
       value: activeFindings,
-      tone: "text-foreground",
+      tone: "default",
       href: buildFilterHref("/findings/triage", {
         status: ["active"],
       }),
@@ -52,7 +58,7 @@ export function computeDashboardOverview(stats: FindingStatistics, assetList: Ar
       label: "Needs mitigation",
       description: "Confirmed findings awaiting mitigation",
       value: confirmedFindings,
-      tone: "text-foreground",
+      tone: "default",
       href: buildFilterHref("/findings", {
         status: ["confirmed"],
       }),
@@ -61,7 +67,7 @@ export function computeDashboardOverview(stats: FindingStatistics, assetList: Ar
       label: "Blast radius",
       description: "Assets currently affected",
       value: affectedAssets,
-      tone: "text-foreground",
+      tone: "default",
       href: buildFilterHref("/findings", {
         status: ["active", "confirmed"],
       }),

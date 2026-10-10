@@ -22,7 +22,6 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
 
 import type { ComponentType } from "react";
 
@@ -130,32 +129,27 @@ export function AppSidebar({ triageCount, mitigationCount }: AppSidebarProps) {
   ];
 
   return (
-    <Sidebar variant="inset" className="border-r-0 md:top-18.25 md:h-[calc(100svh-73px)]">
+    <Sidebar variant="inset" className="md:top-18.25 md:h-[calc(100svh-73px)]">
       <SidebarSeparator className="mx-3" />
       <SidebarContent>
         {groups.map((group) => (
           <SidebarGroup key={group.label} className="px-3 py-2">
-            <SidebarGroupLabel className="px-3 text-[11px] font-semibold tracking-[0.18em] uppercase text-sidebar-foreground/55">
-              {group.label}
-            </SidebarGroupLabel>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="gap-1.5">
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       isActive={isItemActive(item)}
-                      className={cn(
-                        "h-auto min-h-14 rounded-2xl px-3 py-3",
-                        "data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:shadow-sm",
-                        "hover:bg-sidebar-accent/80",
-                      )}
+                      variant="nav"
+                      size="tile"
                       render={
                         <Link to={item.url}>
                           <div className="flex min-w-0 items-center gap-3">
                             <div className="relative flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/80 text-current ring-1 ring-sidebar-border/70">
                               <item.icon className="size-4.5" />
                               {typeof item.badge === "number" && item.badge > 0 && (
-                                <span className="absolute -top-1 -right-1 flex min-w-5 items-center justify-center rounded-full bg-sidebar-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-sidebar-primary-foreground shadow-sm ring-2 ring-sidebar">
+                                <span className="absolute -top-1 -right-1 flex min-w-5 items-center justify-center rounded-full bg-sidebar-primary px-1.5 py-0.5 text-2xs font-semibold leading-none text-sidebar-primary-foreground shadow-sm ring-2 ring-sidebar">
                                   {item.badge}
                                 </span>
                               )}

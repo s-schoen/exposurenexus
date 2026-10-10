@@ -825,9 +825,9 @@ function FindingResourceCard({ finding }: { finding: Finding }) {
   const details = getResourceDetails(finding.affectedResource);
 
   return (
-    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-xl font-semibold">Affected resource</CardTitle>
+        <CardTitle className="text-xl">Affected resource</CardTitle>
         <CardDescription>Canonical resource identity used by this finding.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -862,9 +862,9 @@ function FindingWeaknessCard({ finding }: { finding: Finding }) {
   const identifiers = Object.entries(finding.weakness.identifiers);
 
   return (
-    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-xl font-semibold">Weakness</CardTitle>
+        <CardTitle className="text-xl">Weakness</CardTitle>
         <CardDescription>Normalized identifiers reported for this finding.</CardDescription>
       </CardHeader>
       <CardContent>
@@ -928,9 +928,9 @@ function FindingVulnerabilitiesCard({ finding }: { finding: Finding }) {
   };
 
   return (
-    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+    <Card>
       <CardHeader>
-        <CardTitle className="text-xl font-semibold">Catalog enrichment</CardTitle>
+        <CardTitle className="text-xl">Catalog enrichment</CardTitle>
         <CardDescription>
           Linked catalog entries are equal enrichment and do not control finding identity or
           severity.
@@ -1054,7 +1054,7 @@ function FindingOverviewCard({
   assetType?: string;
 }) {
   return (
-    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+    <Card>
       <CardHeader className="gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -1062,15 +1062,13 @@ function FindingOverviewCard({
             <FindingCorrectionDialog finding={findingData} users={users} />
           </div>
           <div className="flex items-center gap-2">
-            <SeverityBadge severity={findingData.severity} className="h-6 px-2.5 text-xs" />
-            <FindingStatusBadge status={findingData.status} className="h-6 px-2.5 text-xs" />
+            <SeverityBadge severity={findingData.severity} className="h-6" />
+            <FindingStatusBadge status={findingData.status} className="h-6" />
           </div>
         </div>
         <div className="space-y-3">
           <div className="space-y-2">
-            <CardTitle className="text-2xl font-semibold tracking-tight">
-              {findingData.title}
-            </CardTitle>
+            <CardTitle className="text-2xl tracking-tight">{findingData.title}</CardTitle>
             <CardDescription className="max-w-3xl text-sm leading-6">
               Human workflow case for one weakness affecting one asset and canonical resource.
             </CardDescription>
@@ -1123,11 +1121,11 @@ function FindingSidebar({
       <div className="space-y-4">
         <MetadataDetailRow
           label="Severity"
-          value={<SeverityBadge severity={findingData.severity} className="h-7 px-3 text-sm" />}
+          value={<SeverityBadge severity={findingData.severity} size="lg" className="h-7" />}
         />
         <MetadataDetailRow
           label="Status"
-          value={<FindingStatusBadge status={findingData.status} className="h-7 px-3 text-sm" />}
+          value={<FindingStatusBadge status={findingData.status} size="lg" className="h-7" />}
         />
         <MetadataDetailRow label="Due date" value={formatDueDate(findingData.dueDate)} />
         <MetadataDetailRow
@@ -1187,9 +1185,9 @@ export function FindingDetailContent({
         <FindingResourceCard finding={findingData} />
         <FindingObservationsSection finding={findingData} />
         <FindingVulnerabilitiesCard finding={findingData} />
-        <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-xl font-semibold">Mitigation</CardTitle>
+            <CardTitle className="text-xl">Mitigation</CardTitle>
             <CardDescription>Finding-owned handling guidance.</CardDescription>
           </CardHeader>
           <CardContent>

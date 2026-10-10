@@ -188,7 +188,7 @@ export function RoleForm({
   const resolvedSubmitLabel = submitLabel ?? (isCreateMode ? "Create role" : "Save changes");
 
   return (
-    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+    <Card>
       <CardHeader>
         <CardTitle>{isCreateMode ? "Create role" : "Edit role"}</CardTitle>
         <CardDescription>

@@ -38,7 +38,7 @@ export function RoleTable({
 }: RoleTableProps) {
   function ToolbarElements() {
     return (
-      <Button variant="default" size="sm" className="h-9 rounded-xl" onClick={onCreateRole}>
+      <Button variant="default" size="default" onClick={onCreateRole}>
         <Plus />
         New role
       </Button>

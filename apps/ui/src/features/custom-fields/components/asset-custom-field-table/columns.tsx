@@ -49,11 +49,7 @@ export const columns: Array<DataTableColumnDef<AssetCustomFieldDefinition>> = [
   {
     accessorKey: "type",
     header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
-    cell: ({ row }) => (
-      <Badge variant="secondary" className="rounded-full">
-        {formatTypeLabel(row.original.type)}
-      </Badge>
-    ),
+    cell: ({ row }) => <Badge variant="secondary">{formatTypeLabel(row.original.type)}</Badge>,
     filterFn: (row, _columnId, filterValue: Array<string>) => {
       if (filterValue.length === 0) {
         return true;
@@ -78,18 +74,7 @@ export const columns: Array<DataTableColumnDef<AssetCustomFieldDefinition>> = [
     cell: ({ row }) => {
       const required = row.original.required;
 
-      return (
-        <Badge
-          variant="outline"
-          className={
-            required
-              ? "rounded-full border-amber-200 bg-amber-50 text-amber-700"
-              : "rounded-full border-emerald-200 bg-emerald-50 text-emerald-700"
-          }
-        >
-          {getRequiredLabel(required)}
-        </Badge>
-      );
+      return <Badge variant={required ? "warning" : "success"}>{getRequiredLabel(required)}</Badge>;
     },
     filterFn: (row, _columnId, filterValue: Array<string>) => {
       if (filterValue.length === 0) {
@@ -132,7 +117,7 @@ export const columns: Array<DataTableColumnDef<AssetCustomFieldDefinition>> = [
       }
 
       return (
-        <Badge variant="outline" className="rounded-full">
+        <Badge variant="outline">
           {row.original.options.length} option
           {row.original.options.length === 1 ? "" : "s"}
         </Badge>

@@ -23,11 +23,11 @@ export function MetadataSidebar({
   description,
 }: MetadataSidebarProps) {
   return (
-    <Card className="sticky top-0 min-w-80 border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+    <Card className="sticky top-0 min-w-80">
       <CardHeader className="gap-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+            <CardTitle className="text-lg">{title}</CardTitle>
             {description ? <CardDescription>{description}</CardDescription> : null}
           </div>
           <Icon className="size-5 text-muted-foreground" />

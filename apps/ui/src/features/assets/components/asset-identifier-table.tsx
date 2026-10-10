@@ -169,7 +169,7 @@ export function AssetIdentifierTable({
   }
 
   return (
-    <Card className="w-full border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+    <Card className="w-full">
       <CardHeader className="gap-3">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">

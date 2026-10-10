@@ -169,9 +169,9 @@ function RoleMultiSelect({
       <PopoverContent
         id={popupId}
         aria-label="Role selection"
-        className="w-(--anchor-width) min-w-72 rounded-2xl p-0"
+        className="w-(--anchor-width) min-w-72 p-0"
       >
-        <Command className="bg-background p-2">
+        <Command>
           <CommandInput aria-label="Search roles" placeholder="Search roles..." />
           <CommandList className="max-h-full">
             <CommandEmpty>No roles available</CommandEmpty>
@@ -183,7 +183,6 @@ function RoleMultiSelect({
                   <CommandItem
                     key={role.id}
                     value={role.name}
-                    className="rounded-lg bg-transparent px-3 py-2 data-selected:bg-transparent"
                     onSelect={() => handleToggleRole(role.id)}
                   >
                     <span className="truncate">{role.name}</span>
@@ -264,7 +263,7 @@ export function UserForm({
   const resolvedSubmitLabel = submitLabel ?? (isCreateMode ? "Create user" : "Save changes");
 
   return (
-    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+    <Card>
       <CardHeader>
         <CardTitle>{isCreateMode ? "Create user" : "Edit user"}</CardTitle>
         <CardDescription>

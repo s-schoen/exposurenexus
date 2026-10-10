@@ -11,7 +11,6 @@ import { AssetDialog } from "@/features/assets";
 import { AccountMenu } from "@/features/auth";
 import { createFindingStatsQueryOptions, getFindingNavigationCounts } from "@/features/findings";
 import { usePage } from "@/hooks/use-page-meta.tsx";
-import { cn } from "@/lib/utils.ts";
 
 function Layout() {
   const findingStats = useQuery(createFindingStatsQueryOptions());
@@ -30,7 +29,7 @@ function Layout() {
           </header>
           <div className="flex flex-1 overflow-hidden">
             <AppSidebar triageCount={triageCount} mitigationCount={mitigationCount} />
-            <SidebarInset className="m-0 w-auto min-w-0 overflow-hidden bg-transparent shadow-none md:ml-0 md:rounded-[1.75rem] md:border md:border-shell-border-strong/70 md:bg-(--color-shell-panel) md:shadow-(--shell-shadow)">
+            <SidebarInset className="w-auto min-w-0 overflow-hidden">
               <main className="flex flex-1 flex-col overflow-hidden">
                 <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-5 sm:py-5 lg:px-7">
                   <section className="rounded-3xl border border-border/70 bg-shell-panel-strong/90 p-4 shadow-sm sm:p-5">
@@ -58,10 +57,6 @@ function Layout() {
                                   : (action.variant ?? "outline")
                               }
                               size="sm"
-                              className={cn(
-                                "rounded-xl",
-                                index === 0 && "shadow-sm shadow-primary/20",
-                              )}
                               disabled={action.disabled}
                               onClick={action.onClick}
                             >

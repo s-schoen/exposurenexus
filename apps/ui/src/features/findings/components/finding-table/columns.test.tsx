@@ -194,7 +194,7 @@ describe("createFindingColumns", () => {
 
     renderCell(findColumn(columns, "status"));
     expect(screen.getByText("Active")).toBeTruthy();
-    expect(screen.getByText("Active").className).toContain("text-red-700");
+    expect(screen.getByText("Active").className).toContain("text-finding-status-active");
     cleanup();
 
     renderCell(findColumn(columns, "assetId"));

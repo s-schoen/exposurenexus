@@ -1299,10 +1299,10 @@ export function FindingObservationsSection({ finding }: FindingObservationsSecti
   const observations = useQuery(createFindingObservationsQueryOptions(finding.id));
 
   return (
-    <Card className="border-border/60 bg-shell-panel shadow-(--shell-shadow)">
+    <Card>
       <CardHeader className="flex-row items-start justify-between gap-4">
         <div>
-          <CardTitle className="text-xl font-semibold">Observations</CardTitle>
+          <CardTitle className="text-xl">Observations</CardTitle>
           <CardDescription>Source-owned evidence supporting this finding.</CardDescription>
         </div>
         <AddObservationDialog finding={finding} />

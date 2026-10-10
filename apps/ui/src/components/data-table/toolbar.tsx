@@ -37,7 +37,7 @@ function GlobalFilterChip({ filter, onClear }: { filter: string; onClear: () => 
   }
 
   return (
-    <Badge variant="outline" className="h-8 gap-2 rounded-full bg-background px-3">
+    <Badge variant="outline" size="lg" className="h-8">
       <span className="text-muted-foreground">Search</span>
       <span className="max-w-48 truncate text-foreground">{filter}</span>
       <button
@@ -64,11 +64,7 @@ function SelectFilterChips<TData extends RowData>({ column }: { column: DataTabl
   }
 
   return selectedOptions.map((option) => (
-    <Badge
-      key={`${column.id}-${option.value}`}
-      variant="outline"
-      className="h-8 gap-2 rounded-full bg-background px-3"
-    >
+    <Badge key={`${column.id}-${option.value}`} variant="outline" size="lg" className="h-8">
       <span className="text-muted-foreground">{label}</span>
       <span className="text-foreground">{option.label}</span>
       <button
@@ -95,11 +91,7 @@ function ScalarFilterChip<TData extends RowData>({ column }: { column: DataTable
   }
 
   return (
-    <Badge
-      key={`${column.id}-${value}`}
-      variant="outline"
-      className="h-8 gap-2 rounded-full bg-background px-3"
-    >
+    <Badge key={`${column.id}-${value}`} variant="outline" size="lg" className="h-8">
       <span className="text-muted-foreground">{label}</span>
       <span className="max-w-48 truncate text-foreground">{value}</span>
       <button
@@ -208,10 +200,7 @@ export function DataTableToolbar<TData extends RowData>({
                   table.setExpanded(true);
                 }}
               >
-                <SelectTrigger
-                  aria-label="Group rows"
-                  className="h-9 min-w-52 rounded-xl bg-background"
-                >
+                <SelectTrigger aria-label="Group rows" className="h-9 min-w-52">
                   <Rows3 className="size-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Group by</span>
                   <span className="min-w-0 truncate font-medium text-foreground">
