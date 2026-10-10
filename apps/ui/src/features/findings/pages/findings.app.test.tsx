@@ -1,6 +1,7 @@
+import { AffectedResourceType } from "@exposurenexus/contracts/model/affected-resource";
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
-import { cleanup, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { screen, waitFor, within } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import {
   SEED_ASSETS,
@@ -10,8 +11,6 @@ import {
 } from "@/mocks/fixtures/index.ts";
 import { db, holdApiResponses, mockApiError, recordApiRequests } from "@/test/msw.ts";
 import { renderApp } from "@/test/render-app.tsx";
-
-afterEach(cleanup);
 
 // Whole-app tests: real router, queries and lifecycle hooks against the MSW mock API.
 
@@ -274,6 +273,52 @@ describe("creating findings", () => {
       db.observations.all().filter((observation) => observation.findingId === created.id),
     ).toHaveLength(1);
     await waitFor(() => expect(router.state.location.pathname).toBe("/findings"));
+  });
+
+  it("creates a finding with its identity and initial observation details", async () => {
+    const { user } = await openCreatePage();
+
+    await fillRequiredFields(user);
+    await user.click(screen.getByRole("tab", { name: "Identity" }));
+    await user.type(screen.getByLabelText("Weakness identifiers"), "cwe=CWE-798");
+    // A field of another resource type is dropped when the type changes.
+    await user.click(screen.getByLabelText("Affected resource"));
+    await user.click(await screen.findByRole("option", { name: "Network service" }));
+    await user.type(screen.getByLabelText("Host"), "10.0.0.5");
+    await user.click(screen.getByLabelText("Affected resource"));
+    await user.click(await screen.findByRole("option", { name: "Source code" }));
+    expect(screen.queryByLabelText("Host")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Repository"), "github.com/acme/api");
+    await user.type(screen.getByLabelText("File"), "src/config.ts");
+    await user.type(screen.getByLabelText("Start line"), "42");
+    await user.type(screen.getByLabelText("Catalog entry IDs"), ACCOUNT_TAKEOVER.id);
+
+    await user.click(screen.getByRole("tab", { name: "Observation" }));
+    await user.type(screen.getByLabelText("Observation title"), "Secret in config");
+    await user.type(screen.getByLabelText("Evidence"), "API_KEY=…");
+    await user.click(screen.getByRole("button", { name: "Create finding" }));
+
+    const created = await waitFor(() => {
+      const finding = db.findings
+        .all()
+        .find((candidate) => candidate.title === "Hard-coded secret");
+      expect(finding).toBeDefined();
+      return finding!;
+    });
+    expect(created).toMatchObject({
+      weakness: { identifiers: { cwe: ["CWE-798"] } },
+      affectedResource: {
+        type: AffectedResourceType.SourceCode,
+        repository: "github.com/acme/api",
+        file: "src/config.ts",
+        location: { startLine: 42 },
+      },
+      vulnerabilityIds: [ACCOUNT_TAKEOVER.id],
+    });
+    expect(created.affectedResource).not.toHaveProperty("host");
+    expect(
+      db.observations.all().find((observation) => observation.findingId === created.id),
+    ).toMatchObject({ title: "Secret in config", evidence: "API_KEY=…" });
   });
 
   it("does not submit without the required fields", async () => {
