@@ -2,11 +2,16 @@
   "$schema": "../../node_modules/oxlint/configuration_schema.json",
   "extends": ["../../.oxlintrc.json"],
   "plugins": ["react", "jsx-a11y", "vitest"],
-  "jsPlugins": ["eslint-plugin-testing-library"],
+  "jsPlugins": ["eslint-plugin-testing-library", "@shadcn/lint"],
   "env": {
     "es2022": true
   },
   "ignorePatterns": ["coverage", "dist", "node_modules", "src/**/*.gen.ts"],
+  "settings": {
+    "shadcn": {
+      "note": "Fix order and approved exceptions: apps/ui/AGENTS.md › Styling."
+    }
+  },
   "overrides": [
     {
       "files": ["/vite.config.ts"],
@@ -96,7 +101,31 @@
             "ignoreTypes": true
           }
         ],
-        "import/no-self-import": "error"
+        "import/no-self-import": "error",
+        "shadcn/no-restyle": [
+          "error",
+          {
+            "allow": ["layout"],
+            "contracts": [
+              {
+                "pattern": "^(CardHeader|CardContent|CardFooter|TabsContent|DialogContent|PopoverContent|CommandGroup|SidebarGroup|SidebarMenu|TableCell)$",
+                "allow": ["layout", "spacing"]
+              },
+              {
+                "pattern": "^(CardTitle|CardDescription)$",
+                "allow": ["layout", "typography", "tracking-eyebrow"],
+                "deny": ["font-*"]
+              },
+              { "pattern": "^Skeleton$", "allow": ["layout", "shape"] },
+              { "pattern": "^Textarea$", "allow": ["layout", "font-mono"] }
+            ]
+          }
+        ],
+        "shadcn/no-raw-colors": "error",
+        "shadcn/no-arbitrary-values": ["error", { "allow": ["layout"] }],
+        "shadcn/no-inline-styles": "error",
+        "shadcn/no-unknown-classes": ["error", { "allow": ["toaster"] }],
+        "shadcn/require-static-classes": "error"
       }
     },
     {
@@ -142,7 +171,23 @@
       "plugins": ["eslint", "import", "oxc", "typescript", "unicorn", "react"],
       "rules": {
         "jsx-a11y/click-events-have-key-events": "off",
-        "jsx-a11y/no-noninteractive-element-interactions": "off"
+        "jsx-a11y/no-noninteractive-element-interactions": "off",
+        "shadcn/no-restyle": "off",
+        "shadcn/no-arbitrary-values": "off",
+        "shadcn/require-static-classes": "off"
+      }
+    },
+    {
+      "files": ["src/components/ui/chart.tsx"],
+      "rules": {
+        "shadcn/no-inline-styles": "off"
+      }
+    },
+    {
+      "files": ["src/features/*/components/*-badge.tsx"],
+      "rules": {
+        "shadcn/no-restyle": "off",
+        "shadcn/require-static-classes": "off"
       }
     },
     {

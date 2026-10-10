@@ -27,11 +27,30 @@ Do NOT commit any changes to git unless you are explicitly asked.
   files are allowed for rare route-private helpers that must stay under `src/routes`, but prefer feature folders for
   reusable or testable screen logic.
 - **State**: @tanstack/react-query for async data.
-- **Styling**: ShadCN components with Tailwind CSS. Use `cn()` helper from `@/lib/utils` to merge classes.
+- **Styling**: ShadCN components with Tailwind CSS. Use `cn()` helper from `@/lib/utils` to merge classes. Design-system
+  rules are under [Styling](#styling).
 - **UI Components**: shadcn UI primitives located in `src/components/ui`.
 - **Imports**: ALWAYS use absolute imports with `@/` alias (e.g., `import { Button } from "@/components/ui/button"`).
   Generated files such as `src/routeTree.gen.ts` are exempt and may keep generator-produced relative imports.
 - **Naming**: kebab-case for components (`my-button.tsx`), camelCase for helpers (`utils.ts`).
+
+## Styling
+
+`pnpm lint` checks styling with `@shadcn/lint`; its rules and per-component contracts live in `.oxlintrc.json`, and
+every finding ends with a pointer to this section.
+
+- A `className` on a component from `src/components/ui` sets layout only: margin, size, position, flex and grid
+  placement. Contracts in `.oxlintrc.json` widen this for a few components, such as spacing on card and popover slots.
+- Fix a finding with the first of these that fits: an existing variant or size; only the layout classes; decoration
+  moved to a plain wrapper element; a wider contract in `.oxlintrc.json`; a new variant in `src/components/ui` for a
+  look that repeats; a new token in `src/styles.css`.
+- Colors come from the theme tokens in `src/styles.css` (`bg-primary`, `text-success`, `bg-severity-high/10`). Status,
+  role and severity colors use `success`, `warning`, `info`, `severity-*` and `finding-status-*`, through Badge
+  variants or the domain badges.
+- Domain badges (`src/features/*/components/*-badge.tsx`) own their Badge styling and color lookups. Keep each lookup a
+  same-file `const` object so the linter reads its classes.
+- Mark an approved exception with `// oxlint-disable-next-line shadcn/<rule> -- <reason>`; the lint config ignores
+  `eslint-disable` comments.
 
 ## Resource Mutation Policy
 
