@@ -51,9 +51,9 @@ describe("query client infrastructure", () => {
   });
 
   it("logs a failed query once after its last retry, but not 401s", async () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const queryClient = createAppQueryClient();
     const failure = new APIError(500, "Internal Server Error");
+    expectConsoleLog((args) => args.includes(failure));
 
     await expect(
       queryClient.fetchQuery({
@@ -74,9 +74,8 @@ describe("query client infrastructure", () => {
       }),
     ).rejects.toThrow("Unauthorized");
 
-    expect(consoleError).toHaveBeenCalledOnce();
-    expect(consoleError).toHaveBeenCalledWith(failure);
-    consoleError.mockRestore();
+    expect(console.error).toHaveBeenCalledOnce();
+    expect(console.error).toHaveBeenCalledWith(failure);
   });
 
   it("notifies for mutation 401s", async () => {

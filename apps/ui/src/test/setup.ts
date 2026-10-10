@@ -15,12 +15,13 @@ configure({ asyncUtilTimeout: 3000 });
 
 // Every API request goes to the mock handlers; an unmocked request fails the test.
 beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
-// Expected error logs (`mockApiError`, `expectConsoleLog`) stay out of the output.
+// A console error or warning the test didn't declare (`mockApiError`, `expectConsoleLog`) fails it.
 beforeEach(filterConsole);
 afterEach(() => {
-  restoreConsole();
   server.resetHandlers();
   db.reset();
   resetFixtureSequences();
+  // Last, since it throws on unexpected logs.
+  restoreConsole();
 });
 afterAll(() => server.close());

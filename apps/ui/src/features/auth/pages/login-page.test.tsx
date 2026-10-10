@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { LoginPage } from "@/features/auth/pages/login-page.tsx";
+import { expectConsoleLog } from "@/test/console.ts";
 import { createTestAuthState, createTestRedirects } from "@/test/harness.tsx";
 
 import type { AuthState } from "@/features/auth/providers/auth-provider.tsx";
@@ -55,7 +56,7 @@ describe("LoginPage", () => {
   });
 
   it("shows failed login feedback", async () => {
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expectConsoleLog("Invalid credentials");
     const { user, login, navigate } = renderLoginPage({
       login: vi.fn().mockRejectedValueOnce(new Error("Invalid credentials")),
     });
@@ -67,7 +68,7 @@ describe("LoginPage", () => {
     expect(await screen.findByText("Invalid username or password.")).toBeInTheDocument();
     expect(login).toHaveBeenCalledWith("alice", "wrong-password");
     expect(navigate).not.toHaveBeenCalled();
-    expect(consoleError).toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledWith("Login failed:", expect.any(Error));
   });
 
   it("logs in and navigates to the requested redirect", async () => {

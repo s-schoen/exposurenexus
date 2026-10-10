@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AuthProvider, useAuth } from "@/features/auth/providers/auth-provider.tsx";
 import { AUTH_SESSION_QUERY_KEY } from "@/features/auth/queries/session.ts";
@@ -37,10 +37,6 @@ function expectSignedOutCaches(queryClient: QueryClient) {
   }
   expect(queryClient.getQueryData(AUTH_SESSION_QUERY_KEY)).toBeNull();
 }
-
-beforeEach(() => {
-  vi.spyOn(console, "error").mockImplementation(() => undefined);
-});
 
 afterEach(() => {
   cleanup();
