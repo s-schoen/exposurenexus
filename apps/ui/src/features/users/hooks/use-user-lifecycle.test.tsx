@@ -56,6 +56,7 @@ describe("useUserLifecycle", () => {
       created = await result.current.createUser({
         ...profile,
         username: "jamie",
+        email: "jamie@example.com",
         displayName: "Jamie",
         password: "secret",
       });

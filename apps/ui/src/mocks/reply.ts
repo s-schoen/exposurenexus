@@ -44,16 +44,23 @@ export function replyError(status: number, error: string, reason?: string): Resp
   return HttpResponse.json(reply, { status });
 }
 
-export function replyNotFound(resource: string): Response {
-  return replyError(404, `${resource} not found`);
+/** Same message as the API's `notFound(type, id)`. */
+export function replyNotFound(resource: string, id: string): Response {
+  return replyError(404, `${resource} with id ${id} does not exist`);
 }
 
-/** Parses a JSON request body with a contracts schema, or returns the 400 reply to send. */
+/** Like the API's validator: 400 for malformed JSON or a body the contracts schema rejects. */
 export async function parseRequestBody<S extends z.ZodType>(
   request: Request,
   schema: S,
 ): Promise<{ data: z.output<S> } | { reply: Response }> {
-  const result = schema.safeParse(await request.json().catch(() => undefined));
+  let json: unknown;
+  try {
+    json = await request.json();
+  } catch {
+    return { reply: replyError(400, "Malformed JSON in request body") };
+  }
+  const result = schema.safeParse(json);
   if (!result.success) {
     return { reply: replyError(400, "Bad Request", result.error.message) };
   }

@@ -87,12 +87,12 @@ describe("roles list", () => {
 
 describe("deleting roles", () => {
   it("deletes only the custom roles of a confirmed selection", async () => {
+    const unassigned = buildRole({ name: "triager" });
+    db.roles.insert(unassigned);
     const { user } = renderApp({ path: "/roles" });
 
     await user.click(
-      within(await findRoleRow(CUSTOM_AUDITOR_ROLE.name)).getByRole("checkbox", {
-        name: "Select row",
-      }),
+      within(await findRoleRow(unassigned.name)).getByRole("checkbox", { name: "Select row" }),
     );
     await user.click(
       within(await findRoleRow(VIEWER_ROLE.name)).getByRole("checkbox", { name: "Select row" }),
@@ -100,7 +100,7 @@ describe("deleting roles", () => {
     await user.click(screen.getByRole("button", { name: "Delete" }));
     await user.click(await screen.findByRole("button", { name: "Confirm" }));
 
-    await waitFor(() => expect(db.roles.get(CUSTOM_AUDITOR_ROLE.id)).toBeUndefined());
+    await waitFor(() => expect(db.roles.get(unassigned.id)).toBeUndefined());
     expect(db.roles.get(VIEWER_ROLE.id)).toBeDefined();
     expect(await screen.findByText("Deleted 1 role")).toBeVisible();
   });
@@ -132,10 +132,10 @@ describe("deleting roles", () => {
     expect(db.roles.get(CUSTOM_AUDITOR_ROLE.id)).toBeDefined();
   });
 
-  it("reports roles that failed to delete", async () => {
+  it("reports roles that failed to delete, such as one still assigned to users", async () => {
     const other = buildRole({ name: "triager" });
     db.roles.insert(other);
-    mockApiError("delete", `/roles/${CUSTOM_AUDITOR_ROLE.id}`, 500);
+    expectConsoleLog(`role ${CUSTOM_AUDITOR_ROLE.name} is still assigned to users`);
     const { user } = renderApp({ path: "/roles" });
 
     for (const name of [CUSTOM_AUDITOR_ROLE.name, other.name]) {

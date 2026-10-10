@@ -3,6 +3,7 @@ import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { SEED_ASSETS, SEED_CUSTOM_FIELDS } from "@/mocks/fixtures/index.ts";
+import { expectConsoleLog } from "@/test/console.ts";
 import { captureApiCalls, db, mockApiError, recordApiRequests } from "@/test/msw.ts";
 import { renderApp } from "@/test/render-app.tsx";
 
@@ -135,6 +136,12 @@ describe("creating and deleting assets", () => {
   });
 
   it("deletes confirmed assets and keeps them when cancelled", async () => {
+    // The API refuses to delete assets that findings reference.
+    for (const finding of db.findings.all()) {
+      if (finding.assetId === CONTAINER_01.id) {
+        db.findings.remove(finding.id);
+      }
+    }
     const { user } = renderApp({ path: "/assets" });
 
     await user.click(
@@ -151,8 +158,8 @@ describe("creating and deleting assets", () => {
     expect(db.assets.get(WEB_01.id)).toBeDefined();
   });
 
-  it("reports assets that failed to delete", async () => {
-    mockApiError("delete", `/assets/${CONTAINER_01.id}`, 500);
+  it("reports assets that failed to delete, such as one that findings reference", async () => {
+    expectConsoleLog(`asset ${CONTAINER_01.id} is still referenced by findings`);
     const { user } = renderApp({ path: "/assets" });
 
     await user.click(

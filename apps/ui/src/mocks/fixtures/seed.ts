@@ -160,7 +160,7 @@ export const SEED_CUSTOM_FIELDS: Array<AssetCustomFieldDefinition> = [
   },
   {
     id: "7f732d2b-8985-4551-b45d-0eaf527a1577",
-    key: "deployment_tier",
+    key: "tier",
     name: "Deployment tier",
     required: true,
     type: AssetCustomFieldType.Select,
@@ -321,7 +321,7 @@ export const SEED_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
       },
       {
         fieldId: SEED_CUSTOM_FIELDS[2].id,
-        key: "deployment_tier",
+        key: "tier",
         name: "Deployment tier",
         options: DEPLOYMENT_TIER_OPTIONS,
         source: AssetCustomFieldValueSource.Asset,
@@ -351,7 +351,7 @@ export const SEED_ASSETS_WITH_CUSTOM_FIELDS: Array<AssetWithCustomFields> = [
       },
       {
         fieldId: SEED_CUSTOM_FIELDS[2].id,
-        key: "deployment_tier",
+        key: "tier",
         name: "Deployment tier",
         options: DEPLOYMENT_TIER_OPTIONS,
         source: AssetCustomFieldValueSource.Asset,

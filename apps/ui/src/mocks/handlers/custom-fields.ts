@@ -1,12 +1,22 @@
 import {
+  AssetCustomFieldRuleViolationReason,
   AssetCustomFieldType,
   createAssetCustomFieldDefinitionSchema,
   updateAssetCustomFieldDefinitionSchema,
 } from "@exposurenexus/contracts/model/asset-custom-field";
+import { PermissionResource, PermissionVerb } from "@exposurenexus/contracts/model/rbac";
 import { delay, http } from "msw";
 
-import { apiPath, newId } from "@/mocks/handlers/shared.ts";
-import { parseRequestBody, replyArray, replyNotFound, replyObject } from "@/mocks/reply.ts";
+import { validateAssetCustomFieldDefinitionRules } from "@/features/custom-fields/lib/custom-field-rules.ts";
+import { listCustomFieldDefinitions } from "@/mocks/db.ts";
+import { apiPath, newId, requirePermission } from "@/mocks/handlers/shared.ts";
+import {
+  parseRequestBody,
+  replyArray,
+  replyError,
+  replyNotFound,
+  replyObject,
+} from "@/mocks/reply.ts";
 
 import type { MockDb } from "@/mocks/db.ts";
 import type {
@@ -15,88 +25,145 @@ import type {
   UpdateAssetCustomFieldDefinition,
 } from "@exposurenexus/contracts/model/asset-custom-field";
 
+const { CustomField } = PermissionResource;
+const { Read, Write, Delete } = PermissionVerb;
+
+// The API's messages for definition rule violations; the violation reason is the reply's `reason`.
+const RULE_VIOLATION_MESSAGES: Record<AssetCustomFieldRuleViolationReason, string> = {
+  [AssetCustomFieldRuleViolationReason.ReservedKey]:
+    "asset custom field key is reserved for core asset metadata",
+  [AssetCustomFieldRuleViolationReason.RequiredDefaultMissing]:
+    "required asset custom fields must define a default value",
+  [AssetCustomFieldRuleViolationReason.TextDefaultMustBeString]:
+    "text asset custom field default must be a string",
+  [AssetCustomFieldRuleViolationReason.NumberDefaultMustBeNumber]:
+    "number asset custom field default must be a number",
+  [AssetCustomFieldRuleViolationReason.SelectDefaultMustBeString]:
+    "select asset custom field default must be a string",
+  [AssetCustomFieldRuleViolationReason.SelectDefaultMustMatchOption]:
+    "select asset custom field default must match an option value",
+  [AssetCustomFieldRuleViolationReason.SelectOptionValuesMustBeUnique]:
+    "select asset custom field options must be unique",
+};
+
+/** Like the API, every save replaces the options, so each one gets a new id. */
 function toDefinition(
   id: string,
   input: CreateAssetCustomFieldDefinition | UpdateAssetCustomFieldDefinition,
-  existing?: AssetCustomFieldDefinition,
 ): AssetCustomFieldDefinition {
-  const base = { id, key: input.key.trim(), name: input.name, required: input.required };
+  const base = { id, key: input.key, name: input.name, required: input.required };
 
   switch (input.type) {
     case AssetCustomFieldType.Text:
       return { ...base, type: input.type, defaultValue: input.defaultValue ?? null };
     case AssetCustomFieldType.Number:
       return { ...base, type: input.type, defaultValue: input.defaultValue ?? null };
-    case AssetCustomFieldType.Select: {
-      // Keep option ids stable for values that survive an update.
-      const existingOptions =
-        existing?.type === AssetCustomFieldType.Select ? existing.options : [];
+    case AssetCustomFieldType.Select:
       return {
         ...base,
         type: input.type,
         defaultValue: input.defaultValue ?? null,
-        options: input.options.map((option) => ({
-          ...option,
-          id:
-            existingOptions.find((candidate) => candidate.value === option.value)?.id ??
-            newId("customFieldOption"),
-          fieldId: id,
-        })),
+        options: input.options
+          .map((option) => ({ ...option, id: newId("customFieldOption"), fieldId: id }))
+          .sort((a, b) => a.value.localeCompare(b.value)),
       };
-    }
   }
 }
 
 // Registered before the asset handlers: `/assets/:id` would otherwise match `/assets/custom-fields`.
 export function createCustomFieldHandlers(db: MockDb) {
+  const ruleViolation = (
+    input: CreateAssetCustomFieldDefinition | UpdateAssetCustomFieldDefinition,
+  ) => {
+    const violation = validateAssetCustomFieldDefinitionRules(input).at(0);
+    return violation
+      ? replyError(400, RULE_VIOLATION_MESSAGES[violation.reason], violation.reason)
+      : undefined;
+  };
+  /** The API's unique key constraint. */
+  const keyConflict = (key: string, id?: string) =>
+    db.customFields.all().some((field) => field.id !== id && field.key === key)
+      ? replyError(409, "asset custom field definition already exists")
+      : undefined;
+
   return [
-    http.get(apiPath("/assets/custom-fields"), async () => {
-      await delay();
-      return replyArray(db.customFields.all());
-    }),
+    http.get(
+      apiPath("/assets/custom-fields"),
+      requirePermission(db, CustomField, Read, async () => {
+        await delay();
+        return replyArray(listCustomFieldDefinitions(db));
+      }),
+    ),
 
-    http.post(apiPath("/assets/custom-fields"), async ({ request }) => {
-      await delay();
-      const body = await parseRequestBody(request, createAssetCustomFieldDefinitionSchema);
-      if ("reply" in body) {
-        return body.reply;
-      }
-      const definition = toDefinition(newId("customField"), body.data);
-      db.customFields.insert(definition);
-      return replyObject(definition, { created: true });
-    }),
+    // Creating a definition, required or not, assigns it to no asset.
+    http.post(
+      apiPath("/assets/custom-fields"),
+      requirePermission(db, CustomField, Write, async ({ request }) => {
+        await delay();
+        const body = await parseRequestBody(request, createAssetCustomFieldDefinitionSchema);
+        if ("reply" in body) {
+          return body.reply;
+        }
+        const input = { ...body.data, key: body.data.key.trim() };
+        const rejected = ruleViolation(input) ?? keyConflict(input.key);
+        if (rejected) {
+          return rejected;
+        }
+        const definition = toDefinition(newId("customField"), input);
+        db.customFields.insert(definition);
+        return replyObject(definition, { created: true });
+      }),
+    ),
 
-    http.get<{ id: string }>(apiPath("/assets/custom-fields/:id"), async ({ params }) => {
-      await delay();
-      const definition = db.customFields.get(params.id);
-      return definition ? replyObject(definition) : replyNotFound("custom field");
-    }),
+    http.get<{ id: string }>(
+      apiPath("/assets/custom-fields/:id"),
+      requirePermission(db, CustomField, Read, async ({ params }) => {
+        await delay();
+        const definition = db.customFields.get(params.id);
+        return definition ? replyObject(definition) : replyNotFound("custom field", params.id);
+      }),
+    ),
 
-    http.put<{ id: string }>(apiPath("/assets/custom-fields/:id"), async ({ params, request }) => {
-      await delay();
-      const existing = db.customFields.get(params.id);
-      if (!existing) {
-        return replyNotFound("custom field");
-      }
-      const body = await parseRequestBody(request, updateAssetCustomFieldDefinitionSchema);
-      if ("reply" in body) {
-        return body.reply;
-      }
-      const definition = toDefinition(params.id, body.data, existing);
-      db.customFields.insert(definition);
-      return replyObject(definition);
-    }),
+    http.put<{ id: string }>(
+      apiPath("/assets/custom-fields/:id"),
+      requirePermission(db, CustomField, Write, async ({ params, request }) => {
+        await delay();
+        const body = await parseRequestBody(request, updateAssetCustomFieldDefinitionSchema);
+        if ("reply" in body) {
+          return body.reply;
+        }
+        const input = { ...body.data, key: body.data.key.trim() };
+        const violation = ruleViolation(input);
+        if (violation) {
+          return violation;
+        }
+        if (!db.customFields.get(params.id)) {
+          return replyNotFound("custom field", params.id);
+        }
+        const conflict = keyConflict(input.key, params.id);
+        if (conflict) {
+          return conflict;
+        }
+        const definition = toDefinition(params.id, input);
+        db.customFields.insert(definition);
+        return replyObject(definition);
+      }),
+    ),
 
-    http.delete<{ id: string }>(apiPath("/assets/custom-fields/:id"), async ({ params }) => {
-      await delay();
-      const definition = db.customFields.remove(params.id);
-      if (!definition) {
-        return replyNotFound("custom field");
-      }
-      for (const assignments of db.customFieldAssignments.values()) {
-        assignments.delete(definition.id);
-      }
-      return replyObject(definition);
-    }),
+    // Assignments and per-asset values of the field cascade.
+    http.delete<{ id: string }>(
+      apiPath("/assets/custom-fields/:id"),
+      requirePermission(db, CustomField, Delete, async ({ params }) => {
+        await delay();
+        const definition = db.customFields.remove(params.id);
+        if (!definition) {
+          return replyNotFound("custom field", params.id);
+        }
+        for (const assignments of db.customFieldAssignments.values()) {
+          assignments.delete(definition.id);
+        }
+        return replyObject(definition);
+      }),
+    ),
   ];
 }

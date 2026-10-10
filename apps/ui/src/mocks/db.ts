@@ -93,8 +93,11 @@ export interface MockDb {
   vulnerabilities: Collection<VulnerabilityCatalog>;
   assets: Collection<Asset>;
   customFields: Collection<AssetCustomFieldDefinition>;
-  /** assetId → fieldId → per-asset value; `undefined` means the definition default applies. */
-  customFieldAssignments: Map<string, Map<string, AssetCustomFieldValueLiteral | undefined>>;
+  /**
+   * assetId → assigned fieldId → per-asset value. `undefined` means the definition default applies;
+   * like the API, a per-asset value is never `null`.
+   */
+  customFieldAssignments: Map<string, Map<string, AssetCustomFieldStoredValue | undefined>>;
   findings: Collection<FindingRecord>;
   observations: Collection<Observation>;
   session: AuthSessionDataReply | null;
@@ -151,7 +154,9 @@ function seed(db: MockDb, scenario: MockScenario): void {
       new Map(
         asset.customFields.map((field) => [
           field.fieldId,
-          field.source === AssetCustomFieldValueSource.Asset ? field.value : undefined,
+          field.source === AssetCustomFieldValueSource.Asset
+            ? (field.value ?? undefined)
+            : undefined,
         ]),
       ),
     );
@@ -200,10 +205,13 @@ export function computeFindingStatistics(db: MockDb): FindingStatistics {
   };
 }
 
+/** A per-asset custom-field value as the API stores it. */
+export type AssetCustomFieldStoredValue = Exclude<AssetCustomFieldValueLiteral, null>;
+
 /** Mirrors the API projection: per-asset value, else the definition default, else empty. */
 export function toCustomFieldValue(
   definition: AssetCustomFieldDefinition,
-  override: AssetCustomFieldValueLiteral | undefined,
+  override: AssetCustomFieldStoredValue | undefined,
 ): AssetCustomFieldValue {
   const value = override !== undefined ? override : definition.defaultValue;
   const source =
@@ -229,13 +237,18 @@ export function toCustomFieldValue(
   }
 }
 
+/** Definitions in the API's order, by key. */
+export function listCustomFieldDefinitions(db: MockDb): Array<AssetCustomFieldDefinition> {
+  return db.customFields.all().sort((a, b) => a.key.localeCompare(b.key));
+}
+
+/** The asset's assigned fields, by key. */
 export function listAssetCustomFieldValues(
   db: MockDb,
   assetId: string,
 ): Array<AssetCustomFieldValue> {
   const assignments = db.customFieldAssignments.get(assetId) ?? new Map();
-  return db.customFields
-    .all()
+  return listCustomFieldDefinitions(db)
     .filter((definition) => assignments.has(definition.id))
     .map((definition) => toCustomFieldValue(definition, assignments.get(definition.id)));
 }

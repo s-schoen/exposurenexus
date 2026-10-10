@@ -56,7 +56,7 @@ describe("asset table search state", () => {
       createAssetTableFilterState(
         {
           category: "internet",
-          deployment_tier: "production,staging",
+          tier: "production,staging",
           filter: "api",
           priority: "3",
         },
@@ -120,7 +120,7 @@ describe("asset table search state", () => {
       ),
     ).toEqual({
       category: "internet",
-      deployment_tier: "production,staging",
+      tier: "production,staging",
       filter: "edge",
       priority: undefined,
     });
@@ -193,7 +193,7 @@ describe("asset table search state", () => {
           assetOwnerId: "none",
           category: "internet",
           priority: "3",
-          deployment_tier: "production,staging",
+          tier: "production,staging",
         },
         SEED_CUSTOM_FIELDS,
       ),

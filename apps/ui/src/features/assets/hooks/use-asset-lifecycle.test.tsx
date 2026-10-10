@@ -22,7 +22,7 @@ vi.mock("sonner", () => ({ toast }));
 // Page flows live in assets.app.test.tsx; this covers return values and cache effects.
 
 const [WEB_01, CONTAINER_01, API_WORKER] = SEED_ASSETS;
-const [CATEGORY, PRIORITY] = SEED_CUSTOM_FIELDS;
+const [CATEGORY, PRIORITY, TIER] = SEED_CUSTOM_FIELDS;
 
 const keys = {
   list: createListAssetsQueryOptions().queryKey,
@@ -148,6 +148,8 @@ describe("asset create, update and delete", () => {
     ["one fails", [CONTAINER_01.id], "error", "Deleted 1 asset; failed 1 asset"],
     ["all fail", [WEB_01.id, CONTAINER_01.id], "error", "Failed to delete 2 assets"],
   ] as const)("summarizes a delete batch where %s", async (_name, failingIds, level, message) => {
+    // The API refuses to delete assets that findings reference.
+    db.findings.clear();
     for (const id of failingIds) {
       mockApiError("delete", `/assets/${id}`, 500);
     }
@@ -236,7 +238,9 @@ describe("asset custom fields", () => {
     let values = null;
     await act(async () => {
       values = await result.current.updateAssetCustomFieldValues(WEB_01.id, [
+        { fieldId: CATEGORY.id, value: null },
         { fieldId: PRIORITY.id, value: 5 },
+        { fieldId: TIER.id, value: "staging" },
       ]);
     });
 
