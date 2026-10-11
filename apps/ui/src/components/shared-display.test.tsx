@@ -17,20 +17,4 @@ describe("shared display components", () => {
 
     expect(screen.getByText("Invalid date")).toBeTruthy();
   });
-
-  it("renders detail highlight labels and values", async () => {
-    const { DetailHighlightCard } = await import("@/components/detail-highlight-card.tsx");
-
-    render(
-      <DetailHighlightCard
-        label="CVE"
-        value="Not assigned"
-        description="External identifier when available"
-      />,
-    );
-
-    expect(screen.getByText("CVE")).toBeTruthy();
-    expect(screen.getByText("Not assigned")).toBeTruthy();
-    expect(screen.getByText("External identifier when available")).toBeTruthy();
-  });
 });

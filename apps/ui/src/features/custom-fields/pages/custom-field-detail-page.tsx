@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Pencil, Tags } from "lucide-react";
 import { useMemo } from "react";
 
-import { AssetCustomFieldDetailContent } from "@/features/custom-fields/components/asset-custom-field-detail-content";
+import { AssetCustomFieldDetailContent } from "@/features/custom-fields/components/asset-custom-field-detail-content.tsx";
 import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/features/custom-fields/queries/definitions.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 

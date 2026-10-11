@@ -1,4 +1,8 @@
-import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
+import {
+  PermissionResource,
+  PermissionVerb,
+  builtInRoleIds,
+} from "@exposurenexus/contracts/model/rbac";
 import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
@@ -170,6 +174,37 @@ describe("role detail", () => {
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/settings/roles/${CUSTOM_AUDITOR_ROLE.id}/edit`),
     );
+  });
+
+  it("lists the permissions grouped by resource, with the role type in the panel", async () => {
+    const role = buildRole({
+      name: "triager",
+      permissions: [
+        { resource: PermissionResource.Finding, verb: PermissionVerb.Read },
+        { resource: PermissionResource.Asset, verb: PermissionVerb.Read },
+        { resource: PermissionResource.Finding, verb: PermissionVerb.Write },
+      ],
+    });
+    db.roles.insert(role);
+    renderApp({ path: `/settings/roles/${role.id}` });
+
+    expect(await screen.findByRole("heading", { name: "Permissions 3" })).toBeVisible();
+    const groups = within(screen.getByRole("list", { name: "Permissions" })).getAllByRole(
+      "listitem",
+    );
+    expect(groups.map((group) => group.textContent)).toEqual(["FindingReadWrite", "AssetRead"]);
+
+    const properties = screen.getByRole("region", { name: "Properties" });
+    expect(within(properties).getByText("Custom")).toBeVisible();
+    expect(within(properties).getByText("2")).toBeVisible();
+  });
+
+  it("shows a role without permissions", async () => {
+    const role = buildRole({ name: "empty", permissions: [] });
+    db.roles.insert(role);
+    renderApp({ path: `/settings/roles/${role.id}` });
+
+    expect(await screen.findByText("No permissions granted.")).toBeVisible();
   });
 
   it("offers no edit action for built-in roles", async () => {

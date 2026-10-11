@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
-import { AssetCustomFieldDetailContent } from "@/features/custom-fields/components/asset-custom-field-detail-content";
+import { AssetCustomFieldDetailContent } from "@/features/custom-fields/components/asset-custom-field-detail-content.tsx";
 import { createAssetCustomFieldDefinitionByIDQueryOptions } from "@/features/custom-fields/queries/definitions.ts";
 
 export function CustomFieldPreview({ customFieldId }: { customFieldId: string }) {

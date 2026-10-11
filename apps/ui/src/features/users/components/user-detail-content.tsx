@@ -1,174 +1,115 @@
-import { Mail, User as UserIcon } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { AtSign, CircleDot, KeyRound, Mail } from "lucide-react";
 
-import { DetailHighlightCard } from "@/components/detail-highlight-card.tsx";
-import { MetadataSidebar } from "@/components/metadata-sidebar";
-import { MetadataDetailRow } from "@/components/metadata-sidebar/metadata-detail-row.tsx";
-import { Badge } from "@/components/ui/badge.tsx";
+import { DetailLayout } from "@/components/properties-panel/detail-layout.tsx";
+import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card.tsx";
+  PropertiesPanel,
+  PropertyGroup,
+  PropertyRow,
+  PropertyValue,
+} from "@/components/properties-panel/properties-panel.tsx";
+import { cn } from "@/lib/utils.ts";
 
 import type { Role } from "@exposurenexus/contracts/model/rbac";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
+
+const enabledDotClassNames = {
+  true: "bg-success",
+  false: "bg-subtle-foreground",
+} as const;
+
+function UserPropertiesPanel({ user }: { user: UserProfile }) {
+  return (
+    <PropertiesPanel>
+      <PropertyGroup>
+        <PropertyRow icon={AtSign} label="Username">
+          <PropertyValue>
+            <span className="truncate font-mono text-xs">{user.username}</span>
+          </PropertyValue>
+        </PropertyRow>
+        <PropertyRow icon={Mail} label="Email">
+          <PropertyValue>
+            <span className="truncate">{user.email}</span>
+          </PropertyValue>
+        </PropertyRow>
+        <PropertyRow icon={CircleDot} label="Status">
+          <PropertyValue>
+            <span
+              className={cn(
+                "size-1.5 shrink-0 rounded-full",
+                enabledDotClassNames[`${user.enabled}`],
+              )}
+              aria-hidden="true"
+            />
+            {user.enabled ? "Enabled" : "Disabled"}
+          </PropertyValue>
+        </PropertyRow>
+      </PropertyGroup>
+    </PropertiesPanel>
+  );
+}
+
+function RolesSection({ user, roles }: { user: UserProfile; roles: ReadonlyArray<Role> }) {
+  const roleById = new Map(roles.map((role) => [role.id, role]));
+  const assignedRoles = user.roleIds.flatMap((roleId) => {
+    const role = roleById.get(roleId);
+    return role ? [role] : [];
+  });
+  const unknownRoleCount = user.roleIds.length - assignedRoles.length;
+
+  return (
+    <DetailSection title="Roles" count={user.roleIds.length}>
+      {user.roleIds.length > 0 ? (
+        <ul className="flex flex-col">
+          {assignedRoles.map((role) => (
+            <li
+              key={role.id}
+              className="-mx-2 flex h-9 items-center gap-2 rounded-md px-2 transition-colors duration-100 hover:bg-accent"
+            >
+              <KeyRound
+                className="size-4 shrink-0 text-muted-foreground"
+                strokeWidth={1.5}
+                aria-hidden="true"
+              />
+              <Link
+                to="/settings/roles/$id"
+                params={{ id: role.id }}
+                className="min-w-0 flex-1 truncate text-13 font-medium text-foreground hover:underline"
+              >
+                {role.name}
+              </Link>
+            </li>
+          ))}
+          {unknownRoleCount > 0 && (
+            <li className="flex h-9 items-center text-13 text-subtle-foreground">
+              {unknownRoleCount} unknown role{unknownRoleCount === 1 ? "" : "s"}
+            </li>
+          )}
+        </ul>
+      ) : (
+        <p className="text-13 text-subtle-foreground">No roles assigned.</p>
+      )}
+    </DetailSection>
+  );
+}
 
 interface UserDetailContentProps {
   user: UserProfile;
   roles: Array<Role>;
 }
 
-function UserStatusBadge({ enabled }: { enabled: boolean }) {
+export function UserDetailContent({ user, roles }: UserDetailContentProps) {
   return (
-    <Badge variant={enabled ? "success" : "warning"}>{enabled ? "Enabled" : "Disabled"}</Badge>
-  );
-}
-
-export function UserDetailContent({ user: userData, roles }: UserDetailContentProps) {
-  const displayName = userData.displayName;
-  const roleLabelById = new Map(roles.map((role) => [role.id, role.name]));
-  const resolvedRoleLabels = userData.roleIds.flatMap((roleId) => {
-    const roleLabel = roleLabelById.get(roleId);
-    return roleLabel ? [roleLabel] : [];
-  });
-  const unresolvedRoleCount = Math.max(userData.roleIds.length - resolvedRoleLabels.length, 0);
-
-  function renderRoleBadges(compact = false) {
-    if (userData.roleIds.length === 0) {
-      return <span className="text-muted-foreground">No roles</span>;
-    }
-
-    return (
-      <div
-        className={
-          compact ? "flex max-w-[16rem] flex-wrap justify-end gap-1" : "flex flex-wrap gap-2"
-        }
-      >
-        {resolvedRoleLabels.map((roleLabel) => (
-          <Badge key={roleLabel} variant="outline">
-            {roleLabel}
-          </Badge>
-        ))}
-        {unresolvedRoleCount > 0 && (
-          <Badge variant="secondary">+{unresolvedRoleCount} unknown</Badge>
-        )}
-      </div>
-    );
-  }
-
-  function renderOverviewCard() {
-    const username = userData.username;
-
-    return (
-      <Card>
-        <CardHeader className="gap-4">
-          <div className="flex items-center justify-end gap-3">
-            <UserStatusBadge enabled={userData.enabled} />
-          </div>
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <CardTitle className="text-2xl">{displayName}</CardTitle>
-              <CardDescription className="max-w-3xl text-sm leading-6">
-                Platform user account with access credentials, profile identifiers, and role
-                assignments.
-              </CardDescription>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <DetailHighlightCard
-                label="Email"
-                value={userData.email}
-                description="Primary contact and sign-in address"
-              />
-              <DetailHighlightCard
-                label="Username"
-                value={username}
-                description="Unique sign-in handle for the account"
-              />
-              <DetailHighlightCard
-                label="Status"
-                value={<UserStatusBadge enabled={userData.enabled} />}
-                description="Whether the user can authenticate"
-              />
-              <DetailHighlightCard
-                label="Roles"
-                value={renderRoleBadges()}
-                description="Assigned access roles for the account"
-              />
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  function renderProfileCard() {
-    const username = userData.username;
-
-    return (
-      <Card>
-        <CardHeader className="gap-2">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-2">
-              <CardTitle className="text-xl">Profile</CardTitle>
-              <CardDescription>
-                Identity fields stored by the ExposureNexus user profile service.
-              </CardDescription>
-            </div>
-            <Badge variant="outline">
-              <Mail className="size-3" />
-              Account
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-foreground">Display name</div>
-            <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-              {displayName}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-foreground">Email</div>
-            <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-              {userData.email}
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-foreground">Username</div>
-            <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-              {username}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  function renderSidebar() {
-    const username = userData.username;
-
-    return (
-      <MetadataSidebar title="User details" icon={UserIcon}>
-        <div className="space-y-3">
-          <MetadataDetailRow label="Display name" value={displayName} />
-          <MetadataDetailRow label="Email" value={userData.email} />
-          <MetadataDetailRow label="Username" value={username} />
-          <MetadataDetailRow label="Status" value={userData.enabled ? "Enabled" : "Disabled"} />
-          <MetadataDetailRow label="Roles" value={renderRoleBadges(true)} />
-        </div>
-      </MetadataSidebar>
-    );
-  }
-
-  return (
-    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="flex min-w-0 flex-col gap-4">
-        {renderOverviewCard()}
-        {renderProfileCard()}
-      </div>
-      {renderSidebar()}
-    </div>
+    <DetailLayout
+      header={
+        <h2 className="text-2xl leading-tight font-semibold break-words text-foreground">
+          {user.displayName}
+        </h2>
+      }
+      panel={<UserPropertiesPanel user={user} />}
+    >
+      <RolesSection user={user} roles={roles} />
+    </DetailLayout>
   );
 }

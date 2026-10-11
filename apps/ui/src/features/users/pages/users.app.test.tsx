@@ -2,7 +2,7 @@ import { BuiltInRoleName, builtInRoleIds } from "@exposurenexus/contracts/model/
 import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { SEED_USERS } from "@/mocks/fixtures/index.ts";
+import { SEED_USERS, buildRole, buildUser } from "@/mocks/fixtures/index.ts";
 import { db, mockApiError, recordApiRequests } from "@/test/msw.ts";
 import { renderApp } from "@/test/render-app.tsx";
 
@@ -84,6 +84,44 @@ describe("user detail", () => {
     await waitFor(() =>
       expect(router.state.location.pathname).toBe(`/settings/users/${MORGAN.id}/edit`),
     );
+  });
+
+  it("shows the account in the properties panel and links each assigned role", async () => {
+    const { router, user } = renderApp({ path: `/settings/users/${MORGAN.id}` });
+
+    const properties = await screen.findByRole("region", { name: "Properties" });
+    expect(within(properties).getByText(MORGAN.username)).toBeVisible();
+    expect(within(properties).getByText(MORGAN.email)).toBeVisible();
+    expect(within(properties).getByText("Enabled")).toBeVisible();
+
+    const roles = screen.getByRole("heading", { name: "Roles 2" }).closest("section")!;
+    expect(
+      within(roles)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual([BuiltInRoleName.Editor, "security-auditor"]);
+    await user.click(within(roles).getByRole("link", { name: "security-auditor" }));
+
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/settings/roles/${MORGAN.roleIds[1]}`),
+    );
+  });
+
+  it("shows a disabled user without roles", async () => {
+    renderApp({ path: `/settings/users/${CASEY.id}` });
+
+    const properties = await screen.findByRole("region", { name: "Properties" });
+    expect(within(properties).getByText("Disabled")).toBeVisible();
+    expect(screen.getByText("No roles assigned.")).toBeVisible();
+  });
+
+  it("counts assigned roles it cannot resolve", async () => {
+    const orphan = buildUser({ roleIds: [ROBIN.roleIds[0], buildRole().id] });
+    db.users.insert(orphan);
+    renderApp({ path: `/settings/users/${orphan.id}` });
+
+    expect(await screen.findByRole("heading", { name: "Roles 2" })).toBeVisible();
+    expect(screen.getByText("1 unknown role")).toBeVisible();
   });
 
   it("goes back to the list with its filters but without a selection", async () => {
