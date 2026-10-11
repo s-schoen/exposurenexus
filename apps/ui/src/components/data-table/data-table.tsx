@@ -4,6 +4,12 @@ import { flexRender, functionalUpdate, useTable } from "@tanstack/react-table";
 import { ChevronDown, ChevronRight, DatabaseZap } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import {
+  EMPTY_FILTER_STATE,
+  columnFiltersToDataTableFilterState,
+  createFilterVariantMap,
+  dataTableFilterStateToColumnFilters,
+} from "@/components/data-table/filter-state.ts";
 import { DataTablePagination } from "@/components/data-table/pagination-control.tsx";
 import { DataTableToolbar } from "@/components/data-table/toolbar.tsx";
 import { dataTableFeatures } from "@/components/data-table/types.ts";
@@ -38,93 +44,6 @@ import type {
 import type { MouseEvent, ReactElement, ReactNode } from "react";
 
 const defaultInitialColumnVisibility: ColumnVisibilityState = {};
-type FilterVariant = "number" | "select" | "text";
-
-function getColumnId<TData extends RowData, TValue>(column: DataTableColumnDef<TData, TValue>) {
-  if (column.id) {
-    return column.id;
-  }
-
-  if (
-    "accessorKey" in column &&
-    typeof column.accessorKey === "string" &&
-    column.accessorKey.length > 0
-  ) {
-    return column.accessorKey;
-  }
-
-  return undefined;
-}
-
-function dataTableFilterStateToColumnFilters(state: DataTableFilterState): ColumnFiltersState {
-  return [
-    ...Object.entries(state.selectFilters).flatMap(([id, value]) =>
-      Array.isArray(value) && value.length > 0
-        ? [
-            {
-              id,
-              value,
-            },
-          ]
-        : [],
-    ),
-    ...Object.entries(state.textFilters ?? {}).flatMap(([id, value]) =>
-      typeof value === "string" && value.trim().length > 0
-        ? [
-            {
-              id,
-              value,
-            },
-          ]
-        : [],
-    ),
-    ...Object.entries(state.numberFilters ?? {}).flatMap(([id, value]) =>
-      typeof value === "string" && value.trim().length > 0
-        ? [
-            {
-              id,
-              value,
-            },
-          ]
-        : [],
-    ),
-  ];
-}
-
-function columnFiltersToDataTableFilterState(
-  currentState: DataTableFilterState,
-  columnFilters: ColumnFiltersState,
-  filterVariantByColumnId: Map<string, FilterVariant>,
-): DataTableFilterState {
-  const selectFilters: Record<string, Array<string>> = {};
-  const textFilters: Record<string, string> = {};
-  const numberFilters: Record<string, string> = {};
-
-  for (const filter of columnFilters) {
-    const filterVariant = filterVariantByColumnId.get(filter.id);
-
-    if (filterVariant === "select" && Array.isArray(filter.value) && filter.value.length > 0) {
-      selectFilters[filter.id] = filter.value.map(String);
-      continue;
-    }
-
-    if (filterVariant === "text" && typeof filter.value === "string" && filter.value.trim()) {
-      textFilters[filter.id] = filter.value;
-      continue;
-    }
-
-    if (filterVariant === "number" && typeof filter.value === "string" && filter.value.trim()) {
-      numberFilters[filter.id] = filter.value;
-    }
-  }
-
-  return {
-    ...currentState,
-    selectFilters,
-    textFilters,
-    numberFilters,
-  };
-}
 
 interface DataTableProps<TData extends RowData> {
   columns: Array<DataTableColumnDef<TData>>;
@@ -172,27 +91,10 @@ export function DataTable<TData extends RowData>({
   const [sorting, setSorting] = useState<SortingState>(initialSorting);
   const [columnVisibilityState, setColumnVisibilityState] =
     useState<ColumnVisibilityState>(initialColumnVisibility);
-  const [localFilterState, setLocalFilterState] = useState<DataTableFilterState>({
-    globalFilter: "",
-    selectFilters: {},
-    textFilters: {},
-    numberFilters: {},
-  });
+  const [localFilterState, setLocalFilterState] =
+    useState<DataTableFilterState>(EMPTY_FILTER_STATE);
   const resolvedFilterState = filterState ?? localFilterState;
-  const filterVariantByColumnId = useMemo(
-    () =>
-      columns.reduce<Map<string, FilterVariant>>((variants, column) => {
-        const columnId = getColumnId(column);
-        const filterVariant = column.meta?.filterVariant;
-
-        if (columnId && filterVariant) {
-          variants.set(columnId, filterVariant);
-        }
-
-        return variants;
-      }, new Map()),
-    [columns],
-  );
+  const filterVariantByColumnId = useMemo(() => createFilterVariantMap(columns), [columns]);
   const resolvedColumnVisibility = {
     ...initialColumnVisibility,
     ...columnVisibilityState,
@@ -336,12 +238,7 @@ export function DataTable<TData extends RowData>({
   };
 
   const handleClearAllFilters = () => {
-    updateFilterState(() => ({
-      globalFilter: "",
-      selectFilters: {},
-      textFilters: {},
-      numberFilters: {},
-    }));
+    updateFilterState(() => EMPTY_FILTER_STATE);
   };
 
   function renderNoDataPlaceholder() {
