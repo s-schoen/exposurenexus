@@ -21,15 +21,18 @@ test("creates an asset through the type, environment and owner selects", async (
   await dialog.getByRole("button", { name: "Create" }).click();
 
   await expect(dialog).toBeHidden();
-  const row = page.getByRole("row", { name: /registry-01/ });
-  await expect(row).toContainText("Staging");
+  const row = page
+    .getByRole("list", { name: "Assets" })
+    .getByRole("listitem")
+    .filter({ hasText: "registry-01" });
+  await expect(row).toContainText("Software");
   await expect(row).toContainText(MORGAN.displayName);
 });
 
 test("adds an identifier on the detail page", async ({ page }) => {
   await page.goto("/assets");
 
-  await page.getByRole("cell", { name: API_WORKER.displayName, exact: true }).dblclick();
+  await page.getByRole("link", { name: API_WORKER.displayName, exact: true }).dblclick();
   await expect(page.getByRole("heading", { level: 1, name: API_WORKER.displayName })).toBeVisible();
   await page.getByRole("button", { name: "Add identifier" }).click();
   const dialog = page.getByRole("dialog");
@@ -51,5 +54,5 @@ test("goes from the detail page back to the list", async ({ page }) => {
     .click();
 
   await expect(page).toHaveURL("/assets");
-  await expect(page.getByRole("cell", { name: API_WORKER.displayName, exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: API_WORKER.displayName, exact: true })).toBeVisible();
 });

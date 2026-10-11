@@ -1,4 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  RouterProvider,
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+} from "@tanstack/react-router";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { Suspense } from "react";
 import { expect, it, vi } from "vitest";
@@ -101,13 +107,22 @@ it("fetches catalog entries once across index loading and suspense rendering", a
     params: { id: vulnerability.id },
   });
   const Component = IndexRoute.options.component as ComponentType;
+  // The list's rows link to their pages, so they need a router.
+  const router = createRouter({
+    routeTree: createRootRoute({
+      component: () => (
+        <Suspense fallback="Loading">
+          <Component />
+        </Suspense>
+      ),
+    }),
+    history: createMemoryHistory(),
+  });
   await act(async () => {
     render(
       <QueryClientProvider client={client}>
         <PageProvider>
-          <Suspense fallback="Loading">
-            <Component />
-          </Suspense>
+          <RouterProvider router={router} />
         </PageProvider>
       </QueryClientProvider>,
     );

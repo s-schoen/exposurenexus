@@ -1,3 +1,4 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
 import {
@@ -7,6 +8,7 @@ import {
   validateAssetTableSearch,
 } from "@/features/assets";
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields";
+import { createFindingStatsQueryOptions } from "@/features/findings";
 import { createListUsersQueryOptions } from "@/features/users";
 import { validateSelectedSearch } from "@/hooks/use-selected-search-param.ts";
 
@@ -17,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/assets/")({
     ...validateAssetTableSearch(search),
   }),
   loaderDeps: ({ search }) => {
-    const { selected: _selected, ...deps } = search;
+    const { selected: _selected, group: _group, ...deps } = search;
 
     return deps;
   },
@@ -29,6 +31,7 @@ export const Route = createFileRoute("/_authenticated/assets/")({
 
     return Promise.all([
       queryClient.ensureQueryData(createListAssetsWithCustomFieldsQueryOptions(assetListOptions)),
+      queryClient.ensureQueryData(createFindingStatsQueryOptions()),
       queryClient.ensureQueryData(createListUsersQueryOptions()),
     ]);
   },
@@ -37,6 +40,14 @@ export const Route = createFileRoute("/_authenticated/assets/")({
 
 function RouteComponent() {
   const search = Route.useSearch();
+  // The assets feature doesn't depend on findings, so the route hands it the finding counts.
+  const findingStats = useSuspenseQuery(createFindingStatsQueryOptions());
 
-  return <AssetsPage search={search} selected={search.selected} />;
+  return (
+    <AssetsPage
+      search={search}
+      selected={search.selected}
+      findingCountByAssetId={findingStats.data.assets}
+    />
+  );
 }

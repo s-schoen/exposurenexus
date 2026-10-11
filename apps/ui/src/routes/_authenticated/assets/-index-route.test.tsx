@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   assets: [],
   customFieldDefinitions: [{ id: "field-1", key: "environment", type: "text" }],
   ensureQueryData: vi.fn(),
+  findingStats: { assets: {} },
   users: [],
 }));
 
@@ -37,7 +38,7 @@ describe("assets index route", () => {
     mocks.ensureQueryData.mockReset();
   });
 
-  it("keeps filter and dynamic custom-field dependencies while excluding selected", () => {
+  it("keeps filter and dynamic custom-field dependencies while excluding selected and group", () => {
     const loaderDeps = Route.options.loaderDeps as unknown as (args: {
       search: Record<string, unknown>;
     }) => Record<string, unknown>;
@@ -50,21 +51,27 @@ describe("assets index route", () => {
       deployment_tier: "production",
     };
 
-    expect(loaderDeps({ search: { ...search, selected: "asset-1" } })).toEqual(search);
+    expect(loaderDeps({ search: { ...search, selected: "asset-1", group: "type" } })).toEqual(
+      search,
+    );
     expect(loaderDeps({ search: { ...search, selected: "asset-2" } })).toEqual(
       loaderDeps({ search: { ...search, selected: undefined } }),
     );
   });
 
-  it("loads definitions before calculating options and prefetches assets and users in parallel", async () => {
+  it("loads definitions before calculating options and prefetches assets, finding stats and users in parallel", async () => {
     let resolveDefinitions: (value: typeof mocks.customFieldDefinitions) => void = () => undefined;
     let resolveAssets: (value: typeof mocks.assets) => void = () => undefined;
+    let resolveFindingStats: (value: typeof mocks.findingStats) => void = () => undefined;
     let resolveUsers: (value: typeof mocks.users) => void = () => undefined;
     const definitionsPromise = new Promise<typeof mocks.customFieldDefinitions>((resolve) => {
       resolveDefinitions = resolve;
     });
     const assetsPromise = new Promise<typeof mocks.assets>((resolve) => {
       resolveAssets = resolve;
+    });
+    const findingStatsPromise = new Promise<typeof mocks.findingStats>((resolve) => {
+      resolveFindingStats = resolve;
     });
     const usersPromise = new Promise<typeof mocks.users>((resolve) => {
       resolveUsers = resolve;
@@ -78,6 +85,9 @@ describe("assets index route", () => {
       }
       if (queryKey[0] === "assets") {
         return assetsPromise;
+      }
+      if (queryKey[0] === "findings" && queryKey[1] === "stats") {
+        return findingStatsPromise;
       }
       if (queryKey.length === 1 && queryKey[0] === "users") {
         return usersPromise;
@@ -103,7 +113,7 @@ describe("assets index route", () => {
 
     resolveDefinitions(mocks.customFieldDefinitions);
     await vi.waitFor(() => {
-      expect(mocks.ensureQueryData).toHaveBeenCalledTimes(3);
+      expect(mocks.ensureQueryData).toHaveBeenCalledTimes(4);
     });
 
     expect(mocks.ensureQueryData.mock.calls[1]?.[0]).toMatchObject({
@@ -114,12 +124,16 @@ describe("assets index route", () => {
       ],
     });
     expect(mocks.ensureQueryData.mock.calls[2]?.[0]).toMatchObject({
+      queryKey: ["findings", "stats"],
+    });
+    expect(mocks.ensureQueryData.mock.calls[3]?.[0]).toMatchObject({
       queryKey: ["users"],
     });
 
     resolveAssets(mocks.assets);
+    resolveFindingStats(mocks.findingStats);
     resolveUsers(mocks.users);
 
-    await expect(loaderPromise).resolves.toEqual([mocks.assets, mocks.users]);
+    await expect(loaderPromise).resolves.toEqual([mocks.assets, mocks.findingStats, mocks.users]);
   });
 });

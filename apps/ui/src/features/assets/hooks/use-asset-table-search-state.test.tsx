@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getAssetCustomFieldColumnId } from "@/features/assets/components/asset-table/columns.tsx";
+import { getAssetCustomFieldColumnId } from "@/features/assets/components/asset-list/columns.tsx";
 import {
   createAssetTableFilterState,
   createAssetListOptions,

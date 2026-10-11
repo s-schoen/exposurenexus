@@ -1,10 +1,13 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { Server } from "lucide-react";
+import { Plus, Server } from "lucide-react";
+import { useCallback, useMemo } from "react";
 
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
 import { AssetDetailContent } from "@/features/assets/components/asset-detail-content.tsx";
-import { AssetTable } from "@/features/assets/components/asset-table/index.tsx";
+import { AssetDialog } from "@/features/assets/components/asset-dialog.tsx";
+import { AssetList } from "@/features/assets/components/asset-list/index.tsx";
+import { useAssetLifecycle } from "@/features/assets/hooks/use-asset-lifecycle.ts";
 import {
   createAssetListOptionsFromSearch,
   useAssetTableSearchState,
@@ -17,23 +20,29 @@ import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/cu
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
 
+import type { FindingCountByAssetId } from "@/features/assets/components/asset-list/columns.tsx";
 import type { Asset } from "@exposurenexus/contracts/model/asset";
 
 interface AssetsPageProps {
   search?: Record<string, unknown>;
   selected?: string;
+  /** Each asset's finding count. The route reads it from the findings feature. */
+  findingCountByAssetId?: FindingCountByAssetId;
 }
 
-export function AssetsPage({ search = {}, selected }: AssetsPageProps) {
+export function AssetsPage({ search = {}, selected, findingCountByAssetId }: AssetsPageProps) {
   const customFieldDefinitionsQuery = useSuspenseQuery(
     createListAssetCustomFieldDefinitionsQueryOptions(),
   );
   const customFieldDefinitions = customFieldDefinitionsQuery.data;
   const assetListOptions = createAssetListOptionsFromSearch(search, customFieldDefinitions);
-  const { filterState, onFilterStateChange } = useAssetTableSearchState({
-    search,
-    customFieldDefinitions,
-  });
+  const assetLifecycle = useAssetLifecycle();
+  const { filterState, onFilterStateChange, grouping, onGroupingChange } = useAssetTableSearchState(
+    {
+      search,
+      customFieldDefinitions,
+    },
+  );
   const assets = useSuspenseQuery(createListAssetsWithCustomFieldsQueryOptions(assetListOptions));
   const selectedSearch = useSelectedSearchParam<Asset>({
     selectedId: selected,
@@ -41,21 +50,48 @@ export function AssetsPage({ search = {}, selected }: AssetsPageProps) {
     getId: (asset) => asset.id,
   });
 
+  const handleCreateAsset = useCallback(async () => {
+    const assetToCreate = await AssetDialog.call({});
+
+    if (assetToCreate) {
+      await assetLifecycle.createAsset(assetToCreate);
+    }
+  }, [assetLifecycle]);
+  const actions = useMemo(
+    () => [
+      {
+        label: "New asset",
+        icon: Plus,
+        onClick: () => {
+          void handleCreateAsset();
+        },
+      },
+    ],
+    [handleCreateAsset],
+  );
+
   usePageMeta({
     title: "Assets",
     icon: Server,
     count: assets.data.length,
+    actions,
   });
 
   return (
     <>
-      <AssetTable
+      <AssetList
         assetListOptions={assetListOptions}
+        findingCountByAssetId={findingCountByAssetId}
+        grouping={grouping}
+        onGroupingChange={onGroupingChange}
         filterState={filterState}
         onFilterStateChange={onFilterStateChange}
         selectedAssetId={selectedSearch.selectedId}
         onSelectAsset={(asset) => {
           void selectedSearch.selectRow(asset);
+        }}
+        onCreateAsset={() => {
+          void handleCreateAsset();
         }}
       />
       <DetailPreviewDialog
@@ -64,7 +100,7 @@ export function AssetsPage({ search = {}, selected }: AssetsPageProps) {
           void selectedSearch.clearSelected();
         }}
         title="Asset details"
-        description="Review the selected asset without leaving the asset table."
+        description="Review the selected asset without leaving the asset list."
         fullPageHref={selected ? `/assets/${selected}` : undefined}
       >
         {selected && <AssetDetailPreview assetId={selected} />}

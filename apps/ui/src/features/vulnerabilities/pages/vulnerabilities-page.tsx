@@ -1,11 +1,11 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Bug } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { Bug, Plus } from "lucide-react";
+import { lazy, Suspense, useMemo } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
-import { VulnerabilityTable } from "@/features/vulnerabilities/components/vulnerability-table/index.tsx";
+import { VulnerabilityList } from "@/features/vulnerabilities/components/vulnerability-list/index.tsx";
 import { useVulnerabilityLifecycle } from "@/features/vulnerabilities/hooks/use-vulnerability-lifecycle.ts";
 import { useVulnerabilityTableSearchState } from "@/features/vulnerabilities/hooks/use-vulnerability-table-search-state.ts";
 import { createListVulnerabilitiesQueryOptions } from "@/features/vulnerabilities/queries/vulnerabilities.ts";
@@ -28,9 +28,10 @@ interface VulnerabilitiesPageProps {
 export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPageProps) {
   const navigate = useNavigate();
   const vulnerabilityLifecycle = useVulnerabilityLifecycle();
-  const { filterState, onFilterStateChange } = useVulnerabilityTableSearchState({
-    search,
-  });
+  const { filterState, onFilterStateChange, grouping, onGroupingChange } =
+    useVulnerabilityTableSearchState({
+      search,
+    });
   const vulnerabilitiesQuery = useSuspenseQuery(createListVulnerabilitiesQueryOptions());
   const selectedSearch = useSelectedSearchParam<VulnerabilityCatalog>({
     selectedId: selected,
@@ -38,10 +39,24 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
     getId: (vulnerability) => vulnerability.id,
   });
 
+  const actions = useMemo(
+    () => [
+      {
+        label: "New catalog entry",
+        icon: Plus,
+        onClick: () => {
+          void navigate({ to: "/vulnerabilities/new" });
+        },
+      },
+    ],
+    [navigate],
+  );
+
   usePageMeta({
     title: "Vulnerabilities",
     icon: Bug,
     count: vulnerabilitiesQuery.data.length,
+    actions,
   });
 
   const handleDeleteVulnerabilities = async (vulnerabilities: Array<VulnerabilityCatalog>) => {
@@ -68,15 +83,15 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
 
   return (
     <>
-      <VulnerabilityTable
+      <VulnerabilityList
+        grouping={grouping}
+        onGroupingChange={onGroupingChange}
         filterState={filterState}
         onFilterStateChange={onFilterStateChange}
         selectedVulnerabilityId={selectedSearch.selectedId}
-        onCreateVulnerability={() =>
-          navigate({
-            to: "/vulnerabilities/new",
-          })
-        }
+        onCreateVulnerability={() => {
+          void navigate({ to: "/vulnerabilities/new" });
+        }}
         onSelectVulnerability={(vulnerability) => {
           void selectedSearch.selectRow(vulnerability);
         }}
@@ -88,7 +103,7 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
           void selectedSearch.clearSelected();
         }}
         title="Catalog entry details"
-        description="Review the selected catalog entry without leaving the vulnerability table."
+        description="Review the selected catalog entry without leaving the vulnerability list."
         fullPageHref={selected ? `/vulnerabilities/${selected}` : undefined}
       >
         {selected && (

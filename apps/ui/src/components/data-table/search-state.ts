@@ -1,3 +1,5 @@
+import { NO_GROUPING_VALUE } from "@/components/data-table/types.ts";
+
 import type { DataTableFilterState } from "@/components/data-table/types.ts";
 
 export function getSearchParamString(value: unknown): string | undefined {
@@ -142,4 +144,22 @@ export function createDataTableListFilterSearchParams(
       ]),
     ),
   };
+}
+
+/** A list's grouping column: `group` from the URL, "none" for no grouping, or the default. */
+export function resolveGroupingSearchParam(group: unknown, defaultGrouping?: string) {
+  if (group === NO_GROUPING_VALUE) {
+    return undefined;
+  }
+
+  return typeof group === "string" && group.length > 0 ? group : defaultGrouping;
+}
+
+/** Leaves the default grouping out of the URL and writes "none" when the user turns it off. */
+export function createGroupingSearchParam(grouping: string | undefined, defaultGrouping?: string) {
+  if (grouping === defaultGrouping) {
+    return undefined;
+  }
+
+  return grouping ?? NO_GROUPING_VALUE;
 }

@@ -2,10 +2,8 @@ import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { describe, expect, it } from "vitest";
 
 import {
-  createFindingGroupingSearchParam,
   createFindingTableFilterState,
   createFindingTableSearchParams,
-  resolveFindingGrouping,
   validateFindingTableSearch,
 } from "@/features/findings/hooks/use-finding-table-search-state.ts";
 
@@ -73,19 +71,5 @@ describe("finding table search state", () => {
       severity: "critical",
       status: "confirmed",
     });
-  });
-
-  it("resolves the grouping from the URL, falling back to the default", () => {
-    expect(resolveFindingGrouping(undefined)).toBeUndefined();
-    expect(resolveFindingGrouping(undefined, "assetId")).toBe("assetId");
-    expect(resolveFindingGrouping("status", "assetId")).toBe("status");
-    expect(resolveFindingGrouping("none", "assetId")).toBeUndefined();
-  });
-
-  it("keeps the default grouping out of the URL", () => {
-    expect(createFindingGroupingSearchParam("assetId", "assetId")).toBeUndefined();
-    expect(createFindingGroupingSearchParam("status", "assetId")).toBe("status");
-    expect(createFindingGroupingSearchParam(undefined, "assetId")).toBe("none");
-    expect(createFindingGroupingSearchParam(undefined)).toBeUndefined();
   });
 });

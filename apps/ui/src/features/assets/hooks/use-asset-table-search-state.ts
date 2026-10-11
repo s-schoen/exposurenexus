@@ -4,13 +4,15 @@ import { useMemo } from "react";
 
 import {
   createDataTableFilterState,
+  createGroupingSearchParam,
   createSearchParamArray,
   createSearchParamString,
   getSearchParamArray,
   getFilterValue,
   getSearchParamString,
+  resolveGroupingSearchParam,
 } from "@/components/data-table/search-state.ts";
-import { getAssetCustomFieldColumnId } from "@/features/assets/components/asset-table/columns.tsx";
+import { getAssetCustomFieldColumnId } from "@/features/assets/components/asset-list/columns.tsx";
 
 import type { DataTableFilterState } from "@/components/data-table/types.ts";
 import type { AssetListOptions } from "@/features/assets/api/assets.ts";
@@ -25,6 +27,7 @@ export interface AssetCustomFieldFilterSearchState {
 export function validateAssetTableSearch(search: Record<string, unknown>) {
   return {
     filter: getSearchParamString(search.filter),
+    ...(getSearchParamString(search.group) ? { group: getSearchParamString(search.group) } : {}),
     ...(getSearchParamString(search.assetType)
       ? { assetType: getSearchParamString(search.assetType) }
       : {}),
@@ -203,6 +206,19 @@ export function useAssetTableSearchState({
 
   return {
     filterState,
+    grouping: resolveGroupingSearchParam(search.group),
+    onGroupingChange: (grouping: string | undefined) => {
+      void navigate({
+        to: "/assets",
+        replace: true,
+        search: (prev) => ({
+          ...prev,
+          selected: prev.selected,
+          filter: prev.filter,
+          group: createGroupingSearchParam(grouping),
+        }),
+      });
+    },
     onFilterStateChange: (nextState: DataTableFilterState) => {
       void navigate({
         to: "/assets",

@@ -2,7 +2,12 @@ import { AssetType } from "@exposurenexus/contracts/model/asset";
 import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { SEED_ASSETS, SEED_CUSTOM_FIELDS } from "@/mocks/fixtures/index.ts";
+import {
+  SEED_ASSETS,
+  SEED_CUSTOM_FIELDS,
+  SEED_FINDINGS,
+  SEED_USERS,
+} from "@/mocks/fixtures/index.ts";
 import { expectConsoleLog } from "@/test/console.ts";
 import { captureApiCalls, db, mockApiError, recordApiRequests } from "@/test/msw.ts";
 import { renderApp } from "@/test/render-app.tsx";
@@ -13,16 +18,79 @@ const [WEB_01, CONTAINER_01, API_WORKER] = SEED_ASSETS;
 const [CATEGORY] = SEED_CUSTOM_FIELDS;
 
 async function findRow(name: string) {
-  return (await within(await screen.findByRole("table")).findByText(name)).closest("tr")!;
+  return (
+    await within(await screen.findByRole("list", { name: "Assets" })).findByText(name)
+  ).closest("li")!;
 }
 
 describe("assets list", () => {
-  it("lists the inventory", async () => {
+  it("lists the inventory as rows that link to their pages", async () => {
     renderApp({ path: "/assets" });
 
-    for (const asset of SEED_ASSETS) {
-      expect(await findRow(asset.displayName)).toBeVisible();
-    }
+    const list = await screen.findByRole("list", { name: "Assets" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(SEED_ASSETS.length);
+    expect(within(list).getByRole("link", { name: WEB_01.displayName })).toHaveAttribute(
+      "href",
+      `/assets/${WEB_01.id}`,
+    );
+  });
+
+  it("shows each asset's type, owner and finding count", async () => {
+    const owner = SEED_USERS.find((user) => user.id === API_WORKER.ownerId)!;
+    const findingCount = SEED_FINDINGS.filter(
+      (finding) => finding.assetId === API_WORKER.id,
+    ).length;
+    renderApp({ path: "/assets" });
+
+    const row = await findRow(API_WORKER.displayName);
+    expect(within(row).getByRole("img", { name: "Software" })).toBeVisible();
+    expect(within(row).getByTitle("Type")).toHaveTextContent("Software");
+    expect(within(row).getByTitle("Owner")).toHaveTextContent(owner.displayName);
+    expect(within(row).getByTitle("Findings")).toHaveTextContent(String(findingCount));
+  });
+
+  it("filters by type through the Filters menu and sends it to the API", async () => {
+    const calls = captureApiCalls("get", "/assets");
+    const { router, user } = renderApp({ path: "/assets" });
+
+    await user.click(await screen.findByRole("button", { name: "Filters" }));
+    await user.click(await screen.findByRole("option", { name: "Container image" }));
+
+    await waitFor(() =>
+      expect(router.state.location.search).toMatchObject({ assetType: AssetType.ContainerImage }),
+    );
+    await waitFor(() => expect(screen.queryByText(WEB_01.displayName)).not.toBeInTheDocument());
+    expect(await findRow(CONTAINER_01.displayName)).toBeVisible();
+    expect(calls.at(-1)!.url.searchParams.get("assetType")).toBe(AssetType.ContainerImage);
+  });
+
+  it("groups by type from the Display menu and keeps it in the URL", async () => {
+    const { router, user } = renderApp({ path: "/assets" });
+
+    await user.click(await screen.findByRole("button", { name: "Display" }));
+    await user.click(screen.getByRole("combobox", { name: "Group by" }));
+    await user.click(await screen.findByRole("option", { name: "Type" }));
+
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ group: "type" }));
+    const containerImages = await screen.findByRole("list", { name: "Container image" });
+    expect(within(containerImages).getByText(CONTAINER_01.displayName)).toBeVisible();
+    expect(
+      within(screen.getByRole("list", { name: "Host" })).getByText(WEB_01.displayName),
+    ).toBeVisible();
+  });
+
+  it("shows an empty state without assets", async () => {
+    const { user } = renderApp({ path: "/assets", scenario: "empty" });
+
+    expect(await screen.findByText("No assets yet.")).toBeVisible();
+    expect(screen.queryByRole("list", { name: "Assets" })).not.toBeInTheDocument();
+    // The empty state and the page header both offer to create one.
+    await user.click(
+      within(screen.getByText("No assets yet.").parentElement!).getByRole("button", {
+        name: "New asset",
+      }),
+    );
+    expect(await screen.findByRole("dialog")).toBeVisible();
   });
 
   it("sends the route's search and filters to the API", async () => {
@@ -40,7 +108,7 @@ describe("assets list", () => {
     const { router, user } = renderApp({ path: "/assets" });
 
     // Paste: the input is driven by the URL, so per-keystroke typing races the navigation.
-    await user.click(await screen.findByLabelText("Search across visible columns"));
+    await user.click(await screen.findByRole("textbox", { name: "Search" }));
     await user.paste("worker");
 
     await waitFor(() => expect(router.state.location.search).toMatchObject({ filter: "worker" }));
@@ -75,7 +143,7 @@ describe("assets list", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "Asset details" });
     expect(await within(dialog).findByText("Unable to load asset")).toBeVisible();
-    // The modal preview hides the table from the accessibility tree, but it stays rendered.
+    // The modal preview hides the list from the accessibility tree, but it stays rendered.
     expect(screen.getByText(WEB_01.displayName)).toBeInTheDocument();
   });
 
