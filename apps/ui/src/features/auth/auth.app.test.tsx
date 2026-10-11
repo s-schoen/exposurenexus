@@ -57,7 +57,7 @@ describe("authentication", () => {
     const { router, user } = renderApp({ path: "/settings/roles" });
 
     await user.click(await screen.findByRole("button", { name: ROBIN.displayName }));
-    await user.click(await screen.findByRole("menuitem", { name: "Sign Out" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Sign out" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(db.session).toBeNull();

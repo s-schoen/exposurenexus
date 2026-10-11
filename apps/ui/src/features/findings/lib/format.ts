@@ -15,15 +15,15 @@ export function formatFindingStatus(status: FindingStatus) {
     case FindingStatus.Duplicate:
       return "Duplicate";
     case FindingStatus.FalsePositive:
-      return "False Positive";
+      return "False positive";
     case FindingStatus.Inactive:
       return "Inactive";
     case FindingStatus.Mitigated:
       return "Mitigated";
     case FindingStatus.OutOfScope:
-      return "Out of Scope";
+      return "Out of scope";
     case FindingStatus.RiskAccepted:
-      return "Risk Accepted";
+      return "Risk accepted";
     default:
       return "";
   }

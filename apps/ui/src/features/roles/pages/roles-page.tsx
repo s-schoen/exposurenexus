@@ -79,7 +79,7 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
     }
 
     const confirmed = await ConfirmDialog.call({
-      title: "Delete Roles",
+      title: "Delete roles",
       description: "This action cannot be undone",
       message: `Are you sure you want to delete ${customRoles.length} custom role(s)?`,
       confirmVariant: "destructive",

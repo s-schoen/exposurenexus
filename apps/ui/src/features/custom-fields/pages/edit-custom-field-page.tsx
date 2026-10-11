@@ -26,7 +26,7 @@ export function EditCustomFieldPage({ customFieldId }: EditCustomFieldPageProps)
     title: "Edit",
     icon: Tags,
     breadcrumbs: [
-      { label: "Custom Fields", to: "/settings/custom-fields" },
+      { label: "Custom fields", to: "/settings/custom-fields" },
       { label: customField.data.name, to: `/settings/custom-fields/${customFieldId}` },
     ],
   });

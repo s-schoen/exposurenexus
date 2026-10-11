@@ -306,7 +306,7 @@ describe("asset detail", () => {
     await waitFor(() => expect(db.assets.get(WEB_01.id)?.type).toBe(AssetType.Software));
 
     await user.click(within(properties).getByRole("button", { name: /^Owner/ }));
-    await user.click(await screen.findByRole("option", { name: "No Owner" }));
+    await user.click(await screen.findByRole("option", { name: "No owner" }));
     await waitFor(() => expect(db.assets.get(WEB_01.id)?.ownerId).toBeNull());
 
     await user.click(within(properties).getByRole("button", { name: /^Environment/ }));

@@ -13,7 +13,7 @@ describe("formatFindingCount", () => {
 describe("formatFindingStatus", () => {
   it("formats finding statuses for display", () => {
     expect(formatFindingStatus(FindingStatus.Active)).toBe("Active");
-    expect(formatFindingStatus(FindingStatus.FalsePositive)).toBe("False Positive");
-    expect(formatFindingStatus(FindingStatus.RiskAccepted)).toBe("Risk Accepted");
+    expect(formatFindingStatus(FindingStatus.FalsePositive)).toBe("False positive");
+    expect(formatFindingStatus(FindingStatus.RiskAccepted)).toBe("Risk accepted");
   });
 });

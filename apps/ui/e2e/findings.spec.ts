@@ -88,7 +88,7 @@ test("creates a finding through the asset combobox", async ({ page }) => {
 
   await page.getByRole("button", { name: "New finding" }).click();
   await page.getByLabel("Title", { exact: true }).fill("Hard-coded secret");
-  await page.getByRole("combobox", { name: "Affected Asset" }).click();
+  await page.getByRole("combobox", { name: "Affected asset" }).click();
   await page.getByRole("option", { name: new RegExp(API_WORKER.displayName) }).click();
   await page.getByRole("button", { name: "Create finding" }).click();
 

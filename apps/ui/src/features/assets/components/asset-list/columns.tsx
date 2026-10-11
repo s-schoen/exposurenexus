@@ -58,8 +58,8 @@ function OwnerChip({
                 ? (userProfileById.get(ownerId) ?? null)
                 : null
           }
-          emptyLabel="No Owner"
-          unknownLabel="Unknown Owner"
+          emptyLabel="No owner"
+          unknownLabel="Unknown owner"
         />
       </span>
     </Badge>
@@ -136,8 +136,8 @@ function createBaseColumns(
       id: "ownerId",
       accessorFn: (asset) =>
         formatUserProfileReference(asset.ownerId, userProfileById, {
-          emptyLabel: "No Owner",
-          unknownLabel: "Unknown Owner",
+          emptyLabel: "No owner",
+          unknownLabel: "Unknown owner",
         }),
       cell: ({ row }) => (
         <OwnerChip

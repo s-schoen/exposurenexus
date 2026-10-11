@@ -17,7 +17,7 @@ export function CreateRolePage() {
   const roles = useSuspenseQuery(createListRolesQueryOptions());
 
   usePageMeta({
-    title: "Create Role",
+    title: "Create role",
     icon: KeyRound,
     breadcrumbs: [{ label: "Roles", to: "/settings/roles" }],
   });

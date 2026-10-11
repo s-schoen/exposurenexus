@@ -53,7 +53,7 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
   );
 
   usePageMeta({
-    title: "Custom Fields",
+    title: "Custom fields",
     icon: Tags,
     count: customFieldsQuery.data.length,
     actions,
@@ -68,7 +68,7 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
 
   const handleDeleteCustomFields = async (fields: Array<AssetCustomFieldDefinition>) => {
     const confirmed = await ConfirmDialog.call({
-      title: "Delete Custom Fields",
+      title: "Delete custom fields",
       description: "This action cannot be undone",
       message: `Are you sure you want to delete ${fields.length} custom field(s)?`,
       confirmVariant: "destructive",

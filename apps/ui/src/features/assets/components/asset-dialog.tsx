@@ -87,7 +87,7 @@ export const AssetDialog = ({
       >
         <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
-            <DialogTitle>Create Asset</DialogTitle>
+            <DialogTitle>Create asset</DialogTitle>
           </DialogHeader>
           <FieldGroup>
             <form.Field
@@ -226,14 +226,14 @@ export const AssetDialog = ({
                       <SelectTrigger id={field.name}>
                         <SelectValue>
                           {field.state.value === null || field.state.value === noOwnerValue
-                            ? "No Owner"
+                            ? "No owner"
                             : (users.data?.find((user) => user.id === field.state.value)
                                 ?.displayName ?? "Select asset owner")}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
-                          <SelectItem value={noOwnerValue}>No Owner</SelectItem>
+                          <SelectItem value={noOwnerValue}>No owner</SelectItem>
                           {users.data?.map((user) => (
                             <SelectItem key={user.id} value={user.id}>
                               {user.displayName}

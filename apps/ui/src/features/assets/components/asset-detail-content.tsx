@@ -126,7 +126,7 @@ function ownerOptions(
   users: Array<UserProfile> | undefined,
 ): Array<PropertyOption<string>> {
   const options: Array<PropertyOption<string>> = [
-    { value: noOwnerValue, label: "No Owner", icon: decorativeAvatar(null, null) },
+    { value: noOwnerValue, label: "No owner", icon: decorativeAvatar(null, null) },
     ...(users ?? []).map((user) => ({
       value: user.id,
       label: getUserProfileDisplayName(user),
@@ -138,7 +138,7 @@ function ownerOptions(
   if (asset.ownerId && !options.some(({ value }) => value === asset.ownerId)) {
     options.push({
       value: asset.ownerId,
-      label: users ? "Unknown Owner" : "Loading…",
+      label: users ? "Unknown owner" : "Loading…",
       icon: decorativeAvatar(asset.ownerId, users ? null : undefined),
     });
   }

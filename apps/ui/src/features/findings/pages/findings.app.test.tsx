@@ -148,7 +148,7 @@ describe("findings list", () => {
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/findings/new"));
     // The form sits in the centered page column, under its own title.
-    expect(await screen.findByRole("heading", { level: 1, name: "Create Finding" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Create finding" })).toBeVisible();
   });
 
   it("previews a selected finding, fetching it only once selected, and closes again", async () => {
@@ -537,7 +537,7 @@ describe("creating findings", () => {
 
   async function fillRequiredFields(user: ReturnType<typeof renderApp>["user"]) {
     await user.type(screen.getByLabelText("Title"), "  Hard-coded secret  ");
-    const asset = screen.getByRole("combobox", { name: "Affected Asset" });
+    const asset = screen.getByRole("combobox", { name: "Affected asset" });
     await waitFor(() => expect(asset).toBeEnabled());
     await user.click(asset);
     await user.click(

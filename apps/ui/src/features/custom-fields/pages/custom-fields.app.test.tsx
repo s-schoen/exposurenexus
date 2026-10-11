@@ -147,7 +147,7 @@ describe("custom field detail", () => {
 
     await user.click(
       within(await screen.findByRole("navigation", { name: "Breadcrumb" })).getByRole("link", {
-        name: "Custom Fields",
+        name: "Custom fields",
       }),
     );
 

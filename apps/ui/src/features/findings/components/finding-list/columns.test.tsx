@@ -204,7 +204,7 @@ describe("createFindingColumns", () => {
     cleanup();
 
     renderCell(findColumn(columns, "responsibleOwner"), fallbackFinding);
-    expect(screen.getByText("Unknown Asset")).toBeVisible();
+    expect(screen.getByText("Unknown asset")).toBeVisible();
     cleanup();
 
     renderCell(findColumn(columns, "assignee"), fallbackFinding);
@@ -315,7 +315,7 @@ describe("createFindingColumns", () => {
     );
 
     renderCell(findColumn(ownerlessColumns, "responsibleOwner"));
-    expect(screen.getByText("No Owner")).toBeTruthy();
+    expect(screen.getByText("No owner")).toBeTruthy();
     cleanup();
 
     const unknownOwnerColumns = await createColumns(
@@ -325,7 +325,7 @@ describe("createFindingColumns", () => {
     );
 
     renderCell(findColumn(unknownOwnerColumns, "responsibleOwner"));
-    expect(screen.getByText("Unknown Owner")).toBeTruthy();
+    expect(screen.getByText("Unknown owner")).toBeTruthy();
   });
 
   it("renders assignee fallbacks and loading state", async () => {
@@ -336,7 +336,7 @@ describe("createFindingColumns", () => {
     );
 
     renderCell(findColumn(unknownAssigneeColumns, "assignee"));
-    expect(screen.getByRole("img", { name: "Unknown Assignee" })).toBeVisible();
+    expect(screen.getByRole("img", { name: "Unknown assignee" })).toBeVisible();
     cleanup();
 
     const loadingAssigneeColumns = await createColumns(
@@ -413,8 +413,8 @@ describe("createFindingColumns", () => {
       assigneeId: "6a2bfca3-15b1-48aa-9dfd-d2cd3c15ea12",
     };
 
-    expect(unknownAssigneeColumn.accessorFn?.(firstUnknownFinding)).toBe("Unknown Assignee");
-    expect(unknownAssigneeColumn.accessorFn?.(secondUnknownFinding)).toBe("Unknown Assignee");
+    expect(unknownAssigneeColumn.accessorFn?.(firstUnknownFinding)).toBe("Unknown assignee");
+    expect(unknownAssigneeColumn.accessorFn?.(secondUnknownFinding)).toBe("Unknown assignee");
     expect(unknownAssigneeColumn.getGroupingValue?.(firstUnknownFinding)).toBe(assignee.id);
     expect(unknownAssigneeColumn.getGroupingValue?.(secondUnknownFinding)).toBe(
       secondUnknownFinding.assigneeId,

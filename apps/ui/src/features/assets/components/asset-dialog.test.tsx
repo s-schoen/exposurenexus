@@ -94,7 +94,7 @@ describe("AssetDialog", () => {
     expect(screen.getByLabelText(/^environment$/i)).toHaveValue(AssetEnvironment.Unknown);
     expect(screen.getByLabelText(/^lifecycle state$/i)).toHaveValue(AssetLifecycleState.Active);
     expect(screen.getByLabelText(/^owner$/i)).toHaveValue("__no_owner__");
-    expect(screen.getByTestId("ownerId-trigger")).toHaveTextContent("No Owner");
+    expect(screen.getByTestId("ownerId-trigger")).toHaveTextContent("No owner");
   });
 
   it("resolves null when cancelled", async () => {

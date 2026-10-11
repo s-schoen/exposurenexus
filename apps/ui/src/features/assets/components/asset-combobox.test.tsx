@@ -63,7 +63,7 @@ describe("AssetCombobox", () => {
   it("uses a field label as the combobox accessible name", () => {
     renderWithAppProviders(
       <div>
-        <label htmlFor="assetId">Affected Asset</label>
+        <label htmlFor="assetId">Affected asset</label>
         <AssetCombobox id="assetId" />
       </div>,
     );

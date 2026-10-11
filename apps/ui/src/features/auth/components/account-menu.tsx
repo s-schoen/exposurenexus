@@ -49,7 +49,7 @@ export function AccountMenu() {
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
           <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
-          <DropdownMenuItem onClick={onSignOut}>Sign Out</DropdownMenuItem>
+          <DropdownMenuItem onClick={onSignOut}>Sign out</DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>

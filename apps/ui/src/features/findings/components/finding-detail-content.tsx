@@ -116,7 +116,7 @@ function assigneeOptions(
   if (finding.assigneeId && !options.some(({ value }) => value === finding.assigneeId)) {
     options.push({
       value: finding.assigneeId,
-      label: users ? "Unknown Assignee" : "Loading…",
+      label: users ? "Unknown assignee" : "Loading…",
       icon: decorativeAvatar(finding.assigneeId, users ? null : undefined),
     });
   }
@@ -204,8 +204,8 @@ function FindingPropertiesPanel({ finding, asset }: { finding: Finding; asset: A
               {users.isPending
                 ? null
                 : formatUserProfileReference(asset.ownerId, userProfileById, {
-                    emptyLabel: "No Owner",
-                    unknownLabel: "Unknown Owner",
+                    emptyLabel: "No owner",
+                    unknownLabel: "Unknown owner",
                   })}
             </span>
           </PropertyValue>

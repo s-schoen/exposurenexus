@@ -31,7 +31,7 @@ function motionOf(locator: Locator) {
 async function openAccountMenu(page: Page) {
   await page.goto("/settings/roles");
   await page.getByRole("button", { name: new RegExp(ROBIN.displayName) }).click();
-  await expect(page.getByRole("menuitem", { name: "Sign Out" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
   return page.locator("[data-slot=dropdown-menu-content]");
 }
 
@@ -43,7 +43,7 @@ test("fades menus in over 150ms without zoom or slide", async ({ page }) => {
     transitionDuration: "0.15s",
     animationName: "none",
   });
-  expect(await motionOf(page.getByRole("menuitem", { name: "Sign Out" }))).toMatchObject({
+  expect(await motionOf(page.getByRole("menuitem", { name: "Sign out" }))).toMatchObject({
     transitionDuration: "0.1s",
   });
 });
@@ -79,7 +79,7 @@ test("slides the sidebar into Settings from the right and back from the left", a
     navEnterOffset: "",
   });
 
-  await page.getByRole("link", { name: "Leave Settings" }).click();
+  await page.getByRole("link", { name: "Leave settings" }).click();
   expect(await motionOf(page.locator("[data-mode=main]"))).toMatchObject({
     animationName: "nav-enter",
     navEnterOffset: "-0.5rem",
@@ -136,7 +136,7 @@ test.describe("with reduced motion", () => {
     const menu = await openAccountMenu(page);
 
     expect(await motionOf(menu)).toMatchObject({ transitionDuration: "0s" });
-    expect(await motionOf(page.getByRole("menuitem", { name: "Sign Out" }))).toMatchObject({
+    expect(await motionOf(page.getByRole("menuitem", { name: "Sign out" }))).toMatchObject({
       transitionDuration: "0s",
     });
   });

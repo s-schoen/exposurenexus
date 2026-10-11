@@ -25,7 +25,7 @@ describe("list routes", () => {
     ["/findings/triage", "Triage", SEED_FINDINGS[0].id, "Finding details"],
     ["/settings/users", "Users", SEED_USERS[1].id, "User details"],
     ["/vulnerabilities", "Vulnerabilities", SEED_VULNERABILITIES[0].id, "Catalog entry details"],
-    ["/settings/custom-fields", "Custom Fields", SEED_CUSTOM_FIELDS[0].id, "Custom field details"],
+    ["/settings/custom-fields", "Custom fields", SEED_CUSTOM_FIELDS[0].id, "Custom field details"],
     ["/settings/roles", "Roles", CUSTOM_AUDITOR_ROLE.id, "Role details"],
   ])("%s renders its page and opens ?selected= as a preview", async (path, title, id, preview) => {
     renderApp({ path: `${path}?selected=${id}` });
@@ -48,7 +48,7 @@ describe("list routes", () => {
 
   it.each([
     ["/", "Dashboard"],
-    ["/findings/import", "Import Findings"],
+    ["/findings/import", "Import findings"],
   ])("%s renders its page", async (path, title) => {
     renderApp({ path });
 
@@ -117,7 +117,7 @@ describe("authenticated shell", () => {
     await user.click(await screen.findByRole("menuitem", { name: "Import findings" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/findings/import"));
-    expect(await screen.findByRole("heading", { level: 1, name: "Import Findings" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Import findings" })).toBeVisible();
   });
 
   it("links detail pages back to their list through breadcrumbs", async () => {
@@ -137,7 +137,7 @@ describe("authenticated shell", () => {
 });
 
 describe("settings area", () => {
-  const leaveSettings = () => screen.findByRole("link", { name: "Leave Settings" });
+  const leaveSettings = () => screen.findByRole("link", { name: "Leave settings" });
 
   it("swaps the sidebar for the settings sections", async () => {
     const { router, user } = renderApp({ path: "/findings" });
@@ -179,7 +179,7 @@ describe("settings area", () => {
     expect(router.state.location.pathname).toBe("/assets");
     expect(router.state.location.search).toMatchObject({ filter: "web" });
     expect(screen.getByRole("link", { name: "Settings" })).toBeVisible();
-    expect(screen.queryByRole("link", { name: "Leave Settings" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Leave settings" })).not.toBeInTheDocument();
   });
 
   it("goes back to the dashboard when Settings was opened directly", async () => {

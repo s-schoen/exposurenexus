@@ -13,9 +13,9 @@ export function CreateCustomFieldPage() {
   const fieldLifecycle = useAssetCustomFieldDefinitionLifecycle();
 
   usePageMeta({
-    title: "Create Custom Field",
+    title: "Create custom field",
     icon: Tags,
-    breadcrumbs: [{ label: "Custom Fields", to: "/settings/custom-fields" }],
+    breadcrumbs: [{ label: "Custom fields", to: "/settings/custom-fields" }],
   });
 
   const handleCancel = async () => {

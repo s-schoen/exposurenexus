@@ -26,7 +26,7 @@ test("signs out from the account menu", async ({ page, consoleGuard }) => {
   await page.goto("/settings/roles");
 
   await page.getByRole("button", { name: new RegExp(ROBIN.displayName) }).click();
-  await page.getByRole("menuitem", { name: "Sign Out" }).click();
+  await page.getByRole("menuitem", { name: "Sign out" }).click();
 
   await expect(page).toHaveURL(/\/login/);
   await expect(page.getByLabel("Password")).toBeVisible();
