@@ -4,7 +4,7 @@ import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerabil
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import type { FindingContextMenu } from "@/features/findings/components/finding-table/context-menu.tsx";
+import type { FindingContextMenu } from "@/features/findings/components/finding-list/context-menu.tsx";
 import type { Finding } from "@exposurenexus/contracts/model/finding";
 import type { ReactElement, ReactNode } from "react";
 
@@ -55,7 +55,7 @@ function renderContextMenu(
 describe("FindingContextMenu", () => {
   it("renders the selected count and deletion action", async () => {
     const { FindingContextMenu } =
-      await import("@/features/findings/components/finding-table/context-menu.tsx");
+      await import("@/features/findings/components/finding-list/context-menu.tsx");
 
     renderContextMenu(FindingContextMenu, [finding]);
 
@@ -65,7 +65,7 @@ describe("FindingContextMenu", () => {
 
   it("delegates deletion for multiple selected findings", async () => {
     const { FindingContextMenu } =
-      await import("@/features/findings/components/finding-table/context-menu.tsx");
+      await import("@/features/findings/components/finding-list/context-menu.tsx");
     const onDelete = vi.fn();
     const selectedFindings = [finding, { ...finding, id: "73e8f746-a620-4996-909b-60b99f52e9a2" }];
 

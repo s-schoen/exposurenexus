@@ -15,33 +15,129 @@ import { renderApp } from "@/test/render-app.tsx";
 // Whole-app tests: real router, queries and lifecycle hooks against the MSW mock API.
 
 const [ADMIN_ENDPOINT, OUTDATED_DEPENDENCY, ROOT_CONTAINER, WEAK_TLS] = SEED_FINDINGS;
-const [WEB_01, , API_WORKER] = SEED_ASSETS;
+const [WEB_01, CONTAINER_01, API_WORKER] = SEED_ASSETS;
 const [ADMIN_ENDPOINT_CVE, ACCOUNT_TAKEOVER] = SEED_VULNERABILITIES;
 const [, MORGAN] = SEED_USERS;
 
 async function findRow(title: string) {
-  return (await screen.findByText(title)).closest("tr")!;
+  return (await screen.findByText(title)).closest("li")!;
+}
+
+function rowTitles(list: HTMLElement) {
+  return within(list)
+    .getAllByRole("listitem")
+    .map((row) => within(row).getByRole("link").textContent);
 }
 
 describe("findings list", () => {
-  it("lists the findings", async () => {
+  it("lists the findings as rows that link to their pages", async () => {
     renderApp({ path: "/findings" });
 
-    for (const finding of SEED_FINDINGS) {
-      expect(await screen.findByText(finding.title)).toBeVisible();
-    }
+    const list = await screen.findByRole("list", { name: "Findings" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(SEED_FINDINGS.length);
+    expect(within(list).getByRole("link", { name: ADMIN_ENDPOINT.title })).toHaveAttribute(
+      "href",
+      `/findings/${ADMIN_ENDPOINT.id}`,
+    );
   });
 
   it("keeps the search filter in the URL", async () => {
     const { router, user } = renderApp({ path: "/findings" });
 
     // Paste: the input is driven by the URL, so per-keystroke typing races the navigation.
-    await user.click(await screen.findByLabelText("Search across visible columns"));
+    await user.click(await screen.findByRole("textbox", { name: "Search" }));
     await user.paste("tls");
 
     await waitFor(() => expect(router.state.location.search).toMatchObject({ filter: "tls" }));
     await waitFor(() => expect(screen.queryByText(ADMIN_ENDPOINT.title)).not.toBeInTheDocument());
     expect(screen.getByText(WEAK_TLS.title)).toBeVisible();
+  });
+
+  it("filters through the Filters menu and clears a filter from its chip", async () => {
+    const { router, user } = renderApp({ path: "/findings" });
+
+    await user.click(await screen.findByRole("button", { name: "Filters" }));
+    await user.click(await screen.findByRole("option", { name: "Mitigated" }));
+
+    await waitFor(() =>
+      expect(router.state.location.search).toMatchObject({ status: FindingStatus.Mitigated }),
+    );
+    await waitFor(() =>
+      expect(rowTitles(screen.getByRole("list", { name: "Findings" }))).toEqual([WEAK_TLS.title]),
+    );
+
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Clear Status filter Mitigated" }));
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty("status"));
+  });
+
+  it("offers to clear the filters when nothing matches", async () => {
+    const { router, user } = renderApp({ path: "/findings?filter=nothing-matches" });
+
+    await user.click(await screen.findByRole("button", { name: "Clear filters" }));
+
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty("filter"));
+    expect(await screen.findByText(ADMIN_ENDPOINT.title)).toBeVisible();
+  });
+
+  it("shows an empty state without findings", async () => {
+    renderApp({ path: "/findings", scenario: "empty" });
+
+    expect(await screen.findByText("No findings yet.")).toBeVisible();
+    expect(screen.queryByRole("list", { name: "Findings" })).not.toBeInTheDocument();
+  });
+
+  it("groups by status from the Display menu, keeps it in the URL and collapses a group", async () => {
+    const { router, user } = renderApp({ path: "/findings" });
+
+    await user.click(await screen.findByRole("button", { name: "Display" }));
+    await user.click(screen.getByRole("combobox", { name: "Group by" }));
+    await user.click(await screen.findByRole("option", { name: "Status" }));
+
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ group: "status" }));
+    const active = await screen.findByRole("list", { name: "Active" });
+    expect(rowTitles(active).sort()).toEqual([ROOT_CONTAINER.title, ADMIN_ENDPOINT.title]);
+    expect(rowTitles(screen.getByRole("list", { name: "Mitigated" }))).toEqual([WEAK_TLS.title]);
+
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: /^Active/ }));
+    await waitFor(() =>
+      expect(screen.queryByRole("list", { name: "Active" })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("list", { name: "Confirmed" })).toBeVisible();
+  });
+
+  it("orders rows and hides properties from the Display menu", async () => {
+    const { user } = renderApp({ path: "/findings" });
+
+    await user.click(await screen.findByRole("button", { name: "Display" }));
+    await user.click(screen.getByRole("combobox", { name: "Order by" }));
+    await user.click(await screen.findByRole("option", { name: "Title" }));
+    const titles = SEED_FINDINGS.map((finding) => finding.title).sort((left, right) =>
+      left.localeCompare(right),
+    );
+    // The newest-first default is descending, and a new order keeps the direction.
+    await waitFor(() =>
+      expect(rowTitles(screen.getByRole("list", { name: "Findings" }))).toEqual(
+        [...titles].reverse(),
+      ),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Descending order" }));
+    expect(rowTitles(screen.getByRole("list", { name: "Findings" }))).toEqual(titles);
+
+    const list = screen.getByRole("list", { name: "Findings" });
+    expect(within(list).getAllByText(WEB_01.displayName)).toHaveLength(2);
+    await user.click(screen.getByRole("button", { name: "Asset", pressed: true }));
+    expect(within(list).queryByText(WEB_01.displayName)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Asset", pressed: false })).toBeVisible();
+  });
+
+  it("marks the row whose preview is open", async () => {
+    renderApp({ path: `/findings?selected=${ROOT_CONTAINER.id}` });
+
+    expect(await findRow(ROOT_CONTAINER.title)).toHaveAttribute("aria-current", "true");
+    expect(await findRow(WEAK_TLS.title)).not.toHaveAttribute("aria-current");
   });
 
   it("opens the create page from the toolbar", async () => {
@@ -124,6 +220,25 @@ describe("triage queue", () => {
     expect(screen.getByText(ROOT_CONTAINER.title)).toBeVisible();
     await waitFor(() => expect(screen.queryByText(WEAK_TLS.title)).not.toBeInTheDocument());
     expect(screen.queryByText(OUTDATED_DEPENDENCY.title)).not.toBeInTheDocument();
+  });
+
+  it("groups by asset unless the URL picks another grouping", async () => {
+    const { router, user } = renderApp({ path: "/findings/triage" });
+
+    expect(rowTitles(await screen.findByRole("list", { name: CONTAINER_01.displayName }))).toEqual([
+      ROOT_CONTAINER.title,
+    ]);
+    expect(rowTitles(screen.getByRole("list", { name: WEB_01.displayName }))).toEqual([
+      ADMIN_ENDPOINT.title,
+    ]);
+    expect(router.state.location.search).not.toHaveProperty("group");
+
+    await user.click(screen.getByRole("button", { name: "Display" }));
+    await user.click(screen.getByRole("combobox", { name: "Group by" }));
+    await user.click(await screen.findByRole("option", { name: "None" }));
+
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ group: "none" }));
+    expect(await screen.findByRole("list", { name: "Findings" })).toBeVisible();
   });
 
   it("keeps an explicit status filter", async () => {

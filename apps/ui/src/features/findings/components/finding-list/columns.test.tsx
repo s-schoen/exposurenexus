@@ -6,52 +6,16 @@ import {
 } from "@exposurenexus/contracts/model/asset";
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
-import { cleanup, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+
+import { formatShortDate } from "@/lib/format.ts";
+import { renderWithAppProviders } from "@/test/harness.tsx";
 
 import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type { Finding } from "@exposurenexus/contracts/model/finding";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { ReactNode } from "react";
-
-vi.mock("@/components/data-table/column-header.tsx", () => ({
-  DataTableColumnHeader: ({ title }: { title: string }) => <span>{title}</span>,
-}));
-
-vi.mock("@/features/users", () => ({
-  formatUserProfileReference: (
-    userId: string | null | undefined,
-    usersById: Map<string, UserProfile>,
-    {
-      emptyLabel,
-      unknownLabel,
-    }: {
-      emptyLabel: string;
-      unknownLabel: string;
-    },
-  ) => {
-    if (!userId) return emptyLabel;
-
-    return usersById.get(userId)?.displayName ?? unknownLabel;
-  },
-  getUserProfileDisplayName: (user: UserProfile) => user.displayName,
-  UserLabel: ({
-    emptyLabel,
-    unknownLabel,
-    user,
-    userId,
-  }: {
-    emptyLabel: string;
-    unknownLabel: string;
-    user?: UserProfile | null;
-    userId?: string | null;
-  }) => {
-    if (!userId && !user) return <span>{emptyLabel}</span>;
-    if (user) return <span>{user.displayName}</span>;
-    if (typeof user === "undefined" && userId) return <span>Loading User</span>;
-    return <span>{unknownLabel}</span>;
-  },
-}));
 
 const finding: Finding = {
   id: "2713d833-eb13-4517-ac7c-7761545ed42a",
@@ -150,7 +114,7 @@ async function createColumns(
   usersLoading = false,
 ) {
   const { createFindingColumns } =
-    await import("@/features/findings/components/finding-table/columns.tsx");
+    await import("@/features/findings/components/finding-list/columns.tsx");
 
   return createFindingColumns(
     assetNamesById,
@@ -177,106 +141,98 @@ function renderCell(column: TestColumn, rowFinding: Finding = finding) {
     throw new Error(`Column ${column.accessorKey} has no cell renderer`);
   }
 
-  return render(<>{column.cell({ row: createRow(rowFinding) })}</>);
+  return renderWithAppProviders(<>{column.cell({ row: createRow(rowFinding) })}</>);
 }
 
 describe("createFindingColumns", () => {
-  it("renders title, severity, status, asset, observation count, and date cells", async () => {
+  it("renders the title, the severity icon and the property chips", async () => {
     const columns = await createColumns();
+    const dueDate = new Date("2099-05-06T00:00:00.000Z");
 
     renderCell(findColumn(columns, "title"));
-    expect(screen.getByText("Exposed Admin Endpoint")).toBeTruthy();
+    expect(screen.getByText("Exposed Admin Endpoint")).toBeVisible();
     cleanup();
 
     renderCell(findColumn(columns, "severity"));
-    expect(screen.getByText("High")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "High" })).toBeVisible();
     cleanup();
 
     renderCell(findColumn(columns, "status"));
-    expect(screen.getByText("Active")).toBeTruthy();
+    expect(screen.getByText("Active")).toBeVisible();
     cleanup();
 
     renderCell(findColumn(columns, "assetId"));
-    expect(screen.getByText("api-01")).toBeTruthy();
+    expect(screen.getByText("api-01")).toBeVisible();
     cleanup();
 
     renderCell(findColumn(columns, "responsibleOwner"));
-    expect(screen.getByText("Robin Owner")).toBeTruthy();
+    expect(screen.getByText("Robin Owner")).toBeVisible();
     cleanup();
 
     renderCell(findColumn(columns, "assignee"));
-    expect(screen.getByText("Alex Assignee")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Alex Assignee" })).toHaveTextContent("AA");
     cleanup();
 
-    renderCell(findColumn(columns, "dueDate"), {
-      ...finding,
-      dueDate: new Date("2026-05-06T00:00:00.000Z"),
-    });
-    expect(screen.getByText("2026-05-06")).toBeTruthy();
+    renderCell(findColumn(columns, "dueDate"), { ...finding, dueDate });
+    expect(screen.getByTitle("Due date")).toHaveTextContent(
+      formatShortDate(dueDate, { timeZone: "UTC" }),
+    );
     cleanup();
 
     renderCell(findColumn(columns, "observationCount"));
-    expect(screen.getByText("2")).toBeTruthy();
+    expect(screen.getByTitle("Observations")).toHaveTextContent("2");
     cleanup();
 
     renderCell(findColumn(columns, "firstSeen"));
-    expect(screen.getByText(finding.firstSeen!.toLocaleString())).toBeTruthy();
+    expect(
+      screen.getByTitle(`First seen ${finding.firstSeen!.toLocaleString()}`),
+    ).toHaveTextContent(formatShortDate(finding.firstSeen!));
   });
 
-  it("renders fallback labels for unresolved assets and missing dates", async () => {
+  it("renders fallbacks for unresolved assets, missing dates and no assignee", async () => {
     const columns = await createColumns(new Map(), new Map(), new Map());
     const fallbackFinding = {
       ...finding,
+      assigneeId: null,
       dueDate: null,
       firstSeen: null,
       lastSeen: null,
     };
 
     renderCell(findColumn(columns, "assetId"), fallbackFinding);
-    expect(screen.getByText("Unknown asset")).toBeTruthy();
+    expect(screen.getByText("Unknown asset")).toBeVisible();
     cleanup();
 
     renderCell(findColumn(columns, "responsibleOwner"), fallbackFinding);
-    expect(screen.getByText("Unknown Asset")).toBeTruthy();
+    expect(screen.getByText("Unknown Asset")).toBeVisible();
+    cleanup();
+
+    renderCell(findColumn(columns, "assignee"), fallbackFinding);
+    expect(screen.getByRole("img", { name: "Unassigned" })).toBeVisible();
     cleanup();
 
     renderCell(findColumn(columns, "dueDate"), fallbackFinding);
-    expect(screen.getByText("No due date")).toBeTruthy();
+    expect(screen.getByText("No due date")).toBeInTheDocument();
     cleanup();
 
-    renderCell(findColumn(columns, "firstSeen"), fallbackFinding);
-    expect(screen.getByText("Not available")).toBeTruthy();
-    cleanup();
-
-    renderCell(findColumn(columns, "lastSeen"), fallbackFinding);
-    expect(screen.getByText("Not available")).toBeTruthy();
+    const { container } = renderCell(findColumn(columns, "firstSeen"), fallbackFinding);
+    expect(container).toBeEmptyDOMElement();
   });
 
-  it("formats due dates without shifting the UTC date key", async () => {
-    const { formatFindingDueDate } =
-      await import("@/features/findings/components/finding-table/columns.tsx");
-
-    expect(formatFindingDueDate(new Date("2026-05-06T23:30:00.000Z"))).toBe("2026-05-06");
-    expect(formatFindingDueDate(null)).toBe("No due date");
-  });
-
-  it("emphasizes overdue due date cells without changing date alignment", async () => {
+  it("marks overdue due dates", async () => {
     const columns = await createColumns();
-    const { container } = renderCell(findColumn(columns, "dueDate"), {
+
+    renderCell(findColumn(columns, "dueDate"), {
       ...finding,
       dueDate: new Date("2000-01-01T00:00:00.000Z"),
     });
 
-    const dueDate = screen.getByText("2000-01-01");
-
-    expect(dueDate).toBeTruthy();
-    expect(container.querySelector(".bg-destructive\\/5")).toBeTruthy();
-    expect(container.querySelector(".border-destructive\\/25")).toBeNull();
+    expect(screen.getByTitle("Overdue")).toHaveTextContent(/^Overdue /);
   });
 
   it("only treats active and confirmed findings with past due dates as overdue", async () => {
     const { isFindingOverdue } =
-      await import("@/features/findings/components/finding-table/columns.tsx");
+      await import("@/features/findings/components/finding-list/columns.tsx");
     const today = new Date("2026-05-06T12:00:00.000Z");
     const yesterday = new Date("2026-05-05T00:00:00.000Z");
     const dueToday = new Date("2026-05-06T00:00:00.000Z");
@@ -344,6 +300,13 @@ describe("createFindingColumns", () => {
     }
   });
 
+  it("searches and orders assets by name but groups them by id", async () => {
+    const assetColumn = findColumn(await createColumns(), "assetId");
+
+    expect(assetColumn.accessorFn?.(finding)).toBe("api-01");
+    expect(assetColumn.getGroupingValue?.(finding)).toBe(finding.assetId);
+  });
+
   it("renders asset owner fallbacks for ownerless assets and unknown users", async () => {
     const ownerlessColumns = await createColumns(
       new Map([[finding.assetId, "api-01"]]),
@@ -366,15 +329,6 @@ describe("createFindingColumns", () => {
   });
 
   it("renders assignee fallbacks and loading state", async () => {
-    const columns = await createColumns();
-
-    renderCell(findColumn(columns, "assignee"), {
-      ...finding,
-      assigneeId: null,
-    });
-    expect(screen.getByText("Unassigned")).toBeTruthy();
-    cleanup();
-
     const unknownAssigneeColumns = await createColumns(
       new Map([[finding.assetId, "api-01"]]),
       new Map([[asset.id, asset]]),
@@ -382,7 +336,7 @@ describe("createFindingColumns", () => {
     );
 
     renderCell(findColumn(unknownAssigneeColumns, "assignee"));
-    expect(screen.getByText("Unknown Assignee")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Unknown Assignee" })).toBeVisible();
     cleanup();
 
     const loadingAssigneeColumns = await createColumns(
@@ -393,7 +347,7 @@ describe("createFindingColumns", () => {
     );
 
     renderCell(findColumn(loadingAssigneeColumns, "assignee"));
-    expect(screen.getByText("Loading User")).toBeTruthy();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
   it("keeps assignee accessors label-based while grouping by stable identity", async () => {

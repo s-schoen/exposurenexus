@@ -1,11 +1,11 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { ShieldAlert, Upload } from "lucide-react";
+import { Plus, ShieldAlert, Upload } from "lucide-react";
 import { useMemo } from "react";
 
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
+import { FindingList } from "@/features/findings/components/finding-list/index.tsx";
 import { FindingPreview } from "@/features/findings/components/finding-preview.tsx";
-import { FindingTable } from "@/features/findings/components/finding-table/index.tsx";
 import { useFindingTableSearchState } from "@/features/findings/hooks/use-finding-table-search-state.ts";
 import { createListFindingsQueryOptions } from "@/features/findings/queries/findings.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
@@ -21,10 +21,11 @@ interface FindingsPageProps {
 export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
   const navigate = useNavigate();
   const findings = useSuspenseQuery(createListFindingsQueryOptions());
-  const { filterState, onFilterStateChange } = useFindingTableSearchState({
-    search,
-    to: "/findings",
-  });
+  const { filterState, onFilterStateChange, grouping, onGroupingChange } =
+    useFindingTableSearchState({
+      search,
+      to: "/findings",
+    });
   const selectedSearch = useSelectedSearchParam<Finding>({
     selectedId: selected,
     to: "/findings",
@@ -32,6 +33,18 @@ export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
     getId: (finding) => finding.id,
   });
 
+  const actions = useMemo(
+    () => [
+      {
+        label: "New finding",
+        icon: Plus,
+        onClick: () => {
+          void navigate({ to: "/findings/new" });
+        },
+      },
+    ],
+    [navigate],
+  );
   const menu = useMemo(
     () => [
       {
@@ -49,12 +62,15 @@ export function FindingsPage({ search = {}, selected }: FindingsPageProps) {
     title: "Findings",
     icon: ShieldAlert,
     count: findings.data.length,
+    actions,
     menu,
   });
 
   return (
     <>
-      <FindingTable
+      <FindingList
+        grouping={grouping}
+        onGroupingChange={onGroupingChange}
         filterState={filterState}
         onFilterStateChange={onFilterStateChange}
         selectedFindingId={selectedSearch.selectedId}

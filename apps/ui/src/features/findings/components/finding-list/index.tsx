@@ -1,40 +1,65 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, Server, ShieldAlert } from "lucide-react";
 import { useMemo } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
-import { DataTable } from "@/components/data-table/data-table.tsx";
+import { DataList } from "@/components/data-list/data-list.tsx";
+import { DataListEmpty } from "@/components/data-list/empty-state.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { createListAssetsQueryOptions } from "@/features/assets";
 import {
   FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE,
   createFindingColumns,
   formatFindingAssignee,
-} from "@/features/findings/components/finding-table/columns.tsx";
-import { FindingContextMenu } from "@/features/findings/components/finding-table/context-menu.tsx";
+} from "@/features/findings/components/finding-list/columns.tsx";
+import {
+  SEVERITY_ORDER,
+  STATUS_ORDER,
+} from "@/features/findings/components/finding-list/constants.ts";
+import { FindingContextMenu } from "@/features/findings/components/finding-list/context-menu.tsx";
+import { FindingStatusIcon } from "@/features/findings/components/finding-status-icon.tsx";
 import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifecycle.ts";
+import { formatFindingStatus } from "@/features/findings/lib/format.ts";
 import { createListFindingsQueryOptions } from "@/features/findings/queries/findings.ts";
-import { createListUsersQueryOptions, createUserProfileById } from "@/features/users";
+import { UserAvatar, createListUsersQueryOptions, createUserProfileById } from "@/features/users";
+import { SeverityIcon, formatSeverity } from "@/features/vulnerabilities";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
-import type { Finding } from "@exposurenexus/contracts/model/finding";
+import type { Finding, FindingStatus } from "@exposurenexus/contracts/model/finding";
+import type { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 
-interface FindingTableProps {
-  initialGrouping?: Array<string>;
+const initialSorting = [{ id: "updatedAt", desc: true }];
+// Plane's default row: severity, title, then status, asset, due date and assignee.
+const initialColumnVisibility = {
+  responsibleOwner: false,
+  observationCount: false,
+  firstSeen: false,
+  lastSeen: false,
+  updatedAt: false,
+};
+
+function compareByOrder<T>(order: ReadonlyArray<T>) {
+  return (left: unknown, right: unknown) => order.indexOf(left as T) - order.indexOf(right as T);
+}
+
+interface FindingListProps {
+  grouping?: string;
+  onGroupingChange?: (grouping: string | undefined) => void;
   filterState?: DataTableFilterState;
   onFilterStateChange?: (state: DataTableFilterState) => void;
   selectedFindingId?: string;
   onSelectFinding?: (finding: Finding) => void;
 }
 
-export function FindingTable({
-  initialGrouping = [],
+export function FindingList({
+  grouping,
+  onGroupingChange,
   filterState,
   onFilterStateChange,
   selectedFindingId,
   onSelectFinding,
-}: FindingTableProps) {
+}: FindingListProps) {
   const navigate = useNavigate();
   const findingLifecycle = useFindingLifecycle();
   const findingsQuery = useSuspenseQuery(createListFindingsQueryOptions());
@@ -59,24 +84,32 @@ export function FindingTable({
   const groupingOptions = useMemo<Array<GroupingOption>>(
     () => [
       {
-        id: "severity",
-        label: "Severity",
-        formatValue: (value) => String(value),
-      },
-      {
         id: "status",
         label: "Status",
-        formatValue: (value) => String(value),
+        formatValue: (value) => formatFindingStatus(value as FindingStatus),
+        renderIcon: (value) => <FindingStatusIcon status={value as FindingStatus} decorative />,
+        compareValues: compareByOrder(STATUS_ORDER),
+      },
+      {
+        id: "severity",
+        label: "Severity",
+        formatValue: (value) => formatSeverity(value as VulnerabilitySeverity),
+        renderIcon: (value) => (
+          <SeverityIcon severity={value as VulnerabilitySeverity} decorative />
+        ),
+        compareValues: compareByOrder(SEVERITY_ORDER),
       },
       {
         id: "assetId",
         label: "Asset",
         formatValue: (value) => assetNamesById.get(String(value)) ?? "Unknown asset",
+        renderIcon: () => (
+          <Server className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
+        ),
       },
       {
         id: "responsibleOwner",
-        label: "Asset Owner",
-        formatValue: (value) => String(value),
+        label: "Asset owner",
       },
       {
         id: "assignee",
@@ -85,6 +118,19 @@ export function FindingTable({
           String(value) === FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE
             ? "Unassigned"
             : formatFindingAssignee(String(value), userProfileById),
+        renderIcon: (value) => {
+          const userId =
+            String(value) === FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE ? null : String(value);
+
+          return (
+            <UserAvatar
+              userId={userId}
+              user={userId ? (userProfileById.get(userId) ?? null) : null}
+              emptyLabel="Unassigned"
+              unknownLabel="Unknown Assignee"
+            />
+          );
+        },
       },
     ],
     [assetNamesById, userProfileById],
@@ -112,38 +158,24 @@ export function FindingTable({
     }
   };
 
-  const handleCreateFinding = async () => {
-    await navigate({
-      to: "/findings/new",
-    });
-  };
-
-  function ToolbarElements() {
-    return (
-      <>
-        <Button variant="default" size="default" onClick={handleCreateFinding}>
-          <Plus />
-          New finding
-        </Button>
-      </>
-    );
-  }
-
   return (
-    <DataTable
+    <DataList
+      label="Findings"
       columns={columns}
       query={findingsQuery}
+      getRowId={(finding) => finding.id}
+      getRowHref={(finding) => `/findings/${finding.id}`}
       groupingOptions={groupingOptions}
-      initialGrouping={initialGrouping}
+      grouping={grouping}
+      onGroupingChange={onGroupingChange}
       filterState={filterState}
       onFilterStateChange={onFilterStateChange}
-      initialSorting={[{ id: "updatedAt", desc: true }]}
-      initialColumnVisibility={{ updatedAt: false }}
+      initialSorting={initialSorting}
+      initialColumnVisibility={initialColumnVisibility}
       onRowClick={onSelectFinding}
       onRowDoubleClick={handleOpenFinding}
       isRowActive={(finding) => finding.id === selectedFindingId}
       onRowDelete={handleDeleteFindings}
-      toolbarControls={ToolbarElements}
       contextMenu={(findings, children, key) => (
         <FindingContextMenu
           key={key}
@@ -153,6 +185,14 @@ export function FindingTable({
           {children}
         </FindingContextMenu>
       )}
+      emptyState={
+        <DataListEmpty icon={ShieldAlert} message="No findings yet.">
+          <Button variant="outline" onClick={() => void navigate({ to: "/findings/new" })}>
+            <Plus />
+            New finding
+          </Button>
+        </DataListEmpty>
+      }
     />
   );
 }

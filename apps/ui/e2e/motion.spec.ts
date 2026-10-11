@@ -1,4 +1,4 @@
-import { SEED_USERS, SEED_VULNERABILITIES } from "@/mocks/fixtures/index.ts";
+import { SEED_FINDINGS, SEED_USERS, SEED_VULNERABILITIES } from "@/mocks/fixtures/index.ts";
 
 import { expect, test } from "./fixtures.ts";
 
@@ -6,6 +6,7 @@ import type { Locator, Page } from "@playwright/test";
 
 const [ROBIN] = SEED_USERS;
 const [ADMIN_ENDPOINT] = SEED_VULNERABILITIES;
+const [ADMIN_ENDPOINT_FINDING] = SEED_FINDINGS;
 
 // jsdom runs no CSS, so the motion rules (PRD A7) are checked here on computed styles.
 
@@ -21,6 +22,7 @@ function motionOf(locator: Locator) {
       navEnterOffset: style.getPropertyValue("--nav-enter-offset"),
       backgroundColor: style.backgroundColor,
       backdropFilter: style.backdropFilter,
+      opacity: style.opacity,
     };
   });
 }
@@ -79,6 +81,28 @@ test("slides the sidebar into Settings from the right and back from the left", a
   expect(await motionOf(page.locator("[data-mode=main]"))).toMatchObject({
     animationName: "nav-enter",
     navEnterOffset: "-0.5rem",
+  });
+});
+
+test("tints list rows on hover and fades their checkbox in", async ({ page }) => {
+  await page.goto("/findings");
+  const row = page.getByRole("listitem").filter({ hasText: ADMIN_ENDPOINT_FINDING.title });
+  const checkbox = row.locator("span", { has: page.getByRole("checkbox") });
+
+  expect(await motionOf(row)).toMatchObject({ transitionDuration: "0.1s" });
+  expect(await motionOf(checkbox)).toMatchObject({ transitionDuration: "0.075s", opacity: "0" });
+
+  await row.hover();
+  await expect.poll(async () => (await motionOf(checkbox)).opacity).toBe("1");
+});
+
+test("collapses list groups by height and opacity over 300ms", async ({ page }) => {
+  await page.goto("/findings/triage");
+  const group = page.locator("[data-slot=collapsible-content]").first();
+
+  expect(await motionOf(group)).toMatchObject({
+    transitionProperty: "height, opacity",
+    transitionDuration: "0.3s",
   });
 });
 

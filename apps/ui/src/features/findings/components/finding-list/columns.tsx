@@ -1,12 +1,22 @@
 import { FindingStatus } from "@exposurenexus/contracts/model/finding";
-import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
+import { CalendarDays, Clock3, Eye, Server, UserRound } from "lucide-react";
 
-import { DataTableColumnHeader } from "@/components/data-table/column-header.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
+import {
+  SEVERITY_ORDER,
+  STATUS_ORDER,
+} from "@/features/findings/components/finding-list/constants.ts";
 import { FindingStatusBadge } from "@/features/findings/components/finding-status-badge.tsx";
-import { SEVERITY_ORDER } from "@/features/findings/components/finding-table/constants.ts";
-import { formatUtcDateOnly } from "@/features/findings/lib/date-input.ts";
-import { UserLabel, formatUserProfileReference, getUserProfileDisplayName } from "@/features/users";
-import { SeverityBadge } from "@/features/vulnerabilities";
+import { FindingStatusIcon } from "@/features/findings/components/finding-status-icon.tsx";
+import { formatFindingStatus } from "@/features/findings/lib/format.ts";
+import {
+  UserAvatar,
+  UserLabel,
+  formatUserProfileReference,
+  getUserProfileDisplayName,
+} from "@/features/users";
+import { SeverityIcon, formatSeverity } from "@/features/vulnerabilities";
+import { formatShortDate } from "@/lib/format.ts";
 import { normalizeDateToUtcStart } from "@/lib/utc-date";
 
 import type { DataTableColumnDef } from "@/components/data-table/types.ts";
@@ -53,24 +63,6 @@ function compareDueDateValues(left: Date | null | undefined, right: Date | null 
   return leftTime - rightTime;
 }
 
-function FindingDateCell({ value }: { value: Date | null | undefined }) {
-  if (!value) {
-    return <span className="text-muted-foreground">Not available</span>;
-  }
-
-  return (
-    <span className="whitespace-nowrap font-medium text-foreground">{value.toLocaleString()}</span>
-  );
-}
-
-export function formatFindingDueDate(value: Date | null | undefined) {
-  if (!value) {
-    return "No due date";
-  }
-
-  return formatUtcDateOnly(value);
-}
-
 export function isFindingOverdue(finding: Pick<Finding, "status" | "dueDate">, today = new Date()) {
   if (!finding.dueDate || !overdueStatuses.has(finding.status)) {
     return false;
@@ -80,26 +72,6 @@ export function isFindingOverdue(finding: Pick<Finding, "status" | "dueDate">, t
   const todayTime = normalizeDateToUtcStart(today).getTime();
 
   return dueDateTime < todayTime;
-}
-
-function FindingDueDateCell({ finding }: { finding: Finding }) {
-  if (!finding.dueDate) {
-    return <span className="text-muted-foreground">No due date</span>;
-  }
-
-  const overdue = isFindingOverdue(finding);
-
-  return (
-    <span
-      className={
-        overdue
-          ? "block -mx-2 -my-2 whitespace-nowrap bg-destructive/5 px-2 py-2 font-medium text-foreground"
-          : "whitespace-nowrap font-medium text-foreground"
-      }
-    >
-      {formatFindingDueDate(finding.dueDate)}
-    </span>
-  );
 }
 
 export function formatFindingAssetOwner(
@@ -129,6 +101,58 @@ export function formatFindingAssignee(
   });
 }
 
+function DateChip({ label, value }: { label: string; value: Date | null | undefined }) {
+  if (!value) {
+    return null;
+  }
+
+  return (
+    <Badge variant="property" title={`${label} ${value.toLocaleString()}`}>
+      <Clock3 strokeWidth={1.5} aria-hidden="true" />
+      <span className="sr-only">{label}</span>
+      {formatShortDate(value)}
+    </Badge>
+  );
+}
+
+function DueDateChip({ finding }: { finding: Finding }) {
+  if (!finding.dueDate) {
+    return (
+      <Badge variant="property" title="No due date">
+        <CalendarDays strokeWidth={1.5} aria-hidden="true" />
+        <span className="sr-only">No due date</span>
+      </Badge>
+    );
+  }
+
+  const overdue = isFindingOverdue(finding);
+
+  return (
+    <Badge variant="property" title={overdue ? "Overdue" : "Due date"}>
+      <CalendarDays
+        strokeWidth={1.5}
+        aria-hidden="true"
+        className={overdue ? "text-destructive" : undefined}
+      />
+      <span className={overdue ? "text-destructive" : undefined}>
+        {overdue && <span className="sr-only">Overdue </span>}
+        {formatShortDate(finding.dueDate, { timeZone: "UTC" })}
+      </span>
+    </Badge>
+  );
+}
+
+function resolveUser(
+  userId: string | null,
+  userProfileById: Map<string, UserProfile>,
+  usersLoading: boolean,
+) {
+  if (!userId) return null;
+  if (usersLoading) return undefined;
+
+  return userProfileById.get(userId) ?? null;
+}
+
 export function createFindingColumns(
   assetNamesById: ReadonlyMap<string, string>,
   assetsById: ReadonlyMap<string, Asset> = new Map(),
@@ -137,118 +161,113 @@ export function createFindingColumns(
 ): Array<DataTableColumnDef<Finding>> {
   return [
     {
-      accessorKey: "title",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Title" />,
-      cell: ({ row }) => (
-        <div className="min-w-0 py-0.5">
-          <div className="truncate font-medium text-foreground">{row.original.title}</div>
-        </div>
-      ),
-      enableColumnFilter: false,
-    },
-    {
       accessorKey: "severity",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Severity" />,
       sortFn: (rowA, rowB) => {
         const left = severityRank.get(rowA.original.severity) ?? -1;
         const right = severityRank.get(rowB.original.severity) ?? -1;
 
         return left - right;
       },
-      cell: ({ row }) => {
-        return <SeverityBadge severity={row.getValue("severity")} />;
-      },
+      cell: ({ row }) => <SeverityIcon severity={row.original.severity} />,
       filterFn: (row, _columnId, filterValue: Array<string>) => {
         if (filterValue.length === 0) return true;
-        return filterValue.includes(row.getValue("severity"));
+        return filterValue.includes(row.original.severity);
       },
+      enableHiding: false,
       meta: {
         label: "Severity",
+        placement: "leading",
         filterVariant: "select",
-        options: Object.keys(VulnerabilitySeverity).map((severity) => ({
-          label: severity,
-          value: VulnerabilitySeverity[severity as keyof typeof VulnerabilitySeverity],
+        options: SEVERITY_ORDER.map((severity) => ({
+          label: formatSeverity(severity),
+          value: severity,
+          icon: <SeverityIcon severity={severity} decorative />,
         })),
       },
+    },
+    {
+      accessorKey: "title",
+      cell: ({ row }) => row.original.title,
+      enableColumnFilter: false,
+      enableHiding: false,
+      meta: { label: "Title", placement: "title" },
     },
     {
       accessorKey: "status",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
-      cell: ({ row }) => {
-        return <FindingStatusBadge status={row.getValue("status")} />;
-      },
+      cell: ({ row }) => <FindingStatusBadge status={row.original.status} />,
       filterFn: (row, _columnId, filterValue: Array<string>) => {
         if (filterValue.length === 0) return true;
-        return filterValue.includes(row.getValue("status"));
+        return filterValue.includes(row.original.status);
       },
       meta: {
         label: "Status",
+        placement: "property",
         filterVariant: "select",
-        options: Object.keys(FindingStatus).map((status) => ({
-          label: status,
-          value: FindingStatus[status as keyof typeof FindingStatus],
+        options: STATUS_ORDER.map((status) => ({
+          label: formatFindingStatus(status),
+          value: status,
+          icon: <FindingStatusIcon status={status} decorative />,
         })),
       },
     },
     {
-      accessorKey: "assetId",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Asset" />,
-      cell: ({ row }) => {
-        const assetName = assetNamesById.get(row.original.assetId);
-
-        return (
-          <div className="min-w-0">
-            <span className="truncate font-medium text-foreground">
-              {assetName ?? "Unknown asset"}
-            </span>
-          </div>
-        );
-      },
+      id: "assetId",
+      // Search and order by the asset's name; group by its id, so equally named assets stay apart.
+      accessorFn: (finding) => assetNamesById.get(finding.assetId) ?? "Unknown asset",
+      getGroupingValue: (finding) => finding.assetId,
+      cell: ({ row }) => (
+        <Badge variant="property" title="Asset">
+          <Server strokeWidth={1.5} aria-hidden="true" />
+          <span className="max-w-40 truncate">
+            {assetNamesById.get(row.original.assetId) ?? "Unknown asset"}
+          </span>
+        </Badge>
+      ),
+      meta: { label: "Asset", placement: "property" },
     },
     {
       id: "responsibleOwner",
       accessorFn: (finding) =>
         formatFindingAssetOwner(finding.assetId, assetsById, userProfileById),
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Asset Owner" />,
       cell: ({ row }) => {
         const asset = assetsById.get(row.original.assetId);
 
-        if (!asset) {
-          return <span className="text-muted-foreground">Unknown Asset</span>;
-        }
-
         return (
-          <UserLabel
-            userId={asset.ownerId}
-            user={
-              asset.ownerId && usersLoading
-                ? undefined
-                : asset.ownerId
-                  ? (userProfileById.get(asset.ownerId) ?? null)
-                  : null
-            }
-            emptyLabel="No Owner"
-            unknownLabel="Unknown Owner"
-          />
+          <Badge variant="property" title="Asset owner">
+            <UserRound strokeWidth={1.5} aria-hidden="true" />
+            <span className="max-w-40 truncate">
+              {asset ? (
+                <UserLabel
+                  userId={asset.ownerId}
+                  user={resolveUser(asset.ownerId, userProfileById, usersLoading)}
+                  emptyLabel="No Owner"
+                  unknownLabel="Unknown Owner"
+                />
+              ) : (
+                "Unknown Asset"
+              )}
+            </span>
+          </Badge>
         );
       },
       enableColumnFilter: false,
+      meta: { label: "Asset owner", placement: "property" },
+    },
+    {
+      accessorKey: "dueDate",
+      sortFn: (rowA, rowB) => compareDueDateValues(rowA.original.dueDate, rowB.original.dueDate),
+      cell: ({ row }) => <DueDateChip finding={row.original} />,
+      enableColumnFilter: false,
+      meta: { label: "Due date", placement: "property" },
     },
     {
       id: "assignee",
       accessorFn: (finding) => formatFindingAssignee(finding.assigneeId, userProfileById),
       getGroupingValue: (finding) => finding.assigneeId ?? FINDING_ASSIGNEE_UNASSIGNED_FILTER_VALUE,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Assignee" />,
       cell: ({ row }) => (
-        <UserLabel
+        <UserAvatar
           userId={row.original.assigneeId}
-          user={
-            row.original.assigneeId && usersLoading
-              ? undefined
-              : row.original.assigneeId
-                ? (userProfileById.get(row.original.assigneeId) ?? null)
-                : null
-          }
+          user={resolveUser(row.original.assigneeId, userProfileById, usersLoading)}
           emptyLabel="Unassigned"
           unknownLabel="Unknown Assignee"
         />
@@ -263,6 +282,7 @@ export function createFindingColumns(
       },
       meta: {
         label: "Assignee",
+        placement: "property",
         filterVariant: "select",
         options: [
           {
@@ -277,36 +297,35 @@ export function createFindingColumns(
       },
     },
     {
-      accessorKey: "dueDate",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Due Date" />,
-      sortFn: (rowA, rowB) => compareDueDateValues(rowA.original.dueDate, rowB.original.dueDate),
-      cell: ({ row }) => <FindingDueDateCell finding={row.original} />,
-      enableColumnFilter: false,
-    },
-    {
       id: "observationCount",
       accessorFn: (finding) => finding.observationCount,
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Observations" />,
-      cell: ({ row }) => <span>{row.original.observationCount}</span>,
+      cell: ({ row }) => (
+        <Badge variant="property" title="Observations">
+          <Eye strokeWidth={1.5} aria-hidden="true" />
+          <span className="sr-only">Observations</span>
+          {row.original.observationCount}
+        </Badge>
+      ),
+      meta: { label: "Observations", placement: "property" },
     },
     {
       accessorKey: "firstSeen",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="First Seen" />,
       sortFn: (rowA, rowB) => compareDateValues(rowA.original.firstSeen, rowB.original.firstSeen),
-      cell: ({ row }) => <FindingDateCell value={row.getValue("firstSeen")} />,
+      cell: ({ row }) => <DateChip label="First seen" value={row.original.firstSeen} />,
+      meta: { label: "First seen", placement: "property" },
     },
     {
       accessorKey: "lastSeen",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Last Seen" />,
       sortFn: (rowA, rowB) => compareDateValues(rowA.original.lastSeen, rowB.original.lastSeen),
-      cell: ({ row }) => <FindingDateCell value={row.getValue("lastSeen")} />,
+      cell: ({ row }) => <DateChip label="Last seen" value={row.original.lastSeen} />,
+      meta: { label: "Last seen", placement: "property" },
     },
     {
       accessorKey: "updatedAt",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Updated" />,
       sortFn: (rowA, rowB) => compareDateValues(rowA.original.updatedAt, rowB.original.updatedAt),
-      cell: ({ row }) => <FindingDateCell value={row.getValue("updatedAt")} />,
+      cell: ({ row }) => <DateChip label="Updated" value={row.original.updatedAt} />,
       enableColumnFilter: false,
+      meta: { label: "Updated", placement: "property" },
     },
   ];
 }

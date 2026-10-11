@@ -8,6 +8,7 @@ import {
   getSearchParamArray,
   getSearchParamString,
 } from "@/components/data-table/search-state.ts";
+import { NO_GROUPING_VALUE } from "@/components/data-table/types.ts";
 
 import type { DataTableFilterState } from "@/components/data-table/types.ts";
 
@@ -17,6 +18,7 @@ const emptyStatusFilter: Array<string> = [];
 export function validateFindingTableSearch(search: Record<string, unknown>) {
   return {
     filter: getSearchParamString(search.filter),
+    group: getSearchParamString(search.group),
     severity: createSearchParamArray(getSearchParamArray(search.severity)),
     status: createSearchParamArray(getSearchParamArray(search.status)),
     assignee: createSearchParamArray(getSearchParamArray(search.assignee)),
@@ -50,14 +52,37 @@ export function createFindingTableSearchParams(filterState: DataTableFilterState
   };
 }
 
+/** The list's grouping column: `group` from the URL, "none" for no grouping, or the default. */
+export function resolveFindingGrouping(group: unknown, defaultGrouping?: string) {
+  if (group === NO_GROUPING_VALUE) {
+    return undefined;
+  }
+
+  return typeof group === "string" && group.length > 0 ? group : defaultGrouping;
+}
+
+/** Leaves the default grouping out of the URL and writes "none" when the user turns it off. */
+export function createFindingGroupingSearchParam(
+  grouping: string | undefined,
+  defaultGrouping?: string,
+) {
+  if (grouping === defaultGrouping) {
+    return undefined;
+  }
+
+  return grouping ?? NO_GROUPING_VALUE;
+}
+
 export function useFindingTableSearchState({
   search,
   to,
   defaultStatusFilter = emptyStatusFilter,
+  defaultGrouping,
 }: {
   search: Record<string, unknown>;
   to: FindingTableRoute;
   defaultStatusFilter?: Array<string>;
+  defaultGrouping?: string;
 }) {
   const navigate = useNavigate();
   const filterState = useMemo(
@@ -79,6 +104,7 @@ export function useFindingTableSearchState({
         severity: prev.severity,
         status: createSearchParamArray(defaultStatusFilter),
         assignee: prev.assignee,
+        group: prev.group,
         selected: prev.selected,
       }),
     });
@@ -86,6 +112,22 @@ export function useFindingTableSearchState({
 
   return {
     filterState,
+    grouping: resolveFindingGrouping(search.group, defaultGrouping),
+    onGroupingChange: (grouping: string | undefined) => {
+      void navigate({
+        to,
+        replace: true,
+        search: (prev) => ({
+          ...prev,
+          filter: prev.filter,
+          severity: prev.severity,
+          status: prev.status,
+          assignee: prev.assignee,
+          selected: prev.selected,
+          group: createFindingGroupingSearchParam(grouping, defaultGrouping),
+        }),
+      });
+    },
     onFilterStateChange: (nextState: DataTableFilterState) => {
       void navigate({
         to,
@@ -93,6 +135,7 @@ export function useFindingTableSearchState({
         search: (prev) => ({
           ...prev,
           selected: prev.selected,
+          group: prev.group,
           ...createFindingTableSearchParams(nextState),
         }),
       });

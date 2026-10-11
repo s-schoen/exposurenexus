@@ -9,13 +9,13 @@ const [ADMIN_ENDPOINT, , , WEAK_TLS] = SEED_FINDINGS;
 
 test("keeps every typed character in the search input and the URL", async ({ page }) => {
   await page.goto("/findings");
-  await expect(page.getByRole("cell", { name: ADMIN_ENDPOINT.title })).toBeVisible();
+  await expect(page.getByRole("link", { name: ADMIN_ENDPOINT.title })).toBeVisible();
 
-  const search = page.getByLabel("Search across visible columns");
+  const search = page.getByRole("textbox", { name: "Search", exact: true });
   await search.pressSequentially("weak tls");
 
   await expect(search).toHaveValue("weak tls");
   await expect.poll(() => new URL(page.url()).searchParams.get("filter")).toBe("weak tls");
-  await expect(page.getByRole("cell", { name: WEAK_TLS.title })).toBeVisible();
-  await expect(page.getByRole("cell", { name: ADMIN_ENDPOINT.title })).toBeHidden();
+  await expect(page.getByRole("link", { name: WEAK_TLS.title })).toBeVisible();
+  await expect(page.getByRole("link", { name: ADMIN_ENDPOINT.title })).toBeHidden();
 });
