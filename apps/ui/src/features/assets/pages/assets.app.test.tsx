@@ -172,17 +172,21 @@ describe("creating and deleting assets", () => {
 });
 
 describe("asset detail", () => {
-  it("shows the asset and goes back to an unfiltered list", async () => {
+  it("shows the asset and goes back to the list with its filters", async () => {
     const { router, user } = renderApp({ path: `/assets/${WEB_01.id}?filter=web` });
 
     expect(
       await screen.findByRole("heading", { level: 1, name: WEB_01.displayName }),
     ).toBeVisible();
     expect(screen.getByText(WEB_01.identifiers[0].value)).toBeVisible();
-    await user.click(screen.getByRole("link", { name: "Back to assets" }));
+    await user.click(
+      within(screen.getByRole("navigation", { name: "Breadcrumb" })).getByRole("link", {
+        name: "Assets",
+      }),
+    );
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/assets"));
-    expect(router.state.location.search).toEqual({});
+    expect(router.state.location.search).toEqual({ filter: "web" });
   });
 
   it("adds and deletes identifiers", async () => {

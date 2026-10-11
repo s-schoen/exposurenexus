@@ -76,12 +76,10 @@ import type { Asset } from "@exposurenexus/contracts/model/asset";
 import type { Finding, UpdateFinding } from "@exposurenexus/contracts/model/finding";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 import type { VulnerabilityCatalog } from "@exposurenexus/contracts/model/vulnerability";
-import type { ReactNode } from "react";
 
 interface FindingDetailContentProps {
   finding: Finding;
   asset: Asset;
-  titleAction?: ReactNode;
 }
 
 const unassignedAssigneeValue = "__unassigned__";
@@ -1040,13 +1038,11 @@ function ResponsibleOwnerLabel({
 
 function FindingOverviewCard({
   findingData,
-  titleAction,
   users,
   assetDisplayName,
   assetType,
 }: {
   findingData: Finding;
-  titleAction?: ReactNode;
   users: Array<UserProfile>;
   assetDisplayName?: string;
   assetType?: string;
@@ -1056,7 +1052,6 @@ function FindingOverviewCard({
       <CardHeader className="gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            {titleAction}
             <FindingCorrectionDialog finding={findingData} users={users} />
           </div>
           <div className="flex items-center gap-2">
@@ -1160,11 +1155,7 @@ function FindingSidebar({
   );
 }
 
-export function FindingDetailContent({
-  finding: findingData,
-  asset,
-  titleAction,
-}: FindingDetailContentProps) {
+export function FindingDetailContent({ finding: findingData, asset }: FindingDetailContentProps) {
   const users = useQuery(createListUsersQueryOptions());
   const userProfileById = createUserProfileById(users.data);
 
@@ -1173,7 +1164,7 @@ export function FindingDetailContent({
       <div className="flex min-w-0 flex-col gap-4">
         <FindingOverviewCard
           findingData={findingData}
-          titleAction={titleAction}
+
           users={users.data ?? []}
           assetDisplayName={asset.displayName}
           assetType={asset.type}

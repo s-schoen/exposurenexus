@@ -1,4 +1,5 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { Server } from "lucide-react";
 
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
 import { DetailQueryBoundary } from "@/components/detail-query-boundary.tsx";
@@ -8,7 +9,10 @@ import {
   createAssetListOptionsFromSearch,
   useAssetTableSearchState,
 } from "@/features/assets/hooks/use-asset-table-search-state.ts";
-import { createAssetByIDQueryOptions } from "@/features/assets/queries/assets.ts";
+import {
+  createAssetByIDQueryOptions,
+  createListAssetsWithCustomFieldsQueryOptions,
+} from "@/features/assets/queries/assets.ts";
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
 import { useSelectedSearchParam } from "@/hooks/use-selected-search-param.ts";
@@ -30,6 +34,7 @@ export function AssetsPage({ search = {}, selected }: AssetsPageProps) {
     search,
     customFieldDefinitions,
   });
+  const assets = useSuspenseQuery(createListAssetsWithCustomFieldsQueryOptions(assetListOptions));
   const selectedSearch = useSelectedSearchParam<Asset>({
     selectedId: selected,
     to: "/assets",
@@ -38,7 +43,8 @@ export function AssetsPage({ search = {}, selected }: AssetsPageProps) {
 
   usePageMeta({
     title: "Assets",
-    description: "View systems in scope.",
+    icon: Server,
+    count: assets.data.length,
   });
 
   return (

@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { Users } from "lucide-react";
 
 import { createListRolesQueryOptions } from "@/features/roles";
 import { UserForm, mapUpdateUserFormValues } from "@/features/users/components/user-form.tsx";
@@ -18,8 +19,12 @@ export function EditUserPage({ userId }: EditUserPageProps) {
   const roles = useSuspenseQuery(createListRolesQueryOptions());
 
   usePageMeta({
-    title: user.data.displayName,
-    description: "Update user profile fields and optionally reset the password.",
+    title: "Edit",
+    icon: Users,
+    breadcrumbs: [
+      { label: "Users", to: "/users" },
+      { label: user.data.displayName, to: `/users/${userId}` },
+    ],
   });
 
   const handleCancel = async () => {

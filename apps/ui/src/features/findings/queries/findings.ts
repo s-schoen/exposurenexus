@@ -55,6 +55,5 @@ export function createFindingObservationsQueryOptions(findingId: string) {
 export function getFindingNavigationCounts(stats: FindingStatistics | undefined) {
   return {
     triageCount: stats?.status[FindingStatus.Active] ?? 0,
-    mitigationCount: stats?.status[FindingStatus.Confirmed] ?? 0,
   };
 }

@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { KeyRound } from "lucide-react";
 
 import {
   RoleForm,
@@ -17,7 +18,8 @@ export function CreateRolePage() {
 
   usePageMeta({
     title: "Create Role",
-    description: "Add a custom role and choose its permission grants.",
+    icon: KeyRound,
+    breadcrumbs: [{ label: "Roles", to: "/roles" }],
   });
 
   const handleCancel = async () => {

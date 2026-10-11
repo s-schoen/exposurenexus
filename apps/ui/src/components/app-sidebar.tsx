@@ -1,178 +1,140 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import {
-  Bug,
-  ClipboardCheck,
-  Home,
-  KeyRound,
-  Server,
-  ShieldAlert,
-  Tags,
-  UploadCloud,
-  Users,
-} from "lucide-react";
+import { Bug, Inbox, LayoutGrid, Plus, Server, Settings, ShieldAlert } from "lucide-react";
 
+import { buttonVariants } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
-import type { ComponentType } from "react";
+import type { LucideIcon } from "lucide-react";
 
-interface SidebarItem {
+interface NavItem {
   title: string;
   url: string;
-  icon: ComponentType<{ className?: string }>;
-  description: string;
-  badge?: number;
-  activeMatch?: RegExp;
+  icon: LucideIcon;
+  activeMatch: RegExp;
+  count?: number;
 }
 
 interface AppSidebarProps {
   triageCount: number;
-  mitigationCount: number;
 }
 
-export function AppSidebar({ triageCount, mitigationCount }: AppSidebarProps) {
-  const location = useLocation();
+// Until the Settings area exists, Settings opens the users page and covers every admin page.
+const settingsItem: NavItem = {
+  title: "Settings",
+  url: "/users",
+  icon: Settings,
+  activeMatch: /^\/(?:users|roles|custom-fields)(?:\/.+)?$/,
+};
 
-  const isItemActive = (item: SidebarItem) => {
-    if (item.activeMatch) {
-      return item.activeMatch.test(location.pathname);
-    }
+export function AppSidebar({ triageCount }: AppSidebarProps) {
+  const { isMobile, setOpenMobile } = useSidebar();
+  const closeMobile = () => setOpenMobile(false);
 
-    return location.pathname === item.url || location.pathname.startsWith(`${item.url}/`);
-  };
-
-  const groups: Array<{ label: string; items: Array<SidebarItem> }> = [
+  const workItems: Array<NavItem> = [
+    { title: "Dashboard", url: "/", icon: LayoutGrid, activeMatch: /^\/$/ },
     {
-      label: "Explore",
-      items: [
-        {
-          title: "Dashboard",
-          url: "/",
-          icon: Home,
-          description: "Overview and triage",
-          activeMatch: /^\/$/,
-        },
-        {
-          title: "Assets",
-          url: "/assets",
-          icon: Server,
-          description: "Systems in scope",
-          activeMatch: /^\/assets(?:\/.+)?$/,
-        },
-        {
-          title: "Triage queue",
-          url: "/findings/triage",
-          icon: ClipboardCheck,
-          description: "Active findings to review",
-          badge: triageCount,
-          activeMatch: /^\/findings\/triage$/,
-        },
-        {
-          title: "Findings",
-          url: "/findings",
-          icon: ShieldAlert,
-          description: "Findings on your assets",
-          badge: mitigationCount,
-          activeMatch: /^\/findings(?:\/(?!import$|triage$).+)?$/,
-        },
-        {
-          title: "Vulnerabilities",
-          url: "/vulnerabilities",
-          icon: Bug,
-          description: "Catalog of vulnerabilities",
-          activeMatch: /^\/vulnerabilities(?:\/.+)?$/,
-        },
-      ],
+      title: "Triage",
+      url: "/findings/triage",
+      icon: Inbox,
+      activeMatch: /^\/findings\/triage$/,
+      count: triageCount,
     },
+  ];
+  const exposureItems: Array<NavItem> = [
     {
-      label: "Manage",
-      items: [
-        {
-          title: "Users",
-          url: "/users",
-          icon: Users,
-          description: "Platform access and accounts",
-          activeMatch: /^\/users(?:\/.+)?$/,
-        },
-        {
-          title: "Roles",
-          url: "/roles",
-          icon: KeyRound,
-          description: "Manage permissions",
-          activeMatch: /^\/roles(?:\/.+)?$/,
-        },
-        {
-          title: "Custom Fields",
-          url: "/custom-fields",
-          icon: Tags,
-          description: "Asset metadata schema",
-          activeMatch: /^\/custom-fields(?:\/.+)?$/,
-        },
-        {
-          title: "Import",
-          url: "/findings/import",
-          icon: UploadCloud,
-          description: "Ingest external findings",
-          activeMatch: /^\/findings\/import$/,
-        },
-      ],
+      title: "Findings",
+      url: "/findings",
+      icon: ShieldAlert,
+      activeMatch: /^\/findings(?:\/(?!triage$).+)?$/,
+    },
+    { title: "Assets", url: "/assets", icon: Server, activeMatch: /^\/assets(?:\/.+)?$/ },
+    {
+      title: "Vulnerabilities",
+      url: "/vulnerabilities",
+      icon: Bug,
+      activeMatch: /^\/vulnerabilities(?:\/.+)?$/,
     },
   ];
 
   return (
-    <Sidebar variant="inset" className="md:top-18.25 md:h-[calc(100svh-73px)]">
-      <SidebarSeparator className="mx-3" />
-      <SidebarContent>
-        {groups.map((group) => (
-          <SidebarGroup key={group.label} className="px-3 py-2">
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="gap-1.5">
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      isActive={isItemActive(item)}
-                      variant="nav"
-                      size="tile"
-                      render={
-                        <Link to={item.url}>
-                          <div className="flex min-w-0 items-center gap-3">
-                            <div className="relative flex size-9 shrink-0 items-center justify-center rounded-md bg-card text-current ring-1 ring-sidebar-border">
-                              <item.icon className="size-4.5" />
-                              {typeof item.badge === "number" && item.badge > 0 && (
-                                <span className="absolute -top-1 -right-1 flex min-w-5 items-center justify-center rounded-full bg-primary-subtle px-1.5 py-0.5 text-xs font-medium leading-none text-primary-subtle-foreground ring-2 ring-sidebar">
-                                  {item.badge}
-                                </span>
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <span className="block truncate text-sm font-medium select-none">
-                                {item.title}
-                              </span>
-                              <span className="block truncate text-xs text-current/65 select-none">
-                                {item.description}
-                              </span>
-                            </div>
-                          </div>
-                        </Link>
-                      }
-                    />
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
-      </SidebarContent>
-    </Sidebar>
+    // On desktop the sidebar sits in the sheet; on phones it slides in as a sheet of its own.
+    <div className="flex shrink-0 md:border-r md:border-border">
+      <Sidebar collapsible={isMobile ? "offcanvas" : "none"}>
+        <SidebarHeader>
+          <Link
+            to="/findings/new"
+            onClick={closeMobile}
+            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full")}
+          >
+            <Plus />
+            New finding
+          </Link>
+        </SidebarHeader>
+        <SidebarContent>
+          <NavGroup items={workItems} onNavigate={closeMobile} />
+          <NavGroup label="Exposure" items={exposureItems} onNavigate={closeMobile} />
+        </SidebarContent>
+        <SidebarFooter>
+          <NavMenu items={[settingsItem]} onNavigate={closeMobile} />
+        </SidebarFooter>
+      </Sidebar>
+    </div>
+  );
+}
+
+function NavGroup({
+  label,
+  items,
+  onNavigate,
+}: {
+  label?: string;
+  items: Array<NavItem>;
+  onNavigate: () => void;
+}) {
+  return (
+    <SidebarGroup className="py-0">
+      {label && <SidebarGroupLabel>{label}</SidebarGroupLabel>}
+      <NavMenu items={items} onNavigate={onNavigate} />
+    </SidebarGroup>
+  );
+}
+
+function NavMenu({ items, onNavigate }: { items: Array<NavItem>; onNavigate: () => void }) {
+  const { pathname } = useLocation();
+
+  return (
+    <SidebarMenu className="gap-0.5">
+      {items.map((item) => (
+        <SidebarMenuItem key={item.title}>
+          <SidebarMenuButton
+            variant="nav"
+            isActive={item.activeMatch.test(pathname)}
+            render={
+              <Link to={item.url} onClick={onNavigate}>
+                <item.icon strokeWidth={1.5} />
+                <span className="flex-1 truncate">{item.title}</span>
+                {item.count !== undefined && item.count > 0 && (
+                  <span className="font-normal text-muted-foreground tabular-nums">
+                    {item.count}
+                  </span>
+                )}
+              </Link>
+            }
+          />
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
   );
 }

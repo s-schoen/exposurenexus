@@ -32,7 +32,7 @@ describe("authentication", () => {
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/roles"));
     expect(db.session?.user.id).toBe(MORGAN.id);
-    expect(await screen.findByText(MORGAN.displayName)).toBeVisible();
+    expect(await screen.findByRole("button", { name: MORGAN.displayName })).toBeVisible();
   });
 
   it("ignores unsafe redirect targets after signing in", async () => {
@@ -56,7 +56,7 @@ describe("authentication", () => {
   it("signs out from the account menu", async () => {
     const { router, user } = renderApp({ path: "/roles" });
 
-    await user.click(await screen.findByText(ROBIN.displayName));
+    await user.click(await screen.findByRole("button", { name: ROBIN.displayName }));
     await user.click(await screen.findByRole("menuitem", { name: "Sign Out" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));

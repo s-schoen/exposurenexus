@@ -9,14 +9,15 @@ import type { PageAction } from "@/hooks/use-page-meta.tsx";
 import type { ReactNode } from "react";
 
 function PageConsumer() {
-  const { title, description, actions } = usePage();
+  const { title, breadcrumbs, count, actions, menu } = usePage();
 
   return (
     <section aria-label="Page metadata">
       <h1>{title || "Untitled page"}</h1>
-      <p>{description || "No description"}</p>
+      <p aria-label="Breadcrumbs">{breadcrumbs.map((crumb) => crumb.label).join(" › ")}</p>
+      <p aria-label="Count">{count ?? "No count"}</p>
       <div aria-label="Page actions">
-        {actions.map((action) => (
+        {[...actions, ...menu].map((action) => (
           <button key={action.label} type="button" onClick={action.onClick}>
             {action.label}
           </button>
@@ -26,16 +27,8 @@ function PageConsumer() {
   );
 }
 
-function PageMetaHarness({
-  title,
-  description,
-  actions,
-}: {
-  title: string;
-  description?: string;
-  actions?: Array<PageAction>;
-}) {
-  usePageMeta({ title, description, actions });
+function PageMetaHarness(props: Parameters<typeof usePageMeta>[0]) {
+  usePageMeta(props);
   return null;
 }
 
@@ -60,7 +53,8 @@ describe("PageProvider and usePageMeta", () => {
     renderPage();
 
     expect(screen.getByRole("heading", { name: "Untitled page" })).toBeVisible();
-    expect(screen.getByText("No description")).toBeVisible();
+    expect(screen.getByLabelText("Breadcrumbs")).toBeEmptyDOMElement();
+    expect(screen.getByLabelText("Count")).toHaveTextContent("No count");
     expect(screen.getByLabelText("Page actions")).toBeEmptyDOMElement();
   });
 
@@ -78,18 +72,21 @@ describe("PageProvider and usePageMeta", () => {
     const { rerender } = renderPage({
       meta: (
         <PageMetaHarness
-          title="Assets"
-          description="Track the asset inventory."
+          title="web-01"
+          breadcrumbs={[{ label: "Assets", to: "/assets" }]}
+          count={3}
           actions={[createAction]}
         />
       ),
     });
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { name: "Assets" })).toBeVisible();
-      expect(screen.getByText("Track the asset inventory.")).toBeVisible();
+      expect(screen.getByRole("heading", { name: "web-01" })).toBeVisible();
       expect(screen.getByRole("button", { name: "Create asset" })).toBeVisible();
     });
+
+    expect(screen.getByLabelText("Breadcrumbs")).toHaveTextContent("Assets");
+    expect(screen.getByLabelText("Count")).toHaveTextContent("3");
 
     await user.click(screen.getByRole("button", { name: "Create asset" }));
     expect(createAction.onClick).toHaveBeenCalledOnce();
@@ -97,16 +94,17 @@ describe("PageProvider and usePageMeta", () => {
     rerender(
       <PageProvider>
         <PageConsumer />
-        <PageMetaHarness title="Users" actions={[manageAction]} />
+        <PageMetaHarness title="Users" menu={[manageAction]} />
       </PageProvider>,
     );
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "Users" })).toBeVisible();
-      expect(screen.getByText("No description")).toBeVisible();
       expect(screen.getByRole("button", { name: "Manage users" })).toBeVisible();
       expect(screen.queryByRole("button", { name: "Create asset" })).not.toBeInTheDocument();
     });
+    expect(screen.getByLabelText("Breadcrumbs")).toBeEmptyDOMElement();
+    expect(screen.getByLabelText("Count")).toHaveTextContent("No count");
   });
 
   it("cleans actions when a page unmounts or navigation replaces it", async () => {

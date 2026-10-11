@@ -1,6 +1,7 @@
 import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { Users } from "lucide-react";
 
 import { createListRolesQueryOptions } from "@/features/roles";
 import { UserForm, mapCreateUserFormValues } from "@/features/users/components/user-form.tsx";
@@ -14,7 +15,8 @@ export function CreateUserPage() {
 
   usePageMeta({
     title: "Create User",
-    description: "Add a new platform user and set their initial credentials.",
+    icon: Users,
+    breadcrumbs: [{ label: "Users", to: "/users" }],
   });
 
   const handleCancel = async () => {

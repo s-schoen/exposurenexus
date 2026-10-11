@@ -52,11 +52,9 @@ import type {
   AssetCustomFieldValue,
   AssetCustomFieldValueLiteral,
 } from "@exposurenexus/contracts/model/asset-custom-field";
-import type { ReactNode } from "react";
 
 interface AssetDetailContentProps {
   asset: Asset;
-  titleAction?: ReactNode;
 }
 
 const noOwnerValue = "__no_owner__";
@@ -93,7 +91,7 @@ function createAssetCustomFieldValueReplacement(
   }));
 }
 
-export function AssetDetailContent({ asset, titleAction }: AssetDetailContentProps) {
+export function AssetDetailContent({ asset }: AssetDetailContentProps) {
   const assetId = asset.id;
   const assetLifecycle = useAssetLifecycle();
   const users = useQuery(createListUsersQueryOptions());
@@ -282,8 +280,7 @@ export function AssetDetailContent({ asset, titleAction }: AssetDetailContentPro
     return (
       <Card>
         <CardHeader className="gap-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">{titleAction}</div>
+          <div className="flex items-center justify-end gap-3">
             <Badge variant="outline">
               <Server className="size-3" />
               {capitalizeFirstLetter(assetData.type)}

@@ -1,6 +1,14 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Activity, Bug, CircleCheckBig, Radar, Server, ShieldAlert } from "lucide-react";
+import {
+  Activity,
+  Bug,
+  CircleCheckBig,
+  LayoutGrid,
+  Radar,
+  Server,
+  ShieldAlert,
+} from "lucide-react";
 import { useMemo } from "react";
 
 import { SimpleBarChart } from "@/components/chart/simple-bar-chart.tsx";
@@ -34,7 +42,7 @@ const DASHBOARD_CHART_COLORS = [
 export function DashboardPage() {
   usePageMeta({
     title: "Dashboard",
-    description: "Monitor platform activity, finding trends, and current triage workload.",
+    icon: LayoutGrid,
   });
 
   const findingStats = useSuspenseQuery(createFindingStatsQueryOptions());

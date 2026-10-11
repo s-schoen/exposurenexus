@@ -1,14 +1,12 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { KeyRound, Pencil } from "lucide-react";
 import { useMemo } from "react";
 
-import { buttonVariants } from "@/components/ui/button.tsx";
 import { RoleDetailContent } from "@/features/roles/components/role-detail-content.tsx";
 import { isBuiltInRoleId } from "@/features/roles/lib/role.ts";
 import { createRoleByIDQueryOptions } from "@/features/roles/queries/roles.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
-import { cn } from "@/lib/utils.ts";
 
 interface RoleDetailPageProps {
   roleId: string;
@@ -38,28 +36,10 @@ export function RoleDetailPage({ roleId }: RoleDetailPageProps) {
 
   usePageMeta({
     title: role.data.name,
-    description:
-      "Inspect the selected role and review how its permissions map to protected resources.",
+    icon: KeyRound,
+    breadcrumbs: [{ label: "Roles", to: "/roles" }],
     actions,
   });
 
-  return (
-    <RoleDetailContent
-      role={role.data}
-      titleAction={
-        <Link
-          to="/roles"
-          search={(previous) => ({
-            filter: previous.filter,
-            kind: previous.kind,
-            selected: undefined,
-          })}
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2")}
-        >
-          <ArrowLeft />
-          Back to roles
-        </Link>
-      }
-    />
-  );
+  return <RoleDetailContent role={role.data} />;
 }

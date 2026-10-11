@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { Tags } from "lucide-react";
 
 import {
   AssetCustomFieldForm,
@@ -13,7 +14,8 @@ export function CreateCustomFieldPage() {
 
   usePageMeta({
     title: "Create Custom Field",
-    description: "Define a new asset metadata field.",
+    icon: Tags,
+    breadcrumbs: [{ label: "Custom Fields", to: "/custom-fields" }],
   });
 
   const handleCancel = async () => {

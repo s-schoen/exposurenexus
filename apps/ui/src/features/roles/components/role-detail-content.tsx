@@ -20,11 +20,9 @@ import {
 } from "@/features/roles/lib/role.ts";
 
 import type { Role } from "@exposurenexus/contracts/model/rbac";
-import type { ReactNode } from "react";
 
 interface RoleDetailContentProps {
   role: Role;
-  titleAction?: ReactNode;
 }
 
 function RoleTypeBadge({ roleId }: { roleId: string }) {
@@ -38,7 +36,7 @@ function RoleTypeBadge({ roleId }: { roleId: string }) {
   );
 }
 
-export function RoleDetailContent({ role: roleData, titleAction }: RoleDetailContentProps) {
+export function RoleDetailContent({ role: roleData }: RoleDetailContentProps) {
   const kindLabel = getRoleKindLabel(roleData.id);
   const resources = getUniqueRoleResources(roleData.permissions);
   const permissionsByResource = groupRolePermissionsByResource(roleData.permissions);
@@ -46,8 +44,7 @@ export function RoleDetailContent({ role: roleData, titleAction }: RoleDetailCon
   const overview = (
     <Card>
       <CardHeader className="gap-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0 flex-1">{titleAction}</div>
+        <div className="flex items-center justify-end gap-3">
           <RoleTypeBadge roleId={roleData.id} />
         </div>
         <div className="space-y-3">
