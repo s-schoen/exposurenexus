@@ -171,11 +171,18 @@ body {
   /* Motion timings re-declared from Twenty's twenty-ui (PRD A7). Durations use Tailwind's 75/150/300. */
   --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
   --animate-nav-enter: nav-enter 180ms var(--ease-snappy);
+  --animate-fade-in: fade-in 150ms ease-out;
 
   @keyframes nav-enter {
     from {
       opacity: 0;
       transform: translateX(var(--nav-enter-offset, 0.5rem));
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
     }
   }
 }

@@ -242,6 +242,7 @@ export function DataList<TData extends RowData>({
       // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- A row click mirrors its title link, which carries keyboard access.
       <li
         key={row.id}
+        data-row-id={row.id}
         data-selected={row.getIsSelected() || undefined}
         data-active={active || undefined}
         aria-current={active || undefined}
@@ -372,6 +373,15 @@ export function DataList<TData extends RowData>({
       )}
     </div>
   );
+}
+
+/** The row's title link, where focus returns when its peek closes. */
+export function findDataListRowFocusTarget(rowId: string) {
+  const row = [...document.querySelectorAll<HTMLElement>("li[data-row-id]")].find(
+    (element) => element.dataset.rowId === rowId,
+  );
+
+  return row?.querySelector<HTMLElement>("a") ?? null;
 }
 
 function sortGroups<TData extends RowData>(

@@ -143,8 +143,7 @@ describe("assets list", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "Asset details" });
     expect(await within(dialog).findByText("Unable to load asset")).toBeVisible();
-    // The modal preview hides the list from the accessibility tree, but it stays rendered.
-    expect(screen.getByText(WEB_01.displayName)).toBeInTheDocument();
+    expect(await findRow(WEB_01.displayName)).toBeVisible();
   });
 
   it("opens an asset's page on double click", async () => {

@@ -1,10 +1,10 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Bug, Plus } from "lucide-react";
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, useMemo } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
-import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
+import { DetailPeek } from "@/components/detail-peek.tsx";
 import { VulnerabilityList } from "@/features/vulnerabilities/components/vulnerability-list/index.tsx";
 import { useVulnerabilityLifecycle } from "@/features/vulnerabilities/hooks/use-vulnerability-lifecycle.ts";
 import { useVulnerabilityTableSearchState } from "@/features/vulnerabilities/hooks/use-vulnerability-table-search-state.ts";
@@ -97,21 +97,16 @@ export function VulnerabilitiesPage({ search = {}, selected }: VulnerabilitiesPa
         }}
         onDeleteVulnerabilities={handleDeleteVulnerabilities}
       />
-      <DetailPreviewDialog
+      <DetailPeek
         selectedId={selectedSearch.selectedId}
+        label="Catalog entry details"
+        getFullPageHref={(id) => `/vulnerabilities/${id}`}
         onClose={() => {
           void selectedSearch.clearSelected();
         }}
-        title="Catalog entry details"
-        description="Review the selected catalog entry without leaving the vulnerability list."
-        fullPageHref={selected ? `/vulnerabilities/${selected}` : undefined}
       >
-        {selected && (
-          <Suspense fallback={null}>
-            <VulnerabilityPreview vulnerabilityId={selected} />
-          </Suspense>
-        )}
-      </DetailPreviewDialog>
+        {(id) => <VulnerabilityPreview vulnerabilityId={id} />}
+      </DetailPeek>
     </>
   );
 }
