@@ -62,7 +62,7 @@ export function DashboardPage() {
             <Link
               key={item.label}
               to={item.href}
-              className="transition-colors hover:[&>div]:bg-accent/70"
+              className="transition-colors duration-100 hover:[&>div]:bg-accent/70"
             >
               <MetricCard
                 title={item.label}
