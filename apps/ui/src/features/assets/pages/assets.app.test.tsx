@@ -390,6 +390,8 @@ describe("asset detail", () => {
   it("removes a custom field from the asset", async () => {
     const { user } = renderApp({ path: `/assets/${WEB_01.id}` });
 
+    // Wait for the page before its custom fields so each load gets its own timeout under load.
+    await screen.findByRole("heading", { level: 1, name: WEB_01.displayName });
     await user.click(await screen.findByRole("button", { name: `Remove ${CATEGORY.name}` }));
 
     await waitFor(() =>
