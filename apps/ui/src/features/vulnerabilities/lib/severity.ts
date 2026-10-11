@@ -2,6 +2,15 @@ import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerabil
 
 import { capitalizeFirstLetter } from "@/lib/format.ts";
 
+/** Most to least severe, the order of filter options and groups. */
+export const SEVERITY_ORDER: Array<VulnerabilitySeverity> = [
+  VulnerabilitySeverity.Critical,
+  VulnerabilitySeverity.High,
+  VulnerabilitySeverity.Medium,
+  VulnerabilitySeverity.Low,
+  VulnerabilitySeverity.Info,
+];
+
 const severityChartColors = {
   [VulnerabilitySeverity.Info]: "var(--color-severity-info)",
   [VulnerabilitySeverity.Low]: "var(--color-severity-low)",

@@ -3,12 +3,13 @@ import { useEffect, useMemo } from "react";
 
 import {
   createDataTableFilterState,
+  createGroupingSearchParam,
   createSearchParamArray,
   createSearchParamString,
   getSearchParamArray,
   getSearchParamString,
+  resolveGroupingSearchParam,
 } from "@/components/data-table/search-state.ts";
-import { NO_GROUPING_VALUE } from "@/components/data-table/types.ts";
 
 import type { DataTableFilterState } from "@/components/data-table/types.ts";
 
@@ -52,27 +53,6 @@ export function createFindingTableSearchParams(filterState: DataTableFilterState
   };
 }
 
-/** The list's grouping column: `group` from the URL, "none" for no grouping, or the default. */
-export function resolveFindingGrouping(group: unknown, defaultGrouping?: string) {
-  if (group === NO_GROUPING_VALUE) {
-    return undefined;
-  }
-
-  return typeof group === "string" && group.length > 0 ? group : defaultGrouping;
-}
-
-/** Leaves the default grouping out of the URL and writes "none" when the user turns it off. */
-export function createFindingGroupingSearchParam(
-  grouping: string | undefined,
-  defaultGrouping?: string,
-) {
-  if (grouping === defaultGrouping) {
-    return undefined;
-  }
-
-  return grouping ?? NO_GROUPING_VALUE;
-}
-
 export function useFindingTableSearchState({
   search,
   to,
@@ -112,7 +92,7 @@ export function useFindingTableSearchState({
 
   return {
     filterState,
-    grouping: resolveFindingGrouping(search.group, defaultGrouping),
+    grouping: resolveGroupingSearchParam(search.group, defaultGrouping),
     onGroupingChange: (grouping: string | undefined) => {
       void navigate({
         to,
@@ -124,7 +104,7 @@ export function useFindingTableSearchState({
           status: prev.status,
           assignee: prev.assignee,
           selected: prev.selected,
-          group: createFindingGroupingSearchParam(grouping, defaultGrouping),
+          group: createGroupingSearchParam(grouping, defaultGrouping),
         }),
       });
     },

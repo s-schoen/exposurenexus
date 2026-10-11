@@ -1,17 +1,19 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, Server } from "lucide-react";
 import { useMemo } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
-import { DataTable } from "@/components/data-table/data-table.tsx";
+import { DataList } from "@/components/data-list/data-list.tsx";
+import { DataListEmpty } from "@/components/data-list/empty-state.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { AssetDialog } from "@/features/assets/components/asset-dialog.tsx";
 import {
-  createAssetTableColumns,
+  createAssetColumns,
   getAssetCustomFieldColumnId,
-} from "@/features/assets/components/asset-table/columns.tsx";
+} from "@/features/assets/components/asset-list/columns.tsx";
+import { AssetTypeIcon } from "@/features/assets/components/asset-type-icon.tsx";
 import { useAssetLifecycle } from "@/features/assets/hooks/use-asset-lifecycle.ts";
+import { formatAssetType } from "@/features/assets/lib/asset-type.ts";
 import { createListAssetsWithCustomFieldsQueryOptions } from "@/features/assets/queries/assets.ts";
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields";
 import {
@@ -19,15 +21,17 @@ import {
   createUserProfileById,
   formatUserProfileReference,
 } from "@/features/users";
-import { capitalizeFirstLetter } from "@/lib/format.ts";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
 import type { AssetListOptions } from "@/features/assets/api/assets.ts";
-import type { Asset, AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
+import type { FindingCountByAssetId } from "@/features/assets/components/asset-list/columns.tsx";
+import type { Asset, AssetType, AssetWithCustomFields } from "@exposurenexus/contracts/model/asset";
 import type { AssetCustomFieldDefinition } from "@exposurenexus/contracts/model/asset-custom-field";
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
 
-export function createAssetTableGroupingOptions(
+const noFindingCounts: FindingCountByAssetId = {};
+
+export function createAssetGroupingOptions(
   customFieldDefinitions: Array<AssetCustomFieldDefinition>,
   userProfileById: Map<string, UserProfile> = new Map(),
 ): Array<GroupingOption> {
@@ -35,7 +39,8 @@ export function createAssetTableGroupingOptions(
     {
       id: "type",
       label: "Type",
-      formatValue: (value) => capitalizeFirstLetter(String(value)),
+      formatValue: (value) => formatAssetType(value as AssetType),
+      renderIcon: (value) => <AssetTypeIcon type={value as AssetType} decorative />,
     },
     {
       id: "ownerId",
@@ -57,21 +62,29 @@ export function createAssetTableGroupingOptions(
   ];
 }
 
-interface AssetTableProps {
+interface AssetListProps {
   assetListOptions?: AssetListOptions;
+  findingCountByAssetId?: FindingCountByAssetId;
+  grouping?: string;
+  onGroupingChange?: (grouping: string | undefined) => void;
   filterState?: DataTableFilterState;
   onFilterStateChange?: (state: DataTableFilterState) => void;
   selectedAssetId?: string;
   onSelectAsset?: (asset: Asset) => void;
+  onCreateAsset?: () => void;
 }
 
-export function AssetTable({
+export function AssetList({
   assetListOptions,
+  findingCountByAssetId = noFindingCounts,
+  grouping,
+  onGroupingChange,
   filterState,
   onFilterStateChange,
   selectedAssetId,
   onSelectAsset,
-}: AssetTableProps = {}) {
+  onCreateAsset,
+}: AssetListProps = {}) {
   const navigate = useNavigate();
   const assetLifecycle = useAssetLifecycle();
   const assetsQuery = useSuspenseQuery(
@@ -83,24 +96,36 @@ export function AssetTable({
   );
   const customFieldDefinitions = customFieldDefinitionsQuery.data;
   const userProfileById = useMemo(() => createUserProfileById(usersQuery.data), [usersQuery.data]);
-  const tableColumns = useMemo(
-    () => createAssetTableColumns(customFieldDefinitions, userProfileById, usersQuery.isPending),
-    [customFieldDefinitions, userProfileById, usersQuery.isPending],
+  const columns = useMemo(
+    () =>
+      createAssetColumns(
+        customFieldDefinitions,
+        findingCountByAssetId,
+        userProfileById,
+        usersQuery.isPending,
+      ),
+    [customFieldDefinitions, findingCountByAssetId, userProfileById, usersQuery.isPending],
   );
   const groupingOptions = useMemo(
-    () => createAssetTableGroupingOptions(customFieldDefinitions, userProfileById),
+    () => createAssetGroupingOptions(customFieldDefinitions, userProfileById),
     [customFieldDefinitions, userProfileById],
   );
+  // Type, owner and finding count by default; the rest can be turned on under Display.
   const initialColumnVisibility = useMemo(
-    () =>
-      Object.fromEntries(
+    () => ({
+      identifiers: false,
+      environment: false,
+      lifecycleState: false,
+      ...Object.fromEntries(
         customFieldDefinitions.map((definition) => [
           getAssetCustomFieldColumnId(definition.id),
           false,
         ]),
       ),
+    }),
     [customFieldDefinitions],
   );
+
   const handleOpenAsset = async (asset: AssetWithCustomFields) => {
     await navigate({
       to: "/assets/$id",
@@ -125,36 +150,33 @@ export function AssetTable({
     await assetLifecycle.deleteAssets(assets);
   };
 
-  const handleCreateAsset = async () => {
-    const assetToCreate = await AssetDialog.call({});
-
-    if (assetToCreate) {
-      await assetLifecycle.createAsset(assetToCreate);
-    }
-  };
-
-  function ToolbarElements() {
-    return (
-      <Button variant="default" size="default" onClick={handleCreateAsset}>
-        <Plus />
-        New asset
-      </Button>
-    );
-  }
-
   return (
-    <DataTable
-      columns={tableColumns}
+    <DataList
+      label="Assets"
+      columns={columns}
       query={assetsQuery}
+      getRowId={(asset) => asset.id}
+      getRowHref={(asset) => `/assets/${asset.id}`}
       groupingOptions={groupingOptions}
+      grouping={grouping}
+      onGroupingChange={onGroupingChange}
+      filterState={filterState}
+      onFilterStateChange={onFilterStateChange}
+      initialColumnVisibility={initialColumnVisibility}
       onRowClick={onSelectAsset}
       onRowDoubleClick={handleOpenAsset}
       isRowActive={(asset) => asset.id === selectedAssetId}
       onRowDelete={handleDeleteAssets}
-      toolbarControls={ToolbarElements()}
-      initialColumnVisibility={initialColumnVisibility}
-      filterState={filterState}
-      onFilterStateChange={onFilterStateChange}
+      emptyState={
+        <DataListEmpty icon={Server} message="No assets yet.">
+          {onCreateAsset && (
+            <Button variant="outline" onClick={onCreateAsset}>
+              <Plus />
+              New asset
+            </Button>
+          )}
+        </DataListEmpty>
+      }
     />
   );
 }

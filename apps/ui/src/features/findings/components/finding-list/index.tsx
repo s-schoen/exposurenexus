@@ -13,17 +13,14 @@ import {
   createFindingColumns,
   formatFindingAssignee,
 } from "@/features/findings/components/finding-list/columns.tsx";
-import {
-  SEVERITY_ORDER,
-  STATUS_ORDER,
-} from "@/features/findings/components/finding-list/constants.ts";
+import { STATUS_ORDER } from "@/features/findings/components/finding-list/constants.ts";
 import { FindingContextMenu } from "@/features/findings/components/finding-list/context-menu.tsx";
 import { FindingStatusIcon } from "@/features/findings/components/finding-status-icon.tsx";
 import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifecycle.ts";
 import { formatFindingStatus } from "@/features/findings/lib/format.ts";
 import { createListFindingsQueryOptions } from "@/features/findings/queries/findings.ts";
 import { UserAvatar, createListUsersQueryOptions, createUserProfileById } from "@/features/users";
-import { SeverityIcon, formatSeverity } from "@/features/vulnerabilities";
+import { SEVERITY_ORDER, SeverityIcon, formatSeverity } from "@/features/vulnerabilities";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
 import type { Finding, FindingStatus } from "@exposurenexus/contracts/model/finding";

@@ -5,6 +5,7 @@ import {
 import { screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { formatSeverity } from "@/features/vulnerabilities/lib/severity.ts";
 import { SEED_VULNERABILITIES } from "@/mocks/fixtures/index.ts";
 import { db, mockApiError, recordApiRequests } from "@/test/msw.ts";
 import { renderApp } from "@/test/render-app.tsx";
@@ -14,24 +15,108 @@ import { renderApp } from "@/test/render-app.tsx";
 const [ADMIN_ENDPOINT, ACCOUNT_TAKEOVER, OUTDATED_DEPENDENCY] = SEED_VULNERABILITIES;
 
 async function selectRow(user: ReturnType<typeof renderApp>["user"], title: string) {
-  const row = (await screen.findByText(title)).closest("tr")!;
+  const row = (await screen.findByText(title)).closest("li")!;
   await user.click(within(row).getByRole("checkbox", { name: "Select row" }));
 }
 
+function rowTitles(list: HTMLElement) {
+  return within(list)
+    .getAllByRole("listitem")
+    .map((row) => within(row).getByRole("link").textContent);
+}
+
 describe("vulnerabilities list", () => {
-  it("lists the catalog", async () => {
+  it("lists the catalog as rows that link to their pages", async () => {
     renderApp({ path: "/vulnerabilities" });
 
-    for (const vulnerability of SEED_VULNERABILITIES) {
-      expect(await screen.findByText(vulnerability.title)).toBeVisible();
-    }
+    const list = await screen.findByRole("list", { name: "Vulnerabilities" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(SEED_VULNERABILITIES.length);
+    expect(
+      within(list).getByRole("link", {
+        name: `${ADMIN_ENDPOINT.identifier} ${ADMIN_ENDPOINT.title}`,
+      }),
+    ).toHaveAttribute("href", `/vulnerabilities/${ADMIN_ENDPOINT.id}`);
+  });
+
+  it("filters by severity through the Filters menu and clears it from its chip", async () => {
+    const { router, user } = renderApp({ path: "/vulnerabilities" });
+
+    await user.click(await screen.findByRole("button", { name: "Filters" }));
+    await user.click(
+      await screen.findByRole("option", { name: formatSeverity(ACCOUNT_TAKEOVER.severity) }),
+    );
+
+    await waitFor(() =>
+      expect(router.state.location.search).toMatchObject({ severity: ACCOUNT_TAKEOVER.severity }),
+    );
+    const expected = SEED_VULNERABILITIES.filter(
+      (vulnerability) => vulnerability.severity === ACCOUNT_TAKEOVER.severity,
+    );
+    await waitFor(() =>
+      expect(rowTitles(screen.getByRole("list", { name: "Vulnerabilities" }))).toHaveLength(
+        expected.length,
+      ),
+    );
+
+    await user.keyboard("{Escape}");
+    await user.click(
+      screen.getByRole("button", {
+        name: `Clear Severity filter ${formatSeverity(ACCOUNT_TAKEOVER.severity)}`,
+      }),
+    );
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty("severity"));
+  });
+
+  it("groups by severity from the Display menu and keeps it in the URL", async () => {
+    const { router, user } = renderApp({ path: "/vulnerabilities" });
+
+    await user.click(await screen.findByRole("button", { name: "Display" }));
+    await user.click(screen.getByRole("combobox", { name: "Group by" }));
+    await user.click(await screen.findByRole("option", { name: "Severity" }));
+
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ group: "severity" }));
+    const group = await screen.findByRole("list", {
+      name: formatSeverity(ACCOUNT_TAKEOVER.severity),
+    });
+    expect(within(group).getByText(ACCOUNT_TAKEOVER.title)).toBeVisible();
+  });
+
+  it("orders rows by severity from the Display menu", async () => {
+    const { user } = renderApp({ path: "/vulnerabilities" });
+
+    await user.click(await screen.findByRole("button", { name: "Display" }));
+    await user.click(screen.getByRole("combobox", { name: "Order by" }));
+    await user.click(await screen.findByRole("option", { name: "Severity" }));
+
+    // Without a previous order the new one is ascending: least severe first.
+    const ranks = Object.values(VulnerabilitySeverity);
+    const expected = [...SEED_VULNERABILITIES]
+      .sort((left, right) => ranks.indexOf(left.severity) - ranks.indexOf(right.severity))
+      .map((vulnerability) => vulnerability.severity);
+    await waitFor(() =>
+      expect(
+        rowTitles(screen.getByRole("list", { name: "Vulnerabilities" })).map(
+          (title) =>
+            SEED_VULNERABILITIES.find(
+              (vulnerability) => `${vulnerability.identifier} ${vulnerability.title}` === title,
+            )!.severity,
+        ),
+      ).toEqual(expected),
+    );
+  });
+
+  it("shows an empty state without catalog entries", async () => {
+    renderApp({ path: "/vulnerabilities", scenario: "empty" });
+
+    expect(await screen.findByText("No catalog entries yet.")).toBeVisible();
+    expect(screen.queryByRole("list", { name: "Vulnerabilities" })).not.toBeInTheDocument();
   });
 
   it("keeps the search filter in the URL", async () => {
     const { router, user } = renderApp({ path: "/vulnerabilities" });
 
     // Paste: the input is driven by the URL, so per-keystroke typing races the navigation.
-    await user.click(await screen.findByLabelText("Search across visible columns"));
+    await user.click(await screen.findByRole("textbox", { name: "Search" }));
     await user.paste("takeover");
 
     await waitFor(() => expect(router.state.location.search).toMatchObject({ filter: "takeover" }));
@@ -39,7 +124,7 @@ describe("vulnerabilities list", () => {
     expect(screen.getByText(ACCOUNT_TAKEOVER.title)).toBeVisible();
   });
 
-  it("opens the create page from the toolbar", async () => {
+  it("opens the create page from the page header", async () => {
     const { router, user } = renderApp({ path: "/vulnerabilities" });
 
     await user.click(await screen.findByRole("button", { name: "New catalog entry" }));

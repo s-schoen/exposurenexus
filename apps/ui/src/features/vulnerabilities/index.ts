@@ -2,7 +2,11 @@ export { SeverityBadge } from "@/features/vulnerabilities/components/severity-ba
 export { SeverityIcon } from "@/features/vulnerabilities/components/severity-icon.tsx";
 export { canonicalizeKnownSecurityIdentifier } from "@/features/vulnerabilities/lib/security-identifier";
 export { validateVulnerabilityTableSearch } from "@/features/vulnerabilities/hooks/use-vulnerability-table-search-state.ts";
-export { formatSeverity, severityChartColor } from "@/features/vulnerabilities/lib/severity.ts";
+export {
+  SEVERITY_ORDER,
+  formatSeverity,
+  severityChartColor,
+} from "@/features/vulnerabilities/lib/severity.ts";
 export { CreateVulnerabilityPage } from "@/features/vulnerabilities/pages/create-vulnerability-page.tsx";
 export { EditVulnerabilityPage } from "@/features/vulnerabilities/pages/edit-vulnerability-page.tsx";
 export { VulnerabilitiesPage } from "@/features/vulnerabilities/pages/vulnerabilities-page.tsx";

@@ -2,10 +2,7 @@ import { FindingStatus } from "@exposurenexus/contracts/model/finding";
 import { CalendarDays, Clock3, Eye, Server, UserRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge.tsx";
-import {
-  SEVERITY_ORDER,
-  STATUS_ORDER,
-} from "@/features/findings/components/finding-list/constants.ts";
+import { STATUS_ORDER } from "@/features/findings/components/finding-list/constants.ts";
 import { FindingStatusBadge } from "@/features/findings/components/finding-status-badge.tsx";
 import { FindingStatusIcon } from "@/features/findings/components/finding-status-icon.tsx";
 import { formatFindingStatus } from "@/features/findings/lib/format.ts";
@@ -15,7 +12,7 @@ import {
   formatUserProfileReference,
   getUserProfileDisplayName,
 } from "@/features/users";
-import { SeverityIcon, formatSeverity } from "@/features/vulnerabilities";
+import { SEVERITY_ORDER, SeverityIcon, formatSeverity } from "@/features/vulnerabilities";
 import { formatShortDate } from "@/lib/format.ts";
 import { normalizeDateToUtcStart } from "@/lib/utc-date";
 
