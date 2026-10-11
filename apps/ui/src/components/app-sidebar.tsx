@@ -146,10 +146,10 @@ export function AppSidebar({ triageCount, mitigationCount }: AppSidebarProps) {
                       render={
                         <Link to={item.url}>
                           <div className="flex min-w-0 items-center gap-3">
-                            <div className="relative flex size-9 shrink-0 items-center justify-center rounded-xl bg-white/80 text-current ring-1 ring-sidebar-border/70">
+                            <div className="relative flex size-9 shrink-0 items-center justify-center rounded-md bg-card text-current ring-1 ring-sidebar-border">
                               <item.icon className="size-4.5" />
                               {typeof item.badge === "number" && item.badge > 0 && (
-                                <span className="absolute -top-1 -right-1 flex min-w-5 items-center justify-center rounded-full bg-sidebar-primary px-1.5 py-0.5 text-2xs font-semibold leading-none text-sidebar-primary-foreground shadow-sm ring-2 ring-sidebar">
+                                <span className="absolute -top-1 -right-1 flex min-w-5 items-center justify-center rounded-full bg-primary-subtle px-1.5 py-0.5 text-xs font-medium leading-none text-primary-subtle-foreground ring-2 ring-sidebar">
                                   {item.badge}
                                 </span>
                               )}

@@ -353,7 +353,7 @@ export function DataTable<TData extends RowData>({
               data-testid="data-table-empty-state"
               className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center"
             >
-              <div className="flex size-14 items-center justify-center rounded-2xl border border-border/70 bg-muted/60 text-muted-foreground">
+              <div className="flex size-14 items-center justify-center rounded-lg border border-border/70 bg-muted/60 text-muted-foreground">
                 <DatabaseZap className="size-6" />
               </div>
               <div className="space-y-1">
@@ -492,8 +492,8 @@ export function DataTable<TData extends RowData>({
       <div
         className={
           embedded
-            ? "overflow-hidden rounded-xl border border-border/70 bg-background/60"
-            : "overflow-hidden rounded-3xl border border-shell-border-strong/70 bg-shell-panel shadow-sm"
+            ? "overflow-hidden rounded-lg border border-border bg-card"
+            : "overflow-hidden rounded-lg border border-border bg-card"
         }
       >
         <Table className="min-w-full">
@@ -502,7 +502,7 @@ export function DataTable<TData extends RowData>({
               <TableRow key={headerGroup.id} variant="header" className="select-none">
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className={embedded ? "h-10" : "h-12"}>
+                    <TableHead key={header.id} className="h-10">
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}

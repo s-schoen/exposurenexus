@@ -37,7 +37,7 @@ function GlobalFilterChip({ filter, onClear }: { filter: string; onClear: () => 
   }
 
   return (
-    <Badge variant="outline" size="lg" className="h-8">
+    <Badge variant="outline" size="lg">
       <span className="text-muted-foreground">Search</span>
       <span className="max-w-48 truncate text-foreground">{filter}</span>
       <button
@@ -64,7 +64,7 @@ function SelectFilterChips<TData extends RowData>({ column }: { column: DataTabl
   }
 
   return selectedOptions.map((option) => (
-    <Badge key={`${column.id}-${option.value}`} variant="outline" size="lg" className="h-8">
+    <Badge key={`${column.id}-${option.value}`} variant="outline" size="lg">
       <span className="text-muted-foreground">{label}</span>
       <span className="text-foreground">{option.label}</span>
       <button
@@ -91,7 +91,7 @@ function ScalarFilterChip<TData extends RowData>({ column }: { column: DataTable
   }
 
   return (
-    <Badge key={`${column.id}-${value}`} variant="outline" size="lg" className="h-8">
+    <Badge key={`${column.id}-${value}`} variant="outline" size="lg">
       <span className="text-muted-foreground">{label}</span>
       <span className="max-w-48 truncate text-foreground">{value}</span>
       <button
@@ -157,7 +157,7 @@ export function DataTableToolbar<TData extends RowData>({
   }
 
   return (
-    <div className="rounded-3xl border border-shell-border-strong/70 bg-shell-panel px-4 py-4 shadow-sm">
+    <div className="rounded-lg border border-border bg-card px-4 py-4">
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0 flex-1">
@@ -174,7 +174,6 @@ export function DataTableToolbar<TData extends RowData>({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9"
                 disabled={isFetching || deleteDisabled}
                 onClick={onRequestDelete}
               >
@@ -182,13 +181,7 @@ export function DataTableToolbar<TData extends RowData>({
                 Delete
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9"
-              disabled={isFetching}
-              onClick={onRequestRefresh}
-            >
+            <Button variant="outline" size="sm" disabled={isFetching} onClick={onRequestRefresh}>
               {isFetching ? <Spinner /> : <RotateCw />}
               Refresh
             </Button>
@@ -200,7 +193,7 @@ export function DataTableToolbar<TData extends RowData>({
                   table.setExpanded(true);
                 }}
               >
-                <SelectTrigger aria-label="Group rows" className="h-9 min-w-52">
+                <SelectTrigger aria-label="Group rows" size="sm" className="min-w-52">
                   <Rows3 className="size-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Group by</span>
                   <span className="min-w-0 truncate font-medium text-foreground">
@@ -237,7 +230,7 @@ export function DataTableToolbar<TData extends RowData>({
           {hasActiveFilters && (
             <span
               data-testid="data-table-active-filters-indicator"
-              className="rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-xs font-medium tracking-wide text-foreground uppercase"
+              className="rounded-md border border-border-strong bg-card px-2 py-0.5 text-xs text-foreground-secondary"
             >
               Filters active
             </span>
@@ -246,7 +239,7 @@ export function DataTableToolbar<TData extends RowData>({
             <span
               data-testid="data-table-active-grouping-indicator"
               data-grouping-id={activeGrouping}
-              className="rounded-full border border-border/70 bg-muted/50 px-2.5 py-1 text-xs font-medium tracking-wide text-foreground uppercase"
+              className="rounded-md border border-border-strong bg-card px-2 py-0.5 text-xs text-foreground-secondary"
             >
               Grouped by {activeGroupingOption.label}
             </span>

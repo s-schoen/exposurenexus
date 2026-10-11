@@ -34,9 +34,7 @@ export function MetadataDetailRow<T>({ label, mono = false, ...props }: Metadata
   if (editable) {
     return (
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium uppercase tracking-eyebrow text-muted-foreground">
-          {label}
-        </span>
+        <span className="text-13 font-semibold text-subtle-foreground">{label}</span>
         <div className="text-sm text-foreground">
           <Inplace
             value={editable.value}
@@ -54,9 +52,7 @@ export function MetadataDetailRow<T>({ label, mono = false, ...props }: Metadata
 
   return (
     <div className="flex items-start justify-between gap-6">
-      <span className="text-xs font-medium uppercase tracking-eyebrow text-muted-foreground">
-        {label}
-      </span>
+      <span className="text-13 font-semibold text-subtle-foreground">{label}</span>
       <span
         className={
           mono

@@ -496,7 +496,7 @@ export function AssetCustomFieldForm({
                               {field.state.value.map((option, index) => (
                                 <div
                                   key={index}
-                                  className="grid gap-3 rounded-xl border border-border/70 bg-muted/20 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+                                  className="grid gap-3 rounded-lg border border-border/70 bg-muted/20 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
                                 >
                                   <Input
                                     aria-label={`Option ${index + 1} value`}

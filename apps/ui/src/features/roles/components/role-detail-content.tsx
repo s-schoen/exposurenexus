@@ -52,7 +52,7 @@ export function RoleDetailContent({ role: roleData, titleAction }: RoleDetailCon
         </div>
         <div className="space-y-3">
           <div className="space-y-2">
-            <CardTitle className="text-2xl tracking-tight">{roleData.name}</CardTitle>
+            <CardTitle className="text-2xl">{roleData.name}</CardTitle>
             <CardDescription className="max-w-3xl text-sm leading-6">
               Roles define which resources a user can read, write, or delete across the platform.
             </CardDescription>
@@ -97,7 +97,7 @@ export function RoleDetailContent({ role: roleData, titleAction }: RoleDetailCon
         {permissionsByResource.map((permissionGroup) => (
           <div
             key={permissionGroup.resource}
-            className="rounded-2xl border border-border/70 bg-muted/20 p-4"
+            className="rounded-lg border border-border/70 bg-muted/20 p-4"
           >
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-semibold text-foreground">

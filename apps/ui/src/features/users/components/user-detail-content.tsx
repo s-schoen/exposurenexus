@@ -72,7 +72,7 @@ export function UserDetailContent({ user: userData, roles, titleAction }: UserDe
           </div>
           <div className="space-y-3">
             <div className="space-y-2">
-              <CardTitle className="text-2xl tracking-tight">{displayName}</CardTitle>
+              <CardTitle className="text-2xl">{displayName}</CardTitle>
               <CardDescription className="max-w-3xl text-sm leading-6">
                 Platform user account with access credentials, profile identifiers, and role
                 assignments.
@@ -128,19 +128,19 @@ export function UserDetailContent({ user: userData, roles, titleAction }: UserDe
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <div className="text-sm font-medium text-foreground">Display name</div>
-            <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+            <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
               {displayName}
             </div>
           </div>
           <div className="space-y-2">
             <div className="text-sm font-medium text-foreground">Email</div>
-            <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+            <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
               {userData.email}
             </div>
           </div>
           <div className="space-y-2">
             <div className="text-sm font-medium text-foreground">Username</div>
-            <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+            <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
               {username}
             </div>
           </div>

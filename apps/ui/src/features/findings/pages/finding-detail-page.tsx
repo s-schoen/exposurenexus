@@ -37,7 +37,7 @@ export function FindingDetailPage({ findingId }: FindingDetailPageProps) {
             assignee: undefined,
             selected: undefined,
           }}
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2 rounded-xl")}
+          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2")}
         >
           <ArrowLeft />
           Back to findings

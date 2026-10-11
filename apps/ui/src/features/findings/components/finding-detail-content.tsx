@@ -831,10 +831,8 @@ function FindingResourceCard({ finding }: { finding: Finding }) {
         <CardDescription>Canonical resource identity used by this finding.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
-          <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Type
-          </div>
+        <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
+          <div className="text-13 font-semibold text-subtle-foreground">Type</div>
           <div className="mt-1 font-medium">
             {formatResourceType(finding.affectedResource.type)}
           </div>
@@ -842,7 +840,7 @@ function FindingResourceCard({ finding }: { finding: Finding }) {
         {details.length > 0 ? (
           <dl className="grid gap-3 sm:grid-cols-2">
             {details.map(([label, value]) => (
-              <div key={label} className="rounded-xl border border-border/60 px-4 py-3">
+              <div key={label} className="rounded-lg border border-border/60 px-4 py-3">
                 <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
                 <dd className="mt-1 break-words text-sm font-medium">{value}</dd>
               </div>
@@ -871,7 +869,7 @@ function FindingWeaknessCard({ finding }: { finding: Finding }) {
         {identifiers.length > 0 ? (
           <dl className="grid gap-3 sm:grid-cols-2">
             {identifiers.map(([namespace, values]) => (
-              <div key={namespace} className="rounded-xl border border-border/60 px-4 py-3">
+              <div key={namespace} className="rounded-lg border border-border/60 px-4 py-3">
                 <dt className="text-xs font-medium text-muted-foreground">{namespace}</dt>
                 <dd className="mt-1 break-words text-sm font-medium">{values.join(", ")}</dd>
               </div>
@@ -942,7 +940,7 @@ function FindingVulnerabilitiesCard({ finding }: { finding: Finding }) {
             {finding.vulnerabilities.map((vulnerability) => (
               <div
                 key={vulnerability.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 px-4 py-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 px-4 py-3"
               >
                 <div className="min-w-0">
                   <div className="font-medium">{vulnerability.title}</div>
@@ -976,7 +974,7 @@ function FindingVulnerabilitiesCard({ finding }: { finding: Finding }) {
         ) : (
           <p className="text-sm text-muted-foreground">No catalog entries are linked.</p>
         )}
-        <div className="flex flex-col gap-3 rounded-xl border border-dashed border-border bg-muted/10 p-4 sm:flex-row sm:items-end">
+        <div className="flex flex-col gap-3 rounded-lg border border-dashed border-border bg-muted/10 p-4 sm:flex-row sm:items-end">
           <div className="min-w-0 flex-1">
             <label
               htmlFor={`finding-${finding.id}-catalog-entry`}
@@ -1068,7 +1066,7 @@ function FindingOverviewCard({
         </div>
         <div className="space-y-3">
           <div className="space-y-2">
-            <CardTitle className="text-2xl tracking-tight">{findingData.title}</CardTitle>
+            <CardTitle className="text-2xl">{findingData.title}</CardTitle>
             <CardDescription className="max-w-3xl text-sm leading-6">
               Human workflow case for one weakness affecting one asset and canonical resource.
             </CardDescription>

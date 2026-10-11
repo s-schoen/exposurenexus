@@ -78,9 +78,9 @@ export function ImportFindingsPage() {
 
           <label
             htmlFor={inputId}
-            className="group flex w-full flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-muted/30 px-6 py-10 text-center transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="group flex w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-muted/30 px-6 py-10 text-center transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
-            <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform group-hover:scale-105">
+            <div className="flex size-14 items-center justify-center rounded-lg bg-primary/10 text-primary transition-transform group-hover:scale-105">
               <UploadCloud className="size-7" />
             </div>
             <div className="space-y-1">
@@ -94,10 +94,10 @@ export function ImportFindingsPage() {
           </label>
 
           {file ? (
-            <div className="rounded-2xl border border-border/80 bg-background p-4">
+            <div className="rounded-lg border border-border/80 bg-background p-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <div className="mt-0.5 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <FileJson2 className="size-5" />
                   </div>
                   <div className="space-y-1">
