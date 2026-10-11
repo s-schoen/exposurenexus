@@ -1060,8 +1060,8 @@ function FindingOverviewCard({
             <FindingCorrectionDialog finding={findingData} users={users} />
           </div>
           <div className="flex items-center gap-2">
-            <SeverityBadge severity={findingData.severity} className="h-6" />
-            <FindingStatusBadge status={findingData.status} className="h-6" />
+            <SeverityBadge severity={findingData.severity} />
+            <FindingStatusBadge status={findingData.status} />
           </div>
         </div>
         <div className="space-y-3">
