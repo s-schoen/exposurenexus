@@ -9,21 +9,21 @@ const UNAUTHORIZED = /Failed to load resource: the server responded with a statu
 
 test("signs in from a deep link and continues to the target", async ({ page, consoleGuard }) => {
   consoleGuard.allow(UNAUTHORIZED);
-  await page.goto("/roles?kind=Custom&mockScenario=loggedOut");
+  await page.goto("/settings/roles?kind=Custom&mockScenario=loggedOut");
 
   await expect(page).toHaveURL(/\/login\?redirect=/);
   await page.getByLabel("Username").fill(MORGAN.username);
   await page.getByLabel("Password").fill("any password");
   await page.getByRole("button", { name: "Login" }).click();
 
-  await expect(page).toHaveURL(/\/roles\?.*kind=Custom/);
+  await expect(page).toHaveURL(/\/settings\/roles\?.*kind=Custom/);
   await expect(page.getByRole("heading", { level: 1, name: "Roles" })).toBeVisible();
   await expect(page.getByRole("button", { name: new RegExp(MORGAN.displayName) })).toBeVisible();
 });
 
 test("signs out from the account menu", async ({ page, consoleGuard }) => {
   consoleGuard.allow(UNAUTHORIZED);
-  await page.goto("/roles");
+  await page.goto("/settings/roles");
 
   await page.getByRole("button", { name: new RegExp(ROBIN.displayName) }).click();
   await page.getByRole("menuitem", { name: "Sign Out" }).click();

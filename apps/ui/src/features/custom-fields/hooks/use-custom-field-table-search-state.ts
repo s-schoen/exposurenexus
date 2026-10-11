@@ -48,7 +48,7 @@ export function useCustomFieldTableSearchState({ search }: { search: Record<stri
     filterState,
     onFilterStateChange: (nextState: DataTableFilterState) => {
       void navigate({
-        to: "/custom-fields",
+        to: "/settings/custom-fields",
         replace: true,
         search: (prev) => ({
           ...prev,

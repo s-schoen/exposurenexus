@@ -26,14 +26,14 @@ export function EditCustomFieldPage({ customFieldId }: EditCustomFieldPageProps)
     title: "Edit",
     icon: Tags,
     breadcrumbs: [
-      { label: "Custom Fields", to: "/custom-fields" },
-      { label: customField.data.name, to: `/custom-fields/${customFieldId}` },
+      { label: "Custom Fields", to: "/settings/custom-fields" },
+      { label: customField.data.name, to: `/settings/custom-fields/${customFieldId}` },
     ],
   });
 
   const handleCancel = async () => {
     await navigate({
-      to: "/custom-fields/$id",
+      to: "/settings/custom-fields/$id",
       params: { id: customFieldId },
     });
   };
@@ -48,7 +48,7 @@ export function EditCustomFieldPage({ customFieldId }: EditCustomFieldPageProps)
 
     if (updatedCustomField) {
       await navigate({
-        to: "/custom-fields/$id",
+        to: "/settings/custom-fields/$id",
         params: { id: customFieldId },
       });
     }

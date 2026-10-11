@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { EditUserPage } from "@/features/users";
 
-export const Route = createFileRoute("/_authenticated/users/$id/edit")({
+export const Route = createFileRoute("/_authenticated/settings/users/$id/edit")({
   component: RouteComponent,
 });
 

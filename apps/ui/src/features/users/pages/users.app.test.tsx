@@ -12,7 +12,7 @@ const [ROBIN, MORGAN, CASEY] = SEED_USERS;
 
 describe("users list", () => {
   it("lists users with their role names", async () => {
-    renderApp({ path: "/users" });
+    renderApp({ path: "/settings/users" });
 
     const table = await screen.findByRole("table");
     for (const user of SEED_USERS) {
@@ -24,7 +24,7 @@ describe("users list", () => {
   });
 
   it("keeps the search filter in the URL", async () => {
-    const { router, user } = renderApp({ path: "/users" });
+    const { router, user } = renderApp({ path: "/settings/users" });
 
     // Paste: the input is driven by the URL, so per-keystroke typing races the navigation.
     await user.click(await screen.findByLabelText("Search across visible columns"));
@@ -36,16 +36,16 @@ describe("users list", () => {
   });
 
   it("opens the create page from the toolbar", async () => {
-    const { router, user } = renderApp({ path: "/users" });
+    const { router, user } = renderApp({ path: "/settings/users" });
 
     await user.click(await screen.findByRole("button", { name: "New user" }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/users/new"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/users/new"));
   });
 
   it("previews a selected user, fetching it only once selected, and closes again", async () => {
     const requests = recordApiRequests();
-    const { router, user } = renderApp({ path: "/users" });
+    const { router, user } = renderApp({ path: "/settings/users" });
 
     await user.click(await screen.findByText(MORGAN.displayName));
 
@@ -62,7 +62,7 @@ describe("users list", () => {
 
   it("keeps a preview failure inside the dialog", async () => {
     mockApiError("get", "/users/:id", 500, "User request failed");
-    renderApp({ path: `/users?selected=${MORGAN.id}` });
+    renderApp({ path: `/settings/users?selected=${MORGAN.id}` });
 
     const dialog = await screen.findByRole("dialog", { name: "User details" });
     expect(await within(dialog).findByText("User request failed")).toBeVisible();
@@ -72,19 +72,21 @@ describe("users list", () => {
 
 describe("user detail", () => {
   it("shows the user and opens the edit page", async () => {
-    const { router, user } = renderApp({ path: `/users/${MORGAN.id}` });
+    const { router, user } = renderApp({ path: `/settings/users/${MORGAN.id}` });
 
     expect(
       await screen.findByRole("heading", { level: 1, name: MORGAN.displayName }),
     ).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Edit user" }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe(`/users/${MORGAN.id}/edit`));
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/settings/users/${MORGAN.id}/edit`),
+    );
   });
 
   it("goes back to the list with its filters but without a selection", async () => {
     const { router, user } = renderApp({
-      path: `/users/${MORGAN.id}?filter=morgan&selected=${MORGAN.id}`,
+      path: `/settings/users/${MORGAN.id}?filter=morgan&selected=${MORGAN.id}`,
     });
 
     await user.click(
@@ -93,14 +95,14 @@ describe("user detail", () => {
       }),
     );
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/users"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/users"));
     expect(router.state.location.search).toEqual({ filter: "morgan" });
   });
 });
 
 describe("creating and editing users", () => {
   it("creates a user with the viewer role by default and returns to the list", async () => {
-    const { router, user } = renderApp({ path: "/users/new" });
+    const { router, user } = renderApp({ path: "/settings/users/new" });
 
     await user.type(await screen.findByLabelText("Display name"), "Jamie Tester");
     await user.type(screen.getByLabelText("Username"), "jamie");
@@ -116,12 +118,12 @@ describe("creating and editing users", () => {
         roleIds: [builtInRoleIds.viewer],
       }),
     );
-    await waitFor(() => expect(router.state.location.pathname).toBe("/users"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/users"));
   });
 
   it("stays on the form when creating fails", async () => {
     mockApiError("post", "/users", 500, "Create failed");
-    const { router, user } = renderApp({ path: "/users/new" });
+    const { router, user } = renderApp({ path: "/settings/users/new" });
 
     await user.type(await screen.findByLabelText("Display name"), "Jamie Tester");
     await user.type(screen.getByLabelText("Username"), "jamie");
@@ -130,19 +132,19 @@ describe("creating and editing users", () => {
     await user.click(screen.getByRole("button", { name: "Create user" }));
 
     expect(await screen.findByText(/Create failed/)).toBeVisible();
-    expect(router.state.location.pathname).toBe("/users/new");
+    expect(router.state.location.pathname).toBe("/settings/users/new");
   });
 
   it("cancels creation back to the list", async () => {
-    const { router, user } = renderApp({ path: "/users/new" });
+    const { router, user } = renderApp({ path: "/settings/users/new" });
 
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/users"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/users"));
   });
 
   it("edits a user and returns to the detail page", async () => {
-    const { router, user } = renderApp({ path: `/users/${MORGAN.id}/edit` });
+    const { router, user } = renderApp({ path: `/settings/users/${MORGAN.id}/edit` });
 
     const displayName = await screen.findByLabelText("Display name");
     expect(displayName).toHaveValue(MORGAN.displayName);
@@ -153,26 +155,30 @@ describe("creating and editing users", () => {
 
     await waitFor(() => expect(db.users.get(MORGAN.id)?.displayName).toBe("Morgan Lead"));
     expect(db.users.get(MORGAN.id)?.roleIds).toEqual(MORGAN.roleIds);
-    await waitFor(() => expect(router.state.location.pathname).toBe(`/users/${MORGAN.id}`));
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/settings/users/${MORGAN.id}`),
+    );
   });
 
   it("stays on the form when saving fails", async () => {
     mockApiError("put", "/users/:id", 500, "Update failed");
-    const { router, user } = renderApp({ path: `/users/${MORGAN.id}/edit` });
+    const { router, user } = renderApp({ path: `/settings/users/${MORGAN.id}/edit` });
 
     await user.type(await screen.findByLabelText("Display name"), "!");
     await user.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(await screen.findByText(/Update failed/)).toBeVisible();
-    expect(router.state.location.pathname).toBe(`/users/${MORGAN.id}/edit`);
+    expect(router.state.location.pathname).toBe(`/settings/users/${MORGAN.id}/edit`);
   });
 
   it("cancels editing back to the detail page", async () => {
-    const { router, user } = renderApp({ path: `/users/${MORGAN.id}/edit` });
+    const { router, user } = renderApp({ path: `/settings/users/${MORGAN.id}/edit` });
 
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe(`/users/${MORGAN.id}`));
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/settings/users/${MORGAN.id}`),
+    );
     expect(db.users.get(MORGAN.id)).toEqual(MORGAN);
   });
 });

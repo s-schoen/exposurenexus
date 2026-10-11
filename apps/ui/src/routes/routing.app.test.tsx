@@ -23,10 +23,10 @@ describe("list routes", () => {
     ["/assets", "Assets", SEED_ASSETS[0].id, "Asset details"],
     ["/findings", "Findings", SEED_FINDINGS[0].id, "Finding details"],
     ["/findings/triage", "Triage", SEED_FINDINGS[0].id, "Finding details"],
-    ["/users", "Users", SEED_USERS[1].id, "User details"],
+    ["/settings/users", "Users", SEED_USERS[1].id, "User details"],
     ["/vulnerabilities", "Vulnerabilities", SEED_VULNERABILITIES[0].id, "Catalog entry details"],
-    ["/custom-fields", "Custom Fields", SEED_CUSTOM_FIELDS[0].id, "Custom field details"],
-    ["/roles", "Roles", CUSTOM_AUDITOR_ROLE.id, "Role details"],
+    ["/settings/custom-fields", "Custom Fields", SEED_CUSTOM_FIELDS[0].id, "Custom field details"],
+    ["/settings/roles", "Roles", CUSTOM_AUDITOR_ROLE.id, "Role details"],
   ])("%s renders its page and opens ?selected= as a preview", async (path, title, id, preview) => {
     renderApp({ path: `${path}?selected=${id}` });
 
@@ -58,7 +58,7 @@ describe("list routes", () => {
 
 describe("authenticated shell", () => {
   it("shows the navigation with a triage count", async () => {
-    renderApp({ path: "/roles" });
+    renderApp({ path: "/assets" });
     const triage = await screen.findByRole("link", { name: /Triage/ });
 
     expect(screen.getByText("Exposure")).toBeVisible();
@@ -67,7 +67,10 @@ describe("authenticated shell", () => {
     }
     // Seed: two active findings to triage.
     await waitFor(() => expect(triage).toHaveTextContent("2"));
-    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/users");
+    expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute(
+      "href",
+      "/settings/users",
+    );
     expect(screen.getByRole("link", { name: "New finding" })).toHaveAttribute(
       "href",
       "/findings/new",
@@ -76,10 +79,10 @@ describe("authenticated shell", () => {
   });
 
   it("hides zero counts", async () => {
-    renderApp({ path: "/roles", scenario: "empty" });
+    renderApp({ path: "/assets", scenario: "empty" });
 
     const triage = await screen.findByRole("link", { name: /Triage/ });
-    await screen.findByRole("heading", { level: 1, name: "Roles" });
+    await screen.findByRole("heading", { level: 1, name: "Assets" });
     expect(within(triage).queryByText("0")).not.toBeInTheDocument();
   });
 
@@ -91,9 +94,9 @@ describe("authenticated shell", () => {
     [`/findings/${SEED_FINDINGS[0].id}`, "Findings"],
     ["/findings/import", "Findings"],
     [`/vulnerabilities/${SEED_VULNERABILITIES[0].id}`, "Vulnerabilities"],
-    [`/users/${SEED_USERS[0].id}`, "Settings"],
-    [`/roles/${CUSTOM_AUDITOR_ROLE.id}`, "Settings"],
-    [`/custom-fields/${SEED_CUSTOM_FIELDS[0].id}`, "Settings"],
+    [`/settings/users/${SEED_USERS[0].id}/edit`, "Users"],
+    [`/settings/roles/${CUSTOM_AUDITOR_ROLE.id}`, "Roles"],
+    ["/settings/custom-fields/new", "Custom fields"],
   ])("marks the navigation item for %s as active", async (path, label) => {
     renderApp({ path });
 
@@ -119,16 +122,79 @@ describe("authenticated shell", () => {
 
   it("links detail pages back to their list through breadcrumbs", async () => {
     const [ROBIN] = SEED_USERS;
-    const { router, user } = renderApp({ path: `/users/${ROBIN.id}/edit` });
+    const { router, user } = renderApp({ path: `/settings/users/${ROBIN.id}/edit` });
     const breadcrumb = () => screen.findByRole("navigation", { name: "Breadcrumb" });
 
     expect(await screen.findByRole("heading", { level: 1, name: "Edit" })).toBeVisible();
     await user.click(within(await breadcrumb()).getByRole("link", { name: ROBIN.displayName }));
     expect(await screen.findByRole("heading", { level: 1, name: ROBIN.displayName })).toBeVisible();
-    expect(router.state.location.pathname).toBe(`/users/${ROBIN.id}`);
+    expect(router.state.location.pathname).toBe(`/settings/users/${ROBIN.id}`);
 
     await user.click(within(await breadcrumb()).getByRole("link", { name: "Users" }));
     expect(await screen.findByRole("heading", { level: 1, name: "Users" })).toBeVisible();
-    expect(router.state.location.pathname).toBe("/users");
+    expect(router.state.location.pathname).toBe("/settings/users");
+  });
+});
+
+describe("settings area", () => {
+  const leaveSettings = () => screen.findByRole("link", { name: "Leave Settings" });
+
+  it("swaps the sidebar for the settings sections", async () => {
+    const { router, user } = renderApp({ path: "/findings" });
+
+    await user.click(await screen.findByRole("link", { name: "Settings" }));
+
+    expect(await leaveSettings()).toBeVisible();
+    expect(router.state.location.pathname).toBe("/settings/users");
+    for (const label of ["Access", "Assets"]) {
+      expect(screen.getByText(label)).toBeVisible();
+    }
+    expect(screen.getByRole("link", { name: "Users" })).toHaveAttribute("href", "/settings/users");
+    expect(screen.getByRole("link", { name: "Roles" })).toHaveAttribute("href", "/settings/roles");
+    expect(screen.getByRole("link", { name: "Custom fields" })).toHaveAttribute(
+      "href",
+      "/settings/custom-fields",
+    );
+    for (const label of ["Dashboard", /Triage/, "Findings", "New finding"]) {
+      expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
+    }
+  });
+
+  it("titles settings pages once, in the page column", async () => {
+    renderApp({ path: "/settings/roles" });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Roles" })).toBeVisible();
+    expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  });
+
+  it("goes back to the page Settings was opened from, filters included", async () => {
+    const { router, user } = renderApp({ path: "/assets?filter=web" });
+
+    await user.click(await screen.findByRole("link", { name: "Settings" }));
+    await user.click(await screen.findByRole("link", { name: "Roles" }));
+    await screen.findByRole("heading", { level: 1, name: "Roles" });
+    await user.click(await leaveSettings());
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Assets" })).toBeVisible();
+    expect(router.state.location.pathname).toBe("/assets");
+    expect(router.state.location.search).toMatchObject({ filter: "web" });
+    expect(screen.getByRole("link", { name: "Settings" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "Leave Settings" })).not.toBeInTheDocument();
+  });
+
+  it("goes back to the dashboard when Settings was opened directly", async () => {
+    const { router, user } = renderApp({ path: "/settings/custom-fields" });
+
+    await user.click(await leaveSettings());
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Dashboard" })).toBeVisible();
+    expect(router.state.location.pathname).toBe("/");
+  });
+
+  it("opens /settings on its first section", async () => {
+    const { router } = renderApp({ path: "/settings" });
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Users" })).toBeVisible();
+    expect(router.state.location.pathname).toBe("/settings/users");
   });
 });

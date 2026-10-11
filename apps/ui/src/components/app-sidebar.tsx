@@ -1,6 +1,20 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Bug, Inbox, LayoutGrid, Plus, Server, Settings, ShieldAlert } from "lucide-react";
+import {
+  ArrowLeft,
+  Bug,
+  Inbox,
+  KeyRound,
+  LayoutGrid,
+  Plus,
+  Server,
+  Settings,
+  ShieldAlert,
+  Tags,
+  Users,
+} from "lucide-react";
+import { useState } from "react";
 
+import { isSettingsPath } from "@/components/settings-column.tsx";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Sidebar,
@@ -16,6 +30,7 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
+import type { ParsedLocation } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 
 interface NavItem {
@@ -30,17 +45,55 @@ interface AppSidebarProps {
   triageCount: number;
 }
 
-// Until the Settings area exists, Settings opens the users page and covers every admin page.
+type SidebarMode = "main" | "settings";
+
 const settingsItem: NavItem = {
   title: "Settings",
-  url: "/users",
+  url: "/settings/users",
   icon: Settings,
-  activeMatch: /^\/(?:users|roles|custom-fields)(?:\/.+)?$/,
+  activeMatch: /^\/settings(?:\/.*)?$/,
 };
+const accessItems: Array<NavItem> = [
+  {
+    title: "Users",
+    url: "/settings/users",
+    icon: Users,
+    activeMatch: /^\/settings\/users(?:\/.+)?$/,
+  },
+  {
+    title: "Roles",
+    url: "/settings/roles",
+    icon: KeyRound,
+    activeMatch: /^\/settings\/roles(?:\/.+)?$/,
+  },
+];
+const assetSettingsItems: Array<NavItem> = [
+  {
+    title: "Custom fields",
+    url: "/settings/custom-fields",
+    icon: Tags,
+    activeMatch: /^\/settings\/custom-fields(?:\/.+)?$/,
+  },
+];
 
 export function AppSidebar({ triageCount }: AppSidebarProps) {
   const { isMobile, setOpenMobile } = useSidebar();
   const closeMobile = () => setOpenMobile(false);
+  const location = useLocation();
+  const mode: SidebarMode = isSettingsPath(location.pathname) ? "settings" : "main";
+
+  // The nav only animates when the mode changes, not on first render. Leaving Settings goes back
+  // to the last page seen outside it.
+  const [nav, setNav] = useState<{
+    mode: SidebarMode;
+    animate: boolean;
+    returnTo: Pick<ParsedLocation, "href" | "pathname" | "search"> | undefined;
+  }>({ mode, animate: false, returnTo: undefined });
+  if (nav.mode !== mode) {
+    setNav({ ...nav, mode, animate: true });
+  } else if (mode === "main" && nav.returnTo?.href !== location.href) {
+    setNav({ ...nav, returnTo: location });
+  }
 
   const workItems: Array<NavItem> = [
     { title: "Dashboard", url: "/", icon: LayoutGrid, activeMatch: /^\/$/ },
@@ -72,23 +125,64 @@ export function AppSidebar({ triageCount }: AppSidebarProps) {
     // On desktop the sidebar sits in the sheet; on phones it slides in as a sheet of its own.
     <div className="flex shrink-0 md:border-r md:border-border">
       <Sidebar collapsible={isMobile ? "offcanvas" : "none"}>
-        <SidebarHeader>
-          <Link
-            to="/findings/new"
-            onClick={closeMobile}
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full")}
-          >
-            <Plus />
-            New finding
-          </Link>
-        </SidebarHeader>
-        <SidebarContent>
-          <NavGroup items={workItems} onNavigate={closeMobile} />
-          <NavGroup label="Exposure" items={exposureItems} onNavigate={closeMobile} />
-        </SidebarContent>
-        <SidebarFooter>
-          <NavMenu items={[settingsItem]} onNavigate={closeMobile} />
-        </SidebarFooter>
+        <div
+          key={mode}
+          data-mode={mode}
+          className={cn(
+            "flex min-h-0 flex-1 flex-col",
+            nav.animate && "animate-nav-enter",
+            nav.animate && mode === "main" && "nav-enter-from-left",
+          )}
+        >
+          {mode === "settings" ? (
+            <>
+              <SidebarHeader>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      variant="nav"
+                      render={
+                        <Link
+                          to={nav.returnTo?.pathname ?? "/"}
+                          search={nav.returnTo?.search ?? {}}
+                          onClick={closeMobile}
+                          aria-label="Leave Settings"
+                        >
+                          <ArrowLeft strokeWidth={1.5} />
+                          <span className="flex-1 truncate">Settings</span>
+                        </Link>
+                      }
+                    />
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarHeader>
+              <SidebarContent>
+                <NavGroup label="Access" items={accessItems} onNavigate={closeMobile} />
+                <NavGroup label="Assets" items={assetSettingsItems} onNavigate={closeMobile} />
+              </SidebarContent>
+            </>
+          ) : (
+            <>
+              <SidebarHeader>
+                <Link
+                  to="/findings/new"
+                  onClick={closeMobile}
+                  className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full")}
+                >
+                  <Plus />
+                  New finding
+                </Link>
+              </SidebarHeader>
+              <SidebarContent>
+                <NavGroup items={workItems} onNavigate={closeMobile} />
+                <NavGroup label="Exposure" items={exposureItems} onNavigate={closeMobile} />
+              </SidebarContent>
+              <SidebarFooter>
+                <NavMenu items={[settingsItem]} onNavigate={closeMobile} />
+              </SidebarFooter>
+            </>
+          )}
+        </div>
       </Sidebar>
     </div>
   );

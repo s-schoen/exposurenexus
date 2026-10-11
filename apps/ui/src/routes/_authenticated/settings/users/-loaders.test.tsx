@@ -7,10 +7,10 @@ import { createListRolesQueryOptions } from "@/features/roles";
 import { createListUsersQueryOptions, createUserByIDQueryOptions } from "@/features/users";
 import { PageProvider } from "@/hooks/use-page-meta.tsx";
 import { SEED_ROLES, SEED_USERS } from "@/mocks/fixtures/seed.ts";
-import { Route as EditRoute } from "@/routes/_authenticated/users/$id.edit.tsx";
-import { Route as DetailRoute } from "@/routes/_authenticated/users/$id.tsx";
-import { Route as IndexRoute } from "@/routes/_authenticated/users/index.tsx";
-import { Route as NewRoute } from "@/routes/_authenticated/users/new.tsx";
+import { Route as EditRoute } from "@/routes/_authenticated/settings/users/$id.edit.tsx";
+import { Route as DetailRoute } from "@/routes/_authenticated/settings/users/$id.tsx";
+import { Route as IndexRoute } from "@/routes/_authenticated/settings/users/index.tsx";
+import { Route as NewRoute } from "@/routes/_authenticated/settings/users/new.tsx";
 import { recordApiRequests } from "@/test/msw.ts";
 
 import type { ComponentType } from "react";

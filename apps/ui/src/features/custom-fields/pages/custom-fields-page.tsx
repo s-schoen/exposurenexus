@@ -33,7 +33,7 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
   });
   const selectedSearch = useSelectedSearchParam<AssetCustomFieldDefinition>({
     selectedId: selected,
-    to: "/custom-fields",
+    to: "/settings/custom-fields",
     replace: true,
     getId: (field) => field.id,
   });
@@ -47,7 +47,7 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
 
   const handleOpenCustomField = async (field: AssetCustomFieldDefinition) => {
     await navigate({
-      to: "/custom-fields/$id",
+      to: "/settings/custom-fields/$id",
       params: { id: field.id },
     });
   };
@@ -86,7 +86,7 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
           void handleOpenCustomField(field);
         }}
         onCreateCustomField={() => {
-          void navigate({ to: "/custom-fields/new" });
+          void navigate({ to: "/settings/custom-fields/new" });
         }}
         onDeleteCustomFields={handleDeleteCustomFields}
       />
@@ -94,7 +94,7 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
         selectedId={selectedSearch.selectedId}
         title="Custom field details"
         description="Preview asset custom field configuration."
-        fullPageHref={selected ? `/custom-fields/${selected}` : undefined}
+        fullPageHref={selected ? `/settings/custom-fields/${selected}` : undefined}
         onClose={() => {
           void selectedSearch.clearSelected();
         }}

@@ -42,7 +42,7 @@ export function useUserTableSearchState({ search }: { search: Record<string, unk
     filterState,
     onFilterStateChange: (nextState: DataTableFilterState) => {
       void navigate({
-        to: "/users",
+        to: "/settings/users",
         replace: true,
         search: (prev) => ({
           ...prev,

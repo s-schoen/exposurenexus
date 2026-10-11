@@ -29,14 +29,14 @@ export function EditRolePage({ roleId }: EditRolePageProps) {
     title: "Edit",
     icon: KeyRound,
     breadcrumbs: [
-      { label: "Roles", to: "/roles" },
-      { label: role.data.name, to: `/roles/${roleId}` },
+      { label: "Roles", to: "/settings/roles" },
+      { label: role.data.name, to: `/settings/roles/${roleId}` },
     ],
   });
 
   const handleCancel = async () => {
     await navigate({
-      to: "/roles/$id",
+      to: "/settings/roles/$id",
       params: { id: roleId },
     });
   };
@@ -47,7 +47,7 @@ export function EditRolePage({ roleId }: EditRolePageProps) {
 
     if (updatedRole) {
       await navigate({
-        to: "/roles/$id",
+        to: "/settings/roles/$id",
         params: { id: roleId },
       });
     }

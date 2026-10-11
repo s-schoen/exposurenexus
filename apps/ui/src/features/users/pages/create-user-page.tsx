@@ -16,12 +16,12 @@ export function CreateUserPage() {
   usePageMeta({
     title: "Create User",
     icon: Users,
-    breadcrumbs: [{ label: "Users", to: "/users" }],
+    breadcrumbs: [{ label: "Users", to: "/settings/users" }],
   });
 
   const handleCancel = async () => {
     await navigate({
-      to: "/users",
+      to: "/settings/users",
       search: (previous) => ({
         enabled: previous.enabled,
         filter: previous.filter,
@@ -36,7 +36,7 @@ export function CreateUserPage() {
 
     if (createdUser) {
       await navigate({
-        to: "/users",
+        to: "/settings/users",
         search: (previous) => ({
           enabled: previous.enabled,
           filter: previous.filter,

@@ -23,7 +23,7 @@ export function CustomFieldDetailPage({ customFieldId }: CustomFieldDetailPagePr
         icon: Pencil,
         onClick: () => {
           void navigate({
-            to: "/custom-fields/$id/edit",
+            to: "/settings/custom-fields/$id/edit",
             params: { id: customFieldId },
           });
         },
@@ -34,7 +34,7 @@ export function CustomFieldDetailPage({ customFieldId }: CustomFieldDetailPagePr
   usePageMeta({
     title: customField.data.name,
     icon: Tags,
-    breadcrumbs: [{ label: "Custom Fields", to: "/custom-fields" }],
+    breadcrumbs: [{ label: "Custom Fields", to: "/settings/custom-fields" }],
     actions,
   });
 

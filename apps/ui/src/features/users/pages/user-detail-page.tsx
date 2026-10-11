@@ -23,7 +23,7 @@ export function UserDetailPage({ userId }: UserDetailPageProps) {
         icon: Pencil,
         onClick: () => {
           void navigate({
-            to: "/users/$id/edit",
+            to: "/settings/users/$id/edit",
             params: { id: userId },
           });
         },
@@ -35,7 +35,7 @@ export function UserDetailPage({ userId }: UserDetailPageProps) {
   usePageMeta({
     title: user.data.displayName,
     icon: Users,
-    breadcrumbs: [{ label: "Users", to: "/users" }],
+    breadcrumbs: [{ label: "Users", to: "/settings/users" }],
     actions,
   });
 

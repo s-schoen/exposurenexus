@@ -19,12 +19,12 @@ export function CreateRolePage() {
   usePageMeta({
     title: "Create Role",
     icon: KeyRound,
-    breadcrumbs: [{ label: "Roles", to: "/roles" }],
+    breadcrumbs: [{ label: "Roles", to: "/settings/roles" }],
   });
 
   const handleCancel = async () => {
     await navigate({
-      to: "/roles",
+      to: "/settings/roles",
       search: (previous) => ({
         filter: previous.filter,
         kind: previous.kind,
@@ -39,7 +39,7 @@ export function CreateRolePage() {
 
     if (role) {
       await navigate({
-        to: "/roles/$id",
+        to: "/settings/roles/$id",
         params: { id: role.id },
       });
     }

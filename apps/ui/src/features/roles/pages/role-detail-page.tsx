@@ -26,7 +26,7 @@ export function RoleDetailPage({ roleId }: RoleDetailPageProps) {
         icon: Pencil,
         onClick: () => {
           void navigate({
-            to: "/roles/$id/edit",
+            to: "/settings/roles/$id/edit",
             params: { id: roleId },
           });
         },
@@ -37,7 +37,7 @@ export function RoleDetailPage({ roleId }: RoleDetailPageProps) {
   usePageMeta({
     title: role.data.name,
     icon: KeyRound,
-    breadcrumbs: [{ label: "Roles", to: "/roles" }],
+    breadcrumbs: [{ label: "Roles", to: "/settings/roles" }],
     actions,
   });
 

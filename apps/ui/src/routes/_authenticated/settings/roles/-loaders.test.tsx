@@ -9,10 +9,10 @@ import {
 } from "@/features/roles";
 import { PageProvider } from "@/hooks/use-page-meta.tsx";
 import { CUSTOM_AUDITOR_ROLE } from "@/mocks/fixtures/seed.ts";
-import { Route as EditRoute } from "@/routes/_authenticated/roles/$id.edit.tsx";
-import { Route as DetailRoute } from "@/routes/_authenticated/roles/$id.tsx";
-import { Route as IndexRoute } from "@/routes/_authenticated/roles/index.tsx";
-import { Route as NewRoute } from "@/routes/_authenticated/roles/new.tsx";
+import { Route as EditRoute } from "@/routes/_authenticated/settings/roles/$id.edit.tsx";
+import { Route as DetailRoute } from "@/routes/_authenticated/settings/roles/$id.tsx";
+import { Route as IndexRoute } from "@/routes/_authenticated/settings/roles/index.tsx";
+import { Route as NewRoute } from "@/routes/_authenticated/settings/roles/new.tsx";
 import { recordApiRequests } from "@/test/msw.ts";
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({

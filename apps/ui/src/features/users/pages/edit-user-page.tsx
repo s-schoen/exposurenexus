@@ -22,14 +22,14 @@ export function EditUserPage({ userId }: EditUserPageProps) {
     title: "Edit",
     icon: Users,
     breadcrumbs: [
-      { label: "Users", to: "/users" },
-      { label: user.data.displayName, to: `/users/${userId}` },
+      { label: "Users", to: "/settings/users" },
+      { label: user.data.displayName, to: `/settings/users/${userId}` },
     ],
   });
 
   const handleCancel = async () => {
     await navigate({
-      to: "/users/$id",
+      to: "/settings/users/$id",
       params: { id: userId },
     });
   };
@@ -39,7 +39,7 @@ export function EditUserPage({ userId }: EditUserPageProps) {
 
     if (updatedUser) {
       await navigate({
-        to: "/users/$id",
+        to: "/settings/users/$id",
         params: { id: userId },
       });
     }

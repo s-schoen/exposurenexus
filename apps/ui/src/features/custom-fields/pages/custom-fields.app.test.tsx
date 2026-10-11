@@ -19,7 +19,7 @@ async function fillTextField(user: ReturnType<typeof renderApp>["user"]) {
 
 describe("custom fields list", () => {
   it("lists the definitions", async () => {
-    renderApp({ path: "/custom-fields" });
+    renderApp({ path: "/settings/custom-fields" });
 
     for (const field of SEED_CUSTOM_FIELDS) {
       expect(await screen.findByText(field.name)).toBeVisible();
@@ -27,7 +27,7 @@ describe("custom fields list", () => {
   });
 
   it("keeps the search filter in the URL", async () => {
-    const { router, user } = renderApp({ path: "/custom-fields" });
+    const { router, user } = renderApp({ path: "/settings/custom-fields" });
 
     // Paste: the input is driven by the URL, so per-keystroke typing races the navigation.
     await user.click(await screen.findByLabelText("Search across visible columns"));
@@ -39,16 +39,16 @@ describe("custom fields list", () => {
   });
 
   it("opens the create page from the toolbar", async () => {
-    const { router, user } = renderApp({ path: "/custom-fields" });
+    const { router, user } = renderApp({ path: "/settings/custom-fields" });
 
     await user.click(await screen.findByRole("button", { name: "New custom field" }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/custom-fields/new"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/custom-fields/new"));
   });
 
   it("previews a selected definition with a full-page link, fetching it only once selected", async () => {
     const requests = recordApiRequests();
-    const { router, user } = renderApp({ path: "/custom-fields" });
+    const { router, user } = renderApp({ path: "/settings/custom-fields" });
 
     await user.click(await screen.findByText(DEPLOYMENT_TIER.name));
 
@@ -56,7 +56,7 @@ describe("custom fields list", () => {
     expect((await within(dialog).findAllByText(DEPLOYMENT_TIER.key)).length).toBeGreaterThan(0);
     expect(within(dialog).getByRole("link", { name: /open full page/i })).toHaveAttribute(
       "href",
-      `/custom-fields/${DEPLOYMENT_TIER.id}`,
+      `/settings/custom-fields/${DEPLOYMENT_TIER.id}`,
     );
     expect(router.state.location.search).toMatchObject({ selected: DEPLOYMENT_TIER.id });
     expect(
@@ -69,7 +69,7 @@ describe("custom fields list", () => {
 
   it("keeps a preview failure inside the dialog", async () => {
     mockApiError("get", "/assets/custom-fields/:id", 500, "Custom field request failed");
-    renderApp({ path: `/custom-fields?selected=${PRIORITY.id}` });
+    renderApp({ path: `/settings/custom-fields?selected=${PRIORITY.id}` });
 
     const dialog = await screen.findByRole("dialog", { name: "Custom field details" });
     expect(await within(dialog).findByText("Custom field request failed")).toBeVisible();
@@ -77,7 +77,7 @@ describe("custom fields list", () => {
   });
 
   it("deletes confirmed definitions", async () => {
-    const { user } = renderApp({ path: "/custom-fields" });
+    const { user } = renderApp({ path: "/settings/custom-fields" });
 
     for (const field of [CATEGORY, PRIORITY]) {
       const row = (await screen.findByText(field.name)).closest("tr")!;
@@ -95,19 +95,19 @@ describe("custom fields list", () => {
 
 describe("custom field detail", () => {
   it("shows the definition and opens the edit page", async () => {
-    const { router, user } = renderApp({ path: `/custom-fields/${PRIORITY.id}` });
+    const { router, user } = renderApp({ path: `/settings/custom-fields/${PRIORITY.id}` });
 
     expect(await screen.findByRole("heading", { level: 1, name: PRIORITY.name })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Edit custom field" }));
 
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe(`/custom-fields/${PRIORITY.id}/edit`),
+      expect(router.state.location.pathname).toBe(`/settings/custom-fields/${PRIORITY.id}/edit`),
     );
   });
 
   it("goes back to the list with its filters but without a selection", async () => {
     const { router, user } = renderApp({
-      path: `/custom-fields/${PRIORITY.id}?filter=pri&selected=${PRIORITY.id}`,
+      path: `/settings/custom-fields/${PRIORITY.id}?filter=pri&selected=${PRIORITY.id}`,
     });
 
     await user.click(
@@ -116,14 +116,14 @@ describe("custom field detail", () => {
       }),
     );
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/custom-fields"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/custom-fields"));
     expect(router.state.location.search).toEqual({ filter: "pri" });
   });
 });
 
 describe("creating and editing definitions", () => {
   it("creates a trimmed definition and opens it", async () => {
-    const { router, user } = renderApp({ path: "/custom-fields/new" });
+    const { router, user } = renderApp({ path: "/settings/custom-fields/new" });
 
     await fillTextField(user);
     await user.click(screen.getByRole("button", { name: "Create custom field" }));
@@ -139,13 +139,13 @@ describe("creating and editing definitions", () => {
       return field!;
     });
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe(`/custom-fields/${created.id}`),
+      expect(router.state.location.pathname).toBe(`/settings/custom-fields/${created.id}`),
     );
     expect(await screen.findByRole("heading", { level: 1, name: "Risk Owner" })).toBeVisible();
   });
 
   it("creates a select definition from edited option rows", async () => {
-    const { user } = renderApp({ path: "/custom-fields/new" });
+    const { user } = renderApp({ path: "/settings/custom-fields/new" });
 
     await user.type(await screen.findByRole("textbox", { name: /^name$/i }), "Exposure");
     await user.type(screen.getByRole("textbox", { name: /^key$/i }), "exposure");
@@ -183,7 +183,7 @@ describe("creating and editing definitions", () => {
 
   it("blocks incomplete select options until they're complete", async () => {
     const requests = recordApiRequests();
-    const { user } = renderApp({ path: "/custom-fields/new" });
+    const { user } = renderApp({ path: "/settings/custom-fields/new" });
 
     await user.type(await screen.findByRole("textbox", { name: /^name$/i }), "Exposure");
     await user.type(screen.getByRole("textbox", { name: /^key$/i }), "exposure");
@@ -208,7 +208,9 @@ describe("creating and editing definitions", () => {
   });
 
   it("asks for a new default when the default option is removed", async () => {
-    const { router, user } = renderApp({ path: `/custom-fields/${DEPLOYMENT_TIER.id}/edit` });
+    const { router, user } = renderApp({
+      path: `/settings/custom-fields/${DEPLOYMENT_TIER.id}/edit`,
+    });
 
     expect(await screen.findByLabelText("Default value")).toHaveTextContent("Production");
     expect(screen.getByLabelText("Option 1 value")).toHaveValue("production");
@@ -227,13 +229,13 @@ describe("creating and editing definitions", () => {
       }),
     );
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe(`/custom-fields/${DEPLOYMENT_TIER.id}`),
+      expect(router.state.location.pathname).toBe(`/settings/custom-fields/${DEPLOYMENT_TIER.id}`),
     );
   });
 
   it("shows validation errors instead of submitting an empty form", async () => {
     const requests = recordApiRequests();
-    const { user } = renderApp({ path: "/custom-fields/new" });
+    const { user } = renderApp({ path: "/settings/custom-fields/new" });
 
     await user.click(await screen.findByRole("button", { name: "Create custom field" }));
 
@@ -243,29 +245,29 @@ describe("creating and editing definitions", () => {
 
   it("stays on the form when creating fails", async () => {
     mockApiError("post", "/assets/custom-fields", 500, "Create failed");
-    const { router, user } = renderApp({ path: "/custom-fields/new" });
+    const { router, user } = renderApp({ path: "/settings/custom-fields/new" });
 
     await fillTextField(user);
     await user.click(screen.getByRole("button", { name: "Create custom field" }));
 
     expect((await screen.findAllByText(/Create failed/)).length).toBeGreaterThan(0);
-    expect(router.state.location.pathname).toBe("/custom-fields/new");
+    expect(router.state.location.pathname).toBe("/settings/custom-fields/new");
     expect(screen.getByRole("button", { name: "Create custom field" })).toBeEnabled();
   });
 
   it("cancels creation back to the filtered list", async () => {
     const { router, user } = renderApp({
-      path: `/custom-fields/new?filter=owner&type=text&selected=${CATEGORY.id}`,
+      path: `/settings/custom-fields/new?filter=owner&type=text&selected=${CATEGORY.id}`,
     });
 
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/custom-fields"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/custom-fields"));
     expect(router.state.location.search).toEqual({ filter: "owner", type: "text" });
   });
 
   it("edits a definition and returns to its detail page", async () => {
-    const { router, user } = renderApp({ path: `/custom-fields/${CATEGORY.id}/edit` });
+    const { router, user } = renderApp({ path: `/settings/custom-fields/${CATEGORY.id}/edit` });
 
     const name = await screen.findByRole("textbox", { name: /^name$/i });
     expect(name).toHaveValue(CATEGORY.name);
@@ -276,22 +278,22 @@ describe("creating and editing definitions", () => {
 
     await waitFor(() => expect(db.customFields.get(CATEGORY.id)?.name).toBe("Business category"));
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe(`/custom-fields/${CATEGORY.id}`),
+      expect(router.state.location.pathname).toBe(`/settings/custom-fields/${CATEGORY.id}`),
     );
   });
 
   it("stays on the form when saving fails, and cancels back to detail", async () => {
     mockApiError("put", "/assets/custom-fields/:id", 500, "Update failed");
-    const { router, user } = renderApp({ path: `/custom-fields/${CATEGORY.id}/edit` });
+    const { router, user } = renderApp({ path: `/settings/custom-fields/${CATEGORY.id}/edit` });
 
     await user.type(await screen.findByRole("textbox", { name: /^name$/i }), "!");
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     expect((await screen.findAllByText(/Update failed/)).length).toBeGreaterThan(0);
-    expect(router.state.location.pathname).toBe(`/custom-fields/${CATEGORY.id}/edit`);
+    expect(router.state.location.pathname).toBe(`/settings/custom-fields/${CATEGORY.id}/edit`);
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe(`/custom-fields/${CATEGORY.id}`),
+      expect(router.state.location.pathname).toBe(`/settings/custom-fields/${CATEGORY.id}`),
     );
     expect(db.customFields.get(CATEGORY.id)).toEqual(CATEGORY);
   });
