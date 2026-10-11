@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCount, formatDate, formatShortDate } from "@/lib/format.ts";
+import { formatCount, formatDate, formatRelativeTime, formatShortDate } from "@/lib/format.ts";
 
 describe("formatCount", () => {
   it("uses the singular label for one item", () => {
@@ -50,5 +50,21 @@ describe("formatShortDate", () => {
     expect(formatShortDate(date, { timeZone: "UTC", today })).toBe(
       date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" }),
     );
+  });
+});
+
+describe("formatRelativeTime", () => {
+  const now = new Date("2026-06-07T09:00:00.000Z");
+  const ago = (seconds: number) => new Date(now.getTime() - seconds * 1000);
+  const format = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+
+  it("uses the largest whole unit", () => {
+    expect(formatRelativeTime(ago(2 * 24 * 60 * 60 + 300), now)).toBe(format.format(-2, "day"));
+    expect(formatRelativeTime(ago(3 * 60 * 60), now)).toBe(format.format(-3, "hour"));
+    expect(formatRelativeTime(ago(400 * 24 * 60 * 60), now)).toBe(format.format(-1, "year"));
+  });
+
+  it("treats anything under a minute as now", () => {
+    expect(formatRelativeTime(ago(20), now)).toBe(format.format(0, "minute"));
   });
 });

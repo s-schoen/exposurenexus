@@ -44,13 +44,27 @@ test("covers the full width with the peek on a phone", async ({ page }) => {
   expect((await peek.boundingBox())?.x).toBe(header?.x);
 });
 
-test("saves a correction from the detail page", async ({ page }) => {
+test("edits properties in place and details from the header menu", async ({ page }) => {
   await page.goto(`/findings/${ADMIN_ENDPOINT.id}`);
+  const properties = page.getByRole("region", { name: "Properties" });
 
-  await page.getByRole("button", { name: "Edit finding" }).click();
-  const dialog = page.getByRole("dialog", { name: "Correct finding" });
+  const status = properties.getByRole("button", { name: /^Status/ });
+  await status.click();
+  await page.getByRole("option", { name: "Confirmed" }).click();
+  await expect(status).toHaveText("Confirmed");
+
+  const dueDate = properties.getByRole("button", { name: /^Due date/ });
+  await dueDate.click();
+  await page.getByRole("textbox", { name: "Due date" }).fill("2026-04-15");
+  await page.keyboard.press("Enter");
+  await expect(dueDate).toHaveText(/2026/);
+  await expect(dueDate).not.toHaveText(/Feb/);
+
+  await page.getByRole("button", { name: "More actions" }).click();
+  await page.getByRole("menuitem", { name: "Edit details" }).click();
+  const dialog = page.getByRole("dialog", { name: "Edit details" });
   await dialog.getByLabel("Title").fill("Exposed admin console");
-  await dialog.getByRole("button", { name: "Save correction" }).click();
+  await dialog.getByRole("button", { name: "Save" }).click();
 
   await expect(dialog).toBeHidden();
   await expect(
@@ -58,17 +72,15 @@ test("saves a correction from the detail page", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("links a catalog entry through the select", async ({ page }) => {
+test("links a catalog entry from the vulnerabilities section", async ({ page }) => {
   await page.goto(`/findings/${ADMIN_ENDPOINT.id}`);
   const content = pageContent(page);
   await expect(content.getByText(ACCOUNT_TAKEOVER.title)).toBeHidden();
 
-  await page.getByLabel("Link catalog entry").click();
+  await page.getByRole("button", { name: "Link catalog entry" }).click();
   await page.getByRole("option", { name: new RegExp(ACCOUNT_TAKEOVER.identifier) }).click();
-  await page.getByRole("button", { name: "Link entry" }).click();
 
-  await expect(content.getByText(ACCOUNT_TAKEOVER.title)).toBeVisible();
-  await expect(page.getByLabel("Link catalog entry")).toContainText("Select a catalog entry");
+  await expect(content.getByRole("link", { name: ACCOUNT_TAKEOVER.title })).toBeVisible();
 });
 
 test("creates a finding through the asset combobox", async ({ page }) => {

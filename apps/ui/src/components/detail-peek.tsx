@@ -113,8 +113,12 @@ export function DetailPeek({
               <Link2 strokeWidth={1.5} />
             </Button>
           </div>
-          {/* Keyed by id, so switching rows fades the new content in. */}
-          <div key={shownId} className="min-h-0 flex-1 animate-fade-in overflow-y-auto p-5">
+          {/* Keyed by id, so switching rows fades the new content in. Full-bleed detail layouts
+              bring their own padding. */}
+          <div
+            key={shownId}
+            className="min-h-0 flex-1 animate-fade-in overflow-y-auto p-5 has-data-full-bleed:p-0"
+          >
             <Suspense fallback={null}>{shownId && children(shownId)}</Suspense>
           </div>
         </DialogPrimitive.Popup>

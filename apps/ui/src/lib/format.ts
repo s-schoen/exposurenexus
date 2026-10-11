@@ -27,3 +27,26 @@ export function formatShortDate(
     timeZone,
   });
 }
+
+const relativeTimeUnits: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+  ["year", 365 * 24 * 60 * 60],
+  ["month", 30 * 24 * 60 * 60],
+  ["week", 7 * 24 * 60 * 60],
+  ["day", 24 * 60 * 60],
+  ["hour", 60 * 60],
+  ["minute", 60],
+];
+
+/** A timeline time such as "2 days ago" or "yesterday", in the largest whole unit. */
+export function formatRelativeTime(date: Date, now = new Date()) {
+  const seconds = Math.round((date.getTime() - now.getTime()) / 1000);
+  const format = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+
+  for (const [unit, unitSeconds] of relativeTimeUnits) {
+    if (Math.abs(seconds) >= unitSeconds) {
+      return format.format(Math.trunc(seconds / unitSeconds), unit);
+    }
+  }
+
+  return format.format(0, "minute");
+}

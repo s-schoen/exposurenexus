@@ -8,28 +8,32 @@ import {
 } from "@exposurenexus/contracts/model/observation";
 import { VulnerabilitySeverity } from "@exposurenexus/contracts/model/vulnerability";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRightLeft, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowRightLeft, Ellipsis, Pencil, Plus, ScanSearch, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
+import { DetailSection } from "@/components/properties-panel/detail-section.tsx";
 import { SafeMarkdown } from "@/components/safe-markdown.tsx";
-import { Timestamp } from "@/components/timestamp.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card.tsx";
+  Collapsible,
+  CollapsibleChevron,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible.tsx";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu.tsx";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import {
@@ -50,8 +54,8 @@ import {
   createFindingObservationsQueryOptions,
   createListFindingsQueryOptions,
 } from "@/features/findings/queries/findings.ts";
-import { SeverityBadge, formatSeverity } from "@/features/vulnerabilities";
-import { capitalizeFirstLetter } from "@/lib/format.ts";
+import { SeverityIcon, formatSeverity } from "@/features/vulnerabilities";
+import { capitalizeFirstLetter, formatRelativeTime } from "@/lib/format.ts";
 
 import type { ObservationAffectedResource as ObservationResource } from "@exposurenexus/contracts/model/affected-resource";
 import type { Finding } from "@exposurenexus/contracts/model/finding";
@@ -624,27 +628,35 @@ function observationDraft(observation: Observation): ObservationDraft {
   };
 }
 
-function EditObservationDialog({ observation }: { observation: Observation }) {
+interface ObservationDialogProps {
+  observation: Observation;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+function EditObservationDialog({ observation, open, onOpenChange }: ObservationDialogProps) {
   const lifecycle = useObservationLifecycle();
-  const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<ObservationDraft>(() => observationDraft(observation));
   const [weakness, setWeakness] = useState(() => formatWeaknessText(observation.weakness));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [wasOpen, setWasOpen] = useState(open);
   const formId = `edit-observation-${observation.id}`;
   const idPrefix = `${formId}-resource`;
 
-  const openEditor = () => {
-    setDraft(observationDraft(observation));
-    setWeakness(formatWeaknessText(observation.weakness));
-    setError(null);
-    setOpen(true);
-  };
+  // Each opening starts from the observation as it is now.
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setDraft(observationDraft(observation));
+      setWeakness(formatWeaknessText(observation.weakness));
+      setError(null);
+    }
+  }
 
   const closeEditor = () => {
     if (!submitting) {
-      setError(null);
-      setOpen(false);
+      onOpenChange(false);
     }
   };
 
@@ -680,28 +692,15 @@ function EditObservationDialog({ observation }: { observation: Observation }) {
       return;
     }
 
-    setOpen(false);
+    onOpenChange(false);
   };
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        aria-label={`Edit observation ${observation.title}`}
-        onClick={openEditor}
-      >
-        <Pencil />
-        Edit
-      </Button>
-      <Dialog open={open} onOpenChange={(next) => (next ? openEditor() : closeEditor())}>
+      <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : closeEditor())}>
         <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>Correct observation</DialogTitle>
-            <DialogDescription>
-              Correct source evidence without changing the finding's workflow or canonical identity.
-            </DialogDescription>
           </DialogHeader>
           <form
             id={formId}
@@ -836,46 +835,8 @@ function EditObservationDialog({ observation }: { observation: Observation }) {
   );
 }
 
-function DeleteObservationButton({ observation }: { observation: Observation }) {
+function MoveObservationDialog({ observation, open, onOpenChange }: ObservationDialogProps) {
   const lifecycle = useObservationLifecycle();
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDelete = async () => {
-    const confirmed = await ConfirmDialog.call({
-      title: "Delete observation",
-      description: "The finding remains, even if this is its final observation.",
-      message: `Delete ${observation.title}?`,
-      cancelText: "Keep observation",
-      confirmText: "Delete observation",
-      confirmVariant: "destructive",
-    });
-    if (!confirmed) {
-      return;
-    }
-
-    setDeleting(true);
-    await lifecycle.deleteObservation(observation.findingId, observation.id);
-    setDeleting(false);
-  };
-
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      aria-label={`Delete observation ${observation.title}`}
-      disabled={deleting}
-      onClick={() => void handleDelete()}
-    >
-      {deleting ? <Spinner /> : <Trash2 />}
-      Delete
-    </Button>
-  );
-}
-
-function MoveObservationDialog({ observation }: { observation: Observation }) {
-  const lifecycle = useObservationLifecycle();
-  const [open, setOpen] = useState(false);
   const [targetFindingId, setTargetFindingId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -892,7 +853,7 @@ function MoveObservationDialog({ observation }: { observation: Observation }) {
   const changeOpen = (next: boolean) => {
     if (!next && submitting) return;
     reset();
-    setOpen(next);
+    onOpenChange(next);
   };
 
   const submit = async () => {
@@ -915,28 +876,14 @@ function MoveObservationDialog({ observation }: { observation: Observation }) {
     }
 
     reset();
-    setOpen(false);
+    onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        aria-label={`Move observation ${observation.title}`}
-        onClick={() => changeOpen(true)}
-      >
-        <ArrowRightLeft />
-        Move
-      </Button>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Move observation</DialogTitle>
-          <DialogDescription>
-            Move this source report to another finding without changing its content or either
-            finding&apos;s identity data.
-          </DialogDescription>
         </DialogHeader>
         <form
           id={`move-observation-${observation.id}`}
@@ -995,75 +942,162 @@ function MoveObservationDialog({ observation }: { observation: Observation }) {
   );
 }
 
-function ObservationCard({ observation }: { observation: Observation }) {
+function ObservationMenu({ observation }: { observation: Observation }) {
+  const lifecycle = useObservationLifecycle();
+  const [dialog, setDialog] = useState<"edit" | "move" | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const deleteObservation = async () => {
+    const confirmed = await ConfirmDialog.call({
+      title: "Delete observation",
+      description: "The finding remains, even if this is its final observation.",
+      message: `Delete ${observation.title}?`,
+      cancelText: "Keep observation",
+      confirmText: "Delete observation",
+      confirmVariant: "destructive",
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    setDeleting(true);
+    await lifecycle.deleteObservation(observation.findingId, observation.id);
+    setDeleting(false);
+  };
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          disabled={deleting}
+          render={
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Actions for observation ${observation.title}`}
+            />
+          }
+        >
+          {deleting ? <Spinner /> : <Ellipsis strokeWidth={1.5} />}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => setDialog("edit")}>
+            <Pencil />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setDialog("move")}>
+            <ArrowRightLeft />
+            Move
+          </DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onClick={() => void deleteObservation()}>
+            <Trash2 />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <EditObservationDialog
+        observation={observation}
+        open={dialog === "edit"}
+        onOpenChange={(open) => setDialog(open ? "edit" : null)}
+      />
+      <MoveObservationDialog
+        observation={observation}
+        open={dialog === "move"}
+        onOpenChange={(open) => setDialog(open ? "move" : null)}
+      />
+    </>
+  );
+}
+
+function ObservationDetails({ observation }: { observation: Observation }) {
   const details = resourceDetails(observation.affectedResource);
   const identifiers = Object.entries(observation.weakness.identifiers);
 
   return (
-    <article className="rounded-lg border border-border/70 bg-muted/10 p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="font-semibold">{observation.title}</h3>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <span>{observationSourceLabels[observation.source]}</span>
-            <span aria-hidden="true">/</span>
-            <Timestamp timestamp={observation.observedAt} />
-          </div>
+    <div className="flex flex-col gap-3 pt-2 text-13">
+      {observation.description ? <SafeMarkdown>{observation.description}</SafeMarkdown> : null}
+      {observation.evidence ? (
+        <div>
+          <h4 className="font-semibold text-subtle-foreground">Evidence</h4>
+          <SafeMarkdown className="mt-1">{observation.evidence}</SafeMarkdown>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <SeverityBadge severity={observation.severity} />
-          <EditObservationDialog observation={observation} />
-          <MoveObservationDialog observation={observation} />
-          <DeleteObservationButton observation={observation} />
-        </div>
-      </div>
-      {observation.description ? (
-        <SafeMarkdown className="mt-4">{observation.description}</SafeMarkdown>
       ) : null}
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        {observation.evidence ? (
-          <div>
-            <h4 className="text-13 font-semibold text-subtle-foreground">Evidence</h4>
-            <SafeMarkdown className="mt-1">{observation.evidence}</SafeMarkdown>
-          </div>
-        ) : null}
-        {observation.remediation ? (
-          <div>
-            <h4 className="text-13 font-semibold text-subtle-foreground">Remediation</h4>
-            <SafeMarkdown className="mt-1">{observation.remediation}</SafeMarkdown>
-          </div>
-        ) : null}
-      </div>
-      <Separator className="my-4" />
-      <div className="grid gap-4 lg:grid-cols-2">
+      {observation.remediation ? (
         <div>
-          <h4 className="text-13 font-semibold text-subtle-foreground">Weakness</h4>
-          <p className="mt-1 text-sm">
-            {identifiers.length
-              ? identifiers
-                  .map(([namespace, values]) => `${namespace}: ${values.join(", ")}`)
-                  .join("; ")
-              : "No identifiers recorded"}
-          </p>
+          <h4 className="font-semibold text-subtle-foreground">Remediation</h4>
+          <SafeMarkdown className="mt-1">{observation.remediation}</SafeMarkdown>
         </div>
-        <div>
-          <h4 className="text-13 font-semibold text-subtle-foreground">Affected resource</h4>
-          <p className="mt-1 text-sm font-medium">
-            {formatResourceType(observation.affectedResource.type)}
+      ) : null}
+      <dl className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)] gap-x-6 gap-y-1">
+        <dt className="text-muted-foreground">Severity</dt>
+        <dd className="flex items-center gap-1.5 text-foreground">
+          <SeverityIcon severity={observation.severity} decorative />
+          {formatSeverity(observation.severity)}
+        </dd>
+        <dt className="text-muted-foreground">Weakness</dt>
+        <dd className="text-foreground">
+          {identifiers.length
+            ? identifiers
+                .map(([namespace, values]) => `${namespace}: ${values.join(", ")}`)
+                .join("; ")
+            : "No identifiers recorded"}
+        </dd>
+        <dt className="text-muted-foreground">Resource</dt>
+        <dd className="text-foreground">{formatResourceType(observation.affectedResource.type)}</dd>
+        {details.map(([label, value]) => (
+          <div key={label} className="contents">
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="break-all text-foreground">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+// One source report on the timeline: who reported it and when, with its details collapsed under
+// its title.
+function ObservationItem({ observation }: { observation: Observation }) {
+  return (
+    <li className="group/observation relative flex gap-3 pb-4 last:pb-0">
+      <span
+        aria-hidden="true"
+        className="absolute top-6 bottom-0 left-3 w-px bg-border group-last/observation:hidden"
+      />
+      <span className="relative flex size-6 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground">
+        <ScanSearch className="size-3.5" strokeWidth={1.5} aria-hidden="true" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex min-h-6 items-center justify-between gap-2">
+          <p className="min-w-0 truncate text-13">
+            <span className="font-medium text-foreground">
+              {observationSourceLabels[observation.source]}
+            </span>{" "}
+            <span className="text-muted-foreground">reported</span>{" "}
+            <time
+              dateTime={observation.observedAt.toISOString()}
+              title={observation.observedAt.toLocaleString()}
+              className="text-xs text-subtle-foreground"
+            >
+              · {formatRelativeTime(observation.observedAt)}
+            </time>
           </p>
-          {details.length ? (
-            <dl className="mt-2 grid gap-x-4 gap-y-1 sm:grid-cols-2">
-              {details.map(([label, value]) => (
-                <div key={label} className="text-sm">
-                  <dt className="inline text-muted-foreground">{label}: </dt>
-                  <dd className="inline break-all">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          ) : null}
+          <ObservationMenu observation={observation} />
         </div>
+        <Collapsible>
+          <CollapsibleTrigger className="flex max-w-full items-center">
+            <span className="flex min-w-0 items-center gap-1.5 text-left text-13 text-foreground-secondary hover:text-foreground">
+              <SeverityIcon severity={observation.severity} />
+              <span className="truncate">{observation.title}</span>
+              <CollapsibleChevron />
+            </span>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <ObservationDetails observation={observation} />
+          </CollapsibleContent>
+        </Collapsible>
       </div>
-    </article>
+    </li>
   );
 }
 
@@ -1118,17 +1152,18 @@ function AddObservationDialog({ finding }: { finding: Finding }) {
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
-      <Button type="button" size="sm" onClick={() => changeOpen(true)}>
-        <Plus />
-        Add observation
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Add observation"
+        onClick={() => changeOpen(true)}
+      >
+        <Plus strokeWidth={1.5} />
       </Button>
       <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Add manual observation</DialogTitle>
-          <DialogDescription>
-            Record source evidence without changing the finding's canonical identity. Leave
-            inherited fields blank to use server defaults.
-          </DialogDescription>
         </DialogHeader>
         <form
           id={`add-observation-${finding.id}`}
@@ -1291,54 +1326,37 @@ export function FindingObservationsSection({ finding }: FindingObservationsSecti
   const observations = useQuery(createFindingObservationsQueryOptions(finding.id));
 
   return (
-    <Card>
-      <CardHeader className="flex-row items-start justify-between gap-4">
-        <div>
-          <CardTitle className="text-xl">Observations</CardTitle>
-          <CardDescription>Source-owned evidence supporting this finding.</CardDescription>
+    <DetailSection
+      title="Observations"
+      count={observations.data?.length ?? finding.observationCount}
+      action={<AddObservationDialog finding={finding} />}
+    >
+      {observations.isPending ? (
+        <div role="status" aria-label="Loading observations" className="flex flex-col gap-3">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
         </div>
-        <AddObservationDialog finding={finding} />
-      </CardHeader>
-      <CardContent>
-        {observations.isPending ? (
-          <div role="status" aria-label="Loading observations" className="space-y-3">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        ) : observations.isError ? (
-          <div
-            role="alert"
-            className="rounded-lg border border-destructive/30 bg-destructive/5 p-4"
+      ) : observations.isError ? (
+        <div role="alert" className="flex items-center justify-between gap-3 text-13">
+          <p className="text-destructive">Unable to load observations</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void observations.refetch()}
           >
-            <p className="font-medium">Unable to load observations</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              The supporting evidence could not be loaded.
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={() => void observations.refetch()}
-            >
-              Try again
-            </Button>
-          </div>
-        ) : observations.data.length ? (
-          <div className="space-y-4">
-            {observations.data.map((observation) => (
-              <ObservationCard key={observation.id} observation={observation} />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-lg border border-dashed border-border p-6 text-center">
-            <p className="font-medium">No observations recorded</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Add manual evidence to support this finding.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+            Try again
+          </Button>
+        </div>
+      ) : observations.data.length ? (
+        <ol className="flex flex-col">
+          {observations.data.map((observation) => (
+            <ObservationItem key={observation.id} observation={observation} />
+          ))}
+        </ol>
+      ) : (
+        <p className="text-13 text-subtle-foreground">No observations recorded.</p>
+      )}
+    </DetailSection>
   );
 }
