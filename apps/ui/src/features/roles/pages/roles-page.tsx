@@ -1,12 +1,12 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { KeyRound } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { KeyRound, Plus } from "lucide-react";
+import { lazy, Suspense, useMemo } from "react";
 import { toast } from "sonner";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
-import { RoleTable } from "@/features/roles/components/role-table";
+import { RoleList } from "@/features/roles/components/role-list/index.tsx";
 import { useRoleLifecycle } from "@/features/roles/hooks/use-role-lifecycle.ts";
 import { useRoleTableSearchState } from "@/features/roles/hooks/use-role-table-search-state.ts";
 import { isBuiltInRoleId } from "@/features/roles/lib/role.ts";
@@ -41,10 +41,24 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
   });
   const rolesQuery = useSuspenseQuery(createListRolesQueryOptions());
 
+  const actions = useMemo(
+    () => [
+      {
+        label: "New role",
+        icon: Plus,
+        onClick: () => {
+          void navigate({ to: "/settings/roles/new" });
+        },
+      },
+    ],
+    [navigate],
+  );
+
   usePageMeta({
     title: "Roles",
     icon: KeyRound,
     count: rolesQuery.data.length,
+    actions,
   });
 
   const handleOpenRole = async (role: Role) => {
@@ -85,7 +99,7 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
 
   return (
     <>
-      <RoleTable
+      <RoleList
         query={rolesQuery}
         selectedRoleId={selectedSearch.selectedId}
         filterState={filterState}
@@ -107,7 +121,7 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
           void selectedSearch.clearSelected();
         }}
         title="Role details"
-        description="Review the selected role without leaving the roles table."
+        description="Review the selected role without leaving the role list."
         fullPageHref={selected ? `/settings/roles/${selected}` : undefined}
       >
         {selected && (

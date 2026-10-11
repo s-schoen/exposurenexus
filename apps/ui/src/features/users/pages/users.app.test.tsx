@@ -11,23 +11,25 @@ import { renderApp } from "@/test/render-app.tsx";
 const [ROBIN, MORGAN, CASEY] = SEED_USERS;
 
 describe("users list", () => {
-  it("lists users with their role names", async () => {
+  it("lists users with their role names and status", async () => {
     renderApp({ path: "/settings/users" });
 
-    const table = await screen.findByRole("table");
+    const list = await screen.findByRole("list", { name: "Users" });
     for (const user of SEED_USERS) {
-      expect(await within(table).findByText(user.displayName)).toBeVisible();
+      expect(await within(list).findByText(user.displayName)).toBeVisible();
     }
-    const rowOf = (name: string) => within(table).getByText(name).closest("tr")!;
-    expect(within(rowOf(ROBIN.displayName)).getByText(BuiltInRoleName.Admin)).toBeVisible();
-    expect(within(rowOf(CASEY.displayName)).getByText("No roles")).toBeVisible();
+    const rowOf = (name: string) => within(list).getByText(name).closest("li")!;
+    expect(rowOf(ROBIN.displayName)).toHaveTextContent(BuiltInRoleName.Admin);
+    expect(rowOf(ROBIN.displayName)).toHaveTextContent("Enabled");
+    expect(rowOf(CASEY.displayName)).toHaveTextContent("No roles");
+    expect(rowOf(CASEY.displayName)).toHaveTextContent("Disabled");
   });
 
   it("keeps the search filter in the URL", async () => {
     const { router, user } = renderApp({ path: "/settings/users" });
 
     // Paste: the input is driven by the URL, so per-keystroke typing races the navigation.
-    await user.click(await screen.findByLabelText("Search across visible columns"));
+    await user.click(await screen.findByLabelText("Search"));
     await user.paste("morgan");
 
     await waitFor(() => expect(router.state.location.search).toMatchObject({ filter: "morgan" }));
@@ -35,7 +37,7 @@ describe("users list", () => {
     await waitFor(() => expect(screen.queryByText(CASEY.displayName)).not.toBeInTheDocument());
   });
 
-  it("opens the create page from the toolbar", async () => {
+  it("opens the create page from the header", async () => {
     const { router, user } = renderApp({ path: "/settings/users" });
 
     await user.click(await screen.findByRole("button", { name: "New user" }));

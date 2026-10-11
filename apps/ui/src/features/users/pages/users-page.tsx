@@ -1,10 +1,10 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Users } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { Plus, Users } from "lucide-react";
+import { lazy, Suspense, useMemo } from "react";
 
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
-import { UserTable } from "@/features/users/components/user-table/index.tsx";
+import { UserList } from "@/features/users/components/user-list/index.tsx";
 import { useUserTableSearchState } from "@/features/users/hooks/use-user-table-search-state.ts";
 import { createListUsersQueryOptions } from "@/features/users/queries/users.ts";
 import { usePageMeta } from "@/hooks/use-page-meta.tsx";
@@ -35,15 +35,29 @@ export function UsersPage({ search = {}, selected }: UsersPageProps) {
     getId: (user) => user.id,
   });
 
+  const actions = useMemo(
+    () => [
+      {
+        label: "New user",
+        icon: Plus,
+        onClick: () => {
+          void navigate({ to: "/settings/users/new" });
+        },
+      },
+    ],
+    [navigate],
+  );
+
   usePageMeta({
     title: "Users",
     icon: Users,
     count: users.data.length,
+    actions,
   });
 
   return (
     <>
-      <UserTable
+      <UserList
         filterState={filterState}
         onFilterStateChange={onFilterStateChange}
         selectedUserId={selectedSearch.selectedId}
@@ -60,7 +74,7 @@ export function UsersPage({ search = {}, selected }: UsersPageProps) {
           void selectedSearch.clearSelected();
         }}
         title="User details"
-        description="Review the selected user without leaving the user table."
+        description="Review the selected user without leaving the user list."
         fullPageHref={selected ? `/settings/users/${selected}` : undefined}
       >
         {selected && (

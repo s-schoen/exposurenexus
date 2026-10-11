@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { columns } from "@/features/roles/components/role-table/columns.tsx";
+import { columns } from "@/features/roles/components/role-list/columns.tsx";
 import { SEED_ROLES } from "@/mocks/fixtures/seed.ts";
 
-describe("role table type filter", () => {
+describe("role list type filter", () => {
   it.each([
     ["built-in with no selection", SEED_ROLES[0], [], true],
     ["built-in match", SEED_ROLES[0], ["Built-in"], true],

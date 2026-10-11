@@ -1,8 +1,9 @@
-import { Plus } from "lucide-react";
+import { KeyRound, Plus } from "lucide-react";
 
-import { DataTable } from "@/components/data-table/data-table.tsx";
+import { DataList } from "@/components/data-list/data-list.tsx";
+import { DataListEmpty } from "@/components/data-list/empty-state.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { columns } from "@/features/roles/components/role-table/columns.tsx";
+import { columns } from "@/features/roles/components/role-list/columns.tsx";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
 import type { Role } from "@exposurenexus/contracts/model/rbac";
@@ -15,7 +16,10 @@ const groupingOptions: Array<GroupingOption> = [
   },
 ];
 
-interface RoleTableProps {
+// Type and permission count by default; resources can be turned on under Display.
+const initialColumnVisibility = { resources: false };
+
+interface RoleListProps {
   query: UseQueryResult<Array<Role>, Error> | UseSuspenseQueryResult<Array<Role>, Error>;
   selectedRoleId?: string;
   onSelectRole?: (role: Role) => void;
@@ -26,7 +30,7 @@ interface RoleTableProps {
   onFilterStateChange?: (state: DataTableFilterState) => void;
 }
 
-export function RoleTable({
+export function RoleList({
   query,
   selectedRoleId,
   onSelectRole,
@@ -35,28 +39,33 @@ export function RoleTable({
   onDeleteRoles,
   filterState,
   onFilterStateChange,
-}: RoleTableProps) {
-  function ToolbarElements() {
-    return (
-      <Button variant="default" size="default" onClick={onCreateRole}>
-        <Plus />
-        New role
-      </Button>
-    );
-  }
-
+}: RoleListProps) {
   return (
-    <DataTable
+    <DataList
+      inset
+      label="Roles"
       columns={columns}
       query={query}
+      getRowId={(role) => role.id}
+      getRowHref={(role) => `/settings/roles/${role.id}`}
       groupingOptions={groupingOptions}
+      initialColumnVisibility={initialColumnVisibility}
       filterState={filterState}
       onFilterStateChange={onFilterStateChange}
       onRowClick={onSelectRole}
       onRowDoubleClick={onOpenRole}
       onRowDelete={onDeleteRoles}
       isRowActive={(role) => role.id === selectedRoleId}
-      toolbarControls={onCreateRole ? ToolbarElements() : undefined}
+      emptyState={
+        <DataListEmpty icon={KeyRound} message="No roles yet.">
+          {onCreateRole && (
+            <Button variant="outline" onClick={onCreateRole}>
+              <Plus />
+              New role
+            </Button>
+          )}
+        </DataListEmpty>
+      }
     />
   );
 }

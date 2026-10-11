@@ -1,12 +1,13 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { useMemo } from "react";
 
-import { DataTable } from "@/components/data-table/data-table.tsx";
+import { DataList } from "@/components/data-list/data-list.tsx";
+import { DataListEmpty } from "@/components/data-list/empty-state.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { createListRolesQueryOptions } from "@/features/roles";
-import { createColumns } from "@/features/users/components/user-table/columns.tsx";
+import { createColumns } from "@/features/users/components/user-list/columns.tsx";
 import { createListUsersQueryOptions } from "@/features/users/queries/users.ts";
 
 import type { DataTableFilterState, GroupingOption } from "@/components/data-table/types.ts";
@@ -20,7 +21,7 @@ const groupingOptions: Array<GroupingOption> = [
   },
 ];
 
-interface UserTableProps {
+interface UserListProps {
   filterState?: DataTableFilterState;
   onFilterStateChange?: (state: DataTableFilterState) => void;
   selectedUserId?: string;
@@ -28,13 +29,13 @@ interface UserTableProps {
   onCreateUser?: () => void;
 }
 
-export function UserTable({
+export function UserList({
   filterState,
   onFilterStateChange,
   selectedUserId,
   onSelectUser,
   onCreateUser,
-}: UserTableProps = {}) {
+}: UserListProps = {}) {
   const navigate = useNavigate();
   const usersQuery = useSuspenseQuery(createListUsersQueryOptions());
   const rolesQuery = useSuspenseQuery(createListRolesQueryOptions());
@@ -56,26 +57,30 @@ export function UserTable({
     });
   };
 
-  function ToolbarElements() {
-    return (
-      <Button variant="default" size="default" onClick={onCreateUser}>
-        <Plus />
-        New user
-      </Button>
-    );
-  }
-
   return (
-    <DataTable
+    <DataList
+      inset
+      label="Users"
       columns={columns}
       query={usersQuery}
+      getRowId={(user) => user.id}
+      getRowHref={(user) => `/settings/users/${user.id}`}
       groupingOptions={groupingOptions}
       filterState={filterState}
       onFilterStateChange={onFilterStateChange}
       onRowClick={onSelectUser}
       onRowDoubleClick={handleOpenUser}
       isRowActive={(user) => user.id === selectedUserId}
-      toolbarControls={onCreateUser ? ToolbarElements() : undefined}
+      emptyState={
+        <DataListEmpty icon={Users} message="No users yet.">
+          {onCreateUser && (
+            <Button variant="outline" onClick={onCreateUser}>
+              <Plus />
+              New user
+            </Button>
+          )}
+        </DataListEmpty>
+      }
     />
   );
 }

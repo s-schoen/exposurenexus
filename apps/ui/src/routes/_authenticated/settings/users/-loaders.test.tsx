@@ -1,4 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  RouterProvider,
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+} from "@tanstack/react-router";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { Suspense } from "react";
 import { expect, it, vi } from "vitest";
@@ -104,21 +110,28 @@ it("fetches users and roles once across index loading and suspense rendering", a
     params: { id: user.id },
   });
   const Component = IndexRoute.options.component as ComponentType;
+  // The list's rows link to their pages, so they need a router.
+  const router = createRouter({
+    routeTree: createRootRoute({
+      component: () => (
+        <Suspense fallback="Loading">
+          <Component />
+        </Suspense>
+      ),
+    }),
+    history: createMemoryHistory(),
+  });
   await act(async () => {
     render(
       <QueryClientProvider client={client}>
         <PageProvider>
-          <Suspense fallback="Loading">
-            <Component />
-          </Suspense>
+          <RouterProvider router={router} />
         </PageProvider>
       </QueryClientProvider>,
     );
   });
-  expect(await screen.findByText(user.displayName)).toBeVisible();
-  expect(
-    screen.getByText(SEED_ROLES.find((role) => user.roleIds.includes(role.id))!.name),
-  ).toBeVisible();
+  const row = (await screen.findByText(user.displayName)).closest("li")!;
+  expect(row).toHaveTextContent(SEED_ROLES.find((role) => user.roleIds.includes(role.id))!.name);
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect([...requests].sort()).toEqual(["GET /api/roles", "GET /api/users"]);
 });

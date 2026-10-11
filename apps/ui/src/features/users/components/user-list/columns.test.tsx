@@ -2,7 +2,7 @@ import { builtInRoleIds } from "@exposurenexus/contracts/model/rbac";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { createColumns } from "@/features/users/components/user-table/columns.tsx";
+import { createColumns } from "@/features/users/components/user-list/columns.tsx";
 import { buildUser } from "@/mocks/fixtures/index.ts";
 
 import type { UserProfile } from "@exposurenexus/contracts/model/user";
@@ -26,7 +26,7 @@ function renderCell(cell: unknown, user: UserProfile) {
   return render(<>{cell({ row: { original: user } })}</>);
 }
 
-describe("user table columns", () => {
+describe("user list columns", () => {
   it("shows role counts while role names are unavailable", () => {
     const roles = findColumn(createColumns(new Map(), false), "roles");
 
@@ -57,8 +57,7 @@ describe("user table columns", () => {
         ],
       }),
     );
-    expect(screen.getByText("viewer")).toBeVisible();
-    expect(screen.getByText("editor")).toBeVisible();
+    expect(screen.getByText("viewer, editor")).toBeVisible();
     expect(screen.getByText("+1 unknown")).toBeVisible();
     unmount();
 

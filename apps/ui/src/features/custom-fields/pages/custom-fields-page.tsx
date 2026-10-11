@@ -1,11 +1,11 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Tags } from "lucide-react";
-import { lazy, Suspense } from "react";
+import { Plus, Tags } from "lucide-react";
+import { lazy, Suspense, useMemo } from "react";
 
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPreviewDialog } from "@/components/detail-preview-dialog.tsx";
-import { AssetCustomFieldTable } from "@/features/custom-fields/components/asset-custom-field-table";
+import { CustomFieldList } from "@/features/custom-fields/components/custom-field-list/index.tsx";
 import { useAssetCustomFieldDefinitionLifecycle } from "@/features/custom-fields/hooks/use-asset-custom-field-definition-lifecycle.ts";
 import { useCustomFieldTableSearchState } from "@/features/custom-fields/hooks/use-custom-field-table-search-state.ts";
 import { createListAssetCustomFieldDefinitionsQueryOptions } from "@/features/custom-fields/queries/definitions.ts";
@@ -39,10 +39,24 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
   });
   const customFieldsQuery = useSuspenseQuery(createListAssetCustomFieldDefinitionsQueryOptions());
 
+  const actions = useMemo(
+    () => [
+      {
+        label: "New custom field",
+        icon: Plus,
+        onClick: () => {
+          void navigate({ to: "/settings/custom-fields/new" });
+        },
+      },
+    ],
+    [navigate],
+  );
+
   usePageMeta({
     title: "Custom Fields",
     icon: Tags,
     count: customFieldsQuery.data.length,
+    actions,
   });
 
   const handleOpenCustomField = async (field: AssetCustomFieldDefinition) => {
@@ -74,7 +88,7 @@ export function CustomFieldsPage({ search = {}, selected }: CustomFieldsPageProp
 
   return (
     <>
-      <AssetCustomFieldTable
+      <CustomFieldList
         query={customFieldsQuery}
         selectedCustomFieldId={selectedSearch.selectedId}
         filterState={filterState}

@@ -30,6 +30,7 @@ import {
   updateAssetCustomFieldDefinitionPayloadFromFormValues,
   validateAssetCustomFieldFormRuleValues,
 } from "@/features/custom-fields/components/asset-custom-field-rule-validation.ts";
+import { formatCustomFieldType } from "@/features/custom-fields/lib/custom-field-type.ts";
 
 import type {
   AssetCustomFieldDefinition,
@@ -140,17 +141,6 @@ const DEFAULT_ASSET_CUSTOM_FIELD_FORM_VALUES: AssetCustomFieldFormValues = {
   defaultValue: "",
   options: [{ value: "", label: "" }],
 };
-
-function formatTypeLabel(type: AssetCustomFieldType): string {
-  switch (type) {
-    case AssetCustomFieldType.Text:
-      return "Text";
-    case AssetCustomFieldType.Number:
-      return "Number";
-    case AssetCustomFieldType.Select:
-      return "Select";
-  }
-}
 
 export function mapAssetCustomFieldDefinitionToFormValues(
   field: AssetCustomFieldDefinition,
@@ -320,13 +310,13 @@ export function AssetCustomFieldForm({
                         disabled={isSubmitting}
                       >
                         <span className="min-w-0 flex-1 truncate text-left">
-                          {formatTypeLabel(field.state.value)}
+                          {formatCustomFieldType(field.state.value)}
                         </span>
                       </SelectTrigger>
                       <SelectContent>
                         {Object.values(AssetCustomFieldType).map((type) => (
                           <SelectItem key={type} value={type}>
-                            {formatTypeLabel(type)}
+                            {formatCustomFieldType(type)}
                           </SelectItem>
                         ))}
                       </SelectContent>
