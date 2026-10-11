@@ -52,6 +52,45 @@ every finding ends with a pointer to this section.
 - Mark an approved exception with `// oxlint-disable-next-line shadcn/<rule> -- <reason>`; the lint config ignores
   `eslint-disable` comments.
 
+### Design principles
+
+The UI follows Plane's look (palette, surfaces, density, type) with Twenty's motion timings. Plane and Twenty are
+AGPL-3.0: re-declare single values under our token names, never copy their files.
+
+- **Surfaces:** two planes. The gray canvas (`bg-background`) frames the app, and one white sheet (`bg-card`) holds the
+  sidebar and content. Build hierarchy from `border-border` hairlines and gray trays (`bg-muted`) holding white rows or
+  cards. Shadows belong to floating surfaces only (`shadow-overlay` on popups, `shadow-peek` on the peek panel), plus
+  `shadow-raised` on dashboard KPI cards. Hover is `bg-accent`, active nav and tab pills `bg-layer-selected`, a selected
+  row `bg-primary/5`.
+- **Tokens:** text has four levels: `text-foreground` for titles and values, `text-foreground-secondary` for nav, body and
+  chip text, `text-muted-foreground` for property labels and counts, `text-subtle-foreground` for section labels,
+  timestamps and placeholders. Borders: `border-border` for hairlines, `border-input` for inputs, `border-border-strong`
+  for outline buttons, chips and checkboxes. Panels and cards stay neutral; tinted pills (a role, an asset type) are the
+  only tinted backgrounds.
+- **Control ladder:** controls are h-7 by default, h-6 small and h-8 for inputs and the sidebar CTA. Controls and chips
+  are `rounded-md`; cards, the sheet and popovers `rounded-lg`. Pages pad `px-5`, the page header is `h-13`, list rows
+  are `min-h-11`. Lucide icons use `strokeWidth={1.5}`: 16px in nav and buttons, 14px in chips.
+- **Type:** Inter at weights 450/500/600 and IBM Plex Mono for identifiers, digests and hashes. `text-13` is the dense
+  UI size (nav, rows, property rows, menus, buttons), `text-sm` the reading size, `text-xs` chips and timestamps,
+  `text-base font-medium` the page header title, `text-2xl` detail and settings titles and KPI numbers. Labels are
+  sentence case with default tracking; section labels are `text-13 font-semibold text-subtle-foreground`.
+- **Motion:** opacity first and short. Popups fade (`transition-opacity duration-150 ease-out`, with
+  `data-starting-style:opacity-0 data-ending-style:opacity-0`); dialogs fade over `duration-300`. Movement is for things
+  that travel: the peek slide (`ease-snappy`), the sidebar mode switch (`animate-nav-enter`), collapsibles
+  (`ui/collapsible`, `h-collapsible-panel`) and chevrons. Hover backgrounds use
+  `transition-colors duration-100`; hover-revealed controls fade in over `duration-75`. Route changes are instant. The
+  reduced-motion rule in `src/styles.css` zeroes every duration, so new motion needs no extra handling.
+- **Text budget:** each fact appears once per view. Pages, cards and nav items carry a title only; empty states get one
+  short sentence and one action; dialogs carry a description only when the action is destructive. Labels are muted,
+  values dark.
+- **Domain icons:** severity and finding status read through their icons and color tokens: `SeverityIcon`,
+  `FindingStatusIcon` and the `SeverityBadge` / `FindingStatusBadge` property chips (`Badge variant="property"`). Color
+  lives in icons, dots and numbers. A dashboard number turns `text-destructive` only for a problem and `text-success`
+  only for a good outcome.
+- **Building blocks:** lists use `src/components/data-list/` rows with property chips; detail pages use
+  `src/components/properties-panel/` (`DetailLayout`, `DetailSection`, `PropertiesPanel`, `PropertySelect`); row clicks
+  open `DetailPeek`; forms and settings lists sit in `PageColumn`.
+
 ## Resource Mutation Policy
 
 - API-backed domain resource mutations must go through resource lifecycle hooks unless the code is explicitly non-resource
