@@ -147,6 +147,8 @@ describe("findings list", () => {
     await user.click(await screen.findByRole("button", { name: "New finding" }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/findings/new"));
+    // The form sits in the centered page column, under its own title.
+    expect(await screen.findByRole("heading", { level: 1, name: "Create Finding" })).toBeVisible();
   });
 
   it("previews a selected finding, fetching it only once selected, and closes again", async () => {
@@ -565,7 +567,6 @@ describe("creating findings", () => {
     const { user } = await openCreatePage();
 
     await fillRequiredFields(user);
-    await user.click(screen.getByRole("tab", { name: "Identity" }));
     await user.type(screen.getByLabelText("Weakness identifiers"), "cwe=CWE-798");
     // A field of another resource type is dropped when the type changes.
     await user.click(screen.getByLabelText("Affected resource"));
@@ -579,7 +580,6 @@ describe("creating findings", () => {
     await user.type(screen.getByLabelText("Start line"), "42");
     await user.type(screen.getByLabelText("Catalog entry IDs"), ACCOUNT_TAKEOVER.id);
 
-    await user.click(screen.getByRole("tab", { name: "Observation" }));
     await user.type(screen.getByLabelText("Observation title"), "Secret in config");
     await user.type(screen.getByLabelText("Evidence"), "API_KEY=…");
     await user.click(screen.getByRole("button", { name: "Create finding" }));

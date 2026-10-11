@@ -5,8 +5,8 @@ import AppHeader from "@/components/app-header.tsx";
 import { AppSidebar } from "@/components/app-sidebar.tsx";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { DetailPeekContainer } from "@/components/detail-peek.tsx";
+import { PageColumn, isPageColumnPath } from "@/components/page-column.tsx";
 import { PageHeader } from "@/components/page-header.tsx";
-import { isSettingsColumnPath } from "@/components/settings-column.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { Toaster } from "@/components/ui/sonner.tsx";
 import { AssetDialog } from "@/features/assets";
@@ -19,6 +19,7 @@ function Layout() {
   const { triageCount } = getFindingNavigationCounts(findingStats.data);
   const page = usePage();
   const { pathname } = useLocation();
+  const inPageColumn = isPageColumnPath(pathname);
 
   return (
     <>
@@ -31,11 +32,17 @@ function Layout() {
           <div className="flex min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-card">
             <AppSidebar triageCount={triageCount} />
             <main className="flex min-w-0 flex-1 flex-col">
-              <PageHeader {...page} titleAsHeading={!isSettingsColumnPath(pathname)} />
+              <PageHeader {...page} titleAsHeading={!inPageColumn} />
               <DetailPeekContainer>
                 {/* List pages render full-bleed rows under a sticky toolbar, without page padding. */}
                 <div className="h-full overflow-y-auto p-5 has-data-full-bleed:p-0">
-                  <Outlet />
+                  {inPageColumn ? (
+                    <PageColumn>
+                      <Outlet />
+                    </PageColumn>
+                  ) : (
+                    <Outlet />
+                  )}
                 </div>
               </DetailPeekContainer>
             </main>

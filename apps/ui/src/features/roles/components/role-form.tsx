@@ -7,13 +7,6 @@ import { useForm } from "@tanstack/react-form";
 import { useMemo } from "react";
 
 import { Button } from "@/components/ui/button.tsx";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card.tsx";
 import { Checkbox } from "@/components/ui/checkbox.tsx";
 import {
   Field,
@@ -188,135 +181,125 @@ export function RoleForm({
   const resolvedSubmitLabel = submitLabel ?? (isCreateMode ? "Create role" : "Save changes");
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{isCreateMode ? "Create role" : "Edit role"}</CardTitle>
-        <CardDescription>
-          {isCreateMode
-            ? "Add a custom role and choose its permission grants."
-            : "Update the role name and permission grants."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form
-          id={`role-form-${mode}`}
-          onSubmit={(event) => {
-            event.preventDefault();
-            void form.handleSubmit();
+    <form
+      id={`role-form-${mode}`}
+      onSubmit={(event) => {
+        event.preventDefault();
+        void form.handleSubmit();
+      }}
+      className="flex flex-col gap-6"
+    >
+      <FieldGroup>
+        <form.Field
+          name="name"
+          children={(field) => {
+            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+            return (
+              <Field data-invalid={isInvalid}>
+                <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  aria-invalid={isInvalid}
+                  placeholder="security-analyst"
+                  disabled={isSubmitting}
+                />
+                <FieldDescription>Letters, numbers, underscores and hyphens.</FieldDescription>
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            );
           }}
-          className="flex flex-col gap-6"
-        >
-          <FieldGroup>
-            <form.Field
-              name="name"
-              children={(field) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+        />
+        <form.Field
+          name="permissions"
+          children={(field) => {
+            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-                return (
-                  <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Name</FieldLabel>
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                      aria-invalid={isInvalid}
-                      placeholder="security-analyst"
-                      disabled={isSubmitting}
-                    />
-                    <FieldDescription>
-                      Use letters, numbers, underscores, and hyphens.
-                    </FieldDescription>
-                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                  </Field>
-                );
-              }}
-            />
-            <form.Field
-              name="permissions"
-              children={(field) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+            return (
+              <Field data-invalid={isInvalid}>
+                <FieldSet>
+                  <FieldLegend variant="label">Permissions</FieldLegend>
+                  {permissionGroups.length === 0 ? (
+                    <p className="text-13 text-muted-foreground">No permissions are available.</p>
+                  ) : (
+                    <div className="flex flex-col gap-1.5 rounded-lg bg-muted p-1.5">
+                      {permissionGroups.map((group) => {
+                        const groupLabelId = `role-permission-group-${group.resource}`;
 
-                return (
-                  <Field data-invalid={isInvalid}>
-                    <FieldSet>
-                      <FieldLegend>Permissions</FieldLegend>
-                      <FieldDescription>
-                        Select the resource actions granted to this role.
-                      </FieldDescription>
-                      {permissionGroups.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                          No permissions are available.
-                        </p>
-                      ) : (
-                        <div className="grid gap-3 md:grid-cols-2">
-                          {permissionGroups.map((group) => (
-                            <fieldset
-                              key={group.resource}
-                              className="rounded-lg border border-border/70 bg-muted/20 p-3"
+                        return (
+                          <div
+                            key={group.resource}
+                            role="group"
+                            aria-labelledby={groupLabelId}
+                            className="flex min-h-10 flex-wrap items-center gap-x-4 gap-y-1.5 rounded-md border border-border bg-card px-3 py-1.5"
+                          >
+                            <span
+                              id={groupLabelId}
+                              className="min-w-0 flex-1 text-13 font-medium text-foreground"
                             >
-                              <legend className="px-1 text-sm font-medium text-foreground">
-                                {formatPermissionLabel(group.resource)}
-                              </legend>
-                              <div className="mt-2 grid gap-2">
-                                {group.permissions.map((permission) => {
-                                  const checked = hasPermission(field.state.value, permission);
+                              {formatPermissionLabel(group.resource)}
+                            </span>
+                            {/* One slot per verb, so the verbs line up in columns across rows. */}
+                            <div className="flex items-center gap-x-4">
+                              {permissionVerbOrder.map((verb) => {
+                                const permission = group.permissions.find(
+                                  (candidate) => candidate.verb === verb,
+                                );
 
-                                  return (
-                                    <Field
-                                      key={rolePermissionKey(permission)}
-                                      orientation="horizontal"
-                                    >
-                                      <Checkbox
-                                        id={permissionId(permission)}
-                                        checked={checked}
-                                        onCheckedChange={(value) => {
-                                          field.handleChange(
-                                            togglePermission(
-                                              field.state.value,
-                                              permission,
-                                              !!value,
-                                            ),
-                                          );
-                                          field.handleBlur();
-                                        }}
-                                        disabled={isSubmitting}
-                                      />
-                                      <FieldLabel htmlFor={permissionId(permission)}>
-                                        {formatPermissionLabel(permission.verb)}
-                                      </FieldLabel>
-                                    </Field>
-                                  );
-                                })}
-                              </div>
-                            </fieldset>
-                          ))}
-                        </div>
-                      )}
-                    </FieldSet>
-                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                  </Field>
-                );
-              }}
-            />
-          </FieldGroup>
-          <form.Subscribe
-            selector={(state) => state.isSubmitting}
-            children={(submitting) => (
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting && <Spinner />}
-                  {resolvedSubmitLabel}
-                </Button>
-              </div>
-            )}
-          />
-        </form>
-      </CardContent>
-    </Card>
+                                if (!permission) {
+                                  return <span key={verb} className="w-18" />;
+                                }
+
+                                return (
+                                  <Field key={verb} orientation="horizontal" className="w-18">
+                                    <Checkbox
+                                      id={permissionId(permission)}
+                                      checked={hasPermission(field.state.value, permission)}
+                                      onCheckedChange={(value) => {
+                                        field.handleChange(
+                                          togglePermission(field.state.value, permission, !!value),
+                                        );
+                                        field.handleBlur();
+                                      }}
+                                      disabled={isSubmitting}
+                                    />
+                                    <FieldLabel htmlFor={permissionId(permission)}>
+                                      {formatPermissionLabel(permission.verb)}
+                                    </FieldLabel>
+                                  </Field>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </FieldSet>
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            );
+          }}
+        />
+      </FieldGroup>
+      <form.Subscribe
+        selector={(state) => state.isSubmitting}
+        children={(submitting) => (
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting && <Spinner />}
+              {resolvedSubmitLabel}
+            </Button>
+          </div>
+        )}
+      />
+    </form>
   );
 }

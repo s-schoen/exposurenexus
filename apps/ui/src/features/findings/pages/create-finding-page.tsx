@@ -13,6 +13,9 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldLegend,
+  FieldSeparator,
+  FieldSet,
 } from "@/components/ui/field.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import {
@@ -23,7 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select.tsx";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import { AssetCombobox } from "@/features/assets";
 import { useFindingLifecycle } from "@/features/findings/hooks/use-finding-lifecycle.ts";
@@ -148,7 +150,7 @@ function renderResourceFields(
       return null;
     case AffectedResourceType.WebEndpoint:
       return (
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="mt-2 grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="affected-resource-scheme">Scheme</FieldLabel>
             <Select
@@ -195,7 +197,7 @@ function renderResourceFields(
       );
     case AffectedResourceType.NetworkService:
       return (
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="mt-2 grid gap-4 md:grid-cols-2">
           {renderResourceInput({
             id: "affected-resource-host",
             value: resource.host,
@@ -239,7 +241,7 @@ function renderResourceFields(
       );
     case AffectedResourceType.SourceCode:
       return (
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="mt-2 grid gap-4 md:grid-cols-2">
           {renderResourceInput({
             id: "affected-resource-repository",
             value: resource.repository,
@@ -276,7 +278,7 @@ function renderResourceFields(
       );
     case AffectedResourceType.Package:
       return (
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="mt-2 grid gap-4 md:grid-cols-2">
           {renderResourceInput({
             id: "affected-resource-ecosystem",
             value: resource.ecosystem,
@@ -300,7 +302,7 @@ function renderResourceFields(
       );
     case AffectedResourceType.ContainerImage:
       return (
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="mt-2 grid gap-4 md:grid-cols-2">
           {renderResourceInput({
             id: "affected-resource-registry",
             value: resource.registry,
@@ -323,7 +325,7 @@ function renderResourceFields(
       );
     case AffectedResourceType.CloudResource:
       return (
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="mt-2 grid gap-4 md:grid-cols-2">
           {renderResourceInput({
             id: "affected-resource-provider",
             value: resource.provider,
@@ -391,397 +393,378 @@ export function CreateFindingPage({ onClose }: CreateFindingPageProps) {
   });
 
   return (
-    <div>
-      <form
-        id="create-finding-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void form.handleSubmit();
-        }}
-        onChange={() => setSubmissionError(null)}
-        className="flex flex-col gap-4"
-      >
-        <FieldGroup>
-          <Tabs defaultValue="general">
-            <TabsList>
-              <TabsTrigger value="general">General</TabsTrigger>
-              <TabsTrigger value="identity">Identity</TabsTrigger>
-              <TabsTrigger value="observation">Observation</TabsTrigger>
-            </TabsList>
-            <TabsContent value="general" className="grid gap-2 grid-cols-2">
-              <form.Field
-                name="title"
-                children={(field) => {
-                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-                  return (
-                    <Field data-invalid={isInvalid} className="col-span-2">
-                      <FieldLabel htmlFor={field.name}>Title</FieldLabel>
-                      <Input
-                        id={field.name}
-                        name={field.name}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                        aria-invalid={isInvalid}
-                      />
-                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                    </Field>
-                  );
-                }}
-              />
-              <form.Field
-                name="assetId"
-                children={(field) => {
-                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-                  return (
-                    <Field data-invalid={isInvalid}>
-                      <FieldLabel htmlFor={field.name}>Affected Asset</FieldLabel>
-                      <AssetCombobox
-                        id={field.name}
-                        invalid={isInvalid}
-                        onChange={(asset) => field.handleChange(asset.id)}
-                      />
-                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                    </Field>
-                  );
-                }}
-              />
-              <form.Field
-                name="severity"
-                children={(field) => {
-                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-                  return (
-                    <Field data-invalid={isInvalid}>
-                      <FieldLabel htmlFor={field.name}>Severity</FieldLabel>
-                      <Select
-                        value={field.state.value}
-                        name={field.name}
-                        onValueChange={(value) => {
-                          if (isVulnerabilitySeverity(value)) {
-                            field.handleChange(value);
-                            field.handleBlur();
-                          }
-                        }}
-                      >
-                        <SelectTrigger id={field.name} aria-invalid={isInvalid} className="w-full">
-                          <SelectValue>
-                            {(value) =>
-                              isVulnerabilitySeverity(value) ? (
-                                <SeverityBadge severity={value} />
-                              ) : null
-                            }
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {vulnerabilitySeverities.map((severity) => (
-                            <SelectItem key={severity} value={severity}>
-                              <SeverityBadge severity={severity} />
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  );
-                }}
-              />
-              <form.Field
-                name="status"
-                children={(field) => {
-                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-                  return (
-                    <Field data-invalid={isInvalid}>
-                      <FieldLabel htmlFor={field.name}>Status</FieldLabel>
-                      <Select
-                        value={field.state.value}
-                        name={field.name}
-                        onValueChange={(value) => {
-                          if (isFindingStatus(value)) {
-                            field.handleChange(value);
-                            field.handleBlur();
-                          }
-                        }}
-                      >
-                        <SelectTrigger id={field.name} aria-invalid={isInvalid} className="w-full">
-                          <SelectValue>
-                            {(value) =>
-                              isFindingStatus(value) ? formatFindingStatus(value) : null
-                            }
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {findingStatuses.map((status) => (
-                            <SelectItem key={status} value={status}>
-                              {formatFindingStatus(status)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  );
-                }}
-              />
-              <form.Field
-                name="assigneeId"
-                children={(field) => {
-                  const selectedAssignee = users.data.find((user) => user.id === field.state.value);
-
-                  return (
-                    <Field>
-                      <FieldLabel htmlFor={field.name}>Assignee</FieldLabel>
-                      <Select
-                        value={field.state.value ?? unassignedAssigneeValue}
-                        name={field.name}
-                        onValueChange={(value) => {
-                          field.handleChange(value === unassignedAssigneeValue ? null : value);
-                          field.handleBlur();
-                        }}
-                      >
-                        <SelectTrigger id={field.name} className="w-full">
-                          <SelectValue>
-                            {field.state.value === null
-                              ? "Unassigned"
-                              : selectedAssignee
-                                ? getUserProfileDisplayName(selectedAssignee)
-                                : "Select assignee"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectItem value={unassignedAssigneeValue}>Unassigned</SelectItem>
-                            {users.data.map((user) => (
-                              <SelectItem key={user.id} value={user.id}>
-                                {getUserProfileDisplayName(user)}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  );
-                }}
-              />
-              <form.Field
-                name="dueDate"
-                children={(field) => {
-                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-
-                  return (
-                    <Field data-invalid={isInvalid}>
-                      <FieldLabel htmlFor={field.name}>Due Date</FieldLabel>
-                      <Input
-                        id={field.name}
-                        name={field.name}
-                        type="date"
-                        value={formatDateInputValue(field.state.value)}
-                        onBlur={field.handleBlur}
-                        onChange={(event) =>
-                          field.handleChange(parseDateInputValue(event.target.value))
-                        }
-                        aria-invalid={isInvalid}
-                      />
-                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                    </Field>
-                  );
-                }}
-              />
-              <form.Field
-                name="mitigation"
-                children={(field) => (
-                  <Field className="col-span-2">
-                    <FieldLabel htmlFor={field.name}>Mitigation</FieldLabel>
-                    <Textarea
-                      id={field.name}
-                      name={field.name}
-                      value={field.state.value ?? ""}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value || null)}
-                      className="h-24"
-                    />
-                  </Field>
-                )}
-              />
-            </TabsContent>
-            <TabsContent value="identity" className="flex flex-col gap-4">
-              <Field>
-                <FieldLabel htmlFor="weakness">Weakness identifiers</FieldLabel>
-                <Input
-                  id="weakness"
-                  name="weakness"
-                  value={weaknessDraft}
-                  onChange={(event) => setWeaknessDraft(event.target.value)}
-                  placeholder="cwe=CWE-200; scanner=admin-panel"
-                />
-                <FieldDescription>
-                  Separate namespaces with semicolons and identifiers with commas.
-                </FieldDescription>
-              </Field>
-              <form.Field
-                name="affectedResource"
-                children={(field) => {
-                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-
-                  return (
-                    <Field data-invalid={isInvalid}>
-                      <FieldLabel htmlFor="affected-resource-type">Affected resource</FieldLabel>
-                      <Select
-                        value={field.state.value.type}
-                        onValueChange={(value) => {
-                          if (isAffectedResourceType(value)) {
-                            field.handleChange(emptyResource(value));
-                            field.handleBlur();
-                          }
-                        }}
-                      >
-                        <SelectTrigger id="affected-resource-type" aria-invalid={isInvalid}>
-                          <SelectValue>
-                            {(value) =>
-                              isAffectedResourceType(value) ? formatResourceType(value) : null
-                            }
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {resourceTypes.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {formatResourceType(type)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FieldDescription>
-                        Unspecified means that no narrower affected resource is known.
-                      </FieldDescription>
-                      {renderResourceFields(field.state.value, (resource) =>
-                        field.handleChange(resource),
-                      )}
-                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                    </Field>
-                  );
-                }}
-              />
-              <form.Field
-                name="vulnerabilityIds"
-                children={(field) => (
-                  <Field>
-                    <FieldLabel htmlFor={field.name}>Catalog entry IDs</FieldLabel>
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      value={field.state.value.join(", ")}
-                      onChange={(event) =>
-                        field.handleChange(
-                          event.target.value
-                            .split(",")
-                            .map((id) => id.trim())
-                            .filter(Boolean),
-                        )
+    <form
+      id="create-finding-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void form.handleSubmit();
+      }}
+      onChange={() => setSubmissionError(null)}
+      className="flex flex-col gap-6"
+    >
+      <FieldGroup>
+        <FieldGroup className="grid md:grid-cols-2">
+          <form.Field
+            name="title"
+            children={(field) => {
+              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+              return (
+                <Field data-invalid={isInvalid} className="md:col-span-2">
+                  <FieldLabel htmlFor={field.name}>Title</FieldLabel>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    aria-invalid={isInvalid}
+                  />
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              );
+            }}
+          />
+          <form.Field
+            name="assetId"
+            children={(field) => {
+              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+              return (
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={field.name}>Affected Asset</FieldLabel>
+                  <AssetCombobox
+                    id={field.name}
+                    invalid={isInvalid}
+                    onChange={(asset) => field.handleChange(asset.id)}
+                  />
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              );
+            }}
+          />
+          <form.Field
+            name="severity"
+            children={(field) => {
+              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+              return (
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={field.name}>Severity</FieldLabel>
+                  <Select
+                    value={field.state.value}
+                    name={field.name}
+                    onValueChange={(value) => {
+                      if (isVulnerabilitySeverity(value)) {
+                        field.handleChange(value);
+                        field.handleBlur();
                       }
-                      placeholder="Optional catalog entry UUIDs"
-                    />
-                    <FieldDescription>
-                      Linked catalog entries enrich the finding but do not define its identity or
-                      severity.
-                    </FieldDescription>
-                  </Field>
-                )}
-              />
-            </TabsContent>
-            <TabsContent value="observation" className="flex flex-col gap-4">
-              <form.Field
-                name="observation"
-                children={(field) => {
-                  const observation = field.state.value ?? {};
-                  const update = (
-                    patch: Partial<NonNullable<CreateManualFinding["observation"]>>,
-                  ) => field.handleChange({ ...observation, ...patch });
+                    }}
+                  >
+                    <SelectTrigger id={field.name} aria-invalid={isInvalid} className="w-full">
+                      <SelectValue>
+                        {(value) =>
+                          isVulnerabilitySeverity(value) ? <SeverityBadge severity={value} /> : null
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vulnerabilitySeverities.map((severity) => (
+                        <SelectItem key={severity} value={severity}>
+                          <SeverityBadge severity={severity} />
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              );
+            }}
+          />
+          <form.Field
+            name="status"
+            children={(field) => {
+              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+              return (
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={field.name}>Status</FieldLabel>
+                  <Select
+                    value={field.state.value}
+                    name={field.name}
+                    onValueChange={(value) => {
+                      if (isFindingStatus(value)) {
+                        field.handleChange(value);
+                        field.handleBlur();
+                      }
+                    }}
+                  >
+                    <SelectTrigger id={field.name} aria-invalid={isInvalid} className="w-full">
+                      <SelectValue>
+                        {(value) => (isFindingStatus(value) ? formatFindingStatus(value) : null)}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {findingStatuses.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {formatFindingStatus(status)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              );
+            }}
+          />
+          <form.Field
+            name="assigneeId"
+            children={(field) => {
+              const selectedAssignee = users.data.find((user) => user.id === field.state.value);
 
-                  return (
-                    <div className="flex flex-col gap-4">
-                      <Field>
-                        <FieldLabel htmlFor="observation-title">Observation title</FieldLabel>
-                        <Input
-                          id="observation-title"
-                          value={observation.title ?? ""}
-                          onChange={(event) => update({ title: event.target.value || undefined })}
-                        />
-                        <FieldDescription>
-                          Omit to use the finding title for the initial manual observation.
-                        </FieldDescription>
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="observation-description">Description</FieldLabel>
-                        <Textarea
-                          id="observation-description"
-                          value={observation.description ?? ""}
-                          onChange={(event) => update({ description: event.target.value || null })}
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="observation-evidence">Evidence</FieldLabel>
-                        <Textarea
-                          id="observation-evidence"
-                          value={observation.evidence ?? ""}
-                          onChange={(event) => update({ evidence: event.target.value || null })}
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="observation-remediation">
-                          Observation remediation
-                        </FieldLabel>
-                        <Textarea
-                          id="observation-remediation"
-                          value={observation.remediation ?? ""}
-                          onChange={(event) => update({ remediation: event.target.value || null })}
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="observation-observed-at">Observed at</FieldLabel>
-                        <Input
-                          id="observation-observed-at"
-                          type="datetime-local"
-                          value={
-                            observation.observedAt
-                              ? formatLocalDateTimeInput(observation.observedAt)
-                              : ""
-                          }
-                          onChange={(event) =>
-                            update({
-                              observedAt: event.target.value
-                                ? new Date(event.target.value)
-                                : undefined,
-                            })
-                          }
-                        />
-                        <FieldDescription>
-                          Omit to use the creation time. This timestamp belongs to the observation,
-                          not the finding.
-                        </FieldDescription>
-                      </Field>
-                    </div>
-                  );
-                }}
-              />
-            </TabsContent>
-          </Tabs>
+              return (
+                <Field>
+                  <FieldLabel htmlFor={field.name}>Assignee</FieldLabel>
+                  <Select
+                    value={field.state.value ?? unassignedAssigneeValue}
+                    name={field.name}
+                    onValueChange={(value) => {
+                      field.handleChange(value === unassignedAssigneeValue ? null : value);
+                      field.handleBlur();
+                    }}
+                  >
+                    <SelectTrigger id={field.name} className="w-full">
+                      <SelectValue>
+                        {field.state.value === null
+                          ? "Unassigned"
+                          : selectedAssignee
+                            ? getUserProfileDisplayName(selectedAssignee)
+                            : "Select assignee"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value={unassignedAssigneeValue}>Unassigned</SelectItem>
+                        {users.data.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {getUserProfileDisplayName(user)}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              );
+            }}
+          />
+          <form.Field
+            name="dueDate"
+            children={(field) => {
+              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+              return (
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={field.name}>Due Date</FieldLabel>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    type="date"
+                    value={formatDateInputValue(field.state.value)}
+                    onBlur={field.handleBlur}
+                    onChange={(event) =>
+                      field.handleChange(parseDateInputValue(event.target.value))
+                    }
+                    aria-invalid={isInvalid}
+                  />
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              );
+            }}
+          />
+          <form.Field
+            name="mitigation"
+            children={(field) => (
+              <Field className="md:col-span-2">
+                <FieldLabel htmlFor={field.name}>Mitigation</FieldLabel>
+                <Textarea
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value ?? ""}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value || null)}
+                  className="h-24"
+                />
+              </Field>
+            )}
+          />
         </FieldGroup>
-        {submissionError ? (
-          <p role="alert" className="text-sm font-medium text-destructive">
-            {submissionError}
-          </p>
-        ) : null}
-        <form.Subscribe
-          selector={(state) => state.isSubmitting}
-          children={(isSubmitting) => (
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                Create finding
-              </Button>
-            </div>
-          )}
-        />
-      </form>
-    </div>
+        <FieldSeparator />
+        <FieldSet>
+          <FieldLegend>Identity</FieldLegend>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="weakness">Weakness identifiers</FieldLabel>
+              <Input
+                id="weakness"
+                name="weakness"
+                value={weaknessDraft}
+                onChange={(event) => setWeaknessDraft(event.target.value)}
+                placeholder="cwe=CWE-200; scanner=admin-panel"
+              />
+              <FieldDescription>
+                Separate namespaces with semicolons and identifiers with commas.
+              </FieldDescription>
+            </Field>
+            <form.Field
+              name="affectedResource"
+              children={(field) => {
+                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <FieldLabel htmlFor="affected-resource-type">Affected resource</FieldLabel>
+                    <Select
+                      value={field.state.value.type}
+                      onValueChange={(value) => {
+                        if (isAffectedResourceType(value)) {
+                          field.handleChange(emptyResource(value));
+                          field.handleBlur();
+                        }
+                      }}
+                    >
+                      <SelectTrigger
+                        id="affected-resource-type"
+                        aria-invalid={isInvalid}
+                        className="w-full"
+                      >
+                        <SelectValue>
+                          {(value) =>
+                            isAffectedResourceType(value) ? formatResourceType(value) : null
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {resourceTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {formatResourceType(type)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {renderResourceFields(field.state.value, (resource) =>
+                      field.handleChange(resource),
+                    )}
+                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                  </Field>
+                );
+              }}
+            />
+            <form.Field
+              name="vulnerabilityIds"
+              children={(field) => (
+                <Field>
+                  <FieldLabel htmlFor={field.name}>Catalog entry IDs</FieldLabel>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value.join(", ")}
+                    onChange={(event) =>
+                      field.handleChange(
+                        event.target.value
+                          .split(",")
+                          .map((id) => id.trim())
+                          .filter(Boolean),
+                      )
+                    }
+                    placeholder="Optional catalog entry UUIDs"
+                  />
+                </Field>
+              )}
+            />
+          </FieldGroup>
+        </FieldSet>
+        <FieldSeparator />
+        <FieldSet>
+          <FieldLegend>Initial observation</FieldLegend>
+          <form.Field
+            name="observation"
+            children={(field) => {
+              const observation = field.state.value ?? {};
+              const update = (patch: Partial<NonNullable<CreateManualFinding["observation"]>>) =>
+                field.handleChange({ ...observation, ...patch });
+
+              return (
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="observation-title">Observation title</FieldLabel>
+                    <Input
+                      id="observation-title"
+                      placeholder="Same as the finding title"
+                      value={observation.title ?? ""}
+                      onChange={(event) => update({ title: event.target.value || undefined })}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="observation-description">Description</FieldLabel>
+                    <Textarea
+                      id="observation-description"
+                      value={observation.description ?? ""}
+                      onChange={(event) => update({ description: event.target.value || null })}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="observation-evidence">Evidence</FieldLabel>
+                    <Textarea
+                      id="observation-evidence"
+                      value={observation.evidence ?? ""}
+                      onChange={(event) => update({ evidence: event.target.value || null })}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="observation-remediation">
+                      Observation remediation
+                    </FieldLabel>
+                    <Textarea
+                      id="observation-remediation"
+                      value={observation.remediation ?? ""}
+                      onChange={(event) => update({ remediation: event.target.value || null })}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="observation-observed-at">Observed at</FieldLabel>
+                    <Input
+                      id="observation-observed-at"
+                      type="datetime-local"
+                      value={
+                        observation.observedAt
+                          ? formatLocalDateTimeInput(observation.observedAt)
+                          : ""
+                      }
+                      onChange={(event) =>
+                        update({
+                          observedAt: event.target.value ? new Date(event.target.value) : undefined,
+                        })
+                      }
+                    />
+                  </Field>
+                </FieldGroup>
+              );
+            }}
+          />
+        </FieldSet>
+      </FieldGroup>
+      {submissionError ? (
+        <p role="alert" className="text-sm font-medium text-destructive">
+          {submissionError}
+        </p>
+      ) : null}
+      <form.Subscribe
+        selector={(state) => state.isSubmitting}
+        children={(isSubmitting) => (
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              Create finding
+            </Button>
+          </div>
+        )}
+      />
+    </form>
   );
 }

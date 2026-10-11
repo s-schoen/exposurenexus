@@ -8,13 +8,6 @@ import { useMemo, useState } from "react";
 import { z } from "zod/v4";
 
 import { Button } from "@/components/ui/button.tsx";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card.tsx";
 import { Checkbox } from "@/components/ui/checkbox.tsx";
 import {
   Command,
@@ -24,13 +17,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command.tsx";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field.tsx";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
 import { Spinner } from "@/components/ui/spinner.tsx";
@@ -152,6 +139,7 @@ function RoleMultiSelect({
             id={id}
             type="button"
             variant="outline"
+            size="lg"
             role="combobox"
             aria-controls={popupId}
             aria-expanded={open}
@@ -159,7 +147,7 @@ function RoleMultiSelect({
             disabled={disabled}
             className="w-full justify-between"
           >
-            <span className={value.length === 0 ? "truncate text-muted-foreground" : "truncate"}>
+            <span className={value.length === 0 ? "truncate text-subtle-foreground" : "truncate"}>
               {selectedSummary}
             </span>
             <ChevronsUpDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
@@ -263,193 +251,163 @@ export function UserForm({
   const resolvedSubmitLabel = submitLabel ?? (isCreateMode ? "Create user" : "Save changes");
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{isCreateMode ? "Create user" : "Edit user"}</CardTitle>
-        <CardDescription>
-          {isCreateMode
-            ? "Add a new platform user and set their initial login credentials."
-            : "Update the visible account details. Leave the password blank to keep the current one."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form
-          id={`user-form-${mode}`}
-          onSubmit={(event) => {
-            event.preventDefault();
-            void form.handleSubmit();
+    <form
+      id={`user-form-${mode}`}
+      onSubmit={(event) => {
+        event.preventDefault();
+        void form.handleSubmit();
+      }}
+      className="flex flex-col gap-6"
+    >
+      <FieldGroup>
+        <form.Field
+          name="displayName"
+          children={(field) => {
+            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+            return (
+              <Field data-invalid={isInvalid}>
+                <FieldLabel htmlFor={field.name}>Display name</FieldLabel>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  aria-invalid={isInvalid}
+                  placeholder="Alice Example"
+                />
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            );
           }}
-          className="flex flex-col gap-6"
-        >
-          <FieldGroup>
-            <form.Field
-              name="displayName"
-              children={(field) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+        />
+        {isCreateMode && (
+          <form.Field
+            name="username"
+            children={(field) => {
+              const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-                return (
-                  <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Display name</FieldLabel>
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                      aria-invalid={isInvalid}
-                      placeholder="Alice Example"
-                    />
-                    <FieldDescription>
-                      This value is shown in the UI as the user&apos;s name.
-                    </FieldDescription>
-                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                  </Field>
-                );
-              }}
-            />
-            {isCreateMode && (
-              <form.Field
-                name="username"
-                children={(field) => {
-                  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+              return (
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={field.name}>Username</FieldLabel>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.target.value)}
+                    aria-invalid={isInvalid}
+                    placeholder="alice"
+                    autoComplete="username"
+                  />
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              );
+            }}
+          />
+        )}
+        <form.Field
+          name="email"
+          children={(field) => {
+            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-                  return (
-                    <Field data-invalid={isInvalid}>
-                      <FieldLabel htmlFor={field.name}>Username</FieldLabel>
-                      <Input
-                        id={field.name}
-                        name={field.name}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                        aria-invalid={isInvalid}
-                        placeholder="alice"
-                        autoComplete="username"
-                      />
-                      <FieldDescription>
-                        This is used for sign-in and cannot be changed later.
-                      </FieldDescription>
-                      {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                    </Field>
-                  );
-                }}
-              />
-            )}
-            <form.Field
-              name="email"
-              children={(field) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+            return (
+              <Field data-invalid={isInvalid}>
+                <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  type="email"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  aria-invalid={isInvalid}
+                  placeholder="alice@example.com"
+                  autoComplete="email"
+                />
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            );
+          }}
+        />
+        <form.Field
+          name="roleIds"
+          children={(field) => {
+            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-                return (
-                  <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Email</FieldLabel>
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      type="email"
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                      aria-invalid={isInvalid}
-                      placeholder="alice@example.com"
-                      autoComplete="email"
-                    />
-                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                  </Field>
-                );
-              }}
-            />
-            <form.Field
-              name="roleIds"
-              children={(field) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+            return (
+              <Field data-invalid={isInvalid}>
+                <FieldLabel htmlFor={field.name}>Roles</FieldLabel>
+                <RoleMultiSelect
+                  id={field.name}
+                  roles={roles}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  onBlur={field.handleBlur}
+                  disabled={isSubmitting}
+                  invalid={isInvalid}
+                />
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            );
+          }}
+        />
+        <form.Field
+          name="enabled"
+          children={(field) => {
+            return (
+              <Field orientation="horizontal">
+                <Checkbox
+                  id={field.name}
+                  checked={field.state.value}
+                  onCheckedChange={(value) => field.handleChange(!!value)}
+                  onBlur={field.handleBlur}
+                  disabled={isSubmitting}
+                />
+                <FieldLabel htmlFor={field.name}>Enabled</FieldLabel>
+              </Field>
+            );
+          }}
+        />
+        <form.Field
+          name="password"
+          children={(field) => {
+            const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
-                return (
-                  <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Roles</FieldLabel>
-                    <RoleMultiSelect
-                      id={field.name}
-                      roles={roles}
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      onBlur={field.handleBlur}
-                      disabled={isSubmitting}
-                      invalid={isInvalid}
-                    />
-                    <FieldDescription>
-                      Assign one or more roles to control the user&apos;s access across the
-                      platform.
-                    </FieldDescription>
-                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                  </Field>
-                );
-              }}
-            />
-            <form.Field
-              name="enabled"
-              children={(field) => {
-                return (
-                  <Field orientation="horizontal">
-                    <Checkbox
-                      id={field.name}
-                      checked={field.state.value}
-                      onCheckedChange={(value) => field.handleChange(!!value)}
-                      onBlur={field.handleBlur}
-                      disabled={isSubmitting}
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                      <FieldLabel htmlFor={field.name}>Enabled</FieldLabel>
-                      <FieldDescription>Disabled users cannot authenticate.</FieldDescription>
-                    </div>
-                  </Field>
-                );
-              }}
-            />
-            <form.Field
-              name="password"
-              children={(field) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
-
-                return (
-                  <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Password</FieldLabel>
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      type="password"
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                      aria-invalid={isInvalid}
-                      placeholder={
-                        isCreateMode
-                          ? "Set an initial password"
-                          : "Leave blank to keep the current password"
-                      }
-                      autoComplete={isCreateMode ? "new-password" : "off"}
-                    />
-                    {!isCreateMode && (
-                      <FieldDescription>
-                        Only enter a value here when you want to reset the password.
-                      </FieldDescription>
-                    )}
-                    {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                  </Field>
-                );
-              }}
-            />
-          </FieldGroup>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Spinner />}
-              {resolvedSubmitLabel}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+            return (
+              <Field data-invalid={isInvalid}>
+                <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  type="password"
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(event) => field.handleChange(event.target.value)}
+                  aria-invalid={isInvalid}
+                  placeholder={
+                    isCreateMode
+                      ? "Set an initial password"
+                      : "Leave blank to keep the current password"
+                  }
+                  autoComplete={isCreateMode ? "new-password" : "off"}
+                />
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            );
+          }}
+        />
+      </FieldGroup>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting && <Spinner />}
+          {resolvedSubmitLabel}
+        </Button>
+      </div>
+    </form>
   );
 }
