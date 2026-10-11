@@ -1,3 +1,4 @@
+export { UserAvatar } from "@/features/users/components/user-avatar.tsx";
 export { UserLabel } from "@/features/users/components/user-label.tsx";
 export {
   createUserProfileById,
