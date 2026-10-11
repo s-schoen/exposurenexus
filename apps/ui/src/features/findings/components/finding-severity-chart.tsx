@@ -61,9 +61,9 @@ export function FindingSeverityChart({
   } satisfies ChartConfig;
 
   return (
-    <Card className={cn("aspect-auto", className)}>
+    <Card className={cn(className)}>
       <CardHeader>
-        <CardTitle>Findings by Severity</CardTitle>
+        <CardTitle>Findings by severity</CardTitle>
       </CardHeader>
       <CardContent>
         <SimpleBarChart
