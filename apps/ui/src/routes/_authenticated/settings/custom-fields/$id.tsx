@@ -5,7 +5,7 @@ import {
   createAssetCustomFieldDefinitionByIDQueryOptions,
 } from "@/features/custom-fields";
 
-export const Route = createFileRoute("/_authenticated/custom-fields/$id")({
+export const Route = createFileRoute("/_authenticated/settings/custom-fields/$id")({
   loader: ({ context: { queryClient }, params: { id } }) =>
     queryClient.ensureQueryData(createAssetCustomFieldDefinitionByIDQueryOptions(id)),
   component: RouteComponent,
@@ -14,7 +14,9 @@ export const Route = createFileRoute("/_authenticated/custom-fields/$id")({
 function RouteComponent() {
   const { id } = Route.useParams();
   const matchRoute = useMatchRoute();
-  const isEditRoute = Boolean(matchRoute({ to: "/custom-fields/$id/edit", params: { id } }));
+  const isEditRoute = Boolean(
+    matchRoute({ to: "/settings/custom-fields/$id/edit", params: { id } }),
+  );
 
   if (isEditRoute) {
     return <Outlet />;

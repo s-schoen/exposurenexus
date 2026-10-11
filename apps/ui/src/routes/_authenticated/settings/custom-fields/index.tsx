@@ -7,7 +7,7 @@ import {
 } from "@/features/custom-fields";
 import { validateSelectedSearch } from "@/hooks/use-selected-search-param.ts";
 
-export const Route = createFileRoute("/_authenticated/custom-fields/")({
+export const Route = createFileRoute("/_authenticated/settings/custom-fields/")({
   validateSearch: (search: Record<string, unknown>) => ({
     ...search,
     ...validateSelectedSearch(search),

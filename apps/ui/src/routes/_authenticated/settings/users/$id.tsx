@@ -3,7 +3,7 @@ import { Outlet, createFileRoute, useMatchRoute } from "@tanstack/react-router";
 import { createListRolesQueryOptions } from "@/features/roles";
 import { UserDetailPage, createUserByIDQueryOptions } from "@/features/users";
 
-export const Route = createFileRoute("/_authenticated/users/$id")({
+export const Route = createFileRoute("/_authenticated/settings/users/$id")({
   loader: ({ context, params }) =>
     Promise.all([
       context.queryClient.ensureQueryData(createUserByIDQueryOptions(params.id)),
@@ -16,7 +16,7 @@ function RouteComponent() {
   const { id } = Route.useParams();
 
   const matchRoute = useMatchRoute();
-  const isEditRoute = Boolean(matchRoute({ to: "/users/$id/edit", params: { id } }));
+  const isEditRoute = Boolean(matchRoute({ to: "/settings/users/$id/edit", params: { id } }));
 
   if (isEditRoute) {
     return <Outlet />;

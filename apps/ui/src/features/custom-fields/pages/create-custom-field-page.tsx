@@ -15,12 +15,12 @@ export function CreateCustomFieldPage() {
   usePageMeta({
     title: "Create Custom Field",
     icon: Tags,
-    breadcrumbs: [{ label: "Custom Fields", to: "/custom-fields" }],
+    breadcrumbs: [{ label: "Custom Fields", to: "/settings/custom-fields" }],
   });
 
   const handleCancel = async () => {
     await navigate({
-      to: "/custom-fields",
+      to: "/settings/custom-fields",
       search: (previous) => ({
         filter: previous.filter,
         type: previous.type,
@@ -36,7 +36,7 @@ export function CreateCustomFieldPage() {
 
     if (customField) {
       await navigate({
-        to: "/custom-fields/$id",
+        to: "/settings/custom-fields/$id",
         params: { id: customField.id },
       });
     }

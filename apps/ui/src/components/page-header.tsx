@@ -18,7 +18,22 @@ function keepListFilters(previous: Record<string, unknown>) {
   return { ...previous, selected: undefined };
 }
 
-export function PageHeader({ title, icon: Icon, breadcrumbs, count, actions, menu }: PageMeta) {
+interface PageHeaderProps extends PageMeta {
+  /** False when the page renders its own heading, as settings pages do. */
+  titleAsHeading?: boolean;
+}
+
+export function PageHeader({
+  title,
+  icon: Icon,
+  breadcrumbs,
+  count,
+  actions,
+  menu,
+  titleAsHeading = true,
+}: PageHeaderProps) {
+  const Title = titleAsHeading ? "h1" : "span";
+
   return (
     <header className="flex h-13 shrink-0 items-center justify-between gap-3 border-b border-border px-5">
       <div className="flex min-w-0 items-center gap-2">
@@ -43,12 +58,12 @@ export function PageHeader({ title, icon: Icon, breadcrumbs, count, actions, men
                 </Fragment>
               ))}
               <li aria-current="page" className="min-w-0">
-                <h1 className="truncate font-medium text-foreground">{title}</h1>
+                <Title className="block truncate font-medium text-foreground">{title}</Title>
               </li>
             </ol>
           </nav>
         ) : (
-          <h1 className="truncate text-base font-medium text-foreground">{title}</h1>
+          <Title className="truncate text-base font-medium text-foreground">{title}</Title>
         )}
         {count !== undefined && (
           <span className="shrink-0 rounded-md bg-primary-subtle px-1.5 text-xs leading-5 font-medium text-primary-subtle-foreground tabular-nums">

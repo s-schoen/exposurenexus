@@ -10,7 +10,7 @@ import { seedScenario } from "@/test/msw.ts";
 import type { MockScenario } from "@/mocks/db.ts";
 
 interface RenderAppOptions {
-  /** Initial URL, e.g. `/roles?selected=…`. */
+  /** Initial URL, e.g. `/settings/roles?selected=…`. */
   path?: string;
   /** Mock data seed; tests start from `default` (signed in as the seeded admin). */
   scenario?: MockScenario;

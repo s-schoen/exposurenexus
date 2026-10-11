@@ -16,6 +16,9 @@ function motionOf(locator: Locator) {
       transitionProperty: style.transitionProperty,
       transitionDuration: style.transitionDuration,
       animationName: style.animationName,
+      animationDuration: style.animationDuration,
+      animationTimingFunction: style.animationTimingFunction,
+      navEnterOffset: style.getPropertyValue("--nav-enter-offset"),
       backgroundColor: style.backgroundColor,
       backdropFilter: style.backdropFilter,
     };
@@ -23,7 +26,7 @@ function motionOf(locator: Locator) {
 }
 
 async function openAccountMenu(page: Page) {
-  await page.goto("/roles");
+  await page.goto("/settings/roles");
   await page.getByRole("button", { name: new RegExp(ROBIN.displayName) }).click();
   await expect(page.getByRole("menuitem", { name: "Sign Out" })).toBeVisible();
   return page.locator("[data-slot=dropdown-menu-content]");
@@ -60,6 +63,25 @@ test("fades dialogs over 300ms on a plain 30% backdrop", async ({ page }) => {
   });
 });
 
+test("slides the sidebar into Settings from the right and back from the left", async ({ page }) => {
+  await page.goto("/findings");
+  expect(await motionOf(page.locator("[data-mode=main]"))).toMatchObject({ animationName: "none" });
+
+  await page.getByRole("link", { name: "Settings" }).click();
+  expect(await motionOf(page.locator("[data-mode=settings]"))).toMatchObject({
+    animationName: "nav-enter",
+    animationDuration: "0.18s",
+    animationTimingFunction: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+    navEnterOffset: "",
+  });
+
+  await page.getByRole("link", { name: "Leave Settings" }).click();
+  expect(await motionOf(page.locator("[data-mode=main]"))).toMatchObject({
+    animationName: "nav-enter",
+    navEnterOffset: "-0.5rem",
+  });
+});
+
 test.describe("with reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
 
@@ -69,6 +91,15 @@ test.describe("with reduced motion", () => {
     expect(await motionOf(menu)).toMatchObject({ transitionDuration: "0s" });
     expect(await motionOf(page.getByRole("menuitem", { name: "Sign Out" }))).toMatchObject({
       transitionDuration: "0s",
+    });
+  });
+
+  test("switches the sidebar mode without animating", async ({ page }) => {
+    await page.goto("/findings");
+    await page.getByRole("link", { name: "Settings" }).click();
+
+    expect(await motionOf(page.locator("[data-mode=settings]"))).toMatchObject({
+      animationDuration: "0s",
     });
   });
 });

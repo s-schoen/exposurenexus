@@ -35,7 +35,7 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
   });
   const selectedSearch = useSelectedSearchParam<Role>({
     selectedId: selected,
-    to: "/roles",
+    to: "/settings/roles",
     replace: true,
     getId: (role) => role.id,
   });
@@ -49,7 +49,7 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
 
   const handleOpenRole = async (role: Role) => {
     await navigate({
-      to: "/roles/$id",
+      to: "/settings/roles/$id",
       params: {
         id: role.id,
       },
@@ -97,7 +97,7 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
           void handleOpenRole(role);
         }}
         onCreateRole={() => {
-          void navigate({ to: "/roles/new" });
+          void navigate({ to: "/settings/roles/new" });
         }}
         onDeleteRoles={handleDeleteRoles}
       />
@@ -108,7 +108,7 @@ export function RolesPage({ search = {}, selected }: RolesPageProps) {
         }}
         title="Role details"
         description="Review the selected role without leaving the roles table."
-        fullPageHref={selected ? `/roles/${selected}` : undefined}
+        fullPageHref={selected ? `/settings/roles/${selected}` : undefined}
       >
         {selected && (
           <Suspense fallback={null}>

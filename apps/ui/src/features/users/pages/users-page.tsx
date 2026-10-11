@@ -31,7 +31,7 @@ export function UsersPage({ search = {}, selected }: UsersPageProps) {
   const users = useSuspenseQuery(createListUsersQueryOptions());
   const selectedSearch = useSelectedSearchParam<UserProfile>({
     selectedId: selected,
-    to: "/users",
+    to: "/settings/users",
     getId: (user) => user.id,
   });
 
@@ -51,7 +51,7 @@ export function UsersPage({ search = {}, selected }: UsersPageProps) {
           void selectedSearch.selectRow(user);
         }}
         onCreateUser={() => {
-          void navigate({ to: "/users/new" });
+          void navigate({ to: "/settings/users/new" });
         }}
       />
       <DetailPreviewDialog
@@ -61,7 +61,7 @@ export function UsersPage({ search = {}, selected }: UsersPageProps) {
         }}
         title="User details"
         description="Review the selected user without leaving the user table."
-        fullPageHref={selected ? `/users/${selected}` : undefined}
+        fullPageHref={selected ? `/settings/users/${selected}` : undefined}
       >
         {selected && (
           <Suspense fallback={null}>

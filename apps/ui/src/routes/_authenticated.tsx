@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { Outlet, createFileRoute, redirect, useLocation } from "@tanstack/react-router";
 
 import AppHeader from "@/components/app-header.tsx";
 import { AppSidebar } from "@/components/app-sidebar.tsx";
 import { ConfirmDialog } from "@/components/confirm-dialog.tsx";
 import { PageHeader } from "@/components/page-header.tsx";
+import { isSettingsPath } from "@/components/settings-column.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { Toaster } from "@/components/ui/sonner.tsx";
 import { AssetDialog } from "@/features/assets";
@@ -16,6 +17,7 @@ function Layout() {
   const findingStats = useQuery(createFindingStatsQueryOptions());
   const { triageCount } = getFindingNavigationCounts(findingStats.data);
   const page = usePage();
+  const { pathname } = useLocation();
 
   return (
     <>
@@ -28,7 +30,7 @@ function Layout() {
           <div className="flex min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-card">
             <AppSidebar triageCount={triageCount} />
             <main className="flex min-w-0 flex-1 flex-col">
-              <PageHeader {...page} />
+              <PageHeader {...page} titleAsHeading={!isSettingsPath(pathname)} />
               <div className="flex-1 overflow-y-auto p-5">
                 <Outlet />
               </div>

@@ -18,19 +18,19 @@ async function signIn(user: ReturnType<typeof renderApp>["user"], username: stri
 
 describe("authentication", () => {
   it("sends signed-out visitors to the login page with a redirect back", async () => {
-    const { router } = renderApp({ path: "/roles?kind=Custom", scenario: "loggedOut" });
+    const { router } = renderApp({ path: "/settings/roles?kind=Custom", scenario: "loggedOut" });
 
     expect(await screen.findByLabelText("Username")).toBeVisible();
     expect(router.state.location.pathname).toBe("/login");
-    expect(router.state.location.search).toEqual({ redirect: "/roles?kind=Custom" });
+    expect(router.state.location.search).toEqual({ redirect: "/settings/roles?kind=Custom" });
   });
 
   it("signs in and continues to the redirect target", async () => {
-    const { router, user } = renderApp({ path: "/roles", scenario: "loggedOut" });
+    const { router, user } = renderApp({ path: "/settings/roles", scenario: "loggedOut" });
 
     await signIn(user, MORGAN.username);
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/roles"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/roles"));
     expect(db.session?.user.id).toBe(MORGAN.id);
     expect(await screen.findByRole("button", { name: MORGAN.displayName })).toBeVisible();
   });
@@ -47,14 +47,14 @@ describe("authentication", () => {
   });
 
   it("redirects signed-in visitors away from the login page", async () => {
-    const { router } = renderApp({ path: "/login?redirect=%2Fusers" });
+    const { router } = renderApp({ path: "/login?redirect=%2Fsettings%2Fusers" });
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/users"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/users"));
     expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
   });
 
   it("signs out from the account menu", async () => {
-    const { router, user } = renderApp({ path: "/roles" });
+    const { router, user } = renderApp({ path: "/settings/roles" });
 
     await user.click(await screen.findByRole("button", { name: ROBIN.displayName }));
     await user.click(await screen.findByRole("menuitem", { name: "Sign Out" }));
@@ -64,16 +64,16 @@ describe("authentication", () => {
   });
 
   it("returns to the login page when the session expires mid-visit", async () => {
-    const { router } = renderApp({ path: "/roles" });
+    const { router } = renderApp({ path: "/settings/roles" });
     await screen.findByText(CUSTOM_AUDITOR_ROLE.name);
     // The server forgets the session: every request, including the session check, gets a 401.
     db.session = null;
 
-    await router.navigate({ to: "/roles/$id", params: { id: CUSTOM_AUDITOR_ROLE.id } });
+    await router.navigate({ to: "/settings/roles/$id", params: { id: CUSTOM_AUDITOR_ROLE.id } });
 
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
     expect(router.state.location.search).toEqual({
-      redirect: `/roles/${CUSTOM_AUDITOR_ROLE.id}`,
+      redirect: `/settings/roles/${CUSTOM_AUDITOR_ROLE.id}`,
     });
   });
 });

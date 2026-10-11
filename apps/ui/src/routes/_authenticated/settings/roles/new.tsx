@@ -1,13 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { createListRolesQueryOptions } from "@/features/roles";
-import { CreateUserPage } from "@/features/users";
+import { CreateRolePage, createListRolesQueryOptions } from "@/features/roles";
 
-export const Route = createFileRoute("/_authenticated/users/new")({
+export const Route = createFileRoute("/_authenticated/settings/roles/new")({
   loader: ({ context }) => context.queryClient.ensureQueryData(createListRolesQueryOptions()),
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  return <CreateUserPage />;
+  return <CreateRolePage />;
 }

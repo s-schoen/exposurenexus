@@ -41,7 +41,7 @@ export function useRoleTableSearchState({ search }: { search: Record<string, unk
     filterState,
     onFilterStateChange: (nextState: DataTableFilterState) => {
       void navigate({
-        to: "/roles",
+        to: "/settings/roles",
         replace: true,
         search: (prev) => ({
           ...prev,

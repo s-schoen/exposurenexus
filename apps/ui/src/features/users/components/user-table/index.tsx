@@ -49,7 +49,7 @@ export function UserTable({
 
   const handleOpenUser = async (user: UserProfile) => {
     await navigate({
-      to: "/users/$id",
+      to: "/settings/users/$id",
       params: {
         id: user.id,
       },

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { EditRolePage, createListRolesQueryOptions } from "@/features/roles";
 
-export const Route = createFileRoute("/_authenticated/roles/$id/edit")({
+export const Route = createFileRoute("/_authenticated/settings/roles/$id/edit")({
   loader: ({ context }) => context.queryClient.ensureQueryData(createListRolesQueryOptions()),
   component: RouteComponent,
 });

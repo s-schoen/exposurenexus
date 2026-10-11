@@ -17,7 +17,7 @@ async function findRoleRow(name: string) {
 
 describe("roles list", () => {
   it("lists the seeded roles", async () => {
-    renderApp({ path: "/roles" });
+    renderApp({ path: "/settings/roles" });
 
     for (const role of SEED_ROLES) {
       expect(await screen.findByText(role.name)).toBeVisible();
@@ -27,14 +27,14 @@ describe("roles list", () => {
   it("shows the route error state when the role list fails", async () => {
     mockApiError("get", "/roles", 500, "Roles request failed");
     expectConsoleLog("Error in route match");
-    renderApp({ path: "/roles" });
+    renderApp({ path: "/settings/roles" });
 
     expect(await screen.findByText("Unable to load this page")).toBeVisible();
     expect(screen.getByText("Roles request failed")).toBeVisible();
   });
 
   it("keeps the search filter in the URL", async () => {
-    const { router, user } = renderApp({ path: "/roles?kind=Custom" });
+    const { router, user } = renderApp({ path: "/settings/roles?kind=Custom" });
 
     // Paste: the input is driven by the URL, so per-keystroke typing races the navigation.
     await user.click(await screen.findByLabelText("Search across visible columns"));
@@ -48,16 +48,16 @@ describe("roles list", () => {
   });
 
   it("opens the create page from the toolbar", async () => {
-    const { router, user } = renderApp({ path: "/roles" });
+    const { router, user } = renderApp({ path: "/settings/roles" });
 
     await user.click(await screen.findByRole("button", { name: "New role" }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/roles/new"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/roles/new"));
   });
 
   it("previews a selected role and fetches it only once selected", async () => {
     const requests = recordApiRequests();
-    const { router, user } = renderApp({ path: "/roles" });
+    const { router, user } = renderApp({ path: "/settings/roles" });
 
     await user.click(await screen.findByText(CUSTOM_AUDITOR_ROLE.name));
 
@@ -75,7 +75,7 @@ describe("roles list", () => {
 
   it("keeps a preview failure inside the dialog", async () => {
     mockApiError("get", "/roles/:id", 500, "Role request failed");
-    renderApp({ path: `/roles?selected=${CUSTOM_AUDITOR_ROLE.id}` });
+    renderApp({ path: `/settings/roles?selected=${CUSTOM_AUDITOR_ROLE.id}` });
 
     const dialog = await screen.findByRole("dialog", { name: "Role details" });
     expect(await within(dialog).findByText("Role request failed")).toBeVisible();
@@ -87,7 +87,7 @@ describe("deleting roles", () => {
   it("deletes only the custom roles of a confirmed selection", async () => {
     const unassigned = buildRole({ name: "triager" });
     db.roles.insert(unassigned);
-    const { user } = renderApp({ path: "/roles" });
+    const { user } = renderApp({ path: "/settings/roles" });
 
     await user.click(
       within(await findRoleRow(unassigned.name)).getByRole("checkbox", { name: "Select row" }),
@@ -105,7 +105,7 @@ describe("deleting roles", () => {
 
   it("refuses to delete built-in roles", async () => {
     const requests = recordApiRequests();
-    const { user } = renderApp({ path: "/roles" });
+    const { user } = renderApp({ path: "/settings/roles" });
 
     await user.click(
       within(await findRoleRow(VIEWER_ROLE.name)).getByRole("checkbox", { name: "Select row" }),
@@ -117,7 +117,7 @@ describe("deleting roles", () => {
   });
 
   it("keeps roles when the confirmation is cancelled", async () => {
-    const { user } = renderApp({ path: "/roles" });
+    const { user } = renderApp({ path: "/settings/roles" });
 
     await user.click(
       within(await findRoleRow(CUSTOM_AUDITOR_ROLE.name)).getByRole("checkbox", {
@@ -134,7 +134,7 @@ describe("deleting roles", () => {
     const other = buildRole({ name: "triager" });
     db.roles.insert(other);
     expectConsoleLog(`role ${CUSTOM_AUDITOR_ROLE.name} is still assigned to users`);
-    const { user } = renderApp({ path: "/roles" });
+    const { user } = renderApp({ path: "/settings/roles" });
 
     for (const name of [CUSTOM_AUDITOR_ROLE.name, other.name]) {
       await user.click(
@@ -152,7 +152,7 @@ describe("deleting roles", () => {
 
 describe("role detail", () => {
   it("shows a custom role with an edit action", async () => {
-    const { router, user } = renderApp({ path: `/roles/${CUSTOM_AUDITOR_ROLE.id}` });
+    const { router, user } = renderApp({ path: `/settings/roles/${CUSTOM_AUDITOR_ROLE.id}` });
 
     expect(
       await screen.findByRole("heading", { level: 1, name: CUSTOM_AUDITOR_ROLE.name }),
@@ -160,12 +160,12 @@ describe("role detail", () => {
     await user.click(screen.getByRole("button", { name: "Edit role" }));
 
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe(`/roles/${CUSTOM_AUDITOR_ROLE.id}/edit`),
+      expect(router.state.location.pathname).toBe(`/settings/roles/${CUSTOM_AUDITOR_ROLE.id}/edit`),
     );
   });
 
   it("offers no edit action for built-in roles", async () => {
-    renderApp({ path: `/roles/${VIEWER_ROLE.id}` });
+    renderApp({ path: `/settings/roles/${VIEWER_ROLE.id}` });
 
     expect(await screen.findByRole("heading", { level: 1, name: VIEWER_ROLE.name })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Edit role" })).not.toBeInTheDocument();
@@ -173,7 +173,7 @@ describe("role detail", () => {
 
   it("goes back to the list with its filters but without a selection", async () => {
     const { router, user } = renderApp({
-      path: `/roles/${CUSTOM_AUDITOR_ROLE.id}?kind=Custom&selected=${CUSTOM_AUDITOR_ROLE.id}`,
+      path: `/settings/roles/${CUSTOM_AUDITOR_ROLE.id}?kind=Custom&selected=${CUSTOM_AUDITOR_ROLE.id}`,
     });
     await screen.findByRole("heading", { level: 1, name: CUSTOM_AUDITOR_ROLE.name });
 
@@ -183,14 +183,14 @@ describe("role detail", () => {
       }),
     );
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/roles"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/roles"));
     expect(router.state.location.search).toEqual({ kind: "Custom" });
   });
 });
 
 describe("creating and editing roles", () => {
   it("creates a role and opens it", async () => {
-    const { router, user } = renderApp({ path: "/roles/new" });
+    const { router, user } = renderApp({ path: "/settings/roles/new" });
 
     await user.type(await screen.findByLabelText("Name"), "triager");
     await user.click(screen.getByRole("button", { name: "Create role" }));
@@ -200,31 +200,33 @@ describe("creating and editing roles", () => {
       expect(role).toBeDefined();
       return role!;
     });
-    await waitFor(() => expect(router.state.location.pathname).toBe(`/roles/${created.id}`));
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(`/settings/roles/${created.id}`),
+    );
     expect(await screen.findByRole("heading", { level: 1, name: "triager" })).toBeVisible();
   });
 
   it("stays on the form when creating fails", async () => {
     mockApiError("post", "/roles", 500, "Create failed");
-    const { router, user } = renderApp({ path: "/roles/new" });
+    const { router, user } = renderApp({ path: "/settings/roles/new" });
 
     await user.type(await screen.findByLabelText("Name"), "triager");
     await user.click(screen.getByRole("button", { name: "Create role" }));
 
     expect(await screen.findByText(/Create failed/)).toBeVisible();
-    expect(router.state.location.pathname).toBe("/roles/new");
+    expect(router.state.location.pathname).toBe("/settings/roles/new");
   });
 
   it("cancels creation back to the list", async () => {
-    const { router, user } = renderApp({ path: "/roles/new" });
+    const { router, user } = renderApp({ path: "/settings/roles/new" });
 
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
 
-    await waitFor(() => expect(router.state.location.pathname).toBe("/roles"));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/settings/roles"));
   });
 
   it("edits a role and returns to its detail page", async () => {
-    const { router, user } = renderApp({ path: `/roles/${CUSTOM_AUDITOR_ROLE.id}/edit` });
+    const { router, user } = renderApp({ path: `/settings/roles/${CUSTOM_AUDITOR_ROLE.id}/edit` });
 
     const name = await screen.findByLabelText("Name");
     expect(name).toHaveValue(CUSTOM_AUDITOR_ROLE.name);
@@ -234,24 +236,24 @@ describe("creating and editing roles", () => {
 
     await waitFor(() => expect(db.roles.get(CUSTOM_AUDITOR_ROLE.id)?.name).toBe("auditor"));
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe(`/roles/${CUSTOM_AUDITOR_ROLE.id}`),
+      expect(router.state.location.pathname).toBe(`/settings/roles/${CUSTOM_AUDITOR_ROLE.id}`),
     );
   });
 
   it("cancels editing back to the detail page", async () => {
-    const { router, user } = renderApp({ path: `/roles/${CUSTOM_AUDITOR_ROLE.id}/edit` });
+    const { router, user } = renderApp({ path: `/settings/roles/${CUSTOM_AUDITOR_ROLE.id}/edit` });
 
     await user.click(await screen.findByRole("button", { name: "Cancel" }));
 
     await waitFor(() =>
-      expect(router.state.location.pathname).toBe(`/roles/${CUSTOM_AUDITOR_ROLE.id}`),
+      expect(router.state.location.pathname).toBe(`/settings/roles/${CUSTOM_AUDITOR_ROLE.id}`),
     );
     expect(db.roles.get(CUSTOM_AUDITOR_ROLE.id)).toEqual(CUSTOM_AUDITOR_ROLE);
   });
 });
 
 it("sends signed-out visitors to the login page", async () => {
-  const { router } = renderApp({ path: "/roles", scenario: "loggedOut" });
+  const { router } = renderApp({ path: "/settings/roles", scenario: "loggedOut" });
 
   expect(await screen.findByLabelText("Username")).toBeVisible();
   expect(router.state.location.pathname).toBe("/login");

@@ -9,10 +9,10 @@ import {
 } from "@/features/custom-fields";
 import { PageProvider } from "@/hooks/use-page-meta.tsx";
 import { SEED_CUSTOM_FIELDS } from "@/mocks/fixtures/seed.ts";
-import { Route as EditRoute } from "@/routes/_authenticated/custom-fields/$id.edit.tsx";
-import { Route as DetailRoute } from "@/routes/_authenticated/custom-fields/$id.tsx";
-import { Route as IndexRoute } from "@/routes/_authenticated/custom-fields/index.tsx";
-import { Route as NewRoute } from "@/routes/_authenticated/custom-fields/new.tsx";
+import { Route as EditRoute } from "@/routes/_authenticated/settings/custom-fields/$id.edit.tsx";
+import { Route as DetailRoute } from "@/routes/_authenticated/settings/custom-fields/$id.tsx";
+import { Route as IndexRoute } from "@/routes/_authenticated/settings/custom-fields/index.tsx";
+import { Route as NewRoute } from "@/routes/_authenticated/settings/custom-fields/new.tsx";
 import { recordApiRequests } from "@/test/msw.ts";
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
